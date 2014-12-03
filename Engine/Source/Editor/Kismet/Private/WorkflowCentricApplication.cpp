@@ -58,6 +58,10 @@ void FWorkflowCentricApplication::SetCurrentMode(FName NewMode)
 			//@TODO: Should do some validation here
 			CurrentAppModePtr = NewModePtr;
 
+			// Establish the workspace menu category for the new mode
+			TabManager->ClearLocalWorkspaceMenuCategories();
+			TabManager->AddLocalWorkspaceMenuItem( CurrentAppModePtr->GetWorkspaceMenuCategory() );
+
 			// Activate the new layout
 			const TSharedRef<FTabManager::FLayout> NewLayout = CurrentAppModePtr->ActivateMode(TabManager);
 			RestoreFromLayout(NewLayout);
@@ -86,10 +90,17 @@ void FWorkflowCentricApplication::PushTabFactories(FWorkflowAllowedTabSet& Facto
 	for (auto FactoryIt = FactorySetToPush.CreateIterator(); FactoryIt; ++FactoryIt)
 	{
 		TSharedPtr<FWorkflowTabFactory> SomeFactory = FactoryIt.Value();
-		TabManager->RegisterTabSpawner( SomeFactory->GetIdentifier(), FOnSpawnTab::CreateRaw( this, &FWorkflowCentricApplication::CreatePanelTab, SomeFactory ) )
-			.SetDisplayName( SomeFactory->ConstructTabName( SpawnInfo ).Get() )
-			.SetGroup(WorkspaceMenu::GetMenuStructure().GetAssetEditorCategory());
-	}
+		FTabSpawnerEntry& SpawnerEntry = TabManager->RegisterTabSpawner(SomeFactory->GetIdentifier(), FOnSpawnTab::CreateRaw(this, &FWorkflowCentricApplication::CreatePanelTab, SomeFactory))
+			.SetDisplayName(SomeFactory->ConstructTabName(SpawnInfo).Get())
+			.SetGroup(CurrentAppModePtr->GetWorkspaceMenuCategory());
+		
+		// Add the tab icon to the menu entry if one was provided
+		const FSlateIcon& TabSpawnerIcon = SomeFactory->GetTabSpawnerIcon(SpawnInfo);
+		if (TabSpawnerIcon.IsSet())
+		{
+			SpawnerEntry.SetIcon(TabSpawnerIcon);
+		}
+	} 
 }
 
 bool FWorkflowCentricApplication::OnRequestClose()

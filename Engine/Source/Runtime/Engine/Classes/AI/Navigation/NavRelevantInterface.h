@@ -20,6 +20,9 @@ class INavRelevantInterface
 	/** Get bounds for navigation octree */
 	virtual FBox GetNavigationBounds() const { return FBox(0); }
 
+	/** Update bounds, called after moving owning actor */
+	virtual void UpdateNavigationBounds() {}
+
 	/** Are modifiers active? */
 	virtual bool IsNavigationRelevant() const { return true; }
 

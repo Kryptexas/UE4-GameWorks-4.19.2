@@ -245,7 +245,8 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 
 	if( !WindowToViewportInfo.Contains( &Window.Get() ) )
 	{
-		const FVector2D WindowSize = Window->GetSizeInScreen();
+		const FVector2D WindowSize = Window->GetViewportSize();
+
 		// Clamp the window size to a reasonable default anything below 8 is a d3d warning and 8 is used anyway.
 		// @todo Slate: This is a hack to work around menus being summoned with 0,0 for window size until they are ticked.
 		const uint32 Width = FMath::Max(8,FMath::TruncToInt(WindowSize.X));
@@ -358,8 +359,10 @@ void FSlateRHIRenderer::RestoreSystemResolution(const TSharedRef<SWindow> InWind
 {
 	if (!GIsEditor)
 	{
-		FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, GSystemResolution.WindowMode);
-		GSystemResolution.ResX = GSystemResolution.ResY = 0;
+		// Force the window system to resize the active viewport, even though nothing might have appeared to change.
+		// On windows, DXGI might change the window resolution behind our backs when we alt-tab out. This will make
+		// sure that we are actually in the resolution we think we are.
+		GSystemResolution.ForceRefresh();
 	}
 }
 
@@ -386,7 +389,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 /** Draws windows from a FSlateDrawBuffer on the render thread */
 void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, SlateUI, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
@@ -567,7 +570,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 		if( Window.IsValid() )
 		{
-			const FVector2D WindowSize = Window->GetSizeInScreen();
+			const FVector2D WindowSize = Window->GetViewportSize();
 			if ( WindowSize.X > 0 && WindowSize.Y > 0 )
 			{
 				// Add all elements for this window to the element batcher
@@ -595,8 +598,11 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 				// The viewport had better exist at this point  
 				FViewportInfo* ViewInfo = WindowToViewportInfo.FindChecked( Window.Get() );
 
-				// Resize the viewport if needed
-				ConditionalResizeViewport( ViewInfo, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight, IsViewportFullscreen( *Window )  );
+				if (Window->IsViewportSizeDrivenByWindow())
+				{
+					// Resize the viewport if needed
+					ConditionalResizeViewport(ViewInfo, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight, IsViewportFullscreen(*Window));
+				}
 
 				if( bRequiresStencilTest )
 				{	
@@ -623,11 +629,15 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 					// the FSlateWindowElementList structure
 					Params.SlateWindow = Window.Get();
 
-					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( SlateDrawWindowsCommand, 
-						FSlateDrawWindowCommandParams, Params, Params,
+					// Skip the actual draw if we're in a headless execution environment
+					if (GIsClient && !IsRunningCommandlet() && !GUsingNullRHI)
 					{
-						Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync);
-					});
+						ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(SlateDrawWindowsCommand,
+							FSlateDrawWindowCommandParams, Params, Params,
+							{
+								Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync);
+							});
+					}
 
 					SlateWindowRendered.Broadcast( *Params.SlateWindow, &ViewInfo->ViewportRHI );
 
@@ -839,7 +849,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 				DrawWindowToBuffer,
 				FDrawWindowToBufferContext,Context,DrawWindowToBufferContext,
 			{
-				const auto FeatureLevel = GRHIFeatureLevel;
+				const auto FeatureLevel = GMaxRHIFeatureLevel;
 				auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 				TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
@@ -1143,6 +1153,35 @@ void FSlateRHIRenderer::SetColorVisionDeficiencyType( uint32 Type )
 	GSlateShaderColorVisionDeficiencyType = Type;
 }
 
+FSlateUpdatableTexture* FSlateRHIRenderer::CreateUpdatableTexture(uint32 Width, uint32 Height)
+{
+	const bool bCreateEmptyTexture = true;
+	FSlateTexture2DRHIRef* NewTexture = new FSlateTexture2DRHIRef(Width, Height, PF_B8G8R8A8, nullptr, TexCreate_Dynamic, bCreateEmptyTexture);
+	if (IsInRenderingThread())
+	{
+		NewTexture->InitResource();
+	}
+	else
+	{
+		BeginInitResource(NewTexture);
+	}
+	return NewTexture;
+}
+
+void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
+{
+	if (IsInRenderingThread())
+	{
+		Texture->GetRenderResource()->InitResource();
+	}
+	else
+	{
+		BeginReleaseResource(Texture->GetRenderResource());
+		FlushRenderingCommands();
+	}
+	delete Texture;
+}
+
 bool FSlateRHIRenderer::AreShadersInitialized() const
 {
 #if WITH_EDITORONLY_DATA
@@ -1178,6 +1217,6 @@ void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, FTexture2DR
 	FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef(&Window);
 	if (ViewInfo)
 	{
- 		ViewInfo->RenderTargetTexture = RT;
- 	}
+		ViewInfo->RenderTargetTexture = RT;
+	}
 }

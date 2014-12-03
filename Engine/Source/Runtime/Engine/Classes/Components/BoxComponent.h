@@ -42,7 +42,7 @@ public:
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent interface
 
 	// Begin UShapeComponent interface

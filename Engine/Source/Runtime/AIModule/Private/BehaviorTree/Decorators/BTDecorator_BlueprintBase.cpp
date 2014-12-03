@@ -6,7 +6,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 
-UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
 	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
@@ -104,14 +104,14 @@ void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerCo
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData)
+void UBTDecorator_BlueprintBase::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
 {
 	// skip flag, will be handled by bNotifyActivation
 
 	ReceiveExecutionStart(SearchData.OwnerComp->GetOwner());
 }
 
-void UBTDecorator_BlueprintBase::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
+void UBTDecorator_BlueprintBase::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
 	// skip flag, will be handled by bNotifyDeactivation
 
@@ -125,7 +125,7 @@ void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uin
 	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
 }
 
-bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	CurrentCallResult = false;
 	if (bImplementsReceiveConditionCheck)
@@ -176,7 +176,7 @@ FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -194,7 +194,7 @@ void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent* 
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
+void UBTDecorator_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
 	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);

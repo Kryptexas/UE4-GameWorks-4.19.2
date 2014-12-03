@@ -4,8 +4,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_NativeEnum.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Native Enum"))
-class UBlackboardKeyType_NativeEnum : public UBlackboardKeyType
+UCLASS(EditInlineNew, meta=(DisplayName="Native Enum"))
+class AIMODULE_API UBlackboardKeyType_NativeEnum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 

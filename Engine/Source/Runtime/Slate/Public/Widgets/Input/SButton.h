@@ -21,6 +21,7 @@ public:
 		, _Text()
 		, _ClickMethod( EButtonClickMethod::DownAndUp )
 		, _TouchMethod( EButtonTouchMethod::DownAndUp )
+		, _PressMethod( EButtonPressMethod::DownAndUp )
 		, _DesiredSizeScale( FVector2D(1,1) )
 		, _ContentScale( FVector2D(1,1) )
 		, _ButtonColorAndOpacity(FLinearColor::White)
@@ -57,6 +58,9 @@ public:
 
 		/** How should the button be clicked with touch events? */
 		SLATE_ARGUMENT( EButtonTouchMethod::Type, TouchMethod )
+
+		/** How should the button be clicked with keyboard/controller button events? */
+		SLATE_ARGUMENT( EButtonPressMethod::Type, PressMethod )
 
 		SLATE_ATTRIBUTE( FVector2D, DesiredSizeScale )
 
@@ -119,7 +123,11 @@ public:
 
 	virtual bool SupportsKeyboardFocus() const override;
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
+
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
+
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
@@ -169,8 +177,14 @@ protected:
 	/** How should the button be clicked with touch events? */
 	EButtonTouchMethod::Type TouchMethod;
 
+	/** How should the button be clicked with keyboard/controller button events? */
+	EButtonPressMethod::Type PressMethod;
+
 	/** Can this button be focused? */
 	bool bIsFocusable;
+
+	/** Utility function to determine if the incoming mouse event is for a precise tap or click */
+	bool IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const;
 
 	/** Play the pressed sound */
 	void PlayPressedSound() const;

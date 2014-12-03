@@ -93,7 +93,7 @@ public:
 		: FPrimitiveSceneProxy(Component)
 		, Material(NULL)
 		, DynamicData(NULL)
-		, MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
+		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 		, NumSegments(Component->NumSegments)
 		, CableWidth(Component->CableWidth)
 		, NumSides(Component->NumSides)
@@ -378,8 +378,8 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-UCableComponent::UCableComponent( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UCableComponent::UCableComponent( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
@@ -586,7 +586,7 @@ void UCableComponent::SendRenderDynamicData_Concurrent()
 	}
 }
 
-FBoxSphereBounds UCableComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UCableComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Calculate bounding box of cable points
 	FBox CableBox(0);

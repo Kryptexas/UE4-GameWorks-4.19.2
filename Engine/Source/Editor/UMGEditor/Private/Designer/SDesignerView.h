@@ -8,6 +8,8 @@
 #include "DesignerExtension.h"
 #include "IUMGDesigner.h"
 
+#include "SPaintSurface.h"
+
 namespace EDesignerMessage
 {
 	enum Type
@@ -18,11 +20,13 @@ namespace EDesignerMessage
 }
 
 class FDesignerExtension;
+class UPanelWidget;
+class UUserWidget;
 
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
  */
-class SDesignerView : public SDesignSurface, public IUMGDesigner
+class SDesignerView : public SDesignSurface, public FGCObject, public IUMGDesigner
 {
 public:
 
@@ -39,11 +43,8 @@ public:
 	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-	//virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
-
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -57,12 +58,18 @@ public:
 
 	// IUMGDesigner interface
 	virtual float GetPreviewScale() const override;
+	virtual const TSet<FWidgetReference>& GetSelectedWidgets() const override;
 	virtual FWidgetReference GetSelectedWidget() const override;
 	virtual ETransformMode::Type GetTransformMode() const override;
 	virtual FGeometry GetDesignerGeometry() const override;
 	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
+	virtual void MarkDesignModifed(bool bRequiresRecompile) override;
 	// End of IUMGDesigner interface
+
+	// FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// End of FGCObject interface
 
 private:
 	/** Establishes the resolution and aspect ratio to use on construction from config settings */
@@ -107,19 +114,33 @@ private:
 
 	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
 
-	void CacheSelectedWidgetGeometry();
-
 	/** @return Formatted text for the given resolution params */
 	FText GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const;
 
 	FText GetCurrentResolutionText() const;
+	FText GetCurrentDPIScaleText() const;
 	FSlateColor GetResolutionTextColorAndOpacity() const;
+	EVisibility GetResolutionTextVisibility() const;
+
+	TOptional<int32> GetCustomResolutionWidth() const;
+	TOptional<int32> GetCustomResolutionHeight() const;
+	void OnCustomResolutionWidthChanged(int32 InValue);
+	void OnCustomResolutionHeightChanged(int32 InValue);
+	EVisibility GetCustomResolutionEntryVisibility() const;
 	
 	// Handles selecting a common screen resolution.
 	void HandleOnCommonResolutionSelected(int32 Width, int32 Height, FString AspectRatio);
 	bool HandleIsCommonResolutionSelected(int32 Width, int32 Height) const;
 	void AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName);
+	bool HandleIsCustomResolutionSelected() const;
+	void HandleOnCustomResolutionSelected();
 	TSharedRef<SWidget> GetAspectMenu();
+
+	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
+	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
+	FReply HandleDPISettingsClicked();
+
+	UUserWidget* GetDefaultWidget() const;
 
 	void BeginTransaction(const FText& SessionName);
 	bool InTransaction() const;
@@ -172,22 +193,13 @@ private:
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
 	TSharedPtr<SDPIScaler> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
+	TSharedPtr<SPaintSurface> EffectsLayer;
 
-	FVector2D CachedDesignerWidgetLocation;
-	FVector2D CachedDesignerWidgetSize;
-
-	/** The currently selected set of widgets */
-	TSet< FWidgetReference > SelectedWidgets;
-
-	/** TODO UMG Remove, after getting multiselection working. */
-	FWidgetReference SelectedWidget;
+	/** The currently selected preview widgets in the preview GUI, just a cache used to determine changes between selection changes. */
+	TSet< FWidgetReference > SelectedWidgetsCache;
 
 	/** The location in selected widget local space where the context menu was summoned. */
 	FVector2D SelectedWidgetContextMenuLocation;
-
-	/** The currently selected slate widget, this is refreshed every frame in case it changes */
-	TArray< TWeakPtr<SWidget> > SelectedSlateWidgets;
-	TWeakPtr<SWidget> SelectedSlateWidget;
 
 	/**
 	 * Holds onto a temporary widget that the user may be getting ready to select, or may just 
@@ -195,23 +207,11 @@ private:
 	 */
 	FWidgetReference PendingSelectedWidget;
 
-	/**  */
-	bool bMouseDown;
-
-	/**  */
-	FVector2D ScreenMouseDownLocation;
+	/** The position in screen space where the user began dragging a widget */
+	FVector2D DraggingStartPositionScreenSpace;
 
 	/** An existing widget is being moved in its current container, or in to a new container. */
 	bool bMovingExistingWidget;
-
-	/** The wall clock time the user has been hovering over a single widget */
-	float HoverTime;
-
-	/** The current widget being hovered */
-	FWidgetReference HoveredWidget;
-
-	/** The current slate widget being hovered, this is refreshed every frame in case it changes */
-	TWeakPtr<SWidget> HoveredSlateWidget;
 
 	/** The configured Width of the preview area, simulates screen size. */
 	int32 PreviewWidth;

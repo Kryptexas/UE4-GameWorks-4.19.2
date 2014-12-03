@@ -43,8 +43,8 @@ private:
 	{
 		OnRebuildChildren.ExecuteIfBound();
 	}
-	/** Makes sure that renamed groups have their expansion set to their previous state */
-	void HandleRenamedGroupExpansion();
+	/** Makes sure that groups have their expansion set after any rebuilding */
+	void HandleDelayedGroupExpansion();
 
 private:
 	/** Called to rebuild the children of the detail tree */
@@ -58,7 +58,7 @@ private:
 
 	TArray<FMappingSet> GroupedMappings;
 
-	TPair<FName,bool> RenamedGroupExpansionState;
+	TArray<TPair<FName, bool>> DelayedGroupExpansionStates;
 };
 
 class FAxisMappingsNodeBuilder : public IDetailCustomNodeBuilder, public TSharedFromThis<FAxisMappingsNodeBuilder>
@@ -88,8 +88,8 @@ private:
 	{
 		OnRebuildChildren.ExecuteIfBound();
 	}
-	/** Makes sure that renamed groups have their expansion set to their previous state */
-	void HandleRenamedGroupExpansion();
+	/** Makes sure that groups have their expansion set after any rebuilding */
+	void HandleDelayedGroupExpansion();
 
 private:
 	/** Called to rebuild the children of the detail tree */
@@ -103,7 +103,7 @@ private:
 
 	TArray<FMappingSet> GroupedMappings;
 
-	TPair<FName,bool> RenamedGroupExpansionState;
+	TArray<TPair<FName, bool>> DelayedGroupExpansionStates;
 };
 
 class FInputSettingsDetails : public IDetailCustomization

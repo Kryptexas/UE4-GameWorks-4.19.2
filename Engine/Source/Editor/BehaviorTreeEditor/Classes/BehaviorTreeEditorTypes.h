@@ -114,6 +114,7 @@ private:
 	void BuildClassGraph();
 	void AddClassGraphChildren(TSharedPtr<FClassDataNode> Node, TArray<TSharedPtr<FClassDataNode> >& NodeList);
 
+	bool IsHidingClass(UClass* Class);
 	bool IsHidingParentClass(UClass* Class);
 	bool IsPackageSaved(FName PackageName);
 

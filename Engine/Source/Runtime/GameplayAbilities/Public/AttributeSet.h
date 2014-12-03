@@ -5,6 +5,7 @@
 #include "AttributeSet.generated.h"
 
 class UAbilitySystemComponent;
+struct FGameplayAbilityActorInfo;
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAttribute
@@ -19,6 +20,11 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	FGameplayAttribute(UProperty *NewProperty)
 		: Attribute(NewProperty)
 	{
+	}
+
+	bool IsValid() const
+	{
+		return Attribute != NULL;
 	}
 
 	void SetUProperty(UProperty *NewProperty)
@@ -53,7 +59,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 
 	FString GetName() const
 	{
-		return Attribute->GetName();
+		return *GetNameSafe(Attribute);
 	}
 
 private:
@@ -69,23 +75,64 @@ class GAMEPLAYABILITIES_API UAttributeSet : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
+	bool IsNameStableForNetworking() const override;
 
 	bool IsSupportedForNetworking() const override
 	{
 		return true;
 	}
 
-	/** Called just before modifying the value of an attribute. AttributeSet can make additional modifications here. */
-	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) { }
+	virtual bool ShouldInitProperty(bool FirstInit, UProperty* PropertyToInit) const { return true; }
+
+	/**
+	 *	Called just before modifying the value of an attribute. AttributeSet can make additional modifications here. Return true to continue, or false to throw out the modification.
+	 *	Note this is only called during an 'execute'. E.g., a modification to the 'base value' of an attribute. It is not called during an application of a GameplayEffect, such as a 5 ssecond +10 movement speed buff.
+	 */	
+	virtual bool PreGameplayEffectExecute(struct FGameplayEffectModCallbackData &Data) { return true; }
 	
-	/** Called just after modifying the value of an attribute. No more changes can be made */
-	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) { }
+	
+	/**
+	 *	Called just before a GameplayEffect is executed to modify the base value of an attribute. No more changes can be made.
+	 *	Note this is only called during an 'execute'. E.g., a modification to the 'base value' of an attribute. It is not called during an application of a GameplayEffect, such as a 5 ssecond +10 movement speed buff.
+	 */
+	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data) { }
+
+	/**
+	 *	An "On Aggregator Change" type of event could go here, and that could be called when active gamepaly effects are added or removed to an attribute aggregator.
+	 *	It is difficult to give all the information in these cases though - aggregators can change for many reasons: being added, being removed, being modified, having a modifier change, immunity, stacking rules, etc.
+	 */
+
+
+	/**
+	 *	Called just before any modification happens to an attribute. This is lower level than PreAttributeModify/PostAttribute modify.
+	 *	There is no additional context provided here since anything can trigger this. Executed effects, duration based effects, effects being removed, immunity being applied, stacking rules changing, etc.
+	 *	This function is meant to enforce things like "Health = Clamp(Health, 0, MaxHealth)" and NOT things like "trigger this extra thing if damage is applied, etc".
+	 */
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float NewValue) { }
+
+	/** 
+	 * Called to determine the set of gameplay attributes that the specified attribute requires as pre-requisites in order to accurately compute
+	 * the value of an attribute modification to the specified attribute. As an example, if you had a custom, complex implementation of a damage formula
+	 * and the damage relied on other attributes to perform its calculation (such as crit %, etc.), they would be output by this function.
+	 * 
+	 * @param AttributeToBeModified	Attribute that is being considered for modification and requires pre-requisites computed
+	 * @param OutPrereqs			[OUT] Pre-requisite attributes whose values/modifiers must be known prior to resolving a computation of the specified attribute
+	 */
+	virtual void GetPrerequisiteAttributesForAttributeModification(const FGameplayAttribute& AttributeToBeModified, OUT TArray<FGameplayAttribute>& OutPrereqs) const {}
+
+	/** This signifies the attribute set can be ID'd by name over the network. */
+	void SetNetAddressable();
 
 	void InitFromMetaDataTable(const UDataTable* DataTable);
 
-	void ClampFromMetaDataTable(const UDataTable *DataTable);
+	UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
+	FGameplayAbilityActorInfo* GetActorInfo() const;
 
 	virtual void PrintDebug();
+
+protected:
+	/** Is this attribute set safe to ID over the network by name?  */
+	uint32 bNetAddressable : 1;
 };
 
 USTRUCT()
@@ -210,7 +257,7 @@ public:
 };
 
 /**
- *	Helper struct that facilates initializing attribute set default values from spread sheets (UCurveTable).
+ *	Helper struct that facilitates initializing attribute set default values from spread sheets (UCurveTable).
  *	Projects are free to initialize their attribute sets however they want. This is just want example that is 
  *	useful in some cases.
  *	
@@ -233,10 +280,10 @@ public:
  *	AttributeSetName	- what UAttributeSet the attributes belong to. (Note that this is a simple partial match on the UClass name. "Health" matches "UMyGameHealthSet").
  *	Attribute			- the name of the actual attribute property (matches full name).
  *		
- *	Colums represent "Level". 
+ *	Columns represent "Level". 
  *	
  *	FAttributeSetInitter::PreloadAttributeSetData(UCurveTable*)
- *	This transforms the CurveTable into a more effecient format to read in at run time. Should be called from UAbilitySystemGlobals for example.
+ *	This transforms the CurveTable into a more efficient format to read in at run time. Should be called from UAbilitySystemGlobals for example.
  *
  *	FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const;
  *	This initializes the given AbilitySystemComponent's attribute sets with the specified GroupName and Level. Game code would be expected to call
@@ -260,7 +307,7 @@ struct GAMEPLAYABILITIES_API FAttributeSetInitter
 {
 	void PreloadAttributeSetData(UCurveTable* CurveData);
 
-	void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const;
+	void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const;
 
 private:
 
@@ -295,3 +342,18 @@ private:
 
 	TMap<FName, FAttributeSetDefaulsCollection>	Defaults;
 };
+
+/**
+ *	This is a helper macro that can be used in RepNotify functions to handle attributes that will be predictively modified by clients.
+ *	
+ *	void UMyHealthSet::OnRep_Health()
+ *	{
+ *		GAMEPLAYATTRIBUTE_REPNOTIFY(UMyHealthSet, Health);
+ *	}
+ */
+
+#define GAMEPLAYATTRIBUTE_REPNOTIFY(C, P) \
+{ \
+	static UProperty* ThisProperty = FindFieldChecked<UProperty>(C::StaticClass(), GET_MEMBER_NAME_CHECKED(C, P)); \
+	GetOwningAbilitySystemComponent()->SetBaseAttributeValueFromReplication(P, FGameplayAttribute(ThisProperty)); \
+}

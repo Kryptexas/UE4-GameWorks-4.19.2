@@ -178,7 +178,7 @@ private:
 	{
 		ILauncherDeviceGroupPtr ActiveGroup = DeviceGroup.Get();
 
-		if (ActiveGroup.IsValid() && DeviceProxy.IsValid())
+		if (ActiveGroup.IsValid() && DeviceProxy.IsValid() && DeviceProxy->HasVariant(SelectedVariant))
 		{
 			const FString& DeviceID = DeviceProxy->GetTargetDeviceId(SelectedVariant);
 			if (NewState == ESlateCheckBoxState::Checked)
@@ -224,7 +224,7 @@ private:
 	// Callback for changing the selected variant
 	void HandleVariantSelectorVariantSelected(FName InVariant)
 	{
-		if (DeviceProxy.IsValid())
+		if (DeviceProxy.IsValid() && DeviceProxy->HasVariant(SelectedVariant) && DeviceProxy->HasVariant(InVariant))
 		{
 			if (bDeviceInGroup)
 			{
@@ -245,8 +245,15 @@ private:
 	// Callback for getting the icon image of the device.
 	const FSlateBrush* HandleDeviceImage() const
 	{
-		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetTargetPlatformName(NAME_None));
-		return (PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush();
+		if (DeviceProxy->HasVariant(NAME_None))
+		{
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetTargetPlatformName(NAME_None));
+			if (PlatformInfo)
+			{
+				FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal));
+			}
+		}
+		return FStyleDefaults::GetNoBrush();
 	}
 
 	// Callback for getting the friendly name.
@@ -277,7 +284,11 @@ private:
 	// Callback for getting the host platform name.
 	FString HandleHostPlatformText() const
 	{
-		return DeviceProxy->GetTargetPlatformName(NAME_None);
+		if (DeviceProxy->HasVariant(NAME_None))
+		{
+			return DeviceProxy->GetTargetPlatformName(NAME_None);
+		}
+		return LOCTEXT("InvalidVariant", "Invalid Variant").ToString();
 	}
 
 	// Callback for getting the default variant name in the case where 

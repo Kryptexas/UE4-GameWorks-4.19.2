@@ -4,7 +4,7 @@
 
 #include "Engine.h"
 #include "ModuleInterface.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SlateTextures.h"
 
 /** This viewport is a simple interface for the loading to use to display the video textures */
@@ -114,6 +114,9 @@ public:
 	
 	/** Initializes this movie player, creating the startup window and hiding the splash screen. To be called in the launch engine loop */
 	virtual void Initialize() = 0;
+
+	/** Shutsdown the movie player */
+	virtual void Shutdown() = 0;
 
 	/** Passes the loading screen window back to the game to use. For use by the launch engine loop only */
 	virtual void PassLoadingScreenWindowBackToGame() const = 0;

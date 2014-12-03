@@ -71,7 +71,7 @@ enum EParticleEventType
 };
 
 // Called when the particle system is done
-DECLARE_DYNAMIC_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemComponent*, PSystem );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemComponent*, PSystem );
 
 
 /** Struct used for a particular named instance parameter for this ParticleSystemComponent. */
@@ -245,7 +245,7 @@ struct FParticleEventKismetData : public FParticleEventData
 };
 
 /** 
- * A particle emmitter.
+ * A particle emitter.
  */
 UCLASS(ClassGroup=Rendering, hidecategories=Object, hidecategories=Physics, hidecategories=Collision, showcategories=Trigger, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UParticleSystemComponent : public UPrimitiveComponent
@@ -441,7 +441,7 @@ public:
 	float EmitterDelay;
 
 	// Called when the particle system is done
-	UPROPERTY()
+	UPROPERTY(BlueprintAssignable)
 	FOnSystemFinished OnSystemFinished;
 
 	//
@@ -753,7 +753,7 @@ public:
 	virtual int32 GetNumMaterials() const override; 
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
 	//End UPrimitiveComponent Interface

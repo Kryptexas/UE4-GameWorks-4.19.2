@@ -11,8 +11,9 @@ public class CrashDebugHelper : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"SourceControl"
+				"SourceControl",
+				"DatabaseSupport"
 			}
-			);
+		);
 	}
 }

@@ -10,7 +10,7 @@
 
 struct FGameplayEffectModCallbackData
 {
-	FGameplayEffectModCallbackData(const FGameplayEffectSpec & InEffectSpec, const FModifierSpec & InModifierSpec, FGameplayModifierEvaluatedData & InEvaluatedData, UAbilitySystemComponent & InTarget)
+	FGameplayEffectModCallbackData(const FGameplayEffectSpec& InEffectSpec, const FModifierSpec& InModifierSpec, FGameplayModifierEvaluatedData& InEvaluatedData, UAbilitySystemComponent& InTarget)
 		: EffectSpec(InEffectSpec)
 		, ModifierSpec(InModifierSpec)
 		, EvaluatedData(InEvaluatedData)
@@ -19,9 +19,9 @@ struct FGameplayEffectModCallbackData
 
 	}
 
-	const struct FGameplayEffectSpec &		EffectSpec;		// The spec that the mod came from
-	const struct FModifierSpec &			ModifierSpec;	// The mod we are going to apply
-	struct FGameplayModifierEvaluatedData & EvaluatedData;	// The 'flat'/computed data to be applied to the target
+	const struct FGameplayEffectSpec&		EffectSpec;		// The spec that the mod came from
+	const struct FModifierSpec&				ModifierSpec;	// The mod we are going to apply
+	struct FGameplayModifierEvaluatedData&	EvaluatedData;	// The 'flat'/computed data to be applied to the target
 
 	class UAbilitySystemComponent &Target;		// Target we intend to apply to
 };
@@ -30,6 +30,14 @@ UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffectExtension: public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Attributes on the source instigator that are relevant to calculating modifications using this extension */
+	UPROPERTY(EditDefaultsOnly, Category=Calculation)
+	TArray<FGameplayAttribute> RelevantSourceAttributes;
+
+	/** Attributes on the target that are relevant to calculating modifications using this extension */
+	UPROPERTY(EditDefaultsOnly, Category=Calculation)
+	TArray<FGameplayAttribute> RelevantTargetAttributes;
 
 public:
 

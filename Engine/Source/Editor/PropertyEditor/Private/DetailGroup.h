@@ -5,7 +5,7 @@
 class FDetailGroup : public IDetailGroup, public TSharedFromThis<FDetailGroup>
 {
 public:
-	FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName );
+	FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName, const bool bStartExpanded = false );
 
 	/** IDetailGroup interface */     
 	virtual FDetailWidgetRow& HeaderRow() override;
@@ -23,6 +23,9 @@ public:
 
 	/** @return true if this row should be ticked */
 	bool RequiresTick() const;
+
+	/** @return true is this row should start expanded */
+	bool ShouldStartExpanded() const { return bStartExpanded; }
 
 	/** 
 	 * @return The visibility of this group
@@ -72,4 +75,6 @@ private:
 	FString LocalizedDisplayName;
 	/** Name identifier of this group */
 	FName GroupName;
+	/** Whether the detail group should start expanded or not */
+	bool bStartExpanded;
 };

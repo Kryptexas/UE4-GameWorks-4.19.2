@@ -9,6 +9,7 @@
 #include "ScopedTransaction.h"
 #include "GraphEditorActions.h"
 #include "SoundClassEditorUtilities.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassSchema"
 
@@ -18,8 +19,8 @@ UEdGraphNode* FSoundClassGraphSchemaAction_NewNode::PerformAction(class UEdGraph
 	return NULL;
 }
 
-USoundClassGraphSchema::USoundClassGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundClassGraphSchema::USoundClassGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

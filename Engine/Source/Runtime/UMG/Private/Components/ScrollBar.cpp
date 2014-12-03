@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UScrollBar
 
-UScrollBar::UScrollBar(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScrollBar::UScrollBar(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

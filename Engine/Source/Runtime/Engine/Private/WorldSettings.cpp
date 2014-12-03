@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
 #include "Engine/WorldComposition.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameNetworkManager.h"
@@ -13,8 +14,8 @@
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
-AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.DoNotCreateDefaultSubobject(TEXT("Sprite")))
+AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("Sprite")))
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -43,6 +44,7 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 	bAlwaysRelevant = true;
 	TimeDilation = 1.0f;
 	MatineeTimeDilation = 1.0f;
+	DemoPlayTimeDilation = 1.0f;
 	PackedLightAndShadowMapTextureSize = 1024;
 #if WITH_EDITORONLY_DATA
 	bHiddenEd = true;
@@ -55,7 +57,7 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 	VisibilityAggressiveness = VIS_LeastAggressive;
 	LevelLightingQuality = Quality_MAX;
 
-	TSubobjectPtr<UStaticMeshComponent> StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
+	UStaticMeshComponent* StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->bHiddenInGame = true;
 	StaticMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);

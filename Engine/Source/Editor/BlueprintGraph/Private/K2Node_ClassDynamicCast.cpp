@@ -16,8 +16,8 @@ struct FClassDynamicCastHelper
 	}
 };
 
-UK2Node_ClassDynamicCast::UK2Node_ClassDynamicCast(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ClassDynamicCast::UK2Node_ClassDynamicCast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -27,22 +27,30 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 	//@TODO: Move this somewhere more sensible
 	ensure((TargetType == NULL) || (!TargetType->HasAnyClassFlags(CLASS_NewerVersionExists)));
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+	check(K2Schema != nullptr);
+	if (!K2Schema->DoesGraphSupportImpureFunctions(GetGraph()))
+	{
+		bIsPureCast = true;
+	}
 
-	// Input - Execution Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+	if (!bIsPureCast)
+	{
+		// Input - Execution Pin
+		CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+
+		// Output - Execution Pins
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastSucceeded);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastFailed);
+	}
 
 	// Input - Source type Pin
 	CreatePin(EGPD_Input, K2Schema->PC_Class, TEXT(""), UObject::StaticClass(), false, false, FClassDynamicCastHelper::GetClassToCastName());
 
-	// Output - Execution Pins
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastSucceeded);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastFailed);
-
 	// Output - Data Pin
 	if (TargetType != NULL)
 	{
-		const FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetName();
+		const FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
 		CreatePin(EGPD_Output, K2Schema->PC_Class, TEXT(""), *TargetType, false, false, CastResultPinName);
 	}
 

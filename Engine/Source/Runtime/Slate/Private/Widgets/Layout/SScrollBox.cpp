@@ -168,6 +168,10 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	{
 		// Make a scroll bar 
 		ScrollBar = ConstructScrollBar();
+		ScrollBar->SetThickness(InArgs._ScrollBarThickness);
+		ScrollBar->SetUserVisibility(InArgs._ScrollBarVisibility);
+		ScrollBar->SetScrollBarAlwaysVisible(InArgs._ScrollBarAlwaysVisible);
+
 		bScrollBarIsExternal = false;
 	}
 
@@ -189,7 +193,6 @@ void SScrollBox::Construct( const FArguments& InArgs )
 TSharedPtr<SScrollBar> SScrollBox::ConstructScrollBar()
 {
 	return TSharedPtr<SScrollBar>(SNew(SScrollBar)
-		.Thickness(FVector2D(5.0f, 5.0f))
 		.Style(ScrollBarStyle)
 		.Orientation(Orientation)
 		.OnUserScrolled(this, &SScrollBox::ScrollBar_OnUserScrolled));
@@ -333,7 +336,7 @@ void SScrollBox::ClearChildren()
 
 bool SScrollBox::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= SlatePanTriggerDistance && this->ScrollBar->IsNeeded();
+	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace() && this->ScrollBar->IsNeeded();
 }
 
 float SScrollBox::GetScrollOffset()
@@ -372,6 +375,21 @@ void SScrollBox::SetOrientation(EOrientation InOrientation)
 	}
 }
 
+void SScrollBox::SetScrollBarVisibility(EVisibility InVisibility)
+{
+	ScrollBar->SetUserVisibility(InVisibility);
+}
+
+void SScrollBox::SetScrollBarAlwaysVisible(bool InAlwaysVisible)
+{
+	ScrollBar->SetScrollBarAlwaysVisible(InAlwaysVisible);
+}
+
+void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
+{
+	ScrollBar->SetThickness(InThickness);
+}
+
 void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if ( !IsRightClickScrolling() )
@@ -406,9 +424,7 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		// We cannot scroll, so ensure that there is no offset.
 		ScrollPanel->PhysicalOffset = 0.0f;
 	}
-
 }
-
 
 FReply SScrollBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {

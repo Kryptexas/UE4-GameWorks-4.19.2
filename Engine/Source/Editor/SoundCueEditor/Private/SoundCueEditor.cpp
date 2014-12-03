@@ -16,6 +16,8 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "SSoundCuePalette.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueEditor"
 
@@ -25,21 +27,25 @@ const FName FSoundCueEditor::PaletteTabId( TEXT( "SoundCueEditor_Palette" ) );
 
 void FSoundCueEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SoundCueEditor", "Sound Cue Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( GraphCanvasTabId, FOnSpawnTab::CreateSP(this, &FSoundCueEditor::SpawnTab_GraphCanvas) )
 		.SetDisplayName( LOCTEXT("GraphCanvasTab", "Viewport") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "GraphEditor.EventGraph_16x"));
 
 	TabManager->RegisterTabSpawner( PropertiesTabId, FOnSpawnTab::CreateSP(this, &FSoundCueEditor::SpawnTab_Properties) )
 		.SetDisplayName( LOCTEXT("DetailsTab", "Details") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 
 	TabManager->RegisterTabSpawner( PaletteTabId, FOnSpawnTab::CreateSP(this, &FSoundCueEditor::SpawnTab_Palette) )
 		.SetDisplayName( LOCTEXT("PaletteTab", "Palette") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette"));
 }
 
 void FSoundCueEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

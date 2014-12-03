@@ -28,6 +28,7 @@
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
 #include "EditorClassUtils.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -584,7 +585,7 @@ void FLevelEditorContextMenuImpl::FillMatineeSelectActorMenu( FMenuBuilder& Menu
 			if ( MatineeActors.Num() > 0 )
 			{
 				FSelectionIterator ActorIter( GEditor->GetSelectedActorIterator() );
-				AActor * SelectedActor = Cast<AActor>(*ActorIter);
+				AActor* SelectedActor = Cast<AActor>(*ActorIter);
 
 				// now delete the matinee actors that don't control currently selected actor
 				for (int32 MatineeActorIter=0; MatineeActorIter<MatineeActors.Num(); ++MatineeActorIter)

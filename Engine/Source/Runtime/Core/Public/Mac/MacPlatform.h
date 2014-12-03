@@ -34,13 +34,10 @@ typedef FMacPlatformTypes FPlatformTypes;
 #define PLATFORM_USE_SYSTEM_VSWPRINTF				0
 #define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			1
 #define PLATFORM_TCHAR_IS_4_BYTES					1
-#define PLATFORM_HAS_vsnprintf						0
 #define PLATFORM_HAS_BSD_TIME						1
 //#define PLATFORM_USE_PTHREADS						1
 #define PLATFORM_MAX_FILEPATH_LENGTH				MAX_PATH
 #define PLATFORM_SUPPORTS_TBB						1
-
-#define FORCE_ANSI_ALLOCATOR 1
 
 // Function type macros.
 #define VARARGS														/* Functions with variable arguments */
@@ -58,9 +55,16 @@ typedef FMacPlatformTypes FPlatformTypes;
 #define GCC_PACK(n) __attribute__((packed,aligned(n)))
 #define GCC_ALIGN(n) __attribute__((aligned(n)))
 
-// new/delete operators
+// operator new/delete operators
+// As of 10.9 we need to use _NOEXCEPT & cxx_noexcept compatible definitions
+#if __has_feature(cxx_noexcept)
+#define OPERATOR_NEW_THROW_SPEC
+#else
 #define OPERATOR_NEW_THROW_SPEC throw (std::bad_alloc)
-#define OPERATOR_DELETE_THROW_SPEC throw()
+#endif
+#define OPERATOR_DELETE_THROW_SPEC _NOEXCEPT
+#define OPERATOR_NEW_NOTHROW_SPEC  _NOEXCEPT
+#define OPERATOR_DELETE_NOTHROW_SPEC  _NOEXCEPT
 
 // DLL export and import definitions
 #define DLLEXPORT

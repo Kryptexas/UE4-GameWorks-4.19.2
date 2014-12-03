@@ -129,11 +129,11 @@ UObject* SAssetDropTarget::GetDroppedObject( const FDragDropEvent& DragDropEvent
 	// Asset being dragged from some external source
 	else if (Operation->IsOfType<FExternalDragOperation>())
 	{
-		bOutRecognizedEvent = true;
 		TArray<FAssetData> DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
 
 		if (DroppedAssetData.Num() == 1)
 		{
+			bOutRecognizedEvent = true;
 			DroppedObject = DroppedAssetData[0].GetAsset();
 		}
 	}

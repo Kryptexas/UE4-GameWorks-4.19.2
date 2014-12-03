@@ -10,7 +10,7 @@
 void FAssetTypeActions_DataTable::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
 	auto Tables = GetTypedWeakObjectPtrs<UObject>(InObjects);
-
+	
 	TArray<FString> ImportPaths;
 	for (auto TableIter = Tables.CreateConstIterator(); TableIter; ++TableIter)
 	{
@@ -22,44 +22,12 @@ void FAssetTypeActions_DataTable::GetActions( const TArray<UObject*>& InObjects,
 	}
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("DataTable_Edit", "Edit"),
-		LOCTEXT("DataTable_EditTooltip", "Opens the selected tables in the table editor."),
+		LOCTEXT("DataTable_JSON", "JSON"),
+		LOCTEXT("DataTable_JSONTooltip", "Creates a JSON version of the data table in the lock."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteEdit, Tables ),
+			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteJSON, Tables ),
 			FCanExecuteAction()
-			)
-		);
-
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("DataTable_Reimport", "Reimport"),
-		LOCTEXT("DataTable_ReimportTooltip", "Reimports the selected Data Table from file."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteReimport, Tables ),
-			FCanExecuteAction() 
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("DataTable_FindSource", "Find Source"),
-		LOCTEXT("DataTable_FindSourceTooltip", "Opens explorer at the location of this asset's source data."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteFindInExplorer, ImportPaths ),
-			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_DataTable::CanExecuteFindInExplorerSourceCommand, ImportPaths )
-			)
-		);
-
-	static const TArray<FString> EmptyArray;
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("DataTable_OpenSourceCSV", "Open Source (.csv)"),
-		LOCTEXT("DataTable_OpenSourceCSVTooltip", "Opens the selected asset's source CSV data in an external editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteOpenInExternalEditor, ImportPaths, EmptyArray ),
-			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_DataTable::CanExecuteLaunchExternalSourceCommands, ImportPaths, EmptyArray )
 			)
 		);
 
@@ -68,22 +36,12 @@ void FAssetTypeActions_DataTable::GetActions( const TArray<UObject*>& InObjects,
 	XLSExtensions.Add(TEXT(".xlsm"));
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("DataTable_OpenSourceXLS", "Open Source (.xls/.xlsm)"),
-		LOCTEXT("DataTable_OpenSourceXLSTooltip", "Opens the selected asset's source XLS/XLSM data in an external editor."),
+		LOCTEXT("DataTable_OpenSourceXLSTooltip", "Opens the data table's source XLS/XLSM file in an external editor."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteOpenInExternalEditor, ImportPaths, XLSExtensions ),
-			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_DataTable::CanExecuteLaunchExternalSourceCommands, ImportPaths, XLSExtensions )
+			FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteFindExcelFileInExplorer, ImportPaths, XLSExtensions ),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_DataTable::CanExecuteFindExcelFileInExplorer, ImportPaths, XLSExtensions)
 			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("DataTable_JSON", "JSON"),
-		LOCTEXT("DataTable_JSONTooltip", "Creates a JSON version of the data table in the lock."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_DataTable::ExecuteJSON, Tables ),
-		FCanExecuteAction()
-		)
 		);
 }
 
@@ -109,6 +67,15 @@ void FAssetTypeActions_DataTable::OpenAssetEditor( const TArray<UObject*>& InObj
 			FDataTableEditorModule& DataTableEditorModule = FModuleManager::LoadModuleChecked<FDataTableEditorModule>( "DataTableEditor" );
 			TSharedRef< IDataTableEditor > NewDataTableEditor = DataTableEditorModule.CreateDataTableEditor( EToolkitMode::Standalone, EditWithinLevelEditor, Table );
 		}
+	}
+}
+
+void FAssetTypeActions_DataTable::GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const
+{
+	for (auto& Asset : TypeAssets)
+	{
+		const auto DataTable = CastChecked<UDataTable>(Asset);
+		OutSourceFilePaths.Add(FReimportManager::ResolveImportFilename(DataTable->ImportPath, DataTable));
 	}
 }
 

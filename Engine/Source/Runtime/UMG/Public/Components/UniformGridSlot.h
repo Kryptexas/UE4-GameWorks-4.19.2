@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/PanelSlot.h"
 #include "SlateWrapperTypes.h"
 
 #include "UniformGridSlot.generated.h"
@@ -18,19 +18,19 @@ class UMG_API UUniformGridSlot : public UPanelSlot
 public:
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Uniform Grid Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Uniform Grid Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Uniform Grid Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Uniform Grid Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 	
 	/** The row index of the cell this slot is in */
-	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category="Layout (Uniform Grid Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=( UIMin = "0" ), Category="Layout (Uniform Grid Slot)")
 	int32 Row;
 	
 	/** The column index of the cell this slot is in */
-	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category="Layout (Uniform Grid Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=( UIMin = "0" ), Category="Layout (Uniform Grid Slot)")
 	int32 Column;
 
 public:

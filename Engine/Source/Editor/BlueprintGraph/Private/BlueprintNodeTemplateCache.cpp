@@ -194,7 +194,7 @@ static void BlueprintNodeTemplateCacheImpl::MarkGraphForTemplateUse(UEdGraph* Ne
 //------------------------------------------------------------------------------
 bool BlueprintNodeTemplateCacheImpl::IsTemplateOuter(UEdGraph* ParentGraph)
 {
-	if (ParentGraph->HasAnyFlags(RF_Transient))
+	if (ParentGraph->HasAnyFlags(RF_Transactional))
 	{
 		UPackage* GraphPackage = ParentGraph->GetOutermost();
 		UMetaData* PackageMetadata = GraphPackage->GetMetaData();

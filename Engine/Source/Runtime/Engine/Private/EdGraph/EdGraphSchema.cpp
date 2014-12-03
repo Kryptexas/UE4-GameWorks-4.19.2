@@ -7,7 +7,7 @@
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 #include "Editor/UnrealEd/Public/EditorCategoryUtils.h"
@@ -236,8 +236,8 @@ void FEdGraphSchemaAction_NewNode::AddReferencedObjects( FReferenceCollector& Co
 /////////////////////////////////////////////////////
 // UEdGraphSchema
 
-UEdGraphSchema::UEdGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema::UEdGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -70,6 +70,69 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	ECVF_RenderThreadSafe);
 
 /*-----------------------------------------------------------------------------
+	FParallelCommandListSet
+-----------------------------------------------------------------------------*/
+
+
+FRHICommandList* FParallelCommandListSet::AllocCommandList()
+{
+	return new FRHICommandList;
+}
+
+FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute)
+	: View(InView)
+	, ParentCmdList(InParentCmdList)
+	, OutDirtyIfIgnored(false)
+	, OutDirty(InOutDirty ? *InOutDirty : OutDirtyIfIgnored)
+	, bParallelExecute(bInParallelExecute)
+{
+	Width = CVarRHICmdWidth.GetValueOnRenderThread();
+	CommandLists.Reserve(Width * 8);
+	Events.Reserve(Width * 8);
+
+}
+
+FParallelCommandListSet::~FParallelCommandListSet()
+{
+	check(CommandLists.Num() == Events.Num());
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	if (bParallelExecute && CommandLists.Num())
+	{
+		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], &CommandLists[0], CommandLists.Num());
+		SetStateOnCommandList(ParentCmdList);
+	}
+	else
+#endif
+	{
+		for (int32 Index = 0; Index < CommandLists.Num(); Index++)
+		{
+			ParentCmdList.QueueAsyncCommandListSubmit(Events[Index], CommandLists[Index]);
+		}
+	}
+	CommandLists.Reset();
+	Events.Reset();
+}
+
+FRHICommandList* FParallelCommandListSet::NewParallelCommandList()
+{
+	FRHICommandList* Result = AllocCommandList();
+//	if (bParallelExecute)
+	{
+		SetStateOnCommandList(*Result); 
+	}
+	return Result;
+}
+
+void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent)
+{
+	check(CommandLists.Num() == Events.Num());
+	CommandLists.Add(CmdList);
+	Events.Add(CompletionEvent);
+}
+
+
+
+/*-----------------------------------------------------------------------------
 	FViewInfo
 -----------------------------------------------------------------------------*/
 
@@ -92,6 +155,7 @@ FViewInfo::FViewInfo(const FSceneView* InView)
 	:	FSceneView(*InView)
 	,	IndividualOcclusionQueries((FSceneViewState*)InView->State,1)
 	,	GroupedOcclusionQueries((FSceneViewState*)InView->State,FOcclusionQueryBatcher::OccludedPrimitiveQueryBatchSize)
+	,	CustomVisibilityQuery(nullptr)
 {
 	Init();
 }
@@ -138,6 +202,10 @@ FViewInfo::~FViewInfo()
 	for(int32 ResourceIndex = 0;ResourceIndex < DynamicResources.Num();ResourceIndex++)
 	{
 		DynamicResources[ResourceIndex]->ReleasePrimitiveResource();
+	}
+	if (CustomVisibilityQuery)
+	{
+		CustomVisibilityQuery->Release();
 	}
 }
 
@@ -673,6 +741,16 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 		ViewFamily.EngineShowFlags.HitProxies = 1;
 	}
 
+	// launch custom visibility queries for views
+	if (GCustomCullingImpl)
+	{
+		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		{
+			FViewInfo& ViewInfo = Views[ViewIndex];
+			ViewInfo.CustomVisibilityQuery = GCustomCullingImpl->CreateQuery(ViewInfo);
+		}
+	}
+
 	ViewFamily.ComputeFamilySize();
 
 	// copy off the requests
@@ -684,7 +762,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 
 bool FSceneRenderer::DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	return !IsMobilePlatform(GRHIShaderPlatform)
+	return !IsMobilePlatform(GShaderPlatformForFeatureLevel[InFeatureLevel])
 		&& CVarAllowOcclusionQueries.GetValueOnRenderThread() != 0;
 }
 
@@ -714,7 +792,7 @@ FSceneRenderer::~FSceneRenderer()
 */
 void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, RenderFinish, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, RenderFinish);
 
 	if(FRCPassPostProcessBusyWait::IsPassRequired())
 	{
@@ -743,7 +821,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 	{
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 			FViewInfo& View = Views[ViewIndex];
 
 			bool bShowPrecomputedVisibilityWarning = false;
@@ -892,7 +970,7 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 
 void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
-	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
+	if(FeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		// not yet supported on lower end platforms
 		return;
@@ -917,11 +995,11 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 	// Render CustomDepth
 	if (GSceneRenderTargets.BeginRenderingCustomDepth(RHICmdList, bPrimitives))
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth);
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
 			FViewInfo& View = Views[ViewIndex];
 
@@ -982,7 +1060,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 
 	for( int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++ )
 	{
-		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(SceneRenderer->ViewFamily);
+		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(SceneRenderer->ViewFamily, SceneRenderer->FrameNumber);
 		for( int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++ )
 		{
 			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(SceneRenderer->Views[ViewIndex]);

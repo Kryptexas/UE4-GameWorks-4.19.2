@@ -5,11 +5,19 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/ReflectionCapture.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
 #include "ShaderCompiler.h"
+#include "Engine/SphereReflectionCapture.h"
+#include "Components/SphereReflectionCaptureComponent.h"
+#include "Components/DrawSphereComponent.h"
+#include "Components/BoxReflectionCaptureComponent.h"
+#include "Engine/PlaneReflectionCapture.h"
+#include "Engine/BoxReflectionCapture.h"
+#include "Components/PlaneReflectionCaptureComponent.h"
 
 /** 
  * Size of all reflection captures.
@@ -20,8 +28,12 @@ ENGINE_API int32 GReflectionCaptureSize = 128;
 
 void UWorld::UpdateAllReflectionCaptures()
 {
-	TArray<UReflectionCaptureComponent*> UpdatedComponents;
-
+	if ( FeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		UE_LOG(LogMaterial, Warning, TEXT("Update reflection captures only works with an active feature level of SM4 or greater."));
+		return;
+	}
+	
 	for (TObjectIterator<UReflectionCaptureComponent> It; It; ++It)
 	{
 		UReflectionCaptureComponent* CaptureComponent = *It;
@@ -29,21 +41,29 @@ void UWorld::UpdateAllReflectionCaptures()
 		if (ContainsActor(CaptureComponent->GetOwner()) && !CaptureComponent->IsPendingKill())
 		{
 			// Purge cached derived data and force an update
-			CaptureComponent->SetCaptureIsDirty();
-			UpdatedComponents.Add(CaptureComponent);
+			CaptureComponent->SetCaptureIsDirty();			
 		}
 	}
-
 	UReflectionCaptureComponent::UpdateReflectionCaptureContents(this);
+	
+	for (TObjectIterator<USkyLightComponent> It; It; ++It)
+	{
+		USkyLightComponent* SkylightComponent = *It;
+		if (ContainsActor(SkylightComponent->GetOwner()) && !SkylightComponent->IsPendingKill())
+		{			
+			SkylightComponent->SetCaptureIsDirty();			
+		}
+	}
+	USkyLightComponent::UpdateSkyCaptureContents(this);
 }
 
-AReflectionCapture::AReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	CaptureComponent = PCIP.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
+	CaptureComponent = ObjectInitializer.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization
@@ -79,28 +99,28 @@ void AReflectionCapture::PostEditMove(bool bFinished)
 }
 #endif // WITH_EDITOR
 
-ASphereReflectionCapture::ASphereReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<USphereReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
+ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USphereReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
-	USphereReflectionCaptureComponent* SphereComponent = CastChecked<USphereReflectionCaptureComponent>(CaptureComponent);
+	USphereReflectionCaptureComponent* SphereComponent = CastChecked<USphereReflectionCaptureComponent>(GetCaptureComponent());
 	RootComponent = SphereComponent;
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = SphereComponent;
+		GetSpriteComponent()->AttachParent = SphereComponent;
 	}
 #endif	//WITH_EDITORONLY_DATA
 
-	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = PCIP.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
-	DrawInfluenceRadius->AttachParent = CaptureComponent;
+	UDrawSphereComponent* DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
 	DrawInfluenceRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	DrawCaptureRadius = PCIP.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius1"));
-	DrawCaptureRadius->AttachParent = CaptureComponent;
+	DrawCaptureRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius1"));
+	DrawCaptureRadius->AttachParent = GetCaptureComponent();
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
 	DrawCaptureRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -111,39 +131,39 @@ ASphereReflectionCapture::ASphereReflectionCapture(const class FPostConstructIni
 #if WITH_EDITOR
 void ASphereReflectionCapture::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
 {
-	USphereReflectionCaptureComponent* SphereComponent = Cast<USphereReflectionCaptureComponent>(CaptureComponent);
+	USphereReflectionCaptureComponent* SphereComponent = Cast<USphereReflectionCaptureComponent>(GetCaptureComponent());
 	check(SphereComponent);
 	const FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? 5000.0f : 50.0f );
 	FMath::ApplyScaleToFloat(SphereComponent->InfluenceRadius, ModifiedScale);
-	CaptureComponent->SetCaptureIsDirty();
+	GetCaptureComponent()->SetCaptureIsDirty();
 	PostEditChange();
 }
 
 void APlaneReflectionCapture::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
 {
-	UPlaneReflectionCaptureComponent* PlaneComponent = Cast<UPlaneReflectionCaptureComponent>(CaptureComponent);
+	UPlaneReflectionCaptureComponent* PlaneComponent = Cast<UPlaneReflectionCaptureComponent>(GetCaptureComponent());
 	check(PlaneComponent);
 	const FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? 5000.0f : 50.0f );
 	FMath::ApplyScaleToFloat(PlaneComponent->InfluenceRadiusScale, ModifiedScale);
-	CaptureComponent->SetCaptureIsDirty();
+	GetCaptureComponent()->SetCaptureIsDirty();
 	PostEditChange();
 }
 #endif
 
-ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UBoxReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
+ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UBoxReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
-	UBoxReflectionCaptureComponent* BoxComponent = CastChecked<UBoxReflectionCaptureComponent>(CaptureComponent);
+	UBoxReflectionCaptureComponent* BoxComponent = CastChecked<UBoxReflectionCaptureComponent>(GetCaptureComponent());
 	BoxComponent->RelativeScale3D = FVector(1000, 1000, 400);
 	RootComponent = BoxComponent;
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = BoxComponent;
+		GetSpriteComponent()->AttachParent = BoxComponent;
 	}
 #endif	//WITH_EDITORONLY_DATA
-	TSubobjectPtr<UBoxComponent> DrawInfluenceBox = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
-	DrawInfluenceBox->AttachParent = CaptureComponent;
+	UBoxComponent* DrawInfluenceBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	DrawInfluenceBox->AttachParent = GetCaptureComponent();
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
 	DrawInfluenceBox->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -151,8 +171,8 @@ ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializ
 	DrawInfluenceBox->InitBoxExtent(FVector(1, 1, 1));
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
 
-	TSubobjectPtr<UBoxComponent> DrawCaptureBox = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
-	DrawCaptureBox->AttachParent = CaptureComponent;
+	UBoxComponent* DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
 	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -162,20 +182,20 @@ ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializ
 	BoxComponent->PreviewCaptureBox = DrawCaptureBox;
 }
 
-APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UPlaneReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
+APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlaneReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
-	UPlaneReflectionCaptureComponent* PlaneComponent = CastChecked<UPlaneReflectionCaptureComponent>(CaptureComponent);
+	UPlaneReflectionCaptureComponent* PlaneComponent = CastChecked<UPlaneReflectionCaptureComponent>(GetCaptureComponent());
 	PlaneComponent->RelativeScale3D = FVector(1, 1000, 1000);
 	RootComponent = PlaneComponent;
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = PlaneComponent;
+		GetSpriteComponent()->AttachParent = PlaneComponent;
 	}
 #endif	//#if WITH_EDITORONLY_DATA
-	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = PCIP.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
-	DrawInfluenceRadius->AttachParent = CaptureComponent;
+	UDrawSphereComponent* DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
@@ -183,8 +203,8 @@ APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructIniti
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	TSubobjectPtr<UBoxComponent> DrawCaptureBox = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
-	DrawCaptureBox->AttachParent = CaptureComponent;
+	UBoxComponent* DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
 	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -716,8 +736,8 @@ private:
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdate;
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdateForLoad;
 
-UReflectionCaptureComponent::UReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReflectionCaptureComponent::UReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Brightness = 1;
 	// Shouldn't be able to change reflection captures at runtime
@@ -961,6 +981,8 @@ void UReflectionCaptureComponent::PostLoad()
 	Super::PostLoad();
 
 	bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	bool bEncodedDataRequired = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1);
+	bool bFullDataRequired = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
@@ -994,39 +1016,32 @@ void UReflectionCaptureComponent::PostLoad()
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
 		if (FullHDRDerivedData 
 			&& !EncodedHDRDerivedData 
-			&& (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
+			&& (bEncodedDataRequired))
 		{
 			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
 		}
 	}
 	
-	// Initialize rendering resources for the current feature level, and toss data only needed by other feature levels
-	if (FullHDRDerivedData && (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
+	// Initialize rendering resources for the current feature level, and toss data only needed by other feature levels (unless in editor mode, in which all feature level data should be resident.)
+	if (FullHDRDerivedData && bFullDataRequired)
 	{
 		// Don't need encoded HDR data for rendering on this feature level
 		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRDerivedData->CompressedCapturedData.GetAllocatedSize());
 
-		// command line option: -NoTiledReflections
-		// useful to test this code path and to run the potentially more efficient path (PS vs CS) on SM5 hardware
-		// not a cvar as it also needs to change the data when loading the captures
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NoTiledReflections"));
-		check(CVar);
-		const bool bNoTiledReflections = (CVar->GetValueOnAnyThread() == 1);
-
-		if ((GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData || bNoTiledReflections))
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
 			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, &FullHDRDerivedData->GetCapturedDataForSM4Load());
 			BeginInitResource(SM4FullHDRCubemapTexture);
 		}
 
-		if (!bRetainAllFeatureLevelData)
+		if (!bEncodedDataRequired)
 		{
 			EncodedHDRDerivedData = NULL;
 		}
 	}
 
-	if (EncodedHDRDerivedData && (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
+	if (EncodedHDRDerivedData && bEncodedDataRequired)
 	{
 		if (FPlatformProperties::RequiresCookedData())
 		{
@@ -1038,12 +1053,9 @@ void UReflectionCaptureComponent::PostLoad()
 		EncodedHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
 		BeginInitResource(EncodedHDRCubemapTexture);
 
-		if (!bRetainAllFeatureLevelData)
-		{
-			// Don't need the full HDR data for rendering on this feature level
-			delete FullHDRDerivedData;
-			FullHDRDerivedData = NULL;
-		}
+		// Don't need the full HDR data for rendering on this feature level
+		delete FullHDRDerivedData;
+		FullHDRDerivedData = NULL;
 	}
 }
 
@@ -1245,11 +1257,11 @@ void ReadbackFromSM4Cubemap(FReflectionTextureCubeResource* SM4FullHDRCubemapTex
 
 void UReflectionCaptureComponent::ReadbackFromGPUAndSaveDerivedData(UWorld* WorldToUpdate)
 {
-	if (bDerivedDataDirty && !IsRunningCommandlet())
+	if (bDerivedDataDirty && !IsRunningCommandlet() && WorldToUpdate->FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FReflectionCaptureFullHDRDerivedData* NewDerivedData = new FReflectionCaptureFullHDRDerivedData();
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+		if (WorldToUpdate->FeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, NewDerivedData);
 		}
@@ -1336,8 +1348,78 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 	}
 }
 
-USphereReflectionCaptureComponent::USphereReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+#if WITH_EDITOR
+void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel)
+{
+	if (PendingFeatureLevel == ERHIFeatureLevel::ES2 || PendingFeatureLevel == ERHIFeatureLevel::ES3_1)
+	{
+		// generate encoded hdr data for ES2 preview mode.
+		if (World != nullptr)
+		{
+			// Capture full hdr derived data first.
+			ReadbackFromGPUAndSaveDerivedData(World);
+		}
+		if (FullHDRDerivedData)
+		{
+			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
+			if (FPlatformProperties::RequiresCookedData() && EncodedHDRDerivedData)
+			{
+				INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
+			}
+
+			if (EncodedHDRCubemapTexture == nullptr)
+			{
+				EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
+			}
+			EncodedHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
+			BeginInitResource(EncodedHDRCubemapTexture);
+		}
+	}
+	else
+	{
+		// Release ES2's unused textures & data.
+		if (FPlatformProperties::RequiresCookedData() && EncodedHDRDerivedData)
+		{
+			DEC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
+		}
+		EncodedHDRDerivedData = nullptr;
+		if (EncodedHDRCubemapTexture)
+		{
+			BeginReleaseResource(EncodedHDRCubemapTexture);
+			FlushRenderingCommands();
+			delete EncodedHDRCubemapTexture;
+			EncodedHDRCubemapTexture = nullptr;
+		}
+
+		// for >= SM4 capture should be updated.
+		SetCaptureIsDirty();
+	}
+
+	if (PendingFeatureLevel == ERHIFeatureLevel::SM4)
+	{
+		if (SM4FullHDRCubemapTexture == nullptr)
+		{
+			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
+			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, NULL);
+			BeginInitResource(SM4FullHDRCubemapTexture);
+		}
+	}
+	else
+	{
+		// release SM4 texture
+		if (SM4FullHDRCubemapTexture != nullptr)
+		{
+			BeginReleaseResource(SM4FullHDRCubemapTexture);
+			FlushRenderingCommands();
+			delete SM4FullHDRCubemapTexture;
+			SM4FullHDRCubemapTexture = nullptr;
+		}
+	}
+}
+#endif // WITH_EDITOR
+
+USphereReflectionCaptureComponent::USphereReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	InfluenceRadius = 3000;
 }
@@ -1364,8 +1446,8 @@ void USphereReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedE
 }
 #endif // WITH_EDITOR
 
-UBoxReflectionCaptureComponent::UBoxReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBoxReflectionCaptureComponent::UBoxReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BoxTransitionDistance = 100;
 }
@@ -1396,8 +1478,8 @@ void UBoxReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEven
 }
 #endif // WITH_EDITOR
 
-UPlaneReflectionCaptureComponent::UPlaneReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPlaneReflectionCaptureComponent::UPlaneReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	InfluenceRadiusScale = 2;
 }
@@ -1473,3 +1555,12 @@ void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)
 	ReflectionXAxisAndYScale = ReflectionXAxis.SafeNormal() * ScaleVector.Y;
 	ReflectionXAxisAndYScale.W = ScaleVector.Y / ScaleVector.Z;
 }
+
+/** Returns CaptureComponent subobject **/
+UReflectionCaptureComponent* AReflectionCapture::GetCaptureComponent() const { return CaptureComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AReflectionCapture::GetSpriteComponent() const { return SpriteComponent; }
+#endif
+/** Returns DrawCaptureRadius subobject **/
+UDrawSphereComponent* ASphereReflectionCapture::GetDrawCaptureRadius() const { return DrawCaptureRadius; }

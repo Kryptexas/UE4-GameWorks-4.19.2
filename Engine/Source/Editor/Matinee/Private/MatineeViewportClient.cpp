@@ -832,7 +832,7 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 		}
 
 		FModifierKeysState ModKeys(bShiftDown, bShiftDown, bCtrlDown, bCtrlDown, bAltDown, bAltDown, bCmdDown, bCmdDown, bCapsDown);
-		FKeyboardEvent KeyEvent(Key, ModKeys, false, 0);
+		FKeyEvent KeyEvent(Key, ModKeys, 0/*UserIndex*/, false, 0, 0);
 		InterpEd->ProcessCommandBindings(KeyEvent);
 	}
 

@@ -159,7 +159,7 @@ public:
 	}
 
 	// This constructor allocates a new uninitialized pose, copying non-pose state from the source context
-	FComponentSpacePoseContext(const FComponentSpacePoseContext & SourceContext)
+	FComponentSpacePoseContext(const FComponentSpacePoseContext& SourceContext)
 		: FAnimationBaseContext(SourceContext.AnimInstance)
 	{
 		// No need to initialize, done through FA2CSPose::AllocateLocalPoses
@@ -293,7 +293,7 @@ public:
 
 	// Interface
 	void Initialize(const FAnimationInitializeContext& Context);
-	void CacheBones(const FAnimationCacheBonesContext & Context) ;
+	void CacheBones(const FAnimationCacheBonesContext& Context) ;
 	void Update(const FAnimationUpdateContext& Context);
 	void GatherDebugData(FNodeDebugData& DebugData);
 
@@ -364,7 +364,7 @@ struct ENGINE_API FAnimNode_Base
 
 	// Interface to implement
 	virtual void Initialize(const FAnimationInitializeContext& Context) {}
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context) {}
+	virtual void CacheBones(const FAnimationCacheBonesContext& Context) {}
 	virtual void Update(const FAnimationUpdateContext& Context) {}
 	virtual void Evaluate(FPoseContext& Output) { check(false); }
 	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) { check(false); }

@@ -2,7 +2,7 @@
 
 #pragma once
 #include "GameFramework/Info.h"
-#include "Sound/ReverbVolume.h"
+#include "Sound/AudioVolume.h"
 #include "WorldSettings.generated.h"
 
 UENUM()
@@ -203,7 +203,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	uint32 bEnableWorldBoundsChecks:1;
 
 	/** if set to false navigation system will not get created (and all navigation functionality won't be accesible)*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, config, Category=World, AdvancedDisplay)
 	uint32 bEnableNavigationSystem:1;
 
 	/** 
@@ -225,10 +225,6 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	/** If set to true we will use GlobalGravityZ instead of project setting DefaultGravityZ */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "Override World Gravity"), Category = Physics)
 	uint32 bGlobalGravitySet:1;
-
-	/** title of the map displayed in the UI */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, localized, Category=World)
-	FString Title;
 
 	// any actor falling below this level gets destroyed
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, meta=(editcondition = "bEnableWorldBoundsChecks"))
@@ -336,11 +332,11 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 
 	/************************************/
 	/** AUDIO SETTINGS **/
-	/** Default reverb settings used by reverb volumes.													*/
+	/** Default reverb settings used by audio volumes.													*/
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	struct FReverbSettings DefaultReverbSettings;
 
-	/** Default interior settings used by reverb volumes.												*/
+	/** Default interior settings used by audio volumes.												*/
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	struct FInteriorSettings DefaultAmbientZoneSettings;
 
@@ -384,6 +380,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	// additional TimeDilation used by Matinee slomo track
 	UPROPERTY(replicated)
 	float MatineeTimeDilation;
+
+	// Additional TimeDilation used to control demo playback speed
+	UPROPERTY()
+	float DemoPlayTimeDilation;
 
 	// If paused, FName of person pausing the game.
 	UPROPERTY(replicated)
@@ -440,7 +440,7 @@ public:
 
 	float GetEffectiveTimeDilation() const
 	{
-		return TimeDilation * MatineeTimeDilation;
+		return TimeDilation * MatineeTimeDilation * DemoPlayTimeDilation;
 	}
 
 	/** 

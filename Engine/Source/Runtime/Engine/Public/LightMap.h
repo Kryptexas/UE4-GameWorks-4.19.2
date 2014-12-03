@@ -10,6 +10,10 @@
 #include "SceneManagement.h"
 #include "Engine/LightMapTexture2D.h"
 
+// Forward declarations
+struct FQuantizedLightmapData;
+class UInstancedStaticMeshComponent;
+
 /** Whether to use bilinear filtering on lightmaps */
 extern ENGINE_API bool GUseBilinearLightmaps;
 
@@ -121,7 +125,7 @@ private:
 
 
 /** Lightmap reference serializer */
-extern FArchive& operator<<(FArchive& Ar,FLightMap*& R);
+extern ENGINE_API FArchive& operator<<(FArchive& Ar, FLightMap*& R);
 
 /** 
  * Incident lighting for a single sample, as produced by a lighting build. 
@@ -209,20 +213,10 @@ public:
 	 * @param	BasisIndex - The basis index.
 	 * @return	true if the specified basis has a valid lightmap texture, otherwise false
 	 */
-	bool IsValid(uint32 BasisIndex) const;
+	ENGINE_API bool IsValid(uint32 BasisIndex) const;
 
 	const FVector2D& GetCoordinateScale() const { return CoordinateScale; }
 	const FVector2D& GetCoordinateBias() const { return CoordinateBias; }
-
-	/**
-	 * Finalizes the lightmap after encoding, including setting the UV scale/bias for this lightmap 
-	 * inside the larger UTexture2D that this lightmap is in
-	 * 
-	 * @param Scale UV scale (size)
-	 * @param Bias UV Bias (offset)
-	 * @param ALightmapTexture One of the lightmap textures that this lightmap was put into
-	 */
-	virtual void FinalizeEncoding(const FVector2D& Scale, const FVector2D& Bias, UTexture2D* ALightmapTexture);
 
 	// FLightMap interface.
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
@@ -237,15 +231,28 @@ public:
 	/**
 	 * Allocates texture space for the light-map and stores the light-map's raw data for deferred encoding.
 	 * If the light-map has no lights in it, it will return NULL.
-	 * RawData and SourceQuantizedData will be deleted by this function.
+	 * SourceQuantizedData will be deleted by this function.
 	 * @param	LightMapOuter - The package to create the light-map and textures in.
 	 * @param	SourceQuantizedData - If the data is already quantized, the values will be in here, and not in RawData.  
 	 * @param	Bounds - The bounds of the primitive the light-map will be rendered on.  Used as a hint to pack light-maps on nearby primitives in the same texture.
 	 * @param	InPaddingType - the method for padding the lightmap.
 	 * @param	LightmapFlags - flags that determine how the lightmap is stored (e.g. streamed or not)
 	 */
-	static class FLightMap2D* AllocateLightMap(UObject* LightMapOuter, struct FQuantizedLightmapData*& SourceQuantizedData, 
+	static ENGINE_API class FLightMap2D* AllocateLightMap(UObject* LightMapOuter, FQuantizedLightmapData*& SourceQuantizedData,
 		const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags );
+
+	/**
+	 * Allocates texture space for the light-map and stores the light-map's raw data for deferred encoding.
+	 * If the light-map has no lights in it, it will return NULL.
+	 * SourceQuantizedData will be deleted by this function.
+	 * @param	Component - The component that owns this lightmap
+	 * @param	SourceQuantizedData - If the data is already quantized, the values will be in here, and not in RawData.
+	 * @param	Bounds - The bounds of the primitive the light-map will be rendered on.  Used as a hint to pack light-maps on nearby primitives in the same texture.
+	 * @param	InPaddingType - the method for padding the lightmap.
+	 * @param	LightmapFlags - flags that determine how the lightmap is stored (e.g. streamed or not)
+	 */
+	static FLightMap2D* AllocateInstancedLightMap(UInstancedStaticMeshComponent* Component, TArray<TUniquePtr<FQuantizedLightmapData>> SourceQuantizedData,
+		const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags LightmapFlags);
 
 	/**
 	 * Executes all pending light-map encoding requests.
@@ -490,7 +497,7 @@ struct FQuantizedLightmapData
 		bHasSkyShadowing(false)
 	{}
 
-	bool HasNonZeroData() const;
+	ENGINE_API bool HasNonZeroData() const;
 };
 
 /**

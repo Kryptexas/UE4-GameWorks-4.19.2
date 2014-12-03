@@ -478,8 +478,8 @@ public:
 	 * @param	OrientFront				The listener's facing direction.
 	 * @param	ListenerPosition		The position of the listener.
 	 * @param	EmitterPosition			The position of the emitter.
+	 * @param	OmniRadius				At what distance we start treating the sound source as spatialized
 	 * @param	OutVolumes				An array of floats with one volume for each output channel.
-	 * @param	OutReverbLevel			The reverb volume
 	 */
 	void CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes );
 };

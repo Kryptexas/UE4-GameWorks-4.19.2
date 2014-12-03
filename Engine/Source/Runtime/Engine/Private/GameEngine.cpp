@@ -16,9 +16,10 @@
 #include "EngineModule.h"
 #include "Engine/GameInstance.h"
 #include "Engine/RendererSettings.h"
+#include "Engine/UserInterfaceSettings.h"
 #include "AVIWriter.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SceneViewport.h"
 #include "SVirtualJoystick.h"
 
@@ -29,6 +30,7 @@
 #include "IHeadMountedDisplay.h"
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"
+#include "SDPIScaler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -59,6 +61,11 @@ static FAutoConsoleCommand GDumpDrawListStatsCmd(
 
 int32 GetBoundFullScreenModeCVar()
 {
+	if (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	{
+		// For HMD, Fullscreen mode should be always 0 (normal fullscreen).
+		return 0;
+	}
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode")); 
 
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -80,7 +87,7 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if ((WindowMode != EWindowMode::Windowed) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullScreenAllowed())
+		if ((WindowMode != EWindowMode::Windowed) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullscreenAllowed())
 		{
 			return EWindowMode::Fullscreen;
 		}
@@ -91,8 +98,8 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 	return EWindowMode::Fullscreen;
 }
 
-UGameEngine::UGameEngine(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameEngine::UGameEngine(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -168,7 +175,7 @@ float UGameEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) 
 {
 	FVector2D ViewportSize;
 	ViewportClient->GetViewportSize(ViewportSize);
-	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+	return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 }
 
 void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)
@@ -181,12 +188,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	else if (FParse::Param(FCommandLine::Get(),TEXT("FullScreen")))
 	{
 		// -FullScreen
-#if PLATFORM_MAC // @TODO: Fullscreen mode isn't working fully on OS X as it requires explicit CGL back-buffer size and mouse<->display coordinate conversions.
-		// For now use the windowed fullscreen mode which merely stretches to fill the display, which is what OS X does for us by default.
-		WindowMode = EWindowMode::WindowedFullscreen;
-#else
 		WindowMode = EWindowMode::Fullscreen;
-#endif
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
@@ -199,7 +201,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	{
 		// consume available desktop area
 		FDisplayMetrics DisplayMetrics;
-		FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
+		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
 		
 		ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
 		ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
@@ -237,7 +239,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	{
 		// Always use the device's actual resolution that has been setup earlier
 		FDisplayMetrics DisplayMetrics;
-		FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
+		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
 
 		// We need to pass the resolution back out to GameUserSettings, or it will just override it again
 		ResolutionX = DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
@@ -276,7 +278,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetGameName() ) );
 	Args.Add( TEXT("PlatformArchitecture"), PlatformBits );
-	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GRHIShaderPlatform ) ) );
+	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
 
 	const FText AppName = FText::Format( NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName} ({PlatformArchitecture}-bit, {RHIName})"), Args );
 
@@ -365,8 +367,8 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 /*-----------------------------------------------------------------------------
 	Game init and exit.
 -----------------------------------------------------------------------------*/
-UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AsyncLoadingTimeLimit = 5.0f;
 	bAsyncLoadingUseFullTimeLimit = true;
@@ -431,7 +433,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		
 		GameInstance = ConstructObject<UGameInstance>(GameInstanceClass, this);
 
-		GameInstance->Init();
+		GameInstance->InitializeStandalone();
 	}
  
 //  	// Creates the initial world context. For GameEngine, this should be the only WorldContext that ever gets created.
@@ -503,7 +505,22 @@ void UGameEngine::PreExit()
 		UWorld* const World = WorldList[WorldIndex].World();
 		if ( World != NULL )
 		{
-			World->FlushLevelStreaming( NULL, true );
+			World->bIsTearingDown = true;
+
+			// Cancel any pending connection to a server
+			CancelPending(World);
+
+			// Shut down any existing game connections
+			ShutdownWorldNetDriver(World);
+
+			for (FActorIterator ActorIt(World); ActorIt; ++ActorIt)
+			{
+				ActorIt->RouteEndPlay(EEndPlayReason::Quit);
+			}
+
+			World->GetGameInstance()->Shutdown();
+
+			World->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 			World->CleanupWorld();
 		}
 	}
@@ -543,7 +560,8 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if( FParse::Command( &Cmd,TEXT("REATTACHCOMPONENTS")) || FParse::Command( &Cmd,TEXT("REREGISTERCOMPONENTS")))
 	{
-		return HandleReattachComponentsCommand( Cmd, Ar );
+		UE_LOG(LogConsoleResponse, Warning, TEXT("Deprectated command! Please use 'Reattach.Components' instead."));
+		return true;
 	}
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
@@ -619,46 +637,8 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 }
 
-
-bool UGameEngine::HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	UClass* Class=NULL;
-	if( ParseObject<UClass>( Cmd, TEXT("CLASS="), Class, ANY_PACKAGE ) &&
-		Class->IsChildOf(UActorComponent::StaticClass()) )
-	{
-		for( FObjectIterator It(Class); It; ++It )
-		{
-			UActorComponent* ActorComponent = Cast<UActorComponent>(*It);
-			if( ActorComponent )
-			{
-				FComponentReregisterContext Reregister(ActorComponent);
-			}
-		}
-	}
-	return true;
-}
-
-
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)
-	{
-		UWorld* const World = WorldList[WorldIndex].World();
-
-		// Cancel any pending connection to a server
-		CancelPending(WorldList[WorldIndex]);
-
-		// Shut down any existing game connections
-		ShutdownWorldNetDriver(World);
-
-		for (FActorIterator ActorIt(World); ActorIt; ++ActorIt)
-		{
-			ActorIt->RouteEndPlay(EEndPlayReason::Quit);
-		}
-
-		World->GetGameInstance()->Shutdown();
-	}
-
 	Ar.Log( TEXT("Closing by request") );
 	FPlatformMisc::RequestExit( 0 );
 	return true;
@@ -698,7 +678,7 @@ void UGameEngine::PostLoadMap()
 {
 }
 
-float UGameEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
+float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) const
 {
 	float MaxTickRate = 0.f;
 
@@ -1091,4 +1071,25 @@ UWorld* UGameEngine::GetGameWorld()
 	}
 
 	return NULL;
+}
+
+void UGameEngine::HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType)
+{
+	if (GameInstance != nullptr)
+	{
+		bool bIsServer = true;
+		if (NetDriver != nullptr)
+		{
+			bIsServer = NetDriver->GetNetMode() != NM_Client;
+		}
+		GameInstance->HandleNetworkError(FailureType, bIsServer);
+	}
+}
+
+void UGameEngine::HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType)
+{
+	if (GameInstance != nullptr)
+	{
+		GameInstance->HandleTravelError(FailureType);
+	}
 }

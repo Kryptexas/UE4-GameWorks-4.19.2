@@ -12,12 +12,13 @@
 
 #include "RenderCore.h"
 #include "ColorList.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "UObjectAnnotation.h"
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "DataChannel.h"
+#include "GameFramework/OnlineSession.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
@@ -138,8 +139,8 @@ void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayer
 //////////////////////////////////////////////////////////////////////////
 // ULocalPlayer
 
-ULocalPlayer::ULocalPlayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULocalPlayer::ULocalPlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PendingLevelPlayerControllerClass = APlayerController::StaticClass();
 }
@@ -756,7 +757,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		View->EndFinalPostprocessSettings();
 	}
 
-	// Upscaling
+	// Upscaling or Super sampling
 	{
 		float LocalScreenPercentage = View->FinalPostProcessSettings.ScreenPercentage;
 
@@ -1147,7 +1148,7 @@ bool ULocalPlayer::HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 	{
 		if (ViewportClient && ViewportClient->Viewport)
 		{
-			ViewportClient->Viewport->CaptureJoystickInput(true);
+			ViewportClient->Viewport->SetUserFocus(true);
 			ViewportClient->Viewport->CaptureMouse(true);
 		}
 	}

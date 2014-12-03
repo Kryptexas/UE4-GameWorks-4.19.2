@@ -79,7 +79,7 @@ FVertexBufferRHIRef FMetalDynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 
 
 void* FMetalDynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
-	DYNAMIC_CAST_METGALRESOURCE(VertexBuffer,VertexBuffer);
+	DYNAMIC_CAST_METALRESOURCE(VertexBuffer,VertexBuffer);
 
 	// default to vertex buffer memory
 	return (uint8*)VertexBuffer->Lock(LockMode, Size) + Offset;
@@ -87,7 +87,7 @@ void* FMetalDynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuffe
 
 void FMetalDynamicRHI::RHIUnlockVertexBuffer(FVertexBufferRHIParamRef VertexBufferRHI)
 {
-	DYNAMIC_CAST_METGALRESOURCE(VertexBuffer,VertexBuffer);
+	DYNAMIC_CAST_METALRESOURCE(VertexBuffer,VertexBuffer);
 
 	VertexBuffer->Unlock();
 }

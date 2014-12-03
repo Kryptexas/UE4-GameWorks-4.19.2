@@ -5,9 +5,32 @@
 #define __DIALOGS_H__
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
+/**
+ * Opens a modal/blocking message box dialog (with an additional 'copy message text' button), and returns the result immediately
+ *
+ * @param InMessageType		The type of message box to display (e.g. 'ok', or 'yes'/'no' etc.)
+ * @param InMessage			The message to display in the message box
+ * @param InTitle			The title to display for the message box
+ * @return					Returns the result of the user input
+ */
 EAppReturnType::Type UNREALED_API OpenMsgDlgInt(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle);
+
+DECLARE_DELEGATE_TwoParams(FOnMsgDlgResult, const TSharedRef<SWindow>&, EAppReturnType::Type);
+
+/**
+ * Opens a non-modal/non-blocking message box, which returns its result through a delegate/callback,
+ * using a reference to the created window, to identify which dialog has returned a result (in case there are multiple dialog windows)
+ *
+ * @param InMessageType		The type of message box to display (e.g. 'ok', or 'yes'/'no' etc.)
+ * @param InMessage			The message to display in the message box
+ * @param InTitle			The title to display for the message box
+ * @param ResultCallback	The delegate/callback instance, where results should be returned
+ * @return					Returns the dialog window reference, which the calling code should store, to identify which dialog returned
+ */
+TSharedRef<SWindow> UNREALED_API OpenMsgDlgInt_NonModal(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle,
+											FOnMsgDlgResult ResultCallback);
 
 /*-----------------------------------------------------------------------------
 	FDragDropConfirmationDialog

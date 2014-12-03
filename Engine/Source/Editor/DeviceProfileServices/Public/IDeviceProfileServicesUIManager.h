@@ -1,26 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IDeviceProfileServicesUIManager.h: Declares the IDeviceProfileServicesUIManager interface.
-=============================================================================*/
-
 #pragma once
+
 
 class UDeviceProfile;
 
-/**
- * Type definition for shared pointers to instances of IDeviceProfileServicesUIManager.
- */
+/** Type definition for shared pointers to instances of IDeviceProfileServicesUIManager. */
 typedef TSharedPtr<class IDeviceProfileServicesUIManager> IDeviceProfileServicesUIManagerPtr;
 
-/**
- * Type definition for shared references to instances of IDeviceProfileServicesUIManager.
- */
+/** Type definition for shared references to instances of IDeviceProfileServicesUIManager. */
 typedef TSharedRef<class IDeviceProfileServicesUIManager> IDeviceProfileServicesUIManagerRef;
 
 
 /**
- * Device Profile Services Manager for UI
+ * Device Profile Services Manager for UI.
  */
 class IDeviceProfileServicesUIManager
 {
@@ -29,7 +22,7 @@ public:
 	/**
 	 * Gets an icon name for a given device.
 	 *
-	 * @param DeviceName - the device name.
+	 * @param DeviceName The device name.
 	 * @return The icon name.
 	 */
 	virtual const FName GetDeviceIconName( const FString& DeviceName ) const = 0;
@@ -44,15 +37,15 @@ public:
 	/**
 	 * Gets an array of profile that match a type.
 	 *
-	 * @param OutDeviceProfiles - the populated profile list.
-	 * @param InType - the type to match.
+	 * @param OutDeviceProfiles The populated profile list.
+	 * @param InType The type to match.
 	 */
 	virtual void GetProfilesByType( TArray<UDeviceProfile*>& OutDeviceProfiles, const FString& InType ) = 0;
 
 	/**
 	 * Gets an icon name for a given platform.
 	 *
-	 * @param DeviceName - the platform name.
+	 * @param DeviceName -The platform name.
 	 * @return The icon name.
 	 */
 	virtual const FName GetPlatformIconName( const FString& DeviceName ) const = 0;
@@ -60,7 +53,7 @@ public:
 	/**
 	 * Set a profile - add the type to an INI file so it can be used in a history view.
 	 *
-	 * @param DeviceProfileName - The platform type.
+	 * @param DeviceProfileName The platform type.
 	 */
 	virtual void SetProfile( const FString& DeviceProfileName ) = 0;
 };

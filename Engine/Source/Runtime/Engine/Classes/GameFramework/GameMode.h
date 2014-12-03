@@ -34,25 +34,31 @@ struct FGameClassShortName
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Abbreviation that can be used as an alias for the class name */
 	UPROPERTY()
 	FString ShortName;
 
+	/** The class name to use when the alias is specified in a URL */
 	UPROPERTY()
 	FString GameClassName;
 };
 
-//=============================================================================
-// The GameMode defines the game being played. It governs the game rules, scoring, what actors
-// are allowed to exist in this game type, and who may enter the game.
-// A GameMode actor is instantiated when the level is initialized for gameplay in
-// C++ UGameEngine::LoadMap().  The class of this GameMode actor is determined by
-// (in order) either the URL ?game=xxx, or the
-// DefaultGameMode entry in the game's .ini file (in the /Script/Engine.Engine section).
-// The GameMode used can be overridden in the GameMode function GetGameModeClass(), called
-// on the game class picked by the above process.
-//
-//=============================================================================
-UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable, hidecategories=(Info, Rendering, MovementReplication, Replication, Actor))
+/**
+ * The GameMode defines the game being played. It governs the game rules, scoring, what actors
+ * are allowed to exist in this game type, and who may enter the game.
+ *
+ * It is only instanced on the server and will never exist on the client. 
+ *
+ * A GameMode actor is instantiated when the level is initialized for gameplay in
+ * C++ UGameEngine::LoadMap().  
+ * 
+ * The class of this GameMode actor is determined by (in order) either the URL ?game=xxx, 
+ * the GameMode Override value set in the World Settings, or the DefaultGameMode entry set 
+ * in the game's Project Settings.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/GameMode/index.html
+ */
+UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable, Transient, hidecategories=(Info, Rendering, MovementReplication, Replication, Actor))
 class ENGINE_API AGameMode : public AInfo
 {
 	GENERATED_UCLASS_BODY()
@@ -156,27 +162,27 @@ public:
 	FString OptionsString;
 
 	/** The default pawn class used by players. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=GameMode)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Classes)
 	TSubclassOf<class APawn>  DefaultPawnClass;
 
 	/** HUD class this game uses. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode, meta=(DisplayName="HUD Class"))
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes, meta=(DisplayName="HUD Class"))
 	TSubclassOf<class AHUD>  HUDClass;    
 
 	/** Current number of spectators. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=GameMode)
 	int32 NumSpectators;    
 
 	/** Current number of human players. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=GameMode)
 	int32 NumPlayers;    
 
 	/** number of non-human players (AI controlled but participating as a player). */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=GameMode)
 	int32 NumBots;    
 
 	/** Minimum time before player can respawn after dying. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GameMode, meta=(DisplayName="Minimum Respawn Delay"))
 	float MinRespawnDelay;
 
 	/** Game Session handles login approval, arbitration, online game interface */
@@ -184,7 +190,7 @@ public:
 	class AGameSession* GameSession;
 
 	/** Number of players that are still traveling from a previous map */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=GameMode)
 	int32 NumTravellingPlayers;
 
 	/** Used to assign unique PlayerIDs to each PlayerState. */
@@ -204,19 +210,19 @@ public:
 	TSubclassOf<class ULocalMessage> EngineMessageClass;
 
 	/** The class of PlayerController to spawn for players logging in. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes)
 	TSubclassOf<class APlayerController> PlayerControllerClass;
 
 	/** The pawn class used by the PlayerController for players when spectating. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes)
 	TSubclassOf<class ASpectatorPawn> SpectatorClass;
 
 	/** A PlayerState of this class will be associated with every player to replicate relevant player information to all clients. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes, AdvancedDisplay)
 	TSubclassOf<class APlayerState> PlayerStateClass;
 
 	/** Class of GameState associated with this GameMode. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes)
 	TSubclassOf<class AGameState> GameStateClass;
 
 	/** GameState is used to replicate game state relevant properties to all clients. */

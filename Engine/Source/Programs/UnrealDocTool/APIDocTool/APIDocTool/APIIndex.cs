@@ -138,7 +138,7 @@ namespace APIDocTool
 			RootNodes.Add(new SitemapNode("Getting started", GettingStarted.SitemapLinkPath));
 			foreach (APIModuleIndex ChildModuleIndex in ChildModuleIndexes)
 			{
-				RootNodes.Add(ChildModuleIndex.CreateSitemapNode());
+				RootNodes.AddRange(ChildModuleIndex.CreateSitemapNodes());
 			}
 			RootNodes.Add(new SitemapNode("All constants", ConstantIndex.SitemapLinkPath));
 			RootNodes.Add(new SitemapNode("All functions", FunctionIndex.SitemapLinkPath));
@@ -174,7 +174,7 @@ namespace APIDocTool
 			List<SitemapNode> RootNodes = new List<SitemapNode>();
 			foreach(APIPage Page in AllPages)
 			{
-				if (!(Page is APIMember))
+				if (!(Page is APIMember) && Page.ShouldOutputPage())
 				{
 					RootNodes.Add(new SitemapNode(Page.Name, Page.SitemapLinkPath));
 				}
@@ -183,7 +183,10 @@ namespace APIDocTool
 			{
 				foreach(APIMember Member in MemberIndexLink.Value)
 				{
-					RootNodes.Add(new SitemapNode(MemberIndexLink.Key, Member.SitemapLinkPath));
+					if(Member.ShouldOutputPage())
+					{
+						RootNodes.Add(new SitemapNode(MemberIndexLink.Key, Member.SitemapLinkPath));
+					}
 				}
 			}
 

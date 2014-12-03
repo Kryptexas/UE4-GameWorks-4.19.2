@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		// May include minor revisions or descriptions that a default install from SDK_Manager won't have.
 		// e.g. 1.600_Patch001, or 1.610.001.  The SDK_Manager always installs minor revision patches straight into
 		// the default major revision folder.
-		static private string ExpectedSDKVersion = "1.22.0";
+		static private string ExpectedSDKVersion = "1.25.0";
 
 		/** 
 		 * Whether platform supports switching SDKs during runtime
@@ -79,38 +79,28 @@ namespace UnrealBuildTool
 			if (HasSetupAutoSDK())
 			{
 				return SDKStatus.Invalid;
-			}
-
-			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			if (!string.IsNullOrEmpty(BaseSDKPath))
-			{
-
-				try 
-				{ 
-					// Check for the *actual* sdk version
-					string VersionInfo = File.ReadAllText( Path.Combine(BaseSDKPath,"emscripten-version.txt")); 
-					if (VersionInfo.Contains(ExpectedSDKVersion))
-					{
-						return SDKStatus.Valid;
-					}
-					else
-					{
-						Console.WriteLine( "EMSCRIPTEN sdk found but of unexpected version, Please install version " + ExpectedSDKVersion); 
-						return SDKStatus.Invalid;
-					}
-				} 
-				catch (System.Exception) 
-				{
-					Console.WriteLine( "Please check you emscripten installation. Incorrectly set EMSCRIPTEN sdk at " + BaseSDKPath );
-					return SDKStatus.Invalid; 
-				}
-			}
-			return SDKStatus.Invalid;
+            }
+            try
+            {
+                if (HTML5SDKInfo.EmscriptenVersion().Contains(ExpectedSDKVersion))
+                {
+                    return SDKStatus.Valid;
+                }
+                else
+                {
+                    Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is unsupported, Please install version " + ExpectedSDKVersion);
+                    return SDKStatus.Invalid;
+                }
+            }
+            catch (Exception /*ex*/)
+            {
+                 return SDKStatus.Invalid;
+            }
         }
 
         public override bool CanUseXGE()
         {
-            return (GetActiveArchitecture() == "-win32");
+			return (GetActiveArchitecture() == "-win32");
         }
 
         /**
@@ -271,7 +261,8 @@ namespace UnrealBuildTool
             UEBuildConfiguration.bCompilePhysX = true;
             UEBuildConfiguration.bRuntimePhysicsCooking = false;
             UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileICU = false;
+            UEBuildConfiguration.bCompileICU = true;
+            UEBuildConfiguration.bCompileForSize = true;
         }
 
         /**
@@ -379,7 +370,9 @@ namespace UnrealBuildTool
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
                 }
 
-                if (EnableHTTPForNFS && Target.Platform == UnrealTargetPlatform.Win64 )
+                if (EnableHTTPForNFS && (Target.Platform == UnrealTargetPlatform.Win64  
+                                         || Target.Platform == UnrealTargetPlatform.Mac)
+                    )
                 {
                     if (InModule.ToString() == "NetworkFile") // client
                     {
@@ -389,8 +382,7 @@ namespace UnrealBuildTool
                     else if (InModule.ToString() == "NetworkFileSystem") // server 
                     {
                         if (UnrealBuildTool.RunningRocket() == false || 
-                            Target.Type == TargetRules.TargetType.Game || 
-                            Target.Type == TargetRules.TargetType.RocketGame )
+                            Target.Type == TargetRules.TargetType.Game )
                         {
                             InModule.AddPrivateDependencyModule("WebSockets");
                             InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");

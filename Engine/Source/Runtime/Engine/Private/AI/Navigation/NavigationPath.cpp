@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavigationPath.h"
@@ -77,7 +77,7 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 	const bool RegisterForPathUpdates = GoalActor.IsValid() == false;	
 	GoalActor = &ActorToObserve;
 	checkSlow(GoalActor.IsValid());
-	GoalActorAsNavAgent = InterfaceCast<INavAgentInterface>(&ActorToObserve);
+	GoalActorAsNavAgent = Cast<INavAgentInterface>(&ActorToObserve);
 	GoalActorLocationTetherDistanceSq = FMath::Square(TetherDistance);
 	UpdateLastRepathGoalLocation();
 
@@ -87,7 +87,7 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 void FNavigationPath::SetSourceActor(const AActor& InSourceActor)
 {
 	SourceActor = &InSourceActor;
-	SourceActorAsNavAgent = InterfaceCast<INavAgentInterface>(&InSourceActor);
+	SourceActorAsNavAgent = Cast<INavAgentInterface>(&InSourceActor);
 }
 
 void FNavigationPath::UpdateLastRepathGoalLocation()
@@ -264,10 +264,10 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, in
 
 #if ENABLE_VISUAL_LOG
 
-void FNavigationPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const 
+void FNavigationPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const 
 {
 	const int32 NumPathVerts = PathPoints.Num();
-	FVisLogEntry::FElementToDraw Element(FVisLogEntry::FElementToDraw::Path);
+	FVisualLogShapeElement Element(EVisualLoggerShapeElement::Path);
 	Element.Category = LogNavigation.GetCategoryName();
 	Element.SetColor(FColorList::Green);
 	Element.Points.Reserve(NumPathVerts);
@@ -321,7 +321,7 @@ float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const
 	}
 
 	float TotalLength = 0.f;
-	const FNavPathPoint* PrevPoint = PathPoints.GetTypedData() + StartingPoint;
+	const FNavPathPoint* PrevPoint = PathPoints.GetData() + StartingPoint;
 	const FNavPathPoint* PathPoint = PrevPoint + 1;
 
 	for (int32 PathPointIndex = StartingPoint + 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex, ++PathPoint, ++PrevPoint)
@@ -344,7 +344,7 @@ float FNavMeshPath::GetPathCorridorLength(const int32 StartingEdge) const
 	}
 
 	
-	const FNavigationPortalEdge* PrevEdge = PathCorridorEdges.GetTypedData() + StartingEdge;
+	const FNavigationPortalEdge* PrevEdge = PathCorridorEdges.GetData() + StartingEdge;
 	const FNavigationPortalEdge* CorridorEdge = PrevEdge + 1;
 	FVector PrevEdgeMiddle = PrevEdge->GetMiddlePoint();
 
@@ -546,6 +546,14 @@ void FNavMeshPath::ApplyFlags(int32 NavDataFlags)
 	}
 }
 
+void AppendPathPointsHelper(TArray<FNavPathPoint>& PathPoints, const TArray<FPathPointInfo>& SourcePoints, int32 Index)
+{
+	if (SourcePoints.IsValidIndex(Index) && SourcePoints[Index].Point.NodeRef != 0)
+	{
+		PathPoints.Add(SourcePoints[Index].Point);
+	}
+}
+
 void FNavMeshPath::OffsetFromCorners(float Distance)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_OffsetFromCorners);
@@ -572,7 +580,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 	bool bNeedToCopyResults = false;
 	int32 SingleNodePassCount = 0;
 
-	FNavPathPoint* PathPoint = PathPoints.GetTypedData();
+	FNavPathPoint* PathPoint = PathPoints.GetData();
 	// it's possible we'll be inserting points into the path, so we need to buffer the result
 	TArray<FPathPointInfo> FirstPassPoints;
 	FirstPassPoints.Reserve(PathPoints.Num() + 2);
@@ -701,8 +709,8 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 
 			if (StartPointFlags.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) 
 			{
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex+1].Point );
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex + 1);
 
 				StartPointIndex++;
 				LastVisiblePointIndex = StartPointIndex;
@@ -741,7 +749,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 				if (bVisible) 
 				{ 
 #if PATH_OFFSET_KEEP_VISIBLE_POINTS
-					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
+					AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
 					LastVisiblePointIndex = TestedPointIndex;
 					StartPointIndex = LastVisiblePointIndex;
 					TestedPointIndex++;
@@ -752,7 +760,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 				} 
 				else
 				{ 
-					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
+					AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
 					StartPointIndex = LastVisiblePointIndex;
 					TestedPointIndex = LastVisiblePointIndex + 1;
 				} 
@@ -760,9 +768,9 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 
 			// if reached end of path, add current and last points to close it and leave loop
 			if (TestedPointIndex > LastPointIndex) 
-			{ 
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-				DestinationPathPoints.Add( FirstPassPoints[LastPointIndex].Point );
+			{
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, LastPointIndex);
 				break; 
 			} 
 		} 
@@ -788,7 +796,7 @@ void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, U
 	const ARecastNavMesh* RecastNavMesh = Cast<const ARecastNavMesh>(NavData);
 
 	// tmp hack
-	const FNavigationPortalEdge* Edge = (const_cast<FNavMeshPath*>(this))->GetPathCorridorEdges()->GetTypedData();
+	const FNavigationPortalEdge* Edge = (const_cast<FNavMeshPath*>(this))->GetPathCorridorEdges()->GetData();
 	//const FNavigationPortalEdge* Edge = PathCorridorEdges.GetTypedData();
 	const int32 CorridorEdgesCount = PathCorridorEdges.Num();
 
@@ -845,7 +853,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 		return Super::DoesIntersectBox(Box, StartingIndex, IntersectingSegmentIndex);
 	}
 
-	// note that it's a big simplified. It works
+	// note that it's a bit simplified. It works
 
 	bool bIntersects = false;
 	int32 PortalIndex = INDEX_NONE;
@@ -891,7 +899,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 
 #if ENABLE_VISUAL_LOG
 
-void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	if (IsStringPulled())
 	{
@@ -901,7 +909,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 
 	// draw corridor
 #if WITH_RECAST
-	FVisLogEntry::FElementToDraw CorridorElem(FVisLogEntry::FElementToDraw::Segment);
+	FVisualLogShapeElement CorridorElem(EVisualLoggerShapeElement::Segment);
 	CorridorElem.SetColor(FColorList::Cyan);
 	CorridorElem.Category = LogNavigation.GetCategoryName();
 	CorridorElem.Points.Reserve(PathCorridor.Num() * 6);
@@ -932,7 +940,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 		{
-			FVisLogEntry::FElementToDraw AreaMarkElem(FVisLogEntry::FElementToDraw::Segment);
+			FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
 			AreaMarkElem.SetColor(FColorList::Orange);
 			AreaMarkElem.Category = LogNavigation.GetCategoryName();
 			AreaMarkElem.Thicknes = 2;
@@ -966,8 +974,8 @@ FString FNavMeshPath::GetDescription() const
 // UNavigationPath
 //----------------------------------------------------------------------//
 
-UNavigationPath::UNavigationPath(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationPath::UNavigationPath(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bIsValid(false)
 	, bDebugDrawingEnabled(false)
 	, DebugDrawingColor(FColor::White)

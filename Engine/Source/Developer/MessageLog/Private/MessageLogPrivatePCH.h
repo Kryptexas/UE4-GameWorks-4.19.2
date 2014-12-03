@@ -4,7 +4,7 @@
 #define __MessageLogPrivatePCH_h__
 
 #include "Core.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Attribute.h"
 #include "EditorStyle.h"
 #include "MessageLogModule.h"

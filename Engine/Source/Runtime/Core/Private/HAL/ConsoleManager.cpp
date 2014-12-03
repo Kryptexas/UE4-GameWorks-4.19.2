@@ -4,14 +4,40 @@
 ConsoleManager.cpp: console command handling
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ConsoleManager.h"
 #include "ModuleManager.h"
+#include "RemoteConfigIni.h"
 
 DEFINE_LOG_CATEGORY(LogConsoleResponse);
 DEFINE_LOG_CATEGORY_STATIC(LogConsoleManager, Log, All);
 
 static inline bool IsWhiteSpace(TCHAR Value) { return Value == TCHAR(' '); }
+
+// Get human readable string
+// @return never 0
+static const TCHAR* GetSetByTCHAR(EConsoleVariableFlags InSetBy)
+{
+	EConsoleVariableFlags SetBy = (EConsoleVariableFlags)((uint32)InSetBy & ECVF_SetByMask);
+
+	switch(SetBy)
+	{
+#define CASE(A) case ECVF_SetBy##A: return TEXT(#A);
+		// Could also be done with enum reflection instead
+		CASE(Constructor)
+		CASE(Scalability)
+		CASE(GameSetting)
+		CASE(ProjectSetting)
+		CASE(DeviceProfile)
+		CASE(SystemSettingsIni)
+		CASE(ConsoleVariablesIni)
+		CASE(Commandline)
+		CASE(Code)
+		CASE(Console)
+#undef CASE
+	}
+	return TEXT("<UNKNOWN>");
+}
 
 class FConsoleVariableBase : public IConsoleVariable
 {
@@ -58,11 +84,41 @@ public:
 
 	// ------
 
-	void OnChanged()
+	bool CanChange(EConsoleVariableFlags SetBy) const
 	{
+		uint32 OldPri =	(uint32)Flags & ECVF_SetByMask;
+		uint32 NewPri =	(uint32)SetBy & ECVF_SetByMask;
+
+		bool bRet = NewPri >= OldPri;
+
+		if(!bRet)
+		{
+			FConsoleManager& ConsoleManager = (FConsoleManager&)IConsoleManager::Get();
+			FString CVarName = ConsoleManager.FindConsoleObjectName(this);
+			UE_LOG(LogConsoleManager, Warning,
+				TEXT("Console variable '%s' wasn't set (Priority %s < %s)"),
+				CVarName.IsEmpty() ? TEXT("unknown?") : *CVarName,
+				GetSetByTCHAR((EConsoleVariableFlags)OldPri),
+				GetSetByTCHAR((EConsoleVariableFlags)NewPri)
+				);
+		}
+
+		return bRet;
+	}
+
+	void OnChanged(EConsoleVariableFlags SetBy)
+	{
+		// you have to specify a SetBy e.g. ECVF_SetByCommandline
+		check((uint32)SetBy & ECVF_SetByMask);
+
+		// double check, if this fires we miss a if(CanChange(SetBy))
+		check(CanChange(SetBy));
+
 		// only change on main thread
 
 		Flags = (EConsoleVariableFlags)((uint32)Flags | ECVF_Changed);
+
+		Flags = (EConsoleVariableFlags)(((uint32)Flags & ~ECVF_SetByMask) | SetBy);
 
 		OnChangedCallback.ExecuteIfBound(this);
 	}
@@ -203,10 +259,13 @@ public:
 	{
 		delete this; 
 	} 
-	virtual void Set(const TCHAR* InValue)
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 	{
-		TTypeFromString<T>::FromString(Data.ShadowedValue[0], InValue);
-		OnChanged();
+		if(CanChange(SetBy))
+		{
+			TTypeFromString<T>::FromString(Data.ShadowedValue[0], InValue);
+			OnChanged(SetBy);
+		}
 	}
 
 	virtual int32 GetInt() const;
@@ -227,11 +286,11 @@ private: // ----------------------------------------------------
 		return This->Data.GetReferenceOnAnyThread();
 	}
 
-	void OnChanged()
+	void OnChanged(EConsoleVariableFlags SetBy)
 	{
 		// propagate from main thread to render thread
 		OnCVarChange(Data.ShadowedValue[1], Data.ShadowedValue[0], Flags);
-		FConsoleVariableBase::OnChanged();
+		FConsoleVariableBase::OnChanged(SetBy);
 	}
 };
 
@@ -276,10 +335,13 @@ template<> TConsoleVariableData<float>* FConsoleVariable<float>::AsVariableFloat
 
 // specialization for FString
 
-template<> void FConsoleVariable<FString>::Set(const TCHAR* InValue)
+template<> void FConsoleVariable<FString>::Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 {
-	Data.ShadowedValue[0] = InValue;
-	OnChanged();
+	if(CanChange(SetBy))
+	{
+		Data.ShadowedValue[0] = InValue;
+		OnChanged(SetBy);
+	}
 }
 template<> int32 FConsoleVariable<FString>::GetInt() const
 {
@@ -317,10 +379,13 @@ public:
 	{
 		delete this; 
 	} 
-	virtual void Set(const TCHAR* InValue)
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 	{
-		TTypeFromString<T>::FromString(MainValue, InValue);
-		OnChanged();
+		if(CanChange(SetBy))
+		{
+			TTypeFromString<T>::FromString(MainValue, InValue);
+			OnChanged(SetBy);
+		}
 	}
 	virtual int32 GetInt() const
 	{
@@ -349,11 +414,14 @@ private: // ----------------------------------------------------
 		return (Index == 0) ? MainValue : RefValue;
 	}
 
-	void OnChanged()
+	void OnChanged(EConsoleVariableFlags SetBy)
 	{
-		// propagate from main thread to render thread or to reference
-		OnCVarChange(RefValue, MainValue, Flags);
-		FConsoleVariableBase::OnChanged();
+		if(CanChange(SetBy))
+		{
+			// propagate from main thread to render thread or to reference
+			OnCVarChange(RefValue, MainValue, Flags);
+			FConsoleVariableBase::OnChanged(SetBy);
+		}
 	}
 };
 
@@ -382,14 +450,19 @@ public:
 	{
 		delete this; 
 	} 
-	virtual void Set(const TCHAR* InValue)
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 	{
-		int32 Value = FCString::Atoi(InValue);
+		if(CanChange(SetBy))
+		{
+			int32 Value = FCString::Atoi(InValue);
 
-		check(IsInGameThread());
+			check(IsInGameThread());
 
-		FMath::SetBoolInBitField(Force0MaskPtr, BitNumber, Value == 0);
-		FMath::SetBoolInBitField(Force1MaskPtr, BitNumber, Value == 1);
+			FMath::SetBoolInBitField(Force0MaskPtr, BitNumber, Value == 0);
+			FMath::SetBoolInBitField(Force1MaskPtr, BitNumber, Value == 1);
+
+			OnChanged(SetBy);
+		}
 	}
 	virtual int32 GetInt() const
 	{
@@ -753,6 +826,60 @@ void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState
 	}
 }
 
+void FConsoleManager::LoadHistoryIfNeeded()
+{
+	if(bHistoryWasLoaded)
+	{
+		return;
+	}
+
+	bHistoryWasLoaded = true;
+
+	HistoryEntries.Empty();
+
+	FConfigFile Ini;
+
+	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
+	ProcessIniContents(*ConfigPath, *ConfigPath, &Ini, false, false, false);
+
+	const FString History = TEXT("History");
+
+	FConfigSection* Section = Ini.Find(TEXT("ConsoleHistory"));
+
+	if(Section)
+	{
+		for (auto It : *Section)
+		{
+			const FString& Key = It.Key.ToString();
+
+			if(Key == History)
+			{
+				HistoryEntries.Add(It.Value);
+			}
+		}
+	}
+}
+
+void FConsoleManager::SaveHistory()
+{
+	const FName History = TEXT("History");
+
+	FConfigFile Ini;
+
+	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
+
+	FConfigSection& Section = Ini.Add(TEXT("ConsoleHistory"));
+
+	for(auto It : HistoryEntries)
+	{
+		Section.Add(History, It);
+	}
+
+	Ini.Dirty = true;
+	Ini.Write(ConfigPath);
+}
+
+
 void FConsoleManager::ForEachConsoleObject(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
 {
 	check(Visitor.IsBound());
@@ -835,7 +962,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		if(*It == 0)
 		{
 			// get current state
-			Ar.Logf(TEXT("%s = \"%s\""), *Param1, *CVar->GetString());
+			Ar.Logf(TEXT("%s = \"%s\"      LastSetBy: %s"), *Param1, *CVar->GetString(), GetSetByTCHAR(CVar->GetFlags()));
 		}
 		else
 		{
@@ -865,7 +992,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				else
 				{
 					// set value
-					CVar->Set(*Param2);
+					CVar->Set(*Param2, ECVF_SetByConsole);
 
 					Ar.Logf(TEXT("%s = \"%s\""), *Param1, *CVar->GetString());
 
@@ -942,7 +1069,7 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 			if(ExistingVar->TestFlags(ECVF_CreatedFromIni))
 			{
 				// The existing one came from the ini, get the value and destroy the existing one (no need to call sink because that will happen after all ini setting have been loaded)
-				Var->Set(*ExistingVar->GetString());
+				Var->Set(*ExistingVar->GetString(), (EConsoleVariableFlags)((uint32)ExistingVar->GetFlags() & ECVF_SetByMask));
 				ExistingVar->Release();
 
 				ConsoleObjects.Add(Name, Var);
@@ -1058,11 +1185,23 @@ void IConsoleManager::SetupSingleton()
 
 void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
 {
+	LoadHistoryIfNeeded();
+
+	// limit size to avoid a ever growing file
+	while(HistoryEntries.Num() > 64)
+	{
+		HistoryEntries.RemoveAt(0);
+	}
+
 	HistoryEntries.Add(FString(Input));
+
+	SaveHistory();
 }
 
-void FConsoleManager::GetConsoleHistory(TArray<FString>& Out) const
+void FConsoleManager::GetConsoleHistory(TArray<FString>& Out)
 {
+	LoadHistoryIfNeeded();
+
 	Out = HistoryEntries;
 }
 
@@ -1158,6 +1297,9 @@ void FConsoleManager::Test()
 		IConsoleVariable* VarD = IConsoleManager::Get().RegisterConsoleVariableRef(TEXT("TestNameD"), RefD, TEXT("TestHelpD"), Flags);
 		IConsoleVariable* VarE = IConsoleManager::Get().RegisterConsoleVariableRef(TEXT("TestNameE"), RefE, TEXT("TestHelpE"), Flags);
 
+		// at the moment ECVF_SetByConstructor has to be 0 or we set ECVF_Default to ECVF_SetByConstructor
+		check((VarA->GetFlags() & ECVF_SetByMask) == ECVF_SetByConstructor);
+
 		GConsoleVariableCallbackTestCounter = 0;
 		VarB->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&TestConsoleVariableCallback));
 		check(GConsoleVariableCallbackTestCounter == 0);
@@ -1198,10 +1340,10 @@ void FConsoleManager::Test()
 
 		// call Set(string)
 
-		VarA->Set(TEXT("3.1"));
-		VarB->Set(TEXT("3.1"));
-		VarD->Set(TEXT("3.1"));
-		VarE->Set(TEXT("3.1"));
+		VarA->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
+		VarB->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
+		VarD->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
+		VarE->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
 
 		check(GConsoleVariableCallbackTestCounter == 1);
 
@@ -1221,7 +1363,7 @@ void FConsoleManager::Test()
 		check(RefD == 3);
 		check(RefE == 3.1f);
 
-		VarB->Set(TEXT("3.1"));
+		VarB->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
 		check(GConsoleVariableCallbackTestCounter == 2);
 
 		// unregister
@@ -1255,11 +1397,42 @@ void FConsoleManager::Test()
 			check(FMath::IsNearlyEqual(VarC->GetFloat(), 1.23f, KINDA_SMALL_NUMBER));
 			check(VarC->GetString() == FString(TEXT("1.23")));
 			check(!VarC->TestFlags(ECVF_Changed));
-			VarC->Set(TEXT("3.1"));
+			VarC->Set(TEXT("3.1"), ECVF_SetByConsole);
 			check(VarC->TestFlags(ECVF_Changed));
 			check(VarC->GetString() == FString(TEXT("3.1")));
 			UnregisterConsoleObject(TEXT("TestNameC"), false);
 			check(!IConsoleManager::Get().FindConsoleVariable(TEXT("TestNameC")));
+		}
+
+		// verify priority
+		{
+			IConsoleVariable* VarX = IConsoleManager::Get().RegisterConsoleVariable(TEXT("TestNameX"), 1, TEXT("TestHelpX"), Flags);
+			check(((uint32)VarX->GetFlags() & ECVF_SetByMask) == ECVF_SetByConstructor);
+
+			VarX->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
+			check(((uint32)VarX->GetFlags() & ECVF_SetByMask) == ECVF_SetByConsoleVariablesIni);
+
+			// lower should fail
+			VarX->Set(TEXT("111"), ECVF_SetByScalability);
+			check(VarX->GetString() == FString(TEXT("3")));
+			check(((uint32)VarX->GetFlags() & ECVF_SetByMask) == ECVF_SetByConsoleVariablesIni);
+
+			// higher should work
+			VarX->Set(TEXT("222"), ECVF_SetByCommandline);
+			check(VarX->GetString() == FString(TEXT("222")));
+			check(((uint32)VarX->GetFlags() & ECVF_SetByMask) == ECVF_SetByCommandline);
+
+			// lower should fail
+			VarX->Set(TEXT("333"), ECVF_SetByConsoleVariablesIni);
+			check(VarX->GetString() == FString(TEXT("222")));
+			check(((uint32)VarX->GetFlags() & ECVF_SetByMask) == ECVF_SetByCommandline);
+
+			// higher should work
+			VarX->Set(TEXT("444"), ECVF_SetByConsole);
+			check(VarX->GetString() == FString(TEXT("444")));
+			check(((uint32)VarX->GetFlags() & ECVF_SetByMask) == ECVF_SetByConsole);
+
+			IConsoleManager::Get().UnregisterConsoleObject(VarX, false);
 		}
 	}
 
@@ -1525,13 +1698,6 @@ static TAutoConsoleVariable<float> CVarScreenPercentage(
 	TEXT("70 is a good value for low aliasing and performance, can be verified with 'show TestImage'\n")
 	TEXT("in percent, >0 and <=100, <0 means the post process volume settings are used"),
 	ECVF_Scalability | ECVF_Default);
-
-// Changing this causes a full shader recompile
-static TAutoConsoleVariable<int32> CVarUseDiffuseSpecularMaterialInputs(
-	TEXT("r.UseDiffuseSpecularMaterialInputs"),
-	0,
-	TEXT("Whether to use DiffuseColor, SpecularColor material inputs, otherwise BaseColor, Metallic, Specular will be used. Cannot be changed at runtime."),
-	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
 	TEXT("r.MaterialQualityLevel"),
@@ -1869,3 +2035,9 @@ static TAutoConsoleVariable<int32> CVarVerifyPeer(
 	TEXT("  0 = disable (allows self-signed certificates)\n")
 	TEXT("  1 = enable [default]"),
 	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<float> CVarEmitterSpawnRateScale(
+	TEXT("r.EmitterSpawnRateScale"),
+	1.0,
+	TEXT("A global scale upon the spawn rate of emitters. Emitters can choose to apply or ignore it via their bApplyGlobalSpawnRateScale property."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);

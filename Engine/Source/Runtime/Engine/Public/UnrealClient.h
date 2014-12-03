@@ -7,7 +7,9 @@
 #pragma once
 
 #include "RenderResource.h"
-#include "HitProxies.h"		
+#include "HitProxies.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
 
 class FCanvas;
 class FViewportClient;
@@ -111,11 +113,13 @@ struct ENGINE_API FScreenshotRequest
 	static void RequestScreenshot( const FString& InFilename, bool bInShowUI );
 
 	/**
-	 * Requests a new screenshot.  This method will auto-generate a filename via the format "Screenshot{0} where {0} is an incremented coutner"
+	 * Requests a new screenshot.  This method will auto-generate a filename via the format "Screenshot{0}.{1} where {0} is an incremented coutner
+	 * and {1} is an optional extension (defaulting to .bmp)
 	 *
 	 * @param bInShowUI		Whether or not to show Slate UI
+	 * @param InExtension	Which file extension to use
 	 */
-	static void RequestScreenshot( bool bInShowUI );
+	static void RequestScreenshot( bool bInShowUI, const FString& InExtension = FString(TEXT("bmp") ) );
 
 	/**
 	 * Resets a screenshot request
@@ -273,7 +277,7 @@ public:
 	 */
 	virtual bool IsCursorVisible() const { return true; }
 
-	virtual bool CaptureJoystickInput(bool Capture) = 0;
+	virtual bool SetUserFocus(bool bFocus) = 0;
 	virtual bool KeyState(FKey Key) const = 0;
 	virtual int32 GetMouseX() const = 0;
 	virtual int32 GetMouseY() const = 0;
@@ -877,6 +881,11 @@ public:
 	 * Gets the mouse capture behavior when the viewport is clicked
 	 */
 	virtual EMouseCaptureMode::Type CaptureMouseOnClick() { return EMouseCaptureMode::CapturePermanently; }
+
+	/**
+	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
+	virtual bool HideCursorDuringCapture() { return false; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */
@@ -899,4 +908,66 @@ public:
 	}
 
 	ENGINE_API void DrawHighResScreenshotCaptureRegion(FCanvas& Canvas);
+};
+
+
+/**
+ * Minimal viewport for assisting with taking screenshots (also used within a plugin)
+ * @todo: This should be refactored
+ */
+class FDummyViewport : public FViewport
+{
+public:
+	ENGINE_API FDummyViewport(FViewportClient* InViewportClient);
+
+	virtual ~FDummyViewport();
+
+	// Begin FViewport interface
+	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override
+	{
+		check( IsInRenderingThread() );
+		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
+	};
+
+	virtual void EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync) override
+	{
+		check( IsInRenderingThread() );
+	}
+
+	virtual void*	GetWindow() { return 0; }
+	virtual void	MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) {}
+	virtual void	Destroy() {}
+	virtual bool SetUserFocus(bool bFocus) { return false; }
+	virtual bool	KeyState(FKey Key) const { return false; }
+	virtual int32	GetMouseX() const { return 0; }
+	virtual int32	GetMouseY() const { return 0; }
+	virtual void	GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) { MousePosition = FIntPoint(0, 0); }
+	virtual void	SetMouse(int32 x, int32 y) { }
+	virtual void	ProcessInput( float DeltaTime ) { }
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override { return FVector2D::ZeroVector; }
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override { return FIntPoint::ZeroValue; }
+	virtual void InvalidateDisplay() { }
+	virtual void DeferInvalidateHitProxy() { }
+	virtual FViewportFrame* GetViewportFrame() { return 0; }
+	virtual FCanvas* GetDebugCanvas() { return DebugCanvas; }
+	// End FViewport interface
+
+	// Begin FRenderResource interface
+	virtual void InitDynamicRHI()
+	{
+		FTexture2DRHIRef ShaderResourceTextureRHI;
+
+		FRHIResourceCreateInfo CreateInfo;
+		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
+	}
+
+	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource
+	virtual void InitRHI() override{}
+	virtual void ReleaseRHI() override{}
+	virtual void InitResource() override{ FViewport::InitResource(); }
+	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
+	virtual FString GetFriendlyName() const { return FString(TEXT("FDummyViewport"));}
+	// End FRenderResource interface
+private:
+	FCanvas* DebugCanvas;
 };

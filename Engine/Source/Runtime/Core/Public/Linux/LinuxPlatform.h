@@ -36,7 +36,6 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_PRAGMA_PACK				1
 #define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR			1
 #define PLATFORM_TCHAR_IS_4_BYTES					1
-#define PLATFORM_HAS_vsnprintf						0
 #define PLATFORM_HAS_BSD_TIME						1
 #define PLATFORM_USE_PTHREADS						1
 #define PLATFORM_MAX_FILEPATH_LENGTH				MAX_PATH /* @todo linux: avoid using PATH_MAX as it is known to be broken */
@@ -45,8 +44,13 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_HAS_BSD_IPV6_SOCKETS				1
 
 #define PLATFORM_USES_DYNAMIC_RHI					1
-#define PLATFORM_ENABLE_VECTORINTRINSICS			1
 
+// only enable vectorintrinsics on x86 for now
+#if defined(_M_IX86) || defined(__i386__)
+	#define PLATFORM_ENABLE_VECTORINTRINSICS		1
+#else
+	#define PLATFORM_ENABLE_VECTORINTRINSICS		0
+#endif // defined(_M_IX86) || defined(__i386__)
 
 // Function type macros.
 #define VARARGS													/* Functions with variable arguments */
@@ -73,6 +77,13 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define GCC_PACK(n)			__attribute__((packed,aligned(n)))
 #define GCC_ALIGN(n)		__attribute__((aligned(n)))
 
-// Operator new/delete handling.
+// operator new/delete operators
+// As of 10.9 we need to use _NOEXCEPT & cxx_noexcept compatible definitions
+#if __has_feature(cxx_noexcept)
+#define OPERATOR_NEW_THROW_SPEC
+#else
 #define OPERATOR_NEW_THROW_SPEC throw (std::bad_alloc)
-#define OPERATOR_DELETE_THROW_SPEC throw()
+#endif
+#define OPERATOR_DELETE_THROW_SPEC noexcept
+#define OPERATOR_NEW_NOTHROW_SPEC  noexcept
+#define OPERATOR_DELETE_NOTHROW_SPEC  noexcept

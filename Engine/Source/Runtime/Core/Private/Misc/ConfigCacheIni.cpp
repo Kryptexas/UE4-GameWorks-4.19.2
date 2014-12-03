@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ConfigCacheIni.cpp: Unreal config file reading/writing.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "ConfigCacheIni.h"
 #include "RemoteConfigIni.h"
 #include "AES.h"
@@ -12,7 +9,9 @@
 #include "DefaultValueHelper.h"
 #include "EngineBuildSettings.h"
 
+
 DEFINE_LOG_CATEGORY(LogConfig);
+
 
 class FTextFriendHelper
 {
@@ -160,7 +159,7 @@ bool FConfigFile::Combine(const FString& Filename)
 	// needs file ops), and the other caller of this is already checking for disabled file ops
 	if( FFileHelper::LoadFileToString( Text, *Filename ) )
 	{
-		CombineFromBuffer(Filename,Text);
+		CombineFromBuffer(Text);
 		return true;
 	}
 
@@ -168,10 +167,10 @@ bool FConfigFile::Combine(const FString& Filename)
 }
 
 
-void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffer)
+void FConfigFile::CombineFromBuffer(const FString& Buffer)
 {
 	// Replace %GAME% with game name.
-	FString Text = Buffer.Replace( TEXT("%GAME%"), GGameName, ESearchCase::CaseSensitive );
+	FString Text = Buffer.Replace(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
@@ -376,13 +375,12 @@ void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffe
 /**
  * Process the contents of an .ini file that has been read into an FString
  * 
- * @param Filename Name of the .ini file the contents came from
  * @param Contents Contents of the .ini file
  */
-void FConfigFile::ProcessInputFileContents(const FString& Filename, FString& Contents)
+void FConfigFile::ProcessInputFileContents(const FString& Contents)
 {
 	// Replace %GAME% with game name.
-	FString Text = Contents.Replace(TEXT("%GAME%"), GGameName, ESearchCase::CaseSensitive);
+	FString Text = Contents.Replace(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
@@ -545,7 +543,7 @@ void FConfigFile::Read( const FString& Filename )
 		if( FFileHelper::LoadFileToString( Text, *Filename ) )
 		{
 			// process the contents of the string
-			ProcessInputFileContents(Filename, Text);
+			ProcessInputFileContents(Text);
 		}
 	}
 }
@@ -678,7 +676,7 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 		{
 			if (IniToLoad.bRequired)
 			{
-				//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, GGameName );
+				//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, FApp::GetGameName() );
 				return false;
 			}
 			else
@@ -2603,8 +2601,8 @@ static FString GetSourceIniFilename(const TCHAR* BaseIniName, const TCHAR* Platf
  * Creates a chain of ini filenames to load and combine.
  *
  * @param InBaseIniName Ini name.
- * @param InPlatformName Platform name.
- * @param InGameName Game name.
+ * @param InPlatformName Platform name, NULL means to use the current platform
+ * @param InGameName Game name, NULL means to use the current
  * @param OutHierarchy An array which is to receive the generated hierachy of ini filenames.
  */
 static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCHAR* InPlatformName, const TCHAR* InGameName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, TArray<FIniFilename>& OutHierarchy, bool bRequireDefaultIni)
@@ -2669,7 +2667,7 @@ void FConfigCacheIni::InitializeConfigSystem()
 
 	// load the main .ini files (unless we're running a program or a gameless UE4Editor.exe, DefaultEngine.ini is required).
 	const bool bIsGamelessExe = !FApp::HasGameName();
-	const bool bDefaultEngineIniRequired = !bIsGamelessExe && (GIsGameAgnosticExe || FCString::Strlen(GGameName) == 0);
+	const bool bDefaultEngineIniRequired = !bIsGamelessExe && (GIsGameAgnosticExe || FApp::IsGameNameEmpty());
 	bool bEngineConfigCreated = FConfigCacheIni::LoadGlobalIniFile(GEngineIni, TEXT("Engine"), NULL, NULL, bDefaultEngineIniRequired);
 
 	if ( !bIsGamelessExe )
@@ -2684,51 +2682,13 @@ void FConfigCacheIni::InitializeConfigSystem()
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, Message);
 			}
-			GGameName[0] = 0; // this disables part of the crash reporter to avoid writing log files to a bogus directory
+			FApp::SetGameName(TEXT("")); // this disables part of the crash reporter to avoid writing log files to a bogus directory
 			if (!GIsBuildMachine)
 			{
 				exit(1);
 			}
 			UE_LOG(LogInit, Fatal,TEXT("%s"), *Message.ToString());
 		}
-#if PLATFORM_DESKTOP
-		// correct the case of the game name, if possible (unless we're running a program and the game name is already set)
-		const FString GameName = GConfig->GetStr(TEXT("URL"), TEXT("GameName"), GEngineIni);
-		const FString GameNameWithSuffix = GameName + TEXT("Game");
-		const bool bGameNameMatchesIniCaseSensitive = (FCString::Strcmp(*GameName, GGameName) == 0) || (FCString::Strcmp(*GameNameWithSuffix, GGameName) == 0);
-		if (!bGameNameMatchesIniCaseSensitive && (FCString::Strlen(GGameName) == 0 || GIsGameAgnosticExe || (GameName.Len() > 0 && GIsGameAgnosticExe)))
-		{
-			if (GameName == FString(GGameName)) // case insensitive compare
-			{
-				//UE_LOG(LogInit, Log, TEXT("Correcting the case of the game name to %s"), *GameName);
-				FCString::Strncpy(GGameName, *GameName, ARRAY_COUNT(GGameName));
-			}
-			else if ( GameNameWithSuffix == FString(GGameName) )
-			{
-				//UE_LOG(LogInit, Log, TEXT("Correcting the case of the game name to %sGame"), *GameName);
-				FCString::Strncpy(GGameName, *GameName, ARRAY_COUNT(GGameName));
-				FCString::Strcat(GGameName, ARRAY_COUNT(GGameName), TEXT("Game"));
-			}
-			else
-			{
-				const FText Message = FText::Format(
-					NSLOCTEXT("Core", "MismatchedGameNames", "The name of the .uproject file ('{0}') must match the GameName key in the [URL] section of Config/DefaultGame.ini (currently '{1}').  Please either change the ini or rename the .uproject to match each other (case-insensitive match)."),
-					FText::FromString(GGameName),
-					FText::FromString(GameName));
-				if (!GIsBuildMachine)
-				{
-					UE_LOG(LogInit, Warning, TEXT("%s"), *Message.ToString());
-					FMessageDialog::Open( EAppMsgType::Ok, Message );
-				}
-				GGameName[0] = 0; // this disables part of the crash reporter to avoid writing log files to a bogus directory
-				if (!GIsBuildMachine)
-				{
-					exit(1);
-				}
-				UE_LOG(LogInit, Fatal, TEXT("%s"), *Message.ToString());
-			}
-		}
-#endif	//PLATFORM_DESKTOP
 	}
 
 	FConfigCacheIni::LoadGlobalIniFile(GGameIni, TEXT("Game"));
@@ -2825,7 +2785,7 @@ void FConfigCacheIni::LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* Ini
 	if (!bGenerateDestIni)
 	{
 		// generate path to the .ini file (not a Default ini, IniName is the complete name of the file, without path)
-		FString SourceIniFilename = FString::Printf(TEXT("%s/%s.ini"), *FPaths::SourceConfigDir(), IniName);
+		FString SourceIniFilename = FString::Printf(TEXT("%s%s.ini"), *FPaths::SourceConfigDir(), IniName);
 
 		// load the .ini file straight up
 		LoadAnIniFile(*SourceIniFilename, ConfigFile);
@@ -2908,7 +2868,7 @@ void FConfigCacheIni::LoadConsoleVariablesFromINI()
 				if(CVar)
 				{
 					// Set if the variable exists.
-					CVar->Set(*ValueString);
+					CVar->Set(*ValueString, ECVF_SetByConsoleVariablesIni);
 				}
 				else
 				{
@@ -3002,7 +2962,7 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 	Write(DiskFilename, true, NewFile);
 }
 
-void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename)
+void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename, uint32 SetBy)
 {
 	// Lookup the config section for this section and group number
 	TArray<FString> SectionStrings;
@@ -3024,17 +2984,17 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 						|| FCString::Stricmp(*CVarValue, TEXT("Yes")) == 0
 						|| FCString::Stricmp(*CVarValue, TEXT("On")) == 0)
 					{
-						CVar->Set(1);
+						CVar->Set(1, (EConsoleVariableFlags)SetBy);
 					}
 					else if(FCString::Stricmp(*CVarValue, TEXT("False")) == 0
 						|| FCString::Stricmp(*CVarValue, TEXT("No")) == 0
 						|| FCString::Stricmp(*CVarValue, TEXT("Off")) == 0)
 					{
-						CVar->Set(0);
+						CVar->Set(0, (EConsoleVariableFlags)SetBy);
 					}
 					else
 					{
-						CVar->Set(*CVarValue);
+						CVar->Set(*CVarValue, (EConsoleVariableFlags)SetBy);
 					}
 				}
 			}
@@ -3047,9 +3007,9 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 	}
 }
 
-void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename)
+void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename, uint32 SetBy)
 {
 	// Lookup the config section for this section and group number
 	FString SectionName = FString::Printf(TEXT("%s@%d"), InSectionBaseName, InGroupNumber);
-	ApplyCVarSettingsFromIni(*SectionName,InIniFilename);
+	ApplyCVarSettingsFromIni(*SectionName,InIniFilename, SetBy);
 }

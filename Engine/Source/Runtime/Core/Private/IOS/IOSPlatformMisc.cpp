@@ -4,13 +4,15 @@
 	IOSPlatformMisc.mm: iOS implementations of misc functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
 #include "GenericPlatformChunkInstall.h"
+
+#include "Apple/ApplePlatformCrashContext.h"
 
 /** Amount of free memory in MB reported by the system at starup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -152,8 +154,8 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 	{
 		TArray<TCHAR> Ch;
 		Ch.AddUninitialized([CocoaString length] + 1);
-		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetTypedData());
-		Result = Ch.GetTypedData();
+		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetData());
+		Result = Ch.GetData();
 	}
 	else
 	{
@@ -507,7 +509,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	return DeviceType;
 }
 
-void FIOSPlatformMisc::SetMemoryWarningHandler(void (* InHandler)(const FGenericMemoryWarningContext & Context))
+void FIOSPlatformMisc::SetMemoryWarningHandler(void (* InHandler)(const FGenericMemoryWarningContext& Context))
 {
 	GMemoryWarningHandler = InHandler;
 }
@@ -643,7 +645,7 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 		{
 			size_t TableSize = 0;
 			
-			uint32 aTag = (uint32)CFArrayGetValueAtIndex(Tags, TableIndex);
+			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
 			if (aTag == 'CFF ' && !bContainsCFFTable)
 			{
 				bContainsCFFTable = true;
@@ -664,7 +666,7 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 		OutBytes.AddZeroed( TotalSize );
 
 		// Start copying the table data into our buffer
-		uint8* DataStart = OutBytes.GetTypedData();
+		uint8* DataStart = OutBytes.GetData();
 		uint8* DataPtr = DataStart;
 
 		// Compute font header entries
@@ -698,7 +700,7 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 
 		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
 		{
-			uint32 aTag = (uint32)CFArrayGetValueAtIndex(Tags, TableIndex);
+			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
 			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
 			uint32 TableSize = CFDataGetLength(TableDataRef);
 

@@ -95,8 +95,8 @@ void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Capsul
 //----------------------------------------------------------------------//
 // UEnvQueryGenerator_OnCircle
 //----------------------------------------------------------------------//
-UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 	CircleCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
@@ -196,22 +196,33 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	TArray<FVector> CenterLocationCandidates;
 	QueryInstance.PrepareContext(CircleCenter, CenterLocationCandidates);
 
-	FVector CenterLocation(0);
-	if (CenterLocationCandidates.Num() > 0)
+	StartDirection = StartDirection.RotateAngleAxis(-AngleDegree/2, FVector::UpVector) * RadiusValue;
+
+	int NumCenterLocations = CenterLocationCandidates.Num();
+	if (NumCenterLocations > 0)
 	{
-		CenterLocation = CenterLocationCandidates[0];
+		for (int i = 0; i < NumCenterLocations; ++i)
+		{
+			GenerateItemsForCircle(CenterLocationCandidates[i], StartDirection, StepsCount, AngleStep, QueryInstance);
+		}
 	}
 	else
 	{
+		FVector CenterLocation(0);
+
 		AActor* Querier = Cast<AActor>(QueryInstance.Owner.Get());
 		if (Querier)
 		{
 			CenterLocation = Querier->GetActorLocation();
 		}
+
+		GenerateItemsForCircle(CenterLocation, StartDirection, StepsCount, AngleStep, QueryInstance);
 	}
+}
 
-	StartDirection = StartDirection.RotateAngleAxis(-AngleDegree/2, FVector::UpVector) * RadiusValue;
-
+void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(const FVector& CenterLocation, const FVector& StartDirection,
+	int32 StepsCount, float AngleStep, FEnvQueryInstance& OutQueryInstance) const
+{
 	TArray<FVector> ItemCandidates;
 	ItemCandidates.AddZeroed(StepsCount);
 	for (int32 Step = 0; Step < StepsCount; ++Step)
@@ -223,7 +234,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	// @todo this needs to be optimize to batch raycasts
 	const ARecastNavMesh* NavMesh = 
 		(TraceData.TraceMode == EEnvQueryTrace::Navigation) || (ProjectionData.TraceMode == EEnvQueryTrace::Navigation) ?
-		FEQSHelpers::FindNavMeshForQuery(QueryInstance) : NULL;
+		FEQSHelpers::FindNavMeshForQuery(OutQueryInstance) : NULL;
 
 	if (NavMesh)
 	{
@@ -263,7 +274,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
 		TraceParams.bTraceAsyncScene = true;
 
-		FBatchTracingHelper TracingHelper(QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
+		FBatchTracingHelper TracingHelper(OutQueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
 
 		switch (TraceData.TraceShape)
 		{
@@ -280,7 +291,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(CenterLocation, ItemCandidates);
 			break;
 		default:
-			UE_VLOG(Cast<AActor>(QueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+			UE_VLOG(Cast<AActor>(OutQueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *OutQueryInstance.QueryName);
 			break;
 		}
 	}
@@ -295,7 +306,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 
 	for (int32 Step = 0; Step < ItemCandidates.Num(); ++Step)
 	{
-		QueryInstance.AddItemData<UEnvQueryItemType_Point>(ItemCandidates[Step]);
+		OutQueryInstance.AddItemData<UEnvQueryItemType_Point>(ItemCandidates[Step]);
 	}
 }
 
@@ -340,7 +351,7 @@ FText UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
 
 #if WITH_EDITOR
 
-void UEnvQueryGenerator_OnCircle::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) 
+void UEnvQueryGenerator_OnCircle::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	static const FName NAME_Angle = GET_MEMBER_NAME_CHECKED(UEnvQueryGenerator_OnCircle, Angle);
 	static const FName NAME_Radius = GET_MEMBER_NAME_CHECKED(UEnvQueryGenerator_OnCircle, Radius);

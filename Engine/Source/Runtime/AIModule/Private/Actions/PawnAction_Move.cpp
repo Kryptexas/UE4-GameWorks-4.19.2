@@ -3,10 +3,11 @@
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Move.h"
 
-UPawnAction_Move::UPawnAction_Move(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction_Move::UPawnAction_Move(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, GoalLocation(FAISystem::InvalidLocation)
 	, AcceptableRadius(30.f)
+	, bFinishOnOverlap(true)
 	, bUsePathfinding(true)
 	, bProjectGoalToNavigation(false)
 	, bUpdatePathToGoal(true)
@@ -24,7 +25,7 @@ void UPawnAction_Move::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
+UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, AActor* GoalActor, EPawnActionMoveMode::Type Mode)
 {
 	if (GoalActor == NULL)
 	{
@@ -77,14 +78,14 @@ EPathFollowingRequestResult::Type UPawnAction_Move::RequestMove(AAIController* C
 	{
 		const bool bAtGoal = CheckAlreadyAtGoal(Controller, GoalActor, AcceptableRadius);
 		RequestResult = bAtGoal ? EPathFollowingRequestResult::AlreadyAtGoal : 
-			bUpdatePathToGoal ? Controller->MoveToActor(GoalActor, AcceptableRadius, true, bUsePathfinding, bAllowStrafe, FilterClass) :
-			Controller->MoveToLocation(GoalActor->GetActorLocation(), AcceptableRadius, true, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe);
+			bUpdatePathToGoal ? Controller->MoveToActor(GoalActor, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bAllowStrafe, FilterClass) :
+			Controller->MoveToLocation(GoalActor->GetActorLocation(), AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe);
 	}
 	else if (FAISystem::IsValidLocation(GoalLocation))
 	{
 		const bool bAtGoal = CheckAlreadyAtGoal(Controller, GoalLocation, AcceptableRadius);
 		RequestResult = bAtGoal ? EPathFollowingRequestResult::AlreadyAtGoal :
-			Controller->MoveToLocation(GoalLocation, AcceptableRadius, true, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe, FilterClass);
+			Controller->MoveToLocation(GoalLocation, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe, FilterClass);
 	}
 	else
 	{
@@ -186,9 +187,9 @@ EPawnActionAbortState::Type UPawnAction_Move::PerformAbort(EAIForceParam::Type S
 
 	AAIController* MyController = Cast<AAIController>(GetController());
 
-	if (MyController && MyController->PathFollowingComponent)
+	if (MyController && MyController->GetPathFollowingComponent())
 	{
-		MyController->PathFollowingComponent->AbortMove(TEXT("BehaviorTree abort"), RequestID);
+		MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), RequestID);
 	}
 
 	return Super::PerformAbort(ShouldForce);
@@ -239,12 +240,19 @@ void UPawnAction_Move::SetPath(FNavPathSharedRef InPath)
 
 void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event)
 {
-	UE_VLOG(GetController(), LogPawnAction, Log, TEXT("%s> Path updated!"), *GetName());
+	const AController* MyOwner = GetController();
+	if (MyOwner == NULL)
+	{
+		return;
+	}
+
+	UE_VLOG(MyOwner, LogPawnAction, Log, TEXT("%s> Path updated!"), *GetName());
 	
 	if (bAbortChildActionOnPathChange && GetChildAction())
 	{
-		UE_VLOG(GetController(), LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));
-		GetChildAction()->Abort(EAIForceParam::Force);
+		UE_VLOG(MyOwner, LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));
+		
+		GetOwnerComponent()->AbortAction(*GetChildAction());
 	}
 
 	if (Event == ENavPathEvent::Invalidated)
@@ -281,25 +289,25 @@ void UPawnAction_Move::ClearPendingRepath()
 	}
 }
 
-bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const FVector& TestLocation, float Radius)
+bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController* Controller, const FVector& TestLocation, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller->PathFollowingComponent->HasReached(TestLocation, Radius);
+	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestLocation, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller->PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller->PathFollowingComponent->SetLastMoveAtGoal(true);
+		Controller->GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
+		Controller->GetPathFollowingComponent()->SetLastMoveAtGoal(true);
 	}
 
 	return bAlreadyAtGoal;
 }
 
-bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const AActor* TestGoal, float Radius)
+bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController* Controller, const AActor* TestGoal, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller->PathFollowingComponent->HasReached(TestGoal, Radius);
+	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestGoal, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller->PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller->PathFollowingComponent->SetLastMoveAtGoal(true);
+		Controller->GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
+		Controller->GetPathFollowingComponent()->SetLastMoveAtGoal(true);
 	}
 
 	return bAlreadyAtGoal;

@@ -39,5 +39,15 @@ struct FBlueprintActionMenuUtils
 	 * @param  MenuOut	The structure that will be populated with favorite menu items.
 	 */
 	KISMET_API static void MakeFavoritesMenu(FBlueprintActionContext const& Context, FBlueprintActionMenuBuilder& MenuOut);
+
+	/**
+	 * A number of different palette actions hold onto node-templates in different 
+	 * ways. This handles most of those cases and looks to extract said node- 
+	 * template from the specified action.
+	 * 
+	 * @param  PaletteAction	The action you want a node-template for.
+	 * @return A pointer to the extracted node (NULL if the action doesn't have one, or we don't support the specific action type yet)
+	 */
+	KISMET_API static const UK2Node* ExtractNodeTemplateFromAction(TSharedPtr<FEdGraphSchemaAction> PaletteAction);
 };
 

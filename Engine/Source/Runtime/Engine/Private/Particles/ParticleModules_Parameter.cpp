@@ -6,6 +6,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Parameter/ParticleModuleParameterBase.h"
@@ -16,8 +17,8 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 
-UParticleModuleParameterBase::UParticleModuleParameterBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleParameterBase::UParticleModuleParameterBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -28,8 +29,8 @@ UParticleModuleParameterBase::UParticleModuleParameterBase(const class FPostCons
 /*-----------------------------------------------------------------------------
 	UParticleModuleParameterDynamic implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleParameterDynamic::UParticleModuleParameterDynamic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleParameterDynamic::UParticleModuleParameterDynamic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -534,8 +535,8 @@ void UParticleModuleParameterDynamic::UpdateUsageFlags()
 /*-----------------------------------------------------------------------------
 	UParticleModuleParameterDynamic_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleParameterDynamic_Seeded::UParticleModuleParameterDynamic_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleParameterDynamic_Seeded::UParticleModuleParameterDynamic_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;

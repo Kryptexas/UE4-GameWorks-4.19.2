@@ -3,6 +3,7 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "KismetEditorUtilities.h"
 #include "SGameplayAttributeWidget.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

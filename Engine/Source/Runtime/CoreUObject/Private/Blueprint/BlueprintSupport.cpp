@@ -151,7 +151,7 @@ bool UObject::IsInBlueprint() const
 	const UObject* TestObject = this;
  	while (TestObject)
  	{
- 		const UClass *ClassObject = Cast<const UClass>(TestObject);
+ 		const UClass *ClassObject = dynamic_cast<const UClass*>(TestObject);
 		if (ClassObject 
 			&& ClassObject->HasAnyClassFlags(CLASS_CompiledFromBlueprint) 
 			&& ClassObject->ClassGeneratedBy)
@@ -177,6 +177,9 @@ bool UObject::IsInBlueprint() const
 void UObject::DestroyNonNativeProperties()
 {
 	// Destroy properties that won't be destroyed by the native destructor
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+	GetClass()->DestroyPersistentUberGraphFrame(this);
+#endif
 	{
 		for (UProperty* P = GetClass()->DestructorLink; P; P = P->DestructorLinkNext)
 		{
@@ -192,7 +195,7 @@ void UObject::DestroyNonNativeProperties()
  * @param	Data				Default data
  * @return	Returns true if that property was a non-native one, otherwise false
  */
-bool FPostConstructInitializeProperties::InitNonNativeProperty(UProperty* Property, UObject* Data)
+bool FObjectInitializer::InitNonNativeProperty(UProperty* Property, UObject* Data)
 {
 	if (!Property->GetOwnerClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic)) // if this property belongs to a native class, it was already initialized by the class constructor
 	{
@@ -230,7 +233,7 @@ void FBlueprintSupport::DuplicateAllFields(UStruct* StructToDuplicate, FDuplicat
 			UField* Field = *FieldIt;
 
 			// Make sure functions also do their parameters and children first
-			if (UFunction* Function = Cast<UFunction>(Field))
+			if (UFunction* Function = dynamic_cast<UFunction*>(Field))
 			{
 				for (TFieldIterator<UField> FunctionFieldIt(Function, EFieldIteratorFlags::ExcludeSuper); FunctionFieldIt; ++FunctionFieldIt)
 				{

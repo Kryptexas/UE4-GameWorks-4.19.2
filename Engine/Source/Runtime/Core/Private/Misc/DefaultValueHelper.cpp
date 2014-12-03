@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-#include "Core.h"
-
+#include "CorePrivatePCH.h"
 #include "DefaultValueHelper.h"
+
 
 bool FDefaultValueHelper::Is(const FString& Source, const TCHAR* CompareStr)
 {
@@ -29,6 +28,7 @@ bool FDefaultValueHelper::Is(const FString& Source, const TCHAR* CompareStr)
 	return true;
 }
 
+
 FString FDefaultValueHelper::RemoveWhitespaces(const FString& Source)
 {
 	FString Result;
@@ -46,17 +46,20 @@ FString FDefaultValueHelper::RemoveWhitespaces(const FString& Source)
 	return Result;
 }
 
+
 const TCHAR* FDefaultValueHelper::EndOf(const FString& Source)
 {
 	check(!Source.IsEmpty());
 	return *Source + Source.Len();
 }
 
+
 const TCHAR* FDefaultValueHelper::StartOf(const FString& Source)
 {
 	check(!Source.IsEmpty());
 	return *Source;
 }
+
 
 TCHAR FDefaultValueHelper::TS(const TCHAR* Sign)
 {
@@ -65,6 +68,7 @@ TCHAR FDefaultValueHelper::TS(const TCHAR* Sign)
 	return Sign[0];
 }
 
+
 bool FDefaultValueHelper::IsWhitespace(TCHAR Char)
 {
 	return FChar::IsWhitespace(Char)
@@ -72,11 +76,13 @@ bool FDefaultValueHelper::IsWhitespace(TCHAR Char)
 		|| ( TS(TEXT("\r")) == Char );
 }
 
+
 bool FDefaultValueHelper::Trim(int32& Pos, const FString& Source)
 {
 	for(; Pos < Source.Len() && IsWhitespace(Source[Pos]); ++Pos) { }
 	return (Pos < Source.Len());
 }
+
 
 bool FDefaultValueHelper::Trim(const TCHAR* & Start, const TCHAR* End )
 {
@@ -85,6 +91,7 @@ bool FDefaultValueHelper::Trim(const TCHAR* & Start, const TCHAR* End )
 	for(; ( Start < End ) && IsWhitespace( *Start ); ++Start ) { }
 	return Start < End;
 }
+
 
 FString FDefaultValueHelper::GetUnqualifiedEnumValue(const FString& Source)
 {
@@ -97,6 +104,7 @@ FString FDefaultValueHelper::GetUnqualifiedEnumValue(const FString& Source)
 	return Source.RightChop(SeparatorPosition + 2);
 }
 
+
 bool FDefaultValueHelper::HasWhitespaces(const FString& Source)
 {
 	for(int Pos = 0; Pos < Source.Len(); ++Pos)
@@ -108,6 +116,7 @@ bool FDefaultValueHelper::HasWhitespaces(const FString& Source)
 	}
 	return false;
 }
+
 
 bool FDefaultValueHelper::GetParameters(const FString& Source, const FString& TypeName, FString &OutForm)
 {
@@ -161,6 +170,7 @@ bool FDefaultValueHelper::GetParameters(const FString& Source, const FString& Ty
 	OutForm = Source.Mid(StartPos, EndPos - StartPos);
 	return true;
 }
+
 
 ////////////////////////////////////////////////////////
 
@@ -223,6 +233,7 @@ bool FDefaultValueHelper::IsStringValidInteger(const TCHAR* Start, const TCHAR* 
 	return ( !Trim(Start, End) ) && bADigitFound;
 }
 
+
 bool FDefaultValueHelper::IsStringValidInteger(const FString& Source)
 {
 	if(!Source.IsEmpty())
@@ -232,6 +243,7 @@ bool FDefaultValueHelper::IsStringValidInteger(const FString& Source)
 	}
 	return false;
 }
+
 
 bool FDefaultValueHelper::IsStringValidFloat(const TCHAR* Start, const TCHAR* End)
 {
@@ -274,6 +286,7 @@ bool FDefaultValueHelper::IsStringValidFloat(const TCHAR* Start, const TCHAR* En
 	return !Trim(Start, End);
 }
 
+
 bool FDefaultValueHelper::IsStringValidFloat(const FString& Source)
 {
 	if(!Source.IsEmpty())
@@ -283,16 +296,17 @@ bool FDefaultValueHelper::IsStringValidFloat(const FString& Source)
 	return false;
 }
 
+
 bool FDefaultValueHelper::IsStringValidVector(const FString& Source)
 {
-	const TCHAR * Start = StartOf(Source);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(Source);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
@@ -304,7 +318,7 @@ bool FDefaultValueHelper::IsStringValidVector(const FString& Source)
 		return false;
 	}
 
-	const TCHAR * End = EndOf(Source);
+	const TCHAR* End = EndOf(Source);
 	if(	!IsStringValidFloat( Start, FirstComma ) ||
 		!IsStringValidFloat( FirstComma + 1, SecondComma ) ||
 		!IsStringValidFloat( SecondComma + 1, End ) )
@@ -314,10 +328,12 @@ bool FDefaultValueHelper::IsStringValidVector(const FString& Source)
 	return true;
 }
 
+
 bool FDefaultValueHelper::IsStringValidRotator(const FString& Source)
 {
 	return IsStringValidVector(Source);
 }
+
 
 bool FDefaultValueHelper::IsStringValidLinearColor(const FString& Source)
 {
@@ -326,21 +342,21 @@ bool FDefaultValueHelper::IsStringValidLinearColor(const FString& Source)
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(Source);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(Source);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
 	}
 
-	const TCHAR * ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
-	const TCHAR * End = EndOf(Source);
+	const TCHAR* ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
+	const TCHAR* End = EndOf(Source);
 	if( ( NULL != ThirdComma ) && !IsStringValidFloat( ThirdComma + 1, End ) )
 	{
 		return false;
@@ -355,6 +371,7 @@ bool FDefaultValueHelper::IsStringValidLinearColor(const FString& Source)
 
 	return true;
 }
+
 
 bool FDefaultValueHelper::StringFromCppString(const FString& Source, const FString& TypeName, FString &OutForm)
 {
@@ -385,7 +402,7 @@ bool FDefaultValueHelper::StringFromCppString(const FString& Source, const FStri
 	}
 
 	// remove "TEXT ( "
-	const TCHAR * TextStr = TEXT("TEXT");
+	const TCHAR* TextStr = TEXT("TEXT");
 	if( Source.Find(TextStr) == Pos )
 	{
 		Pos += FCString::Strlen(TextStr);
@@ -444,6 +461,7 @@ bool FDefaultValueHelper::StringFromCppString(const FString& Source, const FStri
 	return true;
 }
 
+
 ////////////////////////////////////////////////////////
 
 bool FDefaultValueHelper::ParseVector(const FString& Source, FVector& OutVal)
@@ -456,14 +474,14 @@ bool FDefaultValueHelper::ParseVector(const FString& Source, FVector& OutVal)
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(ProperSource);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(ProperSource);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
@@ -475,7 +493,7 @@ bool FDefaultValueHelper::ParseVector(const FString& Source, FVector& OutVal)
 		return false;
 	}
 
-	const TCHAR * End = EndOf(ProperSource);
+	const TCHAR* End = EndOf(ProperSource);
 	if(	!IsStringValidFloat( Start, FirstComma ) ||
 		!IsStringValidFloat( FirstComma + 1, SecondComma ) ||
 		!IsStringValidFloat( SecondComma + 1, End ) )
@@ -490,6 +508,7 @@ bool FDefaultValueHelper::ParseVector(const FString& Source, FVector& OutVal)
 	return true;
 }
 
+
 bool FDefaultValueHelper::ParseVector2D(const FString& Source, FVector2D& OutVal)
 {
 	const bool bHasWhitespace = HasWhitespaces(Source);
@@ -500,14 +519,14 @@ bool FDefaultValueHelper::ParseVector2D(const FString& Source, FVector2D& OutVal
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(ProperSource);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(ProperSource);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * End = EndOf(ProperSource);
+	const TCHAR* End = EndOf(ProperSource);
 	if(	!IsStringValidFloat( Start, FirstComma ) ||
 		!IsStringValidFloat( FirstComma + 1, End ) )
 	{
@@ -532,6 +551,7 @@ bool FDefaultValueHelper::ParseRotator(const FString& Source, FRotator& OutVal)
 	return false;
 }
 
+
 bool FDefaultValueHelper::ParseInt(const FString& Source, int32& OutVal)
 {
 	int32 Base;
@@ -545,6 +565,7 @@ bool FDefaultValueHelper::ParseInt(const FString& Source, int32& OutVal)
 	return false;
 }
 
+
 bool FDefaultValueHelper::ParseFloat(const FString& Source, float& OutVal)
 {
 	if( IsStringValidFloat( Source ) )
@@ -556,6 +577,7 @@ bool FDefaultValueHelper::ParseFloat(const FString& Source, float& OutVal)
 	}
 	return false;
 }
+
 
 bool FDefaultValueHelper::ParseDouble(const FString& Source, double& OutVal)
 {
@@ -569,6 +591,7 @@ bool FDefaultValueHelper::ParseDouble(const FString& Source, double& OutVal)
 	return false;
 }
 
+
 bool FDefaultValueHelper::ParseLinearColor(const FString& Source, FLinearColor& OutVal)
 {
 	const bool bHasWhitespace = HasWhitespaces(Source);
@@ -579,21 +602,21 @@ bool FDefaultValueHelper::ParseLinearColor(const FString& Source, FLinearColor& 
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(ProperSource);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(ProperSource);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
 	}
 
-	const TCHAR * ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
-	const TCHAR * End = EndOf(ProperSource);
+	const TCHAR* ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
+	const TCHAR* End = EndOf(ProperSource);
 	if( ( NULL != ThirdComma ) && !IsStringValidFloat( ThirdComma + 1, End ) )
 	{
 		return false;

@@ -20,10 +20,8 @@ public:
 
 public:
 
-	/**
-	 * Destructor.
-	 */
-	~SSessionInstanceList( )
+	/** Destructor. */
+	~SSessionInstanceList()
 	{
 		if (SessionManager.IsValid())
 		{
@@ -82,10 +80,8 @@ public:
 
 protected:
 
-	/**
-	 * Updates the list of instances.
-	 */
-	void UpdateList( )
+	/** Updates the list of instances. */
+	void UpdateList()
 	{
 		// populate the instance list
 		ISessionInfoPtr SelectedSession = SessionManager->GetSelectedSession();
@@ -112,20 +108,20 @@ protected:
 
 private:
 
-	// Handles getting the tool tip text for an instance.
+	/** Handles getting the tool tip text for an instance. */
 	FText HandleInstanceGetToolTipText( ISessionInstanceInfoPtr Instance ) const
 	{
 		FTextBuilder ToolTipTextBuilder;
 
 		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipBuildDate", "Build Date: {0}"), FText::FromString(Instance->GetBuildDate()));
 		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipConsoleBuild", "Console Build: {0}"), Instance->IsConsole() ? LOCTEXT("LabelYes", "Yes") : LOCTEXT("LabelNo", "No"));
-		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipEngineVersion", "Engine Version: {0}"), FText::FromString(FString::FromInt(Instance->GetEngineVersion())));
+		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipEngineVersion", "Engine Version: {0}"), Instance->GetEngineVersion() == 0 ? LOCTEXT("CustomBuildVersion", "Custom Build") : FText::FromString(FString::FromInt(Instance->GetEngineVersion())));
 		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipInstanceId", "Instance ID: {0}"), FText::FromString(Instance->GetInstanceId().ToString(EGuidFormats::DigitsWithHyphensInBraces)));
 
 		return ToolTipTextBuilder.ToText();
 	}
 
-	// Handles creating a row widget for the instance list view.
+	/** Handles creating a row widget for the instance list view. */
 	TSharedRef<ITableRow> HandleInstanceListViewGenerateRow( ISessionInstanceInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable )
 	{
 		return SNew(SSessionBrowserInstanceListRow, OwnerTable)
@@ -133,7 +129,7 @@ private:
 			.ToolTipText(this, &SSessionInstanceList::HandleInstanceGetToolTipText, Item);
 	}
 
-	// Handles changing the instance list selection.
+	/** Handles changing the instance list selection. */
 	void HandleInstanceListViewSelectionChanged( ISessionInstanceInfoPtr Item, ESelectInfo::Type SelectInfo )
 	{
 		IgnoreInstanceSelectionChanged = true;
@@ -148,8 +144,8 @@ private:
 		IgnoreInstanceSelectionChanged = false;
 	}
 
-	// Handles changing the selection state of an instance.
-	void HandleSessionManagerInstanceSelectionChanged( )
+	/** Handles changing the selection state of an instance. */
+	void HandleSessionManagerInstanceSelectionChanged()
 	{
 		if (!IgnoreInstanceSelectionChanged)
 		{
@@ -157,7 +153,7 @@ private:
 		}
 	}
 
-	// Handles changing the selected session in the session manager.
+	/** Handles changing the selected session in the session manager. */
 	void HandleSessionManagerSelectedSessionChanged( const ISessionInfoPtr& SelectedSession )
 	{
 		UpdateList();
@@ -165,16 +161,16 @@ private:
 
 private:
 
-	// Holds a flag indicating whether instance selection changes should be ignored.
+	/** Holds a flag indicating whether instance selection changes should be ignored. */
 	bool IgnoreInstanceSelectionChanged;
 
-	// Holds the list of instances.
+	/** Holds the list of instances. */
 	TArray<ISessionInstanceInfoPtr> InstanceList;
 
-	// Holds the instance list view.
+	/** Holds the instance list view. */
 	TSharedPtr<SListView<ISessionInstanceInfoPtr>> InstanceListView;
 
-	// Holds a reference to the session manager.
+	/** Holds a reference to the session manager. */
 	ISessionManagerPtr SessionManager;
 };
 

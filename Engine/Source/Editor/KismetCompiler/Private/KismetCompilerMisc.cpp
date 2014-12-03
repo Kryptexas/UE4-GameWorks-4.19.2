@@ -462,7 +462,7 @@ void FKismetCompilerUtilities::LinkAddedProperty(UStruct* Structure, UProperty* 
 	Structure->Children = NewProperty;
 }
 
-const UFunction* FKismetCompilerUtilities::FindOverriddenImplementableEvent(const FName& EventName, const UClass * Class)
+const UFunction* FKismetCompilerUtilities::FindOverriddenImplementableEvent(const FName& EventName, const UClass* Class)
 {
 	const uint32 RequiredFlagMask = FUNC_Event | FUNC_BlueprintEvent | FUNC_Native;
 	const uint32 RequiredFlagResult = FUNC_Event | FUNC_BlueprintEvent;
@@ -933,9 +933,19 @@ void FNodeHandlingFunctor::RegisterNets(FKismetFunctionContext& Context, UEdGrap
 				{
 					// Make sure the default value is valid
 					FString DefaultAllowedResult = CompilerContext.GetSchema()->IsCurrentPinDefaultValid(Net);
-					if (DefaultAllowedResult != TEXT(""))
+					if (!DefaultAllowedResult.IsEmpty())
 					{
-						CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("InvalidDefaultValue_Error", "Default value '%s' for @@ is invalid: '%s'").ToString(), *(Net->GetDefaultAsString()), *DefaultAllowedResult), Net);
+						FText ErrorFormat = LOCTEXT("InvalidDefault_Error", "The current value of the '@@' pin is invalid: {0}");
+						const FText InvalidReasonText = FText::FromString(DefaultAllowedResult);
+
+						FText DefaultValue = FText::FromString(Net->GetDefaultAsString());
+						if (!DefaultValue.IsEmpty())
+						{
+							ErrorFormat = LOCTEXT("InvalidDefaultVal_Error", "The current value ({1}) of the '@@' pin is invalid: {0}");
+						}
+
+						FString ErrorString = FText::Format(ErrorFormat, InvalidReasonText, DefaultValue).ToString();
+						CompilerContext.MessageLog.Error(*ErrorString, Net);
 
 						// Skip over these properties if they are array or ref properties, because the backend can't emit valid code for them
 						if( Pin->PinType.bIsArray || Pin->PinType.bIsReference )
@@ -977,7 +987,7 @@ KISMETCOMPILER_API FString FNetNameMapping::MakeBaseName<UEdGraphNode>(const UEd
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
-FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint)
+FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp)
 	: Blueprint(InBlueprint)
 	, SourceGraph(NULL)
 	, EntryPoint(NULL)
@@ -994,6 +1004,7 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bIsSimpleStubGraphWithNoParams(false)
 	, NetFlags(0)
 	, SourceEventFromStubGraph(NULL)
+	, bGeneratingCpp(bInGeneratingCpp)
 {
 	NetNameMap = new FNetNameMapping();
 	bAllocatedNetNameMap = true;
@@ -1037,6 +1048,171 @@ int32 FKismetFunctionContext::GetContextUniqueID()
 {
 	static int32 UUIDCounter = 1;
 	return UUIDCounter++;
+}
+
+struct FEventGraphUtils
+{
+	static bool IsEntryPointNode(const UK2Node* Node)
+	{
+		bool bResult = false;
+		if (Node)
+		{
+			bResult |= Node->IsA<UK2Node_Event>();
+			bResult |= Node->IsA<UK2Node_Timeline>();
+			if (auto CallNode = Cast<const UK2Node_CallFunction>(Node))
+			{
+				bResult |= CallNode->IsLatentFunction();
+			}
+		}
+		return bResult;
+	}
+
+	static void FindEventsCallingTheNodeRecursive(const UK2Node* Node, TSet<const UK2Node*>& Results, TSet<const UK2Node*>& CheckedNodes, const UK2Node* StopOn)
+	{
+		if (!Node)
+		{
+			return;
+		}
+
+		bool bAlreadyTraversed = false;
+		CheckedNodes.Add(Node, &bAlreadyTraversed);
+		if (bAlreadyTraversed)
+		{
+			return;
+		}
+
+		if (Node == StopOn)
+		{
+			return;
+		}
+
+		if (IsEntryPointNode(Node))
+		{
+			Results.Add(Node);
+			return;
+		}
+
+		const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(Node->GetSchema());
+		const bool bIsPure = Node->IsNodePure();
+		for (auto Pin : Node->Pins)
+		{
+			const bool bProperPure		= bIsPure	&& Pin && (Pin->Direction == EEdGraphPinDirection::EGPD_Output);
+			const bool bProperNotPure	= !bIsPure	&& Pin && (Pin->Direction == EEdGraphPinDirection::EGPD_Input) && Schema->IsExecPin(*Pin);
+			if (bProperPure || bProperNotPure)
+			{
+				for (auto Link : Pin->LinkedTo)
+				{
+					auto LinkOwner = Link ? Link->GetOwningNodeUnchecked() : NULL;
+					auto NodeToCheck = LinkOwner ? CastChecked<const UK2Node>(LinkOwner) : NULL;
+					FindEventsCallingTheNodeRecursive(NodeToCheck, Results, CheckedNodes, StopOn);
+				}
+			}
+		}
+	}
+
+	static TSet<const UK2Node*> FindExecutionNodes(const UK2Node* Node, const UK2Node* StopOn)
+	{
+		TSet<const UK2Node*> Results;
+		TSet<const UK2Node*> CheckedNodes;
+		FindEventsCallingTheNodeRecursive(Node, Results, CheckedNodes, StopOn);
+		return Results;
+	}
+
+	static bool PinRepresentsSharedTerminal(const UEdGraphPin& Net)
+	{
+		// TODO: Strange cases..
+		if ((Net.Direction != EEdGraphPinDirection::EGPD_Output)
+			|| Net.PinType.bIsArray
+			|| Net.PinType.bIsReference
+			|| Net.PinType.bIsConst
+			|| Net.SubPins.Num())
+		{
+			return true;
+		}
+
+		// NOT CONNECTED, so it doesn't have to be shared
+		if (!Net.LinkedTo.Num())
+		{
+			return false;
+		}
+
+		auto OwnerNode = Cast<const UK2Node>(Net.GetOwningNodeUnchecked());
+		ensure(OwnerNode);
+		// Terminals from pure nodes will be recreated anyway, so they can be always local
+		if (OwnerNode && OwnerNode->IsNodePure())
+		{
+			return false;
+		}
+
+		// 
+		if (IsEntryPointNode(OwnerNode))
+		{
+			return true;
+		}
+
+		// 
+		auto SourceEntryPoints = FEventGraphUtils::FindExecutionNodes(OwnerNode, NULL);
+		if (1 != SourceEntryPoints.Num())
+		{
+			return true;
+		}
+
+		//
+		for (auto Link : Net.LinkedTo)
+		{
+			auto LinkOwnerNode = Cast<const UK2Node>(Link->GetOwningNodeUnchecked());
+			ensure(LinkOwnerNode);
+			auto EventsCallingDestination = FEventGraphUtils::FindExecutionNodes(LinkOwnerNode, OwnerNode);
+			if (0 != EventsCallingDestination.Num())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+};
+
+FBPTerminal* FKismetFunctionContext::CreateLocalTerminal(ETerminalSpecification Spec)
+{
+	FBPTerminal* Result = NULL;
+	switch (Spec)
+	{
+	case ETerminalSpecification::TS_ForcedShared:
+		// ensure(IsEventGraph()); it's used in function by UK2Node_AddComponent
+		Result = new (EventGraphLocals)FBPTerminal();
+		break;
+	case ETerminalSpecification::TS_Literal:
+		Result = new (Literals) FBPTerminal();
+		Result->bIsLiteral = true;
+		break;
+	default:
+		const bool bIsLocal = !IsEventGraph();
+		Result = new (bIsLocal ? Locals : EventGraphLocals) FBPTerminal();
+		Result->bIsLocal = bIsLocal;
+		break;
+	}
+	return Result;
+}
+
+FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(UEdGraphPin* Net, const FString& NewName)
+{
+	check(Net);
+	bool bSharedTerm = IsEventGraph();
+
+	const bool bRegularBlueprint = Blueprint && (Blueprint->GetClass() == UBlueprint::StaticClass());
+	static FBoolConfigValueHelper UseLocalGraphVariables(TEXT("Kismet"), TEXT("bUseLocalGraphVariables"), GEngineIni);
+	const bool bUseLocalGraphVariables = UseLocalGraphVariables || bGeneratingCpp;
+	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
+	if (bSharedTerm && bRegularBlueprint && bUseLocalGraphVariables && OutputPin)
+	{
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChooseTerminalScope);
+
+		// Pin's connections are checked, to tell if created terminal is shared, or if it could be a local variable.
+		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net);
+	}
+	FBPTerminal* Term = new (bSharedTerm ? EventGraphLocals : Locals) FBPTerminal();
+	Term->CopyFromPin(Net, NewName);
+	return Term;
 }
 
 #undef LOCTEXT_NAMESPACE

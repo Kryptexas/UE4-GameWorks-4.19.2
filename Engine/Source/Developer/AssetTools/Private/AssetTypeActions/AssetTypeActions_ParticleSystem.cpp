@@ -12,16 +12,6 @@ void FAssetTypeActions_ParticleSystem::GetActions( const TArray<UObject*>& InObj
 	auto ParticleSystems = GetTypedWeakObjectPtrs<UParticleSystem>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ParticleSystem_Edit", "Edit"),
-		LOCTEXT("ParticleSystem_EditTooltip", "Opens the selected particle systems in cascade."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_ParticleSystem::ExecuteEdit, ParticleSystems ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
 		LOCTEXT("ParticleSystem_CopyParameters", "Copy Parameters"),
 		LOCTEXT("ParticleSystem_CopyParametersTooltip", "Copies particle system parameters to the clipboard."),
 		FSlateIcon(),
@@ -53,18 +43,6 @@ void FAssetTypeActions_ParticleSystem::OpenAssetEditor( const TArray<UObject*>& 
 		{
 			ICascadeModule* CascadeModule = &FModuleManager::LoadModuleChecked<ICascadeModule>( "Cascade" );
 			CascadeModule->CreateCascade(Mode, EditWithinLevelEditor, ParticleSystem);
-		}
-	}
-}
-
-void FAssetTypeActions_ParticleSystem::ExecuteEdit(TArray<TWeakObjectPtr<UParticleSystem>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }

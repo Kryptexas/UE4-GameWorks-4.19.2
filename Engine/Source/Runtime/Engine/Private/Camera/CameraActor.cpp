@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -11,11 +12,11 @@
 //////////////////////////////////////////////////////////////////////////
 // ACameraActor
 
-ACameraActor::ACameraActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ACameraActor::ACameraActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Setup camera defaults
-	CameraComponent = PCIP.CreateDefaultSubobject<UCameraComponent>(this, TEXT("CameraComponent"));
+	CameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("CameraComponent"));
 	CameraComponent->FieldOfView = 90.0f;
 	CameraComponent->bConstrainAspectRatio = true;
 	CameraComponent->AspectRatio = 1.777778f;
@@ -116,3 +117,6 @@ void ACameraActor::BeginPlay()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns CameraComponent subobject **/
+UCameraComponent* ACameraActor::GetCameraComponent() const { return CameraComponent; }

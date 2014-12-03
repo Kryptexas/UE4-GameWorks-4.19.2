@@ -131,7 +131,13 @@ struct ENGINE_API FTickFunction
 public:
 	// The following UPROPERTYs are for configuration and inherited from the CDO/archetype/blueprint etc
 
-	/** Defines the minimum tick group for this tick function; given prerequisites, it can be delayed. **/
+	/**
+	 * Defines the minimum tick group for this tick function. These groups determine the relative order of when objects tick during a frame update.
+	 * Given prerequisites, the tick may be delayed.
+	 *
+	 * @see ETickingGroup 
+	 * @see FTickFunction::AddPrerequisite()
+	 */
 	UPROPERTY()
 	TEnumAsByte<enum ETickingGroup> TickGroup;
 
@@ -159,7 +165,7 @@ private:
 	uint32 bRegistered:1;
 
 	/** 
-	 * If false, this tick will not fire, nor will any other tick that has this tick function as an EnableParent 
+	 * If false, this tick will not fire, nor will any other tick that has this tick function as an EnableParent. 
 	 * CAUTION: Do not set this directly
 	 **/
 	uint32 bTickEnabled:1;
@@ -294,6 +300,15 @@ private:
 	friend class FTickTaskLevel;
 };
 
+template<>
+struct TStructOpsTypeTraits<FTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** 
 * Tick function that calls AActor::TickActor
 **/
@@ -315,6 +330,15 @@ struct FActorTickFunction : public FTickFunction
 	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	ENGINE_API virtual FString DiagnosticMessage();
+};
+
+template<>
+struct TStructOpsTypeTraits<FActorTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 /** 
@@ -340,6 +364,15 @@ struct FActorComponentTickFunction : public FTickFunction
 	ENGINE_API virtual FString DiagnosticMessage();
 };
 
+
+template<>
+struct TStructOpsTypeTraits<FActorComponentTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 /** 
 * Tick function that calls UPrimitiveComponent::PostPhysicsTick
 **/
@@ -363,9 +396,17 @@ struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage();
 };
 
-
+template<>
+struct TStructOpsTypeTraits<FPrimitiveComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 
 /** Types of network failures broadcast from the engine */
+UENUM(BlueprintType)
 namespace ENetworkFailure
 {
 	enum Type
@@ -389,7 +430,11 @@ namespace ENetworkFailure
 		/** There was an error during connection to the game */
 		PendingConnectionFailure
 	};
+}
 
+
+namespace ENetworkFailure
+{
 	inline const TCHAR* ToString(ENetworkFailure::Type FailureType)
 	{
 		switch (FailureType)
@@ -418,6 +463,7 @@ namespace ENetworkFailure
 }
 
 /** Types of server travel failures broadcast by the engine */
+UENUM(BlueprintType)
 namespace ETravelFailure
 {
 	enum Type
@@ -447,7 +493,10 @@ namespace ETravelFailure
 		/** There was an error during a client travel to a new map */
 		ClientTravelFailure,
 	};
+}
 
+namespace ETravelFailure
+{
 	inline const TCHAR* ToString(ETravelFailure::Type FailureType)
 	{
 		switch (FailureType)

@@ -13,6 +13,7 @@ public class Slate : ModuleRules
 				"Core",
 				"CoreUObject",
 				"InputCore",
+				"Json",
 				"SlateCore",
 			}
 		);

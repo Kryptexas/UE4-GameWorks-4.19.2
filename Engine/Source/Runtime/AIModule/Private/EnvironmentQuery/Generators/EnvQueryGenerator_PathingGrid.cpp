@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryGenerator_PathingGrid::UEnvQueryGenerator_PathingGrid(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryGenerator_PathingGrid::UEnvQueryGenerator_PathingGrid(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
@@ -108,7 +108,7 @@ FText UEnvQueryGenerator_PathingGrid::GetDescriptionDetails() const
 #if WITH_RECAST
 #define ENVQUERY_CLUSTER_SEARCH 0
 
-void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARecastNavMesh* NavMesh, const FVector& ContextLocation, float InMaxPathDistance, bool bPathFromContext, TArray<NavNodeRef>& NodeRefs, FBox& NodeRefsBounds) const
+void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const ARecastNavMesh* NavMesh, const FVector& ContextLocation, float InMaxPathDistance, bool bPathFromContext, TArray<NavNodeRef>& NodeRefs, FBox& NodeRefsBounds) const
 {
 	FBox MyBounds(0);
 
@@ -150,8 +150,8 @@ void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARec
 	NodeRefsBounds = MyBounds;
 }
 
-bool UEnvQueryGenerator_PathingGrid::IsNavLocationInPathDistance(const class ARecastNavMesh* NavMesh,
-		const struct FNavLocation& NavLocation, const TArray<NavNodeRef>& NodeRefs) const
+bool UEnvQueryGenerator_PathingGrid::IsNavLocationInPathDistance(const ARecastNavMesh* NavMesh,
+		const FNavLocation& NavLocation, const TArray<NavNodeRef>& NodeRefs) const
 {
 #if ENVQUERY_CLUSTER_SEARCH
 	const NavNodeRef ClusterRef = NavMesh->GetClusterRef(NavLocation.NodeRef);

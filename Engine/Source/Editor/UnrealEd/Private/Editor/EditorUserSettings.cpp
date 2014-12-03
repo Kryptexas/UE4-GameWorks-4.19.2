@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "EditorUserSettings"
 
-UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorUserSettings::UEditorUserSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	//Default to high quality
 	MaterialQualityLevel = 1;
@@ -21,7 +21,7 @@ void UEditorUserSettings::PostInitProperties()
 
 	//Ensure the material quality cvar is set to the settings loaded.
 	static IConsoleVariable* MaterialQualityLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
-	MaterialQualityLevelVar->Set(MaterialQualityLevel);
+	MaterialQualityLevelVar->Set(MaterialQualityLevel, ECVF_SetByConsole);
 }
 
 void UEditorUserSettings::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )

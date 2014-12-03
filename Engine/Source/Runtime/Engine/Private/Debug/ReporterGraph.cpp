@@ -4,8 +4,8 @@
 #include "../../Classes/Debug/ReporterBase.h"
 #include "../../Classes/Debug/ReporterGraph.h"
 
-UReporterGraph::UReporterGraph(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UReporterGraph::UReporterGraph(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	AxesColor = FLinearColor::Yellow;
 
@@ -15,6 +15,8 @@ UReporterGraph::UReporterGraph(const class FPostConstructInitializeProperties& P
 	NumXNotches = 10;
 	NumYNotches = 10;
 	bOffsetDataSets = false;
+	UseTinyFont(false);
+	DrawCursorOnGraph(false);
 
 	BackgroundColor = FColor(0, 0, 0, 0);
 }
@@ -150,7 +152,7 @@ void UReporterGraph::DrawLegend(UCanvas* Canvas)
 {
 	FVector2D CurrentTextPos = GraphScreenSize.Max;
 	CurrentTextPos.X = GraphScreenSize.Min.X;
-	UFont* Font = GEngine->GetSmallFont();
+	UFont* Font = GetDefaultFont();
 
 	int32 DummyY, CurrentX;
 	StringSize(Font, CurrentX, DummyY, TEXT("99.99"));
@@ -191,7 +193,7 @@ void UReporterGraph::DrawAxes(UCanvas* Canvas)
 	FVector2D YMax = GraphScreenSize.Min;
 	YMax.Y = GraphScreenSize.Max.Y;
 
-	UFont* Font = GEngine->GetSmallFont();
+	UFont* Font = GetDefaultFont();
 	int32 StringSizeX, StringSizeY;
 	// Draw the X axis
 	StringSize(Font, StringSizeX, StringSizeY, *FString::Printf(TEXT("%.2f"), GraphMinMaxData.Max.X) );
@@ -268,7 +270,7 @@ void UReporterGraph::DrawAxis(UCanvas* Canvas, FVector2D Start, FVector2D End, f
 		} break;
 	}
 	
-	UFont* Font = GEngine->GetSmallFont();
+	UFont* Font = GetDefaultFont();
 	const FVector2D Width = FVector2D((GraphScreenSize.Max.X - GraphScreenSize.Min.X), 0);
 	const FVector2D Height = FVector2D(0, (GraphScreenSize.Max.Y - GraphScreenSize.Min.Y));
 
@@ -305,7 +307,7 @@ void UReporterGraph::DrawAxis(UCanvas* Canvas, FVector2D Start, FVector2D End, f
 
 void UReporterGraph::DrawThresholds(UCanvas* Canvas)
 {
-	UFont* Font = GEngine->GetSmallFont();
+	UFont* Font = GetDefaultFont();
 	for(int32 i = 0; i < Thresholds.Num(); i++)
 	{
 		if(Thresholds[i].Threshold < GraphMinMaxData.Max.Y)
@@ -335,9 +337,19 @@ void UReporterGraph::DrawData(UCanvas* Canvas)
 	const FVector2D Max = FVector2D(GraphScreenSize.Max.X * Canvas->SizeX, Canvas->SizeY - GraphScreenSize.Max.Y * Canvas->SizeY);
 	const float Height = GraphScreenSize.Max.Y - GraphScreenSize.Min.Y;
 	const float dx = Height / FMath::Abs(Max.Y - Min.Y);
+	UFont* Font = GetDefaultFont();
+	int32 StringSizeX, StringSizeY;
+	// Draw the X axis
+	StringSize(Font, StringSizeX, StringSizeY, TEXT("0"));
 
 	float UpOffset = 0;
 	float DownOffset = 0;
+
+	if (bDrawCursorOnGraph && DataStyle == EGraphDataStyle::Lines)
+	{
+		DrawLine(Canvas, DataToNormalized(FVector2D(CursorLocation, GraphMinMaxData.Min.Y)), DataToNormalized(FVector2D(CursorLocation, GraphMinMaxData.Max.Y)), FLinearColor::White, EReporterLineStyle::Line);
+	}
+
 	for (int32 i = 0; i < CurrentData.Num(); i++)
 	{
 		if (IsOffsetForDataSetsEnabled())
@@ -352,29 +364,32 @@ void UReporterGraph::DrawData(UCanvas* Canvas)
 			}
 		}
 
-		for(int32 j = 1; j < CurrentData[i].Data.Num(); j++)
+		for (int32 j = 1; j < CurrentData[i].Data.Num(); j++)
 		{
-			Start = CurrentData[i].Data[j - 1];
-			End = CurrentData[i].Data[j];
+			FVector2D DataStart = Start = CurrentData[i].Data[j - 1];
+			FVector2D DataEnd = End = CurrentData[i].Data[j];
 
 			Start = DataToNormalized(Start);
 			End = DataToNormalized(End);
 
-			if(DataStyle == EGraphDataStyle::Lines)
+			if (DataStyle == EGraphDataStyle::Lines)
 			{
-				if (i % 2)
+				const FVector2D DrawOffset = FVector2D(UpOffset, UpOffset) * (i % 2 ? 1.0 : -1.0f);
+				DrawLine(Canvas, Start + DrawOffset, End + DrawOffset, CurrentData[i].Color);
+
+				if (bDrawCursorOnGraph && CursorLocation >= DataStart.X && CursorLocation < DataEnd.X)
 				{
-					DrawLine(Canvas, Start + FVector2D(UpOffset, UpOffset), End + FVector2D(UpOffset, UpOffset), CurrentData[i].Color);
-				}
-				else
-				{
-					DrawLine(Canvas, Start - FVector2D(DownOffset, DownOffset), End - FVector2D(DownOffset, DownOffset), CurrentData[i].Color);
+					const float t = (CursorLocation - DataStart.X) / (DataEnd.X - DataStart.X);
+					FVector2D Location = FMath::Lerp<FVector2D, float>(DataStart, DataEnd, t);
+
+					FVector2D TextPos = ToScreenSpace(DataToNormalized(Location), Canvas) + DrawOffset;
+					Canvas->Canvas->DrawShadowedString(StringSizeX + TextPos.X, TextPos.Y, *FString::Printf(TEXT("%1.2f"), Location.Y), Font, CurrentData[i].Color);
 				}
 			}
 			else
 			{
 				FVector2D Position0, Position1, Position2;
-				
+
 				// draw the top triangle of the quad
 				Position0.X = Start.X;
 				Position0.Y = (GraphMinMaxData.Min.Y * (GraphScreenSize.Max.Y - GraphScreenSize.Min.Y)) + GraphScreenSize.Min.Y;
@@ -382,7 +397,7 @@ void UReporterGraph::DrawData(UCanvas* Canvas)
 				Position2 = Start;
 				DrawTriangle(Canvas, Position0, Position1, Position2, CurrentData[i].Color);
 
-				
+
 				// draw the second triangle of the quad
 				Position0.X = Start.X;
 				Position0.Y = (GraphMinMaxData.Min.Y * (GraphScreenSize.Max.Y - GraphScreenSize.Min.Y)) + GraphScreenSize.Min.Y;
@@ -415,4 +430,14 @@ FVector2D UReporterGraph::DataToNormalized(const FVector2D& InVector)
 	OutVector.Y = (OutVector.Y * (GraphScreenSize.Max.Y - GraphScreenSize.Min.Y)) + GraphScreenSize.Min.Y;
 	
 	return OutVector;
+}
+					   
+UFont* UReporterGraph::GetDefaultFont()
+{
+	if (bUseTinyFont)
+	{
+		return GEngine->GetTinyFont();
+	}
+
+	return GEngine->GetSmallFont();
 }

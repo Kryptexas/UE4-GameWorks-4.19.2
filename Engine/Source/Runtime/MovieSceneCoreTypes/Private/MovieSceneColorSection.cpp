@@ -4,8 +4,8 @@
 #include "MovieSceneColorSection.h"
 
 
-UMovieSceneColorSection::UMovieSceneColorSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneColorSection::UMovieSceneColorSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

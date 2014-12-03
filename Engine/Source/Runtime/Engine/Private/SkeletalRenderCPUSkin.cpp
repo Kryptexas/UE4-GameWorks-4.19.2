@@ -117,8 +117,8 @@ void FFinalSkinVertexBuffer::ReleaseDynamicRHI()
 -----------------------------------------------------------------------------*/
 
 
-FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource) 
-:	FSkeletalMeshObject(InMeshComponent,InSkeletalMeshResource)
+FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel)
+	: FSkeletalMeshObject(InMeshComponent, InSkeletalMeshResource, InFeatureLevel)
 ,	DynamicData(NULL)
 ,	CachedVertexLOD(INDEX_NONE)
 ,	bRenderBoneWeight(false)
@@ -252,14 +252,14 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 		const FSkelMeshObjectLODInfo& MeshLODInfo = LODInfo[LODIndex];
 
 		// bone matrices
-		FMatrix* ReferenceToLocal = DynamicData->ReferenceToLocal.GetTypedData();
+		FMatrix* ReferenceToLocal = DynamicData->ReferenceToLocal.GetData();
 
 		int32 CachedFinalVerticesNum = LOD.NumVertices;
 		CachedFinalVertices.Empty(CachedFinalVerticesNum);
 		CachedFinalVertices.AddUninitialized(CachedFinalVerticesNum);
 
 		// final cached verts
-		FFinalSkinVertex* DestVertex = CachedFinalVertices.GetTypedData();
+		FFinalSkinVertex* DestVertex = CachedFinalVertices.GetData();
 
 		if (DestVertex)
 		{
@@ -301,7 +301,7 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 		CachedVertexLOD = LODIndex;
 
 		check(LOD.NumVertices == CachedFinalVertices.Num());
-		MeshLOD.UpdateFinalSkinVertexBuffer( CachedFinalVertices.GetTypedData(), LOD.NumVertices * sizeof(FFinalSkinVertex) );
+		MeshLOD.UpdateFinalSkinVertexBuffer( CachedFinalVertices.GetData(), LOD.NumVertices * sizeof(FFinalSkinVertex) );
 	}
 }
 
@@ -622,7 +622,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 	VertexType  VertexCopy;
 
 	// Prefetch all bone indices
-	const FBoneIndexType* BoneMap = Chunk.BoneMap.GetTypedData();
+	const FBoneIndexType* BoneMap = Chunk.BoneMap.GetData();
 	FPlatformMisc::Prefetch( BoneMap );
 	FPlatformMisc::Prefetch( BoneMap, CACHE_LINE_SIZE );
 
@@ -926,7 +926,7 @@ static FORCEINLINE void CalculateChunkBoneWeights(FFinalSkinVertex*& DestVertex,
 	int32 VertexBufferBaseIndex = 0;
 
 	//array of bone mapping
-	FBoneIndexType* BoneMap = Chunk.BoneMap.GetTypedData();
+	FBoneIndexType* BoneMap = Chunk.BoneMap.GetData();
 
 	for(int32 VertexIndex = VertexBufferBaseIndex;VertexIndex < Chunk.GetNumRigidVertices();VertexIndex++,DestVertex++)
 	{

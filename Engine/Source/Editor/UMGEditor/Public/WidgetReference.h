@@ -39,6 +39,17 @@ public:
 	/** @returns the preview widget.  This is the transient representation of the template.  Constantly being destroyed and recreated.  Do not cache this pointer. */
 	UWidget* GetPreview() const;
 
+	/** @returns the preview slate widget.  This is the transient representation of the template.  Constantly being destroyed and recreated.  Do not cache this pointer. */
+	TSharedPtr<SWidget> GetPreviewSlate() const
+	{
+		if ( IsValid() )
+		{
+			return GetPreview()->GetCachedWidget();
+		}
+
+		return TSharedPtr<SWidget>();
+	}
+
 	/** Checks if widget reference is the same as nother widget reference, based on the template pointers. */
 	bool operator==( const FWidgetReference& Other ) const
 	{

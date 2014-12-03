@@ -1,12 +1,28 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	GenericPlatformCompilerPreSetup.h: pragmas, version checks and other things for generic compiler
-==============================================================================================*/
-
 #pragma once
 
+
 #ifndef DEPRECATED
+	/**
+	 * Macro for marking up deprecated code, functions and types.
+	 *
+	 * Features that are marked as deprecated are scheduled to be removed from the code base
+	 * in a future release. If you are using a deprecated feature in your code, you should
+	 * replace it before upgrading to the next release. See the Upgrade Notes in the release
+	 * notes for the release in which the feature was marked deprecated.
+	 *
+	 * Sample usage (note the slightly different syntax for classes and structures):
+	 *
+	 *		DEPRECATED(4.6, "Message")
+	 *		void Function();
+	 *
+	 *		struct DEPRECATED(4.6, "Message") MyStruct;
+	 *		class DEPRECATED(4.6, "Message") MyClass;
+	 *
+	 * @param VERSION The release number in which the feature was marked deprecated.
+	 * @param MESSAGE A message text containing additional upgrade notes.
+	 */
 	#define DEPRECATED(VERSION, MESSAGE)
 #endif // DEPRECATED
 

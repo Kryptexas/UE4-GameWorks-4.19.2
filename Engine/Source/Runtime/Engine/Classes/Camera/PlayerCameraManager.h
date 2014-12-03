@@ -115,7 +115,7 @@ struct FViewTargetTransitionParams
 		, bLockOutgoing(false)
 	{}
 
-	float GetBlendAlpha(const float & TimePct) const
+	float GetBlendAlpha(const float& TimePct) const
 	{
 		switch (BlendFunction)
 		{
@@ -144,9 +144,12 @@ class ENGINE_API APlayerCameraManager : public AActor
 	UPROPERTY()
 	class APlayerController* PCOwner;
 
+private_subobject:
 	/** Dummy component we can use to attach things to the camera. */
-	UPROPERTY(Category=PlayerCameraManager, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USceneComponent> TransformComponent;
+	DEPRECATED_FORGAME(4.6, "TransformComponent should not be accessed directly, please use GetTransformComponent() function instead. TransformComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = PlayerCameraManager, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* TransformComponent;
+public:
 
 	/** Camera Mode */
 	UPROPERTY()
@@ -639,4 +642,8 @@ private:
 
 	// Buried to prevent use; use GetCameraRotation instead
 	FVector GetActorLocation() const { return Super::GetActorLocation(); }
+
+public:
+	/** Returns TransformComponent subobject **/
+	class USceneComponent* GetTransformComponent() const;
 };

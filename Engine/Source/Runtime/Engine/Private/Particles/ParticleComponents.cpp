@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniform.h"
 #include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
@@ -171,16 +174,16 @@ void Particle_ModifyVectorDistribution(UDistributionVector* pkDistribution, FVec
 /*-----------------------------------------------------------------------------
 	AEmitter implementation.
 -----------------------------------------------------------------------------*/
-AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AEmitter::AEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	ParticleSystemComponent = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ParticleSystemComponent0"));
+	ParticleSystemComponent = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ParticleSystemComponent0"));
 	ParticleSystemComponent->SecondsBeforeInactive = 1;
 	RootComponent = ParticleSystemComponent;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -275,7 +278,7 @@ void AEmitter::CheckForErrors()
 	UObject* Outer = GetOuter();
 	if( Cast<ULevel>( Outer ) )
 	{
-		if ( !ParticleSystemComponent.IsValid() )
+		if ( !ParticleSystemComponent )
 		{
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
@@ -291,7 +294,7 @@ FString AEmitter::GetDetailedInfoInternal() const
 {
 	FString Result;  
 
-	if( ParticleSystemComponent.IsValid() )
+	if( ParticleSystemComponent )
 	{
 		Result = ParticleSystemComponent->GetDetailedInfoInternal();
 	}
@@ -351,9 +354,9 @@ void AEmitter::PostInitializeComponents()
 	}
 
 	// Set Notification Delegate
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
-		ParticleSystemComponent->OnSystemFinished.BindDynamic( this, &AEmitter::OnParticleSystemFinished );
+		ParticleSystemComponent->OnSystemFinished.AddDynamic( this, &AEmitter::OnParticleSystemFinished );
 		bCurrentlyActive = ParticleSystemComponent->bAutoActivate;
 	}
 
@@ -379,7 +382,7 @@ void AEmitter::OnParticleSystemFinished(UParticleSystemComponent* FinishedCompon
 
 void AEmitter::Activate()
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		ParticleSystemComponent->ActivateSystem(false);
 	}
@@ -388,7 +391,7 @@ void AEmitter::Activate()
 
 void AEmitter::Deactivate()
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		ParticleSystemComponent->DeactivateSystem();
 	}
@@ -397,7 +400,7 @@ void AEmitter::Deactivate()
 
 void AEmitter::ToggleActive()
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		ParticleSystemComponent->ToggleActive();
 		bCurrentlyActive = ParticleSystemComponent->bIsActive;
@@ -406,7 +409,7 @@ void AEmitter::ToggleActive()
 
 bool AEmitter::IsActive() const
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		// @todo: I'm not updating bCurrentlyActive flag here. 
 		// Technically I don't have to, and it seems bCurrentlyActive flag can be easily broken if we modify Component directly.
@@ -418,7 +421,7 @@ bool AEmitter::IsActive() const
 
 void AEmitter::SetFloatParameter(FName ParameterName, float Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetFloatParameter(ParameterName, Param);
 	}
@@ -426,7 +429,7 @@ void AEmitter::SetFloatParameter(FName ParameterName, float Param)
 
 void AEmitter::SetVectorParameter(FName ParameterName, FVector Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetVectorParameter(ParameterName, Param);
 	}
@@ -434,7 +437,7 @@ void AEmitter::SetVectorParameter(FName ParameterName, FVector Param)
 
 void AEmitter::SetColorParameter(FName ParameterName, FLinearColor Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetColorParameter(ParameterName, Param);
 	}
@@ -442,7 +445,7 @@ void AEmitter::SetColorParameter(FName ParameterName, FLinearColor Param)
 
 void AEmitter::SetActorParameter(FName ParameterName, AActor* Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetActorParameter(ParameterName, Param);
 	}
@@ -450,7 +453,7 @@ void AEmitter::SetActorParameter(FName ParameterName, AActor* Param)
 
 void AEmitter::SetMaterialParameter(FName ParameterName, UMaterialInterface* Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetMaterialParameter(ParameterName, Param);
 	}
@@ -471,8 +474,8 @@ bool AEmitter::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 /*-----------------------------------------------------------------------------
 	UParticleLODLevel implementation.
 -----------------------------------------------------------------------------*/
-UParticleLODLevel::UParticleLODLevel(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleLODLevel::UParticleLODLevel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled = true;
 	ConvertedModules = true;
@@ -948,8 +951,8 @@ bool UParticleLODLevel::IsModuleEditable(UParticleModule* InModule)
 /*-----------------------------------------------------------------------------
 	UParticleEmitter implementation.
 -----------------------------------------------------------------------------*/
-UParticleEmitter::UParticleEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP),
+UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer),
 	QualityLevelSpawnRateScale(1.0f)
 {
 	// Structure to hold one-time initialization
@@ -1780,8 +1783,8 @@ void UParticleEmitter::Build()
 /*-----------------------------------------------------------------------------
 	UParticleSpriteEmitter implementation.
 -----------------------------------------------------------------------------*/
-UParticleSpriteEmitter::UParticleSpriteEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSpriteEmitter::UParticleSpriteEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1948,8 +1951,8 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 /*-----------------------------------------------------------------------------
 	UParticleSystem implementation.
 -----------------------------------------------------------------------------*/
-UParticleSystem::UParticleSystem(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	ThumbnailDistance = 200.0;
@@ -2887,8 +2890,8 @@ bool UParticleSystem::HasGPUEmitter() const
 	return false;
 }
 
-UParticleSystemComponent::UParticleSystemComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), FXSystem(NULL), ReleaseResourcesFence(NULL)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
@@ -3708,7 +3711,7 @@ void UParticleSystemComponent::PostEditChangeChainProperty(FPropertyChangedChain
 }
 #endif // WITH_EDITOR
 
-FBoxSphereBounds UParticleSystemComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UParticleSystemComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox BoundingBox;
 	BoundingBox.Init();
@@ -4030,7 +4033,7 @@ void UParticleSystemComponent::FinalizeTickComponent()
 			TEXT("HasCompleted()==true @ %fs %s"), World->TimeSeconds,
 			Template != NULL ? *Template->GetName() : TEXT("NULL"));
 
-		OnSystemFinished.ExecuteIfBound(this);
+		OnSystemFinished.Broadcast(this);
 
 		// When system is done - destroy all subemitters etc. We don't need them any more.
 		ResetParticles();
@@ -5905,8 +5908,8 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	return INDEX_NONE;
 }
 
-UParticleSystemReplay::UParticleSystemReplay(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5995,8 +5998,8 @@ FArchive& operator<<( FArchive& Ar, FParticleEmitterReplayFrame& Obj )
 	return Ar;
 }
 
-AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite"))
 		.DoNotCreateDefaultSubobject(TEXT("ArrowComponent0"))
 	)
@@ -6006,8 +6009,8 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const class FPostCons
 	BaseFOV = 80.0f;
 	bDestroyOnSystemFinish = true;
 
-	ParticleSystemComponent->bOnlyOwnerSee = true;
-	ParticleSystemComponent->SecondsBeforeInactive = 0.0f;
+	GetParticleSystemComponent()->bOnlyOwnerSee = true;
+	GetParticleSystemComponent()->SecondsBeforeInactive = 0.0f;
 }
 
 void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
@@ -6047,7 +6050,7 @@ void AEmitterCameraLensEffectBase::NotifyRetriggered() {}
 
 void AEmitterCameraLensEffectBase::PostInitializeComponents()
 {
-	ParticleSystemComponent->SetDepthPriorityGroup(SDPG_Foreground);
+	GetParticleSystemComponent()->SetDepthPriorityGroup(SDPG_Foreground);
 	Super::PostInitializeComponents();
 	ActivateLensEffect();
 }
@@ -6076,3 +6079,12 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns ParticleSystemComponent subobject **/
+UParticleSystemComponent* AEmitter::GetParticleSystemComponent() { return ParticleSystemComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AEmitter::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns ArrowComponent subobject **/
+UArrowComponent* AEmitter::GetArrowComponent() const { return ArrowComponent; }
+#endif

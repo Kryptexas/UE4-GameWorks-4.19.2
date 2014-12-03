@@ -41,7 +41,7 @@ FSessionManager::FSessionManager( const IMessageBusRef& InMessageBus )
 }
 
 
-FSessionManager::~FSessionManager( )
+FSessionManager::~FSessionManager()
 {
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegate);
 }
@@ -152,7 +152,7 @@ void FSessionManager::FindExpiredSessions( const FDateTime& Now )
 {
 	bool Dirty = false;
 
-	for (TMap<FMessageAddress, TSharedPtr<FSessionInfo> >::TIterator It(Sessions); It; ++It)
+	for (TMap<FGuid, TSharedPtr<FSessionInfo> >::TIterator It(Sessions); It; ++It)
 	{
 		if (Now > It.Value()->GetLastUpdateTime() + FTimespan::FromSeconds(10.0))
 		{
@@ -193,7 +193,7 @@ void FSessionManager::RefreshSessions()
 {
 	bool Dirty = false;
 
-	for (TMap<FMessageAddress, TSharedPtr<FSessionInfo> >::TIterator It(Sessions); It; ++It)
+	for (TMap<FGuid, TSharedPtr<FSessionInfo> >::TIterator It(Sessions); It; ++It)
 	{
 		if (!IsValidOwner(It.Value()->GetSessionOwner()))
 		{
@@ -210,7 +210,7 @@ void FSessionManager::RefreshSessions()
 }
 
 
-void FSessionManager::SendPing( )
+void FSessionManager::SendPing()
 {
 	if (MessageEndpoint.IsValid())
 	{
@@ -218,7 +218,7 @@ void FSessionManager::SendPing( )
 		MessageEndpoint->Publish(new FSessionServicePing(), EMessageScope::Network);
 	}
 
-	LastPingTime = FDateTime::Now();
+	LastPingTime = FDateTime::UtcNow();
 }
 
 
@@ -303,6 +303,7 @@ bool FSessionManager::HandleTicker( float DeltaTime )
 {
 	FDateTime Now = FDateTime::UtcNow();
 
+	// @todo gmp: don't expire sessions for now
 //	FindExpiredSessions(Now);
 
 	if (Now >= LastPingTime + FTimespan::FromSeconds(2.5))

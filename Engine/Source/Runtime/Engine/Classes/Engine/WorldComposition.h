@@ -110,6 +110,9 @@ class ENGINE_API UWorldComposition : public UObject
 	/** Scans world root folder for relevant packages and initializes world composition structures */
 	void Rescan();
 
+	/**  */
+	void ReinitializeForPIE();
+
 #if WITH_EDITOR
 	/** @returns FWorldTileInfo associated with specified package */
 	FWorldTileInfo GetTileInfo(const FName& InPackageName) const;

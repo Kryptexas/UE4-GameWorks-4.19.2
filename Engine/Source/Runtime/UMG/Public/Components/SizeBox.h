@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,13 +7,67 @@
 class USlateBrushAsset;
 
 /**
- * A SizeBox is a container widget that can contain one child widget, providing an opportunity 
- * to surround it with a SizeBox image and adjustable padding.
+ * A widget that allows you to specify the size it reports to have and desire.  Not all widgets report a desired size
+ * that you actually desire.  Wrapping them in a SizeBox lets you have the Size Box force them to be a particular size.
+ *
+ * ● Single Child
+ * ● Fixed Size
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API USizeBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
+
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_WidthOverride : 1;
+
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_HeightOverride : 1;
+
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_MinDesiredWidth : 1;
+
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_MinDesiredHeight : 1;
+
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_MaxDesiredWidth : 1;
+
+	/**  */
+	UPROPERTY()
+	uint32 bOverride_MaxDesiredHeight : 1;
+
+
+	/** When specified, ignore the content's desired size and report the WidthOverride as the Box's desired width. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout", meta=( editcondition="bOverride_WidthOverride" ))
+	float WidthOverride;
+
+	/** When specified, ignore the content's desired size and report the HeightOverride as the Box's desired height. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout", meta=( editcondition="bOverride_HeightOverride" ))
+	float HeightOverride;
+
+	/** When specified, will report the MinDesiredWidth if larger than the content's desired width. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout", meta=( editcondition="bOverride_MinDesiredWidth" ))
+	float MinDesiredWidth;
+
+	/** When specified, will report the MinDesiredHeight if larger than the content's desired height. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout", meta=( editcondition="bOverride_MinDesiredHeight" ))
+	float MinDesiredHeight;
+
+	/** When specified, will report the MaxDesiredWidth if smaller than the content's desired width. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout", meta=( editcondition="bOverride_MaxDesiredWidth" ))
+	float MaxDesiredWidth;
+
+	/** When specified, will report the MaxDesiredHeight if smaller than the content's desired height. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout", meta=( editcondition="bOverride_MaxDesiredHeight" ))
+	float MaxDesiredHeight;
 
 public:
 		
@@ -73,57 +127,6 @@ public:
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
-
-protected:
-
-	/**  */
-	UPROPERTY()
-	uint32 bOverride_WidthOverride : 1;
-
-	/**  */
-	UPROPERTY()
-	uint32 bOverride_HeightOverride : 1;
-
-	/**  */
-	UPROPERTY()
-	uint32 bOverride_MinDesiredWidth : 1;
-
-	/**  */
-	UPROPERTY()
-	uint32 bOverride_MinDesiredHeight : 1;
-
-	/**  */
-	UPROPERTY()
-	uint32 bOverride_MaxDesiredWidth : 1;
-
-	/**  */
-	UPROPERTY()
-	uint32 bOverride_MaxDesiredHeight : 1;
-
-
-	/** When specified, ignore the content's desired size and report the WidthOverride as the Box's desired width. */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_WidthOverride" ))
-	float WidthOverride;
-
-	/** When specified, ignore the content's desired size and report the HeightOverride as the Box's desired height. */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_HeightOverride" ))
-	float HeightOverride;
-
-	/** When specified, will report the MinDesiredWidth if larger than the content's desired width. */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MinDesiredWidth" ))
-	float MinDesiredWidth;
-
-	/** When specified, will report the MinDesiredHeight if larger than the content's desired height. */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MinDesiredHeight" ))
-	float MinDesiredHeight;
-
-	/** When specified, will report the MaxDesiredWidth if smaller than the content's desired width. */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MaxDesiredWidth" ))
-	float MaxDesiredWidth;
-
-	/** When specified, will report the MaxDesiredHeight if smaller than the content's desired height. */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MaxDesiredHeight" ))
-	float MaxDesiredHeight;
 
 protected:
 

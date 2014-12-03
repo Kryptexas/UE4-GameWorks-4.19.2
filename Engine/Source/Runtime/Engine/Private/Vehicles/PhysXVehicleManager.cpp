@@ -190,8 +190,8 @@ void FPhysXVehicleManager::SetUpBatchedSceneQuery()
 		}
 		
 		PxBatchQueryDesc SqDesc(NumWheels, 0, 0);
-		SqDesc.queryMemory.userRaycastResultBuffer = WheelQueryResults.GetTypedData();
-		SqDesc.queryMemory.userRaycastTouchBuffer = WheelHitResults.GetTypedData();
+		SqDesc.queryMemory.userRaycastResultBuffer = WheelQueryResults.GetData();
+		SqDesc.queryMemory.userRaycastTouchBuffer = WheelHitResults.GetData();
 		SqDesc.queryMemory.raycastTouchBufferSize = WheelHitResults.Num();
 		SqDesc.preFilterShader = WheelRaycastPreFilter;
 
@@ -268,7 +268,7 @@ void FPhysXVehicleManager::Update( float DeltaTime )
 	}
 
 	// Suspension raycasts
-	PxVehicleSuspensionRaycasts( WheelRaycastBatchQuery, PVehicles.Num(), PVehicles.GetTypedData(), WheelQueryResults.Num(), WheelQueryResults.GetTypedData() );
+	PxVehicleSuspensionRaycasts( WheelRaycastBatchQuery, PVehicles.Num(), PVehicles.GetData(), WheelQueryResults.Num(), WheelQueryResults.GetData() );
 
 	// Tick vehicles
 	for ( int32 i = Vehicles.Num() - 1; i >= 0; --i )
@@ -304,7 +304,7 @@ void FPhysXVehicleManager::PreTick( float DeltaTime )
 
 void FPhysXVehicleManager::UpdateVehicles( float DeltaTime )
 {
-	PxVehicleUpdates( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, PVehicles.Num(), PVehicles.GetTypedData(), PVehiclesWheelsStates.GetTypedData());
+	PxVehicleUpdates( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, PVehicles.Num(), PVehicles.GetData(), PVehiclesWheelsStates.GetData());
 }
 
 PxVec3 FPhysXVehicleManager::GetSceneGravity()
@@ -374,7 +374,7 @@ void FPhysXVehicleManager::UpdateVehiclesWithTelemetry( float DeltaTime )
 
 	if ( TelemetryData )
 	{
-		PxVehicleUpdateSingleVehicleAndStoreTelemetryData( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, TelemetryVehicle, PVehiclesWheelsStates.GetTypedData(), *TelemetryData );
+		PxVehicleUpdateSingleVehicleAndStoreTelemetryData( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, TelemetryVehicle, PVehiclesWheelsStates.GetData(), *TelemetryData );
 
 		if ( PVehicles.Num() > 1 )
 		{
@@ -385,7 +385,7 @@ void FPhysXVehicleManager::UpdateVehiclesWithTelemetry( float DeltaTime )
 	{
 		UE_LOG( LogPhysics, Warning, TEXT("Cannot record telemetry for vehicle, it does not have 4 wheels") );
 
-		PxVehicleUpdates( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, PVehicles.Num(), PVehicles.GetTypedData(), PVehiclesWheelsStates.GetTypedData() );
+		PxVehicleUpdates( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, PVehicles.Num(), PVehicles.GetData(), PVehiclesWheelsStates.GetData() );
 	}
 }
 

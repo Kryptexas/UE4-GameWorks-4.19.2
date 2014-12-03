@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "AI/AISystemBase.h"
 
-UAISystemBase::UAISystemBase(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAISystemBase::UAISystemBase(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

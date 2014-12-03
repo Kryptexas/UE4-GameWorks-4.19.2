@@ -45,10 +45,10 @@ bool SPropertyEditorBool::HasKeyboardFocus() const
 	return CheckBox->HasKeyboardFocus();
 }
 
-FReply SPropertyEditorBool::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SPropertyEditorBool::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Forward keyboard focus to our editable text widget
-	return FReply::Handled().SetKeyboardFocus( CheckBox.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+	return FReply::Handled().SetUserFocus(CheckBox.ToSharedRef(), InFocusEvent.GetCause());
 }
 
 ESlateCheckBoxState::Type SPropertyEditorBool::OnGetCheckState() const
@@ -93,7 +93,7 @@ FReply SPropertyEditorBool::OnMouseButtonDoubleClick( const FGeometry& InMyGeome
 		CheckBox->ToggleCheckedState();
 
 		// Set focus to this object, but don't capture the mouse
-		return FReply::Handled().SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		return FReply::Handled().SetUserFocus(AsShared(), EFocusCause::Mouse);
 	}
 
 	return FReply::Unhandled();

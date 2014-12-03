@@ -8,7 +8,7 @@ DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
 DECLARE_DELEGATE( FOnNodeSelectionChanged )
 DECLARE_DELEGATE( FOnUpdatePanel )
 
-DECLARE_DELEGATE_RetVal_TwoParams( bool, FOnGetBarPos, int32, float & )
+DECLARE_DELEGATE_RetVal_TwoParams( bool, FOnGetBarPos, int32, float& )
 DECLARE_DELEGATE_OneParam( FOnBarClicked, int32)
 DECLARE_DELEGATE_TwoParams( FOnBarDrag, int32, float)
 DECLARE_DELEGATE_OneParam( FOnBarDrop, int32 )
@@ -242,6 +242,7 @@ public:
 
 	virtual FReply	OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;	
 	virtual FReply	OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply	OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	int32			GetHitNode(const FGeometry& MyGeometry, const FVector2D& CursorPosition);
 

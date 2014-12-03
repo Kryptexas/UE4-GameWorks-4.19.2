@@ -37,6 +37,7 @@ public:
 		, _Padding()
 		, _Margin()
 		, _ErrorReporting()
+		, _ModiferKeyForNewLine(EModifierKey::None)
 		{}
 
 		/** The styling of the textbox */
@@ -49,10 +50,10 @@ public:
 		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
 
 		/** Sets the text content for this editable text box widget */
- 		SLATE_ATTRIBUTE( FText, Text )
+		SLATE_ATTRIBUTE( FText, Text )
 
 		/** Hint text that appears when there is no text in the text box */
- 		SLATE_ATTRIBUTE( FText, HintText )
+		SLATE_ATTRIBUTE( FText, HintText )
 
 		/** Font color and opacity (overrides Style) */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
@@ -118,7 +119,7 @@ public:
 		SLATE_ATTRIBUTE( float, WrapTextAt )
 
 		/** Whether to wrap text automatically based on the widget's computed horizontal space.  IMPORTANT: Using automatic wrapping can result
-		    in visual artifacts, as the the wrapped size will computed be at least one frame late!  Consider using WrapTextAt instead.  The initial 
+			in visual artifacts, as the the wrapped size will computed be at least one frame late!  Consider using WrapTextAt instead.  The initial 
 			desired size will not be clamped.  This works best in cases where the text block's size is not affecting other widget's layout. */
 		SLATE_ATTRIBUTE( bool, AutoWrapText )
 
@@ -137,6 +138,9 @@ public:
 
 		/** Provide a alternative mechanism for error reporting. */
 		SLATE_ARGUMENT( TSharedPtr<class IErrorReportingWidget>, ErrorReporting )
+
+		/** The optional modifier key necessary to create a newline when typing into the editor. */
+		SLATE_ARGUMENT( EModifierKey::Type, ModiferKeyForNewLine)
 
 	SLATE_END_ARGS()
 	
@@ -174,7 +178,7 @@ public:
 	// SWidget overrides
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual bool HasKeyboardFocus() const override;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 
 	/** Get the currently selected text */
 	FText GetSelectedText() const;

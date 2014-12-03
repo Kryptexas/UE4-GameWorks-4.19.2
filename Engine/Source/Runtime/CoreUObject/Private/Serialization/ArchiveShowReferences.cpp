@@ -43,9 +43,9 @@ FArchiveShowReferences::FArchiveShowReferences( FOutputDevice& inOutputAr, UObje
 	}
 
 	// similarly, if the object is a class, they all obviously reference their parent classes
-	if ( SourceObject->IsA(UClass::StaticClass()) )
+	if ( UClass* SourceObjectClass = dynamic_cast<UClass*>(SourceObject) )
 	{
-		for ( UClass* ParentClass = Cast<UClass>(SourceObject)->GetSuperClass(); ParentClass; ParentClass = ParentClass->GetSuperClass() )
+		for ( UClass* ParentClass = SourceObjectClass->GetSuperClass(); ParentClass; ParentClass = ParentClass->GetSuperClass() )
 		{
 			Found.AddUnique( ParentClass );
 		}

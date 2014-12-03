@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "WidgetGraphSchema.h"
 
-UWidgetGraphSchema::UWidgetGraphSchema(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UWidgetGraphSchema::UWidgetGraphSchema(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	NAME_NeverAsPin = TEXT("NeverAsPin");
 	NAME_PinHiddenByDefault = TEXT("PinHiddenByDefault");

@@ -244,8 +244,7 @@ namespace UnrealBuildTool
 			// Don't bother postfixing "Game" or "Program" -- that will be the default when using "Debug", "Development", etc.
 			// Also don't postfix "RocketGame" when we're building Rocket game projects.  That's the only type of game there is in that case!
 			if( !TargetConfigurationName.Equals( TargetRules.TargetType.Game.ToString(), StringComparison.InvariantCultureIgnoreCase ) && 
-				!TargetConfigurationName.Equals( TargetRules.TargetType.Program.ToString(), StringComparison.InvariantCultureIgnoreCase ) &&
-				!( UnrealBuildTool.RunningRocket() && TargetConfigurationName.Equals( TargetRules.TargetType.RocketGame.ToString(), StringComparison.InvariantCultureIgnoreCase ) ) )
+				!TargetConfigurationName.Equals( TargetRules.TargetType.Program.ToString(), StringComparison.InvariantCultureIgnoreCase ) )
 			{
 				SolutionConfigName += " " + TargetConfigurationName;
 			}

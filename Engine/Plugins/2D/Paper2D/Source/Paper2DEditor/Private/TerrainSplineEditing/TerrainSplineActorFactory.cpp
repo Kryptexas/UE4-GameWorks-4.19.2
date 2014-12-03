@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UTerrainSplineActorFactory
 
-UTerrainSplineActorFactory::UTerrainSplineActorFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTerrainSplineActorFactory::UTerrainSplineActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = NSLOCTEXT("Paper2D", "TerrainSplineFactoryDisplayName", "Paper2D Terrain Spline");
 	NewActorClass = APaperTerrainActor::StaticClass();
@@ -20,7 +20,7 @@ void UTerrainSplineActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor
 		GEditor->SetActorLabelUnique(NewActor, TerrainMaterial->GetName());
 
 		APaperTerrainActor* TypedActor = CastChecked<APaperTerrainActor>(NewActor);
-		UPaperTerrainComponent* RenderComponent = TypedActor->RenderComponent;
+		UPaperTerrainComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();

@@ -2,8 +2,8 @@
 
 #include "GameplayTagsModulePrivatePCH.h"
 
-UGameplayTagAssetInterface::UGameplayTagAssetInterface(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayTagAssetInterface::UGameplayTagAssetInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

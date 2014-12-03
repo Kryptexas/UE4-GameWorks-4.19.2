@@ -26,8 +26,7 @@ public:
 	 *
 	 * @param DeviceName The device name for the service to add to the startup list
 	 * @return true if the service added, false otherwise.
-	 * @see GetServices
-	 * @see RemoveStartupService
+	 * @see GetServices, RemoveStartupService
 	 */
 	virtual bool AddStartupService(const FString& DeviceName) = 0;
 
@@ -37,14 +36,13 @@ public:
 	 * @param OutServices Will contain the collection of services.
 	 * @return The number of services returned.
 	 */
-	virtual int32 GetServices( TArray<ITargetDeviceServicePtr>& OutServices ) = 0;
+	virtual int32 GetServices(TArray<ITargetDeviceServicePtr>& OutServices) = 0;
 
 	/**
 	 * Removes a service from the list of services that are started automatically.
 	 *
 	 * @param DeviceName The device name for the service to remove from the startup list.
-	 * @see AddStartupService
-	 * @see GetServices
+	 * @see AddStartupService, GetServices
 	 */
 	virtual void RemoveStartupService(const FString& DeviceName) = 0;
 
@@ -56,7 +54,7 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT_OneParam(ITargetDeviceServiceManager, FOnTargetDeviceServiceAdded, const ITargetDeviceServiceRef& /*AddedService*/);
-	virtual FOnTargetDeviceServiceAdded& OnServiceAdded( ) = 0;
+	virtual FOnTargetDeviceServiceAdded& OnServiceAdded() = 0;
 
 	/**
 	 * Gets an event delegate that is executed when a target device service was removed.
@@ -64,12 +62,10 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT_OneParam(ITargetDeviceServiceManager, FOnTargetDeviceServiceRemoved, const ITargetDeviceServiceRef& /*RemovedService*/);
-	virtual FOnTargetDeviceServiceRemoved& OnServiceRemoved( ) = 0;
+	virtual FOnTargetDeviceServiceRemoved& OnServiceRemoved() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ITargetDeviceServiceManager( ) { }
+	/** Virtual destructor. */
+	virtual ~ITargetDeviceServiceManager() { }
 };

@@ -73,7 +73,7 @@ struct FGameplayCueViewInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
 	class TSubclassOf<AGameplayCueActor> ActorClass;
 
-	virtual TSharedPtr<FGameplayCueViewEffects> SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects, const FGameplayEffectInstigatorContext InstigatorContext) const;
+	virtual TSharedPtr<FGameplayCueViewEffects> SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects, const FGameplayEffectContextHandle& EffectContext) const;
 };
 
 UCLASS(BlueprintType)
@@ -98,7 +98,7 @@ struct GAMEPLAYABILITIES_API FGameplayCueHandler
 	}
 
 	UPROPERTY()
-	AActor * Owner;
+	AActor* Owner;
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	TArray<UGameplayCueView*>	Definitions;
@@ -108,13 +108,13 @@ struct GAMEPLAYABILITIES_API FGameplayCueHandler
 	UPROPERTY()
 	TArray<UObject*> SpawnedObjects;
 
-	virtual void GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext);
+	virtual void GameplayCueActivated(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext);
 	
-	virtual void GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext);
+	virtual void GameplayCueExecuted(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext);
 	
-	virtual void GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext);
+	virtual void GameplayCueAdded(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext);
 	
-	virtual void GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext);
+	virtual void GameplayCueRemoved(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext);
 
 private:
 

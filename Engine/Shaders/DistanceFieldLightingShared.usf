@@ -6,7 +6,7 @@
 
 #ifndef THREADGROUP_SIZEX
 #define THREADGROUP_SIZEX 1
-#endif
+#endif   
 
 #ifndef THREADGROUP_SIZEY
 #define THREADGROUP_SIZEY 1

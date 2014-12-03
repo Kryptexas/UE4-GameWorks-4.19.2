@@ -3,12 +3,11 @@
 #include "UnrealEd.h"
 #include "Engine/NiagaraEffect.h"
 #include "NiagaraEditorModule.h"
-#include "VectorVM.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectFactory"
 
-UNiagaraEffectFactoryNew::UNiagaraEffectFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UNiagaraEffectFactoryNew::UNiagaraEffectFactoryNew(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	SupportedClass = UNiagaraEffect::StaticClass();

@@ -5,19 +5,20 @@
 #include "Atmosphere.h"
 #include "ComponentInstanceDataCache.h"
 #include "Atmosphere/AtmosphericFog.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
 
-AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AAtmosphericFog::AAtmosphericFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	AtmosphericFogComponent = PCIP.CreateDefaultSubobject<UAtmosphericFogComponent>(this, TEXT("AtmosphericFogComponent0"));
+	AtmosphericFogComponent = ObjectInitializer.CreateDefaultSubobject<UAtmosphericFogComponent>(this, TEXT("AtmosphericFogComponent0"));
 	RootComponent = AtmosphericFogComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -36,13 +37,13 @@ AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties&
 		};
 		static FConstructorStatics ConstructorStatics;
 
-		if (SpriteComponent)
+		if (GetSpriteComponent())
 		{
-			SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
-			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
-			SpriteComponent->AttachParent = AtmosphericFogComponent;
+			GetSpriteComponent()->Sprite = ConstructorStatics.FogTextureObject.Get();
+			GetSpriteComponent()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Fog;
+			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
+			GetSpriteComponent()->AttachParent = AtmosphericFogComponent;
 		}
 
 		if (ArrowComponent)
@@ -80,8 +81,8 @@ FAtmospherePrecomputeParameters::FAtmospherePrecomputeParameters():
 {
 }
 
-UAtmosphericFogComponent::UAtmosphericFogComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP), TransmittanceResource(NULL), IrradianceResource(NULL), InscatterResource(NULL)
+UAtmosphericFogComponent::UAtmosphericFogComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), TransmittanceResource(NULL), IrradianceResource(NULL), InscatterResource(NULL)
 #if WITH_EDITORONLY_DATA
 	, PrecomputeDataHandler(NULL)
 #endif
@@ -134,7 +135,7 @@ void UAtmosphericFogComponent::PostLoad()
 				int32 TotalByte = OutData.Num() * sizeof(FColor);
 				TransmittanceData.Lock(LOCK_READ_WRITE);
 				FColor* TextureData = (FColor*)TransmittanceData.Realloc(TotalByte);
-				FMemory::Memcpy(TextureData, OutData.GetTypedData(), TotalByte);
+				FMemory::Memcpy(TextureData, OutData.GetData(), TotalByte);
 				TransmittanceData.Unlock();
 
 				TransmittanceTexture_DEPRECATED = NULL;
@@ -162,7 +163,7 @@ void UAtmosphericFogComponent::PostLoad()
 				int32 TotalByte = OutData.Num() * sizeof(FColor);
 				IrradianceData.Lock(LOCK_READ_WRITE);
 				FColor* TextureData = (FColor*)IrradianceData.Realloc(TotalByte);
-				FMemory::Memcpy(TextureData, OutData.GetTypedData(), TotalByte);
+				FMemory::Memcpy(TextureData, OutData.GetData(), TotalByte);
 				IrradianceData.Unlock();
 
 				IrradianceTexture_DEPRECATED = NULL;
@@ -538,17 +539,17 @@ void UAtmosphericFogComponent::StartPrecompute()
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
-		PrecomputeCounter.Reset();
-
-		if (PrecomputeDataHandler)
-		{
-			delete PrecomputeDataHandler;
-			PrecomputeDataHandler = NULL;
-		}
-		PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
-
 		if (GetScene())
 		{
+			PrecomputeCounter.Reset();
+
+			if (PrecomputeDataHandler)
+			{
+				delete PrecomputeDataHandler;
+				PrecomputeDataHandler = NULL;
+			}
+			PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
+
 			FAtmosphericFogSceneInfo* AtmosphericFogSceneInfo = GetScene()->GetAtmosphericFogSceneInfo();
 
 			if (AtmosphericFogSceneInfo)
@@ -726,14 +727,14 @@ FName UAtmosphericFogComponent::GetComponentInstanceDataType() const
 }
 
 // Backup the precomputed data before re-running Blueprint construction script
-TSharedPtr<FComponentInstanceDataBase> UAtmosphericFogComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData;
+	FAtmospherePrecomputeInstanceData* PrecomputedData = nullptr;
 
 	if (TransmittanceData.GetElementCount() && IrradianceData.GetElementCount() && InscatterData.GetElementCount() && PrecomputeCounter.GetValue() == EValid)
 	{
 		// Allocate new struct for holding light map data
-		 PrecomputedData = MakeShareable(new FAtmospherePrecomputeInstanceData(this));
+		 PrecomputedData = new FAtmospherePrecomputeInstanceData(this);
 
 		// Fill in info
 		PrecomputedData->PrecomputeParameter = PrecomputeParams;
@@ -766,10 +767,10 @@ TSharedPtr<FComponentInstanceDataBase> UAtmosphericFogComponent::GetComponentIns
 }
 
 // Restore the precomputed data after re-running Blueprint construction script
-void UAtmosphericFogComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UAtmosphericFogComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
-	TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData = StaticCastSharedPtr<FAtmospherePrecomputeInstanceData>(ComponentInstanceData);
+	check(ComponentInstanceData);
+	FAtmospherePrecomputeInstanceData* PrecomputedData = static_cast<FAtmospherePrecomputeInstanceData*>(const_cast<FComponentInstanceDataBase*>(ComponentInstanceData));
 
 	FComponentReregisterContext ReregisterContext(this);
 	ReleaseResource();
@@ -835,3 +836,10 @@ static void AtmosphereRenderSinkFunction()
 }
 
 FAutoConsoleVariableSink CVarAtmosphereRenderSink(FConsoleCommandDelegate::CreateStatic(&AtmosphereRenderSinkFunction));
+
+/** Returns AtmosphericFogComponent subobject **/
+UAtmosphericFogComponent* AAtmosphericFog::GetAtmosphericFogComponent() { return AtmosphericFogComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* AAtmosphericFog::GetArrowComponent() { return ArrowComponent; }
+#endif

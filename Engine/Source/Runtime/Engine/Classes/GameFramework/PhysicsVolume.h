@@ -5,8 +5,8 @@
 #include "PhysicsVolume.generated.h"
 
 /**
- * PhysicsVolume: A bounding volume which affects actor physics
- * Each AActor is affected at any time by one PhysicsVolume
+ * PhysicsVolume: A bounding volume which affects actor physics.
+ * Each AActor is affected at any time by one PhysicsVolume.
  */
 
 UCLASS()

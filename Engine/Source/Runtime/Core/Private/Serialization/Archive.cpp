@@ -3,8 +3,9 @@
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
 =============================================================================*/
-#include "Core.h"
-#include "Archive.h"
+#include "CorePrivatePCH.h"
+#include "Serialization/Archive.h"
+#include "Serialization/CustomVersion.h"
 
 /*-----------------------------------------------------------------------------
 	FArchiveProxy implementation.
@@ -88,7 +89,8 @@ void FArchive::Reset()
 	ArMaxSerializeSize					= 0;
 	ArIsFilterEditorOnly				= false;
 	ArIsSaveGame						= false;
-	CookingTargetPlatform				= NULL;
+	CookingTargetPlatform = nullptr;
+	SerializedProperty = nullptr;
 
 	// Reset all custom versions to the current registered versions.
 	ResetCustomVersions();
@@ -738,7 +740,7 @@ void FArchive::SerializeIntPacked(uint32& Value)
 				break;
 			}
 		}
-		Serialize(PackedBytes.GetTypedData(), PackedBytes.Num()); // Actually serialize the bytes we made
+		Serialize(PackedBytes.GetData(), PackedBytes.Num()); // Actually serialize the bytes we made
 	}
 }
 

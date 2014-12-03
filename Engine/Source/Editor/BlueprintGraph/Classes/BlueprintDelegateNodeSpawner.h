@@ -31,17 +31,11 @@ public:
 	 */
 	static UBlueprintDelegateNodeSpawner* Create(TSubclassOf<UK2Node_BaseMCDelegate> NodeClass, UMulticastDelegateProperty const* const Property, UObject* Outer = nullptr);
 
-	// UBlueprintNodeSpawner interface
-	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
-	virtual FText GetDefaultMenuCategory() const override;
-	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
-	// End UBlueprintNodeSpawner interface
-
 	/**
 	 * Accessor to the delegate property that this spawner wraps (the delegate
 	 * that this will assign spawned nodes with).
 	 *
 	 * @return The delegate property that this was initialized with.
 	 */
-	UMulticastDelegateProperty const* GetProperty() const;
+	UMulticastDelegateProperty const* GetDelegateProperty() const;
 };

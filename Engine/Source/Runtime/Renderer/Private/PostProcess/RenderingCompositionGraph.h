@@ -132,6 +132,7 @@ struct FRenderingCompositePassContext
 	}
 
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
 
 	FRenderingCompositePass* Root;
@@ -163,7 +164,7 @@ struct FRenderingCompositePass
 	virtual FRenderingCompositeOutputRef* GetInput(EPassInputId InPassInputId) = 0;
 
 	/**
-	 * Each input is a dependency and will be processed before the node itself (don't generate cyles)
+	 * Each input is a dependency and will be processed before the node itself (don't generate cycles)
 	 * The index allows to access the input in Process() and on the shader side
 	 * @param InInputIndex silently ignores calls outside the range
 	 */
@@ -197,14 +198,14 @@ struct FRenderingCompositePass
 
 	/**
 	 * Allows access to dump filename for a given output
-	 * @return Filename for output dump
+	 * @return Filename for output dump with extension
 	 */
 	virtual const FString& GetOutputDumpFilename(EPassOutputId OutputId) = 0;
 
 	/**
 	 * Allows setting of a dump filename for a given output
 	 * @param Index - Output index
-	 * @param Filename - Output dump filename
+	 * @param Filename - Output dump filename, needs to have extension, gets modified if we have an HDR image e.g. ".png"
 	 */
 	virtual void SetOutputDumpFilename(EPassOutputId OutputId, const TCHAR* Filename) = 0;
 

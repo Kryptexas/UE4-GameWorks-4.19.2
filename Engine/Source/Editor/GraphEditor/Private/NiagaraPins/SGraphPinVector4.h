@@ -54,6 +54,7 @@ private:
 	void OnChangedValueTextBox_2(float NewValue, ETextCommit::Type CommitInfo);
 	void OnChangedValueTextBox_3(float NewValue, ETextCommit::Type CommitInfo);
 
+	static FVector4 ParseValue(FString Value);
 private:
 	/** Flag is true if the widget is used to represent a rotator; false otherwise */
 	bool bIsRotator;

@@ -1758,7 +1758,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		// Figure out spawn rate for this tick.
 		if (bProcessSpawnRate)
 		{
-			float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
+			float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
 			SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * RateScale;
 			SpawnRate = FMath::Max<float>(0.0f, SpawnRate);
 		}
@@ -2814,7 +2814,8 @@ void FParticleMeshEmitterInstance::InitParameters(UParticleEmitter* InTemplate, 
 
 	// Grab the MeshRotationRate module offset, if there is one...
 	MeshRotationActive = false;
-	if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
+	if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity
+		|| LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 	{
 		MeshRotationActive = true;
 	}
@@ -2923,7 +2924,6 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				}
 				else if (LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 				{
-
 					NewDirection = Particle.Location;
 				}
 
@@ -3149,10 +3149,16 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 
 	FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)Particle + MeshRotationOffset);
 
-	if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
+	if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity
+		|| LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 	{
 		// Determine the rotation to the velocity vector and apply it to the mesh
-		FVector	NewDirection	= Particle->Velocity;
+		FVector	NewDirection = Particle->Velocity;
+		if (LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
+		{
+			NewDirection = Particle->Location;
+		}
+
 		NewDirection.Normalize();
 		FVector	OldDirection(1.0f, 0.0f, 0.0f);
 

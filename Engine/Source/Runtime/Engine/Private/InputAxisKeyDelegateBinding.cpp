@@ -5,8 +5,8 @@
 #include "Engine/InputAxisKeyDelegateBinding.h"
 
 
-UInputAxisKeyDelegateBinding::UInputAxisKeyDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInputAxisKeyDelegateBinding::UInputAxisKeyDelegateBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

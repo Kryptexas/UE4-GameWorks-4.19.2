@@ -3,13 +3,18 @@
 #pragma once
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
-#include "ModuleManager.h"
-#include "Media.h"
+#include "Core.h"
+#include "IMediaSink.h"
+#include "IMediaTrack.h"
+#include "IMediaTrackAudioDetails.h"
+#include "IMediaTrackCaptionDetails.h"
+#include "IMediaTrackVideoDetails.h"
 
 #import <AVFoundation/AVFoundation.h>
+
 
 /* Private macros
  *****************************************************************************/

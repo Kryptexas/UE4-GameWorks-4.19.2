@@ -68,6 +68,8 @@ private:
 	void NotifyComponentModified();
 
 	void OnDeleteKey();
+	bool CanDeleteKey() const;
+
 	void OnDuplicateKey();
 	bool IsKeySelectionValid() const;
 

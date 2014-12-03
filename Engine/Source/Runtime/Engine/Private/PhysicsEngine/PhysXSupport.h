@@ -9,6 +9,7 @@
 #if WITH_PHYSX
 
 #include "PhysXIncludes.h"
+#include "EngineLogs.h"
 
 // Whether or not to use the PhysX scene lock
 #ifndef USE_SCENE_LOCK
@@ -123,7 +124,7 @@ ENGINE_API FMatrix PTransform2UMatrix(const PxTransform& PTM);
 // we need this helper struct since PhysX needs geoms to be on the stack
 struct UCollision2PGeom
 {
-	UCollision2PGeom(const FCollisionShape & CollisionShape);
+	UCollision2PGeom(const FCollisionShape& CollisionShape);
 	const PxGeometry * GetGeometry() { return (PxGeometry*)Storage; }
 private:
 	
@@ -160,13 +161,13 @@ NxApexScene* GetApexSceneFromIndex(int32 InSceneIndex);
 void DeferredPhysResourceCleanup();
 
 /** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
-ENGINE_API void AddRadialImpulseToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);
+ENGINE_API void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);
 
 /** Calculates correct force at the body's center of mass and adds force to the body. */
-ENGINE_API void AddRadialForceToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector& Origin, float Radius, float Strength, uint8 Falloff);
+ENGINE_API void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff);
 
 /** Util to see if a PxRigidActor is non-kinematic */
-bool IsRigidDynamicNonKinematic(PxRigidDynamic* PRigidDynamic);
+bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody);
 
 
 /////// GLOBAL POINTERS
@@ -199,10 +200,10 @@ extern int32					GNumPhysXConvexMeshes;
 extern TArray<PxConvexMesh*>	GPhysXPendingKillConvex;
 
 /** Array of PxTriangleMesh objects which are awaiting cleaning up. */
-extern TArray<PxTriangleMesh*>	GPhysXPendingKillTriMesh;
+extern ENGINE_API TArray<PxTriangleMesh*>	GPhysXPendingKillTriMesh;
 
 /** Array of PxHeightField objects which are awaiting cleaning up. */
-extern TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
+extern ENGINE_API TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 
 /** Array of PxMaterial objects which are awaiting cleaning up. */
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;

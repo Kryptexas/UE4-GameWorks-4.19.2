@@ -1,17 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MemStack.cpp: Unreal memory grabbing functions
-=============================================================================*/
+#include "CorePrivatePCH.h"
 
-#include "Core.h"
 
 DECLARE_THREAD_SINGLETON( FMemStack );
 
 DECLARE_MEMORY_STAT(TEXT("MemStack Large Block"), STAT_MemStackLargeBLock,STATGROUP_Memory);
 DECLARE_MEMORY_STAT(TEXT("PageAllocator Free"), STAT_PageAllocatorFree, STATGROUP_Memory);
 DECLARE_MEMORY_STAT(TEXT("PageAllocator Used"), STAT_PageAllocatorUsed, STATGROUP_Memory);
-
 
 TLockFreeFixedSizeAllocator<FPageAllocator::PageSize, FThreadSafeCounter> FPageAllocator::TheAllocator;
 TLockFreeFixedSizeAllocator<FPageAllocator::SmallPageSize, FThreadSafeCounter> FPageAllocator::TheSmallAllocator;
@@ -23,6 +19,7 @@ void FPageAllocator::UpdateStats()
 	SET_MEMORY_STAT(STAT_PageAllocatorUsed, BytesUsed());
 }
 #endif
+
 /*-----------------------------------------------------------------------------
 	FMemStack implementation.
 -----------------------------------------------------------------------------*/

@@ -81,6 +81,36 @@ void Main(
 #endif
 }
 
+void AlphaOnlyMain(
+	in float2 TextureCoordinate : TEXCOORD0,
+	in float4 Color : TEXCOORD1,
+	in float4 HitProxyId : TEXCOORD2,
+	out float4 OutColor : SV_Target0
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	,out float4 OutWorldNormal : SV_Target1 
+	,in float4 SvPosition : SV_Position
+#endif
+	)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	// depth test manually if compositing editor primitives
+	FLATTEN
+	if (bEnableEditorPrimitiveDepthTest)
+	{
+		PerformEditorCompositingDepthTest(SvPosition);
+	}
+#endif
+	
+	float4 TmpColor = Color;
+	TmpColor.a *= Texture2DSample_A8(InTexture, InTextureSampler, TextureCoordinate);
+	OutColor = RETURN_COLOR(TmpColor);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	// Set the G buffer bits that indicate unlit
+	OutWorldNormal = 0;
+#endif
+}
+
 #if METAL_PROFILE
 static const half Gamma = 1.0f;
 #else
@@ -116,6 +146,41 @@ void GammaMain(
 		OutColor.rgb = pow(saturate(OutColor.rgb),Gamma);	
 	}
 	OutColor = RETURN_COLOR(OutColor);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	// Set the G buffer bits that indicate unlit
+	OutWorldNormal = 0;
+#endif
+}
+
+void GammaAlphaOnlyMain(
+	in float2 TextureCoordinate : TEXCOORD0,
+	in float4 Color : TEXCOORD1,
+	in float4 InHitProxyId : TEXCOORD2,			// needed to have d3ddebug warning supressed (VS and PS signatures with SV_Position
+	out float4 OutColor : SV_Target0
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	,in float4 SvPosition : SV_Position
+	,out float4 OutWorldNormal : SV_Target1
+#endif
+	)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	// depth test manually if compositing editor primitives
+	FLATTEN
+	if (bEnableEditorPrimitiveDepthTest)
+	{
+		PerformEditorCompositingDepthTest(SvPosition);
+	}
+#endif
+
+	float4 TmpColor = Color;
+	TmpColor.a *= Texture2DSample_A8(InTexture, InTextureSampler, TextureCoordinate);
+	if( Gamma != 1.0 )
+	{
+		// Gamma correct the output color.
+		TmpColor.rgb = pow(saturate(TmpColor.rgb),Gamma);	
+	}
+	OutColor = RETURN_COLOR(TmpColor);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	// Set the G buffer bits that indicate unlit

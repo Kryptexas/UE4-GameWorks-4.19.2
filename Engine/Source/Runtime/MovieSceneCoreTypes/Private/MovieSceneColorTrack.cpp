@@ -6,8 +6,9 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneColorTrackInstance.h"
 
-UMovieSceneColorTrack::UMovieSceneColorTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneColorTrack::UMovieSceneColorTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
+	, bIsSlateColor( false )
 {
 }
 
@@ -24,6 +25,8 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 
 bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key )
 {
+	bIsSlateColor = Key.bIsSlateColor;
+
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime( Sections, Time );
 	if (!NearestSection || Key.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value))
 	{

@@ -11,7 +11,8 @@
 namespace BlueprintNodeSpawnerImpl
 {
 	/**
-	 * 
+	 * Retrieves a singleton like instance of FBlueprintNodeTemplateCache, will
+	 * spawn one if 
 	 * 
 	 * @return 
 	 */
@@ -52,20 +53,16 @@ UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> c
 }
 
 //------------------------------------------------------------------------------
-UBlueprintNodeSpawner::UBlueprintNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintNodeSpawner::UBlueprintNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 //------------------------------------------------------------------------------
-UBlueprintNodeSpawner::~UBlueprintNodeSpawner()
+void UBlueprintNodeSpawner::BeginDestroy()
 {
-	// @TODO: What if, on shutdown, the "SharedTemplateCache" is destroyed 
-	//        first? Then we'd be working with a bad pointer here
-	if (FBlueprintNodeTemplateCache* TemplateCache = BlueprintNodeSpawnerImpl::GetSharedTemplateCache(/*bNoInit =*/true))
-	{
-		TemplateCache->ClearCachedTemplate(this);
-	}
+	ClearCachedTemplateNode();
+	Super::BeginDestroy();
 }
 
 //------------------------------------------------------------------------------
@@ -82,22 +79,123 @@ void UBlueprintNodeSpawner::Prime()
 			// spawner (to help filter by pin context)
 			CachedTemplateNode->AllocateDefaultPins();
 		}
+	}
+	PrimeDefaultUiSpec();
+}
 
-		//
-		// let the node cache any FText::Format() operations that may be used...
-		if (UK2Node* K2NodeTemplate = Cast<UK2Node>(CachedTemplateNode))
+//------------------------------------------------------------------------------
+FBlueprintActionUiSpec const& UBlueprintNodeSpawner::PrimeDefaultUiSpec(UEdGraph* TargetGraph) const
+{
+	bool bTemplateNodeFetched = false;
+	UEdGraphNode* NodeTemplate = nullptr;
+	// @TODO: boo! const cast... all to make this callable from GetUiSpec()
+	FBlueprintActionUiSpec& MenuSignature = const_cast<FBlueprintActionUiSpec&>(DefaultMenuSignature);
+
+	//--------------------------------------
+	// Verify MenuName
+	//--------------------------------------
+
+	if (MenuSignature.MenuName.IsEmpty())
+	{
+		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
+		if (NodeTemplate != nullptr)
 		{
-			K2NodeTemplate->GetMenuCategory();
+			MenuSignature.MenuName = NodeTemplate->GetNodeTitle(ENodeTitleType::MenuTitle);
 		}
-		CachedTemplateNode->GetTooltipText();
-		CachedTemplateNode->GetNodeTitle(ENodeTitleType::MenuTitle);
+		// if a target graph was provided, then we've done all we can to spawn a
+		// template node... we have to default to something
+		if (MenuSignature.MenuName.IsEmpty() && (TargetGraph != nullptr))
+		{
+			MenuSignature.MenuName = FText::FromName(GetFName());
+		}
+		bTemplateNodeFetched = true;
 	}
 
-	// in case any of these cache FText::Format() operations
-	FBindingSet EmptyContext;
-	GetDefaultMenuName(EmptyContext);
-	GetDefaultMenuCategory();
-	GetDefaultMenuTooltip();
+	//--------------------------------------
+	// Verify Category
+	//--------------------------------------
+
+	if (MenuSignature.Category.IsEmpty())
+	{
+		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
+		// @TODO: consider moving GetMenuCategory() up into UEdGraphNode
+		if (UK2Node* K2ReferenceNode = Cast<UK2Node>(NodeTemplate))
+		{
+			MenuSignature.Category = K2ReferenceNode->GetMenuCategory();
+		}
+		// if a target graph was provided, then we've done all we can to spawn a
+		// template node... we have to default to something
+		if (MenuSignature.Category.IsEmpty() && (TargetGraph != nullptr))
+		{
+			// want to set it to something so we won't end up back in this condition
+			MenuSignature.Category = NSLOCTEXT("BlueprintNodeSpawner", "EmptyMenuCategory", "|");
+		}
+		bTemplateNodeFetched = true;
+	}
+
+	//--------------------------------------
+	// Verify Tooltip
+	//--------------------------------------
+
+	if (MenuSignature.Tooltip.IsEmpty())
+	{
+		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
+		if (NodeTemplate != nullptr)
+		{
+			MenuSignature.Tooltip = NodeTemplate->GetTooltipText();
+		}
+		// if a target graph was provided, then we've done all we can to spawn a
+		// template node... we have to default to something
+		if (MenuSignature.Tooltip.IsEmpty() && (TargetGraph != nullptr))
+		{
+			MenuSignature.Tooltip = MenuSignature.MenuName;
+		}
+		bTemplateNodeFetched = true;
+	}
+
+	//--------------------------------------
+	// Verify Search Keywords
+	//--------------------------------------
+
+	if (MenuSignature.Keywords.IsEmpty())
+	{
+		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
+		if (NodeTemplate != nullptr)
+		{
+			MenuSignature.Keywords = NodeTemplate->GetKeywords();
+		}
+		// if a target graph was provided, then we've done all we can to spawn a
+		// template node... we have to default to something
+		if (MenuSignature.Keywords.IsEmpty() && (TargetGraph != nullptr))
+		{
+			// want to set it to something so we won't end up back in this condition
+			MenuSignature.Keywords = TEXT(" ");
+		}
+		bTemplateNodeFetched = true;
+	}
+
+	//--------------------------------------
+	// Verify Icon Brush Name
+	//--------------------------------------
+
+	if (MenuSignature.IconName.IsNone())
+	{
+		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
+		if (NodeTemplate != nullptr)
+		{
+			MenuSignature.IconName = NodeTemplate->GetPaletteIcon(MenuSignature.IconTint);
+		}
+		// if a target graph was provided, then we've done all we can to spawn a
+		// template node... we have to default to something
+		if (MenuSignature.IconName.IsNone() && (TargetGraph != nullptr))
+		{
+			// want to set it to something so we won't end up back in this condition
+			MenuSignature.IconName = TEXT("GraphEditor.Default_16x");
+		}
+		bTemplateNodeFetched = true;
+	}
+
+	return MenuSignature;
 }
 
 //------------------------------------------------------------------------------
@@ -117,61 +215,29 @@ FBlueprintNodeSignature UBlueprintNodeSpawner::GetSpawnerSignature() const
 }
 
 //------------------------------------------------------------------------------
+FBlueprintActionUiSpec UBlueprintNodeSpawner::GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const
+{
+	FBlueprintActionUiSpec MenuSignature = PrimeDefaultUiSpec();
+	DynamicUiSignatureGetter.ExecuteIfBound(Context, Bindings, &MenuSignature);
+	return MenuSignature;
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	return Invoke(ParentGraph, Bindings, Location, CustomizeNodeDelegate);
+	return SpawnNode(NodeClass, ParentGraph, Bindings, Location, CustomizeNodeDelegate);
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
+UEdGraphNode* UBlueprintNodeSpawner::GetCachedTemplateNode() const
 {
-	// DO NOT make a template node and query it here (the separate ui building
-	// code can do that if it likes)... this is meant to be an overridable
-	// alternative to that (for perf reasons)
-	return FText::GetEmpty();
+	return BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, NoInit);
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultMenuCategory() const
-{
-	// DO NOT make a template node and query it here (the separate ui building
-	// code can do that if it likes)... this is meant to be an overridable
-	// alternative to that (for perf reasons)
-	return FText::GetEmpty();
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultMenuTooltip() const
-{
-	// DO NOT make a template node and query it here (the separate ui building
-	// code can do that if it likes)... this is meant to be an overridable
-	// alternative to that (for perf reasons)
-	return FText::GetEmpty();
-}
-
-//------------------------------------------------------------------------------
-FString UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
-{
-	// DO NOT make a template node and query it here (the separate ui building
-	// code can do that if it likes)... this is meant to be an overridable
-	// alternative to that (for perf reasons)
-	return FString();
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	ColorOut = FLinearColor::White;
-	// DO NOT make a template node and query it here (the separate ui building
-	// code can do that if it likes)... this is meant to be an overridable
-	// alternative to that (for perf reasons)
-	return FName();
-}
-
-//------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer, FBindingSet const& Bindings) const 
+UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* TargetGraph, FBindingSet const& Bindings) const
 {       
-	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, Outer);
+	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, TargetGraph);
 
 	if (TemplateNode && Bindings.Num() > 0) 
 	{ 
@@ -183,18 +249,22 @@ UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer, FBindingSe
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(ENoInit) const
+void UBlueprintNodeSpawner::ClearCachedTemplateNode() const
 {
-	return BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, NoInit);
+	FBlueprintNodeTemplateCache* TemplateCache = BlueprintNodeSpawnerImpl::GetSharedTemplateCache(/*bNoInit =*/true);
+	if (TemplateCache != nullptr)
+	{
+		TemplateCache->ClearCachedTemplate(this);
+	}
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+UEdGraphNode* UBlueprintNodeSpawner::SpawnEdGraphNode(TSubclassOf<UEdGraphNode> InNodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
 {
 	UEdGraphNode* NewNode = nullptr;
-	if (NodeClass != nullptr)
+	if (InNodeClass != nullptr)
 	{
-		NewNode = NewObject<UEdGraphNode>(ParentGraph, NodeClass);
+		NewNode = NewObject<UEdGraphNode>(ParentGraph, InNodeClass);
 		check(NewNode != nullptr);
 		NewNode->CreateNewGuid();
 
@@ -211,6 +281,10 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet c
 			NewNode->SetFlags(RF_Transactional);
 			NewNode->AllocateDefaultPins();
 			NewNode->PostPlacedNewNode();
+
+			ParentGraph->Modify();
+			// the FBlueprintMenuActionItem should do the selecting
+			ParentGraph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 		}
 
 		ApplyBindings(NewNode, Bindings);

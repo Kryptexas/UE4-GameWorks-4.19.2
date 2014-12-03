@@ -3,10 +3,11 @@
 #include "MoviePlayer.h"
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SpinLock.h"
 #include "NullMoviePlayer.h"
 #include "DefaultGameMoviePlayer.h"
+#include "SThrobber.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, MoviePlayer);
 

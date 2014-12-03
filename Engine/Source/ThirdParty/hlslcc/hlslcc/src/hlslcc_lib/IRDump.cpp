@@ -33,9 +33,9 @@
 //@todo-rco: Remove STL!
 #include <sstream>
 
-#include "mesa/glsl_parser_extras.h"
-#include "mesa/ir.h"
-#include "mesa/ir_visitor.h"
+#include "glsl_parser_extras.h"
+#include "ir.h"
+#include "ir_visitor.h"
 #include "IRDump.h"
 #include "hlslcc_private.h"
 
@@ -47,15 +47,9 @@
 	#define irdump_printf printf
 #endif
 
-static void PrintType(void *)
-{
-	irdump_printf("TYPE");
-}
-
-
 DebugPrintVisitor::DebugPrintVisitor(bool bSingleEntry) :
 	Indentation(0),
-	bIsGlobalScope(!bSingleEntry),
+	bIRVarEOL(!bSingleEntry),
 	ID(0),
 	bDumpBuiltInFunctions(false)
 {
@@ -73,35 +67,53 @@ void DebugPrintVisitor::visit(ir_rvalue* ir)
 void DebugPrintVisitor::visit(ir_variable* ir)
 {
 	PrintID(ir);
-	switch(ir->mode)
+	switch (ir->mode)
 	{
-		case ir_var_inout:
-			irdump_printf("/*IO*/");
-			break;
-		case ir_var_in:
-			irdump_printf("/*I*/");
-			break;
-		case ir_var_out:
-			irdump_printf("/*O*/");
-			break;
-		case ir_var_temporary:
-			irdump_printf("/*T*/");
-			break;
-		case ir_var_auto:
-			irdump_printf("/*A*/");
-			break;
-		case ir_var_uniform:
-			irdump_printf("/*U*/");
-			break;
+	case ir_var_auto:
+		irdump_printf("/*A*/");
+		break;
+	case ir_var_uniform:
+		irdump_printf("/*U*/");
+		break;
+	case ir_var_in:
+		irdump_printf("/*I*/");
+		break;
+	case ir_var_out:
+		irdump_printf("/*O*/");
+		break;
+	case ir_var_inout:
+		irdump_printf("/*IO*/");
+		break;
+	case ir_var_const_in:
+		irdump_printf("/*CI*/");
+		break;
+	case ir_var_temporary:
+		irdump_printf("/*T*/");
+		break;
+	case ir_var_shared:
+		irdump_printf("/*S*/");
+		break;
+	case ir_var_ref:
+		irdump_printf("/*R*/");
+		break;
+	case ir_var_ref_image:
+		irdump_printf("/*RI*/");
+		break;
 	}
 	PrintType(ir->type);
 	irdump_printf(" %s", GetVarName(ir).c_str());
-	irdump_printf(";\n");
+	if (bIRVarEOL)
+	{
+		if (ir->semantic)
+		{
+			irdump_printf(" : %s", ir->semantic);
+		}
+		irdump_printf(";\n");
+	}
 }
 
 void DebugPrintVisitor::visit(ir_function_signature* ir)
 {
-	bIsGlobalScope = false;
 	PrintType(ir->return_type);
 	irdump_printf(" %s(", ir->function_name());
 
@@ -117,7 +129,10 @@ void DebugPrintVisitor::visit(ir_function_signature* ir)
 		{
 			irdump_printf(", ");
 		}
+		bool bPrevEOL = bIRVarEOL;
+		bIRVarEOL = false;
 		inst->accept(this);
+		bIRVarEOL = bPrevEOL;
 	}
 
 	irdump_printf(")\n{\n");
@@ -131,7 +146,6 @@ void DebugPrintVisitor::visit(ir_function_signature* ir)
 	}
 	Indentation--;
 	irdump_printf("}\n");
-	bIsGlobalScope = true;
 }
 
 void DebugPrintVisitor::visit(ir_function* ir)
@@ -290,8 +304,11 @@ void DebugPrintVisitor::visit(ir_texture* ir)
 		case ir_txf:
 			irdump_printf(".Load(");
 			ir->coordinate->accept(this);
-			irdump_printf(",");
-			ir->lod_info.lod->accept(this);
+			if (ir->lod_info.lod)
+			{
+				irdump_printf(",");
+				ir->lod_info.lod->accept(this);
+			}
 			break;
 
 		case ir_txs:
@@ -330,10 +347,6 @@ void DebugPrintVisitor::visit(ir_dereference_variable* ir)
 	PrintID(ir);
 	ir_variable *var = ir->variable_referenced();
 	irdump_printf("%s", GetVarName(var).c_str());
-	if (bIsGlobalScope)
-	{
-		irdump_printf(";\n");
-	}
 }
 
 void DebugPrintVisitor::visit(ir_dereference_array* ir)

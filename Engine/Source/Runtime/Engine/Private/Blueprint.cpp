@@ -174,8 +174,8 @@ void FBPVariableDescription::RemoveMetaData(const FName& Key)
 //////////////////////////////////////////////////////////////////////////
 // UBlueprintCore
 
-UBlueprintCore::UBlueprintCore(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintCore::UBlueprintCore(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bLegacyGeneratedClassIsAuthoritative = false;
 	bLegacyNeedToPurgeSkelRefs = true;
@@ -259,20 +259,21 @@ void UBlueprintCore::GenerateDeterministicGuid()
 
 	uint32 HashBuffer[ 5 ];
 	uint32 BufferLength = HashString.Len() * sizeof( HashString[0] );
-	FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast< uint8 * >( HashBuffer ));
+	FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast< uint8* >( HashBuffer ));
 	BlueprintGuid.A = HashBuffer[ 1 ];
 	BlueprintGuid.B = HashBuffer[ 2 ];
 	BlueprintGuid.C = HashBuffer[ 3 ];
 	BlueprintGuid.D = HashBuffer[ 4 ];
 }
 
-UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 #if WITH_EDITOR
 	, bRunConstructionScriptOnDrag(true)
 	, bGenerateConstClass(false)
 #endif
 #if WITH_EDITORONLY_DATA
+	, bDuplicatingReadOnly(false)
 	, bCachedDependenciesUpToDate(false)
 #endif
 {
@@ -413,7 +414,10 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 void UBlueprint::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
-	FBlueprintEditorUtils::PostDuplicateBlueprint(this);
+	if( !bDuplicatingReadOnly )
+	{
+		FBlueprintEditorUtils::PostDuplicateBlueprint(this);
+	}
 }
 
 UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)

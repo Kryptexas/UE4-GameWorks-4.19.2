@@ -39,7 +39,7 @@ struct FDerivedDataTrailer
 	FDerivedDataTrailer(const TArray<uint8>& Data)
 		: Magic(MagicConstant)
 		, Version(1)
-		, CRCofPayload(FCrc::MemCrc_DEPRECATED(Data.GetTypedData(),Data.Num()))
+		, CRCofPayload(FCrc::MemCrc_DEPRECATED(Data.GetData(), Data.Num()))
 		, SizeOfPayload(Data.Num())
 	{
 	}

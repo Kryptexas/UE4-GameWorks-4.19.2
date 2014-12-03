@@ -53,7 +53,18 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(TimespanToReadableText(DispatchState->DispatchLatency))
+						.Text(TimespanToReadableText(DispatchState->DispatchLatency))
+				];
+		}
+		else if (ColumnName == "DispatchType")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(this, &SMessagingDispatchStateTableRow::HandleDispatchTypeText)
+						.ToolTipText(this, &SMessagingDispatchStateTableRow::HandleDispatchTypeTooltip)
 				];
 		}
 		else if (ColumnName == "HandleTime")
@@ -69,23 +80,26 @@ public:
 		}
 		else if (ColumnName == "Recipient")
 		{
-			return SNew(SBox)
+			FMessageTracerEndpointInfoPtr EndpointInfo = DispatchState->EndpointInfo;
+
+			return SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
 				.Padding(FMargin(4.0f, 0.0f))
+				[
+					SNew(SImage)
+						.Image(Style->GetBrush(EndpointInfo->Remote ? "RemoteEndpoint" : "LocalEndpoint"))
+						.ToolTipText(EndpointInfo->Remote ? LOCTEXT("RemoteEndpointTooltip", "Remote Endpoint") : LOCTEXT("LocalEndpointTooltip", "Local Endpoint"))
+				]
+
+			+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-						.Text(FText::FromName(DispatchState->EndpointInfo->Name))
-				];
-		}
-		else if (ColumnName == "Type")
-		{
-			return SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-						.Image(this, &SMessagingDispatchStateTableRow::HandleTypeImage)
-						.ToolTipText(this, &SMessagingDispatchStateTableRow::HandleTypeTooltip)
+						.Text(EndpointInfo->Name.ToString())
 				];
 		}
 
@@ -159,46 +173,27 @@ protected:
 
 private:
 
-	// Callback for getting the handling time text.
-	FText HandleHandlingTimeText( ) const
+	/** Callback for getting the dispatch type. */
+	FText HandleDispatchTypeText() const
 	{
-		if (DispatchState->TimeHandled > 0.0)
+		switch (DispatchState->DispatchType)
 		{
-			return TimespanToReadableText(DispatchState->TimeHandled - DispatchState->TimeDispatched);
-		}
+		case EMessageTracerDispatchTypes::Direct:
+			return LOCTEXT("DispatchTypeDirect", "Direct");
 
-		return LOCTEXT("NotHandledYetText", "Not handled yet");
+		case EMessageTracerDispatchTypes::Pending:
+			return LOCTEXT("DispatchTypeDirect", "Pending");
+
+		case EMessageTracerDispatchTypes::TaskGraph:
+			return LOCTEXT("DispatchTypeDirect", "TaskGraph");
+
+		default:
+			return FText::GetEmpty();
+		}
 	}
 
-	// Callback for getting the color of a time span text.
-	FSlateColor HandleHandlingTimeColorAndOpacity( ) const
-	{
-		if (DispatchState->TimeHandled == 0.0)
-		{
-			return FSlateColor::UseSubduedForeground();
-		}
-
-		return FSlateColor::UseForeground();
-	}
-
-	// Callback for getting the dispatch type image.
-	const FSlateBrush* HandleTypeImage( ) const
-	{
-		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
-		{
-			return Style->GetBrush("DispatchDirect");
-		}
-
-		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::TaskGraph)
-		{
-			return Style->GetBrush("DispatchTaskGraph");
-		}
-
-		return Style->GetBrush("DispatchPending");
-	}
-
-	// Callback for getting the dispatch type tool tip text.
-	FText HandleTypeTooltip( ) const
+	/** Callback for getting the dispatch type tool tip text. */
+	FText HandleDispatchTypeTooltip() const
 	{
 		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
 		{
@@ -213,15 +208,53 @@ private:
 		return LOCTEXT("DispatchPendingTooltip", "Dispatched pending");
 	}
 
+	/** Callback for getting the handling time text. */
+	FText HandleHandlingTimeText() const
+	{
+		if (DispatchState->TimeHandled > 0.0)
+		{
+			return TimespanToReadableText(DispatchState->TimeHandled - DispatchState->TimeDispatched);
+		}
+
+		return LOCTEXT("NotHandledYetText", "Not handled yet");
+	}
+
+	/** Callback for getting the color of a time span text. */
+	FSlateColor HandleHandlingTimeColorAndOpacity() const
+	{
+		if (DispatchState->TimeHandled == 0.0)
+		{
+			return FSlateColor::UseSubduedForeground();
+		}
+
+		return FSlateColor::UseForeground();
+	}
+
+	/** Callback for getting the dispatch type image. */
+	const FSlateBrush* HandleTypeImage() const
+	{
+		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
+		{
+			return Style->GetBrush("DispatchDirect");
+		}
+
+		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::TaskGraph)
+		{
+			return Style->GetBrush("DispatchTaskGraph");
+		}
+
+		return Style->GetBrush("DispatchPending");
+	}
+
 private:
 
-	// Holds the message dispatch state.
+	/** Holds the message dispatch state. */
 	FMessageTracerDispatchStatePtr DispatchState;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

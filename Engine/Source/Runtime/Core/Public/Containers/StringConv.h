@@ -7,6 +7,9 @@
  */
 
 #pragma once
+#include "Containers/ContainerAllocationPolicies.h"
+#include "HAL/Platform.h"
+#include "HAL/PlatformString.h"
 
 #define DEFAULT_STRING_CONVERSION_SIZE 128u
 #define UNICODE_BOGUS_CHAR_CODEPOINT   '?'
@@ -789,7 +792,7 @@ FORCEINLINE TArray<ToType> StringToArray(const FromType* Src, int32 SrcLen)
 
 	TArray<ToType> Result;
 	Result.AddUninitialized(DestLen);
-	FPlatformString::Convert(Result.GetTypedData(), DestLen, Src, SrcLen);
+	FPlatformString::Convert(Result.GetData(), DestLen, Src, SrcLen);
 
 	return Result;
 }

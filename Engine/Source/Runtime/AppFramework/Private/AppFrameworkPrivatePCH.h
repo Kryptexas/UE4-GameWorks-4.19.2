@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "AppFramework.h"
-
 
 /* Private dependencies
  *****************************************************************************/
+
+#include "Core.h"
+#include "SlateBasics.h"
 
 
 /* Private includes

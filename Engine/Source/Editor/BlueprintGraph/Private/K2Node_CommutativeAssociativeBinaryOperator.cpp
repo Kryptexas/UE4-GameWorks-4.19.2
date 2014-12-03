@@ -21,8 +21,8 @@ FString UK2Node_CommutativeAssociativeBinaryOperator::GetNameForPin(int32 PinInd
 	return Name;
 }
 
-UK2Node_CommutativeAssociativeBinaryOperator::UK2Node_CommutativeAssociativeBinaryOperator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CommutativeAssociativeBinaryOperator::UK2Node_CommutativeAssociativeBinaryOperator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NumAdditionalInputs = 0;
 }
@@ -253,7 +253,7 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile && NumAdditionalInputs > 0)
+	if (NumAdditionalInputs > 0)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 

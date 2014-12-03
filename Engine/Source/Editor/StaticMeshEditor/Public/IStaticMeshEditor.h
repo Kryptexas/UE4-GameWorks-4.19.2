@@ -72,8 +72,9 @@ public:
 	 *  Adds primitive information to the selected prims list
 	 *
 	 *  @param  InPrimData			The data to add
+	 *  @param  bClearSelection		If true, clears the current selection
 	 */
-	virtual void AddSelectedPrim(const FPrimData& InPrimData) = 0;
+	virtual void AddSelectedPrim(const FPrimData& InPrimData, bool bClearSelection) = 0;
 
 	/** 
 	 *  Removes primitive information to the selected prims list

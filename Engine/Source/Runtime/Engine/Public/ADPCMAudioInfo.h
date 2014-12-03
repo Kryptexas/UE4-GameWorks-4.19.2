@@ -35,6 +35,7 @@ public:
 	uint32 BlockSize;
 	int32 StreamBufferSize;
 	uint32 StreamBufferSizeInBlocks;
+	uint32 TotalDecodedSize;
 
 private:
 	bool DecodeStereoData(uint8* Destination, bool bLooping, uint32 BufferSize);

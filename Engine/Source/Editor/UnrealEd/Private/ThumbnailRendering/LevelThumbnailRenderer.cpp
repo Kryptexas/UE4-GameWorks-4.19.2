@@ -4,8 +4,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
-ULevelThumbnailRenderer::ULevelThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelThumbnailRenderer::ULevelThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

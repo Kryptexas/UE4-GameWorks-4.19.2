@@ -208,7 +208,7 @@ private:
 	// Input Responses
 
 	/** Called in response to the user releasing a keyboard key while the consolidation panel has keyboard focus */
-	FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Track if the panel has already warned the user about consolidating assets with different types, so as not to repeatedly (and annoyingly) warn */
 	bool bAlreadyWarnedAboutTypes;
@@ -890,9 +890,9 @@ FReply SConsolidateToolWidget::OnDragOver( const FGeometry& MyGeometry, const FD
 }
 
 /** Called in response to the user releasing a keyboard key while the consolidation panel has keyboard focus */
-FReply SConsolidateToolWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SConsolidateToolWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	const FKey Key = InKeyboardEvent.GetKey();
+	const FKey Key = InKeyEvent.GetKey();
 	if ( Key == EKeys::Platform_Delete )
 	{
 		RemoveSelectedObject();

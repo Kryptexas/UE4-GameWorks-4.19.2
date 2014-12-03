@@ -72,14 +72,14 @@ FIndexBufferRHIRef FMetalDynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 S
 
 void* FMetalDynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRHI, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
-	DYNAMIC_CAST_METGALRESOURCE(IndexBuffer,IndexBuffer);
+	DYNAMIC_CAST_METALRESOURCE(IndexBuffer,IndexBuffer);
 
 	return (uint8*)IndexBuffer->Lock(LockMode, Size) + Offset;
 }
 
 void FMetalDynamicRHI::RHIUnlockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRHI)
 {
-	DYNAMIC_CAST_METGALRESOURCE(IndexBuffer,IndexBuffer);
+	DYNAMIC_CAST_METALRESOURCE(IndexBuffer,IndexBuffer);
 
 	IndexBuffer->Unlock();
 }

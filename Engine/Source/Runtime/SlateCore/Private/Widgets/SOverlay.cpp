@@ -4,6 +4,8 @@
 
 #include "LayoutUtils.h"
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SOverlay"), STAT_SlateOnPaint_SOverlay, STATGROUP_Slate );
+
 SOverlay::SOverlay()
 : Children()
 {

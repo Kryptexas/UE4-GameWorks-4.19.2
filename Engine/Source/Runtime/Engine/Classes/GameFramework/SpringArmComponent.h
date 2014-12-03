@@ -5,7 +5,7 @@
 #include "SpringArmComponent.generated.h"
 
 /**
- * This component tried to maintain its children at a fixed distance from the parent,
+ * This component tries to maintain its children at a fixed distance from the parent,
  * but will retract the children if there is a collision, and spring back when there is no collision.
  *
  * Example: Use as a 'camera boom' to keep the follow camera for a player from colliding into the world.
@@ -120,7 +120,4 @@ public:
 	DEPRECATED(4.5, "This variable is deprecated; existing code using this value may not behave correctly. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
 	bool bUseControllerViewRotation;
 
-private:
-	// Workaround for compiler-generated function using deprecated variable. Nobody should copy-construct this class anyway.
-	USpringArmComponent(const USpringArmComponent&);
 };

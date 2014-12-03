@@ -14,7 +14,8 @@ DECLARE_STATS_GROUP_VERBOSE(TEXT("Linker Load"), STATGROUP_LinkerLoad, STATCAT_A
 DECLARE_CYCLE_STAT(TEXT("Linker Preload"),STAT_LinkerPreload,STATGROUP_LinkerLoad);
 DECLARE_CYCLE_STAT(TEXT("Linker Precache"),STAT_LinkerPrecache,STATGROUP_LinkerLoad);
 DECLARE_CYCLE_STAT(TEXT("Linker Serialize"),STAT_LinkerSerialize,STATGROUP_LinkerLoad);
-
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Linker Count"), STAT_LinkerCount, STATGROUP_LinkerLoad);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Live Linker Count"), STAT_LiveLinkerCount, STATGROUP_LinkerLoad);
 
 /** Points to the main PackageLinker currently being serialized (Defined in Linker.cpp) */
 extern ULinkerLoad* GSerializedPackageLinker;
@@ -58,6 +59,11 @@ TMap<FName, FName> ULinkerLoad::GameNameRedirects;					// Game package name to n
 TMap<FName, FName> ULinkerLoad::StructNameRedirects;				// Old struct name to new struct name mapping
 TMap<FString, FString> ULinkerLoad::PluginNameRedirects;			// Old plugin name to new plugin name mapping
 TMap<FName, ULinkerLoad::FSubobjectRedirect> ULinkerLoad::SubobjectNameRedirects;	
+
+void ULinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
+{
+	GameNameRedirects.Add(OldName, NewName);
+}
 
 /*----------------------------------------------------------------------------
 	Helpers
@@ -351,7 +357,7 @@ ULinkerLoad* ULinkerLoad::CreateLinker( UPackage* Parent, const TCHAR* Filename,
 			return NULL;
 		}
 	}
-	FCoreDelegates::PackageCreatedForLoad.Broadcast(Parent);
+	FCoreUObjectDelegates::PackageCreatedForLoad.Broadcast(Parent);
 	return Linker;
 }
 
@@ -459,7 +465,7 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 		{
 			LoadFlags |= LOAD_SeekFree;
 		}
-		Linker = new ULinkerLoad( FPostConstructInitializeProperties(), Parent, Filename, LoadFlags );
+		Linker = new ULinkerLoad( FObjectInitializer(), Parent, Filename, LoadFlags );
 		// Add to the list of linkers that haven't been finalized yet
 		GObjPendingLoaders.Add(Parent, Linker);
 	}
@@ -588,12 +594,26 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
  * @param	Filename	Name of file on disk to load
  * @param	LoadFlags	Load flags determining behavior
  */
-ULinkerLoad::ULinkerLoad( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
-:	ULinker( PCIP, InParent, InFilename )
+ULinkerLoad::ULinkerLoad( const class FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
+:	ULinker( ObjectInitializer, InParent, InFilename )
 ,	LoadFlags( InLoadFlags )
 ,	bHaveImportsBeenVerified( false )
+#if WITH_EDITOR
+,	LoadProgressScope( nullptr )
+#endif
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));
+
+	INC_DWORD_STAT(STAT_LinkerCount);
+	INC_DWORD_STAT(STAT_LiveLinkerCount);
+}
+
+ULinkerLoad::~ULinkerLoad()
+{
+#if WITH_EDITOR
+	// Make sure this is deleted if it's still allocated
+	delete LoadProgressScope;
+#endif
 }
 
 /**
@@ -627,82 +647,30 @@ bool ULinkerLoad::IsTimeLimitExceeded( const TCHAR* CurrentTask, int32 Granulari
 	return bTimeLimitExceeded;
 }
 
-void UpdateObjectLoadingStatusMessage()
-{
-#if WITH_EDITOR
-	// Used to control animation of the load progress status updates.
-	static int32 ProgressIterator = 3;
-
-	// Time that progress was last updated
-	static  double LastProgressUpdateTime = 0.0;
-
-	const double UpdateDelta = 0.25;
-	const double SlowLoadDelta = 2.0;
-	FText StatusUpdate;
-
-	// This can be a long operation so we will output some progress feedback to the 
-	//  user in the form of 3 dots that animate between "." ".." "..."
-	const double CurTime = FPlatformTime::Seconds();
-	if ( CurTime - LastProgressUpdateTime > UpdateDelta )
-	{
-		if ( ProgressIterator == 1 )
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState1", "Loading.");
-		}
-		else if ( ProgressIterator == 2 )
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState2", "Loading..");
-		}
-		else if ( ProgressIterator == 3 )
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState3", "Loading...");
-		}
-		else
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState0", "Loading");
-		}
-
-		LastProgressUpdateTime = CurTime;
-		ProgressIterator = (ProgressIterator + 1) % 4;
-	}		
-
-	GWarn->StatusUpdate( -1, -1, StatusUpdate );
-#endif
-}
-
 /**
  * Creates loader used to serialize content.
  */
 ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 {
-	CreateActiveRedirectsMap( GEngineIni );
+#if WITH_EDITOR
 
+	if (!LoadProgressScope)
+	{
+		LoadProgressScope = new FScopedSlowTask(ULinkerDefs::TotalProgressSteps, NSLOCTEXT("Core", "GenericLoading", "Loading..."), ShouldReportProgress());
+	}
+
+#endif
+
+	CreateActiveRedirectsMap( GEngineIni );
 	if( !Loader )
 	{
 		bool bIsSeekFree = LoadFlags & LOAD_SeekFree;
 
 #if WITH_EDITOR
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			FString CleanFilename = FPaths::GetCleanFilename( *Filename );
-
-			// We currently only allow status updates during the editor load splash screen.
-			const bool bAllowStatusUpdate = GIsEditor && !IsRunningCommandlet() && !GIsSlowTask;
-			if( bAllowStatusUpdate )
-			{
-				UpdateObjectLoadingStatusMessage();
-			}
-			else
-			{
-				if ( GIsSlowTask )
-				{
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
-					GWarn->StatusUpdate( 0, ULinkerDefs::TotalProgressSteps, FText::Format( NSLOCTEXT("Core", "Loading", "Loading file: {CleanFilename}..."), Args ) );
-				}
-			}
-			GWarn->PushStatus();
-		}
+		FFormatNamedArguments FeedbackArgs;
+		FeedbackArgs.Add( TEXT("CleanFilename"), FText::FromString( FPaths::GetCleanFilename( *Filename ) ) );
+		LoadProgressScope->DefaultMessage = FText::Format( NSLOCTEXT("Core", "LoadingFileWithFilename", "Loading file: {CleanFilename}..."), FeedbackArgs );
+		LoadProgressScope->EnterProgressFrame();
 #endif
 
 		// NOTE: Precached memory read gets highest priority, then memory reader, then seek free, then normal
@@ -801,11 +769,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 
 		// Reset all custom versions
 		ResetCustomVersions();
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 1, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 
 	bool bExecuteNextStep = true;
@@ -833,6 +796,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 {
 	if( bHasSerializedPackageFileSummary == false )
 	{
+#if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
+#endif
 		// Read summary from file.
 		*this << Summary;
 
@@ -1025,11 +991,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 
 		// Avoid serializing it again.
 		bHasSerializedPackageFileSummary = true;
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 2, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 
 	return !IsTimeLimitExceeded( TEXT("serializing package file summary") ) ? LINKER_Loaded : LINKER_TimedOut;
@@ -1113,6 +1074,10 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupImportMap()
 {
 	if( bHasFixedUpImportMap == false )
 	{
+#if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
+#endif
+
 		// Fix up imports, not required if everything is cooked.
 		if (!FPlatformProperties::RequiresCookedData())
 		{
@@ -1295,11 +1260,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupImportMap()
 		}
 		// Avoid duplicate work in async case.
 		bHasFixedUpImportMap = true;
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 3, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 	return IsTimeLimitExceeded( TEXT("fixing up import map") ) ? LINKER_TimedOut : LINKER_Loaded;
 }
@@ -1595,6 +1555,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FindExistingExports()
 	{
 		// only look for existing exports in the editor after it has started up
 #if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
 		if( GIsEditor && GIsRunning )
 		{
 			// Hunt down any existing objects and hook them up to this linker unless the user is either currently opening this
@@ -1602,7 +1563,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FindExistingExports()
 			// the objects in those cases, so don't try to find existing exports.
 			//
 			bool bContainsMap			= LinkerRoot ? LinkerRoot->ContainsMap() : false;
-			bool bRequestFindExisting	= FCoreDelegates::ShouldLoadOnTop.IsBound() ? !FCoreDelegates::ShouldLoadOnTop.Execute(Filename) : true;
+			bool bRequestFindExisting = FCoreUObjectDelegates::ShouldLoadOnTop.IsBound() ? !FCoreUObjectDelegates::ShouldLoadOnTop.Execute(Filename) : true;
 			if( (!IsRunningCommandlet() && bRequestFindExisting && !bContainsMap) )
 			{
 				for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ExportIndex++)
@@ -1615,11 +1576,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FindExistingExports()
 
 		// Avoid duplicate work in the case of async linker creation.
 		bHasFoundExistingExports = true;
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 4, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 	return IsTimeLimitExceeded( TEXT("finding existing exports") ) ? LINKER_TimedOut : LINKER_Loaded;
 }
@@ -1631,6 +1587,10 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FinalizeCreation()
 {
 	if( bHasFinishedInitialization == false )
 	{
+#if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
+#endif
+
 		// Add this linker to the object manager's linker array.
 		GObjLoaders.Add(LinkerRoot, this);
 		// And remove it from the pending loaders list.
@@ -1653,12 +1613,12 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FinalizeCreation()
 		// Avoid duplicate work in the case of async linker creation.
 		bHasFinishedInitialization = true;
 
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 5, ULinkerDefs::TotalProgressSteps );
-			GWarn->PopStatus();
-		}
+#if WITH_EDITOR
+		delete LoadProgressScope;
+		LoadProgressScope = nullptr;
+#endif
 	}
+
 	return IsTimeLimitExceeded( TEXT("finalizing creation") ) ? LINKER_TimedOut : LINKER_Loaded;
 }
 
@@ -1738,10 +1698,18 @@ void ULinkerLoad::Verify()
 	{
 		if (!bHaveImportsBeenVerified)
 		{
+#if WITH_EDITOR
+			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"), ShouldReportProgress());
+#endif
 			// Validate all imports and map them to their remote linkers.
 			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
 			{
-				VerifyImport(ImportIndex);
+				FObjectImport& Import = ImportMap[ImportIndex];
+
+#if WITH_EDITOR
+				SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "LinkerLoad_LoadingImportName", "Loading Import '{0}'"), FText::FromString(Import.ObjectName.ToString())));
+#endif
+				VerifyImport( ImportIndex );
 			}
 		}
 	}
@@ -1977,7 +1945,7 @@ ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 			WarningAppend += LOCTEXT("LoadWarningSuffix_redirection", " [redirection]").ToString();
 
 			// Create the redirector (no serialization yet)
-			UObjectRedirector* Redir = Cast<UObjectRedirector>(Import.SourceLinker->CreateExport(Import.SourceIndex));
+			UObjectRedirector* Redir = dynamic_cast<UObjectRedirector*>(Import.SourceLinker->CreateExport(Import.SourceIndex));
 			// this should probably never fail, but just in case
 			if (!Redir)
 			{
@@ -2016,7 +1984,7 @@ ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 					Result = VERIFY_Redirected;
 
 					// send a callback saying we followed a redirector successfully
-					FCoreDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
+					FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 
 					// now, fake our Import to be what the redirector pointed to
 					Import.XObject = Redir->DestinationObject;
@@ -2098,6 +2066,9 @@ ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 	return Result;
 }
 
+// Internal Load package call so that we can pass the linker that requested this package as an import dependency
+UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, ULinkerLoad* ImportLinker);
+
 /**
  * Safely verify that an import in the ImportMap points to a good object. This decides whether or not
  * a failure to load the object redirector in the wrapper is a fatal error or not (return value)
@@ -2111,6 +2082,10 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 	check(IsLoading());
 
 	FObjectImport& Import = ImportMap[ImportIndex];
+
+#if WITH_EDITOR
+	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "VerifyPackage_Scope", "Verifying '{0}'"), FText::FromString(Import.ObjectName.ToString())), ShouldReportProgress());
+#endif
 
 	if
 	(	(Import.SourceLinker && Import.SourceIndex != INDEX_NONE)
@@ -2147,12 +2122,21 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			TmpPkg = FindObjectFast<UPackage>(NULL, Import.ObjectName);
 			bWasFullyLoaded = TmpPkg && TmpPkg->IsFullyLoaded();
 		}
+
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(30);
+#endif
+
 		if (!bWasFullyLoaded)
 		{
 			// we now fully load the package that we need a single export from - however, we still use CreatePackage below as it handles all cases when the package
 			// didn't exist (native only), etc		
-			TmpPkg = LoadPackage(NULL, *Import.ObjectName.ToString(), InternalLoadFlags);
+			TmpPkg = LoadPackageInternal(NULL, *Import.ObjectName.ToString(), InternalLoadFlags, this);
 		}
+
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(30);
+#endif
 
 		// following is the original VerifyImport code
 		// @todo linkers: This could quite possibly be cleaned up
@@ -2174,6 +2158,10 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			InternalLoadFlags |= LOAD_NoVerify;
 		}
 
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(40);
+#endif
+
 		// Get the linker if the package hasn't been fully loaded already.
 		if (!bWasFullyLoaded)
 		{
@@ -2184,6 +2172,10 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 	{
 		// this resource's Outer is not a UPackage
 		checkf(Import.OuterIndex.IsImport(),TEXT("Outer for Import %s (%i) is not an import - OuterIndex:%i"), *GetImportFullName(ImportIndex), ImportIndex, Import.OuterIndex.ForDebugging());
+
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(50);
+#endif
 
 		VerifyImport( Import.OuterIndex.ToImport() );
 
@@ -2196,11 +2188,13 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			{
 				// for loop does what we need
 			}
-			 if (Cast<UPackage>(Top->XObject) && (Cast<UPackage>(Top->XObject)->PackageFlags & PKG_CompiledIn))
-			 {
-				 // this is an import to a compiled in thing, just search for it in the package
-				 TmpPkg = Cast<UPackage>(Top->XObject);
-			 }
+
+			auto* Package = dynamic_cast<UPackage*>(Top->XObject);
+			if (Package && (Package->PackageFlags & PKG_CompiledIn))
+			{
+				// this is an import to a compiled in thing, just search for it in the package
+				TmpPkg = Package;
+			}
 		}
 
 		// Copy the SourceLinker from the FObjectImport for our Outer if the SourceLinker hasn't been set yet,
@@ -2211,6 +2205,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			Import.SourceLinker = OuterImport.SourceLinker;
 		}
 
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(50);
+#endif
 
 		//check(Import.SourceLinker);
 		//@todo what does it mean if we don't have a SourceLinker here?
@@ -2442,7 +2439,7 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 UObject* ULinkerLoad::CreateExportAndPreload(int32 ExportIndex, bool bForcePreload /* = false */)
 {
 	UObject *Object = CreateExport(ExportIndex);
-	if (Object && (bForcePreload || (Cast<UClass>(Object) != NULL) || Object->IsTemplate() || (Cast<UObjectRedirector>(Object) != NULL)))
+	if (Object && (bForcePreload || dynamic_cast<UClass*>(Object) || Object->IsTemplate() || dynamic_cast<UObjectRedirector*>(Object)))
 	{
 		Preload(Object);
 	}
@@ -2492,12 +2489,16 @@ int32 ULinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
  */
 void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 {
+#if WITH_EDITOR
+	FScopedSlowTask SlowTask(ExportMap.Num(), NSLOCTEXT("Core", "LinkerLoad_LoadingObjects", "Loading Objects"), ShouldReportProgress());
+	SlowTask.bVisibleOnUI = false;
+#endif
+
 	if ( (LoadFlags&LOAD_SeekFree) != 0 )
 	{
 		bForcePreload = true;
 	}
 
-	bool bAllowedToShowStatusUpdate = (LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
 	double StartTime = FPlatformTime::Seconds();
 
 	// MetaData object index in this package.
@@ -2507,9 +2508,12 @@ void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 	{
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
-
+	
 	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(1);
+#endif
 		if(ExportIndex == MetaDataIndex)
 		{
 			continue;
@@ -2567,7 +2571,7 @@ int32 ULinkerLoad::FindExportIndex( FName ClassName, FName ClassPackage, FName O
 
 		if(Export.ObjectName == ObjectName && (ExportOuterIndex.IsImport() || Export.OuterIndex == ExportOuterIndex)) // this is very not legit to be passing INDEX_NONE into this function to mean "ignore"
 		{
-			UClass*	ExportClass = Cast<UClass>(IndexToObject(Export.ClassIndex));
+			UClass*	ExportClass = dynamic_cast<UClass*>(IndexToObject(Export.ClassIndex));
 
 			// See if this export's class inherits from the requested class.
 			for(UClass* ParentClass = ExportClass;ParentClass;ParentClass = ParentClass->GetSuperClass())
@@ -2652,7 +2656,7 @@ UObject* ULinkerLoad::Create( UClass* ObjectClass, FName ObjectName, UObject* Ou
 			if (Redir->DestinationObject && Redir->DestinationObject->IsA(ObjectClass))
 			{
 				// send a callback saying we followed a redirector successfully
-				FCoreDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
+				FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 				// and return the object we are being redirected to
 				return Redir->DestinationObject;
 			}
@@ -2718,12 +2722,12 @@ void ULinkerLoad::Preload( UObject* Object )
 			UClass* Cls = NULL;
 
 			// If this is a struct, make sure that its parent struct is completely loaded
-			if(	Object->IsA(UStruct::StaticClass()) )
+			if( UStruct* Struct = dynamic_cast<UStruct*>(Object) )
 			{
-				Cls = Cast<UClass>(Object);
-				if( ((UStruct*)Object)->GetSuperStruct() )
+				Cls = dynamic_cast<UClass*>(Object);
+				if( Struct->GetSuperStruct() )
 				{
-					Preload( ((UStruct*)Object)->GetSuperStruct() );
+					Preload( Struct->GetSuperStruct() );
 				}
 			}
 
@@ -2933,7 +2937,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		{
 			LoadClass = UClass::StaticClass();
 		}
-		UObjectRedirector* LoadClassRedirector = Cast<UObjectRedirector>(LoadClass);
+		UObjectRedirector* LoadClassRedirector = dynamic_cast<UObjectRedirector*>(LoadClass);
 		if( LoadClassRedirector)
 		{
 			// mark this export as unloadable (so that other exports that
@@ -2947,7 +2951,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		}
 
 		check(LoadClass);
-		check(Cast<UClass>(LoadClass) != NULL);
+		check(dynamic_cast<UClass*>(LoadClass) != NULL);
 
 		// Check for a valid superstruct while there is still time to safely bail, if this export has one
 		if( !Export.SuperIndex.IsNull() )
@@ -2957,8 +2961,17 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			{
 				if( LoadClass->IsChildOf(UFunction::StaticClass()) )
 				{
-					// If this is a function whose parent has been removed, give it a NULL parent, as we would have in the script compiler
-					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s; removing parent information, but keeping function"), *GetExportFullName(Index));
+					UObject* ObjOuter = IndexToObject(Export.OuterIndex);
+					if (ObjOuter)
+					{
+						UClass* FuncClass = Cast<UClass>(ObjOuter);
+						if (FuncClass && FuncClass->ClassGeneratedBy && !FuncClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
+						{
+							// If this is a function (NOT being regenerated) whose parent has been removed, give it a NULL parent, as we would have in the script compiler
+							UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s; removing parent information, but keeping function"), *GetExportFullName(Index));
+						}
+					}
+
 					Export.SuperIndex = FPackageIndex();
 				}
 				else
@@ -2977,7 +2990,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 					&& SuperStruct->GetLinker()
 					&& Export.SuperIndex.IsImport())
 				{
-					const UClass* AsClass = Cast<UClass>(SuperStruct);
+					const UClass* AsClass = dynamic_cast<UClass*>(SuperStruct);
 					if (AsClass && !AsClass->ClassDefaultObject)
 					{
 						SuperStruct->SetFlags(RF_NeedLoad);
@@ -3065,7 +3078,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			return Export.Object;
 		}
 
-		UObjectRedirector* ParentRedirector = Cast<UObjectRedirector>(ThisParent);
+		UObjectRedirector* ParentRedirector = dynamic_cast<UObjectRedirector*>(ThisParent);
 		if( ThisParent == NULL || ParentRedirector)
 		{
 			// mark this export as unloadable (so that other exports that
@@ -3245,18 +3258,16 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		if ( Export.Object != NULL )
 		{
 			// If it's a struct or class, set its parent.
-			if( Export.Object->IsA(UStruct::StaticClass()) )
+			if( UStruct* Struct = dynamic_cast<UStruct*>(Export.Object) )
 			{
 				if ( !Export.SuperIndex.IsNull() )
 				{
-					((UStruct*)Export.Object)->SetSuperStruct( (UStruct*)IndexToObject( Export.SuperIndex ) );
+					Struct->SetSuperStruct( (UStruct*)IndexToObject( Export.SuperIndex ) );
 				}
 
 				// If it's a class, bind it to C++.
-				if( Export.Object->IsA( UClass::StaticClass() ) )
+				if( UClass* ClassObject = dynamic_cast<UClass*>(Export.Object) )
 				{
-					UClass* ClassObject = static_cast<UClass*>(Export.Object);
-
 #if WITH_EDITOR
 					// Before we serialize the class, begin a scoped class dependency gather to create a list of other classes that may need to be recompiled
 					FScopedClassDependencyGather DependencyHelper(ClassObject);
@@ -3390,7 +3401,7 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 #if WITH_EDITOR
 				if( GIsEditor )
 				{
-					UObjectRedirector* Redirector = Cast<UObjectRedirector>(Import.XObject);
+					UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Import.XObject);
 					if( Redirector )
 					{
 						Import.XObject = Redirector->DestinationObject;
@@ -3495,6 +3506,7 @@ void ULinkerLoad::Detach( bool bEnsureAllBulkDataIsLoaded )
 
 void ULinkerLoad::BeginDestroy()
 {
+	DEC_DWORD_STAT(STAT_LiveLinkerCount);
 	// Detaches linker.
 	Detach( false );
 	Super::BeginDestroy();

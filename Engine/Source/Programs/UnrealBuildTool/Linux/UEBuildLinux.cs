@@ -11,13 +11,19 @@ namespace UnrealBuildTool
     class LinuxPlatform : UEBuildPlatform
     {
         /** This is the SDK version we support */
-		static private string ExpectedSDKVersion = "v4_clang-3.5.0_ld-2.24_glibc-2.12.2";
+		static private Dictionary<string, string> ExpectedSDKVersions = new Dictionary<string, string>()
+		{
+			{ "x86_64-unknown-linux-gnu", "v4_clang-3.5.0_ld-2.24_glibc-2.12.2" },
+			{ "arm-unknown-linux-gnueabihf", "arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13" },
+		};
 
         /** Platform name (embeds architecture for now) */
         static private string TargetPlatformName = "Linux_x64";
 
         /** Linux architecture (compiler target triplet) */
-        static private string DefaultArchitecture = "x86_64-unknown-linux-gnu";
+		// FIXME: for now switching between architectures is hard-coded
+		static private string DefaultArchitecture = "x86_64-unknown-linux-gnu";
+		//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
 
         /** The current architecture */
         public override string GetActiveArchitecture()
@@ -61,7 +67,13 @@ namespace UnrealBuildTool
          */
         protected override string GetRequiredSDKString()
         {
-            return ExpectedSDKVersion;
+			string SDKString;
+			if (!ExpectedSDKVersions.TryGetValue(GetActiveArchitecture(), out SDKString))
+			{
+				throw new BuildException("LinuxPlatform::GetRequiredSDKString: no toolchain set up for architecture '{0}'", GetActiveArchitecture());
+			}
+
+			return SDKString;
         }
 
         protected override String GetRequiredScriptVersionString()
@@ -112,12 +124,6 @@ namespace UnrealBuildTool
 		 */
         protected override void RegisterBuildPlatformInternal()
         {
-			//@todo.Rocket: Add platform support
-			if (UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket())
-			{
-				return;
-			}
-
 			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
             {
                 bool bRegisterBuildPlatform = true;
@@ -220,7 +226,6 @@ namespace UnrealBuildTool
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
         {
             UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileICU = true;
         }
 
         /**

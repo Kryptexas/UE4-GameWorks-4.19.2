@@ -5,6 +5,8 @@
 #include "DataTableEditor.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SSearchBox.h"
+#include "SDockTab.h"
  
 #define LOCTEXT_NAMESPACE "DataTableEditor"
 
@@ -12,11 +14,11 @@ const FName FDataTableEditor::DataTableTabId( TEXT( "DataTableEditor_DataTable" 
 
 void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_Data Table Editor", "Data Table Editor"));
 
 	TabManager->RegisterTabSpawner( DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable) )
 		.SetDisplayName( LOCTEXT("DataTableTab", "Data Table") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategory.ToSharedRef() );
 }
 
 void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

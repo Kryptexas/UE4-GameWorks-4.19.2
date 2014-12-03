@@ -23,7 +23,7 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	FVector EffectorLocation;
 
 	/** Joint Target Location. Location used to orient Joint bone. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=JointTarget, meta=(PinShownByDefault))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = JointTarget, meta=(PinShownByDefault))
 	FVector JointTargetLocation;
 
 	/** Limits to use if stretching is allowed. */
@@ -47,7 +47,7 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	uint32 bAllowStretching:1;
 	
 	/** Reference frame of Effector Location. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = IK)
 	TEnumAsByte<enum EBoneControlSpace> EffectorLocationSpace;
 
 	/** Reference frame of Joint Target Location. */
@@ -65,12 +65,12 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
-	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;
-	virtual bool IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) override;
+	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;
+	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
 private:
 	// FAnimNode_SkeletalControlBase interface
-	virtual void InitializeBoneReferences(const FBoneContainer & RequiredBones) override;
+	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 };

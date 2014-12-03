@@ -181,7 +181,7 @@ public:
 
 			// Write the indices to the index buffer.
 			void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
-			FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(int32));
+			FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
 			RHIUnlockIndexBuffer(IndexBufferRHI);
 		}
 	}
@@ -202,7 +202,7 @@ public:
 
 			// Copy the vertex data into the vertex buffer.
 			void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-			FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
+			FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
 			RHIUnlockVertexBuffer(VertexBufferRHI);
 		}
 	}
@@ -385,7 +385,8 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastRenderingSceneProxy_DrawDynamicElements );
 
-		if (!ProxyData.bEnableDrawing) //check if we have any data to render
+		const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
+		if (!ProxyData.bEnableDrawing || !bVisible) //check if we have any data to render
 		{
 			return;
 		}
@@ -484,7 +485,7 @@ public:
 			}
 		}
 
-		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform);
+		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View->GetShaderPlatform());
 		const FTexture2DRHIRef DepthTexture;
 		const auto FeatureLevel = View->GetFeatureLevel();
 			
@@ -530,6 +531,11 @@ public:
 			if (VisibilityMap & (1 << ViewIndex))
 			{
 				const FSceneView* View = Views[ViewIndex];
+				const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
+				if (!bVisible)
+				{
+					continue;
+				}
 				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 
 				const bool bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
@@ -669,7 +675,8 @@ public:
 
 	void DrawDebugLabels(UCanvas* Canvas, APlayerController*)
 	{
-		if (ProxyData.bNeedsNewData == true || ProxyData.bEnableDrawing == false)
+		const bool bVisible = (Canvas && Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation) || bForceRendering;
+		if (ProxyData.bNeedsNewData == true || ProxyData.bEnableDrawing == false || !bVisible || ProxyData.DebugLabels.Num() == 0)
 		{
 			return;
 		}
@@ -678,7 +685,7 @@ public:
 		Canvas->SetDrawColor(FColor::White);
 		const FSceneView* View = Canvas->SceneView;
 		UFont* Font = GEngine->GetSmallFont();
-		const FNavMeshSceneProxyData::FDebugText* DebugText = ProxyData.DebugLabels.GetTypedData();
+		const FNavMeshSceneProxyData::FDebugText* DebugText = ProxyData.DebugLabels.GetData();
 		for (int32 i = 0 ; i < ProxyData.DebugLabels.Num(); ++i, ++DebugText)
 		{
 			if (PointInView(DebugText->Location, View))
@@ -739,7 +746,7 @@ FORCEINLINE void AppendGeometry(TNavStatArray<FVector>& OutVertexBuffer, TArray<
 
 	const int32 FirstNewFaceVertexIndex = OutIndexBuffer.Num();
 	OutIndexBuffer.AddUninitialized(NumFaces * 3);
-	int32* DestFaceVertIndex = OutIndexBuffer.GetTypedData() + FirstNewFaceVertexIndex;
+	int32* DestFaceVertIndex = OutIndexBuffer.GetData() + FirstNewFaceVertexIndex;
 	const int32* SrcFaceVertIndex = Faces;
 	// copy with offset
 	for (int32 Index = 0; Index < NumFaces * 3; ++Index, ++DestFaceVertIndex, ++SrcFaceVertIndex)

@@ -11,6 +11,44 @@
 #define LOCTEXT_NAMESPACE "BlueprintDelegateNodeSpawner"
 
 /*******************************************************************************
+ * Static UBlueprintDelegateNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace BlueprintDelegateNodeSpawnerImpl
+{
+	static FText GetDefaultMenuName(UMulticastDelegateProperty const* Delegate);
+	static FText GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate);
+	static FName GetDefaultMenuIcon(UMulticastDelegateProperty const* Delegate, FLinearColor& ColorOut);
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuName(UMulticastDelegateProperty const* Delegate)
+{
+	bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
+	return bShowFriendlyNames ? FText::FromString(UEditorEngine::GetFriendlyName(Delegate)) : FText::FromName(Delegate->GetFName());
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate)
+{
+	FText DelegateCategory = FText::FromString(FObjectEditorUtils::GetCategory(Delegate));
+	if (DelegateCategory.IsEmpty())
+	{
+		DelegateCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
+	}
+	return DelegateCategory;
+}
+
+//------------------------------------------------------------------------------
+static FName BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuIcon(UMulticastDelegateProperty const* Delegate, FLinearColor& ColorOut)
+{
+	FName    const PropertyName = Delegate->GetFName();
+	UStruct* const PropertyOwner = CastChecked<UStruct>(Delegate->GetOuterUField());
+
+	return UK2Node_Variable::GetVariableIconAndColor(PropertyOwner, PropertyName, ColorOut);
+}
+
+/*******************************************************************************
  * UBlueprintDelegateNodeSpawner
  ******************************************************************************/
 
@@ -23,9 +61,28 @@ UBlueprintDelegateNodeSpawner* UBlueprintDelegateNodeSpawner::Create(TSubclassOf
 		Outer = GetTransientPackage();
 	}
 
+	//--------------------------------------
+	// Constructing the Spawner
+	//--------------------------------------
+
 	UBlueprintDelegateNodeSpawner* NodeSpawner = NewObject<UBlueprintDelegateNodeSpawner>(Outer);
 	NodeSpawner->Field     = Property;
 	NodeSpawner->NodeClass = NodeClass;
+
+	//--------------------------------------
+	// Default UI Signature
+	//--------------------------------------
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	//MenuSignature.MenuName, will be pulled from the node template
+	MenuSignature.Category = BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuCategory(Property);
+	//MenuSignature.Tooltip,  will be pulled from the node template
+	//MenuSignature.Keywords, will be pulled from the node template
+	MenuSignature.IconName = BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuIcon(Property, MenuSignature.IconTint);
+
+	//--------------------------------------
+	// Post-Spawn Setup
+	//--------------------------------------
 
 	auto SetDelegateLambda = [](UEdGraphNode* NewNode, UField const* Field)
 	{
@@ -47,62 +104,13 @@ UBlueprintDelegateNodeSpawner* UBlueprintDelegateNodeSpawner::Create(TSubclassOf
 }
 
 //------------------------------------------------------------------------------
-UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintDelegateNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
-{	
-	FText MenuName = Super::GetDefaultMenuName(Bindings);
-
-	UMulticastDelegateProperty const* Property = GetProperty();
-	if ((NodeClass == nullptr) && (Property != nullptr))
-	{
-		bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
-		MenuName = bShowFriendlyNames ? FText::FromString(UEditorEngine::GetFriendlyName(Property)) : FText::FromName(Property->GetFName());
-	}
-
-	return MenuName;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintDelegateNodeSpawner::GetDefaultMenuCategory() const
-{
-	FText PropertyCategory;
-	if (UMulticastDelegateProperty const* Property = GetProperty())
-	{
-		PropertyCategory = FText::FromString(FObjectEditorUtils::GetCategory(Property));
-	}
-
-	if (PropertyCategory.IsEmpty())
-	{
-		PropertyCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
-	}
-	return PropertyCategory;
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintDelegateNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	FName BrushName = Super::GetDefaultMenuIcon(ColorOut);
-	if (NodeClass == nullptr)
-	{
-		BrushName = TEXT("GraphEditor.Delegate_16x");
-	}
-	else if (UMulticastDelegateProperty const* Property = GetProperty())
-	{
-		FName    const PropertyName  = Property->GetFName();
-		UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-
-		BrushName = UK2Node_Variable::GetVariableIconAndColor(PropertyOwner, PropertyName, ColorOut);
-	}
-	return BrushName;
-}
-
-//------------------------------------------------------------------------------
-UMulticastDelegateProperty const* UBlueprintDelegateNodeSpawner::GetProperty() const
+UMulticastDelegateProperty const* UBlueprintDelegateNodeSpawner::GetDelegateProperty() const
 {
 	return Cast<UMulticastDelegateProperty>(GetField());
 }

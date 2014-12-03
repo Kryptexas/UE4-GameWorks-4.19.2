@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ShaderCompilerCommon.h: Common functionality for platform Shader Compilers.
-=============================================================================*/
-
 #pragma once
 
 #include "Core.h"
 #include "ShaderCore.h"
+
 
 /**
  * This function looks for resources specified in ResourceTableMap in the 

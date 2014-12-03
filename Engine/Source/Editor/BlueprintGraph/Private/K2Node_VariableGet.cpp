@@ -72,8 +72,8 @@ static FText K2Node_VariableGetImpl::GetBaseTooltip(FName VarName)
 
 }
 
-UK2Node_VariableGet::UK2Node_VariableGet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_VariableGet::UK2Node_VariableGet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

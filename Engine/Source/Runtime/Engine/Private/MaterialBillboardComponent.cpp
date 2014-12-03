@@ -108,7 +108,7 @@ public:
 			UMaterialInterface* Material = Elements[ElementIndex].Material;
 			if (Material)
 			{
-				MaterialRelevance |= Material->GetRelevance(GetScene()->GetFeatureLevel());
+				MaterialRelevance |= Material->GetRelevance(GetScene().GetFeatureLevel());
 			}
 		}
 
@@ -357,8 +357,8 @@ private:
 	FColor BaseColor;
 };
 
-UMaterialBillboardComponent::UMaterialBillboardComponent(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UMaterialBillboardComponent::UMaterialBillboardComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = false;
 
@@ -370,7 +370,7 @@ FPrimitiveSceneProxy* UMaterialBillboardComponent::CreateSceneProxy()
 	return new FMaterialSpriteSceneProxy(this);
 }
 
-FBoxSphereBounds UMaterialBillboardComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UMaterialBillboardComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	const float BoundsSize = 32.0f;
 	return FBoxSphereBounds(LocalToWorld.GetLocation(),FVector(BoundsSize,BoundsSize,BoundsSize),FMath::Sqrt(3.0f * FMath::Square(BoundsSize)));

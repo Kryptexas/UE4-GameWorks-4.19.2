@@ -116,47 +116,47 @@ public:
 		}
 	}
 
-	virtual FDateTime GetLastUpdateTime( ) override
+	virtual FDateTime GetLastUpdateTime() override
 	{
 		return LastUpdateTime;
 	}
 
-	virtual const int32 GetNumInstances( ) const override
+	virtual const int32 GetNumInstances() const override
 	{
 		return Instances.Num();
 	}
 
-	virtual const FGuid& GetSessionId( ) const override
+	virtual const FGuid& GetSessionId() const override
 	{
 		return SessionId;
 	}
 
-	virtual const FString& GetSessionName( ) const override
+	virtual const FString& GetSessionName() const override
 	{
 		return SessionName;
 	}
 
-	virtual const FString& GetSessionOwner( ) const override
+	virtual const FString& GetSessionOwner() const override
 	{
 		return SessionOwner;
 	}
 
-	virtual const bool IsStandalone( ) const override
+	virtual const bool IsStandalone() const override
 	{
 		return Standalone;
 	}
 
-	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered( ) override
+	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered() override
 	{
 		return InstanceDiscoveredDelegate;
 	}
 
-	virtual FOnSessionLogReceived& OnLogReceived( ) override
+	virtual FOnSessionLogReceived& OnLogReceived() override
 	{
 		return LogReceivedDelegate;
 	}
 
-	virtual void Terminate( ) override
+	virtual void Terminate() override
 	{
 		for (TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo> >::TIterator It(Instances); It; ++It)
 		{
@@ -166,7 +166,7 @@ public:
 
 private:
 
-	// Handles received log messages.
+	/** Handles received log messages. */
 	void HandleLogReceived( const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& LogMessage )
 	{
 		LogReceivedDelegate.Broadcast(AsShared(), Instance, LogMessage);
@@ -174,32 +174,32 @@ private:
 
 private:
 
-	// Holds the list of engine instances that belong to this session.
+	/** Holds the list of engine instances that belong to this session. */
 	TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo>> Instances;
 
-	// Holds the time at which the last pong was received.
+	/** Holds the time at which the last pong was received. */
 	FDateTime LastUpdateTime;
 
-	// Holds a weak pointer to the message bus.
+	/** Holds a weak pointer to the message bus. */
 	IMessageBusWeakPtr MessageBusPtr;
 
-	// Holds the session identifier.
+	/** Holds the session identifier. */
 	FGuid SessionId;
 
-	// Holds the session name.
+	/** Holds the session name. */
 	FString SessionName;
 
-	// Holds the name of the user who launched the session.
+	/** Holds the name of the user who launched the session. */
 	FString SessionOwner;
 
-	// Is the session local
+	/** Whether the session is local. */
 	bool Standalone;
 
 private:
 
-	// Holds a delegate to be invoked when a new instance has been discovered.
+	/** Holds a delegate to be invoked when a new instance has been discovered. */
 	FOnSessionInstanceDiscovered InstanceDiscoveredDelegate;
 
-	// Holds a delegate to be invoked when an instance received a log message.
+	/** Holds a delegate to be invoked when an instance received a log message. */
 	FOnSessionLogReceived LogReceivedDelegate;
 };

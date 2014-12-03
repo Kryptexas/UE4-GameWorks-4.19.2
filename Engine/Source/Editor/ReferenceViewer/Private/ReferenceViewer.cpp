@@ -4,6 +4,7 @@
 #include "ReferenceViewer.h"
 
 #include "EdGraphUtilities.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 //DEFINE_LOG_CATEGORY(LogReferenceViewer);
@@ -37,7 +38,7 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ReferenceViewerTabId, FOnSpawnTab::CreateRaw( this, &FReferenceViewerModule::SpawnReferenceViewerTab ) )
 			.SetDisplayName( LOCTEXT("ReferenceViewerTitle", "Reference Viewer") )
-			.SetMenuType( ETabSpawnerMenuType::Hide );
+			.SetMenuType( ETabSpawnerMenuType::Hidden );
 	}
 
 	virtual void ShutdownModule() override

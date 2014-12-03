@@ -98,6 +98,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.AutoWrapText(InArgs._AutoWrapText)
 					.HScrollBar(HScrollBar)
 					.VScrollBar(VScrollBar)
+					.ModiferKeyForNewLine(InArgs._ModiferKeyForNewLine)
 				]
 
 				+SVerticalBox::Slot()
@@ -201,14 +202,14 @@ bool SMultiLineEditableTextBox::HasKeyboardFocus() const
 	return SBorder::HasKeyboardFocus() || EditableText->HasKeyboardFocus();
 }
 
-FReply SMultiLineEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SMultiLineEditableTextBox::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	FReply Reply = FReply::Handled();
 
-	if ( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared )
+	if ( InFocusEvent.GetCause() != EFocusCause::Cleared )
 	{
 		// Forward keyboard focus to our editable text widget
-		Reply.SetKeyboardFocus( EditableText.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+		Reply.SetUserFocus(EditableText.ToSharedRef(), InFocusEvent.GetCause());
 	}
 
 	return Reply;
@@ -236,12 +237,12 @@ void SMultiLineEditableTextBox::InsertRunAtCursor(TSharedRef<IRun> InRun)
 
 void SMultiLineEditableTextBox::GoTo(const FTextLocation& NewLocation)
 {
-	return EditableText->GoTo(NewLocation);
+	EditableText->GoTo(NewLocation);
 }
 
 void SMultiLineEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
 {
-	return EditableText->ScrollTo(NewLocation);
+	EditableText->ScrollTo(NewLocation);
 }
 
 void SMultiLineEditableTextBox::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)

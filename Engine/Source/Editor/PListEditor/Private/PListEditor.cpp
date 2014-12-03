@@ -2,10 +2,11 @@
 
 #include "UnrealEd.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "PListEditor.h"
 #include "SPlistEditor.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FPListEditor, PListEditor );
 

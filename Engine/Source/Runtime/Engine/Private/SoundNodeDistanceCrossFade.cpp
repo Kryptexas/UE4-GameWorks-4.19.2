@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeDistanceCrossFade implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeDistanceCrossFade::USoundNodeDistanceCrossFade(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeDistanceCrossFade::USoundNodeDistanceCrossFade(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

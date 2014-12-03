@@ -9,8 +9,8 @@
 /*-----------------------------------------------------------------------------
 	AParticleEventManager implementation.
 -----------------------------------------------------------------------------*/
-AParticleEventManager::AParticleEventManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AParticleEventManager::AParticleEventManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanBeDamaged = false;
 }

@@ -14,51 +14,19 @@ public:
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Basic | EAssetTypeCategories::Animation; }
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
+	virtual bool IsImportedAsset() const override { return true; }
+	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const override;
 
 protected:
 	/** Gets additional actions that do not apply to destructible meshes */
 	virtual void GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder);
 
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
-	/** Handler for when NewAnimBlueprint is selected */
-	void ExecuteNewAnimBlueprint(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
-	/** Creates a new object of type T from factory TFactory */
-	template <typename TFactory, typename T>
-	void ExecuteNewAnimAsset(TArray<TWeakObjectPtr<USkeletalMesh>> Objects, const FString InSuffix);
-
-	/** Creates animation assets using the BaseName+Suffix */
-	void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeletalMesh>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix);
-
-	/** Handler for when Reimport is selected */
-	void ExecuteReimport(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
 	/** Handler for when skeletal mesh LOD import is selected */
 	void LODImport(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
 
 	/** Handler for when skeletal mesh LOD sub menu is opened */
 	void GetLODMenu(class FMenuBuilder& MenuBuilder,TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
-	/** Handler for when create asset sub menu is opened */
-	void GetCreateMenu(class FMenuBuilder& MenuBuilder,TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
-	/** Handler for the blend space sub menu */
-	void FillBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Objects );
-
-	/** Handler for the blend space sub menu */
-	void FillAimOffsetBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Objects );
-
-	/** Handler for when FindInExplorer is selected */
-	void ExecuteFindInExplorer(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
-	/** Handler for when OpenInExternalEditor is selected */
-	void ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
-
-	/** Returns true to allow execution of source file commands */
-	bool CanExecuteSourceCommands(TArray<TWeakObjectPtr<USkeletalMesh>> Objects) const;
 
 	/** Handler for when NewPhysicsAsset is selected */
 	void ExecuteNewPhysicsAsset(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
@@ -79,6 +47,8 @@ private:
 
 	/** Assigns a skeleton to the mesh */
 	void AssignSkeletonToMesh(USkeletalMesh* SkelMesh) const;
+
+	void OnAssetCreated(TArray<UObject*> NewAssets) const;
 
 	void FillSourceMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
 	void FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;

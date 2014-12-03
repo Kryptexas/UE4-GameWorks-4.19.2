@@ -6,6 +6,8 @@
 #include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialFunction.h"
 
 #include "Material.generated.h"
 
@@ -273,10 +275,10 @@ class UMaterial : public UMaterialInterface
 	// Reflection.
 	
 	UPROPERTY()
-	FColorMaterialInput DiffuseColor;
+	FColorMaterialInput DiffuseColor_DEPRECATED;
 
 	UPROPERTY()
-	FColorMaterialInput SpecularColor;
+	FColorMaterialInput SpecularColor_DEPRECATED;
 
 	UPROPERTY()
 	FColorMaterialInput BaseColor;
@@ -708,6 +710,7 @@ public:
 	 */
 	class FDefaultMaterialInstance* DefaultMaterialInstances[3];
 
+	/** Used to detect duplicate parameters.  Does not contain parameters in referenced functions! */
 	TMap<FName, TArray<UMaterialExpression*> > EditorParameters;
 
 #if WITH_EDITORONLY_DATA
@@ -760,6 +763,8 @@ public:
 	ENGINE_API virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
 	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
 	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel ) override;
+	ENGINE_API virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
+	ENGINE_API virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
@@ -796,6 +801,7 @@ public:
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
+	ENGINE_API virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) override;
 	ENGINE_API virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
 	ENGINE_API virtual void ClearAllCachedCookedPlatformData() override;
 
@@ -842,9 +848,6 @@ public:
 private:
 	void BackwardsCompatibilityInputConversion();
 
-	/** Regenerate expression guids for legacy terrain layer nodes. */
-	void FixupTerrainLayerWeightNodes();
-
 	/** Handles setting up an annotation for this object if a flag has changed value */
 	void MarkUsageFlagDirty(EMaterialUsage Usage, bool CurrentValue, bool NewValue);
 
@@ -890,7 +893,32 @@ public:
 	 * @return	Returns a array of parameter names used in this material for the specified expression type.
 	 */
 	template<typename ExpressionType>
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
+	void GetAllParameterNames(TArray<FName>& OutParameterNames, TArray<FGuid>& OutParameterIds)
+	{
+		for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
+		{
+			UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<UMaterialExpressionMaterialFunctionCall>(Expressions[ExpressionIndex]);
+
+			if (FunctionExpression)
+			{
+				if (FunctionExpression->MaterialFunction)
+				{
+					FunctionExpression->MaterialFunction->GetAllParameterNames<ExpressionType>(OutParameterNames, OutParameterIds);
+				}
+			}
+			else
+			{
+				ExpressionType* ParameterExpression = Cast<ExpressionType>(Expressions[ExpressionIndex]);
+
+				if (ParameterExpression)
+				{
+					ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
+				}
+			}
+		}
+
+		check(OutParameterNames.Num() == OutParameterIds.Num());
+	}
 	
 	ENGINE_API void GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 	ENGINE_API void GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
@@ -898,7 +926,6 @@ public:
 	ENGINE_API void GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 	void GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 	void GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
-	void GetAllTerrainLayerWeightParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 
 	/** Returns the material's decal blend mode, calculated from the DecalBlendMode property and what inputs are connected. */
 	uint32 GetDecalBlendMode() const { return DecalBlendMode; }
@@ -991,7 +1018,7 @@ public:
 	 * Backs up all material shaders to memory through serialization, organized by FMaterialShaderMap. 
 	 * This will also clear all FMaterialShaderMap references to FShaders.
 	 */
-	ENGINE_API static void BackupMaterialShadersToMemory(EShaderPlatform ShaderPlatform, TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	ENGINE_API static void BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 	/** 
 	 * Recreates FShaders for FMaterialShaderMap's from the serialized data.  Shader maps may not be complete after this due to changes in the shader keys.
@@ -1008,7 +1035,7 @@ public:
 	 * Add an expression node that represents a parameter to the list of material parameters.
 	 * @param	Expression	Pointer to the node that is going to be inserted if it's a parameter type.
 	 */
-	ENGINE_API virtual bool AddExpressionParameter(UMaterialExpression* Expression);
+	ENGINE_API virtual bool AddExpressionParameter(UMaterialExpression* Expression, TMap<FName, TArray<UMaterialExpression*> >& ParameterTypeMap);
 
 	/**
 	 * Removes an expression node that represents a parameter from the list of material parameters.
@@ -1084,22 +1111,6 @@ public:
 	 */
 	ENGINE_API static bool IsDynamicParameter(const UMaterialExpression* Expression);
 
-	/**
-	 * Return wheter the number of parameter groups. NOTE: The number returned can be innaccurate if you have parameters of different types with the same name.
-	 */
-	inline int32 GetNumEditorParameters() const
-	{
-		return EditorParameters.Num();
-	}
-
-	/**
-	 * Empty the editor parameters for the material.
-	 */
-	inline void EmptyEditorParameters()
-	{
-		EditorParameters.Empty();
-	}
-
 	/** Returns an array of the guids of functions used in this material, with the call hierarchy flattened. */
 	void GetReferencedFunctionIds(TArray<FGuid>& OutIds) const;
 
@@ -1115,10 +1126,10 @@ public:
 	/**
 	*	Get the expression input for the given property
 	*
-	*	@param	InProperty				The material property chain to inspect, such as MP_DiffuseColor.
+	*	@param	InProperty				The material property chain to inspect, such as MP_BaseColor.
 	*
 	*	@return	FExpressionInput*		A pointer to the expression input of the property specified, 
-	*									or NULL if an invalid property was requested.
+	*									or NULL if an invalid property was requested (some properties have been removed from UI, those return NULL).
 	*/
 	ENGINE_API FExpressionInput* GetExpressionInputForProperty(EMaterialProperty InProperty);
 
@@ -1135,7 +1146,7 @@ public:
 	/**
 	 *	Get the expression chain for the given property (ie fill in the given array with all expressions in the chain).
 	 *
-	 *	@param	InProperty				The material property chain to inspect, such as MP_DiffuseColor.
+	 *	@param	InProperty				The material property chain to inspect, such as MP_BaseColor.
 	 *	@param	OutExpressions			The array to fill in all of the expressions.
 	 *	@param	InStaticParameterSet	Optional static parameter set - if supplied only walk the StaticSwitch branches according to it.
 	 *

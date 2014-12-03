@@ -233,6 +233,9 @@ FString MakeJsonString( const FString& String )
 	OutString = OutString.Replace(TEXT("\xF7"), TEXT("&divide;"));
 	OutString = OutString.Replace(TEXT("\x2022"), TEXT("&middot;"));
 
+	OutString = OutString.Replace(TEXT("<"), TEXT("&lt;"));
+	OutString = OutString.Replace(TEXT(">"), TEXT("&gt;"));
+
 	return OutString;
 }
 
@@ -819,7 +822,7 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 	ActionEntry += IndentedNewline + TooltipFieldLabel + MakeJsonString(TooltipStr) + "\"";
 		
 	// Get action node type info
-	UK2Node const* NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PrimeAction);
+	UK2Node const* NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(PrimeAction);
 	if (NodeTemplate != nullptr)
 	{
 		UK2Node* Node = DuplicateObject<UK2Node>(NodeTemplate,ActionList.OwnerOfTemporaries);
@@ -952,8 +955,8 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UGenerateBlueprintAPICommandlet::UGenerateBlueprintAPICommandlet(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UGenerateBlueprintAPICommandlet::UGenerateBlueprintAPICommandlet(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

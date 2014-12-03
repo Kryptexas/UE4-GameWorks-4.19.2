@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "Runtime/Launch/Resources/Version.h" 
 #include "EngineVersion.h"
 
@@ -86,7 +87,7 @@ FString FPaths::GameUserDir()
 {
 	if (ShouldSaveToUserDir())
 	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), GGameName) + TEXT("/");
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), FApp::GetGameName()) + TEXT("/");
 	}
 	else
 	{
@@ -413,7 +414,17 @@ FString FPaths::GetBaseFilename( const FString& InPath, bool bRemovePath )
 
 	// remove the extension
 	int32 Pos = Wk.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-	if ( Pos != INDEX_NONE )
+	
+	// determine the position of the path/leaf separator
+	int32 LeafPos = INDEX_NONE;
+	if (!bRemovePath)
+	{
+		LeafPos = Wk.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+		// in case we are using backslashes on a platform that doesn't use backslashes
+		LeafPos = FMath::Max(LeafPos, Wk.Find(TEXT("\\"), ESearchCase::CaseSensitive, ESearchDir::FromEnd));
+	}
+
+	if (Pos != INDEX_NONE && (LeafPos == INDEX_NONE || Pos > LeafPos))
 	{
 		return Wk.Left(Pos);
 	}

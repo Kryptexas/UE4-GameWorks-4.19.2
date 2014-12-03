@@ -3,18 +3,20 @@
 #pragma once
 
 
-#include "Settings.h"
-
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
-#include "ModuleManager.h"
+#include "Core.h"
+#include "CoreUObject.h"
+#include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsSection.h"
+#include "ISettingsViewer.h"
 
 
 /* Private includes
  *****************************************************************************/
 
-#include "SettingsSection.h"
 #include "SettingsCategory.h"
 #include "SettingsContainer.h"
+#include "SettingsSection.h"

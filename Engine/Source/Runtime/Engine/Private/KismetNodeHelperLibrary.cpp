@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
 
-UKismetNodeHelperLibrary::UKismetNodeHelperLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetNodeHelperLibrary::UKismetNodeHelperLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 
 /* FString implementation
@@ -10,7 +10,7 @@ void FString::TrimToNullTerminator()
 {
 	if( Data.Num() )
 	{
-		int32 DataLen = FCString::Strlen(Data.GetTypedData());
+		int32 DataLen = FCString::Strlen(Data.GetData());
 		check(DataLen == 0 || DataLen < Data.Num());
 		int32 Len = DataLen > 0 ? DataLen+1 : 0;
 
@@ -539,7 +539,7 @@ int32 FString::ParseIntoArray( TArray<FString>* InArray, const TCHAR* pchDelim, 
 	check(pchDelim);
 	check(InArray);
 	InArray->Empty();
-	const TCHAR *Start = Data.GetTypedData();
+	const TCHAR *Start = Data.GetData();
 	int32 DelimLength = FCString::Strlen(pchDelim);
 	if (Start && DelimLength)
 	{
@@ -1143,13 +1143,13 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 			if (LoadUCS2Char)
 			{
 				// read in the unicode string and byteswap it, etc
-				auto Passthru = StringMemoryPassthru<UCS2CHAR>(A.Data.GetTypedData(), SaveNum, SaveNum);
+				auto Passthru = StringMemoryPassthru<UCS2CHAR>(A.Data.GetData(), SaveNum, SaveNum);
 				Ar.Serialize(Passthru.Get(), SaveNum * sizeof(UCS2CHAR));
 				// Ensure the string has a null terminator
 				Passthru.Get()[SaveNum-1] = '\0';
 				Passthru.Apply();
 
-				INTEL_ORDER_TCHARARRAY(A.Data.GetTypedData())
+				INTEL_ORDER_TCHARARRAY(A.Data.GetData())
 
 				// Since Microsoft's vsnwprintf implementation raises an invalid parameter warning
 				// with a character of 0xffff, scan for it and terminate the string there.
@@ -1163,7 +1163,7 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 			}
 			else
 			{
-				auto Passthru = StringMemoryPassthru<ANSICHAR>(A.Data.GetTypedData(), SaveNum, SaveNum);
+				auto Passthru = StringMemoryPassthru<ANSICHAR>(A.Data.GetData(), SaveNum, SaveNum);
 				Ar.Serialize(Passthru.Get(), SaveNum * sizeof(ANSICHAR));
 				// Ensure the string has a null terminator
 				Passthru.Get()[SaveNum-1] = '\0';
@@ -1195,14 +1195,14 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 				#if !PLATFORM_LITTLE_ENDIAN
 					FString  ATemp  = A;
 					FString& A      = ATemp;
-					INTEL_ORDER_TCHARARRAY(A.Data.GetTypedData());
+					INTEL_ORDER_TCHARARRAY(A.Data.GetData());
 				#endif
 
-				Ar.Serialize((void*)StringCast<UCS2CHAR>(A.Data.GetTypedData(), Num).Get(), sizeof(UCS2CHAR) * Num);
+				Ar.Serialize((void*)StringCast<UCS2CHAR>(A.Data.GetData(), Num).Get(), sizeof(UCS2CHAR)* Num);
 			}
 			else
 			{
-				Ar.Serialize((void*)StringCast<ANSICHAR>(A.Data.GetTypedData(), Num).Get(), sizeof(ANSICHAR) * Num);
+				Ar.Serialize((void*)StringCast<ANSICHAR>(A.Data.GetData(), Num).Get(), sizeof(ANSICHAR)* Num);
 			}
 		}
 	}

@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
-#include "Media.h"
+#include "IMediaModule.h"
+#include "IMediaPlayer.h"
+#include "IMediaPlayerFactory.h"
 #include "MediaPlayer.h"
 #include "MediaPlayerCustomization.h"
 #include "SFilePathPicker.h"
@@ -33,13 +35,18 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 
 					+ SHorizontalBox::Slot()
 						.AutoWidth()
+						.VAlign(VAlign_Center)
 						[
-							UrlProperty->CreatePropertyNameWidget()
+							SNew(STextBlock)
+								.Font(IDetailLayoutBuilder::GetDetailFont())
+								.Text(LOCTEXT("FileOrUrlPropertyName", "File or URL"))
+								.ToolTipText(UrlProperty->GetToolTipText())
 						]
 
 					+ SHorizontalBox::Slot()
 						.FillWidth(1.0f)
 						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
 						.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 						[
 							SNew(SImage)
@@ -55,11 +62,12 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 					SNew(SFilePathPicker)
 						.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
 						.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-						.BrowseButtonToolTip(LOCTEXT("UrlBrowseButtonToolTipText", "Choose a file from this computer"))
+						.BrowseButtonToolTip(LOCTEXT("UrlBrowseButtonToolTip", "Choose a file from this computer"))
 						.BrowseDirectory(FPaths::GameContentDir() / TEXT("Movies"))
 						.FilePath(this, &FMediaPlayerCustomization::HandleUrlPickerFilePath)
 						.FileTypeFilter(this, &FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter)
 						.OnPathPicked(this, &FMediaPlayerCustomization::HandleUrlPickerPathPicked)
+						.ToolTipText(LOCTEXT("UrlToolTip", "The path to a media file on this computer, or a URL to a media source on the internet"))
 				];
 		}
 	}
@@ -81,6 +89,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleDurationTextBlockText)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("DurationToolTip", "The total duration of this media, i.e. how long it plays"))
 			];
 
 		// forward rates (thinned)
@@ -97,6 +106,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleSupportedRatesTextBlockText, EMediaPlaybackDirections::Forward, false)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("ThinnedForwardRateToolTip", "The rate at which this media can be played thinned (with skipping frames) in the forward direction."))
 			];
 
 		// forward rates (unthinned)
@@ -104,7 +114,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			.NameContent()
 			[
 				SNew(STextBlock)
-					.Text(LOCTEXT("ForwardRatesUnthinned", "Forward Rates (Unhinned)"))
+					.Text(LOCTEXT("ForwardRatesUnthinned", "Forward Rates (Unthinned)"))
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.ValueContent()
@@ -113,6 +123,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleSupportedRatesTextBlockText, EMediaPlaybackDirections::Forward, true)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("UnthinnedForwardRateToolTip", "The rate at which this media can be played unthinned (without skipping frames) in the forward direction."))
 			];
 
 		// reverse rates (thinned)
@@ -129,6 +140,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleSupportedRatesTextBlockText, EMediaPlaybackDirections::Reverse, false)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("ThinnedReverseRateToolTip", "The rate at which this media can be played thinned (with skipping frames) in the reverse direction."))
 			];
 
 		// reverse rates (unthinned)
@@ -145,6 +157,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleSupportedRatesTextBlockText, EMediaPlaybackDirections::Reverse, true)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("UnthinnedReverseRateToolTip", "The rate at which this media can be played unthinned (without skipping frames) in the reverse direction."))
 			];
 
 		// supports scrubbing
@@ -161,6 +174,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("ScrubbingToolTip", "Whether this media supports scrubbing, i.e. manually controlling the playback speed and position."))
 			];
 
 		// supports seeking
@@ -177,6 +191,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 				SNew(STextBlock)
 					.Text(this, &FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("SeekingToolTip", "Whether this media supports seeking, i.e. jumping to a specific position."))
 			];
 	}
 }
@@ -185,7 +200,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 /* FMediaPlayerCustomization callbacks
  *****************************************************************************/
 
-FText FMediaPlayerCustomization::HandleDurationTextBlockText( ) const
+FText FMediaPlayerCustomization::HandleDurationTextBlockText() const
 {
 	TOptional<FTimespan> Duration;
 
@@ -261,7 +276,7 @@ FText FMediaPlayerCustomization::HandleSupportedRatesTextBlockText( EMediaPlayba
 }
 
 
-FText FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText( ) const
+FText FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText() const
 {
 	TOptional<bool> SupportsScrubbing;
 
@@ -292,7 +307,7 @@ FText FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText( ) const
 }
 
 
-FText FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText( ) const
+FText FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText() const
 {
 	TOptional<bool> SupportsSeeking;
 
@@ -323,7 +338,7 @@ FText FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText( ) const
 }
 
 
-FString FMediaPlayerCustomization::HandleUrlPickerFilePath( ) const
+FString FMediaPlayerCustomization::HandleUrlPickerFilePath() const
 {
 	FString Url;
 	UrlProperty->GetValue(Url);
@@ -332,7 +347,7 @@ FString FMediaPlayerCustomization::HandleUrlPickerFilePath( ) const
 }
 
 
-FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter( ) const
+FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter() const
 {
 	FString Filter = TEXT("All files (*.*)|*.*");
 
@@ -365,7 +380,7 @@ FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter( ) const
 		AllFilters += TEXT("|") + Format.Value.ToString() + TEXT(" (*.") + Format.Key + TEXT(")|*.") + Format.Key;
 	}
 
-	Filter += TEXT("|All movie files (") + AllExtensions + TEXT(")|") + AllExtensions + AllFilters;
+	Filter = TEXT("All movie files (") + AllExtensions + TEXT(")|") + AllExtensions + TEXT("|") + Filter + AllFilters;
 
 	return Filter;
 }
@@ -373,28 +388,27 @@ FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter( ) const
 
 void FMediaPlayerCustomization::HandleUrlPickerPathPicked( const FString& PickedPath )
 {
-	FString FullPath;
-
-	if (!PickedPath.IsEmpty() && FPaths::IsRelative(PickedPath))
+	if (PickedPath.StartsWith(TEXT("./")))
 	{
-		FullPath = FPaths::ConvertRelativePathToFull(PickedPath);
+		UrlProperty->SetValue(PickedPath);
 	}
 	else
-	{
-		FullPath = PickedPath;
-		FPaths::NormalizeFilename(FullPath);
-	}
+	{	
+		FString FullUrl = FPaths::ConvertRelativePathToFull(PickedPath);
+		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
 
-	if (FullPath.StartsWith(FPaths::RootDir()))
-	{
-		FPaths::MakePathRelativeTo(FullPath, FPlatformProcess::BaseDir());
-	}
+		if (FullUrl.StartsWith(FullGameContentDir))
+		{
+			FPaths::MakePathRelativeTo(FullUrl, *FullGameContentDir);
+			FullUrl = FString(TEXT("./")) + FullUrl;
+		}
 
-	UrlProperty->SetValue(FullPath);
+		UrlProperty->SetValue(FullUrl);
+	}
 }
 
 
-EVisibility FMediaPlayerCustomization::HandleUrlWarningIconVisibility( ) const
+EVisibility FMediaPlayerCustomization::HandleUrlWarningIconVisibility() const
 {
 	FString Url;
 
@@ -403,12 +417,12 @@ EVisibility FMediaPlayerCustomization::HandleUrlWarningIconVisibility( ) const
 		return EVisibility::Hidden;
 	}
 
-	const FString FullPath = FPaths::ConvertRelativePathToFull(Url);
 	const FString FullMoviesPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Movies"));
+	const FString FullUrl = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(Url) ? FPaths::GameContentDir() / Url : Url);
 
-	if (FullPath.StartsWith(FullMoviesPath))
+	if (FullUrl.StartsWith(FullMoviesPath))
 	{
-		if (FPaths::FileExists(FullPath))
+		if (FPaths::FileExists(FullUrl))
 		{
 			return EVisibility::Hidden;
 		}

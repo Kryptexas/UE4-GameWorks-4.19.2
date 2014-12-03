@@ -6,6 +6,9 @@
 #include "EdGraph/EdGraphSchema.h"
 #include "SBehaviorTreeBlackboardView.h"
 
+/** Delegate used to determine whether the Blackboard mode is active */
+DECLARE_DELEGATE_RetVal(bool, FOnIsBlackboardModeActive);
+
 /** Displays and edits blackboard entries */
 class SBehaviorTreeBlackboardEditor : public SBehaviorTreeBlackboardView
 {
@@ -19,6 +22,7 @@ public:
 		SLATE_EVENT(FOnIsDebuggerPaused, OnIsDebuggerPaused)
 		SLATE_EVENT(FOnGetDebugTimeStamp, OnGetDebugTimeStamp)
 		SLATE_EVENT(FOnBlackboardKeyChanged, OnBlackboardKeyChanged)
+		SLATE_EVENT(FOnIsBlackboardModeActive, OnIsBlackboardModeActive)
 
 	SLATE_END_ARGS()
 
@@ -48,4 +52,14 @@ private:
 
 	/** Delegate handler that disallows creating a new entry while the debugger is running */
 	bool CanCreateNewEntry() const;
+
+	/** Check whether the 'Delete' operation can be performed on the selected item  */
+	bool CanDeleteEntry() const;
+
+	/** Check whether the 'Rename' operation can be performed on the selected item  */
+	bool CanRenameEntry() const;
+
+private:
+	/** Delegate used to determine whether the Blackboard mode is active */
+	FOnIsBlackboardModeActive OnIsBlackboardModeActive;
 };

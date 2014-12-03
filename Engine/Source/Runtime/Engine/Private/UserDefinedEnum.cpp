@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-
+#include "Engine/UserDefinedEnum.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/EnumEditorUtils.h"
 #endif	// WITH_EDITOR
 
-UUserDefinedEnum::UUserDefinedEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUserDefinedEnum::UUserDefinedEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

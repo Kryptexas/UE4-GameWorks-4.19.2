@@ -10,17 +10,13 @@ public class UE4EditorTarget : TargetRules
 		Type = TargetType.Editor;
 	}
 
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		return UnrealBuildTool.UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false);
-	}
-
 	public override void SetupBinaries(
 		TargetInfo Target,
 		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
 		ref List<string> OutExtraModuleNames
 		)
 	{
+		OutExtraModuleNames.Add("UE4Game");
 		OutExtraModuleNames.Add("GameMenuBuilder");
 		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 		{

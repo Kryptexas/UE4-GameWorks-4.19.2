@@ -9,12 +9,13 @@
 #include "ComponentInstanceDataCache.h"
 
 
-USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bAllowSplineEditingPerInstance(true)
 	, ReparamStepsPerSegment(10)
 	, Duration(1.0f)
 	, bStationaryEndpoints(false)
+	, bClosedLoop(false)
 {
 	SplineInfo.Points.Reset(10);
 
@@ -45,16 +46,45 @@ void USplineComponent::PostEditImport()
 
 void USplineComponent::UpdateSpline()
 {
+	const int32 NumPoints = SplineInfo.Points.Num();
+	check(!bClosedLoop || NumPoints == 0 || (NumPoints >= 2 && SplineInfo.Points[0].OutVal == SplineInfo.Points[NumPoints - 1].OutVal));
+
 	// Automatically set the tangents on any CurveAuto keys
 	SplineInfo.AutoSetTangents(0.0f, bStationaryEndpoints);
 
-	// Nothing to do if no points
-	if(SplineInfo.Points.Num() < 2)
+	// Nothing else to do if less than 2 points
+	if (NumPoints < 2)
 	{
 		return;
 	}
 
-	const int32 NumSegments = SplineInfo.Points.Num() - 1;
+	// Adjust auto tangents for first and last keys to take into account the looping
+	if (bClosedLoop)
+	{
+		auto& FirstPoint = SplineInfo.Points[0];
+		auto& LastPoint = SplineInfo.Points[NumPoints - 1];
+		const auto& SecondPoint = SplineInfo.Points[1];
+		const auto& PenultimatePoint = SplineInfo.Points[NumPoints - 2];
+
+		if (FirstPoint.InterpMode == CIM_CurveAuto || FirstPoint.InterpMode == CIM_CurveAutoClamped)
+		{
+			FVector Tangent;
+			ComputeCurveTangent(
+				PenultimatePoint.InVal - LastPoint.InVal, PenultimatePoint.OutVal,
+				FirstPoint.InVal, FirstPoint.OutVal,
+				SecondPoint.InVal, SecondPoint.OutVal,
+				0.0f,
+				FirstPoint.InterpMode == CIM_CurveAutoClamped,
+				Tangent);
+
+			FirstPoint.LeaveTangent = Tangent;
+			FirstPoint.ArriveTangent = Tangent;
+			LastPoint.LeaveTangent = Tangent;
+			LastPoint.ArriveTangent = Tangent;
+		}
+	}
+
+	const int32 NumSegments = NumPoints - 1;
 
 	// Start by clearing it
 	SplineReparamTable.Points.Reset(NumSegments * ReparamStepsPerSegment + 1);
@@ -174,6 +204,55 @@ float USplineComponent::GetSegmentParamFromLength(const int32 Index, const float
 }
 
 
+void USplineComponent::SetClosedLoop(bool bInClosedLoop)
+{
+	if (bClosedLoop != bInClosedLoop)
+	{
+		bClosedLoop = bInClosedLoop;
+
+		if (bClosedLoop)
+		{
+			AddLoopEndpoint();
+		}
+		else
+		{
+			RemoveLoopEndpoint();
+		}
+	}
+}
+
+
+bool USplineComponent::IsClosedLoop() const
+{
+	return bClosedLoop;
+}
+
+
+void USplineComponent::RemoveLoopEndpoint()
+{
+	const int32 NumPoints = SplineInfo.Points.Num();
+	check(!bClosedLoop);
+	check(NumPoints == 0 || (NumPoints >= 2 && SplineInfo.Points[0].OutVal == SplineInfo.Points[NumPoints - 1].OutVal));
+	if (NumPoints > 0)
+	{
+		SplineInfo.Points.RemoveAt(NumPoints - 1, 1, false);
+	}
+}
+
+
+void USplineComponent::AddLoopEndpoint()
+{
+	check(bClosedLoop);
+	const int32 NumPoints = SplineInfo.Points.Num();
+	if (NumPoints > 0)
+	{
+		FInterpCurvePoint<FVector> EndPoint(SplineInfo.Points[0]);
+		EndPoint.InVal = static_cast<float>(NumPoints);
+		SplineInfo.Points.Add(EndPoint);
+	}
+}
+
+
 void USplineComponent::ClearSplinePoints()
 {
 	SplineInfo.Reset();
@@ -183,9 +262,16 @@ void USplineComponent::ClearSplinePoints()
 
 void USplineComponent::AddSplineWorldPoint(const FVector& Position)
 {
+	// If it's a closed loop, remove the endpoint before adding a new point
+	const bool bWasLoop = IsClosedLoop();
+	SetClosedLoop(false);
+
 	float InputKey = static_cast<float>(SplineInfo.Points.Num());
-	int32 PointIndex = SplineInfo.AddPoint(InputKey, ComponentToWorld.InverseTransformPosition(Position));
+	const int32 PointIndex = SplineInfo.AddPoint(InputKey, ComponentToWorld.InverseTransformPosition(Position));
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
+
+	// Then re-close the spline if required
+	SetClosedLoop(bWasLoop);
 
 	UpdateSpline();
 }
@@ -193,9 +279,16 @@ void USplineComponent::AddSplineWorldPoint(const FVector& Position)
 
 void USplineComponent::AddSplineLocalPoint(const FVector& Position)
 {
+	// If it's a closed loop, remove the endpoint before adding a new point
+	const bool bWasLoop = IsClosedLoop();
+	SetClosedLoop(false);
+
 	float InputKey = static_cast<float>(SplineInfo.Points.Num());
-	int32 PointIndex = SplineInfo.AddPoint(InputKey, Position);
+	const int32 PointIndex = SplineInfo.AddPoint(InputKey, Position);
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
+
+	// Then re-close the spline if required
+	SetClosedLoop(bWasLoop);
 
 	UpdateSpline();
 }
@@ -203,7 +296,11 @@ void USplineComponent::AddSplineLocalPoint(const FVector& Position)
 
 void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 {
-	SplineInfo.Points.Reset(Points.Num());
+	// If it's a closed loop, mark it as not closed before setting a new array of points
+	const bool bWasLoop = IsClosedLoop();
+	SetClosedLoop(false);
+
+	SplineInfo.Points.Reset(bWasLoop ? Points.Num() + 1 : Points.Num());
 	float InputKey = 0.0f;
 	for (const auto& Point : Points)
 	{
@@ -212,13 +309,18 @@ void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 		InputKey += 1.0f;
 	}
 
+	SetClosedLoop(bWasLoop);
+
 	UpdateSpline();
 }
 
 
 void USplineComponent::SetSplineLocalPoints(const TArray<FVector>& Points)
 {
-	SplineInfo.Points.Reset(Points.Num());
+	const bool bWasLoop = IsClosedLoop();
+	SetClosedLoop(false);
+
+	SplineInfo.Points.Reset(bWasLoop ? Points.Num() + 1 : Points.Num());
 	float InputKey = 0.0f;
 	for (const auto& Point : Points)
 	{
@@ -227,15 +329,33 @@ void USplineComponent::SetSplineLocalPoints(const TArray<FVector>& Points)
 		InputKey += 1.0f;
 	}
 
+	SetClosedLoop(bWasLoop);
+
 	UpdateSpline();
 }
 
 
 void USplineComponent::SetWorldLocationAtSplinePoint(int32 PointIndex, const FVector& InLocation)
 {
-	if ((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	const int32 NumPoints = SplineInfo.Points.Num();
+
+	if ((PointIndex >= 0) && (PointIndex < NumPoints))
 	{
 		SplineInfo.Points[PointIndex].OutVal = ComponentToWorld.InverseTransformPosition(InLocation);
+
+		if (IsClosedLoop())
+		{
+			// In a closed loop, the first and last points are tied, so update one with the other
+			if (PointIndex == 0)
+			{
+				SplineInfo.Points[NumPoints - 1].OutVal = InLocation;
+			}
+			else if (PointIndex == NumPoints - 1)
+			{
+				SplineInfo.Points[0].OutVal = InLocation;
+			}
+		}
+
 		UpdateSpline();
 	}
 }
@@ -397,9 +517,7 @@ public:
 	}
 
 	FInterpCurveVector SplineInfo;
-	int32 ReparamStepsPerSegment;
-	float Duration;
-	bool bStationaryEndpoints;
+	bool bClosedLoop;
 };
 
 FName USplineComponent::GetComponentInstanceDataType() const
@@ -408,37 +526,64 @@ FName USplineComponent::GetComponentInstanceDataType() const
 	return SplineInstanceDataTypeName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> USplineComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* USplineComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FSplineInstanceData> SplineInstanceData;
+	FSplineInstanceData* SplineInstanceData = nullptr;
 	if (bAllowSplineEditingPerInstance)
 	{
-		SplineInstanceData = MakeShareable(new FSplineInstanceData(this));
+		SplineInstanceData = new FSplineInstanceData(this);
 		SplineInstanceData->SplineInfo = SplineInfo;
-		SplineInstanceData->ReparamStepsPerSegment = ReparamStepsPerSegment;
-		SplineInstanceData->Duration = Duration;
-		SplineInstanceData->bStationaryEndpoints = bStationaryEndpoints;
+		SplineInstanceData->bClosedLoop = bClosedLoop;
 	}
 	return SplineInstanceData;
 }
 
-void USplineComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void USplineComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	if (ComponentInstanceData.IsValid())
+	if (ComponentInstanceData)
 	{
-		const FSplineInstanceData* SplineInstanceData = StaticCastSharedPtr<FSplineInstanceData>(ComponentInstanceData).Get();
+		FSplineInstanceData* SplineInstanceData  = static_cast<FSplineInstanceData*>(ComponentInstanceData);
 		if (bAllowSplineEditingPerInstance)
 		{
 			SplineInfo = SplineInstanceData->SplineInfo;
-			ReparamStepsPerSegment = SplineInstanceData->ReparamStepsPerSegment;
-			Duration = SplineInstanceData->Duration;
-			bStationaryEndpoints = SplineInstanceData->bStationaryEndpoints;
+
+			// If the construction script changed bClosedLoop, amend the applied points accordingly
+			if (SplineInstanceData->bClosedLoop != bClosedLoop)
+			{
+				if (bClosedLoop)
+				{
+					AddLoopEndpoint();
+				}
+				else
+				{
+					RemoveLoopEndpoint();
+				}
+			}
+
 			UpdateSpline();
 		}
 	}
 }
 
 #if WITH_EDITOR
+void USplineComponent::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	Super::PreEditChange(PropertyAboutToChange);
+
+	if (PropertyAboutToChange != nullptr && PropertyAboutToChange->GetFName() == GET_MEMBER_NAME_CHECKED(USplineComponent, bClosedLoop))
+	{
+		if (bClosedLoop)
+		{
+			// We need to detect changes in state in order to correctly open or close the loop.
+			// Since we don't know what state is about to be set, we ensure that the spline is marked as not closed here, so that either:
+			//  a) Nothing needs to be done if the property is set to false, or
+			//  b) The spline is already set as not looped, so that setting the property to true will work correctly in PostEditChangeProperty.
+			bClosedLoop = false;
+			RemoveLoopEndpoint();
+		}
+	}
+}
+
 void USplineComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property != nullptr)
@@ -447,6 +592,18 @@ void USplineComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, ReparamStepsPerSegment) ||
 			PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, bStationaryEndpoints))
 		{
+			UpdateSpline();
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, bClosedLoop))
+		{
+			if (bClosedLoop)
+			{
+				// Spline is guaranteed to be non-looping when we get here (due to PreEditChange).
+				// Now just force the loop endpoint to be added if bClosedLoop == true.
+				AddLoopEndpoint();
+			}
+
 			UpdateSpline();
 		}
 	}

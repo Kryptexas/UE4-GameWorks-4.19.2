@@ -4,14 +4,14 @@
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 
-UBTTask_RunBehavior::UBTTask_RunBehavior(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_RunBehavior::UBTTask_RunBehavior(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Run Behavior";
 }
 
 EBTNodeResult::Type UBTTask_RunBehavior::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	const bool bPushed = OwnerComp->PushInstance(BehaviorAsset);
+	const bool bPushed = OwnerComp->PushInstance(*BehaviorAsset);
 	return bPushed ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
 }
 
@@ -154,7 +154,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 			for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 			{
 				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
-				InstancedOb->InitializeFromAsset(BehaviorAsset);
+				InstancedOb->InitializeFromAsset(*BehaviorAsset);
 				InstancedOb->InitializeDecorator(ChildIdx);
 
 				if (!bAlreadyInjected)
@@ -240,7 +240,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 	}
 }
 
-void UBTTask_RunBehavior::CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
+void UBTTask_RunBehavior::CleanupMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
 	Super::CleanupMemory(OwnerComp, NodeMemory, CleanupType);
 

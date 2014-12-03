@@ -231,7 +231,7 @@ public:
 
 private:
 	/** The minimum number of mips that must be resident in memory (cannot be streamed). */
-	static int32 GMinTextureResidentMipCount;
+	static ENGINE_API int32 GMinTextureResidentMipCount;
 
 public:
 	/** Returns the minimum number of mips that must be resident in memory (cannot be streamed). */
@@ -405,12 +405,12 @@ public:
 	 *	@param SrcData - the source data
 	 *  @param bFreeData - if true, the SrcData and Regions pointers will be freed after the update.
 	 */
-	void UpdateTextureRegions( int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData );
+	ENGINE_API void UpdateTextureRegions(int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData);
 
 	/**
 	 * Temporarily disable streaming so we update subregions of this texture without streaming clobbering it. 
 	 */
-	void TemporarilyDisableStreaming();
+	ENGINE_API void TemporarilyDisableStreaming();
 
 	/** Called after an editor or undo operation is formed on texture
 	*/

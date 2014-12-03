@@ -7,6 +7,8 @@
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "SNumericEntryBox.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 
@@ -613,7 +615,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 			{
 				UWorld* World = Actors[0]->GetWorld();
 				AStaticMeshActor* WorldActor = Cast<AStaticMeshActor>(World->SpawnActor(AStaticMeshActor::StaticClass(), &ProxyLocation));
-				WorldActor->StaticMeshComponent->StaticMesh = ProxyMesh;
+				WorldActor->GetStaticMeshComponent()->StaticMesh = ProxyMesh;
 				WorldActor->SetActorLabel(ProxyMesh->GetName());
 			}
 		}

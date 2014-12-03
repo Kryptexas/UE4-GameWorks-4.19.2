@@ -68,8 +68,8 @@ static bool K2Node_VariableSetImpl::PropertyHasLocalRepNotify(UProperty const* V
 	return false;
 }
 
-UK2Node_VariableSet::UK2Node_VariableSet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_VariableSet::UK2Node_VariableSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

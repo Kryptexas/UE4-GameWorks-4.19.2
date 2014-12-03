@@ -8,8 +8,13 @@
 #include "K2Node_SwitchEnum.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "K2Node_PureAssignmentStatement.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
+
+/*******************************************************************************
+ *  FCustomStructureParamHelper
+ ******************************************************************************/
 
 struct FCustomStructureParamHelper
 {
@@ -81,8 +86,318 @@ struct FCustomStructureParamHelper
 	}
 };
 
-UK2Node_CallFunction::UK2Node_CallFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+/*******************************************************************************
+ *  FDynamicOutputUtils
+ ******************************************************************************/
+
+struct FDynamicOutputHelper
+{
+public:
+	FDynamicOutputHelper(UEdGraphPin* InAlteredPin)
+		: MutatingPin(InAlteredPin)
+	{}
+
+	/**
+	 * Attempts to change the output pin's type so that it reflects the class 
+	 * specified by the input class pin.
+	 */
+	void ConformOutputType() const;
+
+	/**
+	 * Retrieves the class pin that is used to determine the function's output type.
+	 * 
+	 * @return Null if the "DeterminesOutputType" metadata targets an invalid 
+	 *         param (or if the metadata isn't present), otherwise a class picker pin.
+	 */
+	static UEdGraphPin* GetTypePickerPin(const UK2Node_CallFunction* FuncNode);
+
+	/**
+	 * Attempts to pull out class info from the supplied pin. Starts with the 
+	 * pin's default, and then falls back onto the pin's native type. Will poll
+	 * any connections that the pin may have.
+	 * 
+	 * @param  Pin	The pin you want a class from.
+	 * @return A class that the pin represents (could be null if the pin isn't a class pin).
+	 */
+	static UClass* GetPinClass(UEdGraphPin* Pin);
+
+	/**
+	 * Intended to be used by ValidateNodeDuringCompilation(). Will check to 
+	 * make sure the dynamic output's connections are still valid (they could
+	 * become invalid as the the pin's type changes).
+	 * 
+	 * @param  FuncNode		The node you wish to validate.
+	 * @param  MessageLog	The log to post errors/warnings to.
+	 */
+	static void VerifyNode(const UK2Node_CallFunction* FuncNode, FCompilerResultsLog& MessageLog);
+
+private:
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	UK2Node_CallFunction* GetFunctionNode() const;
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	UFunction* GetTargetFunction() const;
+
+	/**
+	 * Checks if the supplied pin is the class picker that governs the 
+	 * function's output type.
+	 * 
+	 * @param  Pin	The pin to test.
+	 * @return True if the pin corresponds to the param that was flagged by the "DeterminesOutputType" metadata.
+	 */
+	bool IsTypePickerPin(UEdGraphPin* Pin) const;
+
+	/**
+	 * Retrieves the object output pin that is altered as the class input is 
+	 * changed (favors params flagged by "DynamicOutputParam" metadata).
+	 * 
+	 * @return Null if the output param cannot be altered from the class input, 
+	 *         otherwise a output pin that will mutate type as the class input is changed.
+	 */
+	static UEdGraphPin* GetDynamicOutPin(const UK2Node_CallFunction* FuncNode);
+
+	/**
+	 * Checks if the specified type is an object type that reflects the picker 
+	 * pin's class.
+	 * 
+	 * @param  TypeToTest	The type you want to check.
+	 * @return True if the type is likely the output governed by the class picker pin, otherwise false.
+	 */
+	static bool CanConformPinType(const UK2Node_CallFunction* FuncNode, const FEdGraphPinType& TypeToTest);
+
+private:
+	UEdGraphPin* MutatingPin;
+};
+
+void FDynamicOutputHelper::ConformOutputType() const
+{
+	if (IsTypePickerPin(MutatingPin))
+	{
+		UClass* PickedClass = GetPinClass(MutatingPin);
+		UK2Node_CallFunction* FuncNode = GetFunctionNode();
+
+		if (UEdGraphPin* DynamicOutPin = GetDynamicOutPin(FuncNode))
+		{
+			DynamicOutPin->PinType.PinSubCategoryObject = PickedClass;
+
+			if (UFunction* Function = FuncNode->GetTargetFunction())
+			{
+				DynamicOutPin->PinToolTip.Empty();
+				FuncNode->GeneratePinTooltipFromFunction(*DynamicOutPin, Function);
+			}
+
+			// leave the connection, and instead bring the user's attention to 
+			// it via a ValidateNodeDuringCompilation() error
+// 			const UEdGraphSchema* Schema = FuncNode->GetSchema();
+// 			for (int32 LinkIndex = 0; LinkIndex < DynamicOutPin->LinkedTo.Num();)
+// 			{
+// 				UEdGraphPin* Link = DynamicOutPin->LinkedTo[LinkIndex];
+// 				// if this can no longer be linked to the other pin, then we 
+// 				// should disconnect it (because the pin's type just changed)
+// 				if (Schema->CanCreateConnection(DynamicOutPin, Link).Response == CONNECT_RESPONSE_DISALLOW)
+// 				{
+// 					DynamicOutPin->BreakLinkTo(Link);
+// 					// @TODO: warn/notify somehow
+// 				}
+// 				else
+// 				{
+// 					++LinkIndex;
+// 				}
+// 			}
+		}
+	}
+}
+
+UEdGraphPin* FDynamicOutputHelper::GetTypePickerPin(const UK2Node_CallFunction* FuncNode)
+{
+	UEdGraphPin* TypePickerPin = nullptr;
+
+	if (UFunction* Function = FuncNode->GetTargetFunction())
+	{
+		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		if (!TypeDeterminingPinName.IsEmpty())
+		{
+			TypePickerPin = FuncNode->FindPin(TypeDeterminingPinName);
+		}
+	}
+
+	if (TypePickerPin && !ensure(TypePickerPin->Direction == EGPD_Input))
+	{
+		TypePickerPin = nullptr;
+	}
+
+	return TypePickerPin;
+}
+
+UClass* FDynamicOutputHelper::GetPinClass(UEdGraphPin* Pin)
+{
+	UClass* PinClass = UObject::StaticClass();
+
+	bool const bIsClassPin = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
+	if (bIsClassPin)
+	{
+		if (UClass* DefaultClass = Cast<UClass>(Pin->DefaultObject))
+		{
+			PinClass = DefaultClass;
+		}
+		else if (UClass* BaseClass = Cast<UClass>(Pin->PinType.PinSubCategoryObject.Get()))
+		{
+			PinClass = BaseClass;
+		}
+
+		if (Pin->LinkedTo.Num() > 0)
+		{
+			UClass* CommonInputClass = Cast<UClass>(Pin->LinkedTo[0]->PinType.PinSubCategoryObject.Get());
+			for (int32 LinkIndex = 1; LinkIndex < Pin->LinkedTo.Num(); ++LinkIndex)
+			{
+				UClass* LinkClass = Cast<UClass>(Pin->LinkedTo[LinkIndex]->PinType.PinSubCategoryObject.Get());
+				if (LinkClass == nullptr)
+				{
+					continue;
+				}
+
+				if (CommonInputClass == nullptr)
+				{
+					CommonInputClass = LinkClass;
+					continue;
+				}
+
+				while (!LinkClass->IsChildOf(CommonInputClass))
+				{
+					CommonInputClass = CommonInputClass->GetSuperClass();
+				}
+			}
+
+			PinClass = CommonInputClass;
+		}
+	}
+	return PinClass;
+}
+
+void FDynamicOutputHelper::VerifyNode(const UK2Node_CallFunction* FuncNode, FCompilerResultsLog& MessageLog)
+{
+	if (UEdGraphPin* DynamicOutPin = GetDynamicOutPin(FuncNode))
+	{
+		const UEdGraphSchema* Schema = FuncNode->GetSchema();
+		for (UEdGraphPin* Link : DynamicOutPin->LinkedTo)
+		{
+			if (Schema->CanCreateConnection(DynamicOutPin, Link).Response == CONNECT_RESPONSE_DISALLOW)
+			{
+				FText const ErrorFormat = LOCTEXT("BadConnection", "Invalid pin connection from '@@' to '@@'. You may have changed the type after the connections were made.");
+				MessageLog.Error(*ErrorFormat.ToString(), DynamicOutPin, Link);
+			}
+		}
+	}
+}
+
+UK2Node_CallFunction* FDynamicOutputHelper::GetFunctionNode() const
+{
+	return CastChecked<UK2Node_CallFunction>(MutatingPin->GetOwningNode());
+}
+
+UFunction* FDynamicOutputHelper::GetTargetFunction() const
+{
+	return GetFunctionNode()->GetTargetFunction();
+}
+
+bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
+{
+	bool bIsTypeDeterminingPin = false;
+
+	if (UFunction* Function = GetTargetFunction())
+	{
+		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		if (!TypeDeterminingPinName.IsEmpty())
+		{
+			bIsTypeDeterminingPin = (Pin->PinName == TypeDeterminingPinName);
+		}
+	}
+
+	bool const bPinIsClassPicker = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
+	return bIsTypeDeterminingPin && bPinIsClassPicker && (Pin->Direction == EGPD_Input);
+}
+
+UEdGraphPin* FDynamicOutputHelper::GetDynamicOutPin(const UK2Node_CallFunction* FuncNode)
+{
+	UProperty* TaggedOutputParam = nullptr;
+	if (UFunction* Function = FuncNode->GetTargetFunction())
+	{
+		const FString& OutputPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputParam);
+		// we sort through properties, instead of pins, because the pin's type 
+		// could already be modified to some other class (for when we check CanConformPinType)
+		for (TFieldIterator<UProperty> ParamIt(Function); ParamIt && (ParamIt->PropertyFlags & CPF_Parm); ++ParamIt)
+		{
+			if (OutputPinName.IsEmpty() && ParamIt->HasAnyPropertyFlags(CPF_ReturnParm))
+			{
+				TaggedOutputParam = *ParamIt;
+				break;
+			}
+			else if (OutputPinName == ParamIt->GetName())
+			{
+				TaggedOutputParam = *ParamIt;
+				break;
+			}
+		}
+
+		if (TaggedOutputParam != nullptr)
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			FEdGraphPinType PropertyPinType;
+
+			if (!K2Schema->ConvertPropertyToPinType(TaggedOutputParam, /*out*/PropertyPinType) || !CanConformPinType(FuncNode, PropertyPinType))
+			{
+				TaggedOutputParam = nullptr;
+			}
+		}
+	}
+
+	UEdGraphPin* DynamicOutPin = nullptr;
+	if (TaggedOutputParam != nullptr)
+	{
+		DynamicOutPin = FuncNode->FindPin(TaggedOutputParam->GetName());
+		if (DynamicOutPin && (DynamicOutPin->Direction != EGPD_Output))
+		{
+			DynamicOutPin = nullptr;
+		}
+	}
+	return DynamicOutPin;
+}
+
+bool FDynamicOutputHelper::CanConformPinType(const UK2Node_CallFunction* FuncNode, const FEdGraphPinType& TypeToTest)
+{
+	bool bIsProperType = false;
+	if (UEdGraphPin* TypePickerPin = GetTypePickerPin(FuncNode))
+	{
+		UClass* BasePickerClass = CastChecked<UClass>(TypePickerPin->PinType.PinSubCategoryObject.Get());
+
+		const FString& PinCategory = TypeToTest.PinCategory;
+		if ((PinCategory == UEdGraphSchema_K2::PC_Object) ||
+			(PinCategory == UEdGraphSchema_K2::PC_Interface) ||
+			(PinCategory == UEdGraphSchema_K2::PC_Class))
+		{
+			if (UClass* TypeClass = Cast<UClass>(TypeToTest.PinSubCategoryObject.Get()))
+			{
+				bIsProperType = BasePickerClass->IsChildOf(TypeClass);
+			}
+		}
+	}
+	return bIsProperType;
+}
+
+/*******************************************************************************
+ *  UK2Node_CallFunction
+ ******************************************************************************/
+
+UK2Node_CallFunction::UK2Node_CallFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -179,7 +494,26 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 void UK2Node_CallFunction::AllocateDefaultPins()
 {
 	UBlueprint* MyBlueprint = GetBlueprint();
+	
 	UFunction* Function = GetTargetFunction();
+	// favor the skeleton function if possible (in case the signature has 
+	// changed, and not yet compiled).
+	if (!FunctionReference.IsSelfContext())
+	{
+		UClass* FunctionClass = FunctionReference.GetMemberParentClass(MyBlueprint->GeneratedClass);
+		if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(FunctionClass))
+		{
+			// this function could currently only be a part of some skeleton 
+			// class (the blueprint has not be compiled with it yet), so let's 
+			// check the skeleton class as well, see if we can pull pin data 
+			// from there...
+			UBlueprint* FunctionBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+			if (UFunction* SkelFunction = FindField<UFunction>(FunctionBlueprint->SkeletonGeneratedClass, FunctionReference.GetMemberName()))
+			{
+				Function = SkelFunction;
+			}
+		}
+	}
 
 	// First try remap table
 	if (Function == NULL)
@@ -281,9 +615,15 @@ UEdGraphPin* UK2Node_CallFunction::CreateSelfPin(const UFunction* Function)
 
 	// Create the self pin
 	UClass* FunctionClass = CastChecked<UClass>(FirstDeclaredFunction->GetOuter());
+	// we don't want blueprint-function target pins to be formed from the
+	// skeleton class (otherwise, they could be incompatible with other pins
+	// that represent the same type)... this here could lead to a compiler 
+	// warning (the GeneratedClass could not have the function yet), but in
+	// that, the user would be reminded to compile the other blueprint
+	FunctionClass = FunctionClass->GetAuthoritativeClass();
 
 	UEdGraphPin* SelfPin = NULL;
-	if ((FunctionClass == GetBlueprint()->GeneratedClass) || (FunctionClass == GetBlueprint()->SkeletonGeneratedClass))
+	if (FunctionClass == GetBlueprint()->GeneratedClass)
 	{
 		// This means the function is defined within the blueprint, so the pin should be a true "self" pin
 		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
@@ -450,7 +790,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			// For static methods, wire up the self to the CDO of the class if it's not us
 			if (!bIsFunctionCompatibleWithSelf)
 			{
-				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+				auto AuthoritativeClass = FunctionOwnerClass->GetAuthoritativeClass();
+				SelfPin->DefaultObject = AuthoritativeClass->GetDefaultObject();
 			}
 
 			// Purity doesn't matter with a static function, we can always hide the self pin since we know how to call the method
@@ -532,7 +873,6 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	return bAllPinsGood;
 }
 
-
 void UK2Node_CallFunction::PostReconstructNode()
 {
 	Super::PostReconstructNode();
@@ -562,6 +902,11 @@ void UK2Node_CallFunction::PostReconstructNode()
 	if(TemplateComp && ReturnPin)
 	{
 		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass();
+	}
+
+	if (UEdGraphPin* TypePickerPin = FDynamicOutputHelper::GetTypePickerPin(this))
+	{
+		FDynamicOutputHelper(TypePickerPin).ConformOutputType();
 	}
 }
 
@@ -598,6 +943,14 @@ void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			DestroyNode();
 		}
 	}
+
+	FDynamicOutputHelper(Pin).ConformOutputType();
+}
+
+void UK2Node_CallFunction::PinDefaultValueChanged(UEdGraphPin* Pin)
+{
+	Super::PinDefaultValueChanged(Pin);
+	FDynamicOutputHelper(Pin).ConformOutputType();
 }
 
 UFunction* UK2Node_CallFunction::GetTargetFunction() const
@@ -654,6 +1007,24 @@ bool UK2Node_CallFunction::CanFunctionSupportMultipleTargets(UFunction const* Fu
 	bool const bHasReturnParam = (Function->GetReturnProperty() != nullptr);
 
 	return !bHasReturnParam && bIsImpure && !bIsLatent;
+}
+
+bool UK2Node_CallFunction::CanPasteHere(const UEdGraph* TargetGraph) const
+{
+	bool bCanPaste = Super::CanPasteHere(TargetGraph);
+	if(bCanPaste)
+	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		uint32 AllowedFunctionTypes = UEdGraphSchema_K2::EFunctionType::FT_Pure | UEdGraphSchema_K2::EFunctionType::FT_Const | UEdGraphSchema_K2::EFunctionType::FT_Protected;
+		if(K2Schema->DoesGraphSupportImpureFunctions(TargetGraph))
+		{
+			AllowedFunctionTypes |= UEdGraphSchema_K2::EFunctionType::FT_Imperative;
+		}
+
+		bCanPaste = K2Schema->CanFunctionBeUsedInClass(FBlueprintEditorUtils::FindBlueprintForGraphChecked(TargetGraph)->GeneratedClass, GetTargetFunction(), TargetGraph, AllowedFunctionTypes, true, false, FFunctionTargetInfo());
+	}
+	
+	return bCanPaste;
 }
 
 static FLinearColor GetPalletteIconColor(UFunction const* Function)
@@ -1169,10 +1540,24 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
+	const UBlueprint* Blueprint = GetBlueprint();
 	UFunction *Function = GetTargetFunction();
 	if (Function == NULL)
 	{
-		MessageLog.Warning(*FString::Printf(*LOCTEXT("FunctionNotFound", "Unable to find function with name '%s' for @@").ToString(), *FunctionReference.GetMemberName().ToString()), this);
+		FString OwnerName;
+
+		if (Blueprint != nullptr)
+		{
+			OwnerName = Blueprint->GetName();
+			if (UClass* FuncOwnerClass = FunctionReference.GetMemberParentClass(Blueprint->GeneratedClass))
+			{
+				OwnerName = FuncOwnerClass->GetName();
+			}
+		}
+		FString const FunctName = FunctionReference.GetMemberName().ToString();
+
+		FText const WarningFormat = LOCTEXT("FunctionNotFound", "Could not find a function named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+		MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *FunctName, *OwnerName, *OwnerName), this);
 	}
 	else if (Function->HasMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs) && bWantsEnumToExecExpansion == false)
 	{
@@ -1215,16 +1600,22 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 		}
 
 		// enforce WorldContext restrictions
-		else if (   Function->HasMetaData(FBlueprintMetadata::MD_WorldContext) 
-			     && !Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
+		const bool bInsideBpFuncLibrary = Blueprint && (BPTYPE_FunctionLibrary == Blueprint->BlueprintType);
+		if (!bInsideBpFuncLibrary && 
+			Function->HasMetaData(FBlueprintMetadata::MD_WorldContext) && 
+			!Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 		{
-			UClass* ParentClass = GetBlueprint()->ParentClass;
-			if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+			check(Blueprint);
+			UClass* ParentClass = Blueprint->ParentClass;
+			check(ParentClass);
+			if (ParentClass && !ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
 			{
 				MessageLog.Warning(*LOCTEXT("FunctionUnsafeInContext", "Function '@@' is unsafe to call from blueprints of class '@@'.").ToString(), this, ParentClass);
 			}
 		}
 	}
+
+	FDynamicOutputHelper::VerifyNode(this, MessageLog);
 }
 
 void UK2Node_CallFunction::Serialize(FArchive& Ar)
@@ -1271,60 +1662,61 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	UFunction* Function = GetTargetFunction();
+
+	// connect DefaultToSelf and WorldContext inside static functions to proper 'self'  
+	const bool bInsideBpFuncLibrary = CompilerContext.Blueprint && (BPTYPE_FunctionLibrary == CompilerContext.Blueprint->BlueprintType);
+	if (bInsideBpFuncLibrary && SourceGraph && Function)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-		UFunction* Function = GetTargetFunction();
-
-		// connect DefaultToSelf and WorldContext inside static functions to proper 'self'  
-		const bool bInsideBpFuncLibrary = CompilerContext.Blueprint && (BPTYPE_FunctionLibrary == CompilerContext.Blueprint->BlueprintType);
-		if (bInsideBpFuncLibrary && SourceGraph && Function)
+		TArray<UK2Node_FunctionEntry*> EntryPoints;
+		SourceGraph->GetNodesOfClass(EntryPoints);
+		if (1 != EntryPoints.Num())
 		{
-			TArray<UK2Node_FunctionEntry*> EntryPoints;
-			SourceGraph->GetNodesOfClass(EntryPoints);
-			if (1 != EntryPoints.Num())
-			{
-				CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
-			}
-			else if (auto BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
-			{
-				FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-				FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+			CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
+		}
+		else if (auto BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
+		{
+			FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
-				struct FStructConnectHelper
+			struct FStructConnectHelper
+			{
+				static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* InSchema, FCompilerResultsLog& MessageLog)
 				{
-					static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* InSchema, FCompilerResultsLog& MessageLog)
+					auto Pin = Node->FindPin(PinName);
+					if (!PinName.IsEmpty() && Pin && !Pin->LinkedTo.Num())
 					{
-						auto Pin = Node->FindPin(PinName);
-						if (!PinName.IsEmpty() && Pin && !Pin->LinkedTo.Num())
+						const bool bConnected = InSchema->TryCreateConnection(Pin, BetterSelf);
+						if (!bConnected)
 						{
-							const bool bConnected = InSchema->TryCreateConnection(Pin, BetterSelf);
-							if (!bConnected)
-							{
-								MessageLog.Warning(*LOCTEXT("DefaultToSelfNotConnected", "DefaultToSelf pin @@ from node @@ cannot be connected to @@").ToString(), Pin, Node, BetterSelf);
-							}
+							MessageLog.Warning(*LOCTEXT("DefaultToSelfNotConnected", "DefaultToSelf pin @@ from node @@ cannot be connected to @@").ToString(), Pin, Node, BetterSelf);
 						}
 					}
-				};
-				FStructConnectHelper::Connect(DefaultToSelfMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
+				}
+			};
+			FStructConnectHelper::Connect(DefaultToSelfMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
+			if (!Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
+			{
 				FStructConnectHelper::Connect(WorldContextMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
 			}
 		}
+	}
 
-		// If we have an enum param that is expanded, we handle that first
-		if(bWantsEnumToExecExpansion)
+	// If we have an enum param that is expanded, we handle that first
+	if(bWantsEnumToExecExpansion)
+	{
+		if(Function)
 		{
-			if(Function)
+			// Get the metadata that identifies which param is the enum, and try and find it
+			const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
+			UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
+			UEdGraphPin* EnumParamPin = FindPinChecked(EnumParamName);
+			if(EnumProp != NULL && EnumProp->Enum != NULL)
 			{
-				// Get the metadata that identifies which param is the enum, and try and find it
-				const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
-				UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
-				UEdGraphPin* EnumParamPin = FindPinChecked(EnumParamName);
-				if(EnumProp != NULL && EnumProp->Enum != NULL)
+				// Expanded as input execs pins
+				if (EnumParamPin->Direction == EGPD_Input)
 				{
-					// Expanded as input execs pins
-					if (EnumParamPin->Direction == EGPD_Input)
-					{
 					// Create normal exec input
 					UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
 
@@ -1369,59 +1761,135 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 						}
 					}
 				}
-					// Expanded as output execs pins
-					else if (EnumParamPin->Direction == EGPD_Output)
+				// Expanded as output execs pins
+				else if (EnumParamPin->Direction == EGPD_Output)
+				{
+					// Create normal exec output
+					UEdGraphPin* ExecutePin = CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
+						
+					// Create a SwitchEnum node to switch on the output enum
+					UK2Node_SwitchEnum* SwitchEnumNode = CompilerContext.SpawnIntermediateNode<UK2Node_SwitchEnum>(this, SourceGraph);
+					UEnum* EnumObject = Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get());
+					SwitchEnumNode->SetEnum(EnumObject);
+					SwitchEnumNode->AllocateDefaultPins();
+						
+					// Hook up execution to the switch node
+					Schema->TryCreateConnection(ExecutePin, SwitchEnumNode->GetExecPin());
+					// Connect (hidden) enum pin to switch node's selection pin
+					Schema->TryCreateConnection(EnumParamPin, SwitchEnumNode->GetSelectionPin());
+						
+					// Now we want to iterate over other exec outputs
+					for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
 					{
-						// Create normal exec output
-						UEdGraphPin* ExecutePin = CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
-						
-						// Create a SwitchEnum node to switch on the output enum
-						UK2Node_SwitchEnum* SwitchEnumNode = CompilerContext.SpawnIntermediateNode<UK2Node_SwitchEnum>(this, SourceGraph);
-						UEnum* EnumObject = Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get());
-						SwitchEnumNode->SetEnum(EnumObject);
-						SwitchEnumNode->AllocateDefaultPins();
-						
-						// Hook up execution to the switch node
-						Schema->TryCreateConnection(ExecutePin, SwitchEnumNode->GetExecPin());
-						// Connect (hidden) enum pin to switch node's selection pin
-						Schema->TryCreateConnection(EnumParamPin, SwitchEnumNode->GetSelectionPin());
-						
-						// Now we want to iterate over other exec outputs
-						for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
+						UEdGraphPin* Pin = Pins[PinIdx];
+						if( Pin != NULL &&
+							Pin != ExecutePin &&
+							Pin->Direction == EGPD_Output &&
+							Pin->PinType.PinCategory == Schema->PC_Exec )
 						{
-							UEdGraphPin* Pin = Pins[PinIdx];
-							if( Pin != NULL &&
-							   Pin != ExecutePin &&
-							   Pin->Direction == EGPD_Output &&
-							   Pin->PinType.PinCategory == Schema->PC_Exec )
-							{
-								// Move connections from fake 'enum exec' pint to this switch node
-								CompilerContext.MovePinLinksToIntermediate(*Pin, *SwitchEnumNode->FindPinChecked(Pin->PinName));
+							// Move connections from fake 'enum exec' pint to this switch node
+							CompilerContext.MovePinLinksToIntermediate(*Pin, *SwitchEnumNode->FindPinChecked(Pin->PinName));
 								
-								// Finally remove this 'cosmetic' exec pin
-								Pins.RemoveAt(PinIdx);
-							}
+							// Finally remove this 'cosmetic' exec pin
+							Pins.RemoveAt(PinIdx);
 						}
 					}
 				}
 			}
 		}
+	}
 
-		// Then we go through and expand out array iteration if necessary
-		const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
-		UEdGraphPin* MultiSelf = Schema->FindSelfPin(*this, EEdGraphPinDirection::EGPD_Input);
-		if(bAllowMultipleSelfs && MultiSelf && !MultiSelf->PinType.bIsArray)
+	// AUTO CREATED REFS
+	{
+		if ( Function )
 		{
-			const bool bProperInputToExpandForEach = 
-				(1 == MultiSelf->LinkedTo.Num()) && 
-				(NULL != MultiSelf->LinkedTo[0]) && 
-				(MultiSelf->LinkedTo[0]->PinType.bIsArray);
-			if(bProperInputToExpandForEach)
+			TArray<FString> AutoCreateRefTermPinNames;
+			const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
+			if ( bHasAutoCreateRefTerms )
 			{
-				CallForEachElementInArrayExpansion(this, MultiSelf, CompilerContext, SourceGraph);
+				CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
+			}
+
+			for ( auto Pin : Pins )
+			{
+				if ( Pin && bHasAutoCreateRefTerms && AutoCreateRefTermPinNames.Contains(Pin->PinName) )
+				{
+					const bool bHasDefaultValue = !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject || !Pin->DefaultTextValue.IsEmpty();
+					const bool bValidAutoRefPin = Pin->PinType.bIsReference
+						&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
+						&& ( Pin->Direction == EGPD_Input )
+						&& !Pin->LinkedTo.Num()
+						&& ( Pin->PinType.bIsArray || bHasDefaultValue );
+					if ( bValidAutoRefPin )
+					{
+						//default values can be reset when the pin is connected
+						const auto DefaultValue = Pin->DefaultValue;
+						const auto DefaultObject = Pin->DefaultObject;
+						const auto DefaultTextValue = Pin->DefaultTextValue;
+
+						auto ValuePin = InnerHandleAutoCreateRef(this, Pin, CompilerContext, SourceGraph, bHasDefaultValue);
+						if ( ValuePin )
+						{
+							ValuePin->DefaultValue = DefaultValue;
+							ValuePin->DefaultObject = DefaultObject;
+							ValuePin->DefaultTextValue = DefaultTextValue;
+						}
+					}
+				}
 			}
 		}
 	}
+
+	// Then we go through and expand out array iteration if necessary
+	const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
+	UEdGraphPin* MultiSelf = Schema->FindSelfPin(*this, EEdGraphPinDirection::EGPD_Input);
+	if(bAllowMultipleSelfs && MultiSelf && !MultiSelf->PinType.bIsArray)
+	{
+		const bool bProperInputToExpandForEach = 
+			(1 == MultiSelf->LinkedTo.Num()) && 
+			(NULL != MultiSelf->LinkedTo[0]) && 
+			(MultiSelf->LinkedTo[0]->PinType.bIsArray);
+		if(bProperInputToExpandForEach)
+		{
+			CallForEachElementInArrayExpansion(this, MultiSelf, CompilerContext, SourceGraph);
+		}
+	}
+}
+
+UEdGraphPin* UK2Node_CallFunction::InnerHandleAutoCreateRef(UK2Node* Node, UEdGraphPin* Pin, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, bool bForceAssignment)
+{
+	const bool bAddAssigment = !Pin->PinType.bIsArray && bForceAssignment;
+
+	// ADD LOCAL VARIABLE
+	UK2Node_TemporaryVariable* LocalVariable = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(Node, SourceGraph);
+	LocalVariable->VariableType = Pin->PinType;
+	LocalVariable->VariableType.bIsReference = false;
+	LocalVariable->AllocateDefaultPins();
+	if (!bAddAssigment)
+	{
+		if (!CompilerContext.GetSchema()->TryCreateConnection(LocalVariable->GetVariablePin(), Pin))
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("AutoCreateRefTermPin_NotConnected", "AutoCreateRefTerm Expansion: Pin @@ cannot be connected to @@").ToString(), LocalVariable->GetVariablePin(), Pin);
+			return NULL;
+		}
+	}
+	// ADD ASSIGMENT
+	else
+	{
+		// TODO connect to dest..
+		UK2Node_PureAssignmentStatement* AssignDefaultValue = CompilerContext.SpawnIntermediateNode<UK2Node_PureAssignmentStatement>(Node, SourceGraph);
+		AssignDefaultValue->AllocateDefaultPins();
+		const bool bVariableConnected = CompilerContext.GetSchema()->TryCreateConnection(AssignDefaultValue->GetVariablePin(), LocalVariable->GetVariablePin());
+		const bool bOutputConnected = CompilerContext.GetSchema()->TryCreateConnection(AssignDefaultValue->GetOutputPin(), Pin);
+		if (!bVariableConnected || !bOutputConnected)
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("AutoCreateRefTermPin_AssignmentError", "AutoCreateRefTerm Expansion: Assignment Error @@").ToString(), AssignDefaultValue);
+			return NULL;
+		}
+		CompilerContext.GetSchema()->SetPinDefaultValueBasedOnType(AssignDefaultValue->GetValuePin());
+		return AssignDefaultValue->GetValuePin();
+	}
+	return NULL;
 }
 
 void UK2Node_CallFunction::CallForEachElementInArrayExpansion(UK2Node* Node, UEdGraphPin* MultiSelf, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -1577,7 +2045,11 @@ void UK2Node_CallFunction::GetNodeAttributes( TArray<TKeyValuePair<FString, FStr
 FText UK2Node_CallFunction::GetMenuCategory() const
 {
 	UFunction* TargetFunction = GetTargetFunction();
-	return FText::FromString(GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+	if (TargetFunction != nullptr)
+	{
+		return FText::FromString(GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+	}
+	return FText::GetEmpty();
 }
 
 bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const

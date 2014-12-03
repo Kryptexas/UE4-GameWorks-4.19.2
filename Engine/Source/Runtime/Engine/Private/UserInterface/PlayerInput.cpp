@@ -21,8 +21,51 @@ const TArray<FInputActionKeyMapping> UPlayerInput::NoKeyMappings;
 TArray<FInputActionKeyMapping> UPlayerInput::EngineDefinedActionMappings;
 TArray<FInputAxisKeyMapping> UPlayerInput::EngineDefinedAxisMappings;
 
-UPlayerInput::UPlayerInput(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+/** Runtime struct that gathers up the different kinds of delegates that might be issued */
+struct FDelegateDispatchDetails
+{
+	uint32 EventIndex;
+	uint32 FoundIndex;
+
+	FInputActionUnifiedDelegate ActionDelegate;
+	const FInputActionBinding* SourceAction;
+	FInputChord Chord;
+	TEnumAsByte<EInputEvent> KeyEvent;
+
+	FInputTouchUnifiedDelegate TouchDelegate;
+	FVector TouchLocation;
+	ETouchIndex::Type FingerIndex;
+
+	FInputGestureUnifiedDelegate GestureDelegate;
+	float GestureValue;
+
+	FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputChord& InChord, const FInputActionUnifiedDelegate& InDelegate, const EInputEvent InKeyEvent, const FInputActionBinding* InSourceAction = NULL)
+		: EventIndex(InEventIndex)
+		, FoundIndex(InFoundIndex)
+		, ActionDelegate(InDelegate)
+		, SourceAction(InSourceAction)
+		, Chord(InChord)
+		, KeyEvent(InKeyEvent)
+	{}
+
+	FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputTouchUnifiedDelegate& InDelegate, const FVector InLocation, const ETouchIndex::Type InFingerIndex)
+		: EventIndex(InEventIndex)
+		, FoundIndex(InFoundIndex)
+		, TouchDelegate(InDelegate)
+		, TouchLocation(InLocation)
+		, FingerIndex(InFingerIndex)
+	{}
+
+	FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputGestureUnifiedDelegate& InDelegate, const float InValue)
+		: EventIndex(InEventIndex)
+		, FoundIndex(InFoundIndex)
+		, GestureDelegate(InDelegate)
+		, GestureValue(InValue)
+	{}
+};
+
+UPlayerInput::UPlayerInput(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SetFlags(RF_Transactional);
 	MouseSamplingTotal = +0.0083f;
@@ -561,7 +604,7 @@ void UPlayerInput::GetChordsForAction(const FInputActionBinding& ActionBinding, 
 					const FInputChord Chord(KeyMapping.Key, KeyMapping.bShift, KeyMapping.bCtrl, KeyMapping.bAlt, KeyMapping.bCmd);
 					for (int32 ChordIndex = FoundChords.Num() - 1; ChordIndex >= 0; --ChordIndex)
 					{
-						FInputChord::RelationshipType ChordRelationship = Chord.GetRelationship(FoundChords[ChordIndex].Chord);
+						FInputChord::ERelationshipType ChordRelationship = Chord.GetRelationship(FoundChords[ChordIndex].Chord);
 
 						if (ChordRelationship == FInputChord::Masks)
 						{
@@ -623,7 +666,7 @@ void UPlayerInput::GetChordForKey(const FInputKeyBinding& KeyBinding, const bool
 			// look through the found chords and determine if this is masked (or masks) anything in the array
 			for (int32 ChordIndex = FoundChords.Num() - 1; ChordIndex >= 0; --ChordIndex)
 			{
-				FInputChord::RelationshipType ChordRelationship = KeyBinding.Chord.GetRelationship(FoundChords[ChordIndex].Chord);
+				FInputChord::ERelationshipType ChordRelationship = KeyBinding.Chord.GetRelationship(FoundChords[ChordIndex].Chord);
 
 				if (ChordRelationship == FInputChord::Masks)
 				{

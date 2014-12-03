@@ -32,17 +32,34 @@ class ENGINE_API USplineComponent : public USceneComponent
 	float Duration;
 
 	/** Whether the endpoints of the spline are considered stationary when traversing the spline at non-constant velocity.  Essentially this sets the endpoints' tangents to zero vectors. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Spline)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Spline, meta=(EditCondition="!bClosedLoop"))
 	bool bStationaryEndpoints;
 
+private:
+	/**
+	 * Whether the spline is to be considered as a closed loop.
+	 * Use SetClosedLoop() to set this property, and IsClosedLoop() to read it.
+	 */
+	UPROPERTY(EditAnywhere, Category = Spline)
+	bool bClosedLoop;
+
+public:
 	// Begin UActorComponent interface.
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
+	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 	// End UActorComponent interface.
 
 	/** Update the spline tangents and SplineReparamTable */
 	void UpdateSpline();
+
+	/** Specify whether the spline is a closed loop or not */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void SetClosedLoop(bool bInClosedLoop);
+
+	/** Check whether the spline is a closed loop or not */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	bool IsClosedLoop() const;
 
 	/** Clears all the points in the spline */
 	UFUNCTION(BlueprintCallable, Category=Spline)
@@ -124,6 +141,7 @@ class ENGINE_API USplineComponent : public USceneComponent
 	virtual void PostLoad() override;
 	virtual void PostEditImport() override;
 #if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 #endif
@@ -132,8 +150,17 @@ class ENGINE_API USplineComponent : public USceneComponent
 	void RefreshSplineInputs();
 
 private:
+	/** Returns the length of the specified spline segment up to the parametric value given */
 	float GetSegmentLength(const int32 Index, const float Param = 1.0f) const;
+
+	/** Returns the parametric value t which would result in a spline segment of the given length between S(0)...S(t) */
 	float GetSegmentParamFromLength(const int32 Index, const float Length, const float SegmentLength) const;
+
+	/** Adds an additional point to the end of the spline, whose OutValue and tangents coincides with the first point */
+	void AddLoopEndpoint();
+
+	/** Removes the final point from the spline, assuming it to be a duplicate of the first point */
+	void RemoveLoopEndpoint();
 };
 
 

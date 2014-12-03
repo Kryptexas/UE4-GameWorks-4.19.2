@@ -200,11 +200,29 @@ void FOnlineAsyncTaskSteamReadFriendsList::Finalize()
 			const bool bIsPlayingAGame = SteamFriendsPtr->GetFriendGamePlayed(SteamPlayerId, &FriendGameInfo);
 			// Now fill in the friend info
 			Friend->AccountData.Add(TEXT("nickname"), NickName);
-			Friend->Presence.PresenceStr = UTF8_TO_TCHAR(SteamFriendsPtr->GetFriendRichPresence(SteamPlayerId,"connect"));
+			Friend->Presence.Status.StatusStr = UTF8_TO_TCHAR(SteamFriendsPtr->GetFriendRichPresence(SteamPlayerId,"connect"));
 			FString JoinablePresenceString = UTF8_TO_TCHAR(SteamFriendsPtr->GetFriendRichPresence(SteamPlayerId,"Joinable"));
 			// Remote friend is responsible for updating their presence to have the joinable status
 			Friend->Presence.bIsJoinable = JoinablePresenceString == TEXT("true");
- 			Friend->Presence.bIsOnline = SteamFriendsPtr->GetFriendPersonaState(SteamPlayerId) > k_EPersonaStateOffline;
+			Friend->Presence.bIsOnline = SteamFriendsPtr->GetFriendPersonaState(SteamPlayerId) > k_EPersonaStateOffline;
+			switch (SteamFriendsPtr->GetFriendPersonaState(SteamPlayerId))
+			{
+				case k_EPersonaStateOffline:
+					Friend->Presence.Status.State = EOnlinePresenceState::Offline;
+					break;
+				case k_EPersonaStateBusy:
+					Friend->Presence.Status.State = EOnlinePresenceState::DoNotDisturb;
+					break;
+				case k_EPersonaStateAway:
+					Friend->Presence.Status.State = EOnlinePresenceState::Away;
+					break;
+				case k_EPersonaStateSnooze:
+					Friend->Presence.Status.State = EOnlinePresenceState::ExtendedAway;
+					break;
+				default:
+					Friend->Presence.Status.State = EOnlinePresenceState::Online;
+					break;
+			}
 			Friend->Presence.bIsPlaying = bIsPlayingAGame;
 			// Check the steam id
 			Friend->Presence.bIsPlayingThisGame = FriendGameInfo.m_gameID.AppID() == SteamSubsystem->GetSteamAppId();

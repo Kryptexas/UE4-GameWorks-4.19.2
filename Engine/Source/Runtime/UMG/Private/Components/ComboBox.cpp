@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UComboBox
 
-UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UComboBox::UComboBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

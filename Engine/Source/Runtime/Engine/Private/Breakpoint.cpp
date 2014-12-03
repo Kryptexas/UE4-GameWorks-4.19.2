@@ -5,8 +5,8 @@
 #include "Engine/Breakpoint.h"
 #include "BlueprintUtilities.h"
 
-UBreakpoint::UBreakpoint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBreakpoint::UBreakpoint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled = false;
 	bStepOnce = false;

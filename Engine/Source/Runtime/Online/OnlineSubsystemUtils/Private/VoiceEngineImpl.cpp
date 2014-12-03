@@ -264,11 +264,11 @@ uint32 FVoiceEngineImpl::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, ui
 
 		if (PlayerVoiceData[LocalUserNum].VoiceRemainderSize > 0)
 		{
-			FMemory::Memcpy(DecompressedVoiceBuffer.GetTypedData(), PlayerVoiceData[LocalUserNum].VoiceRemainder.GetTypedData(), PlayerVoiceData[LocalUserNum].VoiceRemainderSize);
+			FMemory::Memcpy(DecompressedVoiceBuffer.GetData(), PlayerVoiceData[LocalUserNum].VoiceRemainder.GetData(), PlayerVoiceData[LocalUserNum].VoiceRemainderSize);
 		}
 
 		// Get new uncompressed data
-		VoiceResult = VoiceCapture->GetVoiceData(DecompressedVoiceBuffer.GetTypedData() + PlayerVoiceData[LocalUserNum].VoiceRemainderSize, 
+		VoiceResult = VoiceCapture->GetVoiceData(DecompressedVoiceBuffer.GetData() + PlayerVoiceData[LocalUserNum].VoiceRemainderSize,
 			NewVoiceDataBytes, NewVoiceDataBytes);
 
 		TotalVoiceBytes = NewVoiceDataBytes + PlayerVoiceData[LocalUserNum].VoiceRemainderSize;
@@ -279,7 +279,7 @@ uint32 FVoiceEngineImpl::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, ui
 			CompressedVoiceBuffer.AddUninitialized(MAX_COMPRESSED_VOICE_BUFFER_SIZE);
 
 			PlayerVoiceData[LocalUserNum].VoiceRemainderSize =
-				VoiceEncoder->Encode(DecompressedVoiceBuffer.GetTypedData(), TotalVoiceBytes, CompressedVoiceBuffer.GetTypedData(), CompressedBytesAvailable);
+				VoiceEncoder->Encode(DecompressedVoiceBuffer.GetData(), TotalVoiceBytes, CompressedVoiceBuffer.GetData(), CompressedBytesAvailable);
 
 			// Save off any unencoded remainder
 			if (PlayerVoiceData[LocalUserNum].VoiceRemainderSize > 0)
@@ -291,7 +291,7 @@ uint32 FVoiceEngineImpl::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, ui
 				}
 
 				PlayerVoiceData[LocalUserNum].VoiceRemainder.AddUninitialized(MAX_VOICE_REMAINDER_SIZE);
-				FMemory::Memcpy(PlayerVoiceData[LocalUserNum].VoiceRemainder.GetTypedData(), DecompressedVoiceBuffer.GetTypedData() + (TotalVoiceBytes - PlayerVoiceData[LocalUserNum].VoiceRemainderSize), PlayerVoiceData[LocalUserNum].VoiceRemainderSize);
+				FMemory::Memcpy(PlayerVoiceData[LocalUserNum].VoiceRemainder.GetData(), DecompressedVoiceBuffer.GetData() + (TotalVoiceBytes - PlayerVoiceData[LocalUserNum].VoiceRemainderSize), PlayerVoiceData[LocalUserNum].VoiceRemainderSize);
 			}
 
 			static double LastGetVoiceCallTime = 0.0;
@@ -344,7 +344,7 @@ uint32 FVoiceEngineImpl::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerI
 
 	DecompressedVoiceBuffer.Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
 	DecompressedVoiceBuffer.AddUninitialized(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
-	QueuedData->VoiceDecoder->Decode(Data, *Size, DecompressedVoiceBuffer.GetTypedData(), BytesWritten);
+	QueuedData->VoiceDecoder->Decode(Data, *Size, DecompressedVoiceBuffer.GetData(), BytesWritten);
 
 	// If there is no data, return
 	if (BytesWritten <= 0)

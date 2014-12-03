@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Compression.h: Compression classes
-=============================================================================*/
-
 #pragma once
+
+#include "HAL/Platform.h"
 
 /**
  * Flags controlling [de]compression
@@ -21,12 +19,14 @@ enum ECompressionFlags
 	COMPRESS_BiasSpeed				= 0x20,
 };
 
+
 // Define global current platform default to current platform.
 #define COMPRESS_Default			COMPRESS_ZLIB
 
 /** Compression Flag Masks **/
 /** mask out compression type flags */
 #define COMPRESSION_FLAGS_TYPE_MASK		0x0F
+
 /** mask out compression type */
 #define COMPRESSION_FLAGS_OPTIONS_MASK	0xF0
 

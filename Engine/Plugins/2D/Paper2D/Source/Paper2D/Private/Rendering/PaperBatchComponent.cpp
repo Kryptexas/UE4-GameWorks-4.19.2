@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperBatchComponent
 
-UPaperBatchComponent::UPaperBatchComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperBatchComponent::UPaperBatchComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -23,7 +23,7 @@ FPrimitiveSceneProxy* UPaperBatchComponent::CreateSceneProxy()
 	return NewProxy;
 }
 
-FBoxSphereBounds UPaperBatchComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UPaperBatchComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Always visible
 	FBoxSphereBounds Bounds(FVector::ZeroVector, FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX), HALF_WORLD_MAX);

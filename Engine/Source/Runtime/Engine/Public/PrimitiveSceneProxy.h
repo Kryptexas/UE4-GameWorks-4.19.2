@@ -318,7 +318,7 @@ public:
 	void SetCollisionEnabled_RenderThread(const bool bNewEnabled);
 
 	// Accessors.
-	inline FSceneInterface* GetScene() const { return Scene; }
+	inline FSceneInterface& GetScene() const { return *Scene; }
 	inline FPrimitiveComponentId GetPrimitiveComponentId() const { return PrimitiveComponentId; }
 	inline FPrimitiveSceneInfo* GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
 	inline const FMatrix& GetLocalToWorld() const { return LocalToWorld; }
@@ -358,6 +358,7 @@ public:
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
 	inline bool CastsHiddenShadow() const { return bCastHiddenShadow; }
 	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
+	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
 	inline bool LightAttachmentsAsGroup() const { return bLightAttachmentsAsGroup; }
 	inline bool StaticElementsAlwaysUseProxyPrimitiveUniformBuffer() const { return bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer; }
@@ -528,7 +529,10 @@ protected:
 	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
 	uint32 bCastShadowAsTwoSided : 1;
 
-	/** Whether this component should create a per-object shadow that gives higher effective shadow resolution.  */
+	/** When enabled, the component will only cast a shadow on itself and not other components in the world.  This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled. */
+	uint32 bSelfShadowOnly : 1;
+
+	/** Whether this component should create a per-object shadow that gives higher effective shadow resolution. true if bSelfShadowOnly is true. */
 	uint32 bCastInsetShadow : 1;
 
 	/** 

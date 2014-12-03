@@ -250,8 +250,8 @@ void FSpriteDrawCallRecord::BuildFromSprite(const UPaperSprite* Sprite)
 //////////////////////////////////////////////////////////////////////////
 // UPaperSprite
 
-UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Default to using physics
 	SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;

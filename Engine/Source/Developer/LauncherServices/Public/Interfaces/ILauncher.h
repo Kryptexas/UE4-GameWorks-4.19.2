@@ -20,17 +20,14 @@ public:
 	/**
 	 * Launches the specified profile.
 	 *
-	 * @param DeviceProxyManager - The target device proxy manager to use.
-	 * @param Profile - The profile to launch.
-	 *
-	 * @return The worker thread, or NULL if not launched.
+	 * @param DeviceProxyManager The target device proxy manager to use.
+	 * @param Profile The profile to launch.
+	 * @return The worker thread, or nullptr if not launched.
 	 */
 	virtual ILauncherWorkerPtr Launch( const ITargetDeviceProxyManagerRef& DeviceProxyManager, const ILauncherProfileRef& Profile ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ILauncher( ) { }
 };

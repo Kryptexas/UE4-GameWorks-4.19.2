@@ -12,8 +12,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogParticleSystemAuditCommandlet, Log, All);
 
-UParticleSystemAuditCommandlet::UParticleSystemAuditCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemAuditCommandlet::UParticleSystemAuditCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	HighSpawnRateOrBurstThreshold = 35.f;
 	FarLODDistanceTheshold = 3000.f;

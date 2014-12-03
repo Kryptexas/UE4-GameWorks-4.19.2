@@ -251,13 +251,13 @@ void AnimEncodingLegacyBase::GetBoneAtom(
 	OutAtom.SetIdentity();
 
 	// Use the CompressedTrackOffsets stream to find the data addresses
-	const int32* RESTRICT TrackData= Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex*4);
+	const int32* RESTRICT TrackData= Seq.CompressedTrackOffsets.GetData() + (TrackIndex*4);
 	int32 TransKeysOffset = *(TrackData+0);
 	int32 NumTransKeys	= *(TrackData+1);
 	int32 RotKeysOffset	= *(TrackData+2);
 	int32 NumRotKeys		= *(TrackData+3);
-	const uint8* RESTRICT TransStream	= Seq.CompressedByteStream.GetTypedData()+TransKeysOffset;
-	const uint8* RESTRICT RotStream		= Seq.CompressedByteStream.GetTypedData()+RotKeysOffset;
+	const uint8* RESTRICT TransStream	= Seq.CompressedByteStream.GetData()+TransKeysOffset;
+	const uint8* RESTRICT RotStream		= Seq.CompressedByteStream.GetData()+RotKeysOffset;
 
 	const float RelativePos = Time / (float)Seq.SequenceLength;
 
@@ -275,7 +275,7 @@ void AnimEncodingLegacyBase::GetBoneAtom(
 	{
 		int32 ScaleKeyOffset = Seq.CompressedScaleOffsets.GetOffsetData(TrackIndex, 0);
 		int32 NumScaleKeys = Seq.CompressedScaleOffsets.GetOffsetData(TrackIndex, 1);
-		const uint8* RESTRICT ScaleStream		= Seq.CompressedByteStream.GetTypedData()+ScaleKeyOffset;
+		const uint8* RESTRICT ScaleStream		= Seq.CompressedByteStream.GetData()+ScaleKeyOffset;
 		// decompress the rotation component using the proper method
 		checkSlow(Seq.ScaleCodec != NULL);
 		((AnimEncodingLegacyBase*)Seq.ScaleCodec)->GetBoneAtomScale(OutAtom, Seq, ScaleStream, NumScaleKeys, Time, RelativePos);
@@ -306,7 +306,7 @@ void AnimEncodingLegacyBase::ByteSwapIn(
 	Seq.CompressedByteStream.AddUninitialized(OriginalNumBytes);
 
 	// Read and swap
-	uint8* StreamBase = Seq.CompressedByteStream.GetTypedData();
+	uint8* StreamBase = Seq.CompressedByteStream.GetData();
 	bool bHasValidScale = Seq.CompressedScaleOffsets.IsValid();
 
 	for ( int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex )
@@ -374,7 +374,7 @@ void AnimEncodingLegacyBase::ByteSwapOut(
 	FMemoryWriter MemoryWriter( SerializedData, true );
 	MemoryWriter.SetByteSwapping( ForceByteSwapping );
 
-	uint8* StreamBase		= Seq.CompressedByteStream.GetTypedData();
+	uint8* StreamBase		= Seq.CompressedByteStream.GetData();
 	const int32 NumTracks		= Seq.CompressedTrackOffsets.Num()/4;
 
 	bool bHasValidScale = Seq.CompressedScaleOffsets.IsValid();
@@ -583,7 +583,7 @@ void AnimationFormat_GetStats(
 				}
 				else
 				{
-					const int32 Header = *((int32*)(Seq->CompressedByteStream.GetTypedData() + TransOffset));
+					const int32 Header = *((int32*)(Seq->CompressedByteStream.GetData() + TransOffset));
 
 					int32 KeyFormat;
 					int32 FormatFlags;
@@ -616,7 +616,7 @@ void AnimationFormat_GetStats(
 				}
 				else
 				{
-					const int32 Header = *((int32*)(Seq->CompressedByteStream.GetTypedData() + RotOffset));
+					const int32 Header = *((int32*)(Seq->CompressedByteStream.GetData() + RotOffset));
 
 					int32 KeyFormat;
 					int32 FormatFlags;
@@ -649,7 +649,7 @@ void AnimationFormat_GetStats(
 				}
 				else
 				{
-					const int32 Header = *((int32*)(Seq->CompressedByteStream.GetTypedData() + ScaleOffset));
+					const int32 Header = *((int32*)(Seq->CompressedByteStream.GetData() + ScaleOffset));
 
 					int32 KeyFormat;
 					int32 FormatFlags;

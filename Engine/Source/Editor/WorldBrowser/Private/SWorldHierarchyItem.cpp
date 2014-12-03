@@ -31,7 +31,7 @@ void SWorldHierarchyItem::Construct(const FArguments& InArgs, TSharedRef<STableV
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName & ColumnID )
+TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName& ColumnID )
 {
 	TSharedPtr< SWidget > TableRowContent = SNullWidget::NullWidget;
 

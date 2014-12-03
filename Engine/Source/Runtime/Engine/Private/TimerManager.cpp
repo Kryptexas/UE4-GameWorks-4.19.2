@@ -181,25 +181,26 @@ void FTimerManager::InternalSetTimer(FTimerHandle& InOutHandle, FTimerUnifiedDel
 
 void FTimerManager::InternalSetTimer(FTimerData& NewTimerData, float InRate, bool InbLoop, float InFirstDelay)
 {
-	check(NewTimerData.TimerDelegate.IsBound() || NewTimerData.TimerHandle.IsValid());
-
-	NewTimerData.Rate = InRate;
-	NewTimerData.bLoop = InbLoop;
-
-	float FirstDelay = (InFirstDelay >= 0.f) ? InFirstDelay : InRate;
-
-	if (HasBeenTickedThisFrame())
+	if (NewTimerData.TimerDelegate.IsBound() || NewTimerData.TimerHandle.IsValid())
 	{
-		NewTimerData.ExpireTime = InternalTime + FirstDelay;
-		NewTimerData.Status = ETimerStatus::Active;
-		ActiveTimerHeap.HeapPush(NewTimerData);
-	}
-	else
-	{
-		// Store time remaining in ExpireTime while pending
-		NewTimerData.ExpireTime = FirstDelay;
-		NewTimerData.Status = ETimerStatus::Pending;
-		PendingTimerList.Add(NewTimerData);
+		NewTimerData.Rate = InRate;
+		NewTimerData.bLoop = InbLoop;
+
+		const float FirstDelay = (InFirstDelay >= 0.f) ? InFirstDelay : InRate;
+
+		if (HasBeenTickedThisFrame())
+		{
+			NewTimerData.ExpireTime = InternalTime + FirstDelay;
+			NewTimerData.Status = ETimerStatus::Active;
+			ActiveTimerHeap.HeapPush(NewTimerData);
+		}
+		else
+		{
+			// Store time remaining in ExpireTime while pending
+			NewTimerData.ExpireTime = FirstDelay;
+			NewTimerData.Status = ETimerStatus::Pending;
+			PendingTimerList.Add(NewTimerData);
+		}
 	}
 }
 
@@ -312,6 +313,13 @@ void FTimerManager::InternalClearAllTimers(void const* Object)
 			{
 				PendingTimerList.RemoveAtSwap(Idx--);
 			}
+		}
+
+		// Edge case. We're currently handling this timer when it got cleared.  Unbind it to prevent it firing again
+		// in case it was scheduled to fire multiple times.
+		if (CurrentlyExecutingTimer.TimerDelegate.IsBoundToObject(Object))
+		{
+			CurrentlyExecutingTimer.TimerDelegate.Unbind();
 		}
 	}
 }

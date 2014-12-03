@@ -19,9 +19,15 @@ public:
 	UPROPERTY()
 	struct FAnimTrack AnimationTrack;
 
+	// Begin UAnimSequenceBase interface
+	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
+	// End UAnimSequenceBase interface
+
+	// Begin UAnimSequence interface
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 #endif
+	// End UAnimSequence interface
 };
 

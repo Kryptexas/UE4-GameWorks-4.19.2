@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BTService.h"
 
-UBTService::UBTService(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTService::UBTService(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bNotifyTick = true;
 	bNotifyOnSearch = true;
@@ -19,13 +19,13 @@ void UBTService::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, 
 	SetNextTickTime(NodeMemory, NextTickTime);
 }
 
-void UBTService::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
+void UBTService::OnSearchStart(FBehaviorTreeSearchData& SearchData)
 {
 	uint8* NodeMemory = GetNodeMemory<uint8>(SearchData);
 	TickNode(SearchData.OwnerComp, NodeMemory, 0.0f);
 }
 
-void UBTService::NotifyParentActivation(struct FBehaviorTreeSearchData& SearchData)
+void UBTService::NotifyParentActivation(FBehaviorTreeSearchData& SearchData)
 {
 	if (bNotifyOnSearch)
 	{
@@ -37,13 +37,23 @@ void UBTService::NotifyParentActivation(struct FBehaviorTreeSearchData& SearchDa
 	}
 }
 
-FString UBTService::GetStaticDescription() const
+FString UBTService::GetStaticTickIntervalDescription() const
 {
 	FString IntervalDesc = (RandomDeviation > 0.0f) ?
 		FString::Printf(TEXT("%.2fs..%.2fs"), FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation)) :
 		FString::Printf(TEXT("%.2fs"), Interval);
 
-	return FString::Printf(TEXT("%s: tick every %s"), *UBehaviorTreeTypes::GetShortTypeName(this), *IntervalDesc);
+	return FString::Printf(TEXT("tick every %s"), *IntervalDesc);
+}
+
+FString UBTService::GetStaticServiceDescription() const
+{
+	return GetStaticTickIntervalDescription();
+}
+
+FString UBTService::GetStaticDescription() const
+{
+	return FString::Printf(TEXT("%s: %s"), *UBehaviorTreeTypes::GetShortTypeName(this), *GetStaticServiceDescription());
 }
 
 #if WITH_EDITOR

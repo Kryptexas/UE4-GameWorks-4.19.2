@@ -26,13 +26,13 @@ namespace APIDocTool
 			Pages.AddRange(Members);
 		}
 
-		public override SitemapNode CreateSitemapNode()
+		public override IEnumerable<SitemapNode> CreateSitemapNodes()
 		{
 			SitemapNode Node = new SitemapNode(Name, SitemapLinkPath);
-			Node.Children.AddRange(Filters.Select(x => x.CreateSitemapNode()));
-			Node.Children.AddRange(Members.OfType<APIRecord>().Select(x => x.CreateSitemapNode()));
+			Node.Children.AddRange(Filters.SelectMany(x => x.CreateSitemapNodes()));
+			Node.Children.AddRange(Members.OfType<APIRecord>().SelectMany(x => x.CreateSitemapNodes()));
 			if (Node.Children.Count == 0) Node.Children.Add(new SitemapNode(Name, SitemapLinkPath));
-			return Node;
+			yield return Node;
 		}
 
 		public override void AddToManifest(UdnManifest Manifest)
@@ -113,12 +113,12 @@ namespace APIDocTool
 
 				// Write the function list
 				Writer.EnterTag("[PARAM:functions]");
-				APIFunction.WriteListSection(Writer, "functions", "Functions", AllFunctions);
+				APIFunction.WriteListSection(Writer, "functions", "Functions", AllFunctions, true);
 				Writer.LeaveTag("[/PARAM]");
 
 				// Write the variable list
 				Writer.EnterTag("[PARAM:variables]");
-				Writer.WriteListSection("variables", "Variables", "Name", "Description", FilteredMembers.OfType<APIVariable>().Select(x => x.GetListItem()));
+				APIVariable.WriteListSection(Writer, "variables", "Variables", FilteredMembers.OfType<APIVariable>());
 				Writer.LeaveTag("[/PARAM]");
 
 				// Close the module template

@@ -98,7 +98,7 @@ static bool SaveApexClothingAssetToBlob(const NxClothingAsset *InAsset, TArray<u
 			// Read the stream data into our buffer for UE serialzation
 			Size = Stream->getFileLength();
 			OutBuffer.AddUninitialized( Size );
-			Stream->read( OutBuffer.GetTypedData(), Size );
+			Stream->read( OutBuffer.GetData(), Size );
 			bResult = true;
 		}
 
@@ -501,11 +501,7 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexColorBuffer& VertexBuffer
 		if( VertexBuffer.VertexData != NULL )
 		{
 			VertexBuffer.VertexData->Serialize( Ar );
-
-			// update cached buffer info
-			VertexBuffer.Data = VertexBuffer.VertexData->GetDataPointer();
-			VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
-			VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
+			VertexBuffer.UpdateCachedInfo();
 		}
 	}
 
@@ -518,15 +514,8 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexColorBuffer& VertexBuffer
  */
 void FSkeletalMeshVertexColorBuffer::Init( const TArray<FSoftSkinVertex>& InVertices )
 {
-	// Allocate new data
 	AllocateData();
-
-	// Resize the buffer to hold enough data for all passed in vertices
-	VertexData->ResizeBuffer( InVertices.Num() );
-
-	Data = VertexData->GetDataPointer();
-	Stride = VertexData->GetStride();
-	NumVertices = VertexData->GetNumVertices();
+	ResizeData(InVertices.Num());
 
 	// Copy color info from each vertex
 	for( int32 VertIdx=0; VertIdx < InVertices.Num(); ++VertIdx )
@@ -544,6 +533,33 @@ void FSkeletalMeshVertexColorBuffer::AllocateData()
 	CleanUp();
 
 	VertexData = new TSkeletalMeshVertexData<FGPUSkinVertexColor>(true);
+}
+
+FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const TArray<FColor>& InColors)
+{
+	AllocateData();
+	ResizeData(InColors.Num());
+
+	// Copy the color values for each vertex.
+	for (int32 VertIdx = 0; VertIdx < InColors.Num(); ++VertIdx)
+	{
+		SetColor(VertIdx, InColors[VertIdx]);
+	}
+
+	return *this;
+}
+
+void FSkeletalMeshVertexColorBuffer::ResizeData(int32 NumVertices)
+{
+	VertexData->ResizeBuffer(NumVertices);
+	UpdateCachedInfo();
+}
+
+void FSkeletalMeshVertexColorBuffer::UpdateCachedInfo()
+{
+	Data = VertexData->GetDataPointer();
+	Stride = VertexData->GetStride();
+	NumVertices = VertexData->GetNumVertices();
 }
 
 /** 
@@ -1170,7 +1186,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		if( Ar.IsLoading() )
 		{
 			// set cpu skinning flag on the vertex buffer so that the resource arrays know if they need to be CPU accessible
-			VertexBufferGPUSkin.SetNeedsCPUAccess(bKeepBuffersInCPUMemory || SkelMeshOwner->GetImportedResource()->RequiresCPUSkinning(GRHIFeatureLevel));
+			VertexBufferGPUSkin.SetNeedsCPUAccess(bKeepBuffersInCPUMemory || SkelMeshOwner->GetImportedResource()->RequiresCPUSkinning(GMaxRHIFeatureLevel));
 		}
 		Ar << NumTexCoords;
 		Ar << VertexBufferGPUSkin;
@@ -1262,7 +1278,7 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors)
 		BeginInitResource(&APEXClothVertexBuffer);
 	}
 
-	if( RHISupportsTessellation(GRHIShaderPlatform) ) 
+	if( RHISupportsTessellation(GMaxRHIShaderPlatform) ) 
 	{
 		AdjacencyMultiSizeIndexContainer.InitResources();
 		INC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0 );
@@ -1389,7 +1405,7 @@ void FStaticLODModel::GetVertices(TArray<FSoftSkinVertex>& Vertices) const
 			}
 			DestVertex++;
 		}
-		FMemory::Memcpy(DestVertex,Chunk.SoftVertices.GetTypedData(),Chunk.SoftVertices.Num() * sizeof(FSoftSkinVertex));
+		FMemory::Memcpy(DestVertex,Chunk.SoftVertices.GetData(),Chunk.SoftVertices.Num() * sizeof(FSoftSkinVertex));
 		DestVertex += Chunk.SoftVertices.Num();
 	}
 }
@@ -1519,7 +1535,7 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 		{
 			TArray<uint32> Indices;
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
-			SortTriangles_None( Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+			SortTriangles_None( Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;
@@ -1529,11 +1545,11 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
 			if (bUseSortCenter)
 			{
-				SortTriangles_CenterRadialDistance( SortCenter, Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+				SortTriangles_CenterRadialDistance( SortCenter, Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			}
 			else
 			{
-				SortTriangles_CenterRadialDistance( Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+				SortTriangles_CenterRadialDistance( Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			}
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
@@ -1542,7 +1558,7 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 		{
 			TArray<uint32> Indices;
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
-			SortTriangles_Random( Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+			SortTriangles_Random( Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;
@@ -1550,7 +1566,7 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 		{
 			TArray<uint32> Indices;
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
-			SortTriangles_MergeContiguous( Section.NumTriangles, NumVertices, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+			SortTriangles_MergeContiguous( Section.NumTriangles, NumVertices, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;
@@ -1910,8 +1926,8 @@ bool FSkeletalMeshResource::RequiresCPUSkinning(ERHIFeatureLevel::Type FeatureLe
 /*-----------------------------------------------------------------------------
 	USkeletalMesh
 -----------------------------------------------------------------------------*/
-USkeletalMesh::USkeletalMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMesh::USkeletalMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SkelMirrorAxis = EAxis::X;
 	SkelMirrorFlipAxis = EAxis::Z;
@@ -2091,7 +2107,7 @@ FArchive &operator<<( FArchive& Ar, FSkeletalMeshLODInfo& I )
 	return Ar;
 }
 
-void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh * InSkeletalMesh)
+void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh)
 {
 	if (InSkeletalMesh)
 	{
@@ -2202,6 +2218,14 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		InitMorphTargets();
 	}
 
+	if ( GIsEditor &&
+		 PropertyThatChanged &&
+		 PropertyThatChanged->GetFName() == FName(TEXT("bEnablePerPolyCollision"))
+		)
+	{
+		BuildPhysicsData();
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -2227,7 +2251,7 @@ void USkeletalMesh::PostEditUndo()
 }
 #endif // WITH_EDITOR
 
-static void RecreateRenderState_Internal(const USkeletalMesh * InSkeletalMesh)
+static void RecreateRenderState_Internal(const USkeletalMesh* InSkeletalMesh)
 {
 	if (InSkeletalMesh)
 	{
@@ -2250,6 +2274,14 @@ void USkeletalMesh::BeginDestroy()
 
 	// Release the mesh's render resources.
 	ReleaseResources();
+
+#if WITH_APEX_CLOTHING
+	// release clothing assets
+	for (FClothingAssetData& Data : ClothingAssets)
+	{
+		Data.ApexClothingAsset.Reset();
+	}
+#endif // #if WITH_APEX_CLOTHING
 }
 
 
@@ -2373,6 +2405,11 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
 	}
 #endif
+
+	if (bEnablePerPolyCollision)
+	{
+		Ar << BodySetup;
+	}
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -2657,7 +2694,7 @@ void USkeletalMesh::PostLoad()
 		// so it's safe to decrease indices for children, we're not going to lose the index of the remaining duplicate bones.
 		for(int32 Index=0; Index<DuplicateBones.Num(); Index++)
 		{
-			const FBoneIndexType & DuplicateBoneIndex = DuplicateBones[Index];
+			const FBoneIndexType& DuplicateBoneIndex = DuplicateBones[Index];
 			for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
 			{
 				FStaticLODModel & ThisLODModel = ImportedResource->LODModels[LodIndex];
@@ -3320,6 +3357,118 @@ bool USkeletalMesh::MirrorTableIsGood(FString& ProblemBones)
 	}
 }
 
+void USkeletalMesh::CreateBodySetup()
+{
+	if (BodySetup == nullptr)
+	{
+		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BodySetup->bSharedCookedData = true;
+	}
+}
+
+UBodySetup* USkeletalMesh::GetBodySetup()
+{
+	CreateBodySetup();
+	return BodySetup;
+}
+
+#if WITH_EDITOR
+void USkeletalMesh::BuildPhysicsData()
+{
+	CreateBodySetup();
+	BodySetup->CookedFormatData.FlushData();	//we need to force a re-cook because we're essentially re-creating the bodysetup so that it swaps whether or not it has a trimesh
+	BodySetup->InvalidatePhysicsData();
+	BodySetup->CreatePhysicsMeshes();
+}
+#endif
+
+bool USkeletalMesh::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
+{
+	return bEnablePerPolyCollision;
+}
+
+bool USkeletalMesh::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
+{
+#if WITH_EDITORONLY_DATA
+
+	// Fail if no mesh or not per poly collision
+	if (!ImportedResource.IsValid() || !bEnablePerPolyCollision)
+	{
+		return false;
+	}
+
+	const FStaticLODModel& Model = ImportedResource->LODModels[0];
+
+	{
+		// Copy all verts into collision vertex buffer.
+		CollisionData->Vertices.Empty();
+		CollisionData->Vertices.AddUninitialized(Model.NumVertices);
+		const uint32 NumChunks = Model.Chunks.Num();
+
+		for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+		{
+			const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIdx];
+			{
+				//rigid
+				const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
+				const uint32 NumRigidVerts = Chunk.GetNumRigidVertices();
+				for (uint32 RigidIdx = 0; RigidIdx < NumRigidVerts; ++RigidIdx)
+				{
+					CollisionData->Vertices[RigidIdx + RigidOffset] = Chunk.RigidVertices[RigidIdx].Position;
+				}
+			}
+			{
+				//soft
+				const uint32 SoftOffset = Chunk.GetSoftVertexBufferIndex();
+				const uint32 NumSoftVerts = Chunk.GetNumSoftVertices();
+				for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+				{
+					CollisionData->Vertices[SoftIdx + SoftOffset] = Chunk.SoftVertices[SoftIdx].Position;
+				}
+			}
+
+		}
+	}
+
+	{
+		// Copy indices into collision index buffer
+		const FMultiSizeIndexContainer& IndexBufferContainer = Model.MultiSizeIndexContainer;
+
+		TArray<uint32> Indices;
+		IndexBufferContainer.GetIndexBuffer(Indices);
+
+		const uint32 NumTris = Indices.Num() / 3;
+		CollisionData->Indices.Empty();
+		CollisionData->Indices.Reserve(NumTris);
+
+		FTriIndices TriIndex;
+		for (int32 SectionIndex = 0; SectionIndex < Model.Sections.Num(); ++SectionIndex)
+		{
+			const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+
+			const uint32 OnePastLastIndex = Section.BaseIndex + Section.NumTriangles * 3;
+
+			for (uint32 i = Section.BaseIndex; i < OnePastLastIndex; i += 3)
+			{
+				TriIndex.v0 = Indices[i];
+				TriIndex.v1 = Indices[i + 1];
+				TriIndex.v2 = Indices[i + 2];
+
+				CollisionData->Indices.Add(TriIndex);
+				CollisionData->MaterialIndices.Add(Section.MaterialIndex);
+			}
+		}
+	}
+
+	CollisionData->bFlipNormals = true;
+
+	// We only have a valid TriMesh if the CollisionData has vertices AND indices. For meshes with disabled section collision, it
+	// can happen that the indices will be empty, in which case we do not want to consider that as valid trimesh data
+	return CollisionData->Vertices.Num() > 0 && CollisionData->Indices.Num() > 0;
+#else // #if WITH_EDITORONLY_DATA
+	return false;
+#endif // #if WITH_EDITORONLY_DATA
+}
 
 
 ////// SKELETAL MESH THUMBNAIL SUPPORT ////////
@@ -3338,8 +3487,8 @@ FString USkeletalMesh::GetDesc()
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
 -----------------------------------------------------------------------------*/
-USkeletalMeshSocket::USkeletalMeshSocket(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMeshSocket::USkeletalMeshSocket(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RelativeScale = FVector(1.0f, 1.0f, 1.0f);
 }
@@ -3473,11 +3622,11 @@ bool USkeletalMeshSocket::AttachActor(AActor* Actor, class USkeletalMeshComponen
 /*-----------------------------------------------------------------------------
 	ASkeletalMeshActor
 -----------------------------------------------------------------------------*/
-ASkeletalMeshActor::ASkeletalMeshActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASkeletalMeshActor::ASkeletalMeshActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
-	SkeletalMeshComponent = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("SkeletalMeshComponent0"));
+	SkeletalMeshComponent = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("SkeletalMeshComponent0"));
 	SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
 	SkeletalMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	// check BaseEngine.ini for profile setup
@@ -3793,7 +3942,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	PhysicsAssetForDebug(Component->GetPhysicsAsset())
 		,	bForceWireframe(Component->bForceWireframe)
 		,	bCanHighlightSelectedSections(Component->bCanHighlightSelectedSections)
-		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
+		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 		,	bMaterialsNeedMorphUsage_GameThread(false)
 {
 	check(MeshObject);
@@ -3808,7 +3957,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		bAlwaysHasVelocity = true;
 	}
 
-	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
 	// setup materials and performance classification for each LOD.
 	extern bool GForceDefaultMaterial;
@@ -3870,7 +4019,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 				MaterialRelevance |= Material->GetRelevance(FeatureLevel);
 			}
 
-			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, GetScene()->GetFeatureLevel() );
+			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, FeatureLevel );
 			if ( bRequiresAdjacencyInformation && LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() == false )
 			{
 				UE_LOG(LogSkeletalMesh, Warning, 
@@ -4327,7 +4476,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			BatchElement.NumPrimitives = Section.NumTriangles;
 			if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 			{
-				if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent)
+				if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode() == BLEND_Translucent)
 				{
 					BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
 					if( BatchElement.NumPrimitives == 0 )
@@ -4609,7 +4758,7 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 			UpdateSkelProxyLODSectionElementsCmd,
 				TSet<UMaterialInterface*>,MaterialsToSwap,MaterialsToSwap,
 				UMaterialInterface*,DefaultMaterial,UMaterial::GetDefaultMaterial(MD_Surface),
-				ERHIFeatureLevel::Type, FeatureLevel, GetScene()->GetFeatureLevel(),
+				ERHIFeatureLevel::Type, FeatureLevel, GetScene().GetFeatureLevel(),
 			FSkeletalMeshSceneProxy*,SkelMeshSceneProxy,this,
 			{
 					for( int32 LodIdx=0; LodIdx < SkelMeshSceneProxy->LODSections.Num(); LodIdx++ )
@@ -4632,8 +4781,8 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 }
 
 
-USkinnedMeshComponent::USkinnedMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -4732,9 +4881,13 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-	if (bEnablePerPolyCollision)
+	if (Ar.UE4Ver() < VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION)
 	{
-		Ar << BodySetup;
+		//we used to serialize bodysetup of skeletal mesh component. We no longer do this, but need to not break existing content
+		if (bEnablePerPolyCollision)
+		{
+			Ar << BodySetup;
+		}
 	}
 
 	// Since we separated simulation vs blending
@@ -4754,6 +4907,11 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 #endif
+
+	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_AUTO_WELDING))
+	{
+		BodyInstance.bAutoWeld = false;
+	}
 }
 
 
@@ -4793,3 +4951,6 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns SkeletalMeshComponent subobject **/
+USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() { return SkeletalMeshComponent; }

@@ -3,6 +3,10 @@
 #pragma once
 
 
+// forward declarations
+class FSettingsSection;
+
+
 /**
  * Implements a settings category.
  */
@@ -17,9 +21,7 @@ public:
 	 *
 	 * @param InName The category's name.
 	 */
-	FSettingsCategory( const FName& InName )
-		: Name(InName)
-	{ }
+	FSettingsCategory( const FName& InName );
 
 public:
 
@@ -32,20 +34,9 @@ public:
 	 * @param DisplayName The section's localized display name.
 	 * @param Description The section's localized description text.
 	 * @param SettingsObject The object that holds the section's settings.
-	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section.
 	 */
-	ISettingsSectionRef AddSection( const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates )
-	{
-		TSharedPtr<FSettingsSection>& Section = Sections.FindOrAdd(SectionName);
-
-		if (!Section.IsValid() || (Section->GetSettingsObject() != SettingsObject) || Section->GetCustomWidget().IsValid())
-		{
-			Section = MakeShareable(new FSettingsSection(AsShared(), SectionName, InDisplayName, InDescription, Delegates, SettingsObject));
-		}
-
-		return Section.ToSharedRef();
-	}
+	ISettingsSectionRef AddSection( const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject );
 
 	/**
 	 * Adds a settings section to this settings category.
@@ -56,20 +47,9 @@ public:
 	 * @param DisplayName The section's localized display name.
 	 * @param Description The section's localized description text.
 	 * @param CustomWidget A custom settings widget.
-	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section.
 	 */
-	ISettingsSectionRef AddSection( const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates )
-	{
-		TSharedPtr<FSettingsSection>& Section = Sections.FindOrAdd(SectionName);
-
-		if (!Section.IsValid() || (Section->GetSettingsObject() != nullptr) || (Section->GetCustomWidget().Pin() != CustomWidget))
-		{
-			Section = MakeShareable(new FSettingsSection(AsShared(), SectionName, InDisplayName, InDescription, Delegates, CustomWidget));
-		}
-
-		return Section.ToSharedRef();
-	}
+	ISettingsSectionRef AddSection( const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget );
 
 	/**
 	 * Updates the details of this settings category.
@@ -79,37 +59,30 @@ public:
 	 * @param InIconName The name of the category's icon.
 	 * @return The category.
 	 */
-	void Describe( const FText& InDisplayName, const FText& InDescription )
-	{
-		Description = InDescription;
-		DisplayName = InDisplayName;
-	}
+	void Describe( const FText& InDisplayName, const FText& InDescription );
 
 	/**
 	 * Removes a settings section.
 	 *
 	 * @param SectionName The name of the section to remove.
 	 */
-	void RemoveSection( const FName& SectionName )
-	{
-		Sections.Remove(SectionName);
-	}
+	void RemoveSection( const FName& SectionName );
 
 public:
 
 	// ISettingsCategory interface
 
-	virtual const FText& GetDescription( ) const override
+	virtual const FText& GetDescription() const override
 	{
 		return Description;
 	}
 
-	virtual const FText& GetDisplayName( ) const override
+	virtual const FText& GetDisplayName() const override
 	{
 		return DisplayName;
 	}
 
-	virtual const FName& GetName( ) const override
+	virtual const FName& GetName() const override
 	{
 		return Name;
 	}
@@ -119,29 +92,19 @@ public:
 		return Sections.FindRef(SectionName);
 	}
 
-	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const override
-	{
-		OutSections.Empty(Sections.Num());
-
-		for (TMap<FName, TSharedPtr<FSettingsSection> >::TConstIterator It(Sections); It; ++It)
-		{
-			OutSections.Add(It.Value());
-		}
-
-		return OutSections.Num();
-	}
+	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const override;
 
 private:
 
-	// Holds the category's description text.
+	/** Holds the category's description text. */
 	FText Description;
 
-	// Holds the category's localized display name.
+	/** Holds the category's localized display name. */
 	FText DisplayName;
 
-	// Holds the collection of setting sections.
-	TMap<FName, TSharedPtr<FSettingsSection> > Sections;
+	/** Holds the collection of setting sections. */
+	TMap<FName, TSharedPtr<FSettingsSection>> Sections;
 
-	// Holds the category's name.
+	/** Holds the category's name. */
 	FName Name;
 };

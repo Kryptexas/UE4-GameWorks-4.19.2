@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
 
-UBlackboardKeyType_Int::UBlackboardKeyType_Int(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType_Int::UBlackboardKeyType_Int(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(int32);
 	SupportedOp = EBlackboardKeyOperation::Arithmetic;

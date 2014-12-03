@@ -4,7 +4,7 @@
 #include "BlueprintNodeHelpers.h"
 #include "BehaviorTree/Services/BTService_BlueprintBase.h"
 
-UBTService_BlueprintBase::UBTService_BlueprintBase(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTService_BlueprintBase::UBTService_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
 	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
@@ -71,13 +71,17 @@ void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp
 	}
 }
 
-void UBTService_BlueprintBase::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
+void UBTService_BlueprintBase::OnSearchStart(FBehaviorTreeSearchData& SearchData)
 {
 	// skip flag, will be handled by bNotifyOnSearch
 
 	if (bImplementsReceiveSearchStart)
 	{
 		ReceiveSearchStart(SearchData.OwnerComp->GetOwner());
+
+		const float NextTickTime = FMath::FRandRange(FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation));
+		uint8* NodeMemory = GetNodeMemory<uint8>(SearchData);
+		SetNextTickTime(NodeMemory, NextTickTime);
 	}
 	else
 	{
@@ -101,19 +105,28 @@ bool UBTService_BlueprintBase::IsServiceActive() const
 	return bIsActive;
 }
 
-FString UBTService_BlueprintBase::GetStaticDescription() const
+FString UBTService_BlueprintBase::GetStaticServiceDescription() const
 {
-	FString ReturnDesc = Super::GetStaticDescription();
+	FString ReturnDesc;
 
 	UBTService_BlueprintBase* CDO = (UBTService_BlueprintBase*)(GetClass()->GetDefaultObject());
-	if (bShowPropertyDetails && CDO)
+	if (CDO)
 	{
-		UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
-		FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, CDO->PropertyData);
-		if (PropertyDesc.Len())
+		ReturnDesc = FString::Printf(TEXT("%s, %s, %s, %s\n"),
+			bImplementsReceiveTick ? *GetStaticTickIntervalDescription() : TEXT("No tick"),
+			bImplementsReceiveActivation ? TEXT("Activation") : TEXT("No Activation"),
+			bImplementsReceiveDeactivation ? TEXT("Deactivation") : TEXT("No Deactivation"),
+			bImplementsReceiveSearchStart ? TEXT("Search Start") : TEXT("No Search Start"));
+								
+		if (bShowPropertyDetails)
 		{
-			ReturnDesc += TEXT(":\n\n");
-			ReturnDesc += PropertyDesc;
+			UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
+			FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, CDO->PropertyData);
+			if (PropertyDesc.Len())
+			{
+				ReturnDesc += TEXT("\n");
+				ReturnDesc += PropertyDesc;
+			}
 		}
 	}
 

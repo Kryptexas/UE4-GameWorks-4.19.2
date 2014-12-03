@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimationStateGraph
 
-UAnimationStateGraph::UAnimationStateGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationStateGraph::UAnimationStateGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

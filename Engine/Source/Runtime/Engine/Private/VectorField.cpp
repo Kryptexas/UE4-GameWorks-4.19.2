@@ -18,6 +18,7 @@
 #include "VectorField/VectorFieldAnimated.h"
 #include "VectorField/VectorFieldStatic.h"
 #include "SceneUtils.h"
+#include "ComponentReregisterContext.h"
 
 #define MAX_GLOBAL_VECTOR_FIELDS (16)
 DEFINE_LOG_CATEGORY(LogVectorField)
@@ -86,8 +87,8 @@ void FVectorFieldInstance::UpdateTransforms(const FMatrix& LocalToWorld)
 ------------------------------------------------------------------------------*/
 
 
-UVectorField::UVectorField(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorField::UVectorField(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Intensity = 1.0f;
 }
@@ -252,8 +253,8 @@ private:
 	void* VolumeData;
 };
 
-UVectorFieldStatic::UVectorFieldStatic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldStatic::UVectorFieldStatic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -440,8 +441,8 @@ private:
 /*------------------------------------------------------------------------------
 	UVectorFieldComponent implementation.
 ------------------------------------------------------------------------------*/
-UVectorFieldComponent::UVectorFieldComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldComponent::UVectorFieldComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -800,7 +801,7 @@ public:
 
 		if (GetFeatureLevel() == ERHIFeatureLevel::SM5 && AnimatedVectorField && AnimatedVectorField->Texture && AnimatedVectorField->Texture->Resource)
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, AnimateVectorField, DEC_PARTICLE);
+			SCOPED_DRAW_EVENT(RHICmdList, AnimateVectorField);
 
 			// Move frame time forward.
 			FrameTime += AnimatedVectorField->FramesPerSecond * DeltaSeconds;
@@ -877,8 +878,8 @@ public:
 	}
 };
 
-UVectorFieldAnimated::UVectorFieldAnimated(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldAnimated::UVectorFieldAnimated(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	VolumeSizeX = 16;
 	VolumeSizeY = 16;

@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UThrobber
 
-UThrobber::UThrobber(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UThrobber::UThrobber(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SThrobber::FArguments DefaultArgs;
 	Image = *DefaultArgs._PieceImage;

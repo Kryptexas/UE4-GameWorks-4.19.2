@@ -77,7 +77,7 @@ public:
 	/**
 	* Generates a new FCanvasTileRendererItem for the current sortkey and adds it to the sortelement list of itmes to render
 	*/
-	ENGINE_API void AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,const FMaterialRenderProxy* MaterialRenderProxy,FHitProxyId HitProxyId,bool bFreezeTime);
+	ENGINE_API void AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,const FMaterialRenderProxy* MaterialRenderProxy,FHitProxyId HitProxyId,bool bFreezeTime,FColor InColor);
 
 	/** 
 	* Sends a message to the rendering thread to draw the batched elements. 
@@ -310,7 +310,7 @@ public:
 	*
 	* @return shader platform that this canvas is rendering at
 	*/
-	EShaderPlatform GetShaderPlatform() const { return ShaderPlatform; }
+	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 
 	// Get/Set if this Canvas allows its batched elements to switch vertical axis (e.g., rendering to back buffer should never flip)
 	bool GetAllowSwitchVerticalAxis() const { return bAllowsToSwitchVerticalAxis; }
@@ -391,8 +391,6 @@ private:
 	bool bAllowsToSwitchVerticalAxis;
 	/** Feature level that we are currently rendering with */
 	ERHIFeatureLevel::Type FeatureLevel;
-	/** Shader platform that we are currently rendering with */
-	EShaderPlatform ShaderPlatform;
 
 	/** 
 	* Shared construction function
@@ -486,9 +484,9 @@ public:
 	* @param ShadowColor - Shadow color to draw underneath the text (ignored for distance field fonts)
 	* @return total size in pixels of text drawn
 	*/
-	ENGINE_API int32 DrawShadowedString( float StartX, float StartY, const TCHAR* Text, class UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
+	ENGINE_API int32 DrawShadowedString( float StartX, float StartY, const TCHAR* Text, const UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
 	
-	ENGINE_API int32 DrawShadowedText( float StartX, float StartY, const FText& Text, class UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
+	ENGINE_API int32 DrawShadowedText( float StartX, float StartY, const FText& Text, const UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
 
 	ENGINE_API void DrawNGon(const FVector2D& Center, const FColor& Color, int32 NumSides, float Radius);
 
@@ -793,11 +791,11 @@ public:
 	* @param SizeV - tile V size
 	* @param return number of tiles added
 	*/
-	FORCEINLINE int32 AddTile(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,FHitProxyId HitProxyId)
+	FORCEINLINE int32 AddTile(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,FHitProxyId HitProxyId,FColor InColor)
 	{
-		return Data->AddTile(X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId);
+		return Data->AddTile(X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor);
 	};
-
+	
 private:
 	class FRenderData
 	{
@@ -818,12 +816,13 @@ private:
 			float U,V;
 			float SizeU,SizeV;
 			FHitProxyId HitProxyId;
+			FColor InColor;
 		};
 		TArray<FTileInst> Tiles;
 
-		FORCEINLINE int32 AddTile(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,FHitProxyId HitProxyId)
+		FORCEINLINE int32 AddTile(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, FHitProxyId HitProxyId, FColor InColor)
 		{
-			FTileInst NewTile = {X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId};
+			FTileInst NewTile = {X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor};
 			return Tiles.Add(NewTile);
 		};
 	};
@@ -845,6 +844,6 @@ private:
 * @param YL - out height
 * @param Text - string of text to be measured
 */
-extern ENGINE_API void StringSize( UFont* Font, int32& XL, int32& YL, const TCHAR* Text );
+extern ENGINE_API void StringSize( const UFont* Font, int32& XL, int32& YL, const TCHAR* Text );
 
 

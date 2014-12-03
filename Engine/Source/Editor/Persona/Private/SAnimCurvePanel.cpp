@@ -9,6 +9,8 @@
 #include "Editor/KismetWidgets/Public/SScrubWidget.h"
 #include "AssetRegistryModule.h"
 #include "Kismet2NameValidators.h"
+#include "SExpandableArea.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurvePanel"
 
@@ -137,6 +139,7 @@ protected:
 	// SWidget interface
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	// SWidget interface
 
 	// SCurveEditor interface
@@ -233,6 +236,16 @@ FReply SAnimCurveEd::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEve
 	return FReply::Handled();
 }
 
+FCursorReply SAnimCurveEd::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+{
+	if (ViewMinInput.Get() > 0.f || ViewMaxInput.Get() < TimelineLength.Get())
+	{
+		return FCursorReply::Cursor(EMouseCursor::GrabHand);
+	}
+
+	return FCursorReply::Unhandled();
+}
+
 void SAnimCurveEd::Construct(const FArguments& InArgs)
 {
 	OnGetScrubValue = InArgs._OnGetScrubValue;
@@ -257,8 +270,10 @@ void SAnimCurveEd::Construct(const FArguments& InArgs)
 
 void SAnimCurveEd::SetDefaultOutput(const float MinZoomRange)
 {
-	ViewMinOutput = (ViewMinOutput);
-	ViewMaxOutput = (ViewMaxOutput + (MinZoomRange));
+	const float NewMinOutput = (ViewMinOutput.Get());
+	const float NewMaxOutput = (ViewMaxOutput.Get() + MinZoomRange);
+
+	SetOutputMinMax(NewMinOutput, NewMaxOutput);
 }
 //////////////////////////////////////////////////////////////////////////
 //  SCurveEd Track : each track for curve editing 
@@ -1096,7 +1111,7 @@ ESlateCheckBoxState::Type SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveU
 {
 	if ( Sequence )
 	{
-		const FFloatCurve * Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		const FFloatCurve* Curve = Sequence->RawCurveData.GetCurveData(Uid);
 		if ( Curve )
 		{
 			return Curve->GetCurveTypeFlag(ACF_Editable)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;

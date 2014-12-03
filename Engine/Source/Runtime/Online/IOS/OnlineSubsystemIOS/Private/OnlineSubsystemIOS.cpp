@@ -188,6 +188,6 @@ bool FOnlineSubsystemIOS::IsEnabled()
 bool FOnlineSubsystemIOS::IsInAppPurchasingEnabled()
 {
 	bool bEnableIAP = false;
-	GConfig->GetBool(TEXT("OnlineSubsystemIOS.Store"), TEXT("bSupportInAppPurchasing"), bEnableIAP, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemIOS.Store"), TEXT("bSupportsInAppPurchasing"), bEnableIAP, GEngineIni);
 	return bEnableIAP;
 }

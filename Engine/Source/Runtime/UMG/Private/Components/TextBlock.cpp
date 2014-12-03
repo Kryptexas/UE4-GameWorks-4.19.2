@@ -7,12 +7,12 @@
 /////////////////////////////////////////////////////
 // UTextBlock
 
-UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 
-	WidgetStyle = *UTextBlock::GetDefaultStyle();
+//	WidgetStyle = *UTextBlock::GetDefaultStyle();
 
 	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
@@ -20,8 +20,8 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 	ShadowColorAndOpacity = FLinearColor::Transparent;
 	LineHeightPercentage = 1.0f;
 
-	// @TODO UMG HACK Special font initialization hack since there are no font assets yet for slate.
-	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 24, FName("Bold"));
 }
 
 void UTextBlock::ReleaseSlateResources(bool bReleaseChildren)
@@ -60,8 +60,8 @@ void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
-	MyTextBlock = SNew(STextBlock)
-		.TextStyle(&WidgetStyle);
+	MyTextBlock = SNew(STextBlock);
+//		.TextStyle(&WidgetStyle);
 
 	return MyTextBlock.ToSharedRef();
 }
@@ -70,19 +70,12 @@ void UTextBlock::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
 
 	MyTextBlock->SetText(TextBinding);
-	MyTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
+	MyTextBlock->SetFont(Font);
 	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
 	MyTextBlock->SetShadowOffset(ShadowOffset);
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
@@ -121,11 +114,11 @@ void UTextBlock::PostLoad()
 	{
 		if ( Style_DEPRECATED != nullptr )
 		{
-			const FTextBlockStyle* StylePtr = Style_DEPRECATED->GetStyle<FTextBlockStyle>();
-			if ( StylePtr != nullptr )
-			{
-				WidgetStyle = *StylePtr;
-			}
+			//const FTextBlockStyle* StylePtr = Style_DEPRECATED->GetStyle<FTextBlockStyle>();
+			//if ( StylePtr != nullptr )
+			//{
+			//	WidgetStyle = *StylePtr;
+			//}
 
 			Style_DEPRECATED = nullptr;
 		}

@@ -36,10 +36,10 @@ public:
 private:
 	/**
 	 * Keyboard short-cut handler
-	 * @param InKeyboardEvent Which key was released, and which auxiliary keys were pressed
+	 * @param InKeyEvent Which key was released, and which auxiliary keys were pressed
 	 * @return Whether the event was handled
 	 */
-	FReply OnUnhandledKeyDown(const FKeyboardEvent& InKeyboardEvent);
+	FReply OnUnhandledKeyDown(const FKeyEvent& InKeyEvent);
 
 	/** Crash report client implementation object */
 	TSharedPtr<FCrashReportClient> CrashReportClient;

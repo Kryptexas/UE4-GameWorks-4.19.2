@@ -18,12 +18,12 @@ class UAchievementQueryCallbackProxy : public UOnlineBlueprintCallProxyBase
 	FEmptyOnlineDelegate OnFailure;
 
 	// Fetches and caches achievement progress from the default online subsystem
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"), Category = "Online|Achievements")
-	static UAchievementQueryCallbackProxy* CacheAchievements(class APlayerController* PlayerController);
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", WorldContext="WorldContextObject"), Category = "Online|Achievements")
+	static UAchievementQueryCallbackProxy* CacheAchievements(UObject* WorldContextObject, class APlayerController* PlayerController);
 
 	// Fetches and caches achievement descriptions from the default online subsystem
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"), Category = "Online|Achievements")
-	static UAchievementQueryCallbackProxy* CacheAchievementDescriptions(class APlayerController* PlayerController);
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", WorldContext="WorldContextObject"), Category = "Online|Achievements")
+	static UAchievementQueryCallbackProxy* CacheAchievementDescriptions(UObject* WorldContextObject, class APlayerController* PlayerController);
 
 	// UOnlineBlueprintCallProxyBase interface
 	virtual void Activate() override;
@@ -39,4 +39,7 @@ private:
 
 	// Are we querying achievement progress or achievement descriptions?
 	bool bFetchDescriptions;
+
+	// The world context object in which this call is taking place
+	UObject* WorldContextObject;
 };

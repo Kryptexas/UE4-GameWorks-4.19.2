@@ -5,7 +5,7 @@
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
@@ -39,8 +39,8 @@ FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGra
 /////////////////////////////////////////////////////
 // UEdGraphNode
 
-UEdGraphNode::UEdGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
 {
 

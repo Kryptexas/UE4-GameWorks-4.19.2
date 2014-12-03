@@ -49,6 +49,7 @@ void RunSlateViewer( const TCHAR* CommandLine )
 	// loop while the server does the rest
 	while (!GIsRequestingExit)
 	{
+		FTicker::GetCoreTicker().Tick(0);
 		FSlateApplication::Get().PumpMessages();
 		FSlateApplication::Get().Tick();
 		FPlatformProcess::Sleep(0);

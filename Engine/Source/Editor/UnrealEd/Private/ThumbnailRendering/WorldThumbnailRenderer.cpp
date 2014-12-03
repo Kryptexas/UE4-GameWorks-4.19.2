@@ -4,8 +4,8 @@
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "RendererInterface.h"
-UWorldThumbnailRenderer::UWorldThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWorldThumbnailRenderer::UWorldThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	GlobalOrbitPitchOffset = 0.f;
 	GlobalOrbitYawOffset = 0.f;

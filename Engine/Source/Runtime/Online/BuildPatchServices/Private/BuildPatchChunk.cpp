@@ -6,6 +6,97 @@
 
 #include "BuildPatchServicesPrivatePCH.h"
 
+// The chunk header magic codeword, for quick checking that the opened file is a chunk file.
+#define CHUNK_HEADER_MAGIC		0xB1FE3AA2
+
+// The chunk header version number.
+#define CHUNK_HEADER_VERSION	2
+
+/* FSHAHashData implementation
+*****************************************************************************/
+FSHAHashData::FSHAHashData()
+{
+	FMemory::Memset(Hash, 0, FSHA1::DigestSize);
+}
+
+bool FSHAHashData::operator==(const FSHAHashData& Other) const
+{
+	return FMemory::Memcmp(Hash, Other.Hash, FSHA1::DigestSize) == 0;
+}
+
+bool FSHAHashData::operator!=(const FSHAHashData& Other) const
+{
+	return !(*this == Other);
+}
+
+FString FSHAHashData::ToString() const
+{
+	return BytesToHex(Hash, FSHA1::DigestSize);
+}
+
+/* FChunkHeader implementation
+*****************************************************************************/
+FChunkHeader::FChunkHeader()
+	: Magic(CHUNK_HEADER_MAGIC)
+	, Version(CHUNK_HEADER_VERSION)
+	, HashType(HASH_ROLLING)
+{
+
+}
+
+const bool FChunkHeader::IsValidMagic() const
+{
+	return Magic == CHUNK_HEADER_MAGIC;
+}
+
+FArchive& operator<<(FArchive& Ar, FChunkHeader& Header)
+{
+	// The constant sizes for each version of a header struct. Must be updated
+	// If new member variables are added the version MUST be bumped and handled properly here,
+	// and these values must never change.
+	static const uint32 Version1Size = 41;
+	static const uint32 Version2Size = 62;
+	// Calculate how much space left in the archive for reading data ( will be 0 when writing )
+	const int64 ArchiveSizeLeft = Ar.TotalSize() - Ar.Tell();
+	// Make sure the archive has enough data to read from, or we are saving instead.
+	bool bSuccess = Ar.IsSaving() || (ArchiveSizeLeft >= Version1Size);
+	if (bSuccess)
+	{
+		Ar << Header.Magic
+			<< Header.Version
+			<< Header.HeaderSize
+			<< Header.DataSize
+			<< Header.Guid
+			<< Header.RollingHash
+			<< Header.StoredAs;
+
+		// From version 2, we have a hash type choice. Previous versions default as only rolling
+		if (Header.Version >= 2)
+		{
+			bSuccess = Ar.IsSaving() || (ArchiveSizeLeft >= Version2Size);
+			if (bSuccess)
+			{
+				Ar.Serialize(Header.SHAHash.Hash, FSHA1::DigestSize);
+				Ar << Header.HashType;
+			}
+		}
+	}
+
+	// If we had a size error, zero out the header values
+	if (!bSuccess)
+	{
+		Header.Magic = 0;
+		Header.Version = 0;
+		Header.HeaderSize = 0;
+		Header.DataSize = 0;
+		Header.Guid.Invalidate();
+		Header.RollingHash = 0;
+		Header.StoredAs = 0;
+	}
+
+	return Ar;
+}
+
 /* FChunkFile implementation
 *****************************************************************************/
 FChunkFile::FChunkFile( const uint32& InReferenceCount, const bool& bInIsFromDisk )

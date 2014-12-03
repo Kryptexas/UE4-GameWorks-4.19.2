@@ -10,8 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "GameplayTagsK2Node_LiteralGameplayTag"
 
-UGameplayTagsK2Node_LiteralGameplayTag::UGameplayTagsK2Node_LiteralGameplayTag(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayTagsK2Node_LiteralGameplayTag::UGameplayTagsK2Node_LiteralGameplayTag(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
@@ -58,93 +58,90 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
-	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
-		// Get The input and output pins to our node
-		UEdGraphPin* TagInPin = FindPin(TEXT("TagIn"));
-		UEdGraphPin* TagOutPin = FindPinChecked(Schema->PN_ReturnValue);
+	// Get The input and output pins to our node
+	UEdGraphPin* TagInPin = FindPin(TEXT("TagIn"));
+	UEdGraphPin* TagOutPin = FindPinChecked(Schema->PN_ReturnValue);
 
-		// Create a Make Struct
-		UK2Node_MakeStruct* MakeStructNode = SourceGraph->CreateBlankNode<UK2Node_MakeStruct>();
-		MakeStructNode->StructType = FGameplayTagContainer::StaticStruct();
-		MakeStructNode->AllocateDefaultPins();
+	// Create a Make Struct
+	UK2Node_MakeStruct* MakeStructNode = SourceGraph->CreateBlankNode<UK2Node_MakeStruct>();
+	MakeStructNode->StructType = FGameplayTagContainer::StaticStruct();
+	MakeStructNode->AllocateDefaultPins();
 
-		// Create a Make Array
-		UK2Node_MakeArray* MakeArrayNode = SourceGraph->CreateBlankNode<UK2Node_MakeArray>();
-		MakeArrayNode->AllocateDefaultPins();
+	// Create a Make Array
+	UK2Node_MakeArray* MakeArrayNode = SourceGraph->CreateBlankNode<UK2Node_MakeArray>();
+	MakeArrayNode->AllocateDefaultPins();
 		
-		// Connect the output of our MakeArray to the Input of our MakeStruct so it sets the Array Type
-		UEdGraphPin* InPin = MakeStructNode->FindPin( TEXT("GameplayTags") );
-		if( InPin )
+	// Connect the output of our MakeArray to the Input of our MakeStruct so it sets the Array Type
+	UEdGraphPin* InPin = MakeStructNode->FindPin( TEXT("GameplayTags") );
+	if( InPin )
+	{
+		InPin->MakeLinkTo( MakeArrayNode->GetOutputPin() );
+	}
+
+	// Add the FName Values to the MakeArray input pins
+	UEdGraphPin* ArrayInputPin = NULL;
+	FString TagString = TagInPin->GetDefaultAsString();
+
+	if( TagString.StartsWith( TEXT("(") ) && TagString.EndsWith( TEXT(")") ) )
+	{
+		TagString = TagString.LeftChop(1);
+		TagString = TagString.RightChop(1);
+		TagString.Split("=", NULL, &TagString);
+		TagString = TagString.LeftChop(1);
+		TagString = TagString.RightChop(1);
+
+		FString ReadTag;
+		FString Remainder;
+		int32 MakeIndex = 0;
+		while( TagString.Split( TEXT(","), &ReadTag, &Remainder ) ) 
 		{
-			InPin->MakeLinkTo( MakeArrayNode->GetOutputPin() );
+			TagString = Remainder;
+
+			ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
+			ArrayInputPin->PinType.PinCategory = TEXT("struct");
+			ArrayInputPin->PinType.PinSubCategoryObject = FGameplayTag::StaticStruct();
+			ArrayInputPin->DefaultValue = ReadTag;
+
+			MakeIndex++;
+			MakeArrayNode->AddInputPin();
 		}
-
-		// Add the FName Values to the MakeArray input pins
-		UEdGraphPin* ArrayInputPin = NULL;
-		FString TagString = TagInPin->GetDefaultAsString();
-
-		if( TagString.StartsWith( TEXT("(") ) && TagString.EndsWith( TEXT(")") ) )
+		if( Remainder.IsEmpty() )
 		{
-			TagString = TagString.LeftChop(1);
-			TagString = TagString.RightChop(1);
-			TagString.Split("=", NULL, &TagString);
-			TagString = TagString.LeftChop(1);
-			TagString = TagString.RightChop(1);
+			Remainder = TagString;
+		}
+		if( !Remainder.IsEmpty() )
+		{
+			ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
+			ArrayInputPin->PinType.PinCategory = TEXT("struct");
+			ArrayInputPin->PinType.PinSubCategoryObject = FGameplayTag::StaticStruct();
+			ArrayInputPin->DefaultValue = Remainder;
 
-			FString ReadTag;
-			FString Remainder;
-			int32 MakeIndex = 0;
-			while( TagString.Split( TEXT(","), &ReadTag, &Remainder ) ) 
-			{
-				TagString = Remainder;
-
-				ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
-				ArrayInputPin->PinType.PinCategory = TEXT("struct");
-				ArrayInputPin->PinType.PinSubCategoryObject = FGameplayTag::StaticStruct();
-				ArrayInputPin->DefaultValue = ReadTag;
-
-				MakeIndex++;
-				MakeArrayNode->AddInputPin();
-			}
-			if( Remainder.IsEmpty() )
-			{
-				Remainder = TagString;
-			}
-			if( !Remainder.IsEmpty() )
-			{
-				ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
-				ArrayInputPin->PinType.PinCategory = TEXT("struct");
-				ArrayInputPin->PinType.PinSubCategoryObject = FGameplayTag::StaticStruct();
-				ArrayInputPin->DefaultValue = Remainder;
-
-				MakeArrayNode->PostReconstructNode();
-			}
-			else
-			{
-				MakeArrayNode->RemoveInputPin(MakeArrayNode->FindPin(TEXT("[0]")));
-				MakeArrayNode->PostReconstructNode();
-			}
+			MakeArrayNode->PostReconstructNode();
 		}
 		else
 		{
 			MakeArrayNode->RemoveInputPin(MakeArrayNode->FindPin(TEXT("[0]")));
 			MakeArrayNode->PostReconstructNode();
 		}
-
-		// Move the Output of the MakeArray to the Output of our node
-		UEdGraphPin* OutPin = MakeStructNode->FindPin( MakeStructNode->StructType->GetName() );
-		if( OutPin && TagOutPin )
-		{
-			OutPin->PinType = TagOutPin->PinType; // Copy type so it uses the right actor subclass
-			CompilerContext.MovePinLinksToIntermediate(*TagOutPin, *OutPin);
-		}
-
-		// Break any links to the expanded node
-		BreakAllNodeLinks();
 	}
+	else
+	{
+		MakeArrayNode->RemoveInputPin(MakeArrayNode->FindPin(TEXT("[0]")));
+		MakeArrayNode->PostReconstructNode();
+	}
+
+	// Move the Output of the MakeArray to the Output of our node
+	UEdGraphPin* OutPin = MakeStructNode->FindPin( MakeStructNode->StructType->GetName() );
+	if( OutPin && TagOutPin )
+	{
+		OutPin->PinType = TagOutPin->PinType; // Copy type so it uses the right actor subclass
+		CompilerContext.MovePinLinksToIntermediate(*TagOutPin, *OutPin);
+	}
+
+	// Break any links to the expanded node
+	BreakAllNodeLinks();
 }
 
 void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

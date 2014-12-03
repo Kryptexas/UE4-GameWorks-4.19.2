@@ -43,7 +43,7 @@ FUdpMessageProcessor::FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNo
 }
 
 
-FUdpMessageProcessor::~FUdpMessageProcessor( )
+FUdpMessageProcessor::~FUdpMessageProcessor()
 {
 	Thread->Kill(true);
 		
@@ -68,16 +68,16 @@ bool FUdpMessageProcessor::EnqueueInboundSegment( const FArrayReaderPtr& Data, c
 }
 
 
-bool FUdpMessageProcessor::EnqueueOutboundMessage( const IMessageDataRef& Data, const FGuid& Recipient )
+bool FUdpMessageProcessor::EnqueueOutboundMessage( const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient )
 {
-	if (!OutboundMessages.Enqueue(FOutboundMessage(Data, Recipient)))
+	if (!OutboundMessages.Enqueue(FOutboundMessage(SerializedMessage, Recipient)))
 	{
 		return false;
 	}
 
-	Data->OnStateChanged().BindRaw(this, &FUdpMessageProcessor::HandleMessageDataStateChanged);
+	SerializedMessage->OnStateChanged().BindRaw(this, &FUdpMessageProcessor::HandleSerializedMessageStateChanged);
 
-	if (Data->GetState() != EMessageDataState::Incomplete)
+	if (SerializedMessage->GetState() != EUdpSerializedMessageState::Incomplete)
 	{
 		WorkEvent->Trigger();
 	}
@@ -89,7 +89,7 @@ bool FUdpMessageProcessor::EnqueueOutboundMessage( const IMessageDataRef& Data, 
 /* FRunnable interface
  *****************************************************************************/
 
-bool FUdpMessageProcessor::Init( )
+bool FUdpMessageProcessor::Init()
 {
 	Beacon = new FUdpMessageBeacon(Socket, LocalNodeId, MulticastEndpoint);
 	Sender = new FUdpSocketSender(Socket, TEXT("FUdpMessageProcessor.Sender"));
@@ -98,7 +98,7 @@ bool FUdpMessageProcessor::Init( )
 }
 
 
-uint32 FUdpMessageProcessor::Run( )
+uint32 FUdpMessageProcessor::Run()
 {
 	while (!Stopping)
 	{
@@ -124,7 +124,7 @@ uint32 FUdpMessageProcessor::Run( )
 }
 
 
-void FUdpMessageProcessor::Stop( )
+void FUdpMessageProcessor::Stop()
 {
 	Stopping = true;
 
@@ -159,13 +159,13 @@ void FUdpMessageProcessor::AcknowledgeReceipt( int32 MessageId, const FNodeInfo&
 }
 
 
-FTimespan FUdpMessageProcessor::CalculateWaitTime( ) const
+FTimespan FUdpMessageProcessor::CalculateWaitTime() const
 {
 	return FTimespan::FromMilliseconds(10);
 }
 
 
-void FUdpMessageProcessor::ConsumeInboundSegments( )
+void FUdpMessageProcessor::ConsumeInboundSegments()
 {
 	FInboundSegment Segment;
 
@@ -228,7 +228,7 @@ void FUdpMessageProcessor::ConsumeInboundSegments( )
 }
 
 
-void FUdpMessageProcessor::ConsumeOutboundMessages( )
+void FUdpMessageProcessor::ConsumeOutboundMessages()
 {
 	FOutboundMessage OutboundMessage;
 
@@ -244,12 +244,12 @@ void FUdpMessageProcessor::ConsumeOutboundMessages( )
 
 			for (TMap<FIPv4Endpoint, FNodeInfo>::TIterator It(StaticNodes); It; ++It)
 			{
-				FNodeInfo& NodeInfo = It.Value();
-				NodeInfo.Segmenters.Add(LastSentMessage, MakeShareable(new FUdpMessageSegmenter(OutboundMessage.MessageData.ToSharedRef(), 1024)));
+				FNodeInfo& StaticNodeInfo = It.Value();
+				StaticNodeInfo.Segmenters.Add(LastSentMessage, MakeShareable(new FUdpMessageSegmenter(OutboundMessage.SerializedMessage.ToSharedRef(), 1024)));
 			}
 		}
 
-		RecipientNodeInfo.Segmenters.Add(LastSentMessage, MakeShareable(new FUdpMessageSegmenter(OutboundMessage.MessageData.ToSharedRef(), 1024)));
+		RecipientNodeInfo.Segmenters.Add(LastSentMessage, MakeShareable(new FUdpMessageSegmenter(OutboundMessage.SerializedMessage.ToSharedRef(), 1024)));
 	}
 }
 
@@ -320,40 +320,37 @@ void FUdpMessageProcessor::ProcessDataSegment( FInboundSegment& Segment, FNodeIn
 		return;
 	}
 
-	FReassembledUdpMessagePtr& Message = NodeInfo.ReassembledMessages.FindOrAdd(DataChunk.MessageId);
+	FUdpReassembledMessagePtr& ReassembledMessage = NodeInfo.ReassembledMessages.FindOrAdd(DataChunk.MessageId);
 
 	// Reassemble message
-	if (!Message.IsValid())
+	if (!ReassembledMessage.IsValid())
 	{
-		Message = MakeShareable(new FReassembledUdpMessage(DataChunk.MessageSize, DataChunk.TotalSegments, DataChunk.Sequence, Segment.Sender));
+		ReassembledMessage = MakeShareable(new FReassembledUdpMessage(DataChunk.MessageSize, DataChunk.TotalSegments, DataChunk.Sequence, Segment.Sender));
 	}
 
-	Message->Reassemble(DataChunk.SegmentNumber, DataChunk.SegmentOffset, DataChunk.Data, CurrentTime);
+	ReassembledMessage->Reassemble(DataChunk.SegmentNumber, DataChunk.SegmentOffset, DataChunk.Data, CurrentTime);
 
 	// Deliver or re-sequence message
-	if (Message->IsComplete())
+	if (ReassembledMessage->IsComplete())
 	{
 		AcknowledgeReceipt(DataChunk.MessageId, NodeInfo);
 
-		if (Message->GetSequence() == 0)
+		if (ReassembledMessage->GetSequence() == 0)
 		{
-			FMemoryReader HackReader(Message->GetData());
-
 			if (NodeInfo.NodeId.IsValid())
 			{
-				MessageReceivedDelegate.ExecuteIfBound(HackReader, nullptr, NodeInfo.NodeId);
+				MessageReassembledDelegate.ExecuteIfBound(ReassembledMessage.ToSharedRef(), nullptr, NodeInfo.NodeId);
 			}
 		}
-		else if (NodeInfo.Resequencer.Resequence(Message))
+		else if (NodeInfo.Resequencer.Resequence(ReassembledMessage))
 		{
-			FReassembledUdpMessagePtr ResequencedMessage;
-			FMemoryReader HackReader(ResequencedMessage->GetData());
+			FUdpReassembledMessagePtr ResequencedMessage;
 
 			while (NodeInfo.Resequencer.Pop(ResequencedMessage))
 			{
 				if (NodeInfo.NodeId.IsValid())
 				{
-					MessageReceivedDelegate.ExecuteIfBound(HackReader, nullptr, NodeInfo.NodeId);
+					MessageReassembledDelegate.ExecuteIfBound(ResequencedMessage.ToSharedRef(), nullptr, NodeInfo.NodeId);
 				}
 			}
 		}
@@ -420,7 +417,7 @@ void FUdpMessageProcessor::RemoveKnownNode( const FGuid& NodeId )
 }
 
 
-void FUdpMessageProcessor::UpdateKnownNodes( )
+void FUdpMessageProcessor::UpdateKnownNodes()
 {
 	// remove dead remote endpoints
 	FTimespan DeadHelloTimespan = DeadHelloIntervals * Beacon->GetBeaconInterval();
@@ -503,7 +500,7 @@ void FUdpMessageProcessor::UpdateSegmenters( FNodeInfo& NodeInfo )
 }
 
 
-void FUdpMessageProcessor::UpdateStaticNodes( )
+void FUdpMessageProcessor::UpdateStaticNodes()
 {
 	for (TMap<FIPv4Endpoint, FNodeInfo>::TIterator It(StaticNodes); It; ++It)
 	{
@@ -515,7 +512,7 @@ void FUdpMessageProcessor::UpdateStaticNodes( )
 /* FUdpMessageProcessor callbacks
  *****************************************************************************/
 
-void FUdpMessageProcessor::HandleMessageDataStateChanged( )
+void FUdpMessageProcessor::HandleSerializedMessageStateChanged()
 {
 	WorkEvent->Trigger();
 }

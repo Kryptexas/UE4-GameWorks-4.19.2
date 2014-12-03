@@ -199,29 +199,41 @@ typedef FBasedMovementInfo FRepRelativeMovement;
 UCLASS(abstract, config=Game, BlueprintType, hidecategories=("Pawn|Character|InternalEvents"))
 class ENGINE_API ACharacter : public APawn
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
 
+	/**
+	 * Default UObject constructor.
+	 */
+	ACharacter(const FObjectInitializer& ObjectInitializer);
+
+private_subobject:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USkeletalMeshComponent> Mesh;
+	DEPRECATED_FORGAME(4.6, "Mesh should not be accessed directly, please use GetMesh() function instead. Mesh will soon be private and your code will not compile.")
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USkeletalMeshComponent* Mesh;
 
 #if WITH_EDITORONLY_DATA
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
 #endif
 
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCharacterMovementComponent> CharacterMovement;
+	DEPRECATED_FORGAME(4.6, "CharacterMovement should not be accessed directly, please use GetCharacterMovement() function instead. CharacterMovement will soon be private and your code will not compile.")
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCharacterMovementComponent* CharacterMovement;
 
 	/** The CapsuleComponent being used for movement collision (by CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCapsuleComponent* CapsuleComponent;
+public:
 
-	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
+	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
-	/** Name of the CharacterMovement component. Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
+	/** Name of the CharacterMovement component. Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName CharacterMovementComponentName;
 
 	/** Name of the CapsuleComponent. */
@@ -467,10 +479,24 @@ public:
 	/** Called when character's jump reaches Apex. Needs CharacterMovement->bNotifyApex = true */
 	virtual void NotifyJumpApex() {}
 
-	/** Called on landing after falling has completed, to perform actions based on the Hit result. Triggers the OnLanded event. */
+	/**
+	 * Called upon landing when falling, to perform actions based on the Hit result. Triggers the OnLanded event.
+	 * Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
+	 * Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
+	 *
+	 * @param Hit Result describing the landing that resulted in a valid landing spot.
+	 * @see OnMovementModeChanged()
+	 */
 	virtual void Landed(const FHitResult& Hit);
 
-	/** Called on landing after falling has completed, to perform actions based on the Hit result. */
+	/**
+	* Called upon landing when falling, to perform actions based on the Hit result.
+	* Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
+	* Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
+	*
+	* @param Hit Result describing the landing that resulted in a valid landing spot.
+	* @see OnMovementModeChanged()
+	*/
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void OnLanded(const FHitResult& Hit);
 
@@ -623,16 +649,16 @@ public:
 	/** Find usable root motion replicated move from our buffer.
 	 * Goes through the buffer back in time, to find the first move that clears 'CanUseRootMotionRepMove' below.
 	 * Returns index of that move or INDEX_NONE otherwise. */
-	int32 FindRootMotionRepMove(const FAnimMontageInstance & ClientMontageInstance) const;
+	int32 FindRootMotionRepMove(const FAnimMontageInstance& ClientMontageInstance) const;
 
 	/** true if buffered move is usable to teleport client back to. */
-	bool CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove, const FAnimMontageInstance & ClientMontageInstance) const;
+	bool CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove, const FAnimMontageInstance& ClientMontageInstance) const;
 
 	/** Restore actor to an old buffered move. */
-	bool RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove);
+	bool RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove);
 	
 	/** Called on client after position update is received to actually move the character. */
-	virtual void UpdateSimulatedPosition(const FVector & NewLocation, const FRotator & NewRotation);
+	virtual void UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation);
 
 	/** Replicated Root Motion montage */
 	UPROPERTY(ReplicatedUsing=OnRep_RootMotion)
@@ -652,6 +678,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Animation)
 	bool IsPlayingRootMotion() const;
 
+	/** true if we are playing Root Motion right now, through a Montage with RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly.
+	 * This means code path for networked root motion is enabled. */
+	UFUNCTION(BlueprintCallable, Category = Animation)
+	bool IsPlayingNetworkedRootMotionMontage() const;
+
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
+
+public:
+	/** Returns Mesh subobject **/
+	class USkeletalMeshComponent* GetMesh() const;
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	class UArrowComponent* GetArrowComponent() const;
+#endif
+	/** Returns CharacterMovement subobject **/
+	class UCharacterMovementComponent* GetCharacterMovement() const;
+	/** Returns CapsuleComponent subobject **/
+	class UCapsuleComponent* GetCapsuleComponent() const;
 };

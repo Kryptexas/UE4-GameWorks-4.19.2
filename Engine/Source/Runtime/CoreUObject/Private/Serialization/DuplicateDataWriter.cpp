@@ -30,6 +30,9 @@ FDuplicateDataWriter::FDuplicateDataWriter( FUObjectAnnotationSparse<FDuplicated
 	ArAllowLazyLoading	= false;
 	ArPortFlags |= PPF_Duplicate | InPortFlags;
 
+	SourcePackage = SourceObject->GetOutermost();
+	DestPackage = DestObject->GetOutermost();
+
 	AddDuplicate(SourceObject,DestObject);
 }
 
@@ -121,14 +124,43 @@ UObject* FDuplicateDataWriter::GetDuplicatedObject( UObject* Object )
 		}
 		else
 		{
+			UObject* NewEmptyDuplicate = nullptr;
+
 			// Check to see if the object's outer is being duplicated.
 			UObject* DupOuter = GetDuplicatedObject(Object->GetOuter());
 			if(DupOuter != NULL)
 			{
-				// The object's outer is being duplicated, create a duplicate of this object.
-				UObject* NewEmptyDuplicate = StaticConstructObject(Object->GetClass(), DupOuter, Object->GetFName(), ApplyFlags|Object->GetMaskedFlags(FlagMask),
+				// The object's outer is being duplicated, create a duplicate
+				// of this object.
+				NewEmptyDuplicate = StaticConstructObject(
+					Object->GetClass(),
+					DupOuter,
+					Object->GetFName(),
+					ApplyFlags|Object->GetMaskedFlags(FlagMask),
 					Object->GetArchetype(), true, InstanceGraph);
 
+			}
+			else if (
+				!Object->HasAnyFlags(RF_ClassDefaultObject) // We shouldn't duplicate CDOs
+				&& (ArPortFlags & PPF_DuplicateForPIE) == 0 // We can also skip this if duplicating for PIE -- this is mainly performance optimization
+				&& SourcePackage != DestPackage
+				&& Object->GetOuter() == SourcePackage
+				&& DestPackage != GetTransientPackage())
+			{
+				// If not then maybe it's a package changing duplication and
+				// the object's outer is the source package itself. Then we
+				// need to duplicate that object also with changed package.
+
+				NewEmptyDuplicate = StaticConstructObject(
+					Object->GetClass(),
+					DestPackage,
+					Object->GetFName(),
+					ApplyFlags | Object->GetMaskedFlags(FlagMask),
+					nullptr, true, InstanceGraph);
+			}
+
+			if (NewEmptyDuplicate != nullptr)
+			{
 				Result = AddDuplicate(Object, NewEmptyDuplicate);
 			}
 		}

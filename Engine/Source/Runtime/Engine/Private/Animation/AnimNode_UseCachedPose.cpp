@@ -15,7 +15,7 @@ void FAnimNode_UseCachedPose::Initialize(const FAnimationInitializeContext& Cont
 	LinkToCachingNode.Initialize(Context);
 }
 
-void FAnimNode_UseCachedPose::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_UseCachedPose::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	LinkToCachingNode.CacheBones(Context);
 }

@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFbxAssetImportData::UFbxAssetImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxAssetImportData::UFbxAssetImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ImportTranslation(0)
 	, ImportRotation(0)
 	, ImportUniformScale(1.0f)

@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendsMessageManager.cpp: Implements the FFriendsMessageManager class.
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "FriendsMessageManager"
+
 
 /* FFriendsMessageManager structors
  *****************************************************************************/
@@ -18,8 +16,10 @@ FFriendsMessageManager::FFriendsMessageManager( )
 	PingMcpCountdown = 0;
 }
 
+
 FFriendsMessageManager::~FFriendsMessageManager( )
-{}
+{ }
+
 
 /* IFriendsMessageManager interface
  *****************************************************************************/
@@ -28,6 +28,7 @@ void FFriendsMessageManager::StartupManager()
 {
 	FParse::Value( FCommandLine::Get(), TEXT( "LaunchGameMessage=" ), GameLaunchMessageID );
 }
+
 
 void FFriendsMessageManager::Init( FOnFriendsNotification& NotificationDelegate, bool bInCanJointGame )
 {
@@ -39,7 +40,7 @@ void FFriendsMessageManager::Init( FOnFriendsNotification& NotificationDelegate,
 
 	OnlineSubMcp = static_cast< FOnlineSubsystemMcp* >( IOnlineSubsystem::Get( TEXT( "MCP" ) ) );
 
-	if (OnlineSubMcp != NULL &&
+	if (OnlineSubMcp != nullptr &&
 		OnlineSubMcp->GetIdentityInterface().IsValid() &&
 		OnlineSubMcp->GetMessageInterface().IsValid())
 	{
@@ -73,10 +74,12 @@ void FFriendsMessageManager::Init( FOnFriendsNotification& NotificationDelegate,
 	}
 }
 
+
 void FFriendsMessageManager::SetMessagePolling( bool bStart )
 {
 	bPollForMessages = bStart;
 }
+
 
 bool FFriendsMessageManager::Tick( float Delta )
 {
@@ -118,20 +121,24 @@ bool FFriendsMessageManager::Tick( float Delta )
 	return true;
 }
 
+
 void FFriendsMessageManager::RequestEnumerateMessages()
 {
 	OnlineSubMcp->GetMessageInterface()->EnumerateMessages( 0 );
 }
+
 
 void FFriendsMessageManager::InviteFriendToGame( TSharedRef<FUniqueNetId> FriendID )
 {
 	GameInvitesToSend.AddUnique( FriendID );
 }
 
+
 void FFriendsMessageManager::RequestJoinAGame( TSharedRef<FUniqueNetId> FriendID )
 {
 	GameJoingRequestsToSend.AddUnique( FriendID );
 }
+
 
 void FFriendsMessageManager::SendGameInviteRequest()
 {
@@ -149,6 +156,7 @@ void FFriendsMessageManager::SendGameInviteRequest()
 	GameInvitesToSend.RemoveAt( 0 );
 }
 
+
 void FFriendsMessageManager::SendGameJoinRequest()
 {
 	TSharedPtr<FUniqueNetId> UserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId( 0 );
@@ -165,6 +173,7 @@ void FFriendsMessageManager::SendGameJoinRequest()
 
 	GameJoingRequestsToSend.RemoveAt( 0 );
 }
+
 
 void FFriendsMessageManager::SendChatMessageRequest()
 {
@@ -188,35 +197,42 @@ void FFriendsMessageManager::SendChatMessageRequest()
 	ChatMessagesToSend.RemoveAt( 0 );
 }
 
+
 void FFriendsMessageManager::SendMessage( TSharedPtr< FFriendStuct > FriendID, const FText& Message )
 {
 	ChatMessagesToSend.Add( FOutGoingChatMessage( FriendID->GetOnlineUser()->GetUserId(), Message ) );
 }
+
 
 void FFriendsMessageManager::ClearGameInvites()
 {
 	bClearInvites = true;
 }
 
+
 void FFriendsMessageManager::SetUnhandledNotification( TSharedRef< FUniqueNetId > NetID )
 {
 	UnhandledNetID = NetID;
 }
+
 
 EFriendsMessageManagerState::Type FFriendsMessageManager::GetState()
 {
 	return ManagerState;
 }
 
+
 TArray< TSharedPtr< FFriendsAndChatMessage > > FFriendsMessageManager::GetChatMessages()
 {
 	return ChatMessages;
 }
 
+
 FOnMessagesUpdated& FFriendsMessageManager::OnChatListUpdated()
 {
 	return OChatListUpdatedDelegate;
 }
+
 
 void FFriendsMessageManager::SetState( EFriendsMessageManagerState::Type NewState )
 {
@@ -272,10 +288,11 @@ void FFriendsMessageManager::SetState( EFriendsMessageManagerState::Type NewStat
 	}
 }
 
+
 void FFriendsMessageManager::Logout()
 {
 	FOnlineSubsystemMcp* OnlineSubMcp = static_cast< FOnlineSubsystemMcp* >( IOnlineSubsystem::Get( TEXT( "MCP" ) ) );
-	if ( OnlineSubMcp != NULL )
+	if ( OnlineSubMcp != nullptr )
 	{
 		OnlineSubMcp->GetMessageInterface()->ClearOnEnumerateMessagesCompleteDelegate(0, OnEnumerateMessagesCompleteDelegate);
 		OnlineSubMcp->GetMessageInterface()->ClearOnReadMessageCompleteDelegate(0, OnReadMessageCompleteDelegate);
@@ -284,6 +301,7 @@ void FFriendsMessageManager::Logout()
 	}
 	FTicker::GetCoreTicker().RemoveTicker( UpdateMessagesTickerDelegate );
 }
+
 
 void FFriendsMessageManager::OnEnumerateMessagesComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ErrorStr)
 {
@@ -330,6 +348,7 @@ void FFriendsMessageManager::OnEnumerateMessagesComplete(int32 LocalPlayer, bool
 
 	SetState( EFriendsMessageManagerState::Idle );
 }
+
 
 void FFriendsMessageManager::OnReadMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr)
 {
@@ -400,6 +419,7 @@ void FFriendsMessageManager::OnReadMessageComplete(int32 LocalPlayer, bool bWasS
 	SetState( EFriendsMessageManagerState::Idle );
 }
 
+
 void FFriendsMessageManager::OnSendMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ErrorStr)
 {
 	if ( bWasSuccessful )
@@ -410,6 +430,7 @@ void FFriendsMessageManager::OnSendMessageComplete(int32 LocalPlayer, bool bWasS
 	SetState( EFriendsMessageManagerState::Idle );
 }
 
+
 void FFriendsMessageManager::OnDeleteMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr)
 {
 	// done with this part of the test if no more messages to delete
@@ -417,17 +438,20 @@ void FFriendsMessageManager::OnDeleteMessageComplete(int32 LocalPlayer, bool bWa
 	SetState( EFriendsMessageManagerState::Idle );
 }
 
+
 FReply FFriendsMessageManager::HandleMessageAccepted( TSharedPtr< FFriendsAndChatMessage > InNotificationMessage )
 {
 	NotficationMessages.Remove( InNotificationMessage );
 	return FReply::Handled();
 }
 
+
 FReply FFriendsMessageManager::HandleMessageDeclined( TSharedPtr< FFriendsAndChatMessage > InNotificationMessage )
 {
 	NotficationMessages.Remove( InNotificationMessage );
 	return FReply::Handled();
 }
+
 
 void FFriendsMessageManager::ResendMessage()
 {
@@ -442,9 +466,11 @@ void FFriendsMessageManager::ResendMessage()
 	UnhandledNetID.Reset();
 }
 
+
 /* FFriendsMessageManager system singletons
 *****************************************************************************/
-TSharedPtr< FFriendsMessageManager > FFriendsMessageManager::SingletonInstance = NULL;
+
+TSharedPtr< FFriendsMessageManager > FFriendsMessageManager::SingletonInstance = nullptr;
 
 TSharedRef< FFriendsMessageManager > FFriendsMessageManager::Get()
 {
@@ -456,9 +482,11 @@ TSharedRef< FFriendsMessageManager > FFriendsMessageManager::Get()
 	return SingletonInstance.ToSharedRef();
 }
 
+
 void FFriendsMessageManager::Shutdown()
 {
 	SingletonInstance.Reset();
 }
+
 
 #undef LOCTEXT_NAMESPACE

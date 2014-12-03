@@ -170,7 +170,38 @@ struct FCopySelectedInfo
 	}
 };
 
+/** A cache of actor labels */
+struct FCachedActorLabels
+{
+	/** Default constructor - does not populate the array */
+	FCachedActorLabels();
 
+	/** Constructor that populates the set of actor names */
+	explicit FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+
+	/** Populate the set of actor names */
+	void Populate(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+
+	/** Add a new label to this set */
+	FORCEINLINE void Add(const FString& InLabel)
+	{
+		ActorLabels.Add(InLabel);
+	}
+
+	/** Check if the specified label exists */
+	FORCEINLINE bool Contains(const FString& InLabel) const
+	{
+		return ActorLabels.Contains(InLabel);
+	}
+
+private:
+	TSet<FString> ActorLabels;
+};
+
+/**
+ * Engine that drives the Editor.
+ * Separate from UGameEngine because it may have much different functionality than desired for an instance of a game itself.
+ */
 UCLASS(config=Engine, transient)
 class UNREALED_API UEditorEngine : public UEngine
 {
@@ -506,6 +537,13 @@ public:
 	/** Annotation to track which PIE/SIE (PlayWorld) UObjects have counterparts in the EditorWorld **/
 	class FUObjectAnnotationSparseBool ObjectsThatExistInEditorWorld;
 
+	/** Called prior to a Blueprint compile */
+	DECLARE_EVENT_OneParam( UEditorEngine, FBlueprintPreCompileEvent, UBlueprint* );
+	FBlueprintPreCompileEvent& OnBlueprintPreCompile() { return BlueprintPreCompileEvent; }
+
+	/** Broadcasts that a Blueprint is about to be compiled */
+	void BroadcastBlueprintPreCompile(UBlueprint* BlueprintToCompile) { BlueprintPreCompileEvent.Broadcast(BlueprintToCompile); }
+
 	/** Called when a Blueprint compile is completed. */
 	DECLARE_EVENT( UEditorEngine, FBlueprintCompiledEvent );
 	FBlueprintCompiledEvent& OnBlueprintCompiled() { return BlueprintCompiledEvent; }
@@ -624,7 +662,7 @@ public:
 	
 
 	/** Get tick rate limitor. */
-	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) override;
+	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) const override;
 
 	/**
 	 * Initializes the Editor.
@@ -1409,14 +1447,14 @@ public:
 	 * @param Filename	The FBX filename
 	 * @param bImportMorphTracks	true to import any morph curve data.
 	 */
-	static UAnimSequence * ImportFbxAnimation( USkeleton * Skeleton, UObject * Outer, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename, const TCHAR * AnimName, bool bImportMorphTracks );
+	static UAnimSequence * ImportFbxAnimation( USkeleton* Skeleton, UObject* Outer, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename, const TCHAR* AnimName, bool bImportMorphTracks );
 	/**
 	 * Reimport animation using SourceFilePath and SourceFileStamp 
 	 *
 	 * @param Skeleton	The skeleton that animation is import into
 	 * @param Filename	The FBX filename
 	 */
-	static bool ReimportFbxAnimation( USkeleton * Skeleton, UAnimSequence * AnimSequence, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename);
+	static bool ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* AnimSequence, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename);
 
 
 	// Object management.
@@ -1480,6 +1518,11 @@ public:
 	 */
 	virtual bool IsCookByTheBookInEditorFinished() const { return true; }
 
+	/**
+	 * Cancels the current cook by the book in editor
+	 */
+	virtual void CancelCookByTheBookInEditor() { }
+
 
 	/**
 	 * Makes a request to start a play from a Slate editor session
@@ -1500,6 +1543,11 @@ public:
 	 * Request to play a game on a remote device 
 	 */
 	void RequestPlaySession( const FString& DeviceId, const FString& DeviceName );
+
+	/**
+	 * Cancel request to start a play session
+	 */
+	void CancelRequestPlaySession();
 
 	/**
 	 * Makes a request to start a play from a Slate editor session
@@ -1571,6 +1619,9 @@ public:
 	 */
 	virtual void EndPlayMap();
 
+	/** 
+	 * Destroy the current play session and perform miscellaneous cleanup
+	 */
 	virtual void TeardownPlaySession(FWorldContext &PieWorldContext);
 
 	/**
@@ -1950,7 +2001,7 @@ public:
 	/** The editor wrapper for UPackage::SavePackage. Auto-adds files to source control when necessary */
 	bool SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 		FOutputDevice* Error=GError, ULinkerLoad* Conform=NULL, bool bForceByteSwapping=false, bool bWarnOfLongFilename=true, 
-		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue() );
+		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
 
 	/** Invoked before a UWorld is saved to update editor systems */
 	virtual void OnPreSaveWorld(uint32 SaveFlags, UWorld* World);
@@ -2092,8 +2143,9 @@ public:
 	 * @param ParentActor	Actor to parent the child to
 	 * @param ChildActor	Actor being parented
 	 * @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	 * @param Component		Actual Component included in the ParentActor which is a usually blueprint actor
 	 */
-	void ParentActors( AActor* ParentActor, AActor* ChildActor, const FName SocketName );
+	void ParentActors( AActor* ParentActor, AActor* ChildActor, const FName SocketName, USceneComponent* Component=NULL );
 
 	/**
 	 * Detaches selected actors from there parents
@@ -2190,11 +2242,11 @@ public:
 	/**
 	 * Assigns a new label to an actor. If the name exists it will be appended with a number to make it unique. Actor labels are only available in development builds.
 	 *
-	 * @param	Actor			The actor to change the label of
-	 * @param	NewActorLabel	The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	Actor					The actor to change the label of
+	 * @param	NewActorLabel			The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	InExistingActorLabels	(optional) Pointer to a set of actor labels that are currently in use
 	 */
-	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel ) const;
-
+	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
 
 	/**
 	 * Gets the user-friendly, localized (if exists) name of a property
@@ -2350,6 +2402,13 @@ public:
 	 */
 	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
+	/*
+	 * Handler for when viewport close request is made. 
+	 *
+	 * @param InViewport the viewport being closed.
+	 */
+	void OnViewportCloseRequested(FViewport* InViewport);
+
 private:
 	/** Gets the DPI Scale for the game viewport in the editor. */
 	float GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const;
@@ -2396,14 +2455,34 @@ public:
 
 private:
 	/**
+	* snap a child actor to a named socket in a specific SkeletalMeshComponent
+	*
+	* @param ParentActor	Actor to parent the child to
+	* @param ChildActor	Actor being parented
+	* @param SkeletalMeshComponent	Component which has the Socket
+	* @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	* @return true if successful, false otherwise
+	*/
+	bool AttachActorToComponent(AActor* ParentActor, AActor* ChildActor, USkeletalMeshComponent* SkeletalMeshComponent, const FName SocketName);
+	/**
+	* snap a child actor to a named socket in a specific StaticMeshComponent
+	*
+	* @param ChildActor	Actor being parented
+	* @param StaticMeshComponent	Component which has the Socket
+	* @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	* @return true if successful, false otherwise
+	*/
+	bool AttachActorToComponent(AActor* ChildActor, UStaticMeshComponent* StaticMeshComponent, const FName SocketName);
+	/**
 	 * Utility method to try and snap a child actor to a named socket in the parent
 	 *
 	 * @param ParentActor	Actor to parent the child to
 	 * @param ChildActor	Actor being parented
 	 * @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	 * @param Component		Actual Component which has the Socket, this component will be used when ParentActor is a blueprint actor
 	 * @return true if successful, false otherwise
 	 */
-	bool SnapToSocket( AActor* ParentActor, AActor* ChildActor, const FName SocketName );
+	bool SnapToSocket( AActor* ParentActor, AActor* ChildActor, const FName SocketName, USceneComponent* Component=NULL );
 
 	/**
 	 * Delegate definition for the execute function that follows
@@ -2420,12 +2499,16 @@ private:
 	void ExecuteCommandForAllLevelModels( UWorld* InWorld, FSelectCommand InSelectCommand, const FText& TransDesription );
 	void ExecuteCommandForAllLevelModels( UWorld* InWorld, FSelectInWorldCommand InSelectCommand, const FText& TransDesription );
 	
+public:
+
 	/**
 	 * Utility method call ModifySelectedSurfs for each level model in the worlds level list.
 	 *
 	 * @param InWorld			World containing the levels
 	 */
 	 void FlagModifyAllSelectedSurfacesInLevels( UWorld* InWorld );
+	 
+private:
 
 	/**
 	 * This destroys the given world.
@@ -2508,6 +2591,9 @@ private:
 
 private:
 
+	/** Delegate broadcast just before a blueprint is compiled */
+	FBlueprintPreCompileEvent BlueprintPreCompileEvent;
+
 	/** Delegate broadcast when blueprint is compiled */
 	FBlueprintCompiledEvent BlueprintCompiledEvent;
 
@@ -2576,6 +2662,15 @@ private:
 	/** Number of currently running instances logged into an online platform */
 	int32 NumOnlinePIEInstances;
 
+	/** Cached version of the view location at the point the PIE session was ended */
+	FVector LastViewLocation;
+	
+	/** Cached version of the view location at the point the PIE session was ended */
+	FRotator LastViewRotation;
+	
+	/** Are the lastview/rotation variables valid */
+	bool	bLastViewAndLocationValid;
+
 protected:
 
 	/**
@@ -2605,7 +2700,7 @@ protected:
 	void HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
-	void HandleLaunchCompleted(bool Succeeded, double TotalTime, int32 ErrorCode, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+	void HandleLaunchCompleted(bool Succeeded, double TotalTime, int32 ErrorCode, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr, TSharedPtr<class FMessageLog> MessageLog);
 
 public:
 	/** True if world assets are enabled */

@@ -10,8 +10,8 @@
 #include "Abilities/Tasks/AbilityTask_WaitConfirmCancel.h"
 #include "LatentActions.h"
 
-UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -39,26 +39,81 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	return Handle;
 }
 
-FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data)
-{
-	// Construct TargetData
-	FGameplayAbilityTargetData_Mesh*	NewData = new FGameplayAbilityTargetData_Mesh(Data);
-	FGameplayAbilityTargetDataHandle	Handle;
-
-	// Give it a handle and return
-	Handle.Data.Add(TSharedPtr<FGameplayAbilityTargetData_Mesh>(NewData));
-	return Handle;
-}
-
-
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(AActor* Actor)
 {
 	// Construct TargetData
 	FGameplayAbilityTargetData_ActorArray*	NewData = new FGameplayAbilityTargetData_ActorArray();
 	NewData->TargetActorArray.Add(Actor);
-
 	FGameplayAbilityTargetDataHandle		Handle(NewData);
 	return Handle;
+}
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(TArray<TWeakObjectPtr<AActor>> ActorArray, bool OneTargetPerHandle)
+{
+	// Construct TargetData
+	if (OneTargetPerHandle)
+	{
+		FGameplayAbilityTargetDataHandle		Handle;
+		for (int32 i = 0; i < ActorArray.Num(); ++i)
+		{
+			if (ActorArray[i].IsValid())
+			{
+				FGameplayAbilityTargetDataHandle TempHandle = AbilityTargetDataFromActor(ActorArray[i].Get());
+				Handle.Append(&TempHandle);
+			}
+		}
+		return Handle;
+	}
+	else
+	{
+		FGameplayAbilityTargetData_ActorArray*	NewData = new FGameplayAbilityTargetData_ActorArray();
+		NewData->TargetActorArray = ActorArray;
+		FGameplayAbilityTargetDataHandle		Handle(NewData);
+		return Handle;
+	}
+}
+
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::FilterTargetData(FGameplayAbilityTargetDataHandle TargetDataHandle, FGameplayTargetDataFilterHandle FilterHandle)
+{
+	FGameplayAbilityTargetDataHandle ReturnDataHandle;
+	
+	for (int32 i = 0; TargetDataHandle.IsValid(i); ++i)
+	{
+		FGameplayAbilityTargetData* UnfilteredData = TargetDataHandle.Get(i);
+		check(UnfilteredData);
+		if (UnfilteredData->GetActors().Num() > 0)
+		{
+			TArray<TWeakObjectPtr<AActor>> FilteredActors = UnfilteredData->GetActors().FilterByPredicate(FilterHandle);
+			if (FilteredActors.Num() > 0)
+			{
+				//Copy the data first, since we don't understand the internals of it
+				UScriptStruct* ScriptStruct = UnfilteredData->GetScriptStruct();
+				FGameplayAbilityTargetData* NewData = (FGameplayAbilityTargetData*)FMemory::Malloc(ScriptStruct->GetCppStructOps()->GetSize());
+				ScriptStruct->InitializeScriptStruct(NewData);
+				ScriptStruct->CopyScriptStruct(NewData, UnfilteredData);
+				ReturnDataHandle.Data.Add(TSharedPtr<FGameplayAbilityTargetData>(NewData));
+				if (FilteredActors.Num() < UnfilteredData->GetActors().Num())
+				{
+					//We have lost some, but not all, of our actors, so replace the array. This should only be possible with targeting types that permit actor-array setting.
+					if (!NewData->SetActors(FilteredActors))
+					{
+						//This is an error, though we could ignore it. We somehow filtered out part of a list, but the class doesn't support changing the list, so now it's all or nothing.
+						check(false);
+					}
+				}
+			}
+		}
+	}
+
+	return ReturnDataHandle;
+}
+
+FGameplayTargetDataFilterHandle UAbilitySystemBlueprintLibrary::MakeFilterHandle(FGameplayTargetDataFilter Filter, AActor* FilterActor)
+{
+	FGameplayTargetDataFilterHandle FilterHandle;
+	FGameplayTargetDataFilter* NewFilter = new FGameplayTargetDataFilter(Filter);
+	NewFilter->InitializeFilterContext(FilterActor);
+	FilterHandle.Filter = TSharedPtr<FGameplayTargetDataFilter>(NewFilter);
+	return FilterHandle;
 }
 
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(FHitResult HitResult)
@@ -95,6 +150,19 @@ TArray<AActor*> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGamepla
 		return ResolvedArray;
 	}
 	return TArray<AActor*>();
+}
+
+bool UAbilitySystemBlueprintLibrary::TargetDataHasActor(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
+{
+	if (TargetData.Data.IsValidIndex(Index))
+	{
+		FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
+		if (Data)
+		{
+			return (Data->GetActors().Num() > 0);
+		}
+	}
+	return false;
 }
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
@@ -183,14 +251,7 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 			const FHitResult* HitResultPtr = Data->GetHitResult();
 			if (HitResultPtr)
 			{
-				if (HitResultPtr->Component.IsValid())
-				{
-					return HitResultPtr->ImpactPoint;
-				}
-				else
-				{
-					return HitResultPtr->TraceEnd;
-				}
+				return HitResultPtr->Location;
 			}
 			else if (Data->HasEndPoint())
 			{
@@ -207,15 +268,15 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {
-	return Parameters.InstigatorContext.IsLocallyControlled();
+	return Parameters.EffectContext.IsLocallyControlled();
 }
 
 
 FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters Parameters)
 {
-	if (Parameters.InstigatorContext.HitResult.IsValid())
+	if (Parameters.EffectContext.GetHitResult())
 	{
-		return *Parameters.InstigatorContext.HitResult.Get();
+		return *Parameters.EffectContext.GetHitResult();
 	}
 	
 	return FHitResult();
@@ -223,5 +284,41 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters P
 
 bool UAbilitySystemBlueprintLibrary::HasHitResult(FGameplayCueParameters Parameters)
 {
-	return Parameters.InstigatorContext.HitResult.IsValid();
+	return Parameters.EffectContext.GetHitResult() != NULL;
+}
+
+void UAbilitySystemBlueprintLibrary::ForwardGameplayCueToTarget(TScriptInterface<IGameplayCueInterface> TargetCueInterface, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+{
+	AActor* ActorTarget = Cast<AActor>(TargetCueInterface.GetObject());
+	if (TargetCueInterface && ActorTarget)
+	{
+		TargetCueInterface->HandleGameplayCue(ActorTarget, Parameters.OriginalTag, EventType, Parameters);
+	}
+}
+
+AActor*	UAbilitySystemBlueprintLibrary::GetInstigatorActor(FGameplayCueParameters Parameters)
+{
+	return Parameters.EffectContext.GetInstigator();
+}
+
+FTransform UAbilitySystemBlueprintLibrary::GetInstigatorTransform(FGameplayCueParameters Parameters)
+{
+	AActor* InstigatorActor = GetInstigatorActor(Parameters);
+	if (InstigatorActor)
+	{
+		return InstigatorActor->GetTransform();
+	}
+
+	ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::GetInstigatorTransform called on GameplayCue with no valid instigator"));
+	return FTransform::Identity;
+}
+
+FVector UAbilitySystemBlueprintLibrary::GetOrigin(FGameplayCueParameters Parameters)
+{
+	if (Parameters.EffectContext.HasOrigin())
+	{
+		return Parameters.EffectContext.GetOrigin();
+	}
+
+	return FVector::ZeroVector;
 }

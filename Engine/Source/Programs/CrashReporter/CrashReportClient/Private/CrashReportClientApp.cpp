@@ -8,7 +8,7 @@
 	#include "SCrashReportClient.h"
 	#include "CrashReportClient.h"
 	#include "CrashReportClientStyle.h"
-	#include "SlateReflector.h"
+	#include "ISlateReflectorModule.h"
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 
 #include "CrashReportClientUnattended.h"
@@ -91,6 +91,7 @@ FPlatformErrorReport LoadErrorReport()
 	FString XMLWerFilename;
 	ErrorReport.FindFirstReportFileWithExtension( XMLWerFilename, TEXT( ".xml" ) );
 
+	extern FCrashDescription& GetCrashDescription();
 	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );
 
 #if CRASH_REPORT_UNATTENDED_ONLY
@@ -129,6 +130,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	if( ErrorReport.HasFilesToUpload() )
 	{
 		// Send analytics.
+		extern FCrashDescription& GetCrashDescription();
 		GetCrashDescription().SendAnalytics();
 	}
 

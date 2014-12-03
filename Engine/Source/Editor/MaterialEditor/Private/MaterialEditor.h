@@ -17,7 +17,7 @@ public:
 	{
 		// Register this FMaterial derivative with AddEditorLoadedMaterialResource since it does not have a corresponding UMaterialInterface
 		FMaterial::AddEditorLoadedMaterialResource(this);
-		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
 	FMatExpressionPreview(UMaterialExpression* InExpression)
@@ -29,7 +29,7 @@ public:
 
 		check(InExpression->Material && InExpression->Material->Expressions.Contains(InExpression));
 		InExpression->Material->AppendReferencedTextures(ReferencedTextures);
-		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
 	~FMatExpressionPreview()
@@ -539,6 +539,12 @@ private:
 	/** Callback to tell the Material Editor that a materials usage flags have been changed */
 	void OnMaterialUsageFlagsChanged(class UMaterial* MaterialThatChanged, int32 FlagThatChanged);
 
+	void OnVectorParameterDefaultChanged(class UMaterialExpression*, FName ParameterName, const FLinearColor& Value);
+	void OnScalarParameterDefaultChanged(class UMaterialExpression*, FName ParameterName, float Value);
+
+	void SetVectorParameterDefaultOnDependentMaterials(FName ParameterName, const FLinearColor& Value, bool bOverride);
+	void SetScalarParameterDefaultOnDependentMaterials(FName ParameterName, float, bool bOverride);
+
 	// FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
@@ -574,6 +580,7 @@ private:
 
 	/** Pointer to the object that the current color picker is working on. Can be NULL and stale. */
 	TWeakObjectPtr<UObject> ColorPickerObject;
+	TWeakObjectPtr<UProperty> ColorPickerProperty;
 
 	/** Called before the color picker commits a change. */
 	void PreColorPickerCommit(FLinearColor LinearColor);
@@ -632,6 +639,9 @@ private:
 	/** Cached Code for the widget */
 	FString HLSLCode;
 
+	/** Tracks whether the code tab is open, so we don't have to update it when closed. */
+	TWeakPtr<SDockTab> CodeTab;
+
 	/** Palette of Material Expressions and functions */
 	TSharedPtr<class SMaterialPalette> Palette;
 
@@ -649,10 +659,13 @@ private:
 	bool bAlwaysRefreshAllPreviews;
 
 	/** Material expression previews. */
-	TIndirectArray<class FMatExpressionPreview>		ExpressionPreviews;
+	TIndirectArray<class FMatExpressionPreview> ExpressionPreviews;
 
 	/** Information about material to show when stats are enabled */
 	TArray<TSharedPtr<FMaterialInfo>> MaterialInfoList;
+
+	TArray<FName> OverriddenVectorParametersToRevert;
+	TArray<FName> OverriddenScalarParametersToRevert;
 
 	/** If true, don't render connectors that are not connected to anything. */
 	bool bHideUnusedConnectors;

@@ -40,6 +40,7 @@ public:
 	FVector2D MidpointRadius;
 protected:
 	float ZoomFactor; 
+	float HoverDeemphasisDarkFraction;
 	const FSlateRect& ClippingRect;
 	FSlateWindowElementList& DrawElementsList;
 	TMap< UEdGraphPin*, TSharedRef<SGraphPin> > PinToPinWidgetMap;
@@ -85,6 +86,8 @@ public:
 	virtual void ResetIncompatiblePinDrawState(const TSet< TSharedRef<SWidget> >& VisiblePins);
 
 	virtual void ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor);
+
+	virtual bool IsConnectionCulled( const FArrangedWidget& StartLink, const FArrangedWidget& EndLink ) const;
 };
 
 /////////////////////////////////////////////////////

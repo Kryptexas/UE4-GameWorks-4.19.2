@@ -4,6 +4,9 @@
 
 #include "KismetCompiler.h"
 
+class UWidgetBlueprint;
+class UWidgetBlueprintGeneratedClass;
+
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintCompiler
 

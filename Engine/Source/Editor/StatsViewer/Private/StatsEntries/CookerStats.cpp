@@ -4,6 +4,6 @@
 #include "CookerStats.h"
 
 
-UCookerStats::UCookerStats( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UCookerStats::UCookerStats( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }

@@ -55,6 +55,7 @@ void SButton::Construct( const FArguments& InArgs )
 
 	ClickMethod = InArgs._ClickMethod;
 	TouchMethod = InArgs._TouchMethod;
+	PressMethod = InArgs._PressMethod;
 
 	HoveredSound = InArgs._HoveredSoundOverride.Get(Style->HoveredSlateSound);
 	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
@@ -92,36 +93,77 @@ bool SButton::SupportsKeyboardFocus() const
 	return bIsFocusable;
 }
 
-FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+void SButton::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	//see if we pressed the Enter or Spacebar keys
-	if(InKeyboardEvent.GetKey() == EKeys::Enter || InKeyboardEvent.GetKey() == EKeys::SpaceBar)
-	{
-		if(IsEnabled())
-		{
-			PlayPressedSound();
-		}		
+	bIsPressed = false;
+}
 
-		//execute our "OnClicked" delegate, if we have one
-		if(OnClicked.IsBound() == true)
+FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
+{
+	FReply Reply = FReply::Unhandled();
+	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
+	{
+		bIsPressed = true;
+
+		PlayPressedSound();
+
+		if (PressMethod == EButtonPressMethod::ButtonPress)
 		{
-			return OnClicked.Execute();
+			//execute our "OnClicked" delegate, and get the reply
+			Reply = OnClicked.IsBound() ? OnClicked.Execute() : FReply::Handled();
+
+			//You should ALWAYS handle the OnClicked event.
+			ensure(Reply.IsEventHandled() == true);
+		}
+		else
+		{
+			Reply = FReply::Handled();
+		}
+	}
+	else
+	{
+		Reply = SBorder::OnKeyDown(MyGeometry, InKeyEvent);
+	}
+
+	//return the constructed reply
+	return Reply;
+}
+
+FReply SButton::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	FReply Reply = FReply::Unhandled();
+
+	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
+	{
+		bool bWasPressed = bIsPressed;
+		bIsPressed = false;
+		//@Todo Slate: This should check focus, however we don't have that API yet, will be easier when focus is unified.
+		if (PressMethod == EButtonPressMethod::ButtonRelease || (PressMethod == EButtonPressMethod::DownAndUp && bWasPressed))
+		{
+			//execute our "OnClicked" delegate, and get the reply
+			Reply = OnClicked.IsBound() ? OnClicked.Execute() : FReply::Handled();
+
+			//You should ALWAYS handle the OnClicked event.
+			ensure(Reply.IsEventHandled() == true);
+		}
+		else
+		{
+			Reply = FReply::Handled();
 		}
 	}
 
-	//if it was some other button, ignore it
-	return FReply::Unhandled();
+	//return the constructed reply
+	return Reply;
 }
-
 
 FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() )
+	if (IsEnabled() && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent()))
 	{
 		bIsPressed = true;
 
-		if(IsEnabled())
+		if ( IsEnabled() )
 		{
 			PlayPressedSound();
 		}
@@ -134,9 +176,9 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 			//You should ALWAYS handle the OnClicked event.
 			ensure(Reply.IsEventHandled() == true);
 		}
-		else if (TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.IsTouchEvent() )
+		else if ( IsPreciseTapOrClick(MouseEvent) )
 		{
-			// do not capture the pointer for precise taps
+			// do not capture the pointer for precise taps or clicks
 			// 
 		}
 		else
@@ -156,11 +198,10 @@ FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 	return OnMouseButtonDown( InMyGeometry, InMouseEvent );
 }
 
-
 FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() )
+	if (IsEnabled() && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent()))
 	{
 		bIsPressed = false;
 
@@ -176,8 +217,7 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 			if( bIsUnderMouse )
 			{
 				// If we asked for a precide tap, all we need is for the user to have not moved their pointer very far.
-				// Precise taps only occur for mobile devices, 
-				const bool bTriggerForTouchEvent = MouseEvent.IsTouchEvent() && TouchMethod == EButtonTouchMethod::PreciseTap;
+				const bool bTriggerForTouchEvent = IsPreciseTapOrClick(MouseEvent);
 
 				// If we were asked to allow the button to be clicked on mouse up, regardless of whether the user
 				// pressed the button down first, then we'll allow the click to proceed without an active capture
@@ -208,10 +248,10 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 	return Reply;
 }
 
-
 FReply SButton::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.IsTouchEvent() && TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.GetCursorDelta().SizeSquared() != 0 )
+	const float SlateDragStartDistance = FSlateApplication::Get().GetDragTriggerDistnace();
+	if ( IsPreciseTapOrClick(MouseEvent) && MouseEvent.GetCursorDelta().SizeSquared() > ( SlateDragStartDistance*SlateDragStartDistance ) )
 	{
 		bIsPressed = false;
 	}
@@ -220,7 +260,7 @@ FReply SButton::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& M
 
 void SButton::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if(IsEnabled())
+	if ( IsEnabled() )
 	{
 		PlayHoverSound();
 	}
@@ -235,10 +275,16 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 	// If we're setup to click on mouse-down, then we never capture the mouse and may not receive a
 	// mouse up event, so we need to make sure our pressed state is reset properly here
-	if( ClickMethod == EButtonClickMethod::MouseDown || ( TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.IsTouchEvent() ) )
+	if ( ClickMethod == EButtonClickMethod::MouseDown || IsPreciseTapOrClick(MouseEvent) )
 	{
 		bIsPressed = false;
 	}
+}
+
+bool SButton::IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const
+{
+	return ( TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.IsTouchEvent() ) ||
+		   ( ClickMethod == EButtonClickMethod::PreciseClick && !MouseEvent.IsTouchEvent() );
 }
 
 void SButton::PlayPressedSound() const

@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // USpriteEditorTool
 
-USpriteEditorTool::USpriteEditorTool(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpriteEditorTool::USpriteEditorTool(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

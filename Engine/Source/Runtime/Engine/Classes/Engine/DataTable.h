@@ -124,7 +124,7 @@ class UDataTable : public UObject
 private:
 	//when RowStruct is being modified, row data is stored serialized with tags
 	TArray<uint8> RowsSerializedWithTags;
-
+	TSet<UObject*> TemporarilyReferencedObjects;
 public:
 	ENGINE_API void CleanBeforeStructChange();
 	ENGINE_API void RestoreAfterStructChange();

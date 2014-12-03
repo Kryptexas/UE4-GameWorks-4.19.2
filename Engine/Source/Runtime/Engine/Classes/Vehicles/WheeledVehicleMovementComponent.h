@@ -2,6 +2,8 @@
 
 #pragma once
 #include "GameFramework/PawnMovementComponent.h"
+#include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "AI/RVOAvoidanceInterface.h"
 #include "WheeledVehicleMovementComponent.generated.h"
 
 class UVehicleWheel;
@@ -157,7 +159,7 @@ struct FVehicleInputRate
  * Component to handle the vehicle simulation for an actor.
  */
 UCLASS(Abstract, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
-class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent
+class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent, public IRVOAvoidanceInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -198,12 +200,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UPROPERTY(transient)
 	float DebugDragMagnitude;
 
+	// Used for backwards compat to fixup incorrect COM of vehicles
+
 	/** When vehicle is created we want to compute some helper data like drag area, etc.... Derived classes should use this to properly compute things like engine RPM */
 	virtual void ComputeConstants();
-
-	/** Override center of mass offset, makes tweaking easier [uu] */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	FVector COMOffset;
 
 	/** Scales the vehicle's inertia in each direction (forward, right, up) */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
@@ -338,6 +338,72 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	bool GetUseAutoGears() const;
 
+	// RVO Avoidance
+
+	/** If set, component will use RVO avoidance */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadWrite)
+	uint32 bUseRVOAvoidance : 1;
+	
+	/** Vehicle Radius to use for RVO avoidance (usually half of vehicle width) */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadWrite)
+	float RVOAvoidanceRadius;
+	
+	/** Vehicle Height to use for RVO avoidance (usually vehicle height) */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadWrite)
+	float RVOAvoidanceHeight;
+	
+	/** Area Radius to consider for RVO avoidance */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadWrite)
+	float AvoidanceConsiderationRadius;
+
+	/** Value by which to alter steering per frame based on calculated avoidance */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	float RVOSteeringStep;
+
+	/** Value by which to alter throttle per frame based on calculated avoidance */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	float RVOThrottleStep;
+	
+	/** calculate RVO avoidance and apply it to current velocity */
+	virtual void CalculateAvoidanceVelocity(float DeltaTime);
+
+	/** No default value, for now it's assumed to be valid if GetAvoidanceManager() returns non-NULL. */
+	UPROPERTY(Category = "Avoidance", VisibleAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	int32 AvoidanceUID;
+
+	/** Moving actor's group mask */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	FNavAvoidanceMask AvoidanceGroup;
+	
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|WheeledVehicleMovement")
+	void SetAvoidanceGroup(int32 GroupFlags);
+	
+	/** Will avoid other agents if they are in one of specified groups */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	FNavAvoidanceMask GroupsToAvoid;
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|WheeledVehicleMovement")
+	void SetGroupsToAvoid(int32 GroupFlags);
+	
+	/** Will NOT avoid other agents if they are in one of specified groups, higher priority than GroupsToAvoid */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	FNavAvoidanceMask GroupsToIgnore;
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|WheeledVehicleMovement")
+	void SetGroupsToIgnore(int32 GroupFlags);
+
+	/** De facto default value 0.5 (due to that being the default in the avoidance registration function), indicates RVO behavior. */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly)
+	float AvoidanceWeight;
+	
+	/** Temporarily holds launch velocity when pawn is to be launched so it happens at end of movement. */
+	UPROPERTY()
+	FVector PendingLaunchVelocity;
+	
+	/** Change avoidance state and register with RVO manager if necessary */
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|WheeledVehicleMovement")
+	void SetAvoidanceEnabled(bool bEnable);
+
 protected:
 
 	// replicated state of vehicle 
@@ -426,12 +492,51 @@ protected:
 	/** Clear all interpolated inputs to default values */
 	virtual void ClearInput();
 
+	/** Updates the COMOffset on the actual body instance */
+
 	/** Read current state for simulation */
 	void UpdateState(float DeltaTime);
 
 	/** Pass current state to server */
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerUpdateState(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 CurrentGear);
+
+	/** Update RVO Avoidance for simulation */
+	void UpdateAvoidance(float DeltaTime);
+		
+	/** called in Tick to update data in RVO avoidance manager */
+	void UpdateDefaultAvoidance();
+	
+	/** lock avoidance velocity */
+	void SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration);
+	
+	/** Was avoidance updated in this frame? */
+	UPROPERTY(Transient)
+	uint32 bWasAvoidanceUpdated : 1;
+	
+	/** Calculated avoidance velocity used to adjust steering and throttle */
+	FVector AvoidanceVelocity;
+	
+	/** forced avoidance velocity, used when AvoidanceLockTimer is > 0 */
+	FVector AvoidanceLockVelocity;
+	
+	/** remaining time of avoidance velocity lock */
+	float AvoidanceLockTimer;
+	
+	/** BEGIN IRVOAvoidanceInterface */
+	virtual void SetRVOAvoidanceUID(int32 UID) override;
+	virtual int32 GetRVOAvoidanceUID() override;
+	virtual void SetRVOAvoidanceWeight(float Weight) override;
+	virtual float GetRVOAvoidanceWeight() override;
+	virtual FVector GetRVOAvoidanceOrigin() override;
+	virtual float GetRVOAvoidanceRadius() override;
+	virtual float GetRVOAvoidanceHeight() override;
+	virtual float GetRVOAvoidanceConsiderationRadius() override;
+	virtual FVector GetVelocityForRVOConsideration() override;
+	virtual int32 GetAvoidanceGroupMask() override;
+	virtual int32 GetGroupsToAvoidMask() override;
+	virtual int32 GetGroupsToIgnoreMask() override;
+	/** END IRVOAvoidanceInterface */
 
 #if WITH_VEHICLE
 
@@ -466,8 +571,8 @@ protected:
 	/** Get the local position of the wheel at rest */
 	virtual FVector GetWheelRestingPosition(const FWheelSetup& WheelSetup);
 
-	/** Get the local COM offset */
-	virtual FVector GetCOMOffset();
+	/** Get the local COM */
+	virtual FVector GetLocalCOM() const;
 
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();

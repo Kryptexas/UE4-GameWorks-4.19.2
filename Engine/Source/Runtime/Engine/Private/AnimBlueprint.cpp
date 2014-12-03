@@ -9,8 +9,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UAnimBlueprint
 
-UAnimBlueprint::UAnimBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimBlueprint::UAnimBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -9,6 +9,7 @@
 #include "Editor/PropertyEditor/Public/PropertyHandle.h"
 #include "ScopedTransaction.h"
 #include "StatsViewerUtils.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer"
 

@@ -3,8 +3,8 @@
 
 //////////////////////////////////////////////////////////////////////////
 
-UScriptContext::UScriptContext(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScriptContext::UScriptContext(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Context = NULL;
 }

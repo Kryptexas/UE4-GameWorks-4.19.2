@@ -3,8 +3,8 @@
 
 #include "EnginePrivate.h"
 
-UShapeComponent::UShapeComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionProfileName(FName(TEXT("OverlapAllDynamic")));
 	// when we deprecated this variable, we switched on for the shapecomponent collision profile
@@ -26,7 +26,7 @@ FPrimitiveSceneProxy* UShapeComponent::CreateSceneProxy()
 	return NULL;
 }
 
-FBoxSphereBounds UShapeComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UShapeComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	check( false && "Subclass needs to Implement this" );
 	return FBoxSphereBounds();

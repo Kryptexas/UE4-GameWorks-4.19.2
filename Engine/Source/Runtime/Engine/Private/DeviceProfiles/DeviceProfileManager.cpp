@@ -94,7 +94,7 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 						if( CVar )
 						{
 							UE_LOG(LogInit, Log, TEXT("Setting Device Profile CVar: [[%s:%s]]"), *CVarKey, *CVarValue);
-							CVar->Set( *CVarValue );
+							CVar->Set( *CVarValue, ECVF_SetByDeviceProfile);
 							CVarsAlreadySetList.Add( CVarKey, CVarValue );
 						}
 						else
@@ -123,8 +123,8 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 }
 
 
-UDeviceProfileManager::UDeviceProfileManager( const class FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UDeviceProfileManager::UDeviceProfileManager( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	RenameIndex = 0;
 #if WITH_EDITOR

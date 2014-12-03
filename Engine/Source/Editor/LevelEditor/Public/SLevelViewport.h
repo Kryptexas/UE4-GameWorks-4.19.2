@@ -426,9 +426,9 @@ private:
 	virtual void ToggleStatCommand(FString CommandName) override;
 
 	/**
-	 * Called when show flags for this viewport should be reset to default
+	 * Called when show flags for this viewport should be reset to default, or the saved settings
 	 */
-	void OnUseDefaultShowFlags();
+	void OnUseDefaultShowFlags(bool bUseSavedDefaults = false);
 
 	/**
 	 * Changes the buffer visualization mode for this viewport
@@ -520,7 +520,7 @@ private:
 	bool HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEvent, bool bCreateDropPreview);
 
 	/** SWidget Interface */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -745,6 +745,9 @@ private:
 
 	/** The current device profile string */
 	FString DeviceProfile;
+
+	/** The current viewport config key */
+	FString ConfigKey;
 
 	/**
 	 * Contains information about an actor being previewed within this viewport

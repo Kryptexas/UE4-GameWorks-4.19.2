@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-USceneThumbnailInfoWithPrimitive::USceneThumbnailInfoWithPrimitive(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneThumbnailInfoWithPrimitive::USceneThumbnailInfoWithPrimitive(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimitiveType = TPT_Sphere;
 	OrbitPitch = -35;

@@ -91,6 +91,8 @@ bool FMatineePerformanceCaptureCommand::Update()
 		FString MatineeFOOName = MatineeActor->GetName();
 		if (MatineeActor->GetName().Equals(MatineeName,ESearchCase::IgnoreCase))
 		{	
+
+
 			//add latent action to execute this matinee
 			ADD_LATENT_AUTOMATION_COMMAND(FPlayMatineeLatentCommand(MatineeActor));
 
@@ -102,6 +104,10 @@ bool FMatineePerformanceCaptureCommand::Update()
 
 			//Stop the Stat FPS Chart command
 			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
+		}
+		else
+		{
+			UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("'%s' is not the matinee name that is being searched for."), *MatineeActor->GetName())
 		}
 	}
 

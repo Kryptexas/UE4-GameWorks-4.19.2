@@ -6,10 +6,10 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape/LandscapeEdit.h"
-#include "Landscape/LandscapeRender.h"
-#include "Landscape/LandscapeDataAccess.h"
-#include "Landscape/LandscapeSplineProxies.h"
+#include "LandscapeEdit.h"
+#include "LandscapeRender.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeSplineProxies.h"
 #include "LandscapeEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -25,11 +25,11 @@
 #include "SLandscapeEditor.h"
 
 // Classes
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
-#include "Landscape/LandscapeMaterialInstanceConstant.h"
-#include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeMaterialInstanceConstant.h"
+#include "LandscapeSplinesComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
 
@@ -93,7 +93,7 @@ void ALandscape::SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLe
 		// Because of edge problem, normal would be just copy from old component data
 		TArray<uint8> NormalData;
 		NormalData.AddZeroed((1 + Comp->ComponentSizeQuads)*(1 + Comp->ComponentSizeQuads)*sizeof(uint16));
-		LandscapeEdit.GetHeightDataFast(Comp->GetSectionBase().X, Comp->GetSectionBase().Y, Comp->GetSectionBase().X + Comp->ComponentSizeQuads, Comp->GetSectionBase().Y + Comp->ComponentSizeQuads, (uint16*)HeightData.GetTypedData(), 0, (uint16*)NormalData.GetTypedData());
+		LandscapeEdit.GetHeightDataFast(Comp->GetSectionBase().X, Comp->GetSectionBase().Y, Comp->GetSectionBase().X + Comp->ComponentSizeQuads, Comp->GetSectionBase().Y + Comp->ComponentSizeQuads, (uint16*)HeightData.GetData(), 0, (uint16*)NormalData.GetData());
 
 		// Construct the heightmap textures
 		UObject* TextureOuter = bMoveToCurrentLevel ? Comp->GetWorld()->GetCurrentLevel()->GetOutermost() : nullptr;
@@ -126,7 +126,7 @@ void ALandscape::SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLe
 		{
 			HeightmapTexture->Source.UnlockMip(i);
 		}
-		LandscapeEdit.SetHeightData(Comp->GetSectionBase().X, Comp->GetSectionBase().Y, Comp->GetSectionBase().X + Comp->ComponentSizeQuads, Comp->GetSectionBase().Y + Comp->ComponentSizeQuads, (uint16*)HeightData.GetTypedData(), 0, false, (uint16*)NormalData.GetTypedData());
+		LandscapeEdit.SetHeightData(Comp->GetSectionBase().X, Comp->GetSectionBase().Y, Comp->GetSectionBase().X + Comp->ComponentSizeQuads, Comp->GetSectionBase().Y + Comp->ComponentSizeQuads, (uint16*)HeightData.GetData(), 0, false, (uint16*)NormalData.GetData());
 	}
 
 	// End of LandscapeEdit interface
@@ -523,7 +523,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 {
 	FEdMode::Tick(ViewportClient, DeltaTime);
 
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return;
 	}
@@ -576,7 +576,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		}
 	}
 
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -943,7 +943,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditPaste()
 
 bool FEdModeLandscape::ProcessEditDuplicate()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -963,7 +963,7 @@ bool FEdModeLandscape::ProcessEditDuplicate()
 
 bool FEdModeLandscape::ProcessEditDelete()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -983,7 +983,7 @@ bool FEdModeLandscape::ProcessEditDelete()
 
 bool FEdModeLandscape::ProcessEditCut()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -1003,7 +1003,7 @@ bool FEdModeLandscape::ProcessEditCut()
 
 bool FEdModeLandscape::ProcessEditCopy()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -1045,7 +1045,7 @@ bool FEdModeLandscape::ProcessEditCopy()
 
 bool FEdModeLandscape::ProcessEditPaste()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -1082,7 +1082,7 @@ bool FEdModeLandscape::ProcessEditPaste()
 
 bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -1104,7 +1104,7 @@ bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHit
 /** FEdMode: Called when a key is pressed */
 bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -1292,7 +1292,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 /** FEdMode: Called when mouse drag input is applied */
 bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -1630,7 +1630,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	if (GetWorld())
 	{
 		int32 Index = 0;
-		for (auto It = GetWorld()->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = GetLandscapeInfoMap(GetWorld()).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
 			if (LandscapeInfo)
@@ -1803,7 +1803,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 	/** Call parent implementation */
 	FEdMode::Render(View, Viewport, PDI);
 
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return;
 	}
@@ -2163,7 +2163,7 @@ bool FEdModeLandscape::GetCustomInputCoordinateSystem(FMatrix& InMatrix, void* I
 /** FEdMode: Handling SelectActor */
 bool FEdModeLandscape::Select(AActor* InActor, bool bInSelected)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -2198,7 +2198,7 @@ bool FEdModeLandscape::Select(AActor* InActor, bool bInSelected)
 /** FEdMode: Check to see if an actor can be selected in this mode - no side effects */
 bool FEdModeLandscape::IsSelectionAllowed(AActor* InActor, bool bInSelection) const
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -2307,21 +2307,39 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 		if (FFileHelper::LoadFileToArray(Data, *Filename) &&
 			LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
 		{
+			const int32 SizeX = (1 + MaxX - MinX);
+			const int32 SizeY = (1 + MaxY - MinY);
+
+			IImageWrapperPtr ImageWrapper = nullptr;
+			const TArray<uint8>* RawData = nullptr; // Pointer to actual used data, actual store could be in Data or ImageWrapper
+
 			if (Filename.EndsWith(".png"))
 			{
 				IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-				IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+				ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 				if (ImageWrapper->SetCompressed(Data.GetData(), Data.Num()))
 				{
-					if (ImageWrapper->GetWidth() != (1 + MaxX - MinX) || ImageWrapper->GetHeight() != (1 + MaxY - MinY))
+					const int32 ImportSizeX = ImageWrapper->GetWidth();
+					const int32 ImportSizeY = ImageWrapper->GetHeight();
+
+					if (ImportSizeX != SizeX || ImportSizeY != SizeY)
 					{
-						FMessageDialog::Open(EAppMsgType::Ok,
-							FText::Format(NSLOCTEXT("UnrealEd", "LandscapeReImport_BadFileSize", "{0}'s filesize does not match with current Landscape extent"), FText::FromString(Filename)));
-						return;
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("FileSizeX"), ImportSizeX);
+						Args.Add(TEXT("FileSizeY"), ImportSizeY);
+						Args.Add(TEXT("LandscapeSizeX"), SizeX);
+						Args.Add(TEXT("LandscapeSizeY"), SizeY);
+
+						auto Result = FMessageDialog::Open(EAppMsgType::OkCancel,
+							FText::Format(NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_SizeMismatch", "File's size ({FileSizeX}\u00D7{FileSizeY}) does not match with current Landscape extent ({LandscapeSizeX}\u00D7{LandscapeSizeY}), if you continue it will be padded/clipped to fit"), Args));
+
+						if (Result != EAppReturnType::Ok)
+						{
+							return;
+						}
 					}
 
-					const TArray<uint8>* RawData = NULL;
 					if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
 					{
 						if (ImageWrapper->GetFormat() != ERGBFormat::Gray)
@@ -2332,7 +2350,7 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 								return;
 							}
 						}
-						if (ImageWrapper->GetBitDepth() != 16)
+						else if (ImageWrapper->GetBitDepth() != 16)
 						{
 							EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, NSLOCTEXT("LandscapeEditor.NewLandscape", "Import_HeightmapFileLowBitDepth", "The Heightmap file appears to be an 8-bit png, 16-bit is preferred. The import *can* continue, but the result may be lower quality than desired."));
 							if (Result != EAppReturnType::Ok)
@@ -2345,17 +2363,17 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 						{
 							ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData);
 							Data.Reset();
-							Data.AddUninitialized(RawData->Num() * sizeof(uint16));
+							Data.SetNumUninitialized(RawData->Num() * sizeof(uint16));
 							uint16* DataPtr = (uint16*)Data.GetData();
 							for (int32 i = 0; i < RawData->Num(); i++)
 							{
 								DataPtr[i] = (*RawData)[i] * 0x101; // Expand to 16-bit
 							}
+							RawData = &Data;
 						}
 						else
 						{
 							ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawData);
-							Data = *RawData; // agh I want to use MoveTemp() here
 						}
 					}
 					else
@@ -2370,7 +2388,36 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 						}
 
 						ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData);
-						Data = *RawData; // agh I want to use MoveTemp() here
+					}
+
+					if (ImportSizeX != SizeX || ImportSizeY != SizeY)
+					{
+						// Cloned from FLandscapeEditorDetailCustomization_NewLandscape.OnCreateButtonClicked
+						// so that reimports behave the same as the initial import :)
+
+						const int32 OffsetX = (SizeX - ImportSizeX) / 2;
+						const int32 OffsetY = (SizeY - ImportSizeY) / 2;
+
+						if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
+						{
+							// have to use a TempData because RawData could be pointing to Data
+							TArray<uint8> TempData;
+							TempData.SetNumUninitialized(SizeX * SizeY * sizeof(uint16));
+
+							LandscapeEditorUtils::ExpandData<uint16>((uint16*)TempData.GetData(), (const uint16*)RawData->GetData(),
+								0, 0, ImportSizeX - 1, ImportSizeY - 1,
+								-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
+
+							Data = MoveTemp(TempData);
+							RawData = &Data;
+						}
+						else
+						{
+							Data = LandscapeEditorUtils::ExpandData<uint8>(*RawData,
+								0, 0, ImportSizeX - 1, ImportSizeY - 1,
+								-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
+							RawData = &Data;
+						}
 					}
 				}
 				else
@@ -2380,13 +2427,17 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 					return;
 				}
 			}
+			else
+			{
+				// I would love to deprecate the raw/r8/r16 support for landscape, r16 doesn't even handle endianness issues...
+			}
 
 			if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)
 			{
-				if (Data.Num() == (1 + MaxX - MinX)*(1 + MaxY - MinY) * 2)
+				if (RawData->Num() == SizeX * SizeY * sizeof(uint16))
 				{
 					FHeightmapAccessor<false> HeightmapAccessor(LandscapeInfo);
-					HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, (uint16*)Data.GetTypedData());
+					HeightmapAccessor.SetData(MinX, MinY, MaxX, MaxY, (const uint16*)RawData->GetData());
 				}
 				else
 				{
@@ -2396,10 +2447,10 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 			}
 			else
 			{
-				if (Data.Num() == (1 + MaxX - MinX)*(1 + MaxY - MinY))
+				if (RawData->Num() == SizeX * SizeY)
 				{
 					FAlphamapAccessor<false, true> AlphamapAccessor(LandscapeInfo, TargetInfo.LayerInfoObj.Get());
-					AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, Data.GetTypedData(), ELandscapeLayerPaintingRestriction::None);
+					AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, RawData->GetData(), ELandscapeLayerPaintingRestriction::None);
 				}
 				else
 				{
@@ -2445,7 +2496,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 				// GetHeightData alters its args, so make temp copies to avoid screwing things up
 				int32 TMinX = OldMinX, TMinY = OldMinY, TMaxX = OldMaxX, TMaxY = OldMaxY;
-				LandscapeEdit.GetHeightData(TMinX, TMinY, TMaxX, OldMaxY, HeightData.GetData(), 0);
+				LandscapeEdit.GetHeightData(TMinX, TMinY, TMaxX, TMaxY, HeightData.GetData(), 0);
 
 				HeightData = LandscapeEditorUtils::ResampleData(HeightData,
 					OldVertsX, OldVertsY, NewVertsX, NewVertsY);
@@ -2566,7 +2617,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 				ULandscapeInfo* NewLandscapeInfo = Landscape->GetLandscapeInfo();
 				for (const TPair<FIntPoint, ULandscapeComponent*>& Entry : LandscapeInfo->XYtoComponentMap)
 				{
-					ULandscapeComponent* NewComponent = NewLandscapeInfo->XYtoComponentMap[Entry.Key];
+					ULandscapeComponent* NewComponent = NewLandscapeInfo->XYtoComponentMap.FindRef(Entry.Key);
 					if (NewComponent)
 					{
 						ULandscapeHeightfieldCollisionComponent* OldCollisionComponent = Entry.Value->CollisionComponent.Get();
@@ -2579,11 +2630,15 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 							{
 								OldFoliageActor->MoveInstancesToNewComponent(OldCollisionComponent, NewCollisionComponent);
 								AInstancedFoliageActor* NewFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(NewCollisionComponent->GetTypedOuter<ULevel>());
-								NewFoliageActor->SnapInstancesForLandscape(NewCollisionComponent, FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
+								NewCollisionComponent->SnapFoliageInstances(*NewFoliageActor, FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
 							}
 						}
 					}
 				}
+			}
+			else
+			{
+				// TODO: remap foliage when not resampling (i.e. when there isn't a 1:1 mapping between old and new component)
 			}
 
 			// Delete the old Landscape and all its proxies
@@ -2602,6 +2657,35 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 	return Landscape;
 }
 
+ELandscapeEditingState FEdModeLandscape::GetEditingState() const
+{
+	UWorld* World = GetWorld();
+
+	if (GEditor->bIsSimulatingInEditor)
+	{
+		return ELandscapeEditingState::SIEWorld;
+	}
+	else if (GEditor->PlayWorld != NULL)
+	{
+		return ELandscapeEditingState::PIEWorld;
+	}
+	else if (World == nullptr)
+	{
+		return ELandscapeEditingState::Unknown;
+	}
+	else if (World->FeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		return ELandscapeEditingState::BadFeatureLevel;
+	}
+	else if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None &&
+		!CurrentToolTarget.LandscapeInfo.IsValid())
+	{
+		return ELandscapeEditingState::NoLandscape;
+	}
+
+	return ELandscapeEditingState::Enabled;
+}
+
 bool LandscapeEditorUtils::SetHeightmapData(ALandscapeProxy* Landscape, const TArray<uint16>& Data)
 {
 	FIntRect ComponentsRect = Landscape->GetBoundingRect() + Landscape->LandscapeSectionOffset;
@@ -2609,7 +2693,7 @@ bool LandscapeEditorUtils::SetHeightmapData(ALandscapeProxy* Landscape, const TA
 	if (Data.Num() == (1 + ComponentsRect.Width())*(1 + ComponentsRect.Height()))
 	{
 		FHeightmapAccessor<false> HeightmapAccessor(Landscape->GetLandscapeInfo());
-		HeightmapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetTypedData());
+		HeightmapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetData());
 		return true;
 	}
 
@@ -2623,7 +2707,7 @@ bool LandscapeEditorUtils::SetWeightmapData(ALandscapeProxy* Landscape, ULandsca
 	if (Data.Num() == (1 + ComponentsRect.Width())*(1 + ComponentsRect.Height()))
 	{
 		FAlphamapAccessor<false, true> AlphamapAccessor(Landscape->GetLandscapeInfo(), LayerObject);
-		AlphamapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetTypedData(), ELandscapeLayerPaintingRestriction::None);
+		AlphamapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetData(), ELandscapeLayerPaintingRestriction::None);
 		return true;
 	}
 

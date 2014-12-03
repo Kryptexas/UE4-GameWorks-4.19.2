@@ -9,8 +9,8 @@
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
 
-UPendingNetGame::UPendingNetGame( const class FPostConstructInitializeProperties& PCIP, const FURL& InURL )
-	: Super(PCIP)
+UPendingNetGame::UPendingNetGame( const FObjectInitializer& ObjectInitializer, const FURL& InURL )
+	: Super(ObjectInitializer)
 	, NetDriver(NULL)
 	, URL(InURL)
 	, bSuccessfullyConnected(false)
@@ -18,8 +18,8 @@ UPendingNetGame::UPendingNetGame( const class FPostConstructInitializeProperties
 {
 }
 
-UPendingNetGame::UPendingNetGame(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPendingNetGame::UPendingNetGame(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

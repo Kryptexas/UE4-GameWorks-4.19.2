@@ -15,8 +15,8 @@ FAINoiseEvent::FAINoiseEvent(AActor* InInstigator, const FVector& InNoiseLocatio
 //----------------------------------------------------------------------//
 // UAISense_Hearing
 //----------------------------------------------------------------------//
-UAISense_Hearing::UAISense_Hearing(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Hearing::UAISense_Hearing(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	
 }

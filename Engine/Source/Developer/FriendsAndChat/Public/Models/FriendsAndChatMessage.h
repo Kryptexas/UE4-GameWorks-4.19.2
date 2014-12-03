@@ -1,17 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendAndChatMessage.h: Declares the FriendsAndChatMessage class.
-=============================================================================*/
-
 #pragma once
 
+
 class FUniqueNetId;
+
 
 /**
  * Type definition for shared references to instances of ILauncherProfile.
  */
 typedef TSharedRef<class FFriendsAndChatMessage> FFriendsAndChatMessageRef;
+
 
 // Enum to list download status flags
 namespace EFriendsRequestType
@@ -31,6 +30,7 @@ namespace EFriendsRequestType
 	};
 };
 
+
 // Enum to list friend respose type
 namespace EFriendsResponseType
 {
@@ -45,6 +45,7 @@ namespace EFriendsResponseType
 	};
 };
 
+
 // Enum holding the display list selection
 namespace EFriendsDisplayLists
 {
@@ -54,7 +55,33 @@ namespace EFriendsDisplayLists
 		RecentPlayersDisplay,	// Recent Players display
 		FriendRequestsDisplay,	// Friend request display
 	};
+
+	inline const FText ToFText(EFriendsDisplayLists::Type EnumVal)
+	{
+		static const FText FriendsList = NSLOCTEXT("FriendsListTypes", "FriendsList", "Friends");
+		static const FText RecentPlayersList = NSLOCTEXT("FriendsListTypes", "RecentPlayersList", "Recent Players");
+		static const FText FriendRequestList = NSLOCTEXT("FriendsListTypes", "InvitesList", "Invitations");
+
+		switch (EnumVal)
+		{
+			case DefaultDisplay:
+			{
+				return FriendsList;
+			}
+			case RecentPlayersDisplay:
+			{
+				return RecentPlayersList;
+			}
+			case FriendRequestsDisplay:
+			{
+				return FriendRequestList;
+			}
+		}
+
+		return FText::GetEmpty();
+	}
 };
+
 
 // Class containing the friend message information
 class FFriendsAndChatMessage
@@ -62,26 +89,29 @@ class FFriendsAndChatMessage
 public:
 	/**
 	 * Constructor.
-	 * @param InMessage - The message content.
+	 *
+	 * @param InMessage The message content.
 	 */
 	FFriendsAndChatMessage( const FString& InMessage )
 		: MessageConent( InMessage )
 		, bAutoAccept( false )
-	{}
+	{ }
 
 	/**
 	 * Constructor.
-	 * @param InMessage			- The message content.
-	 * @param InUniqueFriendID	- The Friend ID.
+	 *
+	 * @param InMessage The message content.
+	 * @param InUniqueFriendID The Friend ID.
 	 */
 	FFriendsAndChatMessage( const FString& InMessage, const TSharedRef< FUniqueNetId > InUniqueFriendID )
 		: MessageConent( InMessage )
 		, UniqueFriendID( InUniqueFriendID )
 		, bAutoAccept( false )
-	{}
+	{ }
 
 	/**
 	 * Get the message content.
+	 *
 	 * @return The message.
 	 */
 	FString GetMessage()
@@ -91,6 +121,7 @@ public:
 
 	/**
 	 * Get the Net ID for the Friend this message is sent to.
+	 *
 	 * @return The net ID.
 	 */
 	const TSharedRef< FUniqueNetId > GetUniqueID()
@@ -100,7 +131,8 @@ public:
 
 	/**
 	 * Set a button callbacks.
-	 * @param InCallback - The button callback.
+	 *
+	 * @param InCallback The button callback.
 	 */
 	void SetButtonCallback( FOnClicked InCallback )
 	{
@@ -109,7 +141,8 @@ public:
 
 	/**
 	 * Set the message type.
-	 * @param InType - The message type.
+	 *
+	 * @param InType The message type.
 	 */
 	void SetMessageType( EFriendsRequestType::Type InType )
 	{
@@ -117,8 +150,9 @@ public:
 	}
 
 	/**
-	 * Sets the ID to use when joinging a game from an invite. Passed through the commandline.
-	 * @param MessageID - The string representation of the NetID.
+	 * Sets the ID to use when joining a game from an invite. Passed through the command line.
+	 *
+	 * @param MessageID The string representation of the NetID.
 	 */
 	void SetLaunchGameID( const FString& MessageID )
 	{
@@ -126,7 +160,8 @@ public:
 	}
 	
 	/**
-	 * Gets the ID to use when joinging a game from an invite. Passed through the commandline.
+	 * Gets the ID to use when joining a game from an invite. Passed through the command line.
+	 *
 	 * @return string representation of the message ID.
 	 */
 	const FString& GetLauchGameID() const
@@ -136,6 +171,7 @@ public:
 
 	/**
 	 * Get the message type.
+	 *
 	 * @return The message type.
 	 */
 	EFriendsRequestType::Type GetMessageType()
@@ -145,7 +181,8 @@ public:
 
 	/**
 	 * Set the requester name.
-	 * @param InName - The requesters name.
+	 *
+	 * @param InName The requesters name.
 	 */
 	void SetRequesterName( const FString& InName )
 	{
@@ -154,7 +191,8 @@ public:
 
 	/**
 	 * Get the requester name.
-	 * @return - The requesters name.
+	 *
+	 * @return The requesters name.
 	 */
 	const FString& GetRequesterName() const
 	{
@@ -163,16 +201,15 @@ public:
 
 	/**
 	 * Set if this message should be handled by the caller, not the Friends Module.
-	 * @param bInSelfHandle - True if the caller handles this message themselves.
+	 *
+	 * @param bInSelfHandle True if the caller handles this message themselves.
 	 */
 	void SetSelfHandle( bool bInSelfHandle )
 	{
 		bSelfHandle = bInSelfHandle;
 	}
 
-	/**
-	 * Set if this message should accepted automatically.
-	 */
+	/** Set if this message should accepted automatically. */
 	void SetAutoAccept()
 	{
 		bAutoAccept = true;
@@ -180,6 +217,7 @@ public:
 
 	/**
 	 * Should the caller auto accept this message.
+	 *
 	 * @return True if the user should handle auto accept this message.
 	 */
 	const bool IsAutoAccepted() const
@@ -189,6 +227,7 @@ public:
 
 	/**
 	 * Should the caller handle this message themselves.
+	 *
 	 * @return True if the user should handle the message themselves.
 	 */
 	const bool IsSelfHandle() const
@@ -198,6 +237,7 @@ public:
 
 	/**
 	 * Get a button callbacks.
+	 *
 	 * @return The button callback array.
 	 */
 	TArray< FOnClicked > GetCallbacks()
@@ -205,29 +245,35 @@ public:
 		return ButtonCallbacks;
 	}
 
-	/**
-	 * Set this message into a handled state.
-	 */
+	/** Set this message into a handled state. */
 	void SetHandled()
 	{
 		MessageType = EFriendsRequestType::MessageHandled;
 	}
 
 private:
+
 	// Holds the button callbacks
 	TArray< FOnClicked > ButtonCallbacks;
+	
 	// Holds the message content
 	FString MessageConent;
+	
 	// Holds the Unique Friend Net ID
 	const TSharedPtr< FUniqueNetId > UniqueFriendID;
+	
 	// Holds the message type
 	EFriendsRequestType::Type MessageType;
+	
 	// Holds the requester name.
 	FString RequesterName;
+	
 	// Holds if the message should be self handled.
 	bool bSelfHandle;
+	
 	// Holds if this message should be auto accepted.
 	bool bAutoAccept;
+	
 	// Holds the launch game ID
 	FString LaunchGameID;
 };

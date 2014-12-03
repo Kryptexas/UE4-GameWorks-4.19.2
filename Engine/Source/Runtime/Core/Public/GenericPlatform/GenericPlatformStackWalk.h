@@ -6,6 +6,9 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+
+struct FGenericCrashContext;
 
 /**
 * This is used to capture all of the module information needed to load pdb's.
@@ -67,8 +70,8 @@ struct FProgramCounterSymbolInfo /*final*/
 };
 
 /**
-* Generic implementation for most platforms
-**/
+ * Generic implementation for most platforms
+ **/
 struct CORE_API FGenericPlatformStackWalk
 {
 	typedef FGenericPlatformStackWalk Base;
@@ -100,7 +103,7 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @param	Context					Pointer to crash context, if any
 	 * @return	true if the symbol was found, otherwise false
 	 */ 
-	static bool ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context = NULL );
+	static bool ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context = nullptr );
 
 	/**
 	 * Converts the passed in program counter address to a symbol info struct, filling in module and filename, line number and displacement.
@@ -121,7 +124,7 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @param	MaxDepth			Entries in BackTrace array
 	 * @param	Context				Optional thread context information
 	 */
-	static void CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context = NULL );
+	static void CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context = nullptr );
 
 	/**
 	 * Walks the stack and appends the human readable string to the passed in one.
@@ -132,7 +135,7 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @param	IgnoreCount			Number of stack entries to ignore (some are guaranteed to be in the stack walking code)
 	 * @param	Context				Optional thread context information
 	 */ 
-	static void StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context = NULL );
+	static void StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context = nullptr );
 
 	/**
 	 * Returns the number of modules loaded by the currently running process.

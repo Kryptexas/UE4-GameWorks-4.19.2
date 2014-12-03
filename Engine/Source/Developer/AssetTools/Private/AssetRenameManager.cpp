@@ -202,8 +202,8 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameDataWithRefe
 		TArray<UPackage*> ReferencingPackagesToSave;
 		LoadReferencingPackages(AssetsToRename, ReferencingPackagesToSave);
 
-		// Prompt to check out all referencing packages, leave redirectors for assets referenced by packages that are not checked out and remove those packages from the save list.
-		const bool bUserAcceptedCheckout = CheckOutReferencingPackages(AssetsToRename, ReferencingPackagesToSave);
+		// Prompt to check out source package and all referencing packages, leave redirectors for assets referenced by packages that are not checked out and remove those packages from the save list.
+		const bool bUserAcceptedCheckout = CheckOutPackages(AssetsToRename, ReferencingPackagesToSave);
 
 		if ( bUserAcceptedCheckout )
 		{
@@ -215,11 +215,11 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameDataWithRefe
 
 			// Save all packages that were referencing any of the assets that were moved without redirectors
 			SaveReferencingPackages(ReferencingPackagesToSave);
-
-			// Finally, report any failures that happened during the rename
-			ReportFailures(AssetsToRename);
 		}
 	}
+
+	// Finally, report any failures that happened during the rename
+	ReportFailures(AssetsToRename);
 }
 
 TArray<TWeakObjectPtr<UObject>> FAssetRenameManager::FindCDOReferencedAssets(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const
@@ -362,19 +362,6 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 			{
 				// This asset is not local. It is not safe to rename it without leaving a redirector
 				RenameData.bCreateRedirector = true;
-
-				// If this asset is locked or not current, mark it failed to prevent it from being renamed
-				if ( SourceControlState->IsCheckedOutOther() )
-				{
-					RenameData.bRenameFailed = true;
-					RenameData.FailureReason = LOCTEXT("RenameFailedCheckedOutByOther", "Checked out by another user.");
-				}
-				else if ( !SourceControlState->IsCurrent() )
-				{
-					RenameData.bRenameFailed = true;
-					RenameData.FailureReason = LOCTEXT("RenameFailedNotCurrent", "Out of date.");
-				}
-
 				continue;
 			}
 		}
@@ -421,20 +408,39 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 	GWarn->EndSlowTask();
 }
 
-bool FAssetRenameManager::CheckOutReferencingPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const
+bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const
 {
 	bool bUserAcceptedCheckout = true;
 	
-	if ( InOutReferencingPackagesToSave.Num() > 0 )
+	// Build list of packages to check out: the source package and any referencing packages (in the case that we do not create a redirector)
+	TArray<UPackage*> PackagesToCheckOut;
+	PackagesToCheckOut.Reset(AssetsToRename.Num() + InOutReferencingPackagesToSave.Num());
+
+	for (const auto& AssetToRename : AssetsToRename)
+	{
+		if (AssetToRename.Asset.IsValid())
+		{
+			PackagesToCheckOut.Add(AssetToRename.Asset->GetOutermost());
+		}
+	}
+
+	for (UPackage* ReferencingPackage : InOutReferencingPackagesToSave)
+	{
+		PackagesToCheckOut.Add(ReferencingPackage);
+	}
+
+	// Check out the packages
+	if (PackagesToCheckOut.Num() > 0)
 	{
 		if ( ISourceControlModule::Get().IsEnabled() )
 		{
 			TArray<UPackage*> PackagesCheckedOutOrMadeWritable;
 			TArray<UPackage*> PackagesNotNeedingCheckout;
-			bUserAcceptedCheckout = FEditorFileUtils::PromptToCheckoutPackages( false, InOutReferencingPackagesToSave, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout );
+			bUserAcceptedCheckout = FEditorFileUtils::PromptToCheckoutPackages( false, PackagesToCheckOut, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout );
 			if ( bUserAcceptedCheckout )
 			{
-				TArray<UPackage*> PackagesThatCouldNotBeCheckedOut = InOutReferencingPackagesToSave;
+				// Make a list of any packages in the list which weren't checked out for some reason
+				TArray<UPackage*> PackagesThatCouldNotBeCheckedOut = PackagesToCheckOut;
 
 				for ( auto PackageIt = PackagesCheckedOutOrMadeWritable.CreateConstIterator(); PackageIt; ++PackageIt )
 				{
@@ -446,20 +452,10 @@ bool FAssetRenameManager::CheckOutReferencingPackages(TArray<FAssetRenameDataWit
 					PackagesThatCouldNotBeCheckedOut.Remove(*PackageIt);
 				}
 
-				for ( auto PackageIt = PackagesThatCouldNotBeCheckedOut.CreateConstIterator(); PackageIt; ++PackageIt )
+				// If there's anything which couldn't be checked out, abort the operation.
+				if (PackagesThatCouldNotBeCheckedOut.Num() > 0)
 				{
-					const FName NonCheckedOutPackageName = (*PackageIt)->GetFName();
-
-					for ( auto RenameDataIt = AssetsToRename.CreateIterator(); RenameDataIt; ++RenameDataIt )
-					{
-						FAssetRenameDataWithReferencers& RenameData = *RenameDataIt;
-						if ( RenameData.ReferencingPackageNames.Contains(NonCheckedOutPackageName) )
-						{
-							RenameData.bCreateRedirector = true;
-						}
-					}
-
-					InOutReferencingPackagesToSave.Remove(*PackageIt);
+					bUserAcceptedCheckout = false;
 				}
 			}
 		}
@@ -655,9 +651,16 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 	{
 		const bool bCheckDirty = false;
 		const bool bPromptToSave = false;
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+		const bool bAlreadyCheckedOut = true;
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave, nullptr, bAlreadyCheckedOut);
 
 		ISourceControlModule::Get().QueueStatusUpdate(PackagesToSave);
+	}
+
+	// Now branch the files in source control if possible
+	for (const auto& AssetToRename : AssetsToRename)
+	{
+		SourceControlHelpers::BranchPackage(AssetToRename.Asset->GetOutermost(), FindPackage(nullptr, *AssetToRename.OriginalAssetPath));
 	}
 
 	// Clean up all packages that were left empty

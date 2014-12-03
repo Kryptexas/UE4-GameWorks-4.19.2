@@ -1,18 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RangeTest.cpp: Unit test for the TRange template.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
 // Disable optimization for RangeTest as it compiles very slowly in development builds
 PRAGMA_DISABLE_OPTIMIZATION
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRangeTest, "Core.Math.Range", EAutomationTestFlags::ATF_SmokeTest)
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRangeTest, "Core.Math.Range", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FRangeTest::RunTest( const FString& Parameters )
 {
@@ -113,15 +109,11 @@ bool FRangeTest::RunTest( const FString& Parameters )
 
 	// @todo gmp: conjoined ranges
 
-
 	// @todo gmp: element containment
-
 
 	// @todo gmp: range containment
 
-
 	// @todo gmp: contiguous ranges
-
 
 	// bounds access
 	FFloatRange r11_1 = FFloatRange(FFloatRangeBound::Inclusive(1.0f), FFloatRangeBound::Exclusive(4.0f));
@@ -173,7 +165,6 @@ bool FRangeTest::RunTest( const FString& Parameters )
 	TestTrue(TEXT("(6, 10) must not overlap (inf, 3)"), !r14_9.Overlaps(r14_11));
 
 	// @todo gmp: range splitting
-
 
 	// difference
 	FFloatRange r15_1 = FFloatRange(FFloatRangeBound::Exclusive(7.0f), FFloatRangeBound::Exclusive(14.0f));		// X

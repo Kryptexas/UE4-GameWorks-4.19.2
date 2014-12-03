@@ -64,6 +64,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _AllowOverscroll(EAllowOverscroll::Yes)
 	{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -91,6 +92,8 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
 
 		SLATE_ATTRIBUTE( EVisibility, ScrollbarVisibility)
+		
+		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
 		SLATE_END_ARGS()
 
@@ -112,6 +115,8 @@ public:
 		this->SelectionMode = InArgs._SelectionMode;
 
 		this->bClearSelectionOnClick = InArgs._ClearSelectionOnClick;
+
+		this->AllowOverscroll = InArgs._AllowOverscroll;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -141,7 +146,7 @@ public:
 		else
 		{
 			// Make the TableView
-			ConstructChildren( 0, InArgs._ItemHeight, InArgs._HeaderRow, InArgs._ExternalScrollbar );
+			ConstructChildren( 0, InArgs._ItemHeight, EListItemAlignment::LeftAligned, InArgs._HeaderRow, InArgs._ExternalScrollbar );
 			if(ScrollBar.IsValid())
 			{
 				ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);
@@ -164,30 +169,30 @@ public:
 
 	// SWidget overrides
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
 		// Don't respond to key-presses containing "Alt" as a modifier
-		if ( ItemsSourceRef.Num() > 0 && !InKeyboardEvent.IsAltDown() )
+		if ( ItemsSourceRef.Num() > 0 && !InKeyEvent.IsAltDown() )
 		{
 			bool bWasHandled = false;
 			NullableItemType ItemNavigatedTo( nullptr );
 
 			// Check for selection manipulation keys (Up, Down, Home, End, PageUp, PageDown)
-			if ( InKeyboardEvent.GetKey() == EKeys::Home )
+			if ( InKeyEvent.GetKey() == EKeys::Home )
 			{
 				// Select the first item
 				ItemNavigatedTo = ItemsSourceRef[0];
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::End )
+			else if ( InKeyEvent.GetKey() == EKeys::End )
 			{
 				// Select the last item
 				ItemNavigatedTo = ItemsSourceRef.Last();
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::PageUp )
+			else if ( InKeyEvent.GetKey() == EKeys::PageUp )
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -211,7 +216,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::PageDown )
+			else if ( InKeyEvent.GetKey() == EKeys::PageDown )
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -235,7 +240,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Up )
+			else if ( InKeyEvent.GetKey() == EKeys::Up )
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -253,7 +258,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Down )
+			else if ( InKeyEvent.GetKey() == EKeys::Down )
 			{
 				// Begin at INDEX_NONE so the first item will get selected
 				int32 SelectionIndex = INDEX_NONE;
@@ -276,17 +281,17 @@ public:
 			if( TListTypeTraits<ItemType>::IsPtrValid(ItemNavigatedTo) )
 			{
 				ItemType ItemToSelect( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( ItemNavigatedTo ) );
-				KeyboardSelect( ItemToSelect, InKeyboardEvent );
+				KeyboardSelect( ItemToSelect, InKeyEvent );
 			}
 			else
 			{
 				// Change selected status of item.
-				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) && InKeyboardEvent.GetKey() == EKeys::SpaceBar )
+				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) && InKeyEvent.GetKey() == EKeys::SpaceBar )
 				{
 					ItemType SelectorItemDereference( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( SelectorItem ) );
 
 					// Deselect.
-					if( InKeyboardEvent.IsControlDown() || this->SelectionMode == ESelectionMode::SingleToggle )
+					if( InKeyEvent.IsControlDown() || this->SelectionMode == ESelectionMode::SingleToggle )
 					{
 						this->Private_SetItemSelection( SelectorItemDereference, !( this->Private_IsItemSelected( SelectorItemDereference ) ), true );
 						this->Private_SignalSelectionChanged( ESelectInfo::OnKeyPress );
@@ -318,7 +323,7 @@ public:
 					}
 				}
 				// Select all items
-				else if ( (!InKeyboardEvent.IsShiftDown() && !InKeyboardEvent.IsAltDown() && InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetKey() == EKeys::A) && this->SelectionMode == ESelectionMode::Multi )
+				else if ( (!InKeyEvent.IsShiftDown() && !InKeyEvent.IsAltDown() && InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::A) && this->SelectionMode == ESelectionMode::Multi )
 				{
 					this->Private_ClearSelection();
 
@@ -336,7 +341,7 @@ public:
 			return (bWasHandled ? FReply::Handled() : FReply::Unhandled());
 		}
 
-		return STableViewBase::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return STableViewBase::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -394,8 +399,8 @@ private:
 	class FWidgetGenerator
 	{
 	public:
-		FWidgetGenerator(SListView<ItemType>* OwnerList)
-			: OwnerList(OwnerList)
+		FWidgetGenerator(SListView<ItemType>* InOwnerList)
+			: OwnerList(InOwnerList)
 		{
 		}
 
@@ -1139,18 +1144,14 @@ protected:
 		}
 	}
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll ) override
 	{
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;
 		double NewScrollOffset = ScrollOffset;
 
 		const bool bWholeListVisible = ScrollOffset == 0 && bWasAtEndOfList;
-		if (bWholeListVisible)
-		{
-			return 0;
-		}
-		else if ( AllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		if ( InAllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
 			const float UnclampedScrollDelta = FMath::Sign(ScrollByAmountInSlateUnits) * AbsScrollByAmount;				
 			const float ActuallyScrolledBy = Overscroll.ScrollBy( UnclampedScrollDelta );
@@ -1160,7 +1161,7 @@ protected:
 			}
 			return ActuallyScrolledBy;
 		}
-		else
+		else if (!bWholeListVisible)
 		{
 			// We know how far we want to scroll in SlateUnits, but we store scroll offset in "number of widgets".
 			// Challenge: each widget can be a different height.
@@ -1266,6 +1267,8 @@ protected:
 
 			return ScrollTo( NewScrollOffset );
 		}
+
+		return 0;
 	}
 
 protected:
@@ -1274,22 +1277,22 @@ protected:
 	 * Selects the specified item and scrolls it into view. If shift is held, it will be a range select.
 	 * 
 	 * @param ItemToSelect		The item that was selected by a keystroke
-	 * @param InKeyboardEvent	The keyboard event that caused this selection
+	 * @param InKeyEvent	The key event that caused this selection
 	 */
-	virtual void KeyboardSelect(const ItemType& ItemToSelect, const FKeyboardEvent& InKeyboardEvent, bool bCausedByNavigation=false)
+	virtual void KeyboardSelect(const ItemType& ItemToSelect, const FKeyEvent& InKeyEvent, bool bCausedByNavigation=false)
 	{
 		if ( SelectionMode != ESelectionMode::None )
 		{
 			// Must be set before signaling selection changes because sometimes new items will be selected that need to stomp this value
 			SelectorItem = ItemToSelect;
 
-			if ( SelectionMode == ESelectionMode::Multi && ( InKeyboardEvent.IsShiftDown() || InKeyboardEvent.IsControlDown() ) )
+			if ( SelectionMode == ESelectionMode::Multi && ( InKeyEvent.IsShiftDown() || InKeyEvent.IsControlDown() ) )
 			{
 				// Range select.
-				if ( InKeyboardEvent.IsShiftDown() )
+				if ( InKeyEvent.IsShiftDown() )
 				{
 					// Holding control makes the range select bidirectional, where as it is normally unidirectional.
-					if( !( InKeyboardEvent.IsControlDown() ) )
+					if( !( InKeyEvent.IsControlDown() ) )
 					{
 						this->Private_ClearSelection();
 					}

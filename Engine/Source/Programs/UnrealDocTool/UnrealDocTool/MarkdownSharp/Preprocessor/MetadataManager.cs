@@ -39,7 +39,7 @@ namespace MarkdownSharp.Preprocessor
         /// </summary>
         /// <param name="match"></param>
         /// <returns></returns>
-        private string ParseMetadataRow(Match match, TransformationData data)
+        private string ParseMetadataRow(Match match, TransformationData data, bool full = true)
         {
             var metaValue = match.Groups["MetadataValue"].Value;
             var metaDataCategory = match.Groups["MetadataKey"].Value;
@@ -69,7 +69,7 @@ namespace MarkdownSharp.Preprocessor
                     CrumbsLinks.Add(metaValue);
                 }
 
-                if (metaDataCategoryLowerCase == "related")
+                if (metaDataCategoryLowerCase == "related" && full)
                 {
                     RelatedLinks.Add(data.Markdown.ProcessRelated(metaValue, data));
                 }
@@ -115,19 +115,19 @@ namespace MarkdownSharp.Preprocessor
             return "";
         }
 
-        private string ParseMetadataMatches(Match match, TransformationData data)
+        private string ParseMetadataMatches(Match match, TransformationData data, bool full = true)
         {
             var metaDataRows = Regex.Split(match.Groups[0].Value, "\n");
 
             foreach (var currentMetaDataRow in metaDataRows)
             {
-                MetadataRow.Replace(currentMetaDataRow, m => ParseMetadataRow(m, data));
+                MetadataRow.Replace(currentMetaDataRow, m => ParseMetadataRow(m, data, full));
             }
 
             return "";
         }
 
-        public string ParseMetadata(string text, TransformationData data, PreprocessedData preprocessedData)
+        public string ParseMetadata(string text, TransformationData data, PreprocessedData preprocessedData, bool full = true)
         {
             var map = preprocessedData.TextMap;
 
@@ -136,7 +136,7 @@ namespace MarkdownSharp.Preprocessor
 
             var changes = new List<PreprocessingTextChange>();
 
-            text = Preprocessor.Replace(MetadataPattern, text, match => ParseMetadataMatches(match, data), null, changes);
+            text = Preprocessor.Replace(MetadataPattern, text, match => ParseMetadataMatches(match, data, full), null, changes);
 
             Preprocessor.AddChangesToBounds(map, changes, preprocessedData, PreprocessedTextType.Metadata);
 

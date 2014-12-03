@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_ForceSuccess.h"
 
-UBTDecorator_ForceSuccess::UBTDecorator_ForceSuccess(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_ForceSuccess::UBTDecorator_ForceSuccess(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = TEXT("Force Success");
 	bNotifyProcessed = true;
@@ -13,7 +13,7 @@ UBTDecorator_ForceSuccess::UBTDecorator_ForceSuccess(const class FPostConstructI
 	bAllowAbortChildNodes = false;
 }
 
-void UBTDecorator_ForceSuccess::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
+void UBTDecorator_ForceSuccess::OnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
 {
 	NodeResult = EBTNodeResult::Succeeded;
 }

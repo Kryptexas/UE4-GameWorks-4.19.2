@@ -108,6 +108,9 @@ struct FBXImportOptions
 	bool bUsedAsFullName;
 	bool bConvertScene;
 	bool bRemoveNameSpace;
+	FVector ImportTranslation;
+	FRotator ImportRotation;
+	float ImportUniformScale;
 	EFBXNormalImportMethod NormalImportMethod;
 	// Static Mesh options
 	bool bCombineToSingle;
@@ -389,7 +392,7 @@ public:
 	 * @param Filename	Fbx file name
 	 * @param NodeArray node array of FBX meshes
 	 */
-	UAnimSequence* ImportAnimations(USkeleton* Skeleton, UObject * Outer, TArray<FbxNode*>& SortedLinks, const FString & Name, UFbxAnimSequenceImportData* TemplateImportData, TArray<FbxNode*>& NodeArray);
+	UAnimSequence* ImportAnimations(USkeleton* Skeleton, UObject* Outer, TArray<FbxNode*>& SortedLinks, const FString& Name, UFbxAnimSequenceImportData* TemplateImportData, TArray<FbxNode*>& NodeArray);
 
 	/**
 	 * Get Animation Time Span - duration of the animation
@@ -408,7 +411,7 @@ public:
 	 * @param ResampleRate	Resample Rate for data
 	 * @param AnimTimeSpan	AnimTimeSpan
 	 */
-	bool ImportAnimation(USkeleton * Skeleton, UAnimSequence* DestSeq, const FString & FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan);
+	bool ImportAnimation(USkeleton* Skeleton, UAnimSequence* DestSeq, const FString& FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan);
 	/**
 	 * Calculate Max Sample Rate - separate out of the original ImportAnimations
 	 *
@@ -497,7 +500,7 @@ public:
 	 * 
 	 * @return the root bone that bind to the FBX skeletal meshes
 	 */
-	FbxNode* FindFBXMeshesByBone(const FName & RootBoneName, bool bExpandLOD, TArray<FbxNode*>& OutFBXMeshNodeArray);
+	FbxNode* FindFBXMeshesByBone(const FName& RootBoneName, bool bExpandLOD, TArray<FbxNode*>& OutFBXMeshNodeArray);
 	
 	/**
 	* Get mesh count (including static mesh and skeletal mesh, except collision models) and find collision models
@@ -549,6 +552,32 @@ public:
 
 	/** helper function **/
 	UNREALED_API static void DumpFBXNode(FbxNode* Node);
+
+	/**
+	 * Apply asset import settings for transform to an FBX node
+	 *
+	 * @param Node Node to apply transform settings too
+	 * @param AssetData the asset data object to get transform data from
+	 */
+	void ApplyTransformSettingsToFbxNode(FbxNode* Node, UFbxAssetImportData* AssetData);
+
+	/**
+	 * Remove asset import settings for transform to an FBX node
+	 *
+	 * @param Node Node to apply transform settings too
+	 * @param AssetData the asset data object to get transform data from
+	 */
+	void RemoveTransformSettingsFromFbxNode(FbxNode* Node, UFbxAssetImportData* AssetData);
+
+	/**
+	 * Populate the given matrix with the correct information for the asset data, in
+	 * a format that matches FBX internals or without conversion
+	 *
+	 * @param OutMatrix The matrix to fill
+	 * @param AssetData The asset data to extract the transform info from
+	 */
+	void BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData);
+
 private:
 	/**
 	 * ActorX plug-in can export mesh and dummy as skeleton.
@@ -734,7 +763,7 @@ protected:
 	 * @param bDisableMissingBindPoseWarning
 	 * @param bUseTime0AsRefPose	in/out - Use Time 0 as Ref Pose 
 	 */
-	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose);
+	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose);
 	
 	/**
 	 * Skins the control points of the given mesh or shape using either the default pose for skinning or the first frame of the
@@ -969,11 +998,11 @@ protected:
 	/**
 	 * Fill up and verify bone names for animation 
 	 */
-	void FillAndVerifyBoneNames(USkeleton * Skeleton, TArray<FbxNode*>& SortedLinks, TArray<FName> & OutRawBoneNames, FString Filename);
+	void FillAndVerifyBoneNames(USkeleton* Skeleton, TArray<FbxNode*>& SortedLinks, TArray<FName> & OutRawBoneNames, FString Filename);
 	/**
 	 * Is valid animation data
 	 */
-	bool IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, int32 & ValidTakeCount);
+	bool IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, int32& ValidTakeCount);
 
 	/**
 	 * Retrieve pose array from bind pose
@@ -985,7 +1014,7 @@ protected:
 
 public:
 	/** Import and set up animation related data from mesh **/
-	void SetupAnimationDataFromMesh(USkeletalMesh * SkeletalMesh, UObject * InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* ImportData, const FString & Filename);
+	void SetupAnimationDataFromMesh(USkeletalMesh * SkeletalMesh, UObject* InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* ImportData, const FString& Filename);
 
 	/** error message handler */
 	void AddTokenizedErrorMessage(TSharedRef<FTokenizedMessage> Error, FName FbxErrorName );
@@ -1012,7 +1041,7 @@ private:
 	/**
 	 * Import FbxCurve to anim sequence
 	 */
-	bool ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString & CurveName, const FbxAnimCurve * FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale = 1.f) const;
+	bool ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString& CurveName, const FbxAnimCurve* FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale = 1.f) const;
 };
 
 

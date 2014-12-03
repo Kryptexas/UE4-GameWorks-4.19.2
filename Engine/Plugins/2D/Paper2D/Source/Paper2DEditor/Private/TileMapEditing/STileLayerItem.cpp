@@ -84,7 +84,7 @@ FReply SRenamableEntry::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, 
 
 		FWidgetPath TextBoxPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked(EditableTextWidget.ToSharedRef(), TextBoxPath);
-		FSlateApplication::Get().SetKeyboardFocus(EditableTextWidget, EKeyboardFocusCause::Mouse);
+		FSlateApplication::Get().SetKeyboardFocus(EditableTextWidget, EFocusCause::Mouse);
 
 		return FReply::Handled();
 	}

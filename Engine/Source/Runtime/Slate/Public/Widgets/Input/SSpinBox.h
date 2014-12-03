@@ -248,7 +248,8 @@ public:
 		{
 			DistanceDragged = 0;
 			PreDragValue = InternalValue;
-			return FReply::Handled().CaptureMouse( SharedThis(this) ).UseHighPrecisionMouseMovement( SharedThis(this) ).SetKeyboardFocus( SharedThis(this), EKeyboardFocusCause::Mouse);
+			CachedMousePosition = MouseEvent.GetScreenSpacePosition().IntPoint();
+			return FReply::Handled().CaptureMouse(SharedThis(this)).UseHighPrecisionMouseMovement(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 		}
 		else
 		{
@@ -274,10 +275,10 @@ public:
 			}
 
 			bDragging = false;
-			if ( DistanceDragged < SlateDragStartDistance )
+			if ( DistanceDragged < FSlateApplication::Get().GetDragTriggerDistnace() )
 			{
 				EnterTextMode();
-				return FReply::Handled().ReleaseMouseCapture().SetKeyboardFocus( EditableText.ToSharedRef(), EKeyboardFocusCause::SetDirectly ).SetMousePos(CachedMousePosition);
+				return FReply::Handled().ReleaseMouseCapture().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::SetDirectly).SetMousePos(CachedMousePosition);
 			}
 
 			return FReply::Handled().ReleaseMouseCapture().SetMousePos(CachedMousePosition);
@@ -303,7 +304,7 @@ public:
 			if (!bDragging)
 			{
 				DistanceDragged += FMath::Abs(MouseEvent.GetCursorDelta().X);
-				if ( DistanceDragged > SlateDragStartDistance )
+				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistnace() )
 				{
 					ExitTextMode();
 					bDragging = true;
@@ -384,12 +385,12 @@ public:
 	}
 
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
 	{
-		if ( !bDragging && (InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::Keyboard || InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::SetDirectly) )
+		if ( !bDragging && (InFocusEvent.GetCause() == EFocusCause::Navigation || InFocusEvent.GetCause() == EFocusCause::SetDirectly) )
 		{
 			EnterTextMode();
-			return FReply::Handled().SetKeyboardFocus( EditableText.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+			return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), InFocusEvent.GetCause());
 		}
 		else
 		{
@@ -397,9 +398,9 @@ public:
 		}
 	}
 	
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		const FKey Key = InKeyboardEvent.GetKey();
+		const FKey Key = InKeyEvent.GetKey();
 		if ( Key == EKeys::Escape && HasMouseCapture())
 		{
 			bDragging = false;
@@ -423,7 +424,7 @@ public:
 		else if ( Key == EKeys::Enter )
 		{
 			EnterTextMode();
-			return FReply::Handled().SetKeyboardFocus( EditableText.ToSharedRef(), EKeyboardFocusCause::Keyboard );
+			return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::Navigation);
 		}
 		else
 		{

@@ -26,7 +26,10 @@ namespace EDelegateInstanceType
 		UObjectMethod,
 
 		/** Raw C++ static function pointer */
-		Raw
+		Raw,
+
+		/** C++ functor, e.g. Lambda */
+		Functor,
 	};
 }
 

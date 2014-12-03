@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_InAppPurchase::UK2Node_InAppPurchase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_InAppPurchase::UK2Node_InAppPurchase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UInAppPurchaseCallbackProxy, CreateProxyObjectForInAppPurchase);
 	ProxyFactoryClass = UInAppPurchaseCallbackProxy::StaticClass();

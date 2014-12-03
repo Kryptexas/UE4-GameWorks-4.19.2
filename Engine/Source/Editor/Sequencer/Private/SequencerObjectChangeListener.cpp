@@ -11,16 +11,16 @@ FSequencerObjectChangeListener::FSequencerObjectChangeListener( TSharedRef<ISequ
 	: Sequencer( InSequencer )
 	, bListenForActorsOnly( bInListenForActorsOnly )
 {
-	FCoreDelegates::OnPreObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPreEditChange);
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPostEditChange);
+	FCoreUObjectDelegates::OnPreObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPreEditChange);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPostEditChange);
 	//GEditor->OnPreActorMoved.AddRaw(this, &FSequencerObjectChangeListener::OnActorPreEditMove);
 	GEditor->OnActorMoved().AddRaw( this, &FSequencerObjectChangeListener::OnActorPostEditMove );
 }
 
 FSequencerObjectChangeListener::~FSequencerObjectChangeListener()
 {
-	FCoreDelegates::OnPreObjectPropertyChanged.RemoveAll( this );
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll( this );
+	FCoreUObjectDelegates::OnPreObjectPropertyChanged.RemoveAll(this);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	GEditor->OnActorMoved().RemoveAll( this );
 }
 

@@ -46,7 +46,6 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		//const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled
 		FPaintContext Context(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 		WidgetObject->OnPaint(Context);
 		
@@ -66,25 +65,25 @@ bool SObjectWidget::SupportsKeyboardFocus() const
 	return false;
 }
 
-FReply SObjectWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
+FReply SObjectWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		return WidgetObject->OnKeyboardFocusReceived(MyGeometry, InKeyboardFocusEvent).NativeReply;
+		return WidgetObject->OnFocusReceived(MyGeometry, InFocusEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
 }
 
-void SObjectWidget::OnKeyboardFocusLost(const FKeyboardFocusEvent& InKeyboardFocusEvent)
+void SObjectWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		WidgetObject->OnKeyboardFocusLost(InKeyboardFocusEvent);
+		WidgetObject->OnFocusLost(InFocusEvent);
 	}
 }
 
-void SObjectWidget::OnKeyboardFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
+void SObjectWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
 {
 	// TODO UMG
 }
@@ -99,31 +98,41 @@ FReply SObjectWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEve
 	return FReply::Unhandled();
 }
 
-FReply SObjectWidget::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SObjectWidget::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		return WidgetObject->OnPreviewKeyDown(MyGeometry, InKeyboardEvent).NativeReply;
+		return WidgetObject->OnPreviewKeyDown(MyGeometry, InKeyEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply SObjectWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SObjectWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		return WidgetObject->OnKeyDown(MyGeometry, InKeyboardEvent).NativeReply;
+		return WidgetObject->OnKeyDown(MyGeometry, InKeyEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply SObjectWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SObjectWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		return WidgetObject->OnKeyUp(MyGeometry, InKeyboardEvent).NativeReply;
+		return WidgetObject->OnKeyUp(MyGeometry, InKeyEvent).NativeReply;
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SObjectWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	if (WidgetObject && !WidgetObject->IsDesignTime())
+	{
+		return WidgetObject->OnAnalogValueChanged(MyGeometry, InAnalogInputEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
@@ -213,7 +222,7 @@ FReply SObjectWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, cons
 
 FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& PointerEvent)
 {
-	UDragDropOperation* Operation = NULL;
+	UDragDropOperation* Operation = nullptr;
 	WidgetObject->OnDragDetected(MyGeometry, PointerEvent, Operation);
 
 	if ( Operation )
@@ -280,36 +289,6 @@ void SObjectWidget::OnDragCancelled(const FDragDropEvent& DragDropEvent, UDragDr
 	{
 		WidgetObject->OnDragCancelled(DragDropEvent, NativeOp->GetOperation());
 	}
-}
-
-FReply SObjectWidget::OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)
-{
-	if ( WidgetObject && !WidgetObject->IsDesignTime() )
-	{
-		return WidgetObject->OnControllerButtonPressed(MyGeometry, ControllerEvent).NativeReply;
-	}
-
-	return FReply::Unhandled();
-}
-
-FReply SObjectWidget::OnControllerButtonReleased(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)
-{
-	if ( WidgetObject && !WidgetObject->IsDesignTime() )
-	{
-		return WidgetObject->OnControllerButtonReleased(MyGeometry, ControllerEvent).NativeReply;
-	}
-
-	return FReply::Unhandled();
-}
-
-FReply SObjectWidget::OnControllerAnalogValueChanged(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent)
-{
-	if ( WidgetObject && !WidgetObject->IsDesignTime() )
-	{
-		return WidgetObject->OnControllerAnalogValueChanged(MyGeometry, ControllerEvent).NativeReply;
-	}
-
-	return FReply::Unhandled();
 }
 
 FReply SObjectWidget::OnTouchGesture(const FGeometry& MyGeometry, const FPointerEvent& GestureEvent)

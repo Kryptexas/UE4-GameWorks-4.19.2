@@ -7,6 +7,8 @@
 
 #include "WidgetTemplate.h"
 
+class FWidgetBlueprintEditor;
+
 /**
  * The details view used in the designer section of the widget blueprint editor.
  */
@@ -53,6 +55,10 @@ private:
 	ESlateCheckBoxState::Type GetIsVariable() const;
 
 	void HandleIsVariableChanged(ESlateCheckBoxState::Type CheckState);
+
+	EVisibility GetCategoryAreaVisibility() const;
+	FText GetCategoryText() const;
+	void HandleCategoryTextCommitted(const FText& Text, ETextCommit::Type CommitType);
 
 private:
 	/** The editor that owns this details view */

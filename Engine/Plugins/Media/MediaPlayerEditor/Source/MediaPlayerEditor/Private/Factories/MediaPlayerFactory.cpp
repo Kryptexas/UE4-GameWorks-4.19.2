@@ -1,13 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPlayerEditorPrivatePCH.h"
+#include "IMediaModule.h"
+#include "IMediaPlayerFactory.h"
 
 
 /* UMediaPlayerFactory structors
  *****************************************************************************/
 
-UMediaPlayerFactory::UMediaPlayerFactory( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaPlayerFactory::UMediaPlayerFactory( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UMediaPlayer::StaticClass();
 
@@ -42,7 +44,7 @@ UObject* UMediaPlayerFactory::FactoryCreateBinary( UClass* Class, UObject* InPar
 /* UMediaPlayerFactory implementation
  *****************************************************************************/
 
-void UMediaPlayerFactory::ReloadMediaFormats( )
+void UMediaPlayerFactory::ReloadMediaFormats()
 {
 	Formats.Reset();
 
@@ -64,12 +66,12 @@ void UMediaPlayerFactory::ReloadMediaFormats( )
 /* UMediaPlayerFactory callbacks
  *****************************************************************************/
 
-void UMediaPlayerFactory::HandleMediaPlayerFactoryAdded( )
+void UMediaPlayerFactory::HandleMediaPlayerFactoryAdded()
 {
 	ReloadMediaFormats();
 }
 
-void UMediaPlayerFactory::HandleMediaPlayerFactoryRemoved( )
+void UMediaPlayerFactory::HandleMediaPlayerFactoryRemoved()
 {
 	ReloadMediaFormats();
 }

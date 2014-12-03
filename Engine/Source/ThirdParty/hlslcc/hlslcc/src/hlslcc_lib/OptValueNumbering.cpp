@@ -1,17 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
-#include "mesa/glsl_parser_extras.h"
-#include "mesa/ir.h"
-#include "mesa/ir_visitor.h"
-#include "mesa/ir_rvalue_visitor.h"
+#include "glsl_parser_extras.h"
+#include "ir.h"
+#include "ir_visitor.h"
+#include "ir_rvalue_visitor.h"
 #include "OptValueNumbering.h"
 #include "IRDump.h"
 //@todo-rco: Remove STL!
 #include <algorithm>
 #include <stack>
 #include <vector>
-#include "mesa/ir_basic_block.h"
+#include "ir_basic_block.h"
 
 #define printf(...)
 
@@ -402,44 +402,40 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_dereference_record *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_return *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_discard *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_if* IR) override
 	{
 		IR->condition->accept(this);
+		check(ExpressionNumberStack.size() == 1);
+		ExpressionNumberStack.pop();
 		// Skip Then/Else
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_atomic *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_loop *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_function_signature *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
@@ -574,7 +570,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_assignment* IR) override
 	{
-		printf("* Assignment @ %d\n", IR->id);
+		printf("* Assignment @ %d (stack size %d)\n", IR->id, ExpressionNumberStack.size());
 
 		// Handle LHS
 		printf("\tLHS\n");

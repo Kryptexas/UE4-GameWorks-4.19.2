@@ -2,6 +2,7 @@
 
 #pragma once
 
+class SDockableTab;
 
 /**
  * A node in the Docking/Tabbing hierarchy.

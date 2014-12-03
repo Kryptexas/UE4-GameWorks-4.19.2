@@ -6,6 +6,12 @@ public class OnlineSubsystem : ModuleRules
 {
 	public OnlineSubsystem(TargetInfo Target)
 	{
+		PublicDependencyModuleNames.AddRange(
+			new string[] {
+				"Json",
+			}
+		);
+
         PublicIncludePaths.Add("Runtime/Online/OnlineSubsystem/Public/Interfaces");
 
 		PrivateIncludePaths.Add("Runtime/Online/OnlineSubsystem/Private");		

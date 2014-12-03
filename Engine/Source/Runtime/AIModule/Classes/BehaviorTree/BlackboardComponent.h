@@ -120,7 +120,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FRotator GetValueAsRotator(const FName& KeyName) const;
-	FRotator GetValueAsRotator(uint8 KeyID) const;
+	FRotator GetValueAsRotator(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsObject(const FName& KeyName, UObject* ObjectValue);
@@ -158,17 +158,22 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
 	void SetValueAsVector(FBlackboard::FKey KeyID, const FVector& VectorValue);
 
-	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void ClearValueAsVector(const FName& KeyName);
 	void ClearValueAsVector(FBlackboard::FKey KeyID);
 
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard", Meta=(
+		Tooltip="If the vector value has been set (and not cleared), this function returns true (indicating that the value should be valid).  If it's not set, the vector value is invalid and this function will return false.  (Also returns false if the key specified does not hold a vector.)"))
+	bool IsVectorValueSet(const FName& KeyName) const;
+	bool IsVectorValueSet(FBlackboard::FKey KeyID) const;
+
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsRotator(const FName& KeyName, FRotator VectorValue);
-	void SetValueAsRotator(uint8 KeyID, const FRotator& VectorValue);
+	void SetValueAsRotator(FBlackboard::FKey KeyID, const FRotator& VectorValue);
 
-	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void ClearValueAsRotator(const FName& KeyName);
-	void ClearValueAsRotator(uint8 KeyID);
+	void ClearValueAsRotator(FBlackboard::FKey KeyID);
 
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
@@ -176,16 +181,20 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	bool GetLocationFromEntry(FBlackboard::FKey KeyID, FVector& ResultLocation) const;
 
 	/** return false if call failed (most probably no such entry in BB) */
-	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const;
 	bool GetRotationFromEntry(FBlackboard::FKey KeyID, FRotator& ResultRotation) const;
 
+	UFUNCTION(BlueprintCallable, Category = "AI|Components|Blackboard")
+	void ClearValue(const FName& KeyName);
+	void ClearValue(FBlackboard::FKey KeyID);
+
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }
-	FORCEINLINE uint8* GetKeyRawData(FBlackboard::FKey KeyID) { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetTypedData() + ValueOffsets[KeyID]) : NULL; }
+	FORCEINLINE uint8* GetKeyRawData(FBlackboard::FKey KeyID) { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetData() + ValueOffsets[KeyID]) : NULL; }
 
 	FORCEINLINE const uint8* GetKeyRawData(const FName& KeyName) const { return GetKeyRawData(GetKeyID(KeyName)); }
-	FORCEINLINE const uint8* GetKeyRawData(FBlackboard::FKey KeyID) const { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetTypedData() + ValueOffsets[KeyID]) : NULL; }
+	FORCEINLINE const uint8* GetKeyRawData(FBlackboard::FKey KeyID) const { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetData() + ValueOffsets[KeyID]) : NULL; }
 
 	FORCEINLINE bool IsValidKey(FBlackboard::FKey KeyID) const { check(BlackboardAsset); return KeyID != FBlackboard::InvalidKey && BlackboardAsset->Keys.IsValidIndex(KeyID); }
 
@@ -200,7 +209,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 #if ENABLE_VISUAL_LOG
 	/** prepare blackboard snapshot for logs */
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif
 	
 protected:
@@ -230,6 +239,9 @@ protected:
 
 	/** notifies behavior tree decorators about change in blackboard */
 	void NotifyObservers(FBlackboard::FKey KeyID) const;
+
+	/** initializes parent chain in asset */
+	void InitializeParentChain(UBlackboardData* NewAsset);
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -11,6 +11,8 @@ public:
 
 	virtual bool IsPropertyKeyable(const UClass& InObjectClass, const class IPropertyHandle& PropertyHandle) const override;
 
+	virtual bool IsPropertyKeyingEnabled() const override;
+
 	virtual void OnKeyPropertyClicked(const IPropertyHandle& KeyedPropertyHandle) override;
 
 private:

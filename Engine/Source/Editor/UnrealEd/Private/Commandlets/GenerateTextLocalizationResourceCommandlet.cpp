@@ -1,17 +1,17 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "TextLocalizationResourceGenerator.h"
 #include "Json.h"
 #include "InternationalizationManifest.h"
-#include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
-#include "InternationalizationArchiveJsonSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationResourceCommandlet, Log, All);
 
-UGenerateTextLocalizationResourceCommandlet::UGenerateTextLocalizationResourceCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenerateTextLocalizationResourceCommandlet::UGenerateTextLocalizationResourceCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -135,7 +135,7 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 	}
 	TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 	{
-		FInternationalizationManifestJsonSerializer ManifestSerializer;
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
 		ManifestSerializer.DeserializeManifest(ManifestJSONObject.ToSharedRef(), InternationalizationManifest);
 	}
 
@@ -161,7 +161,9 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 		TAutoPtr<FArchive> TextLocalizationResourceArchive(IFileManager::Get().CreateFileWriter(*TextLocalizationResourcePath));
 		if (TextLocalizationResourceArchive)
 		{
-			if( !(FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, CultureName, TextLocalizationResourceArchive)) )
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+
+			if( !(FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, CultureName, TextLocalizationResourceArchive, ArchiveSerializer)) )
 			{
 				IFileManager::Get().Delete( *TextLocalizationResourcePath );
 			}

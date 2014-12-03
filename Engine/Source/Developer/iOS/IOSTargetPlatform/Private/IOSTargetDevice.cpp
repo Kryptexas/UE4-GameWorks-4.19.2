@@ -24,7 +24,7 @@ int32 FIOSTargetDevice::GetProcessSnapshot(TArray<FTargetDeviceProcessInfo>& Out
 	return 0;
 }
 
-ETargetDeviceTypes::Type FIOSTargetDevice::GetDeviceType() const
+ETargetDeviceTypes FIOSTargetDevice::GetDeviceType() const
 {
 	return DeviceType;
 }
@@ -128,7 +128,7 @@ bool FIOSTargetDevice::Run(const FString& ExecutablePath, const FString& Params,
 #endif // !PLATFORM_MAC
 }
 
-bool FIOSTargetDevice::SupportsFeature(ETargetDeviceFeatures::Type Feature) const
+bool FIOSTargetDevice::SupportsFeature(ETargetDeviceFeatures Feature) const
 {
 	switch (Feature)
 	{
@@ -159,11 +159,11 @@ bool FIOSTargetDevice::TerminateProcess(const int32 ProcessId)
 	return false;
 }
 
-void FIOSTargetDevice::SetUserCredentials(const FString & UserName, const FString & UserPassword)
+void FIOSTargetDevice::SetUserCredentials(const FString& UserName, const FString& UserPassword)
 {
 }
 
-bool FIOSTargetDevice::GetUserCredentials(FString & OutUserName, FString & OutUserPassword)
+bool FIOSTargetDevice::GetUserCredentials(FString& OutUserName, FString& OutUserPassword)
 {
 	return false;
 }

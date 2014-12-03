@@ -1,11 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
+
 /**
- *	A simple collection of Filters, with additional Filter specific functionality
+ *	A simple collection of Filters, with additional Filter specific functionality.
  */
 template< typename ItemType >
-class TFilterCollection : public TSharedFromThis< TFilterCollection< ItemType > >
+class TFilterCollection
+	: public TSharedFromThis< TFilterCollection< ItemType > >
 {
 public:
 
@@ -24,7 +27,6 @@ public:
 			}
 		}
 	}
-
 
 	/**
 	 *	Adds the specified Filter to the collection
@@ -52,7 +54,6 @@ public:
 		return Result;
 	}
 	
-
 	/** 
 	 *	Removes as many instances of the specified Filter as there are in the collection
 	 *	
@@ -83,13 +84,11 @@ public:
 		return ChildFilters[Index];
 	}
 
-
 	/** Returns the number of Filters in the collection */
 	FORCEINLINE int32 Num() const
 	{
 		return ChildFilters.Num();
 	}
-
 
 	/** 
 	 *	Returns whether the specified Item passes all of the filters in the collection
@@ -113,7 +112,6 @@ public:
 	/** Broadcasts anytime the restrictions of any of the child Filters change */
 	DECLARE_EVENT( TFilterCollection<ItemType>, FChangedEvent );
 	FChangedEvent& OnChanged() { return ChangedEvent; }
-
 
 protected:
 

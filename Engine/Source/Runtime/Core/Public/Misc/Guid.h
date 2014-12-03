@@ -7,56 +7,53 @@ class UObject;
 class FOutputDevice;
 
 
-namespace EGuidFormats
+/**
+ * Enumerates known GUID formats.
+ */
+enum class EGuidFormats
 {
 	/**
-	 * Enumerates known GUID formats.
+	 * 32 digits.
+	 *
+	 * For example: "00000000000000000000000000000000"
 	 */
-	enum Type
-	{
-		/**
-		 * 32 digits.
-		 *
-		 * For example: "00000000000000000000000000000000"
-		 */
-		Digits,
+	Digits,
 
-		/**
-		 * 32 digits separated by hyphens.
-		 *
-		 * For example: 00000000-0000-0000-0000-000000000000
-		 */
-		DigitsWithHyphens,
+	/**
+	 * 32 digits separated by hyphens.
+	 *
+	 * For example: 00000000-0000-0000-0000-000000000000
+	 */
+	DigitsWithHyphens,
 
-		/**
-		 * 32 digits separated by hyphens and enclosed in braces.
-		 *
-		 * For example: {00000000-0000-0000-0000-000000000000}
-		 */
-		DigitsWithHyphensInBraces,
+	/**
+	 * 32 digits separated by hyphens and enclosed in braces.
+	 *
+	 * For example: {00000000-0000-0000-0000-000000000000}
+	 */
+	DigitsWithHyphensInBraces,
 
-		/**
-		 * 32 digits separated by hyphens and enclosed in parentheses.
-		 *
-		 * For example: (00000000-0000-0000-0000-000000000000)
-		 */
-		DigitsWithHyphensInParentheses,
+	/**
+	 * 32 digits separated by hyphens and enclosed in parentheses.
+	 *
+	 * For example: (00000000-0000-0000-0000-000000000000)
+	 */
+	DigitsWithHyphensInParentheses,
 
-		/**
-		 * Comma-separated hexadecimal values enclosed in braces.
-		 *
-		 * For example: {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
-		 */
-		HexValuesInBraces,
+	/**
+	 * Comma-separated hexadecimal values enclosed in braces.
+	 *
+	 * For example: {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+	 */
+	HexValuesInBraces,
 
-		/**
-		 * This format is currently used by the FUniqueObjectGuid class.
-		 *
-		 * For example: 00000000-00000000-00000000-00000000
-		 */
-		UniqueObjectGuid,
-	};
-}
+	/**
+	 * This format is currently used by the FUniqueObjectGuid class.
+	 *
+	 * For example: 00000000-00000000-00000000-00000000
+	*/
+	UniqueObjectGuid,
+};
 
 
 /**
@@ -66,10 +63,8 @@ class FGuid
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FGuid( )
+	/** Default constructor. */
+	FGuid()
 		: A(0)
 		, B(0)
 		, C(0)
@@ -212,26 +207,26 @@ public:
 	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
 
 	/**
-	 * Checks whether this GUID is valid or not.
-	 *
-	 * A GUID that has all its components set to zero is considered invalid.
-	 *
-	 * @return true if valid, false otherwise
-	 * @see Invalidate
-	 */
-	bool IsValid( ) const
-	{
-		return ((A | B | C | D) != 0);
-	}
-
-	/**
 	 * Invalidates the GUID.
 	 *
 	 * @see IsValid
 	 */
-	void Invalidate( )
+	void Invalidate()
 	{
 		A = B = C = D = 0;
+	}
+
+	/**
+	 * Checks whether this GUID is valid or not.
+	 *
+	 * A GUID that has all its components set to zero is considered invalid.
+	 *
+	 * @return true if valid, false otherwise.
+	 * @see Invalidate
+	 */
+	bool IsValid() const
+	{
+		return ((A | B | C | D) != 0);
 	}
 
 	/**
@@ -239,7 +234,7 @@ public:
 	 *
 	 * @return The string representation.
 	 */
-	FString ToString( ) const
+	FString ToString() const
 	{
 		return ToString(EGuidFormats::Digits);
 	}
@@ -250,7 +245,7 @@ public:
 	 * @param Format The string format to use.
 	 * @return The string representation.
 	 */
-	CORE_API FString ToString( EGuidFormats::Type Format ) const;
+	CORE_API FString ToString( EGuidFormats Format ) const;
 
 public:
 
@@ -262,7 +257,7 @@ public:
 	 */
 	friend uint32 GetTypeHash( const FGuid& Guid )
 	{
-		return FCrc::MemCrc_DEPRECATED(&Guid,sizeof(FGuid));
+		return FCrc::MemCrc_DEPRECATED(&Guid, sizeof(FGuid));
 	}
 
 public:
@@ -272,7 +267,7 @@ public:
 	 *
 	 * @return A new GUID.
 	 */
-	static CORE_API FGuid NewGuid( );
+	static CORE_API FGuid NewGuid();
 
 	/**
 	 * Converts a string to a GUID.
@@ -293,20 +288,20 @@ public:
 	 * @return true if the string was converted successfully, false otherwise.
 	 * @see Parse, ToString
 	 */
-	static CORE_API bool ParseExact( const FString& GuidString, EGuidFormats::Type Format, FGuid& OutGuid );
+	static CORE_API bool ParseExact( const FString& GuidString, EGuidFormats Format, FGuid& OutGuid );
 
 //private:
 public:
 
-	// Holds the first component.
+	/** Holds the first component. */
 	uint32 A;
 
-	// Holds the second component.
+	/** Holds the second component. */
 	uint32 B;
 
-	// Holds the third component.
+	/** Holds the third component. */
 	uint32 C;
 
-	// Holds the fourth component.
+	/** Holds the fourth component. */
 	uint32 D;
 };

@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
 #include "ParticleDefinitions.h"
 #include "RawIndexBuffer.h"
 #include "../DistributionHelpers.h"
@@ -31,8 +32,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/SkeletalMeshActor.h"
 
-UParticleModuleLocationBase::UParticleModuleLocationBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationBase::UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -45,8 +46,8 @@ UParticleModuleLocationBase::UParticleModuleLocationBase(const class FPostConstr
 	UParticleModuleLocation implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleLocation::UParticleModuleLocation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocation::UParticleModuleLocation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupported3DDrawMode = true;
@@ -179,8 +180,8 @@ void UParticleModuleLocation::Render3DPreview(FParticleEmitterInstance* Owner, c
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocation_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocation_Seeded::UParticleModuleLocation_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocation_Seeded::UParticleModuleLocation_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -215,8 +216,8 @@ void UParticleModuleLocation_Seeded::EmitterLoopingNotify(FParticleEmitterInstan
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationWorldOffset implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationWorldOffset::UParticleModuleLocationWorldOffset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationWorldOffset::UParticleModuleLocationWorldOffset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -242,8 +243,8 @@ void UParticleModuleLocationWorldOffset::SpawnEx(FParticleEmitterInstance* Owner
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationWorldOffset_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationWorldOffset_Seeded::UParticleModuleLocationWorldOffset_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationWorldOffset_Seeded::UParticleModuleLocationWorldOffset_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -278,8 +279,8 @@ void UParticleModuleLocationWorldOffset_Seeded::EmitterLoopingNotify(FParticleEm
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationDirect implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationDirect::UParticleModuleLocationDirect(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationDirect::UParticleModuleLocationDirect(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -401,8 +402,8 @@ uint32 UParticleModuleLocationDirect::RequiredBytes(FParticleEmitterInstance* Ow
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationEmitter implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationEmitter::UParticleModuleLocationEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationEmitter::UParticleModuleLocationEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -550,8 +551,8 @@ uint32 UParticleModuleLocationEmitter::RequiredBytesPerInstance(FParticleEmitter
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationEmitterDirect implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationEmitterDirect::UParticleModuleLocationEmitterDirect(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationEmitterDirect::UParticleModuleLocationEmitterDirect(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -651,8 +652,8 @@ void UParticleModuleLocationEmitterDirect::Update(FParticleEmitterInstance* Owne
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationPrimitiveBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationPrimitiveBase::UParticleModuleLocationPrimitiveBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationPrimitiveBase::UParticleModuleLocationPrimitiveBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	Positive_X = true;
@@ -783,8 +784,8 @@ void UParticleModuleLocationPrimitiveBase::DetermineUnitDirection(FParticleEmitt
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationPrimitiveTriangle implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationPrimitiveTriangle::UParticleModuleLocationPrimitiveTriangle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationPrimitiveTriangle::UParticleModuleLocationPrimitiveTriangle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bSupported3DDrawMode = true;
@@ -962,8 +963,8 @@ void UParticleModuleLocationPrimitiveTriangle::Render3DPreview(FParticleEmitterI
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationPrimitiveCylinder implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationPrimitiveCylinder::UParticleModuleLocationPrimitiveCylinder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationPrimitiveCylinder::UParticleModuleLocationPrimitiveCylinder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RadialVelocity = true;
 	bSupported3DDrawMode = true;
@@ -1243,8 +1244,8 @@ void UParticleModuleLocationPrimitiveCylinder::Render3DPreview(FParticleEmitterI
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationPrimitiveCylinder_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationPrimitiveCylinder_Seeded::UParticleModuleLocationPrimitiveCylinder_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationPrimitiveCylinder_Seeded::UParticleModuleLocationPrimitiveCylinder_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -1279,8 +1280,8 @@ void UParticleModuleLocationPrimitiveCylinder_Seeded::EmitterLoopingNotify(FPart
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationPrimitiveSphere implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationPrimitiveSphere::UParticleModuleLocationPrimitiveSphere(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationPrimitiveSphere::UParticleModuleLocationPrimitiveSphere(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bSupported3DDrawMode = true;
@@ -1463,8 +1464,8 @@ void UParticleModuleLocationPrimitiveSphere::Render3DPreview(FParticleEmitterIns
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationPrimitiveSphere_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationPrimitiveSphere_Seeded::UParticleModuleLocationPrimitiveSphere_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationPrimitiveSphere_Seeded::UParticleModuleLocationPrimitiveSphere_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -1499,8 +1500,8 @@ void UParticleModuleLocationPrimitiveSphere_Seeded::EmitterLoopingNotify(FPartic
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationBoneSocket implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationBoneSocket::UParticleModuleLocationBoneSocket(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationBoneSocket::UParticleModuleLocationBoneSocket(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -1908,7 +1909,7 @@ USkeletalMeshComponent* UParticleModuleLocationBoneSocket::GetSkeletalMeshCompon
 		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
 		if (SkelMeshActor != NULL)
 		{
-			return SkelMeshActor->SkeletalMeshComponent;
+			return SkelMeshActor->GetSkeletalMeshComponent();
 		}
 		else if (Actor)
 		{
@@ -1993,8 +1994,8 @@ bool UParticleModuleLocationBoneSocket::GetParticleLocation(FParticleEmitterInst
 /*-----------------------------------------------------------------------------
 	UParticleModuleLocationVertSurface implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLocationSkelVertSurface::UParticleModuleLocationSkelVertSurface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLocationSkelVertSurface::UParticleModuleLocationSkelVertSurface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -2355,12 +2356,12 @@ void UParticleModuleLocationSkelVertSurface::UpdateBoneIndicesList(FParticleEmit
 
 		if ( SkeletalMeshActor != NULL )
 		{
-			if ( SkeletalMeshActor->SkeletalMeshComponent.IsValid() && (SkeletalMeshActor->SkeletalMeshComponent->SkeletalMesh != NULL) )
+			if (SkeletalMeshActor->GetSkeletalMeshComponent() && (SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh != NULL))
 			{
 				int32 InsertionIndex = 0;
 				for (int32 FindBoneIdx = 0; FindBoneIdx < ValidAssociatedBones.Num(); FindBoneIdx++)
 				{
-					const int32 BoneIdx = SkeletalMeshActor->SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(ValidAssociatedBones[FindBoneIdx]);
+					const int32 BoneIdx = SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh->RefSkeleton.FindBoneIndex(ValidAssociatedBones[FindBoneIdx]);
 					if (BoneIdx != INDEX_NONE && ValidAssociatedBones.Num() > InsertionIndex)
 					{
 						InstancePayload->ValidAssociatedBoneIndices[InsertionIndex++] = BoneIdx;
@@ -2536,7 +2537,7 @@ USkeletalMeshComponent* UParticleModuleLocationSkelVertSurface::GetSkeletalMeshC
 		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
 		if (SkelMeshActor != NULL)
 		{
-			return SkelMeshActor->SkeletalMeshComponent;
+			return SkelMeshActor->GetSkeletalMeshComponent();
 		}
 		else
 		{

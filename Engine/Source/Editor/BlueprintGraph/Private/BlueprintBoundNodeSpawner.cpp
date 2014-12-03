@@ -24,8 +24,8 @@ UBlueprintBoundNodeSpawner* UBlueprintBoundNodeSpawner::Create(TSubclassOf<UEdGr
 }
 
 //------------------------------------------------------------------------------
-UBlueprintBoundNodeSpawner::UBlueprintBoundNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintBoundNodeSpawner::UBlueprintBoundNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -39,13 +39,19 @@ FBlueprintNodeSignature UBlueprintBoundNodeSpawner::GetSpawnerSignature() const
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintBoundNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
+UEdGraphNode* UBlueprintBoundNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	if( OnGenerateMenuDescriptionDelegate.IsBound() )
+	UEdGraphNode* Result = nullptr;
+	if( FindPreExistingNodeDelegate.IsBound() )
 	{
-		return OnGenerateMenuDescriptionDelegate.Execute(Bindings);
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
+		Result = FindPreExistingNodeDelegate.Execute( Blueprint, Bindings );
 	}
-	return UBlueprintNodeSpawner::GetDefaultMenuName( Bindings );
+	if( Result == nullptr)
+	{
+		Result = UBlueprintNodeSpawner::Invoke( ParentGraph, Bindings, Location );
+	}
+	return Result;
 }
 
 //------------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 #include "SoundDefinitions.h"
 #include "Dialogs/DlgSoundWaveOptions.h"
 #include "SoundPreviewThread.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 /** 
  * Info used to setup the rows of the sound quality previewer

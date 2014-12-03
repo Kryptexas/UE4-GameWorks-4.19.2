@@ -5,6 +5,7 @@
 #include "MathStructCustomizations.h"
 #include "IPropertyUtilities.h"
 #include "SColorPicker.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "FMathStructCustomization"
@@ -38,6 +39,7 @@ void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>&
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
 	const FString DisplayNameOverride = TEXT("");
+	const FString DisplayToolTipOverride = TEXT("");
 
 	TWeakPtr<IPropertyHandle> StructWeakHandlePtr = StructPropertyHandle;
 
@@ -45,7 +47,7 @@ void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>&
 
 	Row.NameContent()
 	[
-		StructPropertyHandle->CreatePropertyNameWidget( DisplayNameOverride, bDisplayResetToDefault )
+		StructPropertyHandle->CreatePropertyNameWidget( DisplayNameOverride, DisplayToolTipOverride, bDisplayResetToDefault )
 	]
 	.ValueContent()
 	// Make enough space for each child handle
@@ -416,8 +418,6 @@ TSharedRef<IPropertyTypeCustomization> FColorStructCustomization::MakeInstance()
 
 void FColorStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& InHeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-	TSharedPtr<FAssetThumbnailPool> Pool = StructCustomizationUtils.GetThumbnailPool();
-
 	StructPropertyHandle = InStructPropertyHandle;
 
 	bIsLinearColor = CastChecked<UStructProperty>( StructPropertyHandle->GetProperty() )->Struct->GetFName() == NAME_LinearColor;
@@ -434,18 +434,25 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
 	const FString DisplayNameOverride = TEXT("");
-
-	FSlateFontInfo NormalText = IDetailLayoutBuilder::GetDetailFont();
+	const FString DisplayToolTipOverride = TEXT("");
 
 	Row.NameContent()
 	[
-		StructPropertyHandle->CreatePropertyNameWidget( DisplayNameOverride, bDisplayResetToDefault )
+		StructPropertyHandle->CreatePropertyNameWidget( DisplayNameOverride, DisplayToolTipOverride, bDisplayResetToDefault )
 	]
 	.ValueContent()
 	.MinDesiredWidth(250.0f)
 	.MaxDesiredWidth(250.0f)
 	[
-		SNew( SHorizontalBox )
+		CreateColorWidget()
+	];
+}
+
+TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
+{
+	FSlateFontInfo NormalText = IDetailLayoutBuilder::GetDetailFont();
+
+	return SNew( SHorizontalBox )
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
 		[
@@ -481,8 +488,7 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 			.IgnoreAlpha(true)
 			.OnMouseButtonDown( this, &FColorStructCustomization::OnMouseButtonDownColorBlock )
 			.Size( FVector2D( 35.0f, 12.0f ) )
-		]
-	];
+		];
 }
 
 void FColorStructCustomization::GetSortedChildren( TSharedRef<IPropertyHandle> InStructPropertyHandle, TArray< TSharedRef<IPropertyHandle> >& OutChildren )

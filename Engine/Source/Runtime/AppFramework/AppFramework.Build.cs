@@ -16,7 +16,8 @@ public class AppFramework : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-                "InputCore",
+				"InputCore",
+				"WebBrowser",
 			}
 		);
 

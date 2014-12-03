@@ -6,9 +6,22 @@
 /** This returns Quaternion Inverse of X **/
 #define MAKE_QUATINV_VECTORREGISTER(X) VectorMultiply(GlobalVectorConstants::QINV_SIGN_MASK, X)
 
-/** 
- * FTransform class for Quat/Translation/Scale.
+/**
+ * Transform composed of Scale, Rotation (as a quaternion), and Translation.
+ *
+ * Transforms can be used to convert from one space to another, for example by transforming
+ * positions and directions from local space to world space.
+ *
+ * Transformation of position vectors is applied in the order:  Scale -> Rotate -> Translate.
+ * Transformation of direction vectors is applied in the order: Scale -> Rotate.
+ *
+ * Order matters when composing transforms: C = A * B will yield a transform C that logically
+ * first applies A then B to any subsequent transformation. Note that this is the opposite order of quaternion (FQuat) multiplication.
+ *
+ * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in local space by DeltaRotation.
+ * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in world space by DeltaRotation.
  */
+
 MS_ALIGN(16) class FTransform
 {
 #if !defined(COREUOBJECT_API)
@@ -232,7 +245,7 @@ public:
 	CORE_API FString ToString() const;
 
 	/** Acceptable form: "%f,%f,%f|%f,%f,%f|%f,%f,%f" */
-	CORE_API bool InitFromString( const FString & InSourceString );
+	CORE_API bool InitFromString( const FString& InSourceString );
 
 	/**
 	* Copy another Transform into this one
@@ -529,7 +542,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector & InScale, float Tolerance=0.0f) const;
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=0.0f) const;
 
 
 	// temp function for easy conversion
@@ -666,7 +679,7 @@ public:
 		return RotationEquals(Other.Rotation, ToleranceRegister) && TranslationEquals(Other.Translation, ToleranceRegister);
 	}
 
-	FORCEINLINE static void Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B);
+	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
 
 	/**
 	 * Sets the components
@@ -1095,7 +1108,7 @@ public:
 		DiagnosticCheckNaN_Scale3D();
 	}
 
-	void SetFromMatrix(const FMatrix & InMatrix)
+	void SetFromMatrix(const FMatrix& InMatrix)
 	{
 		FMatrix M = InMatrix;
 
@@ -1654,7 +1667,7 @@ inline float FTransform::GetMinimumAxisScale() const
  * also returning BIG_NUMBER causes sequential NaN issues by multiplying 
  * so we hardcode as 0
  */
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector & InScale, float Tolerance) const
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance) const
 {
 	FVector SafeReciprocalScale;
 	if (FMath::Abs(InScale.X) <= Tolerance)

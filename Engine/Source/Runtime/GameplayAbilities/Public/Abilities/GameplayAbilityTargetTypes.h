@@ -63,11 +63,19 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	virtual ~FGameplayAbilityTargetData() { }
 
-	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const struct FGameplayAbilityActorInfo* InstigatorInfo, float Level);
+	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FPredictionKey PredictionKey = FPredictionKey());
+
+	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context);
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const
 	{
 		return TArray<TWeakObjectPtr<AActor> >();
+	}
+
+	virtual bool SetActors(TArray<TWeakObjectPtr<AActor>> NewActorArray)
+	{
+		//By default, we don't keep this data, and therefore can't set it.
+		return false;
 	}
 
 	// -------------------------------------
@@ -165,6 +173,11 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 		Data.Reset();
 	}
 
+	int32 Num() const
+	{
+		return Data.Num();
+	}
+
 	bool IsValid(int32 Index) const
 	{
 		return (Index < Data.Num() && Data[Index].IsValid());
@@ -173,6 +186,11 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 	FGameplayAbilityTargetData* Get(int32 Index)
 	{
 		return IsValid(Index) ? Data[Index].Get() : NULL;
+	}
+
+	void Add(struct FGameplayAbilityTargetData* DataPtr)
+	{
+		Data.Add(TSharedPtr<FGameplayAbilityTargetData>(DataPtr));
 	}
 
 	void Append(struct FGameplayAbilityTargetDataHandle* OtherHandle)
@@ -225,44 +243,44 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOp
 	};
 };
 
+/*
 USTRUCT(BlueprintType)
-struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Radius : public FGameplayAbilityTargetData
+struct FGameplayAbilityTargetDataActorFilter
 {
 	GENERATED_USTRUCT_BODY()
 
-	FGameplayAbilityTargetData_Radius()
-	: Origin(0.f) { }
-
-	FGameplayAbilityTargetData_Radius(const TArray<TWeakObjectPtr<AActor> > InActors, const FVector& InOrigin)
-		: Actors(InActors), Origin(InOrigin) { }
-
-	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const { return Actors; }
-
-	virtual bool HasOrigin() const { return true; }
-
-	virtual FTransform GetOrigin() const { return FTransform(Origin); }
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	virtual UScriptStruct* GetScriptStruct()
+	virtual bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
 	{
-		return FGameplayAbilityTargetData_Radius::StaticStruct();
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGameplayAbilityTargetDataActorFilterHandleBase
+{
+	GENERATED_USTRUCT_BODY()
+
+	TSharedPtr<FGameplayAbilityTargetDataActorFilter>	Filter;
+
+	bool operator()(const TWeakObjectPtr<AActor> A) const
+	{
+		if (Filter.IsValid())
+		{
+			return Filter.Get()->FilterPassesForActor(A.Get());
+		}
+		return true;
 	}
 
-private:
-
-	TArray<TWeakObjectPtr<AActor> > Actors;
-	FVector Origin;
-};
-
-template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_Radius> : public TStructOpsTypeTraitsBase
-{
-	enum
+	bool operator()(const AActor* A) const
 	{
-		WithNetSerializer = true	// For now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
-	};
+		if (Filter.IsValid())
+		{
+			return Filter.Get()->FilterPassesForActor(A);
+		}
+		return true;
+	}
 };
+*/
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
@@ -314,8 +332,9 @@ public:
 	}
 
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const;
+	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResults(TWeakObjectPtr<UGameplayAbility> Ability, const TArray<FHitResult>& HitResults) const;
 
-	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors, bool OneActorPerHandle = false) const;
+	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor>> TargetActors, bool OneActorPerHandle = false) const;
 
 	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
@@ -440,6 +459,12 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 		return TargetActorArray;
 	}
 
+	virtual bool SetActors(TArray<TWeakObjectPtr<AActor>> NewActorArray) override
+	{
+		TargetActorArray = NewActorArray;
+		return true;
+	}
+
 	// -------------------------------------
 
 	virtual bool HasOrigin() const override
@@ -456,8 +481,12 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 		{
 			if (TargetActorArray[i].IsValid())
 			{
-				ReturnTransform.SetRotation((TargetActorArray[i].Get()->GetActorLocation()).SafeNormal().Rotation().Quaternion());
-				break;
+				FVector Direction = (TargetActorArray[i].Get()->GetActorLocation() - ReturnTransform.GetLocation()).SafeNormal();
+				if (Direction.IsNormalized())
+				{
+					ReturnTransform.SetRotation(Direction.Rotation().Quaternion());
+					break;
+				}
 			}
 		}
 		return ReturnTransform;
@@ -515,92 +544,6 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_ActorArray> : public TStr
 };
 
 USTRUCT(BlueprintType)
-struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Mesh : public FGameplayAbilityTargetData
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityTargetData_Mesh()
-	: SourceActor(NULL)
-	, SourceComponent(NULL)
-	{}
-
-
-	/** Actor who owns the named component. Actor's location is used as start point if component cannot be found. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-	AActor* SourceActor;
-
-	/** Local skeletal mesh component that holds the socket. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-	USkeletalMeshComponent* SourceComponent;
-
-	/** If SourceActor and SourceComponent are valid, this is the name of the socket that will be used instead of the actor's location. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-	FName SourceSocketName;
-
-	/** Point being targeted. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-	FVector_NetQuantize TargetPoint;
-
-	// -------------------------------------
-
-	virtual bool HasOrigin() const override
-	{
-		return (SourceActor != NULL);
-	}
-
-	virtual FTransform GetOrigin() const override
-	{
-		if (SourceActor)
-		{
-			FTransform ReturnTransform = SourceActor->GetTransform();
-			if (SourceComponent)
-			{
-				ReturnTransform.SetLocation(SourceComponent->GetSocketLocation(SourceSocketName));
-			}
-			ReturnTransform.SetRotation((TargetPoint - ReturnTransform.GetLocation()).SafeNormal().Rotation().Quaternion());
-			return ReturnTransform;
-		}
-		return FTransform::Identity;
-	}
-
-	// -------------------------------------
-
-	virtual bool HasEndPoint() const override
-	{
-		return true;
-	}
-
-	virtual FVector GetEndPoint() const override
-	{
-		return TargetPoint;
-	}
-
-	// -------------------------------------
-
-	virtual FString ToString() const override
-	{
-		return TEXT("FGameplayAbilityTargetData_Mesh");
-	}
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	virtual UScriptStruct* GetScriptStruct() override
-	{
-		return FGameplayAbilityTargetData_Mesh::StaticStruct();
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_Mesh> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithNetSerializer = true	// For now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
-	};
-};
-
-
-USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData
 {
 	GENERATED_USTRUCT_BODY()
@@ -624,6 +567,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 		return Actors;
 	}
 
+	// SetActors() will not work here because the actor "array" is drawn from the hit result data, and changing that doesn't make sense.
+
 	// -------------------------------------
 
 	virtual bool HasHitResult() const override
@@ -634,6 +579,26 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	virtual const FHitResult* GetHitResult() const override
 	{
 		return &HitResult;
+	}
+
+	virtual bool HasOrigin() const override
+	{
+		return true;
+	}
+
+	virtual FTransform GetOrigin() const override
+	{
+		return FTransform((HitResult.TraceEnd - HitResult.TraceStart).Rotation(), HitResult.TraceStart);
+	}
+
+	virtual bool HasEndPoint() const override
+	{
+		return true;
+	}
+
+	virtual FVector GetEndPoint() const override
+	{
+		return HitResult.Location;
 	}
 
 	// -------------------------------------

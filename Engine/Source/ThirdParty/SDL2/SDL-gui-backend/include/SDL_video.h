@@ -777,6 +777,34 @@ extern DECLSPEC int SDLCALL SDL_SetWindowBrightness(SDL_Window * window, float b
  */
 extern DECLSPEC float SDLCALL SDL_GetWindowBrightness(SDL_Window * window);
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+/**
+ *  \brief Set the opacity for a window
+ *
+ *  \param window The window which will be made transparent or opaque
+ *  \param opacity Opacity (0 - transparent, 1 - opaque)
+ * 
+ *  \return 0 on success, or -1 if setting the opacity isn't supported.
+ *
+ *  \sa SDL_GetWindowOpacity()
+ */
+extern DECLSPEC int SDLCALL SDL_SetWindowOpacity(SDL_Window * window, float opacity);
+
+/**
+ *  \brief Get the opacity of a window.
+ *
+ *  \param window The window in question
+ *  \param opacity Opacity (0 - transparent, 1 - opaque)
+ * 
+ *  \return 0 on success, or -1 if getting the opacity isn't supported.
+ *
+ *  \sa SDL_SetWindowOpacity()
+ */
+extern DECLSPEC int SDLCALL SDL_GetWindowOpacity(SDL_Window * window, float * out_opacity);
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
+
 /**
  *  \brief Set the gamma ramp for a window.
  *

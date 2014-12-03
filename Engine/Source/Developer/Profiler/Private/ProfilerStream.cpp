@@ -36,7 +36,7 @@ void FProfilerUIStream::GenerateUIStream( const FProfilerStream& ProfilerStream,
 				FProfilerUIStackNode* ThreadUIStackNode = new FProfilerUIStackNode( ProfilerFrame->Root->Children[ThreadIndex], FProfilerUIStackNode::THREAD_NODE_INDEX, FProfilerUIStackNode::THREAD_NODE_INDEX, FrameIndex );
 				ThreadUIStackNode->InitializeUIData( NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
 
-				ThreadNodes.AddRawItem( ThreadUIStackNode );
+				ThreadNodes.Add( ThreadUIStackNode );
 
 				CombineOrSet( ThreadUIStackNode, *ProfilerFrame->Root->Children[ThreadIndex], ThreadIndex*DEFAULT_VISIBLE_THREAD_DEPTH, NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
 			}
@@ -80,7 +80,7 @@ void FProfilerUIStream::CombineOrSet( FProfilerUIStackNode* ParentUIStackNode, c
 					{
 						FProfilerUIStackNode* ProfilerUIStackNode = new FProfilerUIStackNode( OriginalStackNodes, OriginalStackNodes.Num(), GlobalNodeDepth, ThreadIndex, FrameIndex );
 						ProfilerUIStackNode->InitializeUIData( NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
-						ParentUIStackNode->Children.AddRawItem( ProfilerUIStackNode );
+						ParentUIStackNode->Children.Add( ProfilerUIStackNode );
 						bLookingForChildToCombine = false;
 						OriginalStackNodes.Reset();
 					}
@@ -89,7 +89,7 @@ void FProfilerUIStream::CombineOrSet( FProfilerUIStackNode* ParentUIStackNode, c
 					{
 						FProfilerUIStackNode* ProfilerUIStackNode = new FProfilerUIStackNode( NextProfilerChildNode, GlobalNodeDepth, ThreadIndex, FrameIndex );
 						ProfilerUIStackNode->InitializeUIData( NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
-						ParentUIStackNode->Children.AddRawItem( ProfilerUIStackNode );
+						ParentUIStackNode->Children.Add( ProfilerUIStackNode );
 
 						// Check the call stack depth.
 						if( ThreadNodeDepth != DEFAULT_VISIBLE_THREAD_DEPTH - 1 )
@@ -118,7 +118,7 @@ void FProfilerUIStream::CombineOrSet( FProfilerUIStackNode* ParentUIStackNode, c
 					// Combine child nodes into one node.
 					FProfilerUIStackNode* ProfilerUIStackNode = new FProfilerUIStackNode( OriginalStackNodes, OriginalStackNodes.Num(), GlobalNodeDepth, ThreadIndex, FrameIndex );
 					ProfilerUIStackNode->InitializeUIData( NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
-					ParentUIStackNode->Children.AddRawItem( ProfilerUIStackNode );
+					ParentUIStackNode->Children.Add( ProfilerUIStackNode );
 					bLookingForChildToCombine = false;
 					OriginalStackNodes.Reset();
 				}
@@ -134,7 +134,7 @@ void FProfilerUIStream::CombineOrSet( FProfilerUIStackNode* ParentUIStackNode, c
 				// We have a sample that can be displayed in the UI, add it.
 				FProfilerUIStackNode* ProfilerUIStackNode = new FProfilerUIStackNode( FirstProfilerChildNode, GlobalNodeDepth, ThreadIndex, FrameIndex );
 				ProfilerUIStackNode->InitializeUIData( NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
-				ParentUIStackNode->Children.AddRawItem( ProfilerUIStackNode );
+				ParentUIStackNode->Children.Add( ProfilerUIStackNode );
 
 				// Check the call stack depth.
 				if( ThreadNodeDepth != DEFAULT_VISIBLE_THREAD_DEPTH - 1 )
@@ -161,7 +161,7 @@ void FProfilerUIStream::CombineOrSet( FProfilerUIStackNode* ParentUIStackNode, c
 			{
 				FProfilerUIStackNode* ProfilerUIStackNode = new FProfilerUIStackNode( OriginalStackNodes, OriginalStackNodes.Num(), GlobalNodeDepth, ThreadIndex, FrameIndex );
 				ProfilerUIStackNode->InitializeUIData( NumMillisecondsPerWindow, NumPixelsPerMillisecond, NumMillisecondsPerSample );
-				ParentUIStackNode->Children.AddRawItem( ProfilerUIStackNode );
+				ParentUIStackNode->Children.Add( ProfilerUIStackNode );
 				bLookingForChildToCombine = false;
 				OriginalStackNodes.Reset();
 			}

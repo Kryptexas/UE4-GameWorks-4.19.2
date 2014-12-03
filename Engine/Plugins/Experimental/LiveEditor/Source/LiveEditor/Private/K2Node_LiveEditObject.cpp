@@ -138,8 +138,8 @@ namespace UK2Node_LiveEditObjectStatics
 FString UK2Node_LiveEditObject::LiveEditableVarPinCategory(TEXT("LiveEditableVar"));
 
 
-UK2Node_LiveEditObject::UK2Node_LiveEditObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_LiveEditObject::UK2Node_LiveEditObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -254,327 +254,324 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if ( CompilerContext.bIsFullCompile )
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+	UEdGraphPin *SourceExecPin = GetExecPin();
+	UEdGraphPin *SourceThenPin = GetThenPin();
+	UEdGraphPin *SourceBlueprintPin = GetBlueprintPin();
+	UEdGraphPin *SourceBaseClassPin = GetBaseClassPin();
+	UEdGraphPin *SourceDescriptionPin = GetDescriptionPin();
+	UEdGraphPin *SourcePermittedBindingsPin = GetPermittedBindingsPin();
+	UEdGraphPin *SourceOnMidiInputPin = GetOnMidiInputPin();
+
+	UEdGraphPin *SourceVariablePin = GetVariablePin();
+	if(NULL == SourceVariablePin)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
-		UEdGraphPin *SourceExecPin = GetExecPin();
-		UEdGraphPin *SourceThenPin = GetThenPin();
-		UEdGraphPin *SourceBlueprintPin = GetBlueprintPin();
-		UEdGraphPin *SourceBaseClassPin = GetBaseClassPin();
-		UEdGraphPin *SourceDescriptionPin = GetDescriptionPin();
-		UEdGraphPin *SourcePermittedBindingsPin = GetPermittedBindingsPin();
-		UEdGraphPin *SourceOnMidiInputPin = GetOnMidiInputPin();
-
-		UEdGraphPin *SourceVariablePin = GetVariablePin();
-		if(NULL == SourceVariablePin)
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeMissingBlueprint_Error", "LiveEdit node @@ must have a blueprint specified and a variable selected to tune.").ToString(), this);
-			// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
-			BreakAllNodeLinks();
-			return;
-		}
-
-		UClass* SpawnClass = GetClassToSpawn();
-		if(NULL == SpawnClass)
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeMissingBaseClass_Error", "LiveEdit node @@ must have a Base Class specified.").ToString(), this);
-			// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
-			BreakAllNodeLinks();
-			return;
-		}
-
-		if ( SourcePermittedBindingsPin->LinkedTo.Num() == 0 )
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeMissingBinding_Error", "LiveEdit node @@ must specify Permitted Bindings.").ToString(), this);
-			// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
-			BreakAllNodeLinks();
-			return;
-		}
-
-		//sanity check the VariablePin value
-		{
-			UProperty *Property = UK2Node_LiveEditObjectStatics::GetPropertyByName( SpawnClass, *SourceVariablePin->DefaultValue );
-			if ( Property == NULL || !Property->IsA(UNumericProperty::StaticClass()) )
-			{
-				CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeInvalidVariable_Error", "LiveEdit node @@ must have a valid variable selected.").ToString(), this);
-				// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
-				BreakAllNodeLinks();
-				return;
-			}
-		}
-
-		//hooks to pins that are generated after a BaseClass is set
-		UEdGraphPin *DeltaMultPin = GetDeltaMultPin();
-		UEdGraphPin *ShouldClampPin = GetShouldClampPin();
-		UEdGraphPin *ClampMinPin = GetClampMinPin();
-		UEdGraphPin *ClampMaxPin = GetClampMaxPin();
-
-		UK2Node_Self *SelfNode  = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this,SourceGraph);
-		SelfNode->AllocateDefaultPins();
-		UEdGraphPin *SelfNodeThenPin = SelfNode->FindPinChecked(Schema->PN_Self);
-
-		FString EventNameGuid = GetEventName();
-		
-		//Create the registration part of the LiveEditor binding process
-		{
-			UK2Node_CallFunction *RegisterForMIDINode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-			RegisterForMIDINode->FunctionReference.SetExternalMember( TEXT("RegisterForLiveEditEvent"), ULiveEditorKismetLibrary::StaticClass() );
-			RegisterForMIDINode->AllocateDefaultPins();
-
-			UEdGraphPin *ExecPin = RegisterForMIDINode->GetExecPin();
-			CompilerContext.MovePinLinksToIntermediate(*SourceExecPin, *ExecPin);
-
-			UEdGraphPin *ThenPin = RegisterForMIDINode->GetThenPin();
-			CompilerContext.MovePinLinksToIntermediate(*SourceThenPin, *ThenPin);
-
-			UEdGraphPin *TargetPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("Target")) );
-			TargetPin->MakeLinkTo(SelfNodeThenPin);
-
-			UEdGraphPin *EventNamePin = RegisterForMIDINode->FindPinChecked( FString(TEXT("EventName")) );
-			EventNamePin->DefaultValue = EventNameGuid;
-		
-			UEdGraphPin *DescriptionPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("Description")) );
-			CompilerContext.CopyPinLinksToIntermediate( *SourceDescriptionPin, *DescriptionPin);
-
-			UEdGraphPin *PermittedBindingsPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("PermittedBindings")) );
-			CompilerContext.CopyPinLinksToIntermediate( *SourcePermittedBindingsPin, *PermittedBindingsPin);
-		}
-
-		//Create the event handling part of the LiveEditor binding process
-		{
-			//
-			//the event itself
-			//
-			UFunction *EventMIDISignature = GetEventMIDISignature();
-			UK2Node_Event* EventNode = CompilerContext.SpawnIntermediateNode<UK2Node_Event>(this, SourceGraph);
-			check(EventNode);
-			EventNode->EventSignatureClass = Cast<UClass>(EventMIDISignature->GetOuter());
-			EventNode->EventSignatureName = EventMIDISignature->GetFName();
-			EventNode->CustomFunctionName = *EventNameGuid;
-			EventNode->bInternalEvent = true;
-			EventNode->AllocateDefaultPins();
-
-			// Cache these out because we'll connect the sequence to it
-			UEdGraphPin *EventThenPin = EventNode->FindPinChecked( Schema->PN_Then );
-			UEdGraphPin *EventDeltaPin = EventNode->FindPinChecked( FString(TEXT("Delta")) );
-			UEdGraphPin *EventMidiValuePin = EventNode->FindPinChecked( FString(TEXT("MidiValue")) );
-			UEdGraphPin *EventControlTypePin = EventNode->FindPinChecked( FString(TEXT("ControlType")) );
-
-
-			//
-			// Check if Blueprint is NULL
-			//
-			UEdGraphPin *CompareBlueprintToNullBranchThenPin = NULL;
-			{
-				UK2Node_CallFunction *CompareBlueprintToNullNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-				CompareBlueprintToNullNode->FunctionReference.SetExternalMember( TEXT("NotEqual_ObjectObject"), UKismetMathLibrary::StaticClass() );
-				CompareBlueprintToNullNode->AllocateDefaultPins();
-
-				//Set A Pin to the Blueprint Pin
-				UEdGraphPin *CompareBlueprintToNullAPin = CompareBlueprintToNullNode->FindPinChecked( FString(TEXT("A")) );
-				CompilerContext.CopyPinLinksToIntermediate( *SourceBlueprintPin, *CompareBlueprintToNullAPin);
-
-				// hook for Compare Blueprint to NULL result
-				UEdGraphPin *CompareBlueprintToNullResultPin = CompareBlueprintToNullNode->GetReturnValuePin();
-
-				// Create the BRANCH that will drive the comparison
-				UK2Node_IfThenElse* CompareBlueprintToNullBranchNode = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
-				CompareBlueprintToNullBranchNode->AllocateDefaultPins();
-
-				//hook up the condition
-				CompareBlueprintToNullResultPin->MakeLinkTo( CompareBlueprintToNullBranchNode->GetConditionPin() );
-
-				//hook event to the branck input
-				EventThenPin->MakeLinkTo( CompareBlueprintToNullBranchNode->GetExecPin() );
-
-				//cache ot the THEN pin for later linkup
-				CompareBlueprintToNullBranchThenPin = CompareBlueprintToNullBranchNode->GetThenPin();
-			}
-
-			//
-			// Get Class Default Object
-			//
-			UK2Node_CallFunction *GetClassDefaultObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-			GetClassDefaultObjectNode->FunctionReference.SetExternalMember( TEXT("GetBlueprintClassDefaultObject"), ULiveEditorKismetLibrary::StaticClass() );
-			GetClassDefaultObjectNode->AllocateDefaultPins();
-
-			UEdGraphPin *GetClassDefaultObjectBlueprintPin = GetClassDefaultObjectNode->FindPinChecked( TEXT("Blueprint") );
-			CompilerContext.CopyPinLinksToIntermediate( *SourceBlueprintPin, *GetClassDefaultObjectBlueprintPin);
-
-			//hook for later -> the pointer to the ClassDefaultObject of our BlueprintPin
-			UEdGraphPin *GetClassDefaultObjectResultPin = GetClassDefaultObjectNode->GetReturnValuePin();
-
-
-			//
-			// Compare to BaseClass to make sure that the target Blueprint IsA(BaseClass)
-			//
-			UEdGraphPin *ClassIsChildOfBranchThenPin = NULL;
-			{
-				//
-				//we need to get the class of the Blueprint pin
-				UK2Node_CallFunction *GetClassNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-				GetClassNode->FunctionReference.SetExternalMember( TEXT("GetObjectClass"), UGameplayStatics::StaticClass() );
-				GetClassNode->AllocateDefaultPins();
-
-				//Pin in the GetClassDefaultObjectResultPin to the Object Parameter of the GetObjectClass FUNCTION
-				//we want to make sure that the Class of the DEFAULT_OBJECT IsA( BaseClass )
-				UEdGraphPin *GetClassObjectPin = GetClassNode->FindPinChecked( FString(TEXT("Object")) );
-				GetClassDefaultObjectResultPin->MakeLinkTo( GetClassObjectPin );
-
-				//hook for the Class result
-				UEdGraphPin *GetClassReturnValuePin = GetClassNode->GetReturnValuePin();
-
-				//
-				//the ClassIsChildOf FUNCTION
-				UK2Node_CallFunction *ClassIsChildOfNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-				ClassIsChildOfNode->FunctionReference.SetExternalMember( TEXT("ClassIsChildOf"), UKismetMathLibrary::StaticClass() );
-				ClassIsChildOfNode->AllocateDefaultPins();
-
-				//hook up the test pin
-				UEdGraphPin *ClassIsChildOfTestPin = ClassIsChildOfNode->FindPinChecked( FString(TEXT("TestClass")) );
-				GetClassReturnValuePin->MakeLinkTo( ClassIsChildOfTestPin );
-
-				//copy our BaseClass Pin into the ClassIsChildOf Parameter
-				UEdGraphPin *ClassIsChildOfParentPin = ClassIsChildOfNode->FindPinChecked( FString(TEXT("ParentClass")) );
-				CompilerContext.CopyPinLinksToIntermediate( *SourceBaseClassPin, *ClassIsChildOfParentPin);
-
-				//hook for return value
-				UEdGraphPin *ClassIsChildOfResultPin = ClassIsChildOfNode->GetReturnValuePin();
-
-				//
-				// Create the BRANCH that will drive the comparison
-				UK2Node_IfThenElse* ClassIsChildOfBranchNode = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
-				ClassIsChildOfBranchNode->AllocateDefaultPins();
-
-				//hook up the previous branch to this one
-				check( CompareBlueprintToNullBranchThenPin != NULL );
-				CompareBlueprintToNullBranchThenPin->MakeLinkTo( ClassIsChildOfBranchNode->GetExecPin() );
-
-				//hook up our condition
-				ClassIsChildOfResultPin->MakeLinkTo( ClassIsChildOfBranchNode->GetConditionPin() );
-
-				//cache ot the THEN pin for later linkup
-				ClassIsChildOfBranchThenPin = ClassIsChildOfBranchNode->GetThenPin();
-			}
-
-
-			//
-			//The set variable function (to set LiveEdited new value)
-			//
-			UK2Node_CallFunction *ModifyVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-			ModifyVarNode->FunctionReference.SetExternalMember( TEXT("ModifyPropertyByName"), ULiveEditorKismetLibrary::StaticClass() );
-			ModifyVarNode->AllocateDefaultPins();
-
-			// Make link from the event to the Set variable node
-			UEdGraphPin *ModifyVarExecPin = ModifyVarNode->GetExecPin();
-			ClassIsChildOfBranchThenPin->MakeLinkTo( ModifyVarExecPin );
-
-			//link up the Target Pin
-			UEdGraphPin *ModifyVarNodeTargetPin = ModifyVarNode->FindPinChecked( TEXT("Target") );
-			GetClassDefaultObjectResultPin->MakeLinkTo( ModifyVarNodeTargetPin );
-
-			//link up the PropertyName Pin
-			UEdGraphPin *ModifyVarNodePropertyNamePin = ModifyVarNode->FindPinChecked( TEXT("PropertyName") );
-			ModifyVarNodePropertyNamePin->DefaultValue = SourceVariablePin->DefaultValue;
-
-			//link up the MIDI Value Pin
-			UEdGraphPin *ModifyVarNodeMidiValuePin = ModifyVarNode->FindPinChecked( TEXT("MidiValue") );
-			EventMidiValuePin->MakeLinkTo(ModifyVarNodeMidiValuePin);
-
-			//link up the ControlType Pin
-			UEdGraphPin *ModifyVarNodeControlTypePin = ModifyVarNode->FindPinChecked( TEXT("ControlType") );
-			EventControlTypePin->MakeLinkTo(ModifyVarNodeControlTypePin);
-
-			//hook for the Delta Pin
-			UEdGraphPin *ModifyVarNodeDeltaPin = ModifyVarNode->FindPinChecked( TEXT("Delta") );
-
-			//Clamping
-			if ( ShouldClampPin->DefaultValue == FString(TEXT("true")) )
-			{
-				UEdGraphPin *ModifyVarNodeShouldClampPin = ModifyVarNode->FindPinChecked( TEXT("bShouldClamp") );
-				CompilerContext.CopyPinLinksToIntermediate( *ShouldClampPin, *ModifyVarNodeShouldClampPin);
-
-				check( ClampMinPin != NULL );
-				UEdGraphPin *ModifyVarNodeClampMinPin = ModifyVarNode->FindPinChecked( TEXT("ClampMin") );
-				CompilerContext.CopyPinLinksToIntermediate( *ClampMinPin, *ModifyVarNodeClampMinPin);
-
-				check( ClampMaxPin != NULL );
-				UEdGraphPin *ModifyVarNodeClampMaxPin = ModifyVarNode->FindPinChecked( TEXT("ClampMax") );
-				CompilerContext.CopyPinLinksToIntermediate( *ClampMaxPin, *ModifyVarNodeClampMaxPin);
-			}
-
-			//hook for ModifyVar THEN
-			UEdGraphPin *ModifyVarNodeThenPin = ModifyVarNode->GetThenPin();
-
-			//
-			// The Multiply Delta * DeltaMult function
-			//
-			UK2Node_CallFunction *MultiplyNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-			MultiplyNode->FunctionReference.SetExternalMember( TEXT("Multiply_FloatFloat"), UKismetMathLibrary::StaticClass() );
-			MultiplyNode->AllocateDefaultPins();
-
-			//cache this out. it will be linked to from the output of the (int)Delta -> (float)Delta Conversion function
-			UEdGraphPin *MultiplyNodeFirstPin = MultiplyNode->FindPinChecked( FString(TEXT("A")) );
-
-			// 2nd input to the Add function comes from the Current variable value
-			UEdGraphPin *MultiplyNodeSecondPin = MultiplyNode->FindPinChecked( FString(TEXT("B")) );
-			CompilerContext.CopyPinLinksToIntermediate( *DeltaMultPin, *MultiplyNodeSecondPin);
-
-			UEdGraphPin *MultiplyNodeReturnValuePin = MultiplyNode->GetReturnValuePin();
-			MultiplyNodeReturnValuePin->MakeLinkTo( ModifyVarNodeDeltaPin );
-
-			//
-			// The Convert function to go from (int)Delta to ULiveEditorKismetLibrary::ModifyPropertyByName(... float Delta ...)
-			//
-			FName ConvertFunctionName;
-			bool success = Schema->SearchForAutocastFunction( EventDeltaPin, MultiplyNodeFirstPin, ConvertFunctionName );
-			check( success );
-			UK2Node_CallFunction *ConvertDeltaNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-			ConvertDeltaNode->FunctionReference.SetExternalMember( ConvertFunctionName, UKismetMathLibrary::StaticClass() );
-			ConvertDeltaNode->AllocateDefaultPins();
-
-			FName PinName;
-			success = UK2Node_LiveEditObjectStatics::SearchForConvertPinName( Schema, EventDeltaPin, PinName );
-			check( success );
-			UEdGraphPin *ConvertDeltaInputPin = ConvertDeltaNode->FindPinChecked( PinName.ToString() );
-			EventDeltaPin->MakeLinkTo( ConvertDeltaInputPin );
-
-			UEdGraphPin *ConvertDeltaOutputPin = ConvertDeltaNode->GetReturnValuePin();
-			ConvertDeltaOutputPin->MakeLinkTo( MultiplyNodeFirstPin );
-
-			//
-			// TODO - markDirty
-			//
-
-			//
-			// send out the object value updates
-			//
-			UK2Node_CallFunction *ReplicationNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
-			ReplicationNode->FunctionReference.SetExternalMember( TEXT("ReplicateChangesToChildren"), ULiveEditorKismetLibrary::StaticClass() );
-			ReplicationNode->AllocateDefaultPins();
-
-			UEdGraphPin *ReplicationNodeVarNamePin = ReplicationNode->FindPinChecked( TEXT("PropertyName") );
-			ReplicationNodeVarNamePin->DefaultValue = SourceVariablePin->DefaultValue;
-
-			UEdGraphPin *ReplicationNodeArchetypePin = ReplicationNode->FindPinChecked( FString(TEXT("Archetype")) );
-			GetClassDefaultObjectResultPin->MakeLinkTo( ReplicationNodeArchetypePin );
-
-			UEdGraphPin *ReplicationNodeExecPin = ReplicationNode->GetExecPin();
-			ModifyVarNodeThenPin->MakeLinkTo( ReplicationNodeExecPin );
-
-			UEdGraphPin *ReplicationNodeThenPin = ReplicationNode->FindPinChecked( FString(TEXT("then")) );
-
-			//
-			// Finally, activate our OnMidiInput pin
-			//
-			CompilerContext.CopyPinLinksToIntermediate( *SourceOnMidiInputPin, *ReplicationNodeThenPin);
-			
-		}
-
-		// Break any links to the expanded node
+		CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeMissingBlueprint_Error", "LiveEdit node @@ must have a blueprint specified and a variable selected to tune.").ToString(), this);
+		// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
 		BreakAllNodeLinks();
+		return;
 	}
+
+	UClass* SpawnClass = GetClassToSpawn();
+	if(NULL == SpawnClass)
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeMissingBaseClass_Error", "LiveEdit node @@ must have a Base Class specified.").ToString(), this);
+		// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+		BreakAllNodeLinks();
+		return;
+	}
+
+	if ( SourcePermittedBindingsPin->LinkedTo.Num() == 0 )
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeMissingBinding_Error", "LiveEdit node @@ must specify Permitted Bindings.").ToString(), this);
+		// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+		BreakAllNodeLinks();
+		return;
+	}
+
+	//sanity check the VariablePin value
+	{
+		UProperty *Property = UK2Node_LiveEditObjectStatics::GetPropertyByName( SpawnClass, *SourceVariablePin->DefaultValue );
+		if ( Property == NULL || !Property->IsA(UNumericProperty::StaticClass()) )
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("LiveEditObjectNodeInvalidVariable_Error", "LiveEdit node @@ must have a valid variable selected.").ToString(), this);
+			// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+			BreakAllNodeLinks();
+			return;
+		}
+	}
+
+	//hooks to pins that are generated after a BaseClass is set
+	UEdGraphPin *DeltaMultPin = GetDeltaMultPin();
+	UEdGraphPin *ShouldClampPin = GetShouldClampPin();
+	UEdGraphPin *ClampMinPin = GetClampMinPin();
+	UEdGraphPin *ClampMaxPin = GetClampMaxPin();
+
+	UK2Node_Self *SelfNode  = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this,SourceGraph);
+	SelfNode->AllocateDefaultPins();
+	UEdGraphPin *SelfNodeThenPin = SelfNode->FindPinChecked(Schema->PN_Self);
+
+	FString EventNameGuid = GetEventName();
+		
+	//Create the registration part of the LiveEditor binding process
+	{
+		UK2Node_CallFunction *RegisterForMIDINode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+		RegisterForMIDINode->FunctionReference.SetExternalMember( TEXT("RegisterForLiveEditEvent"), ULiveEditorKismetLibrary::StaticClass() );
+		RegisterForMIDINode->AllocateDefaultPins();
+
+		UEdGraphPin *ExecPin = RegisterForMIDINode->GetExecPin();
+		CompilerContext.MovePinLinksToIntermediate(*SourceExecPin, *ExecPin);
+
+		UEdGraphPin *ThenPin = RegisterForMIDINode->GetThenPin();
+		CompilerContext.MovePinLinksToIntermediate(*SourceThenPin, *ThenPin);
+
+		UEdGraphPin *TargetPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("Target")) );
+		TargetPin->MakeLinkTo(SelfNodeThenPin);
+
+		UEdGraphPin *EventNamePin = RegisterForMIDINode->FindPinChecked( FString(TEXT("EventName")) );
+		EventNamePin->DefaultValue = EventNameGuid;
+		
+		UEdGraphPin *DescriptionPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("Description")) );
+		CompilerContext.CopyPinLinksToIntermediate( *SourceDescriptionPin, *DescriptionPin);
+
+		UEdGraphPin *PermittedBindingsPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("PermittedBindings")) );
+		CompilerContext.CopyPinLinksToIntermediate( *SourcePermittedBindingsPin, *PermittedBindingsPin);
+	}
+
+	//Create the event handling part of the LiveEditor binding process
+	{
+		//
+		//the event itself
+		//
+		UFunction *EventMIDISignature = GetEventMIDISignature();
+		UK2Node_Event* EventNode = CompilerContext.SpawnIntermediateNode<UK2Node_Event>(this, SourceGraph);
+		check(EventNode);
+		EventNode->EventSignatureClass = Cast<UClass>(EventMIDISignature->GetOuter());
+		EventNode->EventSignatureName = EventMIDISignature->GetFName();
+		EventNode->CustomFunctionName = *EventNameGuid;
+		EventNode->bInternalEvent = true;
+		EventNode->AllocateDefaultPins();
+
+		// Cache these out because we'll connect the sequence to it
+		UEdGraphPin *EventThenPin = EventNode->FindPinChecked( Schema->PN_Then );
+		UEdGraphPin *EventDeltaPin = EventNode->FindPinChecked( FString(TEXT("Delta")) );
+		UEdGraphPin *EventMidiValuePin = EventNode->FindPinChecked( FString(TEXT("MidiValue")) );
+		UEdGraphPin *EventControlTypePin = EventNode->FindPinChecked( FString(TEXT("ControlType")) );
+
+
+		//
+		// Check if Blueprint is NULL
+		//
+		UEdGraphPin *CompareBlueprintToNullBranchThenPin = NULL;
+		{
+			UK2Node_CallFunction *CompareBlueprintToNullNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+			CompareBlueprintToNullNode->FunctionReference.SetExternalMember( TEXT("NotEqual_ObjectObject"), UKismetMathLibrary::StaticClass() );
+			CompareBlueprintToNullNode->AllocateDefaultPins();
+
+			//Set A Pin to the Blueprint Pin
+			UEdGraphPin *CompareBlueprintToNullAPin = CompareBlueprintToNullNode->FindPinChecked( FString(TEXT("A")) );
+			CompilerContext.CopyPinLinksToIntermediate( *SourceBlueprintPin, *CompareBlueprintToNullAPin);
+
+			// hook for Compare Blueprint to NULL result
+			UEdGraphPin *CompareBlueprintToNullResultPin = CompareBlueprintToNullNode->GetReturnValuePin();
+
+			// Create the BRANCH that will drive the comparison
+			UK2Node_IfThenElse* CompareBlueprintToNullBranchNode = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
+			CompareBlueprintToNullBranchNode->AllocateDefaultPins();
+
+			//hook up the condition
+			CompareBlueprintToNullResultPin->MakeLinkTo( CompareBlueprintToNullBranchNode->GetConditionPin() );
+
+			//hook event to the branck input
+			EventThenPin->MakeLinkTo( CompareBlueprintToNullBranchNode->GetExecPin() );
+
+			//cache ot the THEN pin for later linkup
+			CompareBlueprintToNullBranchThenPin = CompareBlueprintToNullBranchNode->GetThenPin();
+		}
+
+		//
+		// Get Class Default Object
+		//
+		UK2Node_CallFunction *GetClassDefaultObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+		GetClassDefaultObjectNode->FunctionReference.SetExternalMember( TEXT("GetBlueprintClassDefaultObject"), ULiveEditorKismetLibrary::StaticClass() );
+		GetClassDefaultObjectNode->AllocateDefaultPins();
+
+		UEdGraphPin *GetClassDefaultObjectBlueprintPin = GetClassDefaultObjectNode->FindPinChecked( TEXT("Blueprint") );
+		CompilerContext.CopyPinLinksToIntermediate( *SourceBlueprintPin, *GetClassDefaultObjectBlueprintPin);
+
+		//hook for later -> the pointer to the ClassDefaultObject of our BlueprintPin
+		UEdGraphPin *GetClassDefaultObjectResultPin = GetClassDefaultObjectNode->GetReturnValuePin();
+
+
+		//
+		// Compare to BaseClass to make sure that the target Blueprint IsA(BaseClass)
+		//
+		UEdGraphPin *ClassIsChildOfBranchThenPin = NULL;
+		{
+			//
+			//we need to get the class of the Blueprint pin
+			UK2Node_CallFunction *GetClassNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+			GetClassNode->FunctionReference.SetExternalMember( TEXT("GetObjectClass"), UGameplayStatics::StaticClass() );
+			GetClassNode->AllocateDefaultPins();
+
+			//Pin in the GetClassDefaultObjectResultPin to the Object Parameter of the GetObjectClass FUNCTION
+			//we want to make sure that the Class of the DEFAULT_OBJECT IsA( BaseClass )
+			UEdGraphPin *GetClassObjectPin = GetClassNode->FindPinChecked( FString(TEXT("Object")) );
+			GetClassDefaultObjectResultPin->MakeLinkTo( GetClassObjectPin );
+
+			//hook for the Class result
+			UEdGraphPin *GetClassReturnValuePin = GetClassNode->GetReturnValuePin();
+
+			//
+			//the ClassIsChildOf FUNCTION
+			UK2Node_CallFunction *ClassIsChildOfNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+			ClassIsChildOfNode->FunctionReference.SetExternalMember( TEXT("ClassIsChildOf"), UKismetMathLibrary::StaticClass() );
+			ClassIsChildOfNode->AllocateDefaultPins();
+
+			//hook up the test pin
+			UEdGraphPin *ClassIsChildOfTestPin = ClassIsChildOfNode->FindPinChecked( FString(TEXT("TestClass")) );
+			GetClassReturnValuePin->MakeLinkTo( ClassIsChildOfTestPin );
+
+			//copy our BaseClass Pin into the ClassIsChildOf Parameter
+			UEdGraphPin *ClassIsChildOfParentPin = ClassIsChildOfNode->FindPinChecked( FString(TEXT("ParentClass")) );
+			CompilerContext.CopyPinLinksToIntermediate( *SourceBaseClassPin, *ClassIsChildOfParentPin);
+
+			//hook for return value
+			UEdGraphPin *ClassIsChildOfResultPin = ClassIsChildOfNode->GetReturnValuePin();
+
+			//
+			// Create the BRANCH that will drive the comparison
+			UK2Node_IfThenElse* ClassIsChildOfBranchNode = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
+			ClassIsChildOfBranchNode->AllocateDefaultPins();
+
+			//hook up the previous branch to this one
+			check( CompareBlueprintToNullBranchThenPin != NULL );
+			CompareBlueprintToNullBranchThenPin->MakeLinkTo( ClassIsChildOfBranchNode->GetExecPin() );
+
+			//hook up our condition
+			ClassIsChildOfResultPin->MakeLinkTo( ClassIsChildOfBranchNode->GetConditionPin() );
+
+			//cache ot the THEN pin for later linkup
+			ClassIsChildOfBranchThenPin = ClassIsChildOfBranchNode->GetThenPin();
+		}
+
+
+		//
+		//The set variable function (to set LiveEdited new value)
+		//
+		UK2Node_CallFunction *ModifyVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+		ModifyVarNode->FunctionReference.SetExternalMember( TEXT("ModifyPropertyByName"), ULiveEditorKismetLibrary::StaticClass() );
+		ModifyVarNode->AllocateDefaultPins();
+
+		// Make link from the event to the Set variable node
+		UEdGraphPin *ModifyVarExecPin = ModifyVarNode->GetExecPin();
+		ClassIsChildOfBranchThenPin->MakeLinkTo( ModifyVarExecPin );
+
+		//link up the Target Pin
+		UEdGraphPin *ModifyVarNodeTargetPin = ModifyVarNode->FindPinChecked( TEXT("Target") );
+		GetClassDefaultObjectResultPin->MakeLinkTo( ModifyVarNodeTargetPin );
+
+		//link up the PropertyName Pin
+		UEdGraphPin *ModifyVarNodePropertyNamePin = ModifyVarNode->FindPinChecked( TEXT("PropertyName") );
+		ModifyVarNodePropertyNamePin->DefaultValue = SourceVariablePin->DefaultValue;
+
+		//link up the MIDI Value Pin
+		UEdGraphPin *ModifyVarNodeMidiValuePin = ModifyVarNode->FindPinChecked( TEXT("MidiValue") );
+		EventMidiValuePin->MakeLinkTo(ModifyVarNodeMidiValuePin);
+
+		//link up the ControlType Pin
+		UEdGraphPin *ModifyVarNodeControlTypePin = ModifyVarNode->FindPinChecked( TEXT("ControlType") );
+		EventControlTypePin->MakeLinkTo(ModifyVarNodeControlTypePin);
+
+		//hook for the Delta Pin
+		UEdGraphPin *ModifyVarNodeDeltaPin = ModifyVarNode->FindPinChecked( TEXT("Delta") );
+
+		//Clamping
+		if ( ShouldClampPin->DefaultValue == FString(TEXT("true")) )
+		{
+			UEdGraphPin *ModifyVarNodeShouldClampPin = ModifyVarNode->FindPinChecked( TEXT("bShouldClamp") );
+			CompilerContext.CopyPinLinksToIntermediate( *ShouldClampPin, *ModifyVarNodeShouldClampPin);
+
+			check( ClampMinPin != NULL );
+			UEdGraphPin *ModifyVarNodeClampMinPin = ModifyVarNode->FindPinChecked( TEXT("ClampMin") );
+			CompilerContext.CopyPinLinksToIntermediate( *ClampMinPin, *ModifyVarNodeClampMinPin);
+
+			check( ClampMaxPin != NULL );
+			UEdGraphPin *ModifyVarNodeClampMaxPin = ModifyVarNode->FindPinChecked( TEXT("ClampMax") );
+			CompilerContext.CopyPinLinksToIntermediate( *ClampMaxPin, *ModifyVarNodeClampMaxPin);
+		}
+
+		//hook for ModifyVar THEN
+		UEdGraphPin *ModifyVarNodeThenPin = ModifyVarNode->GetThenPin();
+
+		//
+		// The Multiply Delta * DeltaMult function
+		//
+		UK2Node_CallFunction *MultiplyNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+		MultiplyNode->FunctionReference.SetExternalMember( TEXT("Multiply_FloatFloat"), UKismetMathLibrary::StaticClass() );
+		MultiplyNode->AllocateDefaultPins();
+
+		//cache this out. it will be linked to from the output of the (int)Delta -> (float)Delta Conversion function
+		UEdGraphPin *MultiplyNodeFirstPin = MultiplyNode->FindPinChecked( FString(TEXT("A")) );
+
+		// 2nd input to the Add function comes from the Current variable value
+		UEdGraphPin *MultiplyNodeSecondPin = MultiplyNode->FindPinChecked( FString(TEXT("B")) );
+		CompilerContext.CopyPinLinksToIntermediate( *DeltaMultPin, *MultiplyNodeSecondPin);
+
+		UEdGraphPin *MultiplyNodeReturnValuePin = MultiplyNode->GetReturnValuePin();
+		MultiplyNodeReturnValuePin->MakeLinkTo( ModifyVarNodeDeltaPin );
+
+		//
+		// The Convert function to go from (int)Delta to ULiveEditorKismetLibrary::ModifyPropertyByName(... float Delta ...)
+		//
+		FName ConvertFunctionName;
+		bool success = Schema->SearchForAutocastFunction( EventDeltaPin, MultiplyNodeFirstPin, ConvertFunctionName );
+		check( success );
+		UK2Node_CallFunction *ConvertDeltaNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+		ConvertDeltaNode->FunctionReference.SetExternalMember( ConvertFunctionName, UKismetMathLibrary::StaticClass() );
+		ConvertDeltaNode->AllocateDefaultPins();
+
+		FName PinName;
+		success = UK2Node_LiveEditObjectStatics::SearchForConvertPinName( Schema, EventDeltaPin, PinName );
+		check( success );
+		UEdGraphPin *ConvertDeltaInputPin = ConvertDeltaNode->FindPinChecked( PinName.ToString() );
+		EventDeltaPin->MakeLinkTo( ConvertDeltaInputPin );
+
+		UEdGraphPin *ConvertDeltaOutputPin = ConvertDeltaNode->GetReturnValuePin();
+		ConvertDeltaOutputPin->MakeLinkTo( MultiplyNodeFirstPin );
+
+		//
+		// TODO - markDirty
+		//
+
+		//
+		// send out the object value updates
+		//
+		UK2Node_CallFunction *ReplicationNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this,SourceGraph);
+		ReplicationNode->FunctionReference.SetExternalMember( TEXT("ReplicateChangesToChildren"), ULiveEditorKismetLibrary::StaticClass() );
+		ReplicationNode->AllocateDefaultPins();
+
+		UEdGraphPin *ReplicationNodeVarNamePin = ReplicationNode->FindPinChecked( TEXT("PropertyName") );
+		ReplicationNodeVarNamePin->DefaultValue = SourceVariablePin->DefaultValue;
+
+		UEdGraphPin *ReplicationNodeArchetypePin = ReplicationNode->FindPinChecked( FString(TEXT("Archetype")) );
+		GetClassDefaultObjectResultPin->MakeLinkTo( ReplicationNodeArchetypePin );
+
+		UEdGraphPin *ReplicationNodeExecPin = ReplicationNode->GetExecPin();
+		ModifyVarNodeThenPin->MakeLinkTo( ReplicationNodeExecPin );
+
+		UEdGraphPin *ReplicationNodeThenPin = ReplicationNode->FindPinChecked( FString(TEXT("then")) );
+
+		//
+		// Finally, activate our OnMidiInput pin
+		//
+		CompilerContext.CopyPinLinksToIntermediate( *SourceOnMidiInputPin, *ReplicationNodeThenPin);
+			
+	}
+
+	// Break any links to the expanded node
+	BreakAllNodeLinks();
 }
 
 void UK2Node_LiveEditObject::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const

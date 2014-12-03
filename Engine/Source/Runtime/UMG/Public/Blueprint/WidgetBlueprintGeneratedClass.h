@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Engine/BlueprintGeneratedClass.h"
 #include "WidgetBlueprintGeneratedClass.generated.h"
 
 class UMovieScene;
+class UStructProperty;
+class UUserWidget;
+class UWidgetAnimation;
 
 UENUM()
 namespace EBindingKind
@@ -62,6 +65,9 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	UPROPERTY()
 	TArray<UWidgetAnimation*> Animations;
 
+	UPROPERTY()
+	TArray< FName > NamedSlots;
+
 	/** This is transient data calculated at link time. */
 	TArray<UStructProperty*> WidgetNodeProperties;
 
@@ -74,5 +80,5 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	 * call into its generated class and ask to be initialized.  The class will perform all the delegate
 	 * binding and wiring nessesary to have the user's widget perform as desired.
 	 */
-	void InitializeWidget(class UUserWidget* UserWidget) const;
+	void InitializeWidget(UUserWidget* UserWidget) const;
 };

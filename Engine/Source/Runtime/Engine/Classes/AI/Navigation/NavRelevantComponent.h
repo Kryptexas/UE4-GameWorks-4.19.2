@@ -18,6 +18,7 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 	// Begin INavRelevantInterface Interface
 	virtual FBox GetNavigationBounds() const override;
 	virtual bool IsNavigationRelevant() const override;
+	virtual void UpdateNavigationBounds() override;
 	// End INavRelevantInterface Interface
 
 	virtual void CalcBounds();

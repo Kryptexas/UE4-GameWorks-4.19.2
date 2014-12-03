@@ -353,6 +353,9 @@ public:
 	/** Whether or not this node can be deleted by user action */
 	virtual bool CanUserDeleteNode() const;
 
+	/** Whether or not this node allows users to edit the advanced view flag of pins (actually edit the property, not the same as show/hide advanced pins). */
+	virtual bool CanUserEditPinAdvancedViewFlag() const { return false; }
+
 	/** Tries to come up with a descriptive name for the compiled output */
 	virtual FString GetDescriptiveCompiledName() const;
 

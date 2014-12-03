@@ -1194,7 +1194,7 @@ void SProfileListItem::Construct(const FArguments& InArgs, const TSharedRef<STab
 	SMultiColumnTableRow< TSharedPtr<FProfileListItem> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
 
-int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName & DisplayName)  const
+int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName& DisplayName)  const
 {
 	// if we don't find it in new name
 	// @note: I think we can search redirect first in case anybody would like to reuse the name
@@ -1205,7 +1205,7 @@ int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName & DisplayName
 	if(NameIndex == INDEX_NONE)
 	{
 		// search for redirects
-		const FName * NewName = CollisionChannelRedirectsMap.Find(DisplayName);
+		const FName* NewName = CollisionChannelRedirectsMap.Find(DisplayName);
 		if(NewName)
 		{
 			return ChannelDisplayNames.Find(*NewName);
@@ -1700,7 +1700,7 @@ void FCollisionProfileDetails::CommitProfileChange(int32 ProfileIndex, FCollisio
 				return (Name == Element.Channel);
 			}
 
-			bool operator() (const FCustomProfile & Element) const
+			bool operator() (const FCustomProfile& Element) const
 			{
 				return (Name == Element.Name);
 			}
@@ -1888,7 +1888,7 @@ ECollisionChannel	FCollisionProfileDetails::FindAvailableChannel() const
 	return ECC_MAX;
 }
 
-bool	FCollisionProfileDetails::IsValidChannelSetup(const FCustomChannelSetup * Channel) const
+bool	FCollisionProfileDetails::IsValidChannelSetup(const FCustomChannelSetup* Channel) const
 {
 	for(auto Iter = CollisionProfile->DefaultChannelResponses.CreateConstIterator(); Iter; ++Iter)
 	{
@@ -1905,7 +1905,7 @@ bool	FCollisionProfileDetails::IsValidChannelSetup(const FCustomChannelSetup * C
 	return true;
 }
 
-bool	FCollisionProfileDetails::IsValidProfileSetup(const FCollisionResponseTemplate * Template, int32 ProfileIndex) const
+bool	FCollisionProfileDetails::IsValidProfileSetup(const FCollisionResponseTemplate* Template, int32 ProfileIndex) const
 {
 	for(auto Iter = CollisionProfile->Profiles.CreateConstIterator(); Iter; ++Iter)
 	{

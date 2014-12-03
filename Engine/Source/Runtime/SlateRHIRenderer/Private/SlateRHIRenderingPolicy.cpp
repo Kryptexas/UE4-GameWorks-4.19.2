@@ -75,7 +75,7 @@ void FSlateElementIndexBuffer::FillBuffer( const TArray<SlateIndex>& InIndices, 
 
 		void* IndicesPtr = RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
 
-		FMemory::Memcpy( IndicesPtr, InIndices.GetTypedData(), RequiredBufferSize );
+		FMemory::Memcpy( IndicesPtr, InIndices.GetData(), RequiredBufferSize );
 
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
@@ -94,6 +94,7 @@ FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> 
 	, FontCache( InFontCache )
 	, CurrentBufferIndex(0)
 	, bShouldShrinkResources(false)
+	, bGammaCorrect(true)
 {
 	InitResources();
 };
@@ -232,9 +233,9 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
 	ViewUniformShaderParameters.Random = FMath::Rand();
 	ViewUniformShaderParameters.FrameNumber = View->FrameNumber;
+
 	ViewUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
 	ViewUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-
 
 	ViewUniformShaderParameters.ScreenToWorld = FMatrix(
 		FPlane(1, 0, 0, 0),
@@ -270,7 +271,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
-	const float DisplayGamma = GEngine ? GEngine->GetDisplayGamma() : 2.2f;
+	const float DisplayGamma = bGammaCorrect ? GEngine ? GEngine->GetDisplayGamma() : 2.2f : 1.0f;
 
 	FSceneViewFamilyContext SceneViewContext
 	(
@@ -361,7 +362,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				FTexture2DRHIRef TextureRHI;
 				if(ShaderResource)
 				{
-					TextureRHI = ShaderResource->GetType() == ESlateShaderResource::NativeTexture ? ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource() :  ((FSlateUTextureResource*)ShaderResource)->GetTypedResource();
+					TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)ShaderResource)->GetTypedResource();
 				}
 
 				if (ShaderType == ESlateShader::LineSegment)

@@ -31,7 +31,7 @@ public:
 	 *
 	 * @param InTargetPlatform - The target platform.
 	 */
-	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId & InDeviceId, const FString & InDeviceName )
+	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName )
 		: TargetPlatform(InTargetPlatform)
 		, DeviceName(InDeviceName)
 		, TargetDeviceId(InDeviceId)
@@ -50,7 +50,7 @@ public:
 	virtual void Disconnect( )
 	{ }
 
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
+	virtual ETargetDeviceTypes GetDeviceType( ) const override
 	{
 		return ETargetDeviceTypes::Desktop;
 	}
@@ -103,13 +103,13 @@ public:
 
 	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) override;
 
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override;
+	virtual bool SupportsFeature( ETargetDeviceFeatures Feature ) const override;
 
 	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override;
+	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) override;
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override;
+	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
 	virtual bool TerminateProcess( const int32 ProcessId ) override;
 

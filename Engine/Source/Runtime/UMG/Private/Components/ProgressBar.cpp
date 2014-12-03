@@ -7,11 +7,12 @@
 /////////////////////////////////////////////////////
 // UProgressBar
 
-UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UProgressBar::UProgressBar(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SProgressBar::FArguments SlateDefaults;
 	WidgetStyle = *SlateDefaults._Style;
+	WidgetStyle.FillImage.TintColor = FLinearColor::White;
 
 	BarFillType = EProgressBarFillType::LeftToRight;
 	bIsMarquee = false;
@@ -37,15 +38,15 @@ TSharedRef<SWidget> UProgressBar::RebuildWidget()
 void UProgressBar::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
-	
+
 	TAttribute< TOptional<float> > PercentBinding = OPTIONAL_BINDING_CONVERT(float, Percent, TOptional<float>, ConvertFloatToOptionalFloat);
+	TAttribute<FSlateColor> FillColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, FillColorAndOpacity);
 
 	MyProgressBar->SetStyle(&WidgetStyle);
 
-	MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : PercentBinding);
-	
 	MyProgressBar->SetBarFillType(BarFillType);
-	MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacity);
+	MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : PercentBinding);
+	MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacityBinding);
 }
 
 void UProgressBar::SetIsMarquee(bool InbIsMarquee)
@@ -54,6 +55,15 @@ void UProgressBar::SetIsMarquee(bool InbIsMarquee)
 	if ( MyProgressBar.IsValid() )
 	{
 		MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : Percent);
+	}
+}
+
+void UProgressBar::SetFillColorAndOpacity(FLinearColor Color)
+{
+	FillColorAndOpacity = Color;
+	if (MyProgressBar.IsValid())
+	{
+		MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacity);
 	}
 }
 
@@ -113,6 +123,11 @@ const FSlateBrush* UProgressBar::GetEditorIcon()
 const FText UProgressBar::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
+}
+
+void UProgressBar::OnCreationFromPalette()
+{
+	FillColorAndOpacity = FLinearColor(0, 0.5f, 1.0f);
 }
 
 #endif

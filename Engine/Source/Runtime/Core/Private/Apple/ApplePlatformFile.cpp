@@ -4,7 +4,7 @@
 	ApplePlatformFile.mm: Apple platform implementations of File functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include <sys/stat.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
@@ -415,6 +415,11 @@ FDateTime FApplePlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 	// convert _stat time to FDateTime
 	FTimespan TimeSinceEpoch(0, 0, FileInfo.st_atime);
 	return MacEpoch + TimeSinceEpoch;
+}
+
+FString FApplePlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return Filename;
 }
 
 IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename)

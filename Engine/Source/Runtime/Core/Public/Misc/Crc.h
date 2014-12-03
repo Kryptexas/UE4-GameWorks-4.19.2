@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "HAL/Platform.h"
+#include "Misc/Char.h"
 #include "Templates/EnableIf.h"
+
 
 /** 
  * CRC hash generation for different types of input data

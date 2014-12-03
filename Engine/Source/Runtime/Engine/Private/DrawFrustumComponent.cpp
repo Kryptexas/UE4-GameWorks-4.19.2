@@ -170,8 +170,8 @@ private:
 	float FrustumEndDist;
 };
 
-UDrawFrustumComponent::UDrawFrustumComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDrawFrustumComponent::UDrawFrustumComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FrustumColor = FColor(255, 0, 255, 255);
 
@@ -192,7 +192,7 @@ FPrimitiveSceneProxy* UDrawFrustumComponent::CreateSceneProxy()
 }
 
 
-FBoxSphereBounds UDrawFrustumComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDrawFrustumComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds( LocalToWorld.TransformPosition(FVector::ZeroVector), FVector(FrustumEndDist), FrustumEndDist );
 }

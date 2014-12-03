@@ -5,17 +5,16 @@
 #include "WidgetSwitcher.generated.h"
 
 /**
- * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
- * vertically.
+ * A widget switcher is like a tab control, but without tabs. At most one widget is visible at time.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UWidgetSwitcher : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 	/** The slot index to display */
-	UPROPERTY(EditDefaultsOnly, Category="Switcher", meta=( UIMin=0, ClampMin=0 ))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Switcher", meta=( UIMin=0, ClampMin=0 ))
 	int32 ActiveWidgetIndex;
 
 public:

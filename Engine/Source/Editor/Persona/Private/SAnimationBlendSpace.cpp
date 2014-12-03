@@ -9,6 +9,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpace, Log, All);
 
@@ -24,7 +25,7 @@ struct FPointWithIndex
 	FPoint	Point;
 	int32		OriginalIndex;
 
-	FPointWithIndex(const FPoint & P, int32 InOriginalIndex)
+	FPointWithIndex(const FPoint& P, int32 InOriginalIndex)
 		:	Point(P),
 			OriginalIndex(InOriginalIndex)
 	{
@@ -58,7 +59,7 @@ struct FGridSpaceConverter
 	FVector2D	ScreenSize;
 	FVector2D	ScreenMin;
 
-	FGridSpaceConverter(const FVector & InMinInput, const FVector & InMaxInput, const FSlateRect & InWindowRect)
+	FGridSpaceConverter(const FVector& InMinInput, const FVector& InMaxInput, const FSlateRect& InWindowRect)
 	{
 		ScreenSize= InWindowRect.GetSize();
 		ScreenMin = FVector2D (InWindowRect.Left, InWindowRect.Top);
@@ -90,7 +91,7 @@ struct FGridSpaceConverter
 	}
 
 	/** Curve Input domain -> local Widget Space */
-	FVector2D InputToScreen(const FVector & Input) const
+	FVector2D InputToScreen(const FVector& Input) const
 	{
 		FVector2D Screen;
 		
@@ -191,7 +192,7 @@ void FDelaunayTriangleGenerator::SortSamples()
 * return true if the TestPoint is WITHIN the triangle circumcircle
 *	http://en.wikipedia.org/wiki/Delaunay_triangulation 
 */
-FDelaunayTriangleGenerator::ECircumCircleState FDelaunayTriangleGenerator::GetCircumcircleState(const FTriangle * T, const FPoint & TestPoint)
+FDelaunayTriangleGenerator::ECircumCircleState FDelaunayTriangleGenerator::GetCircumcircleState(const FTriangle* T, const FPoint& TestPoint)
 {
 	const int32 NumPointsPerTriangle = 3;
 
@@ -240,7 +241,7 @@ FDelaunayTriangleGenerator::ECircumCircleState FDelaunayTriangleGenerator::GetCi
 * return true if 3 points are collinear
 * by that if those 3 points create straight line
 */
-bool FDelaunayTriangleGenerator::IsCollinear(const FPoint * A, const FPoint * B, const FPoint * C)
+bool FDelaunayTriangleGenerator::IsCollinear(const FPoint* A, const FPoint* B, const FPoint* C)
 {
 	// 		FVector A2B = (B.Position-A.Position).SafeNormal();
 	// 		FVector A2C = (C.Position-A.Position).SafeNormal();
@@ -442,7 +443,7 @@ int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint> & PointList, 
 * 
 * @return	true if successfully found the triangle this point is within
 */
-bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector & TestPoint, FVector & OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const
+bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const
 {
 	// sort triangle by distance to TestPoint
 	TArray<FSortByDistance> SortedTriangles;
@@ -677,7 +678,7 @@ bool	FBlendSpaceGrid::IsInside(FVector Pos) const
 		&& Pos.Z >= GridDim.Min.Z && Pos.Z <= GridDim.Max.Z );
 }
 
-const FEditorElement & FBlendSpaceGrid::GetElement(int32 GX, int32 GY) const
+const FEditorElement& FBlendSpaceGrid::GetElement(int32 GX, int32 GY) const
 {
 	// grid 5 means, indexing from 0 - 5 to have 5 grids. 
 	int32 GridSizeX = GridNum.X+1;
@@ -691,7 +692,7 @@ const FEditorElement & FBlendSpaceGrid::GetElement(int32 GX, int32 GY) const
 }
 
 // mapping functions
-TOptional<FVector2D> SBlendSpaceGridWidget::GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const
+TOptional<FVector2D> SBlendSpaceGridWidget::GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const
 {
 	TOptional<FVector2D> OutWidgetPos;
 
@@ -700,7 +701,7 @@ TOptional<FVector2D> SBlendSpaceGridWidget::GetWidgetPosFromEditorPos(const FVec
 	// You need to inverse Y
 	if (BlendSpaceGrid.IsInside(EditorPos))
 	{
-		const FBox & GridDim = BlendSpaceGrid.GetGridDim();
+		const FBox& GridDim = BlendSpaceGrid.GetGridDim();
 		FGridSpaceConverter GridSpaceConverter(GridDim.Min, GridDim.Max, WindowRect);
 		FVector2D WidgetPos = GridSpaceConverter.InputToScreen(EditorPos);
 		OutWidgetPos = TOptional<FVector2D>(WidgetPos);
@@ -717,7 +718,7 @@ TOptional<FVector> SBlendSpaceGridWidget::GetEditorPosFromWidgetPos(const FVecto
 		WidgetPos.Y >= WindowRect.Top && WidgetPos.Y <= WindowRect.Bottom)
 	{
 		FVector GridPos;
-		const FBox & GridDim = BlendSpaceGrid.GetGridDim();
+		const FBox& GridDim = BlendSpaceGrid.GetGridDim();
 		FGridSpaceConverter GridSpaceConverter(GridDim.Min, GridDim.Max, WindowRect);
 		GridPos = GridSpaceConverter.ScreenToInput(WidgetPos);
 		OutGridPos = TOptional<FVector>(GridPos);
@@ -751,8 +752,8 @@ void SBlendSpaceGridWidget::ResampleData()
 
 	// you don't like to overwrite the link here (between visible points vs sample points, 
 	// so allow this if no triangle is generated
-	const FBlendParameter & BlendParamX = BlendSpace->GetBlendParameter(0);
-	const FBlendParameter & BlendParamY = BlendSpace->GetBlendParameter(1);
+	const FBlendParameter& BlendParamX = BlendSpace->GetBlendParameter(0);
+	const FBlendParameter& BlendParamY = BlendSpace->GetBlendParameter(1);
 	FIntPoint GridSize(BlendParamX.GridNum, BlendParamY.GridNum);
 	FVector GridMin(BlendParamX.Min, BlendParamY.Min, 0.f);
 	FVector GridMax(BlendParamX.Max, BlendParamY.Max, 0.f);
@@ -834,7 +835,7 @@ void SBlendSpaceGridWidget::DrawHighlightGrid(const FVector2D & LeftTopPos, cons
 		);
 }
 
-FText SBlendSpaceGridWidget::GetInputText(const FVector & GridPos) const
+FText SBlendSpaceGridWidget::GetInputText(const FVector& GridPos) const
 {
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("BlendParam01DisplayName"), FText::FromString( BlendSpace->GetBlendParameter(0).DisplayName ) );
@@ -947,7 +948,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 		{
 			// if we have elements, see if we're at any grid point, if so, display what is the value for it
 
-			const FEditorElement & Ele = BlendSpaceGrid.GetElement(GridX,GridY);
+			const FEditorElement& Ele = BlendSpaceGrid.GetElement(GridX,GridY);
 			FVector GridPos(BlendSpaceGrid.GetPosFromIndex(GridX, GridY));
 			TArray<UAnimSequence*>	Seqs;
 			TArray<float>			Weights;
@@ -981,7 +982,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 
 				for (int32 I=0; I<SampleDataList.Num(); ++I)
 				{
-					const FBlendSample & Sample = SampleData[SampleDataList[I].SampleDataIndex];
+					const FBlendSample& Sample = SampleData[SampleDataList[I].SampleDataIndex];
 					if (Sample.Animation)
 					{
 						UAnimSequence * Seq = Sample.Animation;
@@ -1219,7 +1220,7 @@ void SBlendSpaceGridWidget::AddSample()
 	Generator.SortSamples();
 }
 
-bool SBlendSpaceGridWidget::IsOnTheBorder(const FIntPoint & GridIndices) const
+bool SBlendSpaceGridWidget::IsOnTheBorder(const FIntPoint& GridIndices) const
 {
 	return (GridIndices.X == 0 || GridIndices.X == BlendSpace->GetBlendParameter(0).GridNum ||
 		GridIndices.Y == 0 || GridIndices.Y == BlendSpace->GetBlendParameter(1).GridNum );
@@ -1396,8 +1397,8 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SBlendSpaceEditor::UpdateBlendParameters()
 {
 	// update grid info
-	const FBlendParameter & BlendParamX = BlendSpace->GetBlendParameter(0);
-	const FBlendParameter & BlendParamY = BlendSpace->GetBlendParameter(1);
+	const FBlendParameter& BlendParamX = BlendSpace->GetBlendParameter(0);
+	const FBlendParameter& BlendParamY = BlendSpace->GetBlendParameter(1);
 	FIntPoint GridSize(BlendParamX.GridNum, BlendParamY.GridNum);
 	FVector GridMin(BlendParamX.Min, BlendParamY.Min, 0.f);
 	FVector GridMax(BlendParamX.Max, BlendParamY.Max, 0.f);
@@ -1433,7 +1434,7 @@ void SBlendSpaceEditor::SetBlendSpace(UBlendSpace* NewBlendSpace)
 	UpdateBlendParameters();
 }
 
-FVector NormalizeGridPos(const FBox & GridDim, const FVector GridPos)
+FVector NormalizeGridPos(const FBox& GridDim, const FVector GridPos)
 {
 	FVector Size= GridDim.GetSize();
 	// this should not happen, if so we'll get exception
@@ -1443,7 +1444,7 @@ FVector NormalizeGridPos(const FBox & GridDim, const FVector GridPos)
 	return (GridPos - GridDim.Min) / Size;
 }
 
-FVector UnnormalizeGridPos(const FBox & GridDim, const FVector& NormalizedGridPos)
+FVector UnnormalizeGridPos(const FBox& GridDim, const FVector& NormalizedGridPos)
 {
 	// this should not happen
 	return (NormalizedGridPos * GridDim.GetSize()) + GridDim.Min;
@@ -1454,7 +1455,7 @@ FVector UnnormalizeGridPos(const FBox & GridDim, const FVector& NormalizedGridPo
 bool SBlendSpaceGridWidget::GetMinMaxFromGridPos(FVector GridPos, FVector2D & WindowLeftTop, FVector2D & WindowRightBottom, const FSlateRect& WindowRect) const
 {
 	// grid 5 means, indexing from 0 - 5 to have 5 grids. 
-	const FBox & GridDim = BlendSpaceGrid.GetGridDim();
+	const FBox& GridDim = BlendSpaceGrid.GetGridDim();
 	FVector InvGridSize = FVector(BlendSpaceGrid.GetGridNum(), 1.f).Reciprocal();
 
 	// find normalized pos from 0 - 1

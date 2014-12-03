@@ -1,17 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GraphEditorSettings.cpp: Implements the UGraphEditorSettings class.
-=============================================================================*/
-
 #include "GraphEditorCommon.h"
 
 
 /* UGraphEditorSettings structors
  *****************************************************************************/
 
-UGraphEditorSettings::UGraphEditorSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGraphEditorSettings::UGraphEditorSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, PaddingAbovePin(4.0f)
 	, PaddingBelowPin(4.0f)
 	, PaddingRightOfInput(10.0f)
@@ -76,6 +72,7 @@ UGraphEditorSettings::UGraphEditorSettings( const class FPostConstructInitialize
 	ExecBranchNodeTitleColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	ExecSequenceNodeTitleColor = FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
 	ResultNodeTitleColor = FLinearColor(1.0f, 0.65f, 0.4f, 1.0f);
+	DefaultCommentNodeTitleColor = FLinearColor::White;
 }
 
 #if WITH_EDITOR

@@ -6,6 +6,7 @@
 #include "ISourceControlModule.h"
 #include "ContentBrowserModule.h"
 #include "SColorPicker.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"

@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFbxStaticMeshImportData::UFbxStaticMeshImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxStaticMeshImportData::UFbxStaticMeshImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	StaticMeshLODGroup = NAME_None;
 	bRemoveDegenerates = true;

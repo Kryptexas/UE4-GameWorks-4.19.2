@@ -3,8 +3,8 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/BTService.h"
 
-UBehaviorTreeGraphNode_Service::UBehaviorTreeGraphNode_Service(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBehaviorTreeGraphNode_Service::UBehaviorTreeGraphNode_Service(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 #include "Culture.h"
-#include "InternationalizationManifestJsonSerializer.h"
-#include "InternationalizationArchiveJsonSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationExportCommandlet, Log, All);
 
@@ -315,7 +315,7 @@ bool FindDelimitedString( const FString& InStr, const FString& LeftDelim, const 
 FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const FString& PluralForms )
 	: LanguageCode( LangCode )
 	, LanguagePluralForms( PluralForms )
-	, Culture( MakeShareable( new FCulture( LangCode ) ) )
+	, Culture( FCulture::Create( LangCode ) )
 {
 
 }
@@ -323,7 +323,7 @@ FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const F
 FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Other )
 	: LanguageCode( Other.LanguageCode )
 	, LanguagePluralForms( Other.LanguagePluralForms )
-	, Culture( MakeShareable( new FCulture( Other.LanguageCode ) ) )
+	, Culture( FCulture::Create( Other.LanguageCode ) )
 {
 
 }
@@ -331,7 +331,7 @@ FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Ot
 void FPortableObjectCulture::SetLanguageCode( const FString& LangCode )
 {
 	LanguageCode = LangCode;
-	Culture = MakeShareable( new FCulture( LangCode ) );
+	Culture = FCulture::Create( LangCode );
 }
 
 
@@ -352,7 +352,7 @@ FString FPortableObjectCulture::Country() const
 	FString Result;
 	if( Culture.IsValid() )
 	{
-		Result = Culture->GetCountry();
+		Result = Culture->GetRegion();
 	}
 	return Result;
 }
@@ -1029,8 +1029,8 @@ FString FPortableObjectEntry::ToString() const
 /**
  *	UInternationalizationExportCommandlet
  */
-UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1079,7 +1079,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 			return false;
 		}
 
-		FInternationalizationManifestJsonSerializer ManifestSerializer;
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
 		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
 	}
 
@@ -1097,7 +1097,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		{
 			ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
 
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
 
@@ -1261,7 +1261,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
 		ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
 
-		FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 		ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
 

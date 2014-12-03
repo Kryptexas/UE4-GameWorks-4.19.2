@@ -44,8 +44,8 @@ struct FNewBlendSpacePlayerAction : public FEdGraphSchemaAction_K2NewNode
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpaceBase
 
-UAnimGraphNode_BlendSpaceBase::UAnimGraphNode_BlendSpaceBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_BlendSpaceBase::UAnimGraphNode_BlendSpaceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

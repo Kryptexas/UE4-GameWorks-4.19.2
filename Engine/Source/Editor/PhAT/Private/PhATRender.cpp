@@ -6,8 +6,8 @@
 #include "PhATEdSkeletalMeshComponent.h"
 
 
-UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, BoneUnselectedColor(170,155,225)
 	, BoneSelectedColor(185,70,0)
 	, ElemSelectedColor(255,166,0)

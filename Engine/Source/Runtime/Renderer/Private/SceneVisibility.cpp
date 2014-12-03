@@ -223,6 +223,7 @@ bool FViewInfo::IsDistanceCulled( float DistanceSquared, float MinDrawDistance, 
 /**
  * Frustum cull primitives in the scene against the view.
  */
+template<bool UseCustomCulling>
 static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FrustumCull);
@@ -231,12 +232,20 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 	FVector ViewOriginForDistanceCulling = View.ViewMatrices.ViewOrigin;
 	float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
 	float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
+	uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
 	for (FSceneBitArray::FIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 	{
 		const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[BitIt.GetIndex()];
 		float DistanceSquared = (Bounds.Origin - ViewOriginForDistanceCulling).SizeSquared();
 		float MaxDrawDistance = Bounds.MaxDrawDistance * MaxDrawDistanceScale;
+		int32 VisibilityId = INDEX_NONE;
+
+		if (UseCustomCulling &&
+			((Scene->PrimitiveOcclusionFlags[BitIt.GetIndex()] & CustomVisibilityFlags) == CustomVisibilityFlags))
+		{
+			VisibilityId = Scene->PrimitiveVisibilityIds[BitIt.GetIndex()].ByteIndex;
+		}
 
 		// If cull distance is disabled, always show (except foliage)
 		if (View.Family->EngineShowFlags.DistanceCulledPrimitives
@@ -248,6 +257,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 		// The primitive is always culled if it exceeds the max fade distance or lay outside the view frustum.
 		if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
 			DistanceSquared < Bounds.MinDrawDistanceSq ||
+			(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 			View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false ||
 			View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
 		{
@@ -375,7 +385,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 			if( bHZBOcclusion )
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_MapHZBResults);
-				check(!ViewState->HZBOcclusionTests.IsValidFrame(View.FrameNumber));
+				check(!ViewState->HZBOcclusionTests.IsValidFrame(ViewState->OcclusionFrameCounter));
 				ViewState->HZBOcclusionTests.MapResults(RHICmdList);
 			}
 
@@ -439,7 +449,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 						{
 							// Read the occlusion query results.
 							uint64 NumSamples = 0;
-							FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(View.FrameNumber);
+							FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter);
 							if (IsValidRef(PastQuery))
 							{
 								// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
@@ -503,7 +513,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 
 					if (bClearQueries)
 					{
-						ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(View.FrameNumber));
+						ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter));
 					}
 				}
 
@@ -530,7 +540,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 						{
 							// Always run
 							PrimitiveOcclusionHistory->HZBTestIndex = ViewState->HZBOcclusionTests.AddBounds( OcclusionBounds.Origin, OcclusionBounds.BoxExtent );
-							PrimitiveOcclusionHistory->HZBTestFrameNumber = View.FrameNumber;
+							PrimitiveOcclusionHistory->HZBTestFrameNumber = ViewState->OcclusionFrameCounter;
 						}
 						else
 						{
@@ -567,7 +577,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 
 							if (bRunQuery)
 							{
-								PrimitiveOcclusionHistory->SetCurrentQuery(View.FrameNumber, 
+								PrimitiveOcclusionHistory->SetCurrentQuery(ViewState->OcclusionFrameCounter, 
 									bGroupedQuery ? 
 									View.GroupedOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent) :
 									View.IndividualOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent)
@@ -604,7 +614,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 
 				if( bSubmitQueries )
 				{
-					ViewState->HZBOcclusionTests.SetValidFrameNumber(View.FrameNumber);
+					ViewState->HZBOcclusionTests.SetValidFrameNumber(ViewState->OcclusionFrameCounter);
 				}
 			}
 		}
@@ -753,7 +763,7 @@ static void ComputeRelevanceForView(
 
 		// Cache the nearest reflection proxy if needed
 		if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
-			// In ES2, the per-object reflection is used for everything
+			// During Forward Shading, the per-object reflection is used for everything
 			// Otherwise it is just used on translucency
 			&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 		{
@@ -995,9 +1005,9 @@ struct FRelevancePacket
 
 			// Cache the nearest reflection proxy if needed
 			if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
-				// In ES2, the per-object reflection is used for everything
-					// Otherwise it is just used on translucency
-						&& (Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
+				// During Forward Shading, the per-object reflection is used for everything
+				// Otherwise it is just used on translucency
+				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
 				PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
@@ -1019,9 +1029,9 @@ struct FRelevancePacket
 		for (int32 StaticPrimIndex = 0, Num = RelevantStaticPrimitives.NumPrims; StaticPrimIndex < Num; ++StaticPrimIndex)
 		{
 			int32 PrimitiveIndex = RelevantStaticPrimitives.Prims[StaticPrimIndex];
-			const FPrimitiveSceneInfo * RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
-			const FPrimitiveBounds & Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
-			const FPrimitiveViewRelevance & ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
+			const FPrimitiveSceneInfo* RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+			const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
+			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 
 			int8 LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
 
@@ -1107,8 +1117,8 @@ class FRelevancePacketAnyThreadTask
 	ENamedThreads::Type ThreadToUse;
 public:
 
-	FRelevancePacketAnyThreadTask(FRelevancePacket* InPacket, ENamedThreads::Type InThreadToUse)
-		: Packet(*InPacket)
+	FRelevancePacketAnyThreadTask(FRelevancePacket& InPacket, ENamedThreads::Type InThreadToUse)
+		: Packet(InPacket)
 		, ThreadToUse(InThreadToUse)
 	{
 	}
@@ -1136,8 +1146,8 @@ class FRelevancePacketRenderThreadTask
 	FRelevancePacket& Packet;
 public:
 
-	FRelevancePacketRenderThreadTask(FRelevancePacket* InPacket)
-		: Packet(*InPacket)
+	FRelevancePacketRenderThreadTask(FRelevancePacket& InPacket)
+		: Packet(InPacket)
 	{
 	}
 
@@ -1248,9 +1258,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 					{
 						RenderPrereqs.Add(LastRenderThread); // this puts the render thread ones in order
 					}
-					FGraphEventRef AnyThread = TGraphTask<FRelevancePacketAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(Packet, ThreadToUse);
+					FGraphEventRef AnyThread = TGraphTask<FRelevancePacketAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(*Packet, ThreadToUse);
 					RenderPrereqs.Add(AnyThread);
-					LastRenderThread = TGraphTask<FRelevancePacketRenderThreadTask>::CreateTask(&RenderPrereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(Packet);
+					LastRenderThread = TGraphTask<FRelevancePacketRenderThreadTask>::CreateTask(&RenderPrereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(*Packet);
 					if (!BitIt)
 					{
 						break;
@@ -1422,10 +1432,10 @@ static void MarkRelevantStaticMeshesForView(
 	for (int32 StaticPrimIndex = 0, Num = RelevantStaticPrimitives.Num(); StaticPrimIndex < Num; ++StaticPrimIndex)
 	{
 		int32 PrimitiveIndex = RelevantStaticPrimitives[StaticPrimIndex];
-		const FPrimitiveSceneInfo * RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
-		const FPrimitiveBounds & Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
-		const FPrimitiveViewRelevance & ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
-		
+		const FPrimitiveSceneInfo* RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+		const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
+		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
+
 		int8 LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
 
 		float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
@@ -1592,6 +1602,12 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		View.FrameNumber = FrameNumber;
 		FSceneViewState* ViewState = (FSceneViewState*) View.State;
 		static bool bEnableTimeScale = true;
+
+		// Once per render increment the occlusion frame counter.
+		if (ViewState)
+		{
+			ViewState->OcclusionFrameCounter++;
+		}
 
 		// HighResScreenshot should get best results so we don't do the occlusion optimization based on the former frame
 		extern bool GIsHighResScreenshot;
@@ -1812,7 +1828,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 			// This finishes the update of view state
 			ViewState->UpdateLastRenderTime(*View.Family);
-		}		
+		}
 	}
 }
 
@@ -1955,7 +1971,15 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		// Most views use standard frustum culling.
 		if (bNeedsFrustumCulling)
 		{
-			int32 NumCulledPrimitivesForView = FrustumCull(Scene, View);
+			int32 NumCulledPrimitivesForView;
+			if (View.CustomVisibilityQuery && View.CustomVisibilityQuery->Prepare())
+			{
+				NumCulledPrimitivesForView = FrustumCull<true>(Scene, View);
+			}
+			else
+			{
+				NumCulledPrimitivesForView = FrustumCull<false>(Scene, View);
+			}
 			STAT(NumCulledPrimitives += NumCulledPrimitivesForView);
 			UpdatePrimitiveFading(Scene, View);			
 		}
@@ -2173,7 +2197,7 @@ uint32 GetShadowQuality();
  */
 void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, InitViews, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, InitViews);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 

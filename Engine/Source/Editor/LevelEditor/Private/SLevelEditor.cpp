@@ -37,6 +37,7 @@
 #include "IDocumentation.h"
 #include "NewsFeed.h"
 #include "TutorialMetaData.h"
+#include "SDockTab.h"
 
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
@@ -1019,13 +1020,13 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser") );
 			
 			LevelEditorTabManager->RegisterTabSpawner( WorldBrowserDetailsTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserDetailsTab, FString()) )
-				.SetMenuType( ETabSpawnerMenuType::Hide )
+				.SetMenuType( ETabSpawnerMenuType::Hidden )
 				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserDetails", "Level Details"))
 				.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
 				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowserDetails") );
 		
 			LevelEditorTabManager->RegisterTabSpawner( WorldBrowserCompositionTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserCompositionTab, FString()) )
-				.SetMenuType( ETabSpawnerMenuType::Hide )
+				.SetMenuType( ETabSpawnerMenuType::Hidden )
 				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserComposition", "World Composition"))
 				.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
 				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowserComposition") );
@@ -1046,15 +1047,6 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 			LevelEditorTabManager->RegisterTabSpawner( "Sequencer", FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, FName("Sequencer"), FString()) )
 				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "Sequencer", "Sequencer"))
 				.SetGroup( MenuStructure.GetLevelEditorCategory() );
-		}
-
-		{
-			const FSlateIcon BuildAndSubmitIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.BuildAndSubmit");
-			LevelEditorTabManager->RegisterTabSpawner( LevelEditorBuildAndSubmitTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorBuildAndSubmitTab, FString()) )
-				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "BuildAndSubmit", "Build And Submit"))
-				.SetTooltipText(NSLOCTEXT("LevelEditorTabs", "BuildAndSubmitTooltip", "Opens a tab allowing the user to build all levels and optionally submit the result to source control."))
-				.SetGroup( MenuStructure.GetLevelEditorCategory() )
-				.SetIcon( BuildAndSubmitIcon );
 		}
 
 		{
@@ -1152,6 +1144,9 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 
 void SLevelEditor::HandleExperimentalSettingChanged(FName PropertyName)
 {
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+	LevelEditorTabManager->UpdateMainMenu(true);
 }
 
 FName SLevelEditor::GetEditorModeTabId( FEditorModeID ModeID )
@@ -1269,9 +1264,9 @@ void SLevelEditor::RefreshEditorModeCommands()
 	}
 }
 
-FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// Check to see if any of the actions for the level editor can be processed by the current keyboard event
+	// Check to see if any of the actions for the level editor can be processed by the current event
 	// If we are in debug mode do not process commands
 	if( FSlateApplication::Get().IsNormalExecution() )
 	{
@@ -1313,7 +1308,7 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 		if( ActiveToolkit.IsValid() )
 		{
 			// A toolkit tab is active, so direct all command processing to it
-			if( ActiveToolkit->ProcessCommandBindings( InKeyboardEvent ) )
+			if( ActiveToolkit->ProcessCommandBindings( InKeyEvent ) )
 			{
 				return FReply::Handled();
 			}
@@ -1321,7 +1316,7 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 		else
 		{
 			// No toolkit tab is active, so let the level editor have a chance at the keystroke
-			if( LevelEditorCommands->ProcessCommandBindings( InKeyboardEvent ) )
+			if( LevelEditorCommands->ProcessCommandBindings( InKeyEvent ) )
 			{
 				return FReply::Handled();
 			}
@@ -1331,10 +1326,10 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 	return FReply::Unhandled();
 }
 
-FReply SLevelEditor::OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLevelEditor::OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// Check to see if any of the actions for the level editor can be processed by the current keyboard event from a viewport
-	if( LevelEditorCommands->ProcessCommandBindings( InKeyboardEvent ) )
+	// Check to see if any of the actions for the level editor can be processed by the current keyboard from a viewport
+	if( LevelEditorCommands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

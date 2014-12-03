@@ -5,14 +5,15 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/TextureRenderTargetCube.h"
 #include "DDSLoader.h"
 
 /*-----------------------------------------------------------------------------
 	UTextureRenderTargetCube
 -----------------------------------------------------------------------------*/
 
-UTextureRenderTargetCube::UTextureRenderTargetCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureRenderTargetCube::UTextureRenderTargetCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHDR = true;
 	ClearColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);
@@ -155,7 +156,7 @@ UTextureCube* UTextureRenderTargetCube::ConstructTextureCube(
 					{
 						if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
 						{
-							FMemory::Memcpy((FColor*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetTypedData(), MipSize);
+							FMemory::Memcpy((FColor*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
 						}
 					}
 				}
@@ -167,7 +168,7 @@ UTextureCube* UTextureRenderTargetCube::ConstructTextureCube(
 					{
 						if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
 						{
-							FMemory::Memcpy((FFloat16Color*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetTypedData(), MipSize);
+							FMemory::Memcpy((FFloat16Color*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
 						}
 					}
 				}

@@ -2,10 +2,11 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/TouchInterface.h"
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "SVirtualJoystick.h"
 
-UTouchInterface::UTouchInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTouchInterface::UTouchInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// defaults
 	ActiveOpacity = 1.0f;

@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "IOSPlatformFile.h"
 
@@ -511,6 +511,11 @@ FDateTime FIOSPlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 	// convert _stat time to FDateTime
 	FTimespan TimeSinceEpoch(0, 0, FileInfo.st_atime);
 	return IOSEpoch + TimeSinceEpoch;
+}
+
+FString FIOSPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return Filename;
 }
 
 IFileHandle* FIOSPlatformFile::OpenRead(const TCHAR* Filename)

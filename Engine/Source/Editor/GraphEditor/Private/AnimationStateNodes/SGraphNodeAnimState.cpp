@@ -10,6 +10,7 @@
 #include "AnimationStateMachineGraph.h"
 #include "AnimGraphNode_StateMachineBase.h"
 #include "Animation/AnimNode_StateMachine.h"
+#include "SInlineEditableTextBlock.h"
 
 /////////////////////////////////////////////////////
 // SStateMachineOutputPin

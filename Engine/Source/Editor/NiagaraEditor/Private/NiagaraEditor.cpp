@@ -5,43 +5,57 @@
 
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
+
+#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
  
 #define LOCTEXT_NAMESPACE "NiagaraEditor"
 
-const FName FNiagaraEditor::UpdateGraphTabId( TEXT( "NiagaraEditor_UpdateGraph" ) );
+const FName FNiagaraEditor::UpdateGraphTabId(TEXT("NiagaraEditor_UpdateGraph"));
+const FName FNiagaraEditor::PropertiesTabId(TEXT("NiagaraEditor_MaterialProperties"));
 
 void FNiagaraEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_NiagaraEditor", "Niagara"));
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	
+	TSharedRef<FWorkspaceItem> WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	TabManager->RegisterTabSpawner( UpdateGraphTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEditor::SpawnTab_UpdateGraph) )
 		.SetDisplayName( LOCTEXT("UpdateGraph", "Update Graph") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef);
+
+	TabManager->RegisterTabSpawner(PropertiesTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEditor::SpawnTab_NodeProperties))
+		.SetDisplayName(LOCTEXT("DetailsTab", "Details"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
 void FNiagaraEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
 	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
 
-	TabManager->UnregisterTabSpawner( UpdateGraphTabId );
+	TabManager->UnregisterTabSpawner(UpdateGraphTabId);
+	TabManager->UnregisterTabSpawner(PropertiesTabId);
 }
 
 FNiagaraEditor::~FNiagaraEditor()
 {
-
+	NiagaraDetailsView.Reset();
 }
 
 
 void FNiagaraEditor::InitNiagaraEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UNiagaraScript* InScript )
-{
+{	
 	Script = InScript;
 	check(Script != NULL);
 	Source = CastChecked<UNiagaraScriptSource>(Script->Source);
 	check(Source->UpdateGraph != NULL);
 
-	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_Niagara_Layout_v2" )
+	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_Niagara_Layout_v3" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -54,15 +68,30 @@ void FNiagaraEditor::InitNiagaraEditor( const EToolkitMode::Type Mode, const TSh
 		)
 		->Split
 		(
-			FTabManager::NewStack()
-			->AddTab( UpdateGraphTabId, ETabState::OpenedTab )
+			FTabManager::NewSplitter()->SetOrientation(Orient_Horizontal)->SetSizeCoefficient(0.9f)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.2f)
+				->AddTab(PropertiesTabId, ETabState::OpenedTab)
+			)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.8f)
+				->AddTab(UpdateGraphTabId, ETabState::OpenedTab)
+			)
 		)
 	);
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	const FDetailsViewArgs DetailsViewArgs(false, false, true, false, true, this);
+	NiagaraDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = true;
 	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, FNiagaraEditorModule::NiagaraEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, Script );
-	
+
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>( "NiagaraEditor" );
 	AddMenuExtender(NiagaraEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
@@ -121,6 +150,7 @@ TSharedRef<SGraphEditor> FNiagaraEditor::CreateGraphEditorWidget(UEdGraph* InGra
 	AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "NIAGARA").ToString();
 
 	SGraphEditor::FGraphEditorEvents InEvents;
+	InEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FNiagaraEditor::OnSelectedNodesChanged);
 
 	// Make title bar
 	TSharedRef<SWidget> TitleBarWidget = 
@@ -163,6 +193,25 @@ TSharedRef<SDockTab> FNiagaraEditor::SpawnTab_UpdateGraph( const FSpawnTabArgs& 
 		[
 			UpdateGraphEditor
 		];
+}
+
+TSharedRef<SDockTab> FNiagaraEditor::SpawnTab_NodeProperties(const FSpawnTabArgs& Args)
+{
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Details"))
+		.Label(LOCTEXT("NiagaraDetailsTitle", "Details"))
+		[
+			NiagaraDetailsView.ToSharedRef()
+		];
+
+	TSharedPtr<SGraphEditor> UpdateGraphEditor = UpdateGraphEditorPtr.Pin();
+	if (UpdateGraphEditor.IsValid())
+	{
+		// Since we're initialising, make sure nothing is selected
+		UpdateGraphEditor->ClearSelectionSet();
+	}
+
+	return SpawnedTab;
 }
 
 void FNiagaraEditor::ExtendToolbar()
@@ -254,6 +303,27 @@ bool FNiagaraEditor::CanDeleteNodes() const
 {
 	TSharedPtr<SGraphEditor> UpdateGraphEditor = UpdateGraphEditorPtr.Pin();
 	return (UpdateGraphEditor.IsValid() && UpdateGraphEditor->GetSelectedNodes().Num() > 0);
+}
+
+void FNiagaraEditor::OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection)
+{
+	TArray<UObject*> SelectedObjects;
+
+	UObject* EditObject = Script;
+
+	if (NewSelection.Num() == 0)
+	{
+		SelectedObjects.Add(EditObject);
+	}
+	else
+	{
+		for (TSet<class UObject*>::TConstIterator SetIt(NewSelection); SetIt; ++SetIt)
+		{
+			SelectedObjects.Add(*SetIt);
+		}
+	}
+
+	GetDetailView()->SetObjects(SelectedObjects, true);
 }
 
 #undef LOCTEXT_NAMESPACE

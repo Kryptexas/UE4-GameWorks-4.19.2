@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "GenericPlatformContext.h"
 
 #include "EngineVersion.h"
 #include "XmlFile.h"
@@ -10,6 +11,7 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 FCrashDescription::FCrashDescription() :
+	CrashDescriptionVersion( ECrashDescVersions::VER_1_NewCrashFormat ),
 	BuiltFromCL( -1 ),
 	TimeOfCrash( FDateTime::UtcNow() ),
 	bHasMiniDumpFile( false ),
@@ -22,6 +24,8 @@ FCrashDescription::FCrashDescription() :
 
 
 FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
+	// WER XML files are forced to be in the first version
+	CrashDescriptionVersion( ECrashDescVersions::VER_1_NewCrashFormat ),
 	BuiltFromCL( -1 ),
 	TimeOfCrash( FDateTime::UtcNow() ),
 	bHasMiniDumpFile( false ),

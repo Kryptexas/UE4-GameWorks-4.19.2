@@ -17,7 +17,7 @@ public:
 
 		// Copy the vertex data into the vertex buffer.
 		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-		FMemory::Memcpy(VertexBufferData,Vertices.GetTypedData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
+		FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
 
@@ -36,7 +36,7 @@ public:
 
 		// Write the indices to the index buffer.
 		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
-		FMemory::Memcpy(Buffer,Indices.GetTypedData(),Indices.Num() * sizeof(int32));
+		FMemory::Memcpy(Buffer,Indices.GetData(),Indices.Num() * sizeof(int32));
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 };
@@ -81,7 +81,7 @@ public:
 
 	FCustomMeshSceneProxy(UCustomMeshComponent* Component)
 		: FPrimitiveSceneProxy(Component)
-		, MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
+		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	{
 		const FColor VertexColor(255,255,255);
 
@@ -261,8 +261,8 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-UCustomMeshComponent::UCustomMeshComponent( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UCustomMeshComponent::UCustomMeshComponent( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -295,7 +295,7 @@ int32 UCustomMeshComponent::GetNumMaterials() const
 }
 
 
-FBoxSphereBounds UCustomMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UCustomMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBoxSphereBounds NewBounds;
 	NewBounds.Origin = FVector::ZeroVector;

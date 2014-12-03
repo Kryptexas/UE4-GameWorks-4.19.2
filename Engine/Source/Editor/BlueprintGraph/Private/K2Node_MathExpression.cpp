@@ -2268,8 +2268,8 @@ private:
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-UK2Node_MathExpression::UK2Node_MathExpression(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MathExpression::UK2Node_MathExpression(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// renaming the node rebuilds the expression (the node name is where they 
 	// specify the math equation)
@@ -2436,16 +2436,34 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 		MessageLog.Append(*CachedMessageLog);
 	}
 	// else, this may be some intermediate node in the compile, let's look at the errors from the original...
-	else if (UK2Node_MathExpression const* SourceNode = MessageLog.FindSourceObjectTypeChecked<UK2Node_MathExpression>(this))
+	else 
 	{
-		// if the expressions match, then the errors should
-		check(SourceNode->Expression == Expression);
-		
-		// take the same errors from the original node (so we don't have to
-		// re-parse/re-gen to fish out the same errors)
-		if (SourceNode->CachedMessageLog.IsValid())
+		if(UObject const* SourceObject = MessageLog.FindSourceObject(this))
 		{
-			MessageLog.Append(*SourceNode->CachedMessageLog);
+			UK2Node_MathExpression const* MathExpression = nullptr;
+
+			// If the source object is a MacroInstance, we need to look elsewhere for the original MathExpression
+			if(Cast<UK2Node_MacroInstance>(SourceObject))
+			{
+				MathExpression = CastChecked<UK2Node_MathExpression>(MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(this));
+			}
+			else
+			{
+				MathExpression = MessageLog.FindSourceObjectTypeChecked<UK2Node_MathExpression>(this);
+			}
+
+			// Should always be able to find the source math expression
+			check(MathExpression);
+
+			// if the expressions match, then the errors should
+			check(MathExpression->Expression == Expression);
+
+			// take the same errors from the original node (so we don't have to
+			// re-parse/re-gen to fish out the same errors)
+			if (MathExpression->CachedMessageLog.IsValid())
+			{
+				MessageLog.Append(*MathExpression->CachedMessageLog);
+			}
 		}
 	}
 }

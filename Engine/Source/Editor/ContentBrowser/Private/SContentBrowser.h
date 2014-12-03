@@ -63,7 +63,7 @@ public:
 	/** Gives keyboard focus to the asset search box */
 	void SetKeyboardFocusOnSearch() const;
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
@@ -82,7 +82,7 @@ private:
 	void OnContainingTabClosed(TSharedRef<SDockTab> DockTab);
 
 	/** Called when a containing tab is activated, if there is one */
-	void OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause::Type InActivationCause);
+	void OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause InActivationCause);
 
 	/** Loads settings from config based on the browser's InstanceName*/
 	void LoadSettings(const FName& InstanceName);

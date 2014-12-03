@@ -10,6 +10,7 @@
 #include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
@@ -42,7 +43,7 @@ public:
 	}
 
 	/** Re-apply vertex color data after RerunConstructionScripts is called */
-	bool ApplyVertexColorData(UStaticMeshComponent* StaticMeshComponent)
+	bool ApplyVertexColorData(UStaticMeshComponent* StaticMeshComponent) const
 	{
 		bool bAppliedAnyData = false;
 
@@ -58,8 +59,14 @@ public:
 				if (StaticMeshComponent->LODData.IsValidIndex(LODIndex))
 				{
 					FStaticMeshComponentLODInfo& LODInfo = StaticMeshComponent->LODData[LODIndex];
-
-					// Should not already have overriden vertex colors
+					// this component could have been constructed from a template
+					// that had its own vert color overrides; so before we apply
+					// the instance's color data, we need to clear the old
+					// vert colors (so we can properly call InitFromColorArray())
+					StaticMeshComponent->RemoveInstanceVertexColorsFromLOD(LODIndex);
+					// may not be null at the start (could have been initialized 
+					// from a  component template with vert coloring), but should
+					// be null at this point, after RemoveInstanceVertexColorsFromLOD()
 					if (LODInfo.OverrideVertexColors == NULL)
 					{
 						LODInfo.PaintedVertices = VertexColorLODData.PaintedVertices;
@@ -117,8 +124,8 @@ public:
 	FLightMapInstanceData CachedStaticLighting;
 };
 
-UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -398,7 +405,7 @@ void UStaticMeshComponent::CheckForErrors()
 }
 #endif
 
-FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if(StaticMesh)
 	{
@@ -1013,11 +1020,20 @@ void UStaticMeshComponent::ImportCustomProperties(const TCHAR* SourceText, FFeed
 		LODInfo.ImportText(&SourceText);
 
 		// Populate the OverrideVertexColors buffer
-		check(!LODInfo.OverrideVertexColors);
-		const TCHAR* Result = FCString::Stristr(SourceText, TEXT("ColorVertexData"));
-		if (Result)
+		if (const TCHAR* VertColorStr = FCString::Stristr(SourceText, TEXT("ColorVertexData")))
 		{
-			SourceText = Result;
+			SourceText = VertColorStr;
+
+			// this component could have been constructed from a template that
+			// had its own vert color overrides; so before we apply the
+			// custom color data, we need to clear the old vert colors (so
+			// we can properly call ImportText())
+			RemoveInstanceVertexColorsFromLOD(LODIndex);
+
+			// may not be null at the start (could have been initialized 
+			// from a blueprint component template with vert coloring), but 
+			// should be null by this point, after RemoveInstanceVertexColorsFromLOD()
+			check(LODInfo.OverrideVertexColors == nullptr);
 
 			LODInfo.OverrideVertexColors = new FColorVertexBuffer;
 			LODInfo.OverrideVertexColors->ImportText(SourceText);
@@ -1194,7 +1210,7 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 	return true;
 }
 
-void UStaticMeshComponent::GetLocalBounds(FVector & Min, FVector & Max) const
+void UStaticMeshComponent::GetLocalBounds(FVector& Min, FVector& Max) const
 {
 	if (StaticMesh)
 	{
@@ -1356,7 +1372,10 @@ void UStaticMeshComponent::GetTextureLightAndShadowMapMemoryUsage(int32 InWidth,
 	// Stored in texture.
 	const float MIP_FACTOR = 1.33f;
 	OutShadowMapMemoryUsage = FMath::TruncToInt(MIP_FACTOR * InWidth * InHeight); // G8
-	if( AllowHighQualityLightmaps() )
+
+	auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
+	if (AllowHighQualityLightmaps(FeatureLevel))
 	{
 		OutLightMapMemoryUsage = FMath::TruncToInt(NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * InWidth * InHeight); // DXT5
 	}
@@ -1493,14 +1512,14 @@ FName UStaticMeshComponent::GetComponentInstanceDataType() const
 	return StaticMeshComponentInstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UStaticMeshComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UStaticMeshComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FStaticMeshComponentInstanceData> InstanceData;
+	FStaticMeshComponentInstanceData* InstanceData = nullptr;
 
 	// Don't back up static lighting if there isn't any
 	if(bHasCachedStaticLighting)
 	{
-		InstanceData = MakeShareable(new FStaticMeshComponentInstanceData(this));
+		InstanceData = new FStaticMeshComponentInstanceData(this);
 
 		// Fill in info
 		InstanceData->bHasCachedStaticLighting = true;
@@ -1522,9 +1541,9 @@ TSharedPtr<FComponentInstanceDataBase> UStaticMeshComponent::GetComponentInstanc
 
 		if ( LODInfo.OverrideVertexColors && LODInfo.OverrideVertexColors->GetNumVertices() > 0 && LODInfo.PaintedVertices.Num() > 0 )
 		{
-			if (!InstanceData.IsValid())
+			if (!InstanceData)
 			{
-				InstanceData = MakeShareable(new FStaticMeshComponentInstanceData(this));
+				InstanceData = new FStaticMeshComponentInstanceData(this);
 			}
 
 			InstanceData->AddVertexColorData(LODInfo, LODIndex);
@@ -1534,13 +1553,13 @@ TSharedPtr<FComponentInstanceDataBase> UStaticMeshComponent::GetComponentInstanc
 	return InstanceData;
 }
 
-void UStaticMeshComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
+	check(ComponentInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
-	TSharedPtr<FStaticMeshComponentInstanceData> StaticMeshInstanceData = StaticCastSharedPtr<FStaticMeshComponentInstanceData>(ComponentInstanceData);
+	FStaticMeshComponentInstanceData* StaticMeshInstanceData  = static_cast<FStaticMeshComponentInstanceData*>(ComponentInstanceData);
 
 	// See if data matches current state
 	if(	StaticMeshInstanceData->bHasCachedStaticLighting && StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld) )
@@ -1627,7 +1646,10 @@ FStaticMeshComponentLODInfo::FStaticMeshComponentLODInfo(const FStaticMeshCompon
 /** Destructor */
 FStaticMeshComponentLODInfo::~FStaticMeshComponentLODInfo()
 {
-	ReleaseOverrideVertexColorsAndBlock();
+	// Note: OverrideVertexColors had BeginReleaseResource called in UStaticMeshComponent::BeginDestroy, 
+	// And waits on a fence for that command to complete in UStaticMeshComponent::IsReadyForFinishDestroy,
+	// So we know it is safe to delete OverrideVertexColors here (RT can't be referencing it anymore)
+	CleanUp();
 }
 
 void FStaticMeshComponentLODInfo::CleanUp()

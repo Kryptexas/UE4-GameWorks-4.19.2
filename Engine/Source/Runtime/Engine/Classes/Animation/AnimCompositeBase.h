@@ -57,7 +57,7 @@ struct FAnimSegment
 
 	/** Anim Reference to play - only allow AnimSequence or AnimComposite **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
-	UAnimSequenceBase * AnimReference;
+	UAnimSequenceBase* AnimReference;
 
 	/** Start Pos within this AnimCompositeBase */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=AnimSegment)
@@ -117,11 +117,11 @@ struct FAnimSegment
 	/**
 	 * Get Animation Data, for now have weight to be controlled here, in the future, it will be controlled in Track
 	 */
-	UAnimSequenceBase * GetAnimationData(float PositionInTrack, float & PositionInAnim, float & Weight) const;
+	UAnimSequenceBase* GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const;
 
 	/** Converts 'Track Position' to position on AnimSequence.
 	 * Note: doesn't check that position is in valid range, must do that before calling this function! */
-	float ConvertTrackPosToAnimPos(const float & TrackPosition) const;
+	float ConvertTrackPosToAnimPos(const float& TrackPosition) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two Track time positions. ]PreviousTrackPosition, CurrentTrackPosition]
@@ -129,7 +129,7 @@ struct FAnimSegment
 	 * Supports playing backwards (CurrentTrackPosition<PreviousTrackPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	void GetAnimNotifiesFromTrackPositions(const float & PreviousTrackPosition, const float & CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 	
 	/** 
 	 * Given a Track delta position [StartTrackPosition, EndTrackPosition]
@@ -158,6 +158,9 @@ struct FAnimTrack
 
 	ENGINE_API int32 GetTrackAdditiveType() const;
 
+	/** Returns whether any of the animation sequences this track uses has root motion */
+	bool HasRootMotion() const;
+
 	/** 
 	 * Given a Track delta position [StartTrackPosition, EndTrackPosition]
 	 * See if any AnimSegment overlaps any of it, and if it does, break it up into RootMotionExtractionPieces.
@@ -165,7 +168,15 @@ struct FAnimTrack
 	 */
 	void GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionExtractionStep> & RootMotionExtractionSteps, const float StartTrackPosition, const float EndTrackPosition) const;
 
-	
+	/** Ensure segment times are correctly formed (no gaps and no extra time at the end of the anim reference) */
+	void ValidateSegmentTimes();
+
+	/** Gets the index of the segment at the given absolute montage time. */	
+	int32 GetSegmentIndexAtTime(float InTime);
+
+	/** Get the segment at the given absolute montage time */
+	FAnimSegment* GetSegmentAtTime(float InTime);
+
 #if WITH_EDITOR
 	bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) const;
 	void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap);
@@ -189,5 +200,8 @@ class UAnimCompositeBase : public UAnimSequenceBase
 	/** Set Sequence Length */
 	ENGINE_API void SetSequenceLength(float InSequenceLength);
 #endif
+
+	// Extracts root motion from the supplied FAnimTrack between the Start End range specified
+	ENGINE_API void ExtractRootMotionFromTrack(const FAnimTrack &SlotAnimTrack, float StartTrackPosition, float EndTrackPosition, FRootMotionMovementParams &RootMotion) const;
 };
 

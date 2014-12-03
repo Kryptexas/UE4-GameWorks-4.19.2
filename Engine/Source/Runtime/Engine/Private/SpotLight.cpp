@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/SpotLight.h"
 
-ASpotLight::ASpotLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<USpotLightComponent>(TEXT("LightComponent0")))
+ASpotLight::ASpotLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USpotLightComponent>(TEXT("LightComponent0")))
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -18,7 +19,7 @@ ASpotLight::ASpotLight(const class FPostConstructInitializeProperties& PCIP)
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	SpotLightComponent = CastChecked<USpotLightComponent>(LightComponent);
+	SpotLightComponent = CastChecked<USpotLightComponent>(GetLightComponent());
 	SpotLightComponent->Mobility = EComponentMobility::Stationary;
 	SpotLightComponent->RelativeRotation = FRotator(-90, 0, 0);
 	SpotLightComponent->UpdateComponentToWorld();
@@ -26,7 +27,7 @@ ASpotLight::ASpotLight(const class FPostConstructInitializeProperties& PCIP)
 	RootComponent = SpotLightComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = GetLightColor();
@@ -44,9 +45,9 @@ void ASpotLight::PostLoad()
 {
 	Super::PostLoad();
 
-	if (LightComponent->Mobility == EComponentMobility::Static)
+	if (GetLightComponent()->Mobility == EComponentMobility::Static)
 	{
-		LightComponent->LightFunctionMaterial = NULL;
+		GetLightComponent()->LightFunctionMaterial = NULL;
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -68,19 +69,19 @@ void ASpotLight::LoadedFromAnotherClass(const FName& OldClassName)
 		static FName SpotLightMovable_NAME(TEXT("SpotLightMovable"));
 		static FName SpotLightStationary_NAME(TEXT("SpotLightStationary"));
 
-		check(LightComponent != NULL);
+		check(GetLightComponent() != NULL);
 
 		if(OldClassName == SpotLightStatic_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Static;
+			GetLightComponent()->Mobility = EComponentMobility::Static;
 		}
 		else if(OldClassName == SpotLightMovable_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Movable;
+			GetLightComponent()->Mobility = EComponentMobility::Movable;
 		}
 		else if(OldClassName == SpotLightStationary_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Stationary;
+			GetLightComponent()->Mobility = EComponentMobility::Stationary;
 		}
 	}
 }
@@ -136,4 +137,9 @@ void ASpotLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		ArrowComponent->ArrowColor = GetLightColor();
 	}
 }
+#endif
+
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ASpotLight::GetArrowComponent() const { return ArrowComponent; }
 #endif

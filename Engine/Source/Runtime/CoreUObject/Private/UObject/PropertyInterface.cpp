@@ -189,7 +189,7 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 		// If we failed to load the InterfaceClass and we're not a CDO, that means we relied on a class that has been removed or doesn't exist.
 		// The most likely cause for this is either an incomplete recompile, or if content was migrated between games that had native class dependencies
 		// that do not exist in this game.  We allow blueprint classes to continue, because compile-on-load will error out, and stub the class that was using it
-		UClass* TestClass = Cast<UClass>(GetOwnerStruct());
+		UClass* TestClass = dynamic_cast<UClass*>(GetOwnerStruct());
 		if( TestClass && TestClass->HasAllClassFlags(CLASS_Native) && !TestClass->HasAllClassFlags(CLASS_NewerVersionExists) && (TestClass->GetOutermost() != GetTransientPackage()) )
 		{
 			checkf(false, TEXT("Interface property tried to serialize a missing interface.  Did you remove a native class and not fully recompile?"));

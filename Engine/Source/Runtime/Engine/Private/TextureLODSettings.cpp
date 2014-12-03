@@ -262,6 +262,48 @@ int32 FTextureLODSettings::GetTextureLODGroupLODBias( int32 InLODGroup ) const
 	return Retval;
 }
 
+
+
+/**
+ * Returns the LODGroup setting for number of streaming mip-levels.
+ * -1 means that all mip-levels are allowed to stream.
+ *
+ * @param	InLODGroup		The LOD Group ID 
+ * @return	Number of streaming mip-levels for textures in the specified LODGroup
+ */
+int32 FTextureLODSettings::GetMinLODMipCount( int32 InLODGroup ) const
+{
+	int32 Retval = 0;
+
+	const FTextureLODGroup& LODGroup = TextureLODGroups[InLODGroup]; 
+
+	Retval = LODGroup.MinLODMipCount;
+
+	return Retval;
+}
+
+
+
+
+/**
+ * Returns the LODGroup setting for number of streaming mip-levels.
+ * -1 means that all mip-levels are allowed to stream.
+ *
+ * @param	InLODGroup		The LOD Group ID 
+ * @return	Number of streaming mip-levels for textures in the specified LODGroup
+ */
+int32 FTextureLODSettings::GetMaxLODMipCount( int32 InLODGroup ) const
+{
+	int32 Retval = 0;
+
+	const FTextureLODGroup& LODGroup = TextureLODGroups[InLODGroup]; 
+
+	Retval = LODGroup.MaxLODMipCount;
+
+	return Retval;
+}
+
+
 /**
  * Returns the LODGroup setting for number of streaming mip-levels.
  * -1 means that all mip-levels are allowed to stream.
@@ -279,6 +321,19 @@ int32 FTextureLODSettings::GetNumStreamedMips( int32 InLODGroup ) const
 
 	return Retval;
 }
+
+/**
+ * Returns the LODGroup mip gen settings
+ *
+ * @param	InLODGroup		The LOD Group ID 
+ * @return	TextureMipGenSettings for lod group
+ */
+ const TextureMipGenSettings& FTextureLODSettings::GetTextureMipGenSettings( int32 InLODGroup ) const
+{
+	return TextureLODGroups[InLODGroup].MipGenSettings; 
+}
+
+
 
 /**
  * Returns the filter state that should be used for the passed in texture, taking
@@ -305,4 +360,9 @@ ESamplerFilter FTextureLODSettings::GetSamplerFilter( const UTexture* Texture ) 
 	}
 
 	return Filter;
+}
+
+ESamplerFilter FTextureLODSettings::GetSamplerFilter( int32 InLODGroup) const
+{
+	return TextureLODGroups[InLODGroup].Filter;
 }

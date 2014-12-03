@@ -4,7 +4,8 @@
 
 DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
-
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Ticked Widgets"), STAT_SlateNumTickedWidgets, STATGROUP_Slate);
 
 SWidget::SWidget()
 	: CreatedInFile( TEXT("") )
@@ -14,10 +15,10 @@ SWidget::SWidget()
 	, Visibility( EVisibility::Visible )
 	, RenderTransform( )
 	, RenderTransformPivot( FVector2D::ZeroVector )
+	, bIsHovered(false)
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
 	, bToolTipForceFieldEnabled( false )
-	, bIsHovered( false )
 {
 
 }
@@ -60,16 +61,29 @@ void SWidget::Construct(
 }
 
 
-FReply SWidget::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	return FReply::Unhandled();
 }
 
-void SWidget::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InFocusEvent)
+{
+	return FReply::Unhandled();
+}
+
+void SWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 }
 
-void SWidget::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
+void SWidget::OnKeyboardFocusLost(const FKeyboardFocusEvent& InFocusEvent)
+{
+}
+
+void SWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
+{
+}
+
+void SWidget::OnKeyboardFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
 {
 }
 
@@ -79,19 +93,53 @@ FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& I
 }
 
 
-FReply SWidget::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SWidget::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
+{
+	if (SupportsKeyboardFocus())
+	{
+		// It's the left stick return a navigation request of the correct direction
+		if (InKeyEvent.GetKey() == EKeys::Right || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Right || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Right)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Right);
+		}
+		else if (InKeyEvent.GetKey() == EKeys::Left || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Left || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Left)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Left);
+		}
+		else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Up);
+		}
+		else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Down);
+		}
+		// If the key was Tab, interpret as an attempt to move focus.
+		else if (InKeyEvent.GetKey() == EKeys::Tab)
+		{
+			EUINavigation MoveDirection = (InKeyEvent.IsShiftDown())
+				? EUINavigation::Previous
+				: EUINavigation::Next;
+			return FReply::Handled().SetNavigation(MoveDirection);
+		}
+	}
+	return FReply::Unhandled();
+}
+
+
+FReply SWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SWidget::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent )
 {
 	return FReply::Unhandled();
 }
@@ -212,27 +260,52 @@ FReply SWidget::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent
 }
 
 
-FReply SWidget::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
+FReply SWidget::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
+FReply SWidget::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
+FReply SWidget::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent )
+FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 {
 	return FReply::Unhandled();
+}
+
+
+void SWidget::OnFinishedPointerInput()
+{
+
+}
+
+
+void SWidget::OnFinishedKeyInput()
+{
+
+}
+
+
+FNavigationReply SWidget::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	EUINavigation Type = InNavigationEvent.GetNavigationType();
+	TSharedPtr<FNavigationMetaData> MetaData = GetMetaData<FNavigationMetaData>();
+	if (MetaData.IsValid())
+	{
+		TSharedPtr<SWidget> Widget = MetaData->GetFocusRecipient(Type).Pin();
+		return FNavigationReply(MetaData->GetBoundaryRule(Type), Widget, MetaData->GetFocusDelegate(Type));
+	}
+	return FNavigationReply::Escape();
 }
 
 
@@ -246,15 +319,19 @@ void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 {
 }
 
+TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 1, TEXT("Controls whether invisible widgets are ticked."));
+
 void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	INC_DWORD_STAT(STAT_SlateNumTickedWidgets);
+
 	// Tick this widget
 	Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
 	// consider whether they should still be invisible in their tick functions, as well as maintain
 	// other state when hidden,
-	FArrangedChildren ArrangedChildren(EVisibility::All);
+	FArrangedChildren ArrangedChildren(TickInvisibleWidgets.GetValueOnGameThread() ? EVisibility::All : EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
 	// Recur!
@@ -328,7 +405,6 @@ void SWidget::OnMouseCaptureLost()
 {
 	
 }
-
 
 bool SWidget::FindChildGeometries( const FGeometry& MyGeometry, const TSet< TSharedRef<SWidget> >& WidgetsToFind, TMap<TSharedRef<SWidget>, FArrangedWidget>& OutResult ) const
 {
@@ -511,6 +587,7 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateOnPaint);
+	INC_DWORD_STAT(STAT_SlateNumPaintedWidgets);
 
 	FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
 	return OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);

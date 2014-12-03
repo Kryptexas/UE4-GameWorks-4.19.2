@@ -17,7 +17,7 @@ void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
 	Context.AnimInstance->RegisterSlotNode(SlotName);
 }
 
-void FAnimNode_Slot::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_Slot::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	Source.CacheBones(Context);
 }
@@ -29,6 +29,8 @@ void FAnimNode_Slot::Update(const FAnimationUpdateContext& Context)
 
 	// Update cache in AnimInstance.
 	Context.AnimInstance->UpdateSlotNodeWeight(SlotName, SlotNodeWeight);
+	Context.AnimInstance->UpdateSlotRootMotionWeight(SlotName, Context.GetFinalBlendWeight());
+
 
 	if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
 	{
@@ -62,7 +64,7 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	DebugLine += FString::Printf(TEXT("(Slot Name: '%s' Weight:%.1f%%)"), *SlotName.ToString(), SlotNodeWeight*100.f);
-
+	
 	bool const bIsPoseSource = (SourceWeight <= ZERO_ANIMWEIGHT_THRESH);
 	DebugData.AddDebugItem(DebugLine, bIsPoseSource);
 	Source.GatherDebugData(DebugData.BranchFlow(SourceWeight));
@@ -88,8 +90,8 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 }
 
 FAnimNode_Slot::FAnimNode_Slot()
-: GroupName(USkeleton::DefaultSlotGroupName)
-, SourceWeight(0.f)
-, SlotNodeWeight(0.f)
+	: SlotName(FAnimSlotGroup::DefaultSlotName)
+	, SourceWeight(0.f)
+	, SlotNodeWeight(0.f)
 {
 }

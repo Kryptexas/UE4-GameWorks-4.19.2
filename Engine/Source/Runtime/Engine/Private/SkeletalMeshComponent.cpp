@@ -85,8 +85,8 @@ public:
 	}
 };
 
-USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -104,6 +104,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	PreClothTickFunction.TickGroup = TG_PreCloth;
 	PreClothTickFunction.bCanEverTick = true;
 	PreClothTickFunction.bStartWithTickEnabled = true;
+
 
 #if WITH_APEX_CLOTHING
 	ClothMaxDistanceScale = 1.0f;
@@ -126,7 +127,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 
 	DefaultPlayRate_DEPRECATED = 1.0f;
 	bDefaultPlaying_DEPRECATED = true;
-	bEnablePhysicsOnDedicatedServer = false;
+	bEnablePhysicsOnDedicatedServer = UPhysicsSettings::Get()->bSimulateSkeletalMeshOnDedicatedServer;
 	bEnableUpdateRateOptimizations = false;
 
 	bTickInEditor = true;
@@ -221,7 +222,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 
 		InitializeAnimScriptInstance(bForceReinit);
 
-		TickAnimation(0.f); //Make sure we have a valid pose
+        //Make sure we have a valid pose		
+        TickAnimation(0.f); 
 
 		RefreshBoneTransforms();
 		UpdateComponentToWorld();
@@ -607,8 +609,8 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 
-	const FTransform * LocalTransformsData = SourceAtoms.GetTypedData();
-	FTransform * SpaceBasesData = DestSpaceBases.GetTypedData();
+	const FTransform* LocalTransformsData = SourceAtoms.GetData();
+	FTransform* SpaceBasesData = DestSpaceBases.GetData();
 
 	// First bone is always root bone, and it doesn't have a parent.
 	{
@@ -913,7 +915,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		return;
 	}
 
-	AActor * Owner = GetOwner();
+	AActor* Owner = GetOwner();
 	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
 
 	// Recalculate the RequiredBones array, if necessary
@@ -1081,7 +1083,7 @@ void USkeletalMeshComponent::UpdateBounds()
 #endif
 }
 
-FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FVector RootBoneOffset;
 
@@ -1652,7 +1654,7 @@ void FSingleAnimationPlayData::ValidatePosition()
 	SavedPosition = FMath::Clamp<float>(SavedPosition, Min, Max);
 }
 
-FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform & InTransform)
+FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
 	if (!bWorldToComponentUpdated)
@@ -1766,4 +1768,20 @@ void USkeletalMeshComponent::ValidateAnimation()
 bool USkeletalMeshComponent::IsPlayingRootMotion()
 {
 	return (AnimScriptInstance ? (AnimScriptInstance->GetRootMotionMontageInstance() != NULL) : false);
+}
+
+void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
+{
+	RootBodyData.BodyIndex = InBodyIndex;
+
+	if(Bodies.IsValidIndex(RootBodyData.BodyIndex) && 
+		Bodies[RootBodyData.BodyIndex]->BodySetup.IsValid() && Bodies[RootBodyData.BodyIndex]->BodySetup.Get()->BoneName != NAME_None)
+	{
+		RootBodyData.BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
+	}
+	else
+	{
+		// error
+		RootBodyData.BoneIndex = INDEX_NONE;
+	}
 }

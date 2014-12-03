@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "EnvQueryParamInstanceCustomization.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "FEnvQueryCustomization"
 

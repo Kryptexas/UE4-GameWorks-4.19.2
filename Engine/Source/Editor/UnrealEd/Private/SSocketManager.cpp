@@ -12,6 +12,8 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "SInlineEditableTextBlock.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SSCSSocketManagerEditor"
 

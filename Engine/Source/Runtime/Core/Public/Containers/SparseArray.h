@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "Array.h"
-#include "BitArray.h"
+#include "Containers/Array.h"
+#include "Containers/BitArray.h"
 
 
 // Forward declarations.

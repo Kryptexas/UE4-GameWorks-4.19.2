@@ -4,7 +4,7 @@
 
 #include "BlueprintEditorModule.h"
 #include "BlueprintUtilities.h"
-
+#include "WorkflowOrientedApp/ApplicationMode.h"
 
 struct KISMET_API FBlueprintEditorApplicationModes
 {
@@ -41,7 +41,7 @@ private:
 class KISMET_API FBlueprintEditorApplicationMode : public FApplicationMode
 {
 public:
-	FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, const bool bRegisterViewport = true, const bool bRegisterDefaultsTab = true);
+	FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, FText(*GetLocalizedMode)(const FName), const bool bRegisterViewport = true, const bool bRegisterDefaultsTab = true);
 
 	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
 	virtual void PreDeactivateMode() override;
@@ -95,6 +95,8 @@ protected:
 
 	// Set of spawnable tabs in this mode
 	FWorkflowAllowedTabSet BlueprintComponentsTabFactories;
+
+	TArray<TWeakObjectPtr<UActorComponent>> CachedComponentSelection;
 };
 
 class KISMET_API FBlueprintInterfaceApplicationMode : public FApplicationMode

@@ -55,8 +55,8 @@ namespace Lightmass
 		*/
 		void Quantize(int32 DebugSampleIndex);
 
-		const FLightSample* GetData() { return Data.GetTypedData(); }
-		const FQuantizedLightSampleData* GetQuantizedData() { return QuantizedData.GetTypedData(); }
+		const FLightSample* GetData() { return Data.GetData(); }
+		const FQuantizedLightSampleData* GetQuantizedData() { return QuantizedData.GetData(); }
 
 		/**
 		 * Compresses the raw lightmap data to a buffer for writing over Swarm
@@ -129,8 +129,8 @@ namespace Lightmass
 
 		void Quantize(int32 DebugSampleIndex);
 
-		const FShadowSample* GetData() { return Data.GetTypedData(); }
-		const FQuantizedShadowSampleData* GetQuantizedData() { return QuantizedData.GetTypedData(); }
+		const FShadowSample* GetData() { return Data.GetData(); }
+		const FQuantizedShadowSampleData* GetQuantizedData() { return QuantizedData.GetData(); }
 
 		void Compress(int32 DebugSampleIndex);
 		uint8* GetCompressedData()
@@ -193,8 +193,8 @@ namespace Lightmass
 
 		void Quantize(int32 DebugSampleIndex);
 
-		const FSignedDistanceFieldShadowSample* GetData() { return Data.GetTypedData(); }
-		const FQuantizedSignedDistanceFieldShadowSampleData* GetQuantizedData() { return QuantizedData.GetTypedData(); }
+		const FSignedDistanceFieldShadowSample* GetData() { return Data.GetData(); }
+		const FQuantizedSignedDistanceFieldShadowSampleData* GetQuantizedData() { return QuantizedData.GetData(); }
 
 		void Compress(int32 DebugSampleIndex);
 		uint8* GetCompressedData()

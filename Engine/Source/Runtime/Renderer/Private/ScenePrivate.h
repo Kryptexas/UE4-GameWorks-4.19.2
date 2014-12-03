@@ -8,6 +8,7 @@
 #define __SCENEPRIVATE_H__
 
 class SceneRenderingAllocator;
+class USceneCaptureComponent;
 
 class SceneRenderingBitArrayAllocator
 	: public TInlineAllocator<4,SceneRenderingAllocator>
@@ -478,6 +479,9 @@ public:
 	FMatrix		PrevViewMatrixForOcclusionQuery;
 	FVector		PrevViewOriginForOcclusionQuery;
 
+	// A counter incremented once each time this view is rendered.
+	uint32 OcclusionFrameCounter;
+
 	/** Used by states that have IsViewParent() == true to store primitives for child states. */
 	TSet<FPrimitiveComponentId> ParentPrimitives;
 
@@ -523,6 +527,7 @@ public:
 	TRefCountPtr<IPooledRenderTarget> TemporalAAHistoryRT;
 	// Temporal AA result for DOF of last frame
 	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT;
+	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT2;
 	// Temporal AA result for SSR
 	TRefCountPtr<IPooledRenderTarget> SSRHistoryRT;
 	// Temporal AA result for light shafts of last frame
@@ -545,6 +550,7 @@ public:
 
 	// Is DOFHistoryRT set from Bokeh DOF?
 	bool bBokehDOFHistory;
+	bool bBokehDOFHistory2;
 
 	// call after SetupTemporalAA()
 	uint32 GetCurrentTemporalAASampleIndex() const
@@ -684,6 +690,7 @@ public:
 		SeparateTranslucencyRT.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();
+		DOFHistoryRT2.SafeRelease();
 		SSRHistoryRT.SafeRelease();
 		LightShaftOcclusionHistoryRT.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();
@@ -1281,8 +1288,8 @@ public:
 	TArray<class FWindSourceSceneProxy*> WindSources;
 
 	/** SpeedTree wind objects in the scene. FLocalVertexFactoryShaderParameters needs to lookup by FVertexFactory, but wind objects are per tree (i.e. per UStaticMesh)*/
-	TMap<UStaticMesh*, FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
-	TMap<FVertexFactory*, UStaticMesh*> SpeedTreeVertexFactoryMap;
+	TMap<const UStaticMesh*, FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
+	TMap<FVertexFactory*, const UStaticMesh*> SpeedTreeVertexFactoryMap;
 
 	/** The attachment groups in the scene.  The map key is the attachment group's root primitive. */
 	TMap<FPrimitiveComponentId,FAttachmentGroupSceneInfo> AttachmentGroups;
@@ -1314,7 +1321,7 @@ public:
 	TMap<FGuid, FUniformBufferRHIRef> ParameterCollections;
 
 	/** Initialization constructor. */
-	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, ERHIFeatureLevel::Type InFeatureLevel);
+	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel);
 
 	virtual ~FScene();
 
@@ -1355,8 +1362,9 @@ public:
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const;
 	virtual FVector4 GetWindParameters(const FVector& Position) const;
 	virtual FVector4 GetDirectionalWindParameters() const;
-	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh);
-	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh);
+	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
+	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
+	virtual void RemoveSpeedTreeWind_RenderThread(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
 	virtual void UpdateSpeedTreeWind(double CurrentTime);
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory);
 	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const;

@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_Variable::UK2Node_Variable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Variable::UK2Node_Variable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -60,6 +60,25 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UProperty* VariableProperty = GetPropertyForVariable();
+	// favor the skeleton property if possible (in case the property type has 
+	// been changed, and not yet compiled).
+	if (!VariableReference.IsSelfContext())
+	{
+		UClass* VariableClass = VariableReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
+		if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(VariableClass))
+		{
+			// this variable could currently only be a part of some skeleton 
+			// class (the blueprint has not be compiled with it yet), so let's 
+			// check the skeleton class as well, see if we can pull pin data 
+			// from there...
+			UBlueprint* VariableBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+			if (UProperty* SkelProperty = FindField<UProperty>(VariableBlueprint->SkeletonGeneratedClass, VariableReference.GetMemberName()))
+			{
+				VariableProperty = SkelProperty;
+			}
+		}
+	}
+
 	if (VariableProperty != NULL)
 	{
 		// Create the pin
@@ -82,24 +101,40 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 void UK2Node_Variable::CreatePinForSelf()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UClass* VariableClass = GetVariableSourceClass();
 	// Create the self pin
 	if (!K2Schema->FindSelfPin(*this, EGPD_Input))
 	{
 		// Do not create a self pin for locally scoped variables
 		if( !VariableReference.IsLocalScope() )
 		{
-			if (VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo))
+			bool bSelfTarget = VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo);
+			UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
+			UClass* TargetClass = nullptr;
+			
+			// Self Target pins should always make the class be the owning class of the property,
+			// so if the node is from a Macro Blueprint, it will hook up as self in any placed Blueprint
+			if(bSelfTarget)
 			{
-				UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
-				SelfPin->bHidden = true; // don't show in 'self' context
+				if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+				{
+					TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
+				}
+				else
+				{
+					TargetClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
+				}
 			}
 			else
 			{
-				UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
-				UClass* AuthoritativeClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
-				UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AuthoritativeClass, false, false, K2Schema->PN_Self);
-				TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+				TargetClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
+			}
+
+			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), TargetClass, false, false, K2Schema->PN_Self);
+			TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+
+			if (bSelfTarget)
+			{
+				TargetPin->bHidden = true; // don't show in 'self' context
 			}
 		}
 	}
@@ -298,7 +333,21 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 	{
 		if (!VariableReference.IsDeprecated())
 		{
-			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableNotFound", "Unable to find variable with name '%s' for @@").ToString(), *VariableReference.GetMemberName().ToString()), this);
+			FString OwnerName;
+
+			UBlueprint* Blueprint = GetBlueprint();
+			if (Blueprint != nullptr)
+			{
+				OwnerName = Blueprint->GetName();
+				if (UClass* VarOwnerClass = VariableReference.GetMemberParentClass(Blueprint->GeneratedClass))
+				{
+					OwnerName = VarOwnerClass->GetName();
+				}
+			}
+			FString const VarName = VariableReference.GetMemberName().ToString();
+
+			FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+			MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
 		}
 		else
 		{
@@ -516,6 +565,56 @@ FString UK2Node_Variable::GetDocumentationExcerptName() const
 	return GetVarName().ToString();
 }
 
+void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+
+	// Do some auto-connection
+	if (FromPin != NULL)
+	{
+		bool bConnected = false;
+		if(FromPin->Direction == EGPD_Output)
+		{
+			// If the source pin has a valid PinSubCategoryObject, we might be doing BP Comms, so check if it is a class
+			if(FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
+			{
+				UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+				if(VariableProperty)
+				{
+					UClass* PropertyOwner = VariableProperty->GetOwnerClass();
+					if (PropertyOwner != nullptr)
+					{
+						PropertyOwner = PropertyOwner->GetAuthoritativeClass();
+					}
+
+					// BP Comms is highly likely at this point, if the source pin's type is a child of the variable's owner class, let's conform the "Target" pin
+					if(FromPin->PinType.PinSubCategoryObject == PropertyOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(PropertyOwner))
+					{
+						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
+						TargetPin->PinType.PinSubCategoryObject = PropertyOwner;
+
+						if(K2Schema->TryCreateConnection(FromPin, TargetPin))
+						{
+							bConnected = true;
+
+							// Setup the VariableReference correctly since it may no longer be a self member
+							VariableReference.SetFromField<UProperty>(GetPropertyForVariable(), false);
+							TargetPin->bHidden = false;
+							FromPin->GetOwningNode()->NodeConnectionListChanged();
+							this->NodeConnectionListChanged();
+						}
+					}
+				}
+			}
+		}
+
+		if(!bConnected)
+		{
+			Super::AutowireNewNode(FromPin);
+		}
+	}
+}
+
 FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() const
 {
 	FName const& VarName = VariableReference.GetMemberName();
@@ -538,6 +637,24 @@ FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() con
 		}
 	}
 	return nullptr;
+}
+
+bool UK2Node_Variable::CanPasteHere(const UEdGraph* TargetGraph) const
+{
+	// Do not allow pasting of variables in BPs that cannot handle them
+	if ( FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph)->BlueprintType == BPTYPE_MacroLibrary && VariableReference.IsSelfContext() )
+	{
+		// Self variables must be from a parent class to the macro BP
+		if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+		{
+			const UClass* CurrentClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
+			const UClass* PropertyClass = Property->GetOwnerClass()->GetAuthoritativeClass();
+			const bool bIsChildOf = CurrentClass->IsChildOf(PropertyClass);
+			return bIsChildOf;
+		}
+		return false;
+	}
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

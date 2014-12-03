@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Decorators/BTDecorator_Loop.h"
 
-UBTDecorator_Loop::UBTDecorator_Loop(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_Loop::UBTDecorator_Loop(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Loop";
 	NumLoops = 3;
@@ -54,7 +54,7 @@ FString UBTDecorator_Loop::GetStaticDescription() const
 		FString::Printf(TEXT("%s: %d loops"), *Super::GetStaticDescription(), NumLoops);
 }
 
-void UBTDecorator_Loop::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_Loop::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

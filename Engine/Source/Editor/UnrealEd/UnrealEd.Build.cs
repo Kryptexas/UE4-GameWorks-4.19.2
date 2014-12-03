@@ -49,7 +49,8 @@ public class UnrealEd : ModuleRules
 				"ReferenceViewer",
                 "IntroTutorials",
                 "SuperSearch",
-				"OutputLog"
+				"OutputLog",
+				"Landscape"
 			}
 		);
 
@@ -61,6 +62,7 @@ public class UnrealEd : ModuleRules
 				"CoreUObject",
 				"Documentation",
 				"Engine",
+				"Json",
 				"Projects",
 				"SandboxFile",
 				"Slate",
@@ -83,17 +85,16 @@ public class UnrealEd : ModuleRules
 				"OnlineBlueprintSupport",
 				"DesktopPlatform",
 				"DirectoryWatcher",
-				"EditorSettingsViewer",
 				"EditorStyle",
 				"EngineSettings",
 				"InputCore",
 				"InputBindingEditor",
+				"Internationalization",
 				"LauncherAutomatedService",
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",
 				"NetworkFileSystem",
-				"ProjectSettingsViewer",
 				"PropertyEditor",
 				"Projects",
 				"RawMesh",
@@ -108,12 +109,13 @@ public class UnrealEd : ModuleRules
 				"SwarmInterface",
 				"TargetPlatform",
 				"TargetDeviceServices",
-				"VectorVM",
                 "EditorWidgets",
 				"GraphEditor",
 				"Kismet",
                 "InternationalizationSettings",
                 "JsonUtilities",
+				"Landscape",
+				"HeadMountedDisplay",
 			}
 		);
 
@@ -136,6 +138,7 @@ public class UnrealEd : ModuleRules
 				"CurveTableEditor",
 				"DataTableEditor",
 				"DestructibleMeshEditor",
+				"EditorSettingsViewer",
 				"LandscapeEditor",
 				"KismetCompiler",
 				"DetailCustomizations",
@@ -169,6 +172,7 @@ public class UnrealEd : ModuleRules
 				"NiagaraEditor",
 				"MeshUtilities",
 				"GameProjectGeneration",
+				"ProjectSettingsViewer",
 				"ProjectTargetPlatformEditor",
 				"PListEditor",
                 "Documentation",
@@ -183,8 +187,14 @@ public class UnrealEd : ModuleRules
 				"ReferenceViewer",
 				"EditorLiveStreaming",
 				"HotReload",
+                "IOSPlatformEditor"
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+		{
+			DynamicallyLoadedModuleNames.Add("AndroidPlatformEditor");
+		}
 
 		CircularlyReferencedDependentModules.AddRange(
 			new string[] 
@@ -203,6 +213,7 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
              	"CollectionManager",
 				"BlueprintGraph",
+				"NiagaraEditor",
 			}
 			);
 

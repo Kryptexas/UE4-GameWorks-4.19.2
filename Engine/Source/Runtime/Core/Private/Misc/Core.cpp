@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Core.cpp: Unreal core.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ModuleManager.h"
 
+
 #define LOCTEXT_NAMESPACE "Core"
+
 
 class FCoreModule : public FDefaultModuleImpl
 {
@@ -18,7 +16,10 @@ public:
 		return false;
 	}
 };
+
+
 IMPLEMENT_MODULE( FCoreModule, Core );
+
 
 /*-----------------------------------------------------------------------------
 	Global variables.
@@ -89,9 +90,6 @@ bool GIsReconstructingBlueprintInstances = false;
 /** Force blueprints to not compile on load */
 bool GForceDisableBlueprintCompileOnLoad = false;
 
-
-float					GVolumeMultiplier				= 1.0f;						/* Use to silence the app when it loses focus */
-
 #if WITH_EDITORONLY_DATA
 bool					GIsEditor						= false;					/* Whether engine was launched for editing */
 bool					GIsImportingT3D					= false;					/* Whether editor is importing T3D */
@@ -147,10 +145,10 @@ bool					GExitPurge						= false;
 /** Game name, used for base game directory and ini among other things										*/
 #if (!IS_MONOLITHIC && !IS_PROGRAM)
 // In modular game builds, the game name will be set when the application launches
-TCHAR					GGameName[64]					= TEXT("None");
+TCHAR					GInternalGameName[64]					= TEXT("None");
 #elif !IS_MONOLITHIC && IS_PROGRAM
 // In non-monolithic programs builds, the game name will be set by the module, but not just yet, so we need to NOT initialize it!
-TCHAR					GGameName[64];
+TCHAR					GInternalGameName[64];
 #else
 // For monolithic builds, the game name variable definition will be set by the IMPLEMENT_GAME_MODULE
 // macro for the game's main game module.

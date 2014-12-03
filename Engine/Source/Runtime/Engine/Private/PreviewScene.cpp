@@ -12,7 +12,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	: PreviewWorld(NULL)
 	, bForceAllUsedMipsResident(CVS.bForceMipsResident)
 {
-	PreviewWorld = new UWorld(FPostConstructInitializeProperties(),FURL(NULL));
+	PreviewWorld = new UWorld(FObjectInitializer(),FURL(NULL));
 	PreviewWorld->WorldType = EWorldType::Preview;
 	if (!CVS.bTransactional)
 	{

@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "WindowsApplication.h"
@@ -361,10 +361,27 @@ static void InitSHAHashes()
 	}
 }
 
+/**
+ *	Sets process memory limit using the job object, may fail under some situation like when Program Compatibility Assistant is enabled.
+ *	Debugging purpose only.
+ */
+static void SetProcessMemoryLimit( SIZE_T ProcessMemoryLimitMB )
+{
+	HANDLE JobObject = ::CreateJobObject(nullptr, TEXT("UE4-JobObject"));
+	JOBOBJECT_EXTENDED_LIMIT_INFORMATION JobLimitInfo = {0};
+	JobLimitInfo.ProcessMemoryLimit = 1024*1024*ProcessMemoryLimitMB;
+	JobLimitInfo.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY;
+	const BOOL bSetJob = ::SetInformationJobObject(JobObject,JobObjectExtendedLimitInformation,&JobLimitInfo,sizeof(JobLimitInfo));
 
+	const BOOL bAssign = ::AssignProcessToJobObject(JobObject, GetCurrentProcess());
+}
 
 void FWindowsPlatformMisc::PlatformPreInit()
 {
+	//SetProcessMemoryLimit( 92 );
+
+	FGenericPlatformMisc::PlatformPreInit();
+
 	// Use our own handler for pure virtuals being called.
 	DefaultPureCallHandler = _set_purecall_handler( PureCallHandler );
 
@@ -655,7 +672,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 				TCHAR AutoReportExe[] = TEXT("../../../Engine/Binaries/DotNET/AutoReporter.exe");
 
 				FString IniDumpPath;
-				if (GGameName[0])
+				if (!FApp::IsGameNameEmpty())
 				{
 					const TCHAR IniDumpFilename[] = TEXT("UnrealAutoReportIniDump");
 					IniDumpPath = FPaths::CreateTempFilename(*FPaths::GameLogDir(), IniDumpFilename, TEXT(".txt"));
@@ -678,10 +695,10 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 				{
 					LogDirectory += CommandlineLogFile;
 				}
-				else if (FCString::Strlen(GGameName) != 0)
+				else if (!FApp::IsGameNameEmpty())
 				{
 					// If the app name is defined, use it as the log filename
-					LogDirectory += FString::Printf(TEXT("%s.Log"), GGameName);
+					LogDirectory += FString::Printf(TEXT("%s.Log"), FApp::GetGameName());
 				}
 				else
 				{
@@ -784,8 +801,8 @@ void FWindowsPlatformMisc::PumpMessages(bool bFromMainLoop)
 		HadFocus = HasFocus;
 	}
 
-	// if its our window, allow sound, otherwise silence it
-	GVolumeMultiplier = HasFocus ? 1.0f : 0.0f;
+	// if its our window, allow sound, otherwise apply multiplier
+	FApp::SetVolumeMultiplier( HasFocus ? 1.0f : FApp::GetUnfocusedVolumeMultiplier() );
 }
 
 uint32 FWindowsPlatformMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
@@ -2175,7 +2192,16 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 
 void FWindowsPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
 {
-	FWindowsOSVersionHelper::GetOSVersions( out_OSVersionLabel, out_OSSubVersionLabel );
+	static FString OSVersionLabel;
+	static FString OSSubVersionLabel;
+
+	if( OSVersionLabel.IsEmpty() && OSSubVersionLabel.IsEmpty() )
+	{
+		FWindowsOSVersionHelper::GetOSVersions( OSVersionLabel, OSSubVersionLabel );
+	}
+
+	out_OSVersionLabel = OSVersionLabel;
+	out_OSSubVersionLabel = OSSubVersionLabel;
 }
 
 

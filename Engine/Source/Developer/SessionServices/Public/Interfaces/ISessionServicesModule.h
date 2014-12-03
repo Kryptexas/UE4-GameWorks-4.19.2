@@ -16,19 +16,17 @@ public:
 	 *
 	 * @return The session manager.
 	 */
-	virtual ISessionManagerRef GetSessionManager( ) = 0;
+	virtual ISessionManagerRef GetSessionManager() = 0;
 
 	/** 
 	 * Gets the session service.
 	 *
 	 * @return The session service.
 	 */
-	virtual ISessionServiceRef GetSessionService( ) = 0;
+	virtual ISessionServiceRef GetSessionService() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISessionServicesModule( ) { }
+	/** Virtual destructor. */
+	virtual ~ISessionServicesModule() { }
 };

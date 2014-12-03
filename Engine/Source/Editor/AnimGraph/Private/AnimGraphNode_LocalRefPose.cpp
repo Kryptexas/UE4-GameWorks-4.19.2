@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_LocalRefPose::UAnimGraphNode_LocalRefPose(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_LocalRefPose::UAnimGraphNode_LocalRefPose(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Node.RefPoseType = EIT_LocalSpace;
 }

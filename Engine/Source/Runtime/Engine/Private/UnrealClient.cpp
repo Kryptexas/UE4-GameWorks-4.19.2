@@ -2,6 +2,8 @@
 
 
 #include "EnginePrivate.h"
+#include "Components/PostProcessComponent.h"
+#include "Engine/Font.h"
 #include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"
 #include "RenderCore.h"
@@ -10,13 +12,14 @@
 #include "../../Renderer/Private/ScenePrivate.h"
 #include "HighResScreenshot.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SNotificationList.h"
 #include "Engine/PostProcessVolume.h"
 #include "EngineModule.h"
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "SceneUtils.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 
@@ -143,7 +146,7 @@ bool FRenderTarget::ReadFloat16Pixels(FFloat16Color* OutImageData,ECubeFace Cube
 	const int32 ImageHeight = GetSizeXY().Y;
 	for (int32 Y = 0; Y < ImageHeight; Y++)
 	{
-		FFloat16Color* SourceData = (FFloat16Color*)SurfaceData.GetTypedData() + Y * ImageWidth;
+		FFloat16Color* SourceData = (FFloat16Color*)SurfaceData.GetData() + Y * ImageWidth;
 		for (int32 X = 0; X < ImageWidth; X++)
 		{
 			OutImageColors[ Y * ImageWidth + X ] = SourceData[X];
@@ -205,11 +208,11 @@ void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInS
 }
 
 
-void FScreenshotRequest::RequestScreenshot( bool bInShowUI )
+void FScreenshotRequest::RequestScreenshot( bool bInShowUI, const FString& InExtension )
 {
 	FString NewFilename;
 	CreateViewportScreenShotFilename( NewFilename );
-	FFileHelper::GenerateNextBitmapFilename(*NewFilename, Filename);
+	FFileHelper::GenerateNextBitmapFilename(NewFilename, InExtension, Filename);
 
 	bShowUI = bInShowUI;
 }
@@ -290,18 +293,15 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	/** Number of milliseconds the gamethread was used last frame. */
 	RawGameThreadTime = FPlatformTime::ToMilliseconds(GGameThreadTime);
 	GameThreadTime = 0.9 * GameThreadTime + 0.1 * RawGameThreadTime;
-	appSetCounterValue(TEXT("Game thread time"), FPlatformTime::ToMilliseconds(GGameThreadTime));
 
 	/** Number of milliseconds the renderthread was used last frame. */
 	RawRenderThreadTime = FPlatformTime::ToMilliseconds(GRenderThreadTime);
 	RenderThreadTime = 0.9 * RenderThreadTime + 0.1 * RawRenderThreadTime;
-	appSetCounterValue(TEXT("Render thread time"), FPlatformTime::ToMilliseconds(GRenderThreadTime));
 
 	/** Number of milliseconds the GPU was busy last frame. */
 	const uint32 GPUCycles = RHIGetGPUFrameCycles();
 	RawGPUFrameTime = FPlatformTime::ToMilliseconds(GPUCycles);
 	GPUFrameTime = 0.9 * GPUFrameTime + 0.1 * RawGPUFrameTime;
-	appSetCounterValue(TEXT("GPU time"), FPlatformTime::ToMilliseconds(GPUCycles));
 
 	SET_FLOAT_STAT(STAT_FPSChart_UnitFrame, FrameTime);
 	SET_FLOAT_STAT(STAT_FPSChart_UnitRender, RenderThreadTime);
@@ -684,67 +684,6 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	bIsPlayInEditorViewport = false;
 }
 
-// todo: this should be refactored
-class FDummyViewport : public FViewport
-{
-public:
-	FDummyViewport(FViewportClient* InViewportClient)
-		: FViewport(InViewportClient)
-		, DebugCanvas(this, NULL, InViewportClient->GetWorld(), InViewportClient->GetWorld()->FeatureLevel)
-	{
-		DebugCanvas.SetAllowedModes(0);
-	}
-
-	// Begin FViewport interface
-	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override
-	{
-		check( IsInRenderingThread() );
-		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
-	};
-
-	virtual void EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync) override
-	{
-		check( IsInRenderingThread() );
-	}
-
-	virtual void*	GetWindow() { return 0; }
-	virtual void	MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) {}
-	virtual void	Destroy() {}
-	virtual bool	CaptureJoystickInput(bool Capture) { return false; }
-	virtual bool	KeyState(FKey Key) const { return false; }
-	virtual int32	GetMouseX() const { return 0; }
-	virtual int32	GetMouseY() const { return 0; }
-	virtual void	GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) { MousePosition = FIntPoint(0, 0); }
-	virtual void	SetMouse(int32 x, int32 y) { }
-	virtual void	ProcessInput( float DeltaTime ) { }
-	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override { return FVector2D::ZeroVector; }
-	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override { return FIntPoint::ZeroValue; }
-	virtual void InvalidateDisplay() { }
-	virtual void DeferInvalidateHitProxy() { }
-	virtual FViewportFrame* GetViewportFrame() { return 0; }
-	virtual FCanvas* GetDebugCanvas() { return &DebugCanvas; }
-	// End FViewport interface
-
-	// Begin FRenderResource interface
-	virtual void InitDynamicRHI()
-	{
-		FTexture2DRHIRef ShaderResourceTextureRHI;
-
-		FRHIResourceCreateInfo CreateInfo;
-		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
-	}
-
-	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource
-	virtual void InitRHI() override{}
-	virtual void ReleaseRHI() override{}
-	virtual void InitResource() override{ FViewport::InitResource(); }
-	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
-	virtual FString GetFriendlyName() const { return FString(TEXT("FDummyViewport"));}
-	// End FRenderResource interface
-private:
-	FCanvas DebugCanvas;
-};
-
 bool FViewport::TakeHighResScreenShot()
 {
 	if( GScreenshotResolutionX == 0 && GScreenshotResolutionY == 0 )
@@ -851,7 +790,8 @@ void FViewport::HighResScreenshot()
 		}, HyperLinkText);
 		Info.HyperlinkText = FText::FromString(HyperLinkText);
 		
-		FSlateNotificationManager::Get().AddNotification(Info); 
+		FSlateNotificationManager::Get().AddNotification(Info);
+		UE_LOG(LogClient, Log, TEXT("%s %s"), *Message.ToString(), *HyperLinkText);
 	}
 }
 
@@ -1032,7 +972,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 			if( GIsHighResScreenshot || bTakeHighResScreenShot )
 			{
 				bool bShowUI = false;
-				FScreenshotRequest::RequestScreenshot( bShowUI );
+				FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
 				GIsHighResScreenshot = true;
 				GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 				GAreScreenMessagesEnabled = false;
@@ -1072,7 +1012,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				}
 
 				auto World = ViewportClient->GetWorld();
-				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GRHIFeatureLevel);
+				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
 				{
 					// Make sure the Canvas is not rendered upside down
 					Canvas.SetAllowSwitchVerticalAxis(false);
@@ -1178,7 +1118,7 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 
 		// Let the viewport client draw its hit proxies.
 		auto World = ViewportClient->GetWorld();
-		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GRHIFeatureLevel);
+		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
 		{
 			ViewportClient->Draw(this, &Canvas);
 		}
@@ -1660,6 +1600,10 @@ ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, u
 
 		return true;
 	}
+	else
+	{
+		Ar.Logf(TEXT("Error: Bad input. Input should be in either the form \"HighResShot 1920x1080\" or \"HighResShot 2\""));
+	}
 
 	return false;
 }
@@ -1680,4 +1624,28 @@ void FCommonViewportClient::DrawHighResScreenshotCaptureRegion(FCanvas& Canvas)
 	LineItem.Draw( &Canvas, FVector2D(Config.UnscaledCaptureRegion.Max.X, Config.UnscaledCaptureRegion.Min.Y), FVector2D(Config.UnscaledCaptureRegion.Max.X, Config.UnscaledCaptureRegion.Max.Y));
 	LineItem.Draw( &Canvas, FVector2D(Config.UnscaledCaptureRegion.Max.X, Config.UnscaledCaptureRegion.Max.Y), FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Max.Y));
 	LineItem.Draw( &Canvas, FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Max.Y), FVector2D(Config.UnscaledCaptureRegion.Min.X, Config.UnscaledCaptureRegion.Min.Y));
+}
+
+
+/**
+ * FDummyViewport
+ */
+
+FDummyViewport::FDummyViewport(FViewportClient* InViewportClient)
+	: FViewport(InViewportClient)
+	, DebugCanvas(NULL)
+{
+	UWorld* CurWorld = (InViewportClient != NULL ? InViewportClient->GetWorld() : NULL);
+	DebugCanvas = new FCanvas(this, NULL, CurWorld, (CurWorld != NULL ? CurWorld->FeatureLevel : GMaxRHIFeatureLevel));
+		
+	DebugCanvas->SetAllowedModes(0);
+}
+
+FDummyViewport::~FDummyViewport()
+{
+	if (DebugCanvas != NULL)
+	{
+		delete DebugCanvas;
+		DebugCanvas = NULL;
+	}
 }

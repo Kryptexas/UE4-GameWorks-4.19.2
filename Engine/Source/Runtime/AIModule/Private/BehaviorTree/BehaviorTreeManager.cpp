@@ -17,7 +17,7 @@ DEFINE_STAT(STAT_AI_BehaviorTree_NumTemplates);
 DEFINE_STAT(STAT_AI_BehaviorTree_NumInstances);
 DEFINE_STAT(STAT_AI_BehaviorTree_InstanceMemory);
 
-UBehaviorTreeManager::UBehaviorTreeManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeManager::UBehaviorTreeManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MaxDebuggerSteps = 100;
 }
@@ -75,7 +75,7 @@ struct FNodeInitializationData
 
 static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 	uint8 TreeDepth, uint16& ExecutionIndex, TArray<FNodeInitializationData>& InitList,
-	class UBehaviorTree* TreeAsset, UObject* NodeOuter)
+	UBehaviorTree& TreeAsset, UObject* NodeOuter)
 {
 	// special case: subtrees
 	UBTTask_RunBehavior* SubtreeTask = Cast<UBTTask_RunBehavior>(NodeOb);
@@ -96,7 +96,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			if (CompositeOb->Services[ServiceIndex] == NULL)
 			{
 				UE_LOG(LogBehaviorTree, Warning, TEXT("%s has missing service node! (parent: %s)"),
-					*GetNameSafe(TreeAsset), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb));
+					*TreeAsset.GetName(), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb));
 
 				CompositeOb->Services.RemoveAt(ServiceIndex, 1, false);
 				ServiceIndex--;
@@ -121,7 +121,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 				if (ChildInfo.Decorators[DecoratorIndex] == NULL)
 				{
 					UE_LOG(LogBehaviorTree, Warning, TEXT("%s has missing decorator node! (parent: %s, branch: %d)"),
-						*GetNameSafe(TreeAsset), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb), ChildIndex);
+						*TreeAsset.GetName(), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb), ChildIndex);
 
 					ChildInfo.Decorators.RemoveAt(DecoratorIndex, 1, false);
 					DecoratorIndex--;
@@ -158,18 +158,18 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			}
 		}
 
-		CompositeOb->InitializeComposite(InitList.Num() - 1);
+		CompositeOb->InitializeComposite(ExecutionIndex - 1);
 	}
 }
 
-bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode*& Root, uint16& InstanceMemorySize)
+bool UBehaviorTreeManager::LoadTree(UBehaviorTree& Asset, UBTCompositeNode*& Root, uint16& InstanceMemorySize)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_LoadTime);
 
 	for (int32 TemplateIndex = 0; TemplateIndex < LoadedTemplates.Num(); TemplateIndex++)
 	{
 		FBehaviorTreeTemplateInfo& TemplateInfo = LoadedTemplates[TemplateIndex];
-		if (TemplateInfo.Asset == Asset)
+		if (TemplateInfo.Asset == &Asset)
 		{
 			Root = TemplateInfo.Template;
 			InstanceMemorySize = TemplateInfo.InstanceMemorySize;
@@ -177,11 +177,11 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 		}
 	}
 
-	if (Asset->RootNode)
+	if (Asset.RootNode)
 	{
 		FBehaviorTreeTemplateInfo TemplateInfo;
-		TemplateInfo.Asset = Asset;
-		TemplateInfo.Template = Cast<UBTCompositeNode>(StaticDuplicateObject(Asset->RootNode, this, TEXT("None")));
+		TemplateInfo.Asset = &Asset;
+		TemplateInfo.Template = Cast<UBTCompositeNode>(StaticDuplicateObject(Asset.RootNode, this, TEXT("None")));
 
 		TArray<FNodeInitializationData> InitList;
 		uint16 ExecutionIndex = 0;
@@ -359,7 +359,7 @@ void UBehaviorTreeManager::DumpUsageStats() const
 		AllNodesCounter.Append(TreeNodeCounter);
 	}
 	
-	UE_LOG(LogBehaviorTree, Display, TEXT("--- Total Nodes class usage:"));
+	UE_LOG(LogBehaviorTree, Display, TEXT("--- Total Nodes usage:"));
 	AllNodesCounter.Print(TEXT(","));
 }
 

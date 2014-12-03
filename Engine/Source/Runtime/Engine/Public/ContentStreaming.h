@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Audio.h"
+
 /*-----------------------------------------------------------------------------
 	Stats.
 -----------------------------------------------------------------------------*/
@@ -63,6 +65,7 @@ class UActorComponent;
 class UPrimitiveComponent;
 class AActor;
 class UTexture2D;
+class FSoundSource;
 template<typename T>
 class FAsyncTask;
 struct FStreamingManagerTexture;

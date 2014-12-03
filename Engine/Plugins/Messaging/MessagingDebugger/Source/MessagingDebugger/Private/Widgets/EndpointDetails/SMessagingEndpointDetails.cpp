@@ -60,10 +60,10 @@ void SMessagingEndpointDetails::Construct( const FArguments& InArgs, const FMess
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
-			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// address list
@@ -77,7 +77,7 @@ void SMessagingEndpointDetails::Construct( const FArguments& InArgs, const FMess
 								SNew(SHeaderRow)
 
 								+ SHeaderRow::Column("Address")
-									.DefaultLabel(FText::FromString(TEXT("Endpoint Address")))
+									.DefaultLabel(FText::FromString(TEXT("Addresses")))
 									.FillWidth(1.0f)
 
 								+ SHeaderRow::Column("TimeRegistered")
@@ -110,7 +110,7 @@ void SMessagingEndpointDetails::Tick( const FGeometry& AllottedGeometry, const d
 /* SMessagingMessageDetails implementation
  *****************************************************************************/
 
-void SMessagingEndpointDetails::RefreshAddressInfo( )
+void SMessagingEndpointDetails::RefreshAddressInfo()
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 
@@ -138,7 +138,7 @@ TSharedRef<ITableRow> SMessagingEndpointDetails::HandleAddressListGenerateRow( F
 }
 
 
-FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText( ) const
+FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText() const
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 
@@ -151,7 +151,7 @@ FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText( ) 
 }
 
 
-FString SMessagingEndpointDetails::HandleEndpointDetailsSentMessagesText( ) const
+FString SMessagingEndpointDetails::HandleEndpointDetailsSentMessagesText() const
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 

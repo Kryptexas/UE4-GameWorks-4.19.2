@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeAmbient implementation.
 -----------------------------------------------------------------------------*/
-UDEPRECATED_SoundNodeAmbient::UDEPRECATED_SoundNodeAmbient(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_SoundNodeAmbient::UDEPRECATED_SoundNodeAmbient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAttenuate = true;
 	bSpatialize = true;

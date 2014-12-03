@@ -6,10 +6,11 @@
 #include "DetailPropertyRow.h"
 #include "DetailItemNode.h"
 
-FDetailGroup::FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName )
+FDetailGroup::FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName, const bool bInStartExpanded )
 	: ParentCategory( InParentCategory )
 	, LocalizedDisplayName( InLocalizedDisplayName )
 	, GroupName( InGroupName )
+	, bStartExpanded( bInStartExpanded )
 {
 
 }

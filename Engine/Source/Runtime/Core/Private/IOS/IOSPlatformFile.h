@@ -28,6 +28,7 @@ public:
 	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override;
 	virtual void SetTimeStamp(const TCHAR* Filename, const FDateTime DateTime) override;
 	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override;
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override;
 
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
 	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override;

@@ -67,7 +67,7 @@ struct FListener
 	struct FInteriorSettings InteriorSettings;
 
 	/** The volume the listener resides in */
-	class AReverbVolume* Volume;
+	class AAudioVolume* Volume;
 
 	/** The times of interior volumes fading in and out */
 	double InteriorStartTime;
@@ -97,7 +97,7 @@ struct FListener
 	/** 
 	 * Apply the interior settings to ambient sounds
 	 */
-	void ApplyInteriorSettings( class AReverbVolume* Volume, const FInteriorSettings& Settings );
+	void ApplyInteriorSettings( class AAudioVolume* Volume, const FInteriorSettings& Settings );
 
 	FListener()
 		: Transform(FTransform::Identity)
@@ -327,17 +327,17 @@ public:
 	 * @param   ListenerIndex		The index of the listener
 	 * @param   ListenerTransform   The listener's world transform
 	 * @param   DeltaSeconds		The amount of time over which velocity should be calculated.  If 0, then velocity will not be calculated.
-	 * @param   Volume				The reverb volume this listener is in
+	 * @param   Volume				The audio volume this listener is in
 	 * @param	ReverbSettings		The reverb settings for this user to use.
 	 * @param	InteriorSettings	The interior settings for this user to use.
 	 */
-	void SetListener( const int32 InListenerIndex, const FTransform& ListenerTransform, const float InDeltaSeconds, class AReverbVolume* Volume, const FInteriorSettings& InteriorSettings );
+	void SetListener( const int32 InListenerIndex, const FTransform& ListenerTransform, const float InDeltaSeconds, class AAudioVolume* Volume, const FInteriorSettings& InteriorSettings );
 
 	/**
 	 * Starts a transition to new reverb and interior settings
 	 *
 	 */
-	void SetReverbSettings( class AReverbVolume* Volume, const FReverbSettings& ReverbSettings );
+	void SetReverbSettings( class AAudioVolume* Volume, const FReverbSettings& ReverbSettings );
 
 	/**
 	 * Creates an audio component to handle playing a sound cue
@@ -500,7 +500,7 @@ public:
 
 	const TArray<FActiveSound*>& GetActiveSounds() const { return ActiveSounds; }
 
-	/* When the set of Reverb volumes have changed invalidate the cached values of active sounds */
+	/* When the set of Audio volumes have changed invalidate the cached values of active sounds */
 	void InvalidateCachedInteriorVolumes() const;
 
     /** Suspend any context related objects */
@@ -775,7 +775,7 @@ public:
 	class FAudioEffectsManager*						Effects;
 
 	/** The volume the listener resides in */
-	const class AReverbVolume*						CurrentReverbVolume;
+	const class AAudioVolume*						CurrentAudioVolume;
 
 	/** Reverb Effects activated without volumes */
 	TMap<FName, FActivatedReverb>					ActivatedReverbs;

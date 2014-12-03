@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationTestTreeView.h: Declares the SAutomationTestTreeView class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Implements the automation test tree view.  Same slate interface as STreeView but adds the ability to clear the internal widget cache.
@@ -125,7 +122,7 @@ public:
 			else
 			{
 				// Make the TableView
-				this->ConstructChildren( 0, InArgs._ItemHeight, InArgs._HeaderRow, InArgs._ExternalScrollbar );
+				this->ConstructChildren( 0, InArgs._ItemHeight, EListItemAlignment::LeftAligned, InArgs._HeaderRow, InArgs._ExternalScrollbar );
 			}
 		}
 

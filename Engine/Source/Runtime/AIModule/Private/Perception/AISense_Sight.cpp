@@ -43,8 +43,8 @@ FAISightTarget::FAISightTarget(AActor* InTarget, FGenericTeamId InTeamId)
 //----------------------------------------------------------------------//
 // UAISense_Sight
 //----------------------------------------------------------------------//
-UAISense_Sight::UAISense_Sight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, MaxTracesPerTick(DefaultMaxTracesPerTick)
 	, HighImportanceQueryDistanceThreshold(300.f)
 	, MaxQueryImportance(60.f)
@@ -93,7 +93,7 @@ float UAISense_Sight::Update()
 
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 
-	FAISightQuery* SightQuery = SightQueryQueue.GetTypedData();
+	FAISightQuery* SightQuery = SightQueryQueue.GetData();
 	for (int32 QueryIndex = 0; QueryIndex < SightQueryQueue.Num(); ++QueryIndex, ++SightQuery)
 	{
 		if (TracesCount < MaxTracesPerTick)
@@ -243,7 +243,7 @@ void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostPr
 		FAISightTarget NewSightTarget(&TargetActor);
 
 		SightTarget = &(ObservedTargets.Add(NewSightTarget.TargetId, NewSightTarget));
-		SightTarget->SightTargetInterface = InterfaceCast<IAISightTargetInterface>(&TargetActor);
+		SightTarget->SightTargetInterface = Cast<IAISightTargetInterface>(&TargetActor);
 	}
 
 	// set/update data

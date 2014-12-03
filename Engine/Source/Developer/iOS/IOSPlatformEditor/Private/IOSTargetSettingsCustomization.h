@@ -34,6 +34,11 @@ private:
 	// Is the manifest writable?
 	TAttribute<bool> SetupForPlatformAttribute;
 
+	bool bProvisionInstalled;
+	bool bCertificateInstalled;
+
+	TSharedPtr<FMonitoredProcess> IPPProcess;
+
 private:
 	FIOSTargetSettingsCustomization();
 
@@ -51,4 +56,25 @@ private:
 
 	// Builds an image row
 	void BuildImageRow(class IDetailLayoutBuilder& DetailLayout, class IDetailCategoryBuilder& Category, const struct FPlatformIconInfo& Info, const FVector2D& MaxDisplaySize);
+
+	// Install the provision
+ 	FReply OnInstallProvisionClicked();
+
+	// Install the provision
+	FReply OnInstallCertificateClicked();
+
+	// certificate request
+	FReply OnCertificateRequestClicked();
+
+	// Get the image to display for the provision status
+	const FSlateBrush* GetProvisionStatus() const;
+
+	// Get the image to display for the certificate status
+	const FSlateBrush* GetCertificateStatus() const;
+
+	// Update the provision status
+	void UpdateStatus();
+
+	// status tick delay
+	bool UpdateStatusDelegate(float delay);
 };

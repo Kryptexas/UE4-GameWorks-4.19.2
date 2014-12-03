@@ -17,6 +17,7 @@
 #include "SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
 #include "SColorPicker.h"
+#include "SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SDetailsView"
@@ -35,17 +36,13 @@ SDetailsView::~SDetailsView()
 void SDetailsView::Construct(const FArguments& InArgs)
 {
 	DetailsViewArgs = InArgs._DetailsViewArgs;
-	bHasActiveFilter = false;
-	bIsLocked = false;
 	bViewingClassDefaultObject = false;
-	bHasOpenColorPicker = false;
 
 	// Create the root property now
 	RootPropertyNode = MakeShareable( new FObjectPropertyNode );
 		
 	PropertyUtilities = MakeShareable( new FPropertyDetailsUtilities( *this ) );
 	
-	ColumnWidth = 0.65f;
 	ColumnSizeData.LeftColumnWidth = TAttribute<float>( this, &SDetailsView::OnGetLeftColumnWidth );
 	ColumnSizeData.RightColumnWidth = TAttribute<float>( this, &SDetailsView::OnGetRightColumnWidth );
 	ColumnSizeData.OnWidthChanged = SSplitter::FOnSlotResized::CreateSP( this, &SDetailsView::OnSetColumnWidth );

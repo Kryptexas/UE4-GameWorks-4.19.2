@@ -1,5 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
@@ -17,7 +17,7 @@
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
-#include "glsl/ir_gen_glsl.h"
+#include "GlslBackend.h"
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 	#include <GL/glcorearb.h>
@@ -1361,8 +1361,8 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 
 					RawCompileLog.Empty(LogLength);
 					RawCompileLog.AddZeroed(LogLength);
-					glGetShaderInfoLog(Shader, LogLength, /*OutLength=*/ NULL, RawCompileLog.GetTypedData());
-					CompileLog = ANSI_TO_TCHAR(RawCompileLog.GetTypedData());
+					glGetShaderInfoLog(Shader, LogLength, /*OutLength=*/ NULL, RawCompileLog.GetData());
+					CompileLog = ANSI_TO_TCHAR(RawCompileLog.GetData());
 					CompileLog.ParseIntoArray(&LogLines, TEXT("\n"), true);
 
 					for (int32 Line = 0; Line < LogLines.Num(); ++Line)
@@ -1376,7 +1376,7 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 						NewError->StrippedErrorMessage = FString::Printf(
 							TEXT("GLSL source:\n%sGL compile log: %s\n"),
 							ANSI_TO_TCHAR(ShaderSource),
-							ANSI_TO_TCHAR(RawCompileLog.GetTypedData())
+							ANSI_TO_TCHAR(RawCompileLog.GetData())
 							);
 					}
 				}

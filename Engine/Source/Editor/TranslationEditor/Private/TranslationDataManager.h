@@ -7,8 +7,8 @@ class FInternationalizationArchive;
 class FInternationalizationManifest;
 class UTranslationUnit;
 
-#include "InternationalizationArchiveJsonSerializer.h"
-#include "InternationalizationManifestJsonSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
 
 class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 {
@@ -94,9 +94,9 @@ private:
 	TArray<UTranslationUnit*> ChangedOnImport;
 
 	/** Serializes and deserializes our Archive */
-	FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+	FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 	/** Serializes and deserializes Manifests */
-	FInternationalizationManifestJsonSerializer ManifestSerializer;
+	FJsonInternationalizationManifestSerializer ManifestSerializer;
 
 	/** Archive for the current project and translation language */
 	TSharedPtr< FInternationalizationArchive > ArchivePtr;
@@ -119,5 +119,3 @@ private:
 	/** Files that are already checked out from Perforce **/
 	TArray<FString> CheckedOutFiles;
 };
-
-

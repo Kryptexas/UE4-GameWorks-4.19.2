@@ -7,8 +7,8 @@
 #include "MovieScene2DTransformTrackInstance.h"
 #include "MovieSceneCommonHelpers.h"
 
-UMovieScene2DTransformTrack::UMovieScene2DTransformTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieScene2DTransformTrack::UMovieScene2DTransformTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

@@ -120,11 +120,17 @@ public:
 				Context.GotoFixupRequestMap.Add(&NextExecutionState, OutputPins[0]);
 			}
 		}
+		else
+		{
+			FBlueprintCompiledStatement& NextExecutionState = Context.AppendStatementForNode(Node);
+			NextExecutionState.Type = KCST_EndOfThread;
+			CompilerContext.MessageLog.Warning(*LOCTEXT("NoValidOutput_Warning", "@@ has no valid output").ToString(), Node);
+		}
 	}
 };
 
-UK2Node_ExecutionSequence::UK2Node_ExecutionSequence(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ExecutionSequence::UK2Node_ExecutionSequence(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

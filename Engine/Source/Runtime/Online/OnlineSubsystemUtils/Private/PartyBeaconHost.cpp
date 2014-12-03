@@ -2,8 +2,8 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 
-APartyBeaconHost::APartyBeaconHost(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	State(NULL)
 {
 	BeaconTypeName = TEXT("PartyBeacon");
@@ -124,7 +124,7 @@ void APartyBeaconHost::Tick(float DeltaTime)
 								bIsSessionOwner)
 							{
 								FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
-								int32 FoundIdx = State->PlayersPendingJoin.FindMatch(PlayerMatch);
+								int32 FoundIdx = State->PlayersPendingJoin.IndexOfByPredicate(PlayerMatch);
 								if (FoundIdx != INDEX_NONE)
 								{
 									UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): pending player %s found in session (%s)."),
@@ -145,7 +145,7 @@ void APartyBeaconHost::Tick(float DeltaTime)
 
 								// if the player is pending it's initial join then check against TravelSessionTimeoutSecs instead
 								FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
-								int32 FoundIdx = State->PlayersPendingJoin.FindMatch(PlayerMatch);
+								int32 FoundIdx = State->PlayersPendingJoin.IndexOfByPredicate(PlayerMatch);
 								const bool bIsPlayerPendingJoin = FoundIdx != INDEX_NONE;
 								// if the timeout has been exceeded then add to list of players 
 								// that need to be logged out from the beacon

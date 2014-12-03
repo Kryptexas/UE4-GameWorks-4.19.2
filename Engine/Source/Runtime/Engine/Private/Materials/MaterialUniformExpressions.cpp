@@ -240,6 +240,12 @@ void FUniformExpressionSet::CreateBufferStruct()
 		NextMemberOffset += 8;
 	}
 
+	new(Members) FUniformBufferStruct::FMember(TEXT("Wrap_WorldGroupSettings"),TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
+	NextMemberOffset += 8;
+
+	new(Members) FUniformBufferStruct::FMember(TEXT("Clamp_WorldGroupSettings"),TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
+	NextMemberOffset += 8;
+
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 	UniformBufferStruct = new FUniformBufferStruct(
 		TEXT("MaterialUniforms"),
@@ -291,11 +297,23 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 		for(int32 ExpressionIndex = 0;ExpressionIndex < Uniform2DTextureExpressions.Num();ExpressionIndex++)
 		{
 			const UTexture* Value;
-			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
+			ESamplerSourceMode SourceMode;
+			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value,SourceMode);
 			if(Value && Value->Resource)
 			{
 				*ResourceTable++ = Value->TextureReference.TextureReferenceRHI;
-				*ResourceTable++ = Value->Resource->SamplerStateRHI;
+				FSamplerStateRHIRef* SamplerSource = &Value->Resource->SamplerStateRHI;
+
+				if (SourceMode == SSM_Wrap_WorldGroupSettings)
+				{
+					SamplerSource = &Wrap_WorldGroupSettings->SamplerStateRHI;
+				}
+				else if (SourceMode == SSM_Clamp_WorldGroupSettings)
+				{
+					SamplerSource = &Clamp_WorldGroupSettings->SamplerStateRHI;
+				}
+
+				*ResourceTable++ = *SamplerSource;
 			}
 			else
 			{
@@ -308,11 +326,23 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 		for(int32 ExpressionIndex = 0;ExpressionIndex < UniformCubeTextureExpressions.Num();ExpressionIndex++)
 		{
 			const UTexture* Value;
-			UniformCubeTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
+			ESamplerSourceMode SourceMode;
+			UniformCubeTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value,SourceMode);
 			if(Value && Value->Resource)
 			{
 				*ResourceTable++ = Value->TextureReference.TextureReferenceRHI;
-				*ResourceTable++ = Value->Resource->SamplerStateRHI;
+				FSamplerStateRHIRef* SamplerSource = &Value->Resource->SamplerStateRHI;
+
+				if (SourceMode == SSM_Wrap_WorldGroupSettings)
+				{
+					SamplerSource = &Wrap_WorldGroupSettings->SamplerStateRHI;
+				}
+				else if (SourceMode == SSM_Clamp_WorldGroupSettings)
+				{
+					SamplerSource = &Clamp_WorldGroupSettings->SamplerStateRHI;
+				}
+
+				*ResourceTable++ = *SamplerSource;
 			}
 			else
 			{
@@ -320,6 +350,10 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
 			}
 		}
+
+		*ResourceTable++ = Wrap_WorldGroupSettings->SamplerStateRHI;
+		*ResourceTable++ = Clamp_WorldGroupSettings->SamplerStateRHI;
+
 		if (CommandListIfLocalMode)
 		{
 			check(OutLocalUniformBuffer);
@@ -338,12 +372,14 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 
 FMaterialUniformExpressionTexture::FMaterialUniformExpressionTexture() :
 	TextureIndex(INDEX_NONE),
+	SamplerSource(SSM_FromTextureAsset),
 	TransientOverrideValue_GameThread(NULL),
 	TransientOverrideValue_RenderThread(NULL)
 {}
 
-FMaterialUniformExpressionTexture::FMaterialUniformExpressionTexture(int32 InTextureIndex) :
+FMaterialUniformExpressionTexture::FMaterialUniformExpressionTexture(int32 InTextureIndex, ESamplerSourceMode InSamplerSource) :
 	TextureIndex(InTextureIndex),
+	SamplerSource(InSamplerSource),
 	TransientOverrideValue_GameThread(NULL),
 	TransientOverrideValue_RenderThread(NULL)
 {
@@ -351,7 +387,9 @@ FMaterialUniformExpressionTexture::FMaterialUniformExpressionTexture(int32 InTex
 
 void FMaterialUniformExpressionTexture::Serialize(FArchive& Ar)
 {
-	Ar << TextureIndex;
+	int32 SamplerSourceInt = (int32)SamplerSource;
+	Ar << TextureIndex << SamplerSourceInt;
+	SamplerSource = (ESamplerSourceMode)SamplerSourceInt;
 }
 
 void FMaterialUniformExpressionTexture::SetTransientOverrideTextureValue( UTexture* InOverrideTexture )
@@ -365,9 +403,10 @@ void FMaterialUniformExpressionTexture::SetTransientOverrideTextureValue( UTextu
 											   });
 }
 
-void FMaterialUniformExpressionTexture::GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const
+void FMaterialUniformExpressionTexture::GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue,ESamplerSourceMode& OutSamplerSource) const
 {
 	check(IsInParallelRenderingThread());
+	OutSamplerSource = SamplerSource;
 	if( TransientOverrideValue_RenderThread != NULL )
 	{
 		OutValue = TransientOverrideValue_RenderThread;
@@ -419,6 +458,7 @@ IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionAppendVector)
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionMin);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionMax);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionClamp);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSaturate);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFloor);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionCeil);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFrac);

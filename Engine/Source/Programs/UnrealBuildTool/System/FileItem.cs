@@ -278,7 +278,7 @@ namespace UnrealBuildTool
 			Directory.CreateDirectory(Path.GetDirectoryName(AbsolutePath));
 
 			// Only write the file if its contents have changed.
-			if (!File.Exists(AbsolutePath) || Utils.ReadAllText(AbsolutePath) != Contents)
+			if (!File.Exists(AbsolutePath) || !String.Equals(Utils.ReadAllText(AbsolutePath), Contents, StringComparison.InvariantCultureIgnoreCase))
 			{
 				File.WriteAllText(AbsolutePath, Contents, GetEncodingForString(Contents));
 			}

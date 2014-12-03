@@ -13,8 +13,8 @@
 #endif // WITH_PHYSX
 
 
-UVehicleWheel::UVehicleWheel(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVehicleWheel::UVehicleWheel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CollisionMeshObj(TEXT("/Engine/EngineMeshes/Cylinder"));
 	CollisionMesh = CollisionMeshObj.Object;

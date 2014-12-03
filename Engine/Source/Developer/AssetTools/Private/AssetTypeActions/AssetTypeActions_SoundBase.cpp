@@ -19,7 +19,7 @@ void FAssetTypeActions_SoundBase::GetActions( const TArray<UObject*>& InObjects,
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("Sound_PlaySound", "Play"),
 		LOCTEXT("Sound_PlaySoundTooltip", "Plays the selected sound."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Play"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundBase::ExecutePlaySound, Sounds ),
 			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_SoundBase::CanExecutePlayCommand, Sounds )
@@ -29,7 +29,7 @@ void FAssetTypeActions_SoundBase::GetActions( const TArray<UObject*>& InObjects,
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("Sound_StopSound", "Stop"),
 		LOCTEXT("Sound_StopSoundTooltip", "Stops the selected sounds."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Stop"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundBase::ExecuteStopSound, Sounds ),
 			FCanExecuteAction()

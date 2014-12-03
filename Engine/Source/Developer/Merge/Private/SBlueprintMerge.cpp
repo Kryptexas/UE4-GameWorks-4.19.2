@@ -11,12 +11,15 @@
 #include "SMergeDetailsView.h"
 #include "SMergeGraphView.h"
 #include "SMergeTreeView.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
 SBlueprintMerge::SBlueprintMerge()
 	: Data()
-	, CurrentDiffControl( NULL )
+	, CurrentDiffControl( nullptr )
+	, CurrentMergeControl( nullptr )
 {
 }
 
@@ -26,7 +29,7 @@ static void WriteBackup(UPackage& Package, const FString& Directory, const FStri
 	{
 		const FString DestinationFilename = Directory + FString("/") + Filename;
 		FString OriginalFilename;
-		if (FPackageName::DoesPackageExist(Package.GetName(), NULL, &OriginalFilename))
+		if (FPackageName::DoesPackageExist(Package.GetName(), nullptr, &OriginalFilename))
 		{
 			IFileManager::Get().Copy(*DestinationFilename, *OriginalFilename);
 		}
@@ -46,17 +49,19 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension());
 	WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
 
-	auto GraphView = SNew( SMergeGraphView, InData );
+	auto GraphView = SNew(SMergeGraphView, InData);
 	GraphControl.Widget = GraphView;
 	GraphControl.DiffControl = &GraphView.Get();
+	GraphControl.MergeControl = &GraphView.Get();
 
 	auto TreeView = SNew(SMergeTreeView, InData);
 	TreeControl.Widget = TreeView;
 	TreeControl.DiffControl = &TreeView.Get();
 
-	auto DetailsView = SNew( SMergeDetailsView, InData );
+	auto DetailsView = SNew(SMergeDetailsView, InData);
 	DetailsControl.Widget = DetailsView;
 	DetailsControl.DiffControl = &DetailsView.Get();
+	DetailsControl.MergeControl = &DetailsView.Get();
 
 	FToolBarBuilder ToolbarBuilder(TSharedPtr< FUICommandList >(), FMultiBoxCustomization::None);
 	ToolbarBuilder.AddToolBarButton( 
@@ -73,9 +78,28 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		, LOCTEXT("NextMergeTooltip", "Go to next difference")
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.NextDiff") 
 	);
+
+	// conflict navigation buttons:
+	ToolbarBuilder.AddSeparator();
+	ToolbarBuilder.AddToolBarButton( 
+		FUIAction( FExecuteAction::CreateSP(this, &SBlueprintMerge::PrevConflict), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::HasPrevConflict) )
+		, NAME_None
+		, LOCTEXT("PrevConflictLabel", "Prev Conflict")
+		, LOCTEXT("PrevConflictTooltip", "Go to previous conflict")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.PrevDiff")
+	);
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::NextConflict), FCanExecuteAction::CreateSP(this, &SBlueprintMerge::HasNextConflict))
+		, NAME_None
+		, LOCTEXT("NextConflictLabel", "Next Conflict")
+		, LOCTEXT("NextConflictTooltip", "Go to next conflict")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.NextDiff") 
+	);
+
+	// buttons for finishing the merge:
 	ToolbarBuilder.AddSeparator();
 	ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptResultClicked) )
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnFinishMerge))
 		, NAME_None
 		, LOCTEXT("FinishMergeLabel", "Finish Merge")
 		, LOCTEXT("FinishMergeTooltip", "Complete the merge operation - saves the blueprint and resolves the conflict with the SCC provider")
@@ -137,7 +161,27 @@ bool SBlueprintMerge::HasPrevDiff() const
 	return CurrentDiffControl && CurrentDiffControl->HasPrevDifference();
 }
 
-void SBlueprintMerge::OnAcceptResultClicked()
+void SBlueprintMerge::NextConflict()
+{
+	CurrentMergeControl->HighlightNextConflict();
+}
+
+void SBlueprintMerge::PrevConflict()
+{
+	CurrentMergeControl->HighlightPrevConflict();
+}
+
+bool SBlueprintMerge::HasNextConflict() const
+{
+	return CurrentMergeControl && CurrentMergeControl->HasNextConflict();
+}
+
+bool SBlueprintMerge::HasPrevConflict() const
+{
+	return CurrentMergeControl && CurrentMergeControl->HasPrevConflict();
+}
+
+void SBlueprintMerge::OnFinishMerge()
 {
 	UPackage* Package = GetTargetBlueprint()->GetOutermost();
 	TArray<UPackage*> PackagesToSave;
@@ -171,17 +215,20 @@ void SBlueprintMerge::OnModeChanged(FName NewMode)
 	{
 		MainView->SetContent( GraphControl.Widget.ToSharedRef() );
 		CurrentDiffControl = GraphControl.DiffControl;
+		CurrentMergeControl = GraphControl.MergeControl;
 	}
 	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
 	{
 		MainView->SetContent(TreeControl.Widget.ToSharedRef());
 		CurrentDiffControl = TreeControl.DiffControl;
+		CurrentMergeControl = TreeControl.MergeControl;
 	}
 	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode ||
 			NewMode == FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
 	{
 		MainView->SetContent(DetailsControl.Widget.ToSharedRef());
 		CurrentDiffControl = DetailsControl.DiffControl;
+		CurrentMergeControl = DetailsControl.MergeControl;
 	}
 	else
 	{

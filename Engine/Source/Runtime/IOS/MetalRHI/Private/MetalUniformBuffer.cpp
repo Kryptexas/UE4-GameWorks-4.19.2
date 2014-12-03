@@ -240,10 +240,9 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 FMetalUniformBuffer::~FMetalUniformBuffer()
 {
 	// don't need to free the ring buffer!
-	if (Buffer != FMetalManager::Get()->GetRingBuffer())
+	if (Buffer != nil && Buffer != FMetalManager::Get()->GetRingBuffer())
 	{
 		AddNewlyFreedBufferToUniformBufferPool(Buffer, Offset, GetSize());
-		//	FMetalManager::ReleaseObject(Buffer);
 	}
 }
 

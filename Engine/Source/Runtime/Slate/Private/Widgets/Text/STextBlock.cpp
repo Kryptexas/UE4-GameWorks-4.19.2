@@ -4,6 +4,9 @@
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
 
+DECLARE_CYCLE_STAT( TEXT("STextBlock"), STAT_SlateComputeDesiredSize_STextBlock, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("OnPaint STextBlock"), STAT_SlateOnPaint_STextBlock, STATGROUP_Slate );
+
 void STextBlock::Construct( const FArguments& InArgs )
 {
 	TextStyle = InArgs._TextStyle;

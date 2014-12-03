@@ -551,7 +551,7 @@ TSharedPtr<FVoicePacket> FOnlineVoiceSteam::SerializeRemotePacket(FArchive& Ar)
 		if (!SteamSubsystem->IsDedicated())
 		{
 			FUniqueNetIdMatcher PlayerMatch(*NewPacket->GetSender());
-			if (MuteList.FindMatch(PlayerMatch) == INDEX_NONE)
+			if (MuteList.IndexOfByPredicate(PlayerMatch) == INDEX_NONE)
 			{
 				VoiceData.RemotePackets.Add(NewPacket);
 			}

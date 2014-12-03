@@ -3,14 +3,15 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintBoundNodeSpawner.h"
 #include "KismetCompiler.h"
 #include "Runtime/Engine/Public/MatineeDelegates.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
 
-UK2Node_MatineeController::UK2Node_MatineeController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MatineeController::UK2Node_MatineeController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FMatineeDelegates::Get().OnEventKeyframeAdded.AddUObject(this, &UK2Node_MatineeController::OnEventKeyframeAdded);
 	FMatineeDelegates::Get().OnEventKeyframeRenamed.AddUObject(this, &UK2Node_MatineeController::OnEventKeyframeRenamed);
@@ -129,6 +130,12 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 
 void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	UClass* ActionKey = GetClass();
+	if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		return;
+	}
+
 	auto CanBindObjectLambda = [](UObject const* BindingObject)
 	{
 		if (AMatineeActor const* Actor = Cast<AMatineeActor>(BindingObject))
@@ -142,19 +149,21 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		return false;
 	};
 
-	auto MenuCategoryDescription = []( const IBlueprintNodeBinder::FBindingSet& BindingContext ) -> FText
+	auto UiSpecOverride = [](const FBlueprintActionContext& /*Context*/, const IBlueprintNodeBinder::FBindingSet& Bindings, FBlueprintActionUiSpec* UiSpecOut)
 	{
-		if( BindingContext.Num() == 1 )
+		if (Bindings.Num() == 1)
 		{
-			return FText::Format(NSLOCTEXT("K2Node", "MatineeeControllerTitle", "Create a Matinee Controller for {0}"), FText::FromString( (*(BindingContext.CreateConstIterator()))->GetName()) );
+			UiSpecOut->MenuName = FText::Format(NSLOCTEXT("K2Node", "MatineeeControllerTitle", "Create a Matinee Controller for {0}"),
+				FText::FromString((*(Bindings.CreateConstIterator()))->GetName()));
 		}
-		else if( BindingContext.Num() > 1 )
+		else if (Bindings.Num() > 1)
 		{
-			return FText::Format(NSLOCTEXT("K2Node", "MultipleMatineeeControllerTitle", "Create Matinee Controllers for {0} selected MatineeActors"), FText::AsNumber(BindingContext.Num()) );
+			UiSpecOut->MenuName = FText::Format(NSLOCTEXT("K2Node", "MultipleMatineeeControllerTitle", "Create Matinee Controllers for {0} selected MatineeActors"),
+				FText::AsNumber(Bindings.Num()));
 		}
 		else
 		{
-			return NSLOCTEXT("K2Node", "FallbackMatineeeControllerTitle", "Error: No MatineeActors in Context");
+			UiSpecOut->MenuName = NSLOCTEXT("K2Node", "FallbackMatineeeControllerTitle", "Error: No MatineeActors in Context");
 		}
 	};
 
@@ -165,11 +174,26 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		return true;
 	};
 
+	auto FindPreExistingNodeLambda = []( const UBlueprint* Blueprint, IBlueprintNodeBinder::FBindingSet const& BindingSet ) -> UEdGraphNode*
+	{
+		TArray<UK2Node_MatineeController*> ExistingMatineeControllers;
+		FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, ExistingMatineeControllers);
+		for (auto Controller : ExistingMatineeControllers)
+		{
+			if (BindingSet.Contains( Controller->MatineeActor ))
+			{
+				return Controller;
+			}
+		}
+		return nullptr;
+	};
+
 	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
 	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
-	NodeSpawner->OnBindObjectDelegate = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
-	NodeSpawner->OnGenerateMenuDescriptionDelegate = UBlueprintBoundNodeSpawner::FOnGenerateMenuDescriptionDelegate::CreateStatic(MenuCategoryDescription);
-	ActionRegistrar.AddBlueprintAction(NodeSpawner);
+	NodeSpawner->OnBindObjectDelegate  = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
+	NodeSpawner->DynamicUiSignatureGetter = UBlueprintBoundNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(UiSpecOverride);
+	NodeSpawner->FindPreExistingNodeDelegate = UBlueprintBoundNodeSpawner::FFindPreExistingNodeDelegate::CreateStatic( FindPreExistingNodeLambda );
+	ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 }
 
 void UK2Node_MatineeController::OnEventKeyframeAdded(const AMatineeActor* InMatineeActor, const FName& InPinName, int32 InIndex)

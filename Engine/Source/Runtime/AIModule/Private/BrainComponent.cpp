@@ -177,14 +177,14 @@ FString FAIMessageObserver::DescribeObservedMessage() const
 //////////////////////////////////////////////////////////////////////////
 // Brain component
 
-UBrainComponent::UBrainComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBrainComponent::UBrainComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bDoLogicRestartOnUnlock = false;
 }
 
 #if ENABLE_VISUAL_LOG
-void UBrainComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
 
@@ -193,7 +193,7 @@ void UBrainComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
 		return;
 	}
 
-	FVisLogEntry::FStatusCategory StatusCategory;
+	FVisualLogStatusCategory StatusCategory;
 	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockSourceName());
 	for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
 	{
@@ -251,10 +251,15 @@ void UBrainComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	// cache blackboard component if owner has one
-	BlackboardComp = GetOwner()->FindComponentByClass<UBlackboardComponent>();
-	if (BlackboardComp)
+	// note that it's a valid scenario for this component to not have an owner at all (at least in terms of unittesting)
+	AActor* Owner = GetOwner();
+	if (Owner)
 	{
-		BlackboardComp->CacheBrainComponent(this);
+		BlackboardComp = GetOwner()->FindComponentByClass<UBlackboardComponent>();
+		if (BlackboardComp)
+		{
+			BlackboardComp->CacheBrainComponent(this);
+		}
 	}
 }
 

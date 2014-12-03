@@ -7,6 +7,7 @@
 #include "PathViewTypes.h"
 #include "ObjectTools.h"
 #include "SourcesViewWidgets.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -621,7 +622,7 @@ void SPathView::Tick( const FGeometry& AllottedGeometry, const double InCurrentT
 	{
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 		bPendingFocusNextFrame = false;
 	}
 

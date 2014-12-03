@@ -4,7 +4,7 @@
 //=============================================================================
 // The Basic constraint actor class.
 //=============================================================================
-
+#include "PhysicsEngine/RigidBodyBase.h"
 #include "PhysicsConstraintActor.generated.h"
 
 UCLASS(ConversionRoot, MinimalAPI)
@@ -13,8 +13,11 @@ class APhysicsConstraintActor : public ARigidBodyBase
 	GENERATED_UCLASS_BODY()
 
 	// Cached reference to constraint component
-	UPROPERTY(Category=ConstraintActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="JointDrive,Physics|Components|PhysicsConstraint"))
-	TSubobjectPtr<class UPhysicsConstraintComponent> ConstraintComp;
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ConstraintComp should not be accessed directly, please use GetConstraintComp() function instead. ConstraintComp will soon be private and your code will not compile.")
+	UPROPERTY(Category = ConstraintActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "JointDrive,Physics|Components|PhysicsConstraint", AllowPrivateAccess = "true"))
+	class UPhysicsConstraintComponent* ConstraintComp;
+public:
 	
 	UPROPERTY()
 	class AActor* ConstraintActor1_DEPRECATED;
@@ -29,6 +32,10 @@ class APhysicsConstraintActor : public ARigidBodyBase
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif // WITH_EDITOR	
 	// End UObject Interface
+
+public:
+	/** Returns ConstraintComp subobject **/
+	ENGINE_API class UPhysicsConstraintComponent* GetConstraintComp() const;
 };
 
 

@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #if !UE_ENABLE_ICU
 #include "LegacyCulture.h"
@@ -43,18 +43,9 @@ FString FCulture::FLegacyCultureImplementation::GetName() const
 	return Name;
 }
 
-FString FCulture::FLegacyCultureImplementation::GetParentName(const FString& CultureName)
+FString FCulture::FLegacyCultureImplementation::GetCanonicalName(const FString& Name)
 {
-	FString Result;
-
-	int32 UnderscoreIndex = INDEX_NONE;
-	if(CultureName.FindLastChar(TEXT('_'), UnderscoreIndex))
-	{
-		Result = CultureName;
-		Result.RemoveAt(UnderscoreIndex);
-	}
-
-	return Result;
+	return Name;
 }
 
 FString FCulture::FLegacyCultureImplementation::GetNativeName() const

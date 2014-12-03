@@ -5,8 +5,8 @@
 
 #define BEACON_RPC_TIMEOUT 15.0f
 
-AOnlineBeaconClient::AOnlineBeaconClient(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	BeaconOwner(NULL)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));

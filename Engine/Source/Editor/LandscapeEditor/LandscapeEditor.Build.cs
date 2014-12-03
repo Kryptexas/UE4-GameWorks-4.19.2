@@ -14,6 +14,7 @@ public class LandscapeEditor : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"Engine",
+				"Landscape",
 				"RenderCore",
                 "InputCore",
 				"UnrealEd",

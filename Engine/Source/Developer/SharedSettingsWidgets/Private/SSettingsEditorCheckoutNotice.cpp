@@ -4,6 +4,10 @@
 #include "EditorStyle.h"
 #include "SSettingsEditorCheckoutNotice.h"
 #include "ISourceControlModule.h"
+#include "SWidgetSwitcher.h"
+#include "SThrobber.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 #define LOCTEXT_NAMESPACE "SSettingsEditorCheckoutNotice"
@@ -191,8 +195,8 @@ FText SSettingsEditorCheckoutNotice::HandleLockedStatusText() const
 	}
 	
 	return FText::Format(ISourceControlModule::Get().IsEnabled() ?
-		LOCTEXT("DefaultSettingsNotice_WithSourceControl", "These settings are saved in {0}, which is not currently checked out.") :
-		LOCTEXT("DefaultSettingsNotice_Source", "These settings are saved in {0}, which is not currently writable."), ConfigFilename);
+		LOCTEXT("DefaultSettingsNotice_WithSourceControl", "These settings are saved in {0}, which is currently NOT checked out.") :
+		LOCTEXT("DefaultSettingsNotice_Source", "These settings are saved in {0}, which is currently NOT writable."), ConfigFilename);
 }
 
 FText SSettingsEditorCheckoutNotice::HandleUnlockedStatusText() const

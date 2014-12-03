@@ -5,6 +5,7 @@
 #include "DetailItemNode.h"
 #include "PropertyEditorHelpers.h"
 #include "IDetailKeyframeHandler.h"
+#include "IDetailPropertyExtensionHandler.h"
 
 namespace DetailWidgetConstants
 {
@@ -96,6 +97,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				Row.ValueWidget.Widget
 			];
 
+		ValueWidget = CreateExtensionWidget(ValueWidget.ToSharedRef(), *Customization, InOwnerTreeNode );
+
 		if( Row.IsEnabledAttr.IsBound() )
 		{
 			ValueWidget->SetEnabled( Row.IsEnabledAttr );
@@ -144,6 +147,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.OnSlotResized( ColumnSizeData.OnWidthChanged )
 				[
 					SNew( SHorizontalBox )
+
 					+ SHorizontalBox::Slot()
 					.Padding( DetailWidgetConstants::RightRowPadding )
 					.HAlign( Row.ValueWidget.HorizontalAlignment )
@@ -300,11 +304,45 @@ const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 	}
 }
 
+TSharedRef<SWidget> SDetailSingleItemRow::CreateExtensionWidget(TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode)
+{
+	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
+	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
+
+	if ( ExtensionHandler.IsValid() )
+	{
+		if ( InCustomization.HasPropertyNode() && ExtensionHandler.IsValid() )
+		{
+			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+
+			UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
+			if ( ExtensionHandler->IsPropertyExtenable(ObjectClass, *Handle) )
+			{
+				ValueWidget = SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						ValueWidget
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
+					];
+			}
+		}
+	}
+
+	return ValueWidget;
+}
+
 TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode )
 {
 	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
 
-	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler = DetailsView.GetKeyframeHandler();
+	KeyframeHandler = DetailsView.GetKeyframeHandler();
 
 	EVisibility SetKeyVisibility = EVisibility::Collapsed;
 
@@ -313,7 +351,8 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
 		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
-		SetKeyVisibility = KeyframeHandler->IsPropertyKeyable(*ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Hidden;
+		SetKeyVisibility = KeyframeHandler.Pin()->IsPropertyKeyable(*ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Hidden;
+		
 	}
 
 	return 
@@ -323,26 +362,29 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 		.ContentPadding(0.0f)
 		.ButtonStyle(FEditorStyle::Get(), "Sequencer.AddKey.Details")
 		.Visibility(SetKeyVisibility)
+		.IsEnabled( this, &SDetailSingleItemRow::IsKeyframeButtonEnabled )
 		.ToolTipText( NSLOCTEXT("PropertyView", "AddKeyframeButton_ToolTip", "Adds a keyframe for this property to the current animation") )
 		.OnClicked( this, &SDetailSingleItemRow::OnAddKeyframeClicked );
 }
 
-FReply SDetailSingleItemRow::OnAddKeyframeClicked()
+bool SDetailSingleItemRow::IsKeyframeButtonEnabled() const
 {
-	IDetailsViewPrivate& DetailsView = OwnerTreeNode.Pin()->GetDetailsView();
+	return KeyframeHandler.IsValid() ? KeyframeHandler.Pin()->IsPropertyKeyingEnabled() : false;
+}
 
-	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler = DetailsView.GetKeyframeHandler();
+FReply SDetailSingleItemRow::OnAddKeyframeClicked()
+{	
+	if( KeyframeHandler.IsValid() )
+	{
+		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(Customization->GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
-	check(KeyframeHandler.IsValid());
-
-	TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(Customization->GetPropertyNode().ToSharedRef(), nullptr, nullptr);
-
-	KeyframeHandler->OnKeyPropertyClicked(*Handle);
+		KeyframeHandler.Pin()->OnKeyPropertyClicked(*Handle);
+	}
 
 	return FReply::Handled();
 }
 
 bool SDetailSingleItemRow::IsHighlighted() const
 {
-	return Customization->IsValidCustomization() && Customization->HasPropertyNode() && Customization->GetPropertyNode()->IsHighlighted();
+	return OwnerTreeNode.Pin()->IsHighlighted();
 }

@@ -4,8 +4,21 @@
 #pragma once
 
 /** 
- * FTransform class for Quat/Translation/Scale.
+ * Transform composed of Scale, Rotation (as a quaternion), and Translation.
+ *
+ * Transforms can be used to convert from one space to another, for example by transforming
+ * positions and directions from local space to world space.
+ *
+ * Transformation of position vectors is applied in the order:  Scale -> Rotate -> Translate.
+ * Transformation of direction vectors is applied in the order: Scale -> Rotate.
+ *
+ * Order matters when composing transforms: C = A * B will yield a transform C that logically
+ * first applies A then B to any subsequent transformation. Note that this is the opposite order of quaternion (FQuat) multiplication.
+ *
+ * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in local space by DeltaRotation.
+ * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in world space by DeltaRotation.
  */
+
 class FTransform
 {
 #if !defined(COREUOBJECT_API)
@@ -16,15 +29,15 @@ class FTransform
 	friend MAYBE_COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_UObject_FTransform();
 
 protected:
-	/** Rotation of this transformation, as a quaternion */
+	/** Rotation of this transformation, as a quaternion. */
 	FQuat	Rotation;
-	/** Translation of this transformation, as a vector */
+	/** Translation of this transformation, as a vector. */
 	FVector	Translation;
-	/** 3D scale (always applied in local space) as a vector */
+	/** 3D scale (always applied in local space) as a vector. */
 	FVector	Scale3D;
 public:
 	/**
-	 * The identity transformation (Rotation = FQuat::Identity, Translation = FVector::ZeroVector, Scale3D = (1,1,1))
+	 * The identity transformation (Rotation = FQuat::Identity, Translation = FVector::ZeroVector, Scale3D = (1,1,1)).
 	 */
 	static CORE_API const FTransform Identity;
 
@@ -188,7 +201,7 @@ public:
 	CORE_API FString ToString() const;
 
 	/** Acceptable form: "%f,%f,%f|%f,%f,%f|%f,%f,%f" */
-	CORE_API bool InitFromString( const FString & InSourceString );
+	CORE_API bool InitFromString( const FString& InSourceString );
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 	/**
@@ -438,10 +451,40 @@ public:
 		return *this;
 	}
 
-	FORCEINLINE FTransform		operator*(const FTransform& Other) const;
-	FORCEINLINE void			operator*=(const FTransform& Other);
-	FORCEINLINE FTransform		operator*(const FQuat& Other) const;
-	FORCEINLINE void			operator*=(const FQuat& Other);
+	/**
+	 * Return a transform that is the result of this multiplied by another transform.
+	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
+	 * 
+	 * @param  Other other transform by which to multiply.
+	 * @return new transform: this * Other
+	 */
+	FORCEINLINE FTransform operator*(const FTransform& Other) const;
+
+
+	/**
+	 * Sets this transform to the result of this multiplied by another transform.
+	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
+	 *
+	 * @param  Other other transform by which to multiply.
+	 */
+	FORCEINLINE void operator*=(const FTransform& Other);
+	
+	/**
+	* Return a transform that is the result of this multiplied by another transform (made only from a rotation).
+	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
+	*
+	* @param  Other other quaternion rotation by which to multiply.
+	* @return new transform: this * FTransform(Other)
+	*/
+	FORCEINLINE FTransform operator*(const FQuat& Other) const;
+	
+	/**
+	* Sets this transform to the result of this multiplied by another transform (made only from a rotation).
+	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
+	*
+	* @param  Other other quaternion rotation by which to multiply.
+	*/
+	FORCEINLINE void operator*=(const FQuat& Other);
 
 	FORCEINLINE void ScaleTranslation(const FVector& Scale3D);
 	FORCEINLINE void ScaleTranslation(const float& Scale);
@@ -492,7 +535,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector & InScale) const;
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale) const;
 
 	// temp function for easy conversion
 	FORCEINLINE FVector GetLocation() const
@@ -573,7 +616,16 @@ public:
 		return Rotation.Equals(Other.Rotation, Tolerance) && Translation.Equals(Other.Translation, Tolerance);
 	}
 
-	FORCEINLINE static void Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B);
+	/**
+	 * Create a new transform: OutTransform = A * B.
+	 *
+	 * Order matters when composing transforms : A * B will yield a transform that logically first applies A then B to any subsequent transformation.
+	 * 
+	 * @param  OutTransform pointer to transform that will store the result of A * B.
+	 * @param  A Transform A.
+	 * @param  B Transform B.
+	 */
+	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
 
 	/**
 	 * Sets the components
@@ -962,7 +1014,7 @@ public:
 		DiagnosticCheckNaN_Scale3D();
 	}
 
-	void SetFromMatrix(const FMatrix & InMatrix)
+	void SetFromMatrix(const FMatrix& InMatrix)
 	{
 		FMatrix M = InMatrix;
 
@@ -1014,7 +1066,7 @@ FORCEINLINE void FTransform::RemoveScaling(float Tolerance/*=SMALL_NUMBER*/)
 }
 
 /** Returns Multiplied Transform of 2 FTransforms **/
-FORCEINLINE void FTransform::Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B)
+FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
 	A->DiagnosticCheckNaN_All();
 	B->DiagnosticCheckNaN_All();
@@ -1240,7 +1292,7 @@ inline float FTransform::GetMinimumAxisScale() const
 // anymore because you should be instead of showing gigantic infinite mesh
 // also returning BIG_NUMBER causes sequential NaN issues by multiplying 
 // so we hardcode as 0
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector & InScale) const
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale) const
 {
 	FVector SafeReciprocalScale;
 	// mathematically if you have 0 scale, it should be infinite, 

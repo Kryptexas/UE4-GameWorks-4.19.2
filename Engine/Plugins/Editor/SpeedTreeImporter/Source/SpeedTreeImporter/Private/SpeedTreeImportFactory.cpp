@@ -335,8 +335,8 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
-USpeedTreeImportFactory::USpeedTreeImportFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpeedTreeImportFactory::USpeedTreeImportFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = false;
 	bEditAfterNew = true;
@@ -402,7 +402,7 @@ static UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filenam
 	}
 	else
 	{
-		UTextureFactory* TextureFact = new UTextureFactory(FPostConstructInitializeProperties());
+		UTextureFactory* TextureFact = new UTextureFactory(FObjectInitializer());
 		TextureFact->SuppressImportOverwriteDialog();
 
 		if (bNormalMap)
@@ -411,7 +411,7 @@ static UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filenam
 			TextureFact->CompressionSettings = TC_Normalmap;
 		}
 
-		const uint8* PtrTexture = TextureData.GetTypedData();
+		const uint8* PtrTexture = TextureData.GetData();
 		UnrealTexture = (UTexture*)TextureFact->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *TextureName, RF_Standalone|RF_Public, NULL, *Extension, PtrTexture, PtrTexture + TextureData.Num(), GWarn);
 		if (UnrealTexture != NULL)
 		{
@@ -555,7 +555,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 	}
 	
 	// create an unreal material asset
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FObjectInitializer());
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *FixedMaterialName, RF_Standalone|RF_Public, NULL, GWarn);
 	if (UnrealMaterial != NULL)
 	{
@@ -999,7 +999,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 					ExistingMesh->PreEditChange(NULL);
 				}
 				
-				StaticMesh = new(Package, FName(*MeshName), Flags | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+				StaticMesh = new(Package, FName(*MeshName), Flags | RF_Public) UStaticMesh(FObjectInitializer());
 
 				// @todo AssetImportData make a data class for speed tree assets
 				StaticMesh->AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), StaticMesh);
@@ -1343,6 +1343,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 						LODModel->BuildSettings.bRecomputeTangents = false;
 						LODModel->BuildSettings.bRemoveDegenerates = true;
 						LODModel->BuildSettings.bUseFullPrecisionUVs = false;	
+						LODModel->BuildSettings.bGenerateLightmapUVs = false;
 						LODModel->ScreenSize = 0.1f / FMath::Pow(2.0f, StaticMesh->SourceModels.Num() - 1);
 						LODModel->RawMeshBulkData->SaveRawMesh(RawMesh);
 
@@ -1454,6 +1455,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 					LODModel->BuildSettings.bRecomputeTangents = false;
 					LODModel->BuildSettings.bRemoveDegenerates = true;
 					LODModel->BuildSettings.bUseFullPrecisionUVs = false;
+					LODModel->BuildSettings.bGenerateLightmapUVs = false;
 					LODModel->ScreenSize = 0.1f / FMath::Pow(2.0f, StaticMesh->SourceModels.Num() - 1);
 					LODModel->RawMeshBulkData->SaveRawMesh(RawMesh);
 				}

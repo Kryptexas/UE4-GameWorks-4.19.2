@@ -3,7 +3,7 @@
 #pragma once
 
 #include "SlateCore.h"
-
+typedef FKeyEvent FKeyEvent;
 #include "KismetInputLibrary.generated.h"
 
 UCLASS(MinimalAPI)
@@ -134,9 +134,14 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  Key name
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|KeyboardEvent")
-	static FKey GetKey(const FKeyboardEvent& Input);
+	UFUNCTION(BlueprintCallable, Category="Utilities|KeyEvent")
+	static FKey GetKey(const FKeyEvent& Input);
 
+	UFUNCTION(BlueprintCallable, Category = "Utilities|KeyEvent")
+	static int32 GetUserIndex(const FKeyEvent& Input);
+
+	UFUNCTION(BlueprintCallable, Category = "Utilities|FAnalogInputEvent")
+	static float GetAnalogValue(const FAnalogInputEvent& Input);
 
 	/** @return The position of the cursor in screen space */
 	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetScreenSpacePosition" ), Category="Utilities|PointerEvent")
@@ -190,14 +195,14 @@ class UKismetInputLibrary : public UBlueprintFunctionLibrary
 
 
 	/** @return The controller button that caused this event */
-	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetEffectingButton" ), Category="Utilities|ControllerEvent")
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetKey() for KeyEvent instead", FriendlyName = "GetEffectingButton"), Category = "Utilities|ControllerEvent")
 	static FKey ControllerEvent_GetEffectingButton(const FControllerEvent& Input);
 
 	/** @return The index of the user that caused the event */
-	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetUserIndex" ), Category="Utilities|ControllerEvent")
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetUserIndex() for KeyEvent instead"), Category = "Utilities|ControllerEvent")
 	static int32 ControllerEvent_GetUserIndex(const FControllerEvent& Input);
 
 	/** @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all */
-	UFUNCTION(BlueprintPure, meta=( FriendlyName = "GetAnalogValue" ), Category="Utilities|ControllerEvent")
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetAnalogValue() for AnalogInputEvent instead"), Category = "Utilities|ControllerEvent")
 	static float ControllerEvent_GetAnalogValue(const FControllerEvent& Input);
 };

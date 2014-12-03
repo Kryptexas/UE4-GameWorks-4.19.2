@@ -8,14 +8,14 @@ SWrapBox::SWrapBox()
 {
 }
 
-FWrapSlot& SWrapBox::Slot()
+SWrapBox::FSlot& SWrapBox::Slot()
 {
-	return *( new FWrapSlot() );
+	return *( new SWrapBox::FSlot() );
 }
 
-FWrapSlot& SWrapBox::AddSlot()
+SWrapBox::FSlot& SWrapBox::AddSlot()
 {
-	FWrapSlot* NewSlot = new FWrapSlot();
+	SWrapBox::FSlot* NewSlot = new SWrapBox::FSlot();
 	Slots.Add(NewSlot);
 	return *NewSlot;
 }
@@ -34,7 +34,7 @@ int32 SWrapBox::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 	return -1;
 }
 
-void SWrapBox::Construct( const FArguments & InArgs )
+void SWrapBox::Construct( const FArguments& InArgs )
 {
 	PreferredWidth = InArgs._PreferredWidth;
 	InnerSlotPadding = InArgs._InnerSlotPadding;
@@ -222,4 +222,9 @@ FVector2D SWrapBox::ComputeDesiredSize() const
 FChildren* SWrapBox::GetChildren()
 {
 	return &Slots;	
+}
+
+void SWrapBox::SetInnerSlotPadding(FVector2D InInnerSlotPadding)
+{
+	InnerSlotPadding = InInnerSlotPadding;
 }

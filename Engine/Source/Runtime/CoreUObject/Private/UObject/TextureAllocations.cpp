@@ -193,16 +193,18 @@ FArchive& operator<<( FArchive& Ar, FTextureAllocations& TextureAllocations )
 				{
 					UObject* Object = TagExpObjects(Index);
 					check(Object->HasAnyMarks(OBJECTMARK_TagExp));
-					if ( !Object->HasAnyFlags(RF_ClassDefaultObject) && Object->IsA(UTexture2D::StaticClass()) )
+					if ( !Object->HasAnyFlags(RF_ClassDefaultObject) )
 					{
-						UTexture2D* Texture2D = Cast<UTexture2D>(Object);
-						int32 PreAllocateSizeX = 0;
-						int32 PreAllocateSizeY = 0;
-						int32 PreAllocateNumMips = 0;
-						uint32 TexCreateFlags = 0;
-						if ( Texture2D->GetResourceMemSettings(Texture2D->FirstResourceMemMip, PreAllocateSizeX, PreAllocateSizeY, PreAllocateNumMips, TexCreateFlags ) )
+						if (UTexture2D* Texture2D = dynamic_cast<UTexture2D*>(Object))
 						{
-							TextureAllocations.AddResourceMemInfo(PreAllocateSizeX, PreAllocateSizeY, PreAllocateNumMips, Texture2D->Format, TexCreateFlags );
+							int32 PreAllocateSizeX = 0;
+							int32 PreAllocateSizeY = 0;
+							int32 PreAllocateNumMips = 0;
+							uint32 TexCreateFlags = 0;
+							if ( Texture2D->GetResourceMemSettings(Texture2D->FirstResourceMemMip, PreAllocateSizeX, PreAllocateSizeY, PreAllocateNumMips, TexCreateFlags ) )
+							{
+								TextureAllocations.AddResourceMemInfo(PreAllocateSizeX, PreAllocateSizeY, PreAllocateNumMips, Texture2D->Format, TexCreateFlags );
+							}
 						}
 					}
 				}
@@ -223,7 +225,7 @@ FArchive& operator<<( FArchive& Ar, FTextureAllocations& TextureAllocations )
 				NumExportTexturesAdded = 0;
 				for ( int32 ExportIndex=0; ExportIndex < Linker->ExportMap.Num(); ++ExportIndex )
 				{
-					UTexture2D* Texture2D = Cast<UTexture2D>(Linker->ExportMap(ExportIndex).Object);
+					UTexture2D* Texture2D = dynamic_cast<UTexture2D*>(Linker->ExportMap(ExportIndex).Object);
 					if ( Texture2D && !Texture2D->HasAnyFlags(RF_ClassDefaultObject) )
 					{
 						NumExportTexturesTotal++;

@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "RangeStructCustomization.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "RangeStructCustomization"

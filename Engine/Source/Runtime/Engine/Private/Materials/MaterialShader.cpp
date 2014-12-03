@@ -157,7 +157,7 @@ bool FStaticParameterSet::ShouldMarkDirty(const FStaticParameterSet* ReferenceSe
 	//switch parameters
 	for (int32 RefParamIndex = 0;RefParamIndex < ReferenceSet->StaticSwitchParameters.Num();RefParamIndex++)
 	{
-		const FStaticSwitchParameter * ReferenceSwitchParameter = &ReferenceSet->StaticSwitchParameters[RefParamIndex];
+		const FStaticSwitchParameter* ReferenceSwitchParameter = &ReferenceSet->StaticSwitchParameters[RefParamIndex];
 		for (int32 ParamIndex = 0;ParamIndex < StaticSwitchParameters.Num();ParamIndex++)
 		{
 			FStaticSwitchParameter * SwitchParameter = &StaticSwitchParameters[ParamIndex];
@@ -176,7 +176,7 @@ bool FStaticParameterSet::ShouldMarkDirty(const FStaticParameterSet* ReferenceSe
 	//component mask parameters
 	for (int32 RefParamIndex = 0;RefParamIndex < ReferenceSet->StaticComponentMaskParameters.Num();RefParamIndex++)
 	{
-		const FStaticComponentMaskParameter * ReferenceComponentMaskParameter = &ReferenceSet->StaticComponentMaskParameters[RefParamIndex];
+		const FStaticComponentMaskParameter* ReferenceComponentMaskParameter = &ReferenceSet->StaticComponentMaskParameters[RefParamIndex];
 		for (int32 ParamIndex = 0;ParamIndex < StaticComponentMaskParameters.Num();ParamIndex++)
 		{
 			FStaticComponentMaskParameter * ComponentMaskParameter = &StaticComponentMaskParameters[ParamIndex];
@@ -198,7 +198,7 @@ bool FStaticParameterSet::ShouldMarkDirty(const FStaticParameterSet* ReferenceSe
 	// Terrain layer weight parameters
 	for (int32 RefParamIndex = 0;RefParamIndex < ReferenceSet->TerrainLayerWeightParameters.Num();RefParamIndex++)
 	{
-		const FStaticTerrainLayerWeightParameter * ReferenceTerrainLayerWeightParameter  = &ReferenceSet->TerrainLayerWeightParameters[RefParamIndex];
+		const FStaticTerrainLayerWeightParameter* ReferenceTerrainLayerWeightParameter  = &ReferenceSet->TerrainLayerWeightParameters[RefParamIndex];
 		for (int32 ParamIndex = 0;ParamIndex < TerrainLayerWeightParameters.Num();ParamIndex++)
 		{
 			FStaticTerrainLayerWeightParameter * TerrainLayerWeightParameter = &TerrainLayerWeightParameters[ParamIndex];
@@ -1000,7 +1000,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 				FMaterialShaderMap* LoadedShaderMap = LoadedShaderMaps[ShaderMapIndex];
 
 				if (LoadedShaderMap->GetShaderPlatform() == ShaderPlatform 
-					&& LoadedShaderMap->GetShaderMapId().FeatureLevel == GRHIFeatureLevel)
+					&& LoadedShaderMap->GetShaderMapId().FeatureLevel == GetMaxSupportedFeatureLevel(ShaderPlatform))
 				{
 					EMaterialQualityLevel::Type LoadedQualityLevel = LoadedShaderMap->GetShaderMapId().QualityLevel;
 
@@ -1011,7 +1011,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 							// Second pass: assign shader maps with a specified quality level to only the appropriate material resource
 							|| (PassIndex == 1 && QualityLevelIndex == LoadedQualityLevel))
 						{
-							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GRHIFeatureLevel, (EMaterialQualityLevel::Type)QualityLevelIndex);
+							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GetMaxSupportedFeatureLevel(ShaderPlatform), (EMaterialQualityLevel::Type)QualityLevelIndex);
 
 							MaterialResource->SetGameThreadShaderMap(LoadedShaderMap);
 
@@ -1241,7 +1241,7 @@ bool FMaterialShaderMap::ProcessCompilationResults(const TArray<FShaderCompileJo
 {
 	check(InOutJobIndex < InCompilationResults.Num());
 
-	const double StartTime = FPlatformTime::Seconds();
+	double StartTime = FPlatformTime::Seconds();
 
 	FSHAHash MaterialShaderMapHash;
 	ShaderMapId.GetMaterialHash(MaterialShaderMapHash);
@@ -1286,10 +1286,12 @@ bool FMaterialShaderMap::ProcessCompilationResults(const TArray<FShaderCompileJo
 		}
 
 		InOutJobIndex++;
-
-		TimeBudget -= FPlatformTime::Seconds() - StartTime;
+		
+		double NewStartTime = FPlatformTime::Seconds();
+		TimeBudget -= NewStartTime - StartTime;
+		StartTime = NewStartTime;
 	}
-	while (TimeBudget > 0 && InOutJobIndex < InCompilationResults.Num());
+	while ((TimeBudget > 0.0f) && (InOutJobIndex < InCompilationResults.Num()));
 
 	if (InOutJobIndex == InCompilationResults.Num())
 	{

@@ -106,9 +106,9 @@ static void OnOutput(FString Message)
 	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
 }
 
-int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
+int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
 {
-	int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+	int32 bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 	if (!IsSdkInstalled(bProjectHasCode, OutTutorialPath))
 	{
 		bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
@@ -294,6 +294,7 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 {
 	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
+	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 
 	// default to supporting ES2
 	bool bSupportsOpenGLES2 = true;
@@ -309,6 +310,8 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	if (bSupportsMetal)
 	{
 		OutFormats.AddUnique(NAME_SF_METAL);
+		// @todo metal mrt: Add a project setting to support MetalMRT mode
+		// OutFormats.AddUnique(NAME_SF_METAL_MRT);
 	}
 }
 
@@ -435,7 +438,7 @@ const FTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
 }
 
 
-FName FIOSTargetPlatform::GetWaveFormat( class USoundWave* Wave ) const
+FName FIOSTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 {
 	static FName NAME_ADPCM(TEXT("ADPCM"));
 	return NAME_ADPCM;

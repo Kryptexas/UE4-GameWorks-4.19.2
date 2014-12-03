@@ -15,7 +15,7 @@ void FAssetTypeActions_Texture2D::GetActions( const TArray<UObject*>& InObjects,
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("Texture2D_CreateSlateBrush", "Create Slate Brush"),
 		LOCTEXT("Texture2D_CreateSlateBrushToolTip", "Creates a new slate brush using this texture."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.SlateBrushAsset"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_Texture2D::ExecuteCreateSlateBrush, Textures ),
 			FCanExecuteAction()

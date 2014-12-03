@@ -10,8 +10,8 @@
 /////////////////////////////////////////////////////
 // USlateBlueprintLibrary
 
-USlateBlueprintLibrary::USlateBlueprintLibrary(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+USlateBlueprintLibrary::USlateBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IScrollableWidget.h"
-
+#include "InertialScrollManager.h"
 
 class SListPanel;
 class SHeaderRow;
@@ -13,6 +13,23 @@ enum class EAllowOverscroll
 {
 	Yes,
 	No
+};
+
+
+/** If the list panel is arranging items horizontally, this enum dictates how the items should be aligned (basically, where any extra space is placed) */
+enum class EListItemAlignment : uint8
+{
+	/** Items are distributed evenly along the row (any extra space is added as padding between the items) */
+	EvenlyDistributed,
+
+	/** Items are left aligned on the row (any extra space is added to the right of the items) */
+	LeftAligned,
+
+	/** Items are right aligned on the row (any extra space is added to the left of the items) */
+	RightAligned,
+
+	/** Items are center aligned on the row (any extra space is halved and added to the left of the items) */
+	CenterAligned,
 };
 
 
@@ -26,7 +43,7 @@ class SLATE_API STableViewBase
 public:
 
 	/** Create the child widgets that comprise the list */
-	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
+	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
 
 	/** Sets the item height */
 	void SetItemHeight(TAttribute<float> Height);
@@ -67,7 +84,7 @@ public:
 
 	// SWidget interface
 
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnMouseCaptureLost() override;
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
@@ -78,7 +95,7 @@ public:
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
@@ -106,7 +123,7 @@ protected:
 	 *
 	 * @return The amount actually scrolled in items
 	 */
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll AllowOverscroll );
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll InAllowOverscroll );
 
 	/**
 	 * Scroll the view to an offset
@@ -292,6 +309,9 @@ protected:
 		/** How much we've over-scrolled above/below the beginning/end of the list. */
 		float OverscrollAmount;
 	} Overscroll;
+
+	/** Whether to permit overscroll on this list view */
+	EAllowOverscroll AllowOverscroll;
 
 private:
 	

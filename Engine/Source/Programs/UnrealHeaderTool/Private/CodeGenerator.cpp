@@ -223,6 +223,18 @@ FString Macroize(const TCHAR *MacroName, const TCHAR *StringToMacroize)
 	return FString::Printf(TEXT("#define %s%s\r\n"), MacroName, Result.Len() ? TEXT(" \\") : TEXT("")) + Result;
 }
 
+/** Generates a CRC tag string for the specified field */
+static FString GetGeneratedCodeCRCTag(UField* Field)
+{
+	FString Tag;
+	auto FieldCrc = GGeneratedCodeCRCs.Find(Field);	
+	if (FieldCrc)
+	{
+		Tag = FString::Printf(TEXT(" // %u"), *FieldCrc);
+	}
+	return Tag;
+}
+
 struct FParmsAndReturnProperties
 {
 	FParmsAndReturnProperties()
@@ -697,22 +709,12 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		UScriptStruct* Struct = StructProperty->Struct;
 		check(Struct);
 		ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(Struct));
-		auto StructCrc = GGeneratedCodeCRCs.Find(Struct);
-		if (StructCrc)
-		{
-			GeneratedCrc = FString::Printf(TEXT(" // %u"), *StructCrc);
-		}
 	}
 	else if (UByteProperty* ByteProperty = Cast<UByteProperty>(Prop))
 	{
 		if (ByteProperty->Enum)
 		{
 			ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(ByteProperty->Enum));
-			auto EnumCrc = GGeneratedCodeCRCs.Find(ByteProperty->Enum);
-			if (EnumCrc)
-			{
-				GeneratedCrc = FString::Printf(TEXT(" // %u"), *EnumCrc);
-			}
 		}
 	}
 	else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Prop))
@@ -753,7 +755,7 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		Spaces, 
 		*Symbol, 
 		*Constructor,
-		*GeneratedCrc);
+		*GetGeneratedCodeCRCTag(Prop));
 
 	if (Prop->ArrayDim != 1)
 	{
@@ -785,7 +787,7 @@ void FNativeClassHeaderGenerator::OutputProperties(FString& Meta, FOutputDevice&
 			OutputDevice.Logf( TEXT("#endif // WITH_EDITORONLY_DATA\r\n") );
 			bEmittedHasEditorOnlyMacro = false;
 		}
-		OutputProperty(Meta, OutputDevice, OuterString, Properties[Index], TEXT("            "));
+		OutputProperty(Meta, OutputDevice, OuterString, Properties[Index], Spaces);
 	}
 	if (bEmittedHasEditorOnlyMacro)
 	{
@@ -836,7 +838,7 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 				*PropNameDep, 
 				*SourceStruct,
 				*BoolProperty->GetCPPType(NULL, 0));
-			PropMacroOuterClass = FString::Printf(TEXT("FPostConstructInitializeProperties(), EC_CppProperty, CPP_BOOL_PROPERTY_OFFSET(%s, %s)"),
+			PropMacroOuterClass = FString::Printf(TEXT("FObjectInitializer(), EC_CppProperty, CPP_BOOL_PROPERTY_OFFSET(%s, %s)"),
 				*PropNameDep, *SourceStruct);
 		}
 		else
@@ -849,7 +851,7 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 	if (ArrayProperty)
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
-		FString PropMacroOuterArray = TEXT("FPostConstructInitializeProperties(), EC_CppProperty, 0");
+		FString PropMacroOuterArray = TEXT("FObjectInitializer(), EC_CppProperty, 0");
 		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
 	}
 }
@@ -984,7 +986,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 
 	check(!FriendText.Len());
 	// Emit code to build the UObjects that used to be in .u files
-	bool bIsNoExport = Class->HasAnyClassFlags(CLASS_NoExport|CLASS_Temporary);
+	bool bIsNoExport = Class->HasAnyClassFlags(CLASS_NoExport) || FClassUtils::IsTemporaryClass(Class);
 	FStringOutputDevice BodyText;
 	FStringOutputDevice CallSingletons;
 	FString ApiString = FString::Printf(TEXT("%s_API "), *API);
@@ -1017,7 +1019,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		GeneratedEnumRegisterFunctionText.Logf(TEXT("        if (!ReturnEnum)\r\n"));
 		GeneratedEnumRegisterFunctionText.Logf(TEXT("        {\r\n"));
 
-		GeneratedEnumRegisterFunctionText.Logf(TEXT("            ReturnEnum = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UEnum(FPostConstructInitializeProperties());\r\n"), *Enum->GetName());
+		GeneratedEnumRegisterFunctionText.Logf(TEXT("            ReturnEnum = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UEnum(FObjectInitializer());\r\n"), *Enum->GetName());
 		GeneratedEnumRegisterFunctionText.Logf(TEXT("            TArray<FName> EnumNames;\r\n"));
 		for (int32 Index = 0; Index < Enum->NumEnums(); Index++)
 		{
@@ -1050,7 +1052,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 
 		uint32 EnumCrc = FCrc::MemCrc32(*GeneratedEnumRegisterFunctionText, GeneratedEnumRegisterFunctionText.Len() * sizeof(TCHAR));		
 		GGeneratedCodeCRCs.Add(Enum, EnumCrc);
-		CallSingletons.Logf(TEXT("            OuterClass->LinkChild(%s); // %u\r\n"), *SingletonName, EnumCrc);
+		CallSingletons.Logf(TEXT("                OuterClass->LinkChild(%s); // %u\r\n"), *SingletonName, EnumCrc);
 	}
 
 	// structs
@@ -1110,7 +1112,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			ExplicitSizeString = FString::Printf( TEXT(", sizeof(%s), ALIGNOF(%s)"), NameLookupCPP.GetNameCPP(ScriptStruct), NameLookupCPP.GetNameCPP(ScriptStruct) );
 		}
 
-		GeneratedStructRegisterFunctionText.Logf(TEXT("            ReturnStruct = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UScriptStruct(FPostConstructInitializeProperties(), %s, %s, EStructFlags(0x%08X)%s);\r\n"),
+		GeneratedStructRegisterFunctionText.Logf(TEXT("            ReturnStruct = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UScriptStruct(FObjectInitializer(), %s, %s, EStructFlags(0x%08X)%s);\r\n"),
 			*ScriptStruct->GetName(),
 			*BaseStructString,
 			*CppStructOpsString,
@@ -1147,7 +1149,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		GeneratedFunctionText += GeneratedStructRegisterFunctionText;
 		GeneratedFunctionText.Logf(TEXT("    uint32 Get_%s_CRC() { return %uU; }\r\n"), *SingletonName.Replace(TEXT("()"), TEXT("")), StructCrc);
 
-		CallSingletons.Logf(TEXT("            OuterClass->LinkChild(%s); // %u\r\n"), *SingletonName, StructCrc);
+		CallSingletons.Logf(TEXT("                OuterClass->LinkChild(%s); // %u\r\n"), *SingletonName, StructCrc);
 	}
 
 	TArray<UFunction*> FunctionsToExport;
@@ -1175,13 +1177,15 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 
 		const FString SingletonName(GetSingletonName(Function));
 
-		CallSingletons.Logf(TEXT("            OuterClass->LinkChild(%s);\r\n"), *SingletonName);
+		CallSingletons.Logf(TEXT("                OuterClass->LinkChild(%s);\r\n"), *SingletonName);
 		FString Extern = FString::Printf(TEXT("    %sclass UFunction* %s;\r\n"), *ApiString, *SingletonName);
 		SingletonNameToExternDecl.Add(SingletonName, Extern);
 		GeneratedFunctionDeclarations.Log(*Extern);
 
-		GeneratedFunctionText.Logf(TEXT("    UFunction* %s\r\n"), *SingletonName);
-		GeneratedFunctionText.Logf(TEXT("    {\r\n"));
+		FStringOutputDevice CurrentFunctionText;
+
+		CurrentFunctionText.Logf(TEXT("    UFunction* %s\r\n"), *SingletonName);
+		CurrentFunctionText.Logf(TEXT("    {\r\n"));
 
 		if (bIsNoExport || !(Function->FunctionFlags&FUNC_Event))  // non-events do not export a params struct, so lets do that locally for offset determination
 		{
@@ -1190,17 +1194,17 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			FindNoExportStructs(Structs, Function);
 			if (Structs.Num())
 			{
-				ExportMirrorsForNoexportStructs(Structs, 8, GeneratedFunctionText);
+				ExportMirrorsForNoexportStructs(Structs, 8, CurrentFunctionText);
 			}
 			TArray<UFunction*> CallbackFunctions;
 			CallbackFunctions.Add(Function);
-			ExportEventParms(CallbackFunctions, NULL, 8, false, &GeneratedFunctionText);
+			ExportEventParms(CallbackFunctions, NULL, 8, false, &CurrentFunctionText);
 		}
 
-		GeneratedFunctionText.Logf(TEXT("        UClass* OuterClass=%s;\r\n"), *GetSingletonName(Class));
-		GeneratedFunctionText.Logf(TEXT("        static UFunction* ReturnFunction = NULL;\r\n"));
-		GeneratedFunctionText.Logf(TEXT("        if (!ReturnFunction)\r\n"));
-		GeneratedFunctionText.Logf(TEXT("        {\r\n"));
+		CurrentFunctionText.Logf(TEXT("        UClass* OuterClass=%s;\r\n"), *GetSingletonName(Class));
+		CurrentFunctionText.Logf(TEXT("        static UFunction* ReturnFunction = NULL;\r\n"));
+		CurrentFunctionText.Logf(TEXT("        if (!ReturnFunction)\r\n"));
+		CurrentFunctionText.Logf(TEXT("        {\r\n"));
 		FString SuperFunctionString(TEXT("NULL"));
 		if (SuperFunction)
 		{
@@ -1228,7 +1232,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			StructureSize = FString::Printf(TEXT(", sizeof(%s)"), *GetEventStructParamsName(*CastChecked<UClass>(TempFunction->GetOuter())->GetName(), *FunctionName));
 		}
 
-		GeneratedFunctionText.Logf(TEXT("            ReturnFunction = new(OuterClass, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UFunction(FPostConstructInitializeProperties(), %s, 0x%08X, %d%s);\r\n"), 
+		CurrentFunctionText.Logf(TEXT("            ReturnFunction = new(OuterClass, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UFunction(FObjectInitializer(), %s, 0x%08X, %d%s);\r\n"), 
 			*Function->GetName(),
 			*SuperFunctionString,
 			Function->FunctionFlags,
@@ -1243,35 +1247,40 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 
 		for (int32 Index = Props.Num() - 1; Index >= 0; Index--)
 		{
-			OutputProperty(Meta, GeneratedFunctionText, OuterString, Props[Index], TEXT("            "));
+			OutputProperty(Meta, CurrentFunctionText, OuterString, Props[Index], TEXT("            "));
 		}
 
 		if (FunctionData.FunctionFlags & (FUNC_NetRequest | FUNC_NetResponse))
 		{
-			GeneratedFunctionText.Logf(TEXT("            ReturnFunction->RPCId=%d;\r\n"), FunctionData.RPCId);
-			GeneratedFunctionText.Logf(TEXT("            ReturnFunction->RPCResponseId=%d;\r\n"), FunctionData.RPCResponseId);
+			CurrentFunctionText.Logf(TEXT("            ReturnFunction->RPCId=%d;\r\n"), FunctionData.RPCId);
+			CurrentFunctionText.Logf(TEXT("            ReturnFunction->RPCResponseId=%d;\r\n"), FunctionData.RPCResponseId);
 		}
 
-		GeneratedFunctionText.Logf(TEXT("            ReturnFunction->Bind();\r\n"));
-		GeneratedFunctionText.Logf(TEXT("            ReturnFunction->StaticLink();\r\n"));
+		CurrentFunctionText.Logf(TEXT("            ReturnFunction->Bind();\r\n"));
+		CurrentFunctionText.Logf(TEXT("            ReturnFunction->StaticLink();\r\n"));
 
 		if (Meta.Len())
 		{
-			GeneratedFunctionText.Logf(TEXT("#if WITH_METADATA\r\n"));
-			GeneratedFunctionText.Logf(TEXT("            UMetaData* MetaData = ReturnFunction->GetOutermost()->GetMetaData();\r\n"));
-			GeneratedFunctionText.Log(*Meta);
-			GeneratedFunctionText.Logf(TEXT("#endif\r\n"));
+			CurrentFunctionText.Logf(TEXT("#if WITH_METADATA\r\n"));
+			CurrentFunctionText.Logf(TEXT("            UMetaData* MetaData = ReturnFunction->GetOutermost()->GetMetaData();\r\n"));
+			CurrentFunctionText.Log(*Meta);
+			CurrentFunctionText.Logf(TEXT("#endif\r\n"));
 		}
 
-		GeneratedFunctionText.Logf(TEXT("        }\r\n"));
-		GeneratedFunctionText.Logf(TEXT("        return ReturnFunction;\r\n"));
-		GeneratedFunctionText.Logf(TEXT("    }\r\n"));
+		CurrentFunctionText.Logf(TEXT("        }\r\n"));
+		CurrentFunctionText.Logf(TEXT("        return ReturnFunction;\r\n"));
+		CurrentFunctionText.Logf(TEXT("    }\r\n"));
+
+		GeneratedFunctionText += CurrentFunctionText;
+
+		uint32 FunctionCrc = FCrc::MemCrc32(*CurrentFunctionText, CurrentFunctionText.Len() * sizeof(TCHAR));
+		GGeneratedCodeCRCs.Add(Function, FunctionCrc);
 	}
 
 	FStringOutputDevice GeneratedClassRegisterFunctionText;
 
 	// The class itself (unless it's a temporary UHT class).
-	if (!Class->HasAnyClassFlags(CLASS_Temporary))
+	if (!FClassUtils::IsTemporaryClass(Class))
 	{
 		// simple ::StaticClass wrapper to avoid header, link and DLL hell
 		{
@@ -1285,8 +1294,6 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			GeneratedClassRegisterFunctionText.Logf(TEXT("    {\r\n"));
 			GeneratedClassRegisterFunctionText.Logf(TEXT("        return %s::StaticClass();\r\n"), NameLookupCPP.GetNameCPP(Class));
 			GeneratedClassRegisterFunctionText.Logf(TEXT("    }\r\n"));
-
-
 		}
 		FString SingletonName(GetSingletonName(Class));
 
@@ -1306,20 +1313,18 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		}
 		GeneratedClassRegisterFunctionText.Logf(TEXT("            %s;\r\n"), *GetPackageSingletonName(CastChecked<UPackage>(Class->GetOutermost())));
 		GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass = %s::StaticClass();\r\n"), NameLookupCPP.GetNameCPP(Class));
-		GeneratedClassRegisterFunctionText.Logf(TEXT("            UObjectForceRegistration(OuterClass);\r\n"));
-		uint32 Flags = Class->ClassFlags & CLASS_SaveInCompiledInClasses;
-		GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->ClassFlags |= 0x%08X;\r\n"), Flags);
-		//if (Class->IsChildOf(UObject::StaticClass()))
-		//{
-		//	GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->ClassAddReferencedObjects = &%s::AddReferencedObjects;\r\n"), NameLookupCPP.GetNameCPP(Class));
-		//}
+		GeneratedClassRegisterFunctionText.Logf(TEXT("            if (!(OuterClass->ClassFlags & CLASS_Constructed))\r\n"), NameLookupCPP.GetNameCPP(Class));
+		GeneratedClassRegisterFunctionText.Logf(TEXT("            {\r\n"), NameLookupCPP.GetNameCPP(Class));
+		GeneratedClassRegisterFunctionText.Logf(TEXT("                UObjectForceRegistration(OuterClass);\r\n"));
+		uint32 Flags = (Class->ClassFlags & CLASS_SaveInCompiledInClasses) | CLASS_Constructed;
+		GeneratedClassRegisterFunctionText.Logf(TEXT("                OuterClass->ClassFlags |= 0x%08X;\r\n"), Flags);
 		TheFlagAudit.Add(Class, TEXT("ClassFlags"), Flags);
 		GeneratedClassRegisterFunctionText.Logf(TEXT("\r\n"));
 		GeneratedClassRegisterFunctionText.Log(CallSingletons);
 		GeneratedClassRegisterFunctionText.Logf(TEXT("\r\n"));
 
 		FString OuterString = FString(TEXT("OuterClass"));
-		FString Meta = GetMetaDataCodeForObject(Class, *OuterString, TEXT("            "));
+		FString Meta = GetMetaDataCodeForObject(Class, *OuterString, TEXT("                "));
 		// properties
 		{
 			TArray<UProperty*> Props;
@@ -1327,7 +1332,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			{
 				Props.Add(*ItInner);
 			}
-			OutputProperties(Meta, GeneratedClassRegisterFunctionText, OuterString, Props, TEXT("            "));
+			OutputProperties(Meta, GeneratedClassRegisterFunctionText, OuterString, Props, TEXT("                "));
 		}
 		// function table
 		{
@@ -1343,7 +1348,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			// Emit code to construct each UFunction and rebuild the function map at runtime
 			for (UFunction* Function : FunctionsInMap)
 			{
-				GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->AddFunctionToFunctionMap(%s);\r\n"), *GetSingletonName(Function));
+				GeneratedClassRegisterFunctionText.Logf(TEXT("                OuterClass->AddFunctionToFunctionMap(%s);%s\r\n"), *GetSingletonName(Function), *GetGeneratedCodeCRCTag(Function));
 			}
 		}
 
@@ -1351,7 +1356,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		//GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->ClassFlags = 0x%08X;\r\n"), Class->ClassFlags);
 		if (Class->ClassConfigName != NAME_None)
 		{
-			GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->ClassConfigName = FName(TEXT(\"%s\"));\r\n"), *Class->ClassConfigName.ToString());
+			GeneratedClassRegisterFunctionText.Logf(TEXT("                OuterClass->ClassConfigName = FName(TEXT(\"%s\"));\r\n"), *Class->ClassConfigName.ToString());
 		}
 
 		for (auto& Inter : Class->Interfaces)
@@ -1362,7 +1367,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			{
 				OffsetString = FString::Printf(TEXT("VTABLE_OFFSET(%s, %s)"), NameLookupCPP.GetNameCPP(Class), NameLookupCPP.GetNameCPP(Inter.Class, true));
 			}
-			GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->Interfaces.Add(FImplementedInterface(%s, %s, %s ));\r\n"), 
+			GeneratedClassRegisterFunctionText.Logf(TEXT("                OuterClass->Interfaces.Add(FImplementedInterface(%s, %s, %s ));\r\n"), 
 				*GetSingletonName(Inter.Class, false),
 				*OffsetString,
 				Inter.bImplementedByK2 ? TEXT("true") : TEXT("false")
@@ -1371,19 +1376,20 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		if (Class->ClassGeneratedBy)
 		{
 			UE_LOG(LogCompile, Fatal, TEXT("For intrinsic and compiled-in classes, ClassGeneratedBy should always be NULL"));
-			GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->ClassGeneratedBy = %s;\r\n"), *GetSingletonName(CastChecked<UClass>(Class->ClassGeneratedBy), false));
+			GeneratedClassRegisterFunctionText.Logf(TEXT("                OuterClass->ClassGeneratedBy = %s;\r\n"), *GetSingletonName(CastChecked<UClass>(Class->ClassGeneratedBy), false));
 		}
 
-		GeneratedClassRegisterFunctionText.Logf(TEXT("            OuterClass->StaticLink();\r\n"));
+		GeneratedClassRegisterFunctionText.Logf(TEXT("                OuterClass->StaticLink();\r\n"));
 
 		if (Meta.Len())
 		{
 			GeneratedClassRegisterFunctionText.Logf(TEXT("#if WITH_METADATA\r\n"));
-			GeneratedClassRegisterFunctionText.Logf(TEXT("            UMetaData* MetaData = OuterClass->GetOutermost()->GetMetaData();\r\n"));
+			GeneratedClassRegisterFunctionText.Logf(TEXT("                UMetaData* MetaData = OuterClass->GetOutermost()->GetMetaData();\r\n"));
 			GeneratedClassRegisterFunctionText.Log(*Meta);
 			GeneratedClassRegisterFunctionText.Logf(TEXT("#endif\r\n"));
 		}
 
+		GeneratedClassRegisterFunctionText.Logf(TEXT("            }\r\n"));
 		GeneratedClassRegisterFunctionText.Logf(TEXT("        }\r\n"));
 		GeneratedClassRegisterFunctionText.Logf(TEXT("        check(OuterClass->GetClass());\r\n"));
 		GeneratedClassRegisterFunctionText.Logf(TEXT("        return OuterClass;\r\n"));
@@ -1405,7 +1411,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 	SingletonName.ReplaceInline(TEXT("()"), TEXT("")); // function address
 
 	// Skip temporary UHT classes.
-	if (!Class->HasAnyClassFlags(CLASS_Temporary))
+	if (!FClassUtils::IsTemporaryClass(Class))
 	{	
 		auto ClassNameCPP = NameLookupCPP.GetNameCPP(Class);		
 		GeneratedFunctionText.Logf(TEXT("    static FCompiledInDefer Z_CompiledInDefer_UClass_%s(%s, TEXT(\"%s\"));\r\n"), 
@@ -1421,7 +1427,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 void FNativeClassHeaderGenerator::ExportNatives(FClass* Class)
 {
 	// Skip temporary UHT classes.
-	if (Class->HasAnyClassFlags(CLASS_NoExport|CLASS_Temporary))
+	if (FClassUtils::IsNoExportOrTemporaryClass(Class))
 		return;
 
 	GeneratedPackageCPP.Logf(TEXT("    void %s::StaticRegisterNatives%s()\r\n"),NameLookupCPP.GetNameCPP(Class),NameLookupCPP.GetNameCPP(Class));
@@ -1591,7 +1597,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceCallFunctions( const TArray<UFu
 void FNativeClassHeaderGenerator::ExportNames()
 {
 	// Skip temporary UHT classes.
-	if (CurrentClass->HasAnyClassFlags(CLASS_NoExport|CLASS_Temporary))
+	if (FClassUtils::IsNoExportOrTemporaryClass(CurrentClass))
 	{
 		return;
 	}
@@ -1631,6 +1637,50 @@ void FNativeClassHeaderGenerator::ExportNames()
 		GeneratedHeaderText.Logf( TEXT("extern %s_API FName %s_%s;") LINE_TERMINATOR, *API, *API, *Names[NameIndex] );
 	}
 
+}
+
+/**
+ * Gets preprocessor string to emit GENERATED_U*_BODY() macro is deprecated.
+ *
+ * @param MacroName Name of the macro to be deprecated.
+ *
+ * @returns Preprocessor string to emit the message.
+ */
+FString GetGeneratedMacroDeprecationWarning(const TCHAR* MacroName)
+{
+	// Deprecation warning is disabled right now. After people get familiar with the new macro it should be re-enabled.
+	//return FString() + TEXT("EMIT_DEPRECATED_WARNING_MESSAGE(\"") + MacroName + TEXT("() macro is deprecated. Please use GENERATED_BODY() macro instead.\")") LINE_TERMINATOR;
+	return TEXT("");
+}
+
+/**
+ * Returns a string with access specifier that was met before parsing GENERATED_BODY() macro to preserve it.
+ *
+ * @param Class Class for which to return the access specifier.
+ *
+ * @returns Access specifier string.
+ */
+FString GetPreservedAccessSpecifierString(FClass* Class)
+{
+	FString PreservedAccessSpecifier(FString::Printf(TEXT("static_assert(false, \"Unknown access specifier for GENERATED_BODY() macro in class %s.\");"), *GetNameSafe(Class)));
+	FClassMetaData* Data = GScriptHelper.FindClassData(Class);	
+	if (Data)
+	{
+		switch (Data->GeneratedBodyMacroAccessSpecifier)
+		{
+		case EAccessSpecifier::ACCESS_Private:
+			PreservedAccessSpecifier = "private:";
+			break;
+		case EAccessSpecifier::ACCESS_Protected:
+			PreservedAccessSpecifier = "protected:";
+			break;
+		case EAccessSpecifier::ACCESS_Public:
+			PreservedAccessSpecifier = "public:";
+			break;
+		}
+	}
+
+	return PreservedAccessSpecifier + LINE_TERMINATOR;
 }
 
 /**
@@ -1707,10 +1757,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 			bCastedClass ? *FString::Printf(TEXT("CASTCLASS_%s"), ClassCPPName) : TEXT("0"),
 			*FPackageName::GetShortName(Class->GetOuter()->GetName()), 
 			*APIArg );
-		if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
-		{
-			UInterfaceBoilerplate.Logf(TEXT("    %s_API %s(const class FPostConstructInitializeProperties& PCIP);\r\n"), *APIArg, ClassCPPName);
-		}
+		
 		UInterfaceBoilerplate.Logf(TEXT("    DECLARE_SERIALIZER(%s)\r\n"), ClassCPPName);
 		UInterfaceBoilerplate.Log(TEXT("    enum {IsIntrinsic=COMPILED_IN_INTRINSIC};\r\n"));
 
@@ -1719,10 +1766,32 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 			UInterfaceBoilerplate.Logf(TEXT("    DECLARE_WITHIN(%s)\r\n"), NameLookupCPP.GetNameCPP( Class->GetClassWithin() ) );
 		}
 
-		FString MacroName = TEXT("GENERATED_UINTERFACE_BODY()");
-		FString Macroized = Macroize(*MacroName, *UInterfaceBoilerplate);
+		ExportConstructorsMacros(Class);
+
+		GeneratedHeaderText.Log(TEXT("#undef GENERATED_UINTERFACE_BODY_COMMON\r\n"));
+		GeneratedHeaderText.Log(Macroize(TEXT("GENERATED_UINTERFACE_BODY_COMMON()"), *UInterfaceBoilerplate));
+
+		auto DeprecationWarning = GetGeneratedMacroDeprecationWarning(TEXT("GENERATED_UINTERFACE_BODY"));
+		
+		auto DeprecationPushString = TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+		auto DeprecationPopString = TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+		auto Offset = FCString::Spc(4);
+
 		GeneratedHeaderText.Log(TEXT("#undef GENERATED_UINTERFACE_BODY\r\n"));
-		GeneratedHeaderText.Log(*Macroized);
+		GeneratedHeaderText.Log(Macroize(TEXT("GENERATED_UINTERFACE_BODY()"), *(FString() +
+			Offset + DeprecationWarning +
+			Offset + DeprecationPushString +
+			Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
+			StandardUObjectConstructorsMacroCall +
+			Offset + DeprecationPopString)));
+
+		GeneratedHeaderText.Log(TEXT("#undef GENERATED_BODY\r\n"));
+		GeneratedHeaderText.Log(Macroize(TEXT("GENERATED_BODY()"), *(FString() +
+			Offset + DeprecationPushString +
+			Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
+			EnhancedUObjectConstructorsMacroCall +
+			GetPreservedAccessSpecifierString(Class) +
+			Offset + DeprecationPopString)));
 	}
 
 	// =============================================
@@ -1755,8 +1824,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 		// to script VM functions
 		if (SuperClass->IsChildOf(UInterface::StaticClass()))
 		{
-			InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* GetUObjectInterface%s()=0;\r\n"), *Class->GetName());
-			InterfaceBoilerplate.Logf(TEXT("\tvirtual const UObject* GetUObjectInterface%s() const=0;\r\n"), *Class->GetName());
+			InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* _getUObject() const = 0;\r\n"));
 		}
 
 		// Replication, add in the declaration for GetLifetimeReplicatedProps() automatically if there are any net flagged properties
@@ -1899,11 +1967,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 					bCastedClass ? *FString::Printf(TEXT("CASTCLASS_%s"), ClassCPPName) : TEXT("0"),
 					*FPackageName::GetShortName(*Class->GetOuter()->GetName()), 
 					*APIArg );
-				if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
-				{
-					ClassBoilerplate.Logf(TEXT("    /** Standard constructor, called after all reflected properties have been initialized */"));
-					ClassBoilerplate.Logf(TEXT("    %s_API %s(const class FPostConstructInitializeProperties& PCIP);\r\n"), *APIArg, ClassCPPName);
-				}
+
 				ClassBoilerplate.Logf(TEXT("    DECLARE_SERIALIZER(%s)\r\n"), ClassCPPName);
 				ClassBoilerplate.Log(TEXT("    /** Indicates whether the class is compiled into the engine */"));
 				ClassBoilerplate.Log(TEXT("    enum {IsIntrinsic=COMPILED_IN_INTRINSIC};\r\n"));
@@ -1919,30 +1983,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 					ClassBoilerplate.Logf(TEXT("    static const TCHAR* StaticConfigName() {return TEXT(\"%s\");}\r\n\r\n"), *Class->ClassConfigName.ToString());
 				}
 
-				{
-					// arrays for preventing multiple export of accessor function in situations where the native class
-					// implements multiple children of the same interface base class
-					TArray<UClass*> UObjectExportedInterfaces;
-					TArray<UClass*> ExportedInterfaces;
-
-					for (TArray<FImplementedInterface>::TIterator It(Class->Interfaces); It; ++It)
-					{
-						UClass* InterfaceClass = It->Class;
-						if ( InterfaceClass->HasAnyClassFlags(CLASS_Native) )
-						{
-							for ( UClass* IClass = InterfaceClass; IClass && IClass->HasAnyClassFlags(CLASS_Interface); IClass = IClass->GetSuperClass() )
-							{
-								if ( IClass != UInterface::StaticClass() && !UObjectExportedInterfaces.Contains(IClass) )
-								{
-									UObjectExportedInterfaces.Add(IClass);
-									ClassBoilerplate.Logf(TEXT("%svirtual UObject* GetUObjectInterface%s(){return this;}\r\n"), FCString::Spc(4), *IClass->GetName());
-									ClassBoilerplate.Logf(TEXT("%svirtual const UObject* GetUObjectInterface%s() const{return this;}\r\n"), FCString::Spc(4), *IClass->GetName());
-								}
-							}
-						}
-					}
-				}
-
+				ClassBoilerplate.Logf(TEXT("%sUObject* _getUObject() const { return const_cast<%s*>(this); }\r\n"), FCString::Spc(4), ClassCPPName);
 
 				// Replication, add in the declaration for GetLifetimeReplicatedProps() automatically if there are any net flagged properties
 				for( TFieldIterator<UProperty> It(Class,EFieldIteratorFlags::ExcludeSuper); It; ++It )
@@ -1959,7 +2000,9 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 				FString MacroName = FString(NameLookupCPP.GetNameCPP(Class)) + Suffix;
 				FString Macroized = Macroize(*MacroName, *ClassBoilerplate);
 				GeneratedHeaderText.Log(*Macroized);
-				InClassMacroCalls.Logf( TEXT("%s%s\r\n"), FCString::Spc(4),  *MacroName);
+				InClassMacroCalls.Logf(TEXT("%s%s\r\n"), FCString::Spc(4), *MacroName);
+
+				ExportConstructorsMacros(Class);
 			}
 		}
 	}
@@ -1970,9 +2013,123 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 	}
 }
 
+/**
+* Generates private copy-constructor declaration.
+*
+* @param Out Output device to generate to.
+* @param Class Class to generate constructor for.
+* @param API API string for this constructor.
+*/
+void ExportCopyConstructorDefinition(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	auto ClassNameCPP = NameLookupCPP.GetNameCPP(Class);
+	Out.Logf(TEXT("private:\r\n"));
+	Out.Logf(TEXT("%s/** Private copy-constructor, should never be used */\r\n"), FCString::Spc(4));
+	Out.Logf(TEXT("%s%s_API %s(const %s& InCopy);\r\n"), FCString::Spc(4), *API, ClassNameCPP, ClassNameCPP);
+	Out.Logf(TEXT("public:\r\n"));
+}
+
+/**
+ * Generates standard constructor declaration.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportStandardConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
+	{
+		Out.Logf(TEXT("%s/** Standard constructor, called after all reflected properties have been initialized */\r\n"), FCString::Spc(4));
+		Out.Logf(TEXT("%s%s_API %s(const class FObjectInitializer& ObjectInitializer);\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+	}
+	Out.Logf(TEXT("%sDEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	ExportCopyConstructorDefinition(Out, Class, API);
+}
+
+/**
+ * Generates constructor definition.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportConstructorDefinition(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+	if (!ClassData->bConstructorDeclared)
+	{
+		Out.Logf(TEXT("%s/** Standard constructor, called after all reflected properties have been initialized */\r\n"), FCString::Spc(4));
+		Out.Logf(TEXT("%s%s_API %s(const class FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) { };\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+
+		ClassData->bConstructorDeclared = true;
+		ClassData->bObjectInitializerConstructorDeclared = true;
+	}
+	ExportCopyConstructorDefinition(Out, Class, API);
+}
+
+/**
+ * Generates constructor call definition.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor call definition for.
+ */
+void ExportDefaultConstructorCallDefinition(FStringOutputDevice& Out, FClass* Class)
+{
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+
+	if (ClassData->bObjectInitializerConstructorDeclared)
+	{
+		Out.Logf(TEXT("%sDEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+	else if (ClassData->bDefaultConstructorDeclared)
+	{
+		Out.Logf(TEXT("%sDEFINE_DEFAULT_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+	else
+	{
+		Out.Logf(TEXT("%sDEFINE_FORBIDDEN_DEFAULT_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+}
+
+/**
+ * Generates enhanced constructor declaration.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportEnhancedConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	ExportConstructorDefinition(Out, Class, API);
+	ExportDefaultConstructorCallDefinition(Out, Class);
+}
+
+void FNativeClassHeaderGenerator::ExportConstructorsMacros(FClass* Class)
+{
+	FString APIArg(API);
+	if (!Class->HasAnyClassFlags(CLASS_MinimalAPI))
+	{
+		APIArg = TEXT("NO");
+	}
+
+	FStringOutputDevice StdMacro, EnhMacro;
+	FString StdMacroName = FString(NameLookupCPP.GetNameCPP(Class)) + TEXT("_STANDARD_CONSTRUCTORS");
+	FString EnhMacroName = FString(NameLookupCPP.GetNameCPP(Class)) + TEXT("_ENHANCED_CONSTRUCTORS");
+
+	ExportStandardConstructorsMacro(StdMacro, Class, APIArg);
+	ExportEnhancedConstructorsMacro(EnhMacro, Class, APIArg);
+
+	GeneratedHeaderText.Log(*Macroize(*StdMacroName, *StdMacro));
+	GeneratedHeaderText.Log(*Macroize(*EnhMacroName, *EnhMacro));
+
+	StandardUObjectConstructorsMacroCall.Logf(TEXT("%s%s\r\n"), FCString::Spc(4), *StdMacroName);
+	EnhancedUObjectConstructorsMacroCall.Logf(TEXT("%s%s\r\n"), FCString::Spc(4), *EnhMacroName);
+}
+
 void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool bIsExportClass )
 {
-	const bool bTemporaryJunkClass = Class->HasAnyClassFlags(CLASS_Temporary);
+	const bool bTemporaryJunkClass = FClassUtils::IsTemporaryClass(Class);
 	const bool bValidClass = !bTemporaryJunkClass;
 
 	check(!GeneratedHeaderText.Len());
@@ -2003,12 +2160,46 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool 
 		}
 
 		{
+			bool bIsIInterface = Class->HasAnyClassFlags(CLASS_Interface);
+
 			GeneratedHeaderText.Logf(TEXT("#undef GENERATED_UCLASS_BODY\r\n"));
+			
+			if (!bIsIInterface)
+			{
+				GeneratedHeaderText.Logf(TEXT("#undef GENERATED_BODY\r\n"));
+			}
+
 			GeneratedHeaderText.Logf(TEXT("#undef GENERATED_IINTERFACE_BODY\r\n"));
-			FString MacroName = FString::Printf(TEXT("GENERATED_%s_BODY()"), Class->HasAnyClassFlags(CLASS_Interface) ? TEXT("IINTERFACE") : TEXT("UCLASS"));
-			FString Macroized = Macroize(*MacroName, *(FString(TEXT("public:\r\n")) + InClassMacroCalls + TEXT("public:\r\n")));
-			GeneratedHeaderText.Log(*Macroized);
+
+			FString MacroName = FString::Printf(TEXT("GENERATED_%s_BODY()"), bIsIInterface ? TEXT("IINTERFACE") : TEXT("UCLASS"));
+
+			auto DeprecationWarning = bIsIInterface ? FString(TEXT("")) : GetGeneratedMacroDeprecationWarning(*MacroName);
+
+			auto DeprecationPushString = TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+			auto DeprecationPopString = TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+
+			auto Public = TEXT("public:" LINE_TERMINATOR);
+
+			FString BodyMacros;
+			
+			if (bIsIInterface)
+			{
+				BodyMacros = Macroize(*MacroName, *(DeprecationPushString + FString(Public) + InClassMacroCalls + Public + DeprecationPopString));
+			}
+			else
+			{
+				auto StandardWrappedInClassMacroCalls = Public + InClassMacroCalls + StandardUObjectConstructorsMacroCall + Public;
+				auto EnhancedWrappedInClassMacroCalls = Public + InClassMacroCalls + EnhancedUObjectConstructorsMacroCall + GetPreservedAccessSpecifierString(Class);
+
+				BodyMacros = Macroize(*MacroName, *(DeprecationWarning + DeprecationPushString + StandardWrappedInClassMacroCalls + DeprecationPopString)) +
+					Macroize(TEXT("GENERATED_BODY()"), *(FString(DeprecationPushString) + EnhancedWrappedInClassMacroCalls + DeprecationPopString));
+			}
+
+			GeneratedHeaderText.Log(*BodyMacros);
+
 			InClassMacroCalls.Empty();
+			StandardUObjectConstructorsMacroCall.Empty();
+			EnhancedUObjectConstructorsMacroCall.Empty();
 		}
 	}
 
@@ -2080,7 +2271,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool 
 
 void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( FClasses& AllClasses, FClass* Class, TArray<FClass*>& DependencyChain, TSet<const UClass*>& VisitedSet, bool bCheckDependenciesOnly )
 {
-	bool bIsExportClass   = GClassStrippedHeaderTextMap.Contains(Class) && Class->HasAnyClassFlags(CLASS_Native|CLASS_Temporary) && !Class->HasAnyClassFlags(CLASS_NoExport);
+	bool bIsExportClass   = GClassStrippedHeaderTextMap.Contains(Class) && (Class->HasAnyClassFlags(CLASS_Native) || FClassUtils::IsTemporaryClass(Class)) && !Class->HasAnyClassFlags(CLASS_NoExport);
 	bool bIsCorrectHeader = Class->GetOuter() == Package;
 
 	// Check for circular header dependencies between export classes.
@@ -2157,7 +2348,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( FClasses& AllClass
 	}
 
 	// Export class header.
-	if ( bIsCorrectHeader && !bCheckDependenciesOnly && !Class->HasAnyClassFlags(CLASS_Intrinsic) && Class->HasAnyClassFlags(CLASS_Native|CLASS_Temporary) )
+	if ( bIsCorrectHeader && !bCheckDependenciesOnly && !Class->HasAnyClassFlags(CLASS_Intrinsic) && (Class->HasAnyClassFlags(CLASS_Native) || FClassUtils::IsTemporaryClass(Class)) )
 	{
 		CurrentClass = Class;
 
@@ -2340,8 +2531,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 			GeneratedPackageCPP.Logf(TEXT("    }\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("    return Singleton;\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("}\r\n"));
-			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferStruct Z_CompiledInDeferStruct_UScriptStruct_%s(%s::StaticStruct);\r\n"), 
-				StructNameCPP, StructNameCPP);
+			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferStruct Z_CompiledInDeferStruct_UScriptStruct_%s(%s::StaticStruct, TEXT(\"%s\"));\r\n"), 
+				StructNameCPP, StructNameCPP, *Struct->GetOutermost()->GetName());
 
 			// Generate StaticRegisterNatives equivalent for structs without classes.
 			if (!Struct->GetOuter()->IsA(UStruct::StaticClass()))
@@ -2390,7 +2581,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 			GeneratedPackageCPP.Logf(TEXT("    }\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("    return Singleton;\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("}\r\n"));
-			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferEnum Z_CompiledInDeferEnum_UEnum_%s(%s_StaticEnum);\r\n"), *Enum->GetName(), *Enum->GetName());
+			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferEnum Z_CompiledInDeferEnum_UEnum_%s(%s_StaticEnum, TEXT(\"%s\"));\r\n"), *Enum->GetName(), *Enum->GetName(), *Enum->GetOutermost()->GetName());
 		}
 	}
 }
@@ -3639,7 +3830,7 @@ void FNativeClassHeaderGenerator::ExportCallbackFunctions( const TArray<UFunctio
 		WriteEventFunctionEpilogue(RPCWrappersCPP, 4, Parameters, *ClassName, *FunctionName);
 	}
 
-	if (!CurrentClass->HasAnyClassFlags(CLASS_NoExport|CLASS_Temporary))
+	if (!FClassUtils::IsNoExportOrTemporaryClass(CurrentClass))
 	{
 		GeneratedPackageCPP.Log(*RPCWrappersCPP);
 	}
@@ -3826,8 +4017,8 @@ bool FNativeClassHeaderGenerator::FindInterDependencyRecursive( TMap<const FStri
 
 bool IsExportOrTemporaryClass(FClass* Class)
 {
-	bool bIsExportClass = Class->HasAnyClassFlags(CLASS_Native) && !Class->HasAnyClassFlags(CLASS_NoExport | CLASS_Intrinsic | CLASS_Temporary);
-	bool bIsTemporaryClass = Class->HasAnyClassFlags(CLASS_Temporary);
+	bool bIsTemporaryClass = FClassUtils::IsTemporaryClass(Class);
+	bool bIsExportClass = Class->HasAnyClassFlags(CLASS_Native) && !(Class->HasAnyClassFlags(CLASS_NoExport | CLASS_Intrinsic) || bIsTemporaryClass);
 
 	return bIsExportClass || bIsTemporaryClass;
 }
@@ -3887,13 +4078,13 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 		int32 ClassCount = 0;
 		for (FClass* Class : Classes)
 		{
-			if( Class->GetOuter()==Package && Class->HasAnyClassFlags(CLASS_Native|CLASS_Temporary))
+			if( Class->GetOuter()==Package && (Class->HasAnyClassFlags(CLASS_Native) || FClassUtils::IsTemporaryClass(Class)))
 			{
 				if (GClassStrippedHeaderTextMap.Contains(Class) && !Class->HasAnyClassFlags(CLASS_NoExport))
 				{
 					ClassCount++;
 					// Skip temporary classes autogenerated in struct-only headers.
-					if (!Class->HasAnyClassFlags(CLASS_Temporary))
+					if (!FClassUtils::IsTemporaryClass(Class))
 					{
 						Class->UnMark(OBJECTMARK_TagImp);
 						Class->Mark(OBJECTMARK_TagExp);
@@ -3968,7 +4159,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 		// If no headers are generated, check if there's any no export classes that need to have the inl file generated.
 		for (FClass* Class : Classes)
 		{
-			if (Class->GetOuter() == Package && !Class->HasAnyClassFlags(CLASS_Intrinsic | CLASS_Temporary))
+			if (Class->GetOuter() == Package && !(Class->HasAnyClassFlags(CLASS_Intrinsic) || FClassUtils::IsTemporaryClass(Class)))
 			{
 				ExportClassHeader(AllClasses, Class);
 			}
@@ -4647,7 +4838,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 				class FSuperClassContextSupplier : public FContextSupplier
 				{
 				public:
-					FSuperClassContextSupplier(const UClass * Class) :
+					FSuperClassContextSupplier(const UClass* Class) :
 						ScriptClass(Class)
 					{ }
 
@@ -4658,7 +4849,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 						return FString::Printf(TEXT("%s(%i)"), *Filename, LineNumber);
 					}
 				private:
-					const UClass * ScriptClass;
+					const UClass* ScriptClass;
 				} ContextSupplier(ScriptClass);
 
 				auto OldContext = GWarn->GetContext();
@@ -4862,7 +5053,7 @@ UClass* GenerateCodeForHeader
 		}
 
 		// Create new class.
-		ResultClass = new( InParent, *ClassNameStripped, Flags ) UClass( FPostConstructInitializeProperties(),NULL );
+		ResultClass = new( InParent, *ClassNameStripped, Flags ) UClass( FObjectInitializer(),NULL );
 		GClassHeaderNameWithNoPathMap.Add(ResultClass, ClassNameStripped);
 
 		// add CLASS_Interface flag if the class is an interface
@@ -4878,7 +5069,8 @@ UClass* GenerateCodeForHeader
 		{
 			const FString DummyClassName = FHeaderParser::GenerateTemporaryClassName(*ResultClass->GetName());
 
-			ResultClass->ClassFlags |= CLASS_Temporary | CLASS_Native;
+			ResultClass->ClassFlags |= CLASS_Native;
+			FClassUtils::MarkAsTemporaryClass(ResultClass);
 			ResultClass->Rename(*DummyClassName, NULL, REN_DontCreateRedirectors);
 		}
 
@@ -4892,7 +5084,7 @@ UClass* GenerateCodeForHeader
 		if (ResultClass->GetSuperStruct() == NULL)
 		{
 			// don't know its parent class yet
-			ResultClass->SetSuperStruct( new(InParent, *BaseClassNameStripped) UClass(FPostConstructInitializeProperties(),NULL) );
+			ResultClass->SetSuperStruct( new(InParent, *BaseClassNameStripped) UClass(FObjectInitializer(),NULL) );
 		}
 
 		if (ResultClass->GetSuperStruct() != NULL)

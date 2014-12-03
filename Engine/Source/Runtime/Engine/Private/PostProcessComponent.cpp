@@ -1,9 +1,10 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Components/PostProcessComponent.h"
 
-UPostProcessComponent::UPostProcessComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPostProcessComponent::UPostProcessComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled = true;
 	BlendRadius = 100.0f;

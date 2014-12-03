@@ -237,26 +237,14 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 /** Creates an FName for the given feature level. */
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
-extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue;
-extern RHI_API EShaderPlatform GMaxRHIShaderPlatformValue;
+// The maximum feature level and shader platform available on this system
+extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
+extern RHI_API EShaderPlatform GMaxRHIShaderPlatform;
 
-/** Function for retrieving the current feature level. Only exists to provide a convient way of tracking access to this global during mobile preview work */
-extern RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel();
-extern RHI_API EShaderPlatform GetMaxRHIShaderPlatform();
-
-/** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
-#define RHI_FEATURE_LEVEL_AS_FUNCTION 0
-
-#if RHI_FEATURE_LEVEL_AS_FUNCTION
-	#define GMaxRHIFeatureLevel GetMaxRHIFeatureLevel()
-	#define GMaxRHIShaderPlatform GetMaxRHIShaderPlatform()
-#else
-	#define GMaxRHIFeatureLevel GMaxRHIFeatureLevelValue
-	#define GMaxRHIShaderPlatform GMaxRHIShaderPlatformValue
-#endif
-
-#define GRHIShaderPlatform GMaxRHIShaderPlatform
-#define GRHIFeatureLevel GMaxRHIFeatureLevel
+// GRHIFeatureLevel and GRHIShaderPlatform have been deprecated. There is no longer a current featurelevel/shaderplatform that
+// should be used for all rendering, rather a specific set for each view. The deprecated names are being kept around temporarily 
+// while the last instances are removed.
+#define GRHIShaderPlatform_DEPRECATED GMaxRHIShaderPlatform
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];
@@ -833,21 +821,6 @@ struct FResolveParams
 		, SourceArrayIndex(Other.SourceArrayIndex)
 		, DestArrayIndex(Other.DestArrayIndex)
 	{}
-
-	friend FArchive& operator<<(FArchive& Ar,FResolveParams& ResolveParams)
-	{
-		uint8 CubeFaceInt = ResolveParams.CubeFace;
-		Ar << CubeFaceInt;
-		if(Ar.IsLoading())
-		{
-			ResolveParams.CubeFace = (ECubeFace)ResolveParams.CubeFace;
-		}
-		Ar << ResolveParams.Rect;
-		Ar << ResolveParams.MipIndex;
-		Ar << ResolveParams.SourceArrayIndex;
-		Ar << ResolveParams.DestArrayIndex;
-		return Ar;
-	}
 };
 
 /** specifies an update region for a texture */

@@ -6,7 +6,7 @@
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_Dot.h"
 
-UEnvQueryTest_Dot::UEnvQueryTest_Dot(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest_Dot::UEnvQueryTest_Dot(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Low;
 	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
@@ -15,16 +15,13 @@ UEnvQueryTest_Dot::UEnvQueryTest_Dot(const class FPostConstructInitializePropert
 	LineB.DirMode = EEnvDirection::TwoPoints;
 	LineB.LineFrom = UEnvQueryContext_Querier::StaticClass();
 	LineB.LineTo = UEnvQueryContext_Item::StaticClass();
+
+	TestMode = EEnvTestDot::Dot3D;
+	bAbsoluteValue = false;
 }
 
 void UEnvQueryTest_Dot::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-// 	float ThresholdValue = 0.0f;
-// 	if (!QueryInstance.GetParamValue(FloatFilter, ThresholdValue, TEXT("FloatFilter")))
-// 	{
-// 		return;
-// 	}
-
 	float MinThresholdValue = 0.0f;
 	if (!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin")))
 	{
@@ -87,15 +84,34 @@ void UEnvQueryTest_Dot::RunTest(FEnvQueryInstance& QueryInstance) const
 		{
 			for (int32 LineBIndex = 0; LineBIndex < LineBDirs.Num(); LineBIndex++)
 			{
-				const float DotValue = FVector::DotProduct(LineADirs[LineAIndex], LineBDirs[LineBIndex]);
+				float DotValue = 0.f;
+				switch (TestMode)
+				{
+					case EEnvTestDot::Dot3D:
+						DotValue = FVector::DotProduct(LineADirs[LineAIndex], LineBDirs[LineBIndex]);
+						break;
+
+					case EEnvTestDot::Dot2D:
+						DotValue = LineADirs[LineAIndex].CosineAngle2D(LineBDirs[LineBIndex]);
+						break;
+
+					default:
+						UE_LOG(LogEQS, Error, TEXT("Invalid TestMode in EnvQueryTest_Dot in query %s!"), *QueryInstance.QueryName);
+						break;
+				}
+				
+				if (bAbsoluteValue)
+				{
+					DotValue = FMath::Abs(DotValue);
+				}
 				It.SetScore(TestPurpose, FilterType, DotValue, MinThresholdValue, MaxThresholdValue);
 			}
 		}
 	}
 }
 
-void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FVector& ItemLocation,
-	TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo) const
+void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, FEnvQueryInstance& QueryInstance, const FVector& ItemLocation,
+	TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo) const
 {
 	TArray<FVector> ContextLocationFrom;
 	if (IsContextPerItem(LineFrom))
@@ -127,7 +143,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 	}
 }
 
-void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation, TSubclassOf<class UEnvQueryContext> LineDirection) const
+void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation, TSubclassOf<UEnvQueryContext> LineDirection) const
 {
 	TArray<FRotator> ContextRotations;
 	if (IsContextPerItem(LineDirection))
@@ -146,8 +162,8 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 	}
 }
 
-void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance,
-	TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext,
+void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, FEnvQueryInstance& QueryInstance,
+	TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo, TSubclassOf<UEnvQueryContext> LineDirection, bool bUseDirectionContext,
 	const FVector& ItemLocation, const FRotator& ItemRotation) const
 {
 	if (bUseDirectionContext)
@@ -160,7 +176,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 	}
 }
 
-bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext) const
+bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo, TSubclassOf<UEnvQueryContext> LineDirection, bool bUseDirectionContext) const
 {
 	bool bRequirePerItemUpdate = false;
 	if (bUseDirectionContext)
@@ -177,7 +193,23 @@ bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContex
 
 FString UEnvQueryTest_Dot::GetDescriptionTitle() const
 {
-	return FString::Printf(TEXT("%s: %s and %s"), *Super::GetDescriptionTitle(), *LineA.ToText().ToString(), *LineB.ToText().ToString());
+	FString ModeDesc;
+	switch (TestMode)
+	{
+		case EEnvTestDot::Dot3D:
+			ModeDesc = TEXT("");
+			break;
+
+		case EEnvTestDot::Dot2D:
+			ModeDesc = TEXT(" 2D");
+			break;
+
+		default:
+			break;
+	}
+
+	return FString::Printf(TEXT("%s%s%s: %s and %s"), bAbsoluteValue ? TEXT("Absolute ") : TEXT(""),
+		*Super::GetDescriptionTitle(), *ModeDesc, *LineA.ToText().ToString(), *LineB.ToText().ToString());
 }
 
 FText UEnvQueryTest_Dot::GetDescriptionDetails() const

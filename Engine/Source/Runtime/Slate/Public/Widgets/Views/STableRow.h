@@ -221,7 +221,7 @@ public:
 					
 					return FReply::Handled()
 						.DetectDrag( SharedThis(this), EKeys::LeftMouseButton )
-						.SetKeyboardFocus( OwnerWidget->AsWidget(), EKeyboardFocusCause::Mouse )
+						.SetUserFocus(OwnerWidget->AsWidget(), EFocusCause::Mouse)
 						.CaptureMouse( SharedThis(this) );
 				}
 				break;
@@ -240,7 +240,7 @@ public:
 
 					return FReply::Handled()
 						.DetectDrag( SharedThis(this), EKeys::LeftMouseButton )
-						.SetKeyboardFocus( OwnerWidget->AsWidget(), EKeyboardFocusCause::Mouse )
+						.SetUserFocus(OwnerWidget->AsWidget(), EFocusCause::Mouse)
 						.CaptureMouse( SharedThis(this) );
 				}
 				break;
@@ -271,7 +271,7 @@ public:
 
 					return FReply::Handled()
 						.DetectDrag( SharedThis(this), EKeys::LeftMouseButton )
-						.SetKeyboardFocus( OwnerWidget->AsWidget(), EKeyboardFocusCause::Mouse )
+						.SetUserFocus(OwnerWidget->AsWidget(), EFocusCause::Mouse)
 						.CaptureMouse( SharedThis(this) );
 				}
 				break;

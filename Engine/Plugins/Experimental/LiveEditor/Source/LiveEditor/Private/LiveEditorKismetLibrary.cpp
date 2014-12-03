@@ -326,8 +326,8 @@ namespace nLiveEditorKismetLibrary
 /**
  * ULiveEditorKismetLibrary
  **/
-ULiveEditorKismetLibrary::ULiveEditorKismetLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULiveEditorKismetLibrary::ULiveEditorKismetLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

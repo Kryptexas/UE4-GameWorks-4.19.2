@@ -96,7 +96,7 @@ struct ENGINE_API FCollisionResponseParams
 		CollisionResponse.SetAllChannels(DefaultResponse);
 	}
 
-	FCollisionResponseParams(const FCollisionResponseContainer & ResponseContainer)
+	FCollisionResponseParams(const FCollisionResponseContainer& ResponseContainer)
 	{
 		CollisionResponse = ResponseContainer;
 	}

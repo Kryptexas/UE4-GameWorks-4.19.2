@@ -10,6 +10,9 @@
 
 #include "GameEngine.generated.h"
 
+/**
+ * Engine that manages core systems that enable a game.
+ */
 UCLASS(config=Engine, transient)
 class ENGINE_API UGameEngine : public UEngine
 {
@@ -90,7 +93,7 @@ public:
 	virtual void Init(class IEngineLoop* InEngineLoop) override;
 	virtual void PreExit() override;
 	virtual void Tick( float DeltaSeconds, bool bIdleMode ) override;
-	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) override;
+	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) const override;
 	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
 	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 	// End UEngine interface.
@@ -103,7 +106,6 @@ public:
 	 * Exec command handlers
 	 */
 
-	bool HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleMinimizeCommand( const TCHAR *Cmd, FOutputDevice &Ar );
@@ -138,5 +140,9 @@ public:
 
 protected:
 	float GetGameViewportDPIScale(UGameViewportClient* GameViewportClient) const;
+
+private:
+	virtual void HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType) override;
+	virtual void HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType) override;
 };
 

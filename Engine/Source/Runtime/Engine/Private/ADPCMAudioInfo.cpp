@@ -49,13 +49,13 @@ bool FADPCMAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 In
 	const uint32 targetBlocks = MONO_PCM_BUFFER_SAMPLES / uncompressedBlockSamples;
 	StreamBufferSize = targetBlocks * UncompressedBlockSize;
 	StreamBufferSizeInBlocks = CompressedBlockSize * targetBlocks;
-
+	TotalDecodedSize = (WaveInfo.SampleDataSize / CompressedBlockSize) * UncompressedBlockSize;
 	if (QualityInfo)
 	{
 		QualityInfo->SampleRate = *WaveInfo.pSamplesPerSec;
 		QualityInfo->NumChannels = *WaveInfo.pChannels;
-		QualityInfo->SampleDataSize = (WaveInfo.SampleDataSize / CompressedBlockSize) * UncompressedBlockSize;
-		//QualityInfo->Duration = (float)TrueSampleCount / QualityInfo->SampleRate;
+		QualityInfo->SampleDataSize = TotalDecodedSize;
+		QualityInfo->Duration = 0.0f; // (float)TrueSampleCount / QualityInfo->SampleRate;
 	}
 
 	return true;
@@ -72,31 +72,7 @@ void FADPCMAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* Qua
 {
 	check(DstBuffer);
 
-	if (*WaveInfo.pChannels == 1)
-	{
-		const uint8* EncodedADPCMBlockStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
-		uint8 * EncodedADPCMBlock = (uint8*)EncodedADPCMBlockStart;
-		while (EncodedADPCMBlock < EncodedADPCMBlockStart + (WaveInfo.SampleDataSize))
-		{
-			ADPCM::DecodeBlock(EncodedADPCMBlock, CompressedBlockSize, (int16*)DstBuffer);
-			EncodedADPCMBlock += CompressedBlockSize;
-			DstBuffer += UncompressedBlockSize;
-		}
-	}
-	else
-	{
-		const uint8* EncodedADPCMBlockLeftStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
-		const uint8* EncodedADPCMBlockRightStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart + (WaveInfo.SampleDataSize / 2));
-		uint8 * EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart;
-		uint8 * EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart;
-		while (EncodedADPCMLeftBlock < EncodedADPCMBlockLeftStart + (WaveInfo.SampleDataSize / 2))
-		{
-			ADPCM::DecodeBlockStereo(EncodedADPCMLeftBlock, EncodedADPCMRightBlock, CompressedBlockSize, (int16*)DstBuffer);
-			EncodedADPCMLeftBlock += CompressedBlockSize;
-			EncodedADPCMRightBlock += CompressedBlockSize;
-			DstBuffer += (UncompressedBlockSize * 2);
-		}
-	}
+	ReadCompressedData(DstBuffer, false, TotalDecodedSize);
 }
 
 int FADPCMAudioInfo::GetStreamBufferSize() const
@@ -108,9 +84,11 @@ bool FADPCMAudioInfo::DecodeStereoData(uint8* Destination, bool bLooping, uint32
 {
 	const uint8* EncodedADPCMBlockLeftStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
 	const uint8* EncodedADPCMBlockRightStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart + (WaveInfo.SampleDataSize / 2));
-	uint8 * EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart + SrcBufferOffset;
-	uint8 * EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart + SrcBufferOffset;
+	uint8* EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart + SrcBufferOffset;
+	uint8* EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart + SrcBufferOffset;
 	
+	bool looped = false;
+
 	// Check to see if we have enough data left to do a complete decode
 	if (EncodedADPCMLeftBlock + StreamBufferSizeInBlocks < EncodedADPCMBlockRightStart)
 	{
@@ -137,6 +115,8 @@ bool FADPCMAudioInfo::DecodeStereoData(uint8* Destination, bool bLooping, uint32
 			BufferSize -= (UncompressedBlockSize * 2);
 		}
 
+		looped = true;
+
 		// and then decide if we zero pad or reset and loop
 		if (bLooping)
 		{
@@ -159,7 +139,7 @@ bool FADPCMAudioInfo::DecodeStereoData(uint8* Destination, bool bLooping, uint32
 		}
 	}
 
-	return true;
+	return looped;
 }
 
 bool FADPCMAudioInfo::DecodeMonoData(uint8* Destination, bool bLooping, uint32 BufferSize)
@@ -167,6 +147,8 @@ bool FADPCMAudioInfo::DecodeMonoData(uint8* Destination, bool bLooping, uint32 B
 	const uint8* EncodedADPCMBlockStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
 	uint8* EncodedADPCMBlock = (uint8*)EncodedADPCMBlockStart + SrcBufferOffset;
 	const uint8* EncodedDataEnd = EncodedADPCMBlockStart + WaveInfo.SampleDataSize;
+
+	bool looped = false;
 
 	// See if we are still completely inside the source data..
 	if (EncodedADPCMBlock + StreamBufferSizeInBlocks < EncodedDataEnd)
@@ -194,6 +176,9 @@ bool FADPCMAudioInfo::DecodeMonoData(uint8* Destination, bool bLooping, uint32 B
 		}
 
 		// and then decide if we zero pad or reset and loop
+
+		looped = true;
+
 		if (bLooping)
 		{
 			EncodedADPCMBlock = (uint8*)EncodedADPCMBlockStart;
@@ -213,5 +198,5 @@ bool FADPCMAudioInfo::DecodeMonoData(uint8* Destination, bool bLooping, uint32 B
 		}
 	}
 
-	return true;
+	return looped;
 }

@@ -6,8 +6,8 @@
 /* UInternationalizationSettingsModel interface
  *****************************************************************************/
 
-UInternationalizationSettingsModel::UInternationalizationSettingsModel( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UInternationalizationSettingsModel::UInternationalizationSettingsModel( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 

@@ -58,6 +58,7 @@ public class PropertyEditor : ModuleRules
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
+                "AssetRegistry",
 				"ContentBrowser",
 				"Documentation",
 				"MainFrame",

@@ -1,14 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================	
-	NullRHI.h: Null RHI definitions.
-=============================================================================*/
+#pragma once
 
-#ifndef __NULLRHI_H__
-#define __NULLRHI_H__
 
 /** A null implementation of the dynamically bound RHI. */
-class FNullDynamicRHI : public FDynamicRHI
+class FNullDynamicRHI
+	: public FDynamicRHI
+#if PLATFORM_RHI_USES_CONTEXT_OBJECT
+	, public IRHICommandContext
+#endif
 {
 public:
 
@@ -29,5 +29,3 @@ private:
 	/** Allocates a static buffer for RHI functions to return as a write destination. */
 	static void* GetStaticBuffer();
 };
-
-#endif

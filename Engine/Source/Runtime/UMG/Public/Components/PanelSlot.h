@@ -1,11 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/Visual.h"
 #include "PanelSlot.generated.h"
 
 /** The base class for all Slots in UMG. */
-UCLASS()
+UCLASS(BlueprintType)
 class UMG_API UPanelSlot : public UVisual
 {
 	GENERATED_UCLASS_BODY()

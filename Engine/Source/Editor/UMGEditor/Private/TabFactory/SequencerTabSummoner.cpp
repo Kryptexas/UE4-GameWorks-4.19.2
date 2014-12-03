@@ -5,6 +5,7 @@
 #include "SequencerTabSummoner.h"
 #include "WidgetBlueprintEditor.h"
 #include "ISequencer.h"
+#include "UMGStyle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -15,7 +16,7 @@ FSequencerTabSummoner::FSequencerTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("SequencerLabel", "Timeline");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Timeline");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Sequencer.TabIcon");
 
 	bIsSingleton = true;
 

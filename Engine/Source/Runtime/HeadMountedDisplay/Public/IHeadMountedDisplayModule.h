@@ -6,7 +6,6 @@
 #include "ModuleManager.h"		// For inline LoadModuleChecked()
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 
-
 /**
  * The public interface of the MotionControlsModule
  */
@@ -19,6 +18,19 @@ public:
 		return HMDFeatureName;
 	}
 
+	/** Returns the priority of this module from INI file configuration */
+	float GetHMDPriority() const
+	{
+		float ModulePriority = 0.f;
+		FString KeyName = GetModulePriorityKeyName();
+		GConfig->GetFloat(TEXT("HMDPluginPriority"), (!KeyName.IsEmpty() ? *KeyName : TEXT("Default")), ModulePriority, GEngineIni);
+
+		return ModulePriority;
+	}
+
+	/** Returns the key into the HMDPluginPriority section of the config file for this module */
+	virtual FString GetModulePriorityKeyName() const = 0;
+	
 	virtual void StartupModule() override
 	{
 		IModularFeatures::Get().RegisterModularFeature( GetModularFeatureName(), this );
@@ -56,4 +68,16 @@ public:
 	* Optionally pre-init the HMD module.
 	*/
 	virtual void PreInit() {}
+};
+
+/** Sorting method for which plugin should be given priority */
+struct FHMDPluginSorter
+{
+	FHMDPluginSorter() {}
+
+	// Sort predicate operator
+	bool operator()(IHeadMountedDisplayModule& LHS, IHeadMountedDisplayModule& RHS) const
+	{
+		return LHS.GetHMDPriority() > RHS.GetHMDPriority();
+	}
 };

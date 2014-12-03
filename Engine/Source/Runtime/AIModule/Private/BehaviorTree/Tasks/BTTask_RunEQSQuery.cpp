@@ -6,7 +6,7 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EnvQuery.h"
 
-UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Run EQS Query";
 
@@ -18,7 +18,7 @@ UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const class FPostConstructInitializePro
 	}
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	AActor* QueryOwner = OwnerComp->GetOwner();
 	if (AController* ControllerOwner = Cast<AController>(QueryOwner))
@@ -42,7 +42,7 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponen
 	return EBTNodeResult::Failed;
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UWorld* MyWorld = OwnerComp->GetWorld();
 	UEnvQueryManager* QueryManager = UEnvQueryManager::GetCurrent(MyWorld);
@@ -62,7 +62,7 @@ FString UBTTask_RunEQSQuery::GetStaticDescription() const
 		*GetNameSafe(QueryTemplate), *BlackboardKey.SelectedKeyName.ToString());
 }
 
-void UBTTask_RunEQSQuery::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_RunEQSQuery::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 
@@ -78,7 +78,7 @@ uint16 UBTTask_RunEQSQuery::GetInstanceMemorySize() const
 	return sizeof(FBTEnvQueryTaskMemory);
 }
 
-void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Result)
+void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<FEnvQueryResult> Result)
 {
 	if (Result->Status == EEnvQueryStatus::Aborted)
 	{
@@ -104,7 +104,7 @@ void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Res
 		UBlackboardComponent* MyBlackboard = MyComp->GetBlackboardComponent();
 		UEnvQueryItemType* ItemTypeCDO = (UEnvQueryItemType*)Result->ItemType->GetDefaultObject();
 
-		bSuccess = ItemTypeCDO->StoreInBlackboard(BlackboardKey, MyBlackboard, Result->RawData.GetTypedData() + Result->Items[0].DataOffset);		
+		bSuccess = ItemTypeCDO->StoreInBlackboard(BlackboardKey, MyBlackboard, Result->RawData.GetData() + Result->Items[0].DataOffset);		
 		if (!bSuccess)
 		{
 			UE_VLOG(MyOwner, LogBehaviorTree, Warning, TEXT("Failed to store query result! item:%s key:%s"),
@@ -126,7 +126,7 @@ void UBTTask_RunEQSQuery::CollectKeyFilters()
 }
 
 #if WITH_EDITOR
-void UBTTask_RunEQSQuery::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UBTTask_RunEQSQuery::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 

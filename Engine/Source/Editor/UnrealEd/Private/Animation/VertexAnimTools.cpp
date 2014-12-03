@@ -158,7 +158,7 @@ bool GetVertexAnimInfo(FbxCache* Cache, int ChannelIndex, FbxTime& StartTime, Fb
 	return bNumPointsOk;
 }
 
-void FVertexAnimTools::ImportVertexAnimtion(UnFbx::FFbxImporter* FFbxImporter, USkeletalMesh * SkelMesh, UPackage * Package, FString & Filename)
+void FVertexAnimTools::ImportVertexAnimtion(UnFbx::FFbxImporter* FFbxImporter, USkeletalMesh * SkelMesh, UPackage * Package, FString& Filename)
 {
 	check(SkelMesh);
 	check(SkelMesh->GetImportedResource()->LODModels.Num() > 0);

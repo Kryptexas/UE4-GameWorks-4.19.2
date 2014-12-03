@@ -30,8 +30,8 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_Target0)
 
 	float ExposureOffsetMultipler = EyeAdaptationParams[1].x;
 	
-	float TargetExposure = ComputeEyeAdaptationExposure(InputNew0);
-	float OldExposureScale = InputNew0.Load(int3(0, 1, 0)).x;
+	float TargetExposure = ComputeEyeAdaptationExposure(PostprocessInput0);
+	float OldExposureScale = PostprocessInput0.Load(int3(0, 1, 0)).x;
 	float OldExposure = ExposureOffsetMultipler / ( OldExposureScale != 0 ? OldExposureScale : 1.0f );
 	float FrameTime = EyeAdaptationParams[1].y;
 

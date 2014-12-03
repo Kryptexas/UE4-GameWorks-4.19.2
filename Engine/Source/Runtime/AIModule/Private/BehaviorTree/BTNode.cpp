@@ -9,7 +9,7 @@
 // UBTNode
 //----------------------------------------------------------------------//
 
-UBTNode::UBTNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTNode::UBTNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "";
 	ParentNode = NULL;
@@ -36,7 +36,7 @@ UWorld* UBTNode::GetWorld() const
 		Cast<UWorld>(GetOuter()->GetOuter());
 }
 
-void UBTNode::InitializeNode(class UBTCompositeNode* InParentNode, uint16 InExecutionIndex, uint16 InMemoryOffset, uint8 InTreeDepth)
+void UBTNode::InitializeNode(UBTCompositeNode* InParentNode, uint16 InExecutionIndex, uint16 InMemoryOffset, uint8 InTreeDepth)
 {
 	ParentNode = InParentNode;
 	ExecutionIndex = InExecutionIndex;
@@ -44,27 +44,27 @@ void UBTNode::InitializeNode(class UBTCompositeNode* InParentNode, uint16 InExec
 	TreeDepth = InTreeDepth;
 }
 
-void UBTNode::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const
+void UBTNode::InitializeMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const
 {
-	// empty in base class 
+	// empty in base 
 }
 
-void UBTNode::CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
+void UBTNode::CleanupMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
-	// empty in base class 
+	// empty in base 
 }
 
-void UBTNode::OnInstanceCreated(class UBehaviorTreeComponent* OwnerComp)
-{
-	// empty in base class
-}
-
-void UBTNode::OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp)
+void UBTNode::OnInstanceCreated(UBehaviorTreeComponent* OwnerComp)
 {
 	// empty in base class
 }
 
-void UBTNode::InitializeInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const
+void UBTNode::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+{
+	// empty in base class
+}
+
+void UBTNode::InitializeInSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const
 {
 	if (bCreateNodeInstance)
 	{
@@ -74,7 +74,7 @@ void UBTNode::InitializeInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8
 		UBTNode* NodeInstance = OwnerComp->NodeInstances.IsValidIndex(NextInstancedIndex) ? OwnerComp->NodeInstances[NextInstancedIndex] : NULL;
 		if (NodeInstance == NULL)
 		{
-			NodeInstance = DuplicateObject<UBTNode>(this, OwnerComp);
+			NodeInstance = ConstructObject<UBTNode>(GetClass(), OwnerComp, GetFName(), RF_NoFlags, (UObject*)(this));
 			NodeInstance->InitializeNode(GetParentNode(), GetExecutionIndex(), GetMemoryOffset(), GetTreeDepth());
 			NodeInstance->bIsInstanced = true;
 
@@ -93,7 +93,7 @@ void UBTNode::InitializeInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8
 	}
 }
 
-void UBTNode::CleanupInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
+void UBTNode::CleanupInSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
 	if (!bCreateNodeInstance && !bIsInjected)
 	{
@@ -102,15 +102,15 @@ void UBTNode::CleanupInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* N
 }
 
 #if USE_BEHAVIORTREE_DEBUGGER
-void UBTNode::InitializeExecutionOrder(class UBTNode* NextNode)
+void UBTNode::InitializeExecutionOrder(UBTNode* NextNode)
 {
 	NextExecutionNode = NextNode;
 }
 #endif
 
-void UBTNode::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTNode::InitializeFromAsset(UBehaviorTree& Asset)
 {
-	TreeAsset = Asset;
+	TreeAsset = &Asset;
 }
 
 UBlackboardData* UBTNode::GetBlackboardAsset() const
@@ -128,19 +128,19 @@ uint16 UBTNode::GetSpecialMemorySize() const
 	return bCreateNodeInstance ? sizeof(FBTInstancedNodeMemory) : 0;
 }
 
-class UBTNode* UBTNode::GetNodeInstance(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+UBTNode* UBTNode::GetNodeInstance(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	FBTInstancedNodeMemory* MyMemory = GetSpecialNodeMemory<FBTInstancedNodeMemory>(NodeMemory);
 	return OwnerComp && MyMemory && OwnerComp->NodeInstances.IsValidIndex(MyMemory->NodeIdx) ?
 		OwnerComp->NodeInstances[MyMemory->NodeIdx] : NULL;
 }
 
-class UBTNode* UBTNode::GetNodeInstance(struct FBehaviorTreeSearchData& SearchData) const
+UBTNode* UBTNode::GetNodeInstance(FBehaviorTreeSearchData& SearchData) const
 {
 	return GetNodeInstance(SearchData.OwnerComp, GetNodeMemory<uint8>(SearchData));
 }
 
-FString UBTNode::GetRuntimeDescription(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity) const
+FString UBTNode::GetRuntimeDescription(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity) const
 {
 	FString Description = NodeName.Len() ? FString::Printf(TEXT("%s [%s]"), *NodeName, *GetStaticDescription()) : GetStaticDescription();
 	TArray<FString> RuntimeValues;
@@ -166,7 +166,7 @@ FString UBTNode::GetStaticDescription() const
 	return UBehaviorTreeTypes::GetShortTypeName(this);
 }
 
-void UBTNode::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTNode::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	// nothing stored in memory for base class
 }

@@ -8,9 +8,15 @@
 
 
 /**
- * Floating point quaternion.
- *
+ * Floating point quaternion that can represent a rotation about an axis in 3-D space.
  * The X, Y, Z, W components also double as the Axis/Angle format.
+ *
+ * Order matters when composing quaternions: C = A * B will yield a quaternion C that logically
+ * first applies B then A to any subsequent transformation (right first, then left).
+ * Note that this is the opposite order of FTransform multiplication.
+ *
+ * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in local space by DeltaRotation.
+ * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in world space by DeltaRotation.
  */
 MS_ALIGN(16) class FQuat 
 {
@@ -99,6 +105,7 @@ public:
 
 	/**
 	 * Gets the result of adding a Quaternion to this.
+	 * This is a component-wise addition; composing quaternions should be done via multiplication.
 	 *
 	 * @param Q The Quaternion to add.
 	 * @return The result of addition.
@@ -107,14 +114,16 @@ public:
 
 	/**
 	 * Adds to this quaternion.
+	 * This is a component-wise addition; composing quaternions should be done via multiplication.
 	 *
 	 * @param Other The quaternion to add to this.
-	 * @return Reference to this after addition.
+	 * @return Result after addition.
 	 */
 	FORCEINLINE FQuat operator+=(const FQuat& Q);
 
 	/**
 	 * Gets the result of subtracting a Quaternion to this.
+	 * This is a component-wise subtraction; composing quaternions should be done via multiplication.
 	 *
 	 * @param Q The Quaternion to subtract.
 	 * @return The result of subtraction.
@@ -132,6 +141,7 @@ public:
 
 	/**
 	 * Subtracts another quaternion from this.
+	 * This is a component-wise subtraction; composing quaternions should be done via multiplication.
 	 *
 	 * @param Q The other quaternion.
 	 * @return reference to this after subtraction.
@@ -139,36 +149,46 @@ public:
 	FORCEINLINE FQuat operator-=(const FQuat& Q);
 
 	/**
-	 * Gets the result of multiplying a Quaternion to this.
+	 * Gets the result of multiplying this by another quaternion (this * Q).
+	 *
+	 * Order matters when composing quaternions: C = A * B will yield a quaternion C that logically
+	 * first applies B then A to any subsequent transformation (right first, then left).
 	 *
 	 * @param Q The Quaternion to multiply this by.
-	 * @return The result of multiplication.
+	 * @return The result of multiplication (this * Q).
 	 */
 	FORCEINLINE FQuat operator*( const FQuat& Q ) const;
 
 	/**
-	 * Multiply this by a quaternion.
+	 * Multiply this by a quaternion (this = this * Q).
 	 *
-	 * @param Q the quaternion to multiply by this.
-	 * @return reference to this after multiply.
+	 * Order matters when composing quaternions: C = A * B will yield a quaternion C that logically
+	 * first applies B then A to any subsequent transformation (right first, then left).
+	 *
+	 * @param Q the quaternion to multiply this by.
+	 * @return The result of multiplication (this * Q).
 	 */
 	FORCEINLINE FQuat operator*=(const FQuat& Q);
 
 	/**
-	 * This transforms vector, not dot product
+	 * Rotate a vector by this quaternion.
 	 *
-	 * @param V
+	 * @param V the vector to be rotated
+	 * @return vector after rotation
+	 * @see RotateVector()
 	 */
 	FVector operator*( const FVector& V ) const;
 
 	/** 
+	 * Multiply this by a matrix.
 	 * This matrix conversion came from
 	 * http://www.m-hikari.com/ija/ija-password-2008/ija-password17-20-2008/aristidouIJA17-20-2008.pdf
 	 * used for non-uniform scaling transform.
 	 *
-	 * @param M
+	 * @param M Matrix to multiply by.
+	 * @return Matrix result after multiplication.
 	 */	
-	FMatrix operator*( const FMatrix & M ) const;
+	FMatrix operator*( const FMatrix& M ) const;
 	
 	/**
 	 * Multiply this quaternion by a scaling factor.
@@ -196,9 +216,12 @@ public:
 
  	/**
 	 * Checks whether two quaternions are identical.
+	 * This is an exact comparison per-component;see Equals() for a comparison
+	 * that allows for a small error tolerance and flipped axes of rotation.
 	 *
 	 * @param Q The other quaternion.
 	 * @return true if two quaternion are identical, otherwise false.
+	 * @see Equals()
 	 */
 	bool operator==( const FQuat& Q ) const;
 
@@ -265,7 +288,7 @@ public:
 	void ToAxisAndAngle( FVector& Axis, float& Angle ) const;
 
 	/**
-	 * Return vector rotated by this quaternion
+	 * Rotate a vector by this quaternion.
 	 *
 	 * @param V the vector to be rotated
 	 * @return vector after rotation
@@ -508,7 +531,7 @@ inline FVector FQuat::operator*( const FVector& V ) const
 }
 
 
-inline FMatrix FQuat::operator*( const FMatrix & M ) const
+inline FMatrix FQuat::operator*( const FMatrix& M ) const
 {
 	FMatrix Result;
 	FQuat VT, VR;

@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteAtlas
 
-UPaperSpriteAtlas::UPaperSpriteAtlas(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteAtlas::UPaperSpriteAtlas(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 	, MaxWidth(2048)
 	, MaxHeight(2048)

@@ -3,13 +3,16 @@
 #pragma once
 
 #include "GenericApplicationMessageHandler.h"
-
+#include "MenuStack.h"
 
 class SToolTip;
 class SViewport;
 class SWindow;
+enum class EHittestDirection;
 class FHittestGrid;
-
+struct FPopupTransitionEffect;
+class FMenuStack;
+class IWidgetReflector;
 
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
@@ -25,9 +28,6 @@ extern SLATE_API const FName NAME_UnrealOS;
  */
 namespace SlateApplicationDefs
 {
-	/** How much to amplify keyboard repeat rate by */
-	static const int32 NumRepeatsPerActualRepeat = 2;
-
 	/** How many users can we support at once? */
 	static const int32 MaxUsers = 8;
 }
@@ -134,8 +134,11 @@ public:
 public:
 
 	static void Create();
+	static TSharedRef<FSlateApplication> Create(const TSharedRef<class GenericApplication>& InPlatformApplication);
 
-	static void InitializeAsStandaloneApplication( const TSharedRef< class FSlateRenderer >& PlatformRenderer);
+	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer);
+	
+	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer, const TSharedRef<class GenericApplication>& PlatformApplication);
 
 	/**
 	 * Returns true if a Slate application instance is currently initialized and ready
@@ -207,6 +210,11 @@ public:
 	 * Polls game devices for input
 	 */
 	void PollGameDeviceState();
+
+	/**
+	 * Occurs before Tick(), after all pointer and keyboard input has been processed.
+	 */
+	void FinishedInputThisFrame();
 
 	/**
 	 * Ticks this application
@@ -330,6 +338,11 @@ public:
 	 */
 	void RegisterGameViewport( TSharedRef<SViewport> InViewport );
 
+	/**
+	 * Returns the game viewport registered with the slate application
+	 *
+	 * @return registered game viewport
+	 */
 	TSharedPtr<SViewport> GetGameViewport() const;
 
 	/** 
@@ -339,20 +352,54 @@ public:
 	void UnregisterGameViewport();
 
 	/**
-	 *	Sets the current focus to the SWidget representing the currently active game viewport
+	 * Sets specified user focus to the SWidget representing the currently active game viewport
 	 */
+	void SetUserFocusToGameViewport(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	DEPRECATED(4.6, "FSlateApplication::SetFocusToGameViewport() is deprecated, use FSlateApplication::SetUserFocusToGameViewport() instead.")
 	void SetFocusToGameViewport();
 
 	/**
-	 *	Forces the currently active game viewport to capture the joystick
+	 * Sets all users focus to the SWidget representing the currently active game viewport
 	 */
+	void SetAllUserFocusToGameViewport(EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	DEPRECATED(4.6, "FSlateApplication::SetJoystickCaptorToGameViewport() is deprecated, use FSlateApplication::SetAllUserFocusToGameViewport() instead.")
 	void SetJoystickCaptorToGameViewport();
 
 	/**
-	 * 	Sets the current focus to the specified SWidget
+	 * Sets specified user focus to the SWidget passed in.
+	 *
+	 * @param UserIndex Index of the user to change focus for
+	 * @param WidgetToFocus the widget to set focus to
+	 * @param ReasonFocusIsChanging the contextual reason for the focus change
 	 */
-	void SetKeyboardFocus( const TSharedPtr< SWidget >& OptionalWidgetToFocus, EKeyboardFocusCause::Type ReasonFocusIsChanging = EKeyboardFocusCause::SetDirectly );
-	
+	void SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	/** @return a pointer to the Widget that currently has the users focus; Empty pointer when the user has no focus. */
+	TSharedPtr< SWidget > GetUserFocusedWidget(uint32 UserIndex) const;
+
+	DEPRECATED(4.6, "FSlateApplication::GetJoystickCaptor() is deprecated, use FSlateApplication::GetUserFocusedWidget() instead.")
+	TSharedPtr< SWidget > GetJoystickCaptor(uint32 UserIndex) const;
+
+	/** Releases the users focus from whatever it currently is on. */
+	void ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	DEPRECATED(4.6, "FSlateApplication::ReleaseJoystickCapture() is deprecated, use FSlateApplication::ClearUserFocus() instead.")
+	void ReleaseJoystickCapture(uint32 UserIndex);
+
+	/**
+	 * Sets the Keyboard focus to the specified SWidget
+	 */
+	void SetKeyboardFocus(const TSharedPtr<SWidget>& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	/**
+	 * Clears keyboard focus, if any widget is currently focused
+	 *
+	 * @param ReasonFocusIsChanging The reason that keyboard focus is changing
+	 */
+	void ClearKeyboardFocus(const EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
 	/**
 	 * Returns the current modifier keys state
 	 *
@@ -378,25 +425,8 @@ public:
 	/** Releases the mouse capture from whatever it currently is on. */
 	void ReleaseMouseCapture();
 
-	/** @return a pointer to the Widget that currently captures the joystick; Empty pointer when the joystick is not captured. */
-	TSharedPtr< SWidget > GetJoystickCaptor(uint32 UserIndex) const;
-
-	/** Releases the joystick capture from whatever it currently is on. */
-	void ReleaseJoystickCapture(uint32 UserIndex);
-
 	/** @return The active modal window or NULL if there is no modal window. */
 	TSharedPtr<SWindow> GetActiveModalWindow() const;
-
-	/**
-	 * Keyboard focus
-	 */
-
-	/**
-	 * Clears keyboard focus, if any widget is currently focused
-	 *
-	 * @param  InCause  The reason that keyboard focus is changing
-	 */
-	void ClearKeyboardFocus( const EKeyboardFocusCause::Type InCause );
 
 	/**
 	 * Assign a delegate to be called when this application is requesting an exit (e.g. when the last window is closed).
@@ -467,15 +497,7 @@ public:
 	 *
 	 * @param WidgetReflector The widget reflector to set.
 	 */
-	void SetWidgetReflector( const TSharedRef<IWidgetReflector>& WidgetReflector )
-	{
-		if (SourceCodeAccessDelegate.IsBound())
-		{
-			WidgetReflector->SetSourceAccessDelegate(SourceCodeAccessDelegate);
-		}
-
-		WidgetReflectorPtr = WidgetReflector;
-	}
+	void SetWidgetReflector( const TSharedRef<IWidgetReflector>& WidgetReflector );
 
 	/** @param AccessDelegate The delegate to pass along to the widget reflector */
 	void SetWidgetReflectorSourceAccessDelegate(FAccessSourceCode AccessDelegate)
@@ -629,6 +651,8 @@ public:
 
 protected:
 
+	friend class FEventRouter;
+
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
 
 	/** 
@@ -728,21 +752,30 @@ public:
 	/**
 	 * Called when a key is pressed
 	 *
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Keyb event
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent );
+	bool ProcessKeyDownEvent( FKeyEvent& InKeyEvent );
 
 	/**
 	 * Called when a key is released
 	 *
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessKeyUpEvent( FKeyboardEvent& InKeyboardEvent );
+	bool ProcessKeyUpEvent( FKeyEvent& InKeyEvent );
 	
+	/**
+	 * Called when a analog input values change
+	 *
+	 * @param  InAnalogInputEvent Analog input event
+	 *
+	 * @return  Was this event handled by the Slate application?
+	 */
+	bool ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInputEvent);
+
 	/**
 	 * Called when a drag from an external (non-slate) source enters a window
 	 *
@@ -752,27 +785,6 @@ public:
 	 * @return true if the drag enter was handled and can be processed by some widget in this window; false otherwise
 	 */
 	bool ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered, FDragDropEvent& DragDropEvent );
-
-	/**
-	 * Called when a controller button is found pressed when polling game device state
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	void ProcessControllerButtonPressedEvent( FControllerEvent& ControllerEvent );
-
-	/**
-	 * Called when a controller button is found released when polling game device state
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	void ProcessControllerButtonReleasedEvent( FControllerEvent& ControllerEvent );
-
-	/**
-	 * Called when a controller analog value has changed while polling game device state
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	void ProcessControllerAnalogValueChangedEvent( FControllerEvent& ControllerEvent );
 
 	/**
 	 * Called when a touchpad touch is started (finger down) when polling game device state
@@ -839,7 +851,7 @@ public:
 	 * @param InMouseEvent       Optional mouse event that caused this action.
 	 * @param UserIndex			 User index that generated the event we are replying to (defaults to 0, at least for now)
 	 */
-	void ProcessReply( const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, uint32 UserIndex=0 );
+	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, uint32 UserIndex = 0);
 	
 	void LockCursor( const TSharedPtr<SWidget>& Widget );
 
@@ -881,7 +893,7 @@ public:
 	 *
 	 * @return New maximum layer id
 	 */
-	int32 DrawKeyboardFocus( const FWidgetPath& FocusPath, class FSlateWindowElementList& WindowElementList, int32 InLayerId ) const;
+	int32 DrawFocus( const FWidgetPath& FocusPath, class FSlateWindowElementList& WindowElementList, int32 InLayerId ) const;
 
 	/** @return an array of top-level windows that can be interacted with. e.g. when a modal window is up, only return the modal window */
 	TArray< TSharedRef<SWindow> > GetInteractiveTopLevelWindows();
@@ -901,13 +913,20 @@ public:
 	/** @return true if mouse events are being turned into touch events, and touch UI should be forced on */
 	bool IsFakingTouchEvents() const;
 
-	void SetGameIsFakingTouchEvents(const bool bIsFaking);
+	/** Sets whether the application is treating mouse events as imitating touch events.  Optional CursorLocation can be supplied to override the platform's belief of where the cursor is */
+	void SetGameIsFakingTouchEvents(const bool bIsFaking, FVector2D* CursorLocation = nullptr);
 
 	/** Sets the handler for otherwise unhandled key down events. This is used by the editor to provide a global action list, if the key was not consumed by any widget. */
-	void SetUnhandledKeyDownEventHandler( const FOnKeyboardEvent& NewHandler );
+	void SetUnhandledKeyDownEventHandler( const FOnKeyEvent& NewHandler );
 
-	/** @return the last time a user interacted with a keyboard, mouse, touch device, or joystick */
+	/** @return the last time a user interacted with a keyboard, mouse, touch device, or controller */
 	double GetLastUserInteractionTime() const { return LastUserInteractionTime; }
+
+	/** @return the deadzone size for dragging in screen pixels (aka virtual desktop pixels) */
+	float GetDragTriggerDistnace() const;
+
+	/** Set the size of the deadzone for dragging in screen pixels */
+	void SetDragTriggerDistnace( float ScreenPixels );
 	
 public:
 
@@ -978,7 +997,9 @@ public:
 
 	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) override;
 
-	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) override;
+	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) override;
+
+	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
 	// End FSlateApplicationBase interface
 
@@ -1008,15 +1029,9 @@ public:
 
 	virtual bool OnCursorSet() override;
 
-	virtual bool OnControllerAnalog( FKey Button, int32 ControllerId, float AnalogValue );
-
 	virtual bool OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue ) override;
 
-	virtual bool OnControllerButtonPressed( FKey Button, int32 ControllerId, bool IsRepeat );
-
 	virtual bool OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
-
-	virtual bool OnControllerButtonReleased( FKey, int32 ControllerId, bool IsRepeat );
 
 	virtual bool OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
 
@@ -1045,6 +1060,8 @@ public:
 	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) override;
 
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
+
+	virtual bool OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode) override;
 
 	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 
@@ -1077,6 +1094,23 @@ private:
 	 */
 	void PrivateDestroyWindow( const TSharedRef<SWindow>& DestroyedWindow );
 
+	/**
+	 * Attempts to navigate to the next widget in the direction specified
+	 *
+	 * @return if a new widget was navigated too
+	 */
+	bool AttemptNavigation(const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget);
+
+	/**
+	 * @return int user index that the keyboard is mapped to. -1 if the keyboard isn't mapped
+	 */
+	int32 GetUserIndexForKeyboard() const;
+
+	/** 
+	 * @return int user index that this controller is mapped to. -1 if the controller isn't mapped
+	 */
+	int32 GetUserIndexForController(int32 ControllerId) const;
+
 private:
 
 	// Hidden default constructor.
@@ -1103,6 +1137,9 @@ private:
 
 	/** Application-wide scale for supporting monitors of varying pixel density */
 	float Scale;
+
+	/** The deadzone distance in virtual desktop pixels (a.k.a screen pixels) that the user has to move their finder before it is considered a drag.*/
+	float DragTriggerDistnace;
 
 	/** All the top-level windows owned by this application; they are tracked here in a platform-agnostic way. */
 	TArray< TSharedRef<SWindow> > SlateWindows;
@@ -1167,6 +1204,8 @@ private:
 		 */
 		FWidgetPath ToWidgetPath(uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
 
+		FWidgetPath ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr );
+
 		/**
 		 * Retrieves an array of the resolved widget paths for any active captures.
 		 */
@@ -1174,6 +1213,7 @@ private:
 
 		/** Retrieves the weak path for a current mouse captor with a specific pointer index */
 		FWeakWidgetPath ToWeakPath(uint32 PointerIndex) const;
+		
 
 		/* Walks the weak path and retrieves the widget that is set as the current mouse captor with a specific pointer index */
 		TSharedPtr< SWidget > ToSharedWidget(uint32 PointerIndex) const;
@@ -1196,8 +1236,8 @@ private:
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;
 
-	/** A weak path to the widget currently capturing joystick events, if any. */
-	FWeakWidgetPath JoystickCaptorWeakPaths[SlateApplicationDefs::MaxUsers];
+	/** A weak path to the widget currently focued by a user, if any. */
+	FWeakWidgetPath UserFocusedWidgetPaths[SlateApplicationDefs::MaxUsers];
 
 	/**
 	 * Application throttling
@@ -1212,9 +1252,8 @@ private:
 	/** The last real time that the user pressed a key or mouse button */
 	double LastUserInteractionTime;
 
-	/** Subset of LastUserInteractionTime that is used only when consdering when to throttle */
+	/** Subset of LastUserInteractionTime that is used only when considering when to throttle */
 	double LastUserInteractionTimeForThrottling;
-
 
 	/** Helper for detecting when a drag should begin */
 	struct FDragDetector
@@ -1235,10 +1274,8 @@ private:
 	/** Support for auto-dismissing popups */
 	FPopupSupport PopupSupport;
 
-	/** Weak path to the widget that currently has keyboard focus, if any */
-	FWeakWidgetPath FocusedWidgetPath;
 	/** The way in which the last focus was set. */
-	EKeyboardFocusCause::Type FocusCause;
+	EFocusCause FocusCause;
 	
 	/** Pointer to the currently registered game viewport widget if any */
 	TWeakPtr<SViewport> GameViewportWidget;
@@ -1384,7 +1421,7 @@ private:
 	bool bIsFakingTouched;
 
 	/** Delegate for when a key down event occurred but was not handled in any other way by ProcessKeyDownMessage */
-	FOnKeyboardEvent UnhandledKeyDownEventHandler;
+	FOnKeyEvent UnhandledKeyDownEventHandler;
 
 	/** controls whether unhandled touch events fall back to sending mouse events */
 	bool bTouchFallbackToMouse;

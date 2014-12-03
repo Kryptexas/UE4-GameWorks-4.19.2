@@ -2,7 +2,7 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "BlueprintEditorCommands.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h" // for AddEventForFunction(), ...
@@ -55,12 +55,14 @@ void FBlueprintEditorCommands::RegisterCommands()
 	UI_COMMAND( AddNewDelegate, "Event Dispatcher", "Add a new event dispatcher", EUserInterfaceActionType::Button, FInputGesture() );
 
 	// Development commands
-	UI_COMMAND( SaveIntermediateBuildProducts, "Save Intermediate Build Products", "Should the compiler save intermediate build products for debugging.", EUserInterfaceActionType::Check, FInputGesture() );
+	UI_COMMAND( SaveIntermediateBuildProducts, "Save Intermediate Build Products", "Should the compiler save intermediate build products for debugging.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 
 	UI_COMMAND( RecompileGraphEditor, "Recompile Graph Editor", "Recompiles and reloads C++ code for the graph editor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RecompileKismetCompiler, "Recompile Blueprint Compiler", "Recompiles and reloads C++ code for the blueprint compiler", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RecompileBlueprintEditor, "Recompile Blueprint Editor", "Recompiles and reloads C++ code for the blueprint editor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RecompilePersona, "Recompile Persona", "Recompiles and reloads C++ code for Persona", EUserInterfaceActionType::Button, FInputGesture() );
+
+	UI_COMMAND(GenerateNativeCode, "Generate Native Code", "Generate C++ code from the blueprint", EUserInterfaceActionType::Button, FInputGesture());
 
 	// SCC commands
 	UI_COMMAND( BeginBlueprintMerge, "Merge", "Shows the Blueprint merge panel and toolbar, allowing the user to resolve conflicted blueprints", EUserInterfaceActionType::Button, FInputGesture() );
@@ -156,7 +158,7 @@ public:
 	 *
 	 * @return						A fully prepared action containing the information to spawn the node
 	 */
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) = 0;
+	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) = 0;
 };
 
 class FEdGraphNodeSpawnInfo : public FNodeSpawnInfo
@@ -165,7 +167,7 @@ public:
 	FEdGraphNodeSpawnInfo(UClass* InClass) : NodeClass(InClass), GraphNode(NULL) {}
 
 	// FNodeSpawnInfo interface
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
 	{
 		TSharedPtr<FEdGraphSchemaAction_NewNode> NewActionNode = TSharedPtr<FEdGraphSchemaAction_NewNode>(new FEdGraphSchemaAction_NewNode);
 
@@ -178,7 +180,7 @@ public:
 		// the NodeTemplate UPROPERTY takes ownership of GraphNode's lifetime (hence it being a weak-pointer here)
 		NewActionNode->NodeTemplate = GraphNode.Get();
 
-		return NewActionNode;
+		InPaletteBuilder.AddAction(NewActionNode);
 	}
 	// End of FNodeSpawnInfo interface
 
@@ -196,10 +198,9 @@ public:
 	FFunctionNodeSpawnInfo(UFunction* InFunctionPtr) : FunctionPtr(InFunctionPtr) {}
 
 	// FNodeSpawnInfo interface
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
 	{
 		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
-		FBlueprintPaletteListBuilder TempListBuilder(Blueprint);
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if(NodeSpawnInfoHelpers::IsFunctionAvailableAsEvent(Blueprint, FunctionPtr))
@@ -207,7 +208,7 @@ public:
 			UFunction* FunctionEvent = NodeSpawnInfoHelpers::FindEventFunctionForClass(Blueprint, FunctionPtr);
 			if(FunctionEvent)
 			{
-				FK2ActionMenuBuilder::AddEventForFunction(TempListBuilder, FunctionEvent);	
+				FK2ActionMenuBuilder::AddEventForFunction(InPaletteBuilder, FunctionEvent);
 			}
 		}
 		else
@@ -222,19 +223,9 @@ public:
 
 			if(K2Schema->CanFunctionBeUsedInClass(Blueprint->GeneratedClass, FunctionPtr, InDestGraph, FunctionTypes, true, false, FFunctionTargetInfo()))
 			{
-				FK2ActionMenuBuilder::AddSpawnInfoForFunction(FunctionPtr, false, FFunctionTargetInfo(), FMemberReference(), TEXT(""), K2Schema->AG_LevelReference, TempListBuilder);
+				FK2ActionMenuBuilder::AddSpawnInfoForFunction(FunctionPtr, false, FFunctionTargetInfo(), FMemberReference(), TEXT(""), K2Schema->AG_LevelReference, InPaletteBuilder);
 			}
 		}
-
-		TSharedPtr<FEdGraphSchemaAction> NewActionNode;
-		if(TempListBuilder.GetNumActions() == 1)
-		{
-			TArray<UEdGraphPin*> DummyPins;
-			FGraphActionListBuilderBase::ActionGroup& Action = TempListBuilder.GetAction(0);
-			NewActionNode = Action.Actions[0];
-		}
-
-		return NewActionNode;
 	}
 	// End of FNodeSpawnInfo interface
 
@@ -249,21 +240,41 @@ public:
 	FMacroNodeSpawnInfo(UEdGraph* InMacroGraph) : MacroGraph(InMacroGraph) {}
 
 	// FNodeSpawnInfo interface
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
 	{
-		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
-		FBlueprintPaletteListBuilder TempListBuilder(Blueprint);
-
-		FK2ActionMenuBuilder::AttachMacroGraphAction(TempListBuilder, MacroGraph);
-
-		FGraphActionListBuilderBase::ActionGroup& Action = TempListBuilder.GetAction(0);
-		return Action.Actions[0];
+		FK2ActionMenuBuilder::AttachMacroGraphAction(InPaletteBuilder, MacroGraph);
 	}
 	// End of FNodeSpawnInfo interface
 
 private:
 	/** The macro graph used to create the action to spawn the graph node */
 	UEdGraph* MacroGraph;
+};
+
+class FActorRefSpawnInfo : public FNodeSpawnInfo
+{
+public:
+	// FNodeSpawnInfo interface
+	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	{
+		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
+		USelection* SelectedLvlActors = GEditor->GetSelectedActors();
+
+		if ((Blueprint != nullptr) && Blueprint->ParentClass->IsChildOf<ALevelScriptActor>() && (SelectedLvlActors->Num() > 0))
+		{
+			for (FSelectionIterator LvlActorIt(*SelectedLvlActors); LvlActorIt; ++LvlActorIt)
+			{
+				UK2Node_Literal* TemplateRefNode = InPaletteBuilder.CreateTemplateNode<UK2Node_Literal>();
+				TemplateRefNode->SetObjectRef(*LvlActorIt);
+
+				TSharedPtr<FEdGraphSchemaAction_NewNode> NewActionNode = TSharedPtr<FEdGraphSchemaAction_NewNode>(new FEdGraphSchemaAction_NewNode);
+				NewActionNode->NodeTemplate = TemplateRefNode;
+
+				InPaletteBuilder.AddAction(NewActionNode);
+			}
+		}
+	}
+	// End of FNodeSpawnInfo interface
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -377,9 +388,14 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 			NodeCommands.Add(InfoPtr);
 		}
 	}
+
+	TSharedPtr<FNodeSpawnInfo> AddActorRefAction = MakeShareable(new FActorRefSpawnInfo);
+	UI_COMMAND(AddActorRefAction->CommandInfo, "Add Selected Actor Reference(s)", "Spawns node(s) which reference the currently selected actor(s) in the level.", EUserInterfaceActionType::Button, FInputGesture(EKeys::R));
+	NodeCommands.Add(AddActorRefAction);
 }
 
-TSharedPtr< FEdGraphSchemaAction > FBlueprintSpawnNodeCommands::GetGraphActionByGesture(FInputGesture& InGesture, FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) const
+
+void FBlueprintSpawnNodeCommands::GetGraphActionByGesture(FInputGesture& InGesture, FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) const
 {
 	if(InGesture.IsValidGesture())
 	{
@@ -387,10 +403,8 @@ TSharedPtr< FEdGraphSchemaAction > FBlueprintSpawnNodeCommands::GetGraphActionBy
 		{
 			if(NodeCommands[x]->CommandInfo->GetActiveGesture().Get() == InGesture)
 			{
-				return NodeCommands[x]->GetAction(InPaletteBuilder, InDestGraph);
+				NodeCommands[x]->GetActions(InPaletteBuilder, InDestGraph);
 			}
 		}
 	}
-
-	return TSharedPtr< FEdGraphSchemaAction >();
 }

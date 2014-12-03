@@ -196,7 +196,7 @@ public:
 	 * @param M The FTransform object.
 	 * @return The transformed volume.
 	 */
-	CORE_API FBoxSphereBounds TransformBy( const FTransform & M ) const;
+	CORE_API FBoxSphereBounds TransformBy( const FTransform& M ) const;
 
 	/**
 	 * Get a textual representation of this bounding box.

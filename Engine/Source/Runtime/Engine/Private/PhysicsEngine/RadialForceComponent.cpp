@@ -3,11 +3,13 @@
 #include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "PhysicsEngine/RadialForceActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
-URadialForceComponent::URadialForceComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -172,13 +174,13 @@ void URadialForceComponent::UpdateCollisionObjectQueryParams()
 
 //////////////////////////////////////////////////////////////////////////
 // ARB_RADIALFORCEACTOR
-ARadialForceActor::ARadialForceActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ARadialForceActor::ARadialForceActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	ForceComponent = PCIP.CreateDefaultSubobject<URadialForceComponent>(this, TEXT("ForceComponent0"));
+	ForceComponent = ObjectInitializer.CreateDefaultSubobject<URadialForceComponent>(this, TEXT("ForceComponent0"));
 
 #if WITH_EDITOR
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		// Structure to hold one-time initialization
@@ -227,7 +229,7 @@ void ARadialForceActor::EditorApplyScale(const FVector& DeltaScale, const FVecto
 	FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? 500.0f : 5.0f );
 
 	const float Multiplier = ( ModifiedScale.X > 0.0f || ModifiedScale.Y > 0.0f || ModifiedScale.Z > 0.0f ) ? 1.0f : -1.0f;
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->Radius += Multiplier * ModifiedScale.Size();
 		ForceComponent->Radius = FMath::Max( 0.f, ForceComponent->Radius );
@@ -237,7 +239,7 @@ void ARadialForceActor::EditorApplyScale(const FVector& DeltaScale, const FVecto
 
 void ARadialForceActor::FireImpulse()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->FireImpulse();
 	}
@@ -245,7 +247,7 @@ void ARadialForceActor::FireImpulse()
 
 void ARadialForceActor::EnableForce()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->Activate();
 	}
@@ -253,7 +255,7 @@ void ARadialForceActor::EnableForce()
 
 void ARadialForceActor::DisableForce()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->Deactivate();
 	}
@@ -261,9 +263,16 @@ void ARadialForceActor::DisableForce()
 
 void ARadialForceActor::ToggleForce()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->ToggleActive();
 	}
 }
 
+
+/** Returns ForceComponent subobject **/
+URadialForceComponent* ARadialForceActor::GetForceComponent() const { return ForceComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ARadialForceActor::GetSpriteComponent() const { return SpriteComponent; }
+#endif

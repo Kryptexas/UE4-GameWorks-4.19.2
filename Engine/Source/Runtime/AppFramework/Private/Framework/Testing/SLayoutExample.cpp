@@ -7,10 +7,13 @@
 #define LOCTEXT_NAMESPACE "ExampleLayoutTest"
 
 
-class SExampleLayout : public SCompoundWidget
+class SExampleLayout
+	: public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SExampleLayout){}
+
+	SLATE_BEGIN_ARGS(SExampleLayout)
+	{ }
 	SLATE_END_ARGS()
 	
 	/**
@@ -19,7 +22,7 @@ public:
 	 * @param InArgs   Declaration from which to construct the widget.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void Construct(const FArguments& InDelcaration )
+	void Construct(const FArguments& InDelcaration)
 	{
 		const FVector2D HeadingShadowOffset(2,2);
 

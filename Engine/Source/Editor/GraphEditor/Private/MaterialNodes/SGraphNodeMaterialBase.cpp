@@ -216,8 +216,7 @@ void SGraphNodeMaterialBase::Construct(const FArguments& InArgs, UMaterialGraphN
 
 	this->SetCursor(EMouseCursor::CardinalCross);
 
-	// Surely we don't need to do this as SGraphPanel calls it after construction
-	//this->UpdateGraphNode();
+	this->UpdateGraphNode();
 }
 
 void SGraphNodeMaterialBase::CreatePinWidgets()

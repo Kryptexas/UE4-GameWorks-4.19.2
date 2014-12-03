@@ -95,9 +95,9 @@ public:
 	 * Processes level editor keybindings using events made in a viewport
 	 * 
 	 * @param MyGeometry		Information about the size and position of the viewport widget
-	 * @param InKeyboardEvent	The keyboard event which just occurred	
+	 * @param InKeyEvent	The event which just occurred	
 	 */
-	virtual FReply OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 	bool CanCloseApp();
 
@@ -161,9 +161,9 @@ private:
 	 * Processes keybindings on the level editor
 	 * 
 	 * @param MyGeometry		Information about the size and position of the level editor widget
-	 * @param InKeyboardEvent	The keyboard event which just occurred	
+	 * @param InKeyEvent	The event which just occurred	
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 	/** Callback for when the property view changes */
 	void OnPropertyObjectArrayChanged(const FString& NewTitle, const TArray< UObject* >& UObjects );

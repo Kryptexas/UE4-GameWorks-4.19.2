@@ -36,8 +36,8 @@ void FGameMenuStyle::GetResources(TArray<const FSlateBrush*>& OutBrushes) const
 }
 
 
-UGameMenuWidgetStyle::UGameMenuWidgetStyle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameMenuWidgetStyle::UGameMenuWidgetStyle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

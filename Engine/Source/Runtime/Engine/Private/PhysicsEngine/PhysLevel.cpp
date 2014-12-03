@@ -26,6 +26,25 @@ DEFINE_STAT(STAT_PhysicsFetchDynamicsTime);
 DEFINE_STAT(STAT_PhysicsEventTime);
 DEFINE_STAT(STAT_SetBodyTransform);
 
+DEFINE_STAT(STAT_NumBroadphaseAdds);
+DEFINE_STAT(STAT_NumBroadphaseRemoves);
+DEFINE_STAT(STAT_NumActiveConstraints);
+DEFINE_STAT(STAT_NumActiveSimulatedBodies);
+DEFINE_STAT(STAT_NumActiveKinematicBodies);
+DEFINE_STAT(STAT_NumMobileBodies);
+DEFINE_STAT(STAT_NumStaticBodies);
+DEFINE_STAT(STAT_NumShapes);
+
+DEFINE_STAT(STAT_NumBroadphaseAddsAsync);
+DEFINE_STAT(STAT_NumBroadphaseRemovesAsync);
+DEFINE_STAT(STAT_NumActiveConstraintsAsync);
+DEFINE_STAT(STAT_NumActiveSimulatedBodiesAsync);
+DEFINE_STAT(STAT_NumActiveKinematicBodiesAsync);
+DEFINE_STAT(STAT_NumMobileBodiesAsync);
+DEFINE_STAT(STAT_NumStaticBodiesAsync);
+DEFINE_STAT(STAT_NumShapesAsync);
+
+
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 
 // CVars
@@ -313,7 +332,7 @@ void InitGamePhys()
 
 	GPhysCommandHandler = new FPhysCommandHandler();
 
-	FCoreDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK);

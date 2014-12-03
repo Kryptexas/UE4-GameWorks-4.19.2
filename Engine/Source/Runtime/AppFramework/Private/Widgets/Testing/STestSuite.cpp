@@ -12,8 +12,21 @@
 #include "TransformCalculus3D.h"
 #include "SlateRenderTransform.h"
 #include "SlateLayoutTransform.h"
+#include "SWebBrowser.h"
+#include "SInlineEditableTextBlock.h"
+#include "STextEntryPopup.h"
+#include "SDPIScaler.h"
+#include "SNotificationList.h"
+#include "SNumericEntryBox.h"
+#include "SDockTab.h"
+#include "SSearchBox.h"
+#include "SVolumeControl.h"
+#include "SResponsiveGridPanel.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "STestSuite"
+
 
 namespace
 {
@@ -727,17 +740,25 @@ public:
 				.ContentPadding(20).HAlign(HAlign_Center).VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-					.IsEnabled( false )
+					.RenderTransform( FSlateRenderTransform( Concatenate( FVector2D(20.0f, 20.0f), FQuat2D(-PI/12.0f) ) ) )
 					.ContentPadding(20).HAlign(HAlign_Center).VAlign(VAlign_Center)
 					[
 						SNew(SButton)
+						.RenderTransform( FSlateRenderTransform( Concatenate( FVector2D(20.0f, 20.0f), FQuat2D(-PI/12.0f) ) ) )
 						.ContentPadding(20).HAlign(HAlign_Center).VAlign(VAlign_Center)
 						[
 							SNew(SButton)
+							.IsEnabled(false)
+							.RenderTransform( FSlateRenderTransform( Concatenate( FVector2D(20.0f, 20.0f), FQuat2D(-PI/12.0f) ) ) )
 							.ContentPadding(20).HAlign(HAlign_Center).VAlign(VAlign_Center)
 							[
-								SNew(STextBlock)
-								.Text(NSLOCTEXT("x","ClickMe","ClickMe!"))
+								SNew(SButton)
+								.RenderTransform( FSlateRenderTransform( Concatenate( FVector2D(20.0f, 20.0f), FQuat2D(-PI/12.0f) ) ) )
+								.ContentPadding(20).HAlign(HAlign_Center).VAlign(VAlign_Center)
+								[
+									SNew(STextBlock)
+									.Text(NSLOCTEXT("x","ClickMe","ClickMe!"))
+								]
 							]
 						]
 					]
@@ -1723,7 +1744,7 @@ public:
 			];
 		
 		TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-		uint16 Baseline = FontMeasure->GetBaseline( FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>( "RichText.Text" ).Font );
+		int16 Baseline = FontMeasure->GetBaseline( FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>( "RichText.Text" ).Font );
 
 		return FSlateWidgetRun::FWidgetRunInfo( Widget, Baseline - 3 );
 	}
@@ -2015,7 +2036,7 @@ public:
 		// Set focus to the editable text, so the user doesn't have to click initially to type
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( EditableText.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 	}
 
 	void InlineEditableTextCommited(const FText& NewText, ETextCommit::Type CommitType )
@@ -2846,7 +2867,7 @@ protected:
 		const FRunInfo RunInfo = TextStyles.CreateRunInfo(ActiveFontFamily, FontSize, FontStyle, FontColor);
 		const FTextBlockStyle TextBlockStyle = TextStyles.CreateTextBlockStyle(ActiveFontFamily, FontSize, FontStyle, FontColor);
 		RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
-		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EFocusCause::SetDirectly);
 	}
 
 	void HandleHyperlinkComboOpened()
@@ -4281,6 +4302,353 @@ public:
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 };
 
+class SResponsiveGridPanelTestWidget : public SUserWidget
+{
+
+public:
+
+	SLATE_USER_ARGS(SResponsiveGridPanelTestWidget)
+	{}
+
+	SLATE_END_ARGS()
+
+	virtual void Construct(const FArguments& InArgs) = 0;
+
+};
+
+namespace
+{
+	class SResponsiveGridPanelTestWidgetImpl : public SResponsiveGridPanelTestWidget
+	{
+	public:
+		virtual void Construct(const FArguments& InArgs) override;
+
+	private:
+		TSharedRef<SWidget> ConstructBox(const FString& Text) const;
+	};
+}
+
+TSharedRef<SWidget> SResponsiveGridPanelTestWidgetImpl::ConstructBox(const FString& Text) const
+{
+	return
+		SNew(SBorder)
+		.Padding(1)
+		.BorderImage(FTestStyle::Get().GetBrush("Gray"))
+		[
+			SNew(SBorder)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(10)
+			.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.Background"))
+			[
+				SNew(STextBlock).Text(Text)
+			]
+		];
+}
+
+void SResponsiveGridPanelTestWidgetImpl::Construct(const FArguments& InArgs)
+{
+	TSharedPtr<SResponsiveGridPanel> GridPanel;
+
+	SUserWidget::Construct(SUserWidget::FArguments()
+	[
+		SNew(SBorder)
+		.BorderImage(FTestStyle::Get().GetBrush("RichText.Background"))
+		.ForegroundColor(FLinearColor::Black)
+		[
+			SNew(SScrollBox)
+			+ SScrollBox::Slot()
+			[
+				SNew(SBox)
+				.Padding(FMargin(50, 10))
+				[
+					SNew(SBorder)
+					.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.DarkBackground"))
+					.Padding(10.0f)
+					[
+						SAssignNew(GridPanel, SResponsiveGridPanel, 12)
+						.ColumnGutter(5)
+						.RowGutter(5)
+					]
+				]
+			]
+
+			+ SScrollBox::Slot()
+			.Padding(0, 20, 0, 0)
+			[
+				SNew(SBox)
+				.Padding(FMargin(50, 10))
+				[
+					SNew(SBorder)
+					.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.DarkBackground"))
+					.Padding(10.0f)
+					[
+						SNew(SResponsiveGridPanel, 12)
+						.ColumnGutter(5)
+						.RowGutter(5)
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 8)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 12)
+						[
+							ConstructBox(TEXT(".mobile-col-12 .desktop-col-8"))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(2)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6"))
+						]
+						+ SResponsiveGridPanel::Slot(2)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6"))
+						]
+					]
+				]
+			]
+
+			+ SScrollBox::Slot()
+			.Padding(0, 20, 0, 0)
+			[
+				SNew(SBox)
+				.Padding(FMargin(50, 10))
+				[
+					SNew(SBorder)
+					.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.DarkBackground"))
+					.Padding(10.0f)
+					[
+						SNew(SResponsiveGridPanel, 12)
+						.ColumnGutter(5)
+						.RowGutter(5)
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 8)
+						.ColumnSpan(SResponsiveGridSize::Tablet, 6)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 12)
+						[
+							ConstructBox(TEXT(".mobile-col-12 .tablet-col-6 .desktop-col-8"))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::Tablet, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .tablet-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::Tablet, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .tablet-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::Tablet, 4)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 .tablet-col-4"))
+						]
+					]
+				]
+			]
+
+			+ SScrollBox::Slot()
+			.Padding(0, 20, 0, 0)
+			[
+				SNew(SBox)
+				.Padding(FMargin(50, 10))
+				[
+					SNew(SBorder)
+					.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.DarkBackground"))
+					.Padding(10.0f)
+					[
+						SNew(SResponsiveGridPanel, 12)
+						.ColumnGutter(5)
+						.RowGutter(5)
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 9)
+						[
+							ConstructBox(TEXT(".mobile-col-9"))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 4)
+						[
+							ConstructBox(TEXT(".mobile-col-4 \nSince 9 + 4 = 13 > 12, this 4 column wide slot\ngets wrapped onto a new line as one contiguous unit."))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 6)
+						[
+							ConstructBox(TEXT(".mobile-col-6 \nSubsequent columns continue along the new line."))
+						]
+					]
+				]
+			]
+
+			+ SScrollBox::Slot()
+			.Padding(0, 20, 0, 0)
+			[
+				SNew(SBox)
+				.Padding(FMargin(50, 10))
+				[
+					SNew(SBorder)
+					.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.DarkBackground"))
+					.Padding(10.0f)
+					[
+						SNew(SResponsiveGridPanel, 12)
+						.ColumnGutter(5)
+						.RowGutter(5)
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						[
+							ConstructBox(TEXT(".desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4, 4)
+						[
+							ConstructBox(TEXT(".desktop-col-4-offset-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 3, 3)
+						[
+							ConstructBox(TEXT(".desktop-col-3-offset-3"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 3, 3)
+						[
+							ConstructBox(TEXT(".desktop-col-3-offset-3"))
+						]
+						+ SResponsiveGridPanel::Slot(2)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 6, 3)
+						[
+							ConstructBox(TEXT(".desktop-col-6-offset-3"))
+						]
+					]
+				]
+			]
+
+			+ SScrollBox::Slot()
+			.Padding(0, 20, 0, 0)
+			[
+				SNew(SBox)
+				.Padding(FMargin(50, 10))
+				.HeightOverride(800)
+				[
+					SNew(SBorder)
+					.BorderImage(FTestStyle::Get().GetBrush("RichText.Tagline.DarkBackground"))
+					.Padding(10.0f)
+					[
+						SNew(SResponsiveGridPanel, 12)
+						.ColumnGutter(5)
+						.RowGutter(5)
+						.FillRow(1, 1.0f)
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						[
+							ConstructBox(TEXT(".desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						[
+							ConstructBox(TEXT(".desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(0)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+						[
+							ConstructBox(TEXT(".desktop-col-4"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 3)
+						.ColumnSpan(SResponsiveGridSize::Mobile, 0)
+						[
+							ConstructBox(TEXT(".desktop-col-3"))
+						]
+						+ SResponsiveGridPanel::Slot(1)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 9)
+						[
+							ConstructBox(TEXT(".desktop-col-9"))
+						]
+						+ SResponsiveGridPanel::Slot(2)
+						.ColumnSpan(SResponsiveGridSize::MediumDevice, 6, 3)
+						[
+							ConstructBox(TEXT(".desktop-col-6-offset-3"))
+						]
+					]
+				]
+			]
+		]
+	]);
+
+	for (int32 Index = 0; Index < 12; ++Index)
+	{
+		GridPanel->AddSlot(0)
+		.ColumnSpan(SResponsiveGridSize::MediumDevice, 1)
+		[
+			ConstructBox(TEXT(".desktop-col-1"))
+		];
+	}
+
+	GridPanel->AddSlot(1)
+	.ColumnSpan(SResponsiveGridSize::MediumDevice, 8)
+	[
+		ConstructBox(TEXT(".desktop-col-8"))
+	];
+
+	GridPanel->AddSlot(1)
+	.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+	[
+		ConstructBox(TEXT(".desktop-col-4"))
+	];
+
+	for (int32 Index = 0; Index < 3; ++Index)
+	{
+		GridPanel->AddSlot(2)
+		.ColumnSpan(SResponsiveGridSize::MediumDevice, 4)
+		[
+			ConstructBox(TEXT(".desktop-col-4"))
+		];
+	}
+	
+	for (int32 Index = 0; Index < 2; ++Index)
+	{
+		GridPanel->AddSlot(3)
+		.ColumnSpan(SResponsiveGridSize::MediumDevice, 6)
+		[
+			ConstructBox(TEXT(".desktop-col-6"))
+		];
+	}
+}
+
+TSharedRef<SResponsiveGridPanelTestWidget> SResponsiveGridPanelTestWidget::New()
+{
+	return MakeShareable(new SResponsiveGridPanelTestWidgetImpl());
+}
+
 /**
  * User Widget wrapper for a this widget. Legacy as this widget used to be in a separate header.
  */
@@ -4626,6 +4994,19 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				]
 			];
 	}
+	else if (TabIdentifier == FName(TEXT("WebBrowserTab")))
+	{
+		const FString DocPath(FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/HTML/INT/Resources/index.html"))));
+		return SNew(SDockTab)
+			.Label(LOCTEXT("WebBrowserTab", "Web Browser"))
+			.ToolTipText(LOCTEXT("WebBrowserTabToolTip", "Switches to the Web Browser to test its features."))
+			[
+				SNew(SWebBrowser)
+				.ParentWindow(Args.GetOwnerWindow())
+				//.InitialURL(DocPath)
+				//.InitialURL(TEXT("www.youtube.com"))
+			];
+	}
 #endif //WITH_FANCY_TEXT
 	else if (TabIdentifier == FName("LayoutRoundingTab"))
 	{
@@ -4811,6 +5192,7 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 				->AddTab("RichTextTab", ETabState::OpenedTab)
 				->AddTab("MultiLineEditTab", ETabState::OpenedTab)
 				->AddTab("RichEditableTextTab", ETabState::OpenedTab)
+				->AddTab("WebBrowserTab", ETabState::OpenedTab)
 #endif //WITH_FANCY_TEXT
 				)
 		)
@@ -4861,6 +5243,10 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 
 	TestSuite1TabManager->RegisterTabSpawner( "RichEditableTextTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("RichEditableTextTab") ) )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "RichEditableTextTab", "Rich Editable Text Test") )
+		.SetGroup(TestSuiteMenu::SuiteTabs);
+
+	TestSuite1TabManager->RegisterTabSpawner("WebBrowserTab", FOnSpawnTab::CreateStatic(&SpawnTab, FName("WebBrowserTab")))
+		.SetDisplayName(NSLOCTEXT("TestSuite1", "WebBrowserTab", "Web Browser test"))
 		.SetGroup(TestSuiteMenu::SuiteTabs);
 
 	TestSuite1TabManager->RegisterTabSpawner( "LayoutRoundingTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("LayoutRoundingTab") ) )
@@ -5003,6 +5389,21 @@ TSharedRef<SDockTab> SpawnRenderTransformManipulator( const FSpawnTabArgs& Args 
 	return RenderTransformManipulatorTab;
 }
 
+TSharedRef<SDockTab> SpawnResponsiveGrid(const FSpawnTabArgs& Args)
+{
+	TSharedRef<SDockTab> ResponsiveGridTab =
+		SNew(SDockTab)
+		.TabRole(ETabRole::MajorTab)
+		.Label(LOCTEXT("ResponsiveGridTabLabel", "Responsive Grid"))
+		.ToolTipText(LOCTEXT("ResponsiveGridTabToolTip", ""));
+
+	ResponsiveGridTab->SetContent
+	(
+		SNew(SResponsiveGridPanelTestWidget)
+	);
+
+	return ResponsiveGridTab;
+}
 
 void RestoreSlateTestSuite()
 {
@@ -5010,7 +5411,8 @@ void RestoreSlateTestSuite()
 
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite1", FOnSpawnTab::CreateStatic( &SpawnTestSuite1 ) );
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite2", FOnSpawnTab::CreateStatic( &SpawnTestSuite2 ) );
-	FGlobalTabmanager::Get()->RegisterTabSpawner("RenderTrasnformManipulator", FOnSpawnTab::CreateStatic(&SpawnRenderTransformManipulator));
+	FGlobalTabmanager::Get()->RegisterTabSpawner("RenderTransformManipulator", FOnSpawnTab::CreateStatic(&SpawnRenderTransformManipulator));
+	FGlobalTabmanager::Get()->RegisterTabSpawner("ResponsiveGrid", FOnSpawnTab::CreateStatic(&SpawnResponsiveGrid));
 
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "SlateTestSuite_Layout" )
 	->AddArea
@@ -5022,7 +5424,8 @@ void RestoreSlateTestSuite()
 			FTabManager::NewStack()
 			->AddTab( "TestSuite2", ETabState::OpenedTab )
 			->AddTab( "TestSuite1", ETabState::OpenedTab )
-			->AddTab( "RenderTrasnformManipulator", ETabState::OpenedTab )
+			->AddTab("RenderTransformManipulator", ETabState::OpenedTab)
+			->AddTab("ResponsiveGrid", ETabState::OpenedTab)
 		)		
 	)
 	#if PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS

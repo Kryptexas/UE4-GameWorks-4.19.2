@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Launch.cpp: Game launcher.
-=============================================================================*/
-
 #include "LaunchPrivatePCH.h"
 #include "PhysicsPublic.h"
 #include "ExceptionHandling.h"
 #include "ModuleManager.h"
+
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, Launch);
 
@@ -19,6 +16,7 @@ PER_MODULE_BOILERPLATE
 
 FEngineLoop	GEngineLoop;
 bool GIsConsoleExecutable = false;
+
 
 extern "C" int test_main(int argc, char ** argp)
 {

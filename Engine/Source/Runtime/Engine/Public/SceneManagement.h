@@ -574,6 +574,8 @@ public:
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float OcclusionMaxDistance;
 	float Contrast;
+	float MinOcclusion;
+	FLinearColor OcclusionTint;
 };
 
 
@@ -620,7 +622,7 @@ public:
 	/** Accesses parameters needed for rendering the light. */
 	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const {}
 
-	virtual FVector2D GetDirectionalLightDistanceFadeParameters() const
+	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		return FVector2D(0, 0);
 	}
@@ -1384,6 +1386,7 @@ private:
 	ERHIFeatureLevel::Type FeatureLevel;
 
 	friend class FSceneRenderer;
+	friend class FProjectedShadowInfo;
 };
 
 
@@ -1801,7 +1804,8 @@ extern ENGINE_API void ApplyViewModeOverrides(
 extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, class FStaticMeshRenderData* StaticMeshRenderData, class FStaticLODModel* SkeletalMeshRenderData );
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
-bool RequiresAdjacencyInformation( class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel );
+ENGINE_API bool RequiresAdjacencyInformation(class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
+
 /**
  * Computes the screen size of a given sphere bounds in the given view
  * @param Origin - Origin of the bounds in world space
@@ -1828,3 +1832,30 @@ int8 ENGINE_API ComputeStaticMeshLOD(const FStaticMeshRenderData* RenderData, co
  * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
  */
 int8 ENGINE_API ComputeLODForMeshes(const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale = 1.0f);
+
+class FSharedSamplerState : public FRenderResource
+{
+public:
+	FSamplerStateRHIRef SamplerStateRHI;
+	bool bWrap;
+
+	FSharedSamplerState(bool bInWrap) :
+		bWrap(bInWrap)
+	{}
+
+	virtual void InitRHI() override;
+
+	virtual void ReleaseRHI() override
+	{
+		SamplerStateRHI.SafeRelease();
+	}
+};
+
+/** Sampler state using Wrap addressing and taking filter mode from the world texture group. */
+extern ENGINE_API FSharedSamplerState* Wrap_WorldGroupSettings;
+
+/** Sampler state using Clamp addressing and taking filter mode from the world texture group. */
+extern ENGINE_API FSharedSamplerState* Clamp_WorldGroupSettings;
+
+/** Initializes the shared sampler states. */
+extern ENGINE_API void InitializeSharedSamplerStates();

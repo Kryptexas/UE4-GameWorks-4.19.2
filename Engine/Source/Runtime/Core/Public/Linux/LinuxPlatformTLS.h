@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTLS.h"
+#include "Linux/LinuxSystemIncludes.h"
 
 #if defined(_GNU_SOURCE)
 	#include <sys/syscall.h>	// SYS_gettid

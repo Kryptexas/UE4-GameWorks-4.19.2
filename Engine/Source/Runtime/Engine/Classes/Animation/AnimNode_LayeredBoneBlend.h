@@ -38,11 +38,14 @@ protected:
 public:	
 	FAnimNode_LayeredBoneBlend()
 	{
+#if WITH_EDITOR
+		AddPose();
+#endif
 	}
 
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context) override;
+	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
@@ -64,5 +67,5 @@ public:
 	}
 #endif
 
-	void ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton * Skeleton);
+	void ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton);
 };

@@ -6,6 +6,7 @@
 #include "GraphEditorSettings.h"
 #include "BehaviorTreeConnectionDrawingPolicy.h"
 #include "ScopedTransaction.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeDecoratorSchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
@@ -99,7 +100,7 @@ void FDecoratorSchemaAction_NewNode::AddReferencedObjects( FReferenceCollector& 
 
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_BehaviorTreeDecorator::UEdGraphSchema_BehaviorTreeDecorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEdGraphSchema_BehaviorTreeDecorator::UEdGraphSchema_BehaviorTreeDecorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PC_Boolean = TEXT("bool");
 }

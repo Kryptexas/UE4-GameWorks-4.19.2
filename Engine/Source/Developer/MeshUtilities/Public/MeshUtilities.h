@@ -73,14 +73,14 @@ public:
  */
 struct FMeshMergingSettings
 {
-	/** Whether to generate atlased lightmap UVs for a merged mesh*/
-	bool bGenerateAtlasedLightMapUV;
+	/** Whether to generate lightmap UVs for a merged mesh*/
+	bool bGenerateLightMapUV;
 	
-	/** Target UV channel in a merged mesh for an atlased lightmap */
+	/** Target UV channel in a merged mesh for a lightmap */
 	int32 TargetLightMapUVChannel;
 
-	/** Upper bounds for an atlased lightmap resolution */
-	int32 MaxAltlasedLightMapResolution;
+	/** Target lightmap resolution */
+	int32 TargetLightMapResolution;
 		
 	/** Whether we should import vertex colors into merged mesh */
 	bool bImportVertexColors;
@@ -90,9 +90,9 @@ struct FMeshMergingSettings
 		
 	/** Default settings. */
 	FMeshMergingSettings()
-		: bGenerateAtlasedLightMapUV(true)
+		: bGenerateLightMapUV(false)
 		, TargetLightMapUVChannel(1)
-		, MaxAltlasedLightMapResolution(1024)
+		, TargetLightMapResolution(256)
 		, bImportVertexColors(false)
 		, bPivotPointAtZero(false)
 	{
@@ -184,6 +184,8 @@ public:
 		) = 0;
 
 	
+	virtual void RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk) = 0;
+
 	/**
 	 *	Calculate the verts associated weighted to each bone of the skeleton.
 	 *	The vertices returned are in the local space of the bone.

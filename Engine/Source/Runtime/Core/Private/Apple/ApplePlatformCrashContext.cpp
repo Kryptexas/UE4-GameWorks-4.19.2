@@ -4,7 +4,7 @@
 	ApplePlatformCrashContext.cpp: Common implementations of Apple platform crash context.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "Apple/ApplePlatformCrashContext.h"
 
 FApplePlatformCrashContext::FApplePlatformCrashContext()
@@ -128,7 +128,7 @@ void FApplePlatformCrashContext::WriteLine(int ReportFile, const ANSICHAR* Line)
 	write(ReportFile, WindowsTerminator, 2);
 }
 
-void FApplePlatformCrashContext::WriteUTF16String(int ReportFile, const TCHAR * UTFString4BytesChar, uint32 NumChars)
+void FApplePlatformCrashContext::WriteUTF16String(int ReportFile, const TCHAR* UTFString4BytesChar, uint32 NumChars)
 {
 	check(UTFString4BytesChar != NULL || NumChars == 0);
 	static_assert(sizeof(TCHAR) == 4, "Platform TCHAR is not 4 bytes. Revisit this function.");
@@ -139,7 +139,7 @@ void FApplePlatformCrashContext::WriteUTF16String(int ReportFile, const TCHAR * 
 	}
 }
 
-void FApplePlatformCrashContext::WriteUTF16String(int ReportFile, const TCHAR * UTFString4BytesChar)
+void FApplePlatformCrashContext::WriteUTF16String(int ReportFile, const TCHAR* UTFString4BytesChar)
 {
 	static_assert(sizeof(TCHAR) == 4, "Platform TCHAR is not 4 bytes. Revisit this function.");
 	uint32 NumChars = FCString::Strlen(UTFString4BytesChar);

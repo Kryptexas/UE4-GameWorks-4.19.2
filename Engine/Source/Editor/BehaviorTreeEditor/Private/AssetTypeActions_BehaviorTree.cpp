@@ -13,26 +13,6 @@
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
-bool FAssetTypeActions_BehaviorTree::HasActions ( const TArray<UObject*>& InObjects ) const
-{
-	return true;
-}
-
-void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
-{
-	auto BehaviorTrees = GetTypedWeakObjectPtrs<UBehaviorTree>(InObjects);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("BehaviorTree_Edit", "Edit"),
-		LOCTEXT("BehaviorTree_EditTooltip", "Opens the selected Behavior Tree in editor."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_BehaviorTree::ExecuteEdit, BehaviorTrees ),
-		FCanExecuteAction()
-		)
-	);
-}
-
 void FAssetTypeActions_BehaviorTree::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
@@ -60,18 +40,6 @@ void FAssetTypeActions_BehaviorTree::OpenAssetEditor( const TArray<UObject*>& In
 				FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::GetModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
 				TSharedRef< IBehaviorTreeEditor > NewEditor = BehaviorTreeEditorModule.CreateBehaviorTreeEditor( Mode, EditWithinLevelEditor, BehaviorTree );	
 			}
-		}
-	}
-}
-
-void FAssetTypeActions_BehaviorTree::ExecuteEdit(TArray<TWeakObjectPtr<UBehaviorTree>> Objects)
-{
-	for(auto Object : Objects)
-	{
-		auto BehaviorTree = Object.Get();
-		if(BehaviorTree != NULL)
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(BehaviorTree);
 		}
 	}
 }

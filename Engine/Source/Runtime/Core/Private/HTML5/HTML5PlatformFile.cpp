@@ -4,7 +4,7 @@
 	HTML5File.cpp: HTML5 platform implementations of File functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -283,6 +283,11 @@ public:
 		// convert _stat time to FDateTime
 		FTimespan TimeSinceEpoch(0, 0, FileInfo.st_atime);
 		return HTML5Epoch + TimeSinceEpoch;
+	}
+
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		return Filename;
 	}
 
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override

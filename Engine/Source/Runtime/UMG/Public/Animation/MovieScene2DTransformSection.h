@@ -6,6 +6,8 @@
 
 #include "MovieScene2DTransformSection.generated.h"
 
+struct FWidgetTransform;
+
 /**
  * A transform section
  */

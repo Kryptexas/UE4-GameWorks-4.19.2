@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Engine/Engine.h"
+
 //
 //	FLocalPlayerIterator - Iterates over local players in the game.
 //	There are no advantages to using this over GEngine->GetLocalPlayerIterator(GetWorld());
@@ -91,7 +93,7 @@ public:
 		: Iter(InWorld->GetPlayerControllerIterator())
 	{
 		check(!LocalOnly || InWorld->GetNetMode() != NM_Client);	// You should only iterate on non local player controllers if you are the server
-		GetCurrent();
+		AdvanceCurrent();
 	}
 
 	void operator++()
@@ -116,7 +118,7 @@ protected:
 	FConstPlayerControllerIterator Iter;
 	T* Current;
 
-	T* GetCurrent()
+	void AdvanceCurrent()
 	{
 		// Look at current Iter
 		Current = Cast<T>(*Iter);
@@ -125,17 +127,17 @@ protected:
 		while(Iter && (!Current || (LocalOnly && !Current->IsLocalController())))
 		{
 			++Iter;
-			Current = Cast<T>*Iter;
+			Current = Cast<T>(*Iter);
 		}
 	}
 
-	T* Next()
+	void Next()
 	{
 		// Advance one
 		++Iter;
 
 		// Update Current
-		GetCurrent();
+		AdvanceCurrent();
 	}
 };
 
@@ -406,7 +408,6 @@ struct FCachedSystemScalabilityCVars
 	FCachedSystemScalabilityCVars();
 };
 
-ENGINE_API bool AllowHighQualityLightmaps();
 ENGINE_API bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel);
 
 ENGINE_API const FCachedSystemScalabilityCVars& GetCachedScalabilityCVars();
@@ -416,11 +417,27 @@ struct ENGINE_API FSystemResolution
 	int32 ResX;
 	int32 ResY;
 	EWindowMode::Type WindowMode;
+	bool bForceRefresh;
 
 	// Helper function for changing system resolution via the r.setres console command
 	// This function will set r.setres, which will trigger a resolution change later on
 	// when the console variable sinks are called
 	static void RequestResolutionChange(int32 InResX, int32 InResY, EWindowMode::Type InWindowMode);
+
+	FSystemResolution()
+		: ResX(0)
+		, ResY(0)
+		, WindowMode(EWindowMode::Windowed)
+		, bForceRefresh(false)
+	{
+
+	}
+
+	void ForceRefresh()
+	{
+		RequestResolutionChange(ResX, ResY, WindowMode);
+		bForceRefresh = true;
+	}
 };
 
 ENGINE_API extern FSystemResolution GSystemResolution;

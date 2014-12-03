@@ -45,7 +45,7 @@ struct FNode
 	{
 	}
 
-	FNode(FName InNodeName, FName InParentName, const FTransform & InTransform)
+	FNode(FName InNodeName, FName InParentName, const FTransform& InTransform)
 		: Name(InNodeName)
 		, ParentName(InParentName)
 		, Transform(InTransform)
@@ -157,22 +157,22 @@ public:
 
 	// node related functions
 	int32 GetNodeNum() const;
-	const FNode * GetNode(int32 NodeIndex) const;
+	const FNode* GetNode(int32 NodeIndex) const;
 	FName GetNodeName(int32 NodeIndex) const;
-	FName GetParentNode(FName & NodeName) const;
-	int32 FindNode(const FName & NodeName) const;
+	FName GetParentNode(FName& NodeName) const;
+	int32 FindNode(const FName& NodeName) const;
 	const TArray<FNode> & GetNodes() const { return Nodes; }
 
 	// create from skeleton
-	ENGINE_API void CreateFromSkeleton(const USkeleton * Skeleton, const TMap<int32, int32> & RequiredBones);
+	ENGINE_API void CreateFromSkeleton(const USkeleton* Skeleton, const TMap<int32, int32> & RequiredBones);
 	ENGINE_API void SetAllConstraintsToParents();
 	ENGINE_API void SetAllConstraintsToWorld();
 
 	// rig control related
 	int32 GetTransformBaseNum() const;
 	const TArray<FTransformBase> & GetTransformBases() const { return TransformBases; }
-	const FTransformBase * GetTransformBase(int32 TransformBaseIndex) const;
-	const FTransformBase * GetTransformBaseByNodeName(FName NodeName) const;
+	const FTransformBase* GetTransformBase(int32 TransformBaseIndex) const;
+	const FTransformBase* GetTransformBaseByNodeName(FName NodeName) const;
 	int32 FindTransformBaseByNodeName(FName NodeName) const;
 	int32 FindTransformParentNode(int32 NodeIndex, bool bTranslate, int32 Index=0) const;
 #endif
@@ -192,7 +192,7 @@ private:
 #endif // WITH_EDITOR
 	
 	// not useful so far
-//	void CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutComponentSpaceTransform) const;
-//	void CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutLocalSpaceTransform) const;
+//	void CalculateComponentSpace(int32 NodeIndex, const FTransform& LocalTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform& OutComponentSpaceTransform) const;
+//	void CalculateLocalSpace(int32 NodeIndex, const FTransform& ComponentTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform& OutLocalSpaceTransform) const;
 };
 

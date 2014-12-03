@@ -6,7 +6,7 @@
 
 #if WANTS_DRAW_MESH_EVENTS && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS
 
-void FDrawEvent::Start(FRHICommandList& InRHICmdList, const FColor& Color, const TCHAR* Fmt, ...)
+void FDrawEvent::Start(FRHICommandList& InRHICmdList, const TCHAR* Fmt, ...)
 {
 	check(IsInParallelRenderingThread() || IsInRHIThread());
 	{

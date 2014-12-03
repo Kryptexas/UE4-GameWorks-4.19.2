@@ -51,8 +51,8 @@ void FStreamedAudioChunk::StoreInDerivedDataCache(const FString& InDerivedDataKe
 }
 #endif // #if WITH_EDITORONLY_DATA
 
-USoundWave::USoundWave(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Volume = 1.0;
 	Pitch = 1.0;
@@ -268,7 +268,7 @@ FByteBulkData* USoundWave::GetCompressedData(FName Format)
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);
-				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetTypedData(), OutData.Num());
+				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
 				Result->Unlock();
 			}
 		}

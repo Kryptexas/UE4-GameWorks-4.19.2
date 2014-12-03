@@ -25,6 +25,7 @@ public:
 		, _ListItemsSource( static_cast<TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(128)
 		, _ItemWidth(128)
+		, _ItemAlignment(EListItemAlignment::EvenlyDistributed)
 		, _OnContextMenuOpening()
 		, _OnMouseButtonDoubleClick()
 		, _OnSelectionChanged()
@@ -32,6 +33,7 @@ public:
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
 		, _ScrollbarVisibility(EVisibility::Visible)
+		, _AllowOverscroll(EAllowOverscroll::Yes)
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -43,6 +45,8 @@ public:
 		SLATE_ATTRIBUTE( float, ItemHeight )
 
 		SLATE_ATTRIBUTE( float, ItemWidth )
+
+		SLATE_ATTRIBUTE( EListItemAlignment, ItemAlignment )
 
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
 
@@ -57,6 +61,8 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
 
 		SLATE_ATTRIBUTE(EVisibility, ScrollbarVisibility)
+
+		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
 	SLATE_END_ARGS()
 
@@ -77,6 +83,8 @@ public:
 		this->SelectionMode = InArgs._SelectionMode;
 
 		this->bClearSelectionOnClick = InArgs._ClearSelectionOnClick;
+
+		this->AllowOverscroll = InArgs._AllowOverscroll;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -106,7 +114,7 @@ public:
 		else
 		{
 			// Make the TableView
-			this->ConstructChildren(InArgs._ItemWidth, InArgs._ItemHeight, TSharedPtr<SHeaderRow>(), InArgs._ExternalScrollbar);
+			this->ConstructChildren(InArgs._ItemWidth, InArgs._ItemHeight, InArgs._ItemAlignment, TSharedPtr<SHeaderRow>(), InArgs._ExternalScrollbar);
 			if (this->ScrollBar.IsValid())
 			{
 				this->ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);
@@ -123,41 +131,41 @@ public:
 
 	// SWidget overrides
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
 		// Don't respond to key-presses containing "Alt" as a modifier
-		if ( ItemsSourceRef.Num() > 0 && !InKeyboardEvent.IsAltDown() )
+		if ( ItemsSourceRef.Num() > 0 && !InKeyEvent.IsAltDown() )
 		{
 			// Check for selection manipulation keys that differ from SListView (Left, Right)
-			if ( InKeyboardEvent.GetKey() == EKeys::Left )
+			if ( InKeyEvent.GetKey() == EKeys::Left )
 			{
 				int32 SelectionIndex = ( !TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) ) ? 0 : ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->SelectorItem ) );
 
 				if ( SelectionIndex > 0 )
 				{
 					// Select the previous item
-					this->KeyboardSelect(ItemsSourceRef[SelectionIndex - 1], InKeyboardEvent);
+					this->KeyboardSelect(ItemsSourceRef[SelectionIndex - 1], InKeyEvent);
 				}
 
 				return FReply::Handled();
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Right )
+			else if ( InKeyEvent.GetKey() == EKeys::Right )
 			{
 				int32 SelectionIndex = ( !TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) ) ? 0 : ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->SelectorItem ) );
 
 				if ( SelectionIndex < ItemsSourceRef.Num() - 1 )
 				{
 					// Select the next item
-					this->KeyboardSelect(ItemsSourceRef[SelectionIndex + 1], InKeyboardEvent);
+					this->KeyboardSelect(ItemsSourceRef[SelectionIndex + 1], InKeyEvent);
 				}
 
 				return FReply::Handled();
 			}
 		}
 
-		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 public:	
@@ -266,18 +274,14 @@ public:
 
 protected:
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll ) override
 	{
 		// Working around a CLANG bug, where all the base class
 		// members require an explicit namespace resolution.
 		typedef STableViewBase S;
 
 		const bool bWholeListVisible = S::ScrollOffset == 0 && S::bWasAtEndOfList;
-		if (bWholeListVisible)
-		{
-			return 0;
-		}
-		else if ( AllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		if ( InAllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
 			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / GetNumItemsWide();
 			const float ActuallyScrolledBy = S::Overscroll.ScrollBy( UnclampedScrollDelta );
@@ -287,13 +291,15 @@ protected:
 			}
 			return ActuallyScrolledBy;
 		}
-		else
+		else if (!bWholeListVisible)
 		{
 			const float ItemHeight = this->GetItemHeight();
 			const double NewScrollOffset = this->ScrollOffset + ( ( ScrollByAmountInSlateUnits * GetNumItemsWide() ) / ItemHeight );
 
 			return this->ScrollTo( NewScrollOffset );
 		}
+
+		return 0;
 	}
 
 	virtual int32 GetNumItemsWide() const override

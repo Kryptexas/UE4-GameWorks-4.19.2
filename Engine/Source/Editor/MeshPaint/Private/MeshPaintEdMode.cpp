@@ -2452,7 +2452,7 @@ void FEdModeMeshPaint::CommitAllPaintedTextures()
 					// Store source art
 					FColor* Colors = (FColor*)TextureData->PaintingTexture2D->Source.LockMip(0);					
 					check(TextureData->PaintingTexture2D->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(FColor));
-					FMemory::Memcpy(Colors, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof(FColor));
+					FMemory::Memcpy(Colors, TexturePixels.GetData(), TexturePixels.Num() * sizeof(FColor));
 					TextureData->PaintingTexture2D->Source.UnlockMip(0);
 
 					// If render target gamma used was 1.0 then disable SRGB for the static texture
@@ -2666,7 +2666,7 @@ void FEdModeMeshPaint::FinishPaintingTexture( )
 				// Store source art
 				FColor* Colors = (FColor*)TextureData->PaintingTexture2D->Source.LockMip(0);
 				check(TextureData->PaintingTexture2D->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(FColor));
-				FMemory::Memcpy(Colors, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof(FColor));
+				FMemory::Memcpy(Colors, TexturePixels.GetData(), TexturePixels.Num() * sizeof(FColor));
 				TextureData->PaintingTexture2D->Source.UnlockMip(0);
 
 				// If render target gamma used was 1.0 then disable SRGB for the static texture
@@ -2820,7 +2820,7 @@ void FEdModeMeshPaint::SaveSettingsForActor( AActor* InActor )
 		UStaticMeshComponent* StaticMeshComponent = NULL;
 		if( StaticMeshActor != NULL )
 		{
-			StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+			StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 		}
 
 		if( StaticMeshComponent != NULL )
@@ -3197,7 +3197,7 @@ UTexture2D* FEdModeMeshPaint::CreateTempUncompressedTexture( UTexture2D* SourceT
 	for( int32 y=0; y<Height; y++ )
 	{
 		uint8* DestPtr = &MipData[(Height - 1 - y) * Width * sizeof(FColor)];
-		const FColor* SrcPtr = &( (FColor*)( RawData.GetTypedData() ) )[ ( Height - 1 - y ) * Width ];
+		const FColor* SrcPtr = &( (FColor*)( RawData.GetData() ) )[ ( Height - 1 - y ) * Width ];
 		for( int32 x=0; x<Width; x++ )
 		{
 			*DestPtr++ = SrcPtr->B;
@@ -4222,7 +4222,7 @@ bool FEdModeMeshPaint::CanPasteVertexColors() const
 	return false; 
 }
 
-void FImportVertexTextureHelper::PickVertexColorFromTex(FColor & NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8 & ColorMask)
+void FImportVertexTextureHelper::PickVertexColorFromTex(FColor& NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8& ColorMask)
 {	
 	check(MipData);
 	NewVertexColor = FColor(0,0,0, 0);
@@ -4250,7 +4250,7 @@ void FImportVertexTextureHelper::PickVertexColorFromTex(FColor & NewVertexColor,
 }
 
 
-void FImportVertexTextureHelper::ImportVertexColors(const FString & Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask)
+void FImportVertexTextureHelper::ImportVertexColors(const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask)
 {
 	FMessageLog EditorErrors("EditorErrors");
 	EditorErrors.NewPage(LOCTEXT("MeshPaintImportLogLabel", "Mesh Paint: Import Vertex Colors"));
@@ -4319,7 +4319,7 @@ void FImportVertexTextureHelper::ImportVertexColors(const FString & Filename, in
 
 	TArray<uint8> SrcMipData;
 	Tex->Source.GetMipData(SrcMipData, 0);
-	uint8* MipData = SrcMipData.GetTypedData();
+	uint8* MipData = SrcMipData.GetData();
 	TArray <UStaticMesh*> ModifiedStaticMeshes;
 
 	for(const auto& StaticMeshComponent : Components)
@@ -4966,9 +4966,9 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 		{
 			int32 MaterialIndex = MeshData->SelectedMaterialIndex;
 			AStaticMeshActor* StaticMeshActor = Cast< AStaticMeshActor >( ActorBeingEdited.Get() );
-			if (StaticMeshActor != NULL && StaticMeshActor->StaticMeshComponent != NULL)
+			if (StaticMeshActor != NULL && StaticMeshActor->GetStaticMeshComponent() != NULL)
 			{
-				UMaterialInterface* MaterialToCheck = StaticMeshActor->StaticMeshComponent->GetMaterial(MaterialIndex);
+				UMaterialInterface* MaterialToCheck = StaticMeshActor->GetStaticMeshComponent()->GetMaterial(MaterialIndex);
 
 				bool bIsSourceTextureStreamedIn = SelectedTexture->IsFullyStreamedIn();
 
@@ -5000,7 +5000,7 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 						SelectedTexture->Source.GetMipData(TexturePixels, 0);					
 						uint8* DestData = NewTexture->Source.LockMip(0);					
 						check(NewTexture->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(uint8));
-						FMemory::Memcpy(DestData, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof( uint8 ) );
+						FMemory::Memcpy(DestData, TexturePixels.GetData(), TexturePixels.Num() * sizeof( uint8 ) );
 						NewTexture->Source.UnlockMip(0);
 						NewTexture->SRGB = SelectedTexture->SRGB;
 						NewTexture->PostEditChange();
@@ -5060,7 +5060,7 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 				}
 
 				bool bMaterialChanged = false;
-				UStaticMeshComponent* SMComponent = StaticMeshActor->StaticMeshComponent;
+				UStaticMeshComponent* SMComponent = StaticMeshActor->GetStaticMeshComponent();
 				ClearStaticMeshTextureOverrides(SMComponent);
 
 				SMComponent->SetMaterial(MaterialIndex,NewMaterialInstance);

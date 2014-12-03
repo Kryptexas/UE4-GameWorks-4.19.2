@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorStyle.cpp: Implements the FSlateEditorStyle class.
-=============================================================================*/
-
 #include "EditorStylePrivatePCH.h"
 
 #if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))
@@ -490,9 +486,12 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set( "ProgressBar", FProgressBarStyle()
 			.SetBackgroundImage( BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) )
-			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f) ) )
+			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f), FLinearColor( 1.0f, 0.22f, 0.0f ) ) )
 			.SetMarqueeImage( IMAGE_BRUSH( "Common/ProgressBar_Marquee", FVector2D(20,12), FLinearColor::White, ESlateBrushTileType::Horizontal ) )
 			);
+
+		Set( "ProgressBar.ThinBackground", new BOX_BRUSH( "Common/ProgressBar_Thin_Background", FMargin(5.f/12.f) ) );
+		Set( "ProgressBar.ThinFill", new BOX_BRUSH( "Common/ProgressBar_Thin_Fill", FMargin(5.f/12.f) ) );
 
 		// Legacy ProgressBar styles; kept here because other FEditorStyle controls (mis)use them
 		// todo: jdale - Widgets using these styles should be updated to use SlateStyle types once FEditorStyle has been obliterated from the Slate core
@@ -505,7 +504,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set( "WorkingBar", FProgressBarStyle()
 			.SetBackgroundImage( FSlateNoResource() )
-			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f) ) )
+			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f), FLinearColor( 1.0f, 0.22f, 0.0f ) ) )
 			.SetMarqueeImage( IMAGE_BRUSH( "Common/WorkingBar_Marquee", FVector2D(20,2), FLinearColor::White, ESlateBrushTileType::Horizontal ) )
 			);
 	}
@@ -1240,7 +1239,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "AssetEditor.SaveAsset", new IMAGE_BRUSH( "Icons/icon_SaveAsset_40x", Icon40x40 ) );
 		Set( "AssetEditor.SaveAsset.Small", new IMAGE_BRUSH( "Icons/icon_SaveAsset_40x", Icon20x20 ) );
 		Set( "AssetEditor.ReimportAsset", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon40x40 ) );
-		Set( "AssetEditor.ReimportAsset.Small", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon20x20 ) );		
+		Set( "AssetEditor.ReimportAsset.Small", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon20x20 ) );
 	}
 		
 	// Asset Thumbnail
@@ -1432,10 +1431,10 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set("HardwareTargets.Normal", TargetSettingsNormal);
 
- 		Set("HardwareTargets.Strong", FTextBlockStyle(TargetSettingsNormal)
- 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 8))
+		Set("HardwareTargets.Strong", FTextBlockStyle(TargetSettingsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 8))
 			.SetColorAndOpacity(EditorOrange)
- 			.SetShadowOffset(FVector2D::UnitVector));
+			.SetShadowOffset(FVector2D::UnitVector));
 	}
 #endif
 
@@ -1538,14 +1537,14 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Log Visualizer
 	{
-		Set( "LogVisualizer.Pause", new IMAGE_BRUSH( "Icons/icon_pause_40x", Icon40x40 ) );
+		Set("LogVisualizer.Pause", new IMAGE_BRUSH("Icons/icon_pause_40x", Icon48x48));
 		Set( "LogVisualizer.LogBar.Background", new BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) );
 		Set( "LogVisualizer.LogBar.Selected", new BOX_BRUSH( "Common/TaskGraph_Selected", FMargin(5.f/12.f) ) );
 		Set( "LogVisualizer.LogBar.EntryDefault", new BOX_BRUSH( "Common/TaskGraph_Mono", FMargin(5.f/12.f) ) );
 		Set( "LogVisualizer.LogBar.TimeMark", new BOX_BRUSH( "Icons/LV_BarMark", FMargin(5.f/12.f) ) );
-		Set( "LogVisualizer.Record", new IMAGE_BRUSH( "Icons/LV_Record", Icon24x24 ) );
-		Set( "LogVisualizer.Stop", new IMAGE_BRUSH( "Icons/LV_Stop", Icon24x24 ) );
-		Set( "LogVisualizer.Camera", new IMAGE_BRUSH( "Icons/LV_Camera", Icon40x40 ) );
+		Set("LogVisualizer.Record", new IMAGE_BRUSH("Icons/LV_Record", Icon40x40));
+		Set("LogVisualizer.Stop", new IMAGE_BRUSH("Icons/LV_Stop", Icon40x40));
+		Set("LogVisualizer.Camera", new IMAGE_BRUSH("Icons/LV_Camera", Icon48x48));
 		Set( "LogVisualizer.Save", new IMAGE_BRUSH( "Icons/LV_Save", Icon40x40 ) );
 		Set( "LogVisualizer.Load", new IMAGE_BRUSH( "Icons/LV_Load", Icon40x40 ) );
 		Set( "LogVisualizer.Remove", new IMAGE_BRUSH( "Icons/LV_Remove", Icon40x40 ) );
@@ -1729,7 +1728,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	// ToolBar
 	{
 		Set( "ToolBar.Background", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
-		Set( "ToolBar.Icon", new IMAGE_BRUSH( "Icons/icon_tab_toolbar_16px", Icon16x16 ) );
+		Set( "ToolBar.Icon", new IMAGE_BRUSH( "Icons/icon_tab_Toolbars_16x", Icon16x16 ) );
 		Set( "ToolBar.Expand", new IMAGE_BRUSH( "Icons/toolbar_expand_16x", Icon16x16) );
 		Set( "ToolBar.SubMenuIndicator", new IMAGE_BRUSH( "Common/SubmenuArrow", Icon8x8 ) );
 		Set( "ToolBar.SToolBarComboButtonBlock.Padding", FMargin(4.0f));
@@ -2235,45 +2234,92 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 		Set( "Window.Title.Flash",				  new IMAGE_BRUSH( "Old/Window/WindowTitle_Flashing", Icon24x24, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) );
 
 #if PLATFORM_MAC
-		const FButtonStyle MinimizeButtonStyle = FButtonStyle(Button)
-			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20, 20) ) )
-			.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20, 20) ) )
-			.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20, 20) ) )
-			.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
+		const bool RunningOnMavericks = FPlatformMisc::IsRunningOnMavericks();
+		FButtonStyle MinimizeButtonStyle, MaximizeButtonStyle, RestoreButtonStyle, CloseButtonStyle;
+		if (RunningOnMavericks)
+		{
+			MinimizeButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20, 20) ) )
+				.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
 
-		Set( "Window.Buttons.Minimize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Minimize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Minimize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Minimize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
 
-		const FButtonStyle MaximizeButtonStyle = FButtonStyle(Button)
-			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) )
-			.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) )
-			.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) )
-			.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
+			MaximizeButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) )
+				.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
 
-		Set( "Window.Buttons.Maximize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Maximize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Maximize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Maximize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Disabled", FVector2D(20, 20) ) );
 
-		const FButtonStyle RestoreButtonStyle = FButtonStyle(Button)
-			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) )
-			.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) )
-			.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
+			RestoreButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
 
-		Set( "Window.Buttons.Restore.Normal",     new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Restore.Hovered",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Restore.Pressed",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Restore.Normal",     new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Restore.Hovered",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Restore.Pressed",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20, 20) ) );
 
-		const FButtonStyle CloseButtonStyle = FButtonStyle(Button)
-			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Normal", FVector2D(20, 20) ) )
-			.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Hovered", FVector2D(20, 20) ) )
-			.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Pressed", FVector2D(20, 20) ) );
+			CloseButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Pressed", FVector2D(20, 20) ) );
 
-		Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Normal", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Hovered", FVector2D(20, 20) ) );
-		Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Pressed", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Close_Pressed", FVector2D(20, 20) ) );
+		}
+		else
+		{
+			MinimizeButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Minimize_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Minimize_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Minimize_Pressed", FVector2D(20, 20) ) )
+				.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
+
+			Set( "Window.Buttons.Minimize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Minimize_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Minimize_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Minimize_Pressed", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Minimize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
+
+			MaximizeButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) )
+				.SetDisabled( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
+
+			Set( "Window.Buttons.Maximize.Normal",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Hovered",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Pressed",   new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Maximize.Disabled",  new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20, 20) ) );
+
+			RestoreButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) );
+
+			Set( "Window.Buttons.Restore.Normal",     new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Restore.Hovered",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Restore.Pressed",    new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20, 20) ) );
+
+			CloseButtonStyle = FButtonStyle(Button)
+				.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Close_Normal", FVector2D(20, 20) ) )
+				.SetHovered( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Close_Hovered", FVector2D(20, 20) ) )
+				.SetPressed( IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Close_Pressed", FVector2D(20, 20) ) );
+
+			Set( "Window.Buttons.Close.Normal",       new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Close_Normal", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Close_Hovered", FVector2D(20, 20) ) );
+			Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Mac_Yosemite_Close_Pressed", FVector2D(20, 20) ) );
+		}
 #else
 		const FButtonStyle MinimizeButtonStyle = FButtonStyle(Button)
 			.SetNormal ( IMAGE_BRUSH( "Old/Window/WindowButton_Minimize_Normal", FVector2D(27, 18) ) )
@@ -2315,7 +2361,7 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 		Set( "Window.Buttons.Close.Hovered",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Hovered", FVector2D(44, 18) ) );
 		Set( "Window.Buttons.Close.Pressed",      new IMAGE_BRUSH( "Old/Window/WindowButton_Close_Pressed", FVector2D(44, 18) ) );
 #endif
-		
+
 		Set( "Window.Buttons.Minimize", MinimizeButtonStyle );
 		Set( "Window.Buttons.Maximize", MaximizeButtonStyle );
 		Set( "Window.Buttons.Restore", RestoreButtonStyle );
@@ -2483,22 +2529,37 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 			.SetHighlightColor(TutorialSelectionColor);
 
 		Set( "Tutorials.Border", new BOX_BRUSH( "Tutorials/OverlayFrame", FMargin(18.0f/64.0f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) ) );
-		Set( "Tutorials.Browser.WelcomeHeader", FTextBlockStyle(TutorialHeaderText)
+
+		const FTextBlockStyle TutorialBrowserText = FTextBlockStyle(TutorialText)
+			.SetColorAndOpacity(FSlateColor::UseForeground())
+			.SetHighlightColor(TutorialSelectionColor);
+
+		Set( "Tutorials.Browser.Text", TutorialBrowserText );
+
+		Set( "Tutorials.Browser.WelcomeHeader", FTextBlockStyle(TutorialBrowserText)
 			.SetFontSize(20));
 
-		Set( "Tutorials.Browser.SummaryHeader", FTextBlockStyle(TutorialHeaderText)
+		Set( "Tutorials.Browser.SummaryHeader", FTextBlockStyle(TutorialBrowserText)
 			.SetFontSize(16));
 
-		Set( "Tutorials.Browser.SummaryText", FTextBlockStyle(TutorialText)
+		Set( "Tutorials.Browser.SummaryText", FTextBlockStyle(TutorialBrowserText)
 			.SetFontSize(10));
 
 		Set( "Tutorials.Browser.HighlightTextColor", TutorialSelectionColor );
 
 		Set( "Tutorials.Browser.Button", FButtonStyle()
-			.SetNormal( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
-			.SetHovered( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0.9f,0.9f,0.9f,1) ) )
-			.SetPressed( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
-			.SetDisabled( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
+			.SetNormal( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0.05f,0.05f,0.05f,1) ) )
+			.SetHovered( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0.07f,0.07f,0.07f,1) ) )
+			.SetPressed( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0.08f,0.08f,0.08f,1) ) )
+			.SetDisabled( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0.1f,0.1f,0.1f,1) ) )
+			.SetNormalPadding( FMargin(0,0,0,1))
+			.SetPressedPadding( FMargin(0,1,0,0)));
+
+		Set( "Tutorials.Browser.BackButton", FButtonStyle()
+			.SetNormal( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1.0f,1.0f,1.0f,0.0f) ) )
+			.SetHovered( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1.0f,1.0f,1.0f,0.05f) ) )
+			.SetPressed( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1.0f,1.0f,1.0f,0.05f) ) )
+			.SetDisabled( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1.0f,1.0f,1.0f,0.05f) ) )
 			.SetNormalPadding( FMargin(0,0,0,1))
 			.SetPressedPadding( FMargin(0,1,0,0)));
 
@@ -2531,17 +2592,17 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 		Set( "Tutorials.Content.Color", FLinearColor(1.0f,1.0f,1.0f,0.9f) );
 		Set( "Tutorials.Content.Color.Hovered", FLinearColor(1.0f,1.0f,1.0f,1.0f) );
 
-		Set( "Tutorials.Browser.CategoryArrow", new IMAGE_BRUSH( "Tutorials/BrowserCategoryArrow", FVector2D(24.0f, 24.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
+		Set( "Tutorials.Browser.CategoryArrow", new IMAGE_BRUSH( "Tutorials/BrowserCategoryArrow", FVector2D(24.0f, 24.0f), FSlateColor::UseForeground() ) );
 		Set( "Tutorials.Browser.DefaultTutorialIcon", new IMAGE_BRUSH( "Tutorials/DefaultTutorialIcon_40x", FVector2D(40.0f, 40.0f), FLinearColor::White ) );
 		Set( "Tutorials.Browser.DefaultCategoryIcon", new IMAGE_BRUSH( "Tutorials/DefaultCategoryIcon_40x", FVector2D(40.0f, 40.0f), FLinearColor::White ) );
 
-		Set( "Tutorials.Browser.BackButton", new IMAGE_BRUSH( "Tutorials/BrowserBack", FVector2D(32.0f, 32.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
-		Set( "Tutorials.Browser.RestartButton", new IMAGE_BRUSH( "Tutorials/BrowserRestart", FVector2D(16.0f, 16.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
+		Set( "Tutorials.Browser.BackButton.Image", new IMAGE_BRUSH( "Tutorials/BrowserBack", FVector2D(32.0f, 32.0f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) ) );
+		Set( "Tutorials.Browser.RestartButton", new IMAGE_BRUSH( "Tutorials/BrowserRestart", FVector2D(16.0f, 16.0f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) ) );
 
 		Set( "Tutorials.Browser.Completed", new IMAGE_BRUSH( "Tutorials/TutorialCompleted", Icon32x32 ) );
 
-		Set( "Tutorials.Browser.Breadcrumb", new IMAGE_BRUSH( "Tutorials/Breadcrumb", Icon8x8, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
-		Set( "Tutorials.Browser.PathText", FTextBlockStyle(TutorialText)
+		Set( "Tutorials.Browser.Breadcrumb", new IMAGE_BRUSH( "Tutorials/Breadcrumb", Icon8x8, FLinearColor::White ) );
+		Set( "Tutorials.Browser.PathText", FTextBlockStyle(TutorialBrowserText)
 			.SetFontSize(9));
 
 		Set( "Tutorials.Navigation.Button", FButtonStyle()
@@ -2580,7 +2641,8 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 			.SetFontSize(16));
 
 		// UDN documentation styles
-		Set("Tutorials.Content",         FTextBlockStyle(TutorialText));
+		Set("Tutorials.Content", FTextBlockStyle(TutorialText)
+			.SetColorAndOpacity(FSlateColor::UseForeground()));
 		Set("Tutorials.Hyperlink.Text",  FTextBlockStyle(DocumentationHyperlinkText));
 		Set("Tutorials.NumberedContent", FTextBlockStyle(TutorialText));
 		Set("Tutorials.BoldContent",     FTextBlockStyle(TutorialText)
@@ -2643,6 +2705,8 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 					.SetTextStyle(RichTextHyperlinkText)
 					.SetPadding(FMargin(0.0f));
 				Set( "Tutorials.Content.Hyperlink", RichTextHyperlink );
+
+				Set( "Tutorials.Content.ExternalLink", new IMAGE_BRUSH("Tutorials/ExternalLink", Icon16x16, FLinearColor::Blue));
 
 				// legacy style
 				Set( "TutorialEditableText.Editor.Hyperlink", RichTextHyperlink );
@@ -4353,12 +4417,24 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("Persona.ExportToFBX.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ExportFBX_40x"), Icon20x20));
 		Set("Persona.CreateAsset", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon40x40));
 		Set("Persona.CreateAsset.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon20x20));
+		Set("Persona.StartRecordAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_StartRecord_40x"), Icon40x40));
+		Set("Persona.StartRecordAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_StartRecord_40x"), Icon20x20));
+		Set("Persona.StopRecordAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_StopRecord_40x"), Icon40x40));
+		Set("Persona.StopRecordAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_StopRecord_40x"), Icon20x20));
+		Set("Persona.StopRecordAnimation_Alt", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_StopRecord_Alt_40x"), Icon40x40));
+		Set("Persona.StopRecordAnimation_Alt.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_StopRecord_Alt_40x"), Icon20x20));
 
 		// persona extras
 		Set("Persona.ConvertAnimationGraph", new IMAGE_BRUSH("Old/Graph/ConvertIcon", Icon40x40));
 		Set("Persona.ReimportAsset", new IMAGE_BRUSH("Icons/Reimport_12x", Icon12x12));
 		Set("SkeletonTree.SkeletonSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketG_16px", Icon16x16));
 		Set("SkeletonTree.MeshSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketC_16px", Icon16x16));
+
+		// Anim Slot Manager
+		Set("AnimSlotManager.SaveSkeleton", new IMAGE_BRUSH("Persona/AnimSlotManager/icon_SaveSkeleton_40x", Icon40x40));
+		Set("AnimSlotManager.AddGroup", new IMAGE_BRUSH("Persona/AnimSlotManager/icon_AddGroup_40x", Icon40x40));
+		Set("AnimSlotManager.AddSlot", new IMAGE_BRUSH("Persona/AnimSlotManager/icon_AddSlot_40x", Icon40x40));
+		Set("AnimSlotManager.Warning", new IMAGE_BRUSH("Persona/AnimSlotManager/icon_Warning_14x", Icon16x16));
 	}
 
 	// Kismet 2
@@ -4381,7 +4457,7 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set( "FullBlueprintEditor.Diff", new IMAGE_BRUSH( "Icons/BlueprintEditorDiff", Icon40x40 ) );
 		Set( "FullBlueprintEditor.Diff.Small", new IMAGE_BRUSH( "Icons/BlueprintEditorDiff", Icon20x20 ) );
 
-		Set( "BlueprintEditor.ActionMenu.ContextDescriptionFont",  FSlateFontInfo(TEXT("Roboto-Regular"), 12) );
+		Set( "BlueprintEditor.ActionMenu.ContextDescriptionFont",  TTF_CORE_FONT("Fonts/Roboto-Regular", 12) );
 
 		Set( "BlueprintEditor.FindInBlueprint", new IMAGE_BRUSH( "Icons/icon_Blueprint_Find_40px", Icon40x40 ) );
 		Set( "BlueprintEditor.FindInBlueprint.Small", new IMAGE_BRUSH( "Icons/icon_Blueprint_Find_40px", Icon20x20 ) );
@@ -4398,9 +4474,10 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 			Set( "Kismet.Tabs.Variables", new IMAGE_BRUSH( "/Icons/pill_16x", Icon16x16 ) );
 			Set( "Kismet.Tabs.Explorer", new IMAGE_BRUSH( "/Icons/hiererchy_16x", Icon16x16 ) );
 			Set( "Kismet.Tabs.Palette", new IMAGE_BRUSH( "/Icons/hiererchy_16x", Icon16x16 ) );
-			Set( "Kismet.Tabs.CompilerResults", new IMAGE_BRUSH( "/Icons/hiererchy_16x", Icon16x16 ) );
+			Set( "Kismet.Tabs.CompilerResults", new IMAGE_BRUSH( "Icons/icon_tab_OutputLog_16x", Icon16x16 ) );
 			Set( "Kismet.Tabs.FindResults", new IMAGE_BRUSH( "/Icons/lens_16x", Icon16x16 ) );
 			Set( "Kismet.Tabs.Components", new IMAGE_BRUSH( "Graph/Icons/Hammer", Icon16x16 ) );
+			Set( "Kismet.Tabs.BlueprintDefaults", new IMAGE_BRUSH( "Icons/icon_BlueprintEditor_Defaults_40x", Icon16x16 ) );
 		}
 
 		Set("Kismet.Palette.Favorites", new IMAGE_BRUSH("Icons/Star_16x", Icon16x16, FLinearColor(0.4f, 0.4, 0.4f, 1.f)));
@@ -4588,6 +4665,11 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set( "Kismet.DebuggerOverlay.InstructionPointer", new IMAGE_BRUSH( "Old/Kismet2/IP_Normal", FVector2D(128,96)) );
 		Set( "Kismet.DebuggerOverlay.InstructionPointerBreakpoint", new IMAGE_BRUSH( "Old/Kismet2/IP_Breakpoint", FVector2D(128,96)) );
 	}
+
+	// Asset context menu
+	{
+		Set("Persona.AssetActions.CreateAnimAsset", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon16x16));
+	}
 #endif // WITH_EDITOR
 }
 	
@@ -4700,6 +4782,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("AnimMontage"),
 			TEXT("AnimSequence"),
 			TEXT("AtmosphericFog"),
+			TEXT("AudioVolume"),
 			TEXT("BehaviorTree"),
 			TEXT("BlackboardData"),
 			TEXT("BlendSpace"),
@@ -4768,8 +4851,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("RadialForceActor"),
 			TEXT("ReflectionCapture"),
 			TEXT("ReverbEffect"),
-			TEXT("ReverbVolume"),
-			TEXT("ReverbVolumeToggleable"),
 			TEXT("SceneCapture2D"),
 			TEXT("SceneCaptureCube"),
 			TEXT("SkyLight"),
@@ -4922,6 +5003,9 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		// New Asset
 		Set( "ContentBrowser.NewAsset", new IMAGE_BRUSH( "Icons/icon_file_new_40x", Icon25x25 ) );
 
+		Set( "ContentBrowser.PathActions.NewAsset", new IMAGE_BRUSH( "Icons/icon_file_new_16px", Icon16x16 ) );
+		Set( "ContentBrowser.PathActions.SetColor", new IMAGE_BRUSH( "Icons/icon_Cascade_Color_40x", Icon16x16 ) );
+
 		FComboButtonStyle NewAssetComboButton = GetWidgetStyle<FComboButtonStyle>( "ToolbarComboButton" );
 		Set( "ContentBrowser.NewAsset.Style", NewAssetComboButton );
 
@@ -4936,6 +5020,19 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 
 		Set( "ContentBrowser.SaveDirtyPackages", new IMAGE_BRUSH( "Icons/icon_file_saveall_40x", Icon25x25 ) );
 		Set( "ContentBrowser.ImportPackage", new IMAGE_BRUSH( "Icons/icon_Import_40x", Icon25x25 ) );
+		Set( "ContentBrowser.ImportIcon", new IMAGE_BRUSH( "Icons/icon_Import_16x", Icon16x16 ) );
+
+		// Asset Context Menu
+		Set( "ContentBrowser.AssetActions.Edit", new IMAGE_BRUSH( "Icons/icon_Editor_Modes_16x", Icon16x16 ) );
+		Set( "ContentBrowser.AssetActions.Delete", new IMAGE_BRUSH( "Icons/icon_delete_16px", Icon16x16, FLinearColor( 0.4f, 0.5f, 0.7f, 1.0f ) ) );
+		Set( "ContentBrowser.AssetActions.ReimportAsset", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon16x16 ) );
+		Set( "ContentBrowser.AssetActions", new IMAGE_BRUSH( "Icons/icon_tab_Tools_16x", Icon16x16 ) );
+		Set( "ContentBrowser.AssetActions.GoToCodeForAsset", new IMAGE_BRUSH( "GameProjectDialog/feature_code_32x", Icon16x16 ) );
+		Set( "ContentBrowser.AssetActions.FindAssetInWorld", new IMAGE_BRUSH( "/Icons/lens_16x", Icon16x16 ) );
+
+		Set( "MediaAsset.AssetActions.Play", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayCue_40x", Icon16x16 ) );
+		Set( "MediaAsset.AssetActions.Stop", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon16x16 ) );
+		Set( "MediaAsset.AssetActions.Pause", new IMAGE_BRUSH( "Icons/icon_SCueEd_Pause_40x", Icon16x16 ) );
 
 		// Misc
 		Set( "ContentBrowser.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow" , FMargin( 4.0f / 64.0f ) ) );
@@ -5017,55 +5114,55 @@ void FSlateEditorStyle::FStyle::SetupLandscapeEditorStyle()
 		Set("LandscapeEditor.NoiseTool",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Noise_40x",            Icon40x40));
 		Set("LandscapeEditor.RetopologizeTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Retopologize_40x",     Icon40x40));
 		Set("LandscapeEditor.VisibilityTool",   new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Visibility_40x",       Icon40x40));
-		Set("LandscapeEditor.SculptTool.Small",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Sculpt_20x",           Icon20x20));
-		Set("LandscapeEditor.PaintTool.Small",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Paint_20x",            Icon20x20));
-		Set("LandscapeEditor.SmoothTool.Small",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Smooth_20x",           Icon20x20));
-		Set("LandscapeEditor.FlattenTool.Small",      new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Flatten_20x",          Icon20x20));
-		Set("LandscapeEditor.RampTool.Small",         new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Ramp_20x",             Icon20x20));
-		Set("LandscapeEditor.ErosionTool.Small",      new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Erosion_20x",          Icon20x20));
+		Set("LandscapeEditor.SculptTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Sculpt_20x", Icon20x20));
+		Set("LandscapeEditor.PaintTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Paint_20x", Icon20x20));
+		Set("LandscapeEditor.SmoothTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Smooth_20x", Icon20x20));
+		Set("LandscapeEditor.FlattenTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Flatten_20x", Icon20x20));
+		Set("LandscapeEditor.RampTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Ramp_20x", Icon20x20));
+		Set("LandscapeEditor.ErosionTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Erosion_20x", Icon20x20));
 		Set("LandscapeEditor.HydroErosionTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_HydraulicErosion_20x", Icon20x20));
-		Set("LandscapeEditor.NoiseTool.Small",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Noise_20x",            Icon20x20));
-		Set("LandscapeEditor.RetopologizeTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Retopologize_20x",     Icon20x20));
-		Set("LandscapeEditor.VisibilityTool.Small",   new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Visibility_20x",       Icon20x20));
+		Set("LandscapeEditor.NoiseTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Noise_20x", Icon20x20));
+		Set("LandscapeEditor.RetopologizeTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Retopologize_20x", Icon20x20));
+		Set("LandscapeEditor.VisibilityTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Visibility_20x", Icon20x20));
 
-		Set("LandscapeEditor.SelectComponentTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Selection_40x",       Icon40x40));
-		Set("LandscapeEditor.AddComponentTool",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_AddComponent_40x",    Icon40x40));
+		Set("LandscapeEditor.SelectComponentTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Selection_40x", Icon40x40));
+		Set("LandscapeEditor.AddComponentTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_AddComponent_40x", Icon40x40));
 		Set("LandscapeEditor.DeleteComponentTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_DeleteComponent_40x", Icon40x40));
-		Set("LandscapeEditor.MoveToLevelTool",     new IMAGE_BRUSH("Icons/icon_Landscape_Tool_MoveToLevel_40x",     Icon40x40));
-		Set("LandscapeEditor.SelectComponentTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Selection_20x",       Icon20x20));
-		Set("LandscapeEditor.AddComponentTool.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_AddComponent_20x",    Icon20x20));
+		Set("LandscapeEditor.MoveToLevelTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_MoveToLevel_40x", Icon40x40));
+		Set("LandscapeEditor.SelectComponentTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Selection_20x", Icon20x20));
+		Set("LandscapeEditor.AddComponentTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_AddComponent_20x", Icon20x20));
 		Set("LandscapeEditor.DeleteComponentTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_DeleteComponent_20x", Icon20x20));
-		Set("LandscapeEditor.MoveToLevelTool.Small",     new IMAGE_BRUSH("Icons/icon_Landscape_Tool_MoveToLevel_20x",     Icon20x20));
+		Set("LandscapeEditor.MoveToLevelTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_MoveToLevel_20x", Icon20x20));
 
-		Set("LandscapeEditor.RegionSelectTool",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Mask_40x", Icon40x40));
+		Set("LandscapeEditor.RegionSelectTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Mask_40x", Icon40x40));
 		Set("LandscapeEditor.RegionCopyPasteTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Copy_40x", Icon40x40));
-		Set("LandscapeEditor.RegionSelectTool.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Mask_20x", Icon20x20));
+		Set("LandscapeEditor.RegionSelectTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Mask_20x", Icon20x20));
 		Set("LandscapeEditor.RegionCopyPasteTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Copy_20x", Icon20x20));
 
 		Set("LandscapeEditor.SplineTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Splines_40x", Icon40x40));
 		Set("LandscapeEditor.SplineTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Splines_20x", Icon20x20));
 
 		// Brush Sets
-		Set("LandscapeEditor.CircleBrush",        new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_40x", Icon40x40));
-		Set("LandscapeEditor.AlphaBrush",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_40x",         Icon40x40));
-		Set("LandscapeEditor.AlphaBrush_Pattern", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Pattern_40x",       Icon40x40));
-		Set("LandscapeEditor.ComponentBrush",     new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Component_40x",     Icon40x40));
-		Set("LandscapeEditor.GizmoBrush",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Gizmo_40x",         Icon40x40));
-		Set("LandscapeEditor.CircleBrush.Small",        new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_20x", Icon20x20));
-		Set("LandscapeEditor.AlphaBrush.Small",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_20x",         Icon20x20));
-		Set("LandscapeEditor.AlphaBrush_Pattern.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Pattern_20x",       Icon20x20));
-		Set("LandscapeEditor.ComponentBrush.Small",     new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Component_20x",     Icon20x20));
-		Set("LandscapeEditor.GizmoBrush.Small",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Gizmo_20x",         Icon20x20));
+		Set("LandscapeEditor.CircleBrush", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_40x", Icon40x40));
+		Set("LandscapeEditor.AlphaBrush", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_40x", Icon40x40));
+		Set("LandscapeEditor.AlphaBrush_Pattern", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Pattern_40x", Icon40x40));
+		Set("LandscapeEditor.ComponentBrush", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Component_40x", Icon40x40));
+		Set("LandscapeEditor.GizmoBrush", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Gizmo_40x", Icon40x40));
+		Set("LandscapeEditor.CircleBrush.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_20x", Icon20x20));
+		Set("LandscapeEditor.AlphaBrush.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_20x", Icon20x20));
+		Set("LandscapeEditor.AlphaBrush_Pattern.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Pattern_20x", Icon20x20));
+		Set("LandscapeEditor.ComponentBrush.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Component_20x", Icon20x20));
+		Set("LandscapeEditor.GizmoBrush.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Gizmo_20x", Icon20x20));
 
 		// Brushes
-		Set("LandscapeEditor.CircleBrush_Smooth",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_40x",    Icon40x40));
-		Set("LandscapeEditor.CircleBrush_Linear",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_linear_40x",    Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Smooth", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_40x", Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Linear", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_linear_40x", Icon40x40));
 		Set("LandscapeEditor.CircleBrush_Spherical", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_spherical_40x", Icon40x40));
-		Set("LandscapeEditor.CircleBrush_Tip",       new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_tip_40x",       Icon40x40));
-		Set("LandscapeEditor.CircleBrush_Smooth.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_20x",    Icon20x20));
-		Set("LandscapeEditor.CircleBrush_Linear.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_linear_20x",    Icon20x20));
+		Set("LandscapeEditor.CircleBrush_Tip", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_tip_40x", Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Smooth.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_20x", Icon20x20));
+		Set("LandscapeEditor.CircleBrush_Linear.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_linear_20x", Icon20x20));
 		Set("LandscapeEditor.CircleBrush_Spherical.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_spherical_20x", Icon20x20));
-		Set("LandscapeEditor.CircleBrush_Tip.Small",       new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_tip_20x",       Icon20x20));
+		Set("LandscapeEditor.CircleBrush_Tip.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_tip_20x", Icon20x20));
 
 		Set("LandscapeEditor.Brushes.Alpha.UseRChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseRChannel_20x", Icon20x20));
 		Set("LandscapeEditor.Brushes.Alpha.UseGChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseGChannel_20x", Icon20x20));
@@ -5073,18 +5170,18 @@ void FSlateEditorStyle::FStyle::SetupLandscapeEditorStyle()
 		Set("LandscapeEditor.Brushes.Alpha.UseAChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseAChannel_20x", Icon20x20));
 
 		// Target List
-		Set("LandscapeEditor.TargetList.RowBackground",        new FSlateNoResource());
-		Set("LandscapeEditor.TargetList.RowBackgroundHovered", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)));
-		Set("LandscapeEditor.TargetList.RowSelected",          new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed));
-		Set("LandscapeEditor.TargetList.RowSelectedHovered",   new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor));
-		
-		Set("LandscapeEditor.Target_Heightmap",  new IMAGE_BRUSH("Icons/icon_Landscape_Target_Heightmap_48x",  Icon48x48));
-		Set("LandscapeEditor.Target_Visibility", new IMAGE_BRUSH("Icons/icon_Landscape_Target_Visibility_48x", Icon48x48));
-		Set("LandscapeEditor.Target_Invalid",    new IMAGE_BRUSH("Icons/icon_Landscape_Target_Invalid_48x",    Icon48x48));
+		Set("LandscapeEditor.TargetList.RowBackground", new FSlateNoResource());
+		Set("LandscapeEditor.TargetList.RowBackgroundHovered", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)));
+		Set("LandscapeEditor.TargetList.RowSelected", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor_Pressed));
+		Set("LandscapeEditor.TargetList.RowSelectedHovered", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor));
 
-		Set("LandscapeEditor.Target_Create",     new IMAGE_BRUSH("Icons/icon_Landscape_Target_Create_12x", Icon12x12));
-		Set("LandscapeEditor.Target_MakePublic", new IMAGE_BRUSH("Icons/assign_right_12x",                 Icon12x12));
-		Set("LandscapeEditor.Target_Delete",     new IMAGE_BRUSH("Icons/Cross_12x",                        Icon12x12));
+		Set("LandscapeEditor.Target_Heightmap", new IMAGE_BRUSH("Icons/icon_Landscape_Target_Heightmap_48x", Icon48x48));
+		Set("LandscapeEditor.Target_Visibility", new IMAGE_BRUSH("Icons/icon_Landscape_Target_Visibility_48x", Icon48x48));
+		Set("LandscapeEditor.Target_Invalid", new IMAGE_BRUSH("Icons/icon_Landscape_Target_Invalid_48x", Icon48x48));
+
+		Set("LandscapeEditor.Target_Create", new IMAGE_BRUSH("Icons/icon_Landscape_Target_Create_12x", Icon12x12));
+		Set("LandscapeEditor.Target_MakePublic", new IMAGE_BRUSH("Icons/assign_right_12x", Icon12x12));
+		Set("LandscapeEditor.Target_Delete", new IMAGE_BRUSH("Icons/Cross_12x", Icon12x12));
 	}
 #endif
 }
@@ -5100,7 +5197,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 		Set("ProjectBrowser.Toolbar.Text", FTextBlockStyle(NormalText)
 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 12))
-			.SetShadowColorAndOpacity(FLinearColor(0,0,0,0.5f))
+			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.5f))
 			.SetShadowOffset(FVector2D(0, 1)));
 
 		Set("ProjectBrowser.VersionOverlayText", FTextBlockStyle(NormalText)
@@ -5111,21 +5208,21 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set("ProjectBrowser.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff404040))));
 		Set("ProjectBrowser.Tab.ActiveBackground", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff404040))));
 		Set("ProjectBrowser.Tab.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff272727))));
-		Set("ProjectBrowser.Tab.ActiveHighlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor) );
+		Set("ProjectBrowser.Tab.ActiveHighlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor));
 		Set("ProjectBrowser.Tab.Highlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor_Inactive));
 		Set("ProjectBrowser.Tab.PressedHighlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor_Pressed));
 
-		Set( "ProjectBrowser.TileViewTooltip.ToolTipBorder", new FSlateColorBrush( FLinearColor::Black ) );
-		Set( "ProjectBrowser.TileViewTooltip.NonContentBorder", new BOX_BRUSH( "/Docking/TabContentArea", FMargin(4/16.0f) ) );
-		Set( "ProjectBrowser.TileViewTooltip.ContentBorder", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
-		Set( "ProjectBrowser.TileViewTooltip.NameFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
+		Set("ProjectBrowser.TileViewTooltip.ToolTipBorder", new FSlateColorBrush(FLinearColor::Black));
+		Set("ProjectBrowser.TileViewTooltip.NonContentBorder", new BOX_BRUSH("/Docking/TabContentArea", FMargin(4 / 16.0f)));
+		Set("ProjectBrowser.TileViewTooltip.ContentBorder", new BOX_BRUSH("Common/GroupBorder", FMargin(4.0f / 16.0f)));
+		Set("ProjectBrowser.TileViewTooltip.NameFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 12));
 	}
 
 	// Toolkit Display
 	{
-		Set( "ToolkitDisplay.UnsavedChangeIcon", new IMAGE_BRUSH( "Common/UnsavedChange", Icon8x8 ) );
-		Set( "ToolkitDisplay.MenuDropdown", new IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) );
-		Set( "ToolkitDisplay.ColorOverlay", new BOX_BRUSH( "/Docking/Tab_ColorOverlay", 4/16.0f ) );
+		Set("ToolkitDisplay.UnsavedChangeIcon", new IMAGE_BRUSH("Common/UnsavedChange", Icon8x8));
+		Set("ToolkitDisplay.MenuDropdown", new IMAGE_BRUSH("Common/ComboArrow", Icon8x8));
+		Set("ToolkitDisplay.ColorOverlay", new BOX_BRUSH("/Docking/Tab_ColorOverlay", 4 / 16.0f));
 
 		FComboButtonStyle ComboButton = FComboButtonStyle()
 			.SetButtonStyle(GetWidgetStyle<FButtonStyle>("Button"))
@@ -5133,27 +5230,27 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 			// Multiboxes draw their own border so we don't want a default content border
 			.SetMenuBorderBrush(*GetBrush("NoBorder"))
 			.SetMenuBorderPadding(FMargin(0.0f));
-		Set( "ToolkitDisplay.ComboButton", ComboButton );
+		Set("ToolkitDisplay.ComboButton", ComboButton);
 	}
-	
+
 	// Generic Editor
 	{
-		Set( "GenericEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set( "GenericEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 	}
 
 	// CurveTable Editor
 	{
-		Set( "CurveTableEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/pillarray_16x", Icon16x16 ) );
+		Set( "CurveTableEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 	}
 
 	// DataTable Editor
 	{
-		Set( "DataTableEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/pillarray_16x", Icon16x16 ) );
+		Set( "DataTableEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 	}
 
 	// DestructibleMesh Editor
 	{
-		Set( "DestructibleMeshEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/pillarray_16x", Icon16x16 ) );
+		Set( "DestructibleMeshEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 		Set( "DestructibleMeshEditor.Fracture", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Fracture_40x", Icon40x40 ) );
 		Set( "DestructibleMeshEditor.Fracture.Small", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Fracture_20x", Icon20x20 ) );
 		Set( "DestructibleMeshEditor.Refresh", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Refresh_40x", Icon40x40 ) );
@@ -5169,7 +5266,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 	{
 		Set( "MaterialEditor.NormalFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 		Set( "MaterialEditor.BoldFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 9 ) );
-		
+
 		Set( "MaterialEditor.Apply", new IMAGE_BRUSH( "Icons/icon_MatEd_Apply_40x", Icon40x40 ) );
 		Set( "MaterialEditor.Apply.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Apply_40x", Icon20x20 ) );
 
@@ -5201,26 +5298,26 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "MaterialEditor.ToggleRealtimeExpressions.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_LiveNodes_40x", Icon20x20 ) );
 		Set( "MaterialEditor.AlwaysRefreshAllPreviews", new IMAGE_BRUSH( "Icons/icon_MatEd_Refresh_40x", Icon40x40 ) );
 		Set( "MaterialEditor.AlwaysRefreshAllPreviews.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Refresh_40x", Icon20x20 ) );
-		Set( "MaterialEditor.ToggleLivePreview", new IMAGE_BRUSH("Icons/icon_MatEd_LivePreview_40x", Icon40x40) );
-		Set( "MaterialEditor.ToggleLivePreview.Small", new IMAGE_BRUSH("Icons/icon_MatEd_LivePreview_40x", Icon20x20) );
+		Set( "MaterialEditor.ToggleLivePreview", new IMAGE_BRUSH( "Icons/icon_MatEd_LivePreview_40x", Icon40x40 ) );
+		Set( "MaterialEditor.ToggleLivePreview.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_LivePreview_40x", Icon20x20 ) );
 		Set( "MaterialEditor.ShowHideConnectors", new IMAGE_BRUSH( "Icons/icon_MatEd_Connectors_40x", Icon40x40 ) );
 		Set( "MaterialEditor.ShowHideConnectors.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Connectors_40x", Icon20x20 ) );
 		Set( "MaterialEditor.CameraHome", new IMAGE_BRUSH( "Icons/icon_MatEd_Home_40x", Icon40x40 ) );
 		Set( "MaterialEditor.CameraHome.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Home_40x", Icon20x20 ) );
-		Set( "MaterialEditor.FindInMaterial", new IMAGE_BRUSH("Icons/icon_Blueprint_Find_40px", Icon40x40));
-		Set( "MaterialEditor.FindInMaterial.Small", new IMAGE_BRUSH("Icons/icon_Blueprint_Find_40px", Icon20x20));
-		Set( "MaterialEditor.GoToDocumentation", new IMAGE_BRUSH( "Common/icon_Help_Hover_16x", Icon16x16 ));
+		Set( "MaterialEditor.FindInMaterial", new IMAGE_BRUSH( "Icons/icon_Blueprint_Find_40px", Icon40x40 ) );
+		Set( "MaterialEditor.FindInMaterial.Small", new IMAGE_BRUSH( "Icons/icon_Blueprint_Find_40px", Icon20x20 ) );
+		Set( "MaterialEditor.GoToDocumentation", new IMAGE_BRUSH( "Common/icon_Help_Hover_16x", Icon16x16 ) );
 	}
 
 	// Material Instance Editor
 	{
-		Set( "MaterialInstanceEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set( "MaterialInstanceEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 		Set( "MaterialInstanceEditor.Tabs.Parents", new IMAGE_BRUSH( "/Icons/layers_16x", Icon16x16 ) );
 	}
 
 	// Sound Class Editor
 	{
-		Set( "SoundClassEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set( "SoundClassEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 	}
 
 	// Font Editor
@@ -5228,7 +5325,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		// Tab icons
 		{
 			Set( "FontEditor.Tabs.Preview", new IMAGE_BRUSH( "/Icons/lens_16x", Icon16x16 ) );
-			Set( "FontEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+			Set( "FontEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 			Set( "FontEditor.Tabs.PageProperties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
 		}
 
@@ -5245,22 +5342,25 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "FontEditor.FontBackgroundColor.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Background_40x", Icon20x20 ) );
 		Set( "FontEditor.FontForegroundColor", new IMAGE_BRUSH( "Icons/icon_FontEd_Foreground_40x", Icon40x40 ) );
 		Set( "FontEditor.FontForegroundColor.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Foreground_40x", Icon20x20 ) );
+
+		Set( "FontEditor.Button_Add", new IMAGE_BRUSH( "Icons/PlusSymbol_12x", Icon12x12 ) );
+		Set( "FontEditor.Button_Delete", new IMAGE_BRUSH("Icons/Cross_12x", Icon12x12 ) );
 	}
 
 	// SoundCueGraph Editor
 	{
-		Set("SoundCueGraphEditor.PlayCue", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayCue_40x", Icon40x40));
-		Set("SoundCueGraphEditor.PlayCue.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayCue_40x", Icon20x20));
-		Set("SoundCueGraphEditor.PlayNode", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayNode_40x", Icon40x40));
-		Set("SoundCueGraphEditor.PlayNode.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayNode_40x", Icon20x20));
-		Set("SoundCueGraphEditor.StopCueNode", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon40x40));
-		Set("SoundCueGraphEditor.StopCueNode.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon20x20));
+		Set( "SoundCueGraphEditor.PlayCue", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayCue_40x", Icon40x40 ) );
+		Set( "SoundCueGraphEditor.PlayCue.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayCue_40x", Icon20x20 ) );
+		Set( "SoundCueGraphEditor.PlayNode", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayNode_40x", Icon40x40 ) );
+		Set( "SoundCueGraphEditor.PlayNode.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayNode_40x", Icon20x20 ) );
+		Set( "SoundCueGraphEditor.StopCueNode", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon40x40 ) );
+		Set( "SoundCueGraphEditor.StopCueNode.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon20x20 ) );
 	}
 
 	// Static Mesh Editor
 	{
 		Set( "StaticMeshEditor.NormalFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
-		Set( "StaticMeshEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set( "StaticMeshEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 		Set( "StaticMeshEditor.SetShowWireframe", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_Wireframe_40x", Icon40x40 ) );
 		Set( "StaticMeshEditor.SetShowWireframe.Small", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_Wireframe_40x", Icon20x20 ) );
 		Set( "StaticMeshEditor.SetShowVertexColor", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_VertColor_40x", Icon40x40 ) );
@@ -5291,17 +5391,17 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "StaticMeshEditor.SetShowBinormals.Small", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_Binormals_40x", Icon20x20 ) );
 		Set( "StaticMeshEditor.SetDrawAdditionalData", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_AdditionalData_40x", Icon40x40 ) );
 		Set( "StaticMeshEditor.SetDrawAdditionalData.Small", new IMAGE_BRUSH( "Icons/icon_StaticMeshEd_AdditionalData_40x", Icon20x20 ) );
-		Set( "StaticMeshEditor.GroupSection",  new BOX_BRUSH( "Common/RoundedSelection_16x", FMargin(4.0f/16.0f) ) );
+		Set( "StaticMeshEditor.GroupSection", new BOX_BRUSH( "Common/RoundedSelection_16x", FMargin( 4.0f / 16.0f ) ) );
 	}
 
 	// Skeletal Mesh Editor
 	{
-		Set( "SkeletalMeshEditor.GroupSection",  new BOX_BRUSH( "Common/RoundedSelection_16x", FMargin(4.0f/16.0f) ) );
+		Set( "SkeletalMeshEditor.GroupSection", new BOX_BRUSH( "Common/RoundedSelection_16x", FMargin( 4.0f / 16.0f ) ) );
 	}
 
 	// Texture Editor
 	{
-		Set( "TextureEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set("TextureEditor.Tabs.Properties", new IMAGE_BRUSH("/Icons/icon_tab_SelectionDetails_16x", Icon16x16));
 		
 		Set( "TextureEditor.RedChannel", new IMAGE_BRUSH( "Icons/icon_TextureEd_RedChannel_40x", Icon40x40 ) );
 		Set( "TextureEditor.RedChannel.Small", new IMAGE_BRUSH( "Icons/icon_TextureEd_RedChannel_40x", Icon20x20 ) );
@@ -5322,7 +5422,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 	// Cascade
 	{
-		Set( "Cascade.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set( "Cascade.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 		
 		Set( "Cascade.RestartSimulation", new IMAGE_BRUSH( "Icons/icon_Cascade_RestartSim_40x", Icon40x40 ) );
 		Set( "Cascade.RestartInLevel", new IMAGE_BRUSH( "Icons/icon_Cascade_RestartInLevel_40x", Icon40x40 ) );
@@ -5425,7 +5525,7 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 	// PhAT
 	{
-		Set( "PhAT.Tabs.Properties", new IMAGE_BRUSH( "/Icons/properties_16x", Icon16x16 ) );
+		Set( "PhAT.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
 		Set( "PhAT.Tabs.Hierarchy", new IMAGE_BRUSH( "/Icons/hiererchy_16x", Icon16x16 ) );
 
 		Set( "PhAT.EditingMode_Body", new IMAGE_BRUSH( "/Icons/icon_PHatMode_Body_40x", Icon40x40) );
@@ -5575,6 +5675,16 @@ void FSlateEditorStyle::FStyle::SetupSourceControlStyles()
 		Set( "SourceControl.StatusIcon.Unknown", new IMAGE_BRUSH( "Icons/SourceControlUnknown_16x", Icon16x16 ) );
 		Set( "SourceControl.LoginWindow.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "SourceControl.ProgressWindow.Warning", new IMAGE_BRUSH( "Icons/alert", Icon32x32) );
+
+		// Menu commands
+		// Sync
+		// Check in
+		// Diff
+		// Revert
+		// Connect
+		Set(  "SourceControl.Actions.CheckOut", new IMAGE_BRUSH( "ContentBrowser/SCC_CheckedOut", Icon16x16 ) );
+		Set( "SourceControl.Actions.Add", new IMAGE_BRUSH( "ContentBrowser/SCC_ContentAdd", Icon16x16 ) );
+		Set( "SourceControl.Actions.Refresh", new IMAGE_BRUSH( "Icons/icon_Refresh_16x", Icon16x16 ) );
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
@@ -5869,6 +5979,9 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("WidgetDesigner.ZoomToFit", new IMAGE_BRUSH("Icons/UMG/Fit_16x", Icon16x16));
 	Set("WidgetDesigner.ZoomToFit.Small", new IMAGE_BRUSH("Icons/UMG/Fit_16x", Icon16x16));
 
+	Set("WidgetDesigner.WidgetVisible", new IMAGE_BRUSH("/Icons/icon_layer_visible", Icon16x16));
+	Set("WidgetDesigner.WidgetHidden", new IMAGE_BRUSH("/Icons/icon_layer_not_visible", Icon16x16));
+
 	Set("UMGEditor.ZoomToFit", new IMAGE_BRUSH("Icons/UMG/Fit_16x", Icon16x16, FLinearColor(.05f, .05f, .05f, 1.f)));
 
 	Set("UMGEditor.AnchorGizmo.Center", new IMAGE_BRUSH("Icons/UMG/AnchorGizmo/center", Icon16x16));
@@ -5899,29 +6012,7 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 
 	Set("UMGEditor.AnchoredWidget", new BOX_BRUSH("Common/Button", FVector2D(32, 32), 8.0f / 32.0f));
 	Set("UMGEditor.AnchoredWidgetAlignment", new IMAGE_BRUSH("Icons/icon_tab_DeviceManager_16x", Icon8x8));
-
-	Set("UMGEditor.TopLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_left", Icon64x64));
-	Set("UMGEditor.TopCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_center", Icon64x64));
-	Set("UMGEditor.TopRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_right", Icon64x64));
-	Set("UMGEditor.TopFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_fill", Icon64x64));
-
-	Set("UMGEditor.CenterLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_left", Icon64x64));
-	Set("UMGEditor.CenterCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_center", Icon64x64));
-	Set("UMGEditor.CenterRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_right", Icon64x64));
-	Set("UMGEditor.CenterFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_fill", Icon64x64));
-
-	Set("UMGEditor.BottomLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_left", Icon64x64));
-	Set("UMGEditor.BottomCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_center", Icon64x64));
-	Set("UMGEditor.BottomRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_right", Icon64x64));
-	Set("UMGEditor.BottomFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_fill", Icon64x64));
-
-	Set("UMGEditor.FillLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_left", Icon64x64));
-	Set("UMGEditor.FillCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_center", Icon64x64));
-	Set("UMGEditor.FillRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_right", Icon64x64));
-	Set("UMGEditor.FillFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_fill", Icon64x64));
 	
-	Set("UMGEditor.PalettePreviewWidget", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_fill", Icon16x16));
-
 	Set("UMGEditor.PaletteHeader", FTableRowStyle()
 		.SetEvenRowBackgroundBrush( BOX_BRUSH( "PropertyView/DetailCategoryMiddle", FMargin( 4/16.0f, 8.0f/16.0f, 4/16.0f, 4/16.0f ), FLinearColor(0.6f,0.6f,0.6f,1.0f) ) )
 		.SetEvenRowBackgroundHoveredBrush( BOX_BRUSH( "PropertyView/DetailCategoryMiddle", FMargin( 4/16.0f, 8.0f/16.0f, 4/16.0f, 4/16.0f ), FLinearColor(0.3f,0.3f,0.3f,1.0f) ) )
@@ -5962,13 +6053,23 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("UMGEditor.AddAnimationIcon", new IMAGE_BRUSH("Icons/PlusSymbol_12x", Icon12x12, FLinearColor(.05,.05,.05) ) );
 	Set("UMGEditor.NoAnimationFont", NoAnimationFont);
 
+	Set("UMGEditor.SwitchToDesigner", new IMAGE_BRUSH("UMG/Designer_40x", Icon40x40));
+	Set("UMGEditor.SwitchToDesigner.Small", new IMAGE_BRUSH("UMG/Designer_16x", Icon16x16));
+
 	Set("UMGEditor.SelectionOutline", new BORDER_BRUSH("UMG/SelectionBorder", FMargin(.2f) ));
+
+	Set("UMGEditor.AnchorGrid", new IMAGE_BRUSH("Icons/UMG/AnchorGrid", Icon10x10, FLinearColor::White, ESlateBrushTileType::Both ));
+
+	Set("UMGEditor.DPISettings", new IMAGE_BRUSH("Icons/UMG/SettingsButton", Icon16x16));
 }
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()
 {
 	Set("TranslationEditor.Export", new IMAGE_BRUSH("Icons/icon_Import_40x", Icon40x40));
+	Set("TranslationEditor.PreviewInEditor", new IMAGE_BRUSH("Icons/icon_levels_visible_40x", Icon40x40));
 	Set("TranslationEditor.Import", new IMAGE_BRUSH("Icons/icon_Samples_Download_40x", Icon40x40));
+	Set("TranslationEditor.Search", new IMAGE_BRUSH("Icons/icon_Blueprint_Find_40px", Icon40x40));
+	Set("TranslationEditor.TranslationPicker", new IMAGE_BRUSH("Icons/icon_StaticMeshEd_VertColor_40x", Icon40x40));
 }
 
 #undef IMAGE_BRUSH

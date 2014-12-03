@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "DesktopPlatformModule.h"
-#include "Runtime/Core/Public/Serialization/Json/Json.h"
+#include "Json.h"
 
 #import "UE4EditorServicesAppDelegate.h"
 

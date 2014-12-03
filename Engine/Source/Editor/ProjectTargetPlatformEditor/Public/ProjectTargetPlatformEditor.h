@@ -7,7 +7,7 @@
  *****************************************************************************/
 
 #include "ModuleManager.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 
 /* Interfaces

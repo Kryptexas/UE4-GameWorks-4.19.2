@@ -7,8 +7,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogUpdateGameProjectCommandlet, Log, All);
 
-UUpdateGameProjectCommandlet::UUpdateGameProjectCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUpdateGameProjectCommandlet::UUpdateGameProjectCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

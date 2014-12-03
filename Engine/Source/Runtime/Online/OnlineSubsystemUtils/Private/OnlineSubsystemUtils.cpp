@@ -95,6 +95,32 @@ UWorld* GetWorldForOnline(FName InstanceName)
 	return World;
 }
 
+int32 GetPortFromNetDriver(FName InstanceName)
+{
+	int32 Port = 0;
+#if WITH_ENGINE
+	if (GEngine)
+	{
+		UWorld* World = GetWorldForOnline(InstanceName);
+		UNetDriver* NetDriver = World ? GEngine->FindNamedNetDriver(World, NAME_GameNetDriver) : NULL;
+		if (NetDriver && NetDriver->GetNetMode() < NM_Client)
+		{
+			FString AddressStr = NetDriver->LowLevelGetNetworkNumber();
+			int32 Colon = AddressStr.Find(":", ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+			if (Colon != INDEX_NONE)
+			{
+				FString PortStr = AddressStr.Mid(Colon + 1);
+				if (!PortStr.IsEmpty())
+				{
+					Port = FCString::Atoi(*PortStr);
+				}
+			}
+		}
+	}
+#endif
+	return Port;
+}
+
 /**
  * Exec handler that routes online specific execs to the proper subsystem
  *
@@ -206,8 +232,10 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						FString Auth = FParse::Token(Cmd, false);
 						FString Type = FParse::Token(Cmd, false);
 
+						bool bLogout = Id.Equals(TEXT("logout"), ESearchCase::IgnoreCase);
+
 						// This class deletes itself once done
-						(new FTestIdentityInterface(SubName))->Test(InWorld, FOnlineAccountCredentials(Type, Id, Auth));
+						(new FTestIdentityInterface(SubName))->Test(InWorld, FOnlineAccountCredentials(Type, Id, Auth), bLogout);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("UNIQUEIDREPL")))
@@ -299,8 +327,8 @@ FStaticSelfRegisteringExec OnlineExecRegistration(OnlineExec);
 //////////////////////////////////////////////////////////////////////////
 // FOnlineSubsystemBPCallHelper
 
-FOnlineSubsystemBPCallHelper::FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, FName SystemName)
-	: OnlineSub(IOnlineSubsystem::Get(SystemName))
+FOnlineSubsystemBPCallHelper::FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, UWorld* World, FName SystemName)
+	: OnlineSub(Online::GetSubsystem(World, SystemName))
 	, FunctionContext(CallFunctionContext)
 {
 	if (OnlineSub == nullptr)

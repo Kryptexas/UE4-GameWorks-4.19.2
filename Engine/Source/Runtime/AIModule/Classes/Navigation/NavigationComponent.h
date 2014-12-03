@@ -126,7 +126,7 @@ public:
 	/** Returns current move goal for actor, using data from GetMoveGoalOffset() */
 	FORCEINLINE FVector GetCurrentMoveGoal(const AActor* InGoalActor, AActor* MovingActor) const
 	{
-		const INavAgentInterface* NavAgent = InterfaceCast<const INavAgentInterface>(InGoalActor);
+		const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(InGoalActor);
 		if (NavAgent)
 		{
 			const FVector Offset = NavAgent->GetMoveGoalOffset(MovingActor);
@@ -190,7 +190,7 @@ public:
 	//----------------------------------------------------------------------//
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
 	/** quick and dirty debug render. If Canvas not NULL additional data (if present) will be drawn */

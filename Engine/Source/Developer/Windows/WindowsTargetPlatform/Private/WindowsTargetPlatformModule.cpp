@@ -1,14 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "WindowsTargetPlatformPrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FWindowsTargetPlatformModule"
 
 
-/**
- * Holds the target platform singleton.
- */
+/** Holds the target platform singleton. */
 static ITargetPlatform* Singleton = nullptr;
 
 
@@ -71,7 +71,7 @@ public:
 		GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
 		TargetSettings->AddToRoot();
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -90,7 +90,7 @@ public:
 		FCoreDelegates::GetHotfixDelegate(EHotfixDelegates::Test).Unbind();
 #endif
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

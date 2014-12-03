@@ -209,7 +209,7 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	class UPhysicalMaterial* PhysMaterial;
 
 	// since the Parent may point across levels and the property editor needs to import this text, it must be marked lazy so it doesn't set itself to NULL in FindImportedObject
-	UPROPERTY(EditAnywhere, Category=MaterialEditorInstanceConstant)
+	UPROPERTY(EditAnywhere, Category=MaterialEditorInstanceConstant, meta=(DisplayThumbnail="true"))
 	class UMaterialInterface* Parent;
 
 	UPROPERTY(EditAnywhere, editfixedsize, Category=MaterialEditorInstanceConstant)
@@ -280,7 +280,7 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	 *
 	 * @param ParameterGroup		Name to be looked for.
 	 */
-	FEditorParameterGroup & GetParameterGroup(FName & ParameterGroup);
+	FEditorParameterGroup & GetParameterGroup(FName& ParameterGroup);
 	/** 
 	 *  Creates/adds value to group retrieved from parent material . 
 	 *

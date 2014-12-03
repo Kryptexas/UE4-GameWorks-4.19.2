@@ -5,14 +5,17 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 
+#include "WidgetBlueprintFactory.h"
+#include "WidgetBlueprint.h"
+
 #define LOCTEXT_NAMESPACE "UWidgetBlueprintFactory"
 
 /*------------------------------------------------------------------------------
 	UWidgetBlueprintFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UWidgetBlueprintFactory::UWidgetBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetBlueprintFactory::UWidgetBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

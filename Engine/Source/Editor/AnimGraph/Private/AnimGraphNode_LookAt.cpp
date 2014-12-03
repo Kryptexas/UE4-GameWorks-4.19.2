@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimGraph_LookAt"
 
-UAnimGraphNode_LookAt::UAnimGraphNode_LookAt(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_LookAt::UAnimGraphNode_LookAt(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -118,10 +118,10 @@ public:
 	}
 
 	/** Used to intercept Escape key presses, then interprets them as cancel */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		// Pressing escape returns as if the user canceled
-		if ( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if ( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return OnButtonClick(FDlgDeltaTransform::Cancel);
 		}

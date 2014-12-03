@@ -43,6 +43,9 @@ namespace UnrealBuildTool.Rules
 			if (UEBuildConfiguration.bBuildEditor == true)
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
+
+                PrivateDependencyModuleNames.Add("AITestSuite");                
+                CircularlyReferencedDependentModules.Add("AITestSuite");
 			}
 
             if (UEBuildConfiguration.bCompileRecast)

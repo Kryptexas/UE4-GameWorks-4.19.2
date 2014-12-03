@@ -118,8 +118,8 @@ class ENGINE_API UDistributionVector : public UDistribution
 	virtual FVector GetVectorValue(float F = 0);
 
 
-	UDistributionVector(const class FPostConstructInitializeProperties& PCIP)
-	:	Super(PCIP)
+	UDistributionVector(const FObjectInitializer& ObjectInitializer)
+	:	Super(ObjectInitializer)
 	,   bCanBeBaked(true)
 	,   bIsDirty(true) // make sure the FRawDistribution is initialized
 	{

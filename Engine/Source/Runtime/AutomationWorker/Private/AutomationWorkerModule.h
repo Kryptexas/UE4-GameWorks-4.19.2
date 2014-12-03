@@ -98,16 +98,16 @@ private:
 
 private:
 
-	// Holds the messaging endpoint.
+	/** Holds the messaging endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
 
-	//ID of the controller sending the test request
-	FGuid TestRequesterGUID;
+	/** Message address of the controller sending the test request. */
+	FMessageAddress TestRequesterAddress;
 
-	//identifier for the controller to know if the results should be discarded or not
+	/** Identifier for the controller to know if the results should be discarded or not. */
 	uint32 ExecutionCount;
 
-	//execute one of the tests by request of the controller
+	/** Execute one of the tests by request of the controller. */
 	FString TestName;
 
 	/** Whether the controller has requested that the network command should execute */

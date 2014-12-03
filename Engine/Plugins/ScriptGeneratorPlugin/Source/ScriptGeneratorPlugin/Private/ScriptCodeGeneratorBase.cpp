@@ -148,8 +148,7 @@ FString FScriptCodeGeneratorBase::GetScriptHeaderForClass(UClass* Class)
 
 bool FScriptCodeGeneratorBase::CanExportClass(UClass* Class)
 {
-	bool bCanExport = !(Class->GetClassFlags() & CLASS_Temporary) && // Don't export temporary classes
-		(Class->ClassFlags & (CLASS_RequiredAPI | CLASS_MinimalAPI)) && // Don't export classes that don't export DLL symbols
+	bool bCanExport = (Class->ClassFlags & (CLASS_RequiredAPI | CLASS_MinimalAPI)) && // Don't export classes that don't export DLL symbols
 		!ExportedClasses.Contains(Class->GetFName()); // Don't export classes that have already been exported
 
 	return bCanExport;

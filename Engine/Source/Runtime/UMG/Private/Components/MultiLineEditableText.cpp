@@ -7,14 +7,16 @@
 /////////////////////////////////////////////////////
 // UMultiLineEditableText
 
-UMultiLineEditableText::UMultiLineEditableText(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;
 
-	// HACK Special font initialization hack since there are no font assets yet for slate.
-	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+	bAutoWrapText = true;
+	
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 }
 
 void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
@@ -26,17 +28,12 @@ void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-	
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
 	.TextStyle(&WidgetStyle)
-	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.Font(Font)
 	.Justification(Justification)
+	.WrapTextAt( WrapTextAt )
+	.AutoWrapText( bAutoWrapText )
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 //	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)

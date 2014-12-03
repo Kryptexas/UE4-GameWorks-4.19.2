@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 
 /* FGuid interface
@@ -32,7 +32,7 @@ bool FGuid::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject
 }
 
 
-FString FGuid::ToString( EGuidFormats::Type Format ) const
+FString FGuid::ToString( EGuidFormats Format ) const
 {
 	switch (Format)
 	{
@@ -60,10 +60,11 @@ FString FGuid::ToString( EGuidFormats::Type Format ) const
 /* FGuid static interface
  *****************************************************************************/
 
-FGuid FGuid::NewGuid( )
+FGuid FGuid::NewGuid()
 {
-	FGuid Result(0,0,0,0);
+	FGuid Result(0, 0, 0, 0);
 	FPlatformMisc::CreateGuid(Result);
+
 	return Result;
 }
 
@@ -104,7 +105,7 @@ bool FGuid::Parse( const FString& GuidString, FGuid& OutGuid )
 }
 
 
-bool FGuid::ParseExact( const FString& GuidString, EGuidFormats::Type Format, FGuid& OutGuid )
+bool FGuid::ParseExact( const FString& GuidString, EGuidFormats Format, FGuid& OutGuid )
 {
 	FString NormalizedGuidString;
 

@@ -9,8 +9,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_SwitchEnum::UK2Node_SwitchEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_SwitchEnum::UK2Node_SwitchEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bHasDefaultPin = false;

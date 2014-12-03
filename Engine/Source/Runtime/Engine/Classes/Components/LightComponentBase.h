@@ -93,6 +93,9 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	float DynamicEditorTextureScale;
 #endif
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	void SetCastShadows(bool bNewValue);
+
 	virtual void Serialize(FArchive& Ar) override;
 
 	/**

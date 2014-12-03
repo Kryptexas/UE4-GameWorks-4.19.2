@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "SparseArray.h"
-
+#include "Containers/SparseArray.h"
+#include "Templates/Sorting.h"
 
 /**
  * The base KeyFuncs type with some useful definitions for all KeyFuncs; meant to be derived from instead of used directly.
@@ -69,7 +69,7 @@ FORCEINLINE void MoveByRelocate(T& A, T& B)
 	A.~T();
 
 	// Relocate B into the 'hole' left by the destruction of A, leaving a hole in B instead.
-	RelocateItems(&A, &B, 1);
+	RelocateConstructItems<T>(&A, &B, 1);
 }
 
 /** Either NULL or an identifier for an element of a set. */
@@ -312,6 +312,17 @@ public:
 	{
 		Elements.Compact();
 		Rehash();
+	}
+
+	/** Preallocates enough memory to contain Number elements */
+	FORCEINLINE void Reserve(int32 Number)
+	{
+		// makes sense only when Number > Elements.Num() since TSparseArray::Reserve 
+		// does any work only if that's the case
+		if (Number > Elements.Num())
+		{
+			Elements.Reserve(Number);
+		}
 	}
 
 	/** Relaxes the set's hash to a size strictly bounded by the number of elements in the set. */

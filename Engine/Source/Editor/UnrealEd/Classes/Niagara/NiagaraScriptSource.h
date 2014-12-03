@@ -18,5 +18,5 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 	virtual void PostLoad() override;
 
 	UNREALED_API void GetParticleAttributes(TArray<FName>& VectorOutputs);
-	UNREALED_API void GetEmitterAttributes(TArray<FName>& ScalarInputs);
+	UNREALED_API void GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs);
 };

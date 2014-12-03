@@ -2,8 +2,8 @@
 
 #include "GameProjectGenerationPrivatePCH.h"
 
-UDefaultTemplateProjectDefs::UDefaultTemplateProjectDefs(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDefaultTemplateProjectDefs::UDefaultTemplateProjectDefs(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

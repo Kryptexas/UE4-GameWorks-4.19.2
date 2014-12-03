@@ -127,7 +127,7 @@ public:
 	{
 #if STATS
 		// this is done to avoid even registering stats for a disabled group (unless we plan on using it later)
-		if (bForDeferredUse || STAT_IS_COLLECTING(STAT_UObjectsStatGroupTester))
+		if (bForDeferredUse || FThreadStats::IsCollectingData(GET_STATID(STAT_UObjectsStatGroupTester)))
 		{
 			if (!StatID.IsValidStat())
 			{
@@ -256,20 +256,20 @@ struct FFieldCompiledInInfo
 	FFieldCompiledInInfo(SIZE_T InClassSize, uint32 InCrc)
 		: Size(InClassSize)
 		, Crc(InCrc)
-		, OldField(NULL)
+		, OldClass(NULL)
 		, bHasChanged(false)
 	{
 	}
 
 	/** Registers the native class (constructs a UClass object) */
-	virtual UField* Register() const = 0;
+	virtual UClass* Register() const = 0;
 
 	/** Size of the class */
 	SIZE_T Size;
 	/** CRC of the generated code for this class */
 	uint32 Crc;
 	/** Old UClass object */
-	UField* OldField;
+	UClass* OldClass;
 	/** True if this class has changed after hot-reload (or new class) */
 	bool bHasChanged;
 };
@@ -290,7 +290,7 @@ struct TClassCompiledInDefer : public FFieldCompiledInInfo
 	{
 		UClassCompiledInDefer(this, InName, InClassSize, InCrc);
 	}
-	virtual UField* Register() const override
+	virtual UClass* Register() const override
 	{
 		return TClass::StaticClass();
 	}
@@ -312,13 +312,13 @@ struct FCompiledInDefer
 /**
  * Stashes the singleton function that builds a compiled in struct (StaticStruct). Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)());
+COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName);
 
 struct FCompiledInDeferStruct
 {
-	FCompiledInDeferStruct(class UScriptStruct *(*InRegister)())
+	FCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName)
 	{
-		UObjectCompiledInDeferStruct(InRegister);
+		UObjectCompiledInDeferStruct(InRegister, PackageName);
 	}
 };
 
@@ -330,13 +330,13 @@ COREUOBJECT_API class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRe
 /**
  * Stashes the singleton function that builds a compiled in enum. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)());
+COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName);
 
 struct FCompiledInDeferEnum
 {
-	FCompiledInDeferEnum(class UEnum *(*InRegister)())
+	FCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName)
 	{
-		UObjectCompiledInDeferEnum(InRegister);
+		UObjectCompiledInDeferEnum(InRegister, PackageName);
 	}
 };
 

@@ -52,6 +52,9 @@ private:
 	 */
 	void OnOverrideParameter(bool NewValue, class UDEditorParameterValue* Parameter);
 
+	/** Called when an asset is set as a parent */
+	bool OnShouldSetAsset(const FAssetData& InAssetData) const;
+
 	/** Reset to default implementation.  Resets Parameter to default */
 	void ResetToDefault( class UDEditorParameterValue* Parameter );
 

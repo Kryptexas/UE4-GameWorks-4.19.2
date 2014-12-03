@@ -15,20 +15,20 @@ public:
 	 * Gets the target device proxy manager.
 	 *
 	 * @return The device proxy manager.
+	 * @see GetDeviceServiceManager
 	 */
-	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager( ) = 0;
+	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager() = 0;
 
 	/**
 	 * Gets the target device service manager.
 	 *
 	 * @return The device service manager.
+	 * @see GetDeviceProxyManager
 	 */
-	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager( ) = 0;
+	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ITargetDeviceServicesModule( ) { }
+	/** Virtual destructor. */
+	virtual ~ITargetDeviceServicesModule() { }
 };

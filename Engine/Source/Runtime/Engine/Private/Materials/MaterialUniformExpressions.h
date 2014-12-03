@@ -105,10 +105,14 @@ class FMaterialUniformExpressionVectorParameter: public FMaterialUniformExpressi
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionVectorParameter);
 public:
 
-	FMaterialUniformExpressionVectorParameter() {}
+	FMaterialUniformExpressionVectorParameter() :
+		bUseOverriddenDefault(false)
+	{}
+
 	FMaterialUniformExpressionVectorParameter(FName InParameterName,const FLinearColor& InDefaultValue):
 		ParameterName(InParameterName),
-		DefaultValue(InDefaultValue)
+		DefaultValue(InDefaultValue),
+		bUseOverriddenDefault(false)
 	{}
 
 	// FMaterialUniformExpression interface.
@@ -116,19 +120,27 @@ public:
 	{
 		Ar << ParameterName << DefaultValue;
 	}
+
 	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
 	{
 		OutValue.R = OutValue.G = OutValue.B = OutValue.A = 0;
 
 		if(!Context.MaterialRenderProxy->GetVectorValue(ParameterName, &OutValue, Context))
 		{
-			OutValue = DefaultValue;
+			OutValue = bUseOverriddenDefault ? OverriddenDefaultValue : DefaultValue;
 		}
 	}
+
 	virtual bool IsConstant() const
 	{
 		return false;
 	}
+
+	FName GetParameterName() const
+	{
+		return ParameterName;
+	}
+
 	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())
@@ -139,9 +151,17 @@ public:
 		return ParameterName == OtherParameter->ParameterName && DefaultValue == OtherParameter->DefaultValue;
 	}
 
+	void SetTransientOverrideDefaultValue(const FLinearColor& InOverrideDefaultValue, bool bInUseOverriddenDefault)
+	{
+		bUseOverriddenDefault = bInUseOverriddenDefault;
+		OverriddenDefaultValue = InOverrideDefaultValue;
+	}
+
 private:
 	FName ParameterName;
 	FLinearColor DefaultValue;
+	bool bUseOverriddenDefault;
+	FLinearColor OverriddenDefaultValue;
 };
 
 /**
@@ -151,10 +171,14 @@ class FMaterialUniformExpressionScalarParameter: public FMaterialUniformExpressi
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionScalarParameter);
 public:
 
-	FMaterialUniformExpressionScalarParameter() {}
+	FMaterialUniformExpressionScalarParameter() :
+		bUseOverriddenDefault(false)
+	{}
+
 	FMaterialUniformExpressionScalarParameter(FName InParameterName,float InDefaultValue):
 		ParameterName(InParameterName),
-		DefaultValue(InDefaultValue)
+		DefaultValue(InDefaultValue),
+		bUseOverriddenDefault(false)
 	{}
 
 	// FMaterialUniformExpression interface.
@@ -162,6 +186,7 @@ public:
 	{
 		Ar << ParameterName << DefaultValue;
 	}
+
 	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
 	{
 		if(Context.MaterialRenderProxy->GetScalarValue(ParameterName, &OutValue.R, Context))
@@ -170,13 +195,20 @@ public:
 		}
 		else
 		{
-			OutValue.R = OutValue.G = OutValue.B = OutValue.A = DefaultValue;
+			OutValue.R = OutValue.G = OutValue.B = OutValue.A = bUseOverriddenDefault ? OverriddenDefaultValue : DefaultValue;
 		}
 	}
+
 	virtual bool IsConstant() const
 	{
 		return false;
 	}
+
+	FName GetParameterName() const
+	{
+		return ParameterName;
+	}
+
 	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())
@@ -187,9 +219,17 @@ public:
 		return ParameterName == OtherParameter->ParameterName && DefaultValue == OtherParameter->DefaultValue;
 	}
 
+	void SetTransientOverrideDefaultValue(float InOverrideDefaultValue, bool bInUseOverriddenDefault)
+	{
+		bUseOverriddenDefault = bInUseOverriddenDefault;
+		OverriddenDefaultValue = InOverrideDefaultValue;
+	}
+
 private:
 	FName ParameterName;
 	float DefaultValue;
+	bool bUseOverriddenDefault;
+	float OverriddenDefaultValue;
 };
 
 /** @return The texture that was associated with the given index when the given material had its uniform expressions/HLSL code generated. */
@@ -225,8 +265,8 @@ public:
 
 	FMaterialUniformExpressionTextureParameter() {}
 
-	FMaterialUniformExpressionTextureParameter(FName InParameterName, int32 InTextureIndex) :
-		Super(InTextureIndex),
+	FMaterialUniformExpressionTextureParameter(FName InParameterName, int32 InTextureIndex, ESamplerSourceMode InSourceMode) :
+		Super(InTextureIndex, InSourceMode),
 		ParameterName(InParameterName)
 	{}
 
@@ -236,9 +276,10 @@ public:
 		Ar << ParameterName;
 		Super::Serialize(Ar);
 	}
-	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const
+	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue,ESamplerSourceMode& OutSamplerSource) const
 	{
 		check(IsInParallelRenderingThread());
+		OutSamplerSource = SamplerSource;
 		if( TransientOverrideValue_RenderThread != NULL )
 		{
 			OutValue = TransientOverrideValue_RenderThread;
@@ -781,6 +822,51 @@ private:
 	TRefCountPtr<FMaterialUniformExpression> Input;
 	TRefCountPtr<FMaterialUniformExpression> Min;
 	TRefCountPtr<FMaterialUniformExpression> Max;
+};
+
+/**
+ */
+class FMaterialUniformExpressionSaturate: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSaturate);
+public:
+
+	FMaterialUniformExpressionSaturate() {}
+	FMaterialUniformExpressionSaturate(FMaterialUniformExpression* InInput):
+		Input(InInput)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar)
+	{
+		Ar << Input;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
+	{
+		FLinearColor ValueInput = FLinearColor::Black;
+		Input->GetNumberValue(Context, ValueInput);
+
+		OutValue.R = FMath::Clamp<float>(ValueInput.R, 0, 1);
+		OutValue.G = FMath::Clamp<float>(ValueInput.G, 0, 1);
+		OutValue.B = FMath::Clamp<float>(ValueInput.B, 0, 1);
+		OutValue.A = FMath::Clamp<float>(ValueInput.A, 0, 1);
+	}
+	virtual bool IsConstant() const
+	{
+		return Input->IsConstant();
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+		FMaterialUniformExpressionSaturate* OtherClamp = (FMaterialUniformExpressionSaturate*)OtherExpression;
+		return Input->IsIdentical(OtherClamp->Input);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> Input;
 };
 
 /**

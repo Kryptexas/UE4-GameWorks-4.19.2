@@ -6,7 +6,7 @@
 
 
 
-UMovieSceneTrack::UMovieSceneTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneTrack::UMovieSceneTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }

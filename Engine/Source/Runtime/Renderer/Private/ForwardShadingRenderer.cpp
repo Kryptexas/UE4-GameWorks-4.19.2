@@ -27,7 +27,7 @@ FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamil
  */
 void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, InitViews, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, InitViews);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
@@ -80,7 +80,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		return;
 	}
 
-	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+	auto FeatureLevel = ViewFamily.GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
@@ -108,17 +108,13 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bGammaSpace = !IsMobileHDR();
 	if( bGammaSpace )
 	{
-		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture());
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearToDefault);
 	}
 	else
 	{
 		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
+        GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearToDefault);
 	}
-
-	// Clear color and depth buffer
-	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-	RHICmdList.Clear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
 	RenderForwardShadingBasePass(RHICmdList);
 
@@ -161,7 +157,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			GSupportsShaderFramebufferFetch &&
 			ViewFamily.EngineShowFlags.PostProcessing &&
 			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) || 
-			((GRHIShaderPlatform == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+			((ViewFamily.GetShaderPlatform() == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
 			);
 
 		// Convert alpha from depth to circle of confusion with sunshaft intensity.
@@ -200,11 +196,11 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			}
 			else
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, PostProcessing, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
 				SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 				for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 				{	
-					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 					GPostProcessing.ProcessES2(RHICmdList, Views[ViewIndex], bOnChipSunMask);
 				}
 			}

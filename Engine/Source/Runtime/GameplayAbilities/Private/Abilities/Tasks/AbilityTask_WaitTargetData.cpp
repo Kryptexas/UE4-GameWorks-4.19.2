@@ -4,8 +4,8 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 
-UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }
@@ -81,7 +81,7 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 			// Register with the TargetData callbacks if we are expecting client to send them
 			if (!CDO->ShouldProduceTargetDataOnServer)
 			{
-				//Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
+				// Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
 				if (AbilitySystemComponent->ReplicatedTargetData.IsValid(0))
 				{
 					ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
@@ -162,6 +162,8 @@ void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObjec
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data)
 {
 	check(AbilitySystemComponent.IsValid());
+	
+	FScopedPredictionWindow	ScopedPrediction(Ability.Get());
 
 	/** 
 	 *  Call into the TargetActor to sanitize/verify the data. If this returns false, we are rejecting
@@ -201,10 +203,12 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data)
 {
 	check(AbilitySystemComponent.IsValid());
+
+	FScopedPredictionWindow	ScopedPrediction(Ability.Get());
 	
 	if (ShouldReplicateDataToServer())
 	{
-		AbilitySystemComponent->ServerSetReplicatedTargetData(Data);
+		AbilitySystemComponent->ServerSetReplicatedTargetData(Data, ScopedPrediction.ScopedPredictionKey);
 	}
 
 	ValidData.Broadcast(Data);

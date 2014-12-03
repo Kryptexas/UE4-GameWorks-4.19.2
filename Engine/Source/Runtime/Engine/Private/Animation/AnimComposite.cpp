@@ -9,8 +9,8 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 
-UAnimComposite::UAnimComposite(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimComposite::UAnimComposite(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
@@ -26,3 +26,10 @@ void UAnimComposite::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimS
 	AnimationTrack.ReplaceReferredAnimations(ReplacementMap);
 }
 #endif
+
+void UAnimComposite::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const
+{
+	Super::OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
+
+	ExtractRootMotionFromTrack(AnimationTrack, PreviousTime, PreviousTime + MoveDelta, Context.RootMotionMovementParams);
+}

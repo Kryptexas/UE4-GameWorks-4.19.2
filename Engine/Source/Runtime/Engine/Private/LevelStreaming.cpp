@@ -1,18 +1,23 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
+#include "Engine/LevelStreamingBounds.h"
+#include "Engine/LevelStreamingPersistent.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/LevelBounds.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
-	#include "Slate.h"
+	#include "SlateBasics.h"
+	#include "SNotificationList.h"
+	#include "NotificationManager.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 
 #define LOCTEXT_NAMESPACE "World"
 
-FStreamLevelAction::FStreamLevelAction(bool bIsLoading, const FName & InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World)
+FStreamLevelAction::FStreamLevelAction(bool bIsLoading, const FName& InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World)
 	: bLoading(bIsLoading)
 	, bMakeVisibleAfterLoad(bIsMakeVisibleAfterLoad)
 	, bShouldBlockOnLoad(bIsShouldBlockOnLoad)
@@ -200,7 +205,7 @@ void ULevelStreaming::PostLoad()
 			// Convert the FName reference to a TAssetPtr, then broadcast that we loaded a reference
 			// so this reference is gathered by the cooker without having to resave the package.
 			SetWorldAssetByPackageName(PackageName_DEPRECATED);
-			FCoreDelegates::StringAssetReferenceLoaded.ExecuteIfBound(WorldAsset.ToStringReference().ToString());
+			FCoreUObjectDelegates::StringAssetReferenceLoaded.ExecuteIfBound(WorldAsset.ToStringReference().ToString());
 		}
 		else
 		{
@@ -375,15 +380,18 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 				return false;
 			}
 #endif
-			SetLoadedLevel(World->PersistentLevel);
-			
-			// Broadcast level loaded event to blueprints
-			OnLevelLoaded.Broadcast();
+			if (World->PersistentLevel != LoadedLevel)
+			{
+				SetLoadedLevel(World->PersistentLevel);
+				// Broadcast level loaded event to blueprints
+				OnLevelLoaded.Broadcast();
+			}
 			
 			return true;
 		}
 	}
 
+	uint32 PackageFlags = 0;
 	int32 PIEInstanceID = INDEX_NONE;
 
 	// copy streaming level on demand if we are in PIE
@@ -391,6 +399,10 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	if ( PersistentWorld->IsPlayInEditor() )
 	{
 #if WITH_EDITOR
+		if ((PersistentWorld->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+		{
+			PackageFlags |= PKG_PlayInEditor;
+		}
 		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
 #endif
 		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
@@ -444,8 +456,9 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			{
 				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
 				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), NULL, NAME_None, *LocalizedPackageName)
-					.SetPIEInstanceID(PIEInstanceID);
+				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), 
+					NULL, NAME_None, *LocalizedPackageName
+					).SetPackageData(PackageFlags, PIEInstanceID);
 			}
 		}
 
@@ -460,7 +473,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			LoadPackageAsync(*DesiredPackageName.ToString(), 
 				FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelStreaming::AsyncLevelLoadComplete), 
 				NULL, NAME_None, *PackageNameToLoadFrom
-				).SetPIEInstanceID(PIEInstanceID);
+				).SetPackageData(PackageFlags, PIEInstanceID);
 
 			// streamingServer: server loads everything?
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.
@@ -641,7 +654,7 @@ ULevelStreaming* ULevelStreaming::CreateInstance(FString InstanceUniqueName)
 		FName	InstanceUniquePackageName = FName(*(InstancePackagePath + InstanceShortPackageName));
 
 		// check if instance name is unique among existing streaming level objects
-		const bool bUniqueName = (InWorld->StreamingLevels.FindMatch(ULevelStreaming::FPackageNameMatcher(InstanceUniquePackageName)) == INDEX_NONE);
+		const bool bUniqueName = (InWorld->StreamingLevels.IndexOfByPredicate(ULevelStreaming::FPackageNameMatcher(InstanceUniquePackageName)) == INDEX_NONE);
 				
 		if (bUniqueName)
 		{
@@ -784,9 +797,9 @@ FBox ULevelStreaming::GetStreamingVolumeBounds()
 	for(int32 VolIdx=0; VolIdx<EditorStreamingVolumes.Num(); VolIdx++)
 	{
 		ALevelStreamingVolume* StreamingVol = EditorStreamingVolumes[VolIdx];
-		if(StreamingVol && StreamingVol->BrushComponent)
+		if(StreamingVol && StreamingVol->GetBrushComponent())
 		{
-			Bounds += StreamingVol->BrushComponent->BrushBodySetup->AggGeom.CalcAABB(StreamingVol->BrushComponent->ComponentToWorld);
+			Bounds += StreamingVol->GetBrushComponent()->BrushBodySetup->AggGeom.CalcAABB(StreamingVol->GetBrushComponent()->ComponentToWorld);
 		}
 	}
 
@@ -860,8 +873,8 @@ void ULevelStreaming::RemoveStreamingVolumeDuplicates()
 
 #endif // WITH_EDITOR
 
-ULevelStreaming::ULevelStreaming(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreaming::ULevelStreaming(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bShouldBeVisibleInEditor = true;
 	LevelColor = FLinearColor::White;
@@ -887,16 +900,16 @@ void ULevelStreaming::PostEditUndo()
 /*-----------------------------------------------------------------------------
 	ULevelStreamingPersistent implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingPersistent::ULevelStreamingPersistent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingPersistent::ULevelStreamingPersistent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	ULevelStreamingKismet implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingKismet::ULevelStreamingKismet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingKismet::ULevelStreamingKismet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -925,8 +938,8 @@ bool ULevelStreamingKismet::ShouldBeLoaded( const FVector& ViewLocation )
 /*-----------------------------------------------------------------------------
 	ULevelStreamingAlwaysLoaded implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bShouldBeVisible = true;
 }
@@ -939,8 +952,8 @@ bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )
 /*-----------------------------------------------------------------------------
 	ULevelStreamingBounds implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingBounds::ULevelStreamingBounds(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingBounds::ULevelStreamingBounds(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

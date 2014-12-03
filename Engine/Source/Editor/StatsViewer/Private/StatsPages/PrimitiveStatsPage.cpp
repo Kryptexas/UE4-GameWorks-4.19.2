@@ -4,8 +4,8 @@
 #include "StaticMeshResources.h"
 #include "PrimitiveStatsPage.h"
 #include "PrimitiveStats.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeComponent.h"
+#include "LandscapeProxy.h"
+#include "LandscapeComponent.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
 

@@ -4,8 +4,8 @@
 
 #include "IOSRuntimeSettings.h"
 
-UIOSRuntimeSettings::UIOSRuntimeSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnableGameCenterSupport = true;
 	bSupportsPortraitOrientation = true;
@@ -13,6 +13,16 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const class FPostConstructInitializePro
 	BundleName = TEXT("MyUE4Game");
 	BundleIdentifier = TEXT("com.YourCompany.GameNameNoSpaces");
 	VersionInfo = TEXT("1.0.0");
+    FrameRateLock = EPowerUsageFrameRateLock::PUFRL_30;
+	bSupportsIPad = true;
+	bSupportsIPhone = true;
+	MinimumiOSVersion = EIOSVersion::IOS_61;
+	bDevForArmV7 = true;
+	bDevForArm64 = false;
+	bDevForArmV7S = false;
+	bShipForArmV7 = true;
+	bShipForArm64 = true;
+	bShipForArmV7S = false;
 }
 
 #if WITH_EDITOR
@@ -30,6 +40,16 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	if (!bSupportsMetal && !bSupportsOpenGLES2)
 	{
 		bSupportsOpenGLES2 = true;
+	}
+
+	// Ensure that at least armv7 is selected for shipping and dev
+	if (!bDevForArmV7 && !bDevForArm64 && !bDevForArmV7S)
+	{
+		bDevForArmV7 = true;
+	}
+	if (!bShipForArmV7 && !bShipForArm64 && !bShipForArmV7S)
+	{
+		bShipForArmV7 = true;
 	}
 }
 #endif

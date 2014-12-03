@@ -4,7 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
 
-UBTDecorator_BlackboardBase::UBTDecorator_BlackboardBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_BlackboardBase::UBTDecorator_BlackboardBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "BlackboardBase";
 
@@ -20,7 +20,7 @@ void UBTDecorator_BlackboardBase::PostInitProperties()
 	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlackboardBase::OnBlackboardChange);
 }
 
-void UBTDecorator_BlackboardBase::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_BlackboardBase::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 	BlackboardKey.CacheSelectedKey(GetBlackboardAsset());

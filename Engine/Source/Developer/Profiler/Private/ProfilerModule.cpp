@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "ProfilerPrivatePCH.h"
+#include "SDockTab.h"
 
 /**
  * Implements the FProfilerModule module.

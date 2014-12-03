@@ -9,12 +9,13 @@
 #include "hlslcc.h"
 
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
+static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 
 class FMetalShaderFormat : public IShaderFormat
 {
 	enum
 	{
-		HEADER_VERSION = 8,
+		HEADER_VERSION = 10,
 	};
 	struct FVersion
 	{
@@ -49,10 +50,11 @@ public:
 	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const
 	{
 		OutFormats.Add(NAME_SF_METAL);
+		OutFormats.Add(NAME_SF_METAL_MRT);
 	}
 	virtual void CompileShader(FName Format, const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output,const FString& WorkingDirectory) const
 	{
-		check(Format == NAME_SF_METAL);
+		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT);
 		CompileShader_Metal(Input, Output, WorkingDirectory);
 	}
 };

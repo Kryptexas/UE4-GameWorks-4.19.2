@@ -129,18 +129,10 @@ void MainPS(
 
 	MaterialParameters.ReflectionVector = -MaterialParameters.CameraVector + MaterialParameters.WorldNormal * dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector) * 2.0;
 
-#if DIFFUSE_SPEC_INPUTS
-	half3 DiffuseColor = GetMaterialDiffuseColor( MaterialParameters );
-	half3 SpecularColor = GetMaterialSpecularColor( MaterialParameters );
-#else
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
 	half  Metallic = GetMaterialMetallic( MaterialParameters );
 	half  Specular = GetMaterialSpecular( MaterialParameters );
-
-	half3 DiffuseColor = BaseColor - BaseColor * Metallic;
-	half3 SpecularColor = lerp( 0.08 * Specular.xxx, BaseColor, Metallic );
-#endif
 
 	float3 Color = 1;
 
@@ -172,14 +164,9 @@ void MainPS(
 	FGBufferData Data;
 
 	Data.WorldNormal = MaterialParameters.WorldNormal;
-#if DIFFUSE_SPEC_INPUTS
-	Data.DiffuseColor = DiffuseColor;
-	Data.SpecularColor = SpecularColor;
-#else
 	Data.BaseColor = BaseColor;
 	Data.Metallic = Metallic;
 	Data.Specular = Specular;
-#endif
 	Data.Roughness = GetMaterialRoughness(MaterialParameters);
 	Data.CustomData = 0;
 	Data.IndirectIrradiance = 0;

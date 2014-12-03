@@ -2,15 +2,12 @@
 
 #pragma once
 
-
-/** Type definition for weak pointers to instances of FMessageTracer. */
-typedef TWeakPtr<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerWeakPtr;
-
-/** Type definition for shared pointers to instances of FMessageTracer. */
-typedef TSharedPtr<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerPtr;
-
-/** Type definition for shared references to instances of FMessageTracer. */
-typedef TSharedRef<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerRef;
+#include "IMessageContext.h"
+#include "IMessageInterceptor.h"
+#include "IMessageSubscription.h"
+#include "IMessageTracer.h"
+#include "IMessageTracerBreakpoint.h"
+#include "IReceiveMessages.h"
 
 
 /**
@@ -41,11 +38,13 @@ class FMessageTracer
 
 public:
 
+	DECLARE_DELEGATE(TraceDelegate)
+
 	/** Default constructor. */
-	FMessageTracer( );
+	FMessageTracer();
 
 	/** Destructor. */
-	~FMessageTracer( );
+	~FMessageTracer();
 
 public:
 
@@ -55,7 +54,7 @@ public:
 	 * @param Interceptor The added interceptor.
 	 * @param MessageType The type of messages being intercepted.
 	 */
-	void TraceAddedInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	void TraceAddedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		FString Name = TEXT("@todo");
 		Traces.Enqueue(FSimpleDelegate::CreateRaw(this, &FMessageTracer::ProcessAddedInterceptor, Name, MessageType, FPlatformTime::Seconds()));
@@ -84,6 +83,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace added subscriptions
 	}
 
 	/**
@@ -125,12 +125,13 @@ public:
 	 * @param Context The context of the intercepted message.
 	 * @param Interceptor The interceptor.
 	 */
-	void TraceInterceptedMessage( const IMessageContextRef& Context, const IInterceptMessagesRef& Interceptor )
+	void TraceInterceptedMessage( const IMessageContextRef& Context, const IMessageInterceptorRef& Interceptor )
 	{
 		if (Running)
 		{
 		}
 
+		// @todo gmp: trace intercepted messages
 	}
 
 	/**
@@ -139,13 +140,14 @@ public:
 	 * @param Interceptor The removed interceptor.
 	 * @param MessageType The type of messages that is no longer being intercepted.
 	 */
-	void TraceRemovedInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	void TraceRemovedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		if (!Running)
 		{
 			return;
 		}
 
+		// @todo gmp: trace removed interceptors
 	}
 
 	/**
@@ -160,6 +162,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace removed recipients
 	}
 
 	/**
@@ -175,6 +178,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace removed subscriptions
 	}
 
 	/**
@@ -217,12 +221,12 @@ public:
 
 	// IMessageTracer interface
 
-	virtual void Break( ) override
+	virtual void Break() override
 	{
 		Breaking = true;
 	}
 
-	virtual void Continue( ) override
+	virtual void Continue() override
 	{
 		if (!Breaking)
 		{
@@ -237,42 +241,45 @@ public:
 	virtual int32 GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const override;
 	virtual int32 GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const override;
 
-	virtual bool HasMessages( ) const override
+	virtual bool HasMessages() const override
 	{
 		return (MessageInfos.Num() > 0);
 	}
 
-	virtual bool IsBreaking( ) const override
+	virtual bool IsBreaking() const override
 	{
 		return Breaking;
 	}
 
-	virtual bool IsRunning( ) const override
+	virtual bool IsRunning() const override
 	{
 		return Running;
 	}
 
-	virtual FMessageTracerMessageAdded& OnMessageAdded( ) override
+	DECLARE_DERIVED_EVENT(FMessageTracer, IMessageTracer::FOnMessageAdded, FOnMessageAdded)
+	virtual FOnMessageAdded& OnMessageAdded() override
 	{
 		return MessagesAddedDelegate;
 	}
 
-	virtual FSimpleMulticastDelegate& OnMessagesReset( ) override
+	DECLARE_DERIVED_EVENT(FMessageTracer, IMessageTracer::FOnMessagesReset, FOnMessagesReset)
+	virtual FOnMessagesReset& OnMessagesReset() override
 	{
 		return MessagesResetDelegate;
 	}
 
-	virtual FMessageTracerTypeAdded& OnTypeAdded( ) override
+	DECLARE_DERIVED_EVENT(FMessageTracer, IMessageTracer::FOnTypeAdded, FOnTypeAdded)
+	virtual FOnTypeAdded& OnTypeAdded() override
 	{
 		return TypeAddedDelegate;
 	}
 
-	virtual void Reset( ) override
+	virtual void Reset() override
 	{
 		ResetPending = true;
 	}
 
-	virtual void Start( ) override
+	virtual void Start() override
 	{
 		if (Running)
 		{
@@ -282,7 +289,7 @@ public:
 		Running = true;
 	}
 
-	virtual void Step( ) override
+	virtual void Step() override
 	{
 		if (!Breaking)
 		{
@@ -292,7 +299,7 @@ public:
 		ContinueEvent->Trigger();
 	}
 
-	virtual void Stop( ) override
+	virtual void Stop() override
 	{
 		if (!Running)
 		{
@@ -317,7 +324,7 @@ protected:
 	 *
 	 * @param Trace The action to enqueue.
 	 */
-	FORCEINLINE void EnqueueTrace( TBaseDelegate_NoParams<void> Trace )
+	FORCEINLINE void EnqueueTrace( TraceDelegate Trace )
 	{
 		Traces.Enqueue(Trace);
 	}
@@ -373,7 +380,7 @@ protected:
 	 * @param MessageType The type of messages no longer being intercepted.
 	 * @param TimeSecond The time at which the interceptor was removed.
 	 */
-	void ProcessRemovedInterceptor( IInterceptMessagesRef Interceptor, FName MessageType, double TimeSeconds );
+	void ProcessRemovedInterceptor( IMessageInterceptorRef Interceptor, FName MessageType, double TimeSeconds );
 
 	/**
 	 * Processes traces for removed message recipients.
@@ -403,6 +410,7 @@ protected:
 	 * Processes traces for sent messages.
 	 *
 	 * @param Context The context of the sent message.
+	 * @param SenderThread The name of the thread from which the message was sent.
 	 * @param TimeSecond The time at which the message was sent.
 	 */
 	void ProcessSentMessage( IMessageContextRef Context, double TimeSeconds );
@@ -410,7 +418,7 @@ protected:
 	/**
 	 * Resets traced messages.
 	 */
-	void ResetMessages( );
+	void ResetMessages();
 
 	/**
 	 * Checks whether the tracer should break on the given message.
@@ -452,16 +460,26 @@ private:
 	bool Running;
 
 	/** Holds the trace actions queue. */
-	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Traces;
+	TQueue<TraceDelegate, EQueueMode::Mpsc> Traces;
 
 private:
 
 	/** Holds a delegate that is executed when a new message has been added to the collection of known messages. */
-	FMessageTracerMessageAdded MessagesAddedDelegate;
+	FOnMessageAdded MessagesAddedDelegate;
 
 	/** Holds a delegate that is executed when the message history has been reset. */
-	FSimpleMulticastDelegate MessagesResetDelegate;
+	FOnMessagesReset MessagesResetDelegate;
 
 	/** Holds a delegate that is executed when a new type has been added to the collection of known message types. */
-	FMessageTracerTypeAdded TypeAddedDelegate;
+	FOnTypeAdded TypeAddedDelegate;
 };
+
+
+/** Type definition for weak pointers to instances of FMessageTracer. */
+typedef TWeakPtr<FMessageTracer, ESPMode::ThreadSafe> FMessageTracerWeakPtr;
+
+/** Type definition for shared pointers to instances of FMessageTracer. */
+typedef TSharedPtr<FMessageTracer, ESPMode::ThreadSafe> FMessageTracerPtr;
+
+/** Type definition for shared references to instances of FMessageTracer. */
+typedef TSharedRef<FMessageTracer, ESPMode::ThreadSafe> FMessageTracerRef;

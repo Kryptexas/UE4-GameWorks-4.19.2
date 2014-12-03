@@ -126,10 +126,10 @@ private:
 	FText GetSelectedModuleComboText() const;
 
 	/** Called when the currently selected module is changed */
-	void SelectedModuleComboBoxSelectionChanged(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value, ESelectInfo::Type SelectInfo);
+	void SelectedModuleComboBoxSelectionChanged(TSharedPtr<FModuleContextInfo> Value, ESelectInfo::Type SelectInfo);
 
 	/** Create the widget to use as the combo box entry for the given module info */
-	TSharedRef<SWidget> MakeWidgetForSelectedModuleCombo(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value);
+	TSharedRef<SWidget> MakeWidgetForSelectedModuleCombo(TSharedPtr<FModuleContextInfo> Value);
 
 private:
 
@@ -176,7 +176,7 @@ private:
 	TSharedPtr<SEditableTextBox> ClassNameEditBox;
 
 	/** The available modules combo box */
-	TSharedPtr<SComboBox<TSharedPtr<GameProjectUtils::FModuleContextInfo>>> AvailableModulesCombo;
+	TSharedPtr<SComboBox<TSharedPtr<FModuleContextInfo>>> AvailableModulesCombo;
 
 	/** The name of the class being created */
 	FString NewClassName;
@@ -218,8 +218,8 @@ private:
 	GameProjectUtils::EClassLocation ClassLocation;
 
 	/** Information about the currently available modules for this project */
-	TArray<TSharedPtr<GameProjectUtils::FModuleContextInfo>> AvailableModules;
+	TArray<TSharedPtr<FModuleContextInfo>> AvailableModules;
 
 	/** Information about the currently selected module; used for class validation */
-	TSharedPtr<GameProjectUtils::FModuleContextInfo> SelectedModuleInfo;
+	TSharedPtr<FModuleContextInfo> SelectedModuleInfo;
 };

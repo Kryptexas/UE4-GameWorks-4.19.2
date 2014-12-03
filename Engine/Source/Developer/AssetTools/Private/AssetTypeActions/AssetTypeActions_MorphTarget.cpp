@@ -14,16 +14,6 @@ void FAssetTypeActions_MorphTarget::GetActions( const TArray<UObject*>& InObject
 	auto MorphTargets = GetTypedWeakObjectPtrs<UMorphTarget>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MorphTarget_Edit", "Edit"),
-		LOCTEXT("MorphTarget_EditTooltip", "Opens the selected morph targets in Persona."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_MorphTarget::ExecuteEdit, MorphTargets ),
-		FCanExecuteAction()
-		)
-		);
-
-	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MorphTarget_Convert", "Move to SkeletalMesh"),
 		LOCTEXT("MorphTarget_ConvertTooltip", "Moves the selected morph targets to its own Mesh and delete as an asset."),
 		FSlateIcon(),
@@ -48,18 +38,6 @@ void FAssetTypeActions_MorphTarget::OpenAssetEditor( const TArray<UObject*>& InO
 			{
 				PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, MorphTarget->BaseSkelMesh->Skeleton, NULL, NULL, MorphTarget->BaseSkelMesh);
 			}
-		}
-	}
-}
-
-void FAssetTypeActions_MorphTarget::ExecuteEdit(TArray<TWeakObjectPtr<UMorphTarget>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object && Object->BaseSkelMesh )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }

@@ -6,6 +6,8 @@
 
 #pragma once
 
+struct FObjectInstancingGraph;
+
 /**
  * Archive for counting memory usage.
  */
@@ -36,7 +38,7 @@ public:
 		Max += InMax;
 	}
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -228,7 +230,7 @@ public:
 	virtual ~FReloadObjectArc();
 
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -328,7 +330,7 @@ public:
 	FArchiveReplaceArchetype();
 
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -384,7 +386,7 @@ public:
 	FArchiveShowReferences( FOutputDevice& inOutputAr, UObject* inOuter, UObject* inSource, TArray<UObject*>& InExclude );
 
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -441,18 +443,27 @@ public:
 	COREUOBJECT_API int32 GetReferenceCounts( TMap<class UObject*, int32>& out_ReferenceCounts, TMultiMap<class UObject*,class UProperty*>& out_ReferencingProperties ) const;
 
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
 	 **/
 	COREUOBJECT_API virtual FString GetArchiveName() const { return TEXT("FFindReferencersArchive"); }
 
+	/**
+	 * Resets the reference counts.  Keeps the same target objects but sets up everything to test a new potential referencer.
+	 * @param	PotentialReferencer		the object to serialize which may contain references to our target objects
+	 **/
+	COREUOBJECT_API void ResetPotentialReferencer(UObject* InPotentialReferencer);
+
 protected:
-	TMap<class UObject*,int32>	TargetObjects;
+	TMap<class UObject*, int32>	TargetObjects;
 
 	/** a mapping of target object => the properties in PotentialReferencer that hold the reference to target object */
 	TMultiMap<class UObject*,class UProperty*> ReferenceMap;
+
+	/** The potential referencer we ignore */
+	class UObject* PotentialReferencer;
 
 private:
 
@@ -485,16 +496,19 @@ public:
 	TFindObjectReferencers( TArray< T* > TargetObjects, UPackage* PackageToCheck=NULL, bool bIgnoreTemplates = true )
 	: TMultiMap< T*, UObject* >()
 	{
+		FFindReferencersArchive FindReferencerAr(nullptr, ( TArray<UObject*>& )TargetObjects);
+
+		// Loop over every object to find any reference that may exist for the target objects
 		for (FObjectIterator It; It; ++It)
 		{
 			UObject* PotentialReferencer = *It;
-			if (!TargetObjects.Contains(Cast<T>(PotentialReferencer))
+			if ( !TargetObjects.Contains(dynamic_cast<T*>( PotentialReferencer ))
 			&&	(PackageToCheck == NULL || PotentialReferencer->IsIn(PackageToCheck))
 			&&	(!bIgnoreTemplates || !PotentialReferencer->IsTemplate()) )
 			{
-				FFindReferencersArchive FindReferencerAr(PotentialReferencer, (TArray<UObject*>&)TargetObjects);
+				FindReferencerAr.ResetPotentialReferencer(PotentialReferencer);
 
-				TMap<UObject*,int32> ReferenceCounts;
+				TMap<UObject*, int32> ReferenceCounts;
 				if ( FindReferencerAr.GetReferenceCounts(ReferenceCounts) > 0 )
 				{
 					// here we don't really care about the number of references from PotentialReferencer to the target object...just that he's a referencer
@@ -548,7 +562,7 @@ public:
 	}
 
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -570,7 +584,7 @@ struct FTraceRouteRecord
 	struct FObjectGraphNode*	GraphNode;
 	TArray<UProperty*>			ReferencerProperties;
 
-	FTraceRouteRecord( struct FObjectGraphNode* InGraphNode, UProperty* InReferencerProperty=GSerializedProperty )
+	FTraceRouteRecord( struct FObjectGraphNode* InGraphNode, UProperty* InReferencerProperty)
 	: GraphNode(InGraphNode)
 	{
 		ReferencerProperties.Add(InReferencerProperty);
@@ -582,7 +596,7 @@ struct FTraceRouteRecord
 		ReferencerProperties = InReferencerProperties;
 	}
 
-	void Add(UProperty* InReferencerProperty=GSerializedProperty)
+	void Add(UProperty* InReferencerProperty)
 	{
 		ReferencerProperties.Add(InReferencerProperty);
 	}
@@ -669,8 +683,8 @@ class FTraceReferences
 	FArchiveObjectGraph ArchiveObjectGraph;
 
 	// internal recursive function for referencers/referenced
-	void	GetReferencerInternal( UObject * CurrentObject, TArray<FObjectGraphNode*> &OutReferencer, int32 CurrentDepth, int32 TargetDepth );
-	void	GetReferencedInternal( UObject * CurrentObject, TArray<FObjectGraphNode*> &OutReferenced, int32 CurrentDepth, int32 TargetDepth );
+	void GetReferencerInternal( UObject* CurrentObject, TArray<FObjectGraphNode*> &OutReferencer, int32 CurrentDepth, int32 TargetDepth );
+	void GetReferencedInternal( UObject* CurrentObject, TArray<FObjectGraphNode*> &OutReferenced, int32 CurrentDepth, int32 TargetDepth );
 
 public:
 	FTraceReferences( bool bIncludeTransients = false, EObjectFlags KeepFlags = RF_AllFlags );
@@ -681,9 +695,9 @@ public:
 	FString GetReferencedString( UObject* Object, int32 Depth = 100 );
 
 	// returns referencer object list of an object	
-	int32		GetReferencer( UObject * Object, TArray<FObjectGraphNode*> &Referencer, bool bExcludeSelf=true, int32 Depth = 100 );
+	int32 GetReferencer( UObject* Object, TArray<FObjectGraphNode*> &Referencer, bool bExcludeSelf=true, int32 Depth = 100 );
 	// returns referenced object list of an object		
-	int32		GetReferenced( UObject * Object, TArray<FObjectGraphNode*> &Referenced, bool bExcludeSelf=true, int32 Depth = 100 );
+	int32 GetReferenced( UObject* Object, TArray<FObjectGraphNode*> &Referenced, bool bExcludeSelf=true, int32 Depth = 100 );
 };
 /**
  * Archive for finding shortest path from root to a particular object.
@@ -727,7 +741,7 @@ public:
 	static COREUOBJECT_API FString PrintRootPath( const TMap<UObject*,UProperty*>& Route, const UObject* TargetObject );
 
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -869,7 +883,7 @@ private:
 
 public:
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -909,6 +923,18 @@ private:
 	int64										Offset;
 	EObjectFlags							FlagMask;
 	EObjectFlags							ApplyFlags;
+
+	/**
+	 * A pointer to source package, i.e. to the package the object being
+	 * duplicated is comming from.
+	 */
+	UPackage								*SourcePackage;
+
+	/**
+	 * A pointer to destination package, i.e. to the package the new object
+	 * should be created in.
+	 */
+	UPackage								*DestPackage;
 
 	/**
 	 * This is used to prevent object & component instancing resulting from the calls to StaticConstructObject(); instancing subobjects and components is pointless,
@@ -954,7 +980,7 @@ private:
 
 public:
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
@@ -992,7 +1018,15 @@ public:
 	 * @param	InApplyFlags			the flags that should always be set on the duplicated objects (regardless of whether they're set on the source)
 	 * @param	InInstanceGraph			the instancing graph to use when creating the duplicate objects.
 	 */
-	FDuplicateDataWriter( class FUObjectAnnotationSparse<FDuplicatedObject,false>& InDuplicatedObjects,TArray<uint8>& InObjectData,UObject* SourceObject,UObject* DestObject,EObjectFlags InFlagMask,EObjectFlags InApplyMask,struct FObjectInstancingGraph* InInstanceGraph, uint32 InPortFlags );
+	FDuplicateDataWriter(
+		FUObjectAnnotationSparse<FDuplicatedObject, false>& InDuplicatedObjects,
+		TArray<uint8>& InObjectData,
+		UObject* SourceObject,
+		UObject* DestObject,
+		EObjectFlags InFlagMask,
+		EObjectFlags InApplyMask,
+		FObjectInstancingGraph* InInstanceGraph,
+		uint32 InPortFlags);
 };
 
 /*----------------------------------------------------------------------------
@@ -1157,7 +1191,7 @@ public:
 	}
 
 	/**
-  	 * Returns the name of this archive.
+	 * Returns the name of this archive.
 	 **/
 	virtual FString GetArchiveName() const { return TEXT("ReplaceObjectRef"); }
 
@@ -1226,7 +1260,7 @@ private:
 			if ((LimitClass == NULL || Object->IsA(LimitClass)) &&
 				(LimitOuter == NULL || (Object->GetOuter() == LimitOuter || (!bRequireDirectOuter && Object->IsIn(LimitOuter)))) )
 			{
-				ObjectGraph->Add(GSerializedProperty, Object);
+				ObjectGraph->Add(GetSerializedProperty(), Object);
 				if ( bSerializeRecursively && !ObjectArray.Contains(Object) )
 				{
 					ObjectArray.Add( Object );
@@ -1328,7 +1362,7 @@ class COREUOBJECT_API FArchiveAsync : public FArchive
 {
 public:
 	/**
- 	 * Constructor, initializing member variables.
+	 * Constructor, initializing member variables.
 	 */
 	FArchiveAsync( const TCHAR* InFileName );
 
@@ -1474,4 +1508,44 @@ private:
 	int64							CurrentChunkIndex;
 	/** Compression flags determining compression of CompressedChunks.				*/
 	ECompressionFlags				CompressionFlags;
+};
+
+/*----------------------------------------------------------------------------
+FArchiveObjectCrc32
+----------------------------------------------------------------------------*/
+
+/**
+* Calculates a checksum on an object's serialized data stream.
+*/
+class COREUOBJECT_API FArchiveObjectCrc32 : public FArchiveUObject
+{
+public:
+	/**
+	* Default constructor.
+	*/
+	FArchiveObjectCrc32();
+
+	// Begin FArchive Interface
+	virtual void Serialize(void* Data, int64 Length);
+	virtual FArchive& operator<<(class FName& Name);
+	virtual FArchive& operator<<(class UObject*& Object);
+	virtual FString GetArchiveName() const { return TEXT("FArchiveObjectCrc32"); }
+	// End FArchive Interface
+
+	/**
+	* Serialize the given object, calculate and return its checksum.
+	*/
+	uint32 Crc32(UObject* Object, uint32 CRC = 0);
+
+private:
+	/** Internal archive used for serialization */
+	FMemoryWriter MemoryWriter;
+	/** Internal byte array used for serialization */
+	TArray<uint8> SerializedObjectData;
+	/** Internal queue of object references awaiting serialization */
+	TQueue<UObject*> ObjectsToSerialize;
+	/** Internal currently serialized object */
+	const UObject* ObjectBeingSerialized;
+	/** Internal root object */
+	const UObject* RootObject;
 };

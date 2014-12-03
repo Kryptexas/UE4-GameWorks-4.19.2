@@ -58,10 +58,10 @@ class KISMET_API FWorkflowTabFactory : public TSharedFromThis<FWorkflowTabFactor
 {
 protected:
 	FName TabIdentifier;
-	ETabRole::Type TabRole;
+	ETabRole TabRole;
 
 	FText TabLabel;
-	const FSlateBrush* TabIcon;
+	FSlateIcon TabIcon;
 
 	float InsideTabPadding;
 
@@ -120,6 +120,9 @@ public:
 
 	// Virtual to create an icon for the tab
 	virtual const FSlateBrush* GetTabIcon(const FWorkflowTabSpawnInfo& Info) const;
+	
+	// Virtual to create an icon for the menu entry
+	virtual const FSlateIcon& GetTabSpawnerIcon(const FWorkflowTabSpawnInfo& Info) const;
 
 	// Create a tooltip widget for the tab
 	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const;
@@ -160,9 +163,5 @@ public:
 	virtual TSharedRef<struct FGenericTabHistory> CreateTabHistoryNode(TSharedPtr<FTabPayload> Payload);
 
 protected:
-	FDocumentTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-		: FWorkflowTabFactory(InIdentifier, InHostingApp)
-	{
-		TabRole = ETabRole::DocumentTab;
-	}
+	FDocumentTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 };

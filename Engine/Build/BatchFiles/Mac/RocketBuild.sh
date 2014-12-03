@@ -55,5 +55,9 @@ case $ACTION in
 		;;
 esac
 
-exit $?
-
+ExitCode=$?
+if [ $ExitCode -eq 254 ] || [ $ExitCode -eq 255 ]; then
+	exit 0
+else
+	exit $ExitCode
+fi

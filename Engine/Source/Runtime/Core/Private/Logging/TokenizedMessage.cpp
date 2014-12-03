@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "TokenizedMessage.h"
 
 #define LOCTEXT_NAMESPACE "Core.MessageLog"
@@ -103,6 +103,12 @@ TSharedRef<FTokenizedMessage> FTokenizedMessage::AddToken( const TSharedRef<IMes
 	return AsShared();
 }
 
+
+void FTokenizedMessage::SetMessageLink(const TSharedRef<IMessageToken>& InToken)
+{
+	MessageLink = InToken;
+}
+
 void FTokenizedMessage::SetSeverity( const EMessageSeverity::Type InSeverity )
 {
 	Severity = InSeverity;
@@ -127,6 +133,11 @@ FTokenizedMiscData* FTokenizedMessage::GetMessageData() const
 const TArray<TSharedRef<IMessageToken> >& FTokenizedMessage::GetMessageTokens() const
 {
 	return MessageTokens;
+}
+
+TSharedPtr<IMessageToken> FTokenizedMessage::GetMessageLink() const
+{
+	return MessageLink;
 }
 
 FURLToken::FGenerateURL FURLToken::GenerateURL;

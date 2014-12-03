@@ -150,7 +150,7 @@ public:
 					int32 Sent = 0;
 
 					SendQueue.Dequeue(Packet);
-					Socket->SendTo(Packet.Data->GetTypedData(), Packet.Data->Num(), Sent, *Packet.Recipient.ToInternetAddr());
+					Socket->SendTo(Packet.Data->GetData(), Packet.Data->Num(), Sent, *Packet.Recipient.ToInternetAddr());
 					
 					if (Sent != Packet.Data->Num())
 					{

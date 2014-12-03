@@ -47,8 +47,6 @@ class ENGINE_API UActorChannel : public UChannel
 	// Variables.
 	UPROPERTY()
 	AActor* Actor;			// Actor this corresponds to.
-	UPROPERTY()
-	UClass* ActorClass;		// Class of the actor.
 
 	// Variables.
 	double	RelevantTime;			// Last time this actor was relevant to client.
@@ -75,8 +73,8 @@ class ENGINE_API UActorChannel : public UChannel
 	/**
 	 * Default constructor
 	 */
-	UActorChannel(const class FPostConstructInitializeProperties& PCIP)
-		: UChannel(PCIP)
+	UActorChannel(const FObjectInitializer& ObjectInitializer)
+		: UChannel(ObjectInitializer)
 	{
 		ChannelClasses[CHTYPE_Actor] = GetClass();
 		ChType = CHTYPE_Actor;
@@ -93,7 +91,8 @@ class ENGINE_API UActorChannel : public UChannel
 
 	virtual void Tick() override;
 	void ProcessBunch( FInBunch & Bunch );
-	
+	void ProcessQueuedBunches();
+
 	virtual void ReceivedNak( int32 NakPacketId ) override;
 	
 	virtual void Close() override;
@@ -121,7 +120,7 @@ class ENGINE_API UActorChannel : public UChannel
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** Queue a function bunch for this channel to be sent on the next property update. */
-	void QueueRemoteFunctionBunch( UObject * CallTarget, UFunction* Func, FOutBunch &Bunch );
+	void QueueRemoteFunctionBunch( UObject* CallTarget, UFunction* Func, FOutBunch &Bunch );
 
 	/** Returns true if channel is ready to go dormant (e.g., all outstanding property updates have been ACK'd) */
 	virtual bool ReadyForDormancy(bool debug=false);
@@ -133,7 +132,7 @@ class ENGINE_API UActorChannel : public UChannel
 	void CleanupReplicators( const bool bKeepReplicators = false );
 
 	/** Writes the header for a content block of proeprties / RPCs for the given object (either the actor a subobject of the actor) */
-	void BeginContentBlock( UObject * Obj, FOutBunch &Bunch );
+	void BeginContentBlock( UObject* Obj, FOutBunch &Bunch );
 
 	/** Writes the header for a content block specifically for deleting sub-objects */
 	void BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete );
@@ -241,7 +240,7 @@ protected:
 	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
 
-	virtual void CleanUp() override;
+	virtual bool CleanUp( const bool bForDestroy ) override;
 
 	/** Closes the actor channel but with a 'dormant' flag set so it can be reopened */
 	virtual void BecomeDormant();

@@ -59,7 +59,7 @@ class ENGINE_API UEdGraph : public UObject
 
 	/** The schema that this graph obeys */
 	UPROPERTY()
-	TSubclassOf<UEdGraphSchema>  Schema;
+	TSubclassOf<class UEdGraphSchema>  Schema;
 
 	/** Set of all nodes in this graph */
 	UPROPERTY()
@@ -95,7 +95,7 @@ public:
 	template <typename NodeType> friend struct FGraphNodeCreator;
 
 	/** Get the schema associated with this graph */
-	const UEdGraphSchema* GetSchema() const;
+	const class UEdGraphSchema* GetSchema() const;
 
 	/** Add a listener for OnGraphChanged events */
 	void AddOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );
@@ -128,6 +128,14 @@ public:
 	 * @param bSelectNewNode	Whether or not to select the new node being created
 	 */
 	void AddNode( UEdGraphNode* NodeToAdd, bool bUserAction = false, bool bSelectNewNode = true );
+
+	/**
+	 * Queues up a select operation for a series of nodes in this graph.
+	 * 
+	 * @param  NodeSelection	The group of nodes you want selected
+	 * @param  bFromUI			True if the node was added as the result of a direct user action.
+	 */
+	void SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFromUI = false);
 
 	/** Remove a node from this graph */
 	bool RemoveNode( UEdGraphNode* NodeToRemove );
@@ -171,10 +179,10 @@ public:
 
 #if WITH_EDITOR
 	/** Notify the graph and its associated listeners that a property is about to change  */
-	void NotifyPreChange( const FString & PropertyName );
+	void NotifyPreChange( const FString& PropertyName );
 
 	/** Notify the graph and associated listeners that a property has changed */
-	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString & PropertyName );
+	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString& PropertyName );
 
 	/** Add a delegate listening for property change notifications */
 	void AddPropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );

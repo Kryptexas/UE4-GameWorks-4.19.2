@@ -72,7 +72,7 @@ struct FGeomSelection
 	}
 };
 
-UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input), showcategories=("Input|MouseInput", "Input|TouchInput"), NotBlueprintable, ConversionRoot)
+UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input, Blueprint), showcategories=("Input|MouseInput", "Input|TouchInput"), NotBlueprintable, ConversionRoot)
 class ENGINE_API ABrush : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -109,8 +109,11 @@ class ENGINE_API ABrush : public AActor
 	UPROPERTY(export)
 	class UModel* Brush;
 
-	UPROPERTY(Category=Collision, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UBrushComponent> BrushComponent;
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "BrushComponent should not be accessed directly, please use GetBrushComponent() function instead. BrushComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UBrushComponent* BrushComponent;
+public:
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Instanced, Category=BrushBuilder)
@@ -251,6 +254,10 @@ public:
 	/** @return the brush builder that created the current brush shape */
 	const UBrushBuilder* GetBrushBuilder() const { return BrushBuilder; }
 #endif
+
+public:
+	/** Returns BrushComponent subobject **/
+	class UBrushComponent* GetBrushComponent() const;
 };
 
 

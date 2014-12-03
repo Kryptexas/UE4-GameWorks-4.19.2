@@ -1,11 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================
-	SDeviceProfileCreateProfilePanel.h: Declares the SDeviceProfileCreateProfilePanel class.
-=============================================================================*/
-
 #pragma once
+
 
 #define LOCTEXT_NAMESPACE "DeviceProfileCreateProfilePanel"
 
@@ -21,9 +17,8 @@ public:
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 	SLATE_END_ARGS()
 
-	/** Constructs this widget with InArgs */
+	/** Constructs this widget with InArgs. */
 	void Construct( const FArguments& InArgs, TWeakObjectPtr< UDeviceProfileManager > InDeviceProfileManager );
-
 
 public:
 
@@ -41,48 +36,45 @@ public:
 	 */
 	FReply HandleCreateDeviceProfileButtonClicked();
 
-
 public:
 	
 	/**
 	 * Is the select a base profile selection available
 	 *
-	 * @return True if enabled, false otherwise
+	 * @return true if enabled, false otherwise.
 	 */
 	bool IsBaseProfileComboBoxEnabled() const;
 
 	/**
 	 * Handle base selection changed.
 	 *
-	 * @param NewSelection -  The newly selected device profile to use as a parent
-	 * @param SelectionInfo - The selection type
+	 * @param NewSelection The newly selected device profile to use as a parent.
+	 * @param SelectionInfo The selection type.
 	 */
 	void HandleBaseProfileSelectionChanged( UDeviceProfile* NewSelection, ESelectInfo::Type SelectInfo );
 
 	/**
 	 * Set the base combo box content.
 	 *
-	 * @return The device profile parent name
+	 * @return The device profile parent name.
 	 */
 	FString SetBaseProfileComboBoxContent() const;
 
 	/**
 	 * Handle base combo box generate widget.
 	 *
-	 * @param InItem - The device profile
-	 *
-	 * @return A text box holding the device profile name
+	 * @param InItem The device profile.
+	 * @return A text box holding the device profile name.
 	 */
 	TSharedRef<SWidget> HandleBaseComboBoxGenerateWidget( UDeviceProfile* InItem );
-
 
 public:
 	
 	/**
 	 * Handle profile type changed.
 	 *
-	 * @param NewSelection -  The newly selected device profile type
-	 * @param SelectionInfo - The selection type
+	 * @param NewSelection The newly selected device profile type.
+	 * @param SelectionInfoThe selection type.
 	 */
 	void HandleProfileTypeChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo );
 	
@@ -96,54 +88,49 @@ public:
 	/**
 	 * Handle profile type combo box generate widget.
 	 *
-	 * @param The type of this in string format
-	 *
-	 * @return A text box holding the device profile name
+	 * @param The type of this in string format.
+	 * @return A text box holding the device profile name.
 	 */
 	TSharedRef<SWidget> HandleProfileTypeComboBoxGenarateWidget( TSharedPtr<FString> InItem );
 
-
 private:
 
-	/**
-	 * Reset the components state.
-	 */
+	/** Reset the components state. */
 	void ResetComponentsState();
 
-
 private:
 
-	// Holds the Device Profile Class types combo box
+	/** Holds the Device Profile Class types combo box. */
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> DeviceProfileTypesComboBox;
 	
-	// The collection of available types you can create a profile for
+	/** The collection of available types you can create a profile for. */
 	TArray<TSharedPtr<FString>> DeviceProfileTypes;
 
-	// Holds the Device Profile Class types combo box
+	/** Holds the Device Profile Class types combo box. */
 	TSharedPtr<SComboBox<UDeviceProfile*>> ParentObjectComboBox;
 
-	// The collection of device profiles available for you to copy properties from that matches the profile type
+	/** The collection of device profiles available for you to copy properties from that matches the profile type. */
 	TArray<UDeviceProfile*> AvailableBaseObjects;
 
-	// Holds the device profile combo box
+	/** Holds the device profile combo box. */
 	TSharedPtr< SComboBox< UDeviceProfile* > > DeviceProfileBaseComboBox;
 
-	// Holds the device profile check box
+	/** Holds the device profile check box. */
 	TSharedPtr< SCheckBox > DeviceProfileBaseCheckBox;
 
-	// Holds the device profile manager
+	/** Holds the device profile manager. */
 	TWeakObjectPtr< UDeviceProfileManager > DeviceProfileManager;
 
-	// Holds the device profile name text box
+	/** Holds the device profile name text box. */
 	TSharedPtr< SEditableTextBox > DeviceProfileNameTextBox;
 
-	// Holds the device profile name text box
+	/** Holds the device profile name text box. */
 	TSharedPtr< SEditableTextBox > DeviceProfileParentNameTextBox;
 
-	// Holds the selected device profile parent
+	/** Holds the selected device profile parent. */
 	TWeakObjectPtr< UDeviceProfile > SelectedDeviceProfileParent;
 
-	// Holds the selected device profile parent
+	/** Holds the selected device profile parent. */
 	TSharedPtr< FString > SelectedDeviceProfileType;
 };
 

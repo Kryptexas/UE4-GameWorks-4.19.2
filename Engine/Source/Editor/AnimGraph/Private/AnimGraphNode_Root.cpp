@@ -38,8 +38,8 @@ void FPoseLinkMappingRecord::PatchLinkIndex(uint8* DestinationPtr, int32 LinkID,
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_Root::UAnimGraphNode_Root(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_Root::UAnimGraphNode_Root(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

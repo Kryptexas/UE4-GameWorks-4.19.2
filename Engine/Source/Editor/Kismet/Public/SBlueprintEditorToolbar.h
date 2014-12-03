@@ -4,6 +4,8 @@
 
 #include "WorkflowOrientedApp/SModeWidget.h"
 
+class FBlueprintEditor;
+
 /**
  * Kismet menu
  */
@@ -42,6 +44,10 @@ public:
 
 	/** Compile the blueprint */
 	TSharedPtr<FUICommandInfo> Compile;
+	TSharedPtr<FUICommandInfo> SaveOnCompile_Never;
+	TSharedPtr<FUICommandInfo> SaveOnCompile_SuccessOnly;
+	TSharedPtr<FUICommandInfo> SaveOnCompile_Always;
+	TSharedPtr<FUICommandInfo> JumpToErrorNode;
 
 	/** Switch between modes in the blueprint editor */
 	TSharedPtr<FUICommandInfo> SwitchToScriptingMode;

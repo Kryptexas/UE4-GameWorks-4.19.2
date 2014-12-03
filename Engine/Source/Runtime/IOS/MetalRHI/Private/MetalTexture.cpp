@@ -6,6 +6,8 @@
 
 #include "MetalRHIPrivate.h"
 
+uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
+
 /** Texture reference class. */
 class FMetalTextureReference : public FRHITextureReference
 {
@@ -72,6 +74,7 @@ static bool IsRenderTarget(uint32 Flags)
 FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 NumSamples, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 InFlags, FResourceBulkDataInterface* BulkData)
 	: PixelFormat(Format)
     , MSAATexture(nil)
+	, StencilTexture(nil)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -79,6 +82,21 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	, Flags(InFlags)
 	, TotalTextureSize(0)
 {
+	// get a unique key for this surface's format
+	static TMap<uint32, uint8> PixelFormatKeyMap;
+	MTLPixelFormat MTLFormat = (MTLPixelFormat)GPixelFormats[Format].PlatformFormat;
+	uint8* Key = PixelFormatKeyMap.Find(MTLFormat);
+	if (Key == NULL)
+	{
+		Key = &PixelFormatKeyMap.Add(MTLFormat, NextKey++);
+
+		// only giving 4 bits to the key
+		checkf(NextKey < 16, TEXT("Too many unique pixel formats to fit into the PipelineStateHash"));
+	}
+	// set the key
+	FormatKey = *Key;
+
+
 	// the special back buffer surface will be updated in FMetalManager::BeginFrame - no need to set the texture here
 	if (Flags & TexCreate_Presentable)
 	{
@@ -86,7 +104,6 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	}
 
 	bool bIsRenderTarget = IsRenderTarget(Flags);
-	MTLPixelFormat MTLFormat = (MTLPixelFormat)GPixelFormats[Format].PlatformFormat;
 	MTLTextureDescriptor* Desc;
 	
 	if (ResourceType == RRT_TextureCube)
@@ -95,6 +112,17 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 																	size:SizeX
 															   mipmapped:(NumMips > 1)];
 		bIsCubemap = true;
+	}
+	else if (ResourceType == RRT_Texture3D)
+	{
+		Desc = [MTLTextureDescriptor new];
+		Desc.textureType = MTLTextureType3D;
+		Desc.height = SizeX;
+		Desc.width = SizeY;
+		Desc.depth = SizeZ;
+		Desc.pixelFormat = MTLFormat;
+		Desc.arrayLength = 1;
+		Desc.mipmapLevelCount = 1;
 	}
 	else
 	{
@@ -171,6 +199,17 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 			}
 			TRACK_OBJECT(MSAATexture);
 		}
+	}
+
+	// create a stencil buffer if needed
+	if (GMaxRHIShaderPlatform == SP_METAL_MRT && Format == PF_DepthStencil)
+	{
+		Desc.textureType = MTLTextureType2D;
+		Desc.pixelFormat = MTLPixelFormatStencil8;
+		StencilTexture = [FMetalManager::GetDevice() newTextureWithDescriptor:Desc];
+
+		// 1 byte per texel
+		TotalTextureSize += SizeX * SizeY;
 	}
 
 	// track memory usage
@@ -404,7 +443,7 @@ void FMetalDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 
 FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef OldTextureRHI, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
 {
-	DYNAMIC_CAST_METGALRESOURCE(Texture2D,OldTexture);
+	DYNAMIC_CAST_METALRESOURCE(Texture2D,OldTexture);
 
 	FMetalTexture2D* NewTexture = new FMetalTexture2D(OldTexture->GetFormat(), NewSizeX, NewSizeY, NewMipCount, OldTexture->GetNumSamples(), OldTexture->GetFlags(), NULL);
 
@@ -467,37 +506,37 @@ ETextureReallocationStatus FMetalDynamicRHI::RHICancelAsyncReallocateTexture2D( 
 
 void* FMetalDynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_METGALRESOURCE(Texture2D,Texture);
+	DYNAMIC_CAST_METALRESOURCE(Texture2D,Texture);
 	return Texture->Surface.Lock(MipIndex, 0, LockMode, DestStride);
 }
 
 void FMetalDynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_METGALRESOURCE(Texture2D,Texture);
+	DYNAMIC_CAST_METALRESOURCE(Texture2D,Texture);
 	Texture->Surface.Unlock(MipIndex, 0);
 }
 
 void* FMetalDynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_METGALRESOURCE(Texture2DArray,Texture);
+	DYNAMIC_CAST_METALRESOURCE(Texture2DArray,Texture);
 	return Texture->Surface.Lock(MipIndex, TextureIndex, LockMode, DestStride);
 }
 
 void FMetalDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_METGALRESOURCE(Texture2DArray,Texture);
+	DYNAMIC_CAST_METALRESOURCE(Texture2DArray,Texture);
 	Texture->Surface.Unlock(MipIndex, TextureIndex);
 }
 
 void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
 {	
-	DYNAMIC_CAST_METGALRESOURCE(Texture3D,Texture);
+	DYNAMIC_CAST_METALRESOURCE(Texture3D,Texture);
 
 }
 
 void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion3D& UpdateRegion,uint32 SourceRowPitch,uint32 SourceDepthPitch,const uint8* SourceData)
 {	
-	DYNAMIC_CAST_METGALRESOURCE(Texture3D,Texture);
+	DYNAMIC_CAST_METALRESOURCE(Texture3D,Texture);
 
 }
 
@@ -517,14 +556,14 @@ FTextureCubeRHIRef FMetalDynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint
 
 void* FMetalDynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_METGALRESOURCE(TextureCube,TextureCube);
+	DYNAMIC_CAST_METALRESOURCE(TextureCube,TextureCube);
 	uint32 MetalFace = GetMetalCubeFace((ECubeFace)FaceIndex);
 	return TextureCube->Surface.Lock(MipIndex, FaceIndex + 6 * ArrayIndex, LockMode, DestStride);
 }
 
 void FMetalDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_METGALRESOURCE(TextureCube,TextureCube);
+	DYNAMIC_CAST_METALRESOURCE(TextureCube,TextureCube);
 	uint32 MetalFace = GetMetalCubeFace((ECubeFace)FaceIndex);
 	TextureCube->Surface.Unlock(MipIndex, FaceIndex + ArrayIndex * 6);
 }

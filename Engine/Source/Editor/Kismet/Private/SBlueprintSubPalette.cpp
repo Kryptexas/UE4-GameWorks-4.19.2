@@ -13,6 +13,9 @@
 #include "BlueprintEditorUtils.h"
 #include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
 #include "BlueprintDragDropMenuItem.h"
+#include "BlueprintActionDatabase.h"
+#include "BlueprintActionMenuUtils.h"
+#include "Engine/LevelScriptBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
 
@@ -56,10 +59,10 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 		bCanBePlaced = false;
 		ImpededReasonOut = LOCTEXT("DropOnlyInGraph", "Nodes can only be placed inside the blueprint graph");
 	}
-	else if (UK2Node const* NodeToBePlaced = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(DropActionIn))
+	else if (UK2Node const* NodeToBePlaced = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(DropActionIn))
 	{
 		UEdGraphSchema const* const GraphSchema = HoveredGraphIn->GetSchema();
-		check(GraphSchema != NULL);
+		check(GraphSchema != nullptr);
 
 		bool bIsFunctionGraph = (GraphSchema->GetGraphType(HoveredGraphIn) == EGraphType::GT_Function);
 
@@ -68,24 +71,31 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 			FName const FuncName = CallFuncNode->FunctionReference.GetMemberName();
 			check(FuncName != NAME_None);
 			UClass const* const FuncOwner = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode);
-			check(FuncOwner != NULL);
+			check(FuncOwner != nullptr);
 
-			UFunction const* const Function = FindField<UFunction>(FuncOwner, FuncName);
+			UFunction* const Function = FindField<UFunction>(FuncOwner, FuncName);
+			UEdGraphSchema_K2 const* const K2Schema = Cast<UEdGraphSchema_K2 const>(GraphSchema);
 
-			if (!HoveredGraphIn->GetSchema()->IsA(UEdGraphSchema_K2::StaticClass()))
-			{
-				bCanBePlaced = false;
-				ImpededReasonOut = LOCTEXT("CannotCreateInThisSchema", "Cannot call functions in this type of graph");
-			}
-			else if (Function == NULL)
+			if (Function == nullptr)
 			{
 				bCanBePlaced = false;
 				ImpededReasonOut = LOCTEXT("InvalidFuncAction", "Invalid function for placement");
 			}
-			else if (bIsFunctionGraph && Function->HasMetaData(FBlueprintMetadata::MD_Latent))
+			else if (K2Schema == nullptr)
 			{
 				bCanBePlaced = false;
-				ImpededReasonOut = LOCTEXT("CannotCreateLatentInGraph", "Cannot call latent functions in function graphs");
+				ImpededReasonOut = LOCTEXT("CannotCreateInThisSchema", "Cannot call functions in this type of graph");
+			}
+			else
+			{
+				uint32 AllowedFunctionTypes = UEdGraphSchema_K2::EFunctionType::FT_Pure | UEdGraphSchema_K2::EFunctionType::FT_Const | UEdGraphSchema_K2::EFunctionType::FT_Protected;
+				if(K2Schema->DoesGraphSupportImpureFunctions(HoveredGraphIn))
+				{
+					AllowedFunctionTypes |= UEdGraphSchema_K2::EFunctionType::FT_Imperative;
+				}
+
+				const UClass* GeneratedClass = FBlueprintEditorUtils::FindBlueprintForGraphChecked(HoveredGraphIn)->GeneratedClass;
+				bCanBePlaced = K2Schema->CanFunctionBeUsedInClass(GeneratedClass, Function, HoveredGraphIn, AllowedFunctionTypes, true, false, FFunctionTargetInfo(), &ImpededReasonOut);
 			}
 		}
 		else if (UK2Node_Event const* EventNode = Cast<UK2Node_Event const>(NodeToBePlaced))
@@ -169,7 +179,9 @@ public:
 //------------------------------------------------------------------------------
 SBlueprintSubPalette::~SBlueprintSubPalette()
 {
-	GEditor->OnBlueprintCompiled().RemoveAll(this);
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.OnEntryRemoved().RemoveAll(this);
+	ActionDatabase.OnEntryUpdated().RemoveAll(this);
 }
 
 //------------------------------------------------------------------------------
@@ -230,10 +242,9 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 	// has to come after GraphActionMenu has been set
 	BindCommands(CommandList);
 
-	GEditor->OnBlueprintCompiled().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
-	// Register with the Asset Registry to be informed when it is done loading up files.
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.OnEntryRemoved().AddSP(this, &SBlueprintSubPalette::OnDatabaseActionsRemoved);
+	ActionDatabase.OnEntryUpdated().AddSP(this, &SBlueprintSubPalette::OnDatabaseActionsUpdated);
 }
 
 //------------------------------------------------------------------------------
@@ -244,7 +255,7 @@ void SBlueprintSubPalette::Tick(const FGeometry& AllottedGeometry, const double 
 	if(bNeedsRefresh)
 	{
 		bNeedsRefresh = false;
-		RefreshActionsList(true);
+		RefreshActionsList(/*bPreserveExpansion =*/true);
 	}
 }
 
@@ -354,7 +365,7 @@ void SBlueprintSubPalette::BindCommands(TSharedPtr<FUICommandList> CommandListIn
 
 	CommandListIn->MapAction(
 		PaletteCommands.RefreshPalette,
-		FExecuteAction::CreateSP(this, &SBlueprintSubPalette::RefreshActionsList, true)
+		FExecuteAction::CreateSP(this, &SBlueprintSubPalette::RefreshActionsList, /*bPreserveExpansion =*/true)
 	);
 }
 
@@ -379,9 +390,40 @@ void SBlueprintSubPalette::RequestRefreshActionsList()
 	bNeedsRefresh = true;
 }
 
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::OnDatabaseActionsUpdated(UObject* /*ActionsKey*/)
+{
+	RequestRefreshActionsList();
+}
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::OnDatabaseActionsRemoved(UObject* ActionsKey)
+{
+	ULevelScriptBlueprint* RemovedLevelScript = Cast<ULevelScriptBlueprint>(ActionsKey);
+	bool const bAssumeDestroyingWorld = (RemovedLevelScript != nullptr);
+
+	if (bAssumeDestroyingWorld)
+	{
+		// have to update the action list immediatly (cannot wait until Tick(), 
+		// because we have to handle level switching, which expects all references 
+		// to be cleared immediately)
+		ForceRefreshActionList();
+	}
+	else
+	{
+		RequestRefreshActionsList();
+	}
+}
+
 /*******************************************************************************
 * Private SBlueprintSubPalette Methods
 *******************************************************************************/
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::ForceRefreshActionList()
+{
+	RefreshActionsList(/*bPreserveExpansion =*/true);
+}
 
 //------------------------------------------------------------------------------
 TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTipText)

@@ -192,7 +192,7 @@ void AActor::GatherCurrentMovement()
 	}
 }
 
-static void GetLifetimeBlueprintReplicationList( const AActor * ThisActor, const UBlueprintGeneratedClass * MyClass, TArray< FLifetimeProperty > & OutLifetimeProps )
+static void GetLifetimeBlueprintReplicationList( const AActor* ThisActor, const UBlueprintGeneratedClass* MyClass, TArray< FLifetimeProperty > & OutLifetimeProps )
 {
 	if ( MyClass == NULL )
 	{
@@ -240,9 +240,8 @@ bool AActor::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FRepl
 
 	bool WroteSomething = false;
 
-	for (int32 CompIdx =0; CompIdx < ReplicatedComponents.Num(); ++CompIdx )
+	for (UActorComponent* ActorComp : ReplicatedComponents)
 	{
-		UActorComponent * ActorComp = ReplicatedComponents[CompIdx].Get();
 		if (ActorComp && ActorComp->GetIsReplicated())
 		{
 			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);		// Lets the component add subobjects before replicating its own properties.
@@ -267,13 +266,13 @@ void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList
 	// Sort the list so that we generate the same list on client/server
 	struct FCompareComponentNames
 	{
-		FORCEINLINE bool operator()( UObject & A, UObject & B ) const
+		FORCEINLINE bool operator()( UObject& A, UObject& B ) const
 		{
 			return A.GetName() < B.GetName();
 		}
 	};
 
-	Sort( ObjList.GetTypedData(), ObjList.Num(), FCompareComponentNames() );
+	Sort( ObjList.GetData(), ObjList.Num(), FCompareComponentNames() );
 }
 
 void AActor::OnSubobjectCreatedFromReplication(UObject *NewSubobject)

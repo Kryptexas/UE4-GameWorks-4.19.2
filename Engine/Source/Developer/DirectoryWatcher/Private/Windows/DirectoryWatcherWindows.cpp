@@ -133,7 +133,7 @@ void FDirectoryWatcherWindows::Tick( float DeltaSeconds )
 	// Trigger any file changed delegates that are queued up
 	if ( DirectoryHandles.Num() > 0 )
 	{
-		MsgWaitForMultipleObjectsEx(DirectoryHandles.Num(), DirectoryHandles.GetTypedData(), 0, QS_ALLEVENTS, MWMO_ALERTABLE);
+		MsgWaitForMultipleObjectsEx(DirectoryHandles.Num(), DirectoryHandles.GetData(), 0, QS_ALLEVENTS, MWMO_ALERTABLE);
 	}
 
 	// Delete any stale or invalid requests

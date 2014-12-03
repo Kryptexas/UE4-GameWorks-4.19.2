@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
-UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ProxyFactoryFunctionName(NAME_None)
 	, ProxyFactoryClass(NULL)
 	, ProxyClass(NULL)
@@ -34,11 +34,12 @@ FText UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 bool UK2Node_BaseAsyncTask::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
-	bool bIsCompatible = true;
-	// Can only place events in ubergraphs, and basicasync task creates an event node:
-	if (TargetGraph->GetSchema()->GetGraphType(TargetGraph) != EGraphType::GT_Ubergraph)
+	bool bIsCompatible = false;
+	// Can only place events in ubergraphs and macros (other code will help prevent macros with latents from ending up in functions), and basicasync task creates an event node:
+	EGraphType GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+	if (GraphType == EGraphType::GT_Ubergraph || GraphType == EGraphType::GT_Macro)
 	{
-		bIsCompatible = false;
+		bIsCompatible = true;
 	}
 	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
 }
@@ -263,10 +264,6 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 {
     Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (!CompilerContext.bIsFullCompile)
-	{
-		return;
-	}
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 	check(SourceGraph && Schema);
 	bool bIsErrorFree = true;
@@ -407,6 +404,24 @@ UFunction* UK2Node_BaseAsyncTask::GetFactoryFunction() const
 	UFunction* FactoryFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
 	check(FactoryFunction);
 	return FactoryFunction;
+}
+
+void UK2Node_BaseAsyncTask::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	if(UObject const* SourceObject = MessageLog.FindSourceObject(this))
+	{
+		// Lets check if it's a result of macro expansion, to give a helpful error
+		if(UK2Node_MacroInstance const* MacroInstance = Cast<UK2Node_MacroInstance>(SourceObject))
+		{
+			// Since it's not possible to check the graph's type, just check if this is a ubergraph using the schema's name for it
+			if(!(GetGraph()->HasAnyFlags(RF_Transient) && GetGraph()->GetName().StartsWith(K2Schema->FN_ExecuteUbergraphBase.ToString())))
+			{
+				MessageLog.Error(*LOCTEXT("AsyncTaskInFunctionFromMacro", "@@ is being used in Function '@@' resulting from expansion of Macro '@@'").ToString(), this, GetGraph(), MacroInstance);
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -16,10 +16,11 @@ class ENGINE_API UCameraAnimInst : public UObject
 	UPROPERTY()
 	class UCameraAnim* CamAnim;
 
-protected:
+private_subobject:
 	/** the UInterpGroupInst used to do the interpolation */
+	DEPRECATED_FORGAME(4.6, "InterpGroupInst should not be accessed directly, please use GetInterpGroupInst() function instead. InterpGroupInst will soon be private and your code will not compile.")
 	UPROPERTY(instanced)
-	TSubobjectPtr<class UInterpGroupInst> InterpGroupInst;
+	class UInterpGroupInst* InterpGroupInst;
 
 public:
 	/** Current time for the animation */
@@ -133,6 +134,10 @@ public:
 	void SetDuration(float NewDuration);
 
 	
+
+protected:
+	/** Returns InterpGroupInst subobject **/
+	class UInterpGroupInst* GetInterpGroupInst() const;
 };
 
 

@@ -29,6 +29,9 @@
 #include "ActorDetailsDelegates.h"
 #include "EditorCategoryUtils.h"
 #include "Engine/DocumentationActor.h"
+#include "SHyperlink.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 

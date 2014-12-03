@@ -81,11 +81,13 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
 	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
 	, Contrast(InLightComponent->Contrast)
+	, MinOcclusion(InLightComponent->MinOcclusion)
+	, OcclusionTint(InLightComponent->OcclusionTint)
 {
 }
 
-USkyLightComponent::USkyLightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())
@@ -107,6 +109,8 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 	bLowerHemisphereIsBlack = true;
 	bSavedConstructionScriptValuesValid = true;
 	OcclusionMaxDistance = 600;
+	MinOcclusion = 0;
+	OcclusionTint = FColor::Black;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -341,9 +345,9 @@ FName USkyLightComponent::GetComponentInstanceDataType() const
 	return PrecomputedSkyLightInstanceDataTypeName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> USkyLightComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* USkyLightComponent::GetComponentInstanceData() const
 {
-	TSharedRef<FPrecomputedSkyLightInstanceData> InstanceData = MakeShareable(new FPrecomputedSkyLightInstanceData(this));
+	FPrecomputedSkyLightInstanceData* InstanceData = new FPrecomputedSkyLightInstanceData(this);
 	InstanceData->LightGuid = LightGuid;
 	InstanceData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
 	InstanceData->ProcessedSkyTexture = ProcessedSkyTexture;
@@ -352,10 +356,10 @@ TSharedPtr<FComponentInstanceDataBase> USkyLightComponent::GetComponentInstanceD
 	return InstanceData;
 }
 
-void USkyLightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void USkyLightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
-	TSharedPtr<FPrecomputedSkyLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedSkyLightInstanceData>(ComponentInstanceData);
+	check(ComponentInstanceData);
+	FPrecomputedSkyLightInstanceData* LightMapData  = static_cast<FPrecomputedSkyLightInstanceData*>(ComponentInstanceData);
 
 	LightGuid = LightMapData->LightGuid;
 	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
@@ -416,7 +420,7 @@ void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& 
 {
 	OutIrradianceMap = FSHVectorRGB3();
 
-	if (GetScene())
+	if (GetScene() && (SourceType != SLS_SpecifiedCubemap || Cubemap))
 	{
 		// Capture emissive scene lighting only for the lighting build
 		// This is necessary to avoid a feedback loop with the last lighting build results
@@ -462,15 +466,37 @@ void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 	}
 }
 
+void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
+{
+	// Can't set on a static light
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& OcclusionTint != InTint)
+	{
+		OcclusionTint = InTint;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
+{
+	// Can't set on a static light
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& MinOcclusion != InMinOcclusion)
+	{
+		MinOcclusion = InMinOcclusion;
+		MarkRenderStateDirty();
+	}
+}
+
 void USkyLightComponent::RecaptureSky()
 {
 	SetCaptureIsDirty();
 }
 
-ASkyLight::ASkyLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASkyLight::ASkyLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	LightComponent = PCIP.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
+	LightComponent = ObjectInitializer.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
 	RootComponent = LightComponent;
 
 #if WITH_EDITORONLY_DATA
@@ -492,12 +518,12 @@ ASkyLight::ASkyLight(const class FPostConstructInitializeProperties& PCIP)
 	};
 	static FConstructorStatics ConstructorStatics;
 
-		if (SpriteComponent)
+		if (GetSpriteComponent())
 		{
-			SpriteComponent->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Sky;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
-			SpriteComponent->AttachParent = LightComponent;
+			GetSpriteComponent()->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
+			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Sky;
+			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
+			GetSpriteComponent()->AttachParent = LightComponent;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -516,3 +542,6 @@ void ASkyLight::OnRep_bEnabled()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns LightComponent subobject **/
+USkyLightComponent* ASkyLight::GetLightComponent() const { return LightComponent; }

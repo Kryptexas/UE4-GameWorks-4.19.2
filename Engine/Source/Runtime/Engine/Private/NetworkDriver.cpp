@@ -15,6 +15,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "NetworkingDistanceConstants.h"
 #include "DataChannel.h"
+#include "Engine/PackageMapClient.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
@@ -94,8 +95,8 @@ static TAutoConsoleVariable<int32> CVarNetDormancyValidate(
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
 
-UNetDriver::UNetDriver(const class FPostConstructInitializeProperties& PCIP)
-:	UObject(PCIP)
+UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
+:	UObject(ObjectInitializer)
 ,	MaxInternetClientRate(10000)
 , 	MaxClientRate(15000)
 ,	RequireEngineVersionMatch(true)
@@ -149,7 +150,7 @@ void UNetDriver::AssertValid()
 
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
-	if ( IsServer() )
+	if ( IsServer() && ClientConnections.Num() > 0 && ClientConnections[0]->InternalAck == false )
 	{
 		// Update all clients.
 #if WITH_SERVER_CODE
@@ -643,7 +644,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	}
 
 	// If we have a subobject, thats who we are actually calling this on. If no subobject, we are calling on the actor.
-	UObject * TargetObj = SubObject ? SubObject : Actor;
+	UObject* TargetObj = SubObject ? SubObject : Actor;
 
 	// Make sure this function exists for both parties.
 	FClassNetCache* ClassCache = NetCache->GetClassNetCache( TargetObj->GetClass() );
@@ -799,7 +800,7 @@ void UNetDriver::InternalProcessRemoteFunction
 					checkSlow( Out );
 				}
 
-				void * Dest = It->ContainerPtrToValuePtr< void >( Parms );
+				void* Dest = It->ContainerPtrToValuePtr< void >( Parms );
 
 				const int32 CopySize = It->ElementSize * It->ArrayDim;
 
@@ -1460,13 +1461,13 @@ void UNetDriver::NotifyActorLevelUnloaded( AActor* TheActor )
 	}
 }
 
-/** UNetDriver::FlushActorDormancy(AActor * Actor)
+/** UNetDriver::FlushActorDormancy(AActor* Actor)
  *	 Flushes the actor from the NetDriver's dormant list and/or cancels pending dormancy on the actor channel.
  *
  *	 This does not change the Actor's actual NetDormant state. If a dormant actor is Flushed, it will net update at least one more
  *	 time, and then go back to dormant.
  */
-void UNetDriver::FlushActorDormancy(AActor * Actor)
+void UNetDriver::FlushActorDormancy(AActor* Actor)
 {
 	// Note: Going into dormancy is completely handled in ServerReplicateActor. We want to avoid
 	// event-based handling of going into dormancy, because we have to deal with connections joining in progress.
@@ -1474,7 +1475,7 @@ void UNetDriver::FlushActorDormancy(AActor * Actor)
 	// needs to be moved into dormancy. The same amount of work will be done (1 time per connection when an actor goes dorm)
 	// and we avoid having to do special things when a new client joins.
 	//
-	// Going out of dormancy can be event based like this since it only affects clients already joined. Its more effecient in this
+	// Going out of dormancy can be event based like this since it only affects clients already joined. Its more efficient in this
 	// way too, since we dont have to check every dormant actor in ::ServerReplicateActor to see if it needs to go out of dormancy
 
 #if WITH_SERVER_CODE
@@ -1499,7 +1500,7 @@ void UNetDriver::FlushActorDormancy(AActor * Actor)
 UChildConnection* UNetDriver::CreateChild(UNetConnection* Parent)
 {
 	UE_LOG(LogNet, Log, TEXT("Creating child connection with %s parent"), *Parent->GetName());
-	UChildConnection* Child = new UChildConnection(FPostConstructInitializeProperties());
+	UChildConnection* Child = new UChildConnection(FObjectInitializer());
 	Child->Driver = this;
 	Child->URL = FURL();
 	Child->State = Parent->State;
@@ -1878,7 +1879,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 		for ( int i = World->NetworkActors.Num() - 1; i >= 0 ; i-- )		// Traverse list backwards so we can easily remove items
 		{
-			AActor * Actor = World->NetworkActors[i];
+			AActor* Actor = World->NetworkActors[i];
 
 			if (Actor->IsPendingKill() )
 			{
@@ -1892,12 +1893,14 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				continue;
 			}
 
-			// Don't send actors that may still be streaming in
+			// This actor may belong to a different net driver, make sure this is the correct one
+			// (this can happen when using beacon net drivers for example)
 			if ( Actor->NetDriverName != NetDriverName )
 			{
 				continue;
 			}
 
+			// Don't send actors that may still be streaming in
 			ULevel* Level = Actor->GetLevel();
 			if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
 			{
@@ -2541,7 +2544,7 @@ void UNetDriver::PrintDebugRelevantActors()
 
 			for (auto It = List.CreateIterator(); It; ++It)
 			{
-				AActor * Actor = Cast<AActor>(It->Get());
+				AActor* Actor = Cast<AActor>(It->Get());
 				if (Actor)
 				{
 
@@ -2750,7 +2753,7 @@ static void	DumpRelevantActors( UWorld* InWorld )
 	NetDriver->DebugRelevantActors = true;
 }
 
-TSharedPtr<FRepChangedPropertyTracker> UNetDriver::FindOrCreateRepChangedPropertyTracker(UObject * Obj)
+TSharedPtr<FRepChangedPropertyTracker> UNetDriver::FindOrCreateRepChangedPropertyTracker(UObject* Obj)
 {
 	TSharedPtr<FRepChangedPropertyTracker> * GlobalPropertyTrackerPtr = RepChangedPropertyTrackerMap.Find( Obj );
 

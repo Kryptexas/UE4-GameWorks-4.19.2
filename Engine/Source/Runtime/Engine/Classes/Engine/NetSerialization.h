@@ -6,8 +6,10 @@
 =============================================================================*/
 
 #pragma once
-#include "NetSerialization.generated.h"
 
+#include "CoreNet.h"
+#include "CoreUObject.h"
+#include "NetSerialization.generated.h"
 
 /**
  *	===================== NetSerialize and NetDeltaSerialize customization. =====================
@@ -370,7 +372,7 @@ struct FFastArraySerializer
 template< typename Type, typename SerializerType >
 bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer )
 {
-	UStruct* InnerStruct = Type::StaticStruct();
+	class UScriptStruct* InnerStruct = Type::StaticStruct();
 
 	if (Parms.OutBunch)
 	{
@@ -493,7 +495,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// Serialized new elements with their payload
 		for (auto It = ChangedElements.CreateIterator(); It; ++It)
 		{
-			void * ThisElement = &Items[It->Idx];
+			void* ThisElement = &Items[It->Idx];
 
 			// Dont pack this, want property to be byte aligned
 			uint32 ID = It->ID;
@@ -510,7 +512,8 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				// Set to 0 to mean 'unmapped'. This will force reserialization on next update.
 				*NewMap.Find(ID) = 0;
 				NewState->ArrayReplicationKey = INDEX_NONE;
-				UE_LOG( LogNetSerialization, Log, TEXT("   Property: %s is unmapped. Will reserialize."), *InnerStruct->GetName() );
+				UStruct* StructPtr = InnerStruct;
+				UE_LOG(LogNetSerialization, Log, TEXT("   Property: %s is unmapped. Will reserialize."), *StructPtr->GetName());
 			}
 		}
 
@@ -581,7 +584,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			int32 ElementID;
 			Ar << ElementID;
 
-			int32 * ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
+			int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
 			int32	ElementIndex = 0;
 			Type *	ThisElement = NULL;
 
@@ -962,7 +965,7 @@ struct FVector_NetQuantize10 : public FVector
 	{}
 
 	FORCEINLINE FVector_NetQuantize10( float InX, float InY, float InZ )
-	: FVector(InX, InY, InX)
+	: FVector(InX, InY, InZ)
 	{}
 
 	FORCEINLINE FVector_NetQuantize10(const FVector &InVec)
@@ -1007,7 +1010,7 @@ struct FVector_NetQuantize100 : public FVector
 	{}
 
 	FORCEINLINE FVector_NetQuantize100( float InX, float InY, float InZ )
-	: FVector(InX, InY, InX)
+	: FVector(InX, InY, InZ)
 	{}
 
 	FORCEINLINE FVector_NetQuantize100(const FVector &InVec)
@@ -1050,7 +1053,7 @@ struct FVector_NetQuantizeNormal : public FVector
 	{}
 
 	FORCEINLINE FVector_NetQuantizeNormal( float InX, float InY, float InZ )
-	: FVector(InX, InY, InX)
+	: FVector(InX, InY, InZ)
 	{}
 
 	FORCEINLINE FVector_NetQuantizeNormal(const FVector &InVec)

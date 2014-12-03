@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "HTML5Window.h"
 
 #if !PLATFORM_HTML5_WIN32 
 #include <emscripten.h>
-#else
-#include <SDL/SDL.h>
 #endif
+#include <SDL/SDL.h>
 
 FHTML5Window::~FHTML5Window()
 {

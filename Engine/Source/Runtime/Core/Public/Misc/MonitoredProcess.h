@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * Declares a delegate that is executed when a monitored process completed.
  *
@@ -34,10 +35,8 @@ public:
 	 */
 	FMonitoredProcess( const FString& InURL, const FString& InParams, bool InHidden );
 
-	/**
-	 * Destructor.
-	 */
-	~FMonitoredProcess( );
+	/** Destructor. */
+	~FMonitoredProcess();
 
 public:
 
@@ -57,23 +56,20 @@ public:
 	 *
 	 * @return Time duration.
 	 */
-	FTimespan GetDuration( ) const;
+	FTimespan GetDuration() const;
 
 	/**
 	 * Checks whether the process is still running.
 	 *
 	 * @return true if the process is running, false otherwise.
 	 */
-	bool IsRunning( ) const
+	bool IsRunning() const
 	{
-		return (Thread != NULL);
+		return (Thread != nullptr);
 	}
 
-	/**
-	 * Launches the process.
-	 */
-	bool Launch( );
-
+	/** Launches the process. */
+	bool Launch();
 
 public:
 
@@ -82,7 +78,7 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	FSimpleDelegate& OnCanceled( )
+	FSimpleDelegate& OnCanceled()
 	{
 		return CanceledDelegate;
 	}
@@ -92,7 +88,7 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	FOnMonitoredProcessCompleted& OnCompleted( )
+	FOnMonitoredProcessCompleted& OnCompleted()
 	{
 		return CompletedDelegate;
 	}
@@ -102,7 +98,7 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	FOnMonitoredProcessOutput& OnOutput( )
+	FOnMonitoredProcessOutput& OnOutput()
 	{
 		return OutputDelegate;
 	}
@@ -121,19 +117,19 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override
+	virtual bool Init() override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) override;
+	virtual uint32 Run() override;
 
-	virtual void Stop( ) override
+	virtual void Stop() override
 	{
 		Cancel();
 	}
 
-	virtual void Exit( ) override { }
+	virtual void Exit() override { }
 
 protected:
 
@@ -146,50 +142,50 @@ protected:
 
 private:
 
-	// Whether the process is being canceled.
+	// Whether the process is being canceled. */
 	bool Canceling;
 
-	// Holds the time at which the process ended.
+	// Holds the time at which the process ended. */
 	FDateTime EndTime;
 
-	// Whether the window of the process should be hidden.
+	// Whether the window of the process should be hidden. */
 	bool Hidden;
 
-	// Whether to kill the entire process tree when cancelling this process.
+	// Whether to kill the entire process tree when cancelling this process. */
 	bool KillTree;
 
-	// Holds the command line parameters.
+	// Holds the command line parameters. */
 	FString Params;
 
-	// Holds the handle to the process.
+	// Holds the handle to the process. */
 	FProcHandle ProcessHandle;
 
-	// Holds the read pipe.
+	// Holds the read pipe. */
 	void* ReadPipe;
 
-	// Holds the time at which the process started.
+	// Holds the return code. */
+	int ReturnCode;
+
+	// Holds the time at which the process started. */
 	FDateTime StartTime;
 
-	// Holds the monitoring thread object.
+	// Holds the monitoring thread object. */
 	FRunnableThread* Thread;
 
-	// Holds the URL of the executable to launch.
+	// Holds the URL of the executable to launch. */
 	FString URL;
 
-	// Holds the write pipe.
+	// Holds the write pipe. */
 	void* WritePipe;
-
-	// Holds the return code
-	int ReturnCode;
 
 private:
 
-	// Holds a delegate that is executed when the process has been canceled.
+	// Holds a delegate that is executed when the process has been canceled. */
 	FSimpleDelegate CanceledDelegate;
 
-	// Holds a delegate that is executed when a monitored process completed.
+	// Holds a delegate that is executed when a monitored process completed. */
 	FOnMonitoredProcessCompleted CompletedDelegate;
 
-	// Holds a delegate that is executed when a monitored process produces output.
+	// Holds a delegate that is executed when a monitored process produces output. */
 	FOnMonitoredProcessOutput OutputDelegate;
 };

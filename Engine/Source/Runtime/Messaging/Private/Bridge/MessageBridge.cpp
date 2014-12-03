@@ -6,12 +6,11 @@
 /* FMessageBridge structors
  *****************************************************************************/
 
-FMessageBridge::FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport )
+FMessageBridge::FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const IMessageTransportRef& InTransport )
 	: Address(InAddress)
 	, Bus(InBus)
 	, Enabled(false)
 	, Id(FGuid::NewGuid())
-	, Serializer(InSerializer)
 	, Transport(InTransport)
 {
 	Bus->OnShutdown().AddRaw(this, &FMessageBridge::HandleMessageBusShutdown);
@@ -20,13 +19,14 @@ FMessageBridge::FMessageBridge( const FMessageAddress InAddress, const IMessageB
 }
 
 
-FMessageBridge::~FMessageBridge( )
+FMessageBridge::~FMessageBridge()
 {
 	Shutdown();
 
 	if (Bus.IsValid())
 	{
 		Bus->OnShutdown().RemoveAll(this);
+		Bus->Unregister(Address);
 
 		TArray<FMessageAddress> RemovedAddresses;
 
@@ -41,7 +41,7 @@ FMessageBridge::~FMessageBridge( )
 /* IMessageBridge interface
  *****************************************************************************/
 
-void FMessageBridge::Disable( ) 
+void FMessageBridge::Disable() 
 {
 	if (!Enabled)
 	{
@@ -63,7 +63,7 @@ void FMessageBridge::Disable( )
 }
 
 
-void FMessageBridge::Enable( )
+void FMessageBridge::Enable()
 {
 	if (Enabled || !Bus.IsValid() || !Transport.IsValid())
 	{
@@ -75,6 +75,8 @@ void FMessageBridge::Enable( )
 	{
 		return;
 	}
+
+	Bus->Register(Address, AsShared());
 
 	if (MessageSubscription.IsValid())
 	{
@@ -99,22 +101,21 @@ void FMessageBridge::ReceiveMessage( const IMessageContextRef& Context )
 		return;
 	}
 
-	TArray<FGuid> TransportNodes;
+	// get remote nodes
+	TArray<FGuid> RemoteNodes;
 
 	if (Context->GetRecipients().Num() > 0)
 	{
-		TransportNodes = AddressBook.GetNodesFor(Context->GetRecipients());
+		RemoteNodes = AddressBook.GetNodesFor(Context->GetRecipients());
 
-		if (TransportNodes.Num() == 0)
+		if (RemoteNodes.Num() == 0)
 		{
 			return;
 		}
 	}
 
-	// forward message to transport nodes
-	FMessageDataRef MessageData = MakeShareable(new FMessageData());
-	TGraphTask<FMessageSerializeTask>::CreateTask().ConstructAndDispatchWhenReady(Context, MessageData, Serializer.ToSharedRef());
-	Transport->TransportMessage(MessageData, Context->GetAttachment(), TransportNodes);
+	// forward message to remote nodes
+	Transport->TransportMessage(Context, RemoteNodes);
 }
 
 
@@ -130,7 +131,7 @@ void FMessageBridge::NotifyMessageError( const IMessageContextRef& Context, cons
 /* FMessageBridge implementation
  *****************************************************************************/
 
-void FMessageBridge::Shutdown( )
+void FMessageBridge::Shutdown()
 {
 	Disable();
 
@@ -145,40 +146,35 @@ void FMessageBridge::Shutdown( )
 /* FMessageBridge callbacks
  *****************************************************************************/
 
-void FMessageBridge::HandleMessageBusShutdown( )
+void FMessageBridge::HandleMessageBusShutdown()
 {
 	Shutdown();
 	Bus.Reset();
 }
 
 
-void FMessageBridge::HandleTransportMessageReceived( FArchive& MessageData, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
+void FMessageBridge::HandleTransportMessageReceived( const IMessageContextRef& Context, const FGuid& NodeId )
 {
 	if (!Enabled || !Bus.IsValid())
 	{
 		return;
 	}
 
-	IMutableMessageContextRef MessageContext = MakeShareable(new FMessageContext());
-
-	if (Serializer->DeserializeMessage(MessageData, MessageContext))
+	// discard expired messages
+	if (Context->GetExpiration() < FDateTime::UtcNow())
 	{
-		if (MessageContext->GetExpiration() >= FDateTime::UtcNow())
-		{
-			// register newly discovered endpoints
-			if (!AddressBook.Contains(MessageContext->GetSender()))
-			{
-				AddressBook.Add(MessageContext->GetSender(), NodeId);
-
-				Bus->Register(MessageContext->GetSender(), AsShared());
-			}
-
-			// forward the message to the internal bus
-			MessageContext->SetAttachment(Attachment);
-
-			Bus->Forward(MessageContext, MessageContext->GetRecipients(), EMessageScope::Process, FTimespan::Zero(), AsShared());
-		}
+		return;
 	}
+
+	// register newly discovered endpoints
+	if (!AddressBook.Contains(Context->GetSender()))
+	{
+		AddressBook.Add(Context->GetSender(), NodeId);
+		Bus->Register(Context->GetSender(), AsShared());
+	}
+
+	// forward message to local bus
+	Bus->Forward(Context, Context->GetRecipients(), FTimespan::Zero(), AsShared());
 }
 
 

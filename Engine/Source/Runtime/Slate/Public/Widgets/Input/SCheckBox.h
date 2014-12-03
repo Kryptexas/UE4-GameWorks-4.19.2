@@ -5,7 +5,7 @@
 #include "SCheckBox.generated.h"
 
 /** Current state of the check box */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateCheckBoxState
 {
 	enum Type
@@ -152,7 +152,7 @@ public:
 
 	// SWidget interface
 	virtual bool SupportsKeyboardFocus() const override;
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;

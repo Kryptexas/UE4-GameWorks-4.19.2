@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Damage.h"
 
-UAISense_Damage::UAISense_Damage(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Damage::UAISense_Damage(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	
 }
@@ -17,7 +17,7 @@ float UAISense_Damage::Update()
 	{
 		const FAIDamageEvent& Event = RegisteredEvents[EventIndex];
 
-		IAIPerceptionListenerInterface* PerceptionListener = InterfaceCast<IAIPerceptionListenerInterface>(Event.DamagedActor);
+		IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.DamagedActor);
 		if (PerceptionListener != NULL)
 		{
 			UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();

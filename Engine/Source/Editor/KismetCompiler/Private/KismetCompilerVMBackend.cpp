@@ -386,10 +386,30 @@ public:
 			}
 			else if (CoerceProperty->IsA(UIntProperty::StaticClass()))
 			{
-				//@TODO: There are smaller encodings EX_IntZero, EX_IntOne, EX_IntConstByte available which could be used instead when the value fits
-				int32 Value = FCString::Atoi(*(Term->Name));
-				Writer << EX_IntConst;
-				Writer << Value;
+				// In certain cases (like UKismetArrayLibrary functions), we have
+				// polymorphic functions that provide their own "custom thunk" 
+				// (custom execution code). The actual function acts as a 
+				// template, where the parameter types can be changed out for 
+				// other types (much like c++ template functions, the "custom 
+				// thunk" is generic). Traditionally, we use integer refs as the 
+				// place holder type (that's why this is nested in a UIntProperty 
+				// check)... Complications arise here, when we try to emit 
+				// literal values fed into the function when they don't match 
+				// the template's (int) type. For most types, this here is 
+				// circumvented with AutoCreateRefTerm, but when it is a self 
+				// (literal) node we still end up here. So, we try to detect and 
+				// handle that case here.
+				if ((Term->Type.PinSubCategory == Schema->PN_Self) && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
+				{
+					Writer << EX_Self;
+				}
+				else
+				{
+					//@TODO: There are smaller encodings EX_IntZero, EX_IntOne, EX_IntConstByte available which could be used instead when the value fits
+					int32 Value = FCString::Atoi(*(Term->Name));
+					Writer << EX_IntConst;
+					Writer << Value;
+				}
 			}
 			else if (CoerceProperty->IsA(UByteProperty::StaticClass()))
 			{
@@ -849,6 +869,18 @@ public:
 		EmitTerm(SourceExpression, DestinationExpression->AssociatedVarProperty);
 	}
 
+	void EmitAssignmentOnPersistentFrameStatment(FBlueprintCompiledStatement& Statement)
+	{
+		FBPTerminal* DestinationExpression = Statement.LHS;
+		FBPTerminal* SourceExpression = Statement.RHS[0];
+
+		Writer << Ex_LetValueOnPersistentFrame;
+		check(ClassBeingBuilt && ClassBeingBuilt->UberGraphFunction);
+		Writer << DestinationExpression->AssociatedVarProperty;
+
+		EmitTerm(SourceExpression, DestinationExpression->AssociatedVarProperty);
+	}
+
 	void EmitCastObjToInterfaceStatement(FBlueprintCompiledStatement& Statement)
 	{
 		FBPTerminal* DestinationExpression = Statement.LHS;
@@ -881,17 +913,33 @@ public:
 		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UInterfaceProperty>()));
 	}
 
+	void EmitCastInterfaceToObjStatement(FBlueprintCompiledStatement& Statement)
+	{
+		FBPTerminal* DestinationExpression     = Statement.LHS;
+		FBPTerminal* ResultObjClassExpression  = Statement.RHS[0];
+		FBPTerminal* TargetInterfaceExpression = Statement.RHS[1];
+
+		Writer << EX_Let;
+		EmitTerm(DestinationExpression);
+
+		Writer << EX_InterfaceToObjCast;
+		UClass* ClassPtr = CastChecked<UClass>(ResultObjClassExpression->ObjectLiteral);
+		check(ClassPtr != nullptr);
+		Writer << ClassPtr;
+		EmitTerm(TargetInterfaceExpression, (UProperty*)(GetDefault<UObjectProperty>()));
+	}
+
 	void EmitDynamicCastStatement(FBlueprintCompiledStatement& Statement)
 	{
 		FBPTerminal* DestinationExpression = Statement.LHS;
-		FBPTerminal* InterfaceExpression = Statement.RHS[0];
+		FBPTerminal* ResultClassExpression = Statement.RHS[0];
 		FBPTerminal* TargetExpression = Statement.RHS[1];
 
 		Writer << EX_Let;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_DynamicCast;
-		UClass* ClassPtr = CastChecked<UClass>(InterfaceExpression->ObjectLiteral);
+		UClass* ClassPtr = CastChecked<UClass>(ResultClassExpression->ObjectLiteral);
 		Writer << ClassPtr;
 		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UObjectProperty>()));
 	}
@@ -1118,7 +1166,7 @@ public:
 				if (TrueSourceNode)
 				{
 					// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
+					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
 					if (MacroSourceNode == SourceNode)
 					{
 						// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
@@ -1143,7 +1191,7 @@ public:
 						}
 
 						// Gather up all the macro instance nodes that lead to this macro source node
-						CompilerContext.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
+						CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
 					}
 
 					int32 Offset = Writer.ScriptBuffer.Num();
@@ -1161,11 +1209,17 @@ public:
 		case KCST_Assignment:
 			EmitAssignmentStatment(Statement);
 			break;
+		case KCST_AssignmentOnPersistentFrame:
+			EmitAssignmentOnPersistentFrameStatment(Statement);
+			break;
 		case KCST_CastObjToInterface:
 			EmitCastObjToInterfaceStatement(Statement);
 			break;
 		case KCST_CrossInterfaceCast:
 			EmitCastBetweenInterfacesStatement(Statement);
+			break;
+		case KCST_CastInterfaceToObj:
+			EmitCastInterfaceToObjStatement(Statement);
 			break;
 		case KCST_DynamicCast:
 			EmitDynamicCastStatement(Statement);

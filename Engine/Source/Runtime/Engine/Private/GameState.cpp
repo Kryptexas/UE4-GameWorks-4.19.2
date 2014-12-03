@@ -9,8 +9,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameState, Log, All);
 
-AGameState::AGameState(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+AGameState::AGameState(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite")) )
 {
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);

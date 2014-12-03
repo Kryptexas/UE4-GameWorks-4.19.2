@@ -20,7 +20,7 @@ class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (FriendlyName="PlayMontageAndWait", HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay);
+	static UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay, float Rate = 1.f);
 
 	virtual void Activate() override;
 
@@ -31,5 +31,5 @@ private:
 	virtual void OnDestroy(bool AbilityEnded) override;
 
 	UAnimMontage* MontageToPlay;
-	
+	float Rate;	
 };

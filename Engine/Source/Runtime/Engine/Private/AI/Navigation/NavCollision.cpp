@@ -102,7 +102,7 @@ FDerivedDataNavCollisionCooker::FDerivedDataNavCollisionCooker(FName InFormat, U
 	check(NavCollisionInstance != NULL);
 	CollisionDataProvider = NavCollisionInstance->GetOuter();
 	DataGuid = NavCollisionInstance->GetGuid();
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(CollisionDataProvider);
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	if (CDP)
 	{
 		CDP->GetMeshId(MeshId);
@@ -135,7 +135,7 @@ bool FDerivedDataNavCollisionCooker::Build( TArray<uint8>& OutData )
 //----------------------------------------------------------------------//
 // UNavCollision
 //----------------------------------------------------------------------//
-UNavCollision::UNavCollision(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavCollision::UNavCollision(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {	
 }
 
@@ -189,10 +189,8 @@ bool UNavCollision::GatherCollision()
 	// get data from owner
 	if (StaticMeshOuter && StaticMeshOuter->BodySetup)
 	{
-#if WITH_NAVIGATION_GENERATOR
 		NavigationHelper::GatherCollision(StaticMeshOuter->BodySetup, this);
 		bCalculated = true;
-#endif // WITH_NAVIGATION_GENERATOR
 	}
 
 	return bCalculated;
@@ -435,7 +433,7 @@ FByteBulkData* UNavCollision::GetCookedData(FName Format)
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);
-				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetTypedData(), OutData.Num());
+				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
 				Result->Unlock();
 			}
 		}

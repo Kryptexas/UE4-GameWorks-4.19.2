@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProjectsPrivatePCH.h: Pre-compiled header file for the Projects module.
-=============================================================================*/
-
 #pragma once
 
 

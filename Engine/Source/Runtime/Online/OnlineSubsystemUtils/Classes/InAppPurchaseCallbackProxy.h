@@ -33,7 +33,7 @@ private:
 
 	/** Called by the InAppPurchase system when the transaction has finished */
 	void OnInAppPurchaseComplete_Delayed();
-	void OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState);
+	void OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState, const IPlatformPurchaseReceipt* ProductReceipt = nullptr);
 
 	/** Unregisters our delegate from the In-App Purchase system */
 	void RemoveDelegate();
@@ -57,7 +57,7 @@ private:
 
 	/** Did the purchase succeed? */
 	EInAppPurchaseState::Type SavedPurchaseState;
-
-	/** Cached product details of the purchased product */
-	FInAppPurchaseProductInfo SavedProductInformation;
+    
+    /** Copy of the provided purchase receipt */
+    const IPlatformPurchaseReceipt* SavedPurchaseReceipt;
 };

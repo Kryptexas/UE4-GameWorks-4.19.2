@@ -9,6 +9,8 @@
 #include "AssetRegistryModule.h"
 #include "Json.h"
 #include "IDocumentation.h"
+#include "SSearchBox.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprints"
 
@@ -438,7 +440,7 @@ bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJson
 {
 	// Very important to get the schema first, other bits of data depend on it
 	FString SchemaName;
-	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::Type::String >(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_SchemaName));
+	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::String >(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_SchemaName));
 	if(SchemaNameValue.IsValid())
 	{
 		SchemaName = FFindInBlueprintSearchManager::ConvertHexStringToFText(SchemaNameValue->AsString()).ToString();
@@ -1200,7 +1202,7 @@ void SFindInBlueprints::FocusForUse(bool bSetFindWithinBlueprint, FString NewSea
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchTextField.ToSharedRef(), FilterTextBoxWidgetPath );
 
 	// Set keyboard focus directly
-	FSlateApplication::Get().SetKeyboardFocus( FilterTextBoxWidgetPath, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( FilterTextBoxWidgetPath, EFocusCause::SetDirectly );
 
 	// Set the filter mode
 	bIsInFindWithinBlueprintMode = bSetFindWithinBlueprint;

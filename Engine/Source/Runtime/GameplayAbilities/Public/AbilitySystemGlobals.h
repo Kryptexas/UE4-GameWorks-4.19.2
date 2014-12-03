@@ -8,8 +8,10 @@ class AActor;
 class UAbilitySystemComponent;
 class UCurveTable;
 class UDataTable;
+class UGameplayCueManager;
 
 struct FGameplayAbilityActorInfo;
+struct FGameplayEffectContext;
 struct FGameplayTag;
 struct FAttributeSetInitter;
 
@@ -32,7 +34,23 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Holds default values for attribute sets, keyed off of Name/Levels. */
 	UPROPERTY(config)
 	FString GlobalAttributeSetDefaultsTableName;
-	
+
+	/** The class to instantiate as the global GameplayCue manager. This class is responsible for directing GameplayCue events, loading and cooking assets related to GameplayCues. */
+	UPROPERTY(config)
+	FStringAssetReference GlobalGameplayCueManagerName;
+
+	/** Look in these paths for GameplayCueNotifies */
+	UPROPERTY(config)
+	TArray<FString>	GameplayCueNotifyPaths;
+
+	/** Fully load all gameplay cues from the object library */
+	UPROPERTY(config)
+	bool	GameplayCueNotifyFullyLoad;
+
+	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
+	UPROPERTY(config)
+	FStringClassReference AbilitySystemGlobalsClassName;
+
 	UCurveTable* GetGlobalCurveTable();
 
 	UDataTable* GetGlobalAttributeMetaDataTable();
@@ -54,14 +72,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	static UAbilitySystemGlobals& Get();
 
-	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(AActor* Actor);
+	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(AActor* Actor, bool LookForComponent=true);
 
-	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for dellocation */
+	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for deallocation */
 	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo() const;
+
+	/** Should allocate a project specific GameplayEffectContext struct. Caller is responsible for deallocation */
+	virtual FGameplayEffectContext* AllocGameplayEffectContext() const;
 
 	UFunction* GetGameplayCueFunction(const FGameplayTag &Tag, UClass* Class, FName &MatchedTag);
 
 	FAttributeSetInitter* GetAttributeSetInitter() const;
+
+	virtual UGameplayCueManager* GetGameplayCueManager();
 
 protected:
 
@@ -78,6 +101,9 @@ private:
 
 	UPROPERTY()
 	UDataTable* GlobalAttributeMetaDataTable;
+
+	UPROPERTY()
+	UGameplayCueManager* GlobalGameplayCueManager;
 
 	TSharedPtr<FAttributeSetInitter> GlobalAttributeSetInitter;
 

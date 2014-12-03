@@ -2,9 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
+#include "GameFramework/EngineMessage.h"
 
-UEngineMessage::UEngineMessage(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UEngineMessage::UEngineMessage(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 }
 

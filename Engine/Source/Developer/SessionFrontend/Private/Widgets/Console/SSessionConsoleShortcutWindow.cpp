@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
+#include "STextEntryPopup.h"
 
 
 #define LOCTEXT_NAMESPACE "SSessionConsoleShortcutWindow"
@@ -62,7 +63,7 @@ void SSessionConsoleShortcutWindow::AddShortcutInternal( const FString& InName, 
 }
 
 
-void SSessionConsoleShortcutWindow::EditShortcut( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FString InPromptTitle )
+void SSessionConsoleShortcutWindow::HandleEditCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FString InPromptTitle )
 {
 	FString DefaultString = bInEditCommand ? InShortcut->Command : InShortcut->Name;
 
@@ -85,21 +86,21 @@ void SSessionConsoleShortcutWindow::EditShortcut( TSharedPtr<FConsoleShortcutDat
 }
 
 
-FString SSessionConsoleShortcutWindow::GetShortcutFilename( ) const
+FString SSessionConsoleShortcutWindow::GetShortcutFilename() const
 {
 	FString Filename = FPaths::EngineSavedDir() + TEXT("ConsoleShortcuts.txt");
 	return Filename;
 }
 
 
-void SSessionConsoleShortcutWindow::LoadShortcuts( )
+void SSessionConsoleShortcutWindow::LoadShortcuts()
 {
 	//clear out list of commands
 	Shortcuts.Empty();
 
 	//read file
 	FString Content;
-	FFileHelper::LoadFileToString( Content, *GetShortcutFilename() );
+	FFileHelper::LoadFileToString(Content, *GetShortcutFilename());
 
 	TSharedPtr<FJsonObject> ShortcutStream;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create( Content );
@@ -119,21 +120,21 @@ void SSessionConsoleShortcutWindow::LoadShortcuts( )
 }
 
 
-void SSessionConsoleShortcutWindow::RebuildUI( )
+void SSessionConsoleShortcutWindow::RebuildUI()
 {
 	ShortcutListView->RequestListRefresh();
 	SetVisibility(Shortcuts.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
 }
 
 
-void SSessionConsoleShortcutWindow::RemoveShortcut( TSharedPtr<FConsoleShortcutData> InShortcut )
+void SSessionConsoleShortcutWindow::HandleDeleteCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut )
 {
 	Shortcuts.Remove(InShortcut);
 	RebuildUI();
 }
 
 
-void SSessionConsoleShortcutWindow::SaveShortcuts( ) const
+void SSessionConsoleShortcutWindow::SaveShortcuts() const
 {
 	TSharedPtr<FJsonObject> ShortcutStream = MakeShareable( new FJsonObject );
 
@@ -176,14 +177,14 @@ TSharedRef<ITableRow> SSessionConsoleShortcutWindow::HandleShortcutListViewGener
 			NSLOCTEXT("SessionFrontend", "ContextMenu.EditName", "Edit Name"),
 			FText(),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::EditShortcut, InItem, false, LOCTEXT("ShortcutOptionsEditNameTitle", "Name:").ToString()))
+			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleEditCommandActionExecute, InItem, false, LOCTEXT("ShortcutOptionsEditNameTitle", "Name:").ToString()))
 		);
 
 		ContextMenuBuilder.AddMenuEntry(
 			NSLOCTEXT("SessionFrontend", "ContextMenu.EditCommand", "Edit Command"),
 			FText(),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::EditShortcut, InItem, true, LOCTEXT("ShortcutOptionsEditCommandTitle", "Command:").ToString()))
+			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleEditCommandActionExecute, InItem, true, LOCTEXT("ShortcutOptionsEditCommandTitle", "Command:").ToString()))
 		);
 	}
 	ContextMenuBuilder.EndSection();
@@ -194,7 +195,7 @@ TSharedRef<ITableRow> SSessionConsoleShortcutWindow::HandleShortcutListViewGener
 			NSLOCTEXT("SessionFrontend", "ContextMenu.DeleteCommand", "Delete Command"),
 			FText(),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::RemoveShortcut, InItem))
+			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleDeleteCommandActionExecute, InItem))
 		);
 	}
 	ContextMenuBuilder.EndSection();

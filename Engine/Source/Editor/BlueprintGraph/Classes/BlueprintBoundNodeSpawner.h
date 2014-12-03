@@ -15,7 +15,7 @@ class BLUEPRINTGRAPH_API UBlueprintBoundNodeSpawner : public UBlueprintNodeSpawn
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FCanBindObjectDelegate, UObject const*);
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBindObjectDelegate, UEdGraphNode*, UObject*);
-	DECLARE_DELEGATE_RetVal_OneParam(FText, FOnGenerateMenuDescriptionDelegate, const IBlueprintNodeBinder::FBindingSet& );
+	DECLARE_DELEGATE_RetVal_TwoParams(UEdGraphNode*, FFindPreExistingNodeDelegate, const UBlueprint*, IBlueprintNodeBinder::FBindingSet const& );
 
 public:
 	/**
@@ -25,7 +25,7 @@ public:
 
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
-	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	// End UBlueprintNodeSpawner interface
 
 	// FBlueprintNodeBinder interface
@@ -45,7 +45,8 @@ public:
 	FOnBindObjectDelegate OnBindObjectDelegate;
 
 	/**
-	 * A delegate to generate a description for the menu item. Executed any time bindings change
+	 * A delegate to find a node that is already spawned, instead of spawning a node
+	 * we will focus on the pre-existing node found by the delegate
 	 */
-	FOnGenerateMenuDescriptionDelegate OnGenerateMenuDescriptionDelegate;
+	FFindPreExistingNodeDelegate FindPreExistingNodeDelegate;
 };

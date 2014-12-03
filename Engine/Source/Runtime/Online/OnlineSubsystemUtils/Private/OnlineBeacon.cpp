@@ -5,8 +5,8 @@
 
 DEFINE_LOG_CATEGORY(LogBeacon);
 
-AOnlineBeacon::AOnlineBeacon(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+AOnlineBeacon::AOnlineBeacon(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));
 }
@@ -41,7 +41,7 @@ void AOnlineBeacon::DestroyBeacon()
 
 void AOnlineBeacon::HandleNetworkFailure(UWorld *World, UNetDriver *InNetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
-	if (InNetDriver && InNetDriver->NetDriverName == NetDriverName)
+	if (InNetDriver && InNetDriver->NetDriverName == BeaconNetDriverName)
 	{
 		OnFailure();
 	}

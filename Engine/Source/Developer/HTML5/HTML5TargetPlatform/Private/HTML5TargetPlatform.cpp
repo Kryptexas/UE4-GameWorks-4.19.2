@@ -82,11 +82,36 @@ ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceI
 
 bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
-	bool bHTML5SDKInstalled = false; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
-	TCHAR BaseSDKPath[256];
+	FString SectionName = "HTML5SDKPaths";
+	FConfigSection SDKPaths = HTML5EngineSettings[SectionName];
+	for (auto It : SDKPaths )
+	{
+		const FString& Platform = It.Key.ToString();
+		const FString& Path = It.Value;
+		{
+#if PLATFORM_WINDOWS
+			if ( Platform == "Windows" && IFileManager::Get().DirectoryExists(*Path)) 
+			{
+				return true; 
+			}
+#endif 
+#if PLATFORM_MAC
+			if ( Platform == "Mac" && IFileManager::Get().DirectoryExists(*Path)) 
+			{
+				return true; 
+			}
+#endif 
+		}
+	}
+
+	TCHAR BaseSDKPath[512];
 	FPlatformMisc::GetEnvironmentVariable(TEXT("EMSCRIPTEN"), BaseSDKPath, ARRAY_COUNT(BaseSDKPath));
-	bHTML5SDKInstalled = FString(BaseSDKPath).Len() > 0;
-	return bHTML5SDKInstalled;
+	if (FString(BaseSDKPath).Len() > 0 && IFileManager::Get().DirectoryExists(BaseSDKPath) )
+	{
+		return true; 	
+	}
+
+	return false; 
 }
 
 
@@ -231,7 +256,7 @@ const struct FTextureLODSettings& FHTML5TargetPlatform::GetTextureLODSettings( )
 }
 
 
-FName FHTML5TargetPlatform::GetWaveFormat( USoundWave* Wave ) const
+FName FHTML5TargetPlatform::GetWaveFormat( const USoundWave* Wave ) const
 {
 	static FName NAME_OGG(TEXT("OGG"));
 	return NAME_OGG;

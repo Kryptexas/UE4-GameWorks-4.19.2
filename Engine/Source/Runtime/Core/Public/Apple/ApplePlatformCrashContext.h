@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "GenericPlatform/GenericPlatformContext.h"
+
 /**
  * Declaration for common crash context implementation for Apple platforms.
  */
@@ -47,10 +49,10 @@ struct CORE_API FApplePlatformCrashContext : public FGenericCrashContext
 	static void WriteLine(int ReportFile, const ANSICHAR* Line = NULL);
 	
 	/** Serializes UTF string to UTF-16 */
-	static void WriteUTF16String(int ReportFile, const TCHAR * UTFString4BytesChar, uint32 NumChars);
+	static void WriteUTF16String(int ReportFile, const TCHAR* UTFString4BytesChar, uint32 NumChars);
 	
 	/** Serializes UTF string to UTF-16 */
-	static void WriteUTF16String(int ReportFile, const TCHAR * UTFString4BytesChar);
+	static void WriteUTF16String(int ReportFile, const TCHAR* UTFString4BytesChar);
 	
 	/** Writes UTF-16 line to a file */
 	static void WriteLine(int ReportFile, const TCHAR* Line);

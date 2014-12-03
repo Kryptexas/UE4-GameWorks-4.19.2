@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "RemoteConfigIni.h"
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
+#include "Misc/RemoteConfigIni.h"
 
 // Globals
 FRemoteConfig GRemoteConfig;
@@ -12,7 +13,6 @@ FRemoteConfigAsyncTaskManager GRemoteConfigIOManager;
    FRemoteConfigAsyncIOInfo
 -----------------------------------------------------------------------------*/
 
-/** Constructor */
 FRemoteConfigAsyncIOInfo::FRemoteConfigAsyncIOInfo(const TCHAR* InDefaultIniFile)
 	: bReadIOFailed(false)
 	, bWasProcessed(false)
@@ -20,7 +20,7 @@ FRemoteConfigAsyncIOInfo::FRemoteConfigAsyncIOInfo(const TCHAR* InDefaultIniFile
 	FCString::Strcpy(DefaultIniFile, InDefaultIniFile);
 }
 
-/** Assignment operator */
+
 FRemoteConfigAsyncIOInfo& FRemoteConfigAsyncIOInfo::operator=(const FRemoteConfigAsyncIOInfo& Other)
 {
 	Buffer = Other.Buffer;
@@ -39,7 +39,6 @@ FRemoteConfigAsyncIOInfo& FRemoteConfigAsyncIOInfo::operator=(const FRemoteConfi
    FRemoteConfigAsyncWorker
 -----------------------------------------------------------------------------*/
 
-/** Constructor */
 FRemoteConfigAsyncWorker::FRemoteConfigAsyncWorker(const TCHAR* InFilename, FRemoteConfigAsyncIOInfo& InIOInfo, FString* InContents, bool bInIsRead)
 {
 	check(FCString::Strlen(InFilename) < 1024);
@@ -53,7 +52,7 @@ FRemoteConfigAsyncWorker::FRemoteConfigAsyncWorker(const TCHAR* InFilename, FRem
 	}
 }
 
-/** Performs the actual IO operations */
+
 void FRemoteConfigAsyncWorker::DoWork()
 {
 	if (bIsRead)
@@ -72,32 +71,32 @@ void FRemoteConfigAsyncWorker::DoWork()
 	}
 }
 
-/** Returns true if the read IO operation succeeded */
+
 bool FRemoteConfigAsyncWorker::IsReadSuccess() const
 {
 	return !IOInfo.bReadIOFailed;
 }
 
-/** Returns the local IO info object */
+
 FRemoteConfigAsyncIOInfo& FRemoteConfigAsyncWorker::GetIOInfo()
 {
 	return IOInfo;
 }
 
-/** Give the name for external event viewers */
+
 const TCHAR* FRemoteConfigAsyncWorker::Name()
 {
 	return TEXT("FRemoteConfigAsyncWorker");
 }
 
-/** Indicates to the thread pool that this task is abandonable */
+
 bool FRemoteConfigAsyncWorker::CanAbandon()
 {
 	//return !bIsRead;
 	return false;
 }
 
-/** Abandon routine */
+
 void FRemoteConfigAsyncWorker::Abandon()
 {
 	// @todo what goes in here?
@@ -108,13 +107,12 @@ void FRemoteConfigAsyncWorker::Abandon()
    FRemoteConfigAsyncTaskManager
 -----------------------------------------------------------------------------*/
 
-/** Returns a reference to the global FRemoteConfigAsyncTaskManager object */
 FRemoteConfigAsyncTaskManager* FRemoteConfigAsyncTaskManager::Get()
 {
 	return &GRemoteConfigIOManager;
 }
 
-/** Handles cached write tasks */
+
 void FRemoteConfigAsyncTaskManager::Tick()
 {
 	FScopeLock ScopeLock(&SynchronizationObject);
@@ -128,7 +126,7 @@ void FRemoteConfigAsyncTaskManager::Tick()
 	}
 }
 
-/** Returns true if file exists in the cached task list */
+
 bool FRemoteConfigAsyncTaskManager::FindCachedWriteTask(const TCHAR* InFilename, bool bCompareContents, const TCHAR* InContents)
 {
 	for (int32 Idx = 0; Idx < CachedWriteTasks.Num(); ++Idx)
@@ -142,7 +140,7 @@ bool FRemoteConfigAsyncTaskManager::FindCachedWriteTask(const TCHAR* InFilename,
 	return false;
 }
 
-/** Add an async IO task to the queue and kick it off */
+
 bool FRemoteConfigAsyncTaskManager::StartTask(const TCHAR* InFilename, const TCHAR* RemotePath, FRemoteConfigAsyncIOInfo& InIOInfo, FString* InContents, bool bInIsRead)
 {
 	FScopeLock ScopeLock(&SynchronizationObject);
@@ -182,7 +180,7 @@ bool FRemoteConfigAsyncTaskManager::StartTask(const TCHAR* InFilename, const TCH
 	return true;
 }
 
-/** Returns true if the task has completed */
+
 bool FRemoteConfigAsyncTaskManager::IsFinished(const TCHAR* InFilename)
 {
 	FScopeLock ScopeLock(&SynchronizationObject);
@@ -192,7 +190,7 @@ bool FRemoteConfigAsyncTaskManager::IsFinished(const TCHAR* InFilename)
 	return AsyncTask? AsyncTask->IsDone(): true;
 }
 
-/** Returns true if the all tasks in the queue have completed (or, if the queue is empty) */
+
 bool FRemoteConfigAsyncTaskManager::AreAllTasksFinished(bool bDoRemoval)
 {
 	FScopeLock ScopeLock(&SynchronizationObject);
@@ -226,7 +224,7 @@ bool FRemoteConfigAsyncTaskManager::AreAllTasksFinished(bool bDoRemoval)
 	return true;
 }
 
-/** Safely retrieve the read data from the completed async task */
+
 bool FRemoteConfigAsyncTaskManager::GetReadData(const TCHAR* InFilename, FRemoteConfigAsyncIOInfo& OutIOInfo)
 {
 	FScopeLock ScopeLock(&SynchronizationObject);
@@ -252,20 +250,19 @@ bool FRemoteConfigAsyncTaskManager::GetReadData(const TCHAR* InFilename, FRemote
    FRemoteConfig
 -----------------------------------------------------------------------------*/
 
-/** Constructor */
 FRemoteConfig::FRemoteConfig()
 	: Timeout(-1.0f)
 	, bIsEnabled(true)
 	, bHasCachedFilenames(false)
 { }
 
-/** Returns a reference to the global FRemoteConfig object */
+
 FRemoteConfig* FRemoteConfig::Get()
 {
 	return &GRemoteConfig;
 }
 
-/** Returns true if the specified config file has been flagged as being remote **/
+
 bool FRemoteConfig::IsRemoteFile(const TCHAR* Filename)
 {
 	FString IniFileName(Filename);
@@ -300,25 +297,25 @@ bool FRemoteConfig::IsRemoteFile(const TCHAR* Filename)
 	return false;
 }
 
-/** Returns true if the specified file is remote and still needs to be read **/
+
 bool FRemoteConfig::ShouldReadRemoteFile(const TCHAR* Filename)
 {
 	return IsRemoteFile(Filename) && !FindConfig(Filename);
 }
 
-/** Simple accessor function **/
+
 FRemoteConfigAsyncIOInfo* FRemoteConfig::FindConfig(const TCHAR* Filename)
 {
 	return ConfigBuffers.Find(FString(Filename));
 }
 
-/** Returns true if the task has completed */
+
 bool FRemoteConfig::IsFinished(const TCHAR* InFilename)
 {
 	return GRemoteConfigIOManager.IsFinished(InFilename);
 }
 	
-/** Queues up a new async task for reading a remote config file **/
+
 bool FRemoteConfig::Read(const TCHAR* GeneratedIniFile, const TCHAR* DefaultIniFile)
 {
 	FString FullPath = GenerateRemotePath(GeneratedIniFile);
@@ -335,7 +332,7 @@ bool FRemoteConfig::Read(const TCHAR* GeneratedIniFile, const TCHAR* DefaultIniF
 	return GRemoteConfigIOManager.StartTask(GeneratedIniFile, *FullPath, IOInfo, NULL, true);
 }
 
-/** Queues up a new async task for writing a remote config file **/
+
 bool FRemoteConfig::Write(const TCHAR* Filename, FString& Contents)
 {
 	FRemoteConfigAsyncIOInfo* IOInfo = FindConfig(Filename);
@@ -351,7 +348,7 @@ bool FRemoteConfig::Write(const TCHAR* Filename, FString& Contents)
 	return true;
 }
 
-/** Waits on the async read if it hasn't finished yet... times out if the operation has taken too long **/
+
 void FRemoteConfig::FinishRead(const TCHAR* Filename)
 {
 	FRemoteConfigAsyncIOInfo* IOInfo = FindConfig(Filename);
@@ -375,7 +372,7 @@ void FRemoteConfig::FinishRead(const TCHAR* Filename)
 	}
 }
 
-/** Finishes all pending async IO tasks **/
+
 void FRemoteConfig::Flush()
 {
 	// @todo this is hacky... figure out how to clean up properly
@@ -402,7 +399,7 @@ static const TCHAR* SpecialCharMap[NUM_SPECIAL_CHARS][2] =
 	{ TEXT("\""), TEXT("~Quote~")  }
 };
 
-/* Replaces chars used by the ini parser with "special chars" */
+
 FString FRemoteConfig::ReplaceIniCharWithSpecialChar(const FString& Str)
 {
 	FString Result = Str;
@@ -413,7 +410,7 @@ FString FRemoteConfig::ReplaceIniCharWithSpecialChar(const FString& Str)
 	return Result;
 }
 
-/* Replaces "special chars" that have been inserted to avoid problems with the ini parser with equivalent regular chars */
+
 FString FRemoteConfig::ReplaceIniSpecialCharWithChar(const FString& Str)
 {
 	FString Result = Str;
@@ -424,7 +421,7 @@ FString FRemoteConfig::ReplaceIniSpecialCharWithChar(const FString& Str)
 	return Result;
 }
 
-/** Creates the remote path string for the specified file */
+
 FString FRemoteConfig::GenerateRemotePath(const TCHAR* Filename)
 {
 	FString IniFileName(Filename);
@@ -482,11 +479,11 @@ void ProcessIniContents(const TCHAR* FilenameToLoad, const TCHAR* IniFileName, F
 		
 		if (bDoCombine)
 		{
-			Config->CombineFromBuffer(IniFileName, RemoteInfo->Buffer);
+			Config->CombineFromBuffer(RemoteInfo->Buffer);
 		}
 		else
 		{
-			Config->ProcessInputFileContents(IniFileName, RemoteInfo->Buffer);
+			Config->ProcessInputFileContents(RemoteInfo->Buffer);
 		}
 	}
 }

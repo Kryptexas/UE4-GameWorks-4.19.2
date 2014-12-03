@@ -175,7 +175,7 @@ struct FPerBoneInterpolation
 		: InterpolationSpeedPerSec(6.f)
 	{}
 
-	void Initialize(const USkeleton * Skeleton)
+	void Initialize(const USkeleton* Skeleton)
 	{
 		BoneReference.Initialize(Skeleton);
 	}
@@ -280,19 +280,19 @@ public:
 	}
 
 	/** New Parameter set up for BlendParameters**/
-	ENGINE_API bool UpdateParameter(int32 Index, const FBlendParameter & Parameter);
+	ENGINE_API bool UpdateParameter(int32 Index, const FBlendParameter& Parameter);
 
 	/** Add samples */
-	ENGINE_API bool	AddSample(const FBlendSample & BlendSample);
+	ENGINE_API bool	AddSample(const FBlendSample& BlendSample);
 
 	/** edit samples */
-	ENGINE_API bool	EditSample(const FBlendSample & BlendSample, FVector & NewValue);
+	ENGINE_API bool	EditSample(const FBlendSample& BlendSample, FVector& NewValue);
 
 	/** replace sample animation */
-	ENGINE_API bool	EditSampleAnimation(const FBlendSample & BlendSample, class UAnimSequence* AnimSequence);
+	ENGINE_API bool	EditSampleAnimation(const FBlendSample& BlendSample, class UAnimSequence* AnimSequence);
 
 	/** delete samples */
-	ENGINE_API bool	DeleteSample(const FBlendSample & BlendSample);
+	ENGINE_API bool	DeleteSample(const FBlendSample& BlendSample);
 
 	/** whenever sample is modified, grid data isn't valid anymore, clear grid */
 	ENGINE_API void ClearAllSamples();
@@ -350,7 +350,7 @@ public:
 	 * Get PerBoneInterpolationIndex for the input BoneIndex
 	 * If nothing found, return INDEX_NONE
 	 */
-	int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer & RequiredBones) const;
+	int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const;
 
 	/** return true if all sample data is additive **/
 	virtual bool IsValidAdditive() const {check(false); return false;}
@@ -360,7 +360,7 @@ protected:
 	void InitializePerBoneBlend();
 
 	/** Interpolate BlendInput based on Filter data **/
-	FVector FilterInput(FBlendFilter* Filter, const FVector & BlendInput, float DeltaTime) const;
+	FVector FilterInput(FBlendFilter* Filter, const FVector& BlendInput, float DeltaTime) const;
 
 	/** Let derived blend space decided how to handle scaling */
 	virtual EBlendSpaceAxis GetAxisToScale() const PURE_VIRTUAL(UBlendSpaceBase::GetAxisToScale, return BSA_None;);
@@ -381,7 +381,7 @@ protected:
 	float GetAnimationLengthFromSampleData(const TArray<FBlendSampleData> & SampleDataList) const;
 
 	/** Returns the grid element at Index or NULL if Index is not valid */
-	const FEditorElement * GetGridSampleInternal(int32 Index) const { return GridSamples.IsValidIndex(Index) ? &GridSamples[Index] : NULL; }
+	const FEditorElement* GetGridSampleInternal(int32 Index) const { return GridSamples.IsValidIndex(Index) ? &GridSamples[Index] : NULL; }
 
 	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const PURE_VIRTUAL(UBlendSpaceBase::IsSameSamplePoint, return false;);
 
@@ -389,7 +389,7 @@ protected:
 	virtual void SnapToBorder(FBlendSample& Sample) const PURE_VIRTUAL(UBlendSpaceBase::SnapToBorder, return;);
 
 	/** Clamp blend input to valid point **/
-	FVector ClampBlendInput(const FVector & BlendInput) const;
+	FVector ClampBlendInput(const FVector& BlendInput) const;
 
 	/** Translates BlendInput to grid space */
 	FVector GetNormalizedBlendInput(const FVector& BlendInput) const;

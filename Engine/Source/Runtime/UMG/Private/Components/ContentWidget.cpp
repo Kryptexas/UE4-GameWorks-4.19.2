@@ -12,15 +12,15 @@
 /////////////////////////////////////////////////////
 // UContentWidget
 
-UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UContentWidget::UContentWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanHaveMultipleChildren = false;
 }
 
 UPanelSlot* UContentWidget::GetContentSlot() const
 {
-	return Slots.Num() > 0 ? Slots[0] : NULL;
+	return Slots.Num() > 0 ? Slots[0] : nullptr;
 }
 
 UClass* UContentWidget::GetSlotClass() const

@@ -4,19 +4,9 @@
 
 #define LOCTEXT_NAMESPACE "SHistogram"
 
-
 /*-----------------------------------------------------------------------------
 	SHistogram
 -----------------------------------------------------------------------------*/
-
-SHistogram::SHistogram()
-{
-	RestoreDefaultState();
-}
-
-SHistogram::~SHistogram()
-{
-}
 
 void SHistogram::Construct( const FArguments& InArgs )
 {
@@ -27,11 +17,6 @@ void SHistogram::Construct( const FArguments& InArgs )
 		SNew(SOverlay)
 		.Visibility( EVisibility::SelfHitTestInvisible )
 	];
-}
-
-void SHistogram::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry,InCurrentTime,InDeltaTime);
 }
 
 int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -181,49 +166,6 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 			);
 	}
 	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
-}
-
-void SHistogram::RestoreDefaultState()
-{
-}
-
-FReply SHistogram::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Handled();
-}
-
-FReply SHistogram::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Unhandled();
-}
-
-FReply SHistogram::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Unhandled();
-}
-
-void SHistogram::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-
-}
-
-void SHistogram::OnMouseLeave( const FPointerEvent& MouseEvent )
-{
-}
-
-FReply SHistogram::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Handled();
-}
-
-FReply SHistogram::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Unhandled();
-}
-
-FCursorReply SHistogram::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const 
-{
-	return FCursorReply::Unhandled();
 }
 
 #undef LOCTEXT_NAMESPACE

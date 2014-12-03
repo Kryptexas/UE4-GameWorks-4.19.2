@@ -5,7 +5,8 @@
 ================================================================================*/
 
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 
@@ -67,7 +68,7 @@ static FString GIconPath;
 
 static int32 SplashWidth = 0, SplashHeight = 0;
 static unsigned char *ScratchSpace = nullptr;
-static int32 ThreadState = 0;
+static volatile int32 ThreadState = 0;
 static int32 SplashBPP = 0;
 
 //////////////////////////////////
@@ -76,49 +77,190 @@ static int32 SplashBPP = 0;
 // subset of GL functions
 /** List all OpenGL entry points used by Unreal. */
 #define ENUM_GL_ENTRYPOINTS(EnumMacro) \
+	EnumMacro(PFNGLENABLEPROC, glEnable) \
+	EnumMacro(PFNGLDISABLEPROC, glDisable) \
+	EnumMacro(PFNGLCLEARPROC, glClear) \
+	EnumMacro(PFNGLCLEARCOLORPROC, glClearColor) \
+	EnumMacro(PFNGLDRAWARRAYSPROC, glDrawArrays) \
+	EnumMacro(PFNGLGENBUFFERSARBPROC, glGenBuffers) \
+	EnumMacro(PFNGLBINDBUFFERARBPROC, glBindBuffer) \
+	EnumMacro(PFNGLBUFFERDATAARBPROC, glBufferData) \
+	EnumMacro(PFNGLDELETEBUFFERSARBPROC, glDeleteBuffers) \
+	EnumMacro(PFNGLMAPBUFFERARBPROC, glMapBuffer) \
+	EnumMacro(PFNGLUNMAPBUFFERARBPROC, glDrawRangeElements) \
 	EnumMacro(PFNGLBINDTEXTUREPROC, glBindTexture) \
+	EnumMacro(PFNGLACTIVETEXTUREARBPROC, glActiveTexture) \
 	EnumMacro(PFNGLTEXIMAGE2DPROC, glTexImage2D) \
 	EnumMacro(PFNGLGENTEXTURESPROC, glGenTextures) \
+	EnumMacro(PFNGLCREATESHADERPROC, glCreateShader) \
+	EnumMacro(PFNGLSHADERSOURCEPROC, glShaderSource) \
+	EnumMacro(PFNGLCOMPILESHADERPROC, glCompileShader) \
+	EnumMacro(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog) \
+	EnumMacro(PFNGLATTACHSHADERPROC, glAttachShader) \
+	EnumMacro(PFNGLDETACHSHADERPROC, glDetachShader) \
+	EnumMacro(PFNGLLINKPROGRAMPROC, glLinkProgram) \
+	EnumMacro(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog) \
+	EnumMacro(PFNGLUSEPROGRAMPROC, glUseProgram) \
+	EnumMacro(PFNGLDELETESHADERPROC, glDeleteShader) \
+	EnumMacro(PFNGLCREATEPROGRAMPROC,glCreateProgram) \
+	EnumMacro(PFNGLDELETEPROGRAMPROC, glDeleteProgram) \
+	EnumMacro(PFNGLGETSHADERIVPROC, glGetShaderiv) \
+	EnumMacro(PFNGLGETPROGRAMIVPROC, glGetProgramiv) \
+	EnumMacro(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation) \
+	EnumMacro(PFNGLUNIFORM1FPROC, glUniform1f) \
+	EnumMacro(PFNGLUNIFORM2FPROC, glUniform2f) \
+	EnumMacro(PFNGLUNIFORM3FPROC, glUniform3f) \
+	EnumMacro(PFNGLUNIFORM4FPROC, glUniform4f) \
+	EnumMacro(PFNGLUNIFORM1IPROC, glUniform1i) \
+	EnumMacro(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv) \
+	EnumMacro(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer) \
+	EnumMacro(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation) \
+	EnumMacro(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray) \
+	EnumMacro(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray) \
+	EnumMacro(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation) \
+	EnumMacro(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray) \
+	EnumMacro(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays) \
+	EnumMacro(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays) \
+	EnumMacro(PFNGLISVERTEXARRAYPROC, glIsVertexArray) \
 	EnumMacro(PFNGLTEXPARAMETERIPROC, glTexParameteri)
 
 #define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
-ENUM_GL_ENTRYPOINTS(DEFINE_GL_ENTRYPOINTS);
-
-// subset 
-#if !defined (GL_QUADS)
-	#define GL_QUADS                                0x0007
-#endif // GL_QUADS
-
-/* Matrix Mode */
-#if !defined (GL_MATRIX_MODE)
-	#define GL_MATRIX_MODE                          0x0BA0
-#endif // GL_MATRIX_MODE
-
-#if !defined (GL_MODELVIEW)
-	#define GL_MODELVIEW                            0x1700
-#endif // GL_MODELVIEW
-
-#if !defined (GL_PROJECTION)
-	#define GL_PROJECTION                           0x1701
-#endif // GL_PROJECTION
-
-#if !defined (GL_TEXTURE)
-	#define GL_TEXTURE                              0x1702
-#endif // GL_TEXTURE
-
-extern "C"
+namespace GLFuncPointers	// see explanation in OpenGLLinux.h why we need the namespace
 {
-	GLAPI void glMatrixMode(GLenum mode);
-	GLAPI void glLoadIdentity(void);
-	GLAPI void glDisable(GLenum cap);
-	GLAPI void glEnable(GLenum cap);
-	GLAPI void glBegin(GLenum mode);
-	GLAPI void glEnd(void);
-	GLAPI void glVertex2i(GLint x, GLint y);
-	GLAPI void glTexCoord2i(GLint s, GLint t);
+	ENUM_GL_ENTRYPOINTS(DEFINE_GL_ENTRYPOINTS);
 };
 
+using namespace GLFuncPointers;
+
 //////////////////////////////////
+
+
+/**
+ * Returns the current shader log for a GLSL shader                   
+ */
+static FString GetGLSLShaderLog( GLuint Shader )
+{
+	GLint Len;
+	FString ShaderLog;
+
+	glGetShaderiv(Shader, GL_INFO_LOG_LENGTH, &Len);
+
+	if(Len > 0)
+	{
+		GLsizei ActualLen;
+		GLchar *Log = new GLchar[Len];
+
+		glGetShaderInfoLog(Shader, Len, &ActualLen, Log);
+	
+		ShaderLog = ANSI_TO_TCHAR( Log );
+
+		delete[] Log;
+	}
+
+	return ShaderLog;
+}
+
+static FString GetGLSLProgramLog( GLuint Program )
+{
+	GLint Len;
+	FString ProgramLog;
+	glGetProgramiv( Program, GL_INFO_LOG_LENGTH, &Len );
+
+	if( Len > 0 )
+	{
+		GLchar* Log = new GLchar[Len];
+
+		GLsizei ActualLen;
+		glGetProgramInfoLog( Program, Len, &ActualLen, Log );
+
+		ProgramLog = ANSI_TO_TCHAR( Log );
+
+		delete[] Log;
+	}
+
+	return ProgramLog;
+}
+
+//---------------------------------------------------------
+static int CompileShaderFromString( const FString& Source, GLuint& ShaderID, GLenum ShaderType )
+{
+	// Create a new shader ID.
+	ShaderID = glCreateShader( ShaderType );
+	GLint CompileStatus = GL_FALSE;
+
+	check( ShaderID );
+	
+	// Allocate a buffer big enough to store the string in ascii format
+	ANSICHAR* Chars[2] = {nullptr};
+	// pass the #define along to the shader
+#if PLATFORM_USES_ES2
+	Chars[0] = (ANSICHAR*)"#define PLATFORM_USES_ES2 1\n\n#define PLATFORM_LINUX 0\n";
+#elif PLATFORM_LINUX
+	Chars[0] = (ANSICHAR*)"#version 150\n\n#define PLATFORM_USES_ES2 0\n\n#define PLATFORM_LINUX 1\n";
+#else
+	Chars[0] = (ANSICHAR*)"#version 120\n\n#define PLATFORM_USES_ES2 0\n\n#define PLATFORM_LINUX 0\n";
+#endif
+	Chars[1] = new ANSICHAR[Source.Len()+1];
+	FCStringAnsi::Strcpy(Chars[1], Source.Len() + 1, TCHAR_TO_ANSI(*Source));
+
+	// give opengl the source code for the shader
+	glShaderSource( ShaderID, 2, (const ANSICHAR**)Chars, NULL );
+	delete[] Chars[1];
+
+	// Compile the shader and check for success
+	glCompileShader( ShaderID );
+
+	glGetShaderiv( ShaderID, GL_COMPILE_STATUS, &CompileStatus );
+	if( CompileStatus == GL_FALSE )
+	{
+		// The shader did not compile.  Display why it failed.
+		FString Log = GetGLSLShaderLog( ShaderID );
+
+		checkf(false, TEXT("Failed to compile shader: %s\n"), *Log );
+
+		// Delete the shader since it failed.
+		glDeleteShader( ShaderID );
+		ShaderID = 0;
+		return -1;
+	}
+	
+	return 0;
+}
+
+//---------------------------------------------------------
+static int CompileShaderFromFile( const FString& Filename, GLuint& ShaderID, GLenum ShaderType )
+{
+	// Load the file to a string
+	FString Source;
+	bool bFileFound = FFileHelper::LoadFileToString( Source, *Filename );
+	check(bFileFound);
+
+	return CompileShaderFromString(Source, ShaderID, ShaderType);
+}
+
+static int LinkShaders(GLuint& ShaderProgram, GLuint& VertexShader, GLuint& FragmentShader)
+{
+	// Create a new program id and attach the shaders
+	ShaderProgram = glCreateProgram();
+	glAttachShader( ShaderProgram, VertexShader );
+	glAttachShader( ShaderProgram, FragmentShader );
+
+	// Set up attribute locations for per vertex data
+	glBindAttribLocation(ShaderProgram, 0, "InPosition");
+
+	// Link the shaders
+	glLinkProgram( ShaderProgram );
+
+	// Check to see if linking succeeded
+	GLint LinkStatus;
+	glGetProgramiv( ShaderProgram, GL_LINK_STATUS, &LinkStatus );
+	if( LinkStatus == GL_FALSE )
+	{
+		return -1;
+	}
+
+	return 0;
+}
 
 //---------------------------------------------------------
 static int32 OpenFonts ( )
@@ -352,19 +494,24 @@ static int RenderString (GLuint tex_idx)
 	return 0;
 }
 
-
-/**
- * Thread function that actually creates the window and
- * renders its contents.
- */
-static int StartSplashScreenThread(void *ptr)
-{	
-	//	init the sdl here
-	if (SDL_WasInit( SDL_INIT_VIDEO ) == 0)
+/** Helper function to init resources used by the splash thread */
+bool LinuxSplash_InitSplashResources()
+{
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
-		SDL_InitSubSystem(SDL_INIT_VIDEO);
+		UE_LOG(LogInit, Warning, TEXT("LinuxSplash_InitSplashResources() : PlatformInitMultimedia() failed, there will be no splash."));
+		return false;
 	}
+
+	// load splash .bmp image
+	GSplashScreenImage = SDL_LoadBMP(TCHAR_TO_UTF8(*GSplashPath));
 	
+	if (GSplashScreenImage == nullptr)
+	{
+		UE_LOG(LogHAL, Warning, TEXT("LinuxSplash_InitSplashResources() : Could not load splash BMP! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		return false;
+	}
+
 	// create splash window
 	GSplashWindow = SDL_CreateWindow(NULL,
 									SDL_WINDOWPOS_CENTERED,
@@ -373,9 +520,9 @@ static int StartSplashScreenThread(void *ptr)
 									GSplashScreenImage->h,
 									SDL_WINDOW_BORDERLESS | SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 									);
-	if(GSplashWindow == nullptr)
+	if (GSplashWindow == nullptr)
 	{
-		UE_LOG(LogHAL, Error, TEXT("Splash screen window could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		UE_LOG(LogHAL, Error, TEXT("LinuxSplash_InitSplashResources() : Splash screen window could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
 		return -1;
 	}
 
@@ -389,14 +536,37 @@ static int StartSplashScreenThread(void *ptr)
 	}
 	else
 	{
-		UE_LOG(LogHAL, Error, TEXT("Splash icon could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		UE_LOG(LogHAL, Warning, TEXT("LinuxSplash_InitSplashResources() : Splash icon could not be created! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		return false;
 	}
 
+	return true;
+}
+
+/** Helper function to tear down resources used by the splash thread */
+void LinuxSplash_TearDownSplashResources()
+{
+	SDL_DestroyWindow(GSplashWindow);
+	GSplashWindow = nullptr;
+
+	SDL_FreeSurface(GSplashIconImage);
+	GSplashIconImage = nullptr;
+
+	SDL_FreeSurface(GSplashScreenImage);
+	GSplashScreenImage = nullptr;
+
+	// do not deinit SDL here
+}
+
+/**
+ * Thread function that actually creates the window and
+ * renders its contents.
+ */
+static int StartSplashScreenThread(void *ptr)
+{	
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
-
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute( SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0 );
 
 	SDL_GLContext Context = SDL_GL_CreateContext( GSplashWindow );
@@ -408,21 +578,69 @@ static int StartSplashScreenThread(void *ptr)
 	}
 
 	// Initialize all entry points required by Unreal.
-	#define GET_GL_ENTRYPOINTS(Type,Func) Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
+	#define GET_GL_ENTRYPOINTS(Type,Func) GLFuncPointers::Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
 	ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 
-	// set up viewport
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
+	if (SDL_GL_MakeCurrent( GSplashWindow, Context ) != 0) 
+	{
+		UE_LOG(LogHAL, Error, TEXT("Splash screen SDL_GL_MakeCurrent failed: %s"), UTF8_TO_TCHAR(SDL_GetError()));
+		return -1;
+	}
 
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_TEXTURE_2D);
+	// Initialize Shaders, Programs, etc.
+	GLuint VertexShader 	= 0;
+	GLuint FragmentShader 	= 0;
+	GLuint ShaderProgram	= 0;
+	GLuint SplashTextureID 	= 0;
+
+	// Compile Vertex and Fragment Shaders from file.
+	if (CompileShaderFromFile( FString::Printf( TEXT("%sShaders/StandaloneRenderer/OpenGL/SplashVertexShader.glsl"), *FPaths::EngineDir()), VertexShader, GL_VERTEX_SHADER) < 0)
+	{
+		UE_LOG(LogHAL, Error, TEXT("Splash screen CompileShaderFromFile failed."));
+		return -1;		
+	}
+
+	if (CompileShaderFromFile(FString::Printf( TEXT("%sShaders/StandaloneRenderer/OpenGL/SplashFragmentShader.glsl"), *FPaths::EngineDir()), FragmentShader, GL_FRAGMENT_SHADER) < 0)
+	{
+		UE_LOG(LogHAL, Error, TEXT("Splash screen CompileShaderFromFile failed."));
+		return -1;		
+	}
+
+	// Create Shader Program and link it.
+	if(LinkShaders(ShaderProgram, VertexShader, FragmentShader) < 0) 
+	{
+		FString Log = GetGLSLProgramLog( ShaderProgram );
+		UE_LOG(LogHAL, Error, TEXT("Failed to link GLSL program: %s"), *Log);
+	}
+
+	// Returns the reference to the Splash Texture from the Shader.
+	SplashTextureID = glGetUniformLocation( ShaderProgram, "SplashTexture" );
+
+	// Create Vertex Array Object. We need that to be conform with OpenGL 3.2+ spec.
+	GLuint VertexArrayObject;
+	glGenVertexArrays(1, &VertexArrayObject);
+	glBindVertexArray(VertexArrayObject);
+	
+	// Create Vertex Buffer and upload data.
+	GLuint VertexBuffer;
+	glGenBuffers(1, &VertexBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
+	float screen_vertex [] = 
+	{
+		-1.0, -1.0f,
+		-1.0f, 1.0f,
+		1.0f, 1.0f,
+
+		1.0f, 1.0f,
+		1.0f, -1.0f,
+		-1.0f, -1.0f
+	};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*12, (GLvoid*)screen_vertex, GL_DYNAMIC_DRAW );
 
 	// create texture slot
 	GLuint texture;
 	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
 	// set filtering
@@ -497,34 +715,58 @@ static int StartSplashScreenThread(void *ptr)
 
 	OpenFonts();
 
+	glDisable(GL_DEPTH_TEST);
+
 	// drawing loop
 	while (ThreadState >= 0)
 	{
-		SDL_Delay(100);
+		SDL_Event event;
+		// Poll events otherwise the window will get dark or
+		// on some Desktops it will complain that the thread
+		// does not work anymore.
+		while (SDL_PollEvent(&event))
+		{
+			// intentionally empty
+		}
+
+		SDL_Delay(300);
 		
+		// Activate Shader Program, Texture etc.
+		glBindVertexArray(VertexArrayObject);
+		glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
+		glUseProgram(ShaderProgram);
+		glActiveTexture(GL_TEXTURE0);
+		glUniform1i(SplashTextureID, 0);
+
 		if (ThreadState > 0)
 		{
 			RenderString(texture);
 			ThreadState--;
 		}
-		
-		if (SDL_GL_MakeCurrent( GSplashWindow, Context ) == 0)
-		{
-			// draw splash image			
-			glBindTexture(GL_TEXTURE_2D, texture);
-			
-			glBegin(GL_QUADS);
-			glTexCoord2i(0,1); glVertex2i(-1, -1);
-			glTexCoord2i(1,1); glVertex2i(1, -1);
-			glTexCoord2i(1,0); glVertex2i(1, 1);
-			glTexCoord2i(0,0); glVertex2i(-1, 1);
-			glEnd();
-			
-			SDL_GL_SwapWindow( GSplashWindow );
-		}
+
+		// Set stream positions and draw.
+		glEnableVertexAttribArray(0); 
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		// Disable Shader Program, VAO, VBO etc.
+		glDisableVertexAttribArray(0); 
+		glUseProgram(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
+		SDL_GL_SwapWindow( GSplashWindow );
 	}
 
 	// clean up
+	glDeleteBuffers(1, &VertexBuffer);
+	glDeleteVertexArrays(1, &VertexArrayObject);
+	glDetachShader(ShaderProgram, VertexShader);
+	glDetachShader(ShaderProgram, FragmentShader);
+	glDeleteShader(VertexShader);
+	glDeleteShader(FragmentShader);
+	glDeleteProgram(ShaderProgram);
+ 
 	if (ScratchSpace)
 	{
 		FMemory::Free(ScratchSpace);
@@ -549,8 +791,10 @@ static int StartSplashScreenThread(void *ptr)
 	FT_Done_FreeType(FontLibrary);
 
 	SDL_GL_DeleteContext(Context);
-	SDL_DestroyWindow(GSplashWindow);
 	FMemory::Free(ScratchSpace);
+
+	// set the thread state to 0 to let the caller know we're done (FIXME: can be done without busy-loops)
+	ThreadState = 0;
 
 	return 0;
 }
@@ -673,12 +917,9 @@ void FLinuxPlatformSplash::Show( )
 		}
 	}
 
-	// load splash .bmp image
-	GSplashScreenImage = SDL_LoadBMP(TCHAR_TO_UTF8(*GSplashPath));
-	
-	if (GSplashScreenImage == nullptr)
+	// init splash LinuxSplash_InitSplashResources
+	if (!LinuxSplash_InitSplashResources())
 	{
-		UE_LOG(LogHAL, Warning, TEXT("Could not load splash BMP! SDL_Error: %s"), UTF8_TO_TCHAR(SDL_GetError()));
 		return;
 	}
 
@@ -706,7 +947,20 @@ void FLinuxPlatformSplash::Hide()
 #if WITH_EDITOR
 	// signal thread it's time to quit
 	GSplashThread = nullptr;
-	ThreadState = -99;
+
+	if (ThreadState > 0)	// if there's a thread at all...
+	{
+		ThreadState = -99;
+		// wait for the thread to be done before tearing it tearing it down (it will set the ThreadState to 0)
+		while (ThreadState != 0)
+		{
+			// busy loop!
+			FPlatformProcess::Sleep(0.01f);
+		}
+
+		// tear down resources that thread used
+		LinuxSplash_TearDownSplashResources();
+	}
 #endif
 }
 

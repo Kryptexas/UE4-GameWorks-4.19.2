@@ -8,21 +8,11 @@ class FMediaPlayerEditorViewport
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FMediaPlayerEditorViewport( )
-		: EditorTexture(nullptr)
-		, SlateTexture(nullptr)
-	{ }
+	/** Default constructor. */
+	FMediaPlayerEditorViewport();
 
-	/**
-	 * Destructor.
-	 */
-	~FMediaPlayerEditorViewport( )
-	{
-		ReleaseResources();
-	}
+	/** Destructor. */
+	~FMediaPlayerEditorViewport();
 
 public:
 
@@ -31,80 +21,26 @@ public:
 	 *
 	 * @param VideoTrack The video track to render to the viewport.
 	 */
-	void Initialize( const IMediaTrackPtr& VideoTrack )
-	{
-		ReleaseResources();
-
-		if (VideoTrack.IsValid())
-		{
-			check(VideoTrack->GetType() == EMediaTrackTypes::Video);
-
-			const bool bCreateEmptyTexture = true;
-			const FIntPoint VideoDimensions = VideoTrack->GetVideoDetails().GetDimensions();
-
-			SlateTexture = new FSlateTexture2DRHIRef(VideoDimensions.X, VideoDimensions.Y, PF_B8G8R8A8, nullptr, TexCreate_Dynamic, bCreateEmptyTexture);
-			EditorTexture = new FMediaPlayerEditorTexture(SlateTexture, VideoTrack.ToSharedRef());
-
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-				RegisterMediaPlayerEditorTexture,
-				FMediaPlayerEditorTexture*, EditorTextureParam, EditorTexture,
-				{
-					EditorTextureParam->Register();
-				}
-			);
-		}
-	}
-
-protected:
-
-	void ReleaseResources( )
-	{
-		if (SlateTexture != nullptr)
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-				ReleaseMediaPlayerEditorResources,
-				FMediaPlayerEditorTexture*, EditorTextureParam, EditorTexture,
-				FSlateTexture2DRHIRef*, SlateTextureParam, SlateTexture,
-				{
-					EditorTextureParam->Unregister();
-					delete EditorTextureParam;
-
-					SlateTextureParam->ReleaseResource();
-					delete SlateTextureParam;
-				}
-			);
-
-			EditorTexture = nullptr;
-			SlateTexture = nullptr;
-		}
-	}
+	void Initialize(const IMediaTrackPtr& VideoTrack);
 
 public:
 
 	// ISlateViewport interface
 
-	virtual FIntPoint GetSize( ) const override
-	{
-		return (SlateTexture != nullptr)
-			? FIntPoint(SlateTexture->GetWidth(), SlateTexture->GetHeight())
-			: FIntPoint();
-	}
+	virtual FIntPoint GetSize() const override;
+	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const override;
+	virtual bool RequiresVsync() const override;
 
-	virtual class FSlateShaderResource* GetViewportRenderTargetTexture( ) const override
-	{
-		return SlateTexture;
-	}
+protected:
 
-	virtual bool RequiresVsync( ) const override
-	{
-		return false;
-	}
+	/** Releases the resources associated with this viewport. */
+	void ReleaseResources();
 
 private:
 
-	// The texture being rendered on this viewport
+	/** The texture being rendered on this viewport. */
 	FMediaPlayerEditorTexture* EditorTexture;
 
-	// Pointer to the Slate texture being rendered.
+	/** Pointer to the Slate texture being rendered. */
 	FSlateTexture2DRHIRef* SlateTexture;
 };

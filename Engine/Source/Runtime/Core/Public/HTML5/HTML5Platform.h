@@ -28,7 +28,6 @@ typedef FHTML5Types FPlatformTypes;
 #define PLATFORM_LITTLE_ENDIAN						1
 #define PLATFORM_SUPPORTS_PRAGMA_PACK				1
 #define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR			1
-#define PLATFORM_HAS_vsnprintf						1
 #if PLATFORM_HTML5_WIN32
 #define PLATFORM_HAS_BSD_TIME						0
 #define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS	0
@@ -92,8 +91,16 @@ typedef FHTML5Types FPlatformTypes;
 
 // Operator new/delete handling.
 #if !PLATFORM_HTML5_WIN32
+// operator new/delete operators
+// As of 10.9 we need to use _NOEXCEPT & cxx_noexcept compatible definitions
+#if __has_feature(cxx_noexcept)
+#define OPERATOR_NEW_THROW_SPEC
+#else
 #define OPERATOR_NEW_THROW_SPEC throw (std::bad_alloc)
-#define OPERATOR_DELETE_THROW_SPEC throw()
+#endif
+#define OPERATOR_DELETE_THROW_SPEC noexcept
+#define OPERATOR_NEW_NOTHROW_SPEC  noexcept
+#define OPERATOR_DELETE_NOTHROW_SPEC  noexcept
 #endif
 
 

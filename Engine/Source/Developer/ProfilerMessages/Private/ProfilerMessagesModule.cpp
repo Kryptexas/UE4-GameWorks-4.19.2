@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerMessagesModule.cpp: Implements the FProfilerMessagesModule class.
-=============================================================================*/
-
 #include "ProfilerMessagesPrivatePCH.h"
-
 
 
 /**
@@ -25,12 +20,6 @@ public:
 		return true;
 	}
 };
-
-
-// Dummy class initialization
-UProfilerServiceMessages::UProfilerServiceMessages( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
-{ }
 
 
 IMPLEMENT_MODULE(FProfilerMessagesModule, ProfilerMessages);

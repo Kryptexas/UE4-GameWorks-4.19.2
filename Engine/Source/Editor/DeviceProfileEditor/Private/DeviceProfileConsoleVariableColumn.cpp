@@ -120,11 +120,6 @@ TSharedRef<class SWidget> FConsoleVariableCellPresenter::ConstructDisplayWidget(
 }
 
 
-/*=============================================================================
-	FDeviceProfileConsoleVariableColumn Implementation
-=============================================================================*/
-
-
 FDeviceProfileConsoleVariableColumn::FDeviceProfileConsoleVariableColumn()
 {
 }

@@ -41,6 +41,12 @@ class AIMODULE_API UBTService : public UBTAuxiliaryNode
 
 protected:
 
+	// Gets the description of our tick interval
+	FString GetStaticTickIntervalDescription() const;
+
+	// Gets the description for our service
+	virtual FString GetStaticServiceDescription() const;
+
 	/** defines time span between subsequent ticks of the service */
 	UPROPERTY(Category=Service, EditAnywhere, meta=(ClampMin="0.001"))
 	float Interval;

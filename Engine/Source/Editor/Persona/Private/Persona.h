@@ -9,7 +9,7 @@
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
 
-#include "Shared/AnimationRecorder.h"
+#include "AnimationRecorder.h"
 //////////////////////////////////////////////////////////////////////////
 // FPersona
 
@@ -193,6 +193,7 @@ public:
 
 	// FTickableEditorObject interface
 	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject interface
 
 	/** Returns the image brush to use for each modes dirty marker */
@@ -275,12 +276,15 @@ public:
 	mutable TWeakObjectPtr<UObject> SharedAnimAssetBeingEdited;
 	TWeakPtr<SDockTab> SharedAnimDocumentTab;
 
+	/** Animation recorder **/
+	FAnimationRecorder Recorder;
+
 public:
 	/** Viewport widget */
 	TWeakPtr<class SAnimationEditorViewportTabBody> Viewport;
 
 	// Property changed delegate
-	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Shared data between modes - for now only used for viewport **/
@@ -312,7 +316,24 @@ private:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
 	// Called when generic delete happens
 	DECLARE_MULTICAST_DELEGATE( FOnGenericDelete );
+	// Called when Persona refreshes
+	DECLARE_MULTICAST_DELEGATE( FOnPersonaRefreshMulticaster );
 public:
+
+	// Persona refreshed
+	typedef FOnPersonaRefreshMulticaster::FDelegate FOnPersonaRefresh;
+
+	/** Registers a delegate to be called when Persona is Refreshed */
+	void RegisterOnPersonaRefresh(const FOnPersonaRefresh& Delegate)
+	{
+		OnPersonaRefresh.Add(Delegate);
+	}
+
+	/** Unregisters refresh delegate */
+	void UnregisterOnPersonaRefresh(SWidget* Widget)
+	{
+		OnPersonaRefresh.RemoveAll(Widget);
+	}
 
 	// anim changed 
 	typedef FOnAnimChangedMulticaster::FDelegate FOnAnimChanged;
@@ -499,6 +520,9 @@ protected:
 
 protected:
 
+	/** Called when persona is refreshed through an external action (reimport etc) */
+	FOnPersonaRefreshMulticaster OnPersonaRefresh;
+
 	/** Delegate called after an undo operation for child widgets to refresh */
 	FOnPostUndoMulticaster OnPostUndo;	
 
@@ -535,14 +559,14 @@ protected:
 	TSharedPtr<class FPersonaToolbar> PersonaToolbar;
 
 private:
-	/** Animation recorder **/
-	FAnimationRecorder Recorder;
 
 	/** Recording animation functions **/
 	void RecordAnimation();
-	bool CanRecordAnimation() const;
 	bool IsRecordAvailable() const;
-	bool IsAnimationBeingRecorded() const;
+	FSlateIcon GetRecordStatusImage() const;
+	FText GetRecordStatusTooltip() const;
+	FText GetRecordStatusLabel() const;
+	FText GetRecordMenuLabel() const;
 
 	/** Animation menu functions **/
 	void OnApplyCompression();
@@ -575,6 +599,9 @@ private:
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;
+
+	/** Called immediately prior to a blueprint compilation */
+	void OnBlueprintPreCompile(UBlueprint* BlueprintToCompile);
 
 	/** The extender to pass to the level editor to extend it's window menu */
 	TSharedPtr<FExtender> MenuExtender;

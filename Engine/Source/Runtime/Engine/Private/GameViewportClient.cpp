@@ -9,7 +9,7 @@
 #include "ImageUtils.h"
 #include "RenderCore.h"
 #include "ColorList.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SceneViewExtension.h"
 #include "IHeadMountedDisplay.h"
 #include "SVirtualJoystick.h"
@@ -34,6 +34,8 @@ extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 /** The lightmap used by the currently selected component, if it's a static mesh component. */
 extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 
+extern int32 GetBoundFullScreenModeCVar();
+
 /** Delegate called at the end of the frame when a screenshot is captured */
 FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
 
@@ -47,7 +49,7 @@ DEFINE_STAT(STAT_UIDrawingTime);
 
 static TAutoConsoleVariable<int32> CVarSetBlackBordersEnabled(
 	TEXT("r.BlackBorders"),
-	1,
+	0,
 	TEXT("To draw black borders around the rendered image\n")
 	TEXT("(prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)\n")
 	TEXT("in pixels, 0:off"),
@@ -77,13 +79,14 @@ public:
 	}
 };
 
-UGameViewportClient::UGameViewportClient(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EngineShowFlags(ESFIM_Game)
 	, CurrentBufferVisualizationMode(NAME_None)
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
+	, bHideCursorDuringCapture(false)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -92,7 +95,6 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 	TitleSafeZone.RecommendedPercentY = 0.8f;
 
 	bIsPlayInEditorViewport = false;
-	ProgressFadeTime = 1.0f;
 	ViewModeIndex = VMI_Lit;
 
 	SplitscreenInfo.Init(FSplitscreenData(), ESplitScreenType::SplitTypeCount);
@@ -421,13 +423,10 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
-		UE_LOG(LogTemp, Log, TEXT("MouseLeave"));
 		FIntPoint LastViewportCursorPos;
 		Viewport->GetMousePos(LastViewportCursorPos, false);
-		const FVector2D CurrentCursorPos = FSlateApplication::Get().GetCursorPos();
-		FSlateApplication::Get().SetCursorPos(FVector2D(LastViewportCursorPos.X,LastViewportCursorPos.Y));
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
-		FSlateApplication::Get().SetCursorPos(CurrentCursorPos);
+		FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
+		FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
 	}
 }
 
@@ -507,7 +506,7 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 
 #endif
 
-	if ( !InViewport->HasFocus() || (ViewportConsole && ViewportConsole->ConsoleActive() ) )
+	if (!InViewport->HasMouseCapture() || !InViewport->HasFocus() || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}
@@ -716,7 +715,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 					// Mode is out of range, so display a message to the user, and reset the mode back to the previous valid one
 					UE_LOG(LogConsoleResponse, Warning, TEXT("Buffer visualization mode '%s' does not exist"), *ModeNameString);
 					NewBufferVisualizationMode = CurrentBufferVisualizationMode;
-					ICVar->Set(*NewBufferVisualizationMode.GetPlainNameString());
+					// todo: cvars are user settings, here the cvar state is used to avoid log spam and to auto correct for the user (likely not what the user wants)
+					ICVar->Set(*NewBufferVisualizationMode.GetPlainNameString(), ECVF_SetByCode);
 				}
 				else
 				{
@@ -758,7 +758,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
 	bool bReverbSettingsFound = false;
 	FReverbSettings ReverbSettings;
-	class AReverbVolume* ReverbVolume = NULL;
+	class AAudioVolume* AudioVolume = nullptr;
 
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
@@ -841,16 +841,16 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 								FReverbSettings PlayerReverbSettings;
 								FInteriorSettings PlayerInteriorSettings;
-								class AReverbVolume* PlayerReverbVolume = GetWorld()->GetAudioSettings( ViewLocation, &PlayerReverbSettings, &PlayerInteriorSettings );
+								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings( ViewLocation, &PlayerReverbSettings, &PlayerInteriorSettings );
 
-								if (ReverbVolume == NULL || (PlayerReverbVolume != NULL && PlayerReverbVolume->Priority > ReverbVolume->Priority))
+								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
 								{
-									ReverbVolume = PlayerReverbVolume;
+									AudioVolume = PlayerAudioVolume;
 									ReverbSettings = PlayerReverbSettings;
 								}
 
 								uint32 ViewportIndex = PlayerViewMap.Num()-1;
-								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerReverbVolume, PlayerInteriorSettings);
+								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
 							}
 					
 						}
@@ -866,7 +866,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	if (bReverbSettingsFound)
 	{
-		AudioDevice->SetReverbSettings( ReverbVolume, ReverbSettings );
+		AudioDevice->SetReverbSettings( AudioVolume, ReverbSettings );
 	}
 
 	// Update level streaming.
@@ -952,7 +952,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	// Draw FX debug information.
-	GetWorld()->FXSystem->DrawDebug(SceneCanvas);
+	if (GetWorld()->FXSystem)
+	{
+		GetWorld()->FXSystem->DrawDebug(SceneCanvas);
+	}
 
 	// Render the UI.
 	{
@@ -987,7 +990,28 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 							DebugCanvasObject->SceneView = View;
 							PlayerController->MyHUD->SetCanvas(CanvasObject, DebugCanvasObject);
-							PlayerController->MyHUD->PostRender();
+							if (GEngine->IsStereoscopic3D())
+							{
+								check(GEngine->StereoRenderingDevice.IsValid());
+								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, SceneCanvas, CanvasObject, Viewport);
+								PlayerController->MyHUD->PostRender();
+								SceneCanvas->PopTransform();
+
+								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, SceneCanvas, CanvasObject, Viewport);
+								PlayerController->MyHUD->PostRender();
+								SceneCanvas->PopTransform();
+
+								// Reset the canvas for rendering to the full viewport.
+								CanvasObject->Reset();
+								CanvasObject->SizeX = View->UnscaledViewRect.Width();
+								CanvasObject->SizeY = View->UnscaledViewRect.Height();
+								CanvasObject->SetView(NULL);
+								CanvasObject->Update();
+							}
+							else
+							{
+								PlayerController->MyHUD->PostRender();
+							}
 							
 							// Put these pointers back as if a blueprint breakpoint hits during HUD PostRender they can
 							// have been changed
@@ -1161,7 +1185,13 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 						bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
 						SourceRect = GetHighResScreenshotConfig().CaptureRegion;
 					}
-					FFileHelper::CreateBitmap(*ScreenShotName, InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap.GetTypedData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
+
+					if (!FPaths::GetExtension(ScreenShotName).IsEmpty())
+					{
+						ScreenShotName = FPaths::GetBaseFilename(ScreenShotName, false);
+						ScreenShotName += TEXT(".bmp");
+					}
+					FFileHelper::CreateBitmap(*ScreenShotName, InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 				}
 			}
 		}
@@ -1219,8 +1249,6 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
-	InViewport->CaptureJoystickInput(true);
-
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
@@ -1237,6 +1265,9 @@ void UGameViewportClient::CloseRequested(FViewport* InViewport)
 	check(InViewport == Viewport);
 
 	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
+	
+	// broadcast close request to anyone that registered an interest
+	CloseRequestedDelegate.ExecuteIfBound(InViewport);
 
 	SetViewportFrame(NULL);
 
@@ -2373,7 +2404,7 @@ bool UGameViewportClient::HandlePrevViewModeCommand( const TCHAR* Cmd, FOutputDe
 #if WITH_EDITOR
 bool UGameViewportClient::HandleShowMouseCursorCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 	FSlateApplication::Get().ResetToDefaultInputSettings();
 	return true;
 }
@@ -2426,12 +2457,21 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-#if PLATFORM_MAC // @TODO: Fullscreen mode isn't working fully on OS X as it requires explicit CGL back-buffer size and mouse<->display coordinate conversions.
-				 // For now use the windowed fullscreen mode which merely stretches to fill the display, which is what OS X does for us by default.
-	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::WindowedFullscreen);
-#else
-	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen);
-#endif
+	auto FullScreenMode = GetBoundFullScreenModeCVar() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
+	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+	{
+		if (!GEngine->HMDDevice->IsFullscreenAllowed())
+		{
+			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::WindowedMirror;
+		}
+		else
+		{
+			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
+		}
+	}
+	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, FullScreenMode);
+	return true;
 }
 
 bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -2443,7 +2483,7 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		int32 Y=FCString::Atoi(CmdTemp);
 		Cmd = CmdTemp;
 		EWindowMode::Type WindowMode;
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled() && !GEngine->HMDDevice->IsFullScreenAllowed())
+		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled() && !GEngine->HMDDevice->IsFullscreenAllowed())
 		{
 			WindowMode = Viewport->IsFullscreen() ? EWindowMode::WindowedMirror : EWindowMode::Windowed;
 		}
@@ -2505,7 +2545,9 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 	if(Viewport)
 	{
 		const bool bShowUI = FParse::Command(&Cmd, TEXT("SHOWUI"));
-		FScreenshotRequest::RequestScreenshot( bShowUI );
+		//		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
+		// PNG is disabled for now as it breaks "shot" command in game, see UE-5780 
+		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("bmp") );
 
 		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;

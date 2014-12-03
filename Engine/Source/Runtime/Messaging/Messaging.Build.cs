@@ -9,17 +9,10 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
+					"Core",
 					"CoreUObject",
 				}
 			); 
-			
-			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"Core",
-					"Sockets",
-				}
-			);
 
 			PrivateIncludePaths.AddRange(
 				new string[] {

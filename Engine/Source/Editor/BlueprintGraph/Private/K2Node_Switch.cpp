@@ -38,11 +38,10 @@ public:
 
 		// Create a term to determine if the compare was successful or not
 		//@TODO: Ideally we just create one ever, not one per switch
-		FBPTerminal* BoolTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
 		BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 		BoolTerm->Source = Node;
 		BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CmpSuccess");
-		BoolTerm->bIsLocal = true;
 		BoolTermMap.Add(Node, BoolTerm);
 	}
 
@@ -135,8 +134,8 @@ private:
 	FEdGraphPinType ExpectedSelectionPinType;
 };
 
-UK2Node_Switch::UK2Node_Switch(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Switch::UK2Node_Switch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bHasDefaultPin = true;

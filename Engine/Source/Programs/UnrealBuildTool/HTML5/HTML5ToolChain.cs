@@ -11,76 +11,17 @@ namespace UnrealBuildTool
 {
 	class HTML5ToolChain : VCToolChain
 	{
+        static string EMCCPath;
+        static string PythonPath;
+
 		// cache the location of SDK tools
-		static string EMCCPath;
-		static string PythonPath;
-        static string EmscriptenSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "/.emscripten");
-
-        Dictionary<string, string> ReadEmscriptenSettings()
-        {
-            // Check HTML5ToolChain.cs for duplicate
-            if (!System.IO.File.Exists(EmscriptenSettingsPath))
-            {
-                return new Dictionary<string, string>();
-            }
-
-            Dictionary<string, string> Settings = new Dictionary<string, string>();
-            System.IO.StreamReader SettingFile = new System.IO.StreamReader(EmscriptenSettingsPath);
-            string EMLine = null;
-            while ((EMLine = SettingFile.ReadLine()) != null)
-            {
-                EMLine = EMLine.Split('#')[0];
-                string Pattern1 = @"(\w*)\s*=\s*['\[]?([^'\]\r\n]*)['\]]?";
-                Regex Rgx = new Regex(Pattern1, RegexOptions.IgnoreCase);
-                MatchCollection Matches = Rgx.Matches(EMLine);
-                foreach (Match Matched in Matches)
-                {
-                    if (Matched.Groups.Count == 3 && Matched.Groups[2].ToString() != "")
-                    {
-                        Settings[Matched.Groups[1].ToString()] = Matched.Groups[2].ToString();
-                    }
-                }
-            }
-
-            return Settings;
-        }
-
 		public override void RegisterToolChain()
 		{
-			// Make sure the SDK is installed
-            // look up installed SDK. 
-			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			if (!String.IsNullOrEmpty(BaseSDKPath))
-			{
-				BaseSDKPath = BaseSDKPath.Replace("\"", "");
-				if (!String.IsNullOrEmpty(BaseSDKPath))
-                {
-                    var EmscriptenSettings = ReadEmscriptenSettings();
-					EMCCPath = Path.Combine(BaseSDKPath, "emcc");
-					// also figure out where python lives (if no envvar, assume it's in the path)
-                    if (EmscriptenSettings.ContainsKey("PYTHON"))
-                    {
-                        PythonPath = EmscriptenSettings["PYTHON"];
-                    }
-                    else
-                    {
-                        PythonPath = Environment.GetEnvironmentVariable("PYTHON");
-                    }
+            if (HTML5SDKInfo.IsSDKInstalled() && HTML5SDKInfo.IsPythonInstalled())
+            {
+                    EMCCPath = "\"" + HTML5SDKInfo.EmscriptenCompiler() + "\"";
+					PythonPath = HTML5SDKInfo.PythonPath(); 
 
-                    string PythonExeName = Utils.IsRunningOnMono ? "python" : "python.exe";
-
-					if (PythonPath == null)
-					{
-                        PythonPath = PythonExeName;
-					}
-                    else
-                    {
-                        if (!PythonPath.EndsWith(PythonExeName))
-                        {
-                            PythonPath += "/" + PythonExeName;
-                        }
-                    }
-                    EMCCPath = "\"" + EMCCPath + "\"";
 					// set some environment variable we'll need
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
 					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
@@ -89,7 +30,8 @@ namespace UnrealBuildTool
 					// finally register the toolchain that is now ready to go
                     Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
 					UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
-				}
+
+   
 			}
 		}
 
@@ -133,7 +75,7 @@ namespace UnrealBuildTool
             // we want full ES2
             Result += " -s FULL_ES2=1 ";
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
-            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game']\" ";
+            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game', '_on_fatal']\" ";
 
             // NOTE: This may slow down the compiler's startup time!
             { 
@@ -405,7 +347,7 @@ namespace UnrealBuildTool
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
 				CompileAction.CommandPath = PythonPath;
 
-				CompileAction.CommandArguments = EMCCPath + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandArguments = EMCCPath + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 
                 System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);

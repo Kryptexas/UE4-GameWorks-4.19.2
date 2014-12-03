@@ -14,7 +14,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "IHeadMountedDisplay.h"
 #include "IForceFeedbackSystem.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
 #include "Matinee/InterpTrackInstDirector.h"
@@ -27,6 +27,7 @@
 #include "Camera/CameraActor.h"
 #include "GenericPlatform/IForceFeedbackSystem.h"
 #include "Engine/InputDelegateBinding.h"
+#include "SVirtualJoystick.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -37,8 +38,8 @@ const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 //////////////////////////////////////////////////////////////////////////
 // APlayerController
 
-APlayerController::APlayerController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, SlateOperations(FReply::Unhandled())
 {
 	NetPriority = 3.0f;
@@ -49,6 +50,7 @@ APlayerController::APlayerController(const class FPostConstructInitializePropert
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	PrimaryActorTick.bTickEvenWhenPaused = true;
 	bShouldPerformFullTickWhenPaused = false;
+	bSpeaking = false;
 	LastRetryPlayerTime = 0.f;
 	DefaultMouseCursor = EMouseCursor::Default;
 	DefaultClickTraceChannel = ECollisionChannel::ECC_Visibility;
@@ -758,7 +760,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 
 		GetPawn()->SetActorTickEnabled(true);
 
-		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
+		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
 		if (NetworkPredictionInterface)
 		{
 			NetworkPredictionInterface->ResetPredictionData_Server();
@@ -1477,7 +1479,7 @@ void APlayerController::SendClientAdjustment()
 	APawn* RemotePawn = GetPawnOrSpectator();
 	if (RemotePawn && (GetNetMode() < NM_Client) && (RemotePawn->GetRemoteRole() == ROLE_AutonomousProxy))
 	{
-		INetworkPredictionInterface* NetworkPredictionInterface = InterfaceCast<INetworkPredictionInterface>(RemotePawn->GetMovementComponent());
+		INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(RemotePawn->GetMovementComponent());
 		if (NetworkPredictionInterface)
 		{
 			NetworkPredictionInterface->SendClientAdjustment();
@@ -1591,7 +1593,7 @@ void APlayerController::ClientReturnToMainMenu_Implementation(const FString& Ret
 bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 {
 	bool bResult = false;
-	if (GetNetMode() == NM_Standalone)
+	if (GetNetMode() != NM_Client)
 	{
 		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
 		if (bPause)
@@ -1822,7 +1824,7 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 	return bHit;
 }
 
-bool APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const
+bool APlayerController::DeprojectMousePositionToWorld(FVector& WorldLocation, FVector& WorldDirection) const
 {
 	bool bSuccessfulDeproject = false;
 
@@ -1839,7 +1841,7 @@ bool APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, F
 	return bSuccessfulDeproject;
 }
 
-bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const
+bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const
 {
 	bool bSuccessfulDeproject = false;
 
@@ -2116,7 +2118,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 				}
 				if( GetHUD() )
 				{
-					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(MousePosition, EventType, false))
+					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(MousePosition, EventType))
 					{
 						ClickedPrimitive = NULL;
 					}
@@ -2179,7 +2181,7 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 			{
 				if (Type == ETouchType::Began || Type == ETouchType::Ended)
 				{
-					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(TouchLocation, (Type == ETouchType::Began ? EInputEvent::IE_Pressed : EInputEvent::IE_Released), true))
+					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(TouchLocation, (Type == ETouchType::Began ? EInputEvent::IE_Pressed : EInputEvent::IE_Released)))
 					{
 						CurrentComponent = NULL;
 					}
@@ -2740,6 +2742,11 @@ void APlayerController::ClientIgnoreLookInput_Implementation(bool bIgnore)
 	SetIgnoreLookInput(bIgnore);
 }
 
+void APlayerController::ClientNotifyRejectedAbilityConfirmation_Implementation(int32 InputID)
+{
+	//TODO: Hook UI notification here. Might be good to include a cooldown on this.
+}
+
 
 void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
@@ -2978,8 +2985,14 @@ void APlayerController::StopTalking()
 	ToggleSpeaking(false);
 }
 
+bool APlayerController::IsTalking()
+{
+	return bSpeaking;
+}
+
 void APlayerController::ToggleSpeaking(bool bSpeaking)
 {
+	this->bSpeaking = bSpeaking;
 	ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
 	if (LP != NULL)
 	{
@@ -3626,6 +3639,9 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)
 {
+	check(PlayerInput);
+	PlayerInput->Tick(DeltaSeconds);
+
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
 		if (bEnableMouseOverEvents)
@@ -3666,21 +3682,26 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 		}
 	}
 
-	if (PlayerInput != NULL)
-	{
-		ProcessPlayerInput(DeltaSeconds, bGamePaused);
-		ProcessForceFeedback(DeltaSeconds, bGamePaused);
-	}
+	ProcessPlayerInput(DeltaSeconds, bGamePaused);
+	ProcessForceFeedback(DeltaSeconds, bGamePaused);
 }
 
 void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunction& ThisTickFunction )
 {
 	if (TickType == LEVELTICK_PauseTick && !ShouldPerformFullTickWhenPaused())
 	{
-		TickPlayerInput(DeltaSeconds, true);
+		if (PlayerInput)
+		{
+			TickPlayerInput(DeltaSeconds, true);
+		}
 
 		// Clear axis inputs from previous frame.
 		RotationInput = FRotator::ZeroRotator;
+
+		if (!IsPendingKill())
+		{
+			Tick(DeltaSeconds);	// perform any tick functions unique to an actor subclass
+		}
 
 		return; //root of tick hierarchy
 	}
@@ -3694,7 +3715,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 		// skip updates if pawn lost autonomous proxy role (e.g. TurnOff() call)
 		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy)
 		{
-			INetworkPredictionInterface* NetworkPredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
+			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
 			if (NetworkPredictionInterface)
 			{
 				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();
@@ -3725,14 +3746,13 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 	else if (Role > ROLE_SimulatedProxy)
 	{
 		// Process PlayerTick with input.
-		if (!PlayerInput)
+		if (!PlayerInput && (Player == NULL || Cast<ULocalPlayer>( Player ) != NULL))
 		{
 			InitInputSystem();
 		}
 
 		if (PlayerInput)
 		{
-			PlayerInput->Tick(DeltaSeconds);
 			PlayerTick(DeltaSeconds);
 		}
 
@@ -4250,11 +4270,7 @@ void FInputModeDataBase::SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<
 {
 	if (InWidgetToFocus.IsValid())
 	{
-		SlateOperations.CaptureJoystick(InWidgetToFocus.ToSharedRef());
-	}
-	else
-	{
-		SlateOperations.ReleaseJoystickCapture();
+		SlateOperations.SetUserFocus(InWidgetToFocus.ToSharedRef());
 	}
 
 	if (bLockMouseToViewport)
@@ -4291,6 +4307,7 @@ void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, class UGameVie
 		SlateOperations.ReleaseMouseCapture();
 
 		GameViewportClient.SetIgnoreInput(false);
+		GameViewportClient.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
 	}
 }
@@ -4302,9 +4319,8 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 	{
 		TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
 		SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
-		SlateOperations.CaptureJoystick(ViewportWidgetRef);
+		SlateOperations.SetUserFocus(ViewportWidgetRef);
 		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
-		SlateOperations.SetKeyboardFocus(ViewportWidgetRef, EKeyboardFocusCause::SetDirectly);
 		GameViewportClient.SetIgnoreInput(false);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
 	}

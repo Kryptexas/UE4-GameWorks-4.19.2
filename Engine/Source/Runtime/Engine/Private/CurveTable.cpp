@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/CurveTable.h"
 #include "Json.h"
 #include "CsvParser.h"
 
@@ -12,8 +13,8 @@ DECLARE_CYCLE_STAT(TEXT("CurveTableRowHandle Eval"),STAT_CurveTableRowHandleEval
 
 
 //////////////////////////////////////////////////////////////////////////
-UCurveTable::UCurveTable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveTable::UCurveTable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

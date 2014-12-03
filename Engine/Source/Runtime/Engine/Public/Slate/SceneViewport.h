@@ -44,7 +44,7 @@ public:
 	 *
 	 * @param Capture	true if we should capture, false if we should uncapture
 	 */
-	virtual bool CaptureJoystickInput(bool Capture) override;
+	virtual bool SetUserFocus(bool bFocus) override;
 
 	/**
 	 * Returns the state of the provided key. 
@@ -82,7 +82,7 @@ public:
 	 * Additional input processing that happens every frame                   
 	 */
 	virtual void ProcessInput( float DeltaTime ) override;
-
+	
 	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override;
 	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override;
 
@@ -120,7 +120,7 @@ public:
 	/**
 	 * Ticks the viewport
 	 */
-	virtual void Tick( float DeltaTime );
+	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime ) override;
 
 	/**
 	 * Performs a resize when in swapping viewports while viewing the play world.
@@ -195,22 +195,23 @@ public:
 	virtual FReply OnMouseMove( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
-	virtual FReply OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
-	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
-	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
 	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& InGestureEvent ) override;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
-	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual void OnFinishedPointerInput() override;
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual FReply OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent ) override;
 	virtual FReply OnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharacterEvent ) override;
-	virtual FReply OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual FReply OnFocusReceived( const FFocusEvent& InFocusEvent ) override;
+	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnViewportClosed() override;
 	virtual FIntPoint GetSize() const override { return GetSizeXY(); }
 	
+	void SetViewportSize(uint32 NewSizeX,uint32 NewSizeY);
+	TSharedPtr<SWindow> FindWindow();
 private:
 	/**
 	 * Called when this viewport is destroyed
@@ -237,6 +238,10 @@ private:
 	 */
 	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY );
 
+	/**
+	 * Called from slate when input is finished for this frame, and we should process any accumulated mouse data.
+	 */
+	void ProcessAccumulatedPointerInput();
 
 	/**
 	 * Updates the cached mouse position from a mouse event
@@ -311,6 +316,8 @@ private:
 	bool bPlayInEditorGetsMouseControl;
 	/** Whether the PIE viewport is currently in simulate in editor mode */
 	bool bPlayInEditorIsSimulate;
+	/** Whether or not the cursor is hidden when the viewport captures the mouse */
+	bool bCursorHiddenDueToCapture;
 };
 
 

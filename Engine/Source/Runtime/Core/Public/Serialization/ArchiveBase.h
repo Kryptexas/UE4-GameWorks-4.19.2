@@ -1,13 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ArchiveBase.h: Implements the FArchive class and related types.
-=============================================================================*/
-
 #pragma once
 
+#include "Containers/EnumAsByte.h"
+#include "HAL/PlatformProperties.h"
+#include "Misc/Compression.h"
 
+
+class FAssetPtr;
 class FCustomVersionContainer;
+class FLazyObjectPtr;
+struct FStringAssetReference;
 struct FUntypedBulkData;
 
 
@@ -19,26 +22,21 @@ class CORE_API FArchive
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FArchive();
 
-	/**
-	 * Copy constructor.
-	 */
+	/** Copy constructor. */
 	FArchive(const FArchive&);
 
 	/**
 	 * Copy assignment operator.
+	 *
+	 * @param ArchiveToCopy The archive to copy from.
 	 */
-	FArchive& operator=(const FArchive&);
+	FArchive& operator=(const FArchive& ArchiveToCopy);
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	virtual ~FArchive();
-
 
 public:
 
@@ -47,8 +45,7 @@ public:
 	 *
 	 * This operator can be implemented by sub-classes that wish to serialize FName instances.
 	 *
-	 * @param Value - The value to serialize.
-	 *
+	 * @param Value The value to serialize.
 	 * @return This instance.
 	 */
 	virtual FArchive& operator<<(class FName& Value)
@@ -61,8 +58,7 @@ public:
 	 *
 	 * This operator can be implemented by sub-classes that wish to serialize UObject instances.
 	 *
-	 * @param Value - The value to serialize.
-	 *
+	 * @param Value The value to serialize.
 	 * @return This instance.
 	 */
 	virtual FArchive& operator<<(class UObject*& Value)
@@ -75,8 +71,7 @@ public:
 	 *
 	 * Most of the time, FLazyObjectPtrs are serialized as UObject*, but some archives need to override this.
 	 *
-	 * @param Value - The value to serialize.
-	 *
+	 * @param Value The value to serialize.
 	 * @return This instance.
 	 */
 	virtual FArchive& operator<<(class FLazyObjectPtr& Value);
@@ -86,8 +81,7 @@ public:
 	 *
 	 * Most of the time, FAssetPtrs are serialized as UObject *, but some archives need to override this.
 	 *
-	 * @param Value - The asset pointer to serialize.
-	 *
+	 * @param Value The asset pointer to serialize.
 	 * @return This instance.
 	 */
 	virtual FArchive& operator<<(class FAssetPtr& Value);
@@ -96,19 +90,17 @@ public:
 	 * Serializes string asset reference from or into this archive.
 	 *
 	 * @param Value String asset reference to serialize.
-	 *
 	 * @return This instance.
 	 */
 	virtual FArchive& operator<<(struct FStringAssetReference& Value);
-
 
 public:
 
 	/**
 	 * Serializes an ANSICHAR value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, ANSICHAR& Value)
 	{
@@ -120,8 +112,8 @@ public:
 	/**
 	 * Serializes a WIDECHAR value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, WIDECHAR& Value)
 	{
@@ -133,8 +125,8 @@ public:
 	/**
 	 * Serializes an unsigned 8-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, uint8& Value)
 	{
@@ -146,8 +138,8 @@ public:
 	/**
 	 * Serializes an enumeration value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	template<class TEnum>
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TEnumAsByte<TEnum>& Value)
@@ -160,8 +152,8 @@ public:
 	/**
 	 * Serializes a signed 8-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, int8& Value)
 	{
@@ -173,8 +165,8 @@ public:
 	/**
 	 * Serializes an unsigned 16-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, uint16& Value)
 	{
@@ -186,8 +178,8 @@ public:
 	/**
 	 * Serializes a signed 16-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, int16& Value)
 	{
@@ -199,8 +191,8 @@ public:
 	/**
 	 * Serializes an unsigned 32-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, uint32& Value)
 	{
@@ -212,8 +204,8 @@ public:
 	/**
 	 * Serializes a Boolean value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<( FArchive& Ar, bool& D )
 	{
@@ -227,8 +219,8 @@ public:
 	/**
 	 * Serializes a signed 32-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, int32& Value)
 	{
@@ -241,8 +233,8 @@ public:
 	/**
 	 * Serializes a long integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, long& Value)
 	{
@@ -255,8 +247,8 @@ public:
 	/**
 	 * Serializes a single precision floating point value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<( FArchive& Ar, float& Value)
 	{
@@ -268,8 +260,8 @@ public:
 	/**
 	 * Serializes a double precision floating point value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, double& Value)
 	{
@@ -281,8 +273,8 @@ public:
 	/**
 	 * Serializes a unsigned 64-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive &Ar, uint64& Value)
 	{
@@ -294,8 +286,8 @@ public:
 	/**
 	 * Serializes a signed 64-bit integer value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	/*FORCEINLINE*/friend FArchive& operator<<(FArchive& Ar, int64& Value)
 	{
@@ -307,16 +299,16 @@ public:
 	/**
 	 * Serializes an FIntRect value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	friend FArchive& operator<<(FArchive& Ar, struct FIntRect& Value);
 
 	/**
 	 * Serializes an FString value from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or to.
-	 * @param Value - The value to serialize.
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
 	 */
 	friend CORE_API FArchive& operator<<(FArchive& Ar, FString& Value);
 
@@ -347,21 +339,22 @@ public:
 
 	virtual void CountBytes(SIZE_T InNum, SIZE_T InMax) { }
 
-
 	/**
   	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
 	 * is in when a loading error occurs.
 	 *
 	 * This is overridden for the specific Archive Types
-	 **/
+	 */
 	virtual FString GetArchiveName() const;
 
 	/**
 	 * If this archive is a ULinkerLoad or ULinkerSave, returns a pointer to the ULinker portion.
+	 *
+	 * @return The linker, or nullptr if the archive is not a linker.
 	 */
 	virtual class ULinker* GetLinker()
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	virtual int64 Tell()
@@ -493,41 +486,31 @@ public:
 		return *this;
 	}
 
-	/**
-	 * Sets a flag indicating that this archive contains code.
-	 */
+	/** Sets a flag indicating that this archive contains code. */
 	void ThisContainsCode()
 	{
 		ArContainsCode = true;
 	}
 
-	/**
-	 * Sets a flag indicating that this archive contains a ULevel or UWorld object.
-	 */
+	/** Sets a flag indicating that this archive contains a ULevel or UWorld object. */
 	void ThisContainsMap() 
 	{
 		ArContainsMap = true;
 	}
 
-	/**
-	 * Sets a flag indicating that this archive contains data required to be gathered for localization.
-	 */
+	/** Sets a flag indicating that this archive contains data required to be gathered for localization. */
 	void ThisRequiresLocalizationGather()
 	{
 		ArRequiresLocalizationGather = true;
 	}
 
-	/**
-	 * Sets a flag indicating that this archive is currently serializing class/struct defaults
-	 */
+	/** Sets a flag indicating that this archive is currently serializing class/struct defaults. */
 	void StartSerializingDefaults() 
 	{
 		ArSerializingDefaults++;
 	}
 
-	/**
-	 * Indicate that this archive is no longer serializing class/struct defaults
-	 */
+	/** Indicate that this archive is no longer serializing class/struct defaults. */
 	void StopSerializingDefaults() 
 	{
 		ArSerializingDefaults--;
@@ -573,15 +556,14 @@ public:
 	 * Registers the custom version to the archive.  This is used to inform the archive that custom version information is about to be stored.
 	 * There is no effect when the archive is being loaded from.
 	 *
-	 * @param Guid - The guid of the custom version.  This must have previously been registered with FCustomVersionRegistration.
+	 * @param Guid The guid of the custom version.  This must have previously been registered with FCustomVersionRegistration.
 	 */
 	void UsingCustomVersion(FGuid Guid);
 
 	/**
 	 * Queries a custom version from the archive.  If the archive is being used to write, the custom version must have already been registered.
 	 *
-	 * @param Key - The guid of the custom version to query.
-	 *
+	 * @param Key The guid of the custom version to query.
 	 * @return The version number, or 0 if the custom tag isn't stored in the archive.
 	 */
 	int32 CustomVer(FGuid Key) const;
@@ -775,9 +757,7 @@ public:
 	 */
 	void SetCustomVersions(const FCustomVersionContainer& CustomVersionContainer);
 
-	/**
-	 * Resets the custom version numbers for this archive.
-	 */
+	/** Resets the custom version numbers for this archive. */
 	void ResetCustomVersions();
 
 	/**
@@ -821,11 +801,10 @@ public:
 	}
 
 	/**
-	 * Returns if an async close operation has finished or not, as well as if there was an error
+	 * Returns if an async close operation has finished or not, as well as if there was an error.
 	 *
-	 * @param bHasError true if there was an error
-	 *
-	 * @return true if the close operation is complete (or if Close is not an async operation) 
+	 * @param bHasError true if there was an error.
+	 * @return true if the close operation is complete (or if Close is not an async operation).
 	 */
 	virtual bool IsCloseComplete(bool& bHasError)
 	{
@@ -847,7 +826,7 @@ public:
 	/**
 	 * Sets a flag indicating that this archive needs to filter editor-only content.
 	 *
-	 * @param InFilterEditorOnly - Whether to filter editor-only content.
+	 * @param InFilterEditorOnly Whether to filter editor-only content.
 	 */
 	virtual void SetFilterEditorOnly(bool InFilterEditorOnly)
 	{
@@ -889,7 +868,7 @@ public:
 	/**
 	 * Sets the cooking target platform.
 	 *
-	 * @param InCookingTarget - The target platform to set.
+	 * @param InCookingTarget The target platform to set.
 	 */
 	FORCEINLINE void SetCookingTarget(const class ITargetPlatform* InCookingTarget) 
 	{
@@ -907,22 +886,39 @@ public:
 		return false;
 	}
 
-protected:
+	/**
+	 * Sets the property that is currently being serialized
+	 * 
+	 * @param InProperty Pointer to the property that is currently being serialized
+	 */
+	FORCEINLINE void SetSerializedProperty(class UProperty* InProperty)
+	{
+		SerializedProperty = InProperty;
+	}
 
 	/**
-	 * Resets all of the base archive members
+	 * Gets the property that is currently being serialized
+	 *
+	 * @return Pointer to the property that is currently being serialized
 	 */
+	FORCEINLINE class UProperty* GetSerializedProperty() const
+	{
+		return SerializedProperty;
+	}
+
+protected:
+
+	/** Resets all of the base archive members. */
 	void Reset();
 
-
 private:
+
 	/** Copies all of the members except CustomVersionContainer */
 	void CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveStatusToCopy);
 
-
 protected:
 
-	// Status variables.
+	/** Status variables. */
 	int32 ArUE3Ver;
 
 	/** Holds the archive's network version. */
@@ -935,6 +931,7 @@ protected:
 	int32 ArLicenseeUE4Ver;
 
 private:
+
 	/**
 	 * All the custom versions stored in the archive.
 	 * Stored as a pointer to a heap-allocated object because of a 3-way dependency between TArray, FCustomVersionContainer and FArchive, which is too much work to change right now.
@@ -942,6 +939,7 @@ private:
 	FCustomVersionContainer* CustomVersionContainer;
 
 public:
+
 	/** Whether this archive is for loading data. */
 	bool ArIsLoading;
 	
@@ -1022,8 +1020,11 @@ public:
 	
 private:
 
-	// Holds the cooking target platform.
+	/** Holds the cooking target platform. */
 	const ITargetPlatform* CookingTargetPlatform;
+
+	/** Holds the pointer to the property that is currently being serialized */
+	class UProperty* SerializedProperty;
 
 	/**
 	 * Indicates if the custom versions container is in a 'reset' state.  This will be used to defer the choice about how to
@@ -1056,7 +1057,7 @@ public:
 	/**
 	 * Creates and initializes a new instance of the archive proxy.
 	 *
-	 * @param InInnerArchive - The inner archive to proxy.
+	 * @param InInnerArchive The inner archive to proxy.
 	 */
 	CORE_API FArchiveProxy(FArchive& InInnerArchive);
 
@@ -1177,12 +1178,9 @@ public:
 		return InnerArchive.IsCloseComplete(bHasError);
 	}
 
-
 protected:
 
-	/**
-	 * Holds the archive that this archive is a proxy to.
-	 */
+	/** Holds the archive that this archive is a proxy to. */
 	FArchive& InnerArchive;
 };
 
@@ -1195,7 +1193,7 @@ struct FNameAsStringProxyArchive : public FArchiveProxy
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InInnerArchive - The inner archive to proxy.
+	 * @param InInnerArchive The inner archive to proxy.
 	 */
 	 FNameAsStringProxyArchive(FArchive& InInnerArchive)
 		 :	FArchiveProxy(InInnerArchive)
@@ -1204,6 +1202,7 @@ struct FNameAsStringProxyArchive : public FArchiveProxy
 	 CORE_API virtual FArchive& operator<<(class FName& N);
 };
 
+
 /**
  * Implements a helper structure for compression support
  *
@@ -1211,14 +1210,10 @@ struct FNameAsStringProxyArchive : public FArchiveProxy
  */
 struct FCompressedChunkInfo
 {
-	/**
-	 * Holds the data's compressed size.
-	 */
+	/** Holds the data's compressed size. */
 	int64 CompressedSize;
 
-	/**
-	 * Holds the data's uncompresses size.
-	 */
+	/** Holds the data's uncompresses size. */
 	int64 UncompressedSize;
 };
 
@@ -1226,7 +1221,7 @@ struct FCompressedChunkInfo
 /**
  * Serializes an FCompressedChunkInfo value from or into an archive.
  *
- * @param Ar - The archive to serialize from or to.
- * @param Value - The value to serialize.
+ * @param Ar The archive to serialize from or to.
+ * @param Value The value to serialize.
  */
 CORE_API FArchive& operator<<(FArchive& Ar, FCompressedChunkInfo& Value);

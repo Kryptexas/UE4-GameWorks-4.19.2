@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SNotificationList.h"
+#include "SHyperlink.h"
+#include "SThrobber.h"
 
 
 /////////////////////////////////////////////////
@@ -505,6 +508,18 @@ public:
 	virtual void SetExpireDuration(float Duration)
 	{
 		ExpireDuration = Duration;
+	}
+
+	/** Sets the FadeInDuration */
+	virtual void SetFadeInDuration(float Duration)
+	{
+		FadeInDuration = Duration;
+	}
+
+	/** Sets the FadeOutDuration */
+	virtual void SetFadeOutDuration(float Duration)
+	{
+		FadeOutDuration = Duration;
 	}
 
 protected:

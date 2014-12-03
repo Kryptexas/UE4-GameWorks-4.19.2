@@ -5,8 +5,8 @@
 #include "Sound/AudioSettings.h"
 #include "AudioDevice.h"
 
-USoundBase::USoundBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxConcurrentPlayCount = 16;
 }

@@ -73,9 +73,11 @@ class STutorialContent : public SCompoundWidget
 	/** SWidget implementation */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 
 	/** Helper function to generate widgets from an FTutorialContent struct */
-	static TSharedRef<SWidget> GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage, const TAttribute<FText>& InHighlightText = TAttribute<FText>());
+	static TSharedRef<SWidget> GenerateContentWidget(const FTutorialContent& InContent, TSharedPtr<IDocumentationPage>& OutDocumentationPage, const TAttribute<FText>& InHighlightText = TAttribute<FText>(), bool bAutoWrapText = true, float WrapTextAt = 0.0f);
 
 	/** Handle repositioning the widget */
 	FVector2D GetPosition() const;
@@ -142,7 +144,7 @@ private:
 	/** Delegate handler allowing us to change the tootlip of the 'next' button depending on context */
 	FText GetNextButtonTooltip() const;
 
-	/** Chage next button color based on hover state */
+	/** Change next button color based on hover state */
 	FText GetNextButtonLabel() const;
 
 	/** We need to override the border ourselves, rather than let the button handle it, as we are using a larger apparent hitbox */

@@ -46,7 +46,6 @@ FPropertyNode::FPropertyNode(void)
 	, MaxChildDepthAllowed(FPropertyNodeConstants::NoDepthRestrictions)
 	, PropertyNodeFlags (EPropertyNodeFlags::NoFlags)
 	, bRebuildChildrenRequested( false )
-	, bIsHighlighted( false )
 {
 }
 
@@ -129,7 +128,7 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 
 		// true if the property can be expanded into the property window; that is, instead of seeing
 		// a pointer to the object, you see the object's properties.
-		const bool bEditInline = ( (MyProperty->PropertyFlags&CPF_EditInline) && bIsObjectOrInterface && GotReadAddresses );
+		const bool bEditInline = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(TEXT("EditInline"));
 		SetNodeFlags(EPropertyNodeFlags::EditInline, bEditInline);
 
 		//Get the property max child depth
@@ -555,20 +554,6 @@ bool FPropertyNode::IsEditConst() const
 						bIsEditConst = true;
 						break;
 					}
-					/*else
-					{
-						// If 
-						if ( const FPropertyNode* ObjectParentNode = ObjectPropertyNode->GetParentNode() )
-						{
-							if ( const UProperty* ParentProperty = ObjectParentNode->GetProperty() )
-							{
-								if ( ParentProperty->PropertyFlags & CPF_EditInline )
-								{
-									return ObjectParentNode->IsEditConst();
-								}
-							}
-						}
-					}*/
 				}
 			}
 		}
@@ -1026,7 +1011,7 @@ struct FPropertyItemComponentCollector
 	{
 		if ( Property != NULL )
 		{
-			bContainsEditInlineNew |= (Property->PropertyFlags&CPF_EditInline) != 0 && (Property->PropertyFlags & CPF_EditConst) == 0;
+			bContainsEditInlineNew |= Property->HasMetaData(TEXT("EditInline")) && ((Property->PropertyFlags & CPF_EditConst) == 0);
 
 			if ( ProcessObjectProperty(Cast<UObjectPropertyBase>(Property), PropertyValueAddress) )
 			{
@@ -1594,8 +1579,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		{
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
-			const bool bTopologyChange = true;
-			FPropertyChangedEvent ChangeEvent( TheProperty, bTopologyChange );
+			FPropertyChangedEvent ChangeEvent( TheProperty );
 			NotifyPostChange( ChangeEvent, InNotifyHook );
 		}
 
@@ -1902,7 +1886,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 					if (CurProperty != InPropertyChangedEvent.Property)
 					{
 						//parent object node property.  Reset other internals and leave the event type as unspecified
-						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.bChangesTopology, InPropertyChangedEvent.ChangeType);
+						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.ChangeType);
 					}
 					ChangedEvent.ObjectIteratorIndex = CurrentObjectIndex;
 					Object->PostEditChangeProperty( ChangedEvent );
@@ -1913,7 +1897,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 					if (CurProperty != InPropertyChangedEvent.Property)
 					{
 						//parent object node property.  Reset other internals and leave the event type as unspecified
-						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.bChangesTopology, InPropertyChangedEvent.ChangeType);
+						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.ChangeType);
 					}
 					FPropertyChangedChainEvent ChainEvent(*PropertyChain, ChangedEvent);
 					ChainEvent.ObjectIteratorIndex = CurrentObjectIndex;

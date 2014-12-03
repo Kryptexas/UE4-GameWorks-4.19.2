@@ -36,7 +36,7 @@ struct FGPUSortBuffers
  * @param Count - How many items in the buffer need to be sorted.
  * @returns The index of the buffer containing sorted results.
  */
-int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 KeyMask, int32 Count);
+int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 KeyMask, int32 Count, ERHIFeatureLevel::Type FeatureLevel);
 
 /**
  * GPU sorting tests.
@@ -56,4 +56,4 @@ enum EGPUSortTest
  * Test that GPU sorting works.
  * @param TestToRun - The test to run.
  */
-void TestGPUSort(EGPUSortTest TestToRun);
+void TestGPUSort(EGPUSortTest TestToRun, ERHIFeatureLevel::Type FeatureLevel);

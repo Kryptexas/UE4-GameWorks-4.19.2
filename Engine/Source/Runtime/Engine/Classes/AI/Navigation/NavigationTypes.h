@@ -11,9 +11,6 @@
 #define DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL 50.f
 #define DEFAULT_NAV_QUERY_EXTENT_VERTICAL 100.f
 
-/** Whether to compile in navigation data generation - should be compiled at least when WITH_EDITOR is true */
-#define WITH_NAVIGATION_GENERATOR (WITH_RECAST || WITH_EDITOR)
-
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
 
@@ -68,9 +65,10 @@ namespace ENavigationDirtyFlag
 {
 	enum Type
 	{
-		Geometry		= (1 << 0),
-		DynamicModifier	= (1 << 1),
-		UseAgentHeight  = (1 << 2),
+		Geometry			= (1 << 0),
+		DynamicModifier		= (1 << 1),
+		UseAgentHeight		= (1 << 2),
+		NavigationBounds	= (1 << 3),
 
 		All				= Geometry | DynamicModifier,		// all rebuild steps here without additional flags
 	};
@@ -84,6 +82,37 @@ struct FNavigationDirtyArea
 	FNavigationDirtyArea() : Flags(0) {}
 	FNavigationDirtyArea(const FBox& InBounds, int32 InFlags) : Bounds(InBounds), Flags(InFlags) {}
 	FORCEINLINE bool HasFlag(ENavigationDirtyFlag::Type Flag) const { return (Flags & Flag) != 0; }
+};
+
+struct FNavigationBounds
+{
+	uint32	UniqueID;
+	FBox	AreaBox;	
+	FName	PackageName;
+
+	bool operator==(const FNavigationBounds& Other) const 
+	{ 
+		return UniqueID == Other.UniqueID; 
+	}
+
+	friend uint32 GetTypeHash(const FNavigationBounds& NavBounds)
+	{
+		return GetTypeHash(NavBounds.UniqueID);
+	}
+};
+
+struct FNavigationBoundsUpdateRequest 
+{
+	FNavigationBounds NavBounds;
+	
+	enum Type
+	{
+		Added,
+		Removed,
+		Updated,
+	};
+
+	Type UpdateRequest;
 };
 
 struct FNavigationDirtyElement
@@ -259,24 +288,29 @@ typedef TSharedRef<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedRe
 typedef TSharedPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedPtr;
 typedef TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathWeakPtr;
 
+/** Movement capabilities, determining available movement options for Pawns and used by AI for reachability tests. */
 USTRUCT()
 struct FMovementProperties
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** If true, this Pawn is capable of crouching. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
-	uint32 bCanCrouch:1;    // if true, this pawn is capable of crouching
+	uint32 bCanCrouch:1;
 
-	// movement capabilities - used by AI for reachability tests
+	/** If true, this Pawn is capable of jumping. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
 	uint32 bCanJump:1;
 
+	/** If true, this Pawn is capable of walking or moving on the ground. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
 	uint32 bCanWalk:1;
 
+	/** If true, this Pawn is capable of swimming or moving through fluid volumes. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
 	uint32 bCanSwim:1;
 
+	/** If true, this Pawn is capable of flying. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
 	uint32 bCanFly:1;
 
@@ -290,18 +324,21 @@ struct FMovementProperties
 	}
 };
 
+/** Properties of representation of an 'agent' (or Pawn) used by AI navigation/pathfinding. */
 USTRUCT()
 struct FNavAgentProperties : public FMovementProperties
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Radius of the capsule used for navigation/pathfinding. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
 	float AgentRadius;
 
+	/** Total height of the capsule used for navigation/pathfinding. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
 	float AgentHeight;
 
-	/** step height to use, or -1 for default value from navdata's config */
+	/** Step height to use, or -1 for default value from navdata's config. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
 	float AgentStepHeight;
 
@@ -455,7 +492,7 @@ class UNavigationTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UNavigationTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+	UNavigationTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) { }
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -96,7 +96,7 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 			return EStructureError::NotCompiled;
 		}
 
-		for (const UProperty * P = Struct->PropertyLink; P; P = P->PropertyLinkNext)
+		for (const UProperty* P = Struct->PropertyLink; P; P = P->PropertyLinkNext)
 		{
 			const UStructProperty* StructProp = Cast<const UStructProperty>(P);
 			if (NULL == StructProp)

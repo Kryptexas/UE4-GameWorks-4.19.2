@@ -7,7 +7,7 @@
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 
 #if USE_EQS_DEBUGGER
-void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression)
+void UEnvQueryDebugHelpers::QueryToBlobArray(FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression)
 {
 	EQSDebug::FQueryData EQSLocalData;
 	UEnvQueryDebugHelpers::QueryToDebugData(Query, EQSLocalData);
@@ -28,7 +28,7 @@ void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TA
 		BlobArray.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedSize));
 
 		int32 CompressedSize = BlobArray.Num() - HeaderSize;
-		uint8* DestBuffer = BlobArray.GetTypedData();
+		uint8* DestBuffer = BlobArray.GetData();
 		FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 		DestBuffer += HeaderSize;
 
@@ -38,42 +38,42 @@ void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TA
 	}
 }
 
-void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData)
+void UEnvQueryDebugHelpers::QueryToDebugData(FEnvQueryInstance& Query, EQSDebug::FQueryData& EQSLocalData)
 {
 	// step 1: data for rendering component
 	EQSLocalData.Reset();
 
-	FEQSSceneProxy::CollectEQSData(Query, Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true, EQSLocalData.RenderDebugHelpers);
+	FEQSSceneProxy::CollectEQSData(&Query, &Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true, EQSLocalData.RenderDebugHelpers);
 
 	// step 2: detailed scoring data for HUD
 	const int32 MaxDetailedItems = 10;
 	const int32 FirstItemIndex = 0;
 
-	const int32 NumTests = Query->ItemDetails.IsValidIndex(0) ? Query->ItemDetails[0].TestResults.Num() : 0;
-	const int32 NumItems = FMath::Min(MaxDetailedItems, Query->NumValidItems);
+	const int32 NumTests = Query.ItemDetails.IsValidIndex(0) ? Query.ItemDetails[0].TestResults.Num() : 0;
+	const int32 NumItems = FMath::Min(MaxDetailedItems, Query.NumValidItems);
 
-	EQSLocalData.Name = Query->QueryName;
-	EQSLocalData.Id = Query->QueryID;
+	EQSLocalData.Name = Query.QueryName;
+	EQSLocalData.Id = Query.QueryID;
 	EQSLocalData.Items.Reset(NumItems);
 	EQSLocalData.Tests.Reset(NumTests);
-	EQSLocalData.NumValidItems = Query->NumValidItems;
+	EQSLocalData.NumValidItems = Query.NumValidItems;
 
-	UEnvQueryItemType* ItemCDO = Query->ItemType.GetDefaultObject();
+	UEnvQueryItemType* ItemCDO = Query.ItemType.GetDefaultObject();
 	for (int32 ItemIdx = 0; ItemIdx < NumItems; ItemIdx++)
 	{
 		EQSDebug::FItemData ItemInfo;
 		ItemInfo.ItemIdx = ItemIdx + FirstItemIndex;
-		ItemInfo.TotalScore = Query->Items[ItemInfo.ItemIdx].Score;
+		ItemInfo.TotalScore = Query.Items[ItemInfo.ItemIdx].Score;
 
-		const uint8* ItemData = Query->RawData.GetTypedData() + Query->Items[ItemInfo.ItemIdx].DataOffset;
+		const uint8* ItemData = Query.RawData.GetData() + Query.Items[ItemInfo.ItemIdx].DataOffset;
 		ItemInfo.Desc = FString::Printf(TEXT("[%d] %s"), ItemInfo.ItemIdx, *ItemCDO->GetDescription(ItemData));
 
 		ItemInfo.TestValues.Reserve(NumTests);
 		ItemInfo.TestScores.Reserve(NumTests);
 		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
 		{
-			const float ScoreN = Query->ItemDetails[ItemInfo.ItemIdx].TestResults[TestIdx];
-			const float ScoreW = Query->ItemDetails[ItemInfo.ItemIdx].TestWeightedScores[TestIdx];
+			const float ScoreN = Query.ItemDetails[ItemInfo.ItemIdx].TestResults[TestIdx];
+			const float ScoreW = Query.ItemDetails[ItemInfo.ItemIdx].TestWeightedScores[TestIdx];
 
 			ItemInfo.TestValues.Add(ScoreN);
 			ItemInfo.TestScores.Add(ScoreW);
@@ -82,24 +82,24 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 		EQSLocalData.Items.Add(ItemInfo);
 	}
 
-	const int32 NumAllTests = Query->Options[Query->OptionIndex].TestsToPerform.Num();
+	const int32 NumAllTests = Query.Options[Query.OptionIndex].Tests.Num();
 	for (int32 TestIdx = 0; TestIdx < NumAllTests; TestIdx++)
 	{
 		EQSDebug::FTestData TestInfo;
 
-		UEnvQueryTest* TestOb = Query->Options[Query->OptionIndex].GetTestObject(TestIdx);
+		UEnvQueryTest* TestOb = Query.Options[Query.OptionIndex].Tests[TestIdx];
 		TestInfo.ShortName = TestOb->GetDescriptionTitle();
 		TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
 
 		EQSLocalData.Tests.Add(TestInfo);
 	}
 
-	EQSLocalData.UsedOption = Query->OptionIndex;
-	const int32 NumOptions = Query->Options.Num();
+	EQSLocalData.UsedOption = Query.OptionIndex;
+	const int32 NumOptions = Query.Options.Num();
 	for (int32 OptionIndex = 0; OptionIndex < NumOptions; ++OptionIndex)
 	{
-		const FString UserName = Query->Options[OptionIndex].Generator->OptionName;
-		EQSLocalData.Options.Add(UserName.Len() > 0 ? UserName : Query->Options[OptionIndex].Generator->GetName());
+		const FString UserName = Query.Options[OptionIndex].Generator->OptionName;
+		EQSLocalData.Options.Add(UserName.Len() > 0 ? UserName : Query.Options[OptionIndex].Generator->GetName());
 	}
 }
 
@@ -115,30 +115,34 @@ void  UEnvQueryDebugHelpers::BlobArrayToDebugData(const TArray<uint8>& BlobArray
 		TArray<uint8> UncompressedBuffer;
 		int32 UncompressedSize = 0;
 		const int32 HeaderSize = sizeof(int32);
-		uint8* SrcBuffer = (uint8*)BlobArray.GetTypedData();
+		uint8* SrcBuffer = (uint8*)BlobArray.GetData();
 		FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
 		SrcBuffer += HeaderSize;
 		const int32 CompressedSize = BlobArray.Num() - HeaderSize;
 
 		UncompressedBuffer.AddZeroed(UncompressedSize);
 
-		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetData(), UncompressedSize, SrcBuffer, CompressedSize);
 		FMemoryReader ArReader(UncompressedBuffer);
 
 		ArReader << EQSLocalData;
 	}
 }
 
-void UEnvQueryDebugHelpers::LogQuery(const class AActor* LogOwnerActor, struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type Type, const FString& AdditionalLogInfo)
+#endif //ENABLE_VISUAL_LOG
+
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
+void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry)
 {
+	const int32 UniqueId = FVisualLogger::Get().GetUniqueId(TimeSeconds);
 	TArray<uint8> BlobArray;
 	UEnvQueryDebugHelpers::QueryToBlobArray(Query, BlobArray);
-	FVisLogEntry* EntryToWrite = FVisualLog::Get().GetEntryToWrite(LogOwnerActor);
-	if (EntryToWrite)
-	{
-		FVisualLog::Get().LogLine(LogOwnerActor, CategoryName, Type, AdditionalLogInfo, Query->QueryID, *EVisLogTags::TAG_EQS);
-		EntryToWrite->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, CategoryName);
-	}
-}
+	const FString AdditionalLogInfo = FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query.QueryName, Query.QueryID, Query.OptionIndex, Query.ItemDetails.Num(), Query.NumValidItems);
+	FVisualLogLine Line(Category.GetCategoryName(), Verbosity, AdditionalLogInfo, Query.QueryID);
+	Line.TagName = *EVisLogTags::TAG_EQS;
+	Line.UniqueId = UniqueId;
 
-#endif //ENABLE_VISUAL_LOG
+	CurrentEntry->LogLines.Add(Line);
+	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, Category.GetCategoryName()).UniqueId = UniqueId;
+}
+#endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER

@@ -4,8 +4,10 @@
 
 #include "UniformGridPanel.generated.h"
 
-/** A panel that evenly divides up available space between all of its children. */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * A panel that evenly divides up available space between all of its children.
+ */
+UCLASS()
 class UMG_API UUniformGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -13,16 +15,30 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 public:
 
 	/** Padding given to each slot */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout")
 	FMargin SlotPadding;
 
 	/** The minimum desired width of the slots */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout")
 	float MinDesiredSlotWidth;
 
 	/** The minimum desired height of the slots */
-	UPROPERTY(EditDefaultsOnly, Category="Child Layout")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Child Layout")
 	float MinDesiredSlotHeight;
+
+public:
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Child Layout")
+	void SetSlotPadding(FMargin InSlotPadding);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Child Layout")
+	void SetMinDesiredSlotWidth(float InMinDesiredSlotWidth);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Child Layout")
+	void SetMinDesiredSlotHeight(float InMinDesiredSlotHeight);
 
 public:
 

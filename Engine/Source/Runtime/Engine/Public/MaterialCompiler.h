@@ -100,16 +100,16 @@ public:
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) = 0;
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) = 0;
-	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None) = 0;
+	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
 
-	virtual int32 Texture(UTexture* Texture) = 0;
-	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultTexture) = 0;
+	virtual int32 Texture(UTexture* Texture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
+	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
 
 	virtual	int32 PixelDepth()=0;
 	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) = 0;
 	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureLookup(int32 UV, uint32 SceneTextureId) = 0;
+	virtual int32 SceneTextureLookup(int32 UV, uint32 SceneTextureId, bool bFiltered) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureSize(uint32 SceneTextureId, bool bInvert) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
@@ -140,6 +140,7 @@ public:
 	virtual int32 Min(int32 A,int32 B) = 0;
 	virtual int32 Max(int32 A,int32 B) = 0;
 	virtual int32 Clamp(int32 X,int32 A,int32 B) = 0;
+	virtual int32 Saturate(int32 X) = 0;
 
 	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) = 0;
 	virtual int32 AppendVector(int32 A,int32 B) = 0;
@@ -252,16 +253,18 @@ public:
 
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) override { return Compiler->If(A,B,AGreaterThanB,AEqualsB,ALessThanB,Threshold); }
 
-	virtual int32 TextureSample(int32 InTexture,int32 Coordinate,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None) override { return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValueIndex,MipValueMode); }
+	virtual int32 TextureSample(int32 InTexture,int32 Coordinate,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override 
+		{ return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValueIndex,MipValueMode,SamplerSource); }
+
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override { return Compiler->TextureCoordinate(CoordinateIndex, UnMirrorU, UnMirrorV); }
 
-	virtual int32 Texture(UTexture* InTexture) override { return Compiler->Texture(InTexture); }
-	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue) override { return Compiler->TextureParameter(ParameterName,DefaultValue); }
+	virtual int32 Texture(UTexture* InTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override { return Compiler->Texture(InTexture,SamplerSource); }
+	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override { return Compiler->TextureParameter(ParameterName,DefaultValue,SamplerSource); }
 
 	virtual	int32 PixelDepth() override { return Compiler->PixelDepth();	}
 	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->SceneDepth(Offset, UV, bUseOffset); }
 	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->SceneColor(Offset, UV, bUseOffset); }
-	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override { return Compiler->SceneTextureLookup(UV, InSceneTextureId); }
+	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override { return Compiler->SceneTextureLookup(UV, InSceneTextureId, bFiltered); }
 	virtual int32 SceneTextureSize(uint32 InSceneTextureId, bool bInvert) override { return Compiler->SceneTextureSize(InSceneTextureId, bInvert); }
 	virtual int32 SceneTextureMax(uint32 InSceneTextureId) override { return Compiler->SceneTextureMax(InSceneTextureId); }
 	virtual int32 SceneTextureMin(uint32 InSceneTextureId) override { return Compiler->SceneTextureMin(InSceneTextureId); }
@@ -289,6 +292,7 @@ public:
 	virtual int32 Min(int32 A,int32 B) override { return Compiler->Min(A,B); }
 	virtual int32 Max(int32 A,int32 B) override { return Compiler->Max(A,B); }
 	virtual int32 Clamp(int32 X,int32 A,int32 B) override { return Compiler->Clamp(X,A,B); }
+	virtual int32 Saturate(int32 X) override { return Compiler->Saturate(X); }
 
 	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) override { return Compiler->ComponentMask(Vector,R,G,B,A); }
 	virtual int32 AppendVector(int32 A,int32 B) override { return Compiler->AppendVector(A,B); }

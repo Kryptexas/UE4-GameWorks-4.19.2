@@ -47,8 +47,9 @@ class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 
 #if WITH_EDITOR
 	/** update test properties after changing mode */
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+	virtual void PostLoad() override;
 
 protected:
 

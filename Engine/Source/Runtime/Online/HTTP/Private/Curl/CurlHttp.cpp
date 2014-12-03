@@ -201,7 +201,7 @@ void FCurlHttpRequest::SetContentAsString(const FString& ContentString)
 {
 	FTCHARToUTF8 Converter(*ContentString);
 	RequestPayload.SetNum(Converter.Length());
-	FMemory::Memcpy(RequestPayload.GetTypedData(), (uint8*)(ANSICHAR*)Converter.Get(), RequestPayload.Num());
+	FMemory::Memcpy(RequestPayload.GetData(), (uint8*)(ANSICHAR*)Converter.Get(), RequestPayload.Num());
 }
 
 void FCurlHttpRequest::SetHeader(const FString& HeaderName, const FString& HeaderValue)
@@ -214,7 +214,7 @@ FString FCurlHttpRequest::GetVerb()
 	return Verb;
 }
 
-size_t FCurlHttpRequest::StaticUploadCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData)
+size_t FCurlHttpRequest::StaticUploadCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData)
 {
 	check(Ptr);
 	check(UserData);
@@ -224,7 +224,7 @@ size_t FCurlHttpRequest::StaticUploadCallback(void * Ptr, size_t SizeInBlocks, s
 	return Request->UploadCallback(Ptr, SizeInBlocks, BlockSizeInBytes);
 }
 
-size_t FCurlHttpRequest::StaticReceiveResponseHeaderCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData)
+size_t FCurlHttpRequest::StaticReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData)
 {
 	check(Ptr);
 	check(UserData);
@@ -234,7 +234,7 @@ size_t FCurlHttpRequest::StaticReceiveResponseHeaderCallback(void * Ptr, size_t 
 	return Request->ReceiveResponseHeaderCallback(Ptr, SizeInBlocks, BlockSizeInBytes);	
 }
 
-size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData)
+size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData)
 {
 	check(Ptr);
 	check(UserData);
@@ -245,7 +245,7 @@ size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void * Ptr, size_t Si
 }
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void * UserData)
+size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void* UserData)
 {
 	check(Handle);
 	check(UserData);
@@ -256,7 +256,7 @@ size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugI
 }
 #endif // #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
+size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	check(Response.IsValid());
 
@@ -298,7 +298,7 @@ size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void * Ptr, size_t SizeIn
 	return 0;
 }
 
-size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
+size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	check(Response.IsValid());
 
@@ -335,7 +335,7 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void * Ptr, size_t SizeInBl
 	return 0;	// request will fail with write error if we had non-zero bytes to download
 }
 
-size_t FCurlHttpRequest::UploadCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
+size_t FCurlHttpRequest::UploadCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	size_t SizeToSend = RequestPayload.Num() - BytesSent;
 	size_t SizeToSendThisTime = 0;
@@ -486,7 +486,7 @@ bool FCurlHttpRequest::StartRequest()
 		// (if we pass, don't check here and trust the request)
 		check(!GetHeader("Content-Type").IsEmpty() || IsURLEncoded(RequestPayload));
 
-		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetTypedData());
+		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetData());
 		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDSIZE, RequestPayload.Num());
 	}
 	else if (Verb == TEXT("PUT"))
@@ -517,7 +517,7 @@ bool FCurlHttpRequest::StartRequest()
 		// (if we pass, don't check here and trust the request)
 		check(!GetHeader("Content-Type").IsEmpty() || IsURLEncoded(RequestPayload));
 
-		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetTypedData());
+		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetData());
 		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDSIZE, RequestPayload.Num());
 	}
 	else
@@ -621,6 +621,9 @@ FHttpRequestProgressDelegate& FCurlHttpRequest::OnRequestProgress()
 void FCurlHttpRequest::CancelRequest()
 {
 	bCanceled = true;
+    
+    // Cleanup cancel request and fire off any necessary delegates.
+    FinishedRequest();
 }
 
 EHttpRequestStatus::Type FCurlHttpRequest::GetStatus()

@@ -7,7 +7,7 @@
  * Implements a message transport technology using an UDP network connection.
  */
 class FUdpMessageTransport
-	: public ITransportMessages
+	: public IMessageTransport
 {
 public:
 
@@ -20,102 +20,97 @@ public:
 	 */
 	FUdpMessageTransport( const FIPv4Endpoint& InLocalEndpoint, const FIPv4Endpoint& InMulticastEndpoint, uint8 InMulticastTtl );
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~FUdpMessageTransport( );
+	/** Destructor. */
+	virtual ~FUdpMessageTransport();
 
 public:
 
-	// ITransportMessages interface
+	// IMessageTransport interface
 
-	virtual FName GetDebugName( ) const override
+	virtual FName GetDebugName() const override
 	{
 		return "UdpMessageTransport";
 	}
 
-	virtual FOnMessageTransportMessageReceived& OnMessageReceived( ) override
+	virtual FOnMessageReceived& OnMessageReceived() override
 	{
 		return MessageReceivedDelegate;
 	}
 
-	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered( ) override
+	virtual FOnNodeDiscovered& OnNodeDiscovered() override
 	{
 		return NodeDiscoveredDelegate;
 	}
 
-	virtual FOnMessageTransportNodeLost& OnNodeLost( ) override
+	virtual FOnNodeLost& OnNodeLost() override
 	{
 		return NodeLostDelegate;
 	}
 
-	virtual bool StartTransport( ) override;
-	virtual void StopTransport( ) override;
-	virtual bool TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients ) override;
+	virtual bool StartTransport() override;
+	virtual void StopTransport() override;
+	virtual bool TransportMessage( const IMessageContextRef& Context, const TArray<FGuid>& Recipients ) override;
 
 private:
 
-	// Handles received transport messages.
-	void HandleProcessorMessageReceived( FArchive& MessageData, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
-	{
-		MessageReceivedDelegate.ExecuteIfBound(MessageData, Attachment, NodeId);
-	}
+	/** Handles received transport messages. */
+	void HandleProcessorMessageReassembled( const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId );
 
-	// Handles discovered transport endpoints.
+	/** Handles discovered transport endpoints. */
 	void HandleProcessorNodeDiscovered( const FGuid& DiscoveredNodeId )
 	{
 		NodeDiscoveredDelegate.ExecuteIfBound(DiscoveredNodeId);
 	}
 
-	// Handles lost transport endpoints.
+	/** Handles lost transport endpoints. */
 	void HandleProcessorNodeLost( const FGuid& LostNodeId )
 	{
 		NodeLostDelegate.ExecuteIfBound(LostNodeId);
 	}
 
-	// Handles received socket data.
+	/** Handles received socket data. */
 	void HandleSocketDataReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
 
 private:
 
-	// Holds the local endpoint to receive messages on.
+	/** Holds the local endpoint to receive messages on. */
 	FIPv4Endpoint LocalEndpoint;
 
-	// Holds the message processor.
+	/** Holds the message processor. */
 	FUdpMessageProcessor* MessageProcessor;
 
-	// Holds the message processor thread.
+	/** Holds the message processor thread. */
 	FRunnableThread* MessageProcessorThread;
 
-	// Holds the multicast endpoint.
+	/** Holds the multicast endpoint. */
 	FIPv4Endpoint MulticastEndpoint;
 
-	// Holds the multicast socket receiver.
+	/** Holds the multicast socket receiver. */
 	FUdpSocketReceiver* MulticastReceiver;
 
-	// Holds the multicast socket.
+	/** Holds the multicast socket. */
 	FSocket* MulticastSocket;
 
-	// Holds the multicast time to live.
+	/** Holds the multicast time to live. */
 	uint8 MulticastTtl;
 
-	// Holds a pointer to the socket sub-system.
+	/** Holds a pointer to the socket sub-system. */
 	ISocketSubsystem* SocketSubsystem;
 
-	// Holds the unicast socket receiver.
+	/** Holds the unicast socket receiver. */
 	FUdpSocketReceiver* UnicastReceiver;
 
-	// Holds the unicast socket.
+	/** Holds the unicast socket. */
 	FSocket* UnicastSocket;
 
 private:
 
-	// Holds a delegate to be invoked when a message was received on the transport channel.
-	FOnMessageTransportMessageReceived MessageReceivedDelegate;
+	/** Holds a delegate to be invoked when a message was received on the transport channel. */
+	FOnMessageReceived MessageReceivedDelegate;
 
-	// Holds a delegate to be invoked when a network node was discovered.
-	FOnMessageTransportNodeDiscovered NodeDiscoveredDelegate;
+	/** Holds a delegate to be invoked when a network node was discovered. */
+	FOnNodeDiscovered NodeDiscoveredDelegate;
 
-	// Holds a delegate to be invoked when a network node was lost.
-	FOnMessageTransportNodeLost NodeLostDelegate;
+	/** Holds a delegate to be invoked when a network node was lost. */
+	FOnNodeLost NodeLostDelegate;
 };

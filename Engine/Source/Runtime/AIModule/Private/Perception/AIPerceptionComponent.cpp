@@ -5,6 +5,10 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/Canvas.h"
 
+DECLARE_CYCLE_STAT(TEXT("Requesting UAIPerceptionComponent::RemoveDeadData call from within a const function"),
+	STAT_FSimpleDelegateGraphTask_RequestingRemovalOfDeadPerceptionData,
+	STATGROUP_TaskGraphTasks);
+
 //----------------------------------------------------------------------//
 // FActorPerceptionInfo
 //----------------------------------------------------------------------//
@@ -24,8 +28,8 @@ void FActorPerceptionInfo::Merge(const FActorPerceptionInfo& Other)
 //----------------------------------------------------------------------//
 const int32 UAIPerceptionComponent::InitialStimuliToProcessArraySize = 10;
 
-UAIPerceptionComponent::UAIPerceptionComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIPerceptionComponent::UAIPerceptionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, DominantSense(ECorePerceptionTypes::MAX)
 	, PerceptionListenerId(AIPerception::InvalidListenerId)
 {
@@ -110,15 +114,31 @@ void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseId Channel, bool bNe
 	}
 }
 
-void UAIPerceptionComponent::GetHostileActors(TArray<const AActor*>& OutActors)
+void UAIPerceptionComponent::GetHostileActors(TArray<const AActor*>& OutActors) const
 {
+	bool bDeadDataFound = false;
+
 	OutActors.Reserve(PerceptualData.Num());
 	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
-		if (DataIt->Value.bIsHostile && DataIt->Value.Target.IsValid())
+		if (DataIt->Value.bIsHostile)
 		{
-			OutActors.Add(DataIt->Value.Target.Get());
+			if (DataIt->Value.Target.IsValid())
+			{
+				OutActors.Add(DataIt->Value.Target.Get());
+			}
+			else
+			{
+				bDeadDataFound = true;
+			}
 		}
+	}
+
+	if (bDeadDataFound)
+	{
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UAIPerceptionComponent::RemoveDeadData),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingRemovalOfDeadPerceptionData), NULL, ENamedThreads::GameThread);
 	}
 }
 
@@ -128,20 +148,36 @@ const FActorPerceptionInfo* UAIPerceptionComponent::GetFreshestTrace(const FAISe
 	float BestAge = FAIStimulus::NeverHappenedAge;
 	const FActorPerceptionInfo* Result = NULL;
 
+	bool bDeadDataFound = false;
+	
 	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
 		const FActorPerceptionInfo* Info = &DataIt->Value;
 		const float Age = Info->LastSensedStimuli[Sense].GetAge();
-		if (Age < BestAge && Info->Target.IsValid())
+		if (Age < BestAge)
 		{
-			BestAge = Age;
-			Result = Info;
-			if (BestAge == 0.f)
+			if (Info->Target.IsValid())
 			{
-				// won't find any younger then this
-				break;
+				BestAge = Age;
+				Result = Info;
+				if (BestAge == 0.f)
+				{
+					// won't find any younger then this
+					break;
+				}
+			}
+			else
+			{
+				bDeadDataFound = true;
 			}
 		}
+	}
+
+	if (bDeadDataFound)
+	{
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UAIPerceptionComponent::RemoveDeadData),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingRemovalOfDeadPerceptionData), NULL, ENamedThreads::GameThread);
 	}
 
 	return Result;
@@ -233,7 +269,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 		return;
 	}
 	
-	FStimulusToProcess* SourcedStimulus = StimuliToProcess.GetTypedData();
+	FStimulusToProcess* SourcedStimulus = StimuliToProcess.GetData();
 	TArray<AActor*> UpdatedActors;
 	UpdatedActors.Reserve(StimuliToProcess.Num());
 
@@ -307,12 +343,12 @@ void UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
 	}
 }
 
-void UAIPerceptionComponent::ForgetActor(class AActor* ActorToForget)
+void UAIPerceptionComponent::ForgetActor(AActor* ActorToForget)
 {
 	PerceptualData.Remove(ActorToForget);
 }
 
-float UAIPerceptionComponent::GetYoungestStimulusAge(const class AActor* Source) const
+float UAIPerceptionComponent::GetYoungestStimulusAge(const AActor* Source) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
 	if (Info == NULL)
@@ -336,7 +372,7 @@ float UAIPerceptionComponent::GetYoungestStimulusAge(const class AActor* Source)
 	return SmallestAge;
 }
 
-bool UAIPerceptionComponent::HasAnyActiveStimulus(const class AActor* Source) const
+bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor* Source) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
 	if (Info == NULL)
@@ -357,13 +393,24 @@ bool UAIPerceptionComponent::HasAnyActiveStimulus(const class AActor* Source) co
 	return false;
 }
 
-bool UAIPerceptionComponent::HasActiveStimulus(const class AActor* Source, FAISenseId Sense) const
+bool UAIPerceptionComponent::HasActiveStimulus(const AActor* Source, FAISenseId Sense) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
 	return (Info &&
 		Info->LastSensedStimuli[Sense].WasSuccessfullySensed() &&
 		Info->LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge &&
 		Info->LastSensedStimuli[Sense].GetAge() <= MaxActiveAge[Sense]);
+}
+
+void UAIPerceptionComponent::RemoveDeadData()
+{
+	for (TActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
+	{
+		if (It->Value.Target.IsValid() == false)
+		{
+			It.RemoveCurrent();
+		}
+	}
 }
 
 //----------------------------------------------------------------------//
@@ -422,7 +469,7 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 }
 
 #if ENABLE_VISUAL_LOG
-void UAIPerceptionComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 
 }

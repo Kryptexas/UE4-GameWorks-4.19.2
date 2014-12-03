@@ -58,7 +58,7 @@ public:
 
 	virtual void Disconnect( ) override;
 
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
+	virtual ETargetDeviceTypes GetDeviceType( ) const override
 	{
 		return ETargetDeviceTypes::Browser;
 	}
@@ -96,15 +96,15 @@ public:
 
 	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) override;
 
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override;
+	virtual bool SupportsFeature( ETargetDeviceFeatures Feature ) const override;
 
 	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
 
 	virtual bool TerminateProcess( const int32 ProcessId ) override;
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override;
+	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) override;
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override;
+	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
 	// End ITargetDevice interface
 

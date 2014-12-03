@@ -5,12 +5,13 @@
 //////////////////////////////////////////////////////////////////////////
 // ULeaderboardQueryCallbackProxy
 
-UAchievementWriteCallbackProxy::UAchievementWriteCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAchievementWriteCallbackProxy::UAchievementWriteCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, WorldContextObject(nullptr)
 {
 }
 
-UAchievementWriteCallbackProxy* UAchievementWriteCallbackProxy::WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress, int32 UserTag)
+UAchievementWriteCallbackProxy* UAchievementWriteCallbackProxy::WriteAchievementProgress(UObject* WorldContextObject, class APlayerController* PlayerController, FName AchievementName, float Progress, int32 UserTag)
 {
 	UAchievementWriteCallbackProxy* Proxy = NewObject<UAchievementWriteCallbackProxy>();
 
@@ -20,13 +21,14 @@ UAchievementWriteCallbackProxy* UAchievementWriteCallbackProxy::WriteAchievement
 	Proxy->AchievementName = AchievementName;
 	Proxy->AchievementProgress = Progress;
 	Proxy->UserTag = UserTag;
+	Proxy->WorldContextObject = WorldContextObject;
 
 	return Proxy;
 }
 
 void UAchievementWriteCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("WriteAchievementObject"));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("WriteAchievementObject"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

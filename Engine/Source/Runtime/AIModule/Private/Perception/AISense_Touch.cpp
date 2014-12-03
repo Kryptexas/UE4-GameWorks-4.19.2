@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Touch.h"
 
-UAISense_Touch::UAISense_Touch(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Touch::UAISense_Touch(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	
 }
@@ -19,7 +19,7 @@ float UAISense_Touch::Update()
 
 		if (Event.TouchReceiver != NULL && Event.OtherActor != NULL)
 		{
-			IAIPerceptionListenerInterface* PerceptionListener = InterfaceCast<IAIPerceptionListenerInterface>(Event.TouchReceiver);
+			IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.TouchReceiver);
 			if (PerceptionListener != NULL)
 			{
 				UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();

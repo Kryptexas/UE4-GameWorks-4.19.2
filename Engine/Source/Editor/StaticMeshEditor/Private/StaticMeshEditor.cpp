@@ -24,6 +24,11 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
+#include "STextComboBox.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
@@ -37,25 +42,28 @@ const FName FStaticMeshEditor::CollisionTabId( TEXT( "StaticMeshEditor_Collision
 
 void FStaticMeshEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_StaticMeshEditor", "Static Mesh Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( ViewportTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_Viewport) )
 		.SetDisplayName( LOCTEXT("ViewportTab", "Viewport") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+
 	TabManager->RegisterTabSpawner( PropertiesTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_Properties) )
 		.SetDisplayName( LOCTEXT("PropertiesTab", "Details") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
 	TabManager->RegisterTabSpawner( SocketManagerTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_SocketManager) )
 		.SetDisplayName( LOCTEXT("SocketManagerTab", "Socket Manager") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
+		.SetGroup(WorkspaceMenuCategoryRef);
+
 	TabManager->RegisterTabSpawner( CollisionTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_Collision) )
 		.SetDisplayName( LOCTEXT("CollisionTab", "Convex Decomposition") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef);
 }
 
 void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -585,7 +593,7 @@ bool FStaticMeshEditor::HasSelectedPrims() const
 	return (SelectedPrims.Num() > 0 ? true : false);
 }
 
-void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData)
+void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData, bool bClearSelection)
 {
 	check(IsPrimValid(InPrimData));
 
@@ -595,6 +603,10 @@ void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData)
 		Viewport->GetViewportClient().SetShowWireframeCollision();
 	}
 
+	if( bClearSelection )
+	{
+		ClearSelectedPrims();
+	}
 	SelectedPrims.Add(InPrimData);	
 }
 
@@ -1140,7 +1152,7 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 		}
 		const FPrimData PrimData = FPrimData(KPT_Convex, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(PrimData);
+		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
 		{
 			TranslateSelectedPrims(OverlapNudge);
@@ -1163,7 +1175,7 @@ void FStaticMeshEditor::OnCollisionBox()
 		}
 		const FPrimData PrimData = FPrimData(KPT_Box, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(PrimData);
+		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
 		{
 			TranslateSelectedPrims(OverlapNudge);
@@ -1186,7 +1198,7 @@ void FStaticMeshEditor::OnCollisionSphere()
 		}
 		const FPrimData PrimData = FPrimData(KPT_Sphere, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(PrimData);
+		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
 		{
 			TranslateSelectedPrims(OverlapNudge);
@@ -1209,7 +1221,7 @@ void FStaticMeshEditor::OnCollisionSphyl()
 		}
 		const FPrimData PrimData = FPrimData(KPT_Sphyl, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(PrimData);
+		AddSelectedPrim(PrimData, true);
 		while( OverlapsExistingPrim(PrimData) )
 		{
 			TranslateSelectedPrims(OverlapNudge);
@@ -1361,7 +1373,7 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 				FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
 				for (int32 i = 0; i < NumBoxElems; ++i)
 				{
-					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))));
+					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))), false);
 				}
 
 				// Mark static mesh as dirty, to help make sure it gets saved.
@@ -1388,7 +1400,7 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 		// find the first staticmesh we can find
 		for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
 		{
-			const FAssetData & Asset = (*AssetIt);
+			const FAssetData& Asset = (*AssetIt);
 			// if staticmesh
 			if ( Asset.GetClass() == UStaticMesh::StaticClass() )
 			{

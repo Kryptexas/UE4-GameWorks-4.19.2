@@ -5,6 +5,7 @@
 
 #include "ModuleManager.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FTaskBrowserModule, TaskBrowser );
 
@@ -27,7 +28,7 @@ void FTaskBrowserModule::StartupModule()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( TaskBrowserModule::TaskBrowserApp, FOnSpawnTab::CreateStatic( &SpawnTaskBrowserTab ) )
 		.SetDisplayName(NSLOCTEXT("TaskBrowser", "TabTitle", "Task Browser"))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsCategory() );
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory() );
 }
 
 

@@ -38,9 +38,9 @@ void SPropertyEditorInteractiveActorPicker::Construct( const FArguments& InArgs 
 	);
 }
 
-FReply SPropertyEditorInteractiveActorPicker::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SPropertyEditorInteractiveActorPicker::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(InKeyboardEvent.GetKey() == EKeys::Escape)
+	if(InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		FActorPickerModeModule& ActorPickerMode = FModuleManager::Get().GetModuleChecked<FActorPickerModeModule>("ActorPickerMode");
 

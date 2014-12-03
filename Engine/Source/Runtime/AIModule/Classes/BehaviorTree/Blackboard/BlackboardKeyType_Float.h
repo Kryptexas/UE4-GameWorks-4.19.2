@@ -3,8 +3,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_Float.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Float"))
-class UBlackboardKeyType_Float : public UBlackboardKeyType
+UCLASS(EditInlineNew, meta=(DisplayName="Float"))
+class AIMODULE_API UBlackboardKeyType_Float : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 

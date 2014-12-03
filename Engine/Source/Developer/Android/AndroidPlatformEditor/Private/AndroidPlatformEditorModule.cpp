@@ -2,26 +2,35 @@
 
 #include "AndroidPlatformEditorPrivatePCH.h"
 #include "AndroidTargetSettingsCustomization.h"
-#include "Settings.h"
+#include "ModuleInterface.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "FAndroidPlatformEditorModule"
+
 
 /**
  * Module for Android platform editor utilities
  */
-class FAndroidPlatformEditorModule : public IModuleInterface
+class FAndroidPlatformEditorModule
+	: public IModuleInterface
 {
 	// IModuleInterface interface
+
 	virtual void StartupModule() override
 	{
-		// Register the settings detail panel customization
+		// register settings detail panel customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout(
 			UAndroidRuntimeSettings::StaticClass()->GetFName(),
-			FOnGetDetailCustomizationInstance::CreateStatic(&FAndroidTargetSettingsCustomization::MakeInstance));
+			FOnGetDetailCustomizationInstance::CreateStatic(&FAndroidTargetSettingsCustomization::MakeInstance)
+		);
+
 		PropertyModule.NotifyCustomizationModuleChanged();
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		// register settings
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -35,15 +44,15 @@ class FAndroidPlatformEditorModule : public IModuleInterface
 
 	virtual void ShutdownModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterSettings("Project", "Platforms", "Android");
 		}
 	}
-	// End of IModuleInterface interface
 };
+
 
 IMPLEMENT_MODULE(FAndroidPlatformEditorModule, AndroidPlatformEditor);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,18 +8,17 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureBeginEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureEndEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Value);
 
-/** Slider widget */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * A simple widget that shows a sliding bar with a handle that allows you to control the value between 0..1.
+ *
+ * ● No Children
+ */
+UCLASS()
 class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	
-	/** The progress bar style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
-	FSliderStyle WidgetStyle;
-
 	/** The volume value to display. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float Value;
@@ -28,25 +27,33 @@ public:
 	UPROPERTY()
 	FGetFloat ValueDelegate;
 
+public:
+	
+	/** The progress bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FSliderStyle WidgetStyle;
+
 	/** The slider's orientation. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	TEnumAsByte<EOrientation> Orientation;
 
 	/** The color to draw the slider bar in. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor SliderBarColor;
 
 	/** The color to draw the slider handle in. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor SliderHandleColor;
 
 	/** Whether the slidable area should be indented to fit the handle. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	bool IndentHandle;
 
 	/** Whether the handle is interactive or fixed. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	bool Locked;
+
+public:
 
 	/** Invoked when the mouse is pressed and a capture begins. */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event")
@@ -61,7 +68,7 @@ public:
 	FOnFloatValueChangedEvent OnValueChanged;
 
 	/** Gets the current value of the slider. */
-	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	UFUNCTION(BlueprintCallable, Category="Behavior")
 	float GetValue() const;
 
 	/** Sets the current value of the slider. */

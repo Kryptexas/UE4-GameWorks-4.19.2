@@ -13,13 +13,13 @@
 	#include "../Vehicles/PhysXVehicleManager.h"
 #endif // WITH_PHYSX
 
-UDEPRECATED_PhysicalMaterialPropertyBase::UDEPRECATED_PhysicalMaterialPropertyBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_PhysicalMaterialPropertyBase::UDEPRECATED_PhysicalMaterialPropertyBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UPhysicalMaterial::UPhysicalMaterial(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicalMaterial::UPhysicalMaterial(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Friction = 0.7f;
 	Restitution = 0.3f;

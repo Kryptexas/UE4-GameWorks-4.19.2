@@ -13,6 +13,7 @@
 #define LOCTEXT_NAMESPACE "Editor.Stats"
 
 const FName FCompilerResultsLog::Name(TEXT("CompilerResultsLog"));
+FCompilerResultsLog* FCompilerResultsLog::CurrentEventTarget = nullptr;
 
 //////////////////////////////////////////////////////////////////////////
 // FCompilerResultsLog
@@ -68,13 +69,23 @@ FCompilerResultsLog::FCompilerResultsLog()
 	, bSilentMode(false)
 	, bLogInfoOnly(false)
 	, bAnnotateMentionedNodes(true)
+	, bLogDetailedResults(false)
+	, EventDisplayThresholdMs(0)
 {
+	CurrentEventScope = nullptr;
+	if(CurrentEventTarget == nullptr)
+	{
+		CurrentEventTarget = this;
+	}
 }
 
 FCompilerResultsLog::~FCompilerResultsLog()
 {
+	if(CurrentEventTarget == this)
+	{
+		CurrentEventTarget = nullptr;
+	}
 }
-
 
 void FCompilerResultsLog::Register()
 {
@@ -90,6 +101,81 @@ void FCompilerResultsLog::Unregister()
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.UnregisterLogListing(Name);
+}
+
+void FCompilerResultsLog::InternalLogEvent(const FCompilerEvent& InEvent, int32 InDepth)
+{
+	const int EventTimeMs = (int)((InEvent.FinishTime - InEvent.StartTime) * 1000);
+	if(EventTimeMs >= EventDisplayThresholdMs)
+	{
+		// Skip display of the top-most event since that time has already been logged
+		if(InDepth > 0)
+		{
+			FString EventString = FString::Printf(TEXT("- %s"), *InEvent.Name);
+			if(InEvent.Counter > 0)
+			{
+				EventString.Append(FString::Printf(TEXT(" (%d)"), InEvent.Counter + 1));
+			}
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("EventTimeMs"), EventTimeMs);
+			EventString.Append(FText::Format(LOCTEXT("PerformanceSummaryEventTime", " [{EventTimeMs} ms]"), Args).ToString());
+
+			FString IndentString = FString::Printf(TEXT("%*s"), (InDepth - 1) << 1, TEXT(""));
+			Note(*FString::Printf(TEXT("%s%s"), *IndentString, *EventString));
+		}
+
+		const int32 NumChildEvents = InEvent.ChildEvents.Num();
+		for(int32 i = 0; i < NumChildEvents; ++i)
+		{
+			InternalLogEvent(InEvent.ChildEvents[i].Get(), InDepth + 1);
+		}
+	}
+}
+
+void FCompilerResultsLog::InternalLogSummary()
+{
+	if(CurrentEventScope.IsValid())
+	{
+		const double CompileStartTime = CurrentEventScope->StartTime;
+		const double CompileFinishTime = CurrentEventScope->FinishTime;
+
+		FNumberFormattingOptions TimeFormat;
+		TimeFormat.MaximumFractionalDigits = 2;
+		TimeFormat.MinimumFractionalDigits = 2;
+		TimeFormat.MaximumIntegralDigits = 4;
+		TimeFormat.MinimumIntegralDigits = 4;
+		TimeFormat.UseGrouping = false;
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Time"), FText::AsNumber(CompileFinishTime - GStartTime, &TimeFormat));
+		Args.Add(TEXT("SourceName"), FText::FromString(SourceName));
+		Args.Add(TEXT("NumWarnings"), NumWarnings);
+		Args.Add(TEXT("NumErrors"), NumErrors);
+		Args.Add(TEXT("TotalMilliseconds"), (int)((CompileFinishTime - CompileStartTime) * 1000));
+
+		if (NumErrors > 0)
+		{
+			FString FailMsg = FText::Format(LOCTEXT("CompileFailed", "[{Time}] Compile of {SourceName} failed. {NumErrors} Fatal Issue(s) {NumWarnings} Warning(s) [in {TotalMilliseconds} ms]"), Args).ToString();
+			Warning(*FailMsg);
+		}
+		else if(NumWarnings > 0)
+		{
+			FString WarningMsg = FText::Format(LOCTEXT("CompileWarning", "[{Time}] Compile of {SourceName} successful, but with {NumWarnings} Warning(s) [in {TotalMilliseconds} ms]"), Args).ToString();
+			Warning(*WarningMsg);
+		}
+		else
+		{
+			FString SuccessMsg = FText::Format(LOCTEXT("CompileSuccess", "[{Time}] Compile of {SourceName} successful! [in {TotalMilliseconds} ms]"), Args).ToString();
+			Note(*SuccessMsg);
+		}
+
+		if(bLogDetailedResults)
+		{
+			Note(*LOCTEXT("PerformanceSummaryHeading", "Performance summary:").ToString());
+			InternalLogEvent(*CurrentEventScope.Get());
+		}
+	}
 }
 
 /** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */
@@ -207,41 +293,48 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 
 void FCompilerResultsLog::AnnotateNode(class UEdGraphNode* Node, TSharedRef<FTokenizedMessage> LogLine)
 {
-	if ((Node != NULL) && bAnnotateMentionedNodes)
+	if (Node != nullptr)
 	{
-		// Determine if this message is the first or more important than the previous one (only showing one error/warning per node for now)
-		bool bUpdateMessage = true;
-		if (Node->bHasCompilerMessage)
+		LogLine->SetMessageLink(FUObjectToken::Create(Node));
+
+		if (bAnnotateMentionedNodes)
 		{
-			// Already has a message, see if we meet or trump the severity
-			bUpdateMessage = LogLine->GetSeverity() <= Node->ErrorType;
-		}
-		else
-		{
-			Node->ErrorMsg.Empty();
-		}
-		
-		// Update the message
-		if (bUpdateMessage)
-		{
-			Node->ErrorType = (int32)LogLine->GetSeverity();
-			Node->bHasCompilerMessage = true;
-			
-			FText FullMessage = LogLine->ToText();
-			
-			if (Node->ErrorMsg.IsEmpty())
+			// Determine if this message is the first or more important than the previous one (only showing one error/warning per node for now)
+			bool bUpdateMessage = true;
+			if (Node->bHasCompilerMessage)
 			{
-				Node->ErrorMsg = FullMessage.ToString();
+				// Already has a message, see if we meet or trump the severity
+				bUpdateMessage = LogLine->GetSeverity() <= Node->ErrorType;
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("PreviousMessage"), FText::FromString( Node->ErrorMsg ) );
-				Args.Add( TEXT("NewMessage"), FullMessage );
-				Node->ErrorMsg = FText::Format( LOCTEXT("AggregateMessagesFormatter", "{PreviousMessage}\n{NewMessage}"), Args ).ToString();
+				Node->ErrorMsg.Empty();
+			}
+
+			// Update the message
+			if (bUpdateMessage)
+			{
+				Node->ErrorType = (int32)LogLine->GetSeverity();
+				Node->bHasCompilerMessage = true;
+
+				FText FullMessage = LogLine->ToText();
+
+				if (Node->ErrorMsg.IsEmpty())
+				{
+					Node->ErrorMsg = FullMessage.ToString();
+				}
+				else
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("PreviousMessage"), FText::FromString(Node->ErrorMsg));
+					Args.Add(TEXT("NewMessage"), FullMessage);
+					Node->ErrorMsg = FText::Format(LOCTEXT("AggregateMessagesFormatter", "{PreviousMessage}\n{NewMessage}"), Args).ToString();
+				}
+
+				AnnotatedNodes.Add(Node);
 			}
 		}
-	}
+	}	
 }
 
 TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDump(const FString& LogDump)
@@ -431,6 +524,88 @@ void FCompilerResultsLog::Append(FCompilerResultsLog const& Other)
 			}
 		}
 		AnnotateNode(OwnerNode, Message);
+	}
+}
+
+void FCompilerResultsLog::BeginEvent(const TCHAR* InName)
+{
+	// Create a new event
+	TSharedPtr<FCompilerEvent> ParentEventScope = CurrentEventScope;
+	CurrentEventScope = MakeShareable(new FCompilerEvent(ParentEventScope));
+
+	// Start event with given name
+	CurrentEventScope->Start(InName);
+}
+
+void FCompilerResultsLog::EndEvent()
+{
+	if(CurrentEventScope.IsValid())
+	{
+		// Mark finish time
+		CurrentEventScope->Finish();
+
+		// Get the parent event scope
+		TSharedPtr<FCompilerEvent> ParentEventScope = CurrentEventScope->ParentEventScope;
+		if(ParentEventScope.IsValid())
+		{
+			// Aggregate the current event into the parent event scope
+			TSharedRef<FCompilerEvent> ChildEvent = CurrentEventScope.ToSharedRef();
+			AddChildEvent(ParentEventScope, ChildEvent);
+
+			// Move current event scope back up to parent
+			CurrentEventScope = ParentEventScope;
+		}
+		else
+		{
+			// Log results summary once we've ended the top-level event
+			InternalLogSummary();
+
+			// Reset current event scope
+			CurrentEventScope = nullptr;
+		}
+	}
+}
+
+void FCompilerResultsLog::AddChildEvent(TSharedPtr<FCompilerEvent>& ParentEventScope, TSharedRef<FCompilerEvent>& ChildEventScope)
+{
+	if(ParentEventScope.IsValid())
+	{
+		// If we already have a matching parent scope, aggregate child events into the current parent scope
+		if(ParentEventScope->Name == ChildEventScope->Name)
+		{
+			for(int i = 0; i < ChildEventScope->ChildEvents.Num(); ++i)
+			{
+				AddChildEvent(ParentEventScope, ChildEventScope->ChildEvents[i]);
+			}
+		}
+		else
+		{
+			// Look for a matching sibling event under the current parent scope
+			bool bMatchFound = false;
+			for(int i = ParentEventScope->ChildEvents.Num() - 1; i >= 0 && !bMatchFound; --i)
+			{
+				// If we find a matching scope, combine this event with the existing one
+				TSharedPtr<FCompilerEvent> ExistingChildEvent = ParentEventScope->ChildEvents[i];
+				if(ExistingChildEvent->Name == ChildEventScope->Name)
+				{
+					bMatchFound = true;
+
+					// Append timing and child event data to the existing event to create an aggregate event
+					ExistingChildEvent->Counter += 1;
+					ExistingChildEvent->FinishTime += (ChildEventScope->FinishTime - ChildEventScope->StartTime);
+					for(int j = 0; j < ChildEventScope->ChildEvents.Num(); ++j)
+					{
+						AddChildEvent(ExistingChildEvent, ChildEventScope->ChildEvents[j]);
+					}
+				}
+			}
+
+			if(!bMatchFound)
+			{
+				// If we didn't find a matching event, append the current event to the list of child events under the current parent scope
+				ParentEventScope->ChildEvents.Add(ChildEventScope);
+			}
+		}
 	}
 }
 

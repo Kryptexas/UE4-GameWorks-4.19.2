@@ -4,6 +4,17 @@
 
 class FArrangedWidget;
 
+class ICustomHitTestPath
+{
+public:
+	virtual ~ICustomHitTestPath(){}
+
+	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors( const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus ) const = 0;
+
+	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const = 0;
+
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const = 0;
+};
 
 class SLATECORE_API FHittestGrid
 {
@@ -15,7 +26,7 @@ public:
 	 * Given a Slate Units coordinate in virtual desktop space, perform a hittest
 	 * and return the path along which the corresponding event would be bubbled.
 	 */
-	TArray<FArrangedWidget> GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus );
+	TArray<FWidgetAndPointer> GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus );
 
 	/**
 	 * Clear the hittesting area and prepare to execute a new frame.
@@ -28,6 +39,18 @@ public:
 
 	/** Add Widget into the hittest data structure so that we can later make queries about it. */
 	int32 InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect );
+
+	void InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex );
+
+	/**
+	 * Finds the next focusable widget by searching through the hit test grid
+	 *
+	 * @param StartingWidget  This is the widget we are starting at, and navigating from.
+	 * @param Direction       The direction we should search in.
+	 * @param NavigationReply The Navigation Reply to specify a boundary rule for the search.
+	 * @param RuleWidget      The Widget that is applying the boundary rule, used to get the bounds of the Rule.
+	 */
+	TSharedPtr<SWidget> FindNextFocusableWidget(const FArrangedWidget& StartingWidget, const EUINavigation Direction, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget);
 
 private:
 
@@ -53,6 +76,16 @@ private:
 private:
 	
 	friend class SWidgetReflector;
+
+	/** @returns true if Child is a descendant of Parent. */
+	bool IsDecendantOf(const TSharedRef<SWidget> Parent, const FCachedWidget& Child);
+
+	/** Utility function for searching for the next focusable widget. */
+	template<typename TCompareFunc, typename TSourceSideFunc, typename TDestSideFunc>
+	TSharedPtr<SWidget> FindFocusableWidget(const FSlateRect WidgetRect, const FSlateRect SweptRect, int32 AxisIndex, int32 Increment, const EUINavigation Direction, const FNavigationReply& NavigationReply, TCompareFunc CompareFunc, TSourceSideFunc SourceSideFunc, TDestSideFunc DestSideFunc);
+
+	/** Constrains a float position into the grid coordinate. */
+	FIntPoint GetCellCoordinate(FVector2D Position);
 
 	/** Access a cell at coordinates X, Y. Coordinates are row and column indexes. */
 	FCell& CellAt( const int32 X, const int32 Y );

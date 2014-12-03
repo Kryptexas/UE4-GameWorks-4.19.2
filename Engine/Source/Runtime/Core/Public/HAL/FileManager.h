@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/Platform.h"
 
+struct FDateTime;
 
 // Maximum length of any filename.  For now, we have no restriction. We would probably use shortening rules if we have to.
 #define MAX_UNREAL_FILENAME_LENGTH (PLATFORM_MAX_FILEPATH_LENGTH)
@@ -182,4 +185,13 @@ public:
 	 * @return			true if the message was sent to server and it returned success, or false if there is no server, or the command failed
 	 */
 	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler)=0;
+
+	/**
+	* For case insensitive filesystems, returns the full path of the file with the same case as in the filesystem.
+	*
+	* @param Filename	Filename to query
+	*
+	* @return	Filename with the same case as in the filesystem.
+	*/
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) = 0;
 };

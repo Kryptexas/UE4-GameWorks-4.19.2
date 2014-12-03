@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
+#include "UObject/UTextProperty.h"
+#include "Interface.h"
 #include "TargetPlatform.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
@@ -38,16 +40,16 @@ static bool HasDeprecatedOrPendingKillOuter(UObject* InObj, UPackage* InSavingPa
 	return false;
 }
 
-static void CheckObjectPriorToSave(UObject* InObj, UPackage* InSavingPackage)
+static void CheckObjectPriorToSave(FArchiveUObject& Ar, UObject* InObj, UPackage* InSavingPackage)
 {
 	if (!InObj)
 	{
 		return;
 	}
+	extern UObject* GSerializedObject;
 	if (!InObj->IsValidLowLevelFast() || !InObj->IsValidLowLevel())
 	{
-		extern UObject* GSerializedObject;
-		UE_LOG(LogLinker, Fatal, TEXT("Attempt to save bogus object %p GSerializedObject=%s  GSerializedProperty=%s"), (void*)InObj, *GetFullNameSafe(GSerializedObject), *GetFullNameSafe(GSerializedProperty));
+		UE_LOG(LogLinker, Fatal, TEXT("Attempt to save bogus object %p GSerializedObject=%s  SerializedProperty=%s"), (void*)InObj, *GetFullNameSafe(GSerializedObject), *GetFullNameSafe(Ar.GetSerializedProperty()));
 		return;
 	}
 	// if the object class is abstract or has been marked as deprecated, mark this
@@ -62,7 +64,7 @@ static void CheckObjectPriorToSave(UObject* InObj, UPackage* InSavingPackage)
 		{
 			TArray<UObject*> ComponentReferences;
 			FReferenceFinder ComponentCollector(ComponentReferences, InObj, false, true, true);
-			ComponentCollector.FindReferences(InObj);
+			ComponentCollector.FindReferences(InObj, GSerializedObject, Ar.GetSerializedProperty());
 
 			for ( int32 Index = 0; Index < ComponentReferences.Num(); Index++ )
 			{
@@ -272,7 +274,7 @@ public:
 	 * 
 	 * @param	InOuter		the package to save
 	 */
-	FArchiveSaveTagExports( UObject* InOuter )
+	FArchiveSaveTagExports( UPackage* InOuter )
 	: Outer(InOuter)
 	{
 		ArIsSaving				= true;
@@ -288,7 +290,7 @@ public:
 	 * Package we're currently saving.  Only objects contained
 	 * within this package will be tagged for serialization.
 	 */
-	UObject* Outer;
+	UPackage* Outer;
 
 	/**
 	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
@@ -313,14 +315,15 @@ private:
  **/
 FString FArchiveSaveTagExports::GetArchiveName() const
 {
-	return Outer != NULL
+	return Outer != nullptr
 		? *FString::Printf(TEXT("SaveTagExports (%s)"), *Outer->GetName())
 		: TEXT("SaveTagExports");
 }
 
 FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 {
-	CheckObjectPriorToSave(Obj, CastChecked<UPackage>(Outer));
+	check(Outer);
+	CheckObjectPriorToSave(*this, Obj, Outer);
 	if( Obj && Obj->IsIn(Outer) && !Obj->HasAnyFlags(RF_Transient) && !Obj->HasAnyMarks(OBJECTMARK_TagExp) )
 	{
 #if 0
@@ -580,7 +583,7 @@ FString FArchiveSaveTagImports::GetArchiveName() const
 
 FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 {
-	CheckObjectPriorToSave(Obj, NULL);
+	CheckObjectPriorToSave(*this, Obj, NULL);
 
 	const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform( CookingTarget(), IsCooking() );
 	
@@ -590,14 +593,14 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 		if( !Obj->HasAnyFlags(RF_Transient) || Obj->HasAllFlags(RF_Native) )
 		{
 			// remember it as a dependency, unless it's a top level package or native
-			bool bIsTopLevelPackage = Obj->GetOuter() == NULL && Obj->IsA(UPackage::StaticClass());
+			bool bIsTopLevelPackage = Obj->GetOuter() == NULL && dynamic_cast<UPackage*>(Obj);
 			bool bIsNative = Obj->HasAnyFlags(RF_Native);
 			UObject* Outer = Obj->GetOuter();
 			
 			// go up looking for native classes
 			while (!bIsNative && Outer)
 			{
-				if (Outer->IsA(UClass::StaticClass()) && Outer->HasAnyFlags(RF_Native))
+				if (dynamic_cast<UClass*>(Outer) && Outer->HasAnyFlags(RF_Native))
 				{
 					bIsNative = true;
 				}
@@ -1529,31 +1532,28 @@ class FExportReferenceSorter : public FArchiveUObject
 			const int32 PreviousReferencedObjectCount = ReferencedObjects.Num();
 			const int32 PreviousInsertIndex = CurrentInsertIndex;
 
-			if ( RequiredObject->IsA(UStruct::StaticClass()) )
+			if (UStruct* RequiredObjectStruct = dynamic_cast<UStruct*>(RequiredObject))
 			{
 				// if this is a struct/class/function/state, it may have a super that needs to be processed first
-				ProcessStruct((UStruct*)RequiredObject);
+				ProcessStruct(RequiredObjectStruct);
+			}
+			else if ( bProcessObject )
+			{
+				// this means that RequiredObject is being force-loaded by the referencing object, rather than simply referenced
+				ProcessObject(RequiredObject);
 			}
 			else
 			{
-				if ( bProcessObject )
+				// only the object's class and archetype are force-loaded, so only those objects need to be in the list before
+				// whatever object was referencing RequiredObject
+				if ( ProcessedObjects.Find(RequiredObject->GetOuter()) == INDEX_NONE )
 				{
-					// this means that RequiredObject is being force-loaded by the referencing object, rather than simply referenced
-					ProcessObject(RequiredObject);
+					HandleDependency(RequiredObject->GetOuter());
 				}
-				else
-				{
-					// only the object's class and archetype are force-loaded, so only those objects need to be in the list before
-					// whatever object was referencing RequiredObject
-					if ( ProcessedObjects.Find(RequiredObject->GetOuter()) == INDEX_NONE )
-					{
-						HandleDependency(RequiredObject->GetOuter());
-					}
 
-					// class is needed before archetype, but we need to process these in reverse order because we are inserting into the list.
-					ProcessObject(RequiredObject->GetArchetype());
-					ProcessStruct(RequiredObject->GetClass());
-				}
+				// class is needed before archetype, but we need to process these in reverse order because we are inserting into the list.
+				ProcessObject(RequiredObject->GetArchetype());
+				ProcessStruct(RequiredObject->GetClass());
 			}
 
 			// InsertIndexOffset is the amount the CurrentInsertIndex was incremented during the serialization of SuperField; we need to
@@ -1608,7 +1608,7 @@ public:
 			}
 
 			// UObjectRedirectors are always force-loaded as the loading code needs immediate access to the object pointed to by the Redirector
-			UObjectRedirector* Redirector = Cast<UObjectRedirector>(Object);
+			UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Object);
 			if ( Redirector != NULL && Redirector->DestinationObject != NULL )
 			{
 				// the Redirector does not force-load the destination object, so we only need its class and archetype.
@@ -1682,23 +1682,23 @@ public:
 				// of exports before the class, so that when CreateExport is called for this object reference we don't have to seek.
 				// Note that in the non-UField case, we don't actually need the object itself to appear before the referencing object/class because it won't
 				// be force-loaded (thus we don't need to add the referenced object to the ReferencedObject list)
-				if ( Object->IsA(UField::StaticClass()) )
+				if (dynamic_cast<UField*>(Object))
 				{
 					// when field processing is enabled, ignore any referenced classes since a class's class and CDO are both intrinsic and
 					// attempting to deal with them here will only cause problems
-					if ( !bIgnoreFieldReferences && !Object->IsA(UClass::StaticClass()) )
+					if ( !bIgnoreFieldReferences && !dynamic_cast<UClass*>(Object) )
 					{
 						if ( CurrentClass == NULL || Object->GetOuter() != CurrentClass )
 						{
-							if ( Object->IsA(UStruct::StaticClass()) )
+							if ( UStruct* StructObject = dynamic_cast<UStruct*>(Object) )
 							{
 								// if this is a struct/class/function/state, it may have a super that needs to be processed first (Preload force-loads UStruct::SuperField)
-								ProcessStruct((UStruct*)Object);
+								ProcessStruct(StructObject);
 							}
 							else
 							{
 								// byte properties that are enum references need their enums loaded first so that config importing works
-								UByteProperty* ByteProp = Cast<UByteProperty>(Object);
+								UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(Object);
 								if (ByteProp != NULL && ByteProp->Enum != NULL)
 								{
 									HandleDependency(ByteProp->Enum, true);
@@ -1761,7 +1761,7 @@ public:
 					HandleDependency(Object->GetArchetype(), true);
 
 					// UObjectRedirectors are always force-loaded as the loading code needs immediate access to the object pointed to by the Redirector
-					UObjectRedirector* Redirector = Cast<UObjectRedirector>(Object);
+					UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Object);
 					if ( Redirector != NULL && Redirector->DestinationObject != NULL )
 					{
 						// the Redirector does not force-load the destination object, so we only need its class and archetype.
@@ -1833,7 +1833,7 @@ public:
 
 					// invoke the serialize operator rather than calling Serialize directly so that the object is handled correctly (i.e. if it is a struct, then we should
 					// call ProcessStruct, etc. and all this logic is already contained in the serialization operator)
-					if ( Cast<UClass>(StructObject) == NULL )
+					if (!dynamic_cast<UClass*>(StructObject))
 					{
 						// before processing the Children reference, set the CurrentClass to the class which contains this StructObject so that we
 						// don't inadvertently serialize other fields of the owning class too early.
@@ -1850,7 +1850,7 @@ public:
 				// Preload will force-load the class default object when called on a UClass object, so make sure that the CDO is always immediately after its class
 				// in the export list; we can't resolve this circular reference, but hopefully we the CDO will fit into the same memory block as the class during 
 				// seek-free loading.
-				UClass* ClassObject = Cast<UClass>(StructObject);
+				UClass* ClassObject = dynamic_cast<UClass*>(StructObject);
 				if ( ClassObject != NULL )
 				{
 					UObject* CDO = ClassObject->GetDefaultObject();
@@ -1970,10 +1970,10 @@ struct FObjectExportSeekFreeSorter
 		for( int32 ExportIndex=FirstSortIndex; ExportIndex<Linker->ExportMap.Num(); ExportIndex++ )
 		{
 			const FObjectExport& Export = Linker->ExportMap[ExportIndex];
-			if( Export.Object && Export.Object->IsA(UClass::StaticClass()) )
+			if( UClass* ExportObjectClass = dynamic_cast<UClass*>(Export.Object) )
 			{
 				SortArchive.Clear();
-				SortArchive.ProcessStruct((UClass*)Export.Object);
+				SortArchive.ProcessStruct(ExportObjectClass);
 #if EXPORT_SORTING_DETAILED_LOGGING
 				TArray<UObject*> ReferencedObjects;
 				SortArchive.GetExportList(ReferencedObjects, bRetrieveInitialReferences);
@@ -2172,7 +2172,7 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 	for (int32 i = 0; i < OldLinker->ExportMap.Num(); i++)
 	{
 		UClass* NewClass = (UClass*)StaticFindObjectFast(UClass::StaticClass(), NewPackage, OldLinker->ExportMap[i].ObjectName, true, false);
-		UClass* OldClass = Cast<UClass>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
+		UClass* OldClass = static_cast<UClass*>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
 		if (OldClass != NULL && NewClass != NULL && OldClass->HasAnyFlags(RF_Native) && NewClass->HasAnyFlags(RF_Native))
 		{
 			OldClass->ClassConstructor = NewClass->ClassConstructor;
@@ -2189,11 +2189,11 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 		{
 			// load the object so we can analyze it
 			BeginLoad();
-			UClass* OldClass = Cast<UClass>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
+			UClass* OldClass = static_cast<UClass*>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
 			EndLoad();
 			if (OldClass != NULL)
 			{
-				UClass* NewClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), NewPackage, OldClass->GetFName(), true, false));
+				UClass* NewClass = FindObjectFast<UClass>(NewPackage, OldClass->GetFName(), true, false);
 				if (NewClass != NULL)
 				{
 					for (TFieldIterator<UField> OldFieldIt(OldClass,EFieldIteratorFlags::ExcludeSuper); OldFieldIt; ++OldFieldIt)
@@ -2202,8 +2202,8 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 						{
 							if (OldFieldIt->GetFName() == NewFieldIt->GetFName())
 							{
-								UProperty* OldProp = Cast<UProperty>(*OldFieldIt);
-								UProperty* NewProp = Cast<UProperty>(*NewFieldIt);
+								UProperty* OldProp = dynamic_cast<UProperty*>(*OldFieldIt);
+								UProperty* NewProp = dynamic_cast<UProperty*>(*NewFieldIt);
 								if (OldProp != NULL && NewProp != NULL)
 								{
 									if ((OldProp->PropertyFlags & CPF_Net) != (NewProp->PropertyFlags & CPF_Net))
@@ -2214,8 +2214,8 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 								}
 								else
 								{
-									UFunction* OldFunc = Cast<UFunction>(*OldFieldIt);
-									UFunction* NewFunc = Cast<UFunction>(*NewFieldIt);
+									UFunction* OldFunc = dynamic_cast<UFunction*>(*OldFieldIt);
+									UFunction* NewFunc = dynamic_cast<UFunction*>(*NewFieldIt);
 									if (OldFunc != NULL && NewFunc != NULL)
 									{
 										if ((OldFunc->FunctionFlags & (FUNC_Net | FUNC_NetServer | FUNC_NetClient)) != (NewFunc->FunctionFlags & (FUNC_Net | FUNC_NetServer | FUNC_NetClient)))
@@ -2341,7 +2341,7 @@ EObjectMark UPackage::GetObjectMarksForTargetPlatform( const class ITargetPlatfo
 
 bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 	FOutputDevice* Error, ULinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
-	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp)
+	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
 {
 	UE_START_LOG_COOK_TIME( Filename );
 	
@@ -2492,10 +2492,6 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		TempFilename = FPaths::CreateTempFilename(*FPaths::GameSavedDir(), *BaseFilename);
 
 		// Init.
-		const int32 SimpleSaveSteps = 29;
-		const int32 ExportSaveSteps = 101;
-		const int32 TotalSaveSteps = SimpleSaveSteps + ExportSaveSteps;
-		int32 CurSaveStep = 0;
 		FString CleanFilename = FPaths::GetCleanFilename( Filename );
 
 		FFormatNamedArguments Args;
@@ -2503,16 +2499,17 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		FText StatusMessage = FText::Format( NSLOCTEXT("Core", "SavingFile", "Saving file: {CleanFilename}..."), Args );
 
-		// Only allow the user to cancel only if we're autosaving
-		GWarn->EnableUserCancel((SaveFlags & SAVE_FromAutosave ? true : false));
+		const int32 TotalSaveSteps = 31;
+		FScopedSlowTask SlowTask(TotalSaveSteps, StatusMessage, bSlowTask);
+		SlowTask.MakeDialog(SaveFlags & SAVE_FromAutosave ? true : false);
 
-		//Force status update based on current file name and progress percent
-		GWarn->StatusForceUpdate( CurSaveStep, TotalSaveSteps, StatusMessage );
+		SlowTask.EnterProgressFrame();
+
 		bool Success = true;
 
 		ResetLoadersForSave(InOuter,Filename);
 
-		GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+		SlowTask.EnterProgressFrame();
 
 	
 		// Untag all objects and names.
@@ -2591,7 +2588,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("BeginCacheForCookedPlatformData"));
 
 
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 
 				// structure to track what ever export needs to import
@@ -2613,12 +2610,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				if (bCompressFromMemory || bSaveAsync)
 				{
 					// Allocate the linker with a memory writer, forcing byte swapping if wanted.
-					Linker = new ULinkerSave( FPostConstructInitializeProperties(), InOuter, bForceByteSwapping, bSaveUnversioned );
+					Linker = new ULinkerSave( FObjectInitializer(), InOuter, bForceByteSwapping, bSaveUnversioned );
 				}
 				else
 				{
 					// Allocate the linker, forcing byte swapping if wanted.
-					Linker = new ULinkerSave( FPostConstructInitializeProperties(), InOuter, *TempFilename, bForceByteSwapping, bSaveUnversioned );
+					Linker = new ULinkerSave( FObjectInitializer(), InOuter, *TempFilename, bForceByteSwapping, bSaveUnversioned );
 				}
 
 				// Use the custom versions we had previously gleaned from the export tag pass
@@ -2629,7 +2626,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->SetCookingTarget(TargetPlatform);
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 			
 				// keep a list of objects that would normally have gone into the dependency map, but since they are from cross-level dependencies, won't be found in the import map
 				TArray<UObject*> DependenciesToIgnore;
@@ -2727,7 +2724,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Imports"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				TArray<UObject*> PrivateObjects;
 				TArray<UObject*> ObjectsInOtherMaps;
@@ -2774,7 +2771,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							}
 
 							// See whether the object we are referencing is in another map package.
-							UPackage* ObjPackage = Cast<UPackage>(Obj->GetOutermost());
+							UPackage* ObjPackage = dynamic_cast<UPackage*>(Obj->GetOutermost());
 							if( ObjPackage && ObjPackage->ContainsMap() )
 							{
 								if ( ObjPackage != Obj && Obj->GetFName() != NAME_PersistentLevel && Obj->GetClass()->GetFName() != WorldClassName )
@@ -2804,7 +2801,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Mark Names"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				if ( LevelObjects.Num() > 0 && ObjectsInOtherMaps.Num() == 0 )
 				{
@@ -2962,7 +2959,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				int32 OffsetAfterPackageFileSummary = Linker->Tell();
 		
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 
 				// Build NameMap.
@@ -2973,14 +2970,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Summary"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Sort names.
 				FObjectNameSortHelper NameSortHelper;
 				NameSortHelper.SortNames( Linker, Conform );
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Save names.
 				Linker->Summary.NameCount = Linker->NameMap.Num();
@@ -2994,7 +2991,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Names"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Build ImportMap.
 				{
@@ -3010,7 +3007,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// sort and conform imports
 				FObjectImportSortHelper ImportSortHelper;
@@ -3018,7 +3015,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->Summary.ImportCount = Linker->ImportMap.Num();
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				
 				// Build ExportMap.
@@ -3036,14 +3033,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Build Export Map"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Sort exports alphabetically and conform the export table (if necessary)
 				FObjectExportSortHelper ExportSortHelper;
 				ExportSortHelper.SortExports( Linker, Conform );
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Sort exports for seek-free loading.
 				FObjectExportSeekFreeSorter SeekFreeSorter;
@@ -3053,7 +3050,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Sort Exports"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Pre-size depends map.
 				Linker->DependsMap.AddZeroed( Linker->ExportMap.Num() );
@@ -3127,7 +3124,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Set linker reverse mappings.
 				// also set netplay required data for any UPackages in the export map
@@ -3138,7 +3135,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					{
 						Linker->ObjectIndicesMap.Add(Object, FPackageIndex::FromExport(i));
 
-						UPackage* Package = Cast<UPackage>(Object);
+						UPackage* Package = dynamic_cast<UPackage*>(Object);
 						if (Package != NULL)
 						{
 							Linker->ExportMap[i].PackageFlags = Package->PackageFlags;
@@ -3151,7 +3148,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// If this is a map package, make sure there is a world or level in the export map.
 				if ( InOuter->ContainsMap() )
@@ -3187,7 +3184,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Build Dependency Map"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				for( int32 i=0; i<Linker->ImportMap.Num(); i++ )
 				{
@@ -3205,12 +3202,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Find components referenced by exports.
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Save dummy import map, overwritten later.
 				Linker->Summary.ImportOffset = Linker->Tell();
@@ -3226,7 +3223,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Save dummy export map, overwritten later.
 				Linker->Summary.ExportOffset = Linker->Tell();
@@ -3241,7 +3238,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// save depends map (no need for later patching)
 				check(Linker->DependsMap.Num()==Linker->ExportMap.Num());
@@ -3256,7 +3253,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Dependency Map"));
 
 				if (EndSavingIfCancelled(Linker, TempFilename)) { return false; }
-				GWarn->UpdateProgress(++CurSaveStep, TotalSaveSteps);
+				SlowTask.EnterProgressFrame();
 
 				// Save string asset reference map
 				Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
@@ -3281,7 +3278,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->Summary.TotalHeaderSize	= Linker->Tell();
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame(1, NSLOCTEXT("Core", "ProcessingExports", "ProcessingExports..."));
 
 				// look for this package in the list of packages to generate script SHA for 
 				TArray<uint8>* ScriptSHABytes = ULinkerSave::PackagesToScriptSHAMap.Find(*FPaths::GetBaseFilename(Filename));
@@ -3293,95 +3290,89 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 				UE_LOG_COOK_TIME(TEXT("SaveThumbNails Save AssetRegistryData SaveWorldLevelInfo"));
-
-				// Save exports.
-				int32 LastExportSaveStep = 0;
-				for( int32 i=0; i<Linker->ExportMap.Num(); i++ )
+				
 				{
-					FObjectExport& Export = Linker->ExportMap[i];
-					if( Export.Object )
-					{
-						// Set class index.
-						// If this is *exactly* a UClass, store null instead; for anything else, including UClass-derived classes, map it
-						if( Export.Object->GetClass() != UClass::StaticClass() )
-						{
-							Export.ClassIndex = Linker->MapObject(Export.Object->GetClass());
-							check(!Export.ClassIndex.IsNull());
-						}
-						else
-						{
-							Export.ClassIndex = FPackageIndex();
-						}
+					FScopedSlowTask ExportScope(Linker->ExportMap.Num());
 
-						// Set the parent index, if this export represents a UStruct-derived object
-						if( Export.Object->IsA(UStruct::StaticClass()) )
+					// Save exports.
+					int32 LastExportSaveStep = 0;
+					for( int32 i=0; i<Linker->ExportMap.Num(); i++ )
+					{
+						if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
+						ExportScope.EnterProgressFrame();
+
+						FObjectExport& Export = Linker->ExportMap[i];
+						if( Export.Object )
 						{
-							UStruct* Struct = (UStruct*)Export.Object;
-							if (Struct->GetSuperStruct() != NULL)
+							// Set class index.
+							// If this is *exactly* a UClass, store null instead; for anything else, including UClass-derived classes, map it
+							if( Export.Object->GetClass() != UClass::StaticClass() )
 							{
-								Export.SuperIndex = Linker->MapObject(Struct->GetSuperStruct());
-								check(!Export.SuperIndex.IsNull());
+								Export.ClassIndex = Linker->MapObject(Export.Object->GetClass());
+								check(!Export.ClassIndex.IsNull());
+							}
+							else
+							{
+								Export.ClassIndex = FPackageIndex();
+							}
+
+							// Set the parent index, if this export represents a UStruct-derived object
+							if( UStruct* Struct = dynamic_cast<UStruct*>(Export.Object) )
+							{
+								if (Struct->GetSuperStruct() != NULL)
+								{
+									Export.SuperIndex = Linker->MapObject(Struct->GetSuperStruct());
+									check(!Export.SuperIndex.IsNull());
+								}
+								else
+								{
+									Export.SuperIndex = FPackageIndex();
+								}
 							}
 							else
 							{
 								Export.SuperIndex = FPackageIndex();
 							}
-						}
-						else
-						{
-							Export.SuperIndex = FPackageIndex();
-						}
 
-						// Set FPackageIndex for this export's Outer. If the export's Outer
-						// is the UPackage corresponding to this package's LinkerRoot, the
-						if( Export.Object->GetOuter() != InOuter )
-						{
-							check( Export.Object->GetOuter() );
-							checkf(Export.Object->GetOuter()->IsIn(InOuter),
-								TEXT("Export Object (%s) Outer (%s) mismatch."),
-								*(Export.Object->GetPathName()),
-								*(Export.Object->GetOuter()->GetPathName()));
-							Export.OuterIndex = Linker->MapObject(Export.Object->GetOuter());
-							checkf(!Export.OuterIndex.IsImport(), 
-								TEXT("Export Object (%s) Outer (%s) is an Import."),
-								*(Export.Object->GetPathName()),
-								*(Export.Object->GetOuter()->GetPathName()));
-						}
-						else
-						{
-							// this export's Outer is the LinkerRoot for this package
-							Export.OuterIndex = FPackageIndex();
-						}
+							// Set FPackageIndex for this export's Outer. If the export's Outer
+							// is the UPackage corresponding to this package's LinkerRoot, the
+							if( Export.Object->GetOuter() != InOuter )
+							{
+								check( Export.Object->GetOuter() );
+								checkf(Export.Object->GetOuter()->IsIn(InOuter),
+									TEXT("Export Object (%s) Outer (%s) mismatch."),
+									*(Export.Object->GetPathName()),
+									*(Export.Object->GetOuter()->GetPathName()));
+								Export.OuterIndex = Linker->MapObject(Export.Object->GetOuter());
+								checkf(!Export.OuterIndex.IsImport(), 
+									TEXT("Export Object (%s) Outer (%s) is an Import."),
+									*(Export.Object->GetPathName()),
+									*(Export.Object->GetOuter()->GetPathName()));
+							}
+							else
+							{
+								// this export's Outer is the LinkerRoot for this package
+								Export.OuterIndex = FPackageIndex();
+							}
 
-						// Save the object data.
-						Export.SerialOffset = Linker->Tell();
-						// UE_LOG(LogSavePackage, Log, TEXT("export %s for %s"), *Export.Object->GetFullName(), *Linker->CookingTarget()->PlatformName());
-						if ( Export.Object->HasAnyFlags(RF_ClassDefaultObject) )
-						{
-							Export.Object->GetClass()->SerializeDefaultObject(Export.Object, *Linker);
-						}
-						else
-						{
-							Export.Object->Serialize( *Linker );
-						}
-						Export.SerialSize = Linker->Tell() - Export.SerialOffset;
+							// Save the object data.
+							Export.SerialOffset = Linker->Tell();
+							// UE_LOG(LogSavePackage, Log, TEXT("export %s for %s"), *Export.Object->GetFullName(), *Linker->CookingTarget()->PlatformName());
+							if ( Export.Object->HasAnyFlags(RF_ClassDefaultObject) )
+							{
+								Export.Object->GetClass()->SerializeDefaultObject(Export.Object, *Linker);
+							}
+							else
+							{
+								Export.Object->Serialize( *Linker );
+							}
+							Export.SerialSize = Linker->Tell() - Export.SerialOffset;
 
-						// Mark object as having been saved.
-						Export.Object->Mark(OBJECTMARK_Saved);
+							// Mark object as having been saved.
+							Export.Object->Mark(OBJECTMARK_Saved);
+						}
 					}
-
-
-					// Update progress for exports
-					int32 CurExportSaveStep = ( i + 1 ) * ExportSaveSteps / ( Linker->ExportMap.Num() );
-					if( CurExportSaveStep > LastExportSaveStep )
-					{
-						CurSaveStep += CurExportSaveStep - LastExportSaveStep;
-						if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-						GWarn->UpdateProgress( CurSaveStep, TotalSaveSteps );
-					}
-					LastExportSaveStep = CurExportSaveStep;
 				}
-
 
 				UE_LOG_COOK_TIME(TEXT("Serialize Exports"));
 
@@ -3393,39 +3384,46 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					ScriptSHABytes->AddUninitialized(20);
 
 					// retrieve it
-					Linker->GetScriptSHAKey(ScriptSHABytes->GetTypedData());
+					Linker->GetScriptSHAKey(ScriptSHABytes->GetData());
 				}
 
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame(1, NSLOCTEXT("Core", "SerializingBulkData", "Serializing bulk data"));
 
 				// now we write all the bulkdata that is supposed to be at the end of the package
 				// and fix up the offset
 				int64 StartOfBulkDataArea = Linker->Tell();
 				Linker->Summary.BulkDataStartOffset = StartOfBulkDataArea;
-			
-				for (int32 i=0; i < Linker->BulkDataToAppend.Num(); ++i)
+
 				{
-					ULinkerSave::FBulkDataStorageInfo& BulkData = Linker->BulkDataToAppend[i];
+					FScopedSlowTask BulkDataFeedback(Linker->BulkDataToAppend.Num());
 
-					int64 BulkStartOffset = Linker->Tell();
-					int64 StoredBulkStartOffset = BulkStartOffset - StartOfBulkDataArea;
+					for (int32 i=0; i < Linker->BulkDataToAppend.Num(); ++i)
+					{
+						BulkDataFeedback.EnterProgressFrame();
 
-					BulkData.BulkData->SerializeBulkData(*Linker, BulkData.BulkData->Lock(LOCK_READ_ONLY));
-					BulkData.BulkData->Unlock();
+						ULinkerSave::FBulkDataStorageInfo& BulkData = Linker->BulkDataToAppend[i];
 
-					int64 BulkEndOffset = Linker->Tell();
-					int32 SizeOnDisk = (int32)(BulkEndOffset - BulkStartOffset);
+						int64 BulkStartOffset = Linker->Tell();
+						int64 StoredBulkStartOffset = BulkStartOffset - StartOfBulkDataArea;
+
+						BulkData.BulkData->SerializeBulkData(*Linker, BulkData.BulkData->Lock(LOCK_READ_ONLY));
+						BulkData.BulkData->Unlock();
+
+						int64 BulkEndOffset = Linker->Tell();
+						int32 SizeOnDisk = (int32)(BulkEndOffset - BulkStartOffset);
 				
-					Linker->Seek(BulkData.BulkDataOffsetInFilePos);
-					*Linker << StoredBulkStartOffset;
+						Linker->Seek(BulkData.BulkDataOffsetInFilePos);
+						*Linker << StoredBulkStartOffset;
 
-					Linker->Seek(BulkData.BulkDataSizeOnDiskPos);
-					*Linker << SizeOnDisk;
+						Linker->Seek(BulkData.BulkDataSizeOnDiskPos);
+						*Linker << SizeOnDisk;
 
-					Linker->Seek(BulkEndOffset);
+						Linker->Seek(BulkEndOffset);
+					}
 				}
+
 				Linker->BulkDataToAppend.Empty();
 			
 				// write the package post tag
@@ -3492,14 +3490,11 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				FFormatNamedArguments NamedArgs;
 				NamedArgs.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
-				StatusMessage = FText::Format( NSLOCTEXT("Core", "Finalizing", "Finalizing: {CleanFilename}..."), NamedArgs );
-
-				// Rewrite updated file summary.
-				GWarn->StatusForceUpdate( CurSaveStep, TotalSaveSteps, StatusMessage );
+				SlowTask.DefaultMessage = FText::Format( NSLOCTEXT("Core", "Finalizing", "Finalizing: {CleanFilename}..."), NamedArgs );
 
 				//@todo: remove ExportCount and NameCount - no longer used
 				Linker->Summary.Generations.Last().ExportCount = Linker->Summary.ExportCount;
@@ -3523,7 +3518,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				check( Linker->Tell() == OffsetAfterPackageFileSummary );
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Detach archive used for saving, closing file handle.
 				if( Linker && !bCompressFromMemory && !bSaveAsync)
@@ -3534,7 +3529,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				UE_LOG(LogSavePackage, Log,  TEXT("Save=%fms"), FPlatformTime::ToMilliseconds(Time) );
 		
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				if( Success == true )
 				{
@@ -3607,6 +3602,22 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 					else
 					{
+						// Mark exports and the package as RF_Loaded after they've been serialized
+						// This is to ensue that newly created packages are properly marked as loaded (since they now exist on disk and 
+						// in memory in the exact same state).
+						for (auto& Export : Linker->ExportMap)
+						{
+							if (Export.Object)
+							{
+								Export.Object->SetFlags(RF_WasLoaded);
+							}
+						}
+						if (Linker->LinkerRoot)
+						{
+							// And finally set the flag on the package itself.
+							Linker->LinkerRoot->SetFlags(RF_WasLoaded);
+						}
+
 						// Clear dirty flag if desired
 						if (!(SaveFlags & SAVE_KeepDirty))
 						{
@@ -3650,7 +3661,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 
 				// Route PostSaveRoot to allow e.g. the world to detach components for the persistent level that where
 				// attached in PreSaveRoot.
@@ -3659,7 +3670,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Base->PostSaveRoot( bCleanupIsRequired );
 				}
 
-				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
+				SlowTask.EnterProgressFrame();
 			
 
 				for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
@@ -3676,7 +3687,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		}
 
 		// We're done!
-		GWarn->UpdateProgress( TotalSaveSteps, TotalSaveSteps );
+		SlowTask.EnterProgressFrame();
 
 		UE_FINISH_LOG_COOK_TIME();
 

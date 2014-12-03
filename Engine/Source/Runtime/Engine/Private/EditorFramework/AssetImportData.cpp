@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UAssetImportData::UAssetImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAssetImportData::UAssetImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bDirty = false;
 }

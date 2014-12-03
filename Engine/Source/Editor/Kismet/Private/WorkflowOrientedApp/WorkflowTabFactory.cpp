@@ -3,6 +3,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "IDocumentation.h"
 #include "WorkflowTabFactory.h"
+#include "SDockTab.h"
 
 /////////////////////////////////////////////////////
 // FWorkflowTabFactory
@@ -10,7 +11,7 @@
 FWorkflowTabFactory::FWorkflowTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp)
 	: TabIdentifier(InIdentifier)
 	, TabRole(ETabRole::PanelTab)
-	, TabIcon(NULL)
+	, TabIcon(FSlateIcon())
 	, InsideTabPadding(0.0f)
 	, bIsSingleton(false)
 	, bShouldAutosize(false)
@@ -111,9 +112,13 @@ TSharedRef<SWidget> FWorkflowTabFactory::CreateTabBody(const FWorkflowTabSpawnIn
 
 const FSlateBrush* FWorkflowTabFactory::GetTabIcon(const FWorkflowTabSpawnInfo& Info) const
 {
-	return TabIcon;
+	return TabIcon.GetIcon();
 }
 
+const FSlateIcon& FWorkflowTabFactory::GetTabSpawnerIcon(const FWorkflowTabSpawnInfo& Info) const
+{
+	return TabIcon;
+}
 
 void FWorkflowTabFactory::CreateViewMenuEntry(FMenuBuilder& MenuBuilder, const FUIAction& Action) const
 {
@@ -122,6 +127,11 @@ void FWorkflowTabFactory::CreateViewMenuEntry(FMenuBuilder& MenuBuilder, const F
 
 /////////////////////////////////////////////////////
 // FDocumentTabFactory
+
+FDocumentTabFactory::FDocumentTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(InIdentifier, InHostingApp)
+{
+	TabRole = ETabRole::DocumentTab;
+}
 
 TSharedRef<FGenericTabHistory> FDocumentTabFactory::CreateTabHistoryNode(TSharedPtr<FTabPayload> Payload)
 {

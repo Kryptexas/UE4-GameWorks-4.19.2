@@ -238,6 +238,7 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingC
 void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
 {
 	FSceneRenderTargetItem& RenderTargetItem = Output->PooledRenderTarget->GetRenderTargetItem();
+	FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
 	FTextureRHIRef Texture = RenderTargetItem.TargetableTexture ? RenderTargetItem.TargetableTexture : RenderTargetItem.ShaderResourceTexture;
 	check(Texture);
 	check(Texture->GetTexture2D());
@@ -246,7 +247,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	int32 MSAAXSamples = Texture->GetNumSamples();
 	if (GIsHighResScreenshot)
 	{
-		SourceRect = GetHighResScreenshotConfig().CaptureRegion;
+		SourceRect = HighResScreenshotConfig.CaptureRegion;
 		if (SourceRect.Area() == 0)
 		{
 			SourceRect = Context.View.ViewRect;
@@ -268,7 +269,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 		{
 			TArray<FFloat16Color> Bitmap;
 			Context.RHICmdList.ReadSurfaceFloatData(Texture, SourceRect, Bitmap, (ECubeFace)0, 0, 0);
-			ResultPath = GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, PixelFormat);
+			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
 		}
 		break;
 		case PF_R8G8B8A8:
@@ -283,7 +284,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 			{
 				Pixel->A = 255;
 			}
-			ResultPath = GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, PixelFormat);
+			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
 		}
 		break;
 	}
@@ -672,7 +673,6 @@ void FPostProcessPassParameters::Bind(const FShaderParameterMap& ParameterMap)
 	{
 		PostprocessInputParameter[i].Bind(ParameterMap, *FString::Printf(TEXT("PostprocessInput%d"), i));
 		PostprocessInputParameterSampler[i].Bind(ParameterMap, *FString::Printf(TEXT("PostprocessInput%dSampler"), i));
-		PostprocessInputNew[i].Bind(ParameterMap, *FString::Printf(TEXT("InputNew%d"), i));
 		PostprocessInputSizeParameter[i].Bind(ParameterMap, *FString::Printf(TEXT("PostprocessInput%dSize"), i));
 		PostProcessInputMinMaxParameter[i].Bind(ParameterMap, *FString::Printf(TEXT("PostprocessInput%dMinMax"), i));
 	}
@@ -800,16 +800,18 @@ void FPostProcessPassParameters::Set(
 			const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 
 			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, SrcTexture);
-			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputNew[Id], InputPooledElement->GetRenderTargetItem().TargetableTexture);
 
+			if(PostprocessInputSizeParameter[Id].IsBound() || PostProcessInputMinMaxParameter[Id].IsBound())
 			{
 				float Width = InputPooledElement->GetDesc().Extent.X;
 				float Height = InputPooledElement->GetDesc().Extent.Y;
-				FVector4 TextureSize(Width, Height, 1.0f / Width, 1.0f / Height);
-				SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
-					
-				//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
+				
 				FVector2D OnePPInputPixelUVSize = FVector2D(1.0f / Width, 1.0f / Height);
+
+				FVector4 TextureSize(Width, Height, OnePPInputPixelUVSize.X, OnePPInputPixelUVSize.Y);
+				SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
+
+				//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
 				FVector4 PPInputMinMax = BaseSceneTexMinMax;
 				PPInputMinMax.Z -= OnePPInputPixelUVSize.X;
 				PPInputMinMax.W -= OnePPInputPixelUVSize.Y;
@@ -823,7 +825,6 @@ void FPostProcessPassParameters::Set(
 			// if the input is not there but the shader request it we give it at least some data to avoid d3ddebug errors and shader permutations
 			// to make features optional we use default black for additive passes without shader permutations
 			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, Texture->GetRenderTargetItem().TargetableTexture);
-			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputNew[Id], Texture->GetRenderTargetItem().TargetableTexture);
 
 			FVector4 Dummy(1, 1, 1, 1);
 			SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], Dummy);
@@ -858,7 +859,6 @@ FArchive& operator<<(FArchive& Ar, FPostProcessPassParameters& P)
 	{
 		Ar << P.PostprocessInputParameter[i];
 		Ar << P.PostprocessInputParameterSampler[i];
-		Ar << P.PostprocessInputNew[i];
 		Ar << P.PostprocessInputSizeParameter[i];
 		Ar << P.PostProcessInputMinMaxParameter[i];
 	}

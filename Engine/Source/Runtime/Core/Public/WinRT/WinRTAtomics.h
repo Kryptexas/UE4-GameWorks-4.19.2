@@ -5,6 +5,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformAtomics.h"
+#include "WinRT/WinRTSystemIncludes.h"
 
 /**
  * WinRT implementation of the Atomics OS functions

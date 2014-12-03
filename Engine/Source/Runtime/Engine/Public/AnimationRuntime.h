@@ -22,10 +22,10 @@ typedef TArray<FTransform> FTransformArrayA2;
 class ENGINE_API FAnimationRuntime
 {
 public:
-	static void NormalizeRotations(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
+	static void NormalizeRotations(const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
 	static void NormalizeRotations(FTransformArrayA2 & Atoms);
 
-	static void InitializeTransform(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
+	static void InitializeTransform(const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
 #if DO_GUARD_SLOW
 	static bool ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices, FA2Pose & Pose);
 #endif
@@ -44,7 +44,7 @@ public:
 		int32 NumPoses,
 		const FTransformArrayA2** SourcePoses,
 		const float* SourceWeights,
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms);
 
 	/**
@@ -62,7 +62,7 @@ public:
 		int32 NumPoses,
 		const TArray<FTransformArrayA2>& SourcePoses,
 		const TArray<float>&	SourceWeights,
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms);
 
 	/**
@@ -78,9 +78,9 @@ public:
 	static void BlendPosesTogetherPerBone(
 		int32 NumPoses,
 		const TArray<FTransformArrayA2>& SourcePoses,
-		const UBlendSpaceBase * BlendSpace, 
+		const UBlendSpaceBase* BlendSpace, 
 		const TArray<FBlendSampleData>& BlendSampleDataCache, 
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms);
 
 	/**
@@ -96,9 +96,9 @@ public:
 	static void BlendPosesTogetherPerBoneInMeshSpace(
 		int32 NumPoses,
 		TArray<FTransformArrayA2>& SourcePoses,
-		const UBlendSpaceBase * BlendSpace, 
+		const UBlendSpaceBase* BlendSpace, 
 		const TArray<FBlendSampleData>& BlendSampleDataCache, 
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms);
 
 	/** 
@@ -112,51 +112,51 @@ public:
 	 * having multiple bone names with multiple weights, and filtering through which one is correct one
 	 * I assume all those things should be determined before coming here and this only cares about weights
 	 **/
-	static void BlendPosesPerBoneFilter(struct FA2Pose& BasePose, const TArray<struct FA2Pose>& BlendPoses, struct FA2Pose& OutPose, TArray<FPerBoneBlendWeight>& BoneBlendWeights, bool bMeshSpaceRotationBlending, const FBoneContainer & RequiredBones, USkeleton * Skeleton);
+	static void BlendPosesPerBoneFilter(struct FA2Pose& BasePose, const TArray<struct FA2Pose>& BlendPoses, struct FA2Pose& OutPose, TArray<FPerBoneBlendWeight>& BoneBlendWeights, bool bMeshSpaceRotationBlending, const FBoneContainer& RequiredBones, USkeleton* Skeleton);
 
-	static void UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights, const FBoneContainer & RequiredBones, USkeleton * Skeleton);
+	static void UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights, const FBoneContainer& RequiredBones, USkeleton* Skeleton);
 
 	static void CreateMaskWeights(int32 NumOfBones, 
 			TArray<FPerBoneBlendWeight> & BoneBlendWeights, 
 			const TArray<FInputBlendPose>	&BlendFilters, 
-			const FBoneContainer & RequiredBones, 
-			const USkeleton * Skeleton);
+			const FBoneContainer& RequiredBones, 
+			const USkeleton* Skeleton);
 
 	static void CombineWithAdditiveAnimations(
 		int32 NumAdditivePoses,
 		const FTransformArrayA2** SourceAdditivePoses,
 		const float* SourceAdditiveWeights,
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*inout*/ FTransformArrayA2& Atoms);
 
 	static void GetPoseFromSequence(
 		const UAnimSequenceBase* Sequence,
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms,
-		const FAnimExtractContext & ExtractionContext);
+		const FAnimExtractContext& ExtractionContext);
 
 	static void GetPoseFromAnimTrack(
 		const FAnimTrack& Track,
-		const FBoneContainer & RequiredBones,
+		const FBoneContainer& RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms,
-		const FAnimExtractContext & ExtractionContext);
+		const FAnimExtractContext& ExtractionContext);
 
 	/** Fill ref pose **/
-	static void FillWithRefPose(TArray<FTransform> & OutAtoms, const FBoneContainer & RequiredBones);
+	static void FillWithRefPose(TArray<FTransform> & OutAtoms, const FBoneContainer& RequiredBones);
 
 #if WITH_EDITOR
 	/** fill with retarget base ref pose but this isn't used during run-time, so it always copies all of them */
-	static void FillWithRetargetBaseRefPose( TArray<FTransform> & OutAtoms, const USkeletalMesh * Mesh, const FBoneContainer & RequiredBones );
+	static void FillWithRetargetBaseRefPose( TArray<FTransform> & OutAtoms, const USkeletalMesh* Mesh, const FBoneContainer& RequiredBones );
 #endif
 
 	/** Convert LocalTransforms into MeshSpaceTransforms over RequiredBones. */
-	static void ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer & RequiredBones);
+	static void ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer& RequiredBones);
 
 	/** Convert TargetPose into an AdditivePose, by doing TargetPose = TargetPose - BasePose over RequiredBones. */
-	static void ConvertPoseToAdditive(FTransformArrayA2 & TargetPose, const FTransformArrayA2 & BasePose, const FBoneContainer & RequiredBones);
+	static void ConvertPoseToAdditive(FTransformArrayA2 & TargetPose, const FTransformArrayA2 & BasePose, const FBoneContainer& RequiredBones);
 
 	/** Convert LocalPose into MeshSpaceRotations over RequiredBones. */
-	static void ConvertPoseToMeshRotation(FTransformArrayA2 & LocalPose, const FBoneContainer & RequiredBones);
+	static void ConvertPoseToMeshRotation(FTransformArrayA2 & LocalPose, const FBoneContainer& RequiredBones);
 
 	/**
 	 * Accumulates BlendPoses to ResultAtoms with BlendWeight. 
@@ -171,7 +171,7 @@ public:
 	static void BlendPosesAccumulate(
 		const FTransformArrayA2& BlendPoses,
 		const float BlendWeight, 
-		const FBoneContainer & RequiredBones, 
+		const FBoneContainer& RequiredBones, 
 		/*inout*/ FTransformArrayA2& ResultAtoms);
 
 	/**
@@ -187,7 +187,7 @@ public:
 		const FTransformArrayA2& SourcePoses, 
 		const FTransformArrayA2& AdditiveBlendPoses, 
 		const float BlendWeight, 
-		const FBoneContainer & RequiredBones, 
+		const FBoneContainer& RequiredBones, 
 		/*out*/ FTransformArrayA2& ResultAtoms);
 
 	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
@@ -213,21 +213,21 @@ public:
 	 *
 	 * return ETypeAdvanceAnim type
 	 */
-	static enum ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float & MoveDelta, float & InOutTime, const float & EndTime);
+	static enum ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float& MoveDelta, float& InOutTime, const float& EndTime);
 
-	static void TickBlendWeight(float DeltaTime, float DesiredWeight, float & Weight, float& BlendTime);
+	static void TickBlendWeight(float DeltaTime, float DesiredWeight, float& Weight, float& BlendTime);
 	/** 
 	 * Apply Weight to the Transform 
 	 * Atoms = Weight * Atoms at the end
 	 */
-	static void ApplyWeightToTransform(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms, float Weight);
+	static void ApplyWeightToTransform(const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms, float Weight);
 
 	/** 
 	 * Get Key Indices (start/end with alpha from start) with input parameter Time, NumFrames
 	 * from % from StartKeyIndex, meaning (CurrentKeyIndex(float)-StartKeyIndex)/(EndKeyIndex-StartKeyIndex)
 	 * by this Start-End, it will be between 0-(NumFrames-1), not number of Pos/Rot key tracks 
 	 **/
-	static void GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutKeyIndex2, float& OutAlpha, const float Time, const int32 NumFrames, const float SequenceLength);
+	static void GetKeyIndicesFromTime(int32& OutKeyIndex1, int32& OutKeyIndex2, float& OutAlpha, const float Time, const int32 NumFrames, const float SequenceLength);
 
 	/** 
 	 *	Utility for taking an array of bone indices and ensuring that all parents are present 
@@ -236,14 +236,14 @@ public:
 	 */
 	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, USkeletalMesh* SkelMesh);
 
-	static void ExcludeBonesWithNoParents(const TArray<int32> & BoneIndices, const FReferenceSkeleton & RefSkeleton, TArray<int32> & FilteredRequiredBones);
+	static void ExcludeBonesWithNoParents(const TArray<int32> & BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32> & FilteredRequiredBones);
 
 	/** Convert a ComponentSpace FTransform to given BoneSpace. */
 	static void ConvertCSTransformToBoneSpace
 	(
 		USkeletalMeshComponent * SkelComp,  
 		FA2CSPose & MeshBases, 
-		/*inout*/ FTransform & CSBoneTM, 
+		/*inout*/ FTransform& CSBoneTM, 
 		int32 BoneIndex, 
 		uint8 Space
 	);
@@ -253,7 +253,7 @@ public:
 	(
 		USkeletalMeshComponent * SkelComp,  
 		FA2CSPose & MeshBases, 
-		/*inout*/ FTransform & BoneSpaceTM, 
+		/*inout*/ FTransform& BoneSpaceTM, 
 		int32 BoneIndex, 
 		uint8 Space
 	);
@@ -261,13 +261,13 @@ public:
 	// FA2Pose/FA2CSPose Interfaces for template functions
 	static FTransform GetSpaceTransform(FA2Pose& Pose, int32 Index);
 	static FTransform GetSpaceTransform(FA2CSPose& Pose, int32 Index);
-	static void SetSpaceTransform(FA2Pose& Pose, int32 Index, FTransform & NewTransform);
-	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform & NewTransform);
+	static void SetSpaceTransform(FA2Pose& Pose, int32 Index, FTransform& NewTransform);
+	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform& NewTransform);
 
 	// space bases
-	static void FillUpSpaceBasesRefPose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose);
+	static void FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose);
 #if WITH_EDITOR
-	static void FillUpSpaceBasesRetargetBasePose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose);
+	static void FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose);
 #endif
 private:
 	/** 
@@ -287,8 +287,8 @@ private:
 			struct FA2Pose& BasePose, 
 			TArray<struct FA2Pose>& BlendPoses, 
 			const TArray<FPerBoneBlendWeight> & BoneBlendWeights, 
-			const FBoneContainer & RequiredBones, 
-			USkeleton * Skeleton,
+			const FBoneContainer& RequiredBones, 
+			USkeleton* Skeleton,
 			/*out*/ FA2Pose& OutPose);
 
 	/** 
@@ -308,7 +308,7 @@ private:
 			FA2Pose& BasePose, 
 			TArray<FA2Pose>& BlendPoses, 
 			const TArray<FPerBoneBlendWeight> & BoneBlendWeights, 
-			const FBoneContainer & RequiredBones, 
+			const FBoneContainer& RequiredBones, 
 			/*out*/ FA2Pose& OutPose);
 
 };

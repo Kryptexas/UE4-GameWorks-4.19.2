@@ -6,7 +6,9 @@
 
 #ifndef __UNOBJALLOCATOR_H__
 #define __UNOBJALLOCATOR_H__
+#include "HAL/Platform.h"
 
+class UObjectBase;
 
 class COREUOBJECT_API FUObjectAllocator
 {
@@ -41,7 +43,7 @@ public:
 	 * @param Object object to test as a member of permanent object pool
 	 * @return true if object is part of permanent object pool, false otherwise
 	 */
-	FORCEINLINE bool ResidesInPermanentPool(const class UObjectBase *Object) const
+	FORCEINLINE bool ResidesInPermanentPool(const UObjectBase *Object) const
 	{
 		return ((const uint8*)Object >= PermanentObjectPool) && ((const uint8*)Object < PermanentObjectPoolTail);
 	}
@@ -61,7 +63,7 @@ public:
 	 *
 	 * @param Object object to free
 	 */
-	void FreeUObject(class UObjectBase *Object) const;
+	void FreeUObject(UObjectBase *Object) const;
 
 private:
 

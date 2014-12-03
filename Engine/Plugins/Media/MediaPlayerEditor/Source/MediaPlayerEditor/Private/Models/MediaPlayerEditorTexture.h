@@ -25,7 +25,7 @@ public:
 	}
 
 	/** Destructor. */
-	~FMediaPlayerEditorTexture( )
+	~FMediaPlayerEditorTexture()
 	{
 		VideoTrack->RemoveSink(VideoBuffer);
 	}
@@ -59,12 +59,12 @@ public:
 		LastFrameTime = CurrentFrameTime;
 	}
 	
-	virtual TStatId GetStatId( ) const override
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FMediaPlayerEditorTexture, STATGROUP_Tickables);
 	}
 
-	virtual bool IsTickable( ) const override
+	virtual bool IsTickable() const override
 	{
 		if (!SlateTexture->IsInitialized())
 		{

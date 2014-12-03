@@ -10,6 +10,7 @@ public class BuildPatchServices : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
 			}
 		);
 
@@ -22,9 +23,10 @@ public class BuildPatchServices : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 		new string[] {
-				"HTTP",
 				"Analytics",
 				"AnalyticsET",
+				"HTTP",
+				"Json",
 			}
 		);
 

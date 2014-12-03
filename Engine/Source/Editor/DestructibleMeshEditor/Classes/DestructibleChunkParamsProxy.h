@@ -24,5 +24,7 @@ class UDestructibleChunkParamsProxy : public UObject
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
+
+	TWeakPtr<IDestructibleMeshEditor> DestructibleMeshEditorPtr;
 #endif
 };

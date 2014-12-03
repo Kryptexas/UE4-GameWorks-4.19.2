@@ -4,7 +4,7 @@
 
 #include "ICollisionAnalyzer.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 
 class FCollisionAnalyzerModule : public IModuleInterface
 {

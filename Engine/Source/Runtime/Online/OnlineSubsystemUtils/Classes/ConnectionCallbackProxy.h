@@ -22,8 +22,8 @@ class UConnectionCallbackProxy : public UOnlineBlueprintCallProxyBase
 	FOnlineConnectionResult OnFailure;
 
 	// Connects to an online service such as Google Play
-	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"), Category = "Online|Achievements")
-		static UConnectionCallbackProxy* ConnectToService(class APlayerController* PlayerController);
+	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", WorldContext="WorldContextObject"), Category = "Online|Achievements")
+		static UConnectionCallbackProxy* ConnectToService(UObject* WorldContextObject, class APlayerController* PlayerController);
 
 	// UOnlineBlueprintCallProxyBase interface
 	virtual void Activate() override;
@@ -39,4 +39,7 @@ private:
 
 	// Connection callback delegate
 	FOnLoginCompleteDelegate OnLoginCompleteDelegate;
+
+	// The world context object in which this call is taking place
+	UObject* WorldContextObject;
 };

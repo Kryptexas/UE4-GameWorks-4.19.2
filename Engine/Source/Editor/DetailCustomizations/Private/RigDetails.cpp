@@ -213,7 +213,7 @@ FText FRigDetails::GetDisplayName(TSharedRef<IPropertyHandle> DisplayNameProp) c
 	return DisplayText;
 }
 
-void FRigDetails::ValidErrorMessage(const FString & DisplayString, int32 ArrayIndex)
+void FRigDetails::ValidErrorMessage(const FString& DisplayString, int32 ArrayIndex)
 {
 	if(DisplayNameTextBoxes.IsValidIndex(ArrayIndex))
 	{
@@ -293,7 +293,7 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 	}
 
 	int32 NodeIndex = 0, ParentIndex_T=0, ParentIndex_R=0;
-	const FNode & CurNode = Nodes[ArrayIndex];
+	const FNode& CurNode = Nodes[ArrayIndex];
 	for(auto Node : Nodes)
 	{
 		if (NodeIndex != ArrayIndex)

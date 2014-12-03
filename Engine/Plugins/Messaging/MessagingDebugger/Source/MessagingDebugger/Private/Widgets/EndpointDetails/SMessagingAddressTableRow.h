@@ -24,8 +24,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InOwnerTableView - The table view that owns this row.
+	 * @param InArgs The construction arguments.
+	 * @param InOwnerTableView The table view that owns this row.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const FMessagingDebuggerModelRef& InModel )
 	{
@@ -83,13 +83,13 @@ public:
 
 private:
 
-	// Holds the address information.
+	/** Holds the address information. */
 	FMessageTracerAddressInfoPtr AddressInfo;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

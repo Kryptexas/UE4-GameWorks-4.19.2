@@ -5,6 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionFloatParticleParameter.h"
+#include "Distributions/DistributionVectorParticleParameter.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniformCurve.h"
 #include "FXSystem.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
@@ -84,8 +88,8 @@
 /*-----------------------------------------------------------------------------
 	UParticleModule implementation.
 -----------------------------------------------------------------------------*/
-UParticleModule::UParticleModule(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModule::UParticleModule(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSupported3DDrawMode = false;
 	b3DDrawMode = false;
@@ -276,7 +280,7 @@ void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* P
 		UObject* Distribution = FRawDistribution::TryGetDistributionObjectFromRawDistributionProperty(*It, (uint8*)this);
 		if (Distribution)
 		{
-		    EParticleSysParamType ParamType	= PSPT_None;
+			EParticleSysParamType ParamType	= PSPT_None;
 			FName ParamName;
 
 			// only handle particle param types
@@ -284,7 +288,7 @@ void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* P
 			UDistributionVectorParticleParameter* DistVectorParam = Cast<UDistributionVectorParticleParameter>(Distribution);
 			if (DistFloatParam != NULL)
 			{
-			    ParamType = PSPT_Scalar;
+				ParamType = PSPT_Scalar;
 				ParamName = DistFloatParam->ParameterName;
 			}
 			else 
@@ -881,7 +885,6 @@ public:
 		ArIgnoreClassRef					= true;
 		ArIsModifyingWeakAndStrongReferences = true;
 
-		GSerializedProperty = NULL;
 		Src->Serialize( *this );
 	}
 	virtual FString GetArchiveName() const { return TEXT("FArchiveFindDistributionRefs"); }
@@ -944,8 +947,8 @@ FText UParticleModule::GetDistributionNotAllowedOnGPUText(const FString& ModuleN
 /*-----------------------------------------------------------------------------
 	UParticleModuleSourceMovement implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSourceMovement::UParticleModuleSourceMovement(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSourceMovement::UParticleModuleSourceMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bFinalUpdateModule = true;
 }
@@ -993,16 +996,16 @@ void UParticleModuleSourceMovement::FinalUpdate(FParticleEmitterInstance* Owner,
 /*-----------------------------------------------------------------------------
 	UParticleModuleOrientationBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleOrientationBase::UParticleModuleOrientationBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleOrientationBase::UParticleModuleOrientationBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleOrientationAxisLock implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleOrientationAxisLock::UParticleModuleOrientationAxisLock(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleOrientationAxisLock::UParticleModuleOrientationAxisLock(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -1056,8 +1059,8 @@ void UParticleModuleOrientationAxisLock::SetLockAxis(EParticleAxisLock eLockFlag
 /*-----------------------------------------------------------------------------
 	UParticleModuleRequired implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRequired::UParticleModuleRequired(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRequired::UParticleModuleRequired(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ScreenAlignment = PSA_Square;
 	bSpawnModule = true;
@@ -1221,16 +1224,16 @@ bool UParticleModuleRequired::GenerateLODModuleValues(UParticleModule* SourceMod
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotationBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotationBase::UParticleModuleRotationBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotationBase::UParticleModuleRotationBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshRotation implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshRotation::UParticleModuleMeshRotation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshRotation::UParticleModuleMeshRotation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bInheritParent = false;
@@ -1292,8 +1295,8 @@ void UParticleModuleMeshRotation::SpawnEx(FParticleEmitterInstance* Owner, int32
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshRotation_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshRotation_Seeded::UParticleModuleMeshRotation_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshRotation_Seeded::UParticleModuleMeshRotation_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -1328,16 +1331,16 @@ void UParticleModuleMeshRotation_Seeded::EmitterLoopingNotify(FParticleEmitterIn
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotationRateBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotationRateBase::UParticleModuleRotationRateBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotationRateBase::UParticleModuleRotationRateBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshRotationRate implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshRotationRate::UParticleModuleMeshRotationRate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshRotationRate::UParticleModuleMeshRotationRate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -1403,8 +1406,8 @@ void UParticleModuleMeshRotationRate::SetToSensibleDefaults(UParticleEmitter* Ow
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshRotationRate_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshRotationRate_Seeded::UParticleModuleMeshRotationRate_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshRotationRate_Seeded::UParticleModuleMeshRotationRate_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -1440,8 +1443,8 @@ void UParticleModuleMeshRotationRate_Seeded::EmitterLoopingNotify(FParticleEmitt
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshRotationRateMultiplyLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshRotationRateMultiplyLife::UParticleModuleMeshRotationRateMultiplyLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshRotationRateMultiplyLife::UParticleModuleMeshRotationRateMultiplyLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -1508,8 +1511,8 @@ void UParticleModuleMeshRotationRateMultiplyLife::SetToSensibleDefaults(UParticl
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshRotationRateOverLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshRotationRateOverLife::UParticleModuleMeshRotationRateOverLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshRotationRateOverLife::UParticleModuleMeshRotationRateOverLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -1599,8 +1602,8 @@ void UParticleModuleMeshRotationRateOverLife::SetToSensibleDefaults(UParticleEmi
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotation implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotation::UParticleModuleRotation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotation::UParticleModuleRotation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 }
@@ -1658,8 +1661,8 @@ void UParticleModuleRotation::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotation_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotation_Seeded::UParticleModuleRotation_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotation_Seeded::UParticleModuleRotation_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -1694,8 +1697,8 @@ void UParticleModuleRotation_Seeded::EmitterLoopingNotify(FParticleEmitterInstan
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotationRate implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotationRate::UParticleModuleRotationRate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotationRate::UParticleModuleRotationRate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 }
@@ -1776,8 +1779,8 @@ void UParticleModuleRotationRate::SetToSensibleDefaults(UParticleEmitter* Owner)
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotationRate_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotationRate_Seeded::UParticleModuleRotationRate_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotationRate_Seeded::UParticleModuleRotationRate_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -1812,8 +1815,8 @@ void UParticleModuleRotationRate_Seeded::EmitterLoopingNotify(FParticleEmitterIn
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotationOverLifetime implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotationOverLifetime::UParticleModuleRotationOverLifetime(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotationOverLifetime::UParticleModuleRotationOverLifetime(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = true;	
@@ -1872,16 +1875,16 @@ void UParticleModuleRotationOverLifetime::Update(FParticleEmitterInstance* Owner
 /*-----------------------------------------------------------------------------
 	UParticleModuleSubUVBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSubUVBase::UParticleModuleSubUVBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSubUVBase::UParticleModuleSubUVBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleSubUV implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSubUV::UParticleModuleSubUV(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSubUV::UParticleModuleSubUV(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;	
@@ -2096,8 +2099,8 @@ void UParticleModuleSubUV::SetToSensibleDefaults(UParticleEmitter* Owner)
 /*-----------------------------------------------------------------------------
 	UParticleModuleSubUVMovie implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSubUVMovie::UParticleModuleSubUVMovie(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSubUVMovie::UParticleModuleSubUVMovie(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -2274,8 +2277,8 @@ void UParticleModuleSubUVMovie::GetCurveObjects(TArray<FParticleCurvePair>& OutC
 /*-----------------------------------------------------------------------------
 	UParticleModuleRotationRateMultiplyLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleRotationRateMultiplyLife::UParticleModuleRotationRateMultiplyLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleRotationRateMultiplyLife::UParticleModuleRotationRateMultiplyLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -2349,8 +2352,8 @@ void UParticleModuleRotationRateMultiplyLife::SetToSensibleDefaults(UParticleEmi
 /*-----------------------------------------------------------------------------
 	UParticleModuleAcceleration implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAccelerationBase::UParticleModuleAccelerationBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAccelerationBase::UParticleModuleAccelerationBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2363,8 +2366,8 @@ void UParticleModuleAccelerationBase::SetToSensibleDefaults(UParticleEmitter* Ow
 /*-----------------------------------------------------------------------------
 	ParticleModuleAccelerationConstant implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAccelerationConstant::UParticleModuleAccelerationConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAccelerationConstant::UParticleModuleAccelerationConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -2378,14 +2381,14 @@ void UParticleModuleAccelerationConstant::CompileModule( FParticleEmitterBuildIn
 void UParticleModuleAccelerationConstant::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
- 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
- 	check(LODLevel);
- 	if (bAlwaysInWorldSpace && LODLevel->RequiredModule->bUseLocalSpace)
- 	{
- 		FVector LocalAcceleration = Owner->Component->ComponentToWorld.InverseTransformVector(Acceleration);
+	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
+	check(LODLevel);
+	if (bAlwaysInWorldSpace && LODLevel->RequiredModule->bUseLocalSpace)
+	{
+		FVector LocalAcceleration = Owner->Component->ComponentToWorld.InverseTransformVector(Acceleration);
 		Particle.Velocity		+= LocalAcceleration * SpawnTime;
 		Particle.BaseVelocity	+= LocalAcceleration * SpawnTime;
- 	}
+	}
 	else
 	{
 		FVector LocalAcceleration = Acceleration;
@@ -2444,8 +2447,8 @@ void UParticleModuleAccelerationConstant::Update(FParticleEmitterInstance* Owner
 	ParticleModuleAccelerationDrag implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleAccelerationDrag::UParticleModuleAccelerationDrag(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAccelerationDrag::UParticleModuleAccelerationDrag(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = true;
@@ -2520,8 +2523,8 @@ void UParticleModuleAccelerationDrag::Update(FParticleEmitterInstance* Owner, in
 /*-----------------------------------------------------------------------------
 	ParticleModuleAccelerationDragScaleOverLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAccelerationDragScaleOverLife::UParticleModuleAccelerationDragScaleOverLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAccelerationDragScaleOverLife::UParticleModuleAccelerationDragScaleOverLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2585,8 +2588,8 @@ bool UParticleModuleAccelerationDragScaleOverLife::IsValidForLODLevel(UParticleL
 /*-----------------------------------------------------------------------------
 	ParticleModuleAttractorPointGravity implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAttractorPointGravity::UParticleModuleAttractorPointGravity(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAttractorPointGravity::UParticleModuleAttractorPointGravity(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSupported3DDrawMode = true;
 }
@@ -2650,8 +2653,8 @@ void UParticleModuleAttractorPointGravity::Render3DPreview(FParticleEmitterInsta
 /*-----------------------------------------------------------------------------
 	UParticleModuleAcceleration implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAcceleration::UParticleModuleAcceleration(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAcceleration::UParticleModuleAcceleration(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -2700,20 +2703,20 @@ void UParticleModuleAcceleration::Spawn(FParticleEmitterInstance* Owner, int32 O
 {
 	SPAWN_INIT;
 	PARTICLE_ELEMENT(FVector, UsedAcceleration);
- 	UsedAcceleration = Acceleration.GetValue(Owner->EmitterTime, Owner->Component);
+	UsedAcceleration = Acceleration.GetValue(Owner->EmitterTime, Owner->Component);
 	if ((bApplyOwnerScale == true) && Owner && Owner->Component)
 	{
 		FVector Scale = Owner->Component->ComponentToWorld.GetScale3D();
 		UsedAcceleration *= Scale;
 	}
- 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
- 	check(LODLevel);
- 	if (bAlwaysInWorldSpace && LODLevel->RequiredModule->bUseLocalSpace)
- 	{
- 		FVector TempUsedAcceleration = Owner->Component->ComponentToWorld.InverseTransformVector(UsedAcceleration);
+	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
+	check(LODLevel);
+	if (bAlwaysInWorldSpace && LODLevel->RequiredModule->bUseLocalSpace)
+	{
+		FVector TempUsedAcceleration = Owner->Component->ComponentToWorld.InverseTransformVector(UsedAcceleration);
 		Particle.Velocity		+= TempUsedAcceleration * SpawnTime;
 		Particle.BaseVelocity	+= TempUsedAcceleration * SpawnTime;
- 	}
+	}
 	else
 	{
 		if (LODLevel->RequiredModule->bUseLocalSpace)
@@ -2790,8 +2793,8 @@ bool UParticleModuleAcceleration::IsValidForLODLevel(UParticleLODLevel* LODLevel
 	UParticleModuleAccelerationOverLifetime implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleAccelerationOverLifetime::UParticleModuleAccelerationOverLifetime(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAccelerationOverLifetime::UParticleModuleAccelerationOverLifetime(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = true;
@@ -2852,13 +2855,13 @@ void UParticleModuleAccelerationOverLifetime::Update(FParticleEmitterInstance* O
 	UParticleModuleLight implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleLightBase::UParticleModuleLightBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLightBase::UParticleModuleLightBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UParticleModuleLight::UParticleModuleLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLight::UParticleModuleLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -3028,8 +3031,8 @@ void UParticleModuleLight::Render3DPreview(FParticleEmitterInstance* Owner, cons
 #endif	//#if WITH_EDITOR
 }
 
-UParticleModuleLight_Seeded::UParticleModuleLight_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLight_Seeded::UParticleModuleLight_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -3064,8 +3067,8 @@ void UParticleModuleLight_Seeded::EmitterLoopingNotify(FParticleEmitterInstance*
 /*-----------------------------------------------------------------------------
 	UParticleModuleTypeDataBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleTypeDataBase::UParticleModuleTypeDataBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTypeDataBase::UParticleModuleTypeDataBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = false;
@@ -3079,8 +3082,8 @@ FParticleEmitterInstance* UParticleModuleTypeDataBase::CreateInstance(UParticleE
 /*-----------------------------------------------------------------------------
 	UParticleModuleTypeDataMesh implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleTypeDataMesh::UParticleModuleTypeDataMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTypeDataMesh::UParticleModuleTypeDataMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CastShadows = false;
 	DoCollisions = false;
@@ -3165,16 +3168,16 @@ void UParticleModuleTypeDataMesh::PostEditChangeProperty(FPropertyChangedEvent& 
 }
 #endif // WITH_EDITOR
 
-UParticleModuleKillBase::UParticleModuleKillBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleKillBase::UParticleModuleKillBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleKillBox implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleKillBox::UParticleModuleKillBox(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleKillBox::UParticleModuleKillBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateModule = true;
 	bSupported3DDrawMode = true;
@@ -3334,8 +3337,8 @@ void UParticleModuleKillBox::Render3DPreview(FParticleEmitterInstance* Owner, co
 /*-----------------------------------------------------------------------------
 	UParticleModuleKillHeight implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleKillHeight::UParticleModuleKillHeight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleKillHeight::UParticleModuleKillHeight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateModule = true;
 	bSupported3DDrawMode = true;
@@ -3459,16 +3462,16 @@ void UParticleModuleKillHeight::Render3DPreview(FParticleEmitterInstance* Owner,
 /*-----------------------------------------------------------------------------
 	UParticleModuleLifetimeBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLifetimeBase::UParticleModuleLifetimeBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLifetimeBase::UParticleModuleLifetimeBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 /*-----------------------------------------------------------------------------
 	UParticleModuleLifetime implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleLifetime::UParticleModuleLifetime(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLifetime::UParticleModuleLifetime(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 }
@@ -3570,8 +3573,8 @@ void UParticleModuleLifetime::PostEditChangeProperty(FPropertyChangedEvent& Prop
 /*-----------------------------------------------------------------------------
 	UParticleModuleLifetime_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleLifetime_Seeded::UParticleModuleLifetime_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleLifetime_Seeded::UParticleModuleLifetime_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -3616,16 +3619,16 @@ float UParticleModuleLifetime_Seeded::GetLifetimeValue(FParticleEmitterInstance*
 /*-----------------------------------------------------------------------------
 	UParticleModuleAttractorBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAttractorBase::UParticleModuleAttractorBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAttractorBase::UParticleModuleAttractorBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleAttractorLine implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAttractorLine::UParticleModuleAttractorLine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAttractorLine::UParticleModuleAttractorLine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateModule = true;
 	bSupported3DDrawMode = true;
@@ -3719,17 +3722,16 @@ void UParticleModuleAttractorLine::Update(FParticleEmitterInstance* Owner, int32
 		{
 			// Look up the Range and Strength at that position on the line
 			float AttractorRange = Range.GetValue(fRatio, Owner->Component);
-	        
 			FVector LineToPoint = AdjustedLocation - ProjectedParticle;
-    		float Distance = LineToPoint.Size();
+			float Distance = LineToPoint.Size();
 
 			if ((AttractorRange > 0) && (Distance <= AttractorRange))
 			{
 				// Adjust the strength based on the range ratio
 				float AttractorStrength = Strength.GetValue((AttractorRange - Distance) / AttractorRange, Owner->Component);
 				FVector Direction = LineToPoint^Line;
-    			// Adjust the VELOCITY of the particle based on the attractor... 
-        		Particle.Velocity += Direction * AttractorStrength * DeltaTime;
+				// Adjust the VELOCITY of the particle based on the attractor... 
+				Particle.Velocity += Direction * AttractorStrength * DeltaTime;
 			}
 		}
 	END_UPDATE_LOOP;
@@ -3759,8 +3761,8 @@ void UParticleModuleAttractorLine::Render3DPreview(FParticleEmitterInstance* Own
 /*-----------------------------------------------------------------------------
 	UParticleModuleAttractorParticle implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAttractorParticle::UParticleModuleAttractorParticle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAttractorParticle::UParticleModuleAttractorParticle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -3996,7 +3998,7 @@ void UParticleModuleAttractorParticle::Update(FParticleEmitterInstance* Owner, i
 
 			// Adjust the VELOCITY of the particle based on the attractor... 
 			Dir.Normalize();
-    		Particle.Velocity	+= Dir * AttractorStrength * DeltaTime;
+			Particle.Velocity	+= Dir * AttractorStrength * DeltaTime;
 			Data.SourceVelocity	 = Source->Velocity;
 			if (bAffectBaseVelocity)
 			{
@@ -4016,8 +4018,8 @@ uint32 UParticleModuleAttractorParticle::RequiredBytes(FParticleEmitterInstance*
 /*-----------------------------------------------------------------------------
 	UParticleModuleAttractorPoint implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleAttractorPoint::UParticleModuleAttractorPoint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleAttractorPoint::UParticleModuleAttractorPoint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateModule = true;
 
@@ -4152,7 +4154,7 @@ void UParticleModuleAttractorPoint::Update(FParticleEmitterInstance* Owner, int3
 
 			// Adjust the VELOCITY of the particle based on the attractor...
 			Dir = ClampVector(Dir,MinNormalizedDir,MaxNormalizedDir);
-    		Particle.Velocity	+= Dir * AttractorStrength * DeltaTime;
+			Particle.Velocity	+= Dir * AttractorStrength * DeltaTime;
 			if (bAffectBaseVelocity)
 			{
 				Particle.BaseVelocity	+= Dir * AttractorStrength * DeltaTime;
@@ -4217,13 +4219,13 @@ void UParticleModuleAttractorPoint::Render3DPreview(FParticleEmitterInstance* Ow
 /*-----------------------------------------------------------------------------
 	Parameter-based distributions
 -----------------------------------------------------------------------------*/
-UDistributionFloatParticleParameter::UDistributionFloatParticleParameter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionFloatParticleParameter::UDistributionFloatParticleParameter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDistributionVectorParticleParameter::UDistributionVectorParticleParameter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionVectorParticleParameter::UDistributionVectorParticleParameter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -4276,8 +4278,8 @@ bool UDistributionVectorParticleParameter::GetParamValue(UObject* Data, FName Pa
 /*-----------------------------------------------------------------------------
 	Type data module for GPU particles.
 -----------------------------------------------------------------------------*/
-UParticleModuleTypeDataGpu::UParticleModuleTypeDataGpu(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTypeDataGpu::UParticleModuleTypeDataGpu(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -4580,7 +4582,7 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 
 	ResourceData.PivotOffset = EmitterBuildInfo.PivotOffset;
 
-    // Store color and scale when using particle parameters.
+	// Store color and scale when using particle parameters.
 	EmitterInfo.DynamicColor = EmitterBuildInfo.DynamicColor;
 	EmitterInfo.DynamicAlpha= EmitterBuildInfo.DynamicAlpha;
 	EmitterInfo.DynamicColorScale = EmitterBuildInfo.DynamicColorScale;
@@ -4604,13 +4606,13 @@ FParticleEmitterInstance* UParticleModuleTypeDataGpu::CreateInstance(UParticleEm
 {
 	check(InComponent);
 	UWorld* World = InComponent->GetWorld();
-	check( World );
+	check(World);
 	UE_LOG(LogParticles,Verbose,
 		TEXT("Create GPU Sprite Emitter @ %fs %s"), World->TimeSeconds,
 		InComponent->Template != NULL ? *InComponent->Template->GetName() : TEXT("NULL"));
 
 	FParticleEmitterInstance* Instance = NULL;
-	if (RHISupportsGPUParticles(World->Scene->GetFeatureLevel()))
+	if (World->Scene && RHISupportsGPUParticles(World->Scene->GetFeatureLevel()))
 	{
 		check( InComponent && InComponent->FXSystem );
 		Instance = InComponent->FXSystem->CreateGPUSpriteEmitterInstance( EmitterInfo );
@@ -4624,8 +4626,8 @@ FParticleEmitterInstance* UParticleModuleTypeDataGpu::CreateInstance(UParticleEm
 	UParticleModulePivotOffset implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModulePivotOffset::UParticleModulePivotOffset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModulePivotOffset::UParticleModulePivotOffset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = false;

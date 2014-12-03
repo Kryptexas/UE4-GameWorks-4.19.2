@@ -115,8 +115,8 @@ public:
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Base
 
-UAnimGraphNode_Base::UAnimGraphNode_Base(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_Base::UAnimGraphNode_Base(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

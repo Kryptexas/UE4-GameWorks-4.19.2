@@ -130,7 +130,7 @@ static TAutoConsoleVariable<float> CVarStreamingBoost(
 	);
 
 #if PLATFORM_SUPPORTS_TEXTURE_STREAMING
-static TAutoConsoleVariable<int32> CVarSetTextureStreamingEnabled(
+static TAutoConsoleVariable<int32> CVarSetTextureStreaming(
 	TEXT("r.TextureStreaming"),
 	1,
 	TEXT("Allows to define if texture streaming is enabled, can be changed at run time.\n")
@@ -1579,7 +1579,7 @@ FStreamingManagerCollection::FStreamingManagerCollection()
 	// Disable texture streaming if that was requested (needs to happen before the call to ProcessNewlyLoadedUObjects, as that can load textures)
 	if( FParse::Param( FCommandLine::Get(), TEXT( "NoTextureStreaming" ) ) )
 	{
-		CVarSetTextureStreamingEnabled.AsVariable()->Set(0);
+		CVarSetTextureStreaming.AsVariable()->Set(0, ECVF_SetByCommandline);
 	}
 #endif
 
@@ -2001,7 +2001,7 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 
 #if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 	{
-		bUseTextureStreaming = CVarSetTextureStreamingEnabled.GetValueOnGameThread() != 0;
+		bUseTextureStreaming = CVarSetTextureStreaming.GetValueOnGameThread() != 0;
 	}
 
 	if( !GRHISupportsTextureStreaming || IsRunningDedicatedServer() )
@@ -2142,7 +2142,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 
 		// Use unlimited texture streaming in the editor. Quality is more important than stutter.
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
-		CVar->Set(0);
+		CVar->Set(0, ECVF_SetByCode);
 		GTexturePoolSize = 0;
 	}
 	if (GNeverStreamOutTextures)
@@ -2328,7 +2328,7 @@ void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TAr
 	// Makes sure that texture memory can get freed up right away.
 	RHICmdList.BlockUntilGPUIdle();
 
-	FTextureSortElement* CandidateTextures = InCandidateTextures->GetTypedData();
+	FTextureSortElement* CandidateTextures = InCandidateTextures->GetData();
 
 	// Sort the candidates.
 	InCandidateTextures->Sort( FTextureStreamingCompare() );

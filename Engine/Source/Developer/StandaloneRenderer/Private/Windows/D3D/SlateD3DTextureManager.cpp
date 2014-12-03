@@ -296,7 +296,7 @@ FSlateShaderResourceProxy* FSlateD3DTextureManager::CreateDynamicTextureResource
 	TextureResource = MakeShareable(new FDynamicTextureResource(LoadedTexture));
 
 	D3D11_SUBRESOURCE_DATA InitData;
-	InitData.pSysMem = RawData.GetTypedData();
+	InitData.pSysMem = RawData.GetData();
 	InitData.SysMemPitch = Width * 4;
 
 	FNewTextureInfo Info;
@@ -392,7 +392,7 @@ FSlateShaderResourceProxy* FSlateD3DTextureManager::GenerateTextureResource( con
 		NewProxy->ActualSize = FIntPoint( Width, Height );
 
 		D3D11_SUBRESOURCE_DATA InitData;
-		InitData.pSysMem = Info.TextureData->GetRawBytes().GetTypedData();
+		InitData.pSysMem = Info.TextureData->GetRawBytes().GetData();
 		InitData.SysMemPitch = Width * 4;
 
 		Texture->Init( Info.bSrgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM, &InitData );

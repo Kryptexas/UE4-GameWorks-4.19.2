@@ -8,6 +8,7 @@
 
 #include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -402,21 +403,21 @@ private:
 	}
 
 	/**
-	 * Called after a key is pressed when this widget has keyboard focus
+	 * Called after a key is pressed when this widget has focus
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		if (WorldModel->GetCommandList()->ProcessCommandBindings(InKeyboardEvent))
+		if (WorldModel->GetCommandList()->ProcessCommandBindings(InKeyEvent))
 		{
 			return FReply::Handled();
 		}
 	
-		return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 private:

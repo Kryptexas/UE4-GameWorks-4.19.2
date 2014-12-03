@@ -673,7 +673,7 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 		int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
 		for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
-			const FCollisionResponseTemplate * CurProfile = CollisionProfile->GetProfileByIndex(ProfileId);
+			const FCollisionResponseTemplate* CurProfile = CollisionProfile->GetProfileByIndex(ProfileId);
 			if ( NewValue == CurProfile->Name.ToString() )
 			{
 				// trigget transaction before UpdateCollisionProfile
@@ -917,7 +917,7 @@ ESlateCheckBoxState::Type FBodyInstanceCustomization::IsAllCollisionChannelCheck
 	return State;
 }
 
-void FBodyInstanceCustomization::SetCollisionResponseContainer(const FCollisionResponseContainer & ResponseContainer)
+void FBodyInstanceCustomization::SetCollisionResponseContainer(const FCollisionResponseContainer& ResponseContainer)
 {
 	// trigget transaction before UpdateCollisionProfile
 	const FScopedTransaction Transaction( LOCTEXT( "Collision", "Collision Channel Changes" ) );

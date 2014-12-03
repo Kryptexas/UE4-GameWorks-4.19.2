@@ -9,6 +9,7 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 
+#include "Misc/UObjectToken.h"
 #include "Components/InteractiveFoliageComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/ModelComponent.h"
@@ -24,7 +25,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Components/TimelineComponent.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "AI/Navigation/RecastHelpers.h"
@@ -40,6 +41,12 @@
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
+#endif
+
+#if WITH_EDITOR
+#include "LightMap.h"
+#include "ShadowMap.h"
+#include "Logging/MessageLog.h"
 #endif
 
 // This must match the maximum a user could specify in the material (see 
@@ -310,7 +317,7 @@ void FStaticMeshInstanceBuffer::AllocateData()
 	// Clear any old VertexData before allocating.
 	CleanUp();
 
-	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 	const bool bNeedsCPUAccess = !bInstanced;
 	InstanceData = new FStaticMeshInstanceData(bNeedsCPUAccess);
 	// Calculate the vertex stride.
@@ -444,7 +451,7 @@ void FInstancedStaticMeshVertexFactory::Copy(const FInstancedStaticMeshVertexFac
 
 void FInstancedStaticMeshVertexFactory::InitRHI()
 {
-	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 
 	// If the vertex buffer containing position is not the same vertex buffer containing the rest of the data,
 	// then initialize PositionStream and PositionDeclaration.
@@ -613,7 +620,6 @@ public:
 
 	~FInstancedStaticMeshRenderData()
 	{
-		ReleaseResources();
 	}
 
 	void InitResources()
@@ -645,14 +651,14 @@ public:
 		}
 	}
 
-	void ReleaseResources()
+	void ReleaseResources(FSceneInterface* Scene, const UStaticMesh* StaticMesh)
 	{
 		// unregister SpeedTree wind with the scene
-		if (Component && Component->GetScene() && Component->StaticMesh && Component->StaticMesh->SpeedTreeWind.IsValid())
+		if (Scene && StaticMesh && StaticMesh->SpeedTreeWind.IsValid())
 		{
 			for (int32 LODIndex = 0; LODIndex < VertexFactories.Num(); LODIndex++)
 			{
-				Component->GetScene()->RemoveSpeedTreeWind(&VertexFactories[LODIndex], Component->StaticMesh);
+				Scene->RemoveSpeedTreeWind_RenderThread(&VertexFactories[LODIndex], StaticMesh);
 			}
 		}
 
@@ -689,7 +695,7 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 		FInstancedStaticMeshRenderData* InstancedRenderData,
 		UStaticMesh* Parent)
 {
-	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 
 	for( int32 LODIndex=0;LODIndex<VertexFactories->Num(); LODIndex++ )
 	{
@@ -754,15 +760,12 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 
 			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
 			{
-#if 0
-				//@todo UE4 foliage - static lighting/shadowing?
-				Data.ShadowMapCoordinateComponent = FVertexStreamComponent(
+				Data.LightMapCoordinateComponent = FVertexStreamComponent(
 					&RenderData->VertexBuffer,
 					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* Parent->LightMapCoordinateIndex,
 					RenderData->VertexBuffer.GetStride(),
 					VET_Half2
 					);
-#endif
 			}
 		}
 		else
@@ -790,15 +793,12 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 
 			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
 			{
-#if 0
-				//@todo UE4 foliage - static lighting/shadowing?
-				Data.ShadowMapCoordinateComponent = FVertexStreamComponent(
+				Data.LightMapCoordinateComponent = FVertexStreamComponent(
 					&RenderData->VertexBuffer,
 					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<InstancedStaticMeshMaxTexCoord>, UVs) + sizeof(FVector2D)* Parent->LightMapCoordinateIndex,
 					RenderData->VertexBuffer.GetStride(),
 					VET_Float2
 					);
-#endif
 			}
 		}
 
@@ -886,7 +886,7 @@ public:
 
 		check(InstancedRenderData.InstanceBuffer.GetStride() == sizeof(FInstancingUserData::FInstanceStream));
 
-		const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+		const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 
 		// Copy the parameters for LOD - all instances
 		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
@@ -902,6 +902,11 @@ public:
 		// unselected only
 		UserData_DeselectedInstances = UserData_AllInstances;
 		UserData_DeselectedInstances.bRenderSelected = false;
+	}
+
+	~FInstancedStaticMeshSceneProxy()
+	{
+		InstancedRenderData.ReleaseResources(&GetScene( ), StaticMesh);
 	}
 
 	// FPrimitiveSceneProxy interface.
@@ -1119,7 +1124,7 @@ void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface
 
 int32 FInstancedStaticMeshSceneProxy::GetNumMeshBatches() const
 {
-	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 
 	if (bInstanced)
 	{
@@ -1136,7 +1141,7 @@ int32 FInstancedStaticMeshSceneProxy::GetNumMeshBatches() const
 
 void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int32 BatchIndex, FMeshBatch& OutMeshBatch) const
 {
-	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 	OutMeshBatch.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
 	const uint32 NumInstances = InstancedRenderData.InstanceBuffer.GetNumInstances();
 	FMeshBatchElement& BatchElement0 = OutMeshBatch.Elements[0];
@@ -1211,25 +1216,52 @@ bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int
 	UInstancedStaticMeshComponent
 -----------------------------------------------------------------------------*/
 
-UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
 }
 
 #if WITH_EDITOR
-/** Helper class used to preserve selection state across component duplication */
-class FInstancedStaticMeshSelectionData : public FComponentInstanceDataBase
+/** Helper class used to preserve lighting/selection state across blueprint reinstancing */
+class FInstancedStaticMeshComponentInstanceData : public FComponentInstanceDataBase
 {
 public:
-	FInstancedStaticMeshSelectionData(const UInstancedStaticMeshComponent& InComponent)
+	FInstancedStaticMeshComponentInstanceData(const UInstancedStaticMeshComponent& InComponent)
 		: FComponentInstanceDataBase(&InComponent)
-		, SelectedInstances(InComponent.SelectedInstances)
+		, StaticMesh(InComponent.StaticMesh)
+		, bHasCachedStaticLighting(false)
 	{
 	}
 
+	virtual bool MatchesComponent(const UActorComponent* Component) const override
+	{
+		return (CastChecked<UStaticMeshComponent>(Component)->StaticMesh == StaticMesh && FComponentInstanceDataBase::MatchesComponent(Component));
+	}
+
+	/** Used to store lightmap data during RerunConstructionScripts */
+	struct FLightMapInstanceData
+	{
+		/** Transform of component */
+		FTransform Transform;
+
+		/** Lightmaps from LODData */
+		TArray<FLightMapRef>	LODDataLightMap;
+		TArray<FShadowMapRef>	LODDataShadowMap;
+
+		TArray<FGuid> IrrelevantLights;
+	};
+
 public:
+	/** Mesh being used by component */
+	UStaticMesh* StaticMesh;
+
+	// Static lighting info
+	bool bHasCachedStaticLighting;
+	FLightMapInstanceData CachedStaticLighting;
+	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
+
 	/** The cached selected instances */
 	TBitArray<> SelectedInstances;
 };
@@ -1237,24 +1269,95 @@ public:
 
 FName UInstancedStaticMeshComponent::GetComponentInstanceDataType() const
 {
-	static const FName InstanceStaticMeshComponentInstanceDataName(TEXT("InstancedStaticMeshSelectionData"));
-	return InstanceStaticMeshComponentInstanceDataName;
+	static const FName InstancedStaticMeshComponentInstanceDataName(TEXT("InstancedStaticMeshComponentInstanceData"));
+	return InstancedStaticMeshComponentInstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UInstancedStaticMeshComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UInstancedStaticMeshComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FComponentInstanceDataBase> InstanceData;
 #if WITH_EDITOR
-	InstanceData = MakeShareable(new FInstancedStaticMeshSelectionData(*this));
-#endif
+	FInstancedStaticMeshComponentInstanceData* InstanceData = nullptr;
+
+	// Don't back up static lighting if there isn't any
+	if (bHasCachedStaticLighting || SelectedInstances.Num() > 0)
+	{
+		InstanceData = new FInstancedStaticMeshComponentInstanceData(*this);
+	}
+
+	// Don't back up static lighting if there isn't any
+	if (bHasCachedStaticLighting)
+	{
+		// Fill in info (copied from UStaticMeshComponent::GetComponentInstanceData)
+		InstanceData->bHasCachedStaticLighting = true;
+		InstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+		InstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
+		InstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
+		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
+		{
+			InstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
+			InstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
+		}
+
+		// Back up per-instance lightmap/shadowmap info
+		InstanceData->PerInstanceSMData = PerInstanceSMData;
+	}
+
+	// Back up instance selection
+	if (SelectedInstances.Num() > 0)
+	{
+		InstanceData->SelectedInstances = SelectedInstances;
+	}
+
 	return InstanceData;
+#else
+	return nullptr;
+#endif
 }
 
-void UInstancedStaticMeshComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
 #if WITH_EDITOR
-	check(ComponentInstanceData.IsValid());
-	SelectedInstances = StaticCastSharedPtr<FInstancedStaticMeshSelectionData>(ComponentInstanceData)->SelectedInstances;
+	check(ComponentInstanceData);
+
+	FInstancedStaticMeshComponentInstanceData* InstancedMeshData  = static_cast<FInstancedStaticMeshComponentInstanceData*>(ComponentInstanceData);
+
+	// See if data matches current state
+	if (InstancedMeshData->bHasCachedStaticLighting)
+	{
+		bool bMatch = InstancedMeshData->CachedStaticLighting.Transform.Equals(ComponentToWorld);
+
+		// Check for any instance having moved as that would invalidate static lighting
+		if (PerInstanceSMData.Num() == InstancedMeshData->PerInstanceSMData.Num())
+		{
+			for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); ++InstanceIndex)
+			{
+				if (PerInstanceSMData[InstanceIndex].Transform != InstancedMeshData->PerInstanceSMData[InstanceIndex].Transform)
+				{
+					bMatch = false;
+					break;
+				}
+			}
+		}
+
+		// Restore static lighting if appropriate
+		if (bMatch)
+		{
+			const int32 NumLODLightMaps = InstancedMeshData->CachedStaticLighting.LODDataLightMap.Num();
+			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
+			for (int32 i = 0; i < NumLODLightMaps; ++i)
+			{
+				LODData[i].LightMap = InstancedMeshData->CachedStaticLighting.LODDataLightMap[i];
+				LODData[i].ShadowMap = InstancedMeshData->CachedStaticLighting.LODDataShadowMap[i];
+			}
+			IrrelevantLights = InstancedMeshData->CachedStaticLighting.IrrelevantLights;
+			PerInstanceSMData = InstancedMeshData->PerInstanceSMData;
+			bHasCachedStaticLighting = true;
+		}
+	}
+
+	SelectedInstances = InstancedMeshData->SelectedInstances;
+
+	MarkRenderStateDirty();
 #endif
 }
 
@@ -1315,7 +1418,10 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 #if WITH_PHYSX
 	// Create physics body instance.
-	InstanceBodyInstance->InitBody( BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
+	// Aggregates aren't used for static objects
+	auto* Aggregate = (Mobility == EComponentMobility::Movable) ? Aggregates[FMath::DivideAndRoundDown<int32>(InstanceIdx, AggregateMaxSize)] : nullptr;
+	check(Mobility != EComponentMobility::Movable || Aggregate->getNbActors() < Aggregate->getMaxNbActors());
+	InstanceBodyInstance->InitBody(BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
 #endif //WITH_PHYSX
 }
 
@@ -1353,12 +1459,22 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	if (!PhysScene) { return; }
 
 #if WITH_PHYSX
-	check(Aggregate == NULL);
-	Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
+	check(Aggregates.Num() == 0);
+
+	const int32 NumBodies = PerInstanceSMData.Num();
+
+	// Aggregates aren't used for static objects
+	const int32 NumAggregates = (Mobility == EComponentMobility::Movable) ? FMath::DivideAndRoundUp<int32>(NumBodies, AggregateMaxSize) : 0;
 
 	// Get the scene type from the main BodyInstance
 	const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
-	PhysScene->GetPhysXScene(SceneType)->addAggregate(*Aggregate);
+
+	for (int32 i = 0; i < NumAggregates; i++)
+	{
+		auto* Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
+		Aggregates.Add(Aggregate);
+		PhysScene->GetPhysXScene(SceneType)->addAggregate(*Aggregate);
+	}
 #endif
 
 	// Create all the bodies.
@@ -1375,13 +1491,13 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 	ClearAllInstanceBodies();
 
 #if WITH_PHYSX
-	// releasing Aggregate, it shouldn't contain any Bodies now, because they are released above
-	if(Aggregate)
+	// releasing Aggregates, they shouldn't contain any Bodies now, because they are released above
+	for (auto* Aggregate : Aggregates)
 	{
 		check(!Aggregate->getNbActors());
 		Aggregate->release();
-		Aggregate = NULL;
 	}
+	Aggregates.Empty();
 #endif //WITH_PHYSX
 }
 
@@ -1427,8 +1543,8 @@ class FStaticLightingMesh_InstancedStaticMesh : public FStaticMeshStaticLighting
 public:
 
 	/** Initialization constructor. */
-	FStaticLightingMesh_InstancedStaticMesh(const UInstancedStaticMeshComponent* InPrimitive, int32 InstanceIndex, const TArray<ULightComponent*>& InRelevantLights)
-		: FStaticMeshStaticLightingMesh(InPrimitive, 0, InRelevantLights)
+	FStaticLightingMesh_InstancedStaticMesh(const UInstancedStaticMeshComponent* InPrimitive, int32 LODIndex, int32 InstanceIndex, const TArray<ULightComponent*>& InRelevantLights)
+		: FStaticMeshStaticLightingMesh(InPrimitive, LODIndex, InRelevantLights)
 	{
 		// override the local to world to combine the per instance transform with the component's standard transform
 		SetLocalToWorld(InPrimitive->PerInstanceSMData[InstanceIndex].Transform * InPrimitive->ComponentToWorld.ToMatrixWithScale());
@@ -1445,46 +1561,195 @@ class FStaticLightingTextureMapping_InstancedStaticMesh : public FStaticMeshStat
 {
 public:
 	/** Initialization constructor. */
-	FStaticLightingTextureMapping_InstancedStaticMesh(UInstancedStaticMeshComponent* InPrimitive, FStaticLightingMesh* InMesh)
-		: FStaticMeshStaticLightingTextureMapping(InPrimitive, 0, InMesh, 0, 0, 0, false)
+	FStaticLightingTextureMapping_InstancedStaticMesh(UInstancedStaticMeshComponent* InPrimitive, int32 LODIndex, int32 InInstanceIndex, FStaticLightingMesh* InMesh, int32 InSizeX, int32 InSizeY, int32 InTextureCoordinateIndex, bool bPerformFullQualityRebuild)
+		: FStaticMeshStaticLightingTextureMapping(InPrimitive, LODIndex, InMesh, InSizeX, InSizeY, InTextureCoordinateIndex, bPerformFullQualityRebuild)
+		, InstanceIndex(InInstanceIndex)
+		, QuantizedData(nullptr)
+		, ShadowMapData()
+		, bComplete(false)
 	{
-		// We don't actually support light/shadow mapping on instanced meshes, only *casting* shadows
-		bProcessMapping = false;
 	}
 
-	virtual void Apply(FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*, FShadowMapData2D*>& ShadowMapData) override
+	// FStaticLightingTextureMapping interface
+	virtual void Apply(FQuantizedLightmapData* InQuantizedData, const TMap<ULightComponent*, FShadowMapData2D*>& InShadowMapData) override
 	{
-		// Not supported
+		check(bComplete == false);
+
+		UInstancedStaticMeshComponent* InstancedComponent = Cast<UInstancedStaticMeshComponent>(Primitive.Get());
+
+		if (InstancedComponent)
+		{
+			// Save the static lighting until all of the component's static lighting has been built.
+			QuantizedData = TUniquePtr<FQuantizedLightmapData>(InQuantizedData);
+			ShadowMapData.Empty(InShadowMapData.Num());
+			for (auto& ShadowDataPair : InShadowMapData)
+			{
+				ShadowMapData.Add(ShadowDataPair.Key, TUniquePtr<FShadowMapData2D>(ShadowDataPair.Value));
+			}
+
+			InstancedComponent->ApplyLightMapping(this);
+		}
+
+		bComplete = true;
 	}
 
-#if WITH_EDITOR
 	virtual bool DebugThisMapping() const override
 	{
 		return false;
 	}
-#endif	//WITH_EDITOR
 
 	virtual FString GetDescription() const override
 	{
 		return FString(TEXT("InstancedSMLightingMapping"));
 	}
+
+private:
+	friend class UInstancedStaticMeshComponent;
+
+	/** The instance of the primitive this mapping represents. */
+	const int32 InstanceIndex;
+
+	// Light/shadow map data stored until all instances for this component are processed
+	// so we can apply them all into one light/shadowmap
+	TUniquePtr<FQuantizedLightmapData> QuantizedData;
+	TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>> ShadowMapData;
+
+	/** Has this mapping already been completed? */
+	bool bComplete;
 };
 
-void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options)
+void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo, const TArray<ULightComponent*>& InRelevantLights, const FLightingBuildOptions& Options)
 {
-	// We don't support light/shadow mapping for instanced meshes, only *casting* shadows
-	// we intentionally ignore the mobility setting here, as foliage is marked "Movable" to force
-	// dynamic lighting due to static lighting not being supported, but is actually static
-	if (StaticMesh && bCastStaticShadow)
+	if (HasValidSettingsForStaticLighting())
 	{
-		for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
-		{
-			FStaticLightingMesh_InstancedStaticMesh* StaticLightingMesh = new FStaticLightingMesh_InstancedStaticMesh(this, InstanceIndex, InRelevantLights);
-			OutPrimitiveInfo.Meshes.Add(StaticLightingMesh);
+		// create static lighting for LOD 0
+		int32 LightMapWidth = 0;
+		int32 LightMapHeight = 0;
+		GetLightMapResolution(LightMapWidth, LightMapHeight);
 
-			FStaticLightingTextureMapping_InstancedStaticMesh* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, StaticLightingMesh);
-			OutPrimitiveInfo.Mappings.Add(InstancedMapping);
+		const int32 LightMapSize = GetWorld()->GetWorldSettings()->PackedLightAndShadowMapTextureSize;
+		const int32 MaxInstancesInDefaultSizeLightmap = (LightMapSize / LightMapWidth) * ((LightMapSize / 2) / LightMapHeight);
+		if (PerInstanceSMData.Num() > MaxInstancesInDefaultSizeLightmap)
+		{
+			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)
+				->AddToken(FUObjectToken::Create(this))
+				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
+
+		bool bCanLODsShareStaticLighting = StaticMesh->CanLODsShareStaticLighting();
+
+		// TODO: We currently only support one LOD of static lighting in instanced meshes
+		// Need to create per-LOD instance data to fix that
+		if (!bCanLODsShareStaticLighting)
+		{
+			UE_LOG(LogStaticMesh, Warning, TEXT("Instanced meshes don't yet support unique static lighting for each LOD, lighting on LOD 1+ may be incorrect"));
+			bCanLODsShareStaticLighting = true;
+		}
+
+		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : StaticMesh->RenderData->LODResources.Num();
+
+		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
+		CachedMappings.AddZeroed(PerInstanceSMData.Num() * NumLODs);
+
+		for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
+		{
+			const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[LODIndex];
+
+			for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
+			{
+				auto* StaticLightingMesh = new FStaticLightingMesh_InstancedStaticMesh(this, LODIndex, InstanceIndex, InRelevantLights);
+				OutPrimitiveInfo.Meshes.Add(StaticLightingMesh);
+
+				auto* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, LODIndex, InstanceIndex, StaticLightingMesh, LightMapWidth, LightMapHeight, StaticMesh->LightMapCoordinateIndex, true);
+				OutPrimitiveInfo.Mappings.Add(InstancedMapping);
+
+				CachedMappings[LODIndex * PerInstanceSMData.Num() + InstanceIndex].Mapping = InstancedMapping;
+				NumPendingLightmaps++;
+			}
+
+			// Shrink LOD texture lightmaps by half for each LOD level (minimum 4x4 px)
+			LightMapWidth  = FMath::Max(LightMapWidth  / 2, 4);
+			LightMapHeight = FMath::Max(LightMapHeight / 2, 4);
+		}
+	}
+}
+
+void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping)
+{
+	NumPendingLightmaps--;
+
+	if (NumPendingLightmaps == 0)
+	{
+		// Calculate the range of each coefficient in this light-map and repack the data to have the same scale factor and bias across all instances
+		// TODO: Per instance scale?
+
+		// generate the final lightmaps for all the mappings for this component
+		TArray<TUniquePtr<FQuantizedLightmapData>> AllQuantizedData;
+		for (auto& MappingInfo : CachedMappings)
+		{
+			FStaticLightingTextureMapping_InstancedStaticMesh* Mapping = MappingInfo.Mapping;
+			AllQuantizedData.Add(MoveTemp(Mapping->QuantizedData));
+		}
+
+		bool bNeedsShadowMap = false;
+		TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>> AllShadowMapData;
+		for (auto& MappingInfo : CachedMappings)
+		{
+			FStaticLightingTextureMapping_InstancedStaticMesh* Mapping = MappingInfo.Mapping;
+			bNeedsShadowMap = bNeedsShadowMap || (Mapping->ShadowMapData.Num() > 0);
+			AllShadowMapData.Add(MoveTemp(Mapping->ShadowMapData));
+		}
+
+		// Create a light-map for the primitive.
+		const ELightMapPaddingType PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
+		FLightMap2D* NewLightMap = FLightMap2D::AllocateInstancedLightMap(this, MoveTemp(AllQuantizedData), Bounds, PaddingType, LMF_Streamed);
+
+		// Create a shadow-map for the primitive.
+		FShadowMap2D* NewShadowMap = bNeedsShadowMap ? FShadowMap2D::AllocateInstancedShadowMap(this, MoveTemp(AllShadowMapData), Bounds, PaddingType, SMF_Streamed) : nullptr;
+
+		// Ensure LODData has enough entries in it, free not required.
+		SetLODDataCount(StaticMesh->GetNumLODs(), StaticMesh->GetNumLODs());
+
+		// Share lightmap/shadowmap over all LODs
+		for (FStaticMeshComponentLODInfo& ComponentLODInfo : LODData)
+		{
+			ComponentLODInfo.LightMap = NewLightMap;
+			ComponentLODInfo.ShadowMap = NewShadowMap;
+		}
+
+		// Build the list of statically irrelevant lights.
+		// TODO: This should be stored per LOD.
+		TSet<FGuid> RelevantLights;
+		TSet<FGuid> PossiblyIrrelevantLights;
+		for (auto& MappingInfo : CachedMappings)
+		{
+			for (const ULightComponent* Light : MappingInfo.Mapping->Mesh->RelevantLights)
+			{
+				// Check if the light is stored in the light-map.
+				const bool bIsInLightMap = LODData[0].LightMap && LODData[0].LightMap->LightGuids.Contains(Light->LightGuid);
+
+				// Check if the light is stored in the shadow-map.
+				const bool bIsInShadowMap = LODData[0].ShadowMap && LODData[0].ShadowMap->LightGuids.Contains(Light->LightGuid);
+
+				// If the light isn't already relevant to another mapping, add it to the potentially irrelevant list
+				if (!bIsInLightMap && !bIsInShadowMap && !RelevantLights.Contains(Light->LightGuid))
+				{
+					PossiblyIrrelevantLights.Add(Light->LightGuid);
+				}
+
+				// Light is relevant
+				if (bIsInLightMap || bIsInShadowMap)
+				{
+					RelevantLights.Add(Light->LightGuid);
+					PossiblyIrrelevantLights.Remove(Light->LightGuid);
+				}
+			}
+		}
+
+		IrrelevantLights = PossiblyIrrelevantLights.Array();
+
+		bHasCachedStaticLighting = true;
+		MarkPackageDirty();
 	}
 }
 #endif
@@ -1524,28 +1789,6 @@ struct FComponentInstancedLightmapData
 
 	/** List of new components */
 	TArray< FComponentInstanceSharingData > SharingData;
-};
-
-/**
- * Struct that controls what we use to determine compatible components
- */
-struct FValidCombination
-{
-	/** An optional key for marking components as compatible (eg proc buildings only allow meshes on a single face to join) */
-	int32 JoinKey;
-
-	/** Different meshes are never compatible */
-	UStaticMesh* Mesh;
-
-	friend bool operator==(const FValidCombination& A, const FValidCombination& B)
-	{
-		return A.JoinKey == B.JoinKey && A.Mesh == B.Mesh;
-	}
-
-	friend uint32 GetTypeHash(const FValidCombination& Combo)
-	{
-		return (uint32)(PTRINT)Combo.Mesh * Combo.JoinKey;
-	}
 };
 
 void UInstancedStaticMeshComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const
@@ -1710,9 +1953,28 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 
 	if (bPhysicsStateCreated)
 	{
+		// Add another aggregate if needed
+		// Aggregates aren't used for static objects
+		if (Mobility == EComponentMobility::Movable)
+		{
+			const int32 AggregateIndex = FMath::DivideAndRoundDown<int32>(InInstanceIndex, AggregateMaxSize);
+			if (AggregateIndex >= Aggregates.Num())
+			{
+				// Get the scene type from the main BodyInstance
+				const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+
+				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+				check(PhysScene);
+
+				auto* Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
+				const int32 AddedIndex = Aggregates.Add(Aggregate);
+				check(AddedIndex == AggregateIndex);
+				PhysScene->GetPhysXScene(SceneType)->addAggregate(*Aggregate);
+			}
+		}
+
 		FBodyInstance* NewBodyInstance = new FBodyInstance();
 		int32 BodyIndex = InstanceBodies.Insert(NewBodyInstance, InInstanceIndex);
-
 		check(InInstanceIndex == BodyIndex);
 		InitInstanceBody(BodyIndex, NewBodyInstance);
 	}
@@ -1886,7 +2148,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		SetShaderValue(RHICmdList, VS, InstancingFadeOutParamsParameter, InstancingFadeOutParams );
 	}
 
-	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform);
+	const bool bInstanced = RHISupportsInstancing(GRHIShaderPlatform_DEPRECATED);
 	if (!bInstanced)
 	{
 		if (CPUInstanceShadowMapBias.IsBound())

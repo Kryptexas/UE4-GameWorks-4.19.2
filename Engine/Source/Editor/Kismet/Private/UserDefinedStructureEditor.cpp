@@ -10,6 +10,7 @@
 #include "Editor/KismetWidgets/Public/SPinTypeSelector.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "StructureEditor"
 
@@ -167,13 +168,14 @@ const FName FUserDefinedStructureEditor::UserDefinedStructureEditorAppIdentifier
 
 void FUserDefinedStructureEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_UserDefinedStructureEditor", "User-Defined Structure Editor"));
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( MemberVariablesTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedStructureEditor::SpawnStructureTab) )
 		.SetDisplayName( LOCTEXT("MemberVariablesEditor", "Member Variables") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Variables"));
 }
 
 void FUserDefinedStructureEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

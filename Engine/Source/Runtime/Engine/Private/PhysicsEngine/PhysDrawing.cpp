@@ -478,7 +478,7 @@ void FConvexCollisionVertexBuffer::InitRHI()
 
 	// Copy the vertex data into the vertex buffer.
 	void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-	FMemory::Memcpy(VertexBufferData,Vertices.GetTypedData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
+	FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
@@ -489,7 +489,7 @@ void FConvexCollisionIndexBuffer::InitRHI()
 
 	// Write the indices to the index buffer.
 	void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
-	FMemory::Memcpy(Buffer,Indices.GetTypedData(),Indices.Num() * sizeof(int32));
+	FMemory::Memcpy(Buffer,Indices.GetData(),Indices.Num() * sizeof(int32));
 	RHIUnlockIndexBuffer(IndexBufferRHI);
 }
 
@@ -890,7 +890,7 @@ static void DrawLinearLimit(FPrimitiveDrawInterface* PDI, const FVector& Origin,
 }
 
 //creates fan shape along visualized axis for rotation axis of length Length
-FMatrix HelpBuildFan(const FTransform & Con1Frame, const FTransform & Con2Frame, EAxis::Type DrawOnAxis, EAxis::Type RotationAxis, float Length)
+FMatrix HelpBuildFan(const FTransform& Con1Frame, const FTransform& Con2Frame, EAxis::Type DrawOnAxis, EAxis::Type RotationAxis, float Length)
 {
 	FVector Con1DrawOnAxis = Con1Frame.GetScaledAxis(DrawOnAxis);
 	FVector Con2DrawOnAxis = Con2Frame.GetScaledAxis(DrawOnAxis);

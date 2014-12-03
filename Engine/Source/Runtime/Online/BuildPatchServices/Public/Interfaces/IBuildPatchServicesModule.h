@@ -16,6 +16,16 @@ DECLARE_DELEGATE_OneParam( FBuildPatchManifestDelegate, IBuildManifestRef );
 DECLARE_DELEGATE_TwoParams( FBuildPatchBoolManifestDelegate, bool, IBuildManifestRef );
 DECLARE_DELEGATE_OneParam( FBuildPatchFloatDelegate, float );
 
+namespace ECompactifyMode
+{
+	enum Type
+	{
+		Preview,
+		TouchOnly,
+		Full
+	};
+}
+
 /**
  * Interface for the services manager.
  */
@@ -36,19 +46,20 @@ public:
 	virtual IBuildManifestPtr LoadManifestFromFile( const FString& Filename ) = 0;
 	
 	/**
-	 * Constructs a Build Manifest from a JSON string
-	 * @param ManifestJSON		The JSON received from a web api
+	 * Constructs a Build Manifest from a data
+	 * @param ManifestData		The data received from a web api
 	 * @return		a shared pointer to the manifest, which will be invalid if creation failed.
 	 */
-	virtual IBuildManifestPtr MakeManifestFromJSON( const FString& ManifestJSON ) = 0;
+	virtual IBuildManifestPtr MakeManifestFromData( const TArray<uint8>& ManifestData ) = 0;
 	
 	/**
 	 * Saves a Build Manifest to file
 	 * @param Filename		The file to save to
 	 * @param Manifest		The manifest to save out
+	 * @param bUseBinary	Whether to save binary format instead of json
 	 * @return		If the save was successful.
 	 */
-	virtual bool SaveManifestToFile( const FString& Filename, IBuildManifestRef Manifest ) = 0;
+	virtual bool SaveManifestToFile(const FString& Filename, IBuildManifestRef Manifest, bool bUseBinary = true) = 0;
 
 	/**
 	 * Starts an installer thread for the provided manifests
@@ -113,9 +124,14 @@ public:
 	 * NOTE: THIS function is blocking and will not return until finished. Don't run on main thread.
 	 * @param ManifestsToKeep      If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold     Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
-	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param Mode      The mode that compactify will run in. If Preview, then no work will be carried out, if TouchOnly, then no patch-data will be deleted
 	 * @return              true if no file errors occurred
 	 */
-	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview) = 0;
+	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const ECompactifyMode::Type Mode) = 0;
 #endif // WITH_BUILDPATCHGENERATION
+
+	/**
+	 * Deprecated function, use MakeManifestFromData instead
+	 */
+	virtual IBuildManifestPtr MakeManifestFromJSON(const FString& ManifestJSON) = 0;
 };

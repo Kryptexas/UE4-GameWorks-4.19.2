@@ -653,8 +653,8 @@ public:
 					{
 						check(Task < NumTasks);
 						FGraphEventArray Setup;
-						new (Setup) FGraphEventRef(TGraphTask<FQueueTickTasks>::CreateTask(NULL,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllTickFunctions.GetTypedData() + Start, AllCompletionEvents.GetTypedData() + Start, NumThisTask, &Context));
-						new (QueueTickTasks) FGraphEventRef(TGraphTask<FPostTickTasks>::CreateTask(&Setup,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllCompletionEvents.GetTypedData() + Start, NumThisTask));
+						new (Setup) FGraphEventRef(TGraphTask<FQueueTickTasks>::CreateTask(NULL,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllTickFunctions.GetData() + Start, AllCompletionEvents.GetData() + Start, NumThisTask, &Context));
+						new (QueueTickTasks) FGraphEventRef(TGraphTask<FPostTickTasks>::CreateTask(&Setup,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllCompletionEvents.GetData() + Start, NumThisTask));
 						Start += NumThisTask;
 						NumTicksSoFar = 0;
 
@@ -1020,7 +1020,10 @@ void FTickFunction::SetTickFunctionEnable(bool bInEnabled)
 **/
 void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
 {
-	if (TargetTickFunction.bCanEverTick || TargetTickFunction.IsTickFunctionRegistered())
+	const bool bThisCanTick = (bCanEverTick || IsTickFunctionRegistered());
+	const bool bTargetCanTick = (TargetTickFunction.bCanEverTick || TargetTickFunction.IsTickFunctionRegistered());
+	
+	if (bThisCanTick && bTargetCanTick)
 	{
 		Prerequisites.AddUnique(FTickPrerequisite(TargetObject, TargetTickFunction));
 	}

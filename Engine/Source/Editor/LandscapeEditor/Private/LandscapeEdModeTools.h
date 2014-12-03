@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
 
 //
@@ -244,7 +244,7 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, TMap<FIntPoint
 
 
 //
-// FLandscapeHeightCache
+// TLandscapeEditCache
 //
 template<class Accessor, typename AccessorType>
 struct TLandscapeEditCache
@@ -425,7 +425,7 @@ struct TLandscapeEditCache
 
 	void SetValue(int32 LandscapeX, int32 LandscapeY, AccessorType Value)
 	{
-		CachedData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Value);
+		CachedData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Forward<AccessorType>(Value));
 	}
 
 	bool IsZeroValue(const FVector& Value)
@@ -486,7 +486,7 @@ struct TLandscapeEditCache
 		}
 
 		// Update real data
-		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetTypedData(), PaintingRestriction);
+		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetData(), PaintingRestriction);
 	}
 
 	// Get the original data before we made any changes with the SetCachedData interface.
@@ -625,7 +625,7 @@ struct FHeightmapAccessor
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(CollisionComponent->GetComponentLevel());
 					if (IFA)
 					{
-						IFA->SnapInstancesForLandscape(CollisionComponent, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
+						CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
 					}
 				}
 			}
@@ -793,21 +793,21 @@ struct FXYOffsetmapAccessor
 
 				// Update landscape.
 				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
-				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetData(), 0, true);
 
 				// Snap foliage for each component.
 				for (int32 Index = 0; Index < CollisionComponents.Num(); ++Index)
 				{
 					ULandscapeHeightfieldCollisionComponent* CollisionComponent = CollisionComponents[Index];
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(CollisionComponent->GetComponentLevel());
-					IFA->SnapInstancesForLandscape(CollisionComponent, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
+					CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
 				}
 			}
 			else
 			{
 				// No foliage, just update landscape.
 				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
-				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetData(), 0, true);
 			}
 		}
 		else
@@ -1044,21 +1044,36 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache < FFullWeightmapAc
 	// Only for all weight case... the accessor type should be TArray<uint8>
 	void GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& OutData, int32 ArraySize)
 	{
-		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1) * ArraySize;
+		if (ArraySize == 0)
+		{
+			OutData.Empty();
+			return;
+		}
+
+		const int32 XSize = (1 + X2 - X1);
+		const int32 YSize = (1 + Y2 - Y1);
+		const int32 Stride = XSize * ArraySize;
+		int32 NumSamples = XSize * YSize * ArraySize;
 		OutData.Empty(NumSamples);
 		OutData.AddUninitialized(NumSamples);
 
 		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
+			const int32 YOffset = (Y - Y1) * Stride;
 			for (int32 X = X1; X <= X2; X++)
 			{
+				const int32 XYOffset = YOffset + (X - X1) * ArraySize;
 				TArray<uint8>* Ptr = GetValueRef(X, Y);
 				if (Ptr)
 				{
 					for (int32 Z = 0; Z < ArraySize; Z++)
 					{
-						OutData[((X - X1) + (Y - Y1)*(1 + X2 - X1)) * ArraySize + Z] = (*Ptr)[Z];
+						OutData[XYOffset + Z] = (*Ptr)[Z];
 					}
+				}
+				else
+				{
+					FMemory::Memzero((void*)&OutData[XYOffset], (SIZE_T)ArraySize);
 				}
 			}
 		}
@@ -1079,12 +1094,12 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache < FFullWeightmapAc
 				{
 					Value[Z] = Data[((X - X1) + (Y - Y1)*(1 + X2 - X1)) * ArraySize + Z];
 				}
-				SetValue(X, Y, Value);
+				SetValue(X, Y, MoveTemp(Value));
 			}
 		}
 
 		// Update real data
-		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetTypedData(), PaintingRestriction);
+		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetData(), PaintingRestriction);
 	}
 
 	void AddDirtyLayer(ULandscapeLayerInfoObject* LayerInfo)

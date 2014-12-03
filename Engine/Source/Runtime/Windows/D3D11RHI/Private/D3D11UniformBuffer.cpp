@@ -116,14 +116,6 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			TRefCountPtr<ID3D11Buffer> UniformBufferResource;
 			FRingAllocation RingAllocation;
 
-#if PLATFORM_XBOXONE
-			if (Usage == UniformBuffer_SingleDraw)
-			{
-				RingAllocation = DynamicCB.MapAndFill(GetDeviceContext(),NumBytes,Contents);
-				check(RingAllocation.IsValid());
-			}
-#endif
-
 			if (!RingAllocation.IsValid())
 			{
 				// Find the appropriate bucket based on size

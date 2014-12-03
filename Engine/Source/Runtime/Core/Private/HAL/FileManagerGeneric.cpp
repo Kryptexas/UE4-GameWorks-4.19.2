@@ -10,7 +10,7 @@
 =============================================================================*/
 
 // for compression
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "FileManagerGeneric.h"
 #include "SecureHash.h"
 #include <time.h>
@@ -442,6 +442,11 @@ FDateTime FFileManagerGeneric::GetAccessTimeStamp( const TCHAR* Filename )
 
 	// ask low level for timestamp
 	return GetLowLevel().GetAccessTimeStamp(Filename);
+}
+
+FString FFileManagerGeneric::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return GetLowLevel().GetFilenameOnDisk(Filename);
 }
 
 FString FFileManagerGeneric::DefaultConvertToRelativePath( const TCHAR* Filename )

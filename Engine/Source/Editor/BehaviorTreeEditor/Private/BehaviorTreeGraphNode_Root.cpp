@@ -4,7 +4,7 @@
 #include "BehaviorTree/BlackboardData.h"
 #include "BehaviorTree/BehaviorTree.h"
 
-UBehaviorTreeGraphNode_Root::UBehaviorTreeGraphNode_Root(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraphNode_Root::UBehaviorTreeGraphNode_Root(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

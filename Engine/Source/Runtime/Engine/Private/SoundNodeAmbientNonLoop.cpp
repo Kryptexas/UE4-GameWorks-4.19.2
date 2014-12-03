@@ -7,7 +7,7 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeAmbientNonLoop implementation.
 -----------------------------------------------------------------------------*/
-UDEPRECATED_SoundNodeAmbientNonLoop::UDEPRECATED_SoundNodeAmbientNonLoop(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_SoundNodeAmbientNonLoop::UDEPRECATED_SoundNodeAmbientNonLoop(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

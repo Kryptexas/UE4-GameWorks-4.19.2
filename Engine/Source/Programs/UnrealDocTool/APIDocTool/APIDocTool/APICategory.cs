@@ -47,11 +47,11 @@ namespace APIDocTool
 			Actions.Add(Action);
 		}
 
-		public override SitemapNode CreateSitemapNode()
+		public override IEnumerable<SitemapNode> CreateSitemapNodes()
 		{
 			SitemapNode Node = new SitemapNode(Name, SitemapLinkPath);
-			Node.Children.AddRange(SubCategories.OrderBy(x => x.Value.Name).Select(x => x.Value.CreateSitemapNode()));
-			return Node;
+			Node.Children.AddRange(SubCategories.OrderBy(x => x.Value.Name).SelectMany(x => x.Value.CreateSitemapNodes()));
+			yield return Node;
 		}
 
 		public void WriteSitemapContents(string OutputPath)
@@ -63,11 +63,11 @@ namespace APIDocTool
 			}
 			foreach (APIPage SubCategory in SubCategories.Values)
 			{
-				RootNodes.Add(SubCategory.CreateSitemapNode());
+				RootNodes.AddRange(SubCategory.CreateSitemapNodes());
 			}
 			foreach (APIPage Action in Actions)
 			{
-				RootNodes.Add(Action.CreateSitemapNode());
+				RootNodes.AddRange(Action.CreateSitemapNodes());
 			}
 			Sitemap.WriteContentsFile(OutputPath, RootNodes);
 		}

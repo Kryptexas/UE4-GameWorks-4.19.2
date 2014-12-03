@@ -31,3 +31,14 @@ void FRollingHashConst::Init()
 		HashTable[ TableIdx ] = val;
 	}
 }
+
+uint64 FCycPoly64Hash::GetHashForDataSet(const uint8* DataSet, const uint32 DataSize, const uint64 State/* = 0*/)
+{
+	uint64 HashState = State;
+	for (uint32 i = 0; i < DataSize; ++i)
+	{
+		ROTLEFT_64B(HashState, 1);
+		HashState ^= FRollingHashConst::HashTable[DataSet[i]];
+	}
+	return HashState;
+}

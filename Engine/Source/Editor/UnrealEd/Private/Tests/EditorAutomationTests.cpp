@@ -26,8 +26,6 @@
 #include "PackageTools.h"
 
 
-//DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
-
 /**
 * Change the attributes for a point light in the level.
 */
@@ -565,7 +563,7 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		const TArray< TSharedPtr<FJsonValue> > Array = (*ArrayValue)->AsArray();
 		check(Array.Num() == 8);
 
-		EJson::Type ValueTypes[] = {EJson::Array, EJson::String, EJson::String, EJson::Null,
+		EJson ValueTypes[] = {EJson::Array, EJson::String, EJson::String, EJson::Null,
 			EJson::Boolean, EJson::Boolean, EJson::Number, EJson::Object};
 		for (int32 i = 0; i < Array.Num(); ++i)
 		{
@@ -640,7 +638,7 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 			TEXT("}");
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
-		EJsonNotation::Type Notation = EJsonNotation::Null;
+		EJsonNotation Notation = EJsonNotation::Null;
 		check( Reader->ReadNext( Notation ) && Notation == EJsonNotation::ObjectStart );
 		check( Reader->GetLineNumber() == 1 && Reader->GetCharacterNumber() == 1 );
 
@@ -834,6 +832,14 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
 	double MapLoadStartTime = 0;
+
+	//Test event for analytics. This should fire anytime this automation procedure is started.
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Editor.Usage.TestEvent"));
+		UE_LOG(LogAnalytics, Log, TEXT("AnayticsTest: Load All Maps automation triggered and Editor.Usage.TestEvent analytic event has been fired."));
+	}
+	
 
 	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().IsScreenshotAllowed();
 	if( bTakeScreenshots )
@@ -1320,7 +1326,7 @@ bool FCleanupConvertToValidation::Update()
 				{
 					AStaticMeshActor* StaticMeshActor = *ActorIt;
 
-					if ( StaticMeshActor->StaticMeshComponent->StaticMesh == GeneratedMesh )
+					if ( StaticMeshActor->GetStaticMeshComponent()->StaticMesh == GeneratedMesh )
 					{
 						TestWorld->DestroyActor(StaticMeshActor);
 					}
@@ -2048,7 +2054,7 @@ bool FPerformUVTestCommand::Update()
 /**
  * StaticMeshUVsTest
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Tools.Static Mesh.Static Mesh UVs Check", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshUVsTest, "Tools.Static Mesh.Static Mesh UVs Check", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser)
 
 /**
  * Find all static meshes and check the lightmap UVs

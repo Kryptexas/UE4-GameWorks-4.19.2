@@ -20,7 +20,7 @@ public:
 	 *
 	 * @return Whether the event was successfully triggered
 	 */
-	virtual bool TriggerEvent( const FUniqueNetId & PlayerId, const TCHAR * EventName, const FOnlineEventParms & Parms ) = 0;
+	virtual bool TriggerEvent( const FUniqueNetId& PlayerId, const TCHAR* EventName, const FOnlineEventParms& Parms ) = 0;
 
 	/**
 	 * Quick way to send a valid PlayerSessionId with every event, required for Xbox One

@@ -14,9 +14,10 @@
 #include "ObjectEditorUtils.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "Engine/DestructibleMesh.h"
 
-UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 #if WITH_PHYSX
 	, PhysxUserData(this)
 #endif
@@ -27,6 +28,7 @@ UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitial
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::EvenIfNotCollidable;
 
+	BodyInstance.bUseAsyncScene = true;
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("Destructible"));
 	SetCollisionProfileName(CollisionProfileName);
@@ -71,7 +73,7 @@ void UDestructibleComponent::PostEditChangeProperty( struct FPropertyChangedEven
 }
 #endif // WITH_EDITOR
 
-FBoxSphereBounds UDestructibleComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDestructibleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_APEX
 	if( ApexDestructibleActor == NULL )
@@ -111,7 +113,7 @@ void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	}
 
 	// warn if it has non-uniform scale
-	const FVector & MeshScale3D = CurrentLocalToWorld.GetScale3D();
+	const FVector& MeshScale3D = CurrentLocalToWorld.GetScale3D();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if( !MeshScale3D.IsUniform() )
 	{
@@ -132,7 +134,7 @@ void UDestructibleComponent::CreatePhysicsState()
 {
 	// to avoid calling PrimitiveComponent, I'm just calling ActorComponent::CreatePhysicsState
 	// @todo lh - fix me based on the discussion with Bryan G
- 	UActorComponent::CreatePhysicsState();
+	UActorComponent::CreatePhysicsState();
 	bPhysicsStateCreated = true;
 
 	// What we want to do with BodySetup is simply use it to store a PhysicalMaterial, and possibly some other relevant fields.  Set up pointers from the BodyInstance to the BodySetup and this component
@@ -243,7 +245,7 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	// Passing AssetInstanceID = 0 so we'll have self-collision
 	AActor* Owner = GetOwner();
-	CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, BodyInstance.bNotifyRigidBodyCollision, false);
+	CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, TheDestructibleMesh->DefaultDestructibleParameters.DamageParameters.bEnableImpactDamage, false);
 
 	// Build filterData variations for complex and simple
 	PSimFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
@@ -372,7 +374,6 @@ void UDestructibleComponent::DestroyPhysicsState()
 		//In theory anyone using BodyInstance on a PrimitiveComponent should be using functions like GetBodyInstance - in which case we properly fix up the dangling pointer
 		BodyInstance.RigidActorSync = NULL;
 		BodyInstance.RigidActorAsync = NULL;
-
 	}
 #endif	// #if WITH_APEX
 	Super::DestroyPhysicsState();
@@ -402,14 +403,17 @@ bool UDestructibleComponent::CanEditSimulatePhysics()
 void UDestructibleComponent::AddImpulse( FVector Impulse, FName BoneName /*= NAME_None*/, bool bVelChange /*= false*/ )
 {
 #if WITH_APEX
-	int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
-	PxRigidDynamic* PActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-
-	if (PActor != NULL)
+	if ( ApexDestructibleActor )
 	{
-		SCOPED_SCENE_WRITE_LOCK(PActor->getScene());
+		int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
+		PxRigidDynamic* PActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
 
-		PActor->addForce(U2PVector(Impulse), bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE);
+		if ( PActor != NULL )
+		{
+			SCOPED_SCENE_WRITE_LOCK(PActor->getScene());
+
+			PActor->addForce(U2PVector(Impulse), bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE);
+		}
 	}
 #endif
 }
@@ -511,7 +515,7 @@ void UDestructibleComponent::AddRadialImpulse(FVector Origin, float Radius, floa
 					LockedScene->lockWrite();
 					LockedScene->lockRead();
 				}
-				AddRadialImpulseToPxRigidDynamic(*PActor, Origin, Radius, Strength, Falloff, bVelChange);
+				AddRadialImpulseToPxRigidBody(*PActor, Origin, Radius, Strength, Falloff, bVelChange);
 			}
 		}
 
@@ -554,7 +558,7 @@ void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float 
 					LockedScene->lockRead();
 				}
 
-				AddRadialForceToPxRigidDynamic(*PActor, Origin, Radius, Strength, Falloff);
+				AddRadialForceToPxRigidBody(*PActor, Origin, Radius, Strength, Falloff);
 			}
 
 			if (LockedScene)
@@ -847,6 +851,84 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 	MarkRenderDynamicDataDirty();
 }
 
+#if WITH_APEX
+void UDestructibleComponent::UpdateDestructibleChunkTM(TArray<const PxRigidActor*> ActiveActors)
+{
+	//We want to consolidate the transforms so that we update each destructible component once by passing it an array of chunks to update.
+	//This helps avoid a lot of duplicated work like marking render dirty, computing inverse world component, etc...
+
+	TMap<UDestructibleComponent*, TArray<FUpdateChunksInfo> > ComponentUpdateMapping;
+	
+	//prepare map to update destructible components
+	TArray<PxShape*> Shapes;
+	for (const PxRigidActor* RigidActor : ActiveActors)
+	{
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
+		{
+			if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
+			{
+				Shapes.AddUninitialized(RigidActor->getNbShapes());
+				int32 NumShapes = RigidActor->getShapes(Shapes.GetData(), Shapes.Num());
+				for (int32 ShapeIdx = 0; ShapeIdx < Shapes.Num(); ++ShapeIdx)
+				{
+					PxShape* Shape = Shapes[ShapeIdx];
+					int32 ChunkIndex;
+					if (NxDestructibleActor* DestructibleActor = GApexModuleDestructible->getDestructibleAndChunk(Shape, &ChunkIndex))
+					{
+						const physx::PxMat44 ChunkPoseRT = DestructibleActor->getChunkPose(ChunkIndex);
+						const physx::PxTransform Transform(ChunkPoseRT);
+						if (UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(DestructibleActor->userData)))
+						{
+							if (DestructibleComponent->IsRegistered())
+							{
+								TArray<FUpdateChunksInfo>& UpdateInfos = ComponentUpdateMapping.FindOrAdd(DestructibleComponent);
+								FUpdateChunksInfo* UpdateInfo = new (UpdateInfos)FUpdateChunksInfo(ChunkIndex, P2UTransform(Transform));
+							}
+						}
+					}
+				}
+
+				Shapes.Empty(Shapes.Num());	//we want to keep largest capacity array to avoid reallocs
+			}
+		}
+	}
+	
+	//update each component
+	for (auto It = ComponentUpdateMapping.CreateIterator(); It; ++It)
+	{
+		UDestructibleComponent* DestructibleComponent = It.Key();
+		TArray<FUpdateChunksInfo>& UpdateInfos = It.Value();
+		DestructibleComponent->SetChunksWorldTM(UpdateInfos);	
+	}
+
+}
+
+#endif
+
+void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& UpdateInfos)
+{
+	const FQuat InvRotation = ComponentToWorld.GetRotation().Inverse();
+
+	for (const FUpdateChunksInfo& UpdateInfo : UpdateInfos)
+	{
+		// Bone 0 is a dummy root bone
+		const int32 BoneIndex = ChunkIdxToBoneIdx(UpdateInfo.ChunkIndex);
+		const FVector WorldTranslation	= UpdateInfo.WorldTM.GetLocation();
+		const FQuat WorldRotation		= UpdateInfo.WorldTM.GetRotation();
+
+		const FQuat BoneRotation = InvRotation*WorldRotation;
+		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - ComponentToWorld.GetTranslation()) / ComponentToWorld.GetScale3D();
+
+		SpaceBases[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+	}
+
+	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
+	MarkRenderTransformDirty();
+
+	// New bone positions need to be sent to render thread
+	MarkRenderDynamicDataDirty();
+}
+
 void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& WorldRotation, const FVector& WorldTranslation )
 {
 	// Bone 0 is a dummy root bone
@@ -929,8 +1011,8 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 				{
 					Shapes.AddUninitialized(ShapesCount - Shapes.Num());
 				}
-				const PxU32 RetrievedShapesCount = PActor->getShapes(Shapes.GetTypedData(), Shapes.Num());
-				PxShape* const* ShapePtr = Shapes.GetTypedData();
+				const PxU32 RetrievedShapesCount = PActor->getShapes(Shapes.GetData(), Shapes.Num());
+				PxShape* const* ShapePtr = Shapes.GetData();
 				for (PxU32 ShapeIndex = 0; ShapeIndex < RetrievedShapesCount; ++ShapeIndex, ++ShapePtr)
 				{
 					if (*ShapePtr != NULL)
@@ -1023,7 +1105,7 @@ bool UDestructibleComponent::LineTraceComponent( FHitResult& OutHit, const FVect
 		PxF32 HitTime = 0.0f;
 		PxVec3 HitNormal;
 		
-		int32 ChunkIdx = ApexDestructibleActor->rayCast(HitTime, HitNormal, U2PVector(Start), U2PVector((End-Start).SafeNormal()), NxDestructibleActorRaycastFlags::AllChunks);
+		int32 ChunkIdx = ApexDestructibleActor->rayCast(HitTime, HitNormal, U2PVector(Start), U2PVector(End-Start), NxDestructibleActorRaycastFlags::AllChunks);
 
 		if (ChunkIdx != NxModuleDestructibleConst::INVALID_CHUNK_INDEX && HitTime <= 1.0f)
 		{
@@ -1150,8 +1232,9 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 	{
 		AActor* Owner = GetOwner();
 		bool bLargeChunk = IsChunkLarge(ChunkIdx);
-		const FCollisionResponse & ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
-		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, BodyInstance.bNotifyRigidBodyCollision, false);
+		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
+		//TODO: we currently assume chunks will not have impact damage as it's very expensive. Should look into exposing this a bit more
+		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
 		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 
@@ -1160,7 +1243,7 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 		TArray<PxShape*> Shapes;
 		Shapes.AddUninitialized(Actor->getNbShapes());
 
-		int ShapeCount = Actor->getShapes(Shapes.GetTypedData(), Shapes.Num());
+		int ShapeCount = Actor->getShapes(Shapes.GetData(), Shapes.Num());
 
 		for (int32 i=0; i < ShapeCount; ++i)
 		{

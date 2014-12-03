@@ -5,53 +5,57 @@
 #include "GameplayTagContainerCustomization.h"
 #include "GameplayTagCustomization.h"
 #include "GameplayTagsSettings.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "GameplayTagEditor"
 
-class FGameplayTagsEditorModule : public IGameplayTagsEditorModule
+
+class FGameplayTagsEditorModule
+	: public IGameplayTagsEditorModule
 {
-	// Begin IModuleInterface
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-	// End IModuleInterface
-};
+public:
 
-IMPLEMENT_MODULE( FGameplayTagsEditorModule, GameplayTagsEditor )
+	// IModuleInterface
 
-void FGameplayTagsEditorModule::StartupModule()
-{
-	// Register the details customizer
-	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagContainer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagContainerCustomization::MakeInstance));
-	PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTag", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomization::MakeInstance));
-
-	TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable( new FGameplayTagsGraphPanelPinFactory() );
-	FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactory);
-
-	if (UGameplayTagsManager::ShouldImportTagsFromINI())
+	virtual void StartupModule() override
 	{
-		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		// Register the details customizer
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagContainer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagContainerCustomization::MakeInstance));
+		PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTag", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomization::MakeInstance));
+
+		TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable( new FGameplayTagsGraphPanelPinFactory() );
+		FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactory);
+
+		if (UGameplayTagsManager::ShouldImportTagsFromINI())
 		{
-			SettingsModule->RegisterSettings("Project", "Project", "GameplayTags",
-				LOCTEXT("GameplayTagSettingsName", "GameplayTags"),
-				LOCTEXT("GameplayTagSettingsNameDesc", "GameplayTag Settings"),
-				GetMutableDefault<UGameplayTagsSettings>()
-				);
+			if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+			{
+				SettingsModule->RegisterSettings("Project", "Project", "GameplayTags",
+					LOCTEXT("GameplayTagSettingsName", "GameplayTags"),
+					LOCTEXT("GameplayTagSettingsNameDesc", "GameplayTag Settings"),
+					GetMutableDefault<UGameplayTagsSettings>()
+					);
+			}
 		}
 	}
-}
 
-void FGameplayTagsEditorModule::ShutdownModule()
-{
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-	
-	
-	if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+	virtual void ShutdownModule() override
 	{
-		SettingsModule->UnregisterSettings("Project", "Project", "GameplayTags");
+		// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+		// we call this function before unloading the module.
+	
+	
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+		{
+			SettingsModule->UnregisterSettings("Project", "Project", "GameplayTags");
+		}
 	}
-}
+};
+
+
+IMPLEMENT_MODULE(FGameplayTagsEditorModule, GameplayTagsEditor)
 
 #undef LOCTEXT_NAMESPACE

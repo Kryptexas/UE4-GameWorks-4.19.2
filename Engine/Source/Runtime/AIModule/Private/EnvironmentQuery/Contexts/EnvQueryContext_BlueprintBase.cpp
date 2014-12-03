@@ -5,6 +5,7 @@
 #include "EnvironmentQuery/Contexts/EnvQueryContext_BlueprintBase.h"
 #include "EnvironmentQuery/Items/EnvQueryAllItemTypes.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 
 namespace
 {
@@ -14,8 +15,8 @@ namespace
 	}
 }
 
-UEnvQueryContext_BlueprintBase::UEnvQueryContext_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP), CallMode(UEnvQueryContext_BlueprintBase::InvalidCallMode)
+UEnvQueryContext_BlueprintBase::UEnvQueryContext_BlueprintBase(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer), CallMode(UEnvQueryContext_BlueprintBase::InvalidCallMode)
 {
 	UClass* StopAtClass = UEnvQueryContext_BlueprintBase::StaticClass();	
 	bool bImplementsProvideSingleActor = DoesImplementBPFunction(GET_FUNCTION_NAME_CHECKED(UEnvQueryContext_BlueprintBase, ProvideSingleActor), this, StopAtClass);
@@ -54,7 +55,7 @@ UEnvQueryContext_BlueprintBase::UEnvQueryContext_BlueprintBase(const class FPost
 	}
 }
 
-void UEnvQueryContext_BlueprintBase::ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const
+void UEnvQueryContext_BlueprintBase::ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const
 {
 	AActor* QuerierActor = Cast<AActor>(QueryInstance.Owner.Get());
 
@@ -96,4 +97,23 @@ void UEnvQueryContext_BlueprintBase::ProvideContext(struct FEnvQueryInstance& Qu
 	default:
 		break;
 	}
+}
+
+UWorld* UEnvQueryContext_BlueprintBase::GetWorld() const
+{
+	check(GetOuter() != NULL);
+	
+	UEnvQueryManager* EnvQueryManager = Cast<UEnvQueryManager>(GetOuter());
+	if (EnvQueryManager != NULL)
+	{
+		return EnvQueryManager->GetWorld();
+	}
+
+	// Outer should always be UEnvQueryManager* in the game, which implements GetWorld() and therefore makes this
+	// a correct world context.  However, in the editor the outer is /Script/AIModule (at compile time), which
+	// does not explicitly implement GetWorld().  For that reason, calling GetWorld() generically in that case on the
+	// AIModule calls to the base implementation, which causes a blueprint compile warning in the Editor
+	// which states that the function isn't safe to call on this (due to requiring WorldContext which it doesn't
+	// provide).  Simply returning NULL in this case fixes those erroneous blueprint compile warnings.
+	return NULL;
 }

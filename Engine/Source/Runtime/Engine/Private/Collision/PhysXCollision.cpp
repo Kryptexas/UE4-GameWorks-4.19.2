@@ -494,7 +494,7 @@ namespace ECollisionQuery
 #define TRACE_MULTI		1
 #define TRACE_SINGLE	0
 
-PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilterData &PQueryFilter, const PxFilterData &PShapeFilter)
+PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilterData &PQueryFilter, const PxFilterData &PShapeFilter, bool bPreFilter)
 {
 	ECollisionQuery::Type QueryType = (ECollisionQuery::Type)PQueryFilter.word0;
 	ECollisionChannel const ShapeChannel = (ECollisionChannel)(PShapeFilter.word3 >> 24);
@@ -505,13 +505,14 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilte
 		// do I belong to one of objects of interest?
 		if ( ShapeBit & PQueryFilter.word1 )
 		{
-			if (MultiTrace)
+			if (bPreFilter)	//In the case of an object query we actually want to return all object types (or first in single case). So in PreFilter we have to trick physx by not blocking in the multi case, and blocking in the single case.
 			{
-				return PxSceneQueryHitType::eTOUCH;
+
+				return MultiTrace ? PxSceneQueryHitType::eTOUCH : PxSceneQueryHitType::eBLOCK;
 			}
 			else
 			{
-				return PxSceneQueryHitType::eBLOCK;
+				return PxSceneQueryHitType::eBLOCK;	//In the case where an object query is being resolved for the user we just return a block because object query doesn't have the concept of overlap at all and block seems more natural
 			}
 		}
 	}
@@ -610,7 +611,7 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 		return (PrefilterReturnValue = PxSceneQueryHitType::eNONE);
 	}
 
-	PxSceneQueryHitType::Enum Result = FPxQueryFilterCallback::CalcQueryHitType(filterData, ShapeFilter);
+	PxSceneQueryHitType::Enum Result = FPxQueryFilterCallback::CalcQueryHitType(filterData, ShapeFilter, true);
 
 	if(bSingleQuery && Result == PxSceneQueryHitType::eTOUCH)
 	{
@@ -913,20 +914,28 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 	}
 
 
-#if ENABLE_COLLISION_ANALYZER || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	TArray<FHitResult> Hits;
-	if (bHaveBlockingHit)
-	{
-		Hits.Add(OutHit);
-	}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
+		TArray<FHitResult> Hits;
+		if (bHaveBlockingHit)
+		{
+			Hits.Add(OutHit);
+		}
 		DrawLineTraces(World, Start, End, Hits, DebugLineLifetime);	
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	CAPTURERAYCAST(World, Start, End, ECAQueryType::Single, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+#if ENABLE_COLLISION_ANALYZER
+	if (GCollisionAnalyzerIsRecording)
+	{
+		TArray<FHitResult> Hits;
+		if (bHaveBlockingHit)
+		{
+			Hits.Add(OutHit);
+		}
+		CAPTURERAYCAST(World, Start, End, ECAQueryType::Single, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+	}
 #endif
 
 	return bHaveBlockingHit;
@@ -1249,22 +1258,30 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 	}
 
 
-#if ENABLE_COLLISION_ANALYZER || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	TArray<FHitResult> Hits;
-	if (bHaveBlockingHit)
-	{
-		Hits.Add(OutHit);
-	}
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
+		TArray<FHitResult> Hits;
+		if (bHaveBlockingHit)
+		{
+			Hits.Add(OutHit);
+		}
 		DrawGeomSweeps(World, Start, End, PGeom, PGeomRot, Hits, DebugLineLifetime);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Single, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+#if ENABLE_COLLISION_ANALYZER
+	if (GCollisionAnalyzerIsRecording)
+	{
+		TArray<FHitResult> Hits;
+		if (bHaveBlockingHit)
+		{
+			Hits.Add(OutHit);
+		}
+		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Single, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+	}
 #endif
+
 #endif // WITH_PHYSX
 
 	//@TODO: BOX2D: Implement GeomSweepSingle
@@ -1765,7 +1782,7 @@ PxFilterData CreateObjectQueryFilterData(const bool bTraceComplex, const int32 M
 	return PNewData;
 }
 
-PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer & InCollisionResponseContainer)
+PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer)
 {
 	/**
 	 * Format for QueryData : 
@@ -1818,7 +1835,7 @@ PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTrace
 }
 
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
-PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer & InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace)
+PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace)
 {
 	if (ObjectParam.IsValid() )
 	{

@@ -23,16 +23,21 @@ class SLATECORE_API FArrangedChildren
 	 *  FArrangedChildren ArrangedChildren( EVisibility::Visible ); // Only visible children will be included
 	 *  FArrangedChildren ArrangedChildren( EVisibility::Collapsed | EVisibility::Hidden ); // Only hidden and collapsed children will be included.
 	 */
-	FArrangedChildren( EVisibility InVisibilityFilter )
+	FArrangedChildren( EVisibility InVisibilityFilter, bool bInAllow3DWidgets = false )
 	: VisibilityFilter( InVisibilityFilter )
+	, bAllow3DWidgets( bInAllow3DWidgets )
 	{
 	}
 
 	// @todo hittest2.0 : we should get rid of this eventually.
-	static FArrangedChildren Hittest2_FromArray(const TArray<FArrangedWidget>& InWidgets)
+	static FArrangedChildren Hittest2_FromArray(const TArray<FWidgetAndPointer>& InWidgets)
 	{
 		FArrangedChildren Temp( EVisibility::All );
-		Temp.Array = InWidgets;
+		Temp.Array.Reserve(InWidgets.Num());
+		for (const FWidgetAndPointer& WidgetAndPointer : InWidgets)
+		{
+			Temp.Array.Add(WidgetAndPointer);
+		}		
 		return Temp;
 	}
 
@@ -71,16 +76,19 @@ class SLATECORE_API FArrangedChildren
 		return 0 != (InVisibility.Value & VisibilityFilter.Value);
 	}
 
+	bool Allows3DWidgets() const { return bAllow3DWidgets; }
+
 	// We duplicate parts of TArray's interface here!
 	// Inheriting from "public TArray<FArrangedWidget>"
 	// saves us this boilerplate, but causes instantiation of
 	// many template combinations that we do not want.
 
-	private:
+private:
 	/** Internal representation of the array widgets */
 	TArray<FArrangedWidget> Array;
 
-	public:
+	bool bAllow3DWidgets;
+public:
 
 	TArray<FArrangedWidget>& GetInternalArray()
 	{
@@ -132,6 +140,12 @@ class SLATECORE_API FArrangedChildren
 	int32 FindItemIndex(const FArrangedWidget& ItemToFind ) const
 	{
 		return Array.Find(ItemToFind);
+	}
+
+	template<typename PredicateType>
+	int32 IndexOfByPredicate( const PredicateType& Pred ) const
+	{
+		return Array.IndexOfByPredicate( Pred );
 	}
 
 	void Remove( int32 Index, int32 Count=1 )

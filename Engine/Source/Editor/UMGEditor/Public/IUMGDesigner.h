@@ -2,6 +2,8 @@
 
 #pragma once
 
+struct FWidgetReference;
+
 /**
  * The logical type of transform that can be applied to a widget.
  */
@@ -26,6 +28,9 @@ public:
 	/** @return the effective preview scale after both the DPI and Zoom scale has been applied. */
 	virtual float GetPreviewScale() const = 0;
 
+	/** @return The currently selected widgets */
+	virtual const TSet<FWidgetReference>& GetSelectedWidgets() const = 0;
+
 	/** @return The currently selected widget. */
 	virtual FWidgetReference GetSelectedWidget() const = 0;
 
@@ -44,4 +49,9 @@ public:
 	 * Gets the previous frames widget geometry of the parent of the provided widget.
 	 */
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
+
+	/**
+	 * Marks the designer content as being modified.
+	 */
+	virtual void MarkDesignModifed(bool bRequiresRecompile) = 0;
 };

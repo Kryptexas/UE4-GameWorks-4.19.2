@@ -87,7 +87,7 @@ public:
 		Variant = NAME_None;
 		
 		// I don't use FApp::GetBuildConfiguration() because i don't want the act of running in debug the first time to cause the simple
-		// profiles created for your persistent devices to be in debug. The use might not see this if they don't expand the Advanced options.
+		// profiles created for your persistent devices to be in debug. The user might not see this if they don't expand the Advanced options.
 		BuildConfiguration = EBuildConfigurations::Development;
 		
 		CookMode = ELauncherProfileCookModes::OnTheFly;
@@ -555,9 +555,9 @@ public:
 		{
 			ProjectPath = FPaths::GetProjectFilePath();
 		}
-		else if (FGameProjectHelper::IsGameAvailable(GGameName))
+		else if (FGameProjectHelper::IsGameAvailable(FApp::GetGameName()))
 		{
-			ProjectPath = FPaths::RootDir() / GGameName / GGameName + TEXT(".uproject");
+			ProjectPath = FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
 		}
 		else
 		{
@@ -567,7 +567,10 @@ public:
 		// Use the locally specified project path is resolving through the root isn't working
 		ProjectSpecified = GetProjectPath().IsEmpty();
 		
-		BuildConfiguration = FApp::GetBuildConfiguration();
+		// I don't use FApp::GetBuildConfiguration() because i don't want the act of running in debug the first time to cause 
+		// profiles the user creates to be in debug. This will keep consistency.
+		BuildConfiguration = EBuildConfigurations::Development;
+
 		FInternationalization& I18N = FInternationalization::Get();
 
 		// default build settings
@@ -703,6 +706,11 @@ public:
 	virtual FIsCookFinishedDelegate& OnIsCookFinished() override
 	{
 		return IsCookFinishedDelegate;
+	}
+
+	virtual FCookCanceledDelegate& OnCookCanceled() override
+	{
+		return CookCanceledDelegate;
 	}
 
 	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) override
@@ -1144,7 +1152,9 @@ private:
 
 private:
 
+	// cook in the editor callbacks (not valid for any other cook mode)
 	FIsCookFinishedDelegate IsCookFinishedDelegate;
+	FCookCanceledDelegate CookCanceledDelegate;
 
 	// Holds a delegate to be invoked when changing the device group to deploy to.
 	FOnLauncherProfileDeployedDeviceGroupChanged DeployedDeviceGroupChangedDelegate;

@@ -32,7 +32,7 @@ void FMinimalViewInfo::BlendViewInfo(FMinimalViewInfo& OtherInfo, float OtherWei
 	bConstrainAspectRatio |= OtherInfo.bConstrainAspectRatio;
 }
 
-void FMinimalViewInfo::ApplyBlendWeight(const float & Weight)
+void FMinimalViewInfo::ApplyBlendWeight(const float& Weight)
 {
 	Location *= Weight;
 	Rotation.Normalize();
@@ -42,7 +42,7 @@ void FMinimalViewInfo::ApplyBlendWeight(const float & Weight)
 	AspectRatio *= Weight;
 }
 
-void FMinimalViewInfo::AddWeightedViewInfo(const FMinimalViewInfo & OtherView, const float & Weight)
+void FMinimalViewInfo::AddWeightedViewInfo(const FMinimalViewInfo& OtherView, const float& Weight)
 {
 	FMinimalViewInfo OtherViewWeighted = OtherView;
 	OtherViewWeighted.ApplyBlendWeight(Weight);

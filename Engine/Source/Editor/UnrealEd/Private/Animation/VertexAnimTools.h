@@ -8,6 +8,6 @@ class FVertexAnimTools
 {
 public:
 	/** Create a new vertex animation from the supplied fbx information */
-	static void ImportVertexAnimtion(UnFbx::FFbxImporter* FFbxImporter, USkeletalMesh * SkelMesh, UPackage * Package, FString & Filename);
+	static void ImportVertexAnimtion(UnFbx::FFbxImporter* FFbxImporter, USkeletalMesh * SkelMesh, UPackage * Package, FString& Filename);
 
 };

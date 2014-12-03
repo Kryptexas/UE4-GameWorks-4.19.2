@@ -23,7 +23,7 @@ enum EPhysXFilterDataFlags
 
 struct FPhysicsFilterBuilder
 {
-	FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel> InObjectType, const struct FCollisionResponseContainer& ResponseToChannels);
+	ENGINE_API FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel> InObjectType, const struct FCollisionResponseContainer& ResponseToChannels);
 
 	inline void ConditionalSetFlags(EPhysXFilterDataFlags Flag, bool bEnabled)
 	{
@@ -104,6 +104,6 @@ inline void CreateShapeFilterData(
 
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
 // PxFilterData ZZ_CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex,
-// 	const FCollisionResponseContainer & InCollisionResponseContainer,
+// 	const FCollisionResponseContainer& InCollisionResponseContainer,
 // 	const struct FCollisionObjectQueryParams & ObjectParam,
 // 	const bool bMultitrace);

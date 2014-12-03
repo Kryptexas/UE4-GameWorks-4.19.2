@@ -146,7 +146,7 @@ class FColorStructCustomization : public FMathStructCustomization
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 	
-private:
+protected:
 	FColorStructCustomization()
 		: bIgnoreAlpha( false )
 		, bIsInlineColorPickerVisible(false)
@@ -158,6 +158,9 @@ private:
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) override;
 	virtual void GetSortedChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, TArray< TSharedRef<IPropertyHandle> >& OutChildren ) override;
+
+	/** Creates the color widget that when clicked spawns the color picker window. */
+	TSharedRef<SWidget> CreateColorWidget();
 
 	/**
 	 * Get the color used by this struct as a linear color value

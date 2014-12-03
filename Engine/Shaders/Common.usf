@@ -57,8 +57,7 @@
 	#define MaterialFloat4x3 float4x3 
 #endif
 
-//@todo-rco: Temp workaround for Seed 2 & 3
-#if COMPILER_GLSL_ES2 || METAL_PROFILE
+#if COMPILER_GLSL_ES2 || METAL_PROFILE || METAL_MRT_PROFILE
 
 	float determinant(float3x3 M)
 	{    
@@ -118,7 +117,10 @@
 		#define class struct
 	#endif
 #elif METAL_PROFILE
-	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#define FEATURE_LEVEL  FEATURE_LEVEL_ES3_1
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
+#elif METAL_MRT_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif ES2_PROFILE || ES3_1_PROFILE
 	//@todo ES3_1 GL
@@ -148,6 +150,10 @@
 #define FCOLOR_COMPONENT_SWIZZLE
 #endif
 
+// Whether the platform supports independent texture and samplers
+// When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
+// Ideally this would just be enabled for all SM4 and above feature level platforms
+#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
@@ -313,7 +319,7 @@ MaterialFloat PhongShadingPow(MaterialFloat X, MaterialFloat Y)
 	return ClampedPow(X, Y);
 }
 
-#if FEATURE_LEVEL != FEATURE_LEVEL_SM4 && FEATURE_LEVEL != FEATURE_LEVEL_SM5
+#if FEATURE_LEVEL < FEATURE_LEVEL_ES3_1
 	// DX11 (feature levels >= 10) feature sets natively supports uints in shaders; we just use floats on other platforms.
 	#define uint4	int4
 #endif

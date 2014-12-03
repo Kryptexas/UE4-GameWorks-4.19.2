@@ -9,31 +9,31 @@
 /* FAssetTypeActions_SoundBase overrides
  *****************************************************************************/
 
-bool FMediaSoundWaveActions::CanFilter( )
+bool FMediaSoundWaveActions::CanFilter()
 {
 	return true;
 }
 
 
-uint32 FMediaSoundWaveActions::GetCategories( )
+uint32 FMediaSoundWaveActions::GetCategories()
 {
 	return EAssetTypeCategories::Sounds;
 }
 
 
-FText FMediaSoundWaveActions::GetName( ) const
+FText FMediaSoundWaveActions::GetName() const
 {
 	return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_MediaSoundWave", "Media Sound Wave");
 }
 
 
-UClass* FMediaSoundWaveActions::GetSupportedClass( ) const
+UClass* FMediaSoundWaveActions::GetSupportedClass() const
 {
 	return UMediaSoundWave::StaticClass();
 }
 
 
-FColor FMediaSoundWaveActions::GetTypeColor( ) const
+FColor FMediaSoundWaveActions::GetTypeColor() const
 {
 	return FColor(0, 0, 255);
 }

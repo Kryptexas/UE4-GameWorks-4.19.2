@@ -6,8 +6,11 @@
 ==============================================================================================*/
 
 #pragma once
+#include "Containers/ContainersFwd.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "HAL/Platform.h"
 
-#include "Platform.h"
+class FString;
 
 namespace EProcessResource
 {
@@ -128,7 +131,7 @@ struct CORE_API FGenericPlatformProcess
 		 *
 		 * @param InName name of the semaphore (all processes should use the same)
 		 */
-		FSemaphore(const FString & InName);
+		FSemaphore(const FString& InName);
 
 		/** Destructor */
 		virtual ~FSemaphore()  {};
@@ -155,6 +158,12 @@ struct CORE_API FGenericPlatformProcess
 
 	/** Gets the API version from the specified DLL **/
 	static int32 GetDllApiVersion( const TCHAR* Filename );
+
+	/** Adds a directory to search in when resolving implicitly loaded or filename-only DLLs. **/
+	FORCEINLINE static void AddDllDirectory(const TCHAR* Directory)
+	{
+
+	}
 
 	/** Set a directory to look for DLL files. NEEDS to have a Pop call when complete */
 	FORCEINLINE static void PushDllDirectory(const TCHAR* Directory)
@@ -471,7 +480,7 @@ struct CORE_API FGenericPlatformProcess
 	 * @param bCreate - if true, the function will try to create, otherwise will try to open existing
 	 * @param MaxLocks - maximum amount of locks that the semaphore can have (pass 1 to make it act as mutex)
 	 */
-	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
+	static FSemaphore* NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks = 1);
 
 	/**
 	 * Deletes an interprocess synchronization object.

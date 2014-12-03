@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeMixer implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeMixer::USoundNodeMixer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeMixer::USoundNodeMixer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

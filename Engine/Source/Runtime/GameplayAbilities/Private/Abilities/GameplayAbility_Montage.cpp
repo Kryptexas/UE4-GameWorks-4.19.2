@@ -11,8 +11,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-UGameplayAbility_Montage::UGameplayAbility_Montage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbility_Montage::UGameplayAbility_Montage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PlayRate = 1.f;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Server;
@@ -30,9 +30,9 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilitySpecHandle 
 		TArray<FActiveGameplayEffectHandle>	AppliedEffects;
 
 		// Apply GameplayEffects
-		for (const UGameplayEffect * Effect : GameplayEffectsWhileAnimating)
+		for (const UGameplayEffect* Effect : GameplayEffectsWhileAnimating)
 		{
-			FActiveGameplayEffectHandle Handle = ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(Effect, 1.f, ActorInfo->Actor.Get());
+			FActiveGameplayEffectHandle Handle = ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(Effect, 1.f, GetEffectContext(ActorInfo));
 			if (Handle.IsValid())
 			{
 				AppliedEffects.Add(Handle);

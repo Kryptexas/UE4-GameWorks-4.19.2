@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UEditorSkeletonNotifyObj::UEditorSkeletonNotifyObj(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorSkeletonNotifyObj::UEditorSkeletonNotifyObj(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

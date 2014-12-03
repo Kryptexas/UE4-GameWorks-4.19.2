@@ -5,7 +5,7 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeSchema"
 
-UBehaviorTreeGraphNode_SimpleParallel::UBehaviorTreeGraphNode_SimpleParallel(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraphNode_SimpleParallel::UBehaviorTreeGraphNode_SimpleParallel(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

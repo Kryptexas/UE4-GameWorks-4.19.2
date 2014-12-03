@@ -10,13 +10,13 @@ static const int32 EQSMaxItemsDrawn = 10000;
 
 namespace FEQSRenderingHelper
 {
-	FVector ExtractLocation(TSubclassOf<class UEnvQueryItemType> ItemType, TArray<uint8> RawData, const TArray<FEnvQueryItem>& Items, int32 Index)
+	FVector ExtractLocation(TSubclassOf<UEnvQueryItemType> ItemType, TArray<uint8> RawData, const TArray<FEnvQueryItem>& Items, int32 Index)
 	{
 		if (Items.IsValidIndex(Index) &&
 			ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 		{
 			UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
-			return DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
+			return DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 		return FVector::ZeroVector;
 	}
@@ -43,10 +43,10 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	}
 
 	ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
-	QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(ActorOwner);
+	QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(ActorOwner);
 	if (QueryDataSource == NULL)
 	{
-		QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(InComponent);
+		QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(InComponent);
 		if (QueryDataSource == NULL)
 		{
 			return;
@@ -78,10 +78,10 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	}
 
 	ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
-	QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(ActorOwner);
+	QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(ActorOwner);
 	if (QueryDataSource == NULL)
 	{
-		QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(InComponent);
+		QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(InComponent);
 		if (QueryDataSource == NULL)
 		{
 			return;
@@ -90,16 +90,16 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 }
 
 #if  USE_EQS_DEBUGGER 
-void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* InQueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, TArray<EQSDebug::FDebugHelper>& DebugItems)
+void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, const IEQSQueryResultSourceInterface* InQueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, TArray<EQSDebug::FDebugHelper>& DebugItems)
 {
 	AActor* ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
 	IEQSQueryResultSourceInterface* QueryDataSource = const_cast<IEQSQueryResultSourceInterface*>(InQueryDataSource);
 	if (QueryDataSource == NULL)
 	{
-		QueryDataSource = InterfaceCast<IEQSQueryResultSourceInterface>(ActorOwner);
+		QueryDataSource = Cast<IEQSQueryResultSourceInterface>(ActorOwner);
 		if (QueryDataSource == NULL)
 		{
-			QueryDataSource = InterfaceCast<IEQSQueryResultSourceInterface>(const_cast<UPrimitiveComponent*>(InComponent));
+			QueryDataSource = Cast<IEQSQueryResultSourceInterface>(const_cast<UPrimitiveComponent*>(InComponent));
 			if (QueryDataSource == NULL)
 			{
 				return;
@@ -121,7 +121,7 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	}
 }
 
-void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems, TArray<EQSDebug::FDebugHelper>& DebugItems)
+void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems, TArray<EQSDebug::FDebugHelper>& DebugItems)
 {
 	if (ResultItems == NULL)
 	{
@@ -148,7 +148,7 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 	float MaxScore = -BIG_NUMBER;
 	if (bUseMidResults)
 	{
-		const FEnvQueryItem* ItemInfo = Items.GetTypedData();
+		const FEnvQueryItem* ItemInfo = Items.GetData();
 		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++, ItemInfo++)
 		{
 			if (ItemInfo->IsValid())
@@ -277,8 +277,8 @@ FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
 //----------------------------------------------------------------------//
 // UEQSRenderingComponent
 //----------------------------------------------------------------------//
-UEQSRenderingComponent::UEQSRenderingComponent(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UEQSRenderingComponent::UEQSRenderingComponent(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, DrawFlagName("GameplayDebug")
 	, bDrawOnlyWhenSelected(true)
 {
@@ -295,7 +295,7 @@ FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 	return new FEQSSceneProxy(this, DrawFlagName, bDrawOnlyWhenSelected);
 }
 
-FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	static FBox BoundingBox(FVector(-HALF_WORLD_MAX), FVector(HALF_WORLD_MAX));
 	return FBoxSphereBounds(BoundingBox);
@@ -328,7 +328,7 @@ void UEQSRenderingComponent::DestroyRenderState_Concurrent()
 //----------------------------------------------------------------------//
 // UEQSQueryResultSourceInterface
 //----------------------------------------------------------------------//
-UEQSQueryResultSourceInterface::UEQSQueryResultSourceInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEQSQueryResultSourceInterface::UEQSQueryResultSourceInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

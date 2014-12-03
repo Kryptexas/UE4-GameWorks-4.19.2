@@ -14,8 +14,8 @@ UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionC
 UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionDestroyed;
 #endif // WITH_EDITOR
 
-UWorldComposition::UWorldComposition(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWorldComposition::UWorldComposition(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -185,16 +185,17 @@ void UWorldComposition::Rescan()
 		
 	Reset();	
 
+	UWorld* OwningWorld = GetWorld();
+	
 	FString RootPackageName = GetOutermost()->GetName();
+	RootPackageName = UWorld::StripPIEPrefixFromPackageName(RootPackageName, OwningWorld->StreamingLevelsPrefix);
 	if (!FPackageName::DoesPackageExist(RootPackageName))
 	{
 		return;	
 	}
 	
 	WorldRoot = FPaths::GetPath(RootPackageName) + TEXT("/");
-
-	UWorld* OwningWorld = GetWorld();
-		
+			
 	// Gather tiles packages from a specified folder
 	FWorldTilesGatherer Gatherer;
 	FString WorldRootFilename = FPackageName::LongPackageNameToFilename(WorldRoot);
@@ -260,6 +261,16 @@ void UWorldComposition::Rescan()
 
 	// Calculate absolute positions since they are not serialized to disk
 	CaclulateTilesAbsolutePositions();
+}
+
+void UWorldComposition::ReinitializeForPIE()
+{
+	Rescan();
+#if WITH_EDITOR
+	FixupForPIE(GetOutermost()->PIEInstanceID);
+#endif// WITH_EDITOR
+	GetWorld()->StreamingLevels.Empty();
+	GetWorld()->StreamingLevels.Append(TilesStreaming);
 }
 
 ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldCompositionTile& InTile) const
@@ -593,12 +604,12 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	}
 
 	// Quit early in case we have cooldown on streaming state changes
-	if (TilesStreamingTimeThreshold > 0.0)
+	const bool bUseStreamingStateCooldown = (PersistenWorld->IsGameWorld() && PersistenWorld->FlushLevelStreamingType == EFlushLevelStreamingType::None);
+	if (bUseStreamingStateCooldown && TilesStreamingTimeThreshold > 0.0)
 	{
 		const double CurrentTime = FPlatformTime::Seconds();
 		const double TimePassed = CurrentTime - Tile.StreamingLevelStateChangeTime;
-
-		if (!PersistenWorld->bFlushingLevelStreaming &&	TimePassed < TilesStreamingTimeThreshold)
+		if (TimePassed < TilesStreamingTimeThreshold)
 		{
 			return;
 		}

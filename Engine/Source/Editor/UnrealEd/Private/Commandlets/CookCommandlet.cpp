@@ -23,11 +23,12 @@
 #include "ChunkManifestGenerator.h"
 #include "PhysicsPublic.h"
 #include "CookerSettings.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
-UCookerSettings::UCookerSettings(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DefaultPVRTCQuality = 0;
 }
@@ -50,8 +51,8 @@ static FString GetPackageFilename( UPackage* Package )
 /* UCookCommandlet structors
  *****************************************************************************/
 
-UCookCommandlet::UCookCommandlet( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UCookCommandlet::UCookCommandlet( const class FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 	LogToConsole = false;
@@ -172,6 +173,10 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 					FPlatformProcess::Sleep(0.0f);
 				}
 			}
+
+
+			// Shaders need to be updated
+			GShaderCompilingManager->ProcessAsyncResults(true, false);
 
 			ProcessDeferredCommands();
 
@@ -820,6 +825,11 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 				AddFileToCook(FilesInPath, CurrEntry);
 			}
 		}
+		else if (FPackageName::IsValidLongPackageName(CurrEntry))
+		{
+			CurrEntry = FPackageName::LongPackageNameToFilename(CurrEntry, TEXT(".umap"));
+			AddFileToCook(FilesInPath, CurrEntry);
+		}
 		else
 		{
 			AddFileToCook(FilesInPath, CurrEntry);
@@ -1024,6 +1034,18 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//////////////////////////////////////////////////////////////////////////
 	// parse commandline options 
 
+	FString AssetRegistry;
+	if (FParse::Value(*Params, TEXT("SHIPPEDASSETREGISTRY="), AssetRegistry))
+	{
+		TArray<FName> TargetPlatformNames;
+		for (const auto &Platform : Platforms)
+		{
+			FName PlatformName = FName(*Platform->PlatformName());
+			TargetPlatformNames.Add(PlatformName); // build list of all target platform names
+		}
+		CookOnTheFlyServer->WarmCookedPackages(FPaths::GameContentDir() / AssetRegistry, TargetPlatformNames);
+	}
+
 	TArray<FString> CmdLineIniSections;
 	FString SectionStr;
 	if (FParse::Value(*Params, TEXT("MAPINISECTION="), SectionStr))
@@ -1097,12 +1119,21 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//////////////////////////////////////////////////////////////////////////
 	// start cook by the book 
 
+
+
+	ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None;
+
+	CookOptions |= bLeakTest ? ECookByTheBookOptions::LeakTest : ECookByTheBookOptions::None; 
+	CookOptions |= bCookAll ? ECookByTheBookOptions::CookAll : ECookByTheBookOptions::None;
+	CookOptions |= Switches.Contains(TEXT("MAPSONLY")) ? ECookByTheBookOptions::MapsOnly : ECookByTheBookOptions::None;
+	CookOptions |= Switches.Contains(TEXT("NODEV")) ? ECookByTheBookOptions::NoDevContent : ECookByTheBookOptions::None;
+
 	for ( const auto& MapName : CmdLineMapEntries )
 	{
 		MapList.Add( MapName );
 	}
 
-	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections );
+	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections, CookOptions );
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map
@@ -1136,6 +1167,8 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		}
 
 
+		GShaderCompilingManager->ProcessAsyncResults(true, false);
+	
 		if (NonMapPackageCountSinceLastGC > 0)
 		{
 			// We should GC if we have packages to collect and we've been idle for some time.
@@ -1207,7 +1240,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 	FParse::Value(*Params, TEXT("SubsetTarget="), SubsetTarget);
 	bool bDoSubset = SubsetMod > 0 && SubsetTarget < SubsetMod;
 
-	FCoreDelegates::PackageCreatedForLoad.AddUObject(this, &UCookCommandlet::MaybeMarkPackageAsAlreadyLoaded);
+	FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UCookCommandlet::MaybeMarkPackageAsAlreadyLoaded);
 	
 	SaveGlobalShaderMapFiles(Platforms);
 
@@ -1426,6 +1459,11 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 		FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
 		FString SandboxRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*RegistryFilename);
 		ManifestGenerator.SaveAssetRegistry(SandboxRegistryFilename);
+
+		FString CookedAssetRegistry = FPaths::GameDir() / TEXT("CookedAssetRegistry.json");
+		FString SandboxCookedAssetRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry);
+
+		ManifestGenerator.SaveCookedPackageAssetRegistry(SandboxCookedAssetRegistryFilename, true);
 	}
 
 	return true;

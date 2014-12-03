@@ -5,10 +5,10 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape/LandscapeEdit.h"
-#include "Landscape/LandscapeRender.h"
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeEdit.h"
+#include "LandscapeRender.h"
+#include "Landscape.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 
 #include "LevelUtils.h"
 

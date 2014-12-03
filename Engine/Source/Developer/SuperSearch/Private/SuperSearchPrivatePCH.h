@@ -4,7 +4,7 @@
 
 #include "UnrealEd.h"
 #include "SuperSearchModule.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Http.h"
 #include "Json.h"
 

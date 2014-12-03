@@ -4,7 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_ConeCheck.h"
 
-UBTDecorator_ConeCheck::UBTDecorator_ConeCheck(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_ConeCheck::UBTDecorator_ConeCheck(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Cone Check";
 
@@ -26,7 +26,7 @@ UBTDecorator_ConeCheck::UBTDecorator_ConeCheck(const class FPostConstructInitial
 	ConeHalfAngle = 45.0f;
 }
 
-void UBTDecorator_ConeCheck::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_ConeCheck::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
@@ -76,7 +76,7 @@ FORCEINLINE bool UBTDecorator_ConeCheck::CalcConditionImpl(UBehaviorTreeComponen
 		&& ConeDir.CosineAngle2D(DirectionToObserve) > ConeHalfAngleDot;
 }
 
-bool UBTDecorator_ConeCheck::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_ConeCheck::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	return CalcConditionImpl(OwnerComp, NodeMemory);
 }
@@ -87,7 +87,7 @@ void UBTDecorator_ConeCheck::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp,
 	DecoratorMemory->bLastRawResult = CalcConditionImpl(OwnerComp, NodeMemory);
 }
 
-void UBTDecorator_ConeCheck::OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
+void UBTDecorator_ConeCheck::OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	check(false);
 }
@@ -109,7 +109,7 @@ FString UBTDecorator_ConeCheck::GetStaticDescription() const
 		, ConeHalfAngle * 2, *ConeOrigin.SelectedKeyName.ToString(), *ConeDirection.SelectedKeyName.ToString());
 }
 
-void UBTDecorator_ConeCheck::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_ConeCheck::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	const UBlackboardComponent* BBComponent = OwnerComp->GetBlackboardComponent();
 			

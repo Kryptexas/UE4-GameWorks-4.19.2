@@ -102,6 +102,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 // Textures
 #include "SlateShaderResource.h"
 #include "SlateTextureData.h"
+#include "SlateUpdatableTexture.h"
 #include "TextureAtlas.h"
 #include "TextureManager.h"
 
@@ -126,10 +127,13 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "SlateStyle.h"
 
 // Input
+#include "ReplyBase.h"
 #include "CursorReply.h"
 #include "Events.h"
 #include "DragAndDrop.h"
 #include "Reply.h"
+#include "NavigationReply.h"
+#include "NavigationMetaData.h"
 
 // Rendering
 #include "RenderingCommon.h"

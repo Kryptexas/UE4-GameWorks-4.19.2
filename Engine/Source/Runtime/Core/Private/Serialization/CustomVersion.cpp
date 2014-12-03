@@ -4,7 +4,8 @@
 	CustomVersion.cpp: Unreal custom versioning system.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "Serialization/CustomVersion.h"
 
 namespace
 {
@@ -159,6 +160,6 @@ FCustomVersionRegistration::~FCustomVersionRegistration()
 	--FoundKey->ReferenceCount;
 	if (FoundKey->ReferenceCount == 0)
 	{
-		Versions.RemoveAt(FoundKey - Versions.GetTypedData());
+		Versions.RemoveAt(FoundKey - Versions.GetData());
 	}
 }

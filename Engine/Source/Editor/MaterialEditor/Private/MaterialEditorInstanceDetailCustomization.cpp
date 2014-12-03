@@ -13,6 +13,8 @@
 #include "ScopedTransaction.h"
 #include "DetailWidgetRow.h"
 
+#define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
+
 TSharedRef<IDetailCustomization> FMaterialInstanceParameterDetails::MakeInstance(UMaterialEditorInstanceConstant* MaterialInstance, FGetShowHiddenParameters InShowHiddenDelegate)
 {
 	return MakeShareable(new FMaterialInstanceParameterDetails(MaterialInstance, InShowHiddenDelegate));
@@ -42,14 +44,51 @@ void FMaterialInstanceParameterDetails::OnValueCommitted(float NewValue, ETextCo
 	ensure(PropertyHandle->SetValue(NewValue) == FPropertyAccess::Success);
 }
 
-void FMaterialInstanceParameterDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
+void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
-	FName DefaultCategoryName = NAME_None;
+	// Create a new category for a custom layout for the MIC parameters at the very top
+	FName GroupsCategoryName = TEXT("ParameterGroups");
+	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, LOCTEXT("MICParamGroupsTitle", "Parameter Groups").ToString());
+	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
+
+	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
+
+	// Create default category for class properties
+	const FName DefaultCategoryName = NAME_None;
 	IDetailCategoryBuilder& DefaultCategory = DetailLayout.EditCategory(DefaultCategoryName);
 
-	// Add/hide properties
+	// Add PhysMaterial property
 	DefaultCategory.AddProperty("PhysMaterial");
-	DefaultCategory.AddProperty("Parent");
+
+	// Customize Parent property so we can check for recursively set parents
+	TSharedRef<IPropertyHandle> ParentPropertyHandle = DetailLayout.GetProperty("Parent");
+	IDetailPropertyRow& ParentPropertyRow = DefaultCategory.AddProperty("Parent");
+	TSharedPtr<SWidget> NameWidget;
+	TSharedPtr<SWidget> ValueWidget;
+	FDetailWidgetRow Row;
+	ParentPropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+	const bool bShowChildren = true;
+	ParentPropertyRow.CustomWidget(bShowChildren)
+		.NameContent()
+		.MinDesiredWidth(Row.NameWidget.MinWidth)
+		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+		[
+			NameWidget.ToSharedRef()
+		]
+		.ValueContent()
+		.MinDesiredWidth(Row.ValueWidget.MinWidth)
+		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+		[
+			SNew(SObjectPropertyEntryBox)
+			.PropertyHandle(ParentPropertyHandle)
+			.AllowedClass(UMaterialInterface::StaticClass())
+			.ThumbnailPool(DetailLayout.GetThumbnailPool())
+			.AllowClear(true)
+			.OnShouldSetAsset(this, &FMaterialInstanceParameterDetails::OnShouldSetAsset)
+		];
+
+	// Add/hide other properties
 	DefaultCategory.AddProperty("LightmassSettings");
 	DetailLayout.HideProperty("bUseOldStyleMICEditorGroups");
 	DetailLayout.HideProperty("ParameterGroups");
@@ -70,16 +109,9 @@ void FMaterialInstanceParameterDetails::CustomizeDetails( IDetailLayoutBuilder& 
 		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
 	}
 
-	// Create a new category for a custom layout for the MIC parameters
-	FName GroupsCategoryName = TEXT("ParameterGroups");
-	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, NSLOCTEXT("MaterialEditor", "MICParamGroupsTitle", "Parameter Groups").ToString());
-	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
-
-	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
-
 	//////////////////////////////////////////////////////////////////////////
 	DetailLayout.HideProperty("BasePropertyOverrides");
-	IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory(TEXT("MaterialOverrides"), NSLOCTEXT("MaterialEditor", "MICMaterialOverridesTitle", "Material Overrides").ToString());
+	IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory(TEXT("MaterialOverrides"), LOCTEXT("MICMaterialOverridesTitle", "Material Overrides").ToString());
 	MaterialCategory.AddProperty("bOverrideBaseProperties");
 	MaterialCategory.AddProperty("BasePropertyOverrides");
 }
@@ -92,7 +124,7 @@ void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyH
 	{
 		FEditorParameterGroup& ParameterGroup = MaterialEditorInstance->ParameterGroups[GroupIdx];
 
-		IDetailGroup& DetailGroup = GroupsCategory.AddGroup( ParameterGroup.GroupName, ParameterGroup.GroupName.ToString() );
+		IDetailGroup& DetailGroup = GroupsCategory.AddGroup( ParameterGroup.GroupName, ParameterGroup.GroupName.ToString(), false, true );
 
 		CreateSingleGroupWidget( ParameterGroup, ParameterGroupsProperty->GetChildHandle(GroupIdx), DetailGroup );
 	}
@@ -195,7 +227,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.HAlign(HAlign_Left)
 				.AutoWidth()
 				[
-					RMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					RMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -208,7 +240,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
 				.AutoWidth()
 				[
-					GMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					GMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -221,7 +253,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
 				.AutoWidth()
 				[
-					BMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					BMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -234,7 +266,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
 				.AutoWidth()
 				[
-					AMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					AMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -268,7 +300,7 @@ bool FMaterialInstanceParameterDetails::IsOverriddenExpression(UDEditorParameter
 
 void FMaterialInstanceParameterDetails::OnOverrideParameter(bool NewValue, class UDEditorParameterValue* Parameter)
 {
-	const FScopedTransaction Transaction( NSLOCTEXT( "MaterialInstanceEditor", "OverrideParameter", "Override Parameter" ) );
+	const FScopedTransaction Transaction( LOCTEXT( "OverrideParameter", "Override Parameter" ) );
 	Parameter->Modify();
 	Parameter->bOverride = NewValue;
 
@@ -276,6 +308,25 @@ void FMaterialInstanceParameterDetails::OnOverrideParameter(bool NewValue, class
 	FPropertyChangedEvent OverrideEvent(NULL);
 	MaterialEditorInstance->PostEditChangeProperty( OverrideEvent );
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+bool FMaterialInstanceParameterDetails::OnShouldSetAsset(const FAssetData& AssetData) const
+{
+	UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(AssetData.GetAsset());
+
+	if (MaterialInstance != nullptr)
+	{
+		bool bIsChild = MaterialInstance->IsChildOf(MaterialEditorInstance->SourceInstance);
+		if (bIsChild)
+		{
+			FMessageDialog::Open(
+				EAppMsgType::Ok,
+				FText::Format(LOCTEXT("CannotSetExistingChildAsParent", "Cannot set {0} as a parent as it is already a child of this material instance."), FText::FromName(AssetData.AssetName)));
+		}
+		return !bIsChild;
+	}
+
+	return true;
 }
 
 FString FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDEditorParameterValue* Parameter) const
@@ -307,7 +358,7 @@ FString FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDE
 
 void FMaterialInstanceParameterDetails::ResetToDefault( class UDEditorParameterValue* Parameter )
 {
-	const FScopedTransaction Transaction( NSLOCTEXT( "MaterialInstanceEditor", "ResetToDefault", "Reset To Default" ) );
+	const FScopedTransaction Transaction( LOCTEXT( "ResetToDefault", "Reset To Default" ) );
 	Parameter->Modify();
 	FName ParameterName = Parameter->ParameterName;
 	
@@ -392,3 +443,5 @@ EVisibility FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile() con
 
 	return (Model == MSM_SubsurfaceProfile) ? EVisibility::Visible : EVisibility::Collapsed;
 }
+
+#undef LOCTEXT_NAMESPACE

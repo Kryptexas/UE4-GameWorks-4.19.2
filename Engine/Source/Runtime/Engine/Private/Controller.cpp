@@ -8,7 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "NetworkingDistanceConstants.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -20,8 +20,8 @@
 DEFINE_LOG_CATEGORY(LogPath);
 
 
-AController::AController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AController::AController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	PrimaryActorTick.bCanEverTick = true;
@@ -31,7 +31,7 @@ AController::AController(const class FPostConstructInitializeProperties& PCIP)
 #endif // WITH_EDITORONLY_DATA
 	bOnlyRelevantToOwner = true;
 
-	TransformComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
+	TransformComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
 	RootComponent = TransformComponent;
 
 	bCanBeDamaged = false;
@@ -569,32 +569,18 @@ void AController::UpdateNavigationComponents()
 
 void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
 {
-	bool bInitPathFinding = false;
 	PathFindingComp = FindComponentByClass<UNavigationComponent>();
 	if (PathFindingComp == NULL)
 	{
 		PathFindingComp = NewObject<UNavigationComponent>(this);
 		PathFindingComp->RegisterComponentWithWorld(GetWorld());
-		bInitPathFinding = true;
 	}
 
-	bool bInitPathFollowing = false;
 	PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp == NULL)
 	{
 		PathFollowingComp = NewObject<UPathFollowingComponent>(this);
 		PathFollowingComp->RegisterComponentWithWorld(GetWorld());
-		bInitPathFollowing = true;
-	}
-
-	if (bInitPathFinding)
-	{
-		PathFindingComp->InitializeComponent();
-	}
-
-	if (bInitPathFollowing)
-	{
-		PathFollowingComp->InitializeComponent();
 	}
 }
 
@@ -616,3 +602,6 @@ void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutL
 	DOREPLIFETIME( AController, PlayerState );
 	DOREPLIFETIME( AController, Pawn );
 }
+
+/** Returns TransformComponent subobject **/
+USceneComponent* AController::GetTransformComponent() const { return TransformComponent; }

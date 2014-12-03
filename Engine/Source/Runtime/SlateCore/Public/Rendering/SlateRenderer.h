@@ -5,6 +5,11 @@
 
 class SWindow;
 class FRHITexture2D;
+class ISlateStyle;
+class FSlateDrawBuffer;
+class FSlateUpdatableTexture;
+
+struct FSlateBrush;
 
 typedef FRHITexture2D* FTexture2DRHIParamRef;
 
@@ -140,6 +145,11 @@ public:
 		return FontMeasure.ToSharedRef();
 	}
 
+	TSharedRef< class FSlateFontCache > GetFontCache() const 
+	{
+		return FontCache.ToSharedRef();
+	}
+
 	/**
 	 * Flushes all cached data from the font cache
 	 */
@@ -200,6 +210,23 @@ public:
 	 * Pushes the rendering of the specified window to the specified render target
 	 */
 	virtual void SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT) {}
+
+	/**
+	 * Create an updatable texture that can receive new data dynamically
+	 *
+	 * @param	Width	Initial width of the texture
+	 * @param	Height	Initial height of the texture
+	 *
+	 * @return	Newly created updatable texture
+	 */
+	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) = 0;
+
+	/**
+	 * Return an updatable texture to the renderer for release
+	 *
+	 * @param	Texture	The texture we are releasing (should not use this pointer after calling)
+	 */
+	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) = 0;
 
 private:
 

@@ -3,6 +3,7 @@
 #pragma once
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
+#include "RHIDefinitions.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -14,7 +15,7 @@ struct FOverlapInfo
 	FOverlapInfo()
 	{}
 
-	FOverlapInfo(const FHitResult & InSweepResult)
+	FOverlapInfo(const FHitResult& InSweepResult)
 		: bFromSweep(true), OverlapInfo(InSweepResult)
 	{
 	}
@@ -78,7 +79,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysic
 UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USceneComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+
+	/**
+	 * Default UObject constructor.
+	 */
+	USceneComponent(const FObjectInitializer& ObjectInitializer);
 
 	/** Current transform of this component, relative to the world */
 	FTransform ComponentToWorld;
@@ -134,6 +141,9 @@ public:
 protected:
 	UPROPERTY(Transient)
 	uint32 bWorldToComponentUpdated:1;
+
+	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
+	uint32 bDisableDetachmentUpdateOverlaps:1;
 
 public:
 
@@ -215,16 +225,20 @@ protected:
 public:
 
 	/** Set the location of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetRelativeLocation(FVector NewLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetRelativeLocation"))
+	void K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult);
+	void SetRelativeLocation(FVector NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Set the rotation of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetRelativeRotation(FRotator NewRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
+	void SetRelativeRotation(FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Set the transform of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetRelativeTransform(const FTransform& NewTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetRelativeTransform"))
+	void K2_SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult);
+	void SetRelativeTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Returns the transform of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
@@ -239,52 +253,70 @@ public:
 	virtual void SetRelativeScale3D(FVector NewScale3D);
 
 	/** Adds a delta to the translation of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddRelativeLocation(FVector DeltaLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddRelativeLocation"))
+	void K2_AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
+	void AddRelativeLocation(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Adds a delta the rotation of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddRelativeRotation(FRotator DeltaRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
+	void AddRelativeRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Adds a delta to the location of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddLocalOffset(FVector DeltaLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddLocalOffset", Keywords="location position"))
+	void K2_AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
+	void AddLocalOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 	
 	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddLocalRotation(FRotator DeltaRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddLocalRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
+	void AddLocalRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the transform of this component in its local reference frame. Scale is unchanged. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddLocalTransform(const FTransform& DeltaTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddLocalTransform"))
+	void K2_AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult);
+	void AddLocalTransform(const FTransform& DeltaTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Set the relative location of this component to put it at the supplied location in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetWorldLocation(FVector NewLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetWorldLocation"))
+	void K2_SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult);
+	void SetWorldLocation(FVector NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Set the relative rotation of this component to put it at the supplied orientation in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetWorldRotation(FRotator NewRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetWorldRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
+	void SetWorldRotation(FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Set the relative scale of this component to put it at the supplied scale in world space. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldScale3D(FVector NewScale);
 
 	/** Set the transform of this component in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetWorldTransform(const FTransform& NewTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetWorldTransform"))
+	void K2_SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult);
+	void SetWorldTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the location of this component in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddWorldOffset(FVector DeltaLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddWorldOffset", Keywords="location position"))
+	void K2_AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
+	void AddWorldOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the rotation of this component in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddWorldRotation(FRotator DeltaRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddWorldRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
+	void AddWorldRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Adds a delta to the transform of this component in world space. Scale is unchanged. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddWorldTransform(const FTransform& DeltaTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddWorldTransform"))
+	void K2_AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult);
+	void AddWorldTransform(const FTransform& DeltaTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Return location of the component, in world space */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldLocation"), Category="Utilities|Transformation")
@@ -376,7 +408,7 @@ public:
 
 	/** 
 	 * Get world-space socket transform.
-	 * @param InSocketName Name of the socket to get the transform 
+	 * @param InSocketName Name of the socket or the bone to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
@@ -384,7 +416,7 @@ public:
 
 	/** 
 	 * Get world-space socket or bone location.
-	 * @param InSocketName Name of the socket to get the transform 
+	 * @param InSocketName Name of the socket or the bone to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
@@ -392,7 +424,7 @@ public:
 
 	/** 
 	 * Get world-space socket or bone  FRotator rotation.
-	 * @param InSocketName Name of the socket to get the transform 
+	 * @param InSocketName Name of the socket or the bone to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
@@ -400,7 +432,7 @@ public:
 
 	/** 
 	 * Get world-space socket or bone FQuat rotation.
-	 * @param InSocketName Name of the socket to get the transform 
+	 * @param InSocketName Name of the socket or the bone to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
@@ -408,7 +440,7 @@ public:
 
 	/** 
 	 * return true if socket with the given name exists
-	 * @param InSocketName Name of the socket to get the transform 
+	 * @param InSocketName Name of the socket or the bone to get the transform 
 	 * @return true if the socket with the given name exists. Otherwise, return false
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
@@ -465,7 +497,7 @@ public:
 	// Begin ActorComponent interface
 	virtual void OnRegister() override;
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
-	virtual void DestroyComponent() override;
+	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End ActorComponent interface
 
@@ -585,7 +617,7 @@ public:
 	void UpdateChildTransforms();
 
 	/** Calculate the bounds of this component. Default behavior is a bounding box/sphere of zero size. */
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;
 
 	/**
 	 * Calculate the axis-aligned bounding cylinder of this component (radius in X-Y, half-height along Z axis).
@@ -625,7 +657,7 @@ public:
 
 
 	/** Return const reference to CollsionResponseContainer */
-	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const;
+	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const;
 
 	/** Return true if visible in editor **/
 	virtual bool IsVisibleInEditor() const;
@@ -649,6 +681,8 @@ public:
 	virtual bool CanEditChange( const UProperty* Property ) const override;
 
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const;
+
+	virtual void PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel) {}
 #endif // WITH_EDITOR
 
 protected:
@@ -656,22 +690,26 @@ protected:
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
 		If Parent is not passed in we use the component's AttachParent*/
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const;
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL) const;
 
 	
 public:
 	/** Set the location and rotation of this component relative to its parent */
-	void SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetRelativeLocationAndRotation"))
+	void K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
+	void SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Set which parts of the relative transform should be relative to parent, and which should be relative to world */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetAbsolute(bool bNewAbsoluteLocation = false, bool bNewAbsoluteRotation = false, bool bNewAbsoluteScale = false);
 
 	/** Set the relative location & FRotator rotation of this component to put it at the supplied pose in world space. */
-	void SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetWorldLocationAndRotation"))
+	void K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
+	void SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Set the relative location & FQuat rotation of this component to put it at the supplied pose in world space. */
-	void SetWorldLocationAndRotation(FVector NewLocation, const FQuat & NewRotation, bool bSweep=false);
+	void SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Special version of SetWorldLocationAndRotation that does not affect physics. */
 	void SetWorldLocationAndRotationNoPhysics(const FVector& NewLocation, const FRotator& NewRotation);

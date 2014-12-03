@@ -38,7 +38,7 @@ public:
 	{
 		const int32 NumMips = 1;
 
-		Texture->Source.Init(AtlasWidth, AtlasHeight, /*NumSlices=*/ 1, NumMips, ETextureSourceFormat::TSF_BGRA8, AtlasData.GetTypedData());
+		Texture->Source.Init(AtlasWidth, AtlasHeight, /*NumSlices=*/ 1, NumMips, ETextureSourceFormat::TSF_BGRA8, AtlasData.GetData());
 		Texture->UpdateResource();
 	}
 
@@ -58,7 +58,7 @@ public:
 		{
 			uint32 BytesPerPixel = SourceData.GetBytesPerPixel();
 			uint8* OffsetSource = SourceData.LockMip(0) + (FMath::TruncToInt(Sprite->GetSourceUV().X) + FMath::TruncToInt(Sprite->GetSourceUV().Y) * SourceData.GetSizeX()) * BytesPerPixel;
-			uint8* OffsetDest = DummyBuffer.GetTypedData();
+			uint8* OffsetDest = DummyBuffer.GetData();
 
 			CopyTextureData(OffsetSource, OffsetDest, SpriteSize.X, SpriteSize.Y, BytesPerPixel, SourceData.GetSizeX() * BytesPerPixel, SpriteSize.X * BytesPerPixel);
 

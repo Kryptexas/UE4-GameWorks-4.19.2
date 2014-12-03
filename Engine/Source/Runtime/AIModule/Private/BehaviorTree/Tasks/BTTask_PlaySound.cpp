@@ -6,7 +6,7 @@
 #include "Sound/SoundCue.h"
 #include "BehaviorTree/Tasks/BTTask_PlaySound.h"
 
-UBTTask_PlaySound::UBTTask_PlaySound(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_PlaySound::UBTTask_PlaySound(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "PlaySound";
 }

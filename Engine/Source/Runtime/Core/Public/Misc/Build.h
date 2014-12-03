@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Build.h: Unreal build settings.
-=============================================================================*/
-
 #pragma once
 
 
@@ -198,7 +194,7 @@
 	#define NO_LOGGING										0
 #elif UE_BUILD_TEST
 	#define DO_GUARD_SLOW									0
-	#define DO_CHECK										0
+	#define DO_CHECK										USE_CHECKS_IN_SHIPPING
 	#define STATS											0
 	#define ALLOW_DEBUG_FILES								1
 	#define NO_LOGGING										!USE_LOGGING_IN_SHIPPING
@@ -241,3 +237,6 @@
 
 /** Enable the use of the network profiler as long as we are a build that includes stats */
 #define USE_NETWORK_PROFILER         STATS
+
+/** Enable UberGraphPersistentFrame feature. It can speed up BP compilation (re-instancing) in editor, but introduce an unnecessary overhead in runtime. */
+#define USE_UBER_GRAPH_PERSISTENT_FRAME 1

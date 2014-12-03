@@ -13,7 +13,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 	PropertyEditor = InPropertyEditor;
 
 	const UProperty* Property = InPropertyEditor->GetProperty();
-	bIsMultiLine = !Property->GetBoolMetaData("SingleLine");
+	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
 	if(bIsMultiLine)
 	{
 		ChildSlot
@@ -27,6 +27,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 			.SelectAllTextOnCommit( false )
 			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 			.AutoWrapText(true)
+			.ModiferKeyForNewLine(EModifierKey::Shift)
 		];
 	}
 	else
@@ -99,10 +100,10 @@ bool SPropertyEditorText::SupportsKeyboardFocus() const
 	return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus();
 }
 
-FReply SPropertyEditorText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SPropertyEditorText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Forward keyboard focus to our editable text widget
-	return FReply::Handled().SetKeyboardFocus( PrimaryWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+	return FReply::Handled().SetUserFocus(PrimaryWidget.ToSharedRef(), InFocusEvent.GetCause());
 }
 
 void SPropertyEditorText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

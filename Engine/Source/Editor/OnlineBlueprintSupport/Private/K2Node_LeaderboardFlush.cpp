@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_LeaderboardFlush::UK2Node_LeaderboardFlush(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_LeaderboardFlush::UK2Node_LeaderboardFlush(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(ULeaderboardFlushCallbackProxy, CreateProxyObjectForFlush);
 	ProxyFactoryClass = ULeaderboardFlushCallbackProxy::StaticClass();

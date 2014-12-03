@@ -32,7 +32,6 @@
 #include "LevelEditorActions.h"
 #include "EditorSupportDelegates.h"
 
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MessageLog.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
@@ -40,6 +39,9 @@
 #include "EngineAnalytics.h"
 
 #include "SColorPicker.h"
+#include "SDockTab.h"
+#include "STextComboBox.h"
+#include "GenericCommands.h"
 
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
@@ -109,24 +111,36 @@ FLinearColor FMatinee::GetWorldCentricTabColorScale() const
 	return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
+static const FName MatineeRecordingViewportName("Matinee_RecordingViewport");
 static const FName MatineeCurveEdName("Matinee_CurveEditor");
 static const FName MatineeTrackWindowName("Matinee_TrackWindow");
 static const FName MatineePropertyWindowName("Matinee_PropertyWindow");
 
 void FMatinee::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_MatineeEditor", "Matinee"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
+
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	TabManager->RegisterTabSpawner(MatineeRecordingViewportName, FOnSpawnTab::CreateRaw(this, &FMatinee::SpawnRecordingViewport))
+		.SetDisplayName(NSLOCTEXT("Matinee", "RecordingViewport", "Matinee Recorder"))
+		.SetGroup(WorkspaceMenuCategoryRef);
 
 	TabManager->RegisterTabSpawner(MatineeCurveEdName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeCurveEdName))
-		.SetDisplayName(NSLOCTEXT("Matinee", "CurveEditorTitle", "Curve Editor"));
+		.SetDisplayName(NSLOCTEXT("Matinee", "CurveEditorTitle", "Curve Editor"))
+		.SetGroup(WorkspaceMenuCategoryRef);
 
 	TabManager->RegisterTabSpawner(MatineeTrackWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeTrackWindowName))
-		.SetDisplayName(NSLOCTEXT("Matinee", "TrackViewEditorTitle", "Tracks"));
+		.SetDisplayName(NSLOCTEXT("Matinee", "TrackViewEditorTitle", "Tracks"))
+		.SetGroup(WorkspaceMenuCategoryRef);
+
 
 	TabManager->RegisterTabSpawner( MatineePropertyWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineePropertyWindowName) )
-		.SetDisplayName(NSLOCTEXT("Matinee", "PropertiesEditorTitle", "Details"));
+		.SetDisplayName(NSLOCTEXT("Matinee", "PropertiesEditorTitle", "Details"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
 }
 
 void FMatinee::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -474,7 +488,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "OpenMatinee", "Open UnrealMatinee") );
 
 	NormalTransactor = GEditor->Trans;
-	InterpEdTrans = new UMatineeTransBuffer( FPostConstructInitializeProperties(), 8*1024*1024 );
+	InterpEdTrans = new UMatineeTransBuffer( FObjectInitializer(), 8*1024*1024 );
 	GEditor->Trans = InterpEdTrans;
 
 	// Save viewports' data before it gets overridden by UpdateLevelViewport
@@ -918,12 +932,6 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			LevelVC->EngineShowFlags.CameraFrustums = 1;
 		}
 	}
-
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
-
-	FGlobalTabmanager::Get()->RegisterTabSpawner("RecordingViewport", FOnSpawnTab::CreateRaw( this, &FMatinee::SpawnRecordingViewport ) )
-		.SetDisplayName( NSLOCTEXT("MatineeEditor", "RecordingViewport", "Matinee Recorder") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "RecordingViewport_Layout" )
 		->AddArea
@@ -1980,7 +1988,7 @@ void FMatinee::OnClose()
 		// Set any manipulated cameras back to default frustum colours.
 		if (ACameraActor* Cam = Cast<ACameraActor>(MatineeActor->GroupInst[i]->GroupActor))
 		{
-			Cam->CameraComponent->RestoreFrustumColor();
+			Cam->GetCameraComponent()->RestoreFrustumColor();
 		}
 	}
 
@@ -2606,7 +2614,7 @@ void FMatinee::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEve
 					AActor* Actor = Inst->GetGroupActor();
 					if(Actor)
 					{
-						IMatineeAnimInterface * MatineeAnimInterface = InterfaceCast<IMatineeAnimInterface>(Actor);
+						IMatineeAnimInterface * MatineeAnimInterface = Cast<IMatineeAnimInterface>(Actor);
 						if (MatineeAnimInterface)
 						{
 							MatineeAnimInterface->PreviewBeginAnimControl(CurrentSelectedGroup);

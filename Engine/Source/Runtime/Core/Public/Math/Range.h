@@ -46,10 +46,10 @@
  */
 template<typename ElementType> class TRange
 {
+public:
+
 	typedef TRangeBound<ElementType> BoundsType;
 
-public:
-	
 	/**
 	 * Default constructor (no initialization).
 	 */

@@ -16,6 +16,8 @@
 #include "Matinee/MatineeActor.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -714,13 +716,13 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 	ApplyRequiredCursorVisibility( true );
 
 	// Force a cursor update to make sure its returned to default as it could of been left in any state and wont update itself till an action is taken
-	SetRequiredCursorOverride( false , EMouseCursor::Default );
+	SetRequiredCursorOverride(false, EMouseCursor::Default);
 	FSlateApplication::Get().QueryCursor();
 
 	if( IsMatineeRecordingWindow() )
 	{
 		// Allow the joystick to be used for matinee capture
-		InViewport->CaptureJoystickInput( true );
+		InViewport->SetUserFocus( true );
 	}
 }
 
@@ -2479,7 +2481,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	float RealTimeSeconds;
 	float DeltaTimeSeconds;
 
-	UWorld* World = GWorld;
+	UWorld* World = GetWorld();
 	if (( GetScene() != World->Scene) || (IsRealtime() == true))
 	{
 		// Use time relative to start time to avoid issues with float vs double
@@ -2928,7 +2930,7 @@ void FEditorViewportClient::UpdateGestureDelta()
 	{
 		MoveViewportCamera( CurrentGestureDragDelta, CurrentGestureRotDelta, false );
 		
-		Invalidate( true, false );
+		Invalidate( true, true );
 		
 		CurrentGestureDragDelta = FVector::ZeroVector;
 		CurrentGestureRotDelta = FRotator::ZeroRotator;
@@ -3778,12 +3780,22 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 	{
 		check(Bitmap.Num() == InViewport->GetSizeXY().X * InViewport->GetSizeXY().Y);
 
+		// Initialize alpha channel of bitmap
+		for (auto& Pixel : Bitmap)
+		{
+			Pixel.A = 255;
+		}
+
 		// Create screenshot folder if not already present.
 		if ( IFileManager::Get().MakeDirectory( *FPaths::ScreenShotDir(), true ) )
 		{
 			// Save the contents of the array to a bitmap file.
-			FString ScreenshotSaveName = "";
-			if ( FFileHelper::CreateBitmap(*(FPaths::ScreenShotDir() / TEXT("ScreenShot")),InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,Bitmap.GetTypedData(),NULL,&IFileManager::Get(),&ScreenshotSaveName) )
+			FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
+			HighResScreenshotConfig.SetHDRCapture(false);
+
+			FString ScreenshotSaveName;
+			if (FFileHelper::GenerateNextBitmapFilename(FPaths::ScreenShotDir() / TEXT("ScreenShot"), TEXT("png"), ScreenshotSaveName) &&
+				HighResScreenshotConfig.SaveImage(ScreenshotSaveName, Bitmap, InViewport->GetSizeXY()))
 			{
 				// Setup the string with the path and name of the file
 				ScreenshotSaveResultText = NSLOCTEXT( "UnrealEd", "ScreenshotSavedAs", "Screenshot capture saved as" );					
@@ -3871,7 +3883,8 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 		// Default capture region is the entire viewport
 		FIntRect CaptureRect(0, 0, 0, 0);
 
-		bool bCaptureAreaValid = GetHighResScreenshotConfig().CaptureRegion.Area() > 0;
+		FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
+		bool bCaptureAreaValid = HighResScreenshotConfig.CaptureRegion.Area() > 0;
 
 		// If capture region isn't valid, we need to determine which rectangle to capture from.
 		// We need to calculate a proper view rectangle so that we can take into account camera
@@ -3903,20 +3916,49 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 			if (GIsHighResScreenshot && bCaptureAreaValid)
 			{
 				// Highres screenshot capture region is valid, so use that
-				SourceRect = GetHighResScreenshotConfig().CaptureRegion;
+				SourceRect = HighResScreenshotConfig.CaptureRegion;
 			}
 
 			bool bWriteAlpha = false;
 
 			// If this is a high resolution screenshot and we are using the masking feature,
 			// Get the results of the mask rendering pass and insert into the alpha channel of the screenshot.
-			if (GIsHighResScreenshot && GetHighResScreenshotConfig().bMaskEnabled)
+			if (GIsHighResScreenshot && HighResScreenshotConfig.bMaskEnabled)
 			{
-				bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
+				bWriteAlpha = HighResScreenshotConfig.MergeMaskIntoAlpha(Bitmap);
+			}
+
+			// Clip the bitmap to just the capture region if valid
+			if (!SourceRect.IsEmpty())
+			{
+				FColor* const Data = Bitmap.GetData();
+				const int32 OldWidth = BitmapSize.X;
+				const int32 OldHeight = BitmapSize.Y;
+				const int32 NewWidth = SourceRect.Width();
+				const int32 NewHeight = SourceRect.Height();
+				const int32 CaptureTopRow = SourceRect.Min.Y;
+				const int32 CaptureLeftColumn = SourceRect.Min.X;
+
+				for (int32 Row = 0; Row < NewHeight; Row++)
+				{
+					FMemory::Memmove(Data + Row * NewWidth, Data + (Row + CaptureTopRow) * OldWidth + CaptureLeftColumn, NewWidth * sizeof(*Data));
+				}
+
+				Bitmap.RemoveAt(NewWidth * NewHeight, OldWidth * OldHeight - NewWidth * NewHeight, false);
+				BitmapSize = FIntPoint(NewWidth, NewHeight);
+			}
+
+			// Set full alpha on the bitmap
+			if (!bWriteAlpha)
+			{
+				for (auto& Pixel : Bitmap)
+				{
+					Pixel.A = 255;
+				}
 			}
 
 			// Save the bitmap to disc
-			FFileHelper::CreateBitmap(*ScreenShotName, BitmapSize.X, BitmapSize.Y, Bitmap.GetTypedData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
+			HighResScreenshotConfig.SaveImage(ScreenShotName, Bitmap, BitmapSize);
 		}
 		
 		// Done with the request

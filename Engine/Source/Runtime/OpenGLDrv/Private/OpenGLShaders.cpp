@@ -10,7 +10,7 @@
 
 #define CHECK_FOR_GL_SHADERS_TO_REPLACE 0
 
-#if PLATFORM_WINDOWS || PLATFORM_LINUX
+#if PLATFORM_WINDOWS
 #include <mmintrin.h>
 #elif PLATFORM_MAC
 #include <xmmintrin.h>
@@ -18,6 +18,26 @@
 
 const uint32 SizeOfFloat4 = 16;
 const uint32 NumFloatsInFloat4 = 4;
+
+FORCEINLINE void FOpenGLShaderParameterCache::FRange::MarkDirtyRange(uint32 NewStartVector, uint32 NewNumVectors)
+{
+	if (NumVectors > 0)
+	{
+		uint32 High = StartVector + NumVectors;
+		uint32 NewHigh = NewStartVector + NewNumVectors;
+		
+		uint32 MaxVector = FMath::Max(High, NewHigh);
+		uint32 MinVector = FMath::Min(StartVector, NewStartVector);
+		
+		StartVector = MinVector;
+		NumVectors = (MaxVector - MinVector) + 1;
+	}
+	else
+	{
+		StartVector = NewStartVector;
+		NumVectors = NewNumVectors;
+	}
+}
 
 /**
  * Verify that an OpenGL shader has compiled successfully. 
@@ -267,7 +287,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 	}
 
 	int32 CodeOffset = Ar.Tell();
-	const ANSICHAR* GlslCode = (ANSICHAR*)Code.GetTypedData() + CodeOffset;
+	const ANSICHAR* GlslCode = (ANSICHAR*)Code.GetData() + CodeOffset;
 	GLint GlslCodeLength = Code.Num() - CodeOffset - 1;
 	uint32 GlslCodeCRC = FCrc::MemCrc_DEPRECATED(GlslCode,GlslCodeLength);
 
@@ -316,7 +336,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		ANSICHAR* VersionString = new ANSICHAR[18];
 		memset((void*)VersionString, '\0', 18 * sizeof(ANSICHAR));
 
-		if (IsES2Platform(GRHIShaderPlatform))
+		if (IsES2Platform(GRHIShaderPlatform_DEPRECATED))
 		{
 			//#version 100 has to be the first line in the file, so it has to be added before anything else.
 			if (FOpenGL::UseES30ShadingLanguage())
@@ -345,7 +365,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 #endif
 
 #if PLATFORM_ANDROID 
-		if (IsES2Platform(GRHIShaderPlatform))
+		if (IsES2Platform(GRHIShaderPlatform_DEPRECATED))
 		{
 			//Here is some code to add in a #define for textureCubeLodEXT
 			const ANSICHAR* ExtensionString = "";
@@ -468,8 +488,8 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 #if DEBUG_GL_SHADERS
 	Shader->GlslCode.Empty(GlslCodeLength + 1);
 	Shader->GlslCode.AddUninitialized(GlslCodeLength + 1);
-	FMemory::Memcpy(Shader->GlslCode.GetTypedData(), GlslCode, GlslCodeLength + 1);
-	Shader->GlslCodeString = (ANSICHAR*)Shader->GlslCode.GetTypedData();
+	FMemory::Memcpy(Shader->GlslCode.GetData(), GlslCode, GlslCodeLength + 1);
+	Shader->GlslCodeString = (ANSICHAR*)Shader->GlslCode.GetData();
 #endif
 
 #if CHECK_FOR_GL_SHADERS_TO_REPLACE
@@ -1147,7 +1167,7 @@ static void VerifyUniformBufferLayouts(GLuint Program)
 			TArray<GLint> ActiveUniformIndices;
 			ActiveUniformIndices.Init(ActiveUniforms);
 
-			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, ActiveUniformIndices.GetTypedData());
+			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, ActiveUniformIndices.GetData());
 			
 			TArray<GLint> ActiveUniformOffsets(ActiveUniformIndices);
 			glGetActiveUniformsiv(Program, ActiveUniforms, reinterpret_cast<const GLuint*>(ActiveUniformIndices.GetData()), GL_UNIFORM_OFFSET, ActiveUniformOffsets.GetData());
@@ -1239,7 +1259,7 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	}
 	
 	// E.g. GLSL_430 uses layout(location=xx) instead of having to call glBindAttribLocation and glBindFragDataLocation
-	if (OpenGLShaderPlatformNeedsBindLocation(GRHIShaderPlatform))
+	if (OpenGLShaderPlatformNeedsBindLocation(GRHIShaderPlatform_DEPRECATED))
 	{
 		// Bind attribute indices.
 		if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
@@ -1407,7 +1427,7 @@ FComputeShaderRHIRef FOpenGLDynamicRHI::RHICreateComputeShader(const TArray<uint
 #if DEBUG_GL_SHADERS
 		if (ComputeShader->bSuccessfullyCompiled)
 		{
-			UE_LOG(LogRHI,Error,TEXT("Compute Shader:\n%s"),ANSI_TO_TCHAR(ComputeShader->GlslCode.GetTypedData()));
+			UE_LOG(LogRHI,Error,TEXT("Compute Shader:\n%s"),ANSI_TO_TCHAR(ComputeShader->GlslCode.GetData()));
 		}
 #endif //DEBUG_GL_SHADERS
 		checkf(ComputeShader->LinkedProgram, TEXT("Compute shader failed to compile & link."));
@@ -1574,25 +1594,25 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 #if DEBUG_GL_SHADERS
 					if (VertexShader->bSuccessfullyCompiled)
 					{
-						UE_LOG(LogRHI,Error,TEXT("Vertex Shader:\n%s"),ANSI_TO_TCHAR(VertexShader->GlslCode.GetTypedData()));
+						UE_LOG(LogRHI,Error,TEXT("Vertex Shader:\n%s"),ANSI_TO_TCHAR(VertexShader->GlslCode.GetData()));
 					}
 					if (PixelShader->bSuccessfullyCompiled)
 					{
-						UE_LOG(LogRHI,Error,TEXT("Pixel Shader:\n%s"),ANSI_TO_TCHAR(PixelShader->GlslCode.GetTypedData()));
+						UE_LOG(LogRHI,Error,TEXT("Pixel Shader:\n%s"),ANSI_TO_TCHAR(PixelShader->GlslCode.GetData()));
 					}
 					if (GeometryShader && GeometryShader->bSuccessfullyCompiled)
 					{
-						UE_LOG(LogRHI,Error,TEXT("Geometry Shader:\n%s"),ANSI_TO_TCHAR(GeometryShader->GlslCode.GetTypedData()));
+						UE_LOG(LogRHI,Error,TEXT("Geometry Shader:\n%s"),ANSI_TO_TCHAR(GeometryShader->GlslCode.GetData()));
 					}
 					if ( FOpenGL::SupportsTessellation() )
 					{
 						if (HullShader && HullShader->bSuccessfullyCompiled)
 						{
-							UE_LOG(LogRHI,Error,TEXT("Hull Shader:\n%s"),ANSI_TO_TCHAR(HullShader->GlslCode.GetTypedData()));
+							UE_LOG(LogRHI,Error,TEXT("Hull Shader:\n%s"),ANSI_TO_TCHAR(HullShader->GlslCode.GetData()));
 						}
 						if (DomainShader && DomainShader->bSuccessfullyCompiled)
 						{
-							UE_LOG(LogRHI,Error,TEXT("Domain Shader:\n%s"),ANSI_TO_TCHAR(DomainShader->GlslCode.GetTypedData()));
+							UE_LOG(LogRHI,Error,TEXT("Domain Shader:\n%s"),ANSI_TO_TCHAR(DomainShader->GlslCode.GetData()));
 						}
 					}
 #endif //DEBUG_GL_SHADERS
@@ -1880,8 +1900,8 @@ FOpenGLShaderParameterCache::FOpenGLShaderParameterCache() :
 {
 	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
-		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = MAX_uint32;
+		PackedGlobalUniformDirty[ArrayIndex].StartVector = 0;
+		PackedGlobalUniformDirty[ArrayIndex].NumVectors = 0;
 	}
 }
 
@@ -1906,8 +1926,8 @@ void FOpenGLShaderParameterCache::InitializeResources(int32 UniformArraySize)
 
 	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
-		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = UniformArraySize / SizeOfFloat4;
+		PackedGlobalUniformDirty[ArrayIndex].StartVector = 0;
+		PackedGlobalUniformDirty[ArrayIndex].NumVectors = UniformArraySize / SizeOfFloat4;
 	}
 }
 
@@ -1933,8 +1953,8 @@ void FOpenGLShaderParameterCache::MarkAllDirty()
 {
 	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
-		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = GlobalUniformArraySize / SizeOfFloat4;
+		PackedGlobalUniformDirty[ArrayIndex].StartVector = 0;
+		PackedGlobalUniformDirty[ArrayIndex].NumVectors = GlobalUniformArraySize / SizeOfFloat4;
 	}
 }
 
@@ -1947,8 +1967,7 @@ void FOpenGLShaderParameterCache::Set(uint32 BufferIndexName, uint32 ByteOffset,
 	check(GlobalUniformArraySize != -1);
 	check(BufferIndex < CrossCompiler::PACKED_TYPEINDEX_MAX);
 	check(ByteOffset + NumBytes <= (uint32)GlobalUniformArraySize);
-	PackedGlobalUniformDirty[BufferIndex].LowVector = FMath::Min(PackedGlobalUniformDirty[BufferIndex].LowVector, ByteOffset / SizeOfFloat4);
-	PackedGlobalUniformDirty[BufferIndex].HighVector = FMath::Max(PackedGlobalUniformDirty[BufferIndex].HighVector, (ByteOffset + NumBytes + SizeOfFloat4 - 1) / SizeOfFloat4);
+	PackedGlobalUniformDirty[BufferIndex].MarkDirtyRange(ByteOffset / SizeOfFloat4, (NumBytes + SizeOfFloat4 - 1) / SizeOfFloat4);
 	FMemory::Memcpy(PackedGlobalUniforms[BufferIndex] + ByteOffset, NewValues, NumBytes);
 }
 
@@ -1986,15 +2005,12 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 		const void* UniformData = PackedGlobalUniforms[ArrayIndex];
 
 		// This has to be >=. If LowVector == HighVector it means that particular vector was written to.
-		if (PackedGlobalUniformDirty[ArrayIndex].HighVector >= PackedGlobalUniformDirty[ArrayIndex].LowVector)
+		if (PackedGlobalUniformDirty[ArrayIndex].NumVectors > 0)
 		{
-			const uint32 StartVector = PackedGlobalUniformDirty[ArrayIndex].LowVector;
-			// The number of dirty vectors is the index of the highest vector written minus the first plus one.
-			// The plus one is important so that we upload the highest vector written.
-			uint32 NumDirtyVectors = PackedGlobalUniformDirty[ArrayIndex].HighVector - StartVector + 1;
-			NumDirtyVectors = FMath::Min(NumDirtyVectors, NumVectors - StartVector);
-			//check(NumDirtyVectors);
-			UniformData = (uint8*)UniformData + PackedGlobalUniformDirty[ArrayIndex].LowVector * SizeOfFloat4;
+			const int32 StartVector = PackedGlobalUniformDirty[ArrayIndex].StartVector;
+			int32 NumDirtyVectors = FMath::Min((int32)PackedGlobalUniformDirty[ArrayIndex].NumVectors, NumVectors - StartVector);
+			check(NumDirtyVectors);
+			UniformData = (uint8*)UniformData + StartVector * SizeOfFloat4;
 			Location += StartVector;
 			switch (UniformInfo.Index)
 			{
@@ -2013,8 +2029,8 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 				break;
 			}
 
-			PackedGlobalUniformDirty[ArrayIndex].LowVector = GlobalUniformArraySize / SizeOfFloat4;
-			PackedGlobalUniformDirty[ArrayIndex].HighVector = 0;
+			PackedGlobalUniformDirty[ArrayIndex].StartVector = 0;
+			PackedGlobalUniformDirty[ArrayIndex].NumVectors = 0;
 		}
 	}
 }
@@ -2036,19 +2052,17 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 		{
 			const FOpenGLUniformBuffer* UniformBuffer = (FOpenGLUniformBuffer*)RHIUniformBuffers[BufferIndex].GetReference();
 			check(UniformBuffer);
-			const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetTypedData();
+			const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetData();
 			for (int32 InfoIndex = LastInfoIndex; InfoIndex < UniformBuffersCopyInfo.Num(); ++InfoIndex)
 			{
 				const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 				if (Info.SourceUBIndex == BufferIndex)
 				{
 					check((Info.DestOffsetInFloats + Info.SizeInFloats) * sizeof(float) <= (uint32)GlobalUniformArraySize);
-
 					float* RESTRICT ScratchMem = (float*)PackedGlobalUniforms[Info.DestUBTypeIndex];
 					ScratchMem += Info.DestOffsetInFloats;
 					FMemory::Memcpy(ScratchMem, SourceData + Info.SourceOffsetInFloats, Info.SizeInFloats * sizeof(float));
-					PackedGlobalUniformDirty[Info.DestUBTypeIndex].LowVector = FMath::Min(PackedGlobalUniformDirty[Info.DestUBTypeIndex].LowVector, uint32(Info.DestOffsetInFloats / NumFloatsInFloat4));
-					PackedGlobalUniformDirty[Info.DestUBTypeIndex].HighVector = FMath::Max(PackedGlobalUniformDirty[Info.DestUBTypeIndex].HighVector, uint32((Info.DestOffsetInFloats + Info.SizeInFloats + NumFloatsInFloat4 - 1) / NumFloatsInFloat4));
+					PackedGlobalUniformDirty[Info.DestUBTypeIndex].MarkDirtyRange(Info.DestOffsetInFloats / NumFloatsInFloat4, (Info.SizeInFloats + NumFloatsInFloat4 - 1) / NumFloatsInFloat4);
 				}
 				else
 				{
@@ -2077,7 +2091,7 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 					const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 					if (Info.SourceUBIndex == BufferIndex)
 					{
-						const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetTypedData();
+						const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetData();
 						SourceData += Info.SourceOffsetInFloats;
 						float* RESTRICT ScratchMem = (float*)PackedUniformsScratch[Info.DestUBTypeIndex];
 						ScratchMem += Info.DestOffsetInFloats;

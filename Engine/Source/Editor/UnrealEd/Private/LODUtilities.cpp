@@ -335,7 +335,7 @@ void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateCont
 	}
 }
 
-void FLODUtilities::RefreshLODChange(const USkeletalMesh * SkeletalMesh)
+void FLODUtilities::RefreshLODChange(const USkeletalMesh* SkeletalMesh)
 {
 	for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
 	{

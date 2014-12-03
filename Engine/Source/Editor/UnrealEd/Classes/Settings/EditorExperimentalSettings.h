@@ -29,9 +29,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
 
-	/** The Game Launcher provides advanced workflows for packaging, deploying and launching your games. */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Game Launcher"))
-	bool bGameLauncher;
+	/** The Project Launcher provides advanced workflows for packaging, deploying and launching your projects. */
+	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Project Launcher"))
+	bool bProjectLauncher;
 
 	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
@@ -41,6 +41,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Actor Merging"))
 	bool bActorMerging;
 
+	/** Specify which console-specific nomenclature to use for gamepad label text */
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, meta=(DisplayName="Console for Gamepad Labels"))
 	TEnumAsByte<EConsoleForGamepadLabels::Type> ConsoleForGamepadLabels;
 
@@ -56,10 +57,6 @@ public:
 	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints")*/)
 	bool bDrawMidpointArrowsInBlueprints;
 
-	/** Determines if the Blueprint editor should use the new (experimental) menu system, or the old (legacy) system */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use New Blueprint Menuing System"))
-	bool bUseRefactoredBlueprintMenuingSystem;
-
 	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	bool bShowAudioStreamingOptions;
@@ -71,6 +68,26 @@ public:
 	/** Enables the dynamic feature level switching functionality */
 	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Feature Level Preview"))
 	bool bFeatureLevelPreview;
+
+	/** Disable cook in the editor */
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature, requires editor restart (cooks from launch on will run in a seperate UE4Editor process)"))
+	bool bDisableCookInEditor;
+
+	/** Enable cook on the side */
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Cook On The Side, requires editor restart (Run a cook on the fly server in the background of the editor)"))
+	bool bCookOnTheSide;
+
+	/** Enable -iterate for launch on */
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Iterative cooking for builds launched form the editor (launch on)"))
+	bool bIterativeCookingForLaunchOn;
+
+	/** Enables Environment Queries editor */
+	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
+	bool bEQSEditor;
+
+	/** Enables the Blueprint merge tool */
+	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Enable Blueprint Merge Tool"))
+	bool bEnableBlueprintMergeTool;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

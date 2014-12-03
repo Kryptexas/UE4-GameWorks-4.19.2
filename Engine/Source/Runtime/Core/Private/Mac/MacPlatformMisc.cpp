@@ -4,7 +4,8 @@
 	MacPlatformMisc.mm: Mac implementations of misc functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "VarargsHelper.h"
@@ -16,6 +17,7 @@
 #include "EngineVersion.h"
 #include "MacMallocZone.h"
 #include "ApplePlatformSymbolication.h"
+#include "MacPlatformCrashContext.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -53,7 +55,7 @@ struct MacApplicationInfo
 		{
 			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
 		}
-		RunningOnMavericks == ComponentValues[0] == 10 && ComponentValues[1] == 9;
+		RunningOnMavericks = ComponentValues[0] == 10 && ComponentValues[1] == 9;
 		
 		char TempSysCtlBuffer[PATH_MAX] = {};
 		size_t TempSysCtlBufferSize = PATH_MAX;
@@ -212,6 +214,10 @@ bool FMacPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
 
 void FMacPlatformMisc::PlatformPreInit()
 {
+	FGenericPlatformMisc::PlatformPreInit();
+	
+	GMacAppInfo.Init();
+
 	// Increase the maximum number of simultaneously open files
 	uint32 MaxFilesPerProc = OPEN_MAX;
 	size_t UInt32Size = sizeof(uint32);
@@ -253,8 +259,6 @@ void FMacPlatformMisc::PlatformInit()
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
 	
-	GMacAppInfo.Init();
-	
 	UE_LOG(LogInit, Log, TEXT("Power Source: %s"), GMacAppInfo.RunningOnBattery ? TEXT(kIOPSBatteryPowerValue) : TEXT(kIOPSACPowerValue) );
 }
 
@@ -264,7 +268,7 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
 	if (bIsBundledApp)
 	{
-		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(GGameName).GetNSString();
+		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(FApp::GetGameName()).GetNSString();
 
 		SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
 		NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];
@@ -607,8 +611,8 @@ void FMacPlatformMisc::ClipboardPaste(class FString& Result)
 	{
 		TArray<TCHAR> Ch;
 		Ch.AddUninitialized([CocoaString length] + 1);
-		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetTypedData());
-		Result = Ch.GetTypedData();
+		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetData());
+		Result = Ch.GetData();
 	}
 	else
 	{
@@ -1063,7 +1067,7 @@ bool FMacPlatformMisc::IsRunningOnMavericks()
 }
 
 /** Global pointer to crash handler */
-void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
+void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 FMacMallocCrashHandler* GCrashMalloc = nullptr;
 
 /**
@@ -1154,7 +1158,7 @@ void FMacPlatformMisc::SetGracefulTerminationHandler()
 	sigaction(SIGHUP, &Action, NULL);	//  this should actually cause the server to just re-read configs (restart?)
 }
 
-void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 	
@@ -1708,6 +1712,12 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			close(ReportFile);
 		}
 		
+		// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
+		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
+		//SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for OS X
+		
 		// copy log
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
@@ -1725,6 +1735,24 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		close(LogDst);
 		close(LogSrc);
 		// best effort, so don't care about result: couldn't copy -> tough, no log
+		
+		// copy crash video if there is one
+		if ( access(GMacAppInfo.CrashReportVideo, R_OK|F_OK) == 0 )
+		{
+			FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+			FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+			FCStringAnsi::Strcat(FilePath, PATH_MAX, "CrashVideo.avi");
+			int VideoSrc = open(GMacAppInfo.CrashReportVideo, O_RDONLY);
+			int VideoDst = open(FilePath, O_CREAT|O_WRONLY, 0766);
+			
+			int Bytes = 0;
+			while((Bytes = read(VideoSrc, Data, PATH_MAX)) > 0)
+			{
+				write(VideoDst, Data, Bytes);
+			}
+			close(VideoDst);
+			close(VideoSrc);
+		}
 		
 		// try launching the tool and wait for its exit, if at all
 		// Use fork() & execl() as they are async-signal safe, CreateProc can fail in Cocoa

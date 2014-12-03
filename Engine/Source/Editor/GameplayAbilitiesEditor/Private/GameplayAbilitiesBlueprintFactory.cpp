@@ -203,14 +203,14 @@ private:
 		return FReply::Handled();
 	}
 
-	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::Escape)
+		if (InKeyEvent.GetKey() == EKeys::Escape)
 		{
 			CloseDialog();
 			return FReply::Handled();
 		}
-		return SWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SWidget::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 private:
@@ -234,8 +234,8 @@ private:
 	UGameplayAbilitiesBlueprintFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UGameplayAbilitiesBlueprintFactory::UGameplayAbilitiesBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilitiesBlueprintFactory::UGameplayAbilitiesBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

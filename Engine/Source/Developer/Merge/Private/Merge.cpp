@@ -7,6 +7,9 @@
 #include "SBlueprintMerge.h"
 #include "Toolkits/ToolkitManager.h"
 #include "Toolkits/IToolkit.h"
+#include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "Merge"
 
@@ -189,12 +192,14 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 
 		if (RemoteBlueprint && BaseBlueprint)
 		{
+			Object.bDuplicatingReadOnly = true;
 			FBlueprintMergeData Data(Editor 
 									, static_cast<const UBlueprint*>(StaticDuplicateObject(&Object, GetTransientPackage(), TEXT("None")))
 									, BaseBlueprint
 									, CurrentRevInfo
 									, RemoteBlueprint
-									, BaseRevInfo );
+									, BaseRevInfo);
+			Object.bDuplicatingReadOnly = false;
 
 			Contents = SNew(SBlueprintMerge, Data);
 		}
@@ -235,8 +240,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 
 bool FMerge::PendingMerge(const UBlueprint& BlueprintObj) const
 {
-	bool bIsMergeEnabled = false;
-	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bIsMergeEnabled, GEngineIni);
+	bool bIsMergeEnabled = GetDefault<UEditorExperimentalSettings>()->bEnableBlueprintMergeTool;
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 	bool bPendingMerge = false;

@@ -12,7 +12,8 @@ class CORE_API FConsoleManager :public IConsoleManager
 public:
 	/** constructor */
 	FConsoleManager()
-		: ThreadPropagationCallback(0)
+		: bHistoryWasLoaded(false)
+		, ThreadPropagationCallback(0)
 		, ThreadPropagationThreadId(0)
 		, bCallAllConsoleVariableSinks(true)
 	{
@@ -65,7 +66,7 @@ public:
 	virtual void ForEachConsoleObject(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const override;
 	virtual bool ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevice& Ar, UWorld* InWorld) override;
 	virtual void AddConsoleHistoryEntry(const TCHAR* Input);
-	virtual void GetConsoleHistory(TArray<FString>& Out) const; 
+	virtual void GetConsoleHistory(TArray<FString>& Out);
 	virtual bool IsNameRegistered(const TCHAR* Name) const override;	
 	virtual void RegisterThreadPropagation(uint32 ThreadId, IConsoleThreadPropagation* InCallback) override;
 	virtual void UnregisterConsoleObject( IConsoleObject* Object, bool bKeepState) override;
@@ -77,6 +78,7 @@ private: // ----------------------------------------------------
 	TMap<FString, IConsoleObject*> ConsoleObjects;
 
 	TArray<FString>	HistoryEntries;
+	bool bHistoryWasLoaded;
 	TArray<FConsoleCommandDelegate>	ConsoleVariableChangeSinks;
 
 	IConsoleThreadPropagation* ThreadPropagationCallback;
@@ -128,5 +130,11 @@ private: // ----------------------------------------------------
 	 * @param bool bKeepState if the current state is kept in memory until a cvar with the same name is registered
 	 */
 	void UnregisterConsoleObject(const TCHAR* Name, bool bKeepState);
+
+	// clears HistoryEntries and reads it from the .ini file
+	void LoadHistoryIfNeeded();
+
+	// clears HistoryEntries and writes it the .ini file
+	void SaveHistory();
 };
 

@@ -21,6 +21,27 @@ enum EProjectPackagingBuildConfigurations
 	PPBC_Shipping UMETA(DisplayName="Shipping")
 };
 
+/**
+ * Enumerates the the available internationalization data presets for project packaging.
+ */
+UENUM()
+enum class EProjectPackagingInternationalizationPresets
+{
+	/** English only. */
+	English,
+
+	/** English, French, Italian, German, Spanish */
+	EFIGS,
+
+	/** English, French, Italian, German, Spanish, Chinese, Japanese, Korean */
+	EFIGSCJK,
+
+	/** Chinese, Japanese, Korean */
+	CJK,
+
+	/** All known cultures. */
+	All
+};
 
 /**
  * Implements the Editor's user settings.
@@ -61,15 +82,27 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
 
+	/** 
+	 * If enabled, will generate pak file chunks.  Assets can be assigned to chunks in the editor or via a delegate (See ShooterGameDelegates.cpp). 
+	 * Can be used for streaming installs (PS4 Playgo, XboxOne Streaming Install, etc)
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bGenerateChunks;
+
+	/** Specifies whether to include prerequisites of packaged games, such as redistributable operating system components, whenever possible. */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool IncludePrerequisites;
+
 	/** If enabled, on Android platforms, .pak files are placed inside the APK. */
-	UPROPERTY(config, EditAnywhere, Category = Packaging)
+	UPROPERTY(config, EditAnywhere, Category = Packaging, meta = (DisplayName = "Package .pak in APK"))
 	bool UseOBB_InAPK;
 
-	/**
-	 * ISO codes of cultures whose data should be cooked, staged, and packaged.
-	 * Note: These paths are relative to your project Content directory
-	 */
-	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cultures to Package"))
+	/** Predefined sets of culture whose internationalization data should be packaged. */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Internationalization Support"))
+	TEnumAsByte<EProjectPackagingInternationalizationPresets> InternationalizationPreset;
+
+	/** Cultures whose data should be cooked, staged, and packaged. */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Localizations to Package"))
 	TArray<FString> CulturesToStage;
 
 	/**
@@ -93,7 +126,7 @@ public:
 	 * Note: These paths are relative to your project Content directory
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
-	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;
+	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;	
 
 public:
 

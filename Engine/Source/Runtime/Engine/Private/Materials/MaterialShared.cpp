@@ -17,6 +17,7 @@
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+#include "Engine/Font.h"
 
 #include "LocalVertexFactory.h"
 
@@ -281,10 +282,24 @@ void FMaterial::GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMa
 	{
 		ShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
 	}
-	else if (OutstandingCompileShaderMapId != INDEX_NONE)
+	else if (OutstandingCompileShaderMapIds.Num() != 0 )
 	{
-		ShaderMapIds.Add(OutstandingCompileShaderMapId);
+		ShaderMapIds.Append(OutstandingCompileShaderMapIds);
 	}
+}
+
+bool FMaterial::IsCompilationFinished()
+{
+	// Build an array of the shader map Id's are not finished compiling.
+	if (GameThreadShaderMap && !GameThreadShaderMap->IsCompilationFinalized())
+	{
+		return false;
+	}
+	else if (OutstandingCompileShaderMapIds.Num() != 0 )
+	{
+		return false;
+	}
+	return true;
 }
 
 void FMaterial::CancelCompilation()
@@ -361,6 +376,56 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	return EmptyExpressions;
 }
 
+const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformVectorParameterExpressions() const 
+{ 
+	const FMaterialShaderMap* ShaderMapToUse = NULL;
+
+	if (IsInGameThread())
+	{
+		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
+		// This allows querying what textures a material uses even when it is being asynchronously compiled
+		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
+	}
+	else 
+	{
+		check(IsInRenderingThread());
+		ShaderMapToUse = GetRenderingThreadShaderMap();
+	}
+
+	if (ShaderMapToUse)
+	{
+		return ShaderMapToUse->GetUniformExpressionSet().UniformVectorExpressions; 
+	}
+
+	static const TArray<TRefCountPtr<FMaterialUniformExpression> > EmptyExpressions;
+	return EmptyExpressions;
+}
+
+const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformScalarParameterExpressions() const 
+{ 
+	const FMaterialShaderMap* ShaderMapToUse = NULL;
+
+	if (IsInGameThread())
+	{
+		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
+		// This allows querying what textures a material uses even when it is being asynchronously compiled
+		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
+	}
+	else 
+	{
+		check(IsInRenderingThread());
+		ShaderMapToUse = GetRenderingThreadShaderMap();
+	}
+
+	if (ShaderMapToUse)
+	{
+		return ShaderMapToUse->GetUniformExpressionSet().UniformScalarExpressions; 
+	}
+
+	static const TArray<TRefCountPtr<FMaterialUniformExpression> > EmptyExpressions;
+	return EmptyExpressions;
+}
+
 bool FMaterial::RequiresSceneColorCopy_GameThread() const
 {
 	check(IsInGameThread());
@@ -397,7 +462,7 @@ bool FMaterial::NeedsGBuffer() const
 {
 	check(IsInParallelRenderingThread());
 
-	if (IsOpenGLPlatform(GRHIShaderPlatform)) // @todo: TTP #341211
+	if (IsOpenGLPlatform(GMaxRHIShaderPlatform)) // @todo: TTP #341211
 	{
 		return true;
 	}
@@ -1217,7 +1282,6 @@ bool FMaterial::CacheShaders(EShaderPlatform Platform, bool bApplyCompletedShade
 bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPlatform Platform, bool bApplyCompletedShaderMapForRendering)
 {
 	bool bSucceeded = false;
-	OutstandingCompileShaderMapId = INDEX_NONE;
 
 	check(ShaderMapId.BaseMaterialId.IsValid());
 
@@ -1370,7 +1434,7 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
-			OutstandingCompileShaderMapId = NewShaderMap->GetCompilingId();
+			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = NULL;
 		}
@@ -1420,9 +1484,10 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 	if (!Shader)
 	{
 		// Get the ShouldCache results that determine whether the shader should be compiled
-		bool bMaterialShouldCache = ShouldCache(GRHIShaderPlatform, ShaderType, VertexFactoryType);
-		bool bVFShouldCache = VertexFactoryType->ShouldCache(GRHIShaderPlatform, this, ShaderType);
-		bool bShaderShouldCache = ShaderType->ShouldCache(GRHIShaderPlatform, this, VertexFactoryType);
+		auto ShaderPlatform = GShaderPlatformForFeatureLevel[GetFeatureLevel()];
+		bool bMaterialShouldCache = ShouldCache(ShaderPlatform, ShaderType, VertexFactoryType);
+		bool bVFShouldCache = VertexFactoryType->ShouldCache(ShaderPlatform, this, ShaderType);
+		bool bShaderShouldCache = ShaderType->ShouldCache(ShaderPlatform, this, VertexFactoryType);
 		FString MaterialUsage = GetMaterialUsageDescription();
 
 		int BreakPoint = 0;
@@ -1437,7 +1502,7 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 			ShaderType->GetName(), 
 			*GetFriendlyName(),
 			VertexFactoryType->GetName(),
-			*LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString(),
+			*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString(),
 			bMaterialShouldCache,
 			bVFShouldCache,
 			bShaderShouldCache,
@@ -1473,11 +1538,9 @@ TSet<FMaterial*> FMaterial::EditorLoadedMaterialResources;
 FMaterialRenderContext::FMaterialRenderContext(
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterial,
-	const FSceneView* InView,
-	bool bInWorkAroundDeferredMipArtifacts)
+	const FSceneView* InView)
 		: MaterialRenderProxy(InMaterialRenderProxy)
 		, Material(InMaterial)
-		, bWorkAroundDeferredMipArtifacts(bInWorkAroundDeferredMipArtifacts)
 {
 	bShowSelection = GIsEditor && InView && InView->Family->EngineShowFlags.Selection;
 }
@@ -1500,24 +1563,6 @@ void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& O
 	// Create and cache the material's uniform buffer.
 	OutUniformExpressionCache.UniformBuffer = UniformExpressionSet.CreateUniformBuffer(Context, CommandListIfLocalMode, &OutUniformExpressionCache.LocalUniformBuffer);
 
-	// Cache 2D texture uniform expressions.
-	OutUniformExpressionCache.Textures.Empty(UniformExpressionSet.Uniform2DTextureExpressions.Num());
-	for(int32 ExpressionIndex = 0;ExpressionIndex < UniformExpressionSet.Uniform2DTextureExpressions.Num();ExpressionIndex++)
-	{
-		const UTexture* Value;
-		UniformExpressionSet.Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(Context,Context.Material,Value);
-		OutUniformExpressionCache.Textures.Add(Value);
-	}
-
-	// Cache cube texture uniform expressions.
-	OutUniformExpressionCache.CubeTextures.Empty(UniformExpressionSet.UniformCubeTextureExpressions.Num());
-	for(int32 ExpressionIndex = 0;ExpressionIndex < UniformExpressionSet.UniformCubeTextureExpressions.Num();ExpressionIndex++)
-	{
-		const UTexture* Value;
-		UniformExpressionSet.UniformCubeTextureExpressions[ExpressionIndex]->GetTextureValue(Context,Context.Material,Value);
-		OutUniformExpressionCache.CubeTextures.Add(Value);
-	}
-
 	OutUniformExpressionCache.ParameterCollections = UniformExpressionSet.ParameterCollections;
 
 	OutUniformExpressionCache.bUpToDate = true;
@@ -1530,13 +1575,10 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 
 	check(UMaterial::GetDefaultMaterial(MD_Surface));
 
-	uint32 FeatureLevelsToCompile = UMaterialInterface::GetFeatureLevelsToCompileForAllMaterials();
 	TArray<FMaterialResource*> ResourcesToCache;
 
-	while (FeatureLevelsToCompile != 0)
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel)
 	{
-		ERHIFeatureLevel::Type FeatureLevel = (ERHIFeatureLevel::Type)FBitSet::GetAndClearNextBit(FeatureLevelsToCompile);
-
 		const FMaterial* MaterialNoFallback = GetMaterialNoFallback(FeatureLevel);
 
 		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
@@ -1564,7 +1606,7 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 			InvalidateUniformExpressionCache();
 			return;
 		}
-	}
+	});
 }
 
 void FMaterialRenderProxy::CacheUniformExpressions_GameThread()
@@ -1882,7 +1924,7 @@ bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialE
 	};
 
 	FMaterialCompilationOutput TempOutput;
-	FViewSourceMaterialTranslator MaterialTranslator(this, TempOutput, FStaticParameterSet(), GRHIShaderPlatform, GetQualityLevel(), GetFeatureLevel());
+	FViewSourceMaterialTranslator MaterialTranslator(this, TempOutput, FStaticParameterSet(), GMaxRHIShaderPlatform, GetQualityLevel(), GetFeatureLevel());
 	bool bSuccess = MaterialTranslator.Translate();
 
 	if( bSuccess )
@@ -1901,14 +1943,14 @@ bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialE
 }
 
 /** Recompiles any materials in the EditorLoadedMaterialResources list if they are not complete. */
-void FMaterial::UpdateEditorLoadedMaterialResources()
+void FMaterial::UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlatform)
 {
 	for (TSet<FMaterial*>::TIterator It(EditorLoadedMaterialResources); It; ++It)
 	{
 		FMaterial* CurrentMaterial = *It;
 		if (!CurrentMaterial->GetGameThreadShaderMap() || !CurrentMaterial->GetGameThreadShaderMap()->IsComplete(CurrentMaterial, true))
 		{
-			CurrentMaterial->CacheShaders(GRHIShaderPlatform, true);
+			CurrentMaterial->CacheShaders(InShaderPlatform, true);
 		}
 	}
 }
@@ -1977,10 +2019,19 @@ void FMaterialUpdateContext::AddMaterialInstance(UMaterialInstance* Instance)
 FMaterialUpdateContext::~FMaterialUpdateContext()
 {
 	double StartTime = FPlatformTime::Seconds();
+	bool bProcess = false;
 
 	// if the shader platform that was processed is not the currently rendering shader platform, 
 	// there's no reason to update all of the runtime components
-	if (ShaderPlatform != GRHIShaderPlatform)
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		if (ShaderPlatform == GShaderPlatformForFeatureLevel[InFeatureLevel])
+		{
+			bProcess = true;
+		}
+	});
+
+	if (!bProcess)
 	{
 		return;
 	}
@@ -2104,6 +2155,8 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 {
+	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
+
 	switch(Index)
 	{
 	case 0: return MP_BaseColor;
@@ -2142,6 +2195,8 @@ EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 
 int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 {
+	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
+
 	switch(Property)
 	{
 	case MP_BaseColor: return 0;
@@ -2286,7 +2341,7 @@ void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver)
 			}
 		}
 		
-		if( Input->OutputIndex == 13 )
+		if( UE4Ver < VER_UE4_FIX_REFRACTION_INPUT_MASKING && Input->OutputIndex == 13 )
 		{
 			Input->Mask = 1;
 			Input->MaskR = 1;

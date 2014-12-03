@@ -5,11 +5,12 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/EngineMessage.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
 
-APlayerState::APlayerState(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite")) )
 {
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
@@ -286,7 +287,11 @@ APlayerState* APlayerState::Duplicate()
 	SpawnInfo.Instigator = Instigator;
 	SpawnInfo.bNoCollisionFail = true;
 	APlayerState* NewPlayerState = GetWorld()->SpawnActor<APlayerState>(GetClass(), SpawnInfo );
-	CopyProperties(NewPlayerState);
+	// Can fail in case of multiplayer PIE teardown
+	if (NewPlayerState)
+	{
+		CopyProperties(NewPlayerState);
+	}
 	return NewPlayerState;
 }
 

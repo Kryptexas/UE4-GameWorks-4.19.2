@@ -11,13 +11,15 @@
 #include "Animation/AnimInstance.h"
 #include "AnimMontage.generated.h"
 
+class UAnimMontage;
+
 /**
  * Section data for each track. Reference of data will be stored in the child class for the way they want
  * AnimComposite vs AnimMontage have different requirement for the actual data reference
  * This only contains composite section information. (vertical sequences)
  */
 USTRUCT()
-struct FCompositeSection
+struct FCompositeSection : public FAnimLinkableElement
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -30,21 +32,20 @@ struct FCompositeSection
 	float StarTime_DEPRECATED;
 
 	/** Start Time **/
-	UPROPERTY(EditAnywhere, Category=Section)
-	float StartTime;
+	UPROPERTY()
+	float StartTime_DEPRECATED;
 
 	/** Should this animation loop. */
-	UPROPERTY(EditAnywhere, Category=Section)
+	UPROPERTY()
 	FName NextSectionName;
 
 	FCompositeSection()
-		: SectionName(NAME_None)
+		: FAnimLinkableElement()
+		, SectionName(NAME_None)
 		, StarTime_DEPRECATED(0.f)
-		, StartTime(0.f)
 		, NextSectionName(NAME_None)
 	{
 	}
-
 };
 
 /**
@@ -63,9 +64,8 @@ struct FSlotAnimationTrack
 	FAnimTrack AnimTrack;
 
 	FSlotAnimationTrack()
-		: SlotName(NAME_None)
+		: SlotName(FAnimSlotGroup::DefaultSlotName)
 	{}
-
 };
 
 /** 
@@ -76,22 +76,22 @@ struct FSlotAnimationTrack
  * Use notifies if possible
  */
 USTRUCT()
-struct FBranchingPoint
+struct FBranchingPoint : public FAnimLinkableElement
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BranchingPoint)
 	FName EventName;
 
-	UPROPERTY(EditAnywhere, Category=BranchingPoint)
-	float DisplayTime;
+	UPROPERTY()
+	float DisplayTime_DEPRECATED;
 
 	/** An offset from the DisplayTime to the actual time we will trigger the notify, as we cannot always trigger it exactly at the time the user wants */
 	UPROPERTY()
 	float TriggerTimeOffset;
 
 	/** Returns the time this branching point should be triggered */
-	float GetTriggerTime() const { return DisplayTime + TriggerTimeOffset; }
+	float GetTriggerTime() const { return GetTime() + TriggerTimeOffset; }
 
 	/** Updates trigger offset based on a combination of predicted offset and current offset */
 	ENGINE_API void RefreshTriggerOffset(EAnimEventTriggerOffsets::Type PredictedOffsetType);
@@ -242,8 +242,8 @@ public:
 	void UpdateWeight(float DeltaTime);
 	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. 
 	 * @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync? */
-	bool SimulateAdvance(float DeltaTime, float & InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
-	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams);
+	bool SimulateAdvance(float DeltaTime, float& InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
+	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion);
 
 	FName GetCurrentSection() const;
 	FName GetNextSection() const;
@@ -258,7 +258,7 @@ private:
 
 	/** Delegate function handlers
 	 */
-	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint * BranchingPoint);
+	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint* BranchingPoint);
 	void TriggerEventHandler(FName EventName);
 	void RefreshNextPrevSections();
 };
@@ -288,16 +288,16 @@ class UAnimMontage : public UAnimCompositeBase
 	UPROPERTY()
 	TArray<struct FBranchingPoint> BranchingPoints;
 
-	/** If this is on, it will allow extracting root motion translation **/
-	UPROPERTY(EditAnywhere, Category=RootMotion)
+	/** If this is on, it will allow extracting root motion translation. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
+	UPROPERTY()
 	bool bEnableRootMotionTranslation;
 
-	/** If this is on, it will allow extracting root motion rotation **/
-	UPROPERTY(EditAnywhere, Category=RootMotion)
+	/** If this is on, it will allow extracting root motion rotation. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
+	UPROPERTY()
 	bool bEnableRootMotionRotation;
 
-	/** Root Bone will be locked to that position when extracting root motion. **/
-	UPROPERTY(EditAnywhere, Category=RootMotion)
+	/** Root Bone will be locked to that position when extracting root motion. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
+	UPROPERTY()
 	TEnumAsByte<ERootMotionRootLock::Type> RootMotionRootLock;
 
 #if WITH_EDITORONLY_DATA
@@ -312,6 +312,10 @@ class UAnimMontage : public UAnimCompositeBase
 public:
 	// Begin UObject Interface
 	virtual void PostLoad() override;
+
+	// Gets the sequence length of the montage by calculating it from the lengths of the segments in the montage
+	ENGINE_API float CalculateSequenceLength();
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -332,11 +336,21 @@ public:
 
 	/** Calculates what (if any) offset should be applied to the trigger time of a branch point given its display time */
 	ENGINE_API EAnimEventTriggerOffsets::Type CalculateOffsetForBranchingPoint(float BranchingPointDisplayTime) const;
+
+	/** Update all linkable elements contained in the montage */
+	ENGINE_API void UpdateLinkableElements();
+
+	/** Update linkable elements that rely on a specific segment. This will update linkable elements for the segment specified
+	 *	and elements linked to segments after the segment specified
+	 *	@param SlotIdx The slot that the segment is contained in
+	 *	@param SegmentIdx The index of the segment within the specified slot
+	 */
+	ENGINE_API void UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx);
 #endif
 
 	/** Find First BranchingPoint between ]StartTrackPos,EndTrackPos] 
 	 * Has to be contiguous range, does not handle looping and wrapping over. **/
-	const FBranchingPoint * FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos);
+	const FBranchingPoint* FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos);
 
 	/** Get FCompositeSection with InSectionName */
 	FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
@@ -364,7 +378,7 @@ public:
 	ENGINE_API int32 GetSectionIndexFromPosition(float Position) const;
 	
 	/** Get Section Index from CurrentTime with PosWithinCompositeSection */
-	int32 GetAnimCompositeSectionIndexFromPos(float CurrentTime, float & PosWithinCompositeSection) const;
+	int32 GetAnimCompositeSectionIndexFromPos(float CurrentTime, float& PosWithinCompositeSection) const;
 
 	/** Return time left to end of section from given position. -1.f if not a valid position */
 	ENGINE_API float GetSectionTimeLeftFromPos(float Position);
@@ -374,6 +388,9 @@ public:
 	
 	/** Prototype function to get animation data - this will need rework */
 	const FAnimTrack* GetAnimationData(FName SlotName) const;
+
+	/** Returns whether the anim sequences this montage have root motion enabled */
+	virtual bool HasRootMotion() const override;
 
 	/** Extract RootMotion Transform from a contiguous Track position range.
 	 * *CONTIGUOUS* means that if playing forward StartTractPosition < EndTrackPosition.
@@ -386,6 +403,12 @@ public:
 	 * These steps will be processed sequentially, and output the RootMotion transform in component space.
 	 */
 	FTransform ExtractRootMotionFromTrackRange(float StartTrackPosition, float EndTrackPosition) const;
+
+	/** Get the Montage's Group Name. This is the group from the first slot.  */
+	ENGINE_API FName GetGroupName() const;
+
+	/** true if valid, false otherwise. Will log warning if not valid. */
+	bool HasValidSlotSetup() const;
 
 private:
 	/** 
@@ -422,6 +445,8 @@ private:
 	void SortAnimCompositeSectionByPos();
 
 #endif	//WITH_EDITOR
+
+private:
 
 	/** Sort CompositeSections in the order of StartPos */
 	void SortAnimBranchingPointByTime();

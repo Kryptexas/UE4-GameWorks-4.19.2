@@ -4,8 +4,8 @@
 #include "BlueprintUtilities.h"
 #include "Engine/InputActionDelegateBinding.h"
 
-UInputActionDelegateBinding::UInputActionDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInputActionDelegateBinding::UInputActionDelegateBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

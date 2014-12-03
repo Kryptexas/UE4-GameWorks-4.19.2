@@ -35,8 +35,8 @@ MS_ALIGN(16) struct FSkinMatrix3x4
 	float M[3][4];
 	FORCEINLINE void SetMatrix(const FMatrix& Mat)
 	{
-		const float * RESTRICT Src = &(Mat.M[0][0]);
-		float * RESTRICT Dest = &(M[0][0]);
+		const float* RESTRICT Src = &(Mat.M[0][0]);
+		float* RESTRICT Dest = &(M[0][0]);
 
 		Dest[0] = Src[0];   // [0][0]
 		Dest[1] = Src[1];   // [0][1]
@@ -57,8 +57,8 @@ MS_ALIGN(16) struct FSkinMatrix3x4
 	FORCEINLINE void SetMatrixTranspose(const FMatrix& Mat)
 	{
 
-		const float * RESTRICT Src = &(Mat.M[0][0]);
-		float * RESTRICT Dest = &(M[0][0]);
+		const float* RESTRICT Src = &(Mat.M[0][0]);
+		float* RESTRICT Dest = &(M[0][0]);
 
 		Dest[0] = Src[0];   // [0][0]
 		Dest[1] = Src[4];   // [1][0]
@@ -243,7 +243,7 @@ public:
 			INC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
 			const int32 TileBufferSize = ComputeMemorySize();
 			FRHIResourceCreateInfo CreateInfo;
-			BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Volatile | BUF_ShaderResource, CreateInfo );
+			BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Dynamic | BUF_ShaderResource, CreateInfo );
 			BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 		}
 	}
@@ -329,13 +329,13 @@ public:
 		void SetOldBoneData(uint32 FrameNumber, uint32 Index) const
 		{
 			// keep the one from last from, someone might read want to read that
-			if(OldBoneFrameNumber[0] + 1 == FrameNumber)
+			if (OldBoneFrameNumber[0] + 1 == FrameNumber)
 			{
 				// [1] has the right data
 				OldBoneFrameNumber[1] = FrameNumber;
 				OldBoneDataStartIndex[1] = Index;
 			}
-			else
+			else 
 			{
 				// [0] has the right data
 				OldBoneFrameNumber[0] = FrameNumber;
@@ -355,7 +355,7 @@ public:
 			return true;
 		}
 
-		void UpdateBoneData();
+		void UpdateBoneData(ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseBoneData()
 		{
@@ -377,6 +377,7 @@ public:
 			return BoneBuffer;
 		}
 
+		mutable FCriticalSection OldBoneDataLock;
 	private:
 
 		// the following members can be stored in less bytes (after some adjustments)
@@ -398,8 +399,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	FGPUBaseSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	:	ShaderData( InBoneMatrices )
+	FGPUBaseSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+	:	FVertexFactory(InFeatureLevel), ShaderData( InBoneMatrices )
 	{}
 
 	/** accessor */
@@ -489,8 +490,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	:	FGPUBaseSkinVertexFactory( InBoneMatrices )
+	TGPUSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+		: FGPUBaseSkinVertexFactory(InBoneMatrices, InFeatureLevel)
 	{}
 
 	virtual bool UsesExtraBoneInfluences() const
@@ -547,8 +548,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	FGPUSkinPassthroughVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-		: TGPUSkinVertexFactory<false>(InBoneMatrices)
+	FGPUSkinPassthroughVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+		: TGPUSkinVertexFactory<false>(InBoneMatrices, InFeatureLevel)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
@@ -580,8 +581,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinMorphVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices)
+	TGPUSkinMorphVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices, InFeatureLevel)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
@@ -640,16 +641,12 @@ public:
 
 		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
 
-		void ReleaseClothUniformBuffer()
-		{
-			APEXClothUniformBuffer.SafeRelease();
-		}
-
-
-		void UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
+		void UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseClothSimulData()
 		{
+			APEXClothUniformBuffer.SafeRelease();
+
 			if(IsValidRef(ClothSimulPositionBuffer))
 			{
 				ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulPositionBuffer);
@@ -734,8 +731,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinAPEXClothVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices)
+	TGPUSkinAPEXClothVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+		: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices, InFeatureLevel)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);

@@ -137,19 +137,6 @@ bool FSLESAudioDevice::InitializeHardware( void )
 	return true;
 }
 
-/**
- * Update the audio device and calculates the cached inverse transform later
- * on used for spatialization.
- *
- * @param	Realtime	whether we are paused or not
- */
-void FSLESAudioDevice::Update( bool Realtime )
-{
-	//Super::Update( Realtime );
-	
-	//@todo android: UDPATE LISTENERS - Android OpenSLES doesn't support 3D, is there anything to do here?
-}
-
 FSoundSource* FSLESAudioDevice::CreateSoundSource()
 {
 	return new FSLESSoundSource(this);

@@ -21,13 +21,12 @@ void FBranchingPoint::RefreshTriggerOffset(EAnimEventTriggerOffsets::Type Predic
 
 ///////////////////////////////////////////////////////////////////////////
 //
-UAnimMontage::UAnimMontage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAnimBranchingPointNeedsSort = true;
 	BlendInTime = 0.25f;
 	BlendOutTime = 0.25f;
-	RootMotionRootLock = ERootMotionRootLock::RefPose;
 }
 
 bool UAnimMontage::IsValidSlot(FName InSlotName) const
@@ -44,7 +43,7 @@ bool UAnimMontage::IsValidSlot(FName InSlotName) const
 	return false;
 }
 
-const FAnimTrack * UAnimMontage::GetAnimationData(FName InSlotName) const
+const FAnimTrack* UAnimMontage::GetAnimationData(FName InSlotName) const
 {
 	for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
 	{
@@ -113,7 +112,7 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 	float EndTime;
 	if ( CompositeSections.IsValidIndex(FirstIndex) )
 	{
-		StartTime = CompositeSections[FirstIndex].StartTime;
+		StartTime = CompositeSections[FirstIndex].GetTime();
 	}
 	else // if first index isn't valid, set to be 0.f, so it starts from reset
 	{
@@ -122,7 +121,7 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 
 	if ( CompositeSections.IsValidIndex(SecondIndex) )
 	{
-		EndTime = CompositeSections[SecondIndex].StartTime;
+		EndTime = CompositeSections[SecondIndex].GetTime();
 	}
 	else // if end index isn't valid, set to be BIG_NUMBER
 	{
@@ -136,7 +135,7 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 
 float UAnimMontage::CalculatePos(FCompositeSection &Section, float PosWithinCompositeSection) const
 {
-	float Offset = Section.StartTime;
+	float Offset = Section.GetTime();
 	Offset += PosWithinCompositeSection;
 	// @todo anim
 	return Offset;
@@ -156,7 +155,7 @@ int32 UAnimMontage::GetSectionIndexFromPosition(float Position) const
 	return INDEX_NONE;
 }
 
-int32 UAnimMontage::GetAnimCompositeSectionIndexFromPos(float CurrentTime, float & PosWithinCompositeSection) const
+int32 UAnimMontage::GetAnimCompositeSectionIndexFromPos(float CurrentTime, float& PosWithinCompositeSection) const
 {
 	PosWithinCompositeSection = 0.f;
 
@@ -165,7 +164,7 @@ int32 UAnimMontage::GetAnimCompositeSectionIndexFromPos(float CurrentTime, float
 		// if within
 		if (IsWithinPos(I, I+1, CurrentTime))
 		{
-			PosWithinCompositeSection = CurrentTime - CompositeSections[I].StartTime;
+			PosWithinCompositeSection = CurrentTime - CompositeSections[I].GetTime();
 			return I;
 		}
 	}
@@ -180,7 +179,7 @@ float UAnimMontage::GetSectionTimeLeftFromPos(float Position)
 	{
 		if( IsValidSectionIndex(SectionID+1) )
 		{
-			return (GetAnimCompositeSection(SectionID+1).StartTime - Position);
+			return (GetAnimCompositeSection(SectionID+1).GetTime() - Position);
 		}
 		else
 		{
@@ -244,12 +243,12 @@ void UAnimMontage::GetSectionStartAndEndTime(int32 SectionIndex, float& OutStart
 	OutEndTime = SequenceLength;
 	if ( IsValidSectionIndex(SectionIndex) )
 	{
-		OutStartTime = GetAnimCompositeSection(SectionIndex).StartTime;		
+		OutStartTime = GetAnimCompositeSection(SectionIndex).GetTime();		
 	}
 
 	if ( IsValidSectionIndex(SectionIndex + 1))
 	{
-		OutEndTime = GetAnimCompositeSection(SectionIndex + 1).StartTime;		
+		OutEndTime = GetAnimCompositeSection(SectionIndex + 1).GetTime();		
 	}
 }
 
@@ -259,12 +258,12 @@ float UAnimMontage::GetSectionLength(int32 SectionIndex) const
 	float EndTime = SequenceLength;
 	if ( IsValidSectionIndex(SectionIndex) )
 	{
-		StartTime = GetAnimCompositeSection(SectionIndex).StartTime;		
+		StartTime = GetAnimCompositeSection(SectionIndex).GetTime();		
 	}
 
 	if ( IsValidSectionIndex(SectionIndex + 1))
 	{
-		EndTime = GetAnimCompositeSection(SectionIndex + 1).StartTime;		
+		EndTime = GetAnimCompositeSection(SectionIndex + 1).GetTime();		
 	}
 
 	return EndTime - StartTime;
@@ -294,7 +293,7 @@ int32 UAnimMontage::AddAnimCompositeSection(FName InSectionName, float StartTime
 		return INDEX_NONE;
 	}
 
-	NewSection.StartTime = StartTime;
+	NewSection.LinkMontage(this, StartTime);
 
 	// we'd like to sort them in the order of time
 	int32 NewSectionIndex = CompositeSections.Add(NewSection);
@@ -330,7 +329,7 @@ void UAnimMontage::SortAnimCompositeSectionByPos()
 	{
 		FORCEINLINE bool operator()( const FCompositeSection &A, const FCompositeSection &B ) const
 		{
-			return A.StartTime < B.StartTime;
+			return A.GetTime() < B.GetTime();
 		}
 	};
 	CompositeSections.Sort( FCompareFCompositeSection() );
@@ -360,20 +359,71 @@ void UAnimMontage::PostLoad()
 				Segment.AnimEndOffset_DEPRECATED = 0.f;
 			}
 		}
-			}
+		Track.ValidateSegmentTimes();
 
-	for ( auto CompositeIter = CompositeSections.CreateIterator(); CompositeIter; ++CompositeIter )
-	{
-		FCompositeSection & Composite = (*CompositeIter);
-		if (Composite.StarTime_DEPRECATED!=0.f)
+		float CurrentCalculatedLength = CalculateSequenceLength();
+
+		if(CurrentCalculatedLength != SequenceLength)
 		{
-			Composite.StartTime = Composite.StarTime_DEPRECATED;
-			Composite.StarTime_DEPRECATED = 0.f;
+			UE_LOG(LogAnimation, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for montage %s does not match the length stored in the asset, please resave the montage asset."), *GetName());
+			SequenceLength = CurrentCalculatedLength;
+		}
+	}
+
+	int32 Ver = GetLinker()->UE4Ver();
+
+	for (auto& Composite : CompositeSections)
+	{
+		if (Composite.StarTime_DEPRECATED != 0.0f)
+		{
+			Composite.SetTime(Composite.StarTime_DEPRECATED);
+			Composite.StarTime_DEPRECATED = 0.0f;
+		}
+
+		if(Composite.StartTime_DEPRECATED != 0.0f)
+		{
+			Composite.Clear();
+			Composite.LinkMontage(this, Composite.StartTime_DEPRECATED);
+		}
+		else
+	{
+			Composite.LinkMontage(this, Composite.GetTime());
+		}
+	}
+
+	for(auto& BranchingPoint : BranchingPoints)
+	{
+		if(BranchingPoint.DisplayTime_DEPRECATED != 0.0f)
+		{
+			BranchingPoint.Clear();
+			BranchingPoint.LinkMontage(this, BranchingPoint.DisplayTime_DEPRECATED);
+		}
+		else
+		{
+			BranchingPoint.LinkMontage(this, BranchingPoint.GetTime());
 		}
 	}
 
 	SortAnimBranchingPointByTime();
 
+	bool bRootMotionEnabled = bEnableRootMotionTranslation || bEnableRootMotionRotation;
+
+	if (bRootMotionEnabled)
+	{
+		for (FSlotAnimationTrack& Slot : SlotAnimTracks)
+		{
+			for (FAnimSegment& Segment : Slot.AnimTrack.AnimSegments)
+			{
+				UAnimSequence * Sequence = Cast<UAnimSequence>(Segment.AnimReference);
+				if (Sequence && !Sequence->bRootMotionSettingsCopiedFromMontage)
+				{
+					Sequence->bEnableRootMotion = true;
+					Sequence->RootMotionRootLock = RootMotionRootLock;
+					Sequence->bRootMotionSettingsCopiedFromMontage = true;
+				}
+			}
+		}
+	}
 	// find preview base pose if it can
 #if WITH_EDITORONLY_DATA
 	if ( IsValidAdditive() && PreviewBasePose == NULL )
@@ -394,7 +444,8 @@ void UAnimMontage::PostLoad()
 	}
 
 	// verify if skeleton matches, otherwise clear it, this can happen if anim sequence has been modified when this hasn't been loaded. 
-	USkeleton * MySkeleton = GetSkeleton();
+	{
+	USkeleton* MySkeleton = GetSkeleton();
 	for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
 	{
 		if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
@@ -408,7 +459,39 @@ void UAnimMontage::PostLoad()
 			}
 		}
 	}
+	}
 #endif // WITH_EDITORONLY_DATA
+
+	// Register Slots w/ Skeleton
+	{
+		USkeleton* MySkeleton = GetSkeleton();
+		if (MySkeleton)
+		{
+			for (int32 SlotIndex = 0; SlotIndex < SlotAnimTracks.Num(); SlotIndex++)
+			{
+				FName SlotName = SlotAnimTracks[SlotIndex].SlotName;
+				MySkeleton->RegisterSlotNode(SlotName);
+			}
+		}
+	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		if(Notify.DisplayTime_DEPRECATED != 0.0f)
+		{
+			Notify.Clear();
+			Notify.LinkMontage(this, Notify.DisplayTime_DEPRECATED);
+		}
+		else
+		{
+			Notify.LinkMontage(this, Notify.GetTime());
+		}
+
+		if(Notify.Duration != 0.0f)
+		{
+			Notify.EndLink.LinkMontage(this, Notify.GetTime() + Notify.Duration);
+		}
+	}
 }
 
 void UAnimMontage::SortAnimBranchingPointByTime()
@@ -439,7 +522,7 @@ void UAnimMontage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 }
 #endif // WITH_EDITOR
 
-const FBranchingPoint * UAnimMontage::FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos)
+const FBranchingPoint* UAnimMontage::FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos)
 {
 	if( bAnimBranchingPointNeedsSort )
 	{
@@ -451,7 +534,7 @@ const FBranchingPoint * UAnimMontage::FindFirstBranchingPoint(float StartTrackPo
 	{
 		for( int32 Index=0; Index<BranchingPoints.Num(); Index++)
 		{
-			const FBranchingPoint & BranchingPoint = BranchingPoints[Index];
+			const FBranchingPoint& BranchingPoint = BranchingPoints[Index];
 			if( BranchingPoint.GetTriggerTime() <= StartTrackPos )
 			{
 				continue;
@@ -467,7 +550,7 @@ const FBranchingPoint * UAnimMontage::FindFirstBranchingPoint(float StartTrackPo
 	{
 		for( int32 Index=BranchingPoints.Num()-1; Index>=0; Index--)
 		{
-			const FBranchingPoint & BranchingPoint = BranchingPoints[Index];
+			const FBranchingPoint& BranchingPoint = BranchingPoints[Index];
 			if( BranchingPoint.GetTriggerTime() >= StartTrackPos )
 			{
 				continue;
@@ -505,7 +588,7 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetFromSections(float T
 {
 	for(auto Iter = CompositeSections.CreateConstIterator(); Iter; ++Iter)
 	{
-		float SectionTime = Iter->StartTime;
+		float SectionTime = Iter->GetTime();
 		if(SectionTime == Time)
 		{
 			return EAnimEventTriggerOffsets::OffsetBefore;
@@ -535,7 +618,7 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetForNotify(float Noti
 		{
 			for(auto Iter = BranchingPoints.CreateConstIterator(); Iter; ++Iter)
 			{
-				float BranchTime = Iter->DisplayTime;
+				float BranchTime = Iter->GetTime();
 				if(BranchTime == NotifyDisplayTime)
 				{
 					return EAnimEventTriggerOffsets::OffsetBefore;
@@ -546,6 +629,18 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetForNotify(float Noti
 	return Offset;
 }
 #endif
+
+bool UAnimMontage::HasRootMotion() const
+{
+	for (const FSlotAnimationTrack& Track : SlotAnimTracks)
+	{
+		if (Track.AnimTrack.HasRootMotion())
+		{
+			return true;
+		}
+	}
+	return false;
+}
 
 /** Extract RootMotion Transform from a contiguous Track position range.
  * *CONTIGUOUS* means that if playing forward StartTractPosition < EndTrackPosition.
@@ -564,62 +659,77 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 	// For now assume Root Motion only comes from first track.
 	if( SlotAnimTracks.Num() > 0 )
 	{
-		const FAnimTrack & SlotAnimTrack = SlotAnimTracks[0].AnimTrack;
+		const FAnimTrack& SlotAnimTrack = SlotAnimTracks[0].AnimTrack;
 
 		// Get RootMotion pieces from this track.
 		// We can deal with looping animations, or multiple animations. So we break those up into sequential operations.
 		// (Animation, StartFrame, EndFrame) so we can then extract root motion sequentially.
-		TArray<FRootMotionExtractionStep> RootMotionExtractionSteps;
-		SlotAnimTrack.GetRootMotionExtractionStepsForTrackRange(RootMotionExtractionSteps, StartTrackPosition, EndTrackPosition);
+		ExtractRootMotionFromTrack(SlotAnimTrack, StartTrackPosition, EndTrackPosition, RootMotion);
 
-		UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange, NumSteps: %d, StartTrackPosition: %.3f, EndTrackPosition: %.3f"), 
-			RootMotionExtractionSteps.Num(), StartTrackPosition, EndTrackPosition);
-
-		// Process root motion steps if any
-		if( RootMotionExtractionSteps.Num() > 0 )
-		{
-			FTransform InitialTransform, StartTransform, EndTransform;
-
-			// Go through steps sequentially, extract root motion, and accumulate it.
-			// This has to be done in order so root motion translation & rotation is applied properly (as translation is relative to rotation)
-			for(int32 StepIndex=0; StepIndex<RootMotionExtractionSteps.Num(); StepIndex++)
-			{
-				const FRootMotionExtractionStep & CurrentStep = RootMotionExtractionSteps[StepIndex];
-				CurrentStep.AnimSequence->ExtractRootTrack(0.f, InitialTransform, NULL);
-				CurrentStep.AnimSequence->ExtractRootTrack(CurrentStep.StartPosition, StartTransform, NULL);
-				CurrentStep.AnimSequence->ExtractRootTrack(CurrentStep.EndPosition, EndTransform, NULL);
-				
-				// Transform to Component Space Rotation (inverse root transform from first frame)
-				const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
-				StartTransform = RootToComponentRot * StartTransform;
-				EndTransform = RootToComponentRot * EndTransform;
-
-				FTransform DeltaTransform = EndTransform.GetRelativeTransform(StartTransform);
-
-				// Filter out rotation 
-				if( !bEnableRootMotionRotation )
-				{
-					DeltaTransform.SetRotation(FQuat::Identity);
-				}
-				// Filter out translation
-				if( !bEnableRootMotionTranslation )
-				{
-					DeltaTransform.SetTranslation(FVector::ZeroVector);
-				}
-
-				RootMotion.Accumulate(DeltaTransform);
-
-				UE_LOG(LogRootMotion, Log,  TEXT("\t\tCurrentStep: %d, StartPos: %.3f, EndPos: %.3f, Anim: %s DeltaTransform Translation: %s, Rotation: %s"),
-					StepIndex, CurrentStep.StartPosition, CurrentStep.EndPosition, *CurrentStep.AnimSequence->GetName(), 
-					*DeltaTransform.GetTranslation().ToCompactString(), *DeltaTransform.GetRotation().Rotator().ToCompactString() );
-			}
-		}
 	}
 
 	UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange RootMotionTransform: Translation: %s, Rotation: %s"),
 		*RootMotion.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotion.RootMotionTransform.GetRotation().Rotator().ToCompactString() );
 
 	return RootMotion.RootMotionTransform;
+}
+
+/** Get Montage's Group Name */
+FName UAnimMontage::GetGroupName() const
+{
+	USkeleton* MySkeleton = GetSkeleton();
+	if (MySkeleton && (SlotAnimTracks.Num() > 0))
+	{
+		return MySkeleton->GetSlotGroupName(SlotAnimTracks[0].SlotName);
+	}
+
+	return FAnimSlotGroup::DefaultGroupName;
+}
+
+bool UAnimMontage::HasValidSlotSetup() const
+{
+	// We only need to worry about this if we have multiple tracks.
+	// Montages with a single track will always have a valid slot setup.
+	int32 NumAnimTracks = SlotAnimTracks.Num();
+	if (NumAnimTracks > 1)
+	{
+		USkeleton* MySkeleton = GetSkeleton();
+		if (MySkeleton)
+		{
+			FName MontageGroupName = GetGroupName();
+			TArray<FName> UniqueSlotNameList;
+			UniqueSlotNameList.Add(SlotAnimTracks[0].SlotName);
+
+			for (int32 TrackIndex = 1; TrackIndex < NumAnimTracks; TrackIndex++)
+			{
+				// Verify that slot names are unique.
+				FName CurrentSlotName = SlotAnimTracks[TrackIndex].SlotName;
+				bool bSlotNameAlreadyInUse = UniqueSlotNameList.Contains(CurrentSlotName);
+				if (!bSlotNameAlreadyInUse)
+				{
+					UniqueSlotNameList.Add(CurrentSlotName);
+				}
+				else
+				{
+					UE_LOG(LogAnimation, Warning, TEXT("Montage '%s' not properly setup. Slot named '%s' is already used in this Montage. All slots must be unique"),
+						*GetFullName(), *CurrentSlotName.ToString());
+					return false;
+				}
+
+				// Verify that all slots belong to the same group.
+				FName CurrentSlotGroupName = MySkeleton->GetSlotGroupName(CurrentSlotName);
+				bool bDifferentGroupName = (CurrentSlotGroupName != MontageGroupName);
+				if (bDifferentGroupName)
+				{
+					UE_LOG(LogAnimation, Warning, TEXT("Montage '%s' not properly setup. Slot's group '%s' is different than the Montage's group '%s'. All slots must belong to the same group."),
+						*GetFullName(), *CurrentSlotGroupName.ToString(), *MontageGroupName.ToString());
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 void UAnimMontage::EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const
@@ -632,10 +742,10 @@ void UAnimMontage::EvaluateCurveData(class UAnimInstance* Instance, float Curren
 	// first get all the montage instance weight this slot node has
 	if ( SlotAnimTracks.Num() > 0 )
 	{
-		const FAnimTrack & Track = SlotAnimTracks[0].AnimTrack;
+		const FAnimTrack& Track = SlotAnimTracks[0].AnimTrack;
 		for (int32 I=0; I<Track.AnimSegments.Num(); ++I)
 		{
-			const FAnimSegment & AnimSegment = Track.AnimSegments[I];
+			const FAnimSegment& AnimSegment = Track.AnimSegments[I];
 
 			float PositionInAnim = 0.f;
 			float Weight = 0.f;
@@ -785,7 +895,7 @@ void FAnimMontageInstance::Terminate()
 	// terminating, trigger end
 	if (UAnimInstance* Inst = AnimInstance.Get())
 	{
-		Inst->OnMontageEnded.Broadcast(Montage, bInterrupted);
+		Inst->OnMontageEnded.Broadcast(OldMontage, bInterrupted);
 	}
 	OnMontageEnded.ExecuteIfBound(OldMontage, bInterrupted);
 }
@@ -916,7 +1026,7 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 	}
 }
 
-bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPosition, FRootMotionMovementParams & OutRootMotionParams) const
+bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition, FRootMotionMovementParams & OutRootMotionParams) const
 {
 	if( !IsValid() )
 	{
@@ -926,7 +1036,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 	const float CombinedPlayRate = PlayRate * Montage->RateScale;
 	const bool bPlayingForward = (CombinedPlayRate > 0.f);
 
-	const bool bExtractRootMotion = (Montage->bEnableRootMotionRotation || Montage->bEnableRootMotionTranslation);
+	const bool bExtractRootMotion = Montage->HasRootMotion();
 
 	float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 	float OriginalMoveDelta = DesiredDeltaMove;
@@ -939,7 +1049,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 
 		if( Montage->IsValidSectionIndex(CurrentSectionIndex) )
 		{
-			const FCompositeSection & CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+			const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
 
 			// we need to advance within section
 			check(NextSections.IsValidIndex(CurrentSectionIndex));
@@ -950,7 +1060,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 			float StoppingPosInSection = CurrentSectionLength;
 
 			// Also look for a branching point. If we have one, stop there first to handle it.
-			const float CurrentSectionEndPos = CurrentSection.StartTime + CurrentSectionLength;
+			const float CurrentSectionEndPos = CurrentSection.GetTime() + CurrentSectionLength;
 
 			// Update position within current section.
 			// Note that we explicitly disallow looping there, we handle it ourselves to simplify code by not having to handle time wrapping around in multiple places.
@@ -964,7 +1074,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 			DesiredDeltaMove -= ActualDeltaMove;
 
 			float PrevPosition = Position;
-			InOutPosition = FMath::Clamp<float>(InOutPosition + ActualDeltaPos, CurrentSection.StartTime, CurrentSectionEndPos);
+			InOutPosition = FMath::Clamp<float>(InOutPosition + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
 
 			if( FMath::Abs(ActualDeltaMove) > 0.f )
 			{
@@ -1006,7 +1116,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 	return true;
 }
 
-void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams)
+void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion)
 {
 	if( IsValid() )
 	{
@@ -1027,7 +1137,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			const float CombinedPlayRate = PlayRate * Montage->RateScale;
 			const bool bPlayingForward = (CombinedPlayRate > 0.f);
 
-			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && (Montage->bEnableRootMotionRotation || Montage->bEnableRootMotionTranslation);
+			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && Montage->HasRootMotion();
 			
 			float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 			float OriginalMoveDelta = DesiredDeltaMove;
@@ -1040,7 +1150,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 				
 				if( Montage->IsValidSectionIndex(CurrentSectionIndex) )
 				{
-					const FCompositeSection & CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+					const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
 
 					// we need to advance within section
 					check(NextSections.IsValidIndex(CurrentSectionIndex));
@@ -1051,12 +1161,12 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					float StoppingPosInSection = CurrentSectionLength;
 
 					// Also look for a branching point. If we have one, stop there first to handle it.
-					const float CurrentSectionEndPos = CurrentSection.StartTime + CurrentSectionLength;
-					const FBranchingPoint * NextBranchingPoint = Montage->FindFirstBranchingPoint(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.StartTime, CurrentSectionEndPos));
+					const float CurrentSectionEndPos = CurrentSection.GetTime() + CurrentSectionLength;
+					const FBranchingPoint* NextBranchingPoint = Montage->FindFirstBranchingPoint(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.GetTime(), CurrentSectionEndPos));
 					if( NextBranchingPoint )
 					{
 						// get the first one to see if it's less than AnimEnd
-						StoppingPosInSection = NextBranchingPoint->GetTriggerTime() - CurrentSection.StartTime;
+						StoppingPosInSection = NextBranchingPoint->GetTriggerTime() - CurrentSection.GetTime();
 					}
 
 					// Update position within current section.
@@ -1071,14 +1181,24 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					DesiredDeltaMove -= ActualDeltaMove;
 
 					float PrevPosition = Position;
-					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.StartTime, CurrentSectionEndPos);
+					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
 
 					if( FMath::Abs(ActualDeltaMove) > 0.f )
 					{
 						// Extract Root Motion for this time slice, and accumulate it.
 						if( bExtractRootMotion && AnimInstance.IsValid() )
 						{
-							OutRootMotionParams->Accumulate( Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position) );
+							FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position);
+							if (bBlendRootMotion)
+							{
+								const float RootMotionSlotWeight = AnimInstance.Get()->GetSlotRootMotionWeight(Montage->SlotAnimTracks[0].SlotName);
+								const float RootMotionInstanceWeight = Weight * RootMotionSlotWeight;
+								OutRootMotionParams->AccumulateWithBlend(RootMotion, RootMotionInstanceWeight);
+							}
+							else
+							{
+								OutRootMotionParams->Accumulate(RootMotion);
+							}
 						}
 
 						// If about to reach the end of the montage...
@@ -1169,7 +1289,7 @@ void FAnimMontageInstance::TriggerEventHandler(FName EventName)
 	}
 }
 
-void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint * BranchingPoint)
+void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint* BranchingPoint)
 {
 	// Skip notifies and branching points if montage has been interrupted.
 	if( bInterrupted )
@@ -1212,6 +1332,20 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 	}
 }
 
+float UAnimMontage::CalculateSequenceLength()
+{
+	float CalculatedSequenceLength = 0.f;
+	for(auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
+	{
+		FSlotAnimationTrack& SlotAnimTrack = (*Iter);
+		if(SlotAnimTrack.AnimTrack.AnimSegments.Num() > 0)
+		{
+			CalculatedSequenceLength = FMath::Max(CalculatedSequenceLength, SlotAnimTrack.AnimTrack.GetLength());
+		}
+	}
+	return CalculatedSequenceLength;
+}
+
 #if WITH_EDITOR
 bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
 {
@@ -1231,4 +1365,71 @@ void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSeq
 		Track.AnimTrack.ReplaceReferredAnimations(ReplacementMap);
 	}
 }
+
+ENGINE_API void UAnimMontage::UpdateLinkableElements()
+{
+	// Update all linkable elements
+	for(FCompositeSection& Section : CompositeSections)
+	{
+		Section.Update();
+	}
+
+	for(FBranchingPoint& BranchPoint : BranchingPoints)
+	{
+		BranchPoint.Update();
+
+		// Refresh branching point trigger offsets
+		BranchPoint.RefreshTriggerOffset(CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
+	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		Notify.Update();
+		Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
+
+		Notify.EndLink.Update();
+		Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
+	}
+}
+
+ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx)
+{
+	FAnimSegment* UpdatedSegment = &SlotAnimTracks[SlotIdx].AnimTrack.AnimSegments[SegmentIdx];
+
+	for(FCompositeSection& Section : CompositeSections)
+	{
+		if(Section.GetSlotIndex() == SlotIdx && Section.GetSegmentIndex() == SegmentIdx)
+		{
+			// Update the link
+			Section.Update();
+		}
+	}
+
+	for(FBranchingPoint& BranchPoint : BranchingPoints)
+	{
+		if(BranchPoint.GetSlotIndex() == SlotIdx && BranchPoint.GetSegmentIndex() == SegmentIdx)
+		{
+			BranchPoint.Update();
+
+			// Refresh branching point trigger offsets
+			BranchPoint.RefreshTriggerOffset(CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
+		}
+	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		if(Notify.GetSlotIndex() == SlotIdx && Notify.GetSegmentIndex() == SegmentIdx)
+		{
+			Notify.Update();
+			Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
+		}
+
+		if(Notify.EndLink.GetSlotIndex() == SlotIdx && Notify.EndLink.GetSegmentIndex() == SegmentIdx)
+		{
+			Notify.EndLink.Update();
+			Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
+		}
+	}
+}
+
 #endif

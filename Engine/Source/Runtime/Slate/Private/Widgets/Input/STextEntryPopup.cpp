@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "STextEntryPopup.h"
 
 
 void STextEntryPopup::Construct( const FArguments& InArgs )
@@ -59,7 +60,7 @@ void STextEntryPopup::FocusDefaultWidget()
 	// Focus the text widget
 	FWidgetPath FocusMe;
 	FSlateApplication::Get().GeneratePathToWidgetChecked( WidgetWithDefaultFocus.ToSharedRef(), FocusMe );
-	FSlateApplication::Get().SetKeyboardFocus( FocusMe, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( FocusMe, EFocusCause::SetDirectly );
 }
 
 void STextEntryPopup::SetError( const FText& InError )

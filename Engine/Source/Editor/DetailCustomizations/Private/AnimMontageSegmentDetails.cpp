@@ -221,7 +221,7 @@ void SAnimationSegmentViewport::InitSkeleton()
 
 	if( PreviewComponent != NULL && Skeleton != NULL )
 	{
-		USkeletalMesh* PreviewMesh = Skeleton->GetPreviewMesh();
+		USkeletalMesh* PreviewMesh = Skeleton->GetAssetPreviewMesh(AnimSequence);
 		if (PreviewMesh)
 		{
 			UAnimSingleNodeInstance * Preview = PreviewComponent->PreviewInstance;

@@ -7,17 +7,14 @@
 /**
  * Custom window class used for input handling
  */
-@interface FCocoaWindow : NSWindow <NSWindowDelegate>
+@interface FCocoaWindow : NSWindow <NSWindowDelegate, NSDraggingDestination>
 {
 	EWindowMode::Type WindowMode;
-	NSRect DeferFrame;
 	CGFloat DeferOpacity;
 	bool bAcceptsInput;
 	bool bRoundedCorners;
 	bool bDisplayReconfiguring;
 	bool bDeferOrderFront;
-	bool bDeferSetFrame;
-	bool bDeferSetOrigin;
 	bool bRenderInitialised;
 	bool bNeedsRedraw;
 @public
@@ -27,6 +24,9 @@
 @property (assign) NSRect PreFullScreenRect;
 @property (assign) EWindowMode::Type TargetWindowMode;
 @property (assign) bool bForwardEvents;
+@property (assign) bool bDeferSetFrame;
+@property (assign) bool bDeferSetOrigin;
+@property (assign) NSRect DeferFrame;
 
 /** Get the frame filled by a child OpenGL view, which may cover the window or fill the content view depending upon the window style.
  @return The NSRect for a child OpenGL view. */

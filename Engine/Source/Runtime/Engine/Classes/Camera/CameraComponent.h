@@ -110,8 +110,4 @@ public:
 	 */
 	DEPRECATED(4.5, "This variable is deprecated; please see the upgrade notes. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
 	bool bUseControllerViewRotation;
-
-private:
-	// Workaround for compiler-generated function using deprecated variable. Nobody should copy-construct this class anyway.
-	UCameraComponent(const UCameraComponent&);
 };

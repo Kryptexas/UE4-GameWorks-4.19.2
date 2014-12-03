@@ -343,6 +343,11 @@ namespace
 			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
 		}
 	}
+
+	void AddEditInlineMetaData(TMap<FName, FString>& MetaData)
+	{
+		MetaData.Add(TEXT("EditInline"), TEXT("true"));
+	}
 }
 	
 /////////////////////////////////////////////////////
@@ -605,7 +610,7 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	ParseFieldMetaData(EnumToken.MetaData, EnumToken.Identifier);
 
 	// Create enum definition.
-	UEnum* Enum = new(Scope->HasAnyClassFlags(CLASS_Temporary) ? Scope->GetOuter() : Scope, EnumToken.Identifier, RF_Public) UEnum(FPostConstructInitializeProperties());
+	UEnum* Enum = new(FClassUtils::IsTemporaryClass(Scope) ? Scope->GetOuter() : Scope, EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
 	Enum->Next = Scope->Children;
 	Scope->Children = Enum;
 
@@ -891,16 +896,6 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 		Result = Result.Replace( TEXT("*/"), TEXT("") );
 	}
 
-	if ( bJavaDocStyle )
-	{
-		// Remove stars from left edge.
-		Result = Result.Replace( TEXT(" * "), TEXT(" ") );
-		Result = Result.Replace( TEXT(" *\t"), TEXT("\t") );
-		Result = Result.Replace( TEXT(" *"), TEXT("") );
-		//Result = Result.Replace( TEXT("* "), TEXT("") );
-		//Result = Result.Replace( TEXT("*"), TEXT("") );
-	}
-
 	if ( bCPPStyle )
 	{
 		// Remove c++-style comment markers.  Also handle javadoc-style comments by replacing
@@ -926,10 +921,33 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 	TArray<FString> Lines;
 	Result.ParseIntoArray(&Lines, TEXT("\n"), false);
 
-	// Remove trailing whitespace
 	for (auto& Line : Lines)
 	{
+		// Remove trailing whitespace
 		Line.TrimTrailing();
+
+		// Remove leading "*" and "* " in javadoc comments.
+		if (bJavaDocStyle)
+		{
+			// Find first non-whitespace character
+			int32 Pos = 0;
+			while (Pos < Line.Len() && FChar::IsWhitespace(Line[Pos]))
+			{
+				++Pos;
+			}
+
+			// Is it a *?
+			if (Pos < Line.Len() && Line[Pos] == '*')
+			{
+				// Eat next space as well
+				if (Pos+1 < Line.Len() && FChar::IsWhitespace(Line[Pos+1]))
+				{
+					++Pos;
+				}
+
+				Line = Line.RightChop(Pos + 1);
+			}
+		}
 	}
 
 	// Find first meaningful line
@@ -1069,7 +1087,7 @@ EAccessSpecifier FHeaderParser::ParseAccessProtectionSpecifier(FToken& Token)
 
 	for (EAccessSpecifier Test = EAccessSpecifier(ACCESS_NotAnAccessSpecifier + 1); Test != ACCESS_Num; Test = EAccessSpecifier(Test + 1))
 	{
-		if (Token.Matches(GetAccessSpecifierName(Test)))
+		if (Token.Matches(GetAccessSpecifierName(Test)) || (Token.Matches(TEXT("private_subobject")) && Test == ACCESS_Public))
 		{
 			// Consume the colon after the specifier
 			RequireSymbol(TEXT(":"), *FString::Printf(TEXT("after %s"), Token.Identifier));
@@ -1120,6 +1138,8 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 
 	// The required API module for this struct, if any
 	FString RequiredAPIMacroIfPresent;
+
+	SkipDeprecatedMacroIfNecessary();
 
 	// Read the struct name
 	ParseNameWithPotentialAPIMacroPrefix(/*out*/ StructNameInScript, /*out*/ RequiredAPIMacroIfPresent, TEXT("struct"));
@@ -1176,7 +1196,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	}
 
 	// Verify uniqueness (if declared within UClass).
-	if (!Scope->HasAnyClassFlags(CLASS_Temporary))
+	if (!FClassUtils::IsTemporaryClass(Scope))
 	{
 		UField* Existing = FindField(Scope, *EffectiveStructName);
 		if (Existing && Existing->GetOuter() == Scope)
@@ -1309,9 +1329,9 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	}
 	
 	// If declared in a header without UClass, the outer is the class package.
-	UObject* StructOuter = Scope->HasAnyClassFlags(CLASS_Temporary) ? Scope->GetOuter() : Scope;
+	UObject* StructOuter = FClassUtils::IsTemporaryClass(Scope) ? Scope->GetOuter() : Scope;
 	// Create.
-	UScriptStruct* Struct = new(StructOuter, *EffectiveStructName, RF_Public) UScriptStruct(FPostConstructInitializeProperties(), BaseStruct);
+	UScriptStruct* Struct = new(StructOuter, *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
 	Struct->Next = Scope->Children;
 	Scope->Children = Struct;
 
@@ -1704,7 +1724,7 @@ void FHeaderParser::PushNest( ENestType NestType, FName ThisName, UStruct* InNod
 			}
 			else if (NestType == NEST_FunctionDeclaration)
 			{
-				UFunction* Function = new(PrevTopNode ? (UObject*)PrevTopNode : (UObject*)Class, ThisName, RF_Public) UFunction( FPostConstructInitializeProperties(), NULL );
+				UFunction* Function = new(PrevTopNode ? (UObject*)PrevTopNode : (UObject*)Class, ThisName, RF_Public) UFunction( FObjectInitializer(), NULL );
 				TopNest->Node = TopNode = Function;
 				Function->RepOffset = MAX_uint16;
 				Function->ReturnValueOffset = MAX_uint16;
@@ -2298,7 +2318,8 @@ bool FHeaderParser::GetVarType
 	const TCHAR*                    Thing,
 	FToken*                         OuterPropertyType,
 	EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
-	EVariableCategory::Type         VariableCategory
+	EVariableCategory::Type         VariableCategory,
+	FIndexRange*                    ParsedVarIndexRange
 )
 {
 	check(Scope);
@@ -2364,6 +2385,12 @@ bool FHeaderParser::GetVarType
 	if (CompilerDirectiveStack.Num() > 0 && (CompilerDirectiveStack.Last()&ECompilerDirective::WithEditorOnlyData)!=0)
 	{
 		Flags |= CPF_EditorOnly;
+	}
+
+	// Store the start and end positions of the parsed type
+	if (ParsedVarIndexRange)
+	{
+		ParsedVarIndexRange->StartIndex = InputPos;
 	}
 
 	// Process the list of specifiers
@@ -2555,7 +2582,8 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("Instanced"))
 			{
-				Flags |= CPF_EditInline | CPF_ExportObject | CPF_InstancedReference;
+				Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
+				AddEditInlineMetaData(MetaDataFromNewStyle);
 			}
 			else if (Specifier == TEXT("BlueprintAssignable"))
 			{
@@ -2660,13 +2688,6 @@ bool FHeaderParser::GetVarType
 	else
 	{
 		FError::Throwf(TEXT("Unknown access level"));
-	}
-
-
-	if ((Flags & CPF_EditInline) && (Flags & CPF_ExportObject) && !(Flags & CPF_InstancedReference))
-	{
-		Flags |= CPF_InstancedReference;
-		FError::Throwf(TEXT("Properties with 'editinline export' should instead use 'instanced' for clarity ") );
 	}
 
 	// Get variable type.
@@ -3042,13 +3063,7 @@ bool FHeaderParser::GetVarType
 					}
 					else if (bIsSubobjectPtrTemplate)
 					{
-						Flags |= CPF_SubobjectReference;
-
-						if (((Flags & CPF_Edit) && (Flags & CPF_EditConst) == 0) ||
-							  ((Flags & CPF_BlueprintVisible) && (Flags & CPF_BlueprintReadOnly) == 0))
-						{
-							FError::Throwf(TEXT("%s: Subobject properties can't be editable (use VisibleAnywhere or BlueprintReadOnly instead)."), VarType.Identifier);
-						}
+						Flags |= CPF_SubobjectReference | CPF_InstancedReference;
 					}
 
 					bExpectStar = false;
@@ -3170,6 +3185,15 @@ bool FHeaderParser::GetVarType
 				FError::Throwf(TEXT("Unrecognized type '%s'"), VarType.Identifier );
 			}
 		}
+
+		if ((Flags & CPF_InstancedReference) && CurrentAccessSpecifier == ACCESS_Private && VariableCategory == EVariableCategory::Member)
+		{
+			if (((Flags & CPF_Edit) && (Flags & CPF_EditConst) == 0) ||
+				((Flags & CPF_BlueprintVisible) && (Flags & CPF_BlueprintReadOnly) == 0))
+			{
+				FError::Throwf(TEXT("%s: Subobject (instanced) properties can't be editable (use VisibleAnywhere or BlueprintReadOnly instead)."), VarType.Identifier);
+			}
+		}
 	}
 
 	if (VariableCategory != EVariableCategory::Member)
@@ -3234,7 +3258,11 @@ bool FHeaderParser::GetVarType
 			case EVariableCategory::ReplicatedParameter:
 			{
 				if (!(Flags & CPF_ConstParm))
+				{
 					FError::Throwf(TEXT("Replicated %s parameters cannot be passed by non-const reference"), VarType.Identifier);
+				}
+
+				Flags |= CPF_ReferenceParm;
 			}
 			break;
 
@@ -3273,7 +3301,7 @@ bool FHeaderParser::GetVarType
 	}
 
 	// Perform some more specific validation on the property flags
-	if ((VarProperty.PropertyFlags & CPF_EditInline) && VarProperty.Type != CPT_ObjectReference)
+	if ((VarProperty.PropertyFlags & CPF_PersistentInstance) && VarProperty.Type != CPT_ObjectReference)
 	{
 		FError::Throwf(TEXT("'Instanced' is only allowed on object property (or array of objects)"));
 	}
@@ -3325,6 +3353,10 @@ bool FHeaderParser::GetVarType
 
 	VarProperty.MetaData = MetaDataFromNewStyle;
 
+	if (ParsedVarIndexRange)
+	{
+		ParsedVarIndexRange->Count = InputPos - ParsedVarIndexRange->StartIndex;
+	}
 	return 1;
 }
 
@@ -3545,7 +3577,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		int32      ArrayDim = 1; // 1 = not a static array, 2 = static array
 		if (VarProperty.ArrayType == EArrayType::Dynamic)
 		{
-			Array       = new(Scope,PropertyName,ObjectFlags)UArrayProperty(FPostConstructInitializeProperties());
+			Array       = new(Scope,PropertyName,ObjectFlags)UArrayProperty(FObjectInitializer());
 			NewScope    = Array;
 			ObjectFlags = RF_Public;
 		}
@@ -3556,40 +3588,40 @@ UProperty* FHeaderParser::GetVarNameAndDim
 
 		if (VarProperty.Type == CPT_Byte)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UByteProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UByteProperty(FObjectInitializer());
 			((UByteProperty*)NewProperty)->Enum = VarProperty.Enum;
 		}
 		else if (VarProperty.Type == CPT_Int8)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt8Property(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt8Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Int16)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt16Property(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt16Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Int)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UIntProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UIntProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Int64)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt64Property(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UInt64Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_UInt16)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt16Property(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt16Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_UInt32)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt32Property(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt32Property(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_UInt64)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt64Property(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UUInt64Property(FObjectInitializer());
 		}
 		else if (VarProperty.IsBool())
 		{
-			UBoolProperty* NewBoolProperty = new(NewScope,PropertyName,ObjectFlags)UBoolProperty(FPostConstructInitializeProperties());
+			UBoolProperty* NewBoolProperty = new(NewScope,PropertyName,ObjectFlags)UBoolProperty(FObjectInitializer());
 			NewProperty = NewBoolProperty;
 			if (HardcodedName && FCString::Stricmp(HardcodedName, TEXT("ReturnValue")) == 0)
 			{
@@ -3619,27 +3651,28 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		}
 		else if (VarProperty.Type == CPT_Float)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UFloatProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UFloatProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Double)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UDoubleProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UDoubleProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_ObjectReference)
 		{
 			check(VarProperty.PropertyClass);
 			if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 			{
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UClassProperty(FPostConstructInitializeProperties());
+				NewProperty = new(NewScope,PropertyName,ObjectFlags)UClassProperty(FObjectInitializer());
 				((UClassProperty*)NewProperty)->MetaClass = VarProperty.MetaClass;
 			}
 			else
 			{
 				if ( DoesAnythingInHierarchyHaveDefaultToInstanced( VarProperty.PropertyClass ) )
 				{
-					VarProperty.PropertyFlags |= CPF_EditInline | CPF_InstancedReference;
+					VarProperty.PropertyFlags |= CPF_InstancedReference;
+					AddEditInlineMetaData(VarProperty.MetaData);
 				}
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UObjectProperty(FPostConstructInitializeProperties());
+				NewProperty = new(NewScope,PropertyName,ObjectFlags)UObjectProperty(FObjectInitializer());
 			}
 
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
@@ -3647,13 +3680,13 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.Type == CPT_WeakObjectReference)
 		{
 			check(VarProperty.PropertyClass);
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UWeakObjectProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UWeakObjectProperty(FObjectInitializer());
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
 		}
 		else if( VarProperty.Type == CPT_LazyObjectReference )
 		{
 			check(VarProperty.PropertyClass);
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)ULazyObjectProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)ULazyObjectProperty(FObjectInitializer());
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
 		}
 		else if( VarProperty.Type == CPT_AssetObjectReference )
@@ -3661,12 +3694,12 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			check(VarProperty.PropertyClass);
 			if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 			{
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UAssetClassProperty(FPostConstructInitializeProperties());
+				NewProperty = new(NewScope,PropertyName,ObjectFlags)UAssetClassProperty(FObjectInitializer());
 				((UAssetClassProperty*)NewProperty)->MetaClass = VarProperty.MetaClass;
 			}
 			else
 			{
-				NewProperty = new(NewScope,PropertyName,ObjectFlags)UAssetObjectProperty(FPostConstructInitializeProperties());
+				NewProperty = new(NewScope,PropertyName,ObjectFlags)UAssetObjectProperty(FObjectInitializer());
 			}
 			((UObjectPropertyBase*)NewProperty)->PropertyClass = VarProperty.PropertyClass;
 		}
@@ -3675,26 +3708,26 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			check(VarProperty.PropertyClass);
 			check(VarProperty.PropertyClass->HasAnyClassFlags(CLASS_Interface));
 
-			UInterfaceProperty* InterfaceProperty = new(NewScope,PropertyName,ObjectFlags) UInterfaceProperty(FPostConstructInitializeProperties());
+			UInterfaceProperty* InterfaceProperty = new(NewScope,PropertyName,ObjectFlags) UInterfaceProperty(FObjectInitializer());
 			InterfaceProperty->InterfaceClass = VarProperty.PropertyClass;
 
 			NewProperty = InterfaceProperty;
 		}
 		else if (VarProperty.Type == CPT_Name)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UNameProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UNameProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_String)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UStrProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UStrProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Text)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UTextProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UTextProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_Struct)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UStructProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UStructProperty(FObjectInitializer());
 			if (VarProperty.Struct->StructFlags & STRUCT_HasInstancedReference)
 			{
 				VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
@@ -3703,11 +3736,11 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		}
 		else if (VarProperty.Type == CPT_Delegate)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UDelegateProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UDelegateProperty(FObjectInitializer());
 		}
 		else if (VarProperty.Type == CPT_MulticastDelegate)
 		{
-			NewProperty = new(NewScope,PropertyName,ObjectFlags)UMulticastDelegateProperty(FPostConstructInitializeProperties());
+			NewProperty = new(NewScope,PropertyName,ObjectFlags)UMulticastDelegateProperty(FObjectInitializer());
 		}
 		else
 		{
@@ -3725,7 +3758,14 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			if (NewProperty->PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference))
 			{
 				VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
-				VarProperty.PropertyFlags &= ~CPF_InstancedReference; //this was propagated to the inner
+				VarProperty.PropertyFlags &= ~(CPF_InstancedReference | CPF_PersistentInstance); //this was propagated to the inner
+
+				if (0 != (NewProperty->PropertyFlags & CPF_PersistentInstance))
+				{
+					TMap<FName, FString> MetaData;
+					AddEditInlineMetaData(MetaData);
+					AddMetaDataToClassData(NewProperty, VarProperty.MetaData);
+				}
 			}
 			NewProperty = Array;
 		}
@@ -3792,6 +3832,24 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
 		bHaveSeenSecondInterfaceClass = true;
 		ParseSecondInterfaceClass(AllClasses);
+	}
+	else if (Token.Matches(TEXT("GENERATED_BODY")) && (TopNest->NestType != NEST_Interface
+		|| (bHaveSeenFirstInterfaceClass && !bHaveSeenSecondInterfaceClass)))
+	{
+		if (TopNest->NestType != NEST_Class && TopNest->NestType != NEST_Interface)
+		{
+			FError::Throwf(TEXT("%s must occur inside the class or interface definition"), Token.Identifier);
+		}
+
+		RequireSymbol(TEXT("("), Token.Identifier);
+		RequireSymbol(TEXT(")"), Token.Identifier);
+
+		GScriptHelper.FindClassData(Class)->GeneratedBodyMacroAccessSpecifier = CurrentAccessSpecifier;
+
+		if (TopNest->NestType == NEST_Class)
+		{
+			bClassHasGeneratedBody = true;
+		}
 	}
 	else if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")))
 	{
@@ -3923,6 +3981,13 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		else
 		{
 			FError::Throwf(TEXT("Extra ';' before end of file") );
+		}
+	}
+	else if (Token.Matches(NameLookupCPP.GetNameCPP(Class)))
+	{
+		if(!TryToMatchConstructorParameterList(Token))
+		{
+			return SkipDeclaration(Token);
 		}
 	}
 	else
@@ -4206,6 +4271,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	// New style files have the class name / extends afterwards
 	RequireIdentifier(TEXT("class"), TEXT("Class declaration"));
+
+	SkipDeprecatedMacroIfNecessary();
 
 	FString DeclaredClassName;
 	FString RequiredAPIMacroIfPresent;
@@ -5065,7 +5132,7 @@ void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR
 		ParseParameterList(AllClasses, DelegateSignatureFunction, /*bExpectCommaBeforeName=*/ true);
 
 		// Check the expected versus actual number of parameters
-		int32 ParamCount = FoundParamCount - DelegateParameterCountStrings.GetTypedData() + 1;
+		int32 ParamCount = FoundParamCount - DelegateParameterCountStrings.GetData() + 1;
 		if (DelegateSignatureFunction->NumParms != ParamCount)
 			FError::Throwf(TEXT("Expected %d parameters but found %d parameters"), ParamCount, DelegateSignatureFunction->NumParms);
 	}
@@ -5209,28 +5276,28 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		bSawVirtual = true;
 	}
 
+	FString*   InternalPtr = MetaData.Find("BlueprintInternalUseOnly"); // FBlueprintMetadata::MD_BlueprintInternalUseOnly
+	const bool bDeprecated = MetaData.Contains("DeprecatedFunction");       // FBlueprintMetadata::MD_DeprecatedFunction
+	const bool bHasMenuCategory = MetaData.Contains("Category");                 // FBlueprintMetadata::MD_FunctionCategory
+	const bool bInternalOnly = InternalPtr && *InternalPtr == TEXT("true");
+
 	// If this function is blueprint callable or blueprint pure, require a category 
 	if ((FuncInfo.FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintPure)) != 0) 
 	{ 
-		FString*   InternalPtr      = MetaData.Find    ("BlueprintInternalUseOnly"); // FBlueprintMetadata::MD_BlueprintInternalUseOnly
-		const bool bDeprecated      = MetaData.Contains("DeprecatedFunction");       // FBlueprintMetadata::MD_DeprecatedFunction
-		const bool bHasMenuCategory = MetaData.Contains("Category");                 // FBlueprintMetadata::MD_FunctionCategory
-		const bool bInternalOnly    = InternalPtr && *InternalPtr == TEXT("true");
-
 		if (!bHasMenuCategory && !bInternalOnly && !bDeprecated) 
 		{ 
 			FError::Throwf(TEXT("Blueprint accessible functions must have a category specified")); 
 		} 
 	}
 
-	// Verify interfaces with respect to their blueprint accessable functions
+	// Verify interfaces with respect to their blueprint accessible functions
 	if (Class->HasAnyClassFlags(CLASS_Interface))
 	{
 		const bool bCanImplementInBlueprints = !Class->HasMetaData(TEXT("CannotImplementInterfaceInBlueprint"));  //FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint
 		if((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
 		{
-			// Ensure that blueprint events are only allowed in implementable interfaces
-			if(!bCanImplementInBlueprints)
+			// Ensure that blueprint events are only allowed in implementable interfaces. Internal only functions allowed
+			if (!bCanImplementInBlueprints && !bInternalOnly)
 			{
 				FError::Throwf(TEXT("Interfaces that are not implementable in blueprints cannot have BlueprintImplementableEvent members."));
 			}
@@ -5861,6 +5928,7 @@ struct FExposeOnSpawnValidator
 		case CPT_Bool:
 		case CPT_ObjectReference:
 		case CPT_String:
+		case CPT_Text:
 		case CPT_Name:
 		case CPT_Vector:
 		case CPT_Rotation:
@@ -5885,7 +5953,9 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	// Get variable type.
 	FPropertyBase OriginalProperty(CPT_None);
 	EObjectFlags ObjectFlags = RF_NoFlags;
-	GetVarType( AllClasses, Struct, OriginalProperty, ObjectFlags, DisallowFlags, TEXT("Member variable declaration"), /*OuterPropertyType=*/ NULL, PropertyDeclarationStyle, EVariableCategory::Member );
+
+	FIndexRange TypeRange;
+	GetVarType( AllClasses, Struct, OriginalProperty, ObjectFlags, DisallowFlags, TEXT("Member variable declaration"), /*OuterPropertyType=*/ NULL, PropertyDeclarationStyle, EVariableCategory::Member, &TypeRange );
 	OriginalProperty.PropertyFlags |= EdFlags;
 
 	FString* Category = OriginalProperty.MetaData.Find("Category");
@@ -5895,13 +5965,26 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 		// First check if the category was specified at all and if the property was exposed to the editor.
 		if (!Category && (OriginalProperty.PropertyFlags & (CPF_Edit|CPF_BlueprintVisible)))
 		{
-			FError::Throwf(TEXT("Property is exposed to the editor or blueprints but has no Category specified."));
+			static const FString AbsoluteEngineDir = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
+			FString SourceFilename = GClassSourceFileMap[Class];
+			FPaths::NormalizeFilename(SourceFilename);
+			if (Struct->GetOutermost() != nullptr && !SourceFilename.StartsWith(AbsoluteEngineDir))
+			{
+				OriginalProperty.MetaData.Add("Category", Struct->GetFName().ToString());
+				Category = OriginalProperty.MetaData.Find("Category");
+			}
+			else
+			{
+				FError::Throwf(TEXT("Property is exposed to the editor or blueprints but has no Category specified."));
+			}
 		}
 
 		// Validate that pointer properties are not interfaces (which are not GC'd and so will cause runtime errors)
 		if (OriginalProperty.PointerType == EPointerType::Native && OriginalProperty.Struct->IsChildOf(UInterface::StaticClass()))
 		{
-			FError::Throwf(TEXT("UPROPERTY pointers cannot be interfaces"));
+			// Get the name of the type, removing the asterisk representing the pointer
+			FString TypeName = FString(TypeRange.Count, Input + TypeRange.StartIndex).Trim().TrimTrailing().LeftChop(1).TrimTrailing();
+			FError::Throwf(TEXT("UPROPERTY pointers cannot be interfaces - did you mean TScriptInterface<%s>?"), *TypeName);
 		}
 	}
 
@@ -6353,7 +6436,7 @@ ECompilationResult::Type FHeaderParser::ParseHeaderForOneClass(FClasses& AllClas
 		}
 
 		// mark temporary classes as native
-		if ( (Class->ClassFlags & CLASS_Temporary) )
+		if (FClassUtils::IsTemporaryClass(Class))
 		{
 			Class->ClassFlags |= CLASS_Native;
 		}
@@ -6630,7 +6713,6 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn)
 	LegalVariableSpecifiers.Add(TEXT("DuplicateTransient"));
 	LegalVariableSpecifiers.Add(TEXT("Ref"));
 	LegalVariableSpecifiers.Add(TEXT("Export"));
-	LegalVariableSpecifiers.Add(TEXT("EditInline"));
 	LegalVariableSpecifiers.Add(TEXT("NoClear"));
 	LegalVariableSpecifiers.Add(TEXT("EditFixedSize"));
 	LegalVariableSpecifiers.Add(TEXT("Replicated"));
@@ -6765,7 +6847,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FClasses& ModuleCl
 		auto RootNode = &ModuleClasses.GetClassTree();
 		for (auto Plugin : ScriptPlugins)
 		{
-			if (Plugin->ShouldExportClassesForModule(Module.Name, Module.ModuleType))
+			if (Plugin->ShouldExportClassesForModule(Module.Name, Module.ModuleType, Module.GeneratedIncludeDirectory))
 			{
 				ExportClassToScriptPlugins(RootNode->GetClass(), Module, *Plugin);
 				ExportClassTreeToScriptPlugins(RootNode, Module, *Plugin);
@@ -7432,4 +7514,130 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 	}
 
 	return !OutForm.IsEmpty();
+}
+
+bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
+{
+	FToken PotentialParenthesisToken;
+	if (!GetToken(PotentialParenthesisToken))
+	{
+		return false;
+	}
+
+	if (!PotentialParenthesisToken.Matches(TEXT("(")))
+	{
+		UngetToken(PotentialParenthesisToken);
+		return false;
+	}
+
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+
+	ClassData->bConstructorDeclared = true;
+
+	if (!ClassData->bDefaultConstructorDeclared && MatchSymbol(TEXT(")")))
+	{
+		ClassData->bDefaultConstructorDeclared = true;
+	}
+	else if (!ClassData->bObjectInitializerConstructorDeclared)
+	{
+		FToken ObjectInitializerParamParsingToken;
+
+		bool bIsConst = false;
+		bool bIsRef = false;
+		int32 ParenthesesNestingLevel = 1;
+
+		while (ParenthesesNestingLevel && GetToken(ObjectInitializerParamParsingToken))
+		{
+			// Template instantiation or additional parameter excludes ObjectInitializer constructor.
+			if (ObjectInitializerParamParsingToken.Matches(TEXT(",")) || ObjectInitializerParamParsingToken.Matches(TEXT("<")))
+			{
+				ClassData->bObjectInitializerConstructorDeclared = false;
+				break;
+			}
+
+			if (ObjectInitializerParamParsingToken.Matches(TEXT("(")))
+			{
+				ParenthesesNestingLevel++;
+				continue;
+			}
+
+			if (ObjectInitializerParamParsingToken.Matches(TEXT(")")))
+			{
+				ParenthesesNestingLevel--;
+				continue;
+			}
+
+			if (ObjectInitializerParamParsingToken.Matches(TEXT("const")))
+			{
+				bIsConst = true;
+				continue;
+			}
+
+			if (ObjectInitializerParamParsingToken.Matches(TEXT("&")))
+			{
+				bIsRef = true;
+				continue;
+			}
+
+			if (ObjectInitializerParamParsingToken.Matches(TEXT("FObjectInitializer"))
+				|| ObjectInitializerParamParsingToken.Matches(TEXT("FPostConstructInitializeProperties")) // Deprecated, but left here, so it won't break legacy code.
+				)
+			{
+				ClassData->bObjectInitializerConstructorDeclared = true;
+			}
+		}
+
+		// Parse until finish.
+		while (ParenthesesNestingLevel && GetToken(ObjectInitializerParamParsingToken))
+		{
+			if (ObjectInitializerParamParsingToken.Matches(TEXT("(")))
+			{
+				ParenthesesNestingLevel++;
+				continue;
+			}
+
+			if (ObjectInitializerParamParsingToken.Matches(TEXT(")")))
+			{
+				ParenthesesNestingLevel--;
+				continue;
+			}
+		}
+
+		ClassData->bObjectInitializerConstructorDeclared = ClassData->bObjectInitializerConstructorDeclared && bIsRef && bIsConst;
+	}
+
+	// Optionally match semicolon.
+	if (!MatchSymbol(TEXT(";")))
+	{
+		// If not matched a semicolon, this is inline constructor definition. We have to skip it.
+		UngetToken(Token); // Resets input stream to the initial token.
+		GetToken(Token); // Re-gets the initial token to start constructor definition skip.
+		return SkipDeclaration(Token);
+	}
+
+	return true;
+}
+
+void FHeaderParser::SkipDeprecatedMacroIfNecessary()
+{
+	if (!MatchIdentifier(TEXT("DEPRECATED")))
+	{
+		return;
+	}
+
+	FToken Token;
+	// DEPRECATED(Version, "Message")
+	RequireSymbol(TEXT("("), TEXT("DEPRECATED macro"));
+	if (GetToken(Token) && (Token.Type != CPT_Float || Token.TokenType != TOKEN_Const))
+	{
+		FError::Throwf(TEXT("Expected engine version in DEPRECATED macro"));
+	}
+
+	RequireSymbol(TEXT(","), TEXT("DEPRECATED macro"));
+	if (GetToken(Token) && (Token.Type != CPT_String || Token.TokenType != TOKEN_Const))
+	{
+		FError::Throwf(TEXT("Expected deprecation message in DEPRECATED macro"));
+	}
+
+	RequireSymbol(TEXT(")"), TEXT("DEPRECATED macro"));
 }

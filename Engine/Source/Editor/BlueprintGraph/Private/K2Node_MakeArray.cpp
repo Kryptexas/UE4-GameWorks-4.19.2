@@ -3,7 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetArrayLibrary.h"
 #include "ScopedTransaction.h"
 #include "KismetCompiler.h"
@@ -34,9 +34,7 @@ public:
 		FNodeHandlingFunctor::RegisterNets(Context, Node);
 
 		// Create a local term to drop the array into
- 		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
- 		Term->CopyFromPin(OutputPin, Context.NetNameMap->MakeValidName(OutputPin));
-		Term->bIsLocal = true;
+		FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(OutputPin, Context.NetNameMap->MakeValidName(OutputPin));
 		Term->bPassedByReference = false;
 		Term->Source = Node;
  		Context.NetMap.Add(OutputPin, Term);
@@ -72,8 +70,8 @@ public:
 /////////////////////////////////////////////////////
 // UK2Node_MakeArray
 
-UK2Node_MakeArray::UK2Node_MakeArray(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MakeArray::UK2Node_MakeArray(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	NumInputs = 1;

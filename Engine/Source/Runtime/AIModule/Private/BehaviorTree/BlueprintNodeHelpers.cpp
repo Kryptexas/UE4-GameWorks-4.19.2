@@ -178,7 +178,7 @@ namespace BlueprintNodeHelpers
 		}
 	}
 
-	bool FindNodeOwner(AActor* OwningActor, class UBTNode* Node, UBehaviorTreeComponent*& OwningComp, int32& OwningInstanceIdx)
+	bool FindNodeOwner(AActor* OwningActor, UBTNode* Node, UBehaviorTreeComponent*& OwningComp, int32& OwningInstanceIdx)
 	{
 		bool bFound = false;
 

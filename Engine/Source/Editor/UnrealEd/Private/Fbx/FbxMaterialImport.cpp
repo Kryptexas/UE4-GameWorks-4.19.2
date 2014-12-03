@@ -110,8 +110,8 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 	if (DataBinary.Num()>0)
 	{
 		UE_LOG(LogFbxMaterialImport, Verbose, TEXT("Loading texture file %s"),*Filename);
-		const uint8* PtrTexture = DataBinary.GetTypedData();
-		UTextureFactory* TextureFact = new UTextureFactory(FPostConstructInitializeProperties());
+		const uint8* PtrTexture = DataBinary.GetData();
+		UTextureFactory* TextureFact = new UTextureFactory(FObjectInitializer());
 		TextureFact->AddToRoot();
 
 		// save texture settings if texture exist
@@ -289,7 +289,7 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 			if (MaterialInput.Expression)
 			{
 				TArray<FExpressionOutput> Outputs = MaterialInput.Expression->GetOutputs();
-				FExpressionOutput* Output = Outputs.GetTypedData();
+				FExpressionOutput* Output = Outputs.GetData();
 				MaterialInput.Mask = Output->Mask;
 				MaterialInput.MaskR = Output->MaskR;
 				MaterialInput.MaskG = Output->MaskG;
@@ -345,7 +345,7 @@ void UnFbx::FFbxImporter::FixupMaterial( FbxSurfaceMaterial& FbxMaterial, UMater
 		}
 
 		TArray<FExpressionOutput> Outputs = UnrealMaterial->BaseColor.Expression->GetOutputs();
-		FExpressionOutput* Output = Outputs.GetTypedData();
+		FExpressionOutput* Output = Outputs.GetData();
 		UnrealMaterial->BaseColor.Mask = Output->Mask;
 		UnrealMaterial->BaseColor.MaskR = Output->MaskR;
 		UnrealMaterial->BaseColor.MaskG = Output->MaskG;
@@ -423,7 +423,7 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	
 
 	// create an unreal material asset
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FObjectInitializer());
 	
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone|RF_Public, NULL, GWarn );

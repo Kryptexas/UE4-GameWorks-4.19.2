@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // UAnimNotify
 
-UAnimNotify::UAnimNotify(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimNotify::UAnimNotify(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, MeshContext(NULL)
 {
 

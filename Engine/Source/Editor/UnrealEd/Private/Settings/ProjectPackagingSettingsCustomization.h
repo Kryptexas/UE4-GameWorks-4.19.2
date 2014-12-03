@@ -110,6 +110,7 @@ protected:
 
 	FProjectPackagingSettingsCustomization()
 		: FilterCulturesChoice(EFilterCulturesChoices::AllAvailableCultures)
+		, IsInBatchSelectOperation(false)
 	{
 
 	}
@@ -238,20 +239,26 @@ protected:
 		switch(FilterCulturesChoice)
 		{
 		case EFilterCulturesChoices::AllAvailableCultures:
-			CultureList.Empty();
-			for(const auto& Culture : FInternationalization::Get().GetAllCultures())
 			{
-				CultureList.Add(Culture);
+				CultureList.Empty();
+				TArray<FString> CultureNames;
+				FInternationalization::Get().GetCultureNames(CultureNames);
+				for(const FString& CultureName : CultureNames)
+				{
+					CultureList.Add(FInternationalization::Get().GetCulture(CultureName));
+				}
 			}
 			break;
 		case EFilterCulturesChoices::OnlyLocalizedCultures:
-			TArray<FCultureRef> LocalizedCultureList;
-			TArray<FString> LocalizationPaths = FPaths::GetGameLocalizationPaths();
-			FInternationalization::Get().GetCulturesWithAvailableLocalization(LocalizationPaths, LocalizedCultureList, true);
-			CultureList.Empty();
-			for(const auto& Culture : LocalizedCultureList)
 			{
-				CultureList.Add(Culture);
+				TArray<FCultureRef> LocalizedCultureList;
+				TArray<FString> LocalizationPaths = FPaths::GetGameLocalizationPaths();
+				FInternationalization::Get().GetCulturesWithAvailableLocalization(LocalizationPaths, LocalizedCultureList, true);
+				CultureList.Empty();
+				for(const auto& Culture : LocalizedCultureList)
+				{
+					CultureList.Add(Culture);
+				}
 			}
 			break;
 		}
@@ -351,6 +358,7 @@ protected:
 		{
 			RemoveCulture(Culture->GetName());
 		}
+		
 	}
 
 	bool IsCultureSelected(FCulturePtr Culture)

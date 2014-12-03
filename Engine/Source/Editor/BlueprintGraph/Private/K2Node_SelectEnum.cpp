@@ -6,8 +6,8 @@
 #include "BlueprintFieldNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-UDEPRECATED_K2Node_SelectEnum::UDEPRECATED_K2Node_SelectEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_K2Node_SelectEnum::UDEPRECATED_K2Node_SelectEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();

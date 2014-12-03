@@ -11,7 +11,7 @@ class UParticleModuleColorOverLife : public UParticleModuleColorBase
 	GENERATED_UCLASS_BODY()
 
 	/** The color to apply to the particle, as a function of the particle RelativeTime. */
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, Category=Color, meta=(TreatAsColor))
 	struct FRawDistributionVector ColorOverLife;
 
 	/** The alpha to apply to the particle, as a function of the particle RelativeTime. */

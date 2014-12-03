@@ -16,9 +16,20 @@
 #endif
 
 class UAbilitySystemComponent;
+class UGameplayEffect;
 
 struct FGameplayEffectSpec;
 struct FGameplayEffectModCallbackData;
+
+FString EGameplayModOpToString(int32 Type);
+
+FString EGameplayModToString(int32 Type);
+
+FString EGameplayModEffectToString(int32 Type);
+
+FString EGameplayEffectCopyPolicyToString(int32 Type);
+
+FString EGameplayEffectStackingPolicyToString(int32 Type);
 
 UENUM(BlueprintType)
 namespace EGameplayModOp
@@ -36,66 +47,6 @@ namespace EGameplayModOp
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-/**
- * Tells us what thing a GameplayModifier modifies.
- */
-UENUM(BlueprintType)
-namespace EGameplayMod
-{
-	enum Type
-	{
-		Attribute = 0,		// Modifies this Attributes
-		OutgoingGE,			// Modifies Outgoing Gameplay Effects (that modify this Attribute)
-		IncomingGE,			// Modifies Incoming Gameplay Effects (that modify this Attribute)
-		ActiveGE,			// Modifies currently active Gameplay Effects
-
-		// This must always be at the end
-		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-/**
- * Tells us what thing a GameplayEffect provides immunity to. This must mirror the values in EGameplayMod
- */
-UENUM(BlueprintType)
-namespace EGameplayImmunity
-{
-	enum Type
-	{
-		None = 0,			// Does not provide immunity
-		OutgoingGE,			// Provides immunity to outgoing GEs
-		IncomingGE,			// Provides immunity to incoming GEs
-		ActiveGE,			// Provides immunity from currently active GEs
-
-		// This must always be at the end
-		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-static_assert((int32)EGameplayMod::OutgoingGE == (int32)EGameplayImmunity::OutgoingGE, "EGameplayMod::OutgoingGE and EGameplayImmunity::OutgoingGE must match. Did you forget to modify one of them?");
-static_assert((int32)EGameplayMod::IncomingGE == (int32)EGameplayImmunity::IncomingGE, "EGameplayMod::IncomingGE and EGameplayImmunity::IncomingGE must match. Did you forget to modify one of them?");
-static_assert((int32)EGameplayMod::ActiveGE == (int32)EGameplayImmunity::ActiveGE, "EGameplayMod::ActiveGE and EGameplayImmunity::ActiveGE must match. Did you forget to modify one of them?");
-static_assert((int32)EGameplayMod::Max == (int32)EGameplayImmunity::Max, "EGameplayMod and EGameplayImmunity must cover the same cases. Did you forget to modify one of them?");
-
-/**
- * Tells us what a GameplayEffect modifies when being applied to another GameplayEffect
- */
-UENUM(BlueprintType)
-namespace EGameplayModEffect
-{
-	enum Type
-	{
-		Magnitude			= 0x01,		// Modifies magnitude of a GameplayEffect (Always default for Attribute mod)
-		Duration			= 0x02,		// Modifies duration of a GameplayEffect
-		ChanceApplyTarget	= 0x04,		// Modifies chance to apply GameplayEffect to target
-		ChanceExecuteEffect	= 0x08,		// Modifies chance to execute GameplayEffect on GameplayEffect
-		LinkedGameplayEffect= 0x10,		// Adds a linked GameplayEffect to a GameplayEffect
-
-		// This must always be at the end
-		All					= 0xFF		UMETA(DisplayName="Invalid")
 	};
 }
 
@@ -191,60 +142,139 @@ private:
 
 
 /**
- * FGameplayEffectInstigatorContext
- *	Data struct for an instigator. This is still being fleshed out. We will want to track actors but also be able to provide some level of tracking for actors that are destroyed.
+ * FGameplayEffectContext
+ *	Data struct for an instigator and related data. This is still being fleshed out. We will want to track actors but also be able to provide some level of tracking for actors that are destroyed.
  *	We may need to store some positional information as well.
- *
  */
-USTRUCT(BlueprintType)
-struct FGameplayEffectInstigatorContext
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayEffectContext
 {
 	GENERATED_USTRUCT_BODY()
 
-	FGameplayEffectInstigatorContext()
+	FGameplayEffectContext()
 		: Instigator(NULL)
+		, EffectCauser(NULL)
 		, InstigatorAbilitySystemComponent(NULL)
-		, HasWorldOrigin(false)
+		, bHasWorldOrigin(false)
 	{
 	}
 
-	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer)
+	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
+		: Instigator(NULL)
+		, EffectCauser(NULL)
+		, InstigatorAbilitySystemComponent(NULL)
 	{
-		IGameplayTagAssetInterface* TagInterface = InterfaceCast<IGameplayTagAssetInterface>(Instigator);
+		AddInstigator(InInstigator, InEffectCauser);
+	}
+
+	virtual ~FGameplayEffectContext()
+	{
+	}
+
+	/** Returns the list of gameplay tags applicable to this effect, defaults to the owner's tags */
+	virtual void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
+	{
+		IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator);
 		if (TagInterface)
 		{
 			TagInterface->GetOwnedGameplayTags(TagContainer);
 		}
 	}
 
-	void AddInstigator(class AActor *InInstigator);
+	/** Sets the instigator and effect causer. Instigator is who owns the ability that spawned this, EffectCauser is the actor that is the physical source of the effect, such as a weapon. They can be the same. */
+	virtual void AddInstigator(class AActor *InInstigator, class AActor *InEffectCauser);
 
-	void AddHitResult(const FHitResult InHitResult);
-
-	void AddOrigin(FVector InOrigin);
-
-	FString ToString() const
-	{
-		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
-	}
-
-	/** Should always return the original instigator that started the whole chain */
-	AActor* GetOriginalInstigator()
+	/** Returns the immediate instigator that applied this effect */
+	virtual AActor* GetInstigator() const
 	{
 		return Instigator;
 	}
 
-	UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
+	/** Returns the ability system component of the instigator of this effect */
+	virtual UAbilitySystemComponent* GetInstigatorAbilitySystemComponent() const
 	{
 		return InstigatorAbilitySystemComponent;
 	}
 
-	bool IsLocallyControlled() const;
-	
-	/** Instigator controller */
+	/** Returns the physical actor tied to the application of this effect */
+	virtual AActor* GetEffectCauser() const
+	{
+		return EffectCauser;
+	}
+
+	/** Should always return the original instigator that started the whole chain. Subclasses can override what this does */
+	virtual AActor* GetOriginalInstigator() const
+	{
+		return Instigator;
+	}
+
+	/** Returns the ability system component of the instigator that started the whole chain */
+	virtual UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
+	{
+		return InstigatorAbilitySystemComponent;
+	}
+
+	virtual void AddHitResult(const FHitResult InHitResult, bool bReset = false);
+
+	virtual const FHitResult* GetHitResult() const
+	{
+		if (HitResult.IsValid())
+		{
+			return HitResult.Get();
+		}
+		return NULL;
+	}
+
+	virtual void AddOrigin(FVector InOrigin);
+
+	virtual const FVector& GetOrigin() const
+	{
+		return WorldOrigin;
+	}
+
+	virtual bool HasOrigin() const
+	{
+		return bHasWorldOrigin;
+	}
+
+	virtual FString ToString() const
+	{
+		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
+	}
+
+	virtual UScriptStruct* GetScriptStruct() const
+	{
+		return FGameplayEffectContext::StaticStruct();
+	}
+
+	/** Creates a copy of this context, used to duplicate for later modifications */
+	virtual FGameplayEffectContext* Duplicate() const
+	{
+		FGameplayEffectContext* NewContext = new FGameplayEffectContext();
+		*NewContext = *this;
+		if (GetHitResult())
+		{
+			// Does a deep copy of the hit result
+			NewContext->AddHitResult(*GetHitResult());
+		}
+		return NewContext;
+	}
+
+	virtual bool IsLocallyControlled() const;
+
+	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+protected:
+
+	/** Instigator actor, the actor that owns the ability system component */
 	UPROPERTY()
 	AActor* Instigator;
 
+	/** The physical actor that actually did the damage, can be a weapon or projectile */
+	UPROPERTY()
+	AActor* EffectCauser;
+
+	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)
 	UAbilitySystemComponent* InstigatorAbilitySystemComponent;
 
@@ -254,13 +284,12 @@ struct FGameplayEffectInstigatorContext
 	UPROPERTY()
 	FVector	WorldOrigin;
 
-	bool HasWorldOrigin;
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+	UPROPERTY()
+	bool bHasWorldOrigin;
 };
 
 template<>
-struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FGameplayEffectContext > : public TStructOpsTypeTraitsBase
 {
 	enum
 	{
@@ -269,21 +298,247 @@ struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStruct
 	};
 };
 
+/**
+ * Handle that wraps a FGameplayEffectContext or subclass, to allow it to be polymorphic and replicate properly
+ */
+USTRUCT(BlueprintType)
+struct FGameplayEffectContextHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectContextHandle()
+	{
+	}
+
+	/** Constructs from an existing context, should be allocated by new */
+	FGameplayEffectContextHandle(FGameplayEffectContext* DataPtr)
+	{
+		Data = TSharedPtr<FGameplayEffectContext>(DataPtr);
+	}
+
+	/** Sets from an existing context, should be allocated by new */
+	void operator=(FGameplayEffectContext* DataPtr)
+	{
+		Data = TSharedPtr<FGameplayEffectContext>(DataPtr);
+	}
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	bool IsValid() const
+	{
+		return Data.IsValid();
+	}
+
+	FGameplayEffectContext* Get()
+	{
+		return IsValid() ? Data.Get() : NULL;
+	}
+
+	/** Returns the list of gameplay tags applicable to this effect, defaults to the owner's tags */
+	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
+	{
+		if (IsValid())
+		{
+			Data->GetOwnedGameplayTags(TagContainer);
+		}
+	}
+
+	/** Sets the instigator and effect causer. Instigator is who owns the ability that spawned this, EffectCauser is the actor that is the physical source of the effect, such as a weapon. They can be the same. */
+	void AddInstigator(class AActor *InInstigator, class AActor *InEffectCauser)
+	{
+		if (IsValid())
+		{
+			Data->AddInstigator(InInstigator, InEffectCauser);
+		}
+	}
+
+	/** Returns the immediate instigator that applied this effect */
+	virtual AActor* GetInstigator() const
+	{
+		if (IsValid())
+		{
+			return Data->GetInstigator();
+		}
+		return NULL;
+	}
+
+	/** Returns the ability system component of the instigator of this effect */
+	virtual UAbilitySystemComponent* GetInstigatorAbilitySystemComponent() const
+	{
+		if (IsValid())
+		{
+			return Data->GetInstigatorAbilitySystemComponent();
+		}
+		return NULL;
+	}
+
+	/** Returns the physical actor tied to the application of this effect */
+	virtual AActor* GetEffectCauser() const
+	{
+		if (IsValid())
+		{
+			return Data->GetEffectCauser();
+		}
+		return NULL;
+	}
+
+	/** Should always return the original instigator that started the whole chain. Subclasses can override what this does */
+	AActor* GetOriginalInstigator() const
+	{
+		if (IsValid())
+		{
+			return Data->GetOriginalInstigator();
+		}
+		return NULL;
+	}
+
+	/** Returns the ability system component of the instigator that started the whole chain */
+	UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
+	{
+		if (IsValid())
+		{
+			return Data->GetOriginalInstigatorAbilitySystemComponent();
+		}
+		return NULL;
+	}
+
+	/** Returns if the instigator is locally controlled */
+	bool IsLocallyControlled() const
+	{
+		if (IsValid())
+		{
+			return Data->IsLocallyControlled();
+		}
+		return false;
+	}
+
+	void AddHitResult(const FHitResult InHitResult, bool bReset = false)
+	{
+		if (IsValid())
+		{
+			Data->AddHitResult(InHitResult, bReset);
+		}
+	}
+
+	const FHitResult* GetHitResult() const
+	{
+		if (IsValid())
+		{
+			return Data->GetHitResult();
+		}
+		return NULL;
+	}
+
+	void AddOrigin(FVector InOrigin)
+	{
+		if (IsValid())
+		{
+			Data->AddOrigin(InOrigin);
+		}
+	}
+
+	virtual const FVector& GetOrigin() const
+	{
+		if (IsValid())
+		{
+			return Data->GetOrigin();
+		}
+		return FVector::ZeroVector;
+	}
+
+	virtual bool HasOrigin() const
+	{
+		if (IsValid())
+		{
+			return Data->HasOrigin();
+		}
+		return false;
+	}
+
+	FString ToString() const
+	{
+		return IsValid() ? Data->ToString() : FString(TEXT("NONE"));
+	}
+
+	/** Creates a deep copy of this handle, used before modifying */
+	FGameplayEffectContextHandle Duplicate() const
+	{
+		if (IsValid())
+		{
+			FGameplayEffectContext* NewContext = Data->Duplicate();
+			return FGameplayEffectContextHandle(NewContext);
+		}
+		else
+		{
+			return FGameplayEffectContextHandle();
+		}
+	}
+
+	/** Comparison operator */
+	bool operator==(FGameplayEffectContextHandle const& Other) const
+	{
+		if (Data.IsValid() != Other.Data.IsValid())
+		{
+			return false;
+		}
+		if (Data.Get() != Other.Data.Get())
+		{
+			return false;
+		}
+		return true;
+	}
+
+	/** Comparison operator */
+	bool operator!=(FGameplayEffectContextHandle const& Other) const
+	{
+		return !(FGameplayEffectContextHandle::operator==(Other));
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+private:
+
+	TSharedPtr<FGameplayEffectContext> Data;
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayEffectContext> Data is copied around
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
+	};
+};
+
 // -----------------------------------------------------------
+
 
 USTRUCT(BlueprintType)
 struct FGameplayCueParameters
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
+	/** Magnitude of source gameplay effect, normalzed from 0-1. Use this for "how strong is the gameplay effet" (0=min, 1=,max) */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	float NormalizedMagnitude;
 
-	UPROPERTY()
-	FGameplayEffectInstigatorContext InstigatorContext;
+	/** Raw final magnitude of source gameplay effect. Use this is you need to display numbers or for other informational purposes. */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	float RawMagnitude;
 
 	UPROPERTY()
+	FGameplayEffectContextHandle EffectContext;
+
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FName MatchedTagName;
+
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	FGameplayTag OriginalTag;
 };
 
 UENUM(BlueprintType)
@@ -298,17 +553,6 @@ namespace EGameplayCueEvent
 	};
 }
 
-FString EGameplayModOpToString(int32 Type);
-
-FString EGameplayModToString(int32 Type);
-
-FString EGameplayModEffectToString(int32 Type);
-
-FString EGameplayEffectCopyPolicyToString(int32 Type);
-
-FString EGameplayEffectStackingPolicyToString(int32 Type);
-
-
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32 );
@@ -316,6 +560,10 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGa
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);
+
+DECLARE_DELEGATE_RetVal(FGameplayTagContainer, FGetGameplayTags);
+
+DECLARE_DELEGATE_RetVal_OneParam(FOnGameplayEffectTagCountChanged&, FRegisterGameplayTagChangeDelegate, FGameplayTag);
 
 // -----------------------------------------------------------
 
@@ -342,5 +590,34 @@ struct FGameplayTagCountContainer
 	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
 	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
 
+	/** This is called when any tag is added new or removed completely (going too or from 0 count). Not called for other count increases (e.g, going from 2-3 count) */
+	FOnGameplayEffectTagCountChanged	OnAnyTagChangeDelegate;
+
 	EGameplayTagMatchType::Type TagContainerType;
+
+private:
+
+	// Fixme: This may not be adding tag parents correctly. The TagContainer version of this function properly adds parent tags
+	void UpdateTagMap_Internal(const struct FGameplayTag& Tag, int32 CountDelta);
+};
+
+// -----------------------------------------------------------
+
+/** Encapsulate require and ignore tags */
+USTRUCT(BlueprintType)
+struct FGameplayTagRequirements
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** All of these tags must be present */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	FGameplayTagContainer RequireTags;
+
+	/** None of these tags may be present */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	FGameplayTagContainer IgnoreTags;
+
+	bool	RequirementsMet(FGameplayTagContainer Container) const;
+
+	static FGetGameplayTags	SnapshotTags(FGetGameplayTags TagDelegate);
 };

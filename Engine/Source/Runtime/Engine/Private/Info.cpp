@@ -2,11 +2,11 @@
 
 #include "EnginePrivate.h"
 
-AInfo::AInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AInfo::AInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization
@@ -38,3 +38,8 @@ AInfo::AInfo(const class FPostConstructInitializeProperties& PCIP)
 	bReplicateMovement = false;
 	bCanBeDamaged = false;
 }
+
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AInfo::GetSpriteComponent() const { return SpriteComponent; }
+#endif

@@ -4,6 +4,7 @@
 #include "MathStructProxyCustomizations.h"
 #include "IPropertyUtilities.h"
 #include "ScopedTransaction.h"
+#include "SNumericEntryBox.h"
 
 void FMathStructProxyCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
@@ -159,7 +160,7 @@ void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHan
 			+ SHorizontalBox::Slot()
 			.Padding(FMargin(0.0f, 2.0f, 3.0f, 2.0f))
 			[
-				MakeNumericProxyWidget<FRotator, float>(StructPropertyHandle, CachedRotationYaw, LOCTEXT("RotationYaw", "X"), FLinearColor::White, SNumericEntryBox<float>::RedLabelBackgroundColor)
+				MakeNumericProxyWidget<FRotator, float>(StructPropertyHandle, CachedRotationRoll, LOCTEXT("RotationRoll", "X"), FLinearColor::White, SNumericEntryBox<float>::RedLabelBackgroundColor)
 			]
 			+ SHorizontalBox::Slot()
 			.Padding(FMargin(0.0f, 2.0f, 3.0f, 2.0f))
@@ -169,7 +170,7 @@ void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHan
 			+ SHorizontalBox::Slot()
 			.Padding(FMargin(0.0f, 2.0f, 0.0f, 2.0f))
 			[
-				MakeNumericProxyWidget<FRotator, float>(StructPropertyHandle, CachedRotationRoll, LOCTEXT("RotationRoll", "Z"), FLinearColor::White, SNumericEntryBox<float>::BlueLabelBackgroundColor)
+				MakeNumericProxyWidget<FRotator, float>(StructPropertyHandle, CachedRotationYaw, LOCTEXT("RotationYaw", "Z"), FLinearColor::White, SNumericEntryBox<float>::BlueLabelBackgroundColor)
 			]
 		];
 
@@ -455,8 +456,7 @@ bool FTransformStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Prope
 
 	if(PropertyUtilities.IsValid() && !bIsUsingSlider)
 	{
-		const bool bTopologyChange = false;
-		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet);
 		PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
 	}
 

@@ -109,7 +109,7 @@ FReply SComboButton::OnButtonClicked()
 
 		if (WidgetToFocus.IsValid())
 		{
-			ButtonClickedReply.SetKeyboardFocus(WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+			ButtonClickedReply.SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly);
 		}
 	}
 

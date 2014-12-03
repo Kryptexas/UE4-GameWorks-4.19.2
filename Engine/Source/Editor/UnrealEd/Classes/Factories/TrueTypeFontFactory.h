@@ -8,7 +8,7 @@
 #include "TrueTypeFontFactory.generated.h"
 
 UCLASS(hidecategories=Object, collapsecategories)
-class UTrueTypeFontFactory : public UFontFactory, public FReimportHandler
+class UNREALED_API UTrueTypeFontFactory : public UTextureFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
 
@@ -31,6 +31,11 @@ class UTrueTypeFontFactory : public UFontFactory, public FReimportHandler
 	// Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
+	virtual bool ShouldShowInNewMenu() const override
+	{
+		// Don't show this factory in the content browser menu; it's invoked manually when changing the UFont cache type to "Offline" 
+		return false;
+	}
 	// Begin UFactory Interface	
 
 	// Begin FReimportHandler interface

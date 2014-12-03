@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UImage
 
-UImage::UImage(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UImage::UImage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ColorAndOpacity(FLinearColor::White)
 {
 }

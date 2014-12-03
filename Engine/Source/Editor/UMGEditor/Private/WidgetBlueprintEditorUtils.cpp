@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "Components/PanelSlot.h"
+#include "Components/PanelWidget.h"
 #include "WidgetBlueprintEditorUtils.h"
 #include "WidgetBlueprintEditor.h"
 #include "Kismet2NameValidators.h"
@@ -10,6 +11,12 @@
 #include "WidgetTemplateClass.h"
 #include "Factories.h"
 #include "UnrealExporter.h"
+#include "GenericCommands.h"
+#include "WidgetBlueprint.h"
+#include "Blueprint/WidgetTree.h"
+#include "ScopedTransaction.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "CanvasPanel.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -76,7 +83,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 	const FString NewNameStr = NewName.ToString();
 	const FString OldNameStr = OldName.ToString();
 
-	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldNameStr);
+	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldName);
 	check(Widget);
 
 	if ( Widget )
@@ -158,6 +165,9 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 			}
 		}
 
+		// Update named slot bindings?
+		// TODO...
+
 		// Validate child blueprints and adjust variable names to avoid a potential name collision
 		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
 
@@ -189,6 +199,18 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 
 	MenuBuilder.BeginSection("Actions");
 	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT( "EditBlueprint_Label", "Edit Blueprint..." ),
+			LOCTEXT( "EditBlueprint_Tooltip", "Open the selected widget blueprint(s) for edit." ),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateStatic( &FWidgetBlueprintEditorUtils::ExecuteOpenSelectedWidgetsForEdit, Widgets ),
+				FCanExecuteAction(),
+				FIsActionChecked(),
+				FIsActionButtonVisible::CreateStatic( &FWidgetBlueprintEditorUtils::CanOpenSelectedWidgetsForEdit, Widgets )
+				)
+			);
+
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("WidgetTree_WrapWith", "Wrap With..."),
 			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
@@ -198,6 +220,30 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 	MenuBuilder.EndSection();
 
 	MenuBuilder.PopCommandList();
+}
+
+void FWidgetBlueprintEditorUtils::ExecuteOpenSelectedWidgetsForEdit( TSet<FWidgetReference> SelectedWidgets )
+{
+	for ( auto& Widget : SelectedWidgets )
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset( Widget.GetTemplate()->GetClass()->ClassGeneratedBy );
+	}
+}
+
+bool FWidgetBlueprintEditorUtils::CanOpenSelectedWidgetsForEdit( TSet<FWidgetReference> SelectedWidgets )
+{
+	bool bCanOpenAllForEdit = SelectedWidgets.Num() > 0;
+	for ( auto& Widget : SelectedWidgets )
+	{
+		auto Blueprint = Widget.GetTemplate()->GetClass()->ClassGeneratedBy;
+		if ( !Blueprint || !Blueprint->IsA( UWidgetBlueprint::StaticClass() ) )
+		{
+			bCanOpenAllForEdit = false;
+			break;
+		}
+	}
+
+	return bCanOpenAllForEdit;
 }
 
 void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
@@ -225,15 +271,22 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 			bRemoved = BP->WidgetTree->RemoveWidget(WidgetTemplate);
 
+			// If the widget we're removing doesn't have a parent it may be rooted in a named slot,
+			// so check there as well.
+			if ( WidgetTemplate->GetParent() == nullptr )
+			{
+				bRemoved |= FindAndRemoveNamedSlotContent(WidgetTemplate, BP->WidgetTree);
+			}
+
 			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
-			WidgetTemplate->Rename(NULL, NULL);
+			WidgetTemplate->Rename(nullptr, nullptr);
 
 			// Rename all child widgets as well, to the transient package so that they don't conflict with future widgets sharing the same name.
 			TArray<UWidget*> ChildWidgets;
 			BP->WidgetTree->GetChildWidgets(WidgetTemplate, ChildWidgets);
 			for ( UWidget* Widget : ChildWidgets )
 			{
-				Widget->Rename(NULL, NULL);
+				Widget->Rename(nullptr, nullptr);
 			}
 		}
 
@@ -244,6 +297,39 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}
 	}
+}
+
+bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+{
+	bool bSuccess = false;
+
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+
+		if ( bSuccess )
+		{
+			return;
+		}
+
+		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
+		{
+			TArray<FName> SlotNames;
+			NamedSlotHost->GetSlotNames(SlotNames);
+
+			for ( FName SlotName : SlotNames )
+			{
+				if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+				{
+					if ( SlotContent == WidgetTemplate )
+					{
+						NamedSlotHost->SetContentForSlot(SlotName, nullptr);
+						bSuccess = true;
+					}
+				}
+			}
+		}
+	});
+
+	return bSuccess;
 }
 
 void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)

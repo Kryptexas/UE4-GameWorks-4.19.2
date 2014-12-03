@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
 
-APhysicsConstraintActor::APhysicsConstraintActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APhysicsConstraintActor::APhysicsConstraintActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -19,7 +19,7 @@ APhysicsConstraintActor::APhysicsConstraintActor(const class FPostConstructIniti
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	ConstraintComp = PCIP.CreateDefaultSubobject<UPhysicsConstraintComponent>(this, TEXT("MyConstraintComp"));
+	ConstraintComp = ObjectInitializer.CreateDefaultSubobject<UPhysicsConstraintComponent>(this, TEXT("MyConstraintComp"));
 	RootComponent = ConstraintComp;
 	bHidden = true;
 }
@@ -29,7 +29,7 @@ void APhysicsConstraintActor::PostLoad()
 	Super::PostLoad();
 
 	// Copy 'actors to constrain' into component
-	if (GetLinkerUE4Version() < VER_UE4_ALL_PROPS_TO_CONSTRAINTINSTANCE && ConstraintComp.Get() != NULL)
+	if (GetLinkerUE4Version() < VER_UE4_ALL_PROPS_TO_CONSTRAINTINSTANCE && ConstraintComp != NULL)
 	{
 		ConstraintComp->ConstraintActor1 = ConstraintActor1_DEPRECATED;
 		ConstraintComp->ConstraintActor2 = ConstraintActor2_DEPRECATED;
@@ -62,3 +62,6 @@ void APhysicsConstraintActor::LoadedFromAnotherClass( const FName& OldClassName 
 	ConstraintComp->UpdateSpriteTexture();
 }
 #endif // WITH_EDITOR
+
+/** Returns ConstraintComp subobject **/
+UPhysicsConstraintComponent* APhysicsConstraintActor::GetConstraintComp() const { return ConstraintComp; }

@@ -15,8 +15,8 @@
 /////////////////////////////////////////////////////
 // UAnimationStateGraphSchema
 
-UAnimationStateGraphSchema::UAnimationStateGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationStateGraphSchema::UAnimationStateGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

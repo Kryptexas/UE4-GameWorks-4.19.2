@@ -10,6 +10,8 @@
 #include "LightingBuildOptions.h"
 
 #include "AssetToolsModule.h"
+#include "SDockTab.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "SLevelEditorBuildAndSubmit"
 

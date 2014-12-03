@@ -3,8 +3,8 @@
 #include "MovieSceneCoreTypesPCH.h"
 #include "MovieSceneAnimationSection.h"
 
-UMovieSceneAnimationSection::UMovieSceneAnimationSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneAnimationSection::UMovieSceneAnimationSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	AnimSequence = NULL;
 	AnimationStartTime = 0.f;

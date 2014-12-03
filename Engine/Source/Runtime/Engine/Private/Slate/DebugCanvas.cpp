@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "DebugCanvas.h"
 
 /** Checks that all FCanvasProxy allocations were deleted */
@@ -27,7 +27,7 @@ class FCanvasProxy
 {
 public:
 	FCanvasProxy( FRenderTarget* RenderTarget, UWorld* InWorld )
-		: Canvas(RenderTarget, NULL, InWorld, InWorld ? InWorld->FeatureLevel : GRHIFeatureLevel)
+		: Canvas(RenderTarget, NULL, InWorld, InWorld ? InWorld->FeatureLevel : GMaxRHIFeatureLevel)
 	{
 		// Do not allow the canvas to be flushed outside of our debug rendering path
 		Canvas.SetAllowedModes( 0 );

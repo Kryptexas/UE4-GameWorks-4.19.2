@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TTargetPlatformBase.h: Declares the TTargetPlatformBase template class.
-=============================================================================*/
-
 #pragma once
 
 #include "PlatformInfo.h"
+
 
 /**
  * Base class for target platforms.
@@ -16,19 +13,19 @@ class FTargetPlatformBase
 {
 public:
 
-	// Begin ITargetPlatform interface
+	// ITargetPlatform interface
 
 	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) override
 	{
 		return false;
 	}
 
-	virtual FText DisplayName( ) const override
+	virtual FText DisplayName() const override
 	{
 		return PlatformInfo->DisplayName;
 	}
 
-	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const override
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo() const override
 	{
 		return *PlatformInfo;
 	}
@@ -38,7 +35,6 @@ public:
 	{
 		OutFormats.Add(FName(TEXT("FullHDR")));
 	}
-
 
 #ifdef TEXTURERESOURCE_H_INCLUDED // defined in TextureResource.h, this way we know if UTexture is available, needed for Clang
 	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
@@ -170,9 +166,9 @@ public:
 		return true;
 	}
 
-	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override
 	{
-		int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+		int32 bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 		if (!IsSdkInstalled(bProjectHasCode, OutDocumentationPath))
 		{
 			bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
@@ -200,9 +196,8 @@ public:
 		return 0.0f;
 	}
 
-	// End ITargetPlatform interface
-
 protected:
+
 	FTargetPlatformBase(const PlatformInfo::FPlatformInfo *const InPlatformInfo)
 		: PlatformInfo(InPlatformInfo)
 	{
@@ -217,7 +212,7 @@ protected:
 /**
  * Template for target platforms.
  *
- * @param TPlatformProperties - Type of platform properties.
+ * @param TPlatformProperties Type of platform properties.
  */
 template<typename TPlatformProperties>
 class TTargetPlatformBase
@@ -225,10 +220,8 @@ class TTargetPlatformBase
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	TTargetPlatformBase( )
+	/** Default constructor. */
+	TTargetPlatformBase()
 		: FTargetPlatformBase( PlatformInfo::FindPlatformInfo(TPlatformProperties::PlatformName()) )
 	{
 		// HasEditorOnlyData and RequiresCookedData are mutually exclusive.
@@ -237,39 +230,39 @@ public:
 
 public:
 
-	// Begin ITargetPlatform interface
+	// ITargetPlatform interface
 
-	virtual bool HasEditorOnlyData( ) const override
+	virtual bool HasEditorOnlyData() const override
 	{
 		return TPlatformProperties::HasEditorOnlyData();
 	}
 
-	virtual bool IsLittleEndian( ) const override
+	virtual bool IsLittleEndian() const override
 	{
 		return TPlatformProperties::IsLittleEndian();
 	}
 
-	virtual bool IsServerOnly( ) const override
+	virtual bool IsServerOnly() const override
 	{
 		return TPlatformProperties::IsServerOnly();
 	}
 
-	virtual bool IsClientOnly( ) const override
+	virtual bool IsClientOnly() const override
 	{
 		return TPlatformProperties::IsClientOnly();
 	}
 
-	virtual FString PlatformName( ) const override
+	virtual FString PlatformName() const override
 	{
 		return FString(TPlatformProperties::PlatformName());
 	}
 
-	virtual FString IniPlatformName( ) const override
+	virtual FString IniPlatformName() const override
 	{
 		return FString(TPlatformProperties::IniPlatformName());
 	}
 
-	virtual bool RequiresCookedData( ) const override
+	virtual bool RequiresCookedData() const override
 	{
 		return TPlatformProperties::RequiresCookedData();
 	}
@@ -289,7 +282,7 @@ public:
 		return TPlatformProperties::SupportsAutoSDK();
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
 		switch (Feature)
 		{
@@ -327,7 +320,7 @@ public:
 		return false;
 	}
 	
-	virtual uint32 MaxGpuSkinBones( ) const override
+	virtual uint32 MaxGpuSkinBones() const override
 	{
 		return TPlatformProperties::MaxGpuSkinBones();
 	}
@@ -338,6 +331,4 @@ public:
 		return FName(TPlatformProperties::GetPhysicsFormat());
 	}
 #endif // WITH_ENGINE
-
-	// End ITargetPlatform interface
 };

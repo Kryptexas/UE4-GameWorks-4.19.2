@@ -21,6 +21,7 @@ public class DeviceManager : ModuleRules
 				"SlateCore",
 				"TargetPlatform",
 				"DesktopPlatform",
+                "WorkspaceMenuStructure",
 			}
 		);
 

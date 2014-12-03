@@ -246,7 +246,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 			TArray<uint8> CompressedBuffer;
 			CompressedBuffer.Empty(CompressedData->GetBulkDataSize());
 			CompressedBuffer.AddUninitialized(CompressedData->GetBulkDataSize());
-			void* BufferData = CompressedBuffer.GetTypedData();
+			void* BufferData = CompressedBuffer.GetData();
 			CompressedData->GetCopy(&BufferData, false);
 			TArray<TArray<uint8>> ChunkBuffers;
 
@@ -258,7 +258,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 					NewChunk->DataSize = ChunkBuffers[ChunkIndex].Num();
 					NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 					void* NewChunkData = NewChunk->BulkData.Realloc(ChunkBuffers[ChunkIndex].Num());
-					FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetTypedData(), ChunkBuffers[ChunkIndex].Num());
+					FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetData(), ChunkBuffers[ChunkIndex].Num());
 					NewChunk->BulkData.Unlock();
 				}
 			}
@@ -269,7 +269,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 				NewChunk->DataSize = CompressedBuffer.Num();
 				NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 				void* NewChunkData = NewChunk->BulkData.Realloc(CompressedBuffer.Num());
-				FMemory::Memcpy(NewChunkData, CompressedBuffer.GetTypedData(), CompressedBuffer.Num());
+				FMemory::Memcpy(NewChunkData, CompressedBuffer.GetData(), CompressedBuffer.Num());
 				NewChunk->BulkData.Unlock();
 			}
 
@@ -412,6 +412,11 @@ void FStreamedAudioPlatformData::Cache(USoundWave& InSoundWave, FName AudioForma
 		Worker.DoWork();
 		Worker.Finalize();
 	}
+}
+
+bool FStreamedAudioPlatformData::IsFinishedCache() const
+{
+	return AsyncTask == NULL ? true : false;
 }
 
 void FStreamedAudioPlatformData::FinishCache()
@@ -614,7 +619,7 @@ void FStreamedAudioPlatformData::Serialize(FArchive& Ar, USoundWave* Owner)
 /**
  * Helper class to display a status update message in the editor.
  */
-class FAudioStatusMessageContext
+class FAudioStatusMessageContext : FScopedSlowTask
 {
 public:
 
@@ -622,25 +627,10 @@ public:
 	 * Updates the status message displayed to the user.
 	 */
 	explicit FAudioStatusMessageContext( const FText& InMessage )
+	 : FScopedSlowTask(1, InMessage, GIsEditor && !IsRunningCommandlet())
 	{
-		if ( GIsEditor && !IsRunningCommandlet() )
-		{
-			GWarn->PushStatus();
-			GWarn->StatusUpdate(-1, -1, InMessage);
-		}
 		DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 		UE_LOG(LogAudioDerivedData, Display, TEXT("%s"), *InMessage.ToString());
-	}
-
-	/**
-	 * Ensures the status context is popped off the stack.
-	 */
-	~FAudioStatusMessageContext()
-	{
-		if ( GIsEditor && !IsRunningCommandlet() )
-		{
-			GWarn->PopStatus();
-		}
 	}
 };
 
@@ -659,7 +649,7 @@ static void CookSimpleWave(USoundWave* SoundWave, FName FormatName, const IAudio
 	if( SoundWave->RawData.GetBulkDataSize() > 0 )
 	{
 		// Lock raw wave data.
-		uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+		uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 		bWasLocked = true;
 		int32 RawDataSize = SoundWave->RawData.GetBulkDataSize();
 
@@ -671,7 +661,7 @@ static void CookSimpleWave(USoundWave* SoundWave, FName FormatName, const IAudio
 		else
 		{
 			Input.AddUninitialized(WaveInfo.SampleDataSize);
-			FMemory::Memcpy(Input.GetTypedData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
+			FMemory::Memcpy(Input.GetData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
 		}
 	}
 
@@ -733,7 +723,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 	FWaveModInfo			WaveInfo;
 	TArray<TArray<uint8> >	SourceBuffers;
 
-	uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+	uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 
 	// Front left channel is the master
 	ChannelCount = 1;
@@ -743,7 +733,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 		{
 			TArray<uint8>& Input = *new (SourceBuffers) TArray<uint8>;
 			Input.AddUninitialized(WaveInfo.SampleDataSize);
-			FMemory::Memcpy(Input.GetTypedData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
+			FMemory::Memcpy(Input.GetData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
 		}
 
 		SampleDataSize = WaveInfo.SampleDataSize;
@@ -759,7 +749,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 					ChannelCount++;
 					TArray<uint8>& Input = *new (SourceBuffers) TArray<uint8>;
 					Input.AddUninitialized(WaveInfoInner.SampleDataSize);
-					FMemory::Memcpy(Input.GetTypedData(), WaveInfoInner.SampleDataStart, WaveInfoInner.SampleDataSize);
+					FMemory::Memcpy(Input.GetData(), WaveInfoInner.SampleDataStart, WaveInfoInner.SampleDataSize);
 					SampleDataSize = FMath::Min<uint32>(WaveInfoInner.SampleDataSize, SampleDataSize);
 				}
 			}
@@ -1003,6 +993,28 @@ void USoundWave::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 	}
 
 	Super::BeginCacheForCookedPlatformData(TargetPlatform);
+}
+
+bool USoundWave::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) 
+{
+	if (TargetPlatform->SupportsFeature(ETargetPlatformFeatures::AudioStreaming) && IsStreaming())
+	{
+		// Retrieve format to cache for targetplatform.
+		FName PlatformFormat = TargetPlatform->GetWaveFormat(this);
+
+		// find format data by comparing derived data keys.
+		FString DerivedDataKey;
+		GetStreamedAudioDerivedDataKeySuffix(*this, PlatformFormat, DerivedDataKey);
+
+		FStreamedAudioPlatformData *PlatformData = CookedPlatformData.FindRef(DerivedDataKey);
+		if (PlatformData == NULL)
+		{
+			// we havne't called begincache
+			return false;
+		}
+		return PlatformData->IsFinishedCache();
+	}
+	return true; 
 }
 
 void USoundWave::FinishCachePlatformData()

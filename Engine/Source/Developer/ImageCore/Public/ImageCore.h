@@ -129,37 +129,37 @@ public:
 	uint8* AsG8()
 	{
 		check(Format == ERawImageFormat::G8);
-		return RawData.GetTypedData();
+		return RawData.GetData();
 	}
 
 	class FColor* AsBGRA8()
 	{
 		check(Format == ERawImageFormat::BGRA8);
-		return (class FColor*)RawData.GetTypedData();
+		return (class FColor*)RawData.GetData();
 	}
 
 	class FColor* AsBGRE8()
 	{
 		check(Format == ERawImageFormat::BGRE8);
-		return (class FColor*)RawData.GetTypedData();
+		return (class FColor*)RawData.GetData();
 	}
 
 	uint16* AsRGBA16()
 	{
 		check(Format == ERawImageFormat::RGBA16);
-		return (uint16*)RawData.GetTypedData();
+		return (uint16*)RawData.GetData();
 	}
 
 	class FFloat16Color* AsRGBA16F()
 	{
 		check(Format == ERawImageFormat::RGBA16F);
-		return (class FFloat16Color*)RawData.GetTypedData();
+		return (class FFloat16Color*)RawData.GetData();
 	}
 
 	struct FLinearColor* AsRGBA32F()
 	{
 		check(Format == ERawImageFormat::RGBA32F);
-		return (struct FLinearColor*)RawData.GetTypedData();
+		return (struct FLinearColor*)RawData.GetData();
 	}
 
 	// Convenience accessors to const raw data
@@ -167,36 +167,36 @@ public:
 	const uint8* AsG8() const
 	{
 		check(Format == ERawImageFormat::G8);
-		return RawData.GetTypedData();
+		return RawData.GetData();
 	}
 
 	const class FColor* AsBGRA8() const
 	{
 		check(Format == ERawImageFormat::BGRA8);
-		return (const class FColor*)RawData.GetTypedData();
+		return (const class FColor*)RawData.GetData();
 	}
 
 	const class FColor* AsBGRE8() const
 	{
 		check(Format == ERawImageFormat::BGRE8);
-		return (class FColor*)RawData.GetTypedData();
+		return (class FColor*)RawData.GetData();
 	}
 
 	const uint16* AsRGBA16() const
 	{
 		check(Format == ERawImageFormat::RGBA16);
-		return (const uint16*)RawData.GetTypedData();
+		return (const uint16*)RawData.GetData();
 	}
 
 	const class FFloat16Color* AsRGBA16F() const
 	{
 		check(Format == ERawImageFormat::RGBA16F);
-		return (const class FFloat16Color*)RawData.GetTypedData();
+		return (const class FFloat16Color*)RawData.GetData();
 	}
 
 	const struct FLinearColor* AsRGBA32F() const
 	{
 		check(Format == ERawImageFormat::RGBA32F);
-		return (struct FLinearColor*)RawData.GetTypedData();
+		return (struct FLinearColor*)RawData.GetData();
 	}
 };

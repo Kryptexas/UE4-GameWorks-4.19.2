@@ -98,7 +98,7 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 							.MaxWidth(600.0f)
 							.VAlign(VAlign_Center)
 							[
-								GenerateContentWidget(InContent, InArgs._WrapTextAt, DocumentationPage)
+								GenerateContentWidget(InContent, DocumentationPage, TAttribute<FText>(), false, InArgs._WrapTextAt)
 							]
 						]
 					]
@@ -281,7 +281,7 @@ static TSharedRef<SWidget> GetStageTitle(const FExcerpt& InExcerpt, int32 InCurr
 	return SNullWidget::NullWidget;
 }
 
-TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage, const TAttribute<FText>& InHighlightText)
+TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialContent& InContent, TSharedPtr<IDocumentationPage>& OutDocumentationPage, const TAttribute<FText>& InHighlightText, bool bAutoWrapText, float WrapTextAt)
 {
 	// Style for the documentation
 	static FDocumentationStyle DocumentationStyle;
@@ -301,13 +301,20 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 	{
 	case ETutorialContent::Text:
 		{
-			return SNew(STextBlock)
+			TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
 				.Visibility(EVisibility::SelfHitTestInvisible)
-				.WrapTextAt(WrapTextAt)
+				.AutoWrapText(bAutoWrapText)
 				.Text(InContent.Text)
 				.TextStyle(FEditorStyle::Get(), "Tutorials.Content")
 				.HighlightText(InHighlightText)
 				.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"));
+
+			if(!bAutoWrapText)
+			{
+				TextBlock->SetWrapTextAt(WrapTextAt);
+			}
+
+			return TextBlock;
 		}
 
 	case ETutorialContent::UDNExcerpt:
@@ -338,18 +345,22 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 	case ETutorialContent::RichText:
 		{
 			TArray< TSharedRef< class ITextDecorator > > Decorators;
-			FTutorialText::GetRichTextDecorators(Decorators);
+			const bool bForEditing = false;
+			FTutorialText::GetRichTextDecorators(bForEditing, Decorators);
 
-			return SNew(SRichTextBlock)
+			TSharedRef<SRichTextBlock> TextBlock = SNew(SRichTextBlock)
 					.Visibility(EVisibility::SelfHitTestInvisible)
 					.TextStyle(FEditorStyle::Get(), "Tutorials.Content.Text")
 					.DecoratorStyleSet(&FEditorStyle::Get())
 					.Decorators(Decorators)
 					.Text(InContent.Text)
+					.AutoWrapText(bAutoWrapText)
 					.WrapTextAt(WrapTextAt)
 					.Margin(4)
 					.LineHeightPercentage(1.1f)
 					.HighlightText(InHighlightText);
+
+			return TextBlock;
 		}
 		break;
 	}
@@ -688,6 +699,52 @@ FText STutorialContent::GetNextButtonLabel() const
 const FSlateBrush* STutorialContent::GetNextButtonBorder() const
 {
 	return NextButton->IsHovered() ? &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButton").Hovered : &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButton").Normal;
+}
+
+FReply STutorialContent::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	// Mouse back and forward buttons traverse history
+	if ( MouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton)
+	{
+		if(IsBackEnabled.Get())
+		{
+			OnBackClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+	else if ( MouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton2)
+	{
+		if(IsNextEnabled.Get())
+		{
+			OnNextClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply STutorialContent::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+{
+	// Mouse back and forward buttons traverse history
+	if ( InMouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton)
+	{
+		if(IsBackEnabled.Get())
+		{
+			OnBackClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+	else if ( InMouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton2)
+	{
+		if(IsNextEnabled.Get())
+		{
+			OnNextClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -88,8 +88,6 @@ struct ENGINE_API FMaterialRenderContext
 	const FMaterial& Material;
 	/** Whether or not selected objects should use their selection color. */
 	bool bShowSelection;
-	/** Whether to modify sampler state set with this context to work around mip map artifacts that show up in deferred passes. */
-	bool bWorkAroundDeferredMipArtifacts;
 
 	/** 
 	* Constructor
@@ -97,8 +95,7 @@ struct ENGINE_API FMaterialRenderContext
 	FMaterialRenderContext(
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterial,
-		const FSceneView* InView,
-		bool bInWorkAroundDeferredMipArtifacts = false);
+		const FSceneView* InView);
 };
 
 /**
@@ -179,11 +176,11 @@ public:
 
 	FMaterialUniformExpressionTexture();
 
-	FMaterialUniformExpressionTexture(int32 InTextureIndex);
+	FMaterialUniformExpressionTexture(int32 InTextureIndex, ESamplerSourceMode InSamplerSource);
 
 	// FMaterialUniformExpression interface.
 	virtual void Serialize(FArchive& Ar);
-	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const;
+	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue,ESamplerSourceMode& OutSamplerSource) const;
 	/** Accesses the texture used for rendering this uniform expression. */
 	virtual void GetGameThreadTextureValue(const class UMaterialInterface* MaterialInterface,const FMaterial& Material,UTexture*& OutValue,bool bAllowOverride=true) const;
 	virtual class FMaterialUniformExpressionTexture* GetTextureUniformExpression() { return this; }
@@ -200,6 +197,7 @@ public:
 protected:
 	/** Index into FMaterial::GetReferencedTextures */
 	int32 TextureIndex;
+	ESamplerSourceMode SamplerSource;
 	/** Texture that may be used in the editor for overriding the texture but never saved to disk, accessible only by the game thread! */
 	UTexture* TransientOverrideValue_GameThread;
 	/** Texture that may be used in the editor for overriding the texture but never saved to disk, accessible only by the rendering thread! */
@@ -817,7 +815,6 @@ public:
 	FMaterial():
 		RenderingThreadShaderMap(NULL),
 		Id_DEPRECATED(0,0,0,0),
-		OutstandingCompileShaderMapId(INDEX_NONE),
 		QualityLevel(EMaterialQualityLevel::High),
 		bQualityLevelHasDifferentNodes(false),
 		FeatureLevel(ERHIFeatureLevel::SM4),
@@ -940,6 +937,13 @@ public:
 	 */
 	ENGINE_API void FinishCompilation();
 
+	/**
+	 * Checks if the compilation for this shader is finished
+	 * 
+	 * @return returns true if compilation is complete false otherwise
+	 */
+	ENGINE_API bool IsCompilationFinished();
+
 	EMaterialQualityLevel::Type GetQualityLevel() const 
 	{
 		return QualityLevel;
@@ -951,6 +955,8 @@ public:
 	const TArray<UMaterialExpression*>& GetErrorExpressions() const { return ErrorExpressions; }
 	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& GetUniform2DTextureExpressions() const;
 	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& GetUniformCubeTextureExpressions() const;
+	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpression> >& GetUniformVectorParameterExpressions() const;
+	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpression> >& GetUniformScalarParameterExpressions() const;
 	const FGuid& GetLegacyId() const { return Id_DEPRECATED; }
 
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
@@ -997,9 +1003,10 @@ public:
 	/** Note: SetGameThreadShaderMap must also be called with the same value, but from the game thread. */
 	ENGINE_API void SetRenderingThreadShaderMap(FMaterialShaderMap* InMaterialShaderMap);
 
-	void ClearOutstandingCompileId()
+	void RemoveOutstandingCompileId(const int32 OldOutstandingCompileShaderMapId )
 	{
-		OutstandingCompileShaderMapId = INDEX_NONE;
+		OutstandingCompileShaderMapIds.Remove( OldOutstandingCompileShaderMapId );
+		// UE_LOG(LogMaterial, Display, TEXT("Removing compile shader map id %d"), OldOutstandingCompileShaderMapId);
 	}
 
 	void AddReferencedObjects(FReferenceCollector& Collector);
@@ -1040,7 +1047,7 @@ public:
 	}
 
 	/** Recompiles any materials in the EditorLoadedMaterialResources list if they are not complete. */
-	static void UpdateEditorLoadedMaterialResources();
+	static void UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlatform);
 
 	/** Backs up any FShaders in editor loaded materials to memory through serialization and clears FShader references. */
 	static void BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
@@ -1122,7 +1129,7 @@ private:
 	 * Contains the compiling id of this shader map when it is being compiled asynchronously. 
 	 * This can be used to access the shader map during async compiling, since GameThreadShaderMap will not have been set yet.
 	 */
-	int32 OutstandingCompileShaderMapId;
+	TArray<int32, TInlineAllocator<1> > OutstandingCompileShaderMapIds;
 
 	/** Quality level that this material is representing. */
 	EMaterialQualityLevel::Type QualityLevel;
@@ -1184,10 +1191,6 @@ struct FUniformExpressionCache
 	FUniformBufferRHIRef UniformBuffer;
 	/** Material uniform buffer. */
 	FLocalUniformBuffer LocalUniformBuffer;
-	/** Textures referenced by uniform expressions. */
-	TArray<const UTexture*> Textures;
-	/** Cube textures referenced by uniform expressions. */
-	TArray<const UTexture*> CubeTextures;
 	/** Ids of parameter collections needed for rendering. */
 	TArray<FGuid> ParameterCollections;
 	/** True if the cache is up to date. */
@@ -1556,7 +1559,7 @@ public:
 	};
 
 	/** Initialization constructor. */
-	explicit ENGINE_API FMaterialUpdateContext(uint32 Options = EOptions::Default, EShaderPlatform InShaderPlatform=GRHIShaderPlatform);
+	explicit ENGINE_API FMaterialUpdateContext(uint32 Options = EOptions::Default, EShaderPlatform InShaderPlatform = GMaxRHIShaderPlatform);
 
 	/** Destructor. */
 	ENGINE_API ~FMaterialUpdateContext();

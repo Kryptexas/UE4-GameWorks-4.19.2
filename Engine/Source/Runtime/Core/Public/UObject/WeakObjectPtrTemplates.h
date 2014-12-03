@@ -1,17 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WeakObjectPtrTemplates.h: FWeakObjectPtr template specializations.
-=============================================================================*/
-
 #pragma once
 
 #include "AutoPointer.h"
 
+
 /***
  * 
  * FWeakObjectPtr is a weak pointer to a UObject. 
- * It can return NULL later if the object is garbage collected.
+ * It can return nullptr later if the object is garbage collected.
  * It has no impact on if the object is garbage collected or not.
  * It can't be directly used across a network.
  *
@@ -19,6 +16,7 @@
  **/
 struct FWeakObjectPtr;
 struct FIndexToObject;
+
 
 /***
 * 
@@ -29,10 +27,10 @@ template<class T=UObject, class TWeakObjectPtrBase=FWeakObjectPtr, class TUObjec
 struct TWeakObjectPtr : private TWeakObjectPtrBase
 {
 public:
-	/** NULL constructor **/
-	FORCEINLINE TWeakObjectPtr()
-	{
-	}
+
+	/** Default constructor (no initialization). **/
+	FORCEINLINE TWeakObjectPtr() { }
+
 	/**  
 	 * Construct from an object pointer
 	 * @param Object object to create a weak pointer to
@@ -51,8 +49,7 @@ public:
 	**/
 	FORCEINLINE TWeakObjectPtr(const TWeakObjectPtr<T> &Other) :
 		TWeakObjectPtrBase(Other)
-	{
-	}
+	{ }
 
 	/**  
 	 * Construct from another weak pointer of another type, intended for derived-to-base conversions
@@ -332,5 +329,3 @@ void CopyFromWeakArray(T& Dest,const U& Src)
 		}
 	}
 }
-
-

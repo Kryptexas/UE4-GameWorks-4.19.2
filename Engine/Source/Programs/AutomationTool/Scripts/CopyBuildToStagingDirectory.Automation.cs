@@ -143,6 +143,46 @@ public partial class Project : CommandUtils
 		}
 	}
 
+    private static int StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
+    {
+        int FilesAdded = 0;
+
+        string[] LocaleTags = CultureName.Replace('-', '_').Split('_');
+
+        List<string> PotentialParentCultures = new List<string>();
+        
+        if (LocaleTags.Length > 0)
+        {
+            if (LocaleTags.Length > 1 && LocaleTags.Length > 2)
+            {
+                PotentialParentCultures.Add(string.Join("_", LocaleTags[0], LocaleTags[1], LocaleTags[2]));
+            }
+            if (LocaleTags.Length > 2)
+            {
+                PotentialParentCultures.Add(string.Join("_", LocaleTags[0], LocaleTags[2]));
+            }
+            if (LocaleTags.Length > 1)
+            {
+                PotentialParentCultures.Add(string.Join("_", LocaleTags[0], LocaleTags[1]));
+            }
+            PotentialParentCultures.Add(LocaleTags[0]);
+        }
+
+        string[] FoundDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { SourceDirectory });
+        foreach (string FoundDirectory in FoundDirectories)
+        {
+            string DirectoryName = CommandUtils.GetLastDirectoryName(FoundDirectory);
+            string CanonicalizedPotentialCulture = DirectoryName.Replace('-', '_');
+
+            if (PotentialParentCultures.Contains(CanonicalizedPotentialCulture))
+            {
+                FilesAdded += SC.StageFiles(StagedFileType.UFS, CombinePaths(SourceDirectory, DirectoryName), "*.locres", true, null, DestinationDirectory != null ? CombinePaths(DestinationDirectory, DirectoryName) : null, true, bRemap);
+            }
+        }
+
+        return FilesAdded;
+    }
+
 	public static void CreateStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
 		if (!Params.Stage)
@@ -175,20 +215,42 @@ public partial class Project : CommandUtils
 
 		if (!Params.CookOnTheFly && !Params.SkipCookOnTheFly) // only stage the UFS files if we are not using cook on the fly
 		{
-            ConfigCacheIni PlatformGameConfig = null;
-            Params.GameConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig);
+            ConfigCacheIni PlatformGameConfig = new ConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Game", CommandUtils.GetDirectoryName(Params.RawProjectPath));
+
+            // Initialize internationalization preset.
+            string InternationalizationPreset = null;
+
+            // Use parameters if provided.
+            if (string.IsNullOrEmpty(InternationalizationPreset))
+            {
+                InternationalizationPreset = Params.InternationalizationPreset;
+            }
+
+            // Use configuration if otherwise lacking an internationalization preset.
+            if (string.IsNullOrEmpty(InternationalizationPreset))
+            {
+                if (PlatformGameConfig != null)
+                {
+                    PlatformGameConfig.GetString("/Script/UnrealEd.ProjectPackagingSettings", "InternationalizationPreset", out InternationalizationPreset);
+                }
+            }
+
+            // Error if no preset has been provided.
+            if (string.IsNullOrEmpty(InternationalizationPreset))
+            {
+                throw new AutomationException("No internationalization preset was specified for packaging. This will lead to fatal errors when launching. Specify preset via commandline (-I18NPreset=) or project packaging settings (InternationalizationPreset).");
+            }
 
             // Initialize cultures to stage.
             List<string> CulturesToStage = null;
-            if (CulturesToStage != null)
+
+            // Use parameters if provided.
+            if (Params.CulturesToCook != null && Params.CulturesToCook.Count > 0)
             {
-                CulturesToStage.AddRange(Params.CulturesToCook);
-            }
-            else
-            {
-                CulturesToStage = new List<string>(Params.CulturesToCook);
+                CulturesToStage = Params.CulturesToCook;
             }
 
+            // Use configuration if otherwise lacking cultures to stage.
             if (CulturesToStage == null || CulturesToStage.Count == 0)
             {
                 if (PlatformGameConfig != null)
@@ -197,10 +259,14 @@ public partial class Project : CommandUtils
                 }
             }
 
+            // Error if no cultures have been provided.
             if (CulturesToStage == null || CulturesToStage.Count == 0)
             {
                 throw new AutomationException("No cultures were specified for cooking and packaging. This will lead to fatal errors when launching. Specify culture codes via commandline (-CookCultures=) or using project packaging settings (+CulturesToStage).");
             }
+
+            // Stage ICU internationalization data from Engine.
+            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), "*", true, null, CombinePaths("Engine", "Content", "Internationalization"), true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// Engine ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
@@ -213,11 +279,10 @@ public partial class Project : CommandUtils
 				}
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.UsePak(SC.StageTargetPlatform));
-
 			}
             foreach (string Culture in CulturesToStage)
             {
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine", Culture), "*.locres", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
+                StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
             }
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "*.uplugin", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
 
@@ -228,7 +293,7 @@ public partial class Project : CommandUtils
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins"), "*.uplugin", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
 			foreach (string Culture in CulturesToStage)
 			{
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Game", Culture), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game", Culture), true, !Params.UsePak(SC.StageTargetPlatform));
+                StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.ProjectRoot, "Content/Localization/Game"), CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game"), !Params.UsePak(SC.StageTargetPlatform));
 			}
 
 			// Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
@@ -291,7 +356,8 @@ public partial class Project : CommandUtils
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Shaders/StandaloneRenderer"));
 
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"));
+                SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), "*", true, null, CombinePaths("Engine", "Content", "Internationalization"), false, true);
+
 				// Linux platform stages ICU in GetFilesToDeployOrStage(), accounting for the actual architecture
 				if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64 ||
 					SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win32 ||
@@ -698,7 +764,17 @@ public partial class Project : CommandUtils
 		MaybeConvertToLowerCase(Params, SC);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage)
 		{
-			DeleteDirectory(SC.StageDirectory);
+            try
+            {
+                DeleteDirectory(SC.StageDirectory);
+            }
+            catch (Exception Ex)
+            {
+                // Delete cooked data (if any) as it may be incomplete / corrupted.
+                Log("Failed to delete staging directory "+SC.StageDirectory);
+                AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_FailedToDeleteStagingDirectory);
+                throw Ex;   
+            }
 		}
 		if (ShouldCreatePak(Params, SC))
 		{
@@ -982,7 +1058,7 @@ public partial class Project : CommandUtils
 				ExecutablesToStage,
 				InDedicatedServer,
 				Params.Cook || Params.CookOnTheFly,
-				Params.CrashReporter,
+				Params.CrashReporter && (StagePlatform != UnrealTargetPlatform.Linux || !Params.Rocket),
 				Params.Stage,
 				Params.CookOnTheFly,
 				Params.Archive,

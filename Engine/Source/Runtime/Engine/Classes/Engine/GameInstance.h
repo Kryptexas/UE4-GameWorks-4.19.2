@@ -1,13 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// GameInstance: High-level manager object for a instance of the running game.
-// Spawned at game creation and not destroyed until game instance is shut down.
-// Running as a standalone game, there will be one of these.  Running in PIE
-// will generate one of these per PIE instance.
-//=============================================================================
-
 #pragma once
+#include "EngineBaseTypes.h"
 #include "GameInstance.generated.h"
 
 
@@ -27,6 +21,13 @@ namespace GameInstanceState
 
 class FOnlineSessionSearchResult;
 
+
+/**
+ * GameInstance: high-level manager object for an instance of the running game.
+ * Spawned at game creation and not destroyed until game instance is shut down.
+ * Running as a standalone game, there will be one of these.
+ * Running in PIE (play-in-editor) will generate one of these per PIE instance.
+ */
 
 UCLASS(config=Game, transient, BlueprintType, Blueprintable)
 class ENGINE_API UGameInstance : public UObject, public FExec
@@ -55,14 +56,33 @@ public:
 	virtual class UWorld* GetWorld() const override;
 	// End UObject Interface
 
-	/** Gives GameInstance an opportunity to set up what it needs */
+	/** virtual function to allow custom GameInstances an opportunity to set up what it needs */
 	virtual void Init();
+
+	/** Opportunity for blueprints to handle the game instance being initialized. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Init"))
+	virtual void ReceiveInit();
 
 	/** virtual function to allow custom GameInstances an opportunity to do cleanup when shutting down */
 	virtual void Shutdown();
 
+	/** Opportunity for blueprints to handle the game instance being shutdown. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Shutdown"))
+	virtual void ReceiveShutdown();
+
+	/** Opportunity for blueprints to handle network errors. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "NetworkError"))
+	virtual void HandleNetworkError(ENetworkFailure::Type FailureType, bool bIsServer);
+
+	/** Opportunity for blueprints to handle travel errors. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "TravelError"))
+	virtual void HandleTravelError(ETravelFailure::Type FailureType);
+
+	/* Called to initialize the game instance for standalone instances of the game */
+	void InitializeStandalone();
 #if WITH_EDITOR
-	virtual bool InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance);
+	/* Called to initialize the game instance for PIE instances of the game */
+	bool InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance);
 
 	bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
 #endif
@@ -75,7 +95,7 @@ public:
 	/** Starts the GameInstance state machine running */
 	virtual void StartGameInstance();
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults) { return false; }
-	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult & SearchResult) { return false; }
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) { return false; }
 
 	/** Local player access */
 

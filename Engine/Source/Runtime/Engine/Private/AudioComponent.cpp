@@ -9,8 +9,8 @@
 /*-----------------------------------------------------------------------------
 UAudioComponent implementation.
 -----------------------------------------------------------------------------*/
-UAudioComponent::UAudioComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoDestroy = false;
 	bAutoPlay_DEPRECATED = false;

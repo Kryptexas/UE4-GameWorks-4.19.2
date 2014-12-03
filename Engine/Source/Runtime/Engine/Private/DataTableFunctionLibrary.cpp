@@ -2,9 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "../Classes/Kismet/DataTableFunctionLibrary.h"
+#include "Engine/CurveTable.h"
 
-UDataTableFunctionLibrary::UDataTableFunctionLibrary(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDataTableFunctionLibrary::UDataTableFunctionLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

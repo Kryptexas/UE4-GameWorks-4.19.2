@@ -3,11 +3,11 @@
 #include "EnginePrivate.h"
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 
-APrecomputedVisibilityVolume::APrecomputedVisibilityVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APrecomputedVisibilityVolume::APrecomputedVisibilityVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bColored = true;
 	BrushColor.R = 25;
 	BrushColor.G = 255;

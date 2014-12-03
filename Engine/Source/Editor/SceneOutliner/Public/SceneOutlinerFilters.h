@@ -91,7 +91,7 @@ namespace SceneOutliner
 
 		/** Meta template used to extract the filter type from a pointer or raw ptr proxy (to support MakeShareable) */
 		template <class> struct TGetFilterType;
-		template <class X, template<class, ESPMode::Type> class TPtr, ESPMode::Type E> struct TGetFilterType<TPtr<X, E>> { typedef typename X::ItemType Type; };
+		template <class X, template<class, ESPMode> class TPtr, ESPMode E> struct TGetFilterType<TPtr<X, E>> { typedef typename X::ItemType Type; };
 		template <class X, template<class> class TPtr> struct TGetFilterType<TPtr<X>> { typedef typename X::ItemType Type; };
 
 		/** Add a custom filter to this collection.

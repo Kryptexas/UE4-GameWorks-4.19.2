@@ -374,7 +374,7 @@ FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
 void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
@@ -640,7 +640,7 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 
 bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil);
 
 	const FSceneView& View = Context.View;
 
@@ -714,18 +714,11 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	bool bDBuffer = IsDBufferEnabled();
 	float bDecalPreStencil = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
 
-	{
-		FRenderingCompositeOutput* OutputOfMyInput = GetInput(ePId_Input0)->GetOutput();
-		PassOutputs[0].PooledRenderTarget = OutputOfMyInput->PooledRenderTarget;
-		OutputOfMyInput->RenderTargetDesc.DebugName = PassOutputs[0].RenderTargetDesc.DebugName;
-		PassOutputs[0].RenderTargetDesc = OutputOfMyInput->RenderTargetDesc;
-	}
-
-	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals);
 
 	if(RenderStage == 0)
 	{
-		// before BasePass, onkly if DBuffer is enabled
+		// before BasePass, only if DBuffer is enabled
 
 		check(bDBuffer);
 
@@ -754,7 +747,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		}
 
 
-		SCOPED_DRAW_EVENT(RHICmdList, DBufferClear, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
 		{
 			// could be optimized
 			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
@@ -776,14 +769,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	if(!Scene.Decals.Num())
 	{
 		// to avoid the stats showing up
-		return;
-	}
-
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if(!InputDesc)
-	{
-		// input is not hooked up correctly
 		return;
 	}
 
@@ -836,8 +821,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	}
 
 	if(SortedDecals.Num() > 0)
-	{		
-		FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
+	{
 		FIntRect SrcRect = View.ViewRect;
 		FIntRect DestRect = View.ViewRect;
 
@@ -888,7 +872,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		int32 WasInsideDecal = -1;
 		const ERHIFeatureLevel::Type SMFeatureLevel = Context.GetFeatureLevel();
 
-		SCOPED_DRAW_EVENT(RHICmdList, Decals, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Decals);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());
 		
 		RHICmdList.SetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
@@ -938,7 +922,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					case RTM_SceneColorAndGBuffer:
 						{
 							FTextureRHIParamRef RenderTargets[5];
-							RenderTargets[0] = PassOutputs[0].PooledRenderTarget->GetRenderTargetItem().TargetableTexture;
+							RenderTargets[0] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[1] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[2] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[3] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
@@ -952,7 +936,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						break;
 					
 					case RTM_SceneColor:
-						SetRenderTarget(RHICmdList, PassOutputs[0].PooledRenderTarget->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
+						SetRenderTarget(RHICmdList, GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 						break;
 
 					case RTM_DBuffer:

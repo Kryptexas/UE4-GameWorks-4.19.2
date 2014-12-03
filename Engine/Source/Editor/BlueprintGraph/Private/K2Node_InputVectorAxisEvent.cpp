@@ -7,8 +7,8 @@
 #include "Engine/InputVectorAxisDelegateBinding.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-UK2Node_InputVectorAxisEvent::UK2Node_InputVectorAxisEvent(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UK2Node_InputVectorAxisEvent::UK2Node_InputVectorAxisEvent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	EventSignatureName = TEXT("InputVectorAxisHandlerDynamicSignature__DelegateSignature");
 }

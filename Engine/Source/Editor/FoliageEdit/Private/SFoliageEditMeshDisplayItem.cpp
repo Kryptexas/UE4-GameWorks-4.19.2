@@ -14,6 +14,7 @@
 
 #include "SFoliageEditMeshDisplayItem.h"
 #include "ObjectEditorUtils.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 
@@ -58,6 +59,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 	}
 
 	SAssignNew(ThumbnailBox, SBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.MeshImage"), "LevelEditorToolbox"))
 		.WidthOverride(80).HeightOverride(80)
 		[
 			SAssignNew(ThumbnailWidgetBorder, SBorder)
@@ -85,6 +87,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 			[
 				SNew(SHorizontalBox)
 				.Visibility(this, &SFoliageEditMeshDisplayItem::IsNotReapplySettingsVisible)
+				.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.Density"), "LevelEditorToolbox"))
 				.ToolTipText(LOCTEXT("Density_Tooltip", "Foliage instances will be placed at this density, specified in instances per 1000x1000 unit area."))
 
 				+ SHorizontalBox::Slot()
@@ -165,6 +168,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 			.Padding(StandardPadding)
 			[
 				SNew(SHorizontalBox)
+				.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.Radius"), "LevelEditorToolbox"))
 				.ToolTipText(LOCTEXT("Radius_Tooltip", "The minimum distance between foliage instances."))
 
 				+ SHorizontalBox::Slot()
@@ -207,6 +211,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> AlignToNormalBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.AlignToNormal"), "LevelEditorToolbox"))			
 		.ToolTipText(LOCTEXT("AlignToNormal_Tooltip", "Whether foliage instances should have their angle adjusted away from vertical to match the normal of the surface they're painted on"))
 
 		+ SHorizontalBox::Slot()
@@ -235,6 +240,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 	TSharedRef<SHorizontalBox> MaxAngleBox =
 		SNew(SHorizontalBox)
 		.Visibility(this, &SFoliageEditMeshDisplayItem::IsAlignToNormalVisible)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.MaxAngle"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("MaxAngle_Tooltip", "The maximum angle in degrees that foliage instances will be adjusted away from the vertical"))
 
 		// Dummy Checkbox
@@ -279,6 +285,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> RandomYawBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.RandomYaw"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("RandomYaw_Tooltip", "If selected, foliage instances will have a random yaw rotation around their vertical axis applied"))
 
 		+ SHorizontalBox::Slot()
@@ -306,6 +313,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> UniformScaleBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.UniformScale"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("UniformScale_Tooltip", "If selected, foliage instances will have unfiorm  X,Y and Z scales"))
 
 		// Dummy Checkbox
@@ -348,6 +356,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 	TSharedRef<SHorizontalBox> ScaleUniformBox =
 		SNew(SHorizontalBox)
 		.Visibility(this, &SFoliageEditMeshDisplayItem::IsUniformScalingVisible)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.ScaleValues"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("ScaleUniformValues_Tooltip", "Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Scale property, applied uniformly to X, Y and Z."))
 
 		+ SHorizontalBox::Slot()
@@ -685,6 +694,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> ZOffsetBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.ZOffset"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("ZOffset_Tooltip", "Specifies a range from minimum to maximum of the offset to apply to a foliage instance's Z location"))
 
 		+ SHorizontalBox::Slot()
@@ -769,6 +779,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> RandomPitchBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.RandomPitch"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("RandomPitch_Tooltip", "A random pitch adjustment can be applied to each instance, up to the specified angle in degrees, from the original vertical."))
 
 		+ SHorizontalBox::Slot()
@@ -814,6 +825,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 		];
 
 	TSharedRef<SHorizontalBox> GroundSlopeBox = SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.GroundSlope"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("GroundSlope_Tooltip", "If non-zero, foliage instances will only be placed on surfaces sloping less than the angle specified from the horizontal. Negative values reverse the test, placing instances only on surfaces sloping greater than the specified angle."))
 
 		+ SHorizontalBox::Slot()
@@ -860,6 +872,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> HeightBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.Height"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("Height_Tooltip", "The valid altitude range where foliage instances will be placed, specified using minimum and maximum world coordinate Z values"))
 
 		+ SHorizontalBox::Slot()
@@ -939,6 +952,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> LandscapeLayerBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.LandscapeLayer"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("LandscapeLayer_Tooltip", "If a layer name is specified, painting on landscape will limit the foliage to areas of landscape with the specified layer painted."))
 
 		+ SHorizontalBox::Slot()
@@ -982,6 +996,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> CollisionWithWorldBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.CollisionWorld"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("CollisionWorld_Tooltip", "If checked, an overlap test with existing world geometry is performed before each instance is placed."))
 
 		+ SHorizontalBox::Slot()
@@ -1112,6 +1127,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 
 	TSharedRef<SHorizontalBox> VertexColorMaskBox =
 		SNew(SHorizontalBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.VertexColorMask"), "LevelEditorToolbox"))
 		.ToolTipText(LOCTEXT("VertexColorMask_Tooltip", "When painting on static meshes, foliage instance placement can be limited to areas where the static mesh has values in the selected vertex color channel(s). This allows a static mesh to mask out certain areas to prevent foliage from being placed there."))
 
 		+ SHorizontalBox::Slot()
@@ -1496,6 +1512,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnReplace)
 						.ToolTipText(NSLOCTEXT("FoliageEdMode", "Replace_Tooltip", "Replace all instances with the Static Mesh currently selected in the Content Browser."))
+						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.ReplaceInstances"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
 							.Image(FEditorStyle::GetBrush(TEXT("ContentReference.UseSelectionFromContentBrowser")))
@@ -1510,6 +1527,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnSync)
 						.ToolTipText(NSLOCTEXT("FoliageEdMode", "FindInContentBrowser_Tooltip", "Find this Static Mesh in the Content Browser."))
+						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.FindInBrowser"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
 							.Image(FEditorStyle::GetBrush(TEXT("ContentReference.FindInContentBrowser")))
@@ -1524,6 +1542,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnRemove)
 						.ToolTipText(NSLOCTEXT("FoliageEdMode", "Remove_Tooltip", "Delete all foliage instances of this Static Mesh."))
+						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.DeleteInstances"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
 							.Image(FEditorStyle::GetBrush(TEXT("ContentReference.Clear")))
@@ -1554,6 +1573,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnOpenSettings)
 						.ToolTipText(NSLOCTEXT("FoliageEdMode", "OpenSettings_Tooltip", "Use the InstancedFoliageSettings currently selected in the Content Browser."))
+						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.OpenSettings"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
 							.Image(FEditorStyle::GetBrush(TEXT("FoliageEditMode.OpenSettings")))
@@ -1567,6 +1587,7 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.OnClicked(this, &SFoliageEditMeshDisplayItem::OnSaveRemoveSettings)
 						.ToolTipText(this, &SFoliageEditMeshDisplayItem::GetSaveRemoveSettingsTooltip)
+						.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("Foliage.SaveSettings"), "LevelEditorToolbox"))
 						[
 							SNew(SImage)
 							.Image(this, &SFoliageEditMeshDisplayItem::GetSaveSettingsBrush)

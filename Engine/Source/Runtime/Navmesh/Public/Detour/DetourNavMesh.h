@@ -726,6 +726,11 @@ public:
 
 	/// Helper for creating links in off-mesh connections
 	void linkOffMeshHelper(dtMeshTile* tile0, unsigned int polyIdx0, dtMeshTile* tile1, unsigned int polyIdx1, unsigned char side, unsigned char edge);
+
+	inline bool isEmpty() const
+	{
+		return (m_tileWidth > 0 && m_tileHeight > 0) == false;
+	}
 	//@UE4 END
 	
 private:
@@ -776,10 +781,10 @@ private:
 	
 	/// Queries polygons within a tile.
 	int queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
-							dtPolyRef* polys, const int maxPolys) const;
+							dtPolyRef* polys, const int maxPolys, bool bExcludeUnwalkable = false) const;
 	/// Find nearest polygon within a tile.
 	dtPolyRef findNearestPolyInTile(const dtMeshTile* tile, const float* center,
-									const float* extents, float* nearestPt) const;
+									const float* extents, float* nearestPt, bool bExcludeUnwalkable = false) const;
 	/// Returns closest point on polygon.
 	void closestPointOnPolyInTile(const dtMeshTile* tile, unsigned int ip,
 								  const float* pos, float* closest) const;

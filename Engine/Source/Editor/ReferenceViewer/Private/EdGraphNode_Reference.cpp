@@ -9,8 +9,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UEdGraphNode_Reference
 
-UEdGraphNode_Reference::UEdGraphNode_Reference(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphNode_Reference::UEdGraphNode_Reference(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DependencyPin = NULL;
 	ReferencerPin = NULL;

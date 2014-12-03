@@ -327,7 +327,7 @@ float4 Main( VertexOut VIn ) : SV_Target0
 	OutColor = ApplyColorVisionDeficiencyFilter(OutColor);
 #endif
 
-#if !COMPILER_GLSL_ES2
+#if !(ES2_PROFILE || ES3_1_PROFILE)
 	// gamma correct
 	OutColor.rgb = pow(OutColor.rgb,InvDisplayGamma);
 #endif

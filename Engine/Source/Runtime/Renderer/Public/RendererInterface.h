@@ -147,8 +147,17 @@ public:
 	}
 
 	/** Comparison operator to test if a render target can be reused */
-	bool operator==(const FPooledRenderTargetDesc& rhs) const
+	bool Compare(const FPooledRenderTargetDesc& rhs, bool bExact) const
 	{
+		auto LhsFlags = Flags;
+		auto RhsFlags = rhs.Flags;
+
+		if(!bExact)
+		{
+			LhsFlags &= (~TexCreate_FastVRAM);
+			RhsFlags &= (~TexCreate_FastVRAM);
+		}
+		
 		return Extent == rhs.Extent
 			&& Depth == rhs.Depth
 			&& bIsArray == rhs.bIsArray
@@ -156,7 +165,7 @@ public:
 			&& NumMips == rhs.NumMips
 			&& NumSamples == rhs.NumSamples
 			&& Format == rhs.Format
-			&& Flags == rhs.Flags
+			&& LhsFlags == RhsFlags
 			&& TargetableFlags == rhs.TargetableFlags
 			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource;
 	}
@@ -403,6 +412,27 @@ public:
 	}
 };
 
+/** The empty vertex declaration resource type. */
+class FEmptyVertexDeclaration : public FRenderResource
+{
+public:
+	FVertexDeclarationRHIRef VertexDeclarationRHI;
+
+	/** Destructor. */
+	virtual ~FEmptyVertexDeclaration() {}
+
+	virtual void InitRHI()
+	{
+		FVertexDeclarationElementList Elements;
+		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
+	}
+
+	virtual void ReleaseRHI()
+	{
+		VertexDeclarationRHI.SafeRelease();
+	}
+};
+
 // use r.DrawDenormalizedQuadMode to override the function call setting (quick way to see if an artifact is caused why this optimization)
 enum EDrawRectangleFlags
 {
@@ -412,6 +442,21 @@ enum EDrawRectangleFlags
 	EDRF_UseTriangleOptimization
 };
 
+class ICustomVisibilityQuery: public IRefCountedObject
+{
+public:
+	/** prepares the query for visibility tests */
+	virtual bool Prepare() = 0;
+
+	/** test primitive visiblity */
+	virtual bool IsVisible(int32 VisibilityId, const FBoxSphereBounds& Bounds) = 0;
+};
+
+class ICustomCulling
+{
+public:
+	virtual ICustomVisibilityQuery* CreateQuery (const FSceneView& View) = 0;
+};
 
 
 
@@ -430,7 +475,7 @@ public:
 	 * @param World - An optional world to associate with the scene.
 	 * @param bInRequiresHitProxies - Indicates that hit proxies should be rendered in the scene.
 	 */
-	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel) = 0;
+	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel) = 0;
 	
 	virtual void RemoveScene(FSceneInterface* Scene) = 0;
 
@@ -506,6 +551,10 @@ public:
 
 	/** @return Returns a vertex declaration that can be used with with the DrawRectangle() function */
 	virtual TGlobalResource<FFilterVertexDeclaration>& GetFilterVertexDeclaration() = 0;
+
+	/** Register/unregister a custom occlusion culling implementation */
+	virtual void RegisterCustomCullingImpl(ICustomCulling* impl) = 0;
+	virtual void UnregisterCustomCullingImpl(ICustomCulling* impl) = 0;
 };
 
 

@@ -198,6 +198,14 @@ public:
 		return AnnotationMap;
 	}
 
+	/** 
+	 * Reserves memory for the annotation map for the specified number of elements, used to avoid reallocations. 
+	 */
+	void Reserve(int32 ExpectedNumElements)
+	{
+		AnnotationMap.Empty(ExpectedNumElements);
+	}
+
 private:
 
 	/**
@@ -407,6 +415,13 @@ public:
 		return this->GetAnnotation(Object).Mark;
 	}
 
+	/** 
+	 * Reserves memory for the annotation map for the specified number of elements, used to avoid reallocations. 
+	 */
+	FORCEINLINE void Reserve(int32 ExpectedNumElements)
+	{
+		FUObjectAnnotationSparse<FBoolAnnotation,true>::Reserve(ExpectedNumElements);
+	}
 };
 
 
@@ -499,7 +514,7 @@ public:
 				int32 Start = AnnotationArray.AddUninitialized(AddNum);
 				while (AddNum--) 
 				{
-					new (AnnotationArray.GetTypedData() + Start++) TAnnotation();
+					new (AnnotationArray.GetData() + Start++) TAnnotation();
 				}
 			}
 			AnnotationArray[Index] = Annotation;

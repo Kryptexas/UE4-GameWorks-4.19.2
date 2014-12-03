@@ -20,6 +20,13 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 
 #include "AssetRegistryModule.h"
+#include "SSearchBox.h"
+
+#include "WidgetBlueprintCompiler.h"
+
+#include "Blueprint/UserWidget.h"
+#include "WidgetBlueprint.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -46,6 +53,7 @@ public:
 		ChildSlot
 		[
 			SNew(SHorizontalBox)
+			.Visibility(EVisibility::Visible)
 			.ToolTip(Template->GetToolTip())
 
 			+ SHorizontalBox::Slot()
@@ -67,6 +75,11 @@ public:
 				.HighlightText(InArgs._HighlightText)
 			]
 		];
+	}
+
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override
+	{
+		return Template->OnDoubleClicked();
 	}
 
 private:

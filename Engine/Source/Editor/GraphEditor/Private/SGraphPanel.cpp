@@ -20,6 +20,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SGraphPanel"), STAT_SlateOnPaint_SGraphPanel, STATGROUP_Slate );
 
 SGraphPanel::FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 {
@@ -540,44 +541,44 @@ void SGraphPanel::UpdateSelectedNodesPositions (FVector2D PositionIncrement)
 	}
 }
 
-FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if( IsEditable.Get() )
 	{
-		if( InKeyboardEvent.GetKey() == EKeys::Up  ||InKeyboardEvent.GetKey() ==  EKeys::NumPadEight )
+		if( InKeyEvent.GetKey() == EKeys::Up  ||InKeyEvent.GetKey() ==  EKeys::NumPadEight )
 		{
 			UpdateSelectedNodesPositions(FVector2D(0.0f,-GetSnapGridSize()));
 			return FReply::Handled();
 		}
-		if( InKeyboardEvent.GetKey() ==  EKeys::Down || InKeyboardEvent.GetKey() ==  EKeys::NumPadTwo )
+		if( InKeyEvent.GetKey() ==  EKeys::Down || InKeyEvent.GetKey() ==  EKeys::NumPadTwo )
 		{
 			UpdateSelectedNodesPositions(FVector2D(0.0f,GetSnapGridSize()));
 			return FReply::Handled();
 		}
-		if( InKeyboardEvent.GetKey() ==  EKeys::Right || InKeyboardEvent.GetKey() ==  EKeys::NumPadSix )
+		if( InKeyEvent.GetKey() ==  EKeys::Right || InKeyEvent.GetKey() ==  EKeys::NumPadSix )
 		{
 			UpdateSelectedNodesPositions(FVector2D(GetSnapGridSize(),0.0f));
 			return FReply::Handled();
 		}
-		if( InKeyboardEvent.GetKey() ==  EKeys::Left || InKeyboardEvent.GetKey() ==  EKeys::NumPadFour )
+		if( InKeyEvent.GetKey() ==  EKeys::Left || InKeyEvent.GetKey() ==  EKeys::NumPadFour )
 		{
 			UpdateSelectedNodesPositions(FVector2D(-GetSnapGridSize(),0.0f));
 			return FReply::Handled();
 		}
-		if ( InKeyboardEvent.GetKey() ==  EKeys::Subtract )
+		if ( InKeyEvent.GetKey() ==  EKeys::Subtract )
 		{
-			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyboardEvent.IsControlDown());
+			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
-		if ( InKeyboardEvent.GetKey() ==  EKeys::Add )
+		if ( InKeyEvent.GetKey() ==  EKeys::Add )
 		{
-			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyboardEvent.IsControlDown());
+			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
 
 	}
 
-	return SNodePanel::OnKeyDown(MyGeometry, InKeyboardEvent);
+	return SNodePanel::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 
@@ -809,7 +810,7 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 {
 	const FVector2D NodeAddPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() ) );
 
-	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EFocusCause::SetDirectly);
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 	if (!Operation.IsValid() || !IsEditable.Get())
@@ -951,8 +952,7 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 	TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(Node);
 	check(NewNode.IsValid());
 
-	FEdGraphEditAction* GraphAction = UserAddedNodes.Find(Node);
-	const bool bWasUserAdded = (GraphAction != nullptr) ? true : false;
+	const bool bWasUserAdded = (UserAddedNodes.Find(Node) != nullptr);
 
 	NewNode->SetIsEditable(IsEditable);
 	NewNode->SetDoubleClickEvent(OnNodeDoubleClicked);
@@ -971,19 +971,7 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 		VisibleChildren.Add(NewNode.ToSharedRef());
 
 		NewNode->PlaySpawnEffect();
-
-		// Do not Select nodes unless they are marked for selection
-		if ((GraphAction->Action & GRAPHACTION_SelectNode) != 0)
-		{
-			SelectAndCenterObject(Node, false);
-		}
-
-		NewNode->UpdateGraphNode();
 		NewNode->RequestRenameOnSpawn();
-	}
-	else
-	{
-		NewNode->UpdateGraphNode();
 	}
 }
 
@@ -997,20 +985,31 @@ void SGraphPanel::Update()
 	// Add widgets for all the nodes that don't have one.
 	if(GraphObj != NULL)
 	{
-		int32 NumNodesAdded = 0;
-
 		// Scan for all missing nodes
-		for ( int32 NodeIndex = 0; NodeIndex < GraphObj->Nodes.Num(); ++NodeIndex )
+		for (int32 NodeIndex = 0; NodeIndex < GraphObj->Nodes.Num(); ++NodeIndex)
 		{
 			UEdGraphNode* Node = GraphObj->Nodes[NodeIndex];
 			if (Node)
 			{
 				AddNode(Node);
-				++NumNodesAdded;
 			}
 			else
 			{
 				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array. A node type has been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
+			}
+		}
+
+		// find the last selection action, and execute it
+		for (int32 ActionIndex = UserActions.Num() - 1; ActionIndex >= 0; --ActionIndex)
+		{
+			if (UserActions[ActionIndex].Action & GRAPHACTION_SelectNode)
+			{
+				DeferredSelectionTargetObjects.Empty();
+				for (const UEdGraphNode* Node : UserActions[ActionIndex].Nodes)
+				{
+					DeferredSelectionTargetObjects.Add(Node);
+				}
+				break;
 			}
 		}
 	}
@@ -1021,6 +1020,7 @@ void SGraphPanel::Update()
 
 	// Clean out set of added nodes
 	UserAddedNodes.Empty();
+	UserActions.Empty();
 
 	// Invoke any delegate methods
 	OnUpdateGraphPanel.ExecuteIfBound();
@@ -1106,16 +1106,23 @@ void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 	}
 }
 
-void SGraphPanel::OnGraphChanged ( const FEdGraphEditAction& EditAction)
+void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 {
-	if ((EditAction.Graph == GraphObj ) 
-		&& (EditAction.Action & GRAPHACTION_AddNode) 
-		&& (EditAction.Node != NULL)
+	if ((EditAction.Graph == GraphObj) &&
+		(EditAction.Nodes.Num() > 0) &&
 		// We do not want to mark it as a UserAddedNode for graphs that do not currently have focus,
 		// this causes each one to want to do the effects and rename, which causes problems.
-		&& (HasKeyboardFocus() || HasFocusedDescendants()))
+		(HasKeyboardFocus() || HasFocusedDescendants()))
 	{
-		UserAddedNodes.Add(EditAction.Node, EditAction);
+		int32 ActionIndex = UserActions.Num();
+		if (EditAction.Action & GRAPHACTION_AddNode)
+		{
+			for (const UEdGraphNode* Node : EditAction.Nodes)
+			{
+				UserAddedNodes.Add(Node, ActionIndex);
+			}
+		}
+		UserActions.Add(EditAction);
 	}
 }
 

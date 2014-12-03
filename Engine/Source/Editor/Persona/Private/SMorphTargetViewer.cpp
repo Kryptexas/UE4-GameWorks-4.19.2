@@ -6,6 +6,7 @@
 #include "ObjectTools.h"
 #include "AssetRegistryModule.h"
 #include "ScopedTransaction.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SMorphTargetViewer"
 

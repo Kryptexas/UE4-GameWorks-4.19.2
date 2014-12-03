@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "ScrollyZoomy.h"
 
 
 /* FScrollyZoomy structors
@@ -177,7 +178,7 @@ FCursorReply FScrollyZoomy::OnCursorQuery( ) const
 
 bool FScrollyZoomy::IsRightClickScrolling( ) const
 {
-	return (AmountScrolledWhileRightMouseDown >= SlatePanTriggerDistance);
+	return (AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace());
 }
 
 

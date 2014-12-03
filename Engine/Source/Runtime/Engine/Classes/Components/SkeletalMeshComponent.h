@@ -335,9 +335,11 @@ public:
 	UPROPERTY(transient)
 	uint32 bBlendPhysics:1;
 
-	/** temporary variable to enable/disable skeletalmeshcomponent physics SIM/blending in dedicated server 
-	 * @todo this should move to more global option **/
-	UPROPERTY()
+	/**
+	 *  If true, simulate physics for this component on a dedicated server.
+	 *  This should be set if simulating physics and replicating with a dedicated server.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
 	uint32 bEnablePhysicsOnDedicatedServer:1;
 
 	/**
@@ -462,16 +464,6 @@ public:
 	class UBodySetup * BodySetup;
 
 	void CreateBodySetup();
-
-	// Begin Interface_CollisionDataProvider Interface
-	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
-	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
-	virtual bool WantsNegXTriMesh() override
-	{
-		return true;
-	}
-	// End Interface_CollisionDataProvider Interface
-
 
 	/**
 	 * Misc 
@@ -640,7 +632,15 @@ public:
 	 *	Index of the 'Root Body', or top body in the asset hierarchy. 
 	 *	Filled in by InitInstance, so we don't need to save it.
 	 */
-	int32 RootBodyIndex;
+	/** To save root body index/bone index consistently **/
+	struct 
+	{
+		int32 BodyIndex;
+		int32 BoneIndex;
+	} RootBodyData;
+
+	/** Set Root Body Index */
+	void SetRootBodyIndex(int32 InBodyIndex);
 
 	/** Array of FBodyInstance objects, storing per-instance state about about each body. */
 	TArray<struct FBodyInstance*> Bodies;
@@ -790,7 +790,7 @@ public:
 
 	// Begin USceneComponent interface.
 	virtual void UpdateBounds();
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
@@ -831,8 +831,11 @@ public:
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) override;
 	virtual float GetMass() const override;
 	virtual float CalculateMass(FName BoneName = NAME_None) override;
+protected:
+	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI) override;
 	// End UPrimitiveComponent interface.
 
+public:
 	// Begin USkinnedMeshComponent interface
 	virtual bool UpdateLODStatus() override;
 	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) override;
@@ -1200,7 +1203,7 @@ public:
 	float LastTickTime;
 
 	/** Take extracted RootMotion and convert it from local space to world space. */
-	FTransform ConvertLocalRootMotionToWorld(const FTransform & InTransform);
+	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);
 };
 
 

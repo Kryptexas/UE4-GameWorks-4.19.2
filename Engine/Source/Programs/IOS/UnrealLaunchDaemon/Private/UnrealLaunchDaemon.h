@@ -4,5 +4,5 @@
 #pragma once
 
 //#include "CoreClasses.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "StandaloneRenderer.h"

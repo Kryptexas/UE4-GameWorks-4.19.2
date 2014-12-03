@@ -5,11 +5,12 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "MaterialInstanceSupport.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialInstanceSupport.h"
 
 
-UMaterialInstanceConstant::UMaterialInstanceConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialInstanceConstant::UMaterialInstanceConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

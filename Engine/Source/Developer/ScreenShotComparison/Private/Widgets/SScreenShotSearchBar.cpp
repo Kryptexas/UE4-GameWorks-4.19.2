@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "ScreenShotComparisonPrivatePCH.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ScreenShotBrowserToolBar"
 

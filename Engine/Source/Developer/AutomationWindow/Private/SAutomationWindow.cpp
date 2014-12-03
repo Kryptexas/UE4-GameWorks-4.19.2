@@ -5,8 +5,13 @@
 #include "AutomationController.h"
 #include "AutomationPresetManager.h"
 #include "SAutomationWindow.h"
+#include "SSearchBox.h"
+#include "SNotificationList.h"
+#include "SThrobber.h"
+
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FAutomationWindowCommands
@@ -838,7 +843,7 @@ void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ET
 		if( bAddingTestPreset )
 		{
 			bAddingTestPreset = false;
-			SelectedPreset = NULL;
+			SelectedPreset = nullptr;
 			PresetComboBox->ClearSelection();
 			PresetTextBox->SetText(FText());
 		}
@@ -880,7 +885,7 @@ void SAutomationWindow::ExpandEnabledTests( TSharedPtr< IAutomationReport > InRe
 FReply SAutomationWindow::HandleNewPresetClicked()
 {
 	bAddingTestPreset = true;
-	return FReply::Handled().SetKeyboardFocus(PresetTextBox.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+	return FReply::Handled().SetUserFocus(PresetTextBox.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
 FReply SAutomationWindow::HandleSavePresetClicked()
@@ -900,7 +905,7 @@ FReply SAutomationWindow::HandleRemovePresetClicked()
 	if(SelectedPreset.IsValid())
 	{
 		TestPresetManager->RemovePreset(SelectedPreset.ToSharedRef());
-		SelectedPreset = NULL;
+		SelectedPreset = nullptr;
 		PresetComboBox->ClearSelection();
 	}
 	return FReply::Handled();
@@ -933,7 +938,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( TWeakP
 	}
 
 	//Return empty menu
-	FMenuBuilder MenuBuilder( true, NULL );
+	FMenuBuilder MenuBuilder( true, nullptr );
 	MenuBuilder.BeginSection("AutomationWindowGroupOptions", LOCTEXT("DeviceGroupOptions", "Device Group Options"));
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -1000,7 +1005,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( TWeakP
 	}
 
 	//Return empty menu
-	FMenuBuilder MenuBuilder( true, NULL );
+	FMenuBuilder MenuBuilder( true, nullptr );
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -1089,7 +1094,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent(TWeakPtr
 	}
 
 	//Return empty menu
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, nullptr);
 	MenuBuilder.BeginSection("AutomationWindowTestHistory", LOCTEXT("AutomationWindowTestHistory", "Settings"));
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -1177,7 +1182,7 @@ TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
 		}
 	}		
 
-	return NULL;
+	return nullptr;
 }
 #endif
 
@@ -1900,9 +1905,9 @@ bool SAutomationWindow::IsAnySelectedRowEnabled()
 /* SWidget implementation
  *****************************************************************************/
 
-FReply SAutomationWindow::OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAutomationWindow::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.GetKey() == EKeys::SpaceBar)
+	if (InKeyEvent.GetKey() == EKeys::SpaceBar)
 	{
 		SetAllSelectedTestsChecked(IsAnySelectedRowEnabled());
 		return FReply::Handled();
@@ -1911,11 +1916,11 @@ FReply SAutomationWindow::OnKeyUp( const FGeometry& InGeometry, const FKeyboardE
 }
 
 
-FReply SAutomationWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAutomationWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.IsControlDown())
+	if (InKeyEvent.IsControlDown())
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::C)
+		if (InKeyEvent.GetKey() == EKeys::C)
 		{
 			CopyLog();
 

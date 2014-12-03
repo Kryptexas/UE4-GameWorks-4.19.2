@@ -13,13 +13,15 @@ class ASceneCapture2D : public ASceneCapture
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
 	/** Scene capture component. */
-	UPROPERTY(Category=DecalActor, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USceneCaptureComponent2D> CaptureComponent2D;
-
+	DEPRECATED_FORGAME(4.6, "CaptureComponent2D should not be accessed directly, please use GetCaptureComponent2D() function instead. CaptureComponent2D will soon be private and your code will not compile.")
+	UPROPERTY(Category = DecalActor, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	class USceneCaptureComponent2D* CaptureComponent2D;
 	/** To allow drawing the camera frustum in the editor. */
+	DEPRECATED_FORGAME(4.6, "DrawFrustum should not be accessed directly, please use GetDrawFrustum() function instead. DrawFrustum will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UDrawFrustumComponent> DrawFrustum;
+	class UDrawFrustumComponent* DrawFrustum;
 
 public:
 
@@ -32,6 +34,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void OnInterpToggle(bool bEnable);
+
+	/** Returns CaptureComponent2D subobject **/
+	ENGINE_API class USceneCaptureComponent2D* GetCaptureComponent2D() const;
+	/** Returns DrawFrustum subobject **/
+	ENGINE_API class UDrawFrustumComponent* GetDrawFrustum() const;
 };
 
 

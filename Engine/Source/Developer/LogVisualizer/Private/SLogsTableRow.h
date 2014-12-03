@@ -28,12 +28,12 @@ public:
 private:
 	int32 GetCurrentLogEntryIndex() const;
 
-	void OnBarGraphSelectionChanged(TSharedPtr<FVisLogEntry> Selection);
+	void OnBarGraphSelectionChanged(TSharedPtr<FVisualLogEntry> Selection);
 	void OnBarGeometryChanged(FGeometry Geometry);
 
 	bool ShouldDrawSelection();
 
-	TArray<TSharedPtr<FVisLogEntry> > VisibleEntries;
+	TArray<TSharedPtr<FVisualLogEntry> > VisibleEntries;
 
 	/** Tree item */
 	TSharedPtr<FLogsListItem> Item;

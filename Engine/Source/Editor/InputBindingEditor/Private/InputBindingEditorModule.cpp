@@ -1,9 +1,4 @@
-
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	InputBindingEditorModule.cpp: Implements the FInputBindingEditorModule class.
-=============================================================================*/
 
 #include "InputBindingEditorPrivatePCH.h"
 
@@ -16,7 +11,7 @@ class FInputBindingEditorModule
 {
 public:
 
-	// Begin IInputBindingEditorModule interface
+	// IInputBindingEditorModule interface
 
 	virtual TWeakPtr<SWidget> CreateInputBindingEditorPanel( ) override
 	{
@@ -31,12 +26,9 @@ public:
 		BindingEditorPanels.Remove(Panel.Pin());
 	}
 
-	// End IInputBindingEditorModule interface
-
-
 private:
 
-	// Holds the collection of created binding editor panels.
+	/** Holds the collection of created binding editor panels. */
 	TArray<TSharedPtr<SWidget> > BindingEditorPanels;
 };
 

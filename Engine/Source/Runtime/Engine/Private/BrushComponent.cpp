@@ -538,8 +538,8 @@ private:
 	FCollisionResponseContainer CollisionResponse;
 };
 
-UBrushComponent::UBrushComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBrushComponent::UBrushComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHiddenInGame = true;
 	AlwaysLoadOnClient = false;
@@ -576,7 +576,7 @@ FPrimitiveSceneProxy* UBrushComponent::CreateSceneProxy()
 }
 
 
-FBoxSphereBounds UBrushComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UBrushComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_EDITOR
 	if(Brush && Brush->Polys && Brush->Polys->Element.Num())
@@ -589,7 +589,7 @@ FBoxSphereBounds UBrushComponent::CalcBounds(const FTransform & LocalToWorld) co
 				Points.Add(Brush->Polys->Element[i].Vertices[j]);
 			}
 		}
-		return FBoxSphereBounds( Points.GetTypedData(), Points.Num() ).TransformBy(LocalToWorld);
+		return FBoxSphereBounds( Points.GetData(), Points.Num() ).TransformBy(LocalToWorld);
 	}
 	else 
 #endif // WITH_EDITOR
@@ -613,7 +613,7 @@ FVector UBrushComponent::GetCustomLocation() const
 	return LocationNoPivot;
 }
 
-FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
+FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
 {
 	FTransform CompToWorld = Super::CalcNewComponentToWorld(NewRelativeTransform, Parent);
 

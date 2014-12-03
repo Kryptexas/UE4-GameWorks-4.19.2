@@ -41,8 +41,8 @@ const FName FBlueprintEditorApplicationModes::BlueprintComponentsMode( TEXT("Com
 const FName FBlueprintEditorApplicationModes::BlueprintInterfaceMode( TEXT("InterfaceName") );
 const FName FBlueprintEditorApplicationModes::BlueprintMacroMode( TEXT("MacroName") );
 
-FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, const bool bRegisterViewport, const bool bRegisterDefaultsTab)
-	: FApplicationMode(InModeName)
+FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, FText(*GetLocalizedMode)(const FName), const bool bRegisterViewport, const bool bRegisterDefaultsTab)
+	: FApplicationMode(InModeName, GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 
@@ -168,7 +168,7 @@ void FBlueprintEditorApplicationMode::PostActivateMode()
 
 
 FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	
@@ -223,7 +223,7 @@ void FBlueprintDefaultsApplicationMode::PostActivateMode()
 
 
 FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	
@@ -306,20 +306,41 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 	BP->GetInspector()->SetEnabled(true);
 	BP->GetInspector()->EnableComponentDetailsCustomization(false);
 	BP->EnableSCSPreview(false);
+
+	// Cache component selection before clearing so it can be restored
+	for( auto& SCSNode : BP->GetSCSEditor()->GetSelectedNodes() )
+	{
+		CachedComponentSelection.AddUnique(SCSNode->GetComponentTemplate());
+	}
+	BP->GetSCSEditor()->ClearSelection();
 }
 
 void FBlueprintComponentsApplicationMode::PostActivateMode()
 {
 	TSharedPtr<FBlueprintEditor> BP = MyBlueprintEditor.Pin();
-	BP->GetSCSEditor()->UpdateTree();
-	BP->EnableSCSPreview(true);
-	BP->UpdateSCSPreview();
-	BP->GetInspector()->EnableComponentDetailsCustomization(true);
-
-	if (BP->GetSCSViewport()->GetIsSimulateEnabled())
+	if (BP.IsValid())
 	{
-		BP->GetSCSEditor()->SetEnabled(false);
-		BP->GetInspector()->SetEnabled(false);
+		auto SCSEditor = BP->GetSCSEditor();
+		SCSEditor->UpdateTree();
+		BP->EnableSCSPreview(true);
+		BP->UpdateSCSPreview();
+		BP->GetInspector()->EnableComponentDetailsCustomization(true);
+
+		// Reselect the cached components
+		TArray<TSharedPtr<FSCSEditorTreeNode>> Selection;
+		for (auto Component : CachedComponentSelection)
+		{
+			if (Component.IsValid())
+			{
+				SCSEditor->SCSTreeWidget->SetItemSelection(SCSEditor->GetNodeFromActorComponent(Component.Get()), true);
+			}
+		}
+
+		if (BP->GetSCSViewport()->GetIsSimulateEnabled())
+		{
+			SCSEditor->SetEnabled(false);
+			BP->GetInspector()->SetEnabled(false);
+		}
 	}
 
 	FApplicationMode::PostActivateMode();
@@ -328,7 +349,7 @@ void FBlueprintComponentsApplicationMode::PostActivateMode()
 ////////////////////////////////////////
 //
 FBlueprintInterfaceApplicationMode::FBlueprintInterfaceApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	
@@ -409,7 +430,7 @@ void FBlueprintInterfaceApplicationMode::RegisterTabFactories(TSharedPtr<FTabMan
 ////////////////////////////////////////
 //
 FBlueprintMacroApplicationMode::FBlueprintMacroApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintMacroMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintMacroMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	

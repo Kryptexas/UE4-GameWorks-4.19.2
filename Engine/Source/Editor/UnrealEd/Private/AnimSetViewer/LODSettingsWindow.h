@@ -158,7 +158,7 @@ private:
 	TSharedPtr< SVerticalBox > BonesToRemoveListWidget;
 	
 	/** Current Skeleton **/
-	USkeleton * Skeleton;
+	USkeleton* Skeleton;
 	/** This is the index to BoneReductionSettingsForLODs of Skeleton. 
 	 * 	That array only contains [1-(N-1)] LOD structure, so when DesiredLOD is 1, the LODSettingIndex will be 0*/
 	int32 LODSettingIndex;
@@ -178,9 +178,9 @@ private:
 	int32 MaxBonesPerVertex;
 
 	/** Populate Possible Suggestions**/
-	void PopulatePossibleSuggestions(const USkeleton * Skeleton);
+	void PopulatePossibleSuggestions(const USkeleton* Skeleton);
 	/** Callback for When Text is modified **/
 	void OnTextChanged(const FText& CurrentText);
 	/** Add Bones To Remove **/
-	void AddBonesToRemove(const FString & NewBonesToRemove);
+	void AddBonesToRemove(const FString& NewBonesToRemove);
 };

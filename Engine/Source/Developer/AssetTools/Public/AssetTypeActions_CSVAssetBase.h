@@ -4,25 +4,18 @@
 
 class FAssetTypeActions_CSVAssetBase : public FAssetTypeActions_Base
 {
+public:
+	virtual FColor GetTypeColor() const override { return FColor(62, 140, 35); }
+	virtual bool HasActions(const TArray<UObject*>& InObjects) const override { return true; }
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
+	virtual bool IsImportedAsset() const override { return true; }
 
 protected:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray< TWeakObjectPtr<UObject> > Objects);
+	/** Handler for opening the xls/xlsm version of the source file */
+	void ExecuteFindExcelFileInExplorer(TArray<FString> Filenames, TArray<FString> OverrideExtensions);
 
-	/** Handler for when Reimport is selected */
-	void ExecuteReimport(TArray< TWeakObjectPtr<UObject> > Objects);
-
-	/** Handler for when FindInExplorer is selected */
-	void ExecuteFindInExplorer(TArray<FString> Filenames);
-
-	/** Handler for when OpenInExternalEditor is selected */
-	void ExecuteOpenInExternalEditor(TArray<FString> Filenames, TArray<FString> OverrideExtensions);
-
-	/** Determine whether the launch in external editor commands can execute or not */
-	bool CanExecuteLaunchExternalSourceCommands(TArray<FString> Filenames, TArray<FString> OverrideExtensions) const;
-
-	/** Determine whether the find in exploder editor command can execute or not */
-	bool CanExecuteFindInExplorerSourceCommand(TArray<FString> Filenames) const;
+	/** Determine whether the find excel file in explorer editor command can execute or not */
+	bool CanExecuteFindExcelFileInExplorer(TArray<FString> Filenames, TArray<FString> OverrideExtensions) const;
 
 	/** Verify the specified filename exists */
 	bool VerifyFileExists(const FString& InFileName) const;

@@ -6,7 +6,7 @@
 /* FMessageRouter structors
  *****************************************************************************/
 
-FMessageRouter::FMessageRouter( )
+FMessageRouter::FMessageRouter()
 	: DelayedMessagesSequence(0)
 	, Stopping(false)
 	, Tracer(MakeShareable(new FMessageTracer()))
@@ -16,7 +16,7 @@ FMessageRouter::FMessageRouter( )
 }
 
 
-FMessageRouter::~FMessageRouter( )
+FMessageRouter::~FMessageRouter()
 {
 	delete WorkEvent;
 }
@@ -25,13 +25,13 @@ FMessageRouter::~FMessageRouter( )
 /* FRunnable interface
  *****************************************************************************/
 
-bool FMessageRouter::Init( )
+bool FMessageRouter::Init()
 {
 	return true;
 }
 
 
-uint32 FMessageRouter::Run( )
+uint32 FMessageRouter::Run()
 {
 	CurrentTime = FDateTime::UtcNow();
 
@@ -41,7 +41,7 @@ uint32 FMessageRouter::Run( )
 		{
 			CurrentTime = FDateTime::UtcNow();
 
-			TBaseDelegate_NoParams<void> Command;
+			CommandDelegate Command;
 
 			while (Commands.Dequeue(Command))
 			{
@@ -58,7 +58,7 @@ uint32 FMessageRouter::Run( )
 }
 
 
-void FMessageRouter::Stop( )
+void FMessageRouter::Stop()
 {
 	Tracer->Stop();
 
@@ -66,7 +66,7 @@ void FMessageRouter::Stop( )
 }
 
 
-void FMessageRouter::Exit( )
+void FMessageRouter::Exit()
 {
 	TArray<IReceiveMessagesWeakPtr> Recipients;
 
@@ -91,7 +91,7 @@ void FMessageRouter::Exit( )
 /* FMessageRouter implementation
  *****************************************************************************/
 
-FTimespan FMessageRouter::CalculateWaitTime( )
+FTimespan FMessageRouter::CalculateWaitTime()
 {
 	FTimespan WaitTime = FTimespan::FromMilliseconds(100);
 
@@ -164,7 +164,7 @@ void FMessageRouter::DispatchMessage( const IMessageContextRef& Context )
 
 void FMessageRouter::FilterSubscriptions( TArray<IMessageSubscriptionPtr>& Subscriptions, const IMessageContextRef& Context, TArray<IReceiveMessagesPtr>& OutRecipients )
 {
-	EMessageScope::Type MessageScope = Context->GetScope();
+	EMessageScope MessageScope = Context->GetScope();
 
 	for (int32 SubscriptionIndex = 0; SubscriptionIndex < Subscriptions.Num(); ++SubscriptionIndex)
 	{
@@ -199,7 +199,7 @@ void FMessageRouter::FilterSubscriptions( TArray<IMessageSubscriptionPtr>& Subsc
 }
 
 
-void FMessageRouter::ProcessDelayedMessages( )
+void FMessageRouter::ProcessDelayedMessages()
 {
 	FDelayedMessage DelayedMessage;
 
@@ -214,7 +214,7 @@ void FMessageRouter::ProcessDelayedMessages( )
 /* FMessageRouter callbacks
  *****************************************************************************/
 
-void FMessageRouter::HandleAddInterceptor( IInterceptMessagesRef Interceptor, FName MessageType )
+void FMessageRouter::HandleAddInterceptor( IMessageInterceptorRef Interceptor, FName MessageType )
 {
 	ActiveInterceptors.FindOrAdd(MessageType).AddUnique(Interceptor);
 	Tracer->TraceAddedInterceptor(Interceptor, MessageType);
@@ -240,19 +240,19 @@ void FMessageRouter::HandleAddSubscriber( IMessageSubscriptionRef Subscription )
 }
 
 
-void FMessageRouter::HandleRemoveInterceptor( IInterceptMessagesRef Interceptor, FName MessageType )
+void FMessageRouter::HandleRemoveInterceptor( IMessageInterceptorRef Interceptor, FName MessageType )
 {
 	if (MessageType == NAME_All)
 	{
-		for (TMap<FName, TArray<IInterceptMessagesPtr> >::TIterator It(ActiveInterceptors); It; ++It)
+		for (TMap<FName, TArray<IMessageInterceptorPtr> >::TIterator It(ActiveInterceptors); It; ++It)
 		{
-			TArray<IInterceptMessagesPtr>& Interceptors = It.Value();
+			TArray<IMessageInterceptorPtr>& Interceptors = It.Value();
 			Interceptors.Remove(Interceptor);
 		}
 	}
 	else
 	{
-		TArray<IInterceptMessagesPtr>& Interceptors = ActiveInterceptors.FindOrAdd(MessageType);
+		TArray<IMessageInterceptorPtr>& Interceptors = ActiveInterceptors.FindOrAdd(MessageType);
 		Interceptors.Remove(Interceptor);
 	}
 
@@ -305,9 +305,9 @@ void FMessageRouter::HandleRemoveSubscriber( IReceiveMessagesWeakPtr SubscriberP
 void FMessageRouter::HandleRouteMessage( IMessageContextRef Context )
 {
 	// intercept routing
-	TArray<IInterceptMessagesPtr>& Interceptors = ActiveInterceptors.FindOrAdd(Context->GetMessageType());
+	TArray<IMessageInterceptorPtr>& Interceptors = ActiveInterceptors.FindOrAdd(Context->GetMessageType());
 
-	for (TArray<IInterceptMessagesPtr>::TIterator It(Interceptors); It; ++It)
+	for (TArray<IMessageInterceptorPtr>::TIterator It(Interceptors); It; ++It)
 	{
 		if ((*It)->InterceptMessage(Context))
 		{

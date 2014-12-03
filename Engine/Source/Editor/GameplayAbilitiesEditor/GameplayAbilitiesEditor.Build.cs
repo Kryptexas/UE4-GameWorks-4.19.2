@@ -26,6 +26,7 @@ namespace UnrealBuildTool.Rules
                     "GameplayTags",
 					"GameplayAbilities",
                     "InputCore",
+                    "PropertyEditor",
 					"Slate",
 					"SlateCore",
                     "EditorStyle",

@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Rotator.h"
 
-UBlackboardKeyType_Rotator::UBlackboardKeyType_Rotator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType_Rotator::UBlackboardKeyType_Rotator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FRotator);
 	SupportedOp = EBlackboardKeyOperation::Basic;
@@ -17,6 +17,11 @@ FRotator UBlackboardKeyType_Rotator::GetValue(const uint8* RawData)
 bool UBlackboardKeyType_Rotator::SetValue(uint8* RawData, const FRotator& Value)
 {
 	return SetValueInMemory<FRotator>(RawData, Value);
+}
+
+bool UBlackboardKeyType_Rotator::Clear(uint8* RawData) const 
+{
+	return SetValueInMemory<FRotator>(RawData, FAISystem::InvalidRotation);
 }
 
 FString UBlackboardKeyType_Rotator::DescribeValue(const uint8* RawData) const

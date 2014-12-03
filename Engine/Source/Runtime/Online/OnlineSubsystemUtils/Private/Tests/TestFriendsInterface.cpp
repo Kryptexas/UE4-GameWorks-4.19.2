@@ -124,7 +124,9 @@ void FTestFriendsInterface::OnReadFriendsComplete(int32 LocalPlayer, bool bWasSu
 				UE_LOG(LogOnline, Log,
 					TEXT("\t\t Invite status (%s)"), EInviteStatus::ToString(Friend.GetInviteStatus()));
 				UE_LOG(LogOnline, Log,
-					TEXT("\t\t Presence: %s"), *Presence.PresenceStr);
+					TEXT("\t\t Presence: %s"), *Presence.Status.StatusStr);
+				UE_LOG(LogOnline, Log,
+					TEXT("\t\t State: %s"), EOnlinePresenceState::ToString(Presence.Status.State));
 				UE_LOG(LogOnline, Log,
 					TEXT("\t\t bIsOnline (%s)"), Presence.bIsOnline ? TEXT("true") : TEXT("false"));
 				UE_LOG(LogOnline, Log,

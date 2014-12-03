@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 class CORE_API FEngineBuildSettings
 {
 public:

@@ -217,9 +217,9 @@ private:
 	TArray<FPoseNameForUndo> RenamedPoseNameStack;
 
 	/** Rename committed. Called by Inline Widget **/
-	void OnRenameCommit( const FName & OldName,  const FString& NewName );
+	void OnRenameCommit( const FName& OldName,  const FString& NewName );
 	/** Verify Rename is legit or not **/
-	bool OnVerifyRenameCommit( const FName & OldName, const FString& NewName, FText& OutErrorMessage);
+	bool OnVerifyRenameCommit( const FName& OldName, const FString& NewName, FText& OutErrorMessage);
 
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();

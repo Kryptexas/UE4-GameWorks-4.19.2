@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Slate/CheckboxStyleAsset.h"
 
-UCheckBoxStyleAsset::UCheckBoxStyleAsset( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UCheckBoxStyleAsset::UCheckBoxStyleAsset( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

@@ -17,6 +17,7 @@
 #include "ActorEditorUtils.h"
 #include "Editor/Levels/Public/LevelEdMode.h"
 #include "ContentStreaming.h"
+#include "PackageTools.h"
 
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
@@ -128,7 +129,8 @@ namespace EditorLevelUtils
 			return nullptr;
 		}
 
-		FScopedSlowTask SlowTask(LOCTEXT("AddLevelsToWorldTask", "Adding Levels to World"), true);
+		FScopedSlowTask SlowTask(LevelPackageNames.Num(), LOCTEXT("AddLevelsToWorldTask", "Adding Levels to World"));
+		SlowTask.MakeDialog();
 
 		TArray<FString> PackageNames = LevelPackageNames;
 
@@ -142,6 +144,8 @@ namespace EditorLevelUtils
 		ULevel* NewLevel = nullptr;
 		for (const auto& PackageName : PackageNames)
 		{
+			SlowTask.EnterProgressFrame();
+
 			NewLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
 			if (NewLevel)
 			{
@@ -395,24 +399,12 @@ namespace EditorLevelUtils
 		const bool bRemoveSuccessful		= PrivateRemoveLevelFromWorld( InLevel );
 		if ( bRemoveSuccessful )
 		{
-			if ( OwningWorld )
+			if (bRemovingCurrentLevel)
 			{
-				// remove all group actors from the world in the level we are removing
-				// otherwise, this will cause group actors to not be garbage collected
-				for (int32 GroupIndex = OwningWorld->ActiveGroupActors.Num()-1; GroupIndex >= 0; --GroupIndex)
-				{
-					AGroupActor* GroupActor = Cast<AGroupActor>(OwningWorld->ActiveGroupActors[GroupIndex]);
-					if (GroupActor && GroupActor->IsInLevel(InLevel))
-					{
-						OwningWorld->ActiveGroupActors.RemoveAt(GroupIndex);
-					}
-				}
+				MakeLevelCurrent(OwningWorld->PersistentLevel);
 			}
 
-			if(bRemovingCurrentLevel)
-			{
-				MakeLevelCurrent(InLevel->OwningWorld->PersistentLevel);
-			}
+			EditorDestroyLevel(InLevel);
 
 			// Redraw the main editor viewports.
 			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
@@ -444,17 +436,17 @@ namespace EditorLevelUtils
 	/**
 	* Removes a level from the world.  Returns true if the level was removed successfully.
 	*
-	* @param	Level		The level to remove from the world.
+	* @param	InLevel		The level to remove from the world.
 	* @return				true if the level was removed successfully, false otherwise.
 	*/
-	bool PrivateRemoveLevelFromWorld(ULevel* Level)
+	bool PrivateRemoveLevelFromWorld(ULevel* InLevel)
 	{
-		if ( !Level || Level->IsPersistentLevel() )
+		if ( !InLevel || InLevel->IsPersistentLevel() )
 		{
 			return false;
 		}
 
-		if ( FLevelUtils::IsLevelLocked(Level) )
+		if ( FLevelUtils::IsLevelLocked(InLevel) )
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevelRemoveLevelFromWorld", "RemoveLevelFromWorld: The requested operation could not be completed because the level is locked.") );
 			return false;
@@ -462,10 +454,10 @@ namespace EditorLevelUtils
 
 		int32 StreamingLevelIndex = INDEX_NONE;
 
-		for( int32 LevelIndex = 0 ; LevelIndex < Level->OwningWorld->StreamingLevels.Num() ; ++LevelIndex )
+		for( int32 LevelIndex = 0 ; LevelIndex < InLevel->OwningWorld->StreamingLevels.Num() ; ++LevelIndex )
 		{
-			ULevelStreaming* StreamingLevel = Level->OwningWorld->StreamingLevels[ LevelIndex ];
-			if( StreamingLevel && StreamingLevel->GetLoadedLevel() == Level )
+			ULevelStreaming* StreamingLevel = InLevel->OwningWorld->StreamingLevels[ LevelIndex ];
+			if( StreamingLevel && StreamingLevel->GetLoadedLevel() == InLevel )
 			{
 				StreamingLevelIndex = LevelIndex;
 				break;
@@ -474,23 +466,15 @@ namespace EditorLevelUtils
 
 		if (StreamingLevelIndex != INDEX_NONE)
 		{
-			Level->OwningWorld->StreamingLevels[StreamingLevelIndex]->MarkPendingKill();
-			Level->OwningWorld->StreamingLevels.RemoveAt( StreamingLevelIndex );
-			Level->OwningWorld->RefreshStreamingLevels();
+			InLevel->OwningWorld->StreamingLevels[StreamingLevelIndex]->MarkPendingKill();
+			InLevel->OwningWorld->StreamingLevels.RemoveAt( StreamingLevelIndex );
+			InLevel->OwningWorld->RefreshStreamingLevels();
 		}
-		else if (Level->bIsVisible)
+		else if (InLevel->bIsVisible)
 		{
-			Level->OwningWorld->RemoveFromWorld(Level);
-			check(Level->bIsVisible == false);
+			InLevel->OwningWorld->RemoveFromWorld(InLevel);
+			check(InLevel->bIsVisible == false);
 		}
-
-		return EditorDestroyLevel(Level);
-	}
-	
-	bool EditorDestroyLevel( ULevel* InLevel )
-	{
-		check(InLevel);
-		check(!InLevel->IsPersistentLevel());
 
 		InLevel->ReleaseRenderingResources();
 
@@ -501,6 +485,17 @@ namespace EditorLevelUtils
 
 		int32 NumFailedDestroyedAttempts = 0;
 		bool bDestroyedActor = false;
+
+		// remove all group actors from the world in the level we are removing
+		// otherwise, this will cause group actors to not be garbage collected
+		for (int32 GroupIndex = World->ActiveGroupActors.Num()-1; GroupIndex >= 0; --GroupIndex)
+		{
+			AGroupActor* GroupActor = Cast<AGroupActor>(World->ActiveGroupActors[GroupIndex]);
+			if (GroupActor && GroupActor->IsInLevel(InLevel))
+			{
+				World->ActiveGroupActors.RemoveAt(GroupIndex);
+			}
+		}
 
 		for(int32 ActorIndex = 0; ActorIndex < InLevel->Actors.Num(); ++ActorIndex)
 		{
@@ -522,12 +517,33 @@ namespace EditorLevelUtils
 			UE_LOG(LogLevelTools, Log, TEXT("Failed to destroy %d actors after attempting to destroy level!"), NumFailedDestroyedAttempts);
 		}
 
-		InLevel->GetOuter()->MarkPendingKill();
-		InLevel->MarkPendingKill();		
-		InLevel->GetOuter()->ClearFlags(RF_Public|RF_Standalone);
-
 		World->MarkPackageDirty();
 		World->BroadcastLevelsChanged();
+
+		return true;
+	}
+
+	bool EditorDestroyLevel(ULevel* InLevel)
+	{
+		UWorld* World = InLevel->OwningWorld;
+
+		InLevel->GetOuter()->MarkPendingKill();
+		InLevel->MarkPendingKill();
+		InLevel->GetOuter()->ClearFlags(RF_Public | RF_Standalone);
+
+		UPackage* Package = Cast<UPackage>(InLevel->GetOutermost());
+		// We want to unconditionally destroy the level, so clear the dirty flag here so it can be unloaded successfully
+		Package->SetDirtyFlag(false);
+
+		TArray<UPackage*> Packages;
+		Packages.Add(Package);
+		if (!PackageTools::UnloadPackages(Packages))
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Package"), FText::FromString(Package->GetName()));
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("UnloadPackagesFail", "Unable to unload package '{Package}'."), Args));
+			return false;
+		}
 
 		return true;
 	}

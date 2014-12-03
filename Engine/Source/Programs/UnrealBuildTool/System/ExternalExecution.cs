@@ -27,7 +27,9 @@ namespace UnrealBuildTool
 		/** Compilation failed because generated code changed which was not supported */
 		FailedDueToHeaderChange = 1,
 		/** Compilation failed due to compilation errors */
-		OtherCompilationError,
+		OtherCompilationError = 2,
+		/** The process has most likely crashed. This is what UE returns in case of an assert */
+		CrashOrAssert = 3,
 		/** Compilation is not supported in the current build */
 		Unsupported,
 		/** Unknown error */
@@ -640,7 +642,7 @@ namespace UnrealBuildTool
 
 					if (UHTResult != ECompilationResult.Succeeded)
 					{
-						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, (int) UHTResult);
+						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int) UHTResult, UHTResult.ToString());
 						return false;
 					}
 

@@ -4,6 +4,8 @@
 #pragma once
 #include "SimpleConstructionScript.generated.h"
 
+class USCS_Node;
+
 UCLASS(MinimalAPI)
 class USimpleConstructionScript : public UObject
 {

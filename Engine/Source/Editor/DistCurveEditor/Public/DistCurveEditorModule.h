@@ -4,7 +4,7 @@
 #define __DistCurveEditorModule_h__
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ModuleInterface.h"
 #include "IDistCurveEditor.h"
 

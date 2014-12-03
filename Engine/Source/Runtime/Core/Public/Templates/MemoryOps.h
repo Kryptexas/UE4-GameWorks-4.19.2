@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MemoryOps.h: Functions to do bulk operations on contiguous blocks of objects.
-=============================================================================*/
-
 #pragma once
 
 #include <new>
@@ -12,6 +8,24 @@
 #include "Platform.h"
 #include "UnrealTemplate.h"
 #include "UnrealTypeTraits.h"
+
+
+namespace UE4MemoryOps_Private
+{
+	template <typename DestinationElementType, typename SourceElementType>
+	struct TCanBitwiseRelocate
+	{
+		enum
+		{
+			Value =
+				(
+					TIsBitwiseConstructible<DestinationElementType, SourceElementType>::Value &&
+					!TTypeTraits<SourceElementType>::NeedsDestructor
+				) ||
+				TAreTypesEqual<DestinationElementType, SourceElementType>::Value
+		};
+	};
+}
 
 /**
  * Default constructs a range of items in memory.
@@ -31,11 +45,13 @@ FORCEINLINE typename TEnableIf<!TIsZeroConstructType<ElementType>::Value>::Type 
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<TIsZeroConstructType<ElementType>::Value>::Type DefaultConstructItems(void* Elements, int32 Count)
 {
 	FMemory::Memset(Elements, 0, sizeof(ElementType) * Count);
 }
+
 
 /**
  * Destructs a range of items in memory.
@@ -57,35 +73,47 @@ FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsDestructor>::Type 
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsDestructor>::Type DestructItems(ElementType* Elements, int32 Count)
 {
 }
 
+
 /**
- * Copy constructs a range of items into memory.
+ * Constructs a range of items into memory from a set of arguments.  The arguments come from an another array.
  *
  * @param	Dest		The memory location to start copying into.
- * @param	Source		A pointer to the first item to copy from.
+ * @param	Source		A pointer to the first argument to pass to the constructor.
  * @param	Count		The number of elements to copy.
  */
-template <typename ElementType>
-FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsCopyConstructor>::Type CopyConstructItems(void* Dest, const ElementType* Source, int32 Count)
+template <typename DestinationElementType, typename SourceElementType>
+FORCEINLINE typename TEnableIf<!TIsBitwiseConstructible<DestinationElementType, SourceElementType>::Value>::Type ConstructItems(void* Dest, const SourceElementType* Source, int32 Count)
 {
 	while (Count)
 	{
-		new (Dest) ElementType(*Source);
-		++(ElementType*&)Dest;
+		new (Dest) DestinationElementType(*Source);
+		++(DestinationElementType*&)Dest;
 		++Source;
 		--Count;
 	}
 }
 
-template <typename ElementType>
-FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsCopyConstructor>::Type CopyConstructItems(void* Dest, const ElementType* Source, int32 Count)
+
+template <typename DestinationElementType, typename SourceElementType>
+FORCEINLINE typename TEnableIf<TIsBitwiseConstructible<DestinationElementType, SourceElementType>::Value>::Type ConstructItems(void* Dest, const SourceElementType* Source, int32 Count)
 {
-	FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
+	FMemory::Memcpy(Dest, Source, sizeof(SourceElementType) * Count);
 }
+
+
+template <typename ElementType>
+DEPRECATED(4.6, "CopyConstructItems is deprecated, use ConstructItems<ElementType> instead.")
+FORCEINLINE void CopyConstructItems(void* Dest, const ElementType* Source, int32 Count)
+{
+	ConstructItems<ElementType>(Dest, Source, Count);
+}
+
 
 /**
  * Copy assigns a range of items.
@@ -106,22 +134,39 @@ FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsCopyAssignment>::T
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsCopyAssignment>::Type CopyAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
 {
 	FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
 }
 
+
 /**
- * Relocates a range of items to a new memory location. This is a so-called 'destructive move' for which
+ * Relocates a range of items to a new memory location as a new type. This is a so-called 'destructive move' for which
  * there is no single operation in C++ but which can be implemented very efficiently in general.
  *
  * @param	Dest		The memory location to relocate to.
  * @param	Source		A pointer to the first item to relocate.
  * @param	Count		The number of elements to relocate.
  */
-template <typename ElementType>
-FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Count)
+template <typename DestinationElementType, typename SourceElementType>
+FORCEINLINE typename TEnableIf<!UE4MemoryOps_Private::TCanBitwiseRelocate<DestinationElementType, SourceElementType>::Value>::Type RelocateConstructItems(void* Dest, const SourceElementType* Source, int32 Count)
+{
+	while (Count)
+	{
+		// We need a typedef here because VC won't compile the destructor call below if SourceElementType itself has a member called SourceElementType
+		typedef SourceElementType RelocateConstructItemsElementTypeTypedef;
+
+		new (Dest) DestinationElementType(*Source);
+		++(DestinationElementType*&)Dest;
+		(Source++)->RelocateConstructItemsElementTypeTypedef::~RelocateConstructItemsElementTypeTypedef();
+		--Count;
+	}
+}
+
+template <typename DestinationElementType, typename SourceElementType>
+FORCEINLINE typename TEnableIf<UE4MemoryOps_Private::TCanBitwiseRelocate<DestinationElementType, SourceElementType>::Value>::Type RelocateConstructItems(void* Dest, const SourceElementType* Source, int32 Count)
 {
 	/* All existing UE containers seem to assume trivial relocatability (i.e. memcpy'able) of their members,
 	 * so we're going to assume that this is safe here.  However, it's not generally possible to assume this
@@ -131,82 +176,73 @@ FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Coun
 	 * However, it is not yet possible to automatically infer this at compile time, so we can't enable
 	 * different (i.e. safer) implementations anyway. */
 
+	FMemory::Memmove(Dest, Source, sizeof(SourceElementType) * Count);
+}
+
+template <typename ElementType>
+DEPRECATED(4.6, "RelocateItems is deprecated, use RelocateConstructItems<ElementType> instead.")
+FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Count)
+{
+	RelocateConstructItems<ElementType>(Dest, Source, Count);
+}
+
+
+/**
+ * Move constructs a range of items into memory.
+ *
+ * @param	Dest		The memory location to start moving into.
+ * @param	Source		A pointer to the first item to move from.
+ * @param	Count		The number of elements to move.
+ */
+template <typename ElementType>
+FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsMoveConstructor>::Type MoveConstructItems(void* Dest, ElementType* Source, int32 Count)
+{
+	while (Count)
+	{
+		new (Dest) ElementType((ElementType&&)*Source);
+		++(ElementType*&)Dest;
+		++Source;
+		--Count;
+	}
+}
+
+template <typename ElementType>
+FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveConstructor>::Type MoveConstructItems(void* Dest, const ElementType* Source, int32 Count)
+{
 	FMemory::Memmove(Dest, Source, sizeof(ElementType) * Count);
 }
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-	/**
-	 * Move constructs a range of items into memory.
-	 *
-	 * @param	Dest		The memory location to start moving into.
-	 * @param	Source		A pointer to the first item to move from.
-	 * @param	Count		The number of elements to move.
-	 */
-	template <typename ElementType>
-	FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsMoveConstructor>::Type MoveConstructItems(void* Dest, ElementType* Source, int32 Count)
+/**
+ * Move assigns a range of items.
+ *
+ * @param	Dest		The memory location to start move assigning to.
+ * @param	Source		A pointer to the first item to move assign.
+ * @param	Count		The number of elements to move assign.
+ */
+template <typename ElementType>
+FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsMoveAssignment>::Type MoveAssignItems(ElementType* Dest, ElementType* Source, int32 Count)
+{
+	while (Count)
 	{
-		while (Count)
-		{
-			new (Dest) ElementType((ElementType&&)*Source);
-			++(ElementType*&)Dest;
-			++Source;
-			--Count;
-		}
+		*Dest = (ElementType&&)*Source;
+		++Dest;
+		++Source;
+		--Count;
 	}
+}
 
-	template <typename ElementType>
-	FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveConstructor>::Type MoveConstructItems(void* Dest, const ElementType* Source, int32 Count)
-	{
-		FMemory::Memmove(Dest, Source, sizeof(ElementType) * Count);
-	}
-
-	/**
-	 * Move assigns a range of items.
-	 *
-	 * @param	Dest		The memory location to start move assigning to.
-	 * @param	Source		A pointer to the first item to move assign.
-	 * @param	Count		The number of elements to move assign.
-	 */
-	template <typename ElementType>
-	FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsMoveAssignment>::Type MoveAssignItems(ElementType* Dest, ElementType* Source, int32 Count)
-	{
-		while (Count)
-		{
-			*Dest = (ElementType&&)*Source;
-			++Dest;
-			++Source;
-			--Count;
-		}
-	}
-
-	template <typename ElementType>
-	FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveAssignment>::Type MoveAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
-	{
-		FMemory::Memmove(Dest, Source, sizeof(ElementType) * Count);
-	}
-
-#else
-
-	template <typename ElementType>
-	FORCEINLINE void MoveConstructItems(void* Dest, const ElementType* Source, int32 Count)
-	{
-		CopyConstructItems(Dest, Source, Count);
-	}
-
-	template <typename ElementType>
-	FORCEINLINE void MoveAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
-	{
-		CopyAssignItems(Dest, Source, Count);
-	}
-
-#endif
+template <typename ElementType>
+FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsMoveAssignment>::Type MoveAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
+{
+	FMemory::Memmove(Dest, Source, sizeof(ElementType) * Count);
+}
 
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::IsBytewiseComparable, bool>::Type CompareItems(const ElementType* A, const ElementType* B, int32 Count)
 {
 	return !FMemory::Memcmp(A, B, sizeof(ElementType) * Count);
 }
+
 
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::IsBytewiseComparable, bool>::Type CompareItems(const ElementType* A, const ElementType* B, int32 Count)

@@ -6,10 +6,10 @@
 //////////////////////////////////////////////////////////////////////////
 // APaperSpriteActor
 
-APaperSpriteActor::APaperSpriteActor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APaperSpriteActor::APaperSpriteActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	RenderComponent = PCIP.CreateDefaultSubobject<UPaperSpriteComponent>(this, TEXT("RenderComponent"));
+	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperSpriteComponent>(this, TEXT("RenderComponent"));
 	RenderComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	RenderComponent->Mobility = EComponentMobility::Static;
 

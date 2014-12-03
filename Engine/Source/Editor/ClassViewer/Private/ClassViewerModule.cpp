@@ -5,6 +5,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 #include "ModuleManager.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FClassViewerModule, ClassViewer );
 
@@ -32,8 +33,8 @@ void FClassViewerModule::StartupModule()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( ClassViewerModule::ClassViewerApp, FOnSpawnTab::CreateStatic( &CreateClassPickerTab ) )
 		.SetDisplayName( NSLOCTEXT("ClassViewerApp", "TabTitle", "Class Viewer") )
-		.SetTooltipText( NSLOCTEXT("ClassViewerApp", "TooltipText", "Open the Class Viewer tab.") )
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() )
+		.SetTooltipText( NSLOCTEXT("ClassViewerApp", "TooltipText", "Displays all classes that exist within this project.") )
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory() )
 		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassViewer.TabIcon") );
 }
 

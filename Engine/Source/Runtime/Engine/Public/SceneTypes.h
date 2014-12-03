@@ -129,8 +129,8 @@ enum EMaterialProperty
 	MP_EmissiveColor = 0,
 	MP_Opacity,
 	MP_OpacityMask,
-	MP_DiffuseColor,
-	MP_SpecularColor,
+	MP_DiffuseColor,			// used in Lightmass, not exposed to user, computed from: BaseColor, Metallic
+	MP_SpecularColor,			// used in Lightmass, not exposed to user, derived from: SpecularColor, Metallic, Specular
 	MP_BaseColor,
 	MP_Metallic,
 	MP_Specular,
@@ -171,6 +171,8 @@ enum ESimpleElementBlendMode
 	SE_BLEND_AlphaComposite,
 	// Like SE_BLEND_Translucent, but modifies destination alpha
 	SE_BLEND_AlphaBlend,
+	// Like SE_BLEND_Translucent, but reads from an alpha-only texture
+	SE_BLEND_TranslucentAlphaOnly,
 
 	SE_BLEND_RGBA_MASK_START,
 	SE_BLEND_RGBA_MASK_END = SE_BLEND_RGBA_MASK_START + 31, //Using 5bit bit-field for red, green, blue, alpha and desaturation

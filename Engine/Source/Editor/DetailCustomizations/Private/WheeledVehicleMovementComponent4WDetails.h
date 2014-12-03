@@ -28,7 +28,7 @@ private:
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;
-		UObject * Owner;
+		UObject* Owner;
 
 	} SteeringCurveEditor;
 
@@ -45,7 +45,7 @@ private:
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;
-		UObject * Owner;
+		UObject* Owner;
 
 	} TorqueCurveEditor;
 

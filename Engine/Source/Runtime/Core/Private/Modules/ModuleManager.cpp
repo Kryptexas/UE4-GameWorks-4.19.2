@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ModuleManager.h"
 #include "ModuleVersion.h"
 #include "EngineBuildSettings.h"
 #include "UProjectInfo.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
@@ -73,13 +74,7 @@ void FModuleManager::FindModules(const TCHAR* WildcardWithoutExtension, TArray<F
 #endif
 }
 
-/**
- * Checks to see if the specified module is currently loaded.  This is an O(1) operation.
- *
- * @param	InModuleName		The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
- *
- * @return	True if module is currently loaded, otherwise false
- */
+
 bool FModuleManager::IsModuleLoaded( const FName InModuleName ) const
 {
 	// Do we even know about this module?
@@ -100,6 +95,7 @@ bool FModuleManager::IsModuleLoaded( const FName InModuleName ) const
 	return false;
 }
 
+
 bool FModuleManager::IsModuleUpToDate( const FName InModuleName ) const
 {
 	TMap<FName, FString> ModulePathMap;
@@ -112,6 +108,7 @@ bool FModuleManager::IsModuleUpToDate( const FName InModuleName ) const
 
 	return CheckModuleCompatibility(*TMap<FName, FString>::TConstIterator(ModulePathMap).Value());
 }
+
 
 void FModuleManager::AddModule( const FName InModuleName )
 {
@@ -234,16 +231,22 @@ void FModuleManager::AddModule( const FName InModuleName )
 	}
 }
 
-/**
- * Adds a module to our list of modules and tries to load it immediately
- *
- * @param	InModuleName	The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "name" part of the module file name.  Names should be globally unique.
- */
-TSharedPtr<IModuleInterface> FModuleManager::LoadModule( const FName InModuleName, bool bWasReloaded /*=false*/ )
+
+TSharedPtr<IModuleInterface> FModuleManager::LoadModule( const FName InModuleName, bool bWasReloaded )
 {
 	EModuleLoadResult FailureReason;
 	return LoadModuleWithFailureReason(InModuleName, FailureReason, bWasReloaded );
 }
+
+
+TSharedPtr<IModuleInterface> FModuleManager::LoadModuleChecked( const FName InModuleName, const bool bWasReloaded )
+{
+	TSharedPtr<IModuleInterface> Module = LoadModule(InModuleName, bWasReloaded);
+	check(Module.IsValid());
+
+	return Module;
+}
+
 
 TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason, bool bWasReloaded /*=false*/ )
 {
@@ -475,11 +478,6 @@ bool FModuleManager::UnloadModule( const FName InModuleName, bool bIsShutdown )
 }
 
 
-/**
- * Abandons a loaded module, leaving it loaded in memory but no longer tracking it in the module manager
- *
- * @param	InModuleName	The name of the module to abandon.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
- */
 void FModuleManager::AbandonModule( const FName InModuleName )
 {
 	// Do we even know about this module?
@@ -739,15 +737,18 @@ void FModuleManager::QueryModules( TArray< FModuleStatus >& OutModuleStatuses )
 	}
 }
 
+
 FString FModuleManager::GetModuleFilename(FName ModuleName) const
 {
 	return Modules.FindChecked(ModuleName)->Filename;
 }
 
+
 void FModuleManager::SetModuleFilename(FName ModuleName, const FString& Filename)
 {
 	Modules.FindChecked(ModuleName)->Filename = Filename;
 }
+
 
 FString FModuleManager::GetCleanModuleFilename(FName ModuleName, bool bGameModule)
 {
@@ -755,6 +756,7 @@ FString FModuleManager::GetCleanModuleFilename(FName ModuleName, bool bGameModul
 	GetModuleFilenameFormat(bGameModule, Prefix, Suffix);
 	return Prefix + ModuleName.ToString() + Suffix;
 }
+
 
 void FModuleManager::GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix)
 {
@@ -805,6 +807,7 @@ void FModuleManager::GetModuleFilenameFormat(bool bGameModule, FString& OutPrefi
 	OutSuffix += FPlatformProcess::GetModuleExtension();
 }
 
+
 void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
 	// Search through the engine directory
@@ -822,6 +825,7 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 		FindModulePathsInDirectory(GameBinariesDirectories[Idx], true, NamePattern, OutModulePaths);
 	}
 }
+
 
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
@@ -849,6 +853,7 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 		}
 	}
 }
+
 
 void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar )
 {
@@ -892,15 +897,17 @@ bool FModuleManager::LoadModuleWithCallback( const FName InModuleName, FOutputDe
 
 void FModuleManager::MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName )
 {
-	TSharedRef< FModuleInfo > Module = Modules.FindChecked( InModuleName );
+	TSharedRef<FModuleInfo> Module = Modules.FindChecked(InModuleName);
+
 	do
 	{
 		// Use a random number as the unique file suffix, but mod it to keep it of reasonable length
 		UniqueSuffix = FString::FromInt( FMath::Rand() % 10000 );
 
 		const FString ModuleName = *InModuleName.ToString();
-		const int32 MatchPos = Module->OriginalFilename.Find( ModuleName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		if( ensure( MatchPos != INDEX_NONE ) )
+		const int32 MatchPos = Module->OriginalFilename.Find(ModuleName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+		if (ensure(MatchPos != INDEX_NONE))
 		{
 			const int32 SuffixPos = MatchPos + ModuleName.Len();
 			UniqueModuleFileName = FString::Printf( TEXT( "%s-%s%s" ),
@@ -922,14 +929,15 @@ const TCHAR *FModuleManager::GetUBTConfiguration()
 bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 {
 	int32 ModuleApiVersion = FPlatformProcess::GetDllApiVersion(Filename);
-	if(ModuleApiVersion != MODULE_API_VERSION)
+
+	if (ModuleApiVersion != MODULE_API_VERSION)
 	{
 		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, MODULE_API_VERSION);
 		return false;
 	}
+
 	return true;
 }
-
 
 
 void FModuleManager::StartProcessingNewlyLoadedObjects()
@@ -950,6 +958,8 @@ void FModuleManager::AddBinariesDirectory(const TCHAR *InDirectory, bool bIsGame
 	{
 		EngineBinariesDirectories.Add(InDirectory);
 	}
+
+	FPlatformProcess::AddDllDirectory(InDirectory);
 }
 
 
@@ -969,10 +979,35 @@ void FModuleManager::SetGameBinariesDirectory(const TCHAR* InDirectory)
 
 bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 {
-	if( IsModuleLoaded( ModuleName ) && IsPackageLoaded.IsBound() )
+	if (IsModuleLoaded(ModuleName) && IsPackageLoaded.IsBound())
 	{
-		return IsPackageLoaded.Execute( *FString( FString( TEXT("/Script/") ) + ModuleName.ToString() ) );
+		return IsPackageLoaded.Execute(*FString(FString(TEXT("/Script/")) + ModuleName.ToString()));
 	}
 
 	return false;
+}
+
+const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index) = nullptr;
+
+void FModuleManager::InitializeAutoStartupModules()
+{
+	TArray<FString> Modules;
+	GetAutoStartupModuleList(Modules);
+
+	for (auto ModuleName : Modules)
+	{
+		LoadModuleChecked<IModuleInterface>(*ModuleName);
+	}
+}
+
+void FModuleManager::GetAutoStartupModuleList(TArray<FString>& OutModules) const
+{
+	checkf(GEnumAutoStartupModuleName != nullptr, TEXT("This callback should be set by the target binary."));
+
+	const ANSICHAR* NamePtr = nullptr;
+	int32 Index = 0;
+	while ((NamePtr = GEnumAutoStartupModuleName(Index++)) != nullptr)
+	{
+		OutModules.Add(FString(NamePtr));
+	}
 }

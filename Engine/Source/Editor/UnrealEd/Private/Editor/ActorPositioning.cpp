@@ -3,8 +3,8 @@
 #include "UnrealEd.h"
 #include "ActorPositioning.h"
 #include "SnappingUtils.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
-#include "Landscape/LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeComponent.h"
 
 FActorPositionTraceResult FActorPositioning::TraceWorldForPositionWithDefault(const FViewportCursorLocation& Cursor, const FSceneView& View, const TArray<AActor*>* IgnoreActors)
 {

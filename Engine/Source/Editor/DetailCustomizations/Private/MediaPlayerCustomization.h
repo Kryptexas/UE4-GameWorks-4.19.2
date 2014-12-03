@@ -3,6 +3,7 @@
 #pragma once
 
 
+// forward declarations
 enum class EMediaPlaybackDirections;
 
 
@@ -25,7 +26,7 @@ public:
 	 *
 	 * @return The new instance.
 	 */
-	static TSharedRef<IDetailCustomization> MakeInstance( )
+	static TSharedRef<IDetailCustomization> MakeInstance()
 	{
 		return MakeShareable(new FMediaPlayerCustomization());
 	}
@@ -33,31 +34,31 @@ public:
 private:
 
 	/** Callback for getting the text of the Duration text block. */
-	FText HandleDurationTextBlockText( ) const;
+	FText HandleDurationTextBlockText() const;
 
 	/** Callback for getting the text of the ForwardRates text block. */
-	FText HandleForwardRatesTextBlockText( ) const;
+	FText HandleForwardRatesTextBlockText() const;
 
 	/** Callback for getting the text of a supported playback rate text block. */
 	FText HandleSupportedRatesTextBlockText( EMediaPlaybackDirections Direction, bool Unthinned ) const;
 
 	/** Callback for getting the text of the SupportsScrubbing text block. */
-	FText HandleSupportsScrubbingTextBlockText( ) const;
+	FText HandleSupportsScrubbingTextBlockText() const;
 
 	/** Callback for getting the text of the SupportsSeeking text block. */
-	FText HandleSupportsSeekingTextBlockText( ) const;
+	FText HandleSupportsSeekingTextBlockText() const;
 
 	/** Callback for getting the selected path in the URL picker widget. */
-	FString HandleUrlPickerFilePath( ) const;
+	FString HandleUrlPickerFilePath() const;
 
 	/** Callback for getting the file type filter for the URL picker. */
-	FString HandleUrlPickerFileTypeFilter( ) const;
+	FString HandleUrlPickerFileTypeFilter() const;
 
 	/** Callback for picking a path in the URL picker. */
 	void HandleUrlPickerPathPicked( const FString& PickedPath );
 
 	/** Callback for getting the visibility of warning icon for invalid URLs. */
-	EVisibility HandleUrlWarningIconVisibility( ) const;
+	EVisibility HandleUrlWarningIconVisibility() const;
 
 private:
 

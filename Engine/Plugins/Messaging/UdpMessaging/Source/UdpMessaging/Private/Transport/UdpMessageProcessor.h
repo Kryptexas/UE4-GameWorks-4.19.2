@@ -22,7 +22,7 @@ class FUdpMessageProcessor
 		FGuid NodeId;
 
 		// Holds the collection of reassembled messages.
-		TMap<int32, FReassembledUdpMessagePtr> ReassembledMessages;
+		TMap<int32, FUdpReassembledMessagePtr> ReassembledMessages;
 
 		// Holds the message resequencer.
 		FUdpMessageResequencer Resequencer;
@@ -31,7 +31,7 @@ class FUdpMessageProcessor
 		TMap<int32, TSharedPtr<FUdpMessageSegmenter> > Segmenters;
 
 		// Default constructor.
-		FNodeInfo( )
+		FNodeInfo()
 			: LastSegmentReceivedTime(FDateTime::MinValue())
 			, NodeId()
 		{ }
@@ -61,7 +61,7 @@ class FUdpMessageProcessor
 
 
 		// Default constructor.
-		FInboundSegment( ) { }
+		FInboundSegment() { }
 
 		// Creates and initializes a new instance.
 		FInboundSegment( const FArrayReaderPtr& InData, const FIPv4Endpoint& InSender )
@@ -74,19 +74,19 @@ class FUdpMessageProcessor
 	// Structure for outbound messages.
 	struct FOutboundMessage
 	{
-		// Holds the message.
-		IMessageDataPtr MessageData;
+		// Holds the serialized message.
+		FUdpSerializedMessagePtr SerializedMessage;
 
 		// Holds the recipient.
 		FGuid RecipientId;
 
 
 		// Default constructor.
-		FOutboundMessage( ) { }
+		FOutboundMessage() { }
 
 		// Creates and initializes a new instance.
-		FOutboundMessage( const IMessageDataRef& InMessageData, const FGuid& InRecipientId )
-			: MessageData(InMessageData)
+		FOutboundMessage( const FUdpSerializedMessageRef& InSerializedMessage, const FGuid& InRecipientId )
+			: SerializedMessage(InSerializedMessage)
 			, RecipientId(InRecipientId)
 		{ }
 	};
@@ -102,10 +102,8 @@ public:
 	 */
 	FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint );
 
-	/**
-	 * Destructor.
-	 */
-	~FUdpMessageProcessor( );
+	/** Destructor. */
+	~FUdpMessageProcessor();
 
 public:
 
@@ -121,15 +119,26 @@ public:
 	/**
 	 * Queues up an outbound message.
 	 *
-	 * @param Data The message data to send.
+	 * @param SerializedMessage The serialized message to send.
 	 * @param Recipient The recipient's IPv4 endpoint.
 	 * @return true if the message was queued up, false otherwise.
 	 */
-	bool EnqueueOutboundMessage( const IMessageDataRef& Data, const FGuid& Recipient );
+	bool EnqueueOutboundMessage( const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient );
 
 public:
 
-	FOnMessageTransportNodeDiscovered& OnNodeDiscovered( )
+	/**
+	 * Returns a delegate that is executed when message data has been received.
+	 *
+	 * @param Delegate The delegate to set.
+	 */
+	DECLARE_DELEGATE_ThreeParams(FOnMessageReassembled, const FUdpReassembledMessageRef& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/)
+	FOnMessageReassembled& OnMessageReassembled()
+	{
+		return MessageReassembledDelegate;
+	}
+
+	IMessageTransport::FOnNodeDiscovered& OnNodeDiscovered()
 	{
 		return NodeDiscoveredDelegate;
 	}
@@ -139,29 +148,19 @@ public:
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	FOnMessageTransportNodeLost& OnNodeLost( )
+	IMessageTransport::FOnNodeLost& OnNodeLost()
 	{
 		return NodeLostDelegate;
-	}
-
-	/**
-	 * Returns a delegate that is executed when message data has been received.
-	 *
-	 * @param Delegate The delegate to set.
-	 */
-	FOnMessageTransportMessageReceived& OnMessageReceived( )
-	{
-		return MessageReceivedDelegate;
 	}
 	
 public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override;
-	virtual uint32 Run( ) override;
-	virtual void Stop( ) override;
-	virtual void Exit( ) override { }
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override { }
 
 protected:
 
@@ -170,7 +169,6 @@ protected:
 	 *
 	 * @param MessageId The identifier of the message to acknowledge.
 	 * @param NodeInfo Details for the node to send the acknowledgment to.
-	 *
 	 * @todo gmp: batch multiple of these into a single message
 	 */
 	void AcknowledgeReceipt( int32 MessageId, const FNodeInfo& NodeInfo );
@@ -180,17 +178,13 @@ protected:
 	 *
 	 * @return Wait time.
 	 */
-	FTimespan CalculateWaitTime( ) const;
+	FTimespan CalculateWaitTime() const;
 
-	/**
-	 * Consumes all inbound segments.
-	 */
-	void ConsumeInboundSegments( );
+	/** Consumes all inbound segments. */
+	void ConsumeInboundSegments();
 
-	/**
-	 * Consumes all outbound messages.
-	 */
-	void ConsumeOutboundMessages( );
+	/** Consumes all outbound messages. */
+	void ConsumeOutboundMessages();
 
 	/**
 	 * Filters the specified message segment.
@@ -274,10 +268,8 @@ protected:
 	 */
 	void RemoveKnownNode( const FGuid& NodeId );
 
-	/**
-	 * Updates all known remote nodes.
-	 */
-	void UpdateKnownNodes( );
+	/** Updates all known remote nodes. */
+	void UpdateKnownNodes();
 
 	/**
 	 * Updates all segmenters of the specified node.
@@ -286,75 +278,73 @@ protected:
 	 */
 	void UpdateSegmenters( FNodeInfo& NodeInfo );
 
-	/**
-	 * Updates all static remote nodes.
-	 */
-	void UpdateStaticNodes( );
+	/** Updates all static remote nodes. */
+	void UpdateStaticNodes();
 
 private:
 
-	// Handles message data state changes.
-	void HandleMessageDataStateChanged( );
+	/** Handles message data state changes. */
+	void HandleSerializedMessageStateChanged();
 
 private:
 
-	// Holds the queue of outbound messages.
+	// Holds the queue of outbound messages. */
 	TQueue<FInboundSegment, EQueueMode::Mpsc> InboundSegments;
 
-	// Holds the queue of outbound messages.
+	// Holds the queue of outbound messages. */
 	TQueue<FOutboundMessage, EQueueMode::Mpsc> OutboundMessages;
 
 private:
 
-	// Holds the hello sender.
+	/** Holds the hello sender. */
 	FUdpMessageBeacon* Beacon;
 
-	// Holds the current time.
+	/** Holds the current time. */
 	FDateTime CurrentTime;
 
-	// Holds the collection of known remote nodes.
+	/** Holds the collection of known remote nodes. */
 	TMap<FGuid, FNodeInfo> KnownNodes;
 
-	// Holds the last sent message number.
+	/** Holds the last sent message number. */
 	int32 LastSentMessage;
 
-	// Holds the local node identifier.
+	/** Holds the local node identifier. */
 	FGuid LocalNodeId;
 
-	// Holds the multicast endpoint.
+	/** Holds the multicast endpoint. */
 	FIPv4Endpoint MulticastEndpoint;
 
-	// Holds the socket sender.
+	/** Holds the socket sender. */
 	FUdpSocketSender* Sender;
 
-	// Holds the network socket used to transport messages.
+	/** Holds the network socket used to transport messages. */
 	FSocket* Socket;
 
-	// Holds the collection of static remote nodes.
+	/** Holds the collection of static remote nodes. */
 	TMap<FIPv4Endpoint, FNodeInfo> StaticNodes;
 
-	// Holds a flag indicating that the thread is stopping.
+	/** Holds a flag indicating that the thread is stopping. */
 	bool Stopping;
 
-	// Holds the thread object.
+	/** Holds the thread object. */
 	FRunnableThread* Thread;
 
-	// Holds an event signaling that inbound messages need to be processed.
+	/** Holds an event signaling that inbound messages need to be processed. */
 	FEvent* WorkEvent;
 
 private:
 
-	// Holds a delegate to be invoked when a message was received on the transport channel.
-	FOnMessageTransportMessageReceived MessageReceivedDelegate;
+	/** Holds a delegate to be invoked when a message was received on the transport channel. */
+	FOnMessageReassembled MessageReassembledDelegate;
 
-	// Holds a delegate to be invoked when a network node was discovered.
-	FOnMessageTransportNodeDiscovered NodeDiscoveredDelegate;
+	/** Holds a delegate to be invoked when a network node was discovered. */
+	IMessageTransport::FOnNodeDiscovered NodeDiscoveredDelegate;
 
-	// Holds a delegate to be invoked when a network node was lost.
-	FOnMessageTransportNodeLost NodeLostDelegate;
+	/** Holds a delegate to be invoked when a network node was lost. */
+	IMessageTransport::FOnNodeLost NodeLostDelegate;
 
 private:
 
-	// Defines the maximum number of Hello segments that can be dropped before a remote endpoint is considered dead.
+	/** Defines the maximum number of Hello segments that can be dropped before a remote endpoint is considered dead. */
 	static const int32 DeadHelloIntervals;
 };

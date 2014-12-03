@@ -7,6 +7,11 @@
 =============================================================================*/
 
 #pragma once
+#include "AreTypesEqual.h"
+#include "RemoveCV.h"
+
+#include "AssertionMacros.h"
+#include "Misc/OutputDevice.h"
 
 /*-----------------------------------------------------------------------------
  * Macros to abstract the presence of certain compiler intrinsic type traits 
@@ -95,6 +100,14 @@ template<typename T> struct TIsArithmeticType
 };
 
 /**
+ * TIsSame
+ *
+ * Unreal implementation of std::is_same trait.
+ */
+template<typename A, typename B>	struct TIsSame			{ enum { Value = false	}; };
+template<typename T>				struct TIsSame<T, T>	{ enum { Value = true	}; };
+
+/**
  * TIsCharType
  */
 template<typename T> struct TIsCharType           { enum { Value = false }; };
@@ -154,6 +167,25 @@ template<typename T> struct TIsPointerType<T* volatile>			{ enum { Value = true 
 template<typename T> struct TIsPointerType<T* const volatile>	{ enum { Value = true }; };
 
 /**
+ * TIsReferenceType
+ */
+template<typename T> struct TIsReferenceType      { enum { Value = false }; };
+template<typename T> struct TIsReferenceType<T&>  { enum { Value = true  }; };
+template<typename T> struct TIsReferenceType<T&&> { enum { Value = true  }; };
+
+/**
+ * TIsLValueReferenceType
+ */
+template<typename T> struct TIsLValueReferenceType     { enum { Value = false }; };
+template<typename T> struct TIsLValueReferenceType<T&> { enum { Value = true  }; };
+
+/**
+ * TIsLValueReferenceType
+ */
+template<typename T> struct TIsRValueReferenceType      { enum { Value = false }; };
+template<typename T> struct TIsRValueReferenceType<T&&> { enum { Value = true  }; };
+
+/**
  * TIsVoidType
  */
 template<typename T> struct TIsVoidType { enum { Value = false }; };
@@ -181,6 +213,39 @@ struct TIsFundamentalType
 };
 
 /**
+ * TIsFunction
+ *
+ * Tests is a type is a function.
+ */
+template <typename T>
+struct TIsFunction
+{
+	enum { Value = false };
+};
+
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+
+	template <typename RetType, typename... Params>
+	struct TIsFunction<RetType(Params...)>
+	{
+		enum { Value = true };
+	};
+
+#else
+
+	template <typename RetType                                                                                                        > struct TIsFunction<RetType(                              )> { enum { Value = true }; };
+	template <typename RetType, typename P0                                                                                           > struct TIsFunction<RetType(P0                            )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1                                                                              > struct TIsFunction<RetType(P0, P1                        )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2                                                                 > struct TIsFunction<RetType(P0, P1, P2                    )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3                                                    > struct TIsFunction<RetType(P0, P1, P2, P3                )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4                                       > struct TIsFunction<RetType(P0, P1, P2, P3, P4            )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4, typename P5                          > struct TIsFunction<RetType(P0, P1, P2, P3, P4, P5        )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6             > struct TIsFunction<RetType(P0, P1, P2, P3, P4, P5, P6    )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7> struct TIsFunction<RetType(P0, P1, P2, P3, P4, P5, P6, P7)> { enum { Value = true }; };
+
+#endif
+
+/**
  * TIsZeroConstructType
  */
 template<typename T> 
@@ -206,6 +271,7 @@ struct TIsWeakPointerType
 { 
 	enum { Value = false };
 };
+
 
 /**
  * TNameOf
@@ -458,4 +524,66 @@ struct TMoveSupportTraits : TMoveSupportTraitsBase<T, typename TCallTraits<T>::P
 {
 };
 
+/**
+ * Tests if a type T is bitwise-constructible from a given argument type U.  That is, whether or not
+ * the U can be memcpy'd in order to produce an instance of T, rather than having to go
+ * via a constructor.
+ *
+ * Examples:
+ * TIsBitwiseConstructible<PODType,    PODType   >::Value == true  // PODs can be trivially copied
+ * TIsBitwiseConstructible<const int*, int*      >::Value == true  // a non-const Derived pointer is trivially copyable as a const Base pointer
+ * TIsBitwiseConstructible<int*,       const int*>::Value == false // not legal the other way because it would be a const-correctness violation
+ * TIsBitwiseConstructible<int32,      uint32    >::Value == true  // signed integers can be memcpy'd as unsigned integers
+ * TIsBitwiseConstructible<uint32,     int32     >::Value == true  // and vice versa
+ */
 
+template <typename T, typename Arg>
+struct TIsBitwiseConstructible
+{
+	static_assert(
+		!TIsReferenceType<T  >::Value &&
+		!TIsReferenceType<Arg>::Value,
+		"TIsBitwiseConstructible is not designed to accept reference types");
+
+	static_assert(
+		TAreTypesEqual<T,   typename TRemoveCV<T  >::Type>::Value &&
+		TAreTypesEqual<Arg, typename TRemoveCV<Arg>::Type>::Value,
+		"TIsBitwiseConstructible is not designed to accept qualified types");
+
+	// Assume no bitwise construction in general
+	enum { Value = false };
+};
+
+template <typename T>
+struct TIsBitwiseConstructible<T, T>
+{
+	// Ts can always be bitwise constructed from itself if it is trivially copyable.
+	enum { Value = !TTypeTraits<T>::NeedsCopyConstructor };
+};
+
+template <typename T, typename U>
+struct TIsBitwiseConstructible<const T, U> : TIsBitwiseConstructible<T, U>
+{
+	// Constructing a const T is the same as constructing a T
+};
+
+// Const pointers can be bitwise constructed from non-const pointers.
+// This is not true for pointer conversions in general, e.g. where an offset may need to be applied in the case
+// of multiple inheritance, but there is no way of detecting that at compile-time.
+template <typename T>
+struct TIsBitwiseConstructible<const T*, T*>
+{
+	// Constructing a const T is the same as constructing a T
+	enum { Value = true };
+};
+
+// Unsigned types can be bitwise converted to their signed equivalents, and vice versa.
+// (assuming two's-complement, which we are)
+template <> struct TIsBitwiseConstructible<uint8,   int8>  { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible< int8,  uint8>  { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible<uint16,  int16> { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible< int16, uint16> { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible<uint32,  int32> { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible< int32, uint32> { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible<uint64,  int64> { enum { Value = true }; };
+template <> struct TIsBitwiseConstructible< int64, uint64> { enum { Value = true }; };

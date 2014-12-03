@@ -10,6 +10,30 @@ FSkeletalMeshMerge
 
 #pragma once
 
+struct FRefPoseOverride
+{
+	/** The skeletal mesh that contains the reference pose. */
+	USkeletalMesh* SkeletalMesh;
+
+	/** The names of the bones to override. */
+	TArray<FName> BoneNames;
+
+	/**
+	 * Whether the override for the bone should apply to the bone's children.
+	 * This array has a 1:1 with the 'BoneNames' array.
+	 */
+	TArray<bool> OverrideChildren;
+
+	/**
+	 * Adds a bone to the list of poses to override.
+	 */
+	void AddOverride(FName BoneName, bool bOverrideChildren = false)
+	{
+		BoneNames.Add(BoneName);
+		OverrideChildren.Add(bOverrideChildren);
+	}
+};
+
 /** 
 * Info to map all the sections from a single source skeletal mesh to 
 * a final section entry int he merged skeletal mesh
@@ -44,7 +68,7 @@ public:
 	* Merge/Composite the list of source meshes onto the merge one
 	* @return true if succeeded
 	*/
-	bool DoMerge();
+	bool DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides = nullptr);
 
 private:
 	/** Destination merged mesh */
@@ -142,4 +166,15 @@ private:
 	* @return true if succeeded
 	*/
 	bool ProcessMergeMesh();
+
+	/**
+	 * Overrides the 'TargetSkeleton' bone poses with the bone poses specified in the 'PoseOverrides' array.
+	 */
+	static void OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton);
+
+	/**
+	 * Override the 'TargetSkeleton' bone pose with the pose from from the 'SourceSkeleton'.
+	 * @return 'true' if the override was successful; 'false' otherwise.
+	 */
+	static bool OverrideReferenceBonePose(int32 SourceBoneIndex, const FReferenceSkeleton& SourceSkeleton, FReferenceSkeleton& TargetSkeleton);
 };

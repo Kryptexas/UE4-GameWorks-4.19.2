@@ -31,11 +31,11 @@ static TAutoConsoleVariable<float> CVarBounceThresholdVelocity(
 	TEXT("A contact with a relative velocity below this will not bounce. Default: 200"),
 	ECVF_Default);
 
-FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance * BodyInstance)
+FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance* BodyInstance)
 {
 #if WITH_PHYSX
 	//This is a helper function for dynamic actors - static actors are in both scenes
-	check(BodyInstance->GetPxRigidDynamic());
+	check(BodyInstance->GetPxRigidBody());
 	return UPhysicsSettings::Get()->bEnableAsyncScene && BodyInstance->UseAsyncScene() ? PST_Async : PST_Sync;
 #endif
 
@@ -99,8 +99,8 @@ FPhysScene::FPhysScene()
 
 #if WITH_SUBSTEPPING
 	bSubstepping = PhysSetting->bSubstepping;
+	bSubsteppingAsync = PhysSetting->bSubsteppingAsync;
 #endif
-
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
 
@@ -168,15 +168,16 @@ bool UseSyncTime(uint32 SceneType)
 
 }
 
-bool FPhysScene::GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const
+bool FPhysScene::GetKinematicTarget(const FBodyInstance* BodyInstance, FTransform& OutTM) const
 {
 #if WITH_PHYSX
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
 	{
 #if WITH_SUBSTEPPING
-		if (IsSubstepping())
+		uint32 BodySceneType = SceneType(BodyInstance);
+		if (IsSubstepping(BodySceneType))
 		{
-			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
 			return PhysSubStepper->GetKinematicTarget(BodyInstance, OutTM);
 		}
 		else
@@ -198,7 +199,7 @@ bool FPhysScene::GetKinematicTarget(const FBodyInstance * BodyInstance, FTransfo
 	return false;
 }
 
-void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTransform, bool bAllowSubstepping)
+void FPhysScene::SetKinematicTarget(FBodyInstance* BodyInstance, const FTransform& TargetTransform, bool bAllowSubstepping)
 {
 	TargetTransform.DiagnosticCheckNaN_All();
 
@@ -206,9 +207,10 @@ void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransfo
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
 	{
 #if WITH_SUBSTEPPING
-		if (bAllowSubstepping && IsSubstepping())
+		uint32 BodySceneType = SceneType(BodyInstance);
+		if (bAllowSubstepping && IsSubstepping(BodySceneType))
 		{
-			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
 			PhysSubStepper->SetKinematicTarget(BodyInstance, TargetTransform);
 		}
 		else
@@ -224,104 +226,97 @@ void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransfo
 #endif
 }
 
-void FPhysScene::AddForce(FBodyInstance * BodyInstance, const FVector & Force, bool bAllowSubstepping)
+void FPhysScene::AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 #if WITH_SUBSTEPPING
-		if (bAllowSubstepping && IsSubstepping())
+		uint32 BodySceneType = SceneType(BodyInstance);
+		if (bAllowSubstepping && IsSubstepping(BodySceneType))
 		{
-			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
 			PhysSubStepper->AddForce(BodyInstance, Force);
 		}
 		else
 #endif
 		{
-			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
-			PRigidDynamic->addForce(U2PVector(Force), PxForceMode::eFORCE, true);
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			PRigidBody->addForce(U2PVector(Force), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
 }
 
-void FPhysScene::AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position, bool bAllowSubstepping)
+void FPhysScene::AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 #if WITH_SUBSTEPPING
-		if (bAllowSubstepping && IsSubstepping())
+		uint32 BodySceneType = SceneType(BodyInstance);
+		if (bAllowSubstepping && IsSubstepping(BodySceneType))
 		{
-			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
 			PhysSubStepper->AddForceAtPosition(BodyInstance, Force, Position);
 		}
 		else
 #endif
 		{
-			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
-			PxRigidBodyExt::addForceAtPos(*PRigidDynamic, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
 }
 
-void FPhysScene::AddTorque(FBodyInstance * BodyInstance, const FVector & Torque, bool bAllowSubstepping)
+void FPhysScene::AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 #if WITH_SUBSTEPPING
-		if (bAllowSubstepping && IsSubstepping())
+		uint32 BodySceneType = SceneType(BodyInstance);
+		if (bAllowSubstepping && IsSubstepping(BodySceneType))
 		{
-			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
 			PhysSubStepper->AddTorque(BodyInstance, Torque);
 		}
 		else
 #endif
 		{
-			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
-			PRigidDynamic->addTorque(U2PVector(Torque), PxForceMode::eFORCE, true);
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			PRigidBody->addTorque(U2PVector(Torque), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
 }
 
 #if WITH_PHYSX
-void FPhysScene::RemoveBodyFromActiveTransforms(class PxActor * PActor, uint32 SceneType)
+void FPhysScene::RemoveActiveBody(FBodyInstance* BodyInstance, uint32 SceneType)
 {
-	if (PActor)
+	int32 BodyIndex = ActiveBodyInstances[SceneType].Find(BodyInstance);
+	if (BodyIndex != INDEX_NONE)
 	{
-		TArray<const PxActiveTransform*> & PActiveTransforms = ActiveTransforms[SceneType];
-		for (int32 TransformIndex = 0; TransformIndex < PActiveTransforms.Num(); ++TransformIndex)
-		{
-			const PxActiveTransform * PActiveTransform = PActiveTransforms[TransformIndex];
-			if (PActiveTransform && PActiveTransform->actor == PActor)
-			{
-				PActiveTransforms[TransformIndex] = NULL;	//we NULL out the pointer to indicate that this actor has been destroyed. This is needed because the transform cache doesn't get updated until the next fetchResults
-			}
-		}
+		ActiveBodyInstances[SceneType][BodyIndex] = nullptr;
 	}
 }
 #endif
-
-void FPhysScene::TermBody(FBodyInstance * BodyInstance)
+void FPhysScene::TermBody(FBodyInstance* BodyInstance)
 {
 #if WITH_SUBSTEPPING
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 		FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
 		PhysSubStepper->RemoveBodyInstance(BodyInstance);
 	}
 #endif
-
-
 #if WITH_PHYSX
-	RemoveBodyFromActiveTransforms(BodyInstance->RigidActorSync, PST_Sync);
-	RemoveBodyFromActiveTransforms(BodyInstance->RigidActorAsync, PST_Async);
+	RemoveActiveBody(BodyInstance, PST_Sync);
+	RemoveActiveBody(BodyInstance, PST_Async);
 #endif
 }
 
@@ -411,6 +406,64 @@ void FPhysScene::FlushDeferredCollisionDisableTableQueue()
 	DeferredCollisionDisableTableQueue.Empty();
 }
 
+void GatherPhysXStats(PxScene* PScene, uint32 SceneType)
+{
+	/** Gather PhysX stats */
+	if (SceneType == 0)
+	{
+		if (PScene)
+		{
+			PxSimulationStatistics SimStats;
+			PScene->getSimulationStatistics(SimStats);
+
+			SET_DWORD_STAT(STAT_NumActiveConstraints, SimStats.nbActiveConstraints);
+			SET_DWORD_STAT(STAT_NumActiveSimulatedBodies, SimStats.nbActiveDynamicBodies);
+			SET_DWORD_STAT(STAT_NumActiveKinematicBodies, SimStats.nbActiveKinematicBodies);
+			SET_DWORD_STAT(STAT_NumStaticBodies, SimStats.nbStaticBodies);
+			SET_DWORD_STAT(STAT_NumMobileBodies, SimStats.nbDynamicBodies);
+			
+			SET_DWORD_STAT(STAT_NumBroadphaseAdds, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+			SET_DWORD_STAT(STAT_NumBroadphaseRemoves, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+
+			uint32 NumShapes = 0;
+			for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
+			{
+				NumShapes += SimStats.nbShapes[GeomType];
+			}
+
+			SET_DWORD_STAT(STAT_NumShapes, NumShapes);
+
+		}
+
+	}
+
+#if 0	//this is not reliable right now
+	else if (SceneType == 1 & UPhysicsSettings::Get()->bEnableAsyncScene)
+	{
+		//Having to duplicate because of macros. In theory we can fix this but need to get this quickly
+		PxSimulationStatistics SimStats;
+		PScene->getSimulationStatistics(SimStats);
+
+		SET_DWORD_STAT(STAT_NumActiveConstraintsAsync, SimStats.nbActiveConstraints);
+		SET_DWORD_STAT(STAT_NumActiveSimulatedBodiesAsync, SimStats.nbActiveDynamicBodies);
+		SET_DWORD_STAT(STAT_NumActiveKinematicBodiesAsync, SimStats.nbActiveKinematicBodies);
+		SET_DWORD_STAT(STAT_NumStaticBodiesAsync, SimStats.nbStaticBodies);
+		SET_DWORD_STAT(STAT_NumMobileBodiesAsync, SimStats.nbDynamicBodies);
+
+		SET_DWORD_STAT(STAT_NumBroadphaseAddsAsync, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+		SET_DWORD_STAT(STAT_NumBroadphaseRemovesAsync, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+
+		uint32 NumShapes = 0;
+		for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
+		{
+			NumShapes += SimStats.nbShapes[GeomType];
+		}
+
+		SET_DWORD_STAT(STAT_NumShapesAsync, NumShapes);
+	}
+#endif
+}
+
 /** Exposes ticking of physics-engine scene outside Engine. */
 void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent)
 {
@@ -427,7 +480,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	}
 
 #if WITH_SUBSTEPPING
-	if (IsSubstepping() && SceneType != PST_Cloth)	//we don't bother sub-stepping cloth
+	if (IsSubstepping(SceneType))	//we don't bother sub-stepping cloth
 	{
 		//We're about to start stepping so swap buffers. Might want to find a better place for this?
 		PhysSubSteppers[SceneType]->SwapBuffers();
@@ -454,6 +507,12 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 		return;
 	}
 
+#if WITH_PHYSX
+	GatherPhysXStats(GetPhysXScene(SceneType), SceneType);
+#endif
+
+
+
 	/**
 	* Weight frame time according to PhysScene settings.
 	*/
@@ -474,14 +533,14 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	{
 		float TickTime = AveragedFrameTime[SceneType];
 #if WITH_SUBSTEPPING
-		if (IsSubstepping())
+		if (IsSubstepping(SceneType))
 		{
 			TickTime = UseSyncTime(SceneType) ? SyncDeltaSeconds : DeltaSeconds;
 		}
 #endif
 		VehicleManager->PreTick(TickTime);
 #if WITH_SUBSTEPPING
-		if (IsSubstepping() == false)
+		if (IsSubstepping(SceneType) == false)
 #endif
 		{
 			VehicleManager->Update(AveragedFrameTime[SceneType]);
@@ -506,7 +565,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if(ApexScene && UseDelta > 0.f)
 	{
 #if WITH_SUBSTEPPING
-		if (IsSubstepping() && SceneType != PST_Cloth) //we don't bother sub-stepping cloth
+		if (IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
 		}else
@@ -524,10 +583,9 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	{
 		InOutCompletionEvent->DispatchSubsequents(); // nothing to do, so nothing to wait for
 	}
-
 #if WITH_SUBSTEPPING
-	//check if substepping settings have changed
 	bSubstepping = UPhysicsSettings::Get()->bSubstepping;
+	bSubsteppingAsync = UPhysicsSettings::Get()->bSubsteppingAsync;
 #endif
 }
 
@@ -603,11 +661,15 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 		}
 	}
 
+
+	// Reset execution flag
+
+//This fetches and gets active transforms. It's important that the function that calls this locks because getting the transforms and using the data must be an atomic operation
 #if WITH_PHYSX
 	PxScene* PScene = GetPhysXScene(SceneType);
 	check(PScene);
-
 	PxU32 OutErrorCode = 0;
+
 #if !WITH_APEX
 	PScene->lockWrite();
 	PScene->fetchResults(true, &OutErrorCode);
@@ -620,7 +682,6 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 #endif	//	#if !WITH_APEX
 
 	UpdateActiveTransforms(SceneType);
-
 	if (OutErrorCode != 0)
 	{
 		UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);
@@ -628,11 +689,8 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 #endif // WITH_PHYSX
 
 	PhysicsSubsceneCompletion[SceneType] = NULL;
-
-	// Reset execution flag
 	bPhysXSceneExecuting[SceneType] = false;
 }
-
 #if WITH_PHYSX
 void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 {
@@ -640,108 +698,74 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 	{
 		return;
 	}
-
 	PxScene* PScene = GetPhysXScene(SceneType);
 	check(PScene);
-	SCENE_LOCK_READ(PScene);
+	SCOPED_SCENE_WRITE_LOCK(PScene);
+
 	PxU32 NumTransforms = 0;
 	const PxActiveTransform* PActiveTransforms = PScene->getActiveTransforms(NumTransforms);
-	SCENE_UNLOCK_READ(PScene);
-
-	ActiveTransforms[SceneType].Empty(NumTransforms);
+	ActiveBodyInstances[SceneType].Empty(NumTransforms);
+	ActiveDestructibleActors[SceneType].Empty(NumTransforms);
 
 	for (PxU32 TransformIdx = 0; TransformIdx < NumTransforms; ++TransformIdx)
 	{
-		ActiveTransforms[SceneType].Add(&PActiveTransforms[TransformIdx]);	//it's ok to use a pointer here because the physics scene leaves the data for us until the next call to fetchTransform;
-		
 		const PxActiveTransform& PActiveTransform = PActiveTransforms[TransformIdx];
 		PxRigidActor* RigidActor = PActiveTransform.actor->isRigidActor();
-
 		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
+
+		if (FBodyInstance* BodyInstance = FPhysxUserData::Get<FBodyInstance>(RigidActor->userData))
+		{
+			if (BodyInstance->InstanceBodyIndex == INDEX_NONE && BodyInstance->OwnerComponent.IsValid() && BodyInstance->IsInstanceSimulatingPhysics())
+			{
+				ActiveBodyInstances[SceneType].Add(BodyInstance);
+			}
+		}
+		else if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
+		{
+			ActiveDestructibleActors[SceneType].Add(RigidActor);
+		}
+		
 	}
 }
 #endif
 
+DEFINE_STAT(STAT_SyncComponentsToBodies);
+
 void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 {
-#if WITH_PHYSX
-	PxU32 NumTransforms = ActiveTransforms[SceneType].Num();
-	const TArray<const PxActiveTransform*> & PActiveTransforms = ActiveTransforms[SceneType];
+	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
+	SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies);
 
-	for (PxU32 TransformIdx = 0; TransformIdx<NumTransforms; TransformIdx++)
+	for (FBodyInstance* BodyInstance : ActiveBodyInstances[SceneType])
 	{
-		if (PActiveTransforms[TransformIdx] == NULL)	//it's possible to call TermBody on FBodyInstance after fetchResults, but before SyncComponentsToBodies - in this case a NULL is used to represent the stale data
+		if (BodyInstance == nullptr) { continue; }
+
+		check(BodyInstance->OwnerComponent->IsRegistered()); // shouldn't have a physics body for a non-registered component!
+
+		AActor* Owner = BodyInstance->OwnerComponent->GetOwner();
+
+		// See if the transform is actually different, and if so, move the component to match physics
+		const FTransform NewTransform = BodyInstance->GetUnrealWorldTransform();
+		if (!NewTransform.EqualsNoScale(BodyInstance->OwnerComponent->ComponentToWorld))
 		{
-			continue;
+			const FVector MoveBy = NewTransform.GetLocation() - BodyInstance->OwnerComponent->ComponentToWorld.GetLocation();
+			const FRotator NewRotation = NewTransform.Rotator();
+
+			//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
+			BodyInstance->OwnerComponent->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
 		}
 
-		const PxActiveTransform& PActiveTransform = *PActiveTransforms[TransformIdx];
-		PxRigidActor* RigidActor = PActiveTransform.actor->isRigidActor();
-
-		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
+		// Check if we didn't fall out of the world
+		if (Owner != NULL && !Owner->IsPendingKill())
+		{
+			Owner->CheckStillInWorld();
+		}
+	}
 
 #if WITH_APEX
-		//Special code for destructible chunk
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
-		{
-			if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
-			{
-				//TODO: waiting on new API to avoid duplicate updates per shape.
-				TArray<PxShape*> Shapes;
-				Shapes.AddZeroed(RigidActor->getNbShapes());
-				int32 NumShapes = RigidActor->getShapes(Shapes.GetData(), Shapes.Num());
-				for (int32 ShapeIdx = 0; ShapeIdx < Shapes.Num(); ++ShapeIdx)
-				{
-					PxShape* Shape = Shapes[ShapeIdx];
-					int32 ChunkIndex;
-					if (NxDestructibleActor* DestructibleActor = GApexModuleDestructible->getDestructibleAndChunk(Shape, &ChunkIndex))
-					{
-						const physx::PxMat44 ChunkPoseRT = DestructibleActor->getChunkPose(ChunkIndex);
-						const physx::PxTransform Transform(ChunkPoseRT);
-						if (UDestructibleComponent * DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(DestructibleActor->userData)))
-						{
-							// if this component was already unregistered, transform data were deallocated
-							// transform data become empty when a piece of destructible actor goes out from a streaming volume
-							if (DestructibleComponent->IsRegistered())
-							{
-								DestructibleComponent->SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
-							}
-						}
-					}
-				}
-			}
-		}
-#endif
-
-		FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActiveTransform.userData);
-		if (BodyInst != NULL &&
-			BodyInst->InstanceBodyIndex == INDEX_NONE &&
-			BodyInst->OwnerComponent != NULL &&
-			BodyInst->IsInstanceSimulatingPhysics())
-		{
-			check(BodyInst->OwnerComponent->IsRegistered()); // shouldn't have a physics body for a non-registered component!
-
-			AActor* Owner = BodyInst->OwnerComponent->GetOwner();
-
-			// See if the transform is actually different, and if so, move the component to match physics
-			const FTransform NewTransform = BodyInst->GetUnrealWorldTransform();
-			if (!NewTransform.EqualsNoScale(BodyInst->OwnerComponent->ComponentToWorld))
-			{
-				const FVector MoveBy = NewTransform.GetLocation() - BodyInst->OwnerComponent->ComponentToWorld.GetLocation();
-				const FRotator NewRotation = NewTransform.Rotator();
-
-				//UE_LOG(LogTemp, Log, TEXT("MOVING: %s"), *BodyInst->OwnerComponent->GetPathName());
-
-				//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
-				BodyInst->OwnerComponent->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
-			}
-
-			// Check if we didn't fall out of the world
-			if (Owner != NULL && !Owner->IsPendingKill())
-			{
-				Owner->CheckStillInWorld();
-			}
-		}
+	if (ActiveDestructibleActors[SceneType].Num())
+	{
+		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
 }

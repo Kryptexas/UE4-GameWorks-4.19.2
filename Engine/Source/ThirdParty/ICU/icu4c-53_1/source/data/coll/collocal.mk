@@ -7,13 +7,12 @@ COLLATION_SYNTHETIC_ALIAS = de_.txt de__PHONEBOOK.txt es_.txt es__TRADITIONAL.tx
 
 # Ordinary resources
 COLLATION_SOURCE = $(COLLATION_EMPTY_SOURCE)\
- de.txt\
- en.txt en_US.txt en_US_POSIX.txt es.txt\
+ en.txt en_US.txt en_US_POSIX.txt\
  fr.txt fr_CA.txt\
- hi.txt\
- it.txt ja.txt\
+ it.txt\
+ de.txt\
+ es.txt\
+ zh.txt zh_Hant.txt\
+ ja.txt\
  ko.txt\
- pl.txt pt.txt\
- ru.txt\
- sv.txt\
- zh.txt zh_Hant.txt leet.txt
+ leet.txt

@@ -5,19 +5,19 @@
 #include "Editor/GraphEditor/Public/DiffResults.h"
 #include "GraphEditor.h"
 
-struct FMatchName
+struct FMatchFName
 {
-	FMatchName(const FString& InName)
+	FMatchFName(FName InName)
 	: Name(InName)
 	{
 	}
 
 	bool operator() (const UObject* Object)
 	{
-		return Object->GetName() == Name;
+		return Object->GetFName() == Name;
 	}
 
-	FString const& Name;
+	FName const Name;
 };
 
 /** Individual Diff item shown in the list of diffs */
@@ -29,25 +29,6 @@ struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
 
 	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
 };
-
-struct FSCSDiffEntry
-{
-	FName TreeNodeName;
-	FName PropertyName;
-};
-
-inline bool operator ==(const FSCSDiffEntry A, const FSCSDiffEntry B)
-{
-	return A.TreeNodeName == B.TreeNodeName && A.PropertyName == B.PropertyName;
-}
-
-namespace DiffUtils
-{
-	KISMET_API TMap< FName, const UProperty* > GetProperties( const UObject* ForObj );
-	KISMET_API const UObject* GetCDO( const UBlueprint* ForBlueprint );
-	KISMET_API void CompareUnrelatedObjects( const UObject* A, const TMap< FName, const UProperty* >& PropertyMapA, const UObject* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties );
-	KISMET_API void CompareUnrelatedSCS(const UBlueprint* Old, const UBlueprint* New, TArray< struct FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys = nullptr );
-}
 
 namespace DiffWidgetUtils
 {
@@ -138,7 +119,7 @@ protected:
 	bool HasPrevDiff() const;
 
 	/* Need to process keys for shortcuts to buttons */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 
 	typedef TSharedPtr<struct FListItemGraphToDiff>	FGraphToDiff;
@@ -177,7 +158,7 @@ protected:
 	FDiffPanel& GetDiffPanelForNode(UEdGraphNode& Node);
 
 	/** Event handler that updates the graph view when user selects a new graph */
-	void HandleGraphChanged( const FString& GraphName );
+	void HandleGraphChanged( const FName GraphName );
 
 	TSharedRef<SWidget> GenerateGraphPanel();
 	TSharedRef<SWidget> GenerateDefaultsPanel();

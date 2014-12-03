@@ -2,35 +2,6 @@
 
 #pragma once
 
-/** A slot that support alignment of content and padding */
-class SLATE_API FWrapSlot : public TSlotBase<FWrapSlot>, public TSupportsContentAlignmentMixin<FWrapSlot>, public TSupportsContentPaddingMixin<FWrapSlot>
-{
-public:
-	FWrapSlot()
-		: TSlotBase<FWrapSlot>()
-		, TSupportsContentAlignmentMixin<FWrapSlot>( HAlign_Fill, VAlign_Fill )
-		, bSlotFillEmptySpace( false )
-	{
-	}
-
-	/** If the total available space in the wrap panel drops below this threshold, this slot will attempt to fill an entire line. */
-	FWrapSlot& FillLineWhenWidthLessThan( TOptional<float> InFillLineWhenWidthLessThan )
-	{
-		SlotFillLineWhenWidthLessThan = InFillLineWhenWidthLessThan;
-		return *( static_cast<FWrapSlot*>( this ) );
-	}
-
-	/** Should this slot fill the remaining space on the line? */
-	FWrapSlot& FillEmptySpace( bool bInFillEmptySpace )
-	{
-		bSlotFillEmptySpace = bInFillEmptySpace;
-		return *( static_cast<FWrapSlot*>( this ) );
-	}
-
-	TOptional<float> SlotFillLineWhenWidthLessThan;
-	bool bSlotFillEmptySpace;
-};
-
 /**
  * Arranges widgets left-to-right.
  * When the widgets exceed the PreferredWidth
@@ -46,8 +17,38 @@ public:
  */
 class SLATE_API SWrapBox : public SPanel
 {
-
 public:
+
+	/** A slot that support alignment of content and padding */
+	class FSlot : public TSlotBase<FSlot>, public TSupportsContentAlignmentMixin<FSlot>, public TSupportsContentPaddingMixin<FSlot>
+	{
+	public:
+		FSlot()
+			: TSlotBase<FSlot>()
+			, TSupportsContentAlignmentMixin<FSlot>(HAlign_Fill, VAlign_Fill)
+			, SlotFillLineWhenWidthLessThan()
+			, bSlotFillEmptySpace(false)
+		{
+		}
+
+		/** If the total available space in the wrap panel drops below this threshold, this slot will attempt to fill an entire line. */
+		FSlot& FillLineWhenWidthLessThan(TOptional<float> InFillLineWhenWidthLessThan)
+		{
+			SlotFillLineWhenWidthLessThan = InFillLineWhenWidthLessThan;
+			return *( static_cast<FSlot*>( this ) );
+		}
+
+		/** Should this slot fill the remaining space on the line? */
+		FSlot& FillEmptySpace(bool bInFillEmptySpace)
+		{
+			bSlotFillEmptySpace = bInFillEmptySpace;
+			return *( static_cast<FSlot*>( this ) );
+		}
+
+		TOptional<float> SlotFillLineWhenWidthLessThan;
+		bool bSlotFillEmptySpace;
+	};
+
 
 	SLATE_BEGIN_ARGS(SWrapBox)
 		: _PreferredWidth( 100.f )
@@ -58,7 +59,7 @@ public:
 		}
 
 		/** The slot supported by this panel */
-		SLATE_SUPPORTS_SLOT( FWrapSlot )
+		SLATE_SUPPORTS_SLOT( FSlot )
 
 		/** The preferred width, if not set will fill the space */
 		SLATE_ATTRIBUTE( float, PreferredWidth )
@@ -72,9 +73,9 @@ public:
 
 	SWrapBox();
 
-	static FWrapSlot& Slot();
+	static FSlot& Slot();
 
-	FWrapSlot& AddSlot();
+	FSlot& AddSlot();
 
 	/** Removes a slot from this box panel which contains the specified SWidget
 	 *
@@ -83,7 +84,7 @@ public:
 	 */
 	int32 RemoveSlot( const TSharedRef<SWidget>& SlotWidget );
 
-	void Construct( const FArguments & InArgs );
+	void Construct( const FArguments& InArgs );
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
@@ -95,13 +96,16 @@ public:
 
 	virtual FChildren* GetChildren() override;
 
+	/** See InnerSlotPadding Attribute */
+	void SetInnerSlotPadding(FVector2D InInnerSlotPadding);
+
 private:
 
 	/** How wide this panel should appear to be. Any widgets past this line will be wrapped onto the next line. */
 	TAttribute<float> PreferredWidth;
 
 	/** The slots that contain this panel's children. */
-	TPanelChildren<FWrapSlot> Slots;
+	TPanelChildren<FSlot> Slots;
 
 	/** When two slots end up sharing a border, this will put that much padding between then, but otherwise wont. */
 	FVector2D InnerSlotPadding;

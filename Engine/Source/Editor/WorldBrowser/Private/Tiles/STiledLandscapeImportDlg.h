@@ -11,7 +11,7 @@ public:
 	/** */		
 	struct FTileImportConfiguration
 	{
-		int32 Resolutuion;
+		int32 Resolution;
 		
 		int32 NumComponents;
 		int32 NumSectionsPerComponent;

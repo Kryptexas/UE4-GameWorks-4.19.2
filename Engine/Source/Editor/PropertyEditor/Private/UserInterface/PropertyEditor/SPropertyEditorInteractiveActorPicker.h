@@ -22,7 +22,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Begin SWidget interface */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual bool SupportsKeyboardFocus() const override;
 	/** End SWidget interface */
 

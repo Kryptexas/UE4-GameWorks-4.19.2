@@ -5,6 +5,7 @@
 #include "SGraphPin.h"
 #include "SGraphPinString.h"
 #include "SGraphPinNum.h"
+#include "DefaultValueHelper.h"
 
 void SGraphPinNum::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {
@@ -14,18 +15,19 @@ void SGraphPinNum::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinOb
 void SGraphPinNum::SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type /*CommitInfo*/)
 {
 	FString TypeValueString = NewTypeInValue.ToString();
-	if (TypeValueString.IsNumeric())
+	if (FDefaultValueHelper::IsStringValidFloat(TypeValueString))
 	{
+		//This is rubbish.
+		//TODO: Make not rubbish.
 		const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GraphPinObj->GetSchema());
-
-		if (GraphPinObj->PinType.PinCategory == K2Schema->PC_Int || GraphPinObj->PinType.PinCategory == K2Schema->PC_Byte)
+		if ((K2Schema && (GraphPinObj->PinType.PinCategory == K2Schema->PC_Int || GraphPinObj->PinType.PinCategory == K2Schema->PC_Byte)))
 		{
 			int32 IntValue = FCString::Atoi(*TypeValueString);
 			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, FString::FromInt(IntValue));
 		}
 		else
 		{
-			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *TypeValueString );
+			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *TypeValueString);
 		}
 	}
 }

@@ -237,6 +237,12 @@ bool FClassBrowseHelper::IsHidingParentClass(UClass* Class)
 	return Class && Class->HasAnyClassFlags(CLASS_Native) && Class->HasMetaData(MetaHideParent);
 }
 
+bool FClassBrowseHelper::IsHidingClass(UClass* Class)
+{
+	static FName MetaHideInEditor = TEXT("HiddenNode");
+	return Class && Class->HasAnyClassFlags(CLASS_Native) && Class->HasMetaData(MetaHideInEditor);
+}
+
 bool FClassBrowseHelper::IsPackageSaved(FName PackageName)
 {
 	const bool bFound = FPackageName::SearchForPackageOnDisk(PackageName.ToString());
@@ -427,6 +433,8 @@ void FClassBrowseHelper::BuildClassGraph()
 				HideParentList.Add(TestClass->GetSuperClass());
 			}
 
+			NewData.bIsHidden = IsHidingClass(TestClass);
+
 			NewNode->Data = NewData;
 
 			if (TestClass == RootNodeClass)
@@ -539,7 +547,7 @@ void FClassBrowseHelper::UpdateAvailableNodeClasses()
 
 //////////////////////////////////////////////////////////////////////////
 
-UBehaviorTreeEditorTypes::UBehaviorTreeEditorTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeEditorTypes::UBehaviorTreeEditorTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

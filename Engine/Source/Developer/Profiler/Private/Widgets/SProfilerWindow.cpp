@@ -12,6 +12,7 @@
 	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 	#include "Runtime/Engine/Public/EngineAnalytics.h"
 #endif // WITH_EDITOR
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
 
@@ -514,9 +515,9 @@ void SProfilerWindow::OnMouseLeave(const FPointerEvent& MouseEvent)
 	bIsActive = false;
 }
 
-FReply SProfilerWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SProfilerWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	return FProfilerManager::Get()->GetCommandList()->ProcessCommandBindings( InKeyboardEvent ) ? FReply::Handled() : FReply::Unhandled();
+	return FProfilerManager::Get()->GetCommandList()->ProcessCommandBindings( InKeyEvent ) ? FReply::Handled() : FReply::Unhandled();
 }
 
 FReply SProfilerWindow::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )

@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRemotePrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FSlateRemoteModule"
@@ -24,19 +28,20 @@ public:
 		}
 
 		// register settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
-			FSettingsSectionDelegates SettingsDelegates;
-			SettingsDelegates.ModifiedDelegate = FOnSettingsSectionModified::CreateRaw(this, &FSlateRemoteModule::HandleSettingsSaved);
-
-			SettingsModule->RegisterSettings("Project", "Plugins", "SlateRemote",
+			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "SlateRemote",
 				LOCTEXT("SlateRemoteSettingsName", "Slate Remote"),
 				LOCTEXT("SlateRemoteSettingsDescription", "Configure the Slate Remote plug-in."),
-				GetMutableDefault<USlateRemoteSettings>(),
-				SettingsDelegates
+				GetMutableDefault<USlateRemoteSettings>()
 			);
+
+			if (SettingsSection.IsValid())
+			{
+				SettingsSection->OnModified().BindRaw(this, &FSlateRemoteModule::HandleSettingsSaved);
+			}
 		}
 
 		// register application events
@@ -53,7 +58,7 @@ public:
 		FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveAll(this);
 
 		// unregister settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

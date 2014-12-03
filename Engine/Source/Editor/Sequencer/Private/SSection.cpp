@@ -533,7 +533,7 @@ FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 					);
 
-				return FReply::Handled().ReleaseMouseCapture().SetKeyboardFocus( MenuContent.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+				return FReply::Handled().ReleaseMouseCapture().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
 			}
 		}
 	}

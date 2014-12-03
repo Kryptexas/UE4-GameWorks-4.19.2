@@ -35,13 +35,15 @@ DEFINE_LOG_CATEGORY_STATIC(LogTTFontImport, Log, All);
 #define LOCTEXT_NAMESPACE "TTFontImport"
 
 
-UTrueTypeFontFactory::UTrueTypeFontFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTrueTypeFontFactory::UTrueTypeFontFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UFont::StaticClass();
 	bCreateNew = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 	AutoPriority = -1;
+	LODGroup = TEXTUREGROUP_UI;
 }
 
 void UTrueTypeFontFactory::PostInitProperties()
@@ -149,7 +151,7 @@ UObject* UTrueTypeFontFactory::FactoryCreateNew(
 	}
 
 	// Create font and its texture.
-	UFont* Font = new( InParent, Name, Flags )UFont(FPostConstructInitializeProperties());
+	UFont* Font = new( InParent, Name, Flags )UFont(FObjectInitializer());
 	
 	if (ImportOptions->Data.bUseDistanceFieldAlpha)
 	{
@@ -768,7 +770,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromDC( UFont* Font, HDC dc, int3
 	}
 
 	// Create texture for page.
-	UTexture2D* Texture = new(Font, *TextureString)UTexture2D(FPostConstructInitializeProperties());
+	UTexture2D* Texture = new(Font, *TextureString)UTexture2D(FObjectInitializer());
 
 	// note RF_Public because font textures can be referenced directly by material expressions
 	Texture->SetFlags(RF_Public);
@@ -1665,7 +1667,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromBitmap( UFont* Font, uint8* B
 	}
 
 	// Create texture for page.
-	UTexture2D* Texture = new(Font, *TextureString)UTexture2D(FPostConstructInitializeProperties());
+	UTexture2D* Texture = new(Font, *TextureString)UTexture2D(FObjectInitializer());
 
 	// note RF_Public because font textures can be referenced directly by material expressions
 	Texture->SetFlags(RF_Public);

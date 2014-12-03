@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
-#include "ModuleManager.h"
+#include "ModuleInterface.h"
 
 
 /**
@@ -48,11 +48,11 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override { }
+	virtual void StartupModule() override { }
 
-	virtual void ShutdownModule( ) override { }
+	virtual void ShutdownModule() override { }
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return false;
 	}

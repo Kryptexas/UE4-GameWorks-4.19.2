@@ -85,9 +85,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	
 	/** Begin EQS replication data */
 
-	UPROPERTY(Replicated)
-	TArray<FString> AllEQSName;
-
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
 	TArray<uint8> EQSRepData;
 	
@@ -96,6 +93,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	TArray<EQSDebug::FQueryData> EQSLocalData;	
 #endif
 	/** End EQS replication data */
+
+	UPROPERTY(Replicated)
+	FVector SensingComponentLocation;
 
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
@@ -183,6 +183,9 @@ protected:
 	void SelectTargetToDebug();
 
 	//APlayerController* PlayerOwner;
+#if WITH_RECAST
+	ARecastNavMesh* GetNavData();
+#endif
 
 protected:
 	virtual void CollectPathData();

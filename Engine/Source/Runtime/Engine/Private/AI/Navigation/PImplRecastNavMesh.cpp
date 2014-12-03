@@ -14,12 +14,10 @@
 #include "DetourNode.h"
 #include "DetourCommon.h"
 #include "RecastAlloc.h"
-#if WITH_NAVIGATION_GENERATOR
-	#include "RecastNavMeshGenerator.h"
-#endif // WITH_NAVIGATION_GENERATOR
+#include "RecastNavMeshGenerator.h"
 
 #include "AI/Navigation/NavLinkCustomInterface.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 
 //----------------------------------------------------------------------//
@@ -245,21 +243,28 @@ FPImplRecastNavMesh::FPImplRecastNavMesh(ARecastNavMesh* Owner)
 {
 	check(Owner && "Owner must never be NULL");
 
+	DetourNavMesh = dtAllocNavMesh();
+
 	INC_DWORD_STAT_BY( STAT_NavigationMemory
 		, Owner->HasAnyFlags(RF_ClassDefaultObject) == false ? sizeof(*this) : 0 );
 };
 
 FPImplRecastNavMesh::~FPImplRecastNavMesh()
 {
-	// release navmesh only if we own it
-	if (bOwnsNavMeshData && DetourNavMesh != NULL)
-	{
-		dtFreeNavMesh(DetourNavMesh);
-	}
-	DetourNavMesh = NULL;
+	ReleaseDetourNavMesh();
 
 	DEC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
 };
+
+void FPImplRecastNavMesh::ReleaseDetourNavMesh()
+{
+	// release navmesh only if we own it
+	if (DetourNavMesh != nullptr)
+	{
+		dtFreeNavMesh(DetourNavMesh);
+	}
+	DetourNavMesh = nullptr;
+}
 
 /**
  * Serialization.
@@ -293,18 +298,33 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	}
 
 	int32 NumTiles = 0;
+	TArray<int32> TilesToSave;
 
 	if (Ar.IsSaving())
 	{
-		dtNavMesh const* ConstNavMesh = DetourNavMesh;
-		for (int i = 0; i < ConstNavMesh->getMaxTiles(); ++i)
+		TilesToSave.Reserve(DetourNavMesh->getMaxTiles());
+
+		if (!NavMeshOwner->bRebuildAtRuntime && !IsRunningCommandlet())
 		{
-			const dtMeshTile* Tile = ConstNavMesh->getTile(i);
-			if (Tile != NULL && Tile->header != NULL && Tile->dataSize > 0)
+			// For static navmeshes we save only tiles that belongs to this level
+			FName LevelPackageName = NavMeshOwner->GetOutermost()->GetFName();
+			GetNavMeshTilesIn(NavMeshOwner->GetNavigableBoundsInLevel(LevelPackageName), TilesToSave);
+		}
+		else
+		{
+			// Otherwise all valid tiles
+			dtNavMesh const* ConstNavMesh = DetourNavMesh;
+			for (int i = 0; i < ConstNavMesh->getMaxTiles(); ++i)
 			{
-				++NumTiles;
+				const dtMeshTile* Tile = ConstNavMesh->getTile(i);
+				if (Tile != NULL && Tile->header != NULL && Tile->dataSize > 0)
+				{
+					TilesToSave.Add(i);
+				}
 			}
 		}
+		
+		NumTiles = TilesToSave.Num();
 	}
 
 	Ar << NumTiles;
@@ -385,18 +405,15 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	else if (Ar.IsSaving())
 	{
 		dtNavMesh const* ConstNavMesh = DetourNavMesh;
-		for (int i = 0; i < ConstNavMesh->getMaxTiles(); ++i)
+		for (int TileIndex : TilesToSave)
 		{
-			const dtMeshTile* Tile = ConstNavMesh->getTile(i);
-			if (Tile != NULL && Tile->header != NULL && Tile->dataSize > 0)
-			{
-				dtTileRef TileRef = ConstNavMesh->getTileRef(Tile);
-				int32 TileDataSize = Tile->dataSize;
-				Ar << TileRef << TileDataSize;
+			const dtMeshTile* Tile = ConstNavMesh->getTile(TileIndex);
+			dtTileRef TileRef = ConstNavMesh->getTileRef(Tile);
+			int32 TileDataSize = Tile->dataSize;
+			Ar << TileRef << TileDataSize;
 
-				unsigned char* TileData = Tile->data;
-				SerializeRecastMeshTile(Ar, TileData, TileDataSize);
-			}
+			unsigned char* TileData = Tile->data;
+			SerializeRecastMeshTile(Ar, TileData, TileDataSize);
 		}
 	}
 }
@@ -673,6 +690,12 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
 		}
 	}
+	else
+	{
+		// start location is not on navmesh, treat it as a blocked raycast
+		RaycastResult.HitTime = 0.f;
+		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
+	}
 }
 
 void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
@@ -705,6 +728,12 @@ void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLo
 		{
 			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
 		}
+	}
+	else
+	{
+		// start location is not on navmesh, treat it as a blocked raycast
+		RaycastResult.HitTime = 0.f;
+		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
 	}
 }
 
@@ -917,7 +946,7 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 		
 		// copy over corridor poly data
 		Path.PathCorridor.AddUninitialized(PathResult.size());
-		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetTypedData();
+		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetData();
 		for (int i = 0; i < PathResult.size(); ++i, ++DestCorridorPoly)
 		{
 			*DestCorridorPoly = PathResult.getRef(i);
@@ -992,7 +1021,7 @@ bool FPImplRecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVecto
 
 	dtQueryResult StringPullResult;
 	const dtStatus StringPullStatus = NavQuery.findStraightPath(&RecastStartPos.X, &RecastEndPos.X,
-		PathCorridor.GetTypedData(), PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
+		PathCorridor.GetData(), PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
 
 	PathPoints.Reset();
 	if (dtStatusSucceed(StringPullStatus))
@@ -1000,7 +1029,7 @@ bool FPImplRecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVecto
 		PathPoints.AddZeroed(StringPullResult.size());
 
 		// convert to desired format
-		FNavPathPoint* CurVert = PathPoints.GetTypedData();
+		FNavPathPoint* CurVert = PathPoints.GetData();
 
 		for (int32 VertIdx = 0; VertIdx < StringPullResult.size(); ++VertIdx)
 		{
@@ -1418,7 +1447,7 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 	int32 NumPolys;
 
 	dtStatus Status = NavQuery.findPolysInPathDistance(StartPolyID, RecastStartPos
-		, PathingDistance, QueryFilter, FoundPolys.GetTypedData(), &NumPolys, Filter.GetMaxSearchNodes());
+		, PathingDistance, QueryFilter, FoundPolys.GetData(), &NumPolys, Filter.GetMaxSearchNodes());
 
 	FoundPolys.RemoveAt(NumPolys, FoundPolys.Num() - NumPolys);
 
@@ -1750,32 +1779,6 @@ static FORCEINLINE float PointDistToSegment2DSquared(const float* PT, const floa
 	return dx*dx + dz*dz;
 }
 
-void FPImplRecastNavMesh::GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, int32& NumTilesY) const
-{
- 	if (DetourNavMesh)
- 	{
- 		dtNavMeshParams const* Params = DetourNavMesh->getParams();
-		NumTilesX = FMath::TruncToFloat( FMath::Sqrt((float)Params->maxTiles) );
-		NumTilesY = NumTilesX;
-
- 		FVector const Mn = Recast2UnrVector(Params->orig);
-
-		float RecastMax[3];
-		RecastMax[0] = Params->orig[0] + (Params->tileWidth * NumTilesX);
-		RecastMax[1] = Params->orig[1];
-		RecastMax[2] = Params->orig[2] + (Params->tileHeight * NumTilesY);
-		FVector const Mx = Recast2UnrVector(RecastMax);
-
-		OuterBox = FBox(Mx, Mn);
-	}
-	else
-	{
-		NumTilesX = 0;
-		NumTilesY = 0;
-		OuterBox = FBox();
-	}
-}
-
 /** 
  * Traverses given tile's edges and detects the ones that are either poly (i.e. not triangle, but whole navmesh polygon) 
  * or navmesh edge. Returns a pair of verts for each edge found.
@@ -1965,9 +1968,7 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 		OutGeometry.BuiltMeshIndices.Reserve(NumIndicesToReserve);
 		OutGeometry.Clusters.AddZeroed(NumClusters);
 
-#if WITH_NAVIGATION_GENERATOR
 		const FRecastNavMeshGenerator* Generator = NavMeshOwner ? (const FRecastNavMeshGenerator*)(NavMeshOwner->GetGenerator()) : NULL;
-#endif
 
 		// spin through all polys in all tiles and draw them
 		// @see drawMeshTile() in recast code for reference
@@ -1982,12 +1983,8 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 				continue;
 			}
 
-#if WITH_NAVIGATION_GENERATOR
 			const bool bIsBeingBuilt = Generator != NULL && !!NavMeshOwner->bDistinctlyDrawTilesBeingBuilt 
-				&& Generator->IsTileFresh(Header->x, Header->y);
-#else
-			const bool bIsBeingBuilt = false;
-#endif
+				&& Generator->IsTileChanged(TileIdx);
 			
 			// add all the poly verts
 			float* F = Tile->verts;
@@ -2199,7 +2196,7 @@ FBox FPImplRecastNavMesh::GetNavMeshTileBounds(int32 TileIndex) const
 }
 
 /** Retrieves XY coordinates of tile specified by index */
-void FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const
+bool FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const
 {
 	if (DetourNavMesh && TileIndex >= 0 && TileIndex < DetourNavMesh->getMaxTiles())
 	{
@@ -2215,12 +2212,15 @@ void FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& 
 				OutX = Header->x;
 				OutY = Header->y;
 				OutLayer = Header->layer;
+				return true;
 			}
 		}
 	}
+
+	return false;
 }
 
-void FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const
+bool FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const
 {
 	if (DetourNavMesh)
 	{
@@ -2234,7 +2234,10 @@ void FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, in
 		ConstRecastNavMesh->calcTileLoc(&RecastPt.X, &TileX, &TileY);
 		OutX = TileX;
 		OutY = TileY;
+		return true;
 	}
+
+	return false;
 }
 
 void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const
@@ -2248,7 +2251,7 @@ void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int
 		TArray<const dtMeshTile*> Tiles;
 		Tiles.AddZeroed(MaxTiles);
 
-		const int32 NumTiles = ConstRecastNavMesh->getTilesAt(TileX, TileY, Tiles.GetTypedData(), MaxTiles);
+		const int32 NumTiles = ConstRecastNavMesh->getTilesAt(TileX, TileY, Tiles.GetData(), MaxTiles);
 		for (int32 i = 0; i < NumTiles; i++)
 		{
 			dtTileRef TileRef = ConstRecastNavMesh->getTileRef(Tiles[i]);
@@ -2256,6 +2259,54 @@ void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int
 			{
 				const int32 TileIndex = (int32)ConstRecastNavMesh->decodePolyIdTile(TileRef);
 				Indices.Add(TileIndex);
+			}
+		}
+	}
+}
+
+void FPImplRecastNavMesh::GetNavMeshTilesIn(const TArray<FBox>& InclusionBounds, TArray<int32>& Indices) const
+{
+	if (DetourNavMesh)
+	{
+		const float* NavMeshOrigin = DetourNavMesh->getParams()->orig;
+		const float TileSize = DetourNavMesh->getParams()->tileWidth;
+
+		TSet<FIntPoint>	TileCoords;	
+		for (const FBox& Bounds : InclusionBounds)
+		{
+			const FBox RcBounds = Unreal2RecastBox(Bounds);
+			const int32 XMin = FMath::FloorToInt((RcBounds.Min.X - NavMeshOrigin[0]) / TileSize);
+			const int32 XMax = FMath::FloorToInt((RcBounds.Max.X - NavMeshOrigin[0]) / TileSize);
+			const int32 YMin = FMath::FloorToInt((RcBounds.Min.Z - NavMeshOrigin[2]) / TileSize);
+			const int32 YMax = FMath::FloorToInt((RcBounds.Max.Z - NavMeshOrigin[2]) / TileSize);
+
+			for (int32 y = YMin; y <= YMax; ++y)
+			{
+				for (int32 x = XMin; x <= XMax; ++x)
+				{
+					TileCoords.Add(FIntPoint(x, y));
+				}
+			}
+		}
+
+		// We guess that each tile has 3 layers in average
+		Indices.Reserve(TileCoords.Num()*3);
+
+		for (FIntPoint TileCoord : TileCoords)
+		{
+			int32 MaxTiles = DetourNavMesh->getTileCountAt(TileCoord.X, TileCoord.Y);
+			TArray<const dtMeshTile*> Tiles;
+			Tiles.AddZeroed(MaxTiles);
+
+			const int32 NumTiles = DetourNavMesh->getTilesAt(TileCoord.X, TileCoord.Y, Tiles.GetData(), MaxTiles);
+			for (int32 i = 0; i < NumTiles; ++i)
+			{
+				dtTileRef TileRef = DetourNavMesh->getTileRef(Tiles[i]);
+				if (TileRef)
+				{
+					const int32 TileIndex = (int32)DetourNavMesh->decodePolyIdTile(TileRef);
+					Indices.Add(TileIndex);
+				}
 			}
 		}
 	}

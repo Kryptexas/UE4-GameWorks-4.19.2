@@ -102,6 +102,7 @@ static_assert(_MSC_VER >= 1700, "Visual Studio 2012 or newer required.");
 //#pragma warning(disable : 4305) // 'argument' : truncation from 'double' to 'float' --- fp:precise builds only!!!!!!!
 #pragma warning(disable : 4324) // structure was padded due to __declspec(align())						
 #pragma warning(disable : 4355) // this used in base initializer list                                   
+#pragma warning(disable : 4373) // '%$S': virtual function overrides '%$pS', previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
 #pragma warning(disable : 4389) // signed/unsigned mismatch                                             
 #pragma warning(disable : 4511) // copy constructor could not be generated                              
 #pragma warning(disable : 4512) // assignment operator could not be generated                           

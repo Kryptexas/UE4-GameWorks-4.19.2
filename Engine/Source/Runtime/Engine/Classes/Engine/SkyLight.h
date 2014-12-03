@@ -9,9 +9,12 @@ class ENGINE_API ASkyLight : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
 	/** @todo document */
-	UPROPERTY(Category=Light, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Light,Rendering,Rendering|Components|SkyLight"))
-	TSubobjectPtr<class USkyLightComponent> LightComponent;
+	DEPRECATED_FORGAME(4.6, "LightComponent should not be accessed directly, please use GetLightComponent() function instead. LightComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Light, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Light,Rendering,Rendering|Components|SkyLight", AllowPrivateAccess = "true"))
+	class USkyLightComponent* LightComponent;
+public:
 
 	/** replicated copy of LightComponent's bEnabled property */
 	UPROPERTY(replicatedUsing=OnRep_bEnabled)
@@ -20,6 +23,9 @@ class ENGINE_API ASkyLight : public AInfo
 	/** Replication Notification Callbacks */
 	UFUNCTION()
 	virtual void OnRep_bEnabled();
+
+	/** Returns LightComponent subobject **/
+	class USkyLightComponent* GetLightComponent() const;
 };
 
 

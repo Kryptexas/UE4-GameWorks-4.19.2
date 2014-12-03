@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "DeviceProfiles/DeviceProfile.h"
 
-UDeviceProfile::UDeviceProfile(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDeviceProfile::UDeviceProfile(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BaseProfileName = TEXT("");
 	DeviceType = TEXT("");

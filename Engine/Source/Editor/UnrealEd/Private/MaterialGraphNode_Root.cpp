@@ -14,8 +14,8 @@
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Root
 
-UMaterialGraphNode_Root::UMaterialGraphNode_Root(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphNode_Root::UMaterialGraphNode_Root(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

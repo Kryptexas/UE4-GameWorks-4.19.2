@@ -24,8 +24,11 @@ class ENGINE_API ASkeletalMeshActor : public AActor, public IMatineeAnimInterfac
 	UPROPERTY()
 	uint32 bWakeOnLevelStart_DEPRECATED:1;
 
-	UPROPERTY(Category=SkeletalMeshActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Mesh,Components|SkeletalMesh,Animation,Physics"))
-	TSubobjectPtr<class USkeletalMeshComponent> SkeletalMeshComponent;
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SkeletalMeshComponent should not be accessed directly, please use GetSkeletalMeshComponent() function instead. SkeletalMeshComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = SkeletalMeshActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Components|SkeletalMesh,Animation,Physics", AllowPrivateAccess = "true"))
+	class USkeletalMeshComponent* SkeletalMeshComponent;
+public:
 
 	/** Used to replicate mesh to clients */
 	UPROPERTY(replicatedUsing=OnRep_ReplicatedMesh, transient)
@@ -88,6 +91,10 @@ private:
 	EAnimationMode::Type	SavedAnimationMode;
 	// utility function to see if it can play animation or not
 	bool CanPlayAnimation();
+
+public:
+	/** Returns SkeletalMeshComponent subobject **/
+	class USkeletalMeshComponent* GetSkeletalMeshComponent();
 };
 
 

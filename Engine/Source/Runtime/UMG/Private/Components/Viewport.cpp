@@ -469,7 +469,7 @@ class SAutoRefreshViewport : public SViewport
 		Viewport->Invalidate();
 		Viewport->InvalidateDisplay();
 
-		Viewport->Tick(InDeltaTime);
+		Viewport->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 		ViewportClient->Tick(InDeltaTime);
 	}
@@ -486,8 +486,8 @@ public:
 /////////////////////////////////////////////////////
 // UViewport
 
-UViewport::UViewport(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UViewport::UViewport(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ShowFlags(ESFIM_Game)
 {
 	bIsVariable = true;

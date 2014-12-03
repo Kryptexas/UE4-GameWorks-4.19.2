@@ -24,6 +24,7 @@ class UK2Node_VariableSetRef : public UK2Node
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	// End UK2Node interface
 
 	/** 

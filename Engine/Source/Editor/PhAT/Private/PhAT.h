@@ -294,5 +294,5 @@ private:
 	void ImpToggleSimulation();
 
 	/** Records PhAT related data - simulating or mode change */
-	void OnAddPhatRecord(const FString & Action, bool bRecordSimulate, bool bRecordMode );
+	void OnAddPhatRecord(const FString& Action, bool bRecordSimulate, bool bRecordMode);
 };

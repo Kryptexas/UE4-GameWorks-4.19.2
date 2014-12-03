@@ -564,7 +564,7 @@ void FK2ActionMenuBuilder::AddEventForFunction(FGraphActionListBuilderBase& Acti
 	if (Function != NULL)
 	{
 		check(!Function->HasAnyFunctionFlags(FUNC_Delegate));
-		const FString SigName   = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
+		const FString SigName   = UEdGraphSchema_K2::GetFriendlySignatureName(Function);
 		const FString EventName = FText::Format( LOCTEXT("EventWithSignatureName", "Event {0}"), FText::FromString(SigName)).ToString();
 
 		UK2Node_Event* EventNodeTemplate = ActionMenuBuilder.CreateTemplateNode<UK2Node_Event>();

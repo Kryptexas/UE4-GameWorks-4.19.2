@@ -139,9 +139,13 @@ class AMatineeActor : public AActor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cinematic)
 	uint32 bDisableLookAtInput:1;
 
-	/** Hide Player Pawn during play **/
+	/** Hide Player Pawn during play */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cinematic)
 	uint32 bHidePlayer:1;
+
+	/** Hide HUD during play */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Cinematic)
+	uint32 bHideHud:1;
 
 	/** @todo UE4 matinee - shouldnt be directly editable.  Needs a nice interface in matinee */
 	UPROPERTY(replicated)
@@ -162,8 +166,11 @@ class AMatineeActor : public AActor
 #if WITH_EDITORONLY_DATA
 
 	// Reference to the actor sprite
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
+public:
 
 	UPROPERTY(transient)
 	uint32 bIsBeingEdited:1;
@@ -388,10 +395,10 @@ public:
 	void ValidateActorGroups();
 
 	/** Replace Group Actors */
-	ENGINE_API void ReplaceActorGroupInfo(class UInterpGroup * Group, AActor * OldActor, AActor * NewActor);
+	ENGINE_API void ReplaceActorGroupInfo(class UInterpGroup * Group, AActor* OldActor, AActor* NewActor);
 
 	/** Delete Group Actors */
-	ENGINE_API void DeleteActorGroupInfo(class UInterpGroup * Group, AActor * ActorToDelete);
+	ENGINE_API void DeleteActorGroupInfo(class UInterpGroup * Group, AActor* ActorToDelete);
 
 	/** Rename groupinfo **/
 	ENGINE_API void DeleteGroupinfo(class UInterpGroup * GroupToDelete);
@@ -400,7 +407,7 @@ public:
 	void SaveActorVisibility( AActor*  AActor  );
 
 	/** return if this actor is valid to add **/
-	ENGINE_API EActorAddWarningType IsValidActorToAdd(const AActor * NewActor) const;
+	ENGINE_API EActorAddWarningType IsValidActorToAdd(const AActor* NewActor) const;
 
 	/**
 	 * Conditionally save state for the specified actor and its children
@@ -457,6 +464,12 @@ public:
 
 	/** Util to get the name of the function to find for the given event name */
 	ENGINE_API FName GetFunctionNameForEvent(FName EventName);
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	ENGINE_API class UBillboardComponent* GetSpriteComponent() const;
+#endif
 };
 
 

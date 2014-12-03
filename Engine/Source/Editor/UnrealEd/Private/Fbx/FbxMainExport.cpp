@@ -49,9 +49,9 @@
 
 #include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeInfo.h"
-#include "Landscape/LandscapeComponent.h"
+#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
+#include "LandscapeComponent.h"
 #include "Components/SplineMeshComponent.h"
 
 #include "FbxExporter.h"
@@ -277,7 +277,7 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 			}
 			else if (Actor->IsA(AStaticMeshActor::StaticClass()))
 			{
-				ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->StaticMeshComponent, InMatineeActor );
+				ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), InMatineeActor );
 			}
 			else if (Actor->IsA(ALandscapeProxy::StaticClass()))
 			{
@@ -306,14 +306,14 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
  */
 void FFbxExporter::ExportLight( ALight* Actor, AMatineeActor* InMatineeActor )
 {
-	if (Scene == NULL || Actor == NULL || !Actor->LightComponent.IsValid()) return;
+	if (Scene == NULL || Actor == NULL || !Actor->GetLightComponent()) return;
 
 	// Export the basic actor information.
 	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor ); // this is the pivot node
 	// The real fbx light node
 	FbxNode* FbxLightNode = FbxActor->GetParent();
 
-	ULightComponent* BaseLight = Actor->LightComponent;
+	ULightComponent* BaseLight = Actor->GetLightComponent();
 
 	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
 
@@ -384,14 +384,14 @@ void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeAc
 
 	// Export the view area information
 	Camera->ProjectionType.Set(FbxCamera::ePerspective);
-	Camera->SetAspect(FbxCamera::eFixedRatio, Actor->CameraComponent->AspectRatio, 1.0f);
-	Camera->FilmAspectRatio.Set(Actor->CameraComponent->AspectRatio);
-	Camera->SetApertureWidth(Actor->CameraComponent->AspectRatio * 0.612f); // 0.612f is a magic number from Maya that represents the ApertureHeight
+	Camera->SetAspect(FbxCamera::eFixedRatio, Actor->GetCameraComponent()->AspectRatio, 1.0f);
+	Camera->FilmAspectRatio.Set(Actor->GetCameraComponent()->AspectRatio);
+	Camera->SetApertureWidth(Actor->GetCameraComponent()->AspectRatio * 0.612f); // 0.612f is a magic number from Maya that represents the ApertureHeight
 	Camera->SetApertureMode(FbxCamera::eFocalLength);
-	Camera->FocalLength.Set(Camera->ComputeFocalLength(Actor->CameraComponent->FieldOfView));
+	Camera->FocalLength.Set(Camera->ComputeFocalLength(Actor->GetCameraComponent()->FieldOfView));
 	
 	// Add one user property for recording the AspectRatio animation
-	CreateAnimatableUserProperty(FbxCameraNode, Actor->CameraComponent->AspectRatio, "UE_AspectRatio", "UE_Matinee_Camera_AspectRatio");
+	CreateAnimatableUserProperty(FbxCameraNode, Actor->GetCameraComponent()->AspectRatio, "UE_AspectRatio", "UE_Matinee_Camera_AspectRatio");
 
 	// Push the near/far clip planes away, as the engine uses larger values than the default.
 	Camera->SetNearPlane(10.0f);
@@ -407,12 +407,12 @@ void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeAc
  */
 void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToStaticMesh )
 {
-	if (Scene == NULL || Actor == NULL || !Actor->BrushComponent.IsValid()) return;
+	if (Scene == NULL || Actor == NULL || !Actor->GetBrushComponent()) return;
 
  	if (!bConvertToStaticMesh)
  	{
  		// Retrieve the information structures, verifying the integrity of the data.
- 		UModel* Model = Actor->BrushComponent->Brush;
+ 		UModel* Model = Actor->GetBrushComponent()->Brush;
 
  		if (Model == NULL || Model->VertexBuffer.Vertices.Num() < 3 || Model->MaterialIndexBuffers.Num() == 0) return;
  
@@ -932,7 +932,7 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	if (Material->GetShadingModel() == MSM_DefaultLit)
 	{
 		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
-		((FbxSurfacePhong*)FbxMaterial)->Specular.Set(SetMaterialComponent(Material->SpecularColor));
+		//((FbxSurfacePhong*)FbxMaterial)->Specular.Set(SetMaterialComponent(Material->Specular));
 		//((FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
 	else // if (Material->ShadingModel == MSM_Unlit)
@@ -941,7 +941,7 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	}
 	
 	((FbxSurfaceLambert*)FbxMaterial)->Emissive.Set(SetMaterialComponent(Material->EmissiveColor));
-	((FbxSurfaceLambert*)FbxMaterial)->Diffuse.Set(SetMaterialComponent(Material->DiffuseColor));
+	((FbxSurfaceLambert*)FbxMaterial)->Diffuse.Set(SetMaterialComponent(Material->BaseColor));
 	((FbxSurfaceLambert*)FbxMaterial)->TransparencyFactor.Set(Material->Opacity.Constant);
 
 	// Fill in the profile_COMMON effect with the material information.

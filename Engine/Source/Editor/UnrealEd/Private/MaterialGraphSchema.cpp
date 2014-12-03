@@ -144,8 +144,8 @@ UEdGraphNode* FMaterialGraphSchemaAction_Paste::PerformAction(class UEdGraph* Pa
 //////////////////////////
 // UMaterialGraphSchema //
 
-UMaterialGraphSchema::UMaterialGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphSchema::UMaterialGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PC_Mask = TEXT("mask");
 	PC_Required = TEXT("required");
@@ -391,7 +391,7 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 				{
 					for (int32 Index = 0; Index < MaterialGraph->MaterialInputs.Num(); ++Index)
 					{
-						if( MaterialGraph->IsInputVisible( Index ) )
+						if(MaterialGraph->MaterialInputs[Index].IsVisiblePin(MaterialGraph->Material))
 						{
 							FFormatNamedArguments Arguments;
 							Arguments.Add(TEXT("Name"), MaterialGraph->MaterialInputs[Index].Name);

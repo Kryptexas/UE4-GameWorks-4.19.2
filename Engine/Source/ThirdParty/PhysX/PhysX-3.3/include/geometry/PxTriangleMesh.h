@@ -152,7 +152,6 @@ class PxTriangleMesh : public PxBase
 	*/
 	PX_PHYSX_COMMON_API virtual PxBounds3			refitBVH() = 0;
 
-
 	/**
 	\brief Returns the number of triangles.
 	\return	number of triangles

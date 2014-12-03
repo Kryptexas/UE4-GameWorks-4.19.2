@@ -1,11 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GridPanel.generated.h"
 
-/** A panel that evenly divides up available space between all of its children. */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * A panel that evenly divides up available space between all of its children.
+ * 
+ * ● Many Children
+ */
+UCLASS()
 class UMG_API UGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -13,11 +17,11 @@ class UMG_API UGridPanel : public UPanelWidget
 public:
 
 	/** The column fill rules */
-	UPROPERTY(EditDefaultsOnly, Category="Fill Rules")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fill Rules")
 	TArray<float> ColumnFill;
 
 	/** The row fill rules */
-	UPROPERTY(EditDefaultsOnly, Category="Fill Rules")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fill Rules")
 	TArray<float> RowFill;
 
 public:

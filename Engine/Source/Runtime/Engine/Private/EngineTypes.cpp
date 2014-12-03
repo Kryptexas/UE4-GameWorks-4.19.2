@@ -2,13 +2,13 @@
 
 #include "EnginePrivate.h"
 
-UEngineBaseTypes::UEngineBaseTypes(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEngineBaseTypes::UEngineBaseTypes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UEngineTypes::UEngineTypes(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEngineTypes::UEngineTypes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

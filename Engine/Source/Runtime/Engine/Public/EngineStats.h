@@ -136,7 +136,7 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Destructible shapes exported"),STAT_
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num update nav octree"),STAT_Navigation_UpdateNavOctree,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Adding actors to navoctree"),STAT_Navigation_AddingActorsToNavOctree,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("    Adjusting nav links"),STAT_Navigation_AdjustingNavLinks,STATGROUP_Navigation, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("    Async AddTile"),STAT_Navigation_AddTile,STATGROUP_Navigation, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("    Async AddTile"),STAT_Navigation_AddGeneratedTiles,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Recast tick"),STAT_Navigation_RecastTick,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Recast: build compressed layers"),STAT_Navigation_RecastBuildCompressedLayers,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Recast: build navmesh"),STAT_Navigation_RecastBuildNavigation,STATGROUP_Navigation, );
@@ -163,18 +163,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Draw String Time"),STAT_Canvas_DrawStringTime,ST
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Get Batched Element Time"),STAT_Canvas_GetBatchElementsTime,STATGROUP_Canvas, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Add Material Tile Time"),STAT_Canvas_AddTileRenderTime,STATGROUP_Canvas, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Batches Created"),STAT_Canvas_NumBatchesCreated,STATGROUP_Canvas, );	
-
-/**
- * Landscape stats
- */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Landscape Dynamic Draw Time"),STAT_LandscapeDynamicDrawTime,STATGROUP_Landscape, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Landscape Static Draw LOD Time"),STAT_LandscapeStaticDrawLODTime,STATGROUP_Landscape, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("LandscapeVF Draw Time"),STAT_LandscapeVFDrawTime,STATGROUP_Landscape, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Landscape Triangles"),STAT_LandscapeTriangles,STATGROUP_Landscape, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Landscape Render Passes"),STAT_LandscapeComponents,STATGROUP_Landscape, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Landscape DrawCalls"),STAT_LandscapeDrawCalls,STATGROUP_Landscape, );
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Landscape Vertex Mem"),STAT_LandscapeVertexMem,STATGROUP_Landscape, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Component Mem"),STAT_LandscapeComponentMem,STATGROUP_Landscape, );
 
 /**
  * Network stats counters

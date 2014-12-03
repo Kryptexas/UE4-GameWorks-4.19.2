@@ -19,7 +19,7 @@ namespace MemoryProfiler2
 		/** Version number to detect version mismatches.			*/
 		public UInt32 Version;
 		/** Platform that was captured.								*/
-        public EPlatformType Platform;
+		public EPlatformType Platform;
 		/** Platform that was captured.								*/
 		public string PlatformName;
 		/** Whether symbol information was serialized.				*/
@@ -28,37 +28,36 @@ namespace MemoryProfiler2
 		public string ExecutableName;
 
 		/** Offset in file for name table.							*/
-		public UInt32 NameTableOffset;
+		public UInt64 NameTableOffset;
 		/** Number of name table entries.							*/
-		public UInt32 NameTableEntries;
+		public UInt64 NameTableEntries;
 
 		/** Offset in file for callstack address table.				*/
-		public UInt32 CallStackAddressTableOffset;
+		public UInt64 CallStackAddressTableOffset;
 		/** Number of callstack address entries.					*/
-		public UInt32 CallStackAddressTableEntries;
+		public UInt64 CallStackAddressTableEntries;
 
 		/** Offset in file for callstack table.						*/
-		public UInt32 CallStackTableOffset;
+		public UInt64 CallStackTableOffset;
 		/** Number of callstack entries.							*/
-		public UInt32 CallStackTableEntries;
+		public UInt64 CallStackTableEntries;
 		/** The file offset for module information.					*/
-		public uint ModulesOffset;
+		public UInt64 ModulesOffset;
 		/** The number of module entries.							*/
-		public uint ModuleEntries;
-
+		public UInt64 ModuleEntries;
 		/** Number of data files the stream spans.					*/
-		public UInt32 NumDataFiles;
+		public UInt64 NumDataFiles;
 
 		// New in version 3 files
 
 		/** Offset in file for stript callstack table. Requires version 3 or later. */
-        public UInt32 ScriptCallstackTableOffset = UInt32.MaxValue;
+		public UInt32 ScriptCallstackTableOffset = UInt32.MaxValue;
 
 		/** Offset in file for script name table. Requires version 3 or later. */
-        public UInt32 ScriptNameTableOffset = UInt32.MaxValue;
+		public UInt32 ScriptNameTableOffset = UInt32.MaxValue;
 
 		/** Can/should script callstacks be converted into readable names? */
-        public bool bDecodeScriptCallstacks = false;
+		public bool bDecodeScriptCallstacks = false;
 
 		/**
 		 * Constructor, serializing header from passed in stream.
@@ -91,36 +90,59 @@ namespace MemoryProfiler2
 				// Whether symbol information was serialized.
 				bShouldSerializeSymbolInfo = BinaryStream.ReadUInt32() == 0 ? false : true;
 
-				// Name table offset in file and number of entries.
-				NameTableOffset = BinaryStream.ReadUInt32();
-				NameTableEntries = BinaryStream.ReadUInt32();
+				if( Version >= 5 )
+				{
+					// Name table offset in file and number of entries.
+					NameTableOffset = BinaryStream.ReadUInt64();
+					NameTableEntries = BinaryStream.ReadUInt64();
 
-				// CallStack address table offset and number of entries.
-				CallStackAddressTableOffset = BinaryStream.ReadUInt32();
-				CallStackAddressTableEntries = BinaryStream.ReadUInt32();
+					// CallStack address table offset and number of entries.
+					CallStackAddressTableOffset = BinaryStream.ReadUInt64();
+					CallStackAddressTableEntries = BinaryStream.ReadUInt64();
 
-				// CallStack table offset and number of entries.
-				CallStackTableOffset = BinaryStream.ReadUInt32();
-				CallStackTableEntries = BinaryStream.ReadUInt32();
+					// CallStack table offset and number of entries.
+					CallStackTableOffset = BinaryStream.ReadUInt64();
+					CallStackTableEntries = BinaryStream.ReadUInt64();
 
-				ModulesOffset = BinaryStream.ReadUInt32();
-				ModuleEntries = BinaryStream.ReadUInt32();
+					ModulesOffset = BinaryStream.ReadUInt64();
+					ModuleEntries = BinaryStream.ReadUInt64();
 
-				// Number of data files the stream spans.
-				NumDataFiles = BinaryStream.ReadUInt32();
+					NumDataFiles = 1;
+				}
+				else
+				{
+					// Name table offset in file and number of entries.
+					NameTableOffset = BinaryStream.ReadUInt32();
+					NameTableEntries = BinaryStream.ReadUInt32();
 
-                FStreamToken.Version = Version;
+					// CallStack address table offset and number of entries.
+					CallStackAddressTableOffset = BinaryStream.ReadUInt32();
+					CallStackAddressTableEntries = BinaryStream.ReadUInt32();
+
+					// CallStack table offset and number of entries.
+					CallStackTableOffset = BinaryStream.ReadUInt32();
+					CallStackTableEntries = BinaryStream.ReadUInt32();
+
+					ModulesOffset = BinaryStream.ReadUInt32();
+					ModuleEntries = BinaryStream.ReadUInt32();
+
+					// Number of data files the stream spans.
+					NumDataFiles = BinaryStream.ReadUInt32();
+				}
+	
+
+				FStreamToken.Version = Version;
 				if( Version >= 4 )
 				{
 					// Just ignore
 				}
 				else if (Version > 2)
 				{
-	                ScriptCallstackTableOffset = BinaryStream.ReadUInt32();
-                    ScriptNameTableOffset = BinaryStream.ReadUInt32();
-                
-                    bDecodeScriptCallstacks = ScriptCallstackTableOffset != UInt32.MaxValue;
-                }
+					ScriptCallstackTableOffset = BinaryStream.ReadUInt32();
+					ScriptNameTableOffset = BinaryStream.ReadUInt32();
+				
+					bDecodeScriptCallstacks = ScriptCallstackTableOffset != UInt32.MaxValue;
+				}
 
 				// Name of executable.
 				ExecutableName = FStreamParser.ReadString( BinaryStream );
@@ -140,38 +162,38 @@ namespace MemoryProfiler2
 		}
 	}
 
-    // Mirrored in UnFile.h
-    [Flags]
-    public enum EPlatformType
-    {
-        Unknown = 0x00000000,
-        Windows = 0x00000001,
-        WindowsServer = 0x00000002,		// Windows platform dedicated server mode ("lean and mean" cooked as console without editor support)
-        Xbox360 = 0x00000004,
-        PS3 = 0x00000008,
-        Linux = 0x00000010,
-        MacOSX = 0x00000020,
-        WindowsConsole = 0x00000040,     // Windows platform cooked as console without editor support
-        IPhone = 0x00000080,
-        Android = 0x00000200,
+	// Mirrored in UnFile.h
+	[Flags]
+	public enum EPlatformType
+	{
+		Unknown = 0x00000000,
+		Windows = 0x00000001,
+		WindowsServer = 0x00000002,		// Windows platform dedicated server mode ("lean and mean" cooked as console without editor support)
+		Xbox360 = 0x00000004,
+		PS3 = 0x00000008,
+		Linux = 0x00000010,
+		MacOSX = 0x00000020,
+		WindowsConsole = 0x00000040,     // Windows platform cooked as console without editor support
+		IPhone = 0x00000080,
+		Android = 0x00000200,
 
-        // Combination Masks
-        /** PC platform types */
-        PC = Windows | WindowsServer | WindowsConsole | Linux | MacOSX,
+		// Combination Masks
+		/** PC platform types */
+		PC = Windows | WindowsServer | WindowsConsole | Linux | MacOSX,
 
-        /** Windows platform types */
-        AnyWindows = Windows | WindowsServer | WindowsConsole,
+		/** Windows platform types */
+		AnyWindows = Windows | WindowsServer | WindowsConsole,
 
-        /** Console platform types */
+		/** Console platform types */
 		Console = Xbox360 | PS3 | IPhone | Android,
 
-        /** Mobile platform types */
-        Mobile = IPhone | Android,
+		/** Mobile platform types */
+		Mobile = IPhone | Android,
 
-        /** Platforms with data that has been stripped during cooking */
-        Stripped = Console | WindowsServer | WindowsConsole,
+		/** Platforms with data that has been stripped during cooking */
+		Stripped = Console | WindowsServer | WindowsConsole,
 
-        /** Platforms who's vertex data can't be packed into 16-bit floats */
-        OpenGLES2 = IPhone | Android,
-    }
+		/** Platforms who's vertex data can't be packed into 16-bit floats */
+		OpenGLES2 = IPhone | Android,
+	}
 }

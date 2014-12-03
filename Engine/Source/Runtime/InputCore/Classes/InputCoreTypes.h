@@ -90,29 +90,9 @@ struct INPUTCORE_API FKeyDetails
 		NoFlags                 = 0,
 	};
 
-	FKeyDetails(const FKey InKey, const FText InDisplayName, const uint8 InKeyFlags = 0)
+	FKeyDetails(const FKey InKey, const TAttribute<FText>& InDisplayName, const uint8 InKeyFlags = 0)
 		: Key(InKey)
 		, DisplayName(InDisplayName)
-		, bIsModifierKey((InKeyFlags & EKeyFlags::ModifierKey) != 0)
-		, bIsGamepadKey((InKeyFlags & EKeyFlags::GamepadKey) != 0)
-		, bIsMouseButton((InKeyFlags & EKeyFlags::MouseButton) != 0)
-		, bIsBindableInBlueprints((~InKeyFlags & EKeyFlags::NotBlueprintBindableKey) != 0)
-		, AxisType(EInputAxisType::None)
-	{
-		if ((InKeyFlags & EKeyFlags::FloatAxis) != 0)
-		{
-			ensure((InKeyFlags & EKeyFlags::VectorAxis) == 0);
-			AxisType = EInputAxisType::Float;
-		}
-		else if ((InKeyFlags & EKeyFlags::VectorAxis) != 0)
-		{
-			AxisType = EInputAxisType::Vector;
-		}
-	}
-
-	FKeyDetails(const FKey InKey, const FGetKeyDisplayNameSignature InGetDisplayNameDelegate, const uint8 InKeyFlags = 0)
-		: Key(InKey)
-		, GetKeyDisplayNameDelegate(InGetDisplayNameDelegate)
 		, bIsModifierKey((InKeyFlags & EKeyFlags::ModifierKey) != 0)
 		, bIsGamepadKey((InKeyFlags & EKeyFlags::GamepadKey) != 0)
 		, bIsMouseButton((InKeyFlags & EKeyFlags::MouseButton) != 0)
@@ -150,8 +130,7 @@ private:
 
 	FKey  Key;
 	
-	FText DisplayName;
-	FGetKeyDisplayNameSignature GetKeyDisplayNameDelegate;
+	TAttribute<FText> DisplayName;
 
 	int32 bIsModifierKey:1;
 	int32 bIsGamepadKey:1;
@@ -308,13 +287,29 @@ struct INPUTCORE_API EKeys
 	static const FKey Equals;
 	static const FKey Comma;
 	static const FKey Underscore;
+	static const FKey Hyphen;
 	static const FKey Period;
 	static const FKey Slash;
 	static const FKey Tilde;
 	static const FKey LeftBracket;
 	static const FKey Backslash;
 	static const FKey RightBracket;
+	static const FKey Apostrophe;
+
+	static const FKey Ampersand;
+	static const FKey Asterix;
+	static const FKey Caret;
+	static const FKey Colon;
+	static const FKey Dollar;
+	static const FKey Exclamation;
+	static const FKey LeftParantheses;
+	static const FKey RightParantheses;
 	static const FKey Quote;
+
+	static const FKey A_AccentGrave;
+	static const FKey E_AccentGrave;
+	static const FKey E_AccentAigu;
+	static const FKey C_Cedille;
 
 	// Platform Keys
 	// These keys platform specific versions of keys that go by different names.

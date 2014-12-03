@@ -2,8 +2,8 @@
 
 //=============================================================================
 // PlayerInput
-// Object within playercontroller that manages player input.
-// only spawned on client
+// Object within PlayerController that manages player input.
+// Only spawned on client.
 //=============================================================================
 
 #pragma once
@@ -15,44 +15,49 @@
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
 
-//
-// Forward declarations.
-//
-struct FDelegateDispatchDetails;
-
+/** Struct containing mappings for legacy method of binding keys to exec commands. */
 USTRUCT()
 struct FKeyBind
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** The key to be bound to the command */
 	UPROPERTY(config)
 	FKey Key;
 
+	/** The command to execute when the key is pressed/released */
 	UPROPERTY(config)
 	FString Command;
 
+	/** Whether the control key needs to be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 Control:1;
 
+	/** Whether the shift key needs to be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 Shift:1;
 
+	/** Whether the alt key needs to be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 Alt:1;
 
+	/** Whether the command key needs to be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 Cmd:1;
 
-	/** if true, the bind will not be activated if the corresponding key is held down */
+	/** Whether the control key must not be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 bIgnoreCtrl:1;
 
+	/** Whether the shift key must not be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 bIgnoreShift:1;
 
+	/** Whether the alt key must not be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 bIgnoreAlt:1;
 
+	/** Whether the command key must not be held when the key event occurs */
 	UPROPERTY(config)
 	uint32 bIgnoreCmd:1;
 
@@ -61,17 +66,17 @@ struct FKeyBind
 	}
 };
 
-/** Configurable properties for control axes, used to turn raw input value into game-useful values. */
+/** Configurable properties for control axes, used to transform raw input into game ready values. */
 USTRUCT()
 struct FInputAxisProperties
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** For control axes such as analog sticks. */
+	/** What the dead zone of the axis is.  For control axes such as analog sticks. */
 	UPROPERTY(EditAnywhere, Category="Input")
 	float DeadZone;
 
-	/** Scaling factor. */
+	/** Scaling factor to multiply raw value by. */
 	UPROPERTY(EditAnywhere, Category="Input")
 	float Sensitivity;
 
@@ -92,20 +97,26 @@ struct FInputAxisProperties
 	
 };
 
-/** Data structure exposed to defaultproperties/inis for defining axis properties. */
+/** Configurable properties for control axes. */
 USTRUCT()
 struct FInputAxisConfigEntry
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Axis Key these properties apply to */
 	UPROPERTY(VisibleAnywhere, Category="Input")
 	FName AxisKeyName;
 
+	/** Properties for the Axis Key */
 	UPROPERTY(EditAnywhere, Category="Input")
 	struct FInputAxisProperties AxisProperties;
 };
 
-/** Defines a mapping between an action and key */
+/** 
+ * Defines a mapping between an action and key 
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
+ */
 USTRUCT()
 struct FInputActionKeyMapping
 {
@@ -169,7 +180,11 @@ struct FInputActionKeyMapping
 	{}
 };
 
-/** Defines a mapping between an action and key */
+/** 
+ * Defines a mapping between an axis and key 
+ * 
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
+**/
 USTRUCT()
 struct FInputAxisKeyMapping
 {
@@ -223,23 +238,12 @@ struct FInputAxisKeyMapping
 	{}
 };
 
-struct FActionKeyDetails
-{
-	TArray<FInputActionKeyMapping> Actions;
-	FInputChord CapturingChord;
-};
-
-struct FAxisKeyDetails
-{
-	TArray<FInputAxisKeyMapping> KeyMappings;
-	uint32 bInverted:1;
-
-	FAxisKeyDetails()
-		: bInverted(false)
-	{
-	}
-};
-
+/**
+ * Object within PlayerController that processes player input.
+ * Only exists on the client in network games.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
+ */
 UCLASS(Within=PlayerController, config=Input, transient)
 class ENGINE_API UPlayerInput : public UObject
 {
@@ -275,121 +279,139 @@ public:
 	/** This player's version of Axis Mappings */
 	TArray<struct FInputAxisKeyMapping> AxisMappings;
 
+	/** List of Axis Mappings that have been inverted */
 	UPROPERTY(config)
 	TArray<FName> InvertedAxis;
 
-	//=============================================================================
-	// Input related functions.
+	/** Exec function to change the mouse sensitivity */
 	UFUNCTION(exec)
 	void SetMouseSensitivity(const float Sensitivity);
 
+	/** Exec function to return the mouse sensitivity to its default value */
 	UFUNCTION(exec)
 	void SetMouseSensitivityToDefault();
 
+	/** Exec function to add a debug exec command */
 	UFUNCTION(exec)
 	void SetBind(FName BindName, const FString& Command);
 
 	/** Returns the mouse sensitivity along the X-axis, or the Y-axis, or 1.0 if none are known. */
 	float GetMouseSensitivity();
 
+	/** Returns whether an Axis Key is inverted */
 	bool GetInvertAxisKey(const FKey AxisKey);
+
+	/** Returns whether an Axis Mapping is inverted */
 	bool GetInvertAxis(const FName AxisName);
 
+	/** Exec function to invert an axis key */
 	UFUNCTION(exec)
 	void InvertAxisKey(const FKey AxisKey);
 
-	// Backwards compatibility exec function for people used to it instead of using InvertAxisKey
+	/** Backwards compatibility exec function for people used to it instead of using InvertAxisKey */
 	UFUNCTION(exec)
 	void InvertMouse();
 
+	/** Exec function to invert an axis mapping */
 	UFUNCTION(exec)
 	void InvertAxis(const FName AxisName);
 
-	//*************************************************************************************
-	// Normal gameplay execs
-	// Type the name of the exec function at the console to execute it
-
-	// Mouse smoothing
+	/** Exec function to reset mouse smoothing values */
 	UFUNCTION(exec)
 	void ClearSmoothing();
 
+	/** Add a player specific action mapping. */
 	void AddActionMapping(const FInputActionKeyMapping& KeyMapping);
+
+	/** Remove a player specific action mapping. */
 	void RemoveActionMapping(const FInputActionKeyMapping& KeyMapping);
 
+	/** Add a player specific axis mapping. */
 	void AddAxisMapping(const FInputAxisKeyMapping& KeyMapping);
+
+	/** Remove a player specific action mapping. */
 	void RemoveAxisMapping(const FInputAxisKeyMapping& KeyMapping);
 
+	/** Add an engine defined action mapping that cannot be remapped. */
 	static void AddEngineDefinedActionMapping(const FInputActionKeyMapping& ActionMapping);
+
+	/** Add an engine defined axis mapping that cannot be remapped. */
 	static void AddEngineDefinedAxisMapping(const FInputAxisKeyMapping& AxisMapping);
 
+	/** Clear the current cached key maps and rebuild from the source arrays. */
 	void ForceRebuildingKeyMaps(const bool bRestoreDefaults = false);
 
 protected:
+
+	/** Runtime struct that caches the list of mappings for a given Action Name and the capturing chord if applicable */
+	struct FActionKeyDetails
+	{
+		/** List of all action key mappings that correspond to the action name in the containing map */
+		TArray<FInputActionKeyMapping> Actions;
+
+		/** For paired actions only, this represents the chord that is currently held and when it is released will represent the release event */
+		FInputChord CapturingChord;
+	};
+
+	/** Runtime struct that caches the list of mappings for a given Axis Name and whether that axis is currently inverted */
+	struct FAxisKeyDetails
+	{
+		/** List of all axis key mappings that correspond to the axis name in the containing map */
+		TArray<FInputAxisKeyMapping> KeyMappings;
+
+		/** Whether this axis should invert its outputs */
+		uint32 bInverted:1;
+
+		FAxisKeyDetails()
+			: bInverted(false)
+		{
+		}
+	};
+
 	/** Internal structure for storing axis config data. */
 	TMap<FKey,FInputAxisProperties> AxisProperties;
+
+	/** Map of Action Name to details about the keys mapped to that action */
 	TMap<FName,FActionKeyDetails> ActionKeyMap;
+
+	/** Map of Axis Name to details about the keys mapped to that axis */
 	TMap<FName,FAxisKeyDetails> AxisKeyMap;
 
+	/** The current game view of each key */
 	TMap<FKey,FKeyState> KeyStateMap;
-
-	struct FDelegateDispatchDetails
-	{
-		uint32 EventIndex;
-		uint32 FoundIndex;
-
-		FInputActionUnifiedDelegate ActionDelegate;
-		const FInputActionBinding* SourceAction;
-		FInputChord Chord;
-		TEnumAsByte<EInputEvent> KeyEvent;
-
-		FInputTouchUnifiedDelegate TouchDelegate;
-		FVector TouchLocation;
-		ETouchIndex::Type FingerIndex;
-
-		FInputGestureUnifiedDelegate GestureDelegate;
-		float GestureValue;
-
-		FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputChord& InChord, const FInputActionUnifiedDelegate& InDelegate, const EInputEvent InKeyEvent, const FInputActionBinding* InSourceAction = NULL)
-			: EventIndex(InEventIndex)
-			, FoundIndex(InFoundIndex)
-			, ActionDelegate(InDelegate)
-			, SourceAction(InSourceAction)
-			, Chord(InChord)
-			, KeyEvent(InKeyEvent)
-		{}
-
-		FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputTouchUnifiedDelegate& InDelegate, const FVector InLocation, const ETouchIndex::Type InFingerIndex)
-			: EventIndex(InEventIndex)
-			, FoundIndex(InFoundIndex)
-			, TouchDelegate(InDelegate)
-			, TouchLocation(InLocation)
-			, FingerIndex(InFingerIndex)
-		{}
-
-		FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputGestureUnifiedDelegate& InDelegate, const float InValue)
-			: EventIndex(InEventIndex)
-			, FoundIndex(InFoundIndex)
-			, GestureDelegate(InDelegate)
-			, GestureValue(InValue)
-		{}
-	};
 
 public:
 	
+	// Begin UObject Interface
 	virtual void PostInitProperties() override;
+	virtual UWorld* GetWorld() const override;
+	// End UObject Interface
 
+	/** Flushes the current key state. */
 	void FlushPressedKeys();
+
+	/** Handles a key input event.  Returns true if there is an action that handles the specified key. */
 	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);
+
+	/** Handles an axis input event.  Returns true if a legacy key bind handled the input, otherwise false. */
 	bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
+
+	/** Handles a touch input event.  Returns true. */
 	bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
+
+	/** Handles a motion input event.  Returns true. */
 	bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
+
+	/** Handles a gesture input event.  Returns true. */
 	bool InputGesture(const FKey Gesture, const EInputEvent Event, const float Value);
+
+	/** Per frame tick function. Primarily for gesture recognition */
 	void Tick(float DeltaTime);
 
-	/** Process the player's input. */
+	/** Process the frame's input events given the current input component stack. */
 	void ProcessInputStack(const TArray<UInputComponent*>& InputComponentStack, const float DeltaTime, const bool bGamePaused);
 
-	/** Rather than processing input, consume it and discard without doing anything useful with it.  Like calling PlayerInput() and ignoring all results. */
+	/** Rather than processing input, consume it and discard without doing anything useful with it.  Like calling ProcessInputStack() and ignoring all results. */
 	void DiscardPlayerInput();
 
 	/** 
@@ -417,6 +439,7 @@ public:
 	 */
 	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
+	/** @return true if InKey is currently held */
 	bool IsPressed( FKey InKey ) const;
 	
 	/** @return true if InKey went from up to down since player input was last processed. */
@@ -452,33 +475,21 @@ public:
 #if !UE_BUILD_SHIPPING
 	/**
 	 * Exec handler
-	 *
-	 * @param	InWorld	World context
-	 * @param	Cmd		Command to parse
-	 * @param	Ar		Output device to log to
-	 *
-	 * @return	true if command was handled, false otherwise
 	 */
 	bool Exec(UWorld* UInWorld, const TCHAR* Cmd,FOutputDevice& Ar);
 
-	/** @todo document */
+	/** Returns the command for a given key in the legacy binding system */
 	FString GetBind(FKey Key);
 
-	/** 
-	* Get the Exec key binding for the given command. 
-	* @param	ExecCommand		Command to find the key binding for
-	*
-	* @return	The key binding for the command.
-	*/
+	/** Get the legacy Exec key binding for the given command. */
 	FKeyBind GetExecBind(FString const& ExecCommand);
 
-	/** Execute input commands. */
-	void ExecInputCommands( UWorld* InWorld, const TCHAR* Cmd,class FOutputDevice& Ar);
+	/** Execute input commands within the legacy key binding system. */
+	void ExecInputCommands( UWorld* InWorld, const TCHAR* Cmd, class FOutputDevice& Ar);
 #endif
 
+	/** Returns the list of keys mapped to the specified Action Name */
 	const TArray<FInputActionKeyMapping>& GetKeysForAction(const FName ActionName);
-
-	class UWorld* GetWorld() const;
 
 protected:
 	/** 
@@ -500,24 +511,30 @@ protected:
 	 */
 	bool KeyEventOccurred(FKey Key, EInputEvent Event, TArray<uint32>& EventIndices) const;
 
-	/* Collects the chords and the delegates they invoke
+	/* Collects the chords and the delegates they invoke for an action binding
 	 * @param ActionBinding - the action to determine whether it occurred
 	 * @param FoundChords - the list of chord/delegate pairs to add to
-	 * @param KeysToConsume - optional array to collect the keys associated with this binding if the action occurred
+	 * @param KeysToConsume - array to collect the keys associated with this binding that should be consumed
 	 */
-	void GetChordsForAction(const FInputActionBinding& ActionBinding, const bool bGamePaused, TArray<FDelegateDispatchDetails>& FoundChords, TArray<FKey>& KeysToConsume);
+	void GetChordsForAction(const FInputActionBinding& ActionBinding, const bool bGamePaused, TArray<struct FDelegateDispatchDetails>& FoundChords, TArray<FKey>& KeysToConsume);
 
-	void GetChordForKey(const FInputKeyBinding& KeyBinding, const bool bGamePaused, TArray<FDelegateDispatchDetails>& FoundChords, TArray<FKey>& KeysToConsume);
+	/* Collects the chords and the delegates they invoke for a key binding
+	 * @param KeyBinding - the key to determine whether it occurred
+	 * @param FoundChords - the list of chord/delegate pairs to add to
+	 * @param KeysToConsume - array to collect the keys associated with this binding that should be consumed
+	 */
+	void GetChordForKey(const FInputKeyBinding& KeyBinding, const bool bGamePaused, TArray<struct FDelegateDispatchDetails>& FoundChords, TArray<FKey>& KeysToConsume);
 
 	/* Returns the summed values of all the components of this axis this frame
 	 * @param AxisBinding - the action to determine if it ocurred
-	 * @param KeysToConsume - optional array to collect the keys associated with this binding
+	 * @param KeysToConsume - array to collect the keys associated with this binding that should be consumed
 	 */
 	float DetermineAxisValue(const FInputAxisBinding& AxisBinding, const bool bGamePaused, TArray<FKey>& KeysToConsume);
 
+	/** Utility function to ensure the key mapping cache maps are built */
 	void ConditionalBuildKeyMappings();
 
-	/** Set Key to be ignored */
+	/** Set the Key consumed for the frame so that subsequent input components will not be notified they were pressed */
 	void ConsumeKey(FKey Key);
 
 	/** @return true if InKey is being consumed */
@@ -535,14 +552,18 @@ protected:
 	friend FGestureRecognizer;
 
 private:
+	/** Static empty array to be able to return from GetKeysFromAction when there are no keys mapped to the requested action name */
 	static const TArray<FInputActionKeyMapping> NoKeyMappings;
 
+	/** Action Mappings defined by engine systems that cannot be remapped by users */
 	static TArray<FInputActionKeyMapping> EngineDefinedActionMappings;
+
+	/** Axis Mappings defined by engine systems that cannot be remapped by users */
 	static TArray<FInputAxisKeyMapping> EngineDefinedAxisMappings;
 
-	// A counter used to track the order in which events occurred since the last time the input stack was processed
+	/** A counter used to track the order in which events occurred since the last time the input stack was processed */
 	uint32 EventCount;
 
-	// Cache the last time dilation so as to be able to clear smoothing when it changes
+	/** Cache the last time dilation so as to be able to clear smoothing when it changes */
 	float LastTimeDilation;
 };

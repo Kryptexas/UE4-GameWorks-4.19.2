@@ -20,6 +20,7 @@
 #include "GraphEditor.h"
 #include "Persona.h"
 #include "BoneSelectionWidget.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -73,6 +74,9 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 	{
 		return;
 	}
+
+	// customize anim graph node's own details if needed
+	AnimGraphNode->CustomizeDetails(DetailBuilder);
 
 	// Now customize each property in the pins array
 	for (int CustomPinIndex = 0; CustomPinIndex < AnimGraphNode->ShowPinForProperties.Num(); ++CustomPinIndex)
@@ -429,7 +433,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	UAnimGraphNode_Base* AnimGraphNode = NULL;
 	USkeletalMesh* SkeletalMesh = NULL;
 	UAnimationAsset * AnimationAsset = NULL;
-	USkeleton * TargetSkeleton = NULL;
+	USkeleton* TargetSkeleton = NULL;
 
 	for (auto OuterIter = Objects.CreateIterator() ; OuterIter ; ++OuterIter)
 	{

@@ -4,10 +4,11 @@
 #include "UnrealEd.h"
 #include "TexAlignTools.h"
 #include "ScopedTransaction.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ObjectTools.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "SHyperlink.h"
 DEFINE_LOG_CATEGORY_STATIC(LogDialogs, Log, All);
 
 #define LOCTEXT_NAMESPACE "Dialogs"
@@ -165,15 +166,15 @@ public:
 		return Response;
 	}
 
-	virtual	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		//see if we pressed the Enter or Spacebar keys
-		if( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return HandleButtonClicked(EAppReturnType::Cancel);
 		}
 
-		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
 			CopyMessageToClipboard();
 
@@ -233,6 +234,10 @@ private:
 	FReply HandleButtonClicked( EAppReturnType::Type InResponse )
 	{
 		Response = InResponse;
+
+		ResultCallback.ExecuteIfBound(ParentWindow.ToSharedRef(), Response);
+
+
 		ParentWindow->RequestDestroyWindow();
 
 		return FReply::Handled();
@@ -244,6 +249,9 @@ private:
 		CopyMessageToClipboard();
 	}
 		
+public:
+	/** Callback delegate that is triggered, when the dialog is run in non-modal mode */
+	FOnMsgDlgResult ResultCallback;
 
 private:
 
@@ -253,27 +261,51 @@ private:
 };
 
 
-EAppReturnType::Type OpenMsgDlgInt( EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle )
+void CreateMsgDlgWindow(TSharedPtr<SWindow>& OutWindow, TSharedPtr<SChoiceDialog>& OutDialog, EAppMsgType::Type InMessageType,
+						const FText& InMessage, const FText& InTitle, FOnMsgDlgResult ResultCallback=NULL)
 {
-	auto ModalWindow = SNew(SWindow)
-		.Title( InTitle )
-		.SizingRule( ESizingRule::Autosized )
+	OutWindow = SNew(SWindow)
+		.Title(InTitle)
+		.SizingRule(ESizingRule::Autosized)
 		.AutoCenter(EAutoCenter::PreferredWorkArea)
-		.SupportsMinimize(false) .SupportsMaximize(false);
+		.SupportsMinimize(false).SupportsMaximize(false);
 
-	auto MessageBox = SNew(SChoiceDialog)
-		.ParentWindow(ModalWindow)
-		.Message( InMessage.ToString() )
+	OutDialog = SNew(SChoiceDialog)
+		.ParentWindow(OutWindow)
+		.Message(InMessage.ToString())
 		.WrapMessageAt(512.0f)
 		.MessageType(InMessageType);
 
-	ModalWindow->SetContent( MessageBox );
+	OutDialog->ResultCallback = ResultCallback;
 
-	GEditor->EditorAddModalWindow(ModalWindow);
+	OutWindow->SetContent(OutDialog.ToSharedRef());
+}
 
-	EAppReturnType::Type Response = MessageBox->GetResponse();
+EAppReturnType::Type OpenMsgDlgInt(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle)
+{
+	TSharedPtr<SWindow> MsgWindow = NULL;
+	TSharedPtr<SChoiceDialog> MsgDialog = NULL;
+
+	CreateMsgDlgWindow(MsgWindow, MsgDialog, InMessageType, InMessage, InTitle);
+
+	GEditor->EditorAddModalWindow(MsgWindow.ToSharedRef());
+
+	EAppReturnType::Type Response = MsgDialog->GetResponse();
 
 	return Response;
+}
+
+TSharedRef<SWindow> OpenMsgDlgInt_NonModal(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle,
+							FOnMsgDlgResult ResultCallback)
+{
+	TSharedPtr<SWindow> MsgWindow = NULL;
+	TSharedPtr<SChoiceDialog> MsgDialog = NULL;
+
+	CreateMsgDlgWindow(MsgWindow, MsgDialog, InMessageType, InMessage, InTitle, ResultCallback);
+
+	FSlateApplication::Get().AddWindow(MsgWindow.ToSharedRef());
+
+	return MsgWindow.ToSharedRef();
 }
 
 class SModalDialog : public SCompoundWidget
@@ -338,9 +370,9 @@ public:
 	bool GetResponse() const { return bUserResponse; }
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
 			FPlatformMisc::ClipboardCopy( *MyMessage.Get() );
 			return FReply::Handled();
@@ -554,15 +586,15 @@ public:
 	}
 
 	/** Used to intercept Escape key presses, then interprets them as cancel */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		// Pressing escape returns as if the user canceled
-		if ( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if ( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return OnCancelClicked();
 		}
 
-		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
 			FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 			return FReply::Handled();

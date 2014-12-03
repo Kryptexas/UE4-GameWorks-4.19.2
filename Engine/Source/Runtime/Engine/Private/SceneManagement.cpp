@@ -106,7 +106,7 @@ void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, c
 	const bool bIsMobileHDR = MobileHDRCvar->GetValueOnRenderThread() == 1;
 
 	// Mobile HDR does not execute post process, so does not need to render flipped
-	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform) && !bIsMobileHDR;
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View.GetShaderPlatform()) && !bIsMobileHDR;
 
 	// Draw the batched elements.
 	BatchedElements.Draw(
@@ -291,4 +291,30 @@ FViewUniformShaderParameters::FViewUniformShaderParameters()
 	: DirectionalLightShadowTexture(GWhiteTexture->TextureRHI)
 	, DirectionalLightShadowSampler(TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI())
 {
+}
+
+void FSharedSamplerState::InitRHI()
+{
+	const float MipMapBias = UTexture2D::GetGlobalMipMapLODBias();
+
+	FSamplerStateInitializerRHI SamplerStateInitializer
+	(
+		GSystemSettings.TextureLODSettings.GetSamplerFilter(TEXTUREGROUP_World),
+		bWrap ? AM_Wrap : AM_Clamp,
+		bWrap ? AM_Wrap : AM_Clamp,
+		bWrap ? AM_Wrap : AM_Clamp,
+		MipMapBias
+	);
+	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+}
+
+FSharedSamplerState* Wrap_WorldGroupSettings = NULL;
+FSharedSamplerState* Clamp_WorldGroupSettings = NULL;
+
+void InitializeSharedSamplerStates()
+{
+	Wrap_WorldGroupSettings = new FSharedSamplerState(true);
+	Clamp_WorldGroupSettings = new FSharedSamplerState(false);
+	BeginInitResource(Wrap_WorldGroupSettings);
+	BeginInitResource(Clamp_WorldGroupSettings);
 }

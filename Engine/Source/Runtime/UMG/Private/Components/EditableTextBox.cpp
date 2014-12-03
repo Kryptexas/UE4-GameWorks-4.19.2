@@ -7,15 +7,15 @@
 /////////////////////////////////////////////////////
 // UEditableTextBox
 
-UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ForegroundColor = FLinearColor::Black;
 	BackgroundColor = FLinearColor::White;
 	ReadOnlyForegroundColor = FLinearColor::Black;
 
-	// HACK Special font initialization hack since there are no font assets yet for slate.
-	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 	// Grab other defaults from slate arguments.
 	SEditableTextBox::FArguments Defaults;
@@ -41,16 +41,9 @@ void UEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-
 	MyEditableTextBlock = SNew(SEditableTextBox)
 		.Style(&WidgetStyle)
-		.Font(FSlateFontInfo(FontPath, Font.Size))
+		.Font(Font)
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)
 		.ReadOnlyForegroundColor(ReadOnlyForegroundColor)

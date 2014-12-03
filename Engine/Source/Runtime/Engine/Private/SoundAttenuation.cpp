@@ -248,7 +248,7 @@ void FAttenuationSettings::CollectAttenuationShapesForVisualization(TMultiMap<EA
 	}
 }
 
-USoundAttenuation::USoundAttenuation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundAttenuation::USoundAttenuation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

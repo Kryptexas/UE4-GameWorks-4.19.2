@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // UBorderSlot
 
-UBorderSlot::UBorderSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBorderSlot::UBorderSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Padding = FMargin(4, 2);
 

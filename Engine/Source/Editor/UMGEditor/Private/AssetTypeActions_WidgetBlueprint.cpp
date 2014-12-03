@@ -55,4 +55,18 @@ bool FAssetTypeActions_WidgetBlueprint::ShouldUseDataOnlyEditor(const UBlueprint
 		&& !Blueprint->bIsNewlyCreated;
 }
 
+FText FAssetTypeActions_WidgetBlueprint::GetAssetDescription( const FAssetData& AssetData ) const
+{
+	if ( const FString* pDescription = AssetData.TagsAndValues.Find( GET_MEMBER_NAME_CHECKED( UBlueprint, BlueprintDescription ) ) )
+	{
+		if ( !pDescription->IsEmpty() )
+		{
+			const FString DescriptionStr( *pDescription );
+			return FText::FromString( DescriptionStr.Replace( TEXT( "\\n" ), TEXT( "\n" ) ) );
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
 #undef LOCTEXT_NAMESPACE

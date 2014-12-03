@@ -13,7 +13,7 @@ struct FSearchEntry
 	bool bCategory;
 	FAssetData AssetData;
 
-	static FSearchEntry * MakeCategoryEntry(const FString & InTitle);
+	static FSearchEntry * MakeCategoryEntry(const FString& InTitle);
 };
 
 
@@ -24,7 +24,7 @@ class SSuperSearchBox
 public:
 
 	SLATE_BEGIN_ARGS( SSuperSearchBox )
-		: _SuggestionListPlacement( MenuPlacement_BelowAnchor )
+		: _SuggestionListPlacement( MenuPlacement_ComboBoxRight )
 		{}
 
 		/** Where to place the suggestion list */
@@ -53,9 +53,9 @@ protected:
 	virtual bool SupportsKeyboardFocus() const { return true; }
 
 	// e.g. Tab or Key_Up
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent );
 
-	void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent );
+	void OnFocusLost( const FFocusEvent& InFocusEvent );
 
 	/** Handles entering in a command */
 	void OnTextCommitted(const FText& InText, ETextCommit::Type CommitInfo);

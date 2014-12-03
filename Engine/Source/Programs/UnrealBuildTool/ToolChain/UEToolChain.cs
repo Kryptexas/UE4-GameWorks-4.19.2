@@ -45,6 +45,8 @@ namespace UnrealBuildTool
 		void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries);
 
 		string GetPlatformVersion();
+
+		string GetPlatformDevices();
 	}
 
 	public abstract class UEToolChain : IUEToolChain
@@ -214,6 +216,11 @@ namespace UnrealBuildTool
 		}
 
 		public virtual string GetPlatformVersion()
+		{
+			return "";
+		}
+
+		public virtual string GetPlatformDevices()
 		{
 			return "";
 		}

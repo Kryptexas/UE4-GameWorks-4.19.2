@@ -123,7 +123,7 @@ public:
 		return SharedThis(this);
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		FReply Reply = FReply::Unhandled();
 		const ESelectionMode::Type SelectionMode = Table->GetSelectionMode();
@@ -133,7 +133,7 @@ public:
 			return Reply;
 		}
 
-		const FKey Key = InKeyboardEvent.GetKey();
+		const FKey Key = InKeyEvent.GetKey();
 		const EPropertyTableSelectionUnit::Type SelectionUnit = Table->GetSelectionUnit();
 			
 		const TSharedPtr< IPropertyTableCell > CurrentCell = Table->GetCurrentCell();
@@ -151,7 +151,7 @@ public:
 				Reply = FReply::Handled();
 			}
 		}
-		else if( Key == EKeys::C && InKeyboardEvent.IsControlDown() ) 
+		else if( Key == EKeys::C && InKeyEvent.IsControlDown() ) 
 		{
 			if ( CurrentCell.IsValid() && FirstCellInSelection.IsValid() && LastCellInSelection.IsValid() )
 			{
@@ -218,7 +218,7 @@ public:
 				Reply = FReply::Handled();
 			}
 		}
-		else if( Key == EKeys::V && InKeyboardEvent.IsControlDown() ) 
+		else if( Key == EKeys::V && InKeyEvent.IsControlDown() ) 
 		{
 			if ( CurrentCell.IsValid() )
 			{
@@ -231,21 +231,21 @@ public:
 				Reply = FReply::Handled();
 			}
 		}
-		else if ( Key == EKeys::A && InKeyboardEvent.IsControlDown() )
+		else if ( Key == EKeys::A && InKeyEvent.IsControlDown() )
 		{
 			return SelectRange( Table->GetFirstCellInTable(), Table->GetLastCellInTable(), Table->GetCurrentCell() );
 		}
 		else if ( Key == EKeys::Home )
 		{
-			if ( CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() && InKeyboardEvent.IsControlDown() )
+			if ( CurrentCell.IsValid() && InKeyEvent.IsShiftDown() && InKeyEvent.IsControlDown() )
 			{
 				return SelectRange( Table->GetFirstCellInTable(), CurrentCell, CurrentCell );
 			}
-			else if ( InKeyboardEvent.IsControlDown() )
+			else if ( InKeyEvent.IsControlDown() )
 			{
 				return MoveToCell( Table->GetFirstCellInTable() );
 			}
-			else if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() )
+			else if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyEvent.IsShiftDown() )
 			{
 				return SelectRange( Table->GetFirstCellInRow( CurrentRow.ToSharedRef() ), CurrentCell, CurrentCell );
 			}
@@ -256,15 +256,15 @@ public:
 		}
 		else if ( Key == EKeys::End )
 		{
-			if ( CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() && InKeyboardEvent.IsControlDown() )
+			if ( CurrentCell.IsValid() && InKeyEvent.IsShiftDown() && InKeyEvent.IsControlDown() )
 			{
 				return SelectRange( CurrentCell, Table->GetLastCellInTable(), CurrentCell );
 			}
-			else if ( InKeyboardEvent.IsControlDown() )
+			else if ( InKeyEvent.IsControlDown() )
 			{
 				return MoveToCell( Table->GetLastCellInTable() );
 			}
-			else if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() )
+			else if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyEvent.IsShiftDown() )
 			{
 				return SelectRange( CurrentCell, Table->GetLastCellInRow( CurrentRow.ToSharedRef() ), CurrentCell );
 			}
@@ -275,15 +275,15 @@ public:
 		}
 		else if ( Key == EKeys::Left )
 		{
-			if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() && InKeyboardEvent.IsControlDown() )
+			if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyEvent.IsShiftDown() && InKeyEvent.IsControlDown() )
 			{
 				return SelectRange( Table->GetFirstCellInRow( CurrentRow.ToSharedRef() ), CurrentCell, CurrentCell );
 			}
-			else if ( InKeyboardEvent.IsControlDown() && CurrentRow.IsValid() )
+			else if ( InKeyEvent.IsControlDown() && CurrentRow.IsValid() )
 			{
 				return MoveToCell( Table->GetFirstCellInRow( CurrentRow.ToSharedRef() ) );
 			}
-			else if ( CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() )
+			else if ( CurrentCell.IsValid() && InKeyEvent.IsShiftDown() )
 			{
 				if ( FirstCellInSelection.IsValid() && LastCellInSelection.IsValid() )
 				{
@@ -312,15 +312,15 @@ public:
 		}
 		else if ( Key == EKeys::Right )
 		{
-			if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() && InKeyboardEvent.IsControlDown() )
+			if ( CurrentRow.IsValid() && CurrentCell.IsValid() && InKeyEvent.IsShiftDown() && InKeyEvent.IsControlDown() )
 			{
 				return SelectRange( Table->GetLastCellInRow( CurrentRow.ToSharedRef() ), CurrentCell, CurrentCell );
 			}
-			else if ( InKeyboardEvent.IsControlDown() && CurrentRow.IsValid() )
+			else if ( InKeyEvent.IsControlDown() && CurrentRow.IsValid() )
 			{
 				return MoveToCell( Table->GetLastCellInRow( CurrentRow.ToSharedRef() ) );
 			}
-			else if ( CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() )
+			else if ( CurrentCell.IsValid() && InKeyEvent.IsShiftDown() )
 			{
 				if ( FirstCellInSelection.IsValid() && LastCellInSelection.IsValid() )
 				{
@@ -349,15 +349,15 @@ public:
 		}
 		else if ( Key == EKeys::Up )
 		{
-			if ( InKeyboardEvent.IsShiftDown() && InKeyboardEvent.IsControlDown() && CurrentColumn.IsValid() && CurrentCell.IsValid() )
+			if ( InKeyEvent.IsShiftDown() && InKeyEvent.IsControlDown() && CurrentColumn.IsValid() && CurrentCell.IsValid() )
 			{
 				return SelectRange( Table->GetFirstCellInColumn( CurrentColumn.ToSharedRef() ), CurrentCell, CurrentCell );
 			}
-			else if ( InKeyboardEvent.IsControlDown() && CurrentColumn.IsValid() )
+			else if ( InKeyEvent.IsControlDown() && CurrentColumn.IsValid() )
 			{
 				return MoveToCell( Table->GetFirstCellInColumn( CurrentColumn.ToSharedRef() ) );
 			}
-			else if ( CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() )
+			else if ( CurrentCell.IsValid() && InKeyEvent.IsShiftDown() )
 			{
 				if ( FirstCellInSelection.IsValid() && LastCellInSelection.IsValid() )
 				{
@@ -386,15 +386,15 @@ public:
 		}
 		else if ( Key == EKeys::Down )
 		{
-			if ( InKeyboardEvent.IsShiftDown() && InKeyboardEvent.IsControlDown() && CurrentColumn.IsValid() && CurrentCell.IsValid() )
+			if ( InKeyEvent.IsShiftDown() && InKeyEvent.IsControlDown() && CurrentColumn.IsValid() && CurrentCell.IsValid() )
 			{
 				return SelectRange( CurrentCell, Table->GetLastCellInColumn( CurrentColumn.ToSharedRef() ), CurrentCell );
 			}
-			else if ( InKeyboardEvent.IsControlDown() && CurrentColumn.IsValid() )
+			else if ( InKeyEvent.IsControlDown() && CurrentColumn.IsValid() )
 			{
 				return MoveToCell( Table->GetLastCellInColumn( CurrentColumn.ToSharedRef() ) );
 			}
-			else if ( CurrentCell.IsValid() && InKeyboardEvent.IsShiftDown() )
+			else if ( CurrentCell.IsValid() && InKeyEvent.IsShiftDown() )
 			{
 				if ( FirstCellInSelection.IsValid() && LastCellInSelection.IsValid() )
 				{
@@ -425,7 +425,7 @@ public:
 		{
 			if ( CurrentCell.IsValid() )
 			{
-				if ( InKeyboardEvent.IsShiftDown() )
+				if ( InKeyEvent.IsShiftDown() )
 				{
 					MoveToCell( Table->GetPreviousCellInRow( CurrentCell.ToSharedRef() ) );
 				}
@@ -451,12 +451,12 @@ public:
 			}
 		}
 
-		return STreeView< TSharedRef< IPropertyTableRow > >::OnKeyDown( MyGeometry, InKeyboardEvent );
+		return STreeView< TSharedRef< IPropertyTableRow > >::OnKeyDown( MyGeometry, InKeyEvent );
 	}
 
-	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		const FKey Key = InKeyboardEvent.GetKey();
+		const FKey Key = InKeyEvent.GetKey();
 		if ( Key == EKeys::Enter )
 		{
 			const TSharedPtr< IPropertyTableCell > CurrentCell = Table->GetCurrentCell();
@@ -466,7 +466,7 @@ public:
 			}
 		}
 
-		return STreeView< TSharedRef< IPropertyTableRow > >::OnPreviewKeyDown( MyGeometry, InKeyboardEvent );
+		return STreeView< TSharedRef< IPropertyTableRow > >::OnPreviewKeyDown( MyGeometry, InKeyEvent );
 	}
 
 	FReply SelectRange( const TSharedPtr< IPropertyTableCell >& StartingCell, const TSharedPtr< IPropertyTableCell >& EndingCell, const TSharedPtr< IPropertyTableCell >& CellToFocus )
@@ -542,7 +542,7 @@ public:
 		return FReply::Handled();
 	}
 
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		FReply Reply = FReply::Unhandled();
 
@@ -550,7 +550,7 @@ public:
 
 		if ( CurrentCell.IsValid() )
 		{
-			FKey Key = InKeyboardEvent.GetKey();
+			FKey Key = InKeyEvent.GetKey();
 
 			if ( Key == EKeys::F2 )
 			{

@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsNativeFeedbackContext.h: Unreal Windows user interface interaction.
-=============================================================================*/
-
 #pragma once
 
 #include "AllowWindowsPlatformTypes.h"
 #include <CommCtrl.h>
+
 
 /**
  * Feedback context implementation for windows.
@@ -24,12 +21,9 @@ public:
 	VARARG_BODY( bool, YesNof, const TCHAR*, VARARG_NONE );
 
 	virtual bool ReceivedUserCancel() override;
-	virtual void BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bInShowCancelButton=false ) override;
-	virtual void EndSlowTask() override;
-
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& NewStatus ) override;
-	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
-	virtual void UpdateProgress(int32 Numerator, int32 Denominator) override;
+	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false ) override;
+	virtual void FinalizeSlowTask( ) override;
+	virtual void ProgressReported( const float TotalProgressInterp, FText DisplayMessage ) override;
 
 	FContextSupplier* GetContext() const;
 	void SetContext( FContextSupplier* InSupplier );
@@ -58,7 +52,6 @@ private:
 	static const uint16 LogOutputCtlId = 203;
 
 	FContextSupplier* Context;
-	int32 SlowTaskCount;
 	HANDLE hThread;
 	HANDLE hCloseEvent;
 	HANDLE hUpdateEvent;

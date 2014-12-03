@@ -33,7 +33,7 @@ public:
 	static UBlueprintEventNodeSpawner* Create(UFunction const* const EventFunc, UObject* Outer = nullptr);
 
 	/**
-	 * Creates a new UBlueprintEventNodeSpawner for custom events. The 
+	 * Creates a new UBlueprintEventNodeSpawner for custom events. The
 	 * CustomEventName can be left blank if the node will pick one itself on
 	 * instantiation.
 	 *
@@ -47,9 +47,6 @@ public:
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
-	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
-	virtual FText GetDefaultMenuCategory() const override;
-	virtual FString GetDefaultSearchKeywords() const override;
 	// End UBlueprintNodeSpawner interface
 
 	/**
@@ -73,10 +70,6 @@ public:
 	 * @return 
 	 */
 	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& Bindings) const;
-
-protected:
-	/** Constructing FText strings can be costly, so we cache the default menu name */
-	FNodeTextCache CachedMenuName;
 
 private:
 	/** The function to configure new nodes with. */

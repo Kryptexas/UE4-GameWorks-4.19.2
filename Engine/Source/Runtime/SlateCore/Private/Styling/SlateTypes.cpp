@@ -334,7 +334,7 @@ FSearchBoxStyle::FSearchBoxStyle()
 FSearchBoxStyle& FSearchBoxStyle::SetTextBoxStyle( const FEditableTextBoxStyle& InTextBoxStyle )
 { 
 	TextBoxStyle = InTextBoxStyle;
-	if (ActiveFontInfo.FontName.IsNone())
+	if (!ActiveFontInfo.HasValidFont())
 	{
 		ActiveFontInfo = TextBoxStyle.Font;
 	}
@@ -636,7 +636,7 @@ const FWindowStyle& FWindowStyle::GetDefault()
 }
 
 
-USlateTypes::USlateTypes( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+USlateTypes::USlateTypes( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }

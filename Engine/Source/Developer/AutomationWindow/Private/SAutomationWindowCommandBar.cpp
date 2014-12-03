@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationWindowCommandBar.cpp: Implements the SAutomationWindowCommandBar class.
-=============================================================================*/
-
 #include "AutomationWindowPrivatePCH.h"
 
 #define LOCTEXT_NAMESPACE "SAutomationWindowCommandBar"

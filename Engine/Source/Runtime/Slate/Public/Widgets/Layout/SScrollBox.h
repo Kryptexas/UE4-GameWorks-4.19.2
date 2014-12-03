@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "InertialScrollManager.h"
+
 /** SScrollBox can scroll through an arbitrary number of widgets. */
 class SLATE_API SScrollBox : public SCompoundWidget
 {
@@ -41,6 +43,9 @@ public:
 		, _ScrollBarStyle( &FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("ScrollBar") )
 		, _ExternalScrollbar()
 		, _Orientation(Orient_Vertical)
+		, _ScrollBarVisibility(EVisibility::Visible)
+		, _ScrollBarAlwaysVisible(false)
+		, _ScrollBarThickness(FVector2D(5, 5))
 		, _OnUserScrolled()
 		{}
 		
@@ -56,7 +61,13 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
 
 		/** The direction that children will be stacked, and also the direction the box will scroll. */
-		SLATE_ARGUMENT(EOrientation, Orientation)
+		SLATE_ARGUMENT( EOrientation, Orientation )
+
+		SLATE_ARGUMENT( EVisibility, ScrollBarVisibility )
+
+		SLATE_ARGUMENT( bool, ScrollBarAlwaysVisible )
+
+		SLATE_ARGUMENT( FVector2D, ScrollBarThickness )
 
 		/** Called when the button is clicked */
 		SLATE_EVENT(FOnUserScrolled, OnUserScrolled)
@@ -91,6 +102,12 @@ public:
 
 	/** Sets the current orientation of the scrollbox and updates the layout */
 	void SetOrientation(EOrientation InOrientation);
+
+	void SetScrollBarVisibility(EVisibility InVisibility);
+
+	void SetScrollBarAlwaysVisible(bool InAlwaysVisible);
+
+	void SetScrollBarThickness(FVector2D InThickness);
 
 public:
 

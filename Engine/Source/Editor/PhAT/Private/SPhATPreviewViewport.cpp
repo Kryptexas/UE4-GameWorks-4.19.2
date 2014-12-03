@@ -8,6 +8,7 @@
 #include "PhATPreviewViewportClient.h"
 #include "SPhATPreviewToolbar.h"
 #include "SPhATPreviewViewport.h"
+#include "SDockTab.h"
 
 
 SPhATPreviewViewport::~SPhATPreviewViewport()

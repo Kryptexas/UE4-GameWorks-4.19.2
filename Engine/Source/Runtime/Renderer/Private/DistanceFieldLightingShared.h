@@ -9,8 +9,8 @@
 #include "DistanceFieldAtlas.h"
 
 /** Tile sized used for most AO compute shaders. */
-const int32 GDistanceFieldAOTileSizeX = 8;
-const int32 GDistanceFieldAOTileSizeY = 8;
+const int32 GDistanceFieldAOTileSizeX = 16;
+const int32 GDistanceFieldAOTileSizeY = 16;
 /** Base downsample factor that all distance field AO operations are done at. */
 const int32 GAODownsampleFactor = 2;
 static const int32 GMaxNumObjectsPerTile = 512;

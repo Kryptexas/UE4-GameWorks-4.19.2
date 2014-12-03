@@ -6,6 +6,10 @@
 #include "GameFramework/Actor.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
+#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "EditorCategoryUtils.h"	// for BuildCategoryString()
+#include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()
+#include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
@@ -17,6 +21,7 @@
 namespace BlueprintFunctionNodeSpawnerImpl
 {
 	FVector2D BindingOffset = FVector2D::ZeroVector;
+	static const FText FallbackCategory = LOCTEXT("UncategorizedFallbackCategory", "Call Function");
 
 	/**
 	 * 
@@ -44,6 +49,16 @@ namespace BlueprintFunctionNodeSpawnerImpl
 	 * @return 
 	 */
 	static FVector2D CalculateBindingPosition(UEdGraphNode* const InputNode);
+
+	/**
+	 * 
+	 * 
+	 * @param  Struct	
+	 * @param  Function	
+	 * @param  OperatorMetaTag	
+	 * @return 
+	 */
+	static bool IsStructOperatorFunc(const UScriptStruct* Struct, const UFunction* Function, FName const OperatorMetaTag);
 }
 
 //------------------------------------------------------------------------------
@@ -56,8 +71,20 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 	{
 		if (UProperty const* BoundProperty = Cast<UProperty>(BoundObject))
 		{
-			UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), BoundProperty);
-			bSuccessfulBinding = BindFunctionNode<UK2Node_VariableGet>(NewNode, TempNodeSpawner);
+			if (UK2Node_CallFunctionOnMember* CallOnMemberNode = Cast<UK2Node_CallFunctionOnMember>(NewNode))
+			{
+				// force bIsConsideredSelfContext to false, else the target 
+				// could end up being the skeleton class (and functionally, 
+				// there is no difference)
+				CallOnMemberNode->MemberVariableToCallOn.SetFromField<UProperty>(BoundProperty, /*bIsConsideredSelfContext =*/false);
+				bSuccessfulBinding = true;
+				CallOnMemberNode->ReconstructNode();
+			}
+			else
+			{
+				UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), BoundProperty);
+				bSuccessfulBinding = BindFunctionNode<UK2Node_VariableGet>(NewNode, TempNodeSpawner);
+			}
 		}
 		else if (AActor* BoundActor = Cast<AActor>(BoundObject))
 		{
@@ -87,10 +114,6 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 
 	BindingOffset.Y += UEdGraphSchema_K2::EstimateNodeHeight(BindingNode);
 
-	// @TODO: Move this down into Invoke()
-	ParentGraph->Modify();
-	ParentGraph->AddNode(BindingNode, /*bFromUI =*/false, /*bSelectNewNode =*/false);
-
 	UEdGraphPin* LiteralOutput = BindingNode->GetValuePin();
 	UEdGraphPin* CallSelfInput = NewNode->FindPin(GetDefault<UEdGraphSchema_K2>()->PN_Self);
 	// connect the new "get-var" node with the spawned function node
@@ -118,6 +141,27 @@ static FVector2D BlueprintFunctionNodeSpawnerImpl::CalculateBindingPosition(UEdG
 
 	AttachingNodePos += BindingOffset;
 	return AttachingNodePos;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintFunctionNodeSpawnerImpl::IsStructOperatorFunc(const UScriptStruct* Struct, const UFunction* Function, FName const OperatorMetaTag)
+{
+	bool bIsOperatorFunc = false;
+
+	FString NamedOperatorFunction = Struct->GetMetaData(OperatorMetaTag);
+	if (!NamedOperatorFunction.IsEmpty())
+	{
+		UObject* OperatorOuter = nullptr;
+		if (ResolveName(OperatorOuter, NamedOperatorFunction, /*Create =*/false, /*Throw =*/false))
+		{
+			if ((Function->GetOuter() == OperatorOuter) &&
+				(Function->GetName()  == NamedOperatorFunction))
+			{
+				bIsOperatorFunc = true;
+			}
+		}
+	}
+	return bIsOperatorFunc;
 }
 
 /*******************************************************************************
@@ -149,9 +193,7 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(UFunction c
 	{
 		NodeClass = UK2Node_CallDataTableFunction::StaticClass();
 	}
-	// @TODO:
-	//   else if CallOnMember => UK2Node_CallFunctionOnMember
-	//   else if bIsParentContext => UK2Node_CallParentFunction
+	// @TODO: else if bIsParentContext => UK2Node_CallParentFunction
 	else if (bHasArrayPointerParms)
 	{
 		NodeClass = UK2Node_CallArrayFunction::StaticClass();
@@ -171,6 +213,11 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 	{
 		Outer = GetTransientPackage();
 	}
+
+	//--------------------------------------
+	// Constructing the Spawner
+	//--------------------------------------
+
 	UBlueprintFunctionNodeSpawner* NodeSpawner = NewObject<UBlueprintFunctionNodeSpawner>(Outer);
 	NodeSpawner->Field = Function;
 
@@ -183,6 +230,32 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 		NodeSpawner->NodeClass = NodeClass;
 	}
 
+	//--------------------------------------
+	// Default UI Signature
+	//--------------------------------------
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	MenuSignature.MenuName = FText::FromString( UK2Node_CallFunction::GetUserFacingFunctionName(Function) );
+	MenuSignature.Category = FText::FromString( UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")) );
+	MenuSignature.Tooltip  = FText::FromString( UK2Node_CallFunction::GetDefaultTooltipForFunction(Function) );
+	// add at least one character, so that PrimeDefaultMenuSignature() doesn't attempt to query the template node
+	MenuSignature.Keywords = UK2Node_CallFunction::GetKeywordsForFunction(Function).AppendChar(TEXT(' '));
+	MenuSignature.IconName = UK2Node_CallFunction::GetPaletteIconForFunction(Function, MenuSignature.IconTint);
+
+	if (MenuSignature.Category.IsEmpty())
+	{
+		MenuSignature.Category = BlueprintFunctionNodeSpawnerImpl::FallbackCategory;
+	}
+
+	if (MenuSignature.Tooltip.IsEmpty())
+	{
+		MenuSignature.Tooltip = MenuSignature.MenuName;
+	}
+
+	//--------------------------------------
+	// Post-Spawn Setup
+	//--------------------------------------
+
 	auto SetNodeFunctionLambda = [](UEdGraphNode* NewNode, UField const* Field)
 	{
 		// user could have changed the node class (to something like
@@ -194,12 +267,13 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 	};
 	NodeSpawner->SetNodeFieldDelegate = FSetNodeFieldDelegate::CreateStatic(SetNodeFunctionLambda);
 
+
 	return NodeSpawner;
 }
 
 //------------------------------------------------------------------------------
-UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -208,69 +282,110 @@ void UBlueprintFunctionNodeSpawner::Prime()
 {
 	// we expect that you don't need a node template to construct menu entries
 	// from this, so we choose not to pre-cache one here
+}
 
-	// we don't have any expensive FText::Format() constructed strings to cache
-	// either
+//------------------------------------------------------------------------------
+FBlueprintActionUiSpec UBlueprintFunctionNodeSpawner::GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const
+{
+	// for FallbackCategory, IsStructOperatorFunc(), etc.
+	using namespace BlueprintFunctionNodeSpawnerImpl;
+
+	UEdGraph* TargetGraph = (Context.Graphs.Num() > 0) ? Context.Graphs[0] : nullptr;
+	FBlueprintActionUiSpec MenuSignature = PrimeDefaultUiSpec(TargetGraph);
+
+	//
+	// stick uncategorized functions in either "Call Function" (for self 
+	// members), or "<ClassName>|..." for external members
+
+	FString const CategoryString = MenuSignature.Category.ToString();
+	// FText compares are slow, so let's use FString compares
+	bool const bIsUncategorized = (CategoryString == FallbackCategory.ToString());
+	if (bIsUncategorized)
+	{
+		checkSlow(Context.Blueprints.Num() > 0);
+		UBlueprint* TargetBlueprint = Context.Blueprints[0];
+
+		// @TODO: this is duplicated in a couple places, move it to some shared resource
+		UClass const* TargetClass = (TargetBlueprint->GeneratedClass != nullptr) ? TargetBlueprint->GeneratedClass : TargetBlueprint->ParentClass;
+		for (UEdGraphPin* Pin : Context.Pins)
+		{
+			if ((Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) &&
+				Pin->PinType.PinSubCategoryObject.IsValid())
+			{
+				TargetClass = CastChecked<UClass>(Pin->PinType.PinSubCategoryObject.Get());
+			}
+		}
+		
+		UFunction const* WrappedFunction = GetFunction();
+		checkSlow(WrappedFunction != nullptr);
+		UClass* FunctionClass = WrappedFunction->GetOwnerClass()->GetAuthoritativeClass();
+
+		if (!TargetClass->IsChildOf(FunctionClass))
+		{
+			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString( FCommonEditorCategory::Class, 
+				FText::FromString(FunctionClass->GetDisplayNameText().ToString()) );
+		}
+	}
+
+	//
+	// bubble up important make/break functions (when dragging from a struct pin)
+
+	for (UEdGraphPin* Pin : Context.Pins)
+	{
+		const UScriptStruct* PinStruct = Cast<const UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
+		if (PinStruct != nullptr)
+		{
+			UFunction const* WrappedFunction = GetFunction();
+			checkSlow(WrappedFunction != nullptr);
+
+			bool const bIsStructOperator = IsStructOperatorFunc(PinStruct, WrappedFunction, FBlueprintMetadata::MD_NativeBreakFunction) ||
+				IsStructOperatorFunc(PinStruct, WrappedFunction, FBlueprintMetadata::MD_NativeMakeFunction);
+
+			if (bIsStructOperator)
+			{
+				MenuSignature.Category = LOCTEXT("EmptyFunctionCategory", "|");
+				break;
+			}
+		}
+	}
+
+	//
+	// call out functions bound to sub-component (members); give them a unique name
+
+	if (Bindings.Num() == 1)
+	{
+		UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(Bindings.CreateConstIterator()->Get());
+		if (ObjectProperty != nullptr)
+		{
+			FString BoundFunctionName = FString::Printf(TEXT("%s (%s)"), *MenuSignature.MenuName.ToString(), *ObjectProperty->GetName());
+			// @TODO: this should probably be an FText::Format()
+			MenuSignature.MenuName = FText::FromString(BoundFunctionName);
+		}
+	}
+	DynamicUiSignatureGetter.ExecuteIfBound(Context, Bindings, &MenuSignature);
+	return MenuSignature;
 }
 
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* Function, FSetNodeFieldDelegate SetFieldDelegate, FCustomizeNodeDelegate UserDelegate)
+	{
+		SetFieldDelegate.ExecuteIfBound(NewNode, Function);
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+	};
+	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, GetFunction(), SetNodeFieldDelegate, CustomizeNodeDelegate);
+
+	UClass* SpawnClass = NodeClass;
+	if ((Bindings.Num() == 1) && (*Bindings.CreateConstIterator())->IsA<UObjectProperty>())
+	{
+		SpawnClass = UK2Node_CallFunctionOnMember::StaticClass();
+	}
 	// if this spawner was set up to spawn a bound node, reset this so the 
 	// bound nodes get positioned properly
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;
 
-	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Bindings, Location);
-	return SpawnedNode;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetUserFacingFunctionName(Function));
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuCategory() const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-
-	FText Tooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
-	if (Tooltip.IsEmpty())
-	{
-		FBindingSet EmptyContext;
-		Tooltip = GetDefaultMenuName(EmptyContext);
-	}
-	return Tooltip;
-}
-
-//------------------------------------------------------------------------------
-FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-	
-	FString SearchKeywords = UK2Node_CallFunction::GetKeywordsForFunction(Function);
-	// add at least one character, so that the menu item doesn't attempt to
-	// ping a template node
-	return SearchKeywords.AppendChar(TEXT(' '));
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintFunctionNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	return UK2Node_CallFunction::GetPaletteIconForFunction(GetFunction(), ColorOut);
+	return Super::SpawnNode(SpawnClass, ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------
@@ -284,31 +399,19 @@ bool UBlueprintFunctionNodeSpawner::CanBindMultipleObjects() const
 //------------------------------------------------------------------------------
 bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
-	bool bCanBind = false;
-	if (UFunction const* Function = GetFunction())
+	UFunction const* Function = GetFunction();
+	checkSlow(Function != nullptr);
+
+	bool const bNodeTypeMatches = (NodeClass == UK2Node_CallFunction::StaticClass());
+	bool bClassOwnerMatches = false;
+
+	UClass* BindingClass = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate);
+	if (UClass const* FuncOwner = Function->GetOwnerClass())
 	{
-		// @TODO: don't know exactly why we can only bind non-pure/const 
-		//        functions... this is mirrored after FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors()
-		//        and FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents(),
-		//        where we make the same stipulation
-		bool const bIsImperative = !Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
-		bool const bIsConstFunc  =  Function->HasAnyFunctionFlags(FUNC_Const);
-
-		if (bIsImperative || bIsConstFunc)
-		{
-			UClass* BindingClass = BindingCandidate->GetClass();
-			if (UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(BindingCandidate))
-			{
-				BindingClass = ObjectProperty->PropertyClass;
-			}
-
-			if (UClass const* FuncOwner = Function->GetOwnerClass())
-			{
-				bCanBind = BindingClass->IsChildOf(FuncOwner);
-			}
-		}
+		bClassOwnerMatches = BindingClass->IsChildOf(FuncOwner);
 	}
-	return bCanBind;
+
+	return bNodeTypeMatches && bClassOwnerMatches && !FObjectEditorUtils::IsFunctionHiddenFromClass(Function, BindingClass);
 }
 
 //------------------------------------------------------------------------------

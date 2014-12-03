@@ -18,24 +18,9 @@ public:
 	 * @param InName The setting section's name.
 	 * @param InDisplayName The section's localized display name.
 	 * @param InDescription The section's localized description text.
-	 * @param InDelegates The section's optional callback delegates.
 	 * @param InSettingsObject The object that holds the settings for this section.
 	 */
-	FSettingsSection( const ISettingsCategoryRef& InCategory, const FName& InName, const FText& InDisplayName, const FText& InDescription, const FSettingsSectionDelegates& InDelegates, const TWeakObjectPtr<UObject>& InSettingsObject )
-		: Category(InCategory)
-		, Description(InDescription)
-		, DisplayName(InDisplayName)
-		, Name(InName)
-		, SettingsObject(InSettingsObject)
-		, CanEditDelegate(InDelegates.CanEditDelegate)
-		, ExportDelegate(InDelegates.ExportDelegate)
-		, ImportDelegate(InDelegates.ImportDelegate)
-		, ModifiedDelegate(InDelegates.ModifiedDelegate)
-		, ResetDefaultsDelegate(InDelegates.ResetDefaultsDelegate)
-		, SaveDefaultsDelegate(InDelegates.SaveDefaultsDelegate)
-		, SaveDelegate(InDelegates.SaveDelegate)
-		, StatusDelegate(InDelegates.StatusDelegate)
-	{ }
+	FSettingsSection( const ISettingsCategoryRef& InCategory, const FName& InName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& InSettingsObject );
 
 	/**
 	 * Creates and initializes a new settings section from the given custom settings widget.
@@ -44,262 +29,118 @@ public:
 	 * @param InName The setting section's name.
 	 * @param InDisplayName The section's localized display name.
 	 * @param InDescription The section's localized description text.
-	 * @param InDelegates The section's optional callback delegates.
 	 * @param InCustomWidget A custom settings widget.
 	 */
-	FSettingsSection( const ISettingsCategoryRef& InCategory, const FName& InName, const FText& InDisplayName, const FText& InDescription, const FSettingsSectionDelegates& InDelegates, const TSharedRef<SWidget>& InCustomWidget )
-		: Category(InCategory)
-		, CustomWidget(InCustomWidget)
-		, Description(InDescription)
-		, DisplayName(InDisplayName)
-		, Name(InName)
-		, CanEditDelegate(InDelegates.CanEditDelegate)
-		, ExportDelegate(InDelegates.ExportDelegate)
-		, ImportDelegate(InDelegates.ImportDelegate)
-		, ModifiedDelegate(InDelegates.ModifiedDelegate)
-		, ResetDefaultsDelegate(InDelegates.ResetDefaultsDelegate)
-		, SaveDefaultsDelegate(InDelegates.SaveDefaultsDelegate)
-		, SaveDelegate(InDelegates.SaveDelegate)
-		, StatusDelegate(InDelegates.StatusDelegate)
-	{ }
+	FSettingsSection( const ISettingsCategoryRef& InCategory, const FName& InName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& InCustomWidget );
 
 public:
 
 	// ISettingsSection interface
 
-	virtual bool CanEdit( ) const override
-	{
-		if (CanEditDelegate.IsBound())
-		{
-			return CanEditDelegate.Execute();
-		}
+	virtual bool CanEdit() const override;
+	virtual bool CanExport() const override;
+	virtual bool CanImport() const override;
+	virtual bool CanResetDefaults() const override;
+	virtual bool CanSave() const override;
+	virtual bool CanSaveDefaults() const override;
+	virtual bool Export( const FString& Filename ) override;
+	virtual TWeakPtr<ISettingsCategory> GetCategory() override;
+	virtual TWeakPtr<SWidget> GetCustomWidget() const override;
+	virtual const FText& GetDescription() const override;
+	virtual const FText& GetDisplayName() const override;
+	virtual const FName& GetName() const override;
+	virtual TWeakObjectPtr<UObject> GetSettingsObject() const override;
+	virtual FText GetStatus() const override;
+	virtual bool HasDefaultSettingsObject() override;
+	virtual bool Import( const FString& Filename ) override;
 
-		return true;
+	virtual FOnCanEdit& OnCanEdit() override
+	{
+		return CanEditDelegate;
 	}
 
-	virtual bool CanExport( ) const override
+	virtual FOnExport& OnExport() override
 	{
-		return (ExportDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
+		return ExportDelegate;
 	}
 
-	virtual bool CanImport( ) const override
+	virtual FOnImport& OnImport() override
 	{
-		return (ImportDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
+		return ImportDelegate;
 	}
 
-	virtual bool CanResetDefaults( ) const override
+	virtual FOnModified& OnModified() override
 	{
-		return (ResetDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
+		return ModifiedDelegate;
 	}
 
-	virtual bool CanSave( ) const override
+	virtual FOnResetDefaults& OnResetDefaults() override
 	{
-		return (SaveDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
+		return ResetDefaultsDelegate;
 	}
 
-	virtual bool CanSaveDefaults( ) const override
+	virtual FOnSave& OnSave() override
 	{
-		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
+		return SaveDelegate;
 	}
 
-	virtual bool Export( const FString& Filename ) override
+	virtual FOnSaveDefaults& OnSaveDefaults() override
 	{
-		if (ExportDelegate.IsBound())
-		{
-			return ExportDelegate.Execute(Filename);
-		}
-
-		if (SettingsObject.IsValid())
-		{
-			SettingsObject->SaveConfig(CPF_Config, *Filename);
-
-			return true;
-		}
-
-		return false;
+		return SaveDefaultsDelegate;
 	}
 
-	virtual ISettingsCategoryWeakPtr GetCategory( ) override
+	virtual FOnStatus& OnStatus() override
 	{
-		return Category;
+		return StatusDelegate;
 	}
 
-	virtual TWeakPtr<SWidget> GetCustomWidget( ) const override
-	{
-		return CustomWidget;
-	}
-
-	virtual const FText& GetDescription( ) const override
-	{
-		return Description;
-	}
-
-	virtual const FText& GetDisplayName( ) const override
-	{
-		return DisplayName;
-	}
-
-	virtual const FName& GetName( ) const override
-	{
-		return Name;
-	}
-
-	virtual TWeakObjectPtr<UObject> GetSettingsObject( ) const override
-	{
-		return SettingsObject;
-	}
-
-	virtual FText GetStatus( ) const override
-	{
-		if (StatusDelegate.IsBound())
-		{
-			return StatusDelegate.Execute();
-		}
-
-		return FText::GetEmpty();
-	}
-
-	virtual bool HasDefaultSettingsObject( ) override
-	{
-		if (!SettingsObject.IsValid())
-		{
-			return false;
-		}
-
-		return SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig);
-	}
-
-	virtual bool Import( const FString& Filename ) override
-	{
-		if (ImportDelegate.IsBound())
-		{
-			return ImportDelegate.Execute(Filename);
-		}
-
-		if (SettingsObject.IsValid())
-		{
-			SettingsObject->LoadConfig(SettingsObject->GetClass(), *Filename, UE4::LCPF_PropagateToInstances);
-
-			return true;
-		}
-
-		return false;	
-	}
-
-	virtual bool ResetDefaults( ) override
-	{
-		if (ResetDefaultsDelegate.IsBound())
-		{
-			return ResetDefaultsDelegate.Execute();
-		}
-
-		if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
-		{
-			FString ConfigName = SettingsObject->GetClass()->GetConfigName();
-
-			GConfig->EmptySection(*SettingsObject->GetClass()->GetPathName(), ConfigName);
-			GConfig->Flush(false);
-
-			FConfigCacheIni::LoadGlobalIniFile(ConfigName, *FPaths::GetBaseFilename(ConfigName), nullptr, nullptr, true);
-
-			SettingsObject->ReloadConfig(nullptr, nullptr, UE4::LCPF_PropagateToInstances|UE4::LCPF_PropagateToChildDefaultObjects);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	virtual bool Save( ) override
-	{
-		if (ModifiedDelegate.IsBound() && !ModifiedDelegate.Execute())
-		{
-			return false;
-		}
-
-		if (SaveDelegate.IsBound())
-		{
-			return SaveDelegate.Execute();
-		}
-
-		if (SettingsObject.IsValid())
-		{
-			if (SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
-			{
-				SettingsObject->UpdateDefaultConfigFile();
-			}
-			else
-			{
-				SettingsObject->SaveConfig();
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
-	virtual bool SaveDefaults( ) override
-	{
-		if (SaveDefaultsDelegate.IsBound())
-		{
-			return SaveDefaultsDelegate.Execute();
-		}
-
-		if (SettingsObject.IsValid())
-		{
-			SettingsObject->UpdateDefaultConfigFile();
-			SettingsObject->ReloadConfig(nullptr, nullptr, UE4::LCPF_PropagateToInstances);
-
-			return true;			
-		}
-
-		return false;
-	}
+	virtual bool ResetDefaults() override;
+	virtual bool Save() override;
+	virtual bool SaveDefaults() override;
 
 private:
 
-	// Holds a pointer to the settings category that owns this section.
-	ISettingsCategoryWeakPtr Category;
+	/** Holds a pointer to the settings category that owns this section. */
+	TWeakPtr<ISettingsCategory> Category;
 
-	// Holds the section's custom editor widget.
+	/** Holds the section's custom editor widget. */
 	TWeakPtr<SWidget> CustomWidget;
 
-	// Holds the section's description text.
+	/** Holds the section's description text. */
 	FText Description;
 
-	// Holds the section's localized display name.
+	/** Holds the section's localized display name. */
 	FText DisplayName;
 
-	// Holds the section's name.
+	/** Holds the section's name. */
 	FName Name;
 
-	// Holds the settings object.
+	/** Holds the settings object. */
 	TWeakObjectPtr<UObject> SettingsObject;
 
 private:
 
-	// Holds a delegate that is executed to check whether a settings section can be edited.
-	FOnSettingsSectionCanEdit CanEditDelegate;
+	/** Holds a delegate that is executed to check whether a settings section can be edited. */
+	FOnCanEdit CanEditDelegate;
 
-	// Holds a delegate that is executed when the settings section should be exported to a file.
-	FOnSettingsSectionExport ExportDelegate;
+	/** Holds a delegate that is executed when the settings section should be exported to a file. */
+	FOnExport ExportDelegate;
 
-	// Holds a delegate that is executed when the settings section should be imported from a file.
-	FOnSettingsSectionImport ImportDelegate;
+	/** Holds a delegate that is executed when the settings section should be imported from a file. */
+	FOnImport ImportDelegate;
 
-	// Holds a delegate that is executed after the settings section has been modified.
-	FOnSettingsSectionModified ModifiedDelegate;
+	/** Holds a delegate that is executed after the settings section has been modified. */
+	FOnModified ModifiedDelegate;
 
-	// Holds a delegate that is executed when the settings section should have its values reset to default.
-	FOnSettingsSectionResetDefaults ResetDefaultsDelegate;
+	/** Holds a delegate that is executed when the settings section should have its values reset to default. */
+	FOnResetDefaults ResetDefaultsDelegate;
 
-	// Holds a delegate that is executed when a settings section should have its values saved as default.
-	FOnSettingsSectionSaveDefaults SaveDefaultsDelegate;
+	/** Holds a delegate that is executed when a settings section should have its values saved as default. */
+	FOnSaveDefaults SaveDefaultsDelegate;
 
-	// Holds a delegate that is executed when a settings section should have its values saved.
-	FOnSettingsSectionSave SaveDelegate;
+	/** Holds a delegate that is executed when a settings section should have its values saved. */
+	FOnSave SaveDelegate;
 
-	// Holds a delegate that is executed to retrieve a status message for a settings section.
-	FOnSettingsSectionStatus StatusDelegate;
+	/** Holds a delegate that is executed to retrieve a status message for a settings section. */
+	FOnStatus StatusDelegate;
 };

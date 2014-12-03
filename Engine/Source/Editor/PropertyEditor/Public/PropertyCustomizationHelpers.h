@@ -14,6 +14,7 @@
 namespace SceneOutliner { struct FOutlinerFilters; }
 
 DECLARE_DELEGATE_OneParam(FOnAssetSelected, const class FAssetData& /*AssetData*/);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldSetAsset, const class FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldFilterAsset, const class FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_OneParam( FOnGetActorFilters, TSharedPtr<SceneOutliner::FOutlinerFilters>& );
 
@@ -29,13 +30,16 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeUseSelectedButton( FSimpleDelegate OnUseSelectedClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeBrowseButton( FSimpleDelegate OnClearClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerAnchorButton( FOnGetAllowedClasses OnGetAllowedClasses, FOnAssetSelected OnAssetSelectedFromPicker );
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerAnchorButton( FOnGetActorFilters OnGetActorFilters, FOnActorSelected OnActorSelectedFromPicker );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, const TSharedPtr< SceneOutliner::FOutlinerFilters >& ActorFilters, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker );
 
 	/** @return the UBoolProperty edit condition property if one exists. */
 	PROPERTYEDITOR_API class UBoolProperty* GetEditConditionProperty(const class UProperty* InProperty, bool& bNegate);
+
+	/** Returns a list of factories which can be used to create new assets, based on the supplied class */
+	PROPERTYEDITOR_API TArray<UFactory*> GetNewAssetFactoriesForClasses(const TArray<const UClass*>& Classes);
 }
 
 /** Delegate used to get a generic object */
@@ -54,6 +58,8 @@ public:
 	SLATE_BEGIN_ARGS( SObjectPropertyEntryBox )
 		: _AllowedClass( UObject::StaticClass() )
 		, _AllowClear( true )
+		, _DisplayUseSelected( true )
+		, _DisplayBrowse( true )
 	{}
 		/** The path to the object */
 		SLATE_ATTRIBUTE( FString, ObjectPath )
@@ -63,12 +69,20 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
 		/** Classes that are allowed in the asset picker */
 		SLATE_ARGUMENT( UClass*, AllowedClass )
+		/** Optional list of factories which may be used to create new assets */
+		SLATE_ARGUMENT( TOptional<TArray<UFactory*>>, NewAssetFactories )
+		/** Called to check if an asset should be set */
+		SLATE_EVENT(FOnShouldSetAsset, OnShouldSetAsset)
 		/** Called when the object value changes */
 		SLATE_EVENT(FOnSetObject, OnObjectChanged)
 		/** Called to check if an asset is valid to use */
 		SLATE_EVENT(FOnShouldFilterAsset, OnShouldFilterAsset)
 		/** Whether the asset can be 'None' */
 		SLATE_ARGUMENT(bool, AllowClear)
+		/** Whether to show the 'Use Selected' button */
+		SLATE_ARGUMENT(bool, DisplayUseSelected)
+		/** Whether to show the 'Browse' button */
+		SLATE_ARGUMENT(bool, DisplayBrowse)
 	SLATE_END_ARGS()
 
 	PROPERTYEDITOR_API void Construct( const FArguments& InArgs );
@@ -82,6 +96,8 @@ private:
 	/** @return the object path for the object we are viewing */
 	FString OnGetObjectPath() const;
 private:
+	/** Delegate to call to determine whether the asset should be set */
+	FOnShouldSetAsset OnShouldSetAsset;
 	/** Delegate to call when the object changes */
 	FOnSetObject OnObjectChanged;
 	/** Path to the object */
@@ -243,7 +259,7 @@ public:
 			.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
 			.NameContent()
 			[
-				BaseProperty->CreatePropertyNameWidget(DisplayName, bDisplayResetToDefaultInNameContent)
+				BaseProperty->CreatePropertyNameWidget(DisplayName, TEXT(""), bDisplayResetToDefaultInNameContent)
 			]
 			.ValueContent()
 			[

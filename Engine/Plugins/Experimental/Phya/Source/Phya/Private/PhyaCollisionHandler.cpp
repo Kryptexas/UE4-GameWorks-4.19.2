@@ -28,8 +28,8 @@ uint32 GetTypeHash( const FPhyaBodyInstancePair& Pair )
 
 //////////////////////////////////////////////////////////////////////////
 
-UPhyaCollisionHandler::UPhyaCollisionHandler(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhyaCollisionHandler::UPhyaCollisionHandler(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

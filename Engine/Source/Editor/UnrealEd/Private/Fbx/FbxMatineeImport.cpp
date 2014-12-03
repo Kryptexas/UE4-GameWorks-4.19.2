@@ -58,7 +58,7 @@ inline bool _HasUnknownCameras( AMatineeActor* InMatineeActor, FbxNode* Node, co
 			UInterpGroupInst* GroupInst = InMatineeActor->FindFirstGroupInstByName( FString( Name ) );
 			if( GroupInst != NULL )
 			{
-				AActor * GrActor = GroupInst->GetGroupActor();
+				AActor* GrActor = GroupInst->GetGroupActor();
 				// Make sure we have an actor
 				if( GrActor != NULL &&
 					GrActor->IsA( ACameraActor::StaticClass() ) )
@@ -321,28 +321,28 @@ void FFbxImporter::ImportCamera(ACameraActor* Actor, UInterpGroupInst* MatineeGr
 	// Note: there is a pivot node between the Fbx camera Node and node attribute
 	FbxNode* FbxCameraNode = Camera->GetNode()->GetParent();
 	// Import the aspect ratio
-	Actor->CameraComponent->AspectRatio = Camera->FilmAspectRatio.Get(); // Assumes the FBX comes from Unreal or Maya
-	ImportAnimatedProperty(&Actor->CameraComponent->AspectRatio, TEXT("AspectRatio"), MatineeGroup, 
-				Actor->CameraComponent->AspectRatio, FbxCameraNode->FindProperty("UE_AspectRatio") );
+	Actor->GetCameraComponent()->AspectRatio = Camera->FilmAspectRatio.Get(); // Assumes the FBX comes from Unreal or Maya
+	ImportAnimatedProperty(&Actor->GetCameraComponent()->AspectRatio, TEXT("AspectRatio"), MatineeGroup, 
+				Actor->GetCameraComponent()->AspectRatio, FbxCameraNode->FindProperty("UE_AspectRatio") );
 
 	FbxPropertyT<FbxDouble> AperatureModeProperty;
 
 
 	if( Camera->FocalLength.IsValid() && Camera->GetApertureMode() == FbxCamera::eFocalLength )
 	{
-		Actor->CameraComponent->FieldOfView = Camera->ComputeFieldOfView(Camera->FocalLength.Get()); // Assumes the FBX comes from Unreal or Maya
+		Actor->GetCameraComponent()->FieldOfView = Camera->ComputeFieldOfView(Camera->FocalLength.Get()); // Assumes the FBX comes from Unreal or Maya
 
 		AperatureModeProperty = Camera->FocalLength;
 	}
 	else 
 	{
-		Actor->CameraComponent->FieldOfView = Camera->FieldOfView.Get();
+		Actor->GetCameraComponent()->FieldOfView = Camera->FieldOfView.Get();
 
 		AperatureModeProperty = Camera->FieldOfView;
 	}
 
 
-	ImportAnimatedProperty(&Actor->CameraComponent->FieldOfView, TEXT("FOVAngle"), MatineeGroup, AperatureModeProperty.Get(), AperatureModeProperty, true, Camera );
+	ImportAnimatedProperty(&Actor->GetCameraComponent()->FieldOfView, TEXT("FOVAngle"), MatineeGroup, AperatureModeProperty.Get(), AperatureModeProperty, true, Camera );
 }
 
 void FFbxImporter::ImportAnimatedProperty(float* Value, const TCHAR* ValueName, UInterpGroupInst* MatineeGroup, const float FbxValue, FbxProperty InProperty, bool bImportFOV, FbxCamera* Camera )

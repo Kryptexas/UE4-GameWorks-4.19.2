@@ -7,8 +7,8 @@
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent
 //----------------------------------------------------------------------//
-UNavLinkRenderingComponent::UNavLinkRenderingComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavLinkRenderingComponent::UNavLinkRenderingComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// properties
 
@@ -23,10 +23,10 @@ UNavLinkRenderingComponent::UNavLinkRenderingComponent(const class FPostConstruc
 	bGenerateOverlapEvents = false;
 }
 
-FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	AActor* LinkOwnerActor = Cast<AActor>(GetOwner());
-	INavLinkHostInterface* LinkOwnerHost = InterfaceCast<INavLinkHostInterface>(GetOwner());
+	INavLinkHostInterface* LinkOwnerHost = Cast<INavLinkHostInterface>(GetOwner());
 
 	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
 	{
@@ -78,7 +78,7 @@ FNavLinkRenderingProxy::FNavLinkRenderingProxy(const UPrimitiveComponent* InComp
 	: FPrimitiveSceneProxy(InComponent)
 {
 	LinkOwnerActor = Cast<AActor>(InComponent->GetOwner());
-	LinkOwnerHost = InterfaceCast<INavLinkHostInterface>(InComponent->GetOwner());
+	LinkOwnerHost = Cast<INavLinkHostInterface>(InComponent->GetOwner());
 
 	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
 	{
@@ -107,7 +107,7 @@ FNavLinkRenderingProxy::FNavLinkRenderingProxy(const UPrimitiveComponent* InComp
 
 void FNavLinkRenderingProxy::StorePointLinks(const FTransform& LocalToWorld, const TArray<FNavigationLink>& LinksArray)
 {
-	const FNavigationLink* Link = LinksArray.GetTypedData();
+	const FNavigationLink* Link = LinksArray.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < LinksArray.Num(); ++LinkIndex, ++Link)
 	{	
 		FNavLinkDrawing LinkDrawing;
@@ -116,13 +116,14 @@ void FNavLinkRenderingProxy::StorePointLinks(const FTransform& LocalToWorld, con
 		LinkDrawing.Direction = Link->Direction;
 		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
 		LinkDrawing.SnapRadius = Link->SnapRadius;
+		LinkDrawing.SupportedAgentsBits = Link->SupportedAgentsBits;
 		OffMeshPointLinks.Add(LinkDrawing);
 	}
 }
 
 void FNavLinkRenderingProxy::StoreSegmentLinks(const FTransform& LocalToWorld, const TArray<FNavigationSegmentLink>& LinksArray)
 {
-	const FNavigationSegmentLink* Link = LinksArray.GetTypedData();
+	const FNavigationSegmentLink* Link = LinksArray.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < LinksArray.Num(); ++LinkIndex, ++Link)
 	{	
 		FNavLinkSegmentDrawing LinkDrawing;
@@ -133,6 +134,7 @@ void FNavLinkRenderingProxy::StoreSegmentLinks(const FTransform& LocalToWorld, c
 		LinkDrawing.Direction = Link->Direction;
 		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
 		LinkDrawing.SnapRadius = Link->SnapRadius;
+		LinkDrawing.SupportedAgentsBits = Link->SupportedAgentsBits;
 		OffMeshSegmentLinks.Add(LinkDrawing);
 	}
 }
@@ -143,12 +145,14 @@ void FNavLinkRenderingProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 	{
 		const UNavigationSystem* NavSys = LinkOwnerActor->GetWorld()->GetNavigationSystem();
 		TArray<float> StepHeights;
+		uint32 AgentMask = 0;
 		if (NavSys != NULL)
 		{
 			StepHeights.Reserve(NavSys->NavDataSet.Num());
 			for(int32 DataIndex = 0; DataIndex < NavSys->NavDataSet.Num(); ++DataIndex)
 			{
 				const ARecastNavMesh* NavMesh = Cast<const ARecastNavMesh>(NavSys->NavDataSet[DataIndex]);
+				AgentMask = NavMesh->bEnableDrawing ? AgentMask | (1 << DataIndex) : AgentMask;
 				if (NavMesh != NULL && NavMesh->AgentMaxStepHeight > 0 && NavMesh->bEnableDrawing)
 				{
 					StepHeights.Add(NavMesh->AgentMaxStepHeight);
@@ -163,7 +167,7 @@ void FNavLinkRenderingProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 		{
 			if (VisibilityMap & (1 << ViewIndex))
 			{
-				FNavLinkRenderingProxy::GetLinkMeshes(OffMeshPointLinks, OffMeshSegmentLinks, StepHeights, MeshColorInstance, ViewIndex, Collector);
+				FNavLinkRenderingProxy::GetLinkMeshes(OffMeshPointLinks, OffMeshSegmentLinks, StepHeights, MeshColorInstance, ViewIndex, Collector, AgentMask);
 			}
 		}
 	}
@@ -177,12 +181,14 @@ void FNavLinkRenderingProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,co
 	{
 		const UNavigationSystem* NavSys = LinkOwnerActor->GetWorld()->GetNavigationSystem();
 		TArray<float> StepHeights;
+		uint32 AgentMask = 0;
 		if (NavSys != NULL)
 		{
 			StepHeights.Reserve(NavSys->NavDataSet.Num());
 			for(int32 DataIndex = 0; DataIndex < NavSys->NavDataSet.Num(); ++DataIndex)
 			{
 				const ARecastNavMesh* NavMesh = Cast<const ARecastNavMesh>(NavSys->NavDataSet[DataIndex]);
+				AgentMask = NavMesh->bEnableDrawing ? AgentMask | (1 << DataIndex) : AgentMask;
 				if (NavMesh != NULL && NavMesh->AgentMaxStepHeight > 0 && NavMesh->bEnableDrawing)
 				{
 					StepHeights.Add(NavMesh->AgentMaxStepHeight);
@@ -192,11 +198,11 @@ void FNavLinkRenderingProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,co
 
 		static const FColor RadiusColor(150, 160, 150, 48);
 		FMaterialRenderProxy* const MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), RadiusColor);
-		FNavLinkRenderingProxy::DrawLinks(PDI, OffMeshPointLinks, OffMeshSegmentLinks, StepHeights, MeshColorInstance);
+		FNavLinkRenderingProxy::DrawLinks(PDI, OffMeshPointLinks, OffMeshSegmentLinks, StepHeights, MeshColorInstance, AgentMask);
 	}
 }
 
-void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMeshPointLinks, const TArray<FNavLinkSegmentDrawing>& OffMeshSegmentLinks, TArray<float>& StepHeights, FMaterialRenderProxy* const MeshColorInstance, int32 ViewIndex, FMeshElementCollector& Collector)
+void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMeshPointLinks, const TArray<FNavLinkSegmentDrawing>& OffMeshSegmentLinks, TArray<float>& StepHeights, FMaterialRenderProxy* const MeshColorInstance, int32 ViewIndex, FMeshElementCollector& Collector, uint32 AgentMask)
 {
 	static const FColor LinkColor(0,0,166);
 	static const float LinkArcThickness = 3.f;
@@ -212,7 +218,11 @@ void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMes
 	for (int32 LinkIndex = 0; LinkIndex < OffMeshPointLinks.Num(); ++LinkIndex)
 	{
 		const FNavLinkDrawing& Link = OffMeshPointLinks[LinkIndex];
-		const uint32 Segments = FPlatformMath::Max<uint32>(LinkArcHeight*(Link.Right-Link.Left).Size()/10, 8);
+		if ((Link.SupportedAgentsBits & AgentMask) == 0)
+		{
+			continue;
+		}
+		const uint32 Segments = FPlatformMath::Max<uint32>(LinkArcHeight*(Link.Right - Link.Left).Size() / 10, 8);
 		DrawArc(PDI, Link.Left, Link.Right, LinkArcHeight, Segments, Link.Color, SDPG_World, 3.5f);
 		const FVector VOffset(0,0,FVector::Dist(Link.Left, Link.Right)*1.333f);
 
@@ -243,7 +253,11 @@ void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMes
 	for (int32 LinkIndex = 0; LinkIndex < OffMeshSegmentLinks.Num(); ++LinkIndex)
 	{
 		const FNavLinkSegmentDrawing& Link = OffMeshSegmentLinks[LinkIndex];
-		const uint32 SegmentsStart = FPlatformMath::Max<uint32>(SegmentArcHeight*(Link.RightStart-Link.LeftStart).Size()/10, 8);
+		if ((Link.SupportedAgentsBits & AgentMask) == 0)
+		{
+			continue;
+		}
+		const uint32 SegmentsStart = FPlatformMath::Max<uint32>(SegmentArcHeight*(Link.RightStart - Link.LeftStart).Size() / 10, 8);
 		const uint32 SegmentsEnd = FPlatformMath::Max<uint32>(SegmentArcHeight*(Link.RightEnd-Link.LeftEnd).Size()/10, 8);
 		DrawArc(PDI, Link.LeftStart, Link.RightStart, SegmentArcHeight, SegmentsStart, Link.Color, SDPG_World, 3.5f);
 		DrawArc(PDI, Link.LeftEnd, Link.RightEnd, SegmentArcHeight, SegmentsEnd, Link.Color, SDPG_World, 3.5f);
@@ -279,7 +293,7 @@ void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMes
 	}
 }
 
-void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNavLinkDrawing>& OffMeshPointLinks, TArray<FNavLinkSegmentDrawing>& OffMeshSegmentLinks, TArray<float>& StepHeights, FMaterialRenderProxy* const MeshColorInstance)
+void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNavLinkDrawing>& OffMeshPointLinks, TArray<FNavLinkSegmentDrawing>& OffMeshSegmentLinks, TArray<float>& StepHeights, FMaterialRenderProxy* const MeshColorInstance, uint32 AgentMask)
 {
 	static const FColor LinkColor(0,0,166);
 	static const float LinkArcThickness = 3.f;
@@ -293,6 +307,11 @@ void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNav
 	for (int32 LinkIndex = 0; LinkIndex < OffMeshPointLinks.Num(); ++LinkIndex)
 	{
 		const FNavLinkDrawing& Link = OffMeshPointLinks[LinkIndex];
+		if ((Link.SupportedAgentsBits & AgentMask) == 0)
+		{
+			continue;
+		}
+
 		const uint32 Segments = FPlatformMath::Max<uint32>(LinkArcHeight*(Link.Right-Link.Left).Size()/10, 8);
 		DrawArc(PDI, Link.Left, Link.Right, LinkArcHeight, Segments, Link.Color, SDPG_World, 3.5f);
 		const FVector VOffset(0,0,FVector::Dist(Link.Left, Link.Right)*1.333f);
@@ -324,6 +343,11 @@ void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNav
 	for (int32 LinkIndex = 0; LinkIndex < OffMeshSegmentLinks.Num(); ++LinkIndex)
 	{
 		const FNavLinkSegmentDrawing& Link = OffMeshSegmentLinks[LinkIndex];
+		if ((Link.SupportedAgentsBits & AgentMask) == 0)
+		{
+			continue;
+		}
+
 		const uint32 SegmentsStart = FPlatformMath::Max<uint32>(SegmentArcHeight*(Link.RightStart-Link.LeftStart).Size()/10, 8);
 		const uint32 SegmentsEnd = FPlatformMath::Max<uint32>(SegmentArcHeight*(Link.RightEnd-Link.LeftEnd).Size()/10, 8);
 		DrawArc(PDI, Link.LeftStart, Link.RightStart, SegmentArcHeight, SegmentsStart, Link.Color, SDPG_World, 3.5f);

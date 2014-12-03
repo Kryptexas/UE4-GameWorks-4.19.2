@@ -91,17 +91,10 @@ FSupportedAreaData::FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass, int32
 }
 
 //----------------------------------------------------------------------//
-// FNavDataGenerator
-//----------------------------------------------------------------------//
-void FNavDataGenerator::TriggerGeneration()
-{
-}
-
-//----------------------------------------------------------------------//
 // ANavigationData                                                                
 //----------------------------------------------------------------------//
-ANavigationData::ANavigationData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bEnableDrawing(false)
 	, bRebuildAtRuntime(false)
 	, DataVersion(NAVMESHVER_LATEST)
@@ -160,18 +153,6 @@ void ANavigationData::PostInitializeComponents()
 		CleanUpAndMarkPendingKill();
 		return;
 	}
-
-	if (IsPendingKill() == true)
-	{
-		return;
-	}
-
-#if WITH_NAVIGATION_GENERATOR
-	if (bRebuildAtRuntime == true && NavDataGenerator.IsValid() == false)
-	{
-		GetGenerator(FNavigationSystem::Create);
-	}
-#endif
 }
 
 void ANavigationData::PostLoad() 
@@ -272,7 +253,8 @@ void ANavigationData::OnRegistered()
 { 
 	InstantiateAndRegisterRenderingComponent();
 
-	bRegistered = true; 
+	bRegistered = true;
+	ConstructGenerator();
 }
 
 void ANavigationData::OnUnregistered()
@@ -300,23 +282,12 @@ void ANavigationData::InstantiateAndRegisterRenderingComponent()
 #endif // !UE_BUILD_SHIPPING
 }
 
-void ANavigationData::DestroyGenerator()
-{
-#if WITH_NAVIGATION_GENERATOR
-	if (NavDataGenerator.IsValid() == true)
-	{
-		NavDataGenerator->OnNavigationDataDestroyed(this);
-		NavDataGenerator.Reset();
-	}
-#endif // WITH_NAVIGATION_GENERATOR
-};
-
 void ANavigationData::PurgeUnusedPaths()
 {
 	check(IsInGameThread());
 
 	const int32 Count = ActivePaths.Num();
-	FNavPathWeakPtr* WeakPathPtr = (ActivePaths.GetTypedData() + Count - 1);
+	FNavPathWeakPtr* WeakPathPtr = (ActivePaths.GetData() + Count - 1);
 	for (int32 i = Count - 1; i >= 0; --i, --WeakPathPtr)
 	{
 		if (WeakPathPtr->IsValid() == false)
@@ -330,9 +301,6 @@ void ANavigationData::PurgeUnusedPaths()
 void ANavigationData::PostEditUndo()
 {
 	Super::PostEditUndo();
-#if WITH_NAVIGATION_GENERATOR
-	GetGenerator(FNavigationSystem::Create);
-#endif // WITH_NAVIGATION_GENERATOR
 
 	UWorld* WorldOuter = GetWorld();
 	if (WorldOuter != NULL && WorldOuter->GetNavigationSystem() != NULL)
@@ -367,7 +335,6 @@ void ANavigationData::Destroyed()
 void ANavigationData::CleanUp()
 {
 	bRegistered = false;
-	DestroyGenerator();
 }
 
 void ANavigationData::CleanUpAndMarkPendingKill()
@@ -380,57 +347,105 @@ void ANavigationData::CleanUpAndMarkPendingKill()
 	MarkComponentsAsPendingKill();
 }
 
-bool ANavigationData::CanRebuild() const
+bool ANavigationData::SupportsRuntimeGeneration() const
 {
-#if WITH_NAVIGATION_GENERATOR
-	return NavDataGenerator.IsValid();
-#endif
-
 	return false;
 }
 
-#if WITH_NAVIGATION_GENERATOR
-
-FNavDataGenerator* ANavigationData::GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone)
+void ANavigationData::ConstructGenerator()
 {
-	if ((NavDataGenerator.IsValid() == false || NavDataGenerator.GetSharedReferenceCount() <= 0)
-		&& CreateIfNone == FNavigationSystem::Create
-		&& (bRebuildAtRuntime == true || GetWorld()->IsGameWorld() == false))
+}
+
+void ANavigationData::RebuildAll()
+{
+	ConstructGenerator(); //recreate generator
+	
+	if (NavDataGenerator)
 	{
-		// @todo this is not-that-clear design and is subject to change
-		if (NavDataConfig.IsValid() == false 
-			&& GetWorld()->GetNavigationSystem() != NULL
-			&& GetWorld()->GetNavigationSystem()->SupportedAgents.Num() < 2
-			)
-		{
-			// fill in AgentProps with whatever is the instance's setup
-			FillConfig(NavDataConfig);
-		}
-
-		FNavDataGenerator* Generator = ConstructGenerator(NavDataConfig);
-
-		if (Generator != NULL)
-		{
-			// make sure no one has made this sharable yet
-			// it's a "check" not an "ensure" since it's really crucial
-			check(Generator->HasBeenAlreadyMadeSharable() == false);
-			NavDataGenerator = MakeShareable(Generator);
-		}
+		NavDataGenerator->RebuildAll();
 	}
+}
 
-	return NavDataGenerator.IsValid() && NavDataGenerator.GetSharedReferenceCount() > 0 ? NavDataGenerator.Get() : NULL;
+void ANavigationData::EnsureBuildCompletion()
+{
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->EnsureBuildCompletion();
+	}
+}
+
+void ANavigationData::CancelBuild()
+{
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->CancelBuild();
+	}
+}
+
+void ANavigationData::OnNavigationBoundsChanged()
+{
+	// Create generator if it wasn't yet
+	if (SupportsRuntimeGeneration() && NavDataGenerator.Get() == nullptr)
+	{
+		ConstructGenerator();
+	}
+	
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->OnNavigationBoundsChanged();
+	}
+}
+
+void ANavigationData::TickAsyncBuild(float DeltaSeconds)
+{
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->TickAsyncBuild(DeltaSeconds);
+	}
 }
 
 void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
 {
-	FNavDataGenerator* Generator = GetGenerator(FNavigationSystem::DontCreate);
-	if (Generator)
+	if (NavDataGenerator)
 	{
-		Generator->RebuildDirtyAreas(DirtyAreas);
+		NavDataGenerator->RebuildDirtyAreas(DirtyAreas);
 	}
 }
 
-#endif // WITH_NAVIGATION_GENERATOR
+TArray<FBox> ANavigationData::GetNavigableBounds() const
+{
+	TArray<FBox> Result;
+	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+	
+	const auto& NavigationBounds = NavSys->GetNavigationBounds();
+	Result.Reserve(NavigationBounds.Num());
+
+	for (const auto& Bounds : NavigationBounds)
+	{
+		Result.Add(Bounds.AreaBox);
+	}
+	
+	return Result;
+}
+	
+TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(const FName& InLevelPackageName) const
+{
+	TArray<FBox> Result;
+	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+	
+	const auto& NavigationBounds = NavSys->GetNavigationBounds();
+	Result.Reserve(NavigationBounds.Num());
+
+	for (const auto& Bounds : NavigationBounds)
+	{
+		if (Bounds.PackageName == InLevelPackageName)
+		{
+			Result.Add(Bounds.AreaBox);
+		}
+	}
+	
+	return Result;
+}
 
 void ANavigationData::DrawDebugPath(FNavigationPath* Path, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
 {
@@ -597,12 +612,10 @@ uint32 ANavigationData::LogMemUsed() const
 
 	UE_LOG(LogNavigation, Display, TEXT("%s: ANavigationData: %u\n    self: %d"), *GetName(), MemUsed, sizeof(ANavigationData));	
 
-#if WITH_NAVIGATION_GENERATOR
-	if (NavDataGenerator.IsValid())
+	if (NavDataGenerator)
 	{
 		NavDataGenerator->LogMemUsed();
 	}
-#endif // WITH_NAVIGATION_GENERATOR
 
 	return MemUsed;
 }

@@ -197,7 +197,7 @@ public:
 
 		// Check the global volume multiplier because this effect 
 		// will continue to play if the editor loses focus.
-		if( IsEnabled && GVolumeMultiplier != 0.0f )
+		if (IsEnabled && FApp::GetVolumeMultiplier() != 0.0f)
 		{
 			FAudioRadioEffect* RadioParameters = ( FAudioRadioEffect* )BeginProcess();
 			check( RadioParameters );

@@ -1,10 +1,74 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "Blueprint/WidgetTree.h"
 #include "Runtime/MovieSceneCore/Classes/MovieScene.h"
 #include "PropertyTag.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "WidgetBlueprint.h"
+#include "WidgetBlueprintCompiler.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
+
+bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWidgetBlueprint* Blueprint, FCompilerResultsLog& MessageLog) const
+{
+	FDelegateRuntimeBinding RuntimeBinding = ToRuntimeBinding(Blueprint);
+
+	// First find the target widget we'll be attaching the binding to.
+	if ( UWidget* TargetWidget = Blueprint->WidgetTree->FindWidget(FName(*ObjectName)) )
+	{
+		// Next find the underlying delegate we're actually binding to, if it's an event the name will be the same,
+		// for properties we need to lookup the delegate property we're actually going to be binding to.
+		UDelegateProperty* BindableProperty = FindField<UDelegateProperty>(TargetWidget->GetClass(), FName(*( PropertyName.ToString() + TEXT("Delegate") )));
+		UDelegateProperty* EventProperty = FindField<UDelegateProperty>(TargetWidget->GetClass(), PropertyName);
+
+		bool bNeedsToBePure = BindableProperty ? true : false;
+		UDelegateProperty* DelegateProperty = BindableProperty ? BindableProperty : EventProperty;
+
+		// Locate the delegate property on the widget that's a delegate for a property we want to bind.
+		if ( DelegateProperty )
+		{
+			// On our incoming blueprint generated class, try and find the function we claim exists that users
+			// are binding their property too.
+			if ( UFunction* Function = BlueprintGeneratedClass->FindFunctionByName(RuntimeBinding.FunctionName, EIncludeSuperFlag::IncludeSuper) )
+			{
+				// Check the signatures to ensure these functions match.
+				if ( Function->IsSignatureCompatibleWith(DelegateProperty->SignatureFunction, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+				{
+					// Only allow binding pure functions to property bindings.
+					if ( bNeedsToBePure && !Function->HasAllFunctionFlags(FUNC_BlueprintPure) )
+					{
+						FText const ErrorFormat = LOCTEXT("BindingNotBoundToPure", "Binding: property '@@' on widget '@@' needs to be bound to a pure function, '@@' is not pure.");
+						MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
+
+						return false;
+					}
+
+					return true;
+				}
+				else
+				{
+					FText const ErrorFormat = LOCTEXT("BindingFunctionSigDontMatch", "Binding: property '@@' on widget '@@' bound to function '@@', but the sigatnures don't match.  The function must return the same type as the property and have no parameters.");
+					MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
+				}
+			}
+			else
+			{
+				//TODO Bindable property removed.
+			}
+		}
+		else
+		{
+			// TODO Bindable Property Removed
+		}
+	}
+	else
+	{
+		//TODO Ignore missing widgets
+	}
+
+	return false;
+}
 
 FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprint* Blueprint) const
 {
@@ -17,7 +81,7 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 	}
 	else
 	{
-		Binding.FunctionName = FunctionName;// Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+		Binding.FunctionName = FunctionName;
 	}
 	Binding.Kind = Kind;
 
@@ -39,8 +103,8 @@ bool FWidgetAnimation_DEPRECATED::SerializeFromMismatchedTag(struct FPropertyTag
 /////////////////////////////////////////////////////
 // UWidgetBlueprint
 
-UWidgetBlueprint::UWidgetBlueprint(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetBlueprint::UWidgetBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
 	WidgetTree->SetFlags(RF_Transactional);
@@ -50,12 +114,9 @@ void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
 
-	TArray<UWidget*> Widgets;
-	WidgetTree->GetAllWidgets(Widgets);
-	for ( UWidget* Widget : Widgets )
-	{
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 		Widget->ConnectEditorData();
-	}
+	});
 
 	if( GetLinkerUE4Version() < VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS )
 	{
@@ -148,15 +209,14 @@ void UWidgetBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildre
 	AllowedChildrenOfClasses.Add( UUserWidget::StaticClass() );
 }
 
-void UWidgetBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
+bool UWidgetBlueprint::NeedsLoadForClient() const
 {
-	Super::PostLoadSubobjects(OuterInstanceGraph);
+	return false;
+}
 
-	UWidgetBlueprintGeneratedClass* BPGClass = Cast<UWidgetBlueprintGeneratedClass>(*GeneratedClass);
-	if ( BPGClass )
-	{
-		//BPGClass->WidgetTree = WidgetTree;
-	}
+bool UWidgetBlueprint::NeedsLoadForServer() const
+{
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE 

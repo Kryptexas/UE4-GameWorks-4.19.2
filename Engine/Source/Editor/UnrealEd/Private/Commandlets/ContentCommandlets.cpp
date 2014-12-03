@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UCContentCommandlets.cpp: Various commmandlets.
@@ -8,6 +8,7 @@
 
 #include "ISourceControlModule.h"
 #include "PackageHelperFunctions.h"
+#include "PackageTools.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 
@@ -38,8 +39,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 #define CURRENT_PACKAGE_VERSION 0
 #define IGNORE_PACKAGE_VERSION INDEX_NONE
 
-UResavePackagesCommandlet::UResavePackagesCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UResavePackagesCommandlet::UResavePackagesCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -329,6 +330,78 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			{
 				UE_LOG(LogContentCommandlet, Log, TEXT("Removing editor only data"));
 				Package->PackageFlags |= PKG_FilterEditorOnly;
+			}
+
+			if (bSavePackage == true)
+			{
+				bool bIsEmpty = true;
+				// Check to see if this package contains only metadata, and if so delete the package instead of resaving it
+
+				TArray<UObject *> ObjectsInOuter;
+				GetObjectsWithOuter(Package, ObjectsInOuter);
+				for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
+				{
+					UObject* Obj = ObjectsInOuter[Index];
+
+					if (!Obj->IsA(UMetaData::StaticClass()))
+					{
+						// This package has a real object
+						bIsEmpty = false;
+					}
+				}
+
+				if (bIsEmpty)
+				{
+					bSavePackage = false;
+					
+					// get file SCC status
+					UE_LOG(LogContentCommandlet, Display, TEXT("Package %s is empty and will be deleted"), *Filename);
+					FString PackageFilename = SourceControlHelpers::PackageFilename(Package);
+
+					ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(PackageFilename, EStateCacheUsage::ForceUpdate);
+
+					// Unload package so we can delete it
+					TArray<UPackage *> PackagesToDelete;
+					PackagesToDelete.Add(Package);
+					PackageTools::UnloadPackages(PackagesToDelete);
+					PackagesToDelete.Empty();
+					Package = NULL;
+
+					if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
+					{
+						UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
+						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
+
+						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+					}
+					else if (SourceControlState.IsValid() && (SourceControlState->CanEdit() || !SourceControlState->IsCurrent()))
+					{
+						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+					}
+					else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
+					{
+						UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
+					}
+					else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
+					{
+						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
+						if (!IFileManager::Get().Delete(*Filename, false, true))
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+						}
+					}
+					else
+					{
+						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
+						if (!IFileManager::Get().Delete(*Filename, false, true))
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+						}
+					}
+				}
 			}
 
 			// Now based on the computation above we will see if we should actually attempt
@@ -641,8 +714,8 @@ void UResavePackagesCommandlet::VerboseMessage(const FString& Message)
 	URecompileBlueprintsCommandlet commandlet.
 -----------------------------------------------------------------------------*/
 
-URecompileBlueprintsCommandlet::URecompileBlueprintsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URecompileBlueprintsCommandlet::URecompileBlueprintsCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -913,8 +986,8 @@ FString MakeCutdownFilename(const FString& Filename, const TCHAR* CutdownDirecto
 	return CutdownDirectory / FPaths::GetCleanFilename(Filename);
 }
 
-UWrangleContentCommandlet::UWrangleContentCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWrangleContentCommandlet::UWrangleContentCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -1557,8 +1630,8 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 	UListMaterialsUsedWithMeshEmittersCommandlet
 ========================================================================================================== */
 
-UListMaterialsUsedWithMeshEmittersCommandlet::UListMaterialsUsedWithMeshEmittersCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UListMaterialsUsedWithMeshEmittersCommandlet::UListMaterialsUsedWithMeshEmittersCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1712,8 +1785,8 @@ int32 UListMaterialsUsedWithMeshEmittersCommandlet::Main( const FString& Params 
 	UListStaticMeshesImportedFromSpeedTreesCommandlet
 ========================================================================================================== */
 
-UListStaticMeshesImportedFromSpeedTreesCommandlet::UListStaticMeshesImportedFromSpeedTreesCommandlet(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UListStaticMeshesImportedFromSpeedTreesCommandlet::UListStaticMeshesImportedFromSpeedTreesCommandlet(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

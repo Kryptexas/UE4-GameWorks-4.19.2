@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "../../Public/Modules/ModuleVersion.h"
+#include "CorePrivatePCH.h"
+#include "Public/Modules/ModuleVersion.h"
 
 
 #if PLATFORM_HAS_BSD_TIME 
@@ -424,12 +424,12 @@ bool FGenericPlatformProcess::SupportsMultithreading()
 	return bSupportsMultithreading;
 }
 
-FGenericPlatformProcess::FSemaphore::FSemaphore(const FString & InName)
+FGenericPlatformProcess::FSemaphore::FSemaphore(const FString& InName)
 {
 	FCString::Strcpy(Name, sizeof(Name)-1, *InName);
 }
 
-FGenericPlatformProcess::FSemaphore * FGenericPlatformProcess::NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks)
+FGenericPlatformProcess::FSemaphore* FGenericPlatformProcess::NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks)
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::NewInterprocessSynchObject not implemented on this platform"));
 	return NULL;

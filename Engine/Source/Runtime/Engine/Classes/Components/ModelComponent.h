@@ -9,6 +9,12 @@
 //
 class FModelElement;
 
+/**
+ * ModelComponents are PrimitiveComponents that represent elements of BSP geometry in a ULevel object.
+ * They are used exclusively by ULevel and are not intended as general-purpose components.
+ *
+ * @see ULevel
+ */
 UCLASS(MinimalAPI)
 class UModelComponent : public UPrimitiveComponent, public IInterface_CollisionDataProvider
 {
@@ -40,7 +46,7 @@ public:
 	/**
 	 * Minimal initialization constructor.
 	 */
-	UModelComponent( const class FPostConstructInitializeProperties& PCIP,UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
+	UModelComponent( const FObjectInitializer& ObjectInitializer,UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
 #endif // WITH_EDITOR
 
 	/**
@@ -70,7 +76,7 @@ public:
 	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
 	virtual int32 GetStaticLightMapResolution() const override;
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
 #if WITH_EDITOR

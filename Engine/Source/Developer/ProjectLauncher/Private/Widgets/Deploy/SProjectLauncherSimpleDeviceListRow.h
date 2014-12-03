@@ -333,30 +333,41 @@ private:
 	{
 		check(DeviceProxy.IsValid());
 
-		FName Variant = SimpleProfile->GetDeviceVariant();
-		
-		// If the profile refers to a variant no longer supported by this device fall back to the default.
-		if (!DeviceProxy->HasVariant(Variant))
+		// This detects a corrupt device, it doesn't even have data for it's default variant Remove the profile.
+		// Entry will show invalid.
+		if (!DeviceProxy->HasVariant(NAME_None))
 		{
-			Variant = NAME_None;
-			SimpleProfile->SetDeviceVariant(Variant);
+			Model->GetProfileManager()->RemoveProfile(LaunchProfile.ToSharedRef());
+			LaunchProfile = nullptr;
 		}
-
-		// Setup the Profile
-		LaunchProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::FileServer);
-
-		ILauncherDeviceGroupRef NewGroup = Model->GetProfileManager()->CreateUnmanagedDeviceGroup();
-		NewGroup->AddDevice(DeviceProxy->GetTargetDeviceId(Variant));
-		LaunchProfile->SetDeployedDeviceGroup(NewGroup);
-
-		LaunchProfile->ClearCookedCultures();
-		LaunchProfile->AddCookedPlatform(DeviceProxy->GetTargetPlatformName(Variant));
-
-		bool Advanced = IsAdvanced.IsBound() && IsAdvanced.Get();
-		if (Advanced)
+		
+		if (LaunchProfile.IsValid())
 		{
-			LaunchProfile->SetBuildConfiguration(SimpleProfile->GetBuildConfiguration());
-			LaunchProfile->SetCookMode(SimpleProfile->GetCookMode());
+			FName Variant = SimpleProfile->GetDeviceVariant();
+		
+			// If the profile refers to a variant no longer supported by this device fall back to the default.
+			if (!DeviceProxy->HasVariant(Variant))
+			{
+				Variant = NAME_None;
+				SimpleProfile->SetDeviceVariant(Variant);
+			}
+
+			// Setup the Profile
+			LaunchProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::FileServer);
+
+			ILauncherDeviceGroupRef NewGroup = Model->GetProfileManager()->CreateUnmanagedDeviceGroup();
+			NewGroup->AddDevice(DeviceProxy->GetTargetDeviceId(Variant));
+			LaunchProfile->SetDeployedDeviceGroup(NewGroup);
+
+			LaunchProfile->ClearCookedPlatforms();
+			LaunchProfile->AddCookedPlatform(DeviceProxy->GetTargetPlatformName(Variant));
+
+			bool Advanced = IsAdvanced.IsBound() && IsAdvanced.Get();
+			if (Advanced)
+			{
+				LaunchProfile->SetBuildConfiguration(SimpleProfile->GetBuildConfiguration());
+				LaunchProfile->SetCookMode(SimpleProfile->GetCookMode());
+			}
 		}
 	}
 
@@ -385,8 +396,15 @@ private:
 	// Callback for getting the icon image of the device.
 	const FSlateBrush* HandleDeviceImage( ) const
 	{
-		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetTargetPlatformName(SimpleProfile->GetDeviceVariant()));
-		return (PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Large)) : FStyleDefaults::GetNoBrush();
+		if (LaunchProfile.IsValid())
+		{
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetTargetPlatformName(SimpleProfile->GetDeviceVariant()));
+			if (PlatformInfo)
+			{
+				return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Large));
+			}
+		}
+		return FStyleDefaults::GetNoBrush();
 	}
 
 	// Callback for getting the friendly name.
@@ -417,7 +435,11 @@ private:
 	// Callback for getting the host platform name.
 	FString HandleHostPlatformText( ) const
 	{
-		return DeviceProxy->GetTargetPlatformName(SimpleProfile->GetDeviceVariant());
+		if (LaunchProfile.IsValid())
+		{
+			return DeviceProxy->GetTargetPlatformName(SimpleProfile->GetDeviceVariant());
+		}
+		return LOCTEXT("InvalidVariant", "Invalid Variant").ToString();
 	}
 
 private:

@@ -451,16 +451,3 @@ struct TStructOpsTypeTraits<FAutomationWorkerScreenImage> : public TStructOpsTyp
 		WithMessageHandling = true
 	};
 };
-
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UAutomationWorkerMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
-};

@@ -63,30 +63,19 @@ struct ENGINE_API FNavigationOctreeElement
 {
 	FBoxSphereBounds Bounds;
 	TWeakObjectPtr<UObject> Owner;
-
-#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	FNavigationRelevantData Data;
-#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 
 	FORCEINLINE bool IsEmpty() const
 	{
 		const FBox BBox = Bounds.GetBox();
-#if NAVOCTREE_CONTAINS_COLLISION_DATA
 		return Data.IsEmpty() && (BBox.IsValid == 0 || BBox.GetSize().IsNearlyZero());
-#else
-		return BBox.IsValid == 0 || BBox.GetSize().IsNearlyZero();
-#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 	}
 
 	FORCEINLINE bool IsMatchingFilter(const FNavigationOctreeFilter& Filter) const
 	{
-#if NAVOCTREE_CONTAINS_COLLISION_DATA
 		return Data.IsMatchingFilter(Filter);
-#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
-		return false;
 	}
 
-#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	/** 
 	 *	retrieves Modifier, if it doesn't contain any "Meta Navigation Areas". 
 	 *	If it does then retrieves a copy with meta areas substituted with
@@ -111,7 +100,6 @@ struct ENGINE_API FNavigationOctreeElement
 	{
 		Data.Shrink();
 	}
-#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 };
 
 struct FNavigationOctreeSemantics
@@ -141,8 +129,6 @@ struct FNavigationOctreeSemantics
 
 class FNavigationOctree : public TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>
 {
-	typedef TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics> Super;
-
 public:
 	DECLARE_DELEGATE_TwoParams(FNavigableGeometryComponentExportDelegate, UActorComponent*, FNavigationRelevantData&);
 	FNavigableGeometryComponentExportDelegate ComponentExportDelegate;
@@ -152,8 +138,8 @@ public:
 		StoreNavGeometry,
 	};
 
-	FNavigationOctree(FVector Origin, float Radius);
-	~FNavigationOctree();
+	FNavigationOctree(const FVector& Origin, float Radius);
+	virtual ~FNavigationOctree();
 
 	/** Add new node and fill it with navigation export data */
 	void AddNode(UObject* ElementOb, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data);

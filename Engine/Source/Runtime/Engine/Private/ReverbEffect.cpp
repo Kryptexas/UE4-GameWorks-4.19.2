@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Sound/ReverbEffect.h"
 
-UReverbEffect::UReverbEffect(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReverbEffect::UReverbEffect(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Density = 1.0f;
 	Diffusion = 1.0f;

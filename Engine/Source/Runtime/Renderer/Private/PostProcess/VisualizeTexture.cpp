@@ -417,13 +417,13 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	if(!(Desc.Flags & TexCreate_CPUReadback))		// We cannot make a texture lookup on such elements
 	{	
-		SCOPED_DRAW_EVENT(RHICmdList, VisualizeTexture, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, VisualizeTexture);
 		// continue rendering to HDR if necessary
 		RenderVisualizeTexture(RHICmdList, FeatureLevel, VisualizeTextureData);
 	}
 
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, VisCopy, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, VisCopy);
 		RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	}
 
@@ -464,7 +464,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 			uint32 ExtendXWithMSAA = Bitmap.Num() / Extent.Y;
 
 			// Save the contents of the array to a bitmap file. (24bit only so alpha channel is dropped)
-			FFileHelper::CreateBitmap(*ScreenFileName, ExtendXWithMSAA, Extent.Y, Bitmap.GetTypedData());	
+			FFileHelper::CreateBitmap(*ScreenFileName, ExtendXWithMSAA, Extent.Y, Bitmap.GetData());	
 
 			UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *FPaths::ScreenShotDir());
 		}
@@ -524,7 +524,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	FIntRect VisualizeTextureRect = ComputeVisualizeTextureRect(Desc.Extent);
 
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, VisCopyToMain, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, VisCopyToMain);
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle(
 			RHICmdList,

@@ -1034,17 +1034,17 @@ void SMenuEntryBlock::OnMouseLeave( const FPointerEvent& MouseEvent )
 	CancelPendingSubMenu();
 }
 
-FReply SMenuEntryBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SMenuEntryBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
-	SMultiBlockBaseWidget::OnKeyDown(MyGeometry, KeyboardEvent);
+	SMultiBlockBaseWidget::OnKeyDown(MyGeometry, KeyEvent);
 
 	// allow use of up and down keys to transfer focus
-	if(KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+	if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 	{
 		// find the next widget to focus
-		EFocusMoveDirection::Type MoveDirection = ( KeyboardEvent.GetKey() == EKeys::Up )
-			? EFocusMoveDirection::Previous
-			: EFocusMoveDirection::Next;
+		EUINavigation MoveDirection = (KeyEvent.GetKey() == EKeys::Up)
+			? EUINavigation::Previous
+			: EUINavigation::Next;
 		 
 		return SMultiBoxWidget::FocusNextWidget(MoveDirection);
 	}

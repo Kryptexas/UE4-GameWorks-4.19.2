@@ -3,6 +3,11 @@
 #pragma once
 
 
+// forward declarations
+class FMediaSampleBuffer;
+class UMediaTexture;
+
+
 /**
  * FTextureResource type for movie textures.
  */
@@ -19,20 +24,20 @@ public:
 	 * @param InOwner The Movie texture object to create a resource for (must not be nullptr).
 	 * @param InVideoBuffer The video sample buffer to use.
 	 */
-	FMediaTextureResource( const class UMediaTexture* InOwner, const FMediaSampleBufferRef& InVideoBuffer );
+	FMediaTextureResource(const class UMediaTexture* InOwner, const TSharedRef<FMediaSampleBuffer, ESPMode::ThreadSafe>& InVideoBuffer);
 
 public:
 
 	// FTextureResource overrides
 
-	virtual void InitDynamicRHI( ) override;
-	virtual void ReleaseDynamicRHI( ) override;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 public:
 
 	// FRenderTarget overrides
 
-	virtual FIntPoint GetSizeXY( ) const override;
+	virtual FIntPoint GetSizeXY() const override;
 
 public:
 
@@ -42,21 +47,21 @@ public:
 
 private:
 
-	// Whether the resource was cleared last frame.
+	/** Whether the resource was cleared last frame. */
 	bool Cleared;
 
-	// The color that the resource was cleared with.
+	/** The color that the resource was cleared with. */
 	FLinearColor LastClearColor;
 
-	// The playback time of the last drawn video frame.
+	/** The playback time of the last drawn video frame. */
 	FTimespan LastFrameTime;
 
 	/** The UTextureRenderTarget2D which this resource represents. */
-	const class UMediaTexture* Owner;
+	const UMediaTexture* Owner;
 
 	/** Texture resource used for rendering with and resolving to. */
 	FTexture2DRHIRef Texture2DRHI;
 
 	/** Pointer to the video sample buffer. */
-	FMediaSampleBufferRef VideoBuffer;
+	TSharedRef<FMediaSampleBuffer, ESPMode::ThreadSafe> VideoBuffer;
 };

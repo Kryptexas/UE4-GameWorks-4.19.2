@@ -4,6 +4,8 @@
 #include "UnrealEd.h"
 #include "MainFrame.h"
 #include "DistanceFieldAtlas.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 /** Notification class for asynchronous distance field building. */
 class FDistanceFieldBuildNotificationImpl

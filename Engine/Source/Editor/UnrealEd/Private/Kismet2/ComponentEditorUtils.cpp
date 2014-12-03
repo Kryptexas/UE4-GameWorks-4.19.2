@@ -88,86 +88,37 @@ void FComponentEditorUtils::GetArchetypeInstances( UObject* Object, TArray<UObje
 	}
 }
 
-template<typename T>
-struct FComponentTransformPropertyChangeHelper
-{
-	T* CurValuePtr;
-	const T OldVal;
-	const T NewVal;
-
-	FComponentTransformPropertyChangeHelper(USceneComponent* Instance, const UProperty* Property, T InOldVal, T InNewVal ) 
-		: CurValuePtr(NULL)
-		, OldVal(InOldVal)
-		, NewVal(InNewVal)
-	{
-		check(Instance && Property);
-		CurValuePtr = Property->ContainerPtrToValuePtr<T>(Instance);
-		check(CurValuePtr);
-	}
-
-	bool ShouldBeChanged() const
-	{
-		return (*CurValuePtr == OldVal);
-	}
-
-	void TryChange()
-	{
-		if (ShouldBeChanged())
-		{
-			*CurValuePtr = NewVal;
-		}
-	}
-};
-
 void FComponentEditorUtils::PropagateTransformPropertyChange(
-	class USceneComponent* SceneComponentTemplate,
-	const FTransformData& TransformOld,
-	const FTransformData& TransformNew,
+	class USceneComponent* InSceneComponentTemplate,
+	const FTransformData& OldDefaultTransform,
+	const FTransformData& NewDefaultTransform,
 	TSet<class USceneComponent*>& UpdatedComponents)
 {
-	check(SceneComponentTemplate != NULL);
+	check(InSceneComponentTemplate != nullptr);
 
 	TArray<UObject*> ArchetypeInstances;
-	FComponentEditorUtils::GetArchetypeInstances(SceneComponentTemplate, ArchetypeInstances);
+	FComponentEditorUtils::GetArchetypeInstances(InSceneComponentTemplate, ArchetypeInstances);
 	for(int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
 	{
-		USceneComponent* InstancedSceneComponent = FComponentEditorUtils::GetSceneComponent(ArchetypeInstances[InstanceIndex], SceneComponentTemplate);
-		if(InstancedSceneComponent && !UpdatedComponents.Contains(InstancedSceneComponent))
+		USceneComponent* InstancedSceneComponent = FComponentEditorUtils::GetSceneComponent(ArchetypeInstances[InstanceIndex], InSceneComponentTemplate);
+		if(InstancedSceneComponent != nullptr && !UpdatedComponents.Contains(InstancedSceneComponent))
 		{
 			static const UProperty* RelativeLocationProperty = FindFieldChecked<UProperty>( USceneComponent::StaticClass(), "RelativeLocation" );
-			static const UProperty* RelativeRotationProperty = FindFieldChecked<UProperty>( USceneComponent::StaticClass(), "RelativeRotation" );
-			static const UProperty* RelativeScale3DProperty = FindFieldChecked<UProperty>( USceneComponent::StaticClass(), "RelativeScale3D" );
-
-			FComponentTransformPropertyChangeHelper<FVector> Location(InstancedSceneComponent, RelativeLocationProperty, TransformOld.Trans, TransformNew.Trans);
-			FComponentTransformPropertyChangeHelper<FRotator> Rotation(InstancedSceneComponent, RelativeRotationProperty, TransformOld.Rot, TransformNew.Rot);
-			FComponentTransformPropertyChangeHelper<FVector> Scale(InstancedSceneComponent, RelativeScale3DProperty, TransformOld.Scale, TransformNew.Scale);
-			
-			const bool bShouldBeChanged = Location.ShouldBeChanged() || Rotation.ShouldBeChanged() || Scale.ShouldBeChanged();
-			if(bShouldBeChanged)
+			if(RelativeLocationProperty != nullptr)
 			{
-				// Ensure that this instance will be included in any undo/redo operations, and record it into the transaction buffer.
-				// Note: We don't do this for components that originate from script, because they will be re-instanced from the template after an undo, so there is no need to record them.
-				if(!InstancedSceneComponent->bCreatedByConstructionScript)
-				{
-					InstancedSceneComponent->SetFlags(RF_Transactional);
-					InstancedSceneComponent->Modify();
-				}
+				PropagateTransformPropertyChange(InstancedSceneComponent, RelativeLocationProperty, OldDefaultTransform.Trans, NewDefaultTransform.Trans, UpdatedComponents);
+			}
 
-				// We must also modify the owner, because we'll need script components to be reconstructed as part of an undo operation.
-				AActor* Owner = InstancedSceneComponent->GetOwner();
-				if(Owner != NULL)
-				{
-					Owner->Modify();
-				}
+			static const UProperty* RelativeRotationProperty = FindFieldChecked<UProperty>( USceneComponent::StaticClass(), "RelativeRotation" );
+			if(RelativeRotationProperty != nullptr)
+			{
+				PropagateTransformPropertyChange(InstancedSceneComponent, RelativeRotationProperty, OldDefaultTransform.Rot, NewDefaultTransform.Rot, UpdatedComponents);
+			}
 
-				Location.TryChange();
-				Rotation.TryChange();
-				Scale.TryChange();
-
-				// Re-register the component with the scene so that transforms are updated for display
-				InstancedSceneComponent->ReregisterComponent();
-
-				UpdatedComponents.Add(InstancedSceneComponent);
+			static const UProperty* RelativeScale3DProperty = FindFieldChecked<UProperty>( USceneComponent::StaticClass(), "RelativeScale3D" );
+			if(RelativeScale3DProperty != nullptr)
+			{
+				PropagateTransformPropertyChange(InstancedSceneComponent, RelativeScale3DProperty, OldDefaultTransform.Scale, NewDefaultTransform.Scale, UpdatedComponents);
 			}
 		}
 	}

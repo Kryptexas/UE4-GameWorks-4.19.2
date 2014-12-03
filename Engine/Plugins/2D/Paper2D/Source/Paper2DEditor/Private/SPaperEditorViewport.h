@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GraphEditor.h"
+#include "MarqueeRect.h"
 
 /** Helper for managing marquee operations */
 struct FMarqueeOperation

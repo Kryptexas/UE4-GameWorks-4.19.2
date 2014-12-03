@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
 
 /** Helper struct used to hold 128-bit values, internally represented as two 64-bit integers. */
 struct MS_ALIGN(16) FInt128 

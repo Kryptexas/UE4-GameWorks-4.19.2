@@ -14,7 +14,7 @@ class UAIPerceptionComponent;
  *	By design checks perception between hostile teams
  */
 UCLASS(ClassGroup=AI, config=Game)
-class AIMODULE_API UAIPerceptionSystem : public UBlueprintFunctionLibrary
+class AIMODULE_API UAIPerceptionSystem : public UObject
 {
 	GENERATED_UCLASS_BODY()
 	

@@ -5,10 +5,10 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogNavigationPoint, Log, All);
 
-ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationObjectBase::ANavigationObjectBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCapsule"));
+	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCapsule"));
 	CapsuleComponent->ShapeColor = FColor(255, 138, 5, 255);
 	CapsuleComponent->bDrawOnlyIfSelected = true;
 	CapsuleComponent->InitCapsuleSize(50.0f, 50.0f);
@@ -20,9 +20,9 @@ ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializ
 	RootComponent = CapsuleComponent;
 	bCollideWhenPlacing = true;
 
-	GoodSprite = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	GoodSprite = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
-	BadSprite = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite2"));
+	BadSprite = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite2"));
 
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())
@@ -113,7 +113,7 @@ void ANavigationObjectBase::PostEditUndo()
 
 class APhysicsVolume* ANavigationObjectBase::GetNavPhysicsVolume()
 {
-	if ( CapsuleComponent.IsValid() )
+	if ( CapsuleComponent )
 	{
 		return CapsuleComponent->GetPhysicsVolume();
 	}	
@@ -164,11 +164,11 @@ void ANavigationObjectBase::FindBase()
 // 			}
 // 		}
 
-		if (GoodSprite.IsValid())
+		if (GoodSprite)
 		{
 			GoodSprite->SetVisibility(true);
 		}
-		if (BadSprite.IsValid())
+		if (BadSprite)
 		{
 			BadSprite->SetVisibility(false);
 		}
@@ -229,3 +229,10 @@ void ANavigationObjectBase::GetMoveGoalReachTest(class AActor* MovingActor, cons
 	GoalOffset = FVector::ZeroVector;
 	GetSimpleCollisionCylinder(GoalRadius, GoalHalfHeight);	
 }
+
+/** Returns CapsuleComponent subobject **/
+UCapsuleComponent* ANavigationObjectBase::GetCapsuleComponent() const { return CapsuleComponent; }
+/** Returns GoodSprite subobject **/
+UBillboardComponent* ANavigationObjectBase::GetGoodSprite() const { return GoodSprite; }
+/** Returns BadSprite subobject **/
+UBillboardComponent* ANavigationObjectBase::GetBadSprite() const { return BadSprite; }

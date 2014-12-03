@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMemory.h"
+#include "Windows/WindowsSystemIncludes.h"
 
 /**
  *	Windows implementation of the FGenericPlatformMemoryStats.
@@ -48,7 +50,7 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 		/** Returns the handle to file mapping object. */
 		HANDLE GetMapping() const { return Mapping; }
 
-		FWindowsSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize, HANDLE InMapping)
+		FWindowsSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize, HANDLE InMapping)
 			:	FSharedMemoryRegion(InName, InAccessMode, InAddress, InSize)
 			,	Mapping(InMapping)
 		{}
@@ -68,7 +70,7 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 	static void UpdateStats();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
+	static FSharedMemoryRegion* MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 	// End FGenericPlatformMemory interface
 };

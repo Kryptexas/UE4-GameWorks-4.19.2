@@ -135,7 +135,15 @@ namespace UnrealBuildTool
             if (!CrossCompiling())
             {
                 // use native linux toolchain
-                ClangPath = Which("clang++");
+                string[] ClangNames = { "clang++", "clang++-3.5", "clang++-3.3" };
+                foreach (var ClangName in ClangNames)
+                {
+					ClangPath = Which(ClangName);
+					if (!String.IsNullOrEmpty(ClangPath))
+					{
+						break;
+					}
+				}
                 GCCPath = Which("g++");
                 ArPath = Which("ar");
                 RanlibPath = Which("ranlib");
@@ -157,16 +165,30 @@ namespace UnrealBuildTool
 
                 BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
 
-                // set up the path to our toolchains (FIXME: support switching per architecture)
+                // set up the path to our toolchains
                 GCCPath = "";
-                ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
-                ArPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ar.exe");
-                RanlibPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ranlib.exe");
-            }
+                ClangPath = Path.Combine(BaseLinuxPath, @"bin\clang++.exe");
+				// ar and ranlib will be switched later to match the architecture
+				ArPath = "ar.exe";
+				RanlibPath = "ranlib.exe";
+			}
 
 			if (!DetermineCompilerVersion())
 			{
-				Console.WriteLine("Could not determine version of the compiler, not registering Linux toolchain");
+				Console.WriteLine("\n*** Could not determine version of the compiler, not registering Linux toolchain.\n");
+				return;
+			}
+
+			// refuse to use compilers that we know won't work
+			// disable that only if you are a dev and you know what you are doing
+			if (!UsingClang())
+			{
+				Console.WriteLine("\n*** This version of the engine can only be compiled by clang - refusing to register the Linux toolchain.\n");
+				return;
+			}
+			else if (CompilerVersionMajor == 3 && CompilerVersionMinor == 4)
+			{
+				Console.WriteLine("\n*** clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.\n");
 				return;
 			}
 
@@ -186,7 +208,61 @@ namespace UnrealBuildTool
 				(CompilerVersionMajor == Major && CompilerVersionMinor == Minor && CompilerVersionPatch >= Patch);
 		}
 
-        static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
+		/** Architecture-specific compiler switches */
+		static string ArchitectureSpecificSwitches(string Architecture)
+		{
+			string Result = "";
+
+			if (Architecture.StartsWith("x86_64"))
+			{
+				Result += " -mmmx -msse -msse2";
+			}
+			else if (Architecture.StartsWith("arm"))
+			{
+				Result += " -fsigned-char";
+
+				// FreeType2's ftconfig.h will trigger this
+				Result += " -Wno-deprecated-register";
+			}
+
+			return Result;
+		}
+
+		static string ArchitectureSpecificDefines(string Architecture)
+		{
+			string Result = "";
+
+			if (Architecture.StartsWith("x86_64"))
+			{
+				Result += " -D_LINUX64";
+			}
+
+			return Result;
+		}
+
+		/** Gets architecture-specific ar paths */
+		private static string GetArPath(string Architecture)
+		{
+			if (CrossCompiling())
+			{
+				return Path.Combine(Path.Combine(BaseLinuxPath, String.Format("bin/{0}-{1}", Architecture, ArPath)));
+			}
+
+			return ArPath;
+		}
+
+		/** Gets architecture-specific ranlib paths */
+		private static string GetRanlibPath(string Architecture)
+		{
+			if (CrossCompiling())
+			{
+				return Path.Combine(Path.Combine(BaseLinuxPath, String.Format("bin/{0}-{1}", Architecture, RanlibPath)));
+			}
+
+			return RanlibPath;
+		}
+
+		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
         {
             string Result = "";
 
@@ -212,8 +288,10 @@ namespace UnrealBuildTool
             Result += " -Wsequence-point";              // additional warning not normally included in Wall: warns if order of operations is ambigious
             //Result += " -Wunreachable-code";            // additional warning not normally included in Wall: warns if there is code that will never be executed - not helpful due to bIsGCC and similar 
             //Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
-            Result += " -mmmx -msse -msse2";            // allows use of SIMD intrinsics
-            Result += " -fno-math-errno";               // do not assume that math ops have side effects
+
+			Result += ArchitectureSpecificSwitches(CompileEnvironment.Config.Target.Architecture);
+
+			Result += " -fno-math-errno";               // do not assume that math ops have side effects
             Result += " -fno-rtti";                     // no run-time type info
 
             // these needs to be removed ASAP
@@ -312,10 +390,8 @@ namespace UnrealBuildTool
 
             //Result += " -v";                            // for better error diagnosis
 
-            // assume we will not perform 32 bit builds on Linux, so define
-            // _LINUX64 in any case
-            Result += " -D_LINUX64";
-            if (CrossCompiling())
+			Result += ArchitectureSpecificDefines(CompileEnvironment.Config.Target.Architecture);
+			if (CrossCompiling())
             {
                 if (UsingClang())
                 {
@@ -655,7 +731,7 @@ namespace UnrealBuildTool
             ArchiveAction.ProducedItems.Add(OutputFile);
             ArchiveAction.CommandDescription = "Archive";
             ArchiveAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
-            ArchiveAction.CommandArguments += string.Format("{0} {1} \"{2}\"",  ArPath, GetArchiveArguments(LinkEnvironment), OutputFile.AbsolutePath);
+            ArchiveAction.CommandArguments += string.Format("{0} {1} \"{2}\"",  GetArPath(LinkEnvironment.Config.Target.Architecture), GetArchiveArguments(LinkEnvironment), OutputFile.AbsolutePath);
 
             // Add the input files to a response file, and pass the response file on the command-line.
             List<string> InputFileNames = new List<string>();
@@ -668,7 +744,7 @@ namespace UnrealBuildTool
             }
 
             // add ranlib
-            ArchiveAction.CommandArguments += string.Format(" && {0} \"{1}\"", RanlibPath, OutputFile.AbsolutePath);
+            ArchiveAction.CommandArguments += string.Format(" && {0} \"{1}\"", GetRanlibPath(LinkEnvironment.Config.Target.Architecture), OutputFile.AbsolutePath);
 
             // Add the additional arguments specified by the environment.
             ArchiveAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
@@ -841,6 +917,10 @@ namespace UnrealBuildTool
                 {
                     // static library passed in, pass it along but make path absolute, because FixDependencies script may be executed in a different directory
                     string AbsoluteAdditionalLibrary = Path.GetFullPath(AdditionalLibrary);
+					if (AbsoluteAdditionalLibrary.Contains(" "))
+					{
+						AbsoluteAdditionalLibrary = string.Format("\"{0}\"", AbsoluteAdditionalLibrary);
+					}
                     LinkAction.CommandArguments += (" " + AbsoluteAdditionalLibrary);
                     LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
                 }

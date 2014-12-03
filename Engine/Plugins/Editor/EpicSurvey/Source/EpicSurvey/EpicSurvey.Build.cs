@@ -26,6 +26,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"HTTP",
+					"Json",
 					"OnlineSubSystem",
 					"SlateCore",
 					"UnrealEd",

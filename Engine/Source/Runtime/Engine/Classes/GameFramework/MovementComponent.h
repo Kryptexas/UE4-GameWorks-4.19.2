@@ -13,6 +13,25 @@ struct FCollisionQueryParams;
 struct FCollisionResponseParams;
 struct FCollisionShape;
 
+/**
+ * Setting that controls behavior when movement is restricted to a 2D plane defined by a specific axis/normal,
+ * so that movement along the locked axis is not be possible.
+ */
+UENUM(BlueprintType)
+enum class EPlaneConstraintAxisSetting : uint8
+{
+	/** Lock movement to a user-defined axis. */
+	Custom,
+	/** Lock movement in the X axis. */
+	X,
+	/** Lock movement in the Y axis. */
+	Y,
+	/** Lock movement in the Z axis. */
+	Z,
+	/** Use the global physics project setting. */
+	UseGlobalPhysicsSetting
+};
+
 
 /**
  * MovementComponent is an abstract component class that defines functionality for moving a PrimitiveComponent (our UpdatedComponent) each tick.
@@ -46,34 +65,55 @@ class ENGINE_API UMovementComponent : public UActorComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
 	FVector Velocity;
 
-protected:
-	/**
-	 * The normal of the plane that constrains movement, if plane constraint is enabled.
-	 * If for example you wanted to constrain movement to the Y-Z plane (so that X cannot change), the normal would be set to X=1 Y=0 Z=0.
-	 * @see SetPlaneConstraintNormal(), SetPlaneConstraintFromVectors()
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
-	FVector PlaneConstraintNormal;
-
-	/**
-	 * The origin of the plane that constrains movement, if plane constraint is enabled. 
-	 * This defines the behavior of snapping a position to the plane, such as by SnapUpdatedComponentToPlane().
-	 * @see SetPlaneConstraintOrigin().
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
-	FVector PlaneConstraintOrigin;
-
-public:
 	/**
 	 * If true, movement will be constrained to a plane.
-	 * @see PlaneConstraintNormal, PlaneConstraintOrigin
+	 * @see PlaneConstraintNormal, PlaneConstraintOrigin, PlaneConstraintAxisSetting
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
 	uint32 bConstrainToPlane:1;
 
 	/** If true and plane constraints are enabled, then the updated component will be snapped to the plane when first attached. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
 	uint32 bSnapToPlaneAtStart:1;
+
+private:
+
+	/**
+	 * Setting that controls behavior when movement is restricted to a 2D plane defined by a specific axis/normal,
+	 * so that movement along the locked axis is not be possible.
+	 * @see SetPlaneConstraintAxisSetting
+	 */
+	UPROPERTY(EditDefaultsOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	EPlaneConstraintAxisSetting PlaneConstraintAxisSetting;
+
+protected:
+
+	/**
+	 * The normal or axis of the plane that constrains movement, if bConstrainToPlane is enabled.
+	 * If for example you wanted to constrain movement to the X-Z plane (so that Y cannot change), the normal would be set to X=0 Y=1 Z=0.
+	 * This is recalculated whenever PlaneConstraintAxisSetting changes.
+	 * @see bConstrainToPlane, SetPlaneConstraintNormal(), SetPlaneConstraintFromVectors()
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	FVector PlaneConstraintNormal;
+
+	/**
+	 * The origin of the plane that constrains movement, if plane constraint is enabled. 
+	 * This defines the behavior of snapping a position to the plane, such as by SnapUpdatedComponentToPlane().
+	 * @see bConstrainToPlane, SetPlaneConstraintOrigin().
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement, meta=(editcondition=bConstrainToPlane))
+	FVector PlaneConstraintOrigin;
+
+	/**
+	 * Helper to compute the plane constraint axis from the current setting.
+	 * 
+	 * @param  AxisSetting Setting to use when computing the axis.
+	 * @return Plane constraint axis/normal.
+	 */
+	FVector GetPlaneConstraintNormalFromAxisSetting(EPlaneConstraintAxisSetting AxisSetting) const;
+
+public:
 
 	/** If true, skips TickComponent() if UpdatedComponent was not recently rendered. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementComponent)
@@ -92,9 +132,20 @@ public:
 
 	// Begin ActorComponent interface 
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
+	virtual void PostLoad() override;
 
 	/** Overridden to auto-register the updated component if it starts NULL, and we can find a root component on our owner. */
 	virtual void InitializeComponent() override;
+
+	/** Overridden to update component properties that should be updated while being edited. */	
+	virtual void OnRegister() override;
+
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	static void PhysicsLockedAxisSettingChanged();
+#endif // WITH_EDITOR
+
 	// End ActorComponent interface
 
 	/** @return gravity that affects this component */
@@ -271,7 +322,24 @@ public:
 	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
 	/**
+	 * Set the plane constraint axis setting.
+	 * Changing this setting will modify the current value of PlaneConstraintNormal.
+	 * 
+	 * @param  NewAxisSetting New plane constraint axis setting.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
+	virtual void SetPlaneConstraintAxisSetting(EPlaneConstraintAxisSetting NewAxisSetting);
+
+	/**
+	 * Get the plane constraint axis setting.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
+	EPlaneConstraintAxisSetting GetPlaneConstraintAxisSetting() const;
+
+	/**
 	 * Sets the normal of the plane that constrains movement, enforced if the plane constraint is enabled.
+	 * Changing the normal automatically sets PlaneConstraintAxisSetting to "Custom".
+	 *
 	 * @param PlaneNormal	The normal of the plane. If non-zero in length, it will be normalized.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
@@ -307,13 +375,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual FVector ConstrainLocationToPlane(FVector Location) const;
 
+	/** Constrain a normal vector (of unit length) to the plane constraint, if enabled. */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
+	virtual FVector ConstrainNormalToPlane(FVector Normal) const;
+
 	/** Snap the updated component to the plane constraint, if enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SnapUpdatedComponentToPlane();
 
 private:
-	/** Transient flag indicating whether we are executing InitializeComponent. */
-	uint32 bInInitializeComponent:1;
+
+	/** Transient flag indicating whether we are executing OnRegister(). */
+	bool bInOnRegister;
+	
+	/** Transient flag indicating whether we are executing InitializeComponent(). */
+	bool bInInitializeComponent;
 };
 
 
@@ -329,4 +405,9 @@ inline void UMovementComponent::StopMovementImmediately()
 {
 	Velocity = FVector::ZeroVector;
 	UpdateComponentVelocity();
+}
+
+inline EPlaneConstraintAxisSetting UMovementComponent::GetPlaneConstraintAxisSetting() const
+{
+	return PlaneConstraintAxisSetting;
 }

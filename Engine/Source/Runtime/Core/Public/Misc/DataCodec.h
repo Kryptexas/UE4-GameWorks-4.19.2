@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DataCodec.h: Data compression codecs.
-=============================================================================*/
+#pragma once
+
 
 /*-----------------------------------------------------------------------------
 	Coder/decoder base class.
 -----------------------------------------------------------------------------*/
-#pragma once
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDataCodex, Log, All);
 
@@ -18,6 +16,7 @@ public:
 	virtual bool Decode( FArchive& In, FArchive& Out )=0;
 	virtual ~FCodec(){}
 };
+
 
 /*-----------------------------------------------------------------------------
 	Burrows-Wheeler inspired data compressor.
@@ -53,7 +52,7 @@ public:
 		TArray<int32> CompressPosition;
 		CompressBufferArray.AddUninitialized(MAX_BUFFER_SIZE);
 		CompressPosition   .AddUninitialized(MAX_BUFFER_SIZE+1);
-		CompressBuffer = CompressBufferArray.GetTypedData();
+		CompressBuffer = CompressBufferArray.GetData();
 		int32 i, First=0, Last=0;
 		while( !In.AtEnd() )
 		{
@@ -89,7 +88,7 @@ public:
 			In << DecompressLength << First << Last;
 			check(DecompressLength<=MAX_BUFFER_SIZE+1);
 			check(DecompressLength<=In.TotalSize()-In.Tell());
-			In.Serialize( DecompressBuffer.GetTypedData(), ++DecompressLength );
+			In.Serialize(DecompressBuffer.GetData(), ++DecompressLength);
 			for( i=0; i<257; i++ )
 				DecompressCount[ i ]=0;
 			for( i=0; i<DecompressLength; i++ )
@@ -295,8 +294,8 @@ public:
 		In << Total;
 		TArray<uint8> InArray;
 		InArray.AddUninitialized( In.TotalSize()-In.Tell() );
-		In.Serialize( InArray.GetTypedData(), InArray.Num() );
-		FBitReader Reader( InArray.GetTypedData(), InArray.Num()*8 );
+		In.Serialize(InArray.GetData(), InArray.Num());
+		FBitReader Reader(InArray.GetData(), InArray.Num() * 8);
 		FHuffman Root(-1);
 		Root.ReadTable( Reader );
 		while( Total-- > 0 )

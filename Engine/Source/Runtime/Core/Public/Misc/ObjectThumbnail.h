@@ -1,14 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ObjectThumbnail.h: Stored thumbnail support for Unreal objects
-=============================================================================*/
-
 #pragma once
-
-#ifndef __ObjectThumbnail_h__
-#define __ObjectThumbnail_h__
-
 
 
 /**
@@ -17,7 +9,6 @@
  */
 class FThumbnailCompressionInterface
 {
-	
 public:
 
 	/**
@@ -27,11 +18,9 @@ public:
 	 * @param	InWidth				Width of the image
 	 * @param	InHeight			Height of the image
 	 * @param	OutCompressedData	[Out] Compressed image data
-	 *
 	 * @return	true if the image was compressed successfully, otherwise false if an error occurred
 	 */
 	virtual bool CompressImage( const TArray< uint8 >& InUncompressedData, const int32 InWidth, const int32 InHeight, TArray< uint8 >& OutCompressedData ) = 0;
-
 
 	/**
 	 * Decompresses an image
@@ -40,130 +29,120 @@ public:
 	 * @param	InWidth				Width of the image
 	 * @param	InHeight			Height of the image
 	 * @param	OutUncompressedData	[Out] Uncompressed image data
-	 *
 	 * @return	true if the image was decompressed successfully, otherwise false if an error occurred
 	 */
 	virtual bool DecompressImage( const TArray< uint8 >& InCompressedData, const int32 InWidth, const int32 InHeight, TArray< uint8 >& OutUncompressedData ) = 0;
-
 };
 
 
-
-
-/** Thumbnail image data for an object */
+/**
+ * Thumbnail image data for an object.
+ */
 class CORE_API FObjectThumbnail
 {
-
 public:
 
 	/**
 	 * Static: Sets the thumbnail compressor to use when loading/saving packages.  The caller is
-	 * responsible for the object's lifespan
+	 * responsible for the object's lifespan.
 	 *
-	 * @param	InThumbnailCompressor	A class derived from FThumbnailCompressionInterface
+	 * @param	InThumbnailCompressor	A class derived from FThumbnailCompressionInterface.
 	 */
 	static void SetThumbnailCompressor( FThumbnailCompressionInterface* InThumbnailCompressor )
 	{
 		ThumbnailCompressor = InThumbnailCompressor;
 	}
 
-
 private:
 
-	/** Static: Thumbnail compressor */
+	/** Static: Thumbnail compressor. */
 	static FThumbnailCompressionInterface* ThumbnailCompressor;
-
 
 public:
 
-	/** Default constructor */
+	/** Default constructor. */
 	FObjectThumbnail();
 
-
-	/** Returns the width of the thumbnail */
+	/** Returns the width of the thumbnail. */
 	int32 GetImageWidth() const
 	{
 		return ImageWidth;
 	}
 
-
-	/** Returns the height of the thumbnail */
+	/** Returns the height of the thumbnail. */
 	int32 GetImageHeight() const
 	{
 		return ImageHeight;
 	}
 
-	/** @return		the number of bytes in this thumbnail's compressed image data */
+	/** @return		the number of bytes in this thumbnail's compressed image data. */
 	int32 GetCompressedDataSize() const
 	{
 		return CompressedImageData.Num();
 	}
 
-
-	/** Sets the image dimensions */
+	/** Sets the image dimensions. */
 	void SetImageSize( int32 InWidth, int32 InHeight )
 	{
 		ImageWidth = InWidth;
 		ImageHeight = InHeight;
 	}
 
-	/** Returns true if the thumbnail was loaded from disk and not dynamically generated */
+	/** Returns true if the thumbnail was loaded from disk and not dynamically generated. */
 	bool IsLoadedFromDisk(void) const { return bLoadedFromDisk; }
 
-	/** Returns true if the thumbnail was saved AFTER custom-thumbnails for shared thumbnail asset types was supported */
+	/** Returns true if the thumbnail was saved AFTER custom-thumbnails for shared thumbnail asset types was supported. */
 	bool IsCreatedAfterCustomThumbsEnabled (void) const { return bCreatedAfterCustomThumbForSharedTypesEnabled; }
-	/** For newly generated custom thumbnails, mark it as valid in the future */
+	
+	/** For newly generated custom thumbnails, mark it as valid in the future. */
 	void SetCreatedAfterCustomThumbsEnabled(void) { bCreatedAfterCustomThumbForSharedTypesEnabled = true; }
 
-
-	/** Returns true if the thumbnail is dirty and needs to be regenerated at some point */
+	/** Returns true if the thumbnail is dirty and needs to be regenerated at some point. */
 	bool IsDirty() const
 	{
 		return bIsDirty;
 	}
-
 	
-	/** Marks the thumbnail as dirty */
+	/** Marks the thumbnail as dirty. */
 	void MarkAsDirty()
 	{
 		bIsDirty = true;
 	}
 	
-	/** Access the image data in place (does not decompress) */
+	/** Access the image data in place (does not decompress). */
 	TArray< uint8 >& AccessImageData()
 	{
 		return ImageData;
 	}
 
-	/** Access the image data in place (does not decompress) const version */
+	/** Access the image data in place (does not decompress) const version. */
 	const TArray< uint8 >& AccessImageData() const
 	{
 		return ImageData;
 	}
 
-	/** Access the compressed image data */
+	/** Access the compressed image data. */
 	TArray< uint8 >& AccessCompressedImageData()
 	{
 		return CompressedImageData;
 	}
 
-	/** Returns true if this is an empty thumbnail */
+	/** Returns true if this is an empty thumbnail. */
 	bool IsEmpty() const
 	{
 		return ImageWidth == 0 || ImageHeight == 0;
 	}
 
-
-	/** Returns uncompressed image data, decompressing it on demand if needed */
+	/** Returns uncompressed image data, decompressing it on demand if needed. */
 	const TArray< uint8 >& GetUncompressedImageData() const;
 
 	/** Serializer */
 	void Serialize( FArchive& Ar );
 	
-	/** Compress image data */
+	/** Compress image data. */
 	void CompressImageData();
 
-	/** Decompress image data */
+	/** Decompress image data. */
 	void DecompressImageData();
 
 	/**
@@ -174,13 +153,14 @@ public:
 	void CountBytes( FArchive& Ar ) const;
 
 	/**
-	 * Calculates the amount of memory used by the compressed bytes array
+	 * Calculates the amount of memory used by the compressed bytes array.
 	 *
 	 * @param	Ar	the FArchiveCountMem (or similar) archive that will store the results of the memory usage calculation.
 	 */
 	void CountImageBytes_Compressed( FArchive& Ar ) const;
+
 	/**
-	 * Calculates the amount of memory used by the uncompressed bytes array
+	 * Calculates the amount of memory used by the uncompressed bytes array.
 	 *
 	 * @param	Ar	the FArchiveCountMem (or similar) archive that will store the results of the memory usage calculation.
 	 */
@@ -199,6 +179,7 @@ public:
 		}
 		return Ar;
 	}
+
 	friend FArchive& operator<<( FArchive& Ar, const FObjectThumbnail& Thumb )
 	{
 		Thumb.CountBytes(Ar);
@@ -213,6 +194,7 @@ public:
 			&&	bIsDirty			== Other.bIsDirty
 			&&	CompressedImageData	== Other.CompressedImageData;
 	}
+
 	bool operator !=( const FObjectThumbnail& Other ) const
 	{
 		return	ImageWidth			!= Other.ImageWidth
@@ -240,9 +222,9 @@ private:
 
 	/** Whether the thumbnail has a backup on disk*/
 	bool bLoadedFromDisk;
+
 	/** Whether this was saved AFTER custom-thumbnails for shared thumbnail asset types was supported */
 	bool bCreatedAfterCustomThumbForSharedTypesEnabled;
-
 };
 
 
@@ -262,22 +244,19 @@ struct CORE_API FObjectFullNameAndThumbnail
 	/** Offset in the file where the data is stored */
 	int32 FileOffset;
 
-
 	/** Constructor */
 	FObjectFullNameAndThumbnail()
 		: ObjectFullName(),
-		  ObjectThumbnail( NULL ),
+		  ObjectThumbnail( nullptr ),
 		  FileOffset( 0 )
-	{
-	}
+	{ }
 
 	/** Constructor */
 	FObjectFullNameAndThumbnail( const FName InFullName, const FObjectThumbnail* InThumbnail )
 		: ObjectFullName( InFullName ),
 		  ObjectThumbnail( InThumbnail ),
 		  FileOffset( 0 )
-	{
-	}
+	{ }
 
 	/**
 	 * Calculates the memory usage of this FObjectFullNameAndThumbnail.
@@ -299,13 +278,10 @@ struct CORE_API FObjectFullNameAndThumbnail
 		}
 		return Ar;
 	}
+
 	friend FArchive& operator<<( FArchive& Ar, const FObjectFullNameAndThumbnail& NameThumbPair )
 	{
 		NameThumbPair.CountBytes(Ar);
 		return Ar;
 	}
 };
-
-
-
-#endif	// __ObjectThumbnail_h__

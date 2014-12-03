@@ -1,30 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-
-/**
- * Enumerates available modifier keys for input gestures.
- */
-namespace EModifierKey
-{
-	typedef uint8 Type;
-
-	/** No key. */
-	const Type None	= 0;
-
-	/** Ctrl key (Command key on Mac, Control key on Windows). */
-	const Type Control = 1 << 0;
-
-	/** Alt key. */
-	const Type Alt = 1 << 1;
-
-	/** Shift key. */
-	const Type Shift = 1 << 2;
-
-	/** Cmd key (Control key on Mac, Win key on Windows) */
-	const Type Command = 1 << 3;
-};
+#include "GenericApplication.h"
 
 
 /**

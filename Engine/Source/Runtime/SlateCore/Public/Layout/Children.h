@@ -237,7 +237,7 @@ public:
 	template <class PREDICATE_CLASS>
 	void Sort( const PREDICATE_CLASS& Predicate )
 	{
-		TIndirectArray< SlotType >::Sort( Predicate );
+		::Sort(TIndirectArray< SlotType >::GetData(), TIndirectArray<SlotType>::Num(), Predicate);
 	}
 
 	void Swap( int32 IndexA, int32 IndexB )
@@ -311,10 +311,6 @@ public:
 	{
 		const int32 NumChildren = this->Num();
 		TArray< TSharedRef< ChildType > > Copy(*this);
-		for (int32 Index=0; Index < NumChildren; ++Index)
-		{
-			Copy.Add( (*this)[Index] );
-		}
 		return Copy;
 	}
 

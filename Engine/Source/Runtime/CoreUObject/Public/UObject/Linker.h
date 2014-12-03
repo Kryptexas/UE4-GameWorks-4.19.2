@@ -957,7 +957,7 @@ class ULinker : public UObject, public FLinkerTables
 	class FSHA1*			ScriptSHA;
 
 	/** Constructor. */
-	ULinker(const class FPostConstructInitializeProperties& PCIP, UPackage* InRoot, const TCHAR* InFilename );
+	ULinker(const FObjectInitializer& ObjectInitializer, UPackage* InRoot, const TCHAR* InFilename );
 	/**
 	 * I/O function
 	 * 
@@ -1137,7 +1137,7 @@ class ULinker : public UObject, public FLinkerTables
 	void GetScriptSHAKey(uint8* OutKey);
 
 	// UObject interface.
-	void BeginDestroy();
+	virtual void BeginDestroy() override;
 
 	/**
 	 * Test and object against the load flag filters
@@ -1260,6 +1260,8 @@ public:
 	static TMap<FName, FName> ObjectNameRedirectsObjectOnly;	
 	/** Old game name to new game name for ImportMap */
 	static TMap<FName, FName> GameNameRedirects;
+	/** Add a new redirect from old game name to new game name for ImportMap */
+	COREUOBJECT_API static void AddGameNameRedirect(const FName OldName, const FName NewName);
 	/** Old struct name to new struct name mapping */
 	static TMap<FName, FName> StructNameRedirects;
 	/** Old plugin name to new plugin name mapping */
@@ -1375,7 +1377,21 @@ private:
 
 	static FName NAME_LoadErrors;
 
+#if WITH_EDITOR
+	/** Feedback scope that is created to house the slow task of an asynchronous linker load. Raw ptr so we don't pull in TUniquePtr for everything. */
+	FScopedSlowTask* LoadProgressScope;
+
+	/** Test whether we should report progress or not */
+	FORCEINLINE bool ShouldReportProgress() const
+	{
+		return !GIsAsyncLoading && ( LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
+	}
+#endif 
+
 public:
+	
+	/** Destructor */
+	~ULinkerLoad();
 
 	/**
 	 * Initialize the static variables
@@ -1625,7 +1641,7 @@ private:
 	void DetachExport( int32 i );
 
 	// UObject interface.
-	void BeginDestroy();
+	virtual void BeginDestroy() override;
 
 	// FArchive interface.
 	/**
@@ -1734,7 +1750,7 @@ private:
 	 * @param	Filename	Name of file on disk to load
 	 * @param	LoadFlags	Load flags determining behavior
 	 */
-	ULinkerLoad( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags );
+	ULinkerLoad( const FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags );
 
 	/**
 	 * Returns whether the time limit allotted has been exceeded, if enabled.
@@ -1868,9 +1884,9 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	COREUOBJECT_API static TMap<FString, TArray<uint8> > PackagesToScriptSHAMap;
 
 	/** Constructor */
-	ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned = false );
+	ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	/** Constructor for memory writer */
-	ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
+	ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	void BeginDestroy();
 
 	/** Returns the appropriate name index for the source name, or 0 if not found in NameIndices */

@@ -11,9 +11,6 @@
 
 DEFINE_LOG_CATEGORY(LogProperty);
 
-UProperty* GSerializedProperty = NULL;
-
-
 // List the core ones here as they have already been included (and can be used without CoreUObject!)
 template<>
 struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
@@ -341,13 +338,13 @@ const TCHAR* UPropertyHelpers::ReadToken( const TCHAR* Buffer, FString& String, 
 //
 // Constructors.
 //
-UProperty::UProperty(const class FPostConstructInitializeProperties& PCIP)
-: UField(PCIP)	
+UProperty::UProperty(const FObjectInitializer& ObjectInitializer)
+: UField(ObjectInitializer)	
 , ArrayDim(1)
 {
 }
-UProperty::UProperty(const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-: UField(PCIP)	
+UProperty::UProperty(const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+: UField(ObjectInitializer)	
 , ArrayDim(1)
 , PropertyFlags(InFlags)
 , Offset_Internal(InOffset)
@@ -476,20 +473,23 @@ FString UProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("PROPERTY");
 }
 
-void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride ) const
+void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags) const
 {
-	const bool bIsParameter     = DeclarationType == EExportedDeclaration::Parameter;
-	const bool bIsInterfaceProp = IsA(UInterfaceProperty::StaticClass());
+	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
+	const bool bIsInterfaceProp = dynamic_cast<const UInterfaceProperty*>(this) != nullptr;
 
 	// export the property type text (e.g. FString; int32; TArray, etc.)
 	FString ExtendedTypeText;
-	FString TypeText = GetCPPType(&ExtendedTypeText, bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+	const uint32 ExportCPPFlags = AdditionalExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+	FString TypeText = GetCPPType(&ExtendedTypeText, ExportCPPFlags);
 
-	if (!Cast<const UBoolProperty>(this)) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
+	if (!dynamic_cast<const UBoolProperty*>(this)) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
 	{
+		const UObjectProperty* ObjectProp = dynamic_cast<const UObjectProperty*>(this);
+
 		// export 'const' for parameters
 		const bool bIsConstParam   = bIsParameter && (HasAnyPropertyFlags(CPF_ConstParm) || (bIsInterfaceProp && !HasAllPropertyFlags(CPF_OutParm)));
-		const bool bIsOnConstClass = IsA(UObjectProperty::StaticClass()) && ((UObjectProperty*)this)->PropertyClass && ((UObjectProperty*)this)->PropertyClass->HasAnyClassFlags(CLASS_Const);
+		const bool bIsOnConstClass = ObjectProp && ObjectProp->PropertyClass && ObjectProp->PropertyClass->HasAnyClassFlags(CLASS_Const);
 		if (bIsConstParam || bIsOnConstClass)
 		{
 			TypeText = FString::Printf(TEXT("const %s"), *TypeText);
@@ -497,12 +497,18 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 
 		if (DeclarationType == EExportedDeclaration::Member)
 		{
-			UClass* MyClass = Cast<UClass>(GetOuter());
+			UClass* MyClass = dynamic_cast<UClass*>(GetOuter());
 			if (MyClass && MyClass->HasAnyClassFlags(CLASS_Const))
 			{
 				ExtendedTypeText += TEXT(" const");
 			}
 		}
+	}
+
+	FString NameCpp = GetNameCPP();
+	if (DeclarationType == EExportedDeclaration::MacroParameter)
+	{
+		NameCpp = FString(TEXT(", ")) + NameCpp;
 	}
 
 	TCHAR ArrayStr[MAX_SPRINTF]=TEXT("");
@@ -518,25 +524,26 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 		}
 	}
 
-	if( IsA(UBoolProperty::StaticClass()) )
+	if(auto BoolProperty = dynamic_cast<const UBoolProperty*>(this) )
 	{
 		// if this is a member variable, export it as a bitfield
 		if( ArrayDim==1 && DeclarationType == EExportedDeclaration::Member )
 		{
+			bool bCanUseBitfield = !BoolProperty->IsNativeBool();
 			// export as a uint32 member....bad to hardcode, but this is a special case that won't be used anywhere else
-			Out.Logf( TEXT("%s%s %s%s:1"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s %s%s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr, bCanUseBitfield ? TEXT(":1") : TEXT(""));
 		}
 
 		//@todo we currently can't have out bools.. so this isn't really necessary, but eventually out bools may be supported, so leave here for now
 		else if( bIsParameter && HasAnyPropertyFlags(CPF_OutParm) )
 		{
 			// export as a reference
-			Out.Logf( TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, TEXT("&"), *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, TEXT("&"), *NameCpp, ArrayStr);
 		}
 
 		else
 		{
-			Out.Logf( TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 		}
 	}
 	else 
@@ -548,7 +555,7 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 				// export as a pointer
 				//Out.Logf( TEXT("%s%s* %s"), *TypeText, *ExtendedTypeText, *GetNameCPP() );
 				// don't export as a pointer
-				Out.Logf( TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+				Out.Logf(TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 			}
 			else
 			{
@@ -559,23 +566,23 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 						!HasAnyPropertyFlags(CPF_OutParm|CPF_ConstParm) ? TEXT("const ") : TEXT(""),
 						*TypeText, *ExtendedTypeText,
 						TEXT("&"),
-						*GetNameCPP());
+						*NameCpp);
 				}
 				else
 				{
 					// export as a pointer if this is an optional out parm, reference if it's just an out parm, standard otherwise...
 					TCHAR ModifierString[2]={0,0};
-					if ( HasAnyPropertyFlags(CPF_OutParm) || bIsInterfaceProp )
+					if (HasAnyPropertyFlags(CPF_OutParm | CPF_ReferenceParm) || bIsInterfaceProp)
 					{
 						ModifierString[0] = TEXT('&');
 					}
-					Out.Logf( TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, ModifierString, *GetNameCPP(), ArrayStr );
+					Out.Logf(TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, ModifierString, *NameCpp, ArrayStr);
 				}
 			}
 		}
 		else
 		{
-			Out.Logf( TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 		}
 	}
 }
@@ -1269,3 +1276,16 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UNumericProperty, UProperty,
 {
 }
 );
+
+UProperty* UStruct::FindPropertyByName(FName Name) const
+{
+	for (UProperty* Property = PropertyLink; Property != NULL; Property = Property->PropertyLinkNext)
+	{
+		if (Property->GetFName() == Name)
+		{
+			return Property;
+		}
+	}
+
+	return NULL;
+}

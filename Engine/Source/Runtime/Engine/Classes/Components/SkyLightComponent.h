@@ -6,10 +6,11 @@
 
 /** 
  * A cubemap texture resource that knows how to upload the capture data from a sky capture. 
- * @todo - support compression
  */
 class FSkyTextureCubeResource : public FTexture, private FDeferredCleanupInterface
 {
+	// @todo - support compression
+
 public:
 
 	FSkyTextureCubeResource() :
@@ -121,6 +122,16 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldAmbientOcclusion, meta=(UIMin = "0", UIMax = "1"))
 	float Contrast;
 
+	/** 
+	 * Controls the darkest that a fully occluded area can get.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldAmbientOcclusion, meta=(UIMin = "0", UIMax = "1"))
+	float MinOcclusion;
+
+	/** Tint color on occluded areas, artistic control. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldAmbientOcclusion)
+	FColor OcclusionTint;
+
 	class FSkyLightSceneProxy* CreateSceneProxy() const;
 
 	// Begin UObject Interface
@@ -136,9 +147,9 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	virtual bool IsReadyForFinishDestroy() override;
 	// End UObject Interface
 
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
+	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 
 	/** Called each tick to recapture and queued sky captures. */
 	static void UpdateSkyCaptureContents(UWorld* WorldToUpdate);
@@ -156,6 +167,12 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	/** Sets the cubemap used when SourceType is set to SpecifiedCubemap, and causes a skylight update on the next tick. */
 	UFUNCTION(BlueprintCallable, Category="SkyLight")
 	void SetCubemap(UTextureCube* NewCubemap);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
+	void SetOcclusionTint(const FColor& InTint);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
+	void SetMinOcclusion(float InMinOcclusion);
 
 	/** Indicates that the capture needs to recapture the scene, adds it to the recapture queue. */
 	void SetCaptureIsDirty();

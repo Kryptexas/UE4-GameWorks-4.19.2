@@ -4,7 +4,7 @@
 
 #include "IMacGraphicsSwitchingModule.h"
 #include "PropertyHandle.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 
 struct FRendererItem

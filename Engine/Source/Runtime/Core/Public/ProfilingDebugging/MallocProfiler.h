@@ -138,7 +138,7 @@ class FMallocProfilerBufferedFileWriter : public FArchive
 public:
 	/** Internal file writer used to serialize to HDD. */
 	FArchive*		FileWriter;
-	/** Buffered data being serialized before GGameName has been set up. */
+	/** Buffered data being serialized before GameName has been set up. */
 	TArray<uint8>	BufferedData;
 	/** Timestamped filename with path.	*/
 	FString		FullFilepath;
@@ -523,7 +523,7 @@ public:
 	bool HandleSnapshotMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleSnapshotMemoryFrameCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 
-	virtual const TCHAR * GetDescriptiveName() override
+	virtual const TCHAR* GetDescriptiveName() override
 	{ 
 		FScopeLock ScopeLock( &CriticalSection );
 		check(UsedMalloc);

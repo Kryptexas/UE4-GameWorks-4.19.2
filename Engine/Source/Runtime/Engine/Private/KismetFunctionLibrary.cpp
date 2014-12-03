@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UBlueprintFunctionLibrary::UBlueprintFunctionLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintFunctionLibrary::UBlueprintFunctionLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -45,6 +45,8 @@
 #include "InstancedFoliage.h"
 
 #include "Editor/ActorPositioning.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -361,7 +363,7 @@ static bool TryAndCreateMaterialInput( UMaterial* UnrealMaterial, EMaterialKind:
 		}
 		else if ( TextureKind == EMaterialKind::Specular )
 		{
-			UnrealMaterial->SpecularColor.Expression = UnrealTextureExpression;
+			UnrealMaterial->Specular.Expression = UnrealTextureExpression;
 		}
 		else if ( TextureKind == EMaterialKind::Emissive )
 		{
@@ -406,7 +408,7 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 	}
 
 	// create an unreal material asset
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew( FPostConstructInitializeProperties() );
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew( FObjectInitializer() );
 
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone | RF_Public, NULL, GWarn );
@@ -417,7 +419,7 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 	// involving multiple textures.  If not, just try and connect what we found to the base map.
 	if ( MaterialKind == EMaterialKind::Unknown )
 	{
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, UnrealTexture, UnrealMaterial->DiffuseColor, HSpace, 0 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, UnrealTexture, UnrealMaterial->BaseColor, HSpace, 0 );
 	}
 	else
 	{
@@ -458,7 +460,7 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 
 		// Connect and layout any textures we find into their respective inputs in the material.
 		const int VSpace = 170;
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, BaseTexture, UnrealMaterial->DiffuseColor, HSpace, VSpace * -1 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, BaseTexture, UnrealMaterial->BaseColor, HSpace, VSpace * -1 );
 		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Specular, SpecularTexture, UnrealMaterial->Specular, HSpace, VSpace * 0 );
 		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Emissive, EmissiveTexture, UnrealMaterial->EmissiveColor, HSpace, VSpace * 1 );
 		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Normal, NormalTexture, UnrealMaterial->Normal, HSpace, VSpace * 2 );
@@ -547,7 +549,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
 				{
 					const FScopedTransaction Transaction( LOCTEXT( "DropSkelMeshOnObject", "Drop Skeletal Mesh On Object" ) );
-					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
 					SkelMeshComponent->Modify();
 					if ( DroppedObjAsSkeletalMesh )
 					{
@@ -581,7 +583,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 					{
 						const FScopedTransaction Transaction(LOCTEXT("DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object"));
 
-						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
 						// if anim blueprint skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
 						bool bShouldChangeMesh = (SkelMeshComponent->SkeletalMesh == NULL ||
 								!NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton));
@@ -634,7 +636,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
 					{
 						const FScopedTransaction Transaction(LOCTEXT("DropAnimationOnObject", "Drop Animation On Object"));
-						USkeletalMeshComponent* SkelComponent = SkelMeshActor->SkeletalMeshComponent;
+						USkeletalMeshComponent* SkelComponent = SkelMeshActor->GetSkeletalMeshComponent();
 						SkelComponent->Modify();
 						// if asset skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
 						bool bShouldChangeMesh = SkelComponent->SkeletalMesh == NULL || 
@@ -642,7 +644,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 
 						if(bShouldChangeMesh)
 						{
-							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetAssetPreviewMesh(DroppedObjAsAnimationAsset));
 						}
 
 						if(DroppedObjAsAnimationAsset)
@@ -3930,7 +3932,7 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 		FSnappingUtils::DrawSnappingHelpers( View, PDI );
 	}
 
-	if(GUnrealEd != NULL)
+	if(GUnrealEd != NULL && !IsInGameView())
 	{
 		GUnrealEd->DrawComponentVisualizers(View, PDI);
 	}
@@ -3966,7 +3968,7 @@ void FLevelEditorViewportClient::UpdateAudioListener( const FSceneView& View )
 			FInteriorSettings InteriorSettings;
 			const FVector& ViewLocation = GetViewLocation();
 
-			class AReverbVolume* ReverbVolume = GetWorld()->GetAudioSettings( ViewLocation, &ReverbSettings, &InteriorSettings );
+			class AAudioVolume* AudioVolume = GetWorld()->GetAudioSettings( ViewLocation, &ReverbSettings, &InteriorSettings );
 
 			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.InverseFast();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
@@ -3976,8 +3978,8 @@ void FLevelEditorViewportClient::UpdateAudioListener( const FSceneView& View )
 			ListenerTransform.SetTranslation(ViewLocation);
 			ListenerTransform.NormalizeRotation();
 
-			AudioDevice->SetListener( 0, ListenerTransform, 0.f, ReverbVolume, InteriorSettings );
-			AudioDevice->SetReverbSettings( ReverbVolume, ReverbSettings );
+			AudioDevice->SetListener( 0, ListenerTransform, 0.f, AudioVolume, InteriorSettings );
+			AudioDevice->SetReverbSettings( AudioVolume, ReverbSettings );
 		}
 	}
 }
@@ -4029,6 +4031,12 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 
 void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas )
 {
+	// HUD for components visualizers
+	if (GUnrealEd != NULL)
+	{
+		GUnrealEd->DrawComponentVisualizersHUD(&InViewport, &View, &Canvas);
+	}
+
 	// Information string
 	Canvas.DrawShadowedString( 4,4, *GLevelEditorModeTools().InfoString, GEngine->GetSmallFont(), FColor(255,255,255) );
 
@@ -4196,11 +4204,6 @@ void FLevelEditorViewportClient::UpdateLinkedOrthoViewports( bool bInvalidate )
 //
 //	FLevelEditorViewportClient::GetScene
 //
-
-FSceneInterface* FLevelEditorViewportClient::GetScene() const
-{
-	return GWorld != NULL ? GWorld->Scene : NULL;
-}
 
 FLinearColor FLevelEditorViewportClient::GetBackgroundColor() const
 {
@@ -4370,7 +4373,12 @@ void FLevelEditorViewportClient::SetAllSpriteCategoryVisibility( bool bVisible )
 
 UWorld* FLevelEditorViewportClient::GetWorld() const
 {
-	if (World)
+	if (bIsSimulateInEditorViewport)
+	{
+		// TODO: Find a proper way to get this
+		return GWorld;
+	}
+	else if (World)
 	{
 		return World;
 	}

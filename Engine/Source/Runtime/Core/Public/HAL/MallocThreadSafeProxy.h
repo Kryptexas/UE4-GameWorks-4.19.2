@@ -122,7 +122,7 @@ public:
 		return UsedMalloc->GetAllocationSize(Original,SizeOut);
 	}
 
-	virtual const TCHAR * GetDescriptiveName() override
+	virtual const TCHAR* GetDescriptiveName() override
 	{ 
 		FScopeLock ScopeLock( &SynchronizationObject );
 		check(UsedMalloc);

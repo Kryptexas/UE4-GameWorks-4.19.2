@@ -8,7 +8,7 @@
 #include "AIPerceptionComponent.generated.h"
 
 class AAIController;
-struct FVisLogEntry;
+struct FVisualLogEntry;
 class UCanvas;
 class UAIPerceptionSystem;
 
@@ -179,7 +179,7 @@ public:
 	FORCEINLINE TActorPerceptionContainer::TIterator GetPerceptualDataIterator() { return TActorPerceptionContainer::TIterator(PerceptualData); }
 	FORCEINLINE TActorPerceptionContainer::TConstIterator GetPerceptualDataConstIterator() const { return TActorPerceptionContainer::TConstIterator(PerceptualData); }
 
-	void GetHostileActors(TArray<const AActor*>& OutActors);
+	void GetHostileActors(TArray<const AActor*>& OutActors) const;
 
 	// @note will stop on first age 0 stimulus
 	const FActorPerceptionInfo* GetFreshestTrace(const FAISenseId Sense) const;
@@ -206,7 +206,7 @@ public:
 	void DrawDebugInfo(UCanvas* Canvas);
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 	
 protected:
@@ -216,6 +216,8 @@ protected:
 
 	/** called to clean up on owner's end play or destruction */
 	virtual void CleanUp();
+
+	void RemoveDeadData();
 	
 private:
 	uint32 PerceptionListenerId;

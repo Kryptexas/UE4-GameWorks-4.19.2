@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-
-#include "Slate.h"
-#include "SlateReflector.h"
+#include "UnrealNetwork.h"
+#include "SlateBasics.h"
+#include "ISlateReflectorModule.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 
 #if WITH_EDITOR
@@ -17,10 +17,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
 #define LOCTEXT_NAMESPACE "CheatManager"	
 
-UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCheatManager::UCheatManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bToggleAILogging(false)
 {
-	DumpAILogsInterval = 3;
 	DebugCameraControllerClass = ADebugCameraController::StaticClass();
 	DebugCapsuleHalfHeight = 23.0f;
 	DebugCapsuleRadius = 21.0f;
@@ -28,6 +28,14 @@ UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCI
 	DebugTraceDrawNormalLength = 30.0f;
 	DebugTraceChannel = ECC_Pawn;
 	bDebugCapsuleTraceComplex = false;
+}
+
+void UCheatManager::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+#if ENABLE_VISUAL_LOG
+	DOREPLIFETIME(UCheatManager, bVisualLoggerActiveOnServer);
+#endif
 }
 
 void UCheatManager::FreezeFrame(float delay)
@@ -84,11 +92,11 @@ void UCheatManager::ChangeSize( float F )
 	if (Character)
 	{
 		ACharacter* DefaultCharacter = Character->GetClass()->GetDefaultObject<ACharacter>();
-		Character->CapsuleComponent->SetCapsuleSize( DefaultCharacter->CapsuleComponent->GetUnscaledCapsuleRadius() * F, DefaultCharacter->CapsuleComponent->GetUnscaledCapsuleHalfHeight() * F );
+		Character->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius() * F, DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() * F);
 
-		if (Character->Mesh.IsValid())
+		if (Character->GetMesh())
 		{
-			Character->Mesh->SetRelativeScale3D( FVector(F) );
+			Character->GetMesh()->SetRelativeScale3D(FVector(F));
 		}
 		Character->TeleportTo(Character->GetActorLocation(), Character->GetActorRotation());
 	}
@@ -555,24 +563,19 @@ void UCheatManager::DisableDebugCamera()
 
 void UCheatManager::InitCheatManager() 
 {
-
+	// Empty
 }
 
 void UCheatManager::BeginDestroy()
 {
 #if ENABLE_VISUAL_LOG
-	if (bToggleAILogging && FVisualLog::Get().IsRecording())
+	if (bToggleAILogging && FVisualLogger::Get().IsRecording())
 	{
-		UWorld *World = GetWorld();
-		if (World)
-		{
-			// clear timer, we'll dump all remaining logs
-			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
-		}
-
 		// stop recording and dump all remaining logs
-		FVisualLog::Get().SetIsRecording(false);
+		FVisualLogger::Get().SetIsRecording(false);
+		FVisualLogger::Get().SetIsRecordingToFile(false);
 		bToggleAILogging = false;
+		bVisualLoggerActiveOnServer = false;
 	}
 #endif
 	Super::BeginDestroy();
@@ -583,47 +586,25 @@ bool UCheatManager::ServerToggleAILogging_Validate()
 	return true;
 }
 
-void UCheatManager::DumpAILogs()
-{
-#if ENABLE_VISUAL_LOG
-	UWorld *World = GetWorld();
-	if (World == NULL)
-	{
-		return;
-	}
-
-	FVisualLog::Get().DumpRecordedLogs();
-	World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
-#endif
-}
-
 void UCheatManager::ServerToggleAILogging_Implementation()
 {
 #if ENABLE_VISUAL_LOG
 	UWorld *World = GetWorld();
-	if (FVisualLog::Get().IsRecording())
+	if (FVisualLogger::Get().IsRecordingToFile())
 	{
-		// clear timer, we'll dump all remaining logs in a moment
-		if (World)
-		{
-			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
-		}
-
 		// stop recording and dump all remaining logs in a moment
-		FVisualLog::Get().SetIsRecording(false, true);
+		FVisualLogger::Get().SetIsRecordingToFile(false);
+		FVisualLogger::Get().SetIsRecording(false);
 		bToggleAILogging = false;
 	}
 	else
 	{
-		if (World)
-		{
-			World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
-		}
-		FVisualLog::Get().SetIsRecording(true, true);
+		FVisualLogger::Get().SetIsRecordingToFile(true);
 		bToggleAILogging = true;
 	}
 
-	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLog::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+	bVisualLoggerActiveOnServer = bToggleAILogging;
+	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLogger::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
 #endif
 }
 
@@ -639,14 +620,19 @@ void UCheatManager::ToggleAILogging()
 	UWorld *World = GetWorld();
 	if (World && World->GetNetMode() == NM_Client)
 	{
-		FVisualLog::Get().SetIsRecordingOnServer(!FVisualLog::Get().IsRecordingOnServer());
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLog::Get().IsRecordingOnServer() ? TEXT("Enabled") : TEXT("Disabled")));
 		PC->ServerToggleAILogging();
 	}
 	else
 	{
 		ServerToggleAILogging();
 	}
+#endif
+}
+
+void UCheatManager::OnRep_VisualLoggerActiveOnServer()
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLogger::Get().SetIsRecordingOnServer(bVisualLoggerActiveOnServer);
 #endif
 }
 
@@ -747,12 +733,12 @@ void UCheatManager::TickCollisionDebug()
 }
 
 void UCheatManager::AddCapsuleSweepDebugInfo(
-	const FVector & LineTraceStart, 
-	const FVector & LineTraceEnd, 
-	const FVector & HitImpactLocation, 
-	const FVector & HitNormal, 
-	const FVector & HitImpactNormal, 
-	const FVector & HitLocation, 
+	const FVector& LineTraceStart, 
+	const FVector& LineTraceEnd, 
+	const FVector& HitImpactLocation, 
+	const FVector& HitNormal, 
+	const FVector& HitImpactNormal, 
+	const FVector& HitLocation, 
 	float CapsuleHalfheight, 
 	float CapsuleRadius, 
 	bool bTracePawn, 
@@ -871,7 +857,7 @@ void UCheatManager::TestCollisionDistance()
 			if (Volume->GetClass()->GetDefaultObject() != Volume)
 			{
 				FVector ClosestPoint(0,0,0);
-				float Distance = Volume->BrushComponent->GetDistanceToCollision(ViewLoc, ClosestPoint);
+				float Distance = Volume->GetBrushComponent()->GetDistanceToCollision(ViewLoc, ClosestPoint);
 				float NormalizedDistance = FMath::Clamp<float>(Distance, 0.f, 1000.f)/1000.f;
 				FColor DrawColor(255*NormalizedDistance, 255*(1-NormalizedDistance), 0);
 				DrawDebugLine(GetWorld(), ViewLoc, ClosestPoint, DrawColor, true);
@@ -904,13 +890,11 @@ void UCheatManager::WidgetReflector()
 
 void UCheatManager::RebuildNavigation()
 {
-#if WITH_NAVIGATION_GENERATOR
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys)
 	{
 		NavSys->Build();
 	}
-#endif // WITH_NAVIGATION_GENERATOR
 }
 
 void UCheatManager::SetNavDrawDistance(float DrawDistance)
@@ -1079,6 +1063,9 @@ void UCheatManager::SetWorldOrigin()
 		ViewLocation = MyPlayerController->GetPawn()->GetActorLocation();
 	}
 	
+	// Consider only XY plane
+	ViewLocation.Z = 0;
+
 	FIntVector NewOrigin = FIntVector(ViewLocation.X, ViewLocation.Y, ViewLocation.Z) + World->OriginLocation;
 	World->RequestNewWorldOrigin(NewOrigin);
 }

@@ -30,8 +30,8 @@ FNavigationLinkBase::FNavigationLinkBase()
 //----------------------------------------------------------------------//
 // UNavLinkDefinition
 //----------------------------------------------------------------------//
-UNavLinkDefinition::UNavLinkDefinition(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavLinkDefinition::UNavLinkDefinition(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bHasDeterminedMetaAreaClass(false)
 	, bHasMetaAreaClass(false)
 	, bHasDeterminedAdjustableLinks(false)
@@ -104,7 +104,7 @@ bool UNavLinkDefinition::HasAdjustableLinks() const
 	}
 
 	bHasDeterminedAdjustableLinks = true;
-	const FNavigationLink* Link = Links.GetTypedData();
+	const FNavigationLink* Link = Links.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < Links.Num(); ++LinkIndex, ++Link)
 	{
 		if (Link->MaxFallDownLength > 0)
@@ -113,7 +113,7 @@ bool UNavLinkDefinition::HasAdjustableLinks() const
 			return true;
 		}
 	}
-	const FNavigationSegmentLink* SegmentLink = SegmentLinks.GetTypedData();
+	const FNavigationSegmentLink* SegmentLink = SegmentLinks.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < SegmentLinks.Num(); ++LinkIndex, ++SegmentLink)
 	{
 		if (SegmentLink->MaxFallDownLength > 0)
@@ -218,13 +218,22 @@ void FAreaNavModifier::Init(const TSubclassOf<class UNavArea> InAreaClass)
 {
 	Cost = 0.0f;
 	FixedCost = 0.0f;
+	ReplaceAreaClass = NULL;
 	SetAreaClass(InAreaClass);
 }
 
 void FAreaNavModifier::SetAreaClass(const TSubclassOf<class UNavArea> InAreaClass)
 {
 	AreaClass = InAreaClass;
-	bHasMetaAreas = InAreaClass->IsChildOf(UNavAreaMeta::StaticClass());
+	bHasMetaAreas = (ReplaceAreaClass && ReplaceAreaClass->IsChildOf(UNavAreaMeta::StaticClass())) ||
+		(AreaClass && AreaClass->IsChildOf(UNavAreaMeta::StaticClass()));
+}
+
+void FAreaNavModifier::SetAreaClassToReplace(const TSubclassOf<class UNavArea> InAreaClass)
+{
+	ReplaceAreaClass = InAreaClass;
+	bHasMetaAreas = (ReplaceAreaClass && ReplaceAreaClass->IsChildOf(UNavAreaMeta::StaticClass())) ||
+		(AreaClass && AreaClass->IsChildOf(UNavAreaMeta::StaticClass()));
 }
 
 bool IsAngleMatching(float Angle)
@@ -290,7 +299,7 @@ void FAreaNavModifier::SetConvex(const TArray<FVector>& InPoints, const int32 Fi
 
 		// check if there's a similar point already in HullVertices array
 		bool bUnique = true;
-		const FVector* RESTRICT Start = HullVertices.GetTypedData();
+		const FVector* RESTRICT Start = HullVertices.GetData();
 		for (const FVector* RESTRICT Data = Start, * RESTRICT DataEnd = Data + HullVertices.Num(); Data != DataEnd; ++Data)
 		{
 			if (FVector::DistSquared(*Data, TransformedPoint) < CONVEX_HULL_POINTS_MIN_DISTANCE_SQ)
@@ -445,6 +454,8 @@ void FCompositeNavModifier::Reset()
 	Areas.Reset();
 	SimpleLinks.Reset();
 	CustomLinks.Reset();
+	bHasPotentialLinks = false;
+	bAdjustHeight = false;
 }
 
 void FCompositeNavModifier::Empty()
@@ -453,6 +464,7 @@ void FCompositeNavModifier::Empty()
 	SimpleLinks.Empty();
 	CustomLinks.Empty();
 	bHasPotentialLinks = false;
+	bAdjustHeight = false;
 }
 
 FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const FNavAgentProperties* NavAgent, TWeakObjectPtr<UObject> WeakOwnerPtr) const
@@ -480,18 +492,19 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 	Result = *this;
 
 	{
-		FAreaNavModifier* Area = Result.Areas.GetTypedData();
+		FAreaNavModifier* Area = Result.Areas.GetData();
 		for (int32 Index = 0; Index < Result.Areas.Num(); ++Index, ++Area)
 		{
 			if (Area->HasMetaAreas())
 			{
 				Area->SetAreaClass(UNavAreaMeta::PickAreaClass(Area->GetAreaClass(), ActorOwner, *NavAgent));
+				Area->SetAreaClassToReplace(UNavAreaMeta::PickAreaClass(Area->GetAreaClassToReplace(), ActorOwner, *NavAgent));
 			}
 		}
 	}
 
 	{
-		FSimpleLinkNavModifier* SimpleLink = Result.SimpleLinks.GetTypedData();
+		FSimpleLinkNavModifier* SimpleLink = Result.SimpleLinks.GetData();
 		for (int32 Index = 0; Index < Result.SimpleLinks.Num(); ++Index, ++SimpleLink)
 		{
 			if (SimpleLink->HasMetaAreas())
@@ -563,7 +576,7 @@ uint32 FCompositeNavModifier::GetAllocatedSize() const
 {
 	uint32 MemUsed = Areas.GetAllocatedSize() + SimpleLinks.GetAllocatedSize() + CustomLinks.GetAllocatedSize();
 
-	const FSimpleLinkNavModifier* SimpleLink = SimpleLinks.GetTypedData();
+	const FSimpleLinkNavModifier* SimpleLink = SimpleLinks.GetData();
 	for (int32 Index = 0; Index < SimpleLinks.Num(); ++Index, ++SimpleLink)
 	{
 		MemUsed += SimpleLink->Links.GetAllocatedSize();
@@ -575,7 +588,7 @@ uint32 FCompositeNavModifier::GetAllocatedSize() const
 //----------------------------------------------------------------------//
 // UNavLinkTrivial
 //----------------------------------------------------------------------//
-UNavLinkTrivial::UNavLinkTrivial(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavLinkTrivial::UNavLinkTrivial(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	FNavigationLink& Link = Links[Links.Add(FNavigationLink(FVector(0,100,0), FVector(0,-100,0)))];
 }

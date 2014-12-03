@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFbxMeshImportData::UFbxMeshImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxMeshImportData::UFbxMeshImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NormalImportMethod = FBXNIM_ComputeNormals;
 }

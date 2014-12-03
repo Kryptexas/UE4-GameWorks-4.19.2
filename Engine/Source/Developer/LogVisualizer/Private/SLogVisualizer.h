@@ -88,7 +88,7 @@ public:
 
 	// overrides
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	// Get delegates
 	const FSlateBrush* GetRecordButtonBrush() const;
@@ -114,6 +114,9 @@ public:
 
 	FOnHistogramWindowChanged& OnHistogramWindowChanged() { return HistogramWindowChangedNotify; }
 
+	TSharedPtr<SWidget> GetListRightClickMenuContent();
+	void GenerateReport();
+
 	void OnListDoubleClick(TSharedPtr<FLogsListItem>);
 	void DoFullUpdate();
 	void DoTickUpdate();
@@ -129,15 +132,15 @@ public:
 
 	void SetCurrentViewedTime(float NewTime, const bool bForce = false);
 
-	void RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry);
+	void RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisualLogEntry> LogEntry);
 
 	void UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& Log, int32 Index);
-	void GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TArray<TSharedPtr<FVisLogEntry> >& OutEntries);
+	void GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TArray<TSharedPtr<FVisualLogEntry> >& OutEntries);
 
-	int32 GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisLogEntry> >& InVisibleEntries);
+	int32 GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisualLogEntry> >& InVisibleEntries);
 
 protected:
-	void ShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry);
+	void ShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisualLogEntry> LogEntry);
 
 	void SelectionChanged(class AActor* DebuggedActor, bool bIsBeingDebuggedNow);
 public:	
@@ -174,7 +177,7 @@ protected:
 
 private:
 	void InvalidateCanvas();
-	void UpdateStatusItems(const FVisLogEntry* LogEntry);
+	void UpdateStatusItems(const FVisualLogEntry* LogEntry);
 	TSharedRef<ITableRow> HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, TArray< TSharedPtr<FLogStatusItem> >& OutItems);
 
@@ -237,7 +240,7 @@ private:
 	/** See if a particular log passes the current filter and other display flags */
 	bool ShouldListLog(const TSharedPtr<FActorsVisLog>& Log);
 
-	void ShowEntry(const FVisLogEntry* LogEntry);
+	void ShowEntry(const FVisualLogEntry* LogEntry);
 
 	int32 FindIndexInLogsList(const int32 LogIndex) const;
 
@@ -303,7 +306,7 @@ private:
 	struct FCachedEntries
 	{
 		TSharedPtr<FActorsVisLog> Log;
-		TArray<TSharedPtr<FVisLogEntry> > CachedEntries;
+		TArray<TSharedPtr<FVisualLogEntry> > CachedEntries;
 	};
 	TArray<FCachedEntries> OutEntriesCached;
 		

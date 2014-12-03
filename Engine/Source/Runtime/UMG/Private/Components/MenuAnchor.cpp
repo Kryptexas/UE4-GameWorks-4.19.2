@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UMenuAnchor
 
-UMenuAnchor::UMenuAnchor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMenuAnchor::UMenuAnchor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Placement = MenuPlacement_ComboBox;
 }
@@ -65,24 +65,42 @@ TSharedRef<SWidget> UMenuAnchor::HandleGetMenuContent()
 			SlateMenuWidget = MenuWidget->TakeWidget();
 		}
 	}
-
-	if ( MenuClass != NULL && !MenuClass->HasAnyClassFlags(CLASS_Abstract) )
+	else
 	{
-		UWidget* MenuWidget = (UWidget*)ConstructObject<UWidget>(MenuClass, GetOuter());
-		if ( MenuWidget )
+		if ( MenuClass != nullptr && !MenuClass->HasAnyClassFlags(CLASS_Abstract) )
 		{
-			SlateMenuWidget = MenuWidget->TakeWidget();
+			UUserWidget* MenuWidget = CreateWidget<UUserWidget>(GetWorld(), MenuClass);
+			if ( MenuWidget )
+			{
+				SlateMenuWidget = MenuWidget->TakeWidget();
+			}
 		}
 	}
 
 	return SlateMenuWidget.IsValid() ? SlateMenuWidget.ToSharedRef() : SNullWidget::NullWidget;
 }
 
-void UMenuAnchor::SetIsOpen(bool InIsOpen, bool bFocusMenu)
+void UMenuAnchor::ToggleOpen(bool bFocusOnOpen)
 {
 	if ( MyMenuAnchor.IsValid() )
 	{
-		MyMenuAnchor->SetIsOpen(InIsOpen, bFocusMenu);
+		MyMenuAnchor->SetIsOpen(!MyMenuAnchor->IsOpen(), bFocusOnOpen);
+	}
+}
+
+void UMenuAnchor::Open(bool bFocusMenu)
+{
+	if ( MyMenuAnchor.IsValid() && !MyMenuAnchor->IsOpen() )
+	{
+		MyMenuAnchor->SetIsOpen(true, bFocusMenu);
+	}
+}
+
+void UMenuAnchor::Close()
+{
+	if ( MyMenuAnchor.IsValid() )
+	{
+		return MyMenuAnchor->SetIsOpen(false, false);
 	}
 }
 
@@ -105,7 +123,7 @@ const FSlateBrush* UMenuAnchor::GetEditorIcon()
 
 const FText UMenuAnchor::GetPaletteCategory()
 {
-	return LOCTEXT("Advanced", "Advanced");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

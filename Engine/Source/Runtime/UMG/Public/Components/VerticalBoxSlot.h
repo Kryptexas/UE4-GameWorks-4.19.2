@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/PanelSlot.h"
 #include "SlateWrapperTypes.h"
 
 #include "VerticalBoxSlot.generated.h"
@@ -15,34 +15,34 @@ class UMG_API UVerticalBoxSlot : public UPanelSlot
 public:
 	
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Vertical Box Slot)")
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Vertical Box Slot)")
 	FSlateChildSize Size;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Vertical Box Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Vertical Box Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 public:
 
 	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
-		void SetPadding(FMargin InPadding);
+	void SetPadding(FMargin InPadding);
 
 	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
-		void SetSize(FSlateChildSize InSize);
+	void SetSize(FSlateChildSize InSize);
 
 	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
-		void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
 
 	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
-		void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
 
 public:
 

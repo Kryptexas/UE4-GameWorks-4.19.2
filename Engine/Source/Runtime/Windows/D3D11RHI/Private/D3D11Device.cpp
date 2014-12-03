@@ -75,18 +75,18 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	// ES2 feature level emulation in D3D11
 	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
 	{
-		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
-		GMaxRHIShaderPlatformValue = SP_PCD3D_ES2;
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
+		GMaxRHIShaderPlatform = SP_PCD3D_ES2;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
-		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
-		GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
+		GMaxRHIShaderPlatform = SP_PCD3D_SM5;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
-		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM4;
-		GMaxRHIShaderPlatformValue = SP_PCD3D_SM4;
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
+		GMaxRHIShaderPlatform = SP_PCD3D_SM4;
 	}
 
 	GPixelCenterOffset = 0.0f;	// Note that in D3D11, there is no half-texel offset (ala DX9)	
@@ -243,7 +243,6 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 		DXGI_ADAPTER_DESC AdapterDesc;
 		VERIFYD3D11RESULT(Adapter->GetDesc(&AdapterDesc));
 	  
-#ifndef PLATFORM_XBOXONE // No need for display mode enumeration on console
 		// Enumerate outputs for this adapter
 		// TODO: Cap at 1 for default output
 		for(uint32 o = 0;o < 1; o++)
@@ -291,7 +290,6 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 
 			delete[] ModeList;
 		}
-#endif // PLATFORM_XBOXONE
 	}
 
 	check(InitializedMode);

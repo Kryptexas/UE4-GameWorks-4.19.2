@@ -9,14 +9,16 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"Networking",
+					"Core",
 				}
 			); 
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-					"Core",
 					"CoreUObject",
+					"Json",
+					"Networking",
+					"Serialization",
 					"Sockets",
 				}
 			);

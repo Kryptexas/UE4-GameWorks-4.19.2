@@ -10,12 +10,21 @@
 #include "AssetRegistryModule.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "SSearchBox.h"
+#include "SBreadcrumbTrail.h"
 
 #define LOCTEXT_NAMESPACE "TutorialsBrowser"
 
 class FTutorialListEntry_Tutorial;
 
 DECLARE_DELEGATE_OneParam(FOnCategorySelected, const FString& /* InCategory */);
+
+namespace TutorialBrowserConstants
+{
+	const float RefreshTimerInterval = 0.25f;
+
+	const float ProgressUpdateInterval = 0.5f;
+}
 
 class FTutorialListEntry_Category : public ITutorialListEntry, public TSharedFromThis<FTutorialListEntry_Category>
 {
@@ -76,67 +85,68 @@ public:
 	{
 		return SNew(STableRow<TSharedPtr<ITutorialListEntry>>, OwnerTable)
 		[
-			SNew(SButton)
-			.OnClicked(this, &FTutorialListEntry_Category::OnClicked)
-			.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
-			.Content()
+			SNew(SBox)
+			.Padding(FMargin(0.0f, 2.0f))
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.Padding(8.0f)
+				SNew(SButton)
+				.OnClicked(this, &FTutorialListEntry_Category::OnClicked)
+				.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
+				.ForegroundColor(FSlateColor::UseForeground())
+				.Content()
 				[
-					SNew(SBox)
-					.WidthOverride(64.0f)
-					.HeightOverride(64.0f)
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
+					.Padding(8.0f)
+					[
+						SNew(SBox)
+						.WidthOverride(64.0f)
+						.HeightOverride(64.0f)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						[
+							SNew(SImage)
+							.Image(SlateBrush)
+						]
+					]
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(!Category.Title.IsEmpty() ? Category.Title : FText::FromString(CategoryName))
+							.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryHeader"))
+							.HighlightText(HighlightText)
+							.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
+							.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
+						]
+						+SVerticalBox::Slot()
+						.FillHeight(1.0f)
+						[
+							SNew(STextBlock)
+							.AutoWrapText(true)
+							.Text(Category.Description)
+							.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryText"))
+							.HighlightText(HighlightText)
+							.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
+							.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
+						]
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
 					[
 						SNew(SImage)
-						.Image(SlateBrush)
+						.Visibility(this, &FTutorialListEntry_Category::OnGetArrowVisibility)
+						.Image(FEditorStyle::Get().GetBrush("Tutorials.Browser.CategoryArrow"))
 					]
-				]
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.MaxWidth(600.0f)
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.Text(!Category.Title.IsEmpty() ? Category.Title : FText::FromString(CategoryName))
-						.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryHeader"))
-						.HighlightText(HighlightText)
-						.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
-						.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
-					]
-					+SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
-					.FillHeight(1.0f)
-					[
-						SNew(STextBlock)
-						.AutoWrapText(true)
-						.Text(Category.Description)
-						.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryText"))
-						.HighlightText(HighlightText)
-						.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
-						.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
-					]
-				]
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-					.Visibility(this, &FTutorialListEntry_Category::OnGetArrowVisibility)
-					.Image(FEditorStyle::Get().GetBrush("Tutorials.Browser.CategoryArrow"))
 				]
 			]
 		];
@@ -230,6 +240,7 @@ public:
 		, OnTutorialSelected(InOnTutorialSelected)
 		, HighlightText(InHighlightText)
 		, SlateBrush(nullptr)
+		, LastUpdateTime(0.0f)
 	{
 		if(Tutorial->Texture != nullptr)
 		{
@@ -253,103 +264,105 @@ public:
 
 	virtual TSharedRef<ITableRow> OnGenerateTutorialRow(const TSharedRef<STableViewBase>& OwnerTable) const override
 	{
-		bHaveCompletedTutorial = GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(Tutorial);
-		bHaveSeenTutorial = false;
-		const int32 CurrentStage = GetDefault<UTutorialStateSettings>()->GetProgress(Tutorial, bHaveSeenTutorial);
-		Progress = (Tutorial->Stages.Num() > 0) ? (float)(CurrentStage + 1) / (float)Tutorial->Stages.Num() : 0.0f;
+		CacheProgress();
 
 		return SNew(STableRow<TSharedPtr<ITutorialListEntry>>, OwnerTable)
 		[
-			SAssignNew(LaunchButton, SButton)
-			.OnClicked(this, &FTutorialListEntry_Tutorial::OnClicked, false)
-			.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
-			.Content()
+			SNew(SBox)
+			.Padding(FMargin(0.0f, 2.0f))
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SAssignNew(LaunchButton, SButton)
+				.OnClicked(this, &FTutorialListEntry_Tutorial::OnClicked, false)
+				.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
+				.ForegroundColor(FSlateColor::UseForeground())
+				.Content()
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.Padding(8.0f)
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.AutoHeight()
 					[
-						SNew(SOverlay)
-						+SOverlay::Slot()
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.Padding(8.0f)
 						[
-							SNew(SBox)
-							.WidthOverride(64.0f)
-							.HeightOverride(64.0f)
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
+							SNew(SOverlay)
+							+SOverlay::Slot()
 							[
-								SNew(SImage)
-								.Image(SlateBrush)
-							]
-						]
-						+SOverlay::Slot()
-						.VAlign(VAlign_Bottom)
-						.HAlign(HAlign_Right)
-						[
-							SNew(SImage)
-							.ToolTipText(LOCTEXT("CompletedCheckToolTip", "This tutorial has been completed"))
-							.Visibility(this, &FTutorialListEntry_Tutorial::GetCompletedVisibility)
-							.Image(FEditorStyle::Get().GetBrush("Tutorials.Browser.Completed"))
-						]
-					]
-					+SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SVerticalBox)
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.FillWidth(1.0f)
-							[
-								SNew(STextBlock)
-								.Text(Tutorial->Title)
-								.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryHeader"))
-								.HighlightText(HighlightText)
-								.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
-								.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
-							]
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							[
-								SNew(SButton)
-								.ToolTipText(LOCTEXT("RestartButtonToolTip", "Start this tutorial from the beginning"))
-								.Visibility(this, &FTutorialListEntry_Tutorial::GetProgressVisibility)
-								.OnClicked(this, &FTutorialListEntry_Tutorial::OnClicked, true)
-								.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
-								.Content()
+								SNew(SBox)
+								.WidthOverride(64.0f)
+								.HeightOverride(64.0f)
+								.VAlign(VAlign_Center)
+								.HAlign(HAlign_Center)
 								[
 									SNew(SImage)
-									.Image(FEditorStyle::GetBrush("Tutorials.Browser.RestartButton"))
+									.Image(SlateBrush)
 								]
 							]
-						]
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						[
-							SNew(SBox)
-							.Visibility(this, &FTutorialListEntry_Tutorial::GetProgressVisibility)
-							.HeightOverride(3.0f)
+							+SOverlay::Slot()
+							.VAlign(VAlign_Bottom)
+							.HAlign(HAlign_Right)
 							[
-								SNew(SProgressBar)
-								.Percent(this, &FTutorialListEntry_Tutorial::GetProgress)
+								SNew(SImage)
+								.ToolTipText(LOCTEXT("CompletedCheckToolTip", "This tutorial has been completed"))
+								.Visibility(this, &FTutorialListEntry_Tutorial::GetCompletedVisibility)
+								.Image(FEditorStyle::Get().GetBrush("Tutorials.Browser.Completed"))
 							]
 						]
-						+SVerticalBox::Slot()
-						.FillHeight(1.0f)
+						+SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Center)
 						[
-							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 500.0f, DocumentationPage, HighlightText)
+							SNew(SVerticalBox)
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								[
+									SNew(STextBlock)
+									.Text(Tutorial->Title)
+									.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryHeader"))
+									.HighlightText(HighlightText)
+									.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
+									.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
+								]
+								+SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								[
+									SNew(SButton)
+									.ToolTipText(LOCTEXT("RestartButtonToolTip", "Start this tutorial from the beginning"))
+									.Visibility(this, &FTutorialListEntry_Tutorial::GetRestartVisibility)
+									.OnClicked(this, &FTutorialListEntry_Tutorial::OnClicked, true)
+									.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
+									.Content()
+									[
+										SNew(SImage)
+										.Image(FEditorStyle::GetBrush("Tutorials.Browser.RestartButton"))
+									]
+								]
+							]
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SBox)
+								.Visibility(this, &FTutorialListEntry_Tutorial::GetProgressVisibility)
+								.HeightOverride(3.0f)
+								[
+									SNew(SProgressBar)
+									.Percent(this, &FTutorialListEntry_Tutorial::GetProgress)
+								]
+							]
+							+SVerticalBox::Slot()
+							.FillHeight(1.0f)
+							[
+								STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, DocumentationPage, HighlightText)
+							]
 						]
 					]
 				]
@@ -389,6 +402,7 @@ public:
 
 	TOptional<float> GetProgress() const
 	{
+		CacheProgress();
 		return Progress;
 	}
 
@@ -396,15 +410,41 @@ public:
 	{
 		if(LaunchButton->IsHovered())
 		{
+			CacheProgress();
 			return LaunchButton->IsHovered() && bHaveSeenTutorial ? EVisibility::Visible : EVisibility::Hidden;
 		}
 
 		return EVisibility::Hidden;
 	}
 
+	EVisibility GetRestartVisibility() const
+	{
+		if(LaunchButton->IsHovered())
+		{
+			CacheProgress();
+			return LaunchButton->IsHovered() && bHaveSeenTutorial ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+
+		return EVisibility::Collapsed;
+	}
+
 	EVisibility GetCompletedVisibility() const
 	{
+		CacheProgress();
 		return bHaveCompletedTutorial ? EVisibility::Visible : EVisibility::Hidden;
+	}
+
+	void CacheProgress() const
+	{
+		if(FPlatformTime::Seconds() - LastUpdateTime > TutorialBrowserConstants::ProgressUpdateInterval)
+		{
+			bHaveCompletedTutorial = GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(Tutorial);
+			bHaveSeenTutorial = false;
+			const int32 CurrentStage = GetDefault<UTutorialStateSettings>()->GetProgress(Tutorial, bHaveSeenTutorial);
+			Progress = (Tutorial->Stages.Num() > 0) ? (float)(CurrentStage + 1) / (float)Tutorial->Stages.Num() : 0.0f;
+
+			LastUpdateTime = FPlatformTime::Seconds();
+		}
 	}
 
 public:
@@ -440,104 +480,93 @@ public:
 
 	/** Cached tutorial progress */
 	mutable float Progress;
+
+	/** Last update time */
+	mutable float LastUpdateTime;
 };
 
 void STutorialsBrowser::Construct(const FArguments& InArgs)
 {
+	bNeedsRefresh = false;
+	RefreshTimer = TutorialBrowserConstants::RefreshTimerInterval;
+
 	OnClosed = InArgs._OnClosed;
 	OnLaunchTutorial = InArgs._OnLaunchTutorial;
 	ParentWindow = InArgs._ParentWindow;
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetAdded().AddSP(this, &STutorialsBrowser::HandleAssetAdded);
 
 	ChildSlot
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
+		.AutoHeight()
 		[
 			SNew(SBorder)
-			.Padding(18.0f)
-			.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
+			.BorderImage(FEditorStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+			.Padding(5.0f)
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
-					// Title area
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
+					SNew(SButton)
+					.OnClicked(this, &STutorialsBrowser::OnBackButtonClicked)
+					.IsEnabled(this, &STutorialsBrowser::IsBackButtonEnabled)
+					.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.BackButton"))
+					.ForegroundColor(FSlateColor::UseForeground())
+					.Content()
 					[
-						SNew(SButton)
-						.OnClicked(this, &STutorialsBrowser::OnBackButtonClicked)
-						.IsEnabled(this, &STutorialsBrowser::IsBackButtonEnabled)
-						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.Button"))
-						.Content()
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("Tutorials.Browser.BackButton"))
-							.ColorAndOpacity(this, &STutorialsBrowser::GetBackButtonColor)
-						]
-					]
-					+SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(10.0f)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("TutorialsTitle", "Unreal Editor Tutorials"))
-						.TextStyle( &FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>( "Tutorials.Browser.WelcomeHeader"))
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Top)
-					[
-						SNew(SButton)
-						.OnClicked(this, &STutorialsBrowser::OnCloseButtonClicked)
-						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
-						.ContentPadding(0.0f)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("Symbols.X"))
-							.ColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f))
-						]
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("Tutorials.Browser.BackButton.Image"))
 					]
 				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[
-					SNew(SSearchBox)
-					.OnTextChanged(this, &STutorialsBrowser::OnSearchTextChanged)
-				]
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					SNew(SBox)
-					.HeightOverride(600.0f)
-					.WidthOverride(600.0f)
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 1.0f)
 					[
-						SNew(SScrollBox)
-						+SScrollBox::Slot()
-						[
-							SAssignNew(TutorialList, SListView<TSharedPtr<ITutorialListEntry>>)
-							.ItemHeight(128.0f)
-							.ListItemsSource(&FilteredEntries)
-							.OnGenerateRow(this, &STutorialsBrowser::OnGenerateTutorialRow)
-							.SelectionMode(ESelectionMode::None)
-						]
+						SAssignNew(BreadcrumbTrail, SBreadcrumbTrail<TSharedPtr<ITutorialListEntry>>)
+						.ButtonContentPadding(FMargin(1.0f, 1.0f))
+						.DelimiterImage(FEditorStyle::GetBrush("Tutorials.Browser.Breadcrumb"))
+						.TextStyle(FEditorStyle::Get(), "Tutorials.Browser.PathText")
+						.ShowLeadingDelimiter( true )
+						.InvertTextColorOnHover( false )
+						.OnCrumbClicked(this, &STutorialsBrowser::OnBreadcrumbClicked)
+					]
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 1.0f)
+					[
+						SNew(SSearchBox)
+						.OnTextChanged(this, &STutorialsBrowser::OnSearchTextChanged)
 					]
 				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(2.0f)
+			]
+		]
+		+SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SNew(SScrollBox)
+				+SScrollBox::Slot()
 				[
-					SAssignNew(BreadcrumbTrail, SBreadcrumbTrail<TSharedPtr<ITutorialListEntry>>)
-					.ButtonContentPadding(FMargin(1.0f, 1.0f))
-					.DelimiterImage(FEditorStyle::GetBrush("Tutorials.Browser.Breadcrumb"))
-					.TextStyle(FEditorStyle::Get(), "Tutorials.Browser.PathText")
-					.ShowLeadingDelimiter( true )
-					.InvertTextColorOnHover( false )
-					.OnCrumbClicked(this, &STutorialsBrowser::OnBreadcrumbClicked)
+					SAssignNew(TutorialList, SListView<TSharedPtr<ITutorialListEntry>>)
+					.ItemHeight(128.0f)
+					.ListItemsSource(&FilteredEntries)
+					.OnGenerateRow(this, &STutorialsBrowser::OnGenerateTutorialRow)
+					.SelectionMode(ESelectionMode::None)
 				]
 			]
 		]
@@ -546,6 +575,18 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 	ReloadTutorials();
 
 	RebuildCrumbs();
+}
+
+void STutorialsBrowser::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	RefreshTimer -= InDeltaTime;
+
+	if(bNeedsRefresh && RefreshTimer <= 0.0f)
+	{
+		ReloadTutorials();
+		bNeedsRefresh = false;
+		RefreshTimer = TutorialBrowserConstants::RefreshTimerInterval;
+	}
 }
 
 void STutorialsBrowser::SetFilter(const FString& InFilter)
@@ -769,11 +810,6 @@ bool STutorialsBrowser::IsBackButtonEnabled() const
 	return false;
 }
 
-FSlateColor STutorialsBrowser::GetBackButtonColor() const
-{
-	return IsBackButtonEnabled() ? FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) : FLinearColor(1.0f, 1.0f, 1.0f, 0.25f);
-}
-
 void STutorialsBrowser::OnTutorialSelected(UEditorTutorial* InTutorial, bool bRestart)
 {
 	if( FEngineAnalytics::IsAvailable() && InTutorial != nullptr )
@@ -960,6 +996,22 @@ void STutorialsBrowser::RebuildCrumbs()
 		else
 		{
 			BreadcrumbTrail->PushCrumb(Entry->GetTitleText(), Entry);
+		}
+	}
+}
+
+void STutorialsBrowser::HandleAssetAdded(const FAssetData& InAssetData)
+{
+	if(InAssetData.AssetClass == UBlueprint::StaticClass()->GetFName())
+	{
+		const FString* ParentClassPath = InAssetData.TagsAndValues.Find(TEXT("ParentClass"));
+		if(ParentClassPath != nullptr)
+		{
+			UClass* ParentClass = FindObject<UClass>(NULL, **ParentClassPath);
+			if(ParentClass == UEditorTutorial::StaticClass())
+			{
+				bNeedsRefresh = true;
+			}
 		}
 	}
 }

@@ -67,6 +67,7 @@ public:
 	FDateTime GetTimeStamp( const TCHAR* Filename ) override;
 	FDateTime GetAccessTimeStamp( const TCHAR* Filename ) override;
 	bool SetTimeStamp( const TCHAR* Filename, FDateTime Timestamp ) override;
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override;
 
 	virtual uint32	Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress );
 	virtual bool	MakeDirectory( const TCHAR* Path, bool Tree=0 );

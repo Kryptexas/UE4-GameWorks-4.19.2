@@ -19,19 +19,16 @@ static const FColor AnimSkelDrawColor(255, 64, 64);
 // Temporary workspace for caching world-space matrices.
 struct FAssetWorldBoneTM
 {
-	FTransform	TM; // Should never contain scaling.
-	int32			UpdateNum; // If this equals PhysAssetUpdateNum, then the matrix is up to date.
+	FTransform	TM;			// Should never contain scaling.
+	bool bUpToDate;			// If this equals PhysAssetUpdateNum, then the matrix is up to date.
 };
 
-// @todo anim: this has to change to make multi-threading working. 
-static int32 PhysAssetUpdateNum = 0;
-static TArray<FAssetWorldBoneTM> WorldBoneTMs;
 
 // Use current pose to calculate world-space position of this bone without physics now.
-static void UpdateWorldBoneTM(int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FVector & Scale3D)
+void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
 {
 	// If its already up to date - do nothing
-	if(	WorldBoneTMs[BoneIndex].UpdateNum == PhysAssetUpdateNum )
+	if(	WorldBoneTMs[BoneIndex].bUpToDate )
 	{
 		return;
 	}
@@ -40,15 +37,13 @@ static void UpdateWorldBoneTM(int32 BoneIndex, USkeletalMeshComponent* SkelComp,
 	if(BoneIndex == 0)
 	{
 		// If this is the root bone, we use the mesh component LocalToWorld as the parent transform.
-		FTransform LocalToWorldTM = SkelComp->ComponentToWorld;
-		LocalToWorldTM.RemoveScaling();
 		ParentTM = LocalToWorldTM;
 	}
 	else
 	{
 		// If not root, use our cached world-space bone transforms.
 		int32 ParentIndex = SkelComp->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-		UpdateWorldBoneTM(ParentIndex, SkelComp, Scale3D);
+		UpdateWorldBoneTM(WorldBoneTMs, ParentIndex, SkelComp, LocalToWorldTM, Scale3D);
 		ParentTM = WorldBoneTMs[ParentIndex].TM;
 	}
 
@@ -56,7 +51,7 @@ static void UpdateWorldBoneTM(int32 BoneIndex, USkeletalMeshComponent* SkelComp,
 	RelTM.ScaleTranslation( Scale3D );
 
 	WorldBoneTMs[BoneIndex].TM = RelTM * ParentTM;
-	WorldBoneTMs[BoneIndex].UpdateNum = PhysAssetUpdateNum;
+	WorldBoneTMs[BoneIndex].bUpToDate = true;
 }
 
 
@@ -64,16 +59,15 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 {
 	// Get drawscale from Owner (if there is one)
 	FVector TotalScale3D = ComponentToWorld.GetScale3D();
-
 	FVector RecipScale3D = TotalScale3D.Reciprocal();
 
 	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
 	check( PhysicsAsset );
 
 	// Make sure scratch space is big enough.
+	TArray<FAssetWorldBoneTM> WorldBoneTMs;
 	WorldBoneTMs.Reset();
-	WorldBoneTMs.AddUninitialized(SpaceBases.Num());
-	PhysAssetUpdateNum++;
+	WorldBoneTMs.AddZeroed(SpaceBases.Num());
 
 	FTransform LocalToWorldTM = ComponentToWorld;
 	LocalToWorldTM.RemoveScaling();
@@ -115,7 +109,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 
 				// Store this world-space transform in cache.
 				WorldBoneTMs[BoneIndex].TM = PhysTM;
-				WorldBoneTMs[BoneIndex].UpdateNum = PhysAssetUpdateNum;
+				WorldBoneTMs[BoneIndex].bUpToDate = true;
 
 				float UsePhysWeight = (bBlendPhysics)? 1.f : BodyInstance->PhysicsBlendWeight;
 
@@ -133,7 +127,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 					{
 						// If not root, get parent TM from cache (making sure its up-to-date).
 						int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-						UpdateWorldBoneTM(ParentIndex, this, TotalScale3D);
+						UpdateWorldBoneTM(WorldBoneTMs, ParentIndex, this, LocalToWorldTM, TotalScale3D);
 						ParentWorldTM = WorldBoneTMs[ParentIndex].TM;
 					}
 
@@ -153,19 +147,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 						bUpdatePhysics = true;
 					}
 				}
-				else
-				{
-					WorldBoneTMs[BoneIndex].UpdateNum = 0;
-				}
 			}
-			else
-			{
-				WorldBoneTMs[BoneIndex].UpdateNum = 0;
-			}
-		}
-		else
-		{
-			WorldBoneTMs[BoneIndex].UpdateNum = 0;
 		}
 
 		// Update SpaceBases entry for this bone now
@@ -282,7 +264,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 	}
 
 	// warn if it has non-uniform scale
-	const FVector & MeshScale3D = CurrentLocalToWorld.GetScale3D();
+	const FVector& MeshScale3D = CurrentLocalToWorld.GetScale3D();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if( !MeshScale3D.IsUniform() )
 	{
@@ -292,7 +274,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 
 	if (bEnablePerPolyCollision == false)
 	{
-		const UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+		const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 		if (PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

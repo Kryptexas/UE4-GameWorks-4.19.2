@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of FSessionConsoleCategoryFilter. */
-typedef TSharedPtr<class FSessionConsoleCategoryFilter> FSessionConsoleCategoryFilterPtr;
-
-/** Type definition for shared references to instances of FSessionConsoleCategoryFilter. */
-typedef TSharedRef<class FSessionConsoleCategoryFilter> FSessionConsoleCategoryFilterRef;
-
-
 /**
  * Delegate type for category filter state changes.
  *
@@ -59,7 +52,7 @@ public:
 	 *
 	 * @return The category name.
 	 */
-	FName GetCategory( )
+	FName GetCategory()
 	{
 		return Category;
 	}
@@ -69,7 +62,7 @@ public:
 	 *
 	 * @return Checked if the filter is enabled, Unchecked otherwise.
 	 */
-	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled( ) const
+	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled() const
 	{
 		return (Enabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
 	}
@@ -77,23 +70,30 @@ public:
 	/**
 	 * Checks whether this filter is enabled.
 	 *
-	 * @param true if the filter is enabled, false otherwise.
+	 * @return true if the filter is enabled, false otherwise.
 	 */
-	bool IsEnabled( ) const
+	bool IsEnabled() const
 	{
 		return Enabled;
 	}
 
 private:
 
-	// Holds the filter's category.
+	/** Holds the filter's category. */
 	FName Category;
 
-	// Holds a flag indicating whether this filter is enabled.
+	/** Holds a flag indicating whether this filter is enabled. */
 	bool Enabled;
 
 private:
 
-	// Holds a delegate that is executed when the filter's enabled state changed.
+	/** Holds a delegate that is executed when the filter's enabled state changed. */
 	FOnSessionConsoleCategoryFilterStateChanged OnStateChanged;
 };
+
+
+/** Type definition for shared pointers to instances of FSessionConsoleCategoryFilter. */
+typedef TSharedPtr<FSessionConsoleCategoryFilter> FSessionConsoleCategoryFilterPtr;
+
+/** Type definition for shared references to instances of FSessionConsoleCategoryFilter. */
+typedef TSharedRef<FSessionConsoleCategoryFilter> FSessionConsoleCategoryFilterRef;

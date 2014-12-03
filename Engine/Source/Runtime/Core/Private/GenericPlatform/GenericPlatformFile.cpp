@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ModuleManager.h"
 
 
@@ -139,11 +139,11 @@ bool IPlatformFile::CopyDirectoryTree(const TCHAR* DestinationDirectory, const T
 	struct FCopyFilesAndDirs : public FDirectoryVisitor
 	{
 		IPlatformFile & PlatformFile;
-		const TCHAR * SourceRoot;
-		const TCHAR * DestRoot;
+		const TCHAR* SourceRoot;
+		const TCHAR* DestRoot;
 		bool bOverwrite;
 
-		FCopyFilesAndDirs(IPlatformFile& InPlatformFile, const TCHAR * InSourceRoot, const TCHAR * InDestRoot, bool bInOverwrite)
+		FCopyFilesAndDirs(IPlatformFile& InPlatformFile, const TCHAR* InSourceRoot, const TCHAR* InDestRoot, bool bInOverwrite)
 			: PlatformFile(InPlatformFile)
 			, SourceRoot(InSourceRoot)
 			, DestRoot(InDestRoot)

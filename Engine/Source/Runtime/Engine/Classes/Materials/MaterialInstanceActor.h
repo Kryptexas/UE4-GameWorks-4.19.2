@@ -18,9 +18,13 @@ class AMaterialInstanceActor : public AActor
 	TArray<class AActor*> TargetActors;
 
 #if WITH_EDITORONLY_DATA
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	// Reference to actor sprite
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
 #endif
+
+public:
 
 	// Begin UObject Interface
 	virtual void PostLoad() override;
@@ -28,6 +32,11 @@ class AMaterialInstanceActor : public AActor
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
+
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
+#endif
 };
 
 

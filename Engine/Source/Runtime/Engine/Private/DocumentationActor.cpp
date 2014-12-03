@@ -7,15 +7,15 @@
 #include "IDocumentation.h"
 #endif
 
-ADocumentationActor::ADocumentationActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADocumentationActor::ADocumentationActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;	
 
 #if WITH_EDITORONLY_DATA
 	// Create a Material billboard to represent our actor
-	Billboard = PCIP.CreateDefaultSubobject<UMaterialBillboardComponent>(this, TEXT("BillboardComponent"));
+	Billboard = ObjectInitializer.CreateDefaultSubobject<UMaterialBillboardComponent>(this, TEXT("BillboardComponent"));
 	if (!IsRunningCommandlet() && (Billboard != NULL))
 	{
 		static ConstructorHelpers::FObjectFinder<UMaterial> MaterialAsset(TEXT("/Engine/EditorMaterials/HelpActorMaterial"));
@@ -72,7 +72,7 @@ void ADocumentationActor::PostEditChangeProperty(FPropertyChangedEvent& Property
 void ADocumentationActor::UpdateLinkType()
 {
 #if WITH_EDITORONLY_DATA
-	DocumentLink = DocumentLink.Replace(TEXT("\\"), TEXT("/"));
+	DocumentLink = DocumentLink.Replace(TEXT("\\"), TEXT("/"));	
 	if (DocumentLink.IsEmpty() == true)
 	{
 		LinkType = EDocumentationActorType::None;
@@ -91,3 +91,7 @@ void ADocumentationActor::UpdateLinkType()
 	
 }
 
+#if WITH_EDITORONLY_DATA
+/** Returns Billboard subobject **/
+UMaterialBillboardComponent* ADocumentationActor::GetBillboard() const { return Billboard; }
+#endif

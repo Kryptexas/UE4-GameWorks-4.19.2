@@ -30,6 +30,8 @@
 #include "LevelUtils.h"
 #include "ConsolidateWindow.h"
 #include "ComponentReregisterContext.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -1788,12 +1790,6 @@ namespace ObjectTools
 							ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
 						}
 
-						// Clear BP ref so we're not warned about the skeleton class being transient during replacement
-						if (BlueprintObject->SkeletonGeneratedClass)
-						{
-							BlueprintObject->SkeletonGeneratedClass->ClassGeneratedBy = NULL;
-						}
-
 						// Reparent any direct children to the parent class of the blueprint that's about to be deleted
 						if(BlueprintObject->ParentClass != nullptr)
 						{
@@ -1817,6 +1813,8 @@ namespace ObjectTools
 								}
 							}
 						}
+
+						BlueprintObject->RemoveGeneratedClasses();
 					}
 				}
 
@@ -3487,7 +3485,7 @@ namespace ThumbnailTools
 
 					// Copy the contents of the remote texture to system memory
 					// NOTE: OutRawImageData must be a preallocated buffer!
-					RenderTargetResource->ReadPixelsPtr((FColor*)OutData.GetTypedData(), FReadSurfaceDataFlags(), InSrcRect);
+					RenderTargetResource->ReadPixelsPtr((FColor*)OutData.GetData(), FReadSurfaceDataFlags(), InSrcRect);
 				}
 			}
 		}
@@ -3513,11 +3511,11 @@ namespace ThumbnailTools
 			// When generating a material thumbnail to save in a package, make sure we finish compilation on the material first
 			if ( UMaterial* InMaterial = Cast<UMaterial>(InObject) )
 			{
-				const bool bAllowNewSlowTask = true;
-				FScopedSlowTask SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
+				FScopedSlowTask SlowTask(0, NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ) );
+				SlowTask.MakeDialog();
 
 				// Block until the shader maps that we will save have finished being compiled
-				InMaterial->GetMaterialResource(GRHIFeatureLevel)->FinishCompilation();
+				InMaterial->GetMaterialResource(GMaxRHIFeatureLevel)->FinishCompilation();
 			}
 
 			// Generate the thumbnail

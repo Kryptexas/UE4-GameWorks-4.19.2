@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPSE_DeleteTool
 
-UPSE_DeleteTool::UPSE_DeleteTool(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPSE_DeleteTool::UPSE_DeleteTool(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

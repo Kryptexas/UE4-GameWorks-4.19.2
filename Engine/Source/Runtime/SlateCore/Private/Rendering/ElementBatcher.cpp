@@ -72,7 +72,6 @@ void FSlateElementBatcher::AddElements( const TArray<FSlateDrawElement>& DrawEle
 		
 		if ( !bIsFullyClipped )
 		{
-			// !!! WRH 2014/09/17 - Profile and see how much this costs.
 			// do this check in here do we can short circuit above more quickly, but still name this variable so its meaning is clear.
 			const bool bIsScissored = DrawElement.GetScissorRect().IsSet() && !DrawElement.GetScissorRect().GetValue().DoesIntersect(FShortRect(InClippingRect));
 			// scissor rects are sort of a low level hack, so no one konws to clip against them. Instead we do it here to make sure the element is not actually rendered.
@@ -526,7 +525,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 	float LineX = 0;
 
-	TCHAR PreviousChar = 0;
+	const FCharacterEntry* PreviousCharEntry = nullptr;
 
 	int32 Kerning = 0;
 
@@ -541,7 +540,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 	for( int32 CharIndex = 0; CharIndex < Text.Len(); ++CharIndex )
 	{
-		TCHAR CurrentChar = Text[ CharIndex ];
+		const TCHAR CurrentChar = Text[ CharIndex ];
 
 		const bool IsNewline = (CurrentChar == '\n');
 
@@ -561,7 +560,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 				// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
 				FontTextureIndex = Entry.TextureIndex;
 
-				FontTexture = FontCache.GetTextureResource( FontTextureIndex );
+				FontTexture = FontCache.GetSlateTextureResource( FontTextureIndex );
 				ElementBatch = &FindBatchForElement( Layer, FShaderParams(), FontTexture, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
 
 				BatchVertices = &BatchVertexArrays[ElementBatch->VertexArrayIndex];
@@ -578,7 +577,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 			if( !bIsWhitespace && CharIndex > 0 )
 			{
-				Kerning = CharacterList.GetKerning( PreviousChar, CurrentChar );
+				Kerning = CharacterList.GetKerning( *PreviousCharEntry, Entry );
 			}
 			else
 			{
@@ -586,7 +585,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 			}
 
 			LineX += Kerning;
-			PreviousChar = CurrentChar;
+			PreviousCharEntry = &Entry;
 
 			if( !bIsWhitespace )
 			{

@@ -1,15 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	QueueTest.cpp: Unit test for the TQueue template class.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FQueueTest, "Core.Misc.Queue", EAutomationTestFlags::ATF_SmokeTest)
-
 
 bool FQueueTest::RunTest( const FString& Parameters )
 {

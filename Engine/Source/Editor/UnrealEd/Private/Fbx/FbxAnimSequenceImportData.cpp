@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFbxAnimSequenceImportData::UFbxAnimSequenceImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxAnimSequenceImportData::UFbxAnimSequenceImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bImportCustomAttribute(true)
 {
 	

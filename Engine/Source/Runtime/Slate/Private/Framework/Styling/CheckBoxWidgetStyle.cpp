@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UCheckBoxWidgetStyle::UCheckBoxWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UCheckBoxWidgetStyle::UCheckBoxWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

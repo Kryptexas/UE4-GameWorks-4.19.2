@@ -86,9 +86,17 @@ namespace APIDocTool
 			return VisitedSet;
 		}
 
-		public virtual SitemapNode CreateSitemapNode()
+		public virtual bool ShouldOutputPage()
 		{
-			return new SitemapNode(Name, SitemapLinkPath);
+			return true;
+		}
+
+		public virtual IEnumerable<SitemapNode> CreateSitemapNodes()
+		{
+			if(ShouldOutputPage())
+			{
+				yield return new SitemapNode(Name, SitemapLinkPath);
+			}
 		}
 
 		public abstract void WritePage(UdnManifest Manifest, string OutputPath);

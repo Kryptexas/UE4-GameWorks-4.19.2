@@ -100,8 +100,8 @@ DumpBlueprintsInfo commandlet params: \n\
                         '{1}' and '{2}' as placeholders for filenames, like so:\n\
                         -diffcmd=\"AraxisP4Diff.exe {2} {1}\".                 \n\
 \n\
-    -experimental       Uses an new way of constructing Blueprint action menus \n\
-                        (that will replace the current system).                \n\
+    -legacy             Uses the old way of constructing Blueprint action      \n\
+                        menus.                                                 \n\
 \n\
     -name=<Filename>    Overrides the default filename. Leave off the extention\n\
                         (this will add .json to the end). When -multifile is   \n\
@@ -419,13 +419,13 @@ DumpBlueprintsInfo commandlet params: \n\
 //------------------------------------------------------------------------------
 DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> const& Switches)
 	: BlueprintClass(nullptr)
-	, DumpFlags(BPDUMP_UnfilteredPalette | BPDUMP_UseLegacyMenuBuilder)
+	, DumpFlags(BPDUMP_UnfilteredPalette)
 	, PaletteFilter(nullptr)
 	, GraphFilter(GT_MAX)
 	, SelectedObjectType(nullptr)
 	, InterfaceClass(nullptr)	
 {
-	uint32 NewDumpFlags = BPDUMP_UseLegacyMenuBuilder;
+	uint32 NewDumpFlags = 0x00;
 	for (FString const& Switch : Switches)
 	{
 		if (Switch.StartsWith("class="))
@@ -585,9 +585,9 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			NewDumpFlags |= BPDUMP_RecordTiming;
 		}
-		else if (!Switch.Compare("experimental", ESearchCase::IgnoreCase))
+		else if (!Switch.Compare("legacy", ESearchCase::IgnoreCase))
 		{
-			NewDumpFlags &= ~BPDUMP_UseLegacyMenuBuilder;
+			NewDumpFlags |= BPDUMP_UseLegacyMenuBuilder;
 		}
 		else if (Switch.StartsWith("name="))
 		{
@@ -1161,7 +1161,7 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 				}
 				SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
 
-				if (UEdGraphNode* TemplateNode = BpAction->GetTemplateNode(NoInit))
+				if (UEdGraphNode* TemplateNode = BpAction->GetCachedTemplateNode())
 				{
 					UObject* TemplateOuter = TemplateNode->GetOuter();
 					while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))
@@ -1705,7 +1705,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		ActionEntry += IndentedNewline + FString::Printf(TEXT("\"Grouping\"    : %d"), PrimeAction->Grouping);
 		
 		// Get action node type info
-		UK2Node const* NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PrimeAction);
+		UK2Node const* NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(PrimeAction);
 		if (NodeTemplate != nullptr)
 		{
 			// Build action node type data
@@ -2400,8 +2400,8 @@ static int32 DumpBlueprintInfoUtils::LoadBlueprints(FString AssetName, bool bAll
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UDumpBlueprintsInfoCommandlet::UDumpBlueprintsInfoCommandlet(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UDumpBlueprintsInfoCommandlet::UDumpBlueprintsInfoCommandlet(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -449,7 +449,7 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 	Stack.AddUninitialized( 128 );
 
 	// Create strack entry and initialize sane values.
-	FStackEntry* RESTRICT StackEntry = Stack.GetTypedData();
+	FStackEntry* RESTRICT StackEntry = Stack.GetData();
 	uint8* StackEntryData		= (uint8*) CurrentObject;
 	StackEntry->Data			= StackEntryData;
 	StackEntry->Stride			= 0;
@@ -633,7 +633,7 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 			UE_LOG(LogReferenceChain, Fatal,TEXT("Unknown token"));
 		}
 	}
-	check( StackEntry == Stack.GetTypedData() );
+	check(StackEntry == Stack.GetData());
 	return bRetVal;
 }
 

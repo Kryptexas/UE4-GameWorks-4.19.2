@@ -9,9 +9,12 @@ class AExponentialHeightFog : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
 	/** @todo document */
-	UPROPERTY(Category=ExponentialHeightFog, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UExponentialHeightFogComponent> Component;
+	DEPRECATED_FORGAME(4.6, "Component should not be accessed directly, please use GetComponent() function instead. Component will soon be private and your code will not compile.")
+	UPROPERTY(Category = ExponentialHeightFog, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UExponentialHeightFogComponent* Component;
+public:
 
 	/** replicated copy of ExponentialHeightFogComponent's bEnabled property */
 	UPROPERTY(replicatedUsing=OnRep_bEnabled)
@@ -25,6 +28,9 @@ class AExponentialHeightFog : public AInfo
 	//Begin AActor Interface
 	virtual void PostInitializeComponents() override;
 	//End AActor Interface
+
+	/** Returns Component subobject **/
+	ENGINE_API class UExponentialHeightFogComponent* GetComponent() const;
 };
 
 

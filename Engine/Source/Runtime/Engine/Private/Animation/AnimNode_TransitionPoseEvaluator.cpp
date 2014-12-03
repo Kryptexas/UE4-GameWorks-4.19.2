@@ -28,7 +28,7 @@ void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeCon
 	}
 }
 
-void FAnimNode_TransitionPoseEvaluator::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_TransitionPoseEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	const int32 NumBones = Context.AnimInstance->RequiredBones.GetNumBones();
 	CachedPose.Bones.Empty(NumBones);

@@ -10,7 +10,7 @@ void FAnimNode_SequenceEvaluator::Initialize(const FAnimationInitializeContext& 
 {
 }
 
-void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 }
 

@@ -4,5 +4,4 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
-#include "Slate.h"
-#include "ModuleManager.h"
+#include "SlateBasics.h"

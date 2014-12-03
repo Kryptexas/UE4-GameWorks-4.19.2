@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	HTML5TargetPlatformModule.cpp: Implements the FHTML5TargetPlatformModule class.
-=============================================================================*/
-
 #include "HTML5TargetPlatformPrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FHTML5TargetPlatformModule"
@@ -63,7 +61,7 @@ public:
 		TargetSettings = ConstructObject<UHTML5TargetSettings>(UHTML5TargetSettings::StaticClass(), GetTransientPackage(), "HTML5TargetSettings", RF_Standalone);
 		TargetSettings->AddToRoot();
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -77,7 +75,7 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

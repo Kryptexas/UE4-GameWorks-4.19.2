@@ -38,7 +38,7 @@ public:
 	// Construct a SContentReference
 	void Construct( const FArguments& InArgs, TSharedRef<FAssetDeleteModel> InDeleteModel );
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:

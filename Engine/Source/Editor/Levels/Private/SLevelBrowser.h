@@ -4,8 +4,6 @@
 #include "ModuleManager.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 
-#define LOCTEXT_NAMESPACE "LevelBrowser"
-
 typedef TTextFilter< const TSharedPtr< FLevelViewModel >& > LevelTextFilter;
 
 namespace ELevelBrowserMode
@@ -40,89 +38,7 @@ public:
 	 * @param	InArgs				Declaration used by the SNew() macro to construct this widget
 	 * @param	InViewModel			The UI logic not specific to slate
 	 */
-	void Construct( const FArguments& InArgs )
-	{
-		Mode = ELevelBrowserMode::Levels;
-
-		LevelCollectionViewModel = FLevelCollectionViewModel::Create( GEditor );
-		SelectedLevelsFilter = MakeShareable( new FActorsAssignedToSpecificLevelsFilter() );
-		SelectedLevelViewModel = FLevelViewModel::Create( NULL, NULL, GEditor ); //We'll set the datasource for this viewmodel later
-		
-		SearchBoxLevelFilter = MakeShareable( new LevelTextFilter( LevelTextFilter::FItemToStringArray::CreateSP( this, &SLevelBrowser::TransformLevelToString ) ) );
-		
-		LevelCollectionViewModel->AddFilter( SearchBoxLevelFilter.ToSharedRef() );
-		LevelCollectionViewModel->OnLevelsChanged().AddSP( this, &SLevelBrowser::OnLevelsChanged );
-		LevelCollectionViewModel->OnSelectionChanged().AddSP( this, &SLevelBrowser::UpdateSelectedLevel );
-
-
-		//////////////////////////////////////////////////////////////////////////
-		//	Levels View Section
-		SAssignNew( LevelsSection, SBorder )
-		.Padding( 5 )
-		.BorderImage( FEditorStyle::GetBrush( "NoBrush" ) )
-		.Content()
-		[
-			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew( SHorizontalBox )
-				//Shift Up Button
-				+SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.ToolTipText( LOCTEXT("ShiftUpHint", "Shift Streaming Level Up").ToString() )
-					.ContentPadding( 0 )
-					.OnClicked(this, &SLevelBrowser::OnClickUp)
-					.IsEnabled(this, &SLevelBrowser::CanShiftSelection)
-					[
-						SNew(SImage) .Image(FEditorStyle::GetBrush("Level.ArrowUp"))
-					]
-				]
-				//Shift Down Button
-				+SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.ToolTipText( LOCTEXT("ShiftDownHint", "Shift Streaming Level Down").ToString() )
-					.ContentPadding( 0 )
-					.OnClicked(this, &SLevelBrowser::OnClickDown)
-					.IsEnabled(this, &SLevelBrowser::CanShiftSelection)
-					[
-						SNew(SImage) .Image(FEditorStyle::GetBrush("Level.ArrowDown"))
-					]
-				]
-				+SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.FillWidth(1.f)
-				[
-					SNew( SSearchBox )
-					.ToolTipText( LOCTEXT("FilterSearchToolTip", "Type here to search Levels").ToString() )
-					.HintText( LOCTEXT( "FilterSearchHint", "Search Levels" ) )
-					.OnTextChanged( SearchBoxLevelFilter.Get(), &LevelTextFilter::SetRawFilterText )
-				]
-			]
-			+SVerticalBox::Slot()
-			.FillHeight( 1.0f )
-			[
-				SNew( SLevelsView, LevelCollectionViewModel.ToSharedRef() )
-				.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-				.ConstructContextMenu( FOnContextMenuOpening::CreateSP( this, &SLevelBrowser::ConstructLevelContextMenu ) )
-				.HighlightText( SearchBoxLevelFilter.Get(), &LevelTextFilter::GetRawFilterText )
-			]
-		];
-
-		ChildSlot
-		[
-			SAssignNew( ContentAreaBox, SVerticalBox )
-		];
-		
-
-		SetupLevelsMode();
-	}
+	void Construct( const FArguments& InArgs );
 
 
 protected:
@@ -148,7 +64,7 @@ protected:
 	}
 
 	/** Overridden from SWidget: Called when a key is pressed down */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		return FReply::Unhandled();
 	}
@@ -310,5 +226,3 @@ private:
 	/**	The currently selected LevelViewModel if exactly one is selected, otherwise NULL */
 	TSharedPtr< FLevelViewModel > SelectedLevelViewModel;
 };
-
-#undef LOCTEXT_NAMESPACE

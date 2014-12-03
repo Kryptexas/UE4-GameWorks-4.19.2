@@ -204,7 +204,7 @@ private:
 		{
 			check(IsInRenderingThread());
 			FBoundShaderStateInput BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
-			BoundShaderState = CreateBoundShaderState_Internal(
+			BoundShaderState = RHICreateBoundShaderState(
 				BoundShaderStateInput.VertexDeclarationRHI,
 				BoundShaderStateInput.VertexShaderRHI,
 				BoundShaderStateInput.HullShaderRHI,
@@ -289,14 +289,12 @@ public:
 
 	/**
 	* Draws only the static meshes which are in the visibility map.
-	* @param View - The view of the meshes to render.
 	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
 	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
-	* @param Width - parallel width
-	* @param ParentCmdList - cmdlist to put the wait and execute task on
-	* @param OutDirty - set to true if anything is drawn
+	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
+	* @param ParallelCommandListSet - holds information on how to get a fresh command list and deal with submits, etc
 	*/
-	void DrawVisibleParallel(const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
+	void DrawVisibleParallel(const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, FParallelCommandListSet& ParallelCommandListSet);
 
 	/**
 	 * Draws only the static meshes which are in the visibility map, sorted front-to-back.
@@ -321,9 +319,9 @@ public:
 		return DrawVisible(RHICmdList, View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray);
 	}
 
-	inline void DrawVisibleParallel(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+	inline void DrawVisibleParallel(const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, FParallelCommandListSet& ParallelCommandListSet)
 	{
-		DrawVisibleParallel(View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, Width, ParentCmdList, OutDirty);
+		DrawVisibleParallel(typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, ParallelCommandListSet);
 	}
 
 	inline int32 DrawVisibleFrontToBack(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw)

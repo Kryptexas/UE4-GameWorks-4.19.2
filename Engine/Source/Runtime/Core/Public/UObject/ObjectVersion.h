@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ObjectVersion.h: Unreal object version.
-=============================================================================*/
-
 #pragma once
+
 
 // Prevents incorrect files from being loaded.
 
@@ -20,6 +17,7 @@
 
 // this is forever the UE3 engine version in UE4
 #define VER_LAST_ENGINE_UE3	864
+
 
 enum EUnrealEngineObjectUE4Version
 {
@@ -512,7 +510,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SOFT_CONSTRAINTS_USE_MASS,
 	// Reflection capture data saved in packages
 	VER_UE4_REFLECTION_DATA_IN_PACKAGES,
-	// Fix up old foliage components to have movable mobility
+	// Fix up old foliage components to have movable mobility (superseded by VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT)
 	VER_UE4_FOLIAGE_MOVABLE_MOBILITY,
 	// Undo BreakMaterialAttributes changes as it broke old content
 	VER_UE4_UNDO_BREAK_MATERIALATTRIBUTES_CHANGE,
@@ -618,6 +616,30 @@ enum EUnrealEngineObjectUE4Version
 	// Rename USpringArmComponent::bUsePawnViewRotation to bUsePawnControlRotation
 	// Rename UCameraComponent::bUsePawnViewRotation to bUsePawnControlRotation
 	VER_UE4_RENAME_CAMERA_COMPONENT_CONTROL_ROTATION,
+	// Fix bad refraction material attribute masks
+	VER_UE4_FIX_REFRACTION_INPUT_MASKING,
+	// A global spawn rate for emitters.
+	VER_UE4_GLOBAL_EMITTER_SPAWN_RATE_SCALE,
+	// Cleanup destructible mesh settings
+	VER_UE4_CLEAN_DESTRUCTIBLE_SETTINGS,
+	// CharacterMovementComponent refactor of AdjustUpperHemisphereImpact and deprecation of some associated vars.
+	VER_UE4_CHARACTER_MOVEMENT_UPPER_IMPACT_BEHAVIOR,
+	// Changed Blueprint math equality functions for vectors and rotators to operate as a "nearly" equals rather than "exact"
+	VER_UE4_BP_MATH_VECTOR_EQUALITY_USES_EPSILON,
+	// Static lighting support was re-added to foliage, and mobility was returned to static
+	VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT,
+	// Added composite fonts to Slate font info
+	VER_UE4_SLATE_COMPOSITE_FONTS,
+	// Remove UDEPRECATED_SaveGameSummary, required for UWorld::Serialize
+	VER_UE4_REMOVE_SAVEGAMESUMMARY,
+	//Remove bodyseutp serialization from skeletal mesh component
+	VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION,
+	// Made Slate font data use bulk data to store the embedded font data
+	VER_UE4_SLATE_BULK_FONT_DATA,
+	// Add new friction behavior in ProjectileMovementComponent.
+	VER_UE4_ADD_PROJECTILE_FRICTION_BEHAVIOR,
+	// Add axis settings enum to MovementComponent.
+	VER_UE4_MOVEMENTCOMPONENT_AXIS_SETTINGS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

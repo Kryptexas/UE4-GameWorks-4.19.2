@@ -4,6 +4,8 @@
 #include "Matinee/InterpTrack.h"
 #include "InterpTrackMove.generated.h"
 
+class UInterpGroup;
+
 UENUM()
 enum EInterpTrackMoveRotMode
 {

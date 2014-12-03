@@ -11,6 +11,8 @@ set -e
 
 MAKE_ARGS=-j4
 TARGET_ARCH=x86_64-unknown-linux-gnu
+#TARGET_ARCH=arm-unknown-linux-gnueabihf
+export TARGET_ARCH
 
 SDL_DIR=SDL-gui-backend
 SDL_BUILD_DIR=build-$SDL_DIR
@@ -71,7 +73,8 @@ BuildJemalloc()
   P4Open $LIB_DIR/libjemalloc.a
   P4Open $LIB_DIR/libjemalloc_pic.a
   mkdir -p $LIB_DIR
-  cp -rp lib/* $LIB_DIR
+  cp lib/libjemalloc.a $LIB_DIR
+  cp lib/libjemalloc_pic.a $LIB_DIR
   mkdir -p $INC_DIR
   P4Open $INC_DIR/jemalloc_defs.h
   P4Open $INC_DIR/jemalloc.h
@@ -144,7 +147,7 @@ BuildHLSLCC()
   set -x
   cd Source/ThirdParty/hlslcc
   # not building anymore P4Open hlslcc/bin/Linux/hlslcc_64
-  P4Open hlslcc/lib/Linux/libhlslcc.a
+  P4Open hlslcc/lib/Linux/$TARGET_ARCH/libhlslcc.a
   cd hlslcc/projects/Linux
   make $MAKE_ARGS
   set +x
@@ -489,6 +492,9 @@ while :; do
 done
 
 echo "Building ThirdParty libraries"
+echo
+echo "If you don't see SUCCESS message in the end, then building did not finish properly."
+echo "In that case, take a look into ${SCRIPT_DIR}/BuildThirdParty.log for details."
 
 rm -f ${SCRIPT_DIR}/BuildThirdParty.log
 

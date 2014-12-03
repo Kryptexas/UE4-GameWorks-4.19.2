@@ -5,6 +5,7 @@
 #if WITH_FANCY_TEXT
 
 #include "SlateHyperlinkRun.h"
+#include "SRichTextHyperlink.h"
 
 TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate )
 {
@@ -29,24 +30,26 @@ void FSlateHyperlinkRun::SetTextRange( const FTextRange& Value )
 int16 FSlateHyperlinkRun::GetBaseLine( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetBaseline( Style.TextStyle.Font, Scale );
+	return FontMeasure->GetBaseline( Style.TextStyle.Font, Scale ) - FMath::Min(0.0f, Style.TextStyle.ShadowOffset.Y * Scale);
 }
 
 int16 FSlateHyperlinkRun::GetMaxHeight( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetMaxCharacterHeight( Style.TextStyle.Font, Scale );
+	return FontMeasure->GetMaxCharacterHeight( Style.TextStyle.Font, Scale ) + FMath::Abs(Style.TextStyle.ShadowOffset.Y * Scale);
 }
 
 FVector2D FSlateHyperlinkRun::Measure( int32 StartIndex, int32 EndIndex, float Scale ) const 
 {
+	const FVector2D ShadowOffsetToApply((EndIndex == Range.EndIndex) ? FMath::Abs(Style.TextStyle.ShadowOffset.X * Scale) : 0.0f, FMath::Abs(Style.TextStyle.ShadowOffset.Y * Scale));
+
 	if ( EndIndex - StartIndex == 0 )
 	{
-		return FVector2D( 0, GetMaxHeight( Scale ) );
+		return FVector2D( ShadowOffsetToApply.X * Scale, GetMaxHeight( Scale ) );
 	}
 
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->Measure( **Text, StartIndex, EndIndex, Style.TextStyle.Font, true, Scale );
+	return FontMeasure->Measure( **Text, StartIndex, EndIndex, Style.TextStyle.Font, true, Scale ) + ShadowOffsetToApply;
 }
 
 int8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale ) const 

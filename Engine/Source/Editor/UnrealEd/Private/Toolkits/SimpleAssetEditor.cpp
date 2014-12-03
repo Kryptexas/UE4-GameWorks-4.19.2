@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "SDockTab.h"
 #include "Toolkits/SimpleAssetEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -15,13 +16,14 @@ const FName FSimpleAssetEditor::PropertiesTabId( TEXT( "GenericEditor_Properties
 
 void FSimpleAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_GenericAssetEditor", "Asset Editor"));
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( PropertiesTabId, FOnSpawnTab::CreateSP(this, &FSimpleAssetEditor::SpawnPropertiesTab) )
 		.SetDisplayName( LOCTEXT("PropertiesTab", "Details") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
 void FSimpleAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

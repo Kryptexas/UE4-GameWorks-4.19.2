@@ -337,6 +337,13 @@ static void simplifyContour(unsigned char area, dtTempContour& cont, const float
 {
 	cont.npoly = 0;
 
+	if (cont.nverts < 2)
+	{
+		// corrupted, remove it
+		cont.nverts = 0;
+		return;
+	}
+
 	for (int i = 0; i < cont.nverts; ++i)
 	{
 		int j = (i+1) % cont.nverts;
@@ -744,7 +751,7 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 			}
 
 			const unsigned short ri = layer.regs[idx];
-			if (ri == 0xffff)
+			if (ri == 0xffff || ri == 0)
 				continue;
 
 			if (!walkContour(layer, x, y, idx, flags, temp))
@@ -1785,10 +1792,10 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 	// Generate temp vertex array for triangulation.
 	for (int i = 0; i < nhole; ++i)
 	{
-		const unsigned short pi = hole[i];
-		tverts[i*4+0] = mesh.verts[pi*3+0];
-		tverts[i*4+1] = mesh.verts[pi*3+1];
-		tverts[i*4+2] = mesh.verts[pi*3+2];
+		const unsigned short hi = hole[i];
+		tverts[i*4+0] = mesh.verts[hi*3+0];
+		tverts[i*4+1] = mesh.verts[hi*3+1];
+		tverts[i*4+2] = mesh.verts[hi*3+2];
 		tverts[i*4+3] = 0;
 		tpoly[i] = (unsigned short)i;
 	}
@@ -1899,6 +1906,7 @@ dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
 	int maxVertices = 0;
 	int maxTris = 0;
 	int maxVertsPerCont = 0;
+
 	for (int i = 0; i < lcset.nconts; ++i)
 	{
 		// Skip null contours.
@@ -2282,6 +2290,176 @@ dtStatus dtMarkConvexArea(dtTileCacheLayer& layer, const float* orig, const floa
 			if (TileCacheFunc::pointInPoly(nverts, verts, p))
 			{
 				layer.areas[x+z*w] = areaId;
+			}
+		}
+	}
+
+	return DT_SUCCESS;
+}
+
+dtStatus dtReplaceCylinderArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+	const float* pos, const float radius, const float height, const unsigned char areaId, const unsigned char filterAreaId)
+{
+	float bmin[3], bmax[3];
+	bmin[0] = pos[0] - radius;
+	bmin[1] = pos[1];
+	bmin[2] = pos[2] - radius;
+	bmax[0] = pos[0] + radius;
+	bmax[1] = pos[1] + height;
+	bmax[2] = pos[2] + radius;
+	const float r2 = dtSqr(radius / cs + 0.5f);
+
+	const int w = (int)layer.header->width;
+	const int h = (int)layer.header->height;
+	const float ics = 1.0f / cs;
+	const float ich = 1.0f / ch;
+
+	const float px = (pos[0] - orig[0])*ics;
+	const float pz = (pos[2] - orig[2])*ics;
+
+	int minx = (int)floorf((bmin[0] - orig[0])*ics);
+	int miny = (int)floorf((bmin[1] - orig[1])*ich);
+	int minz = (int)floorf((bmin[2] - orig[2])*ics);
+	int maxx = (int)floorf((bmax[0] - orig[0])*ics);
+	int maxy = (int)floorf((bmax[1] - orig[1])*ich);
+	int maxz = (int)floorf((bmax[2] - orig[2])*ics);
+
+	if (maxx < 0) return DT_SUCCESS;
+	if (minx >= w) return DT_SUCCESS;
+	if (maxz < 0) return DT_SUCCESS;
+	if (minz >= h) return DT_SUCCESS;
+
+	if (minx < 0) minx = 0;
+	if (maxx >= w) maxx = w - 1;
+	if (minz < 0) minz = 0;
+	if (maxz >= h) maxz = h - 1;
+
+	for (int z = minz; z <= maxz; ++z)
+	{
+		for (int x = minx; x <= maxx; ++x)
+		{
+			if (layer.areas[x + z*w] != filterAreaId)
+				continue;
+
+			const float dx = (float)(x + 0.5f) - px;
+			const float dz = (float)(z + 0.5f) - pz;
+			if (dx*dx + dz*dz > r2)
+				continue;
+			const int y = layer.heights[x + z*w];
+			if (y < miny || y > maxy)
+				continue;
+
+			layer.areas[x + z*w] = areaId;
+		}
+	}
+
+	return DT_SUCCESS;
+}
+
+dtStatus dtReplaceBoxArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+	const float* pos, const float* extent, const unsigned char areaId, const unsigned char filterAreaId)
+{
+	float bmin[3], bmax[3];
+	dtVsub(bmin, pos, extent);
+	dtVadd(bmax, pos, extent);
+
+	const int w = (int)layer.header->width;
+	const int h = (int)layer.header->height;
+	const float ics = 1.0f / cs;
+	const float ich = 1.0f / ch;
+
+	int minx = (int)floorf((bmin[0] - orig[0])*ics);
+	int miny = (int)floorf((bmin[1] - orig[1])*ich);
+	int minz = (int)floorf((bmin[2] - orig[2])*ics);
+	int maxx = (int)floorf((bmax[0] - orig[0])*ics);
+	int maxy = (int)floorf((bmax[1] - orig[1])*ich);
+	int maxz = (int)floorf((bmax[2] - orig[2])*ics);
+
+	if (maxx < 0) return DT_SUCCESS;
+	if (minx >= w) return DT_SUCCESS;
+	if (maxz < 0) return DT_SUCCESS;
+	if (minz >= h) return DT_SUCCESS;
+
+	if (minx < 0) minx = 0;
+	if (maxx >= w) maxx = w - 1;
+	if (minz < 0) minz = 0;
+	if (maxz >= h) maxz = h - 1;
+
+	for (int z = minz; z <= maxz; ++z)
+	{
+		for (int x = minx; x <= maxx; ++x)
+		{
+			if (layer.areas[x + z*w] != filterAreaId)
+				continue;
+
+			const int y = layer.heights[x + z*w];
+			if (y < miny || y > maxy)
+				continue;
+
+			layer.areas[x + z*w] = areaId;
+		}
+	}
+
+	return DT_SUCCESS;
+}
+
+dtStatus dtReplaceConvexArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+	const float* verts, const int nverts, const float hmin, const float hmax,
+	const unsigned char areaId, const unsigned char filterAreaId)
+{
+	float bmin[3], bmax[3];
+	dtVcopy(bmin, verts);
+	dtVcopy(bmax, verts);
+	for (int i = 1; i < nverts; ++i)
+	{
+		dtVmin(bmin, &verts[i * 3]);
+		dtVmax(bmax, &verts[i * 3]);
+	}
+	bmin[1] = hmin;
+	bmax[1] = hmax;
+
+	const int w = (int)layer.header->width;
+	const int h = (int)layer.header->height;
+	const float ics = 1.0f / cs;
+	const float ich = 1.0f / ch;
+
+	int minx = (int)floorf((bmin[0] - orig[0])*ics);
+	int miny = (int)floorf((bmin[1] - orig[1])*ich);
+	int minz = (int)floorf((bmin[2] - orig[2])*ics);
+	int maxx = (int)floorf((bmax[0] - orig[0])*ics);
+	int maxy = (int)floorf((bmax[1] - orig[1])*ich);
+	int maxz = (int)floorf((bmax[2] - orig[2])*ics);
+
+	if (maxx < 0) return DT_SUCCESS;
+	if (minx >= w) return DT_SUCCESS;
+	if (maxz < 0) return DT_SUCCESS;
+	if (minz >= h) return DT_SUCCESS;
+
+	if (minx < 0) minx = 0;
+	if (maxx >= w) maxx = w - 1;
+	if (minz < 0) minz = 0;
+	if (maxz >= h) maxz = h - 1;
+
+	// TODO: Optimize.
+	for (int z = minz; z <= maxz; ++z)
+	{
+		for (int x = minx; x <= maxx; ++x)
+		{
+			if (layer.areas[x + z*w] != filterAreaId)
+				continue;
+
+			const int y = layer.heights[x + z*w];
+			if (y < miny || y > maxy)
+				continue;
+
+			float p[3];
+			p[0] = orig[0] + (float)(x + 0.5f)*cs;
+			p[1] = 0.0f;
+			p[2] = orig[2] + (float)(z + 0.5f)*cs;
+
+			if (TileCacheFunc::pointInPoly(nverts, verts, p))
+			{
+				layer.areas[x + z*w] = areaId;
 			}
 		}
 	}

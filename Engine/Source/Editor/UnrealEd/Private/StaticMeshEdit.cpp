@@ -251,7 +251,7 @@ private:
 void DecomposeUCXMesh( const TArray<FVector>& CollisionVertices, const TArray<int32>& CollisionFaceIdx, UBodySetup* BodySetup )
 {
 	// We keep no ref to this Model, so it will be GC'd at some point after the import.
-	UModel* TempModel = new UModel(FPostConstructInitializeProperties(),NULL,1);
+	UModel* TempModel = new UModel(FObjectInitializer(),NULL,1);
 
 	FMeshConnectivityBuilder ConnectivityBuilder;
 
@@ -508,7 +508,7 @@ UStaticMesh* CreateStaticMesh(struct FRawMesh& RawMesh,TArray<UMaterialInterface
 {
 	// Create the UStaticMesh object.
 	FStaticMeshComponentRecreateRenderStateContext RecreateRenderStateContext(FindObject<UStaticMesh>(InOuter,*InName.ToString()));
-	UStaticMesh* StaticMesh = new(InOuter,InName,RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+	UStaticMesh* StaticMesh = new(InOuter,InName,RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 
 	// Add one LOD for the base mesh
 	FStaticMeshSourceModel* SrcModel = new(StaticMesh->SourceModels) FStaticMeshSourceModel();
@@ -771,7 +771,7 @@ void CreateModelFromStaticMesh(UModel* Model,AStaticMeshActor* StaticMeshActor)
 			FPoly*						Polygon		= new(Model->Polys->Element) FPoly;
 
 			Polygon->Init();
-			Polygon->iLink = Polygon - Model->Polys->Element.GetTypedData();
+			Polygon->iLink = Polygon - Model->Polys->Element.GetData();
 			Polygon->Material = StaticMesh->LODModels[0].Elements[Triangle.MaterialIndex].Material;
 			Polygon->PolyFlags = PF_DefaultFlags;
 			Polygon->SmoothingMask = Triangle.SmoothingMask;

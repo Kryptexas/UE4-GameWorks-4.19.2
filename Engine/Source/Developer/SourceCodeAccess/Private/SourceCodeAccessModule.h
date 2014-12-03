@@ -4,20 +4,31 @@
 
 #include "ISourceCodeAccessModule.h"
 #include "DefaultSourceCodeAccessor.h"
+#include "ModuleInterface.h"
+
 
 /**
- * Implementation of ISourceCodeAccessModule
+ * Implementation of ISourceCodeAccessModule.
  */
-class FSourceCodeAccessModule : public ISourceCodeAccessModule
+class FSourceCodeAccessModule
+	: public ISourceCodeAccessModule
 {
 public:
+
+	/** Default constructor. */
 	FSourceCodeAccessModule();
 
-	/** IModuleInterface implementation */
+public:
+
+	// IModuleInterface interface
+
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-	/** ISourceCodeAccessModule implementation */
+public:
+
+	// ISourceCodeAccessModule interface
+
 	virtual bool CanAccessSourceCode() const override;
 	virtual ISourceCodeAccessor& GetAccessor() const override;
 	virtual void SetAccessor(const FName& InName) override;
@@ -26,6 +37,7 @@ public:
 	virtual FOpenFileFailed& OnOpenFileFailed() override;
 
 private:
+
 	/** Handle when one of the modular features we are interested in is registered */
 	void HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature);
 
@@ -33,18 +45,19 @@ private:
 	void HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature);
 
 private:
-	/** Event delegate fired when launching code accessor */
+
+	/** Event delegate fired when launching code accessor. */
 	FLaunchingCodeAccessor LaunchingCodeAccessorDelegate;
 
-	/** Event delegate fired when done launching code accessor  */
+	/** Event delegate fired when done launching code accessor.  */
 	FDoneLaunchingCodeAccessor DoneLaunchingCodeAccessorDelegate;
 
-	/** Event delegate fired when opening a file has failed */
+	/** Event delegate fired when opening a file has failed. */
 	FOpenFileFailed OpenFileFailedDelegate;
 
-	/** The default accessor we will use if we have no IDE */
+	/** The default accessor we will use if we have no IDE. */
 	FDefaultSourceCodeAccessor DefaultSourceCodeAccessor;
 
-	/** The current accessor */
+	/** The current accessor. */
 	ISourceCodeAccessor* CurrentSourceCodeAccessor;
 };

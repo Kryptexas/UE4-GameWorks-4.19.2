@@ -2,12 +2,13 @@
 
 #include "CrashReportClientApp.h"
 #include "ExceptionHandling.h"
+#include "MacPlatformCrashContext.h"
 #include "CocoaThread.h"
 
 /**
  * Because crash reporters can crash, too
  */
-void CrashReporterCrashHandler(const FGenericCrashContext & GenericContext)
+void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FMacCrashContext& Context = static_cast< const FMacCrashContext& >( GenericContext );
 
@@ -31,7 +32,7 @@ void CrashReporterCrashHandler(const FGenericCrashContext & GenericContext)
 
 static FString GSavedCommandLine;
 
-@interface UE4AppDelegate : NSObject <NSApplicationDelegate>
+@interface UE4AppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {
 }
 

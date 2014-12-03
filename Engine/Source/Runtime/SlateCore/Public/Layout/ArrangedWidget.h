@@ -4,6 +4,8 @@
 
 #include "Geometry.h"
 
+struct FVirtualPointerPosition;
+
 /**
  * A pair: Widget and its Geometry. Widgets populate an list of WidgetGeometries
  * when they arrange their children. See SWidget::ArrangeChildren.
@@ -16,6 +18,8 @@ public:
 		: Geometry(InGeometry)
 		, Widget(InWidget)
 	{ }
+
+	SLATECORE_API static FArrangedWidget NullWidget;
 
 public:
 
@@ -46,4 +50,13 @@ public:
 
 	/** The widget that is being arranged. */
 	TSharedRef<SWidget> Widget;
+};
+
+struct SLATECORE_API FWidgetAndPointer : public FArrangedWidget
+{
+	FWidgetAndPointer();
+
+	FWidgetAndPointer( const FArrangedWidget& InWidget, const TSharedPtr<FVirtualPointerPosition>& InPosition );
+
+	TSharedPtr<FVirtualPointerPosition> PointerPosition;
 };

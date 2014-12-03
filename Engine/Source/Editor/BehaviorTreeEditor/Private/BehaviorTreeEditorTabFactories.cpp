@@ -7,6 +7,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "SBehaviorTreeBlackboardView.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditorFactories"
 
@@ -15,7 +16,7 @@ FBlackboardSummoner::FBlackboardSummoner(TSharedPtr<class FBehaviorTreeEditor> I
 	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
 {
 	TabLabel = LOCTEXT("BlackboardLabel", "Blackboard");
-	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
 
 	bIsSingleton = true;
 
@@ -38,7 +39,7 @@ FBlackboardEditorSummoner::FBlackboardEditorSummoner(TSharedPtr<class FBehaviorT
 	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
 {
 	TabLabel = LOCTEXT("BlackboardLabel", "Blackboard");
-	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
 
 	bIsSingleton = true;
 
@@ -61,7 +62,7 @@ FBlackboardDetailsSummoner::FBlackboardDetailsSummoner(TSharedPtr<class FBehavio
 	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
 {
 	TabLabel = LOCTEXT("BlackboardDetailsLabel", "Blackboard Details");
-	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
 
 	bIsSingleton = true;
 
@@ -85,7 +86,7 @@ FBehaviorTreeDetailsSummoner::FBehaviorTreeDetailsSummoner(TSharedPtr<class FBeh
 	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
 {
 	TabLabel = LOCTEXT("BehaviorTreeDetailsLabel", "Details");
-	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
 
 	bIsSingleton = true;
 
@@ -109,7 +110,7 @@ FBehaviorTreeSearchSummoner::FBehaviorTreeSearchSummoner(TSharedPtr<class FBehav
 	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
 {
 	TabLabel = LOCTEXT("BehaviorTreeSearchLabel", "Search");
-	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
 
 	bIsSingleton = true;
 

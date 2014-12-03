@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/Visual.h"
 #include "SlateWrapperTypes.h"
 #include "WidgetTransform.h"
 
 #include "Widget.generated.h"
+
+class UPanelSlot;
 
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget
@@ -21,7 +23,7 @@
 /**
  * This is the base class for all wrapped Slate controls that are exposed to UMG.
  */
-UCLASS(Abstract)
+UCLASS(Abstract, BlueprintType)
 class UMG_API UWidget : public UVisual
 {
 	GENERATED_UCLASS_BODY()
@@ -37,7 +39,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
 	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector4, FGetVector4);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
@@ -71,17 +73,15 @@ public:
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
 	bool bIsEnabled;
 
 	/** A bindable delegate for bIsEnabled */
 	UPROPERTY()
 	FGetBool bIsEnabledDelegate;
 
-	//TODO UMG ToolTipWidget
-
 	/** Tooltip text to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
 	FText ToolTipText;
 
 	/** A bindable delegate for ToolTipText */
@@ -89,30 +89,43 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** The visibility of the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
 	TEnumAsByte<ESlateVisibility::Type> Visiblity;
 
 	/** A bindable delegate for Visibility */
 	UPROPERTY()
 	FGetSlateVisibility VisiblityDelegate;
 
-	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
-
 	/** The cursor to show when the mouse is over the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	/** A bindable delegate for Cursor */
 	UPROPERTY()
 	FGetMouseCursor CursorDelegate;
 
-	/**  */
+	/** The render transform of the widget allows for arbitrary 2D transforms to be applied to the widget. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Transform" ))
 	FWidgetTransform RenderTransform;
 
-	/**  */
+	/**
+	 * The render transform pivot controls the location about which transforms are applied.  
+	 * This value is a normalized coordinate about which things like rotations will occur.
+	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Pivot" ))
 	FVector2D RenderTransformPivot;
+
+	/**  */
+	UPROPERTY(Instanced, EditAnywhere, BlueprintReadOnly, Category="Navigation")
+	class UWidgetNavigation* Navigation;
+
+#if WITH_EDITORONLY_DATA
+
+	/** Stores the design time flag setting if the widget is hidden inside the designer */
+	UPROPERTY()
+	bool bHiddenInDesigner;
+
+#endif
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
@@ -150,6 +163,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetToolTipText(const FText& InToolTipText);
 
+	/** @return true if the widget is Visible, HitTestInvisible or SelfHitTestInvisible. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool IsVisible() const;
+
 	/** Gets the current visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	TEnumAsByte<ESlateVisibility::Type> GetVisibility();
@@ -178,13 +195,12 @@ public:
 
 	/**
 	 * Checks to see if this widget is the current mouse captor
-	 *
 	 * @return  True if this widget has captured the mouse
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool HasMouseCapture() const;
 
-	/**  */
+	/** Sets the focus to this widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetKeyboardFocus() const;
 
@@ -194,7 +210,7 @@ public:
 
 	/**
 	 * Gets the widgets desired size.
-	 * NOTE: The underlying Slate widget must exist and be valid, also a at least one pre-pass must
+	 * NOTE: The underlying Slate widget must exist and be valid, also at least one pre-pass must
 	 *       have occurred before this value will be of any use.
 	 * 
 	 * @return The widget's desired size
@@ -208,7 +224,7 @@ public:
 
 	/** Removes the widget from it's parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void RemoveFromParent();
+	virtual void RemoveFromParent();
 
 	/**
 	 * Gets the underlying slate widget or constructs it if it doesn't exist.  This function is
@@ -255,6 +271,12 @@ public:
 	/** Gets the palette category of the widget */
 	virtual const FText GetPaletteCategory();
 
+	/**
+	 * Called by the palette after constructing a new widget, allows the widget to perform interesting 
+	 * default setup that we don't want to be UObject Defaults.
+	 */
+	virtual void OnCreationFromPalette() { }
+
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();
 	
@@ -264,6 +286,9 @@ public:
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
+
+	/** Gets the visibility of the widget inside the designer. */
+	EVisibility GetVisibilityInDesigner() const;
 
 	// Begin Designer contextual events
 	void Select();
@@ -323,7 +348,7 @@ protected:
 	TWeakPtr<SWidget> MyWidget;
 
 	/** The underlying SWidget contained in a SObjectWidget */
-	TWeakPtr<SWidget> MyGCWidget;
+	TWeakPtr<class SObjectWidget> MyGCWidget;
 	
 	/** Is this widget being displayed on a designer surface */
 	UPROPERTY(Transient)

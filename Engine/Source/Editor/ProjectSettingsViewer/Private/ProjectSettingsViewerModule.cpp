@@ -3,9 +3,20 @@
 #include "ProjectSettingsViewerPrivatePCH.h"
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
+#include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsEditorModel.h"
+#include "ISettingsEditorModule.h"
+#include "ISettingsModule.h"
+#include "ISettingsViewer.h"
+#include "ModuleManager.h"
+#include "SDockTab.h"
+
 #include "CookerSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -43,9 +54,9 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -57,16 +68,16 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ProjectSettingsTabName, FOnSpawnTab::CreateRaw(this, &FProjectSettingsViewerModule::HandleSpawnSettingsTab))
 			.SetDisplayName(LOCTEXT("ProjectSettingsTabTitle", "Project Settings"))
-			.SetMenuType(ETabSpawnerMenuType::Hide);
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectSettingsTabName);
 		UnregisterSettings();
 	}
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -75,6 +86,8 @@ protected:
 
 	/**
 	 * Registers Engine settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterEngineSettings( ISettingsModule& SettingsModule )
 	{
@@ -155,7 +168,14 @@ protected:
 			GetMutableDefault<URendererSettings>()
 		);
 
-		// Rendering settings
+		// UI settings
+		SettingsModule.RegisterSettings("Project", "Engine", "UI",
+			LOCTEXT("EngineUISettingsName", "User Interface"),
+			LOCTEXT("ProjectUISettingsDescription", "User Interface settings that control Slate and UMG."),
+			GetMutableDefault<UUserInterfaceSettings>()
+		);
+
+		// Cooker settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Cooker",
 			LOCTEXT("CookerSettingsName", "Cooker"),
 			LOCTEXT("CookerSettingsDescription", "Various cooker settings."),
@@ -165,6 +185,8 @@ protected:
 
 	/**
 	 * Registers Project settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterProjectSettings( ISettingsModule& SettingsModule )
 	{
@@ -219,12 +241,10 @@ protected:
 		);*/
 	}
 
-	/**
-	 * Unregisters all settings.
-	 */
-	void UnregisterSettings( )
+	/** Unregisters all settings. */
+	void UnregisterSettings()
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -253,11 +273,11 @@ protected:
 
 private:
 
-	// Handles creating the project settings tab.
+	/** Handles creating the project settings tab. */
 	TSharedRef<SDockTab> HandleSpawnSettingsTab( const FSpawnTabArgs& SpawnTabArgs )
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
 		TSharedRef<SWidget> SettingsEditor = SNullWidget::NullWidget;
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -265,7 +285,7 @@ private:
 
 			if (SettingsContainer.IsValid())
 			{
-				ISettingsEditorModule& SettingsEditorModule = ISettingsEditorModule::GetRef();
+				ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
 				ISettingsEditorModelRef SettingsEditorModel = SettingsEditorModule.CreateModel(SettingsContainer.ToSharedRef());
 
 				SettingsEditor = SettingsEditorModule.CreateEditor(SettingsEditorModel);
@@ -282,7 +302,7 @@ private:
 
 private:
 
-	// Holds a pointer to the settings editor's view model.
+	/** Holds a pointer to the settings editor's view model. */
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;
 };
 

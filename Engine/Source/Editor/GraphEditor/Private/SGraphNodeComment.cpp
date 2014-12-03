@@ -6,6 +6,7 @@
 //#include "TextWrapperHelpers.h"
 #include "BlueprintEditorUtils.h"
 #include "TutorialMetaData.h"
+#include "SInlineEditableTextBlock.h"
 
 namespace SCommentNodeDefs
 {
@@ -196,7 +197,7 @@ FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometr
 		// Set the keyboard focus
 		if(!HasKeyboardFocus())
 		{
-			FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EFocusCause::SetDirectly);
 		}
 
 		return FReply::Handled();

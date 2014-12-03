@@ -49,6 +49,9 @@ public:
 			ImageWrapper = new FExrImageWrapper();
 			break;
 #endif
+		case EImageFormat::ICNS:
+			ImageWrapper = new FIcnsImageWrapper();
+			break;
 		default:
 			break;
 		}

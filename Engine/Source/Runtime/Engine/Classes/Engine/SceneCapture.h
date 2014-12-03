@@ -13,10 +13,15 @@ class ASceneCapture : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
 	/** To display the 3d camera in the editor. */
+	DEPRECATED_FORGAME(4.6, "MeshComp should not be accessed directly, please use GetMeshComp() function instead. MeshComp will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UStaticMeshComponent> MeshComp;
+	class UStaticMeshComponent* MeshComp;
+
 public:
+	/** Returns MeshComp subobject **/
+	ENGINE_API class UStaticMeshComponent* GetMeshComp() const;
 };
 
 

@@ -18,8 +18,8 @@
 /////////////////////////////////////////////////////
 // UAnimStateNode
 
-UAnimStateNode::UAnimStateNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimStateNode::UAnimStateNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
 }

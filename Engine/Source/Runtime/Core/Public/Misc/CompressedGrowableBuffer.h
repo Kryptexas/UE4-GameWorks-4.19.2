@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CompressedGrowableBuffer.h: FCompressedGrowableBuffer classes
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Growable compressed buffer. Usage is to append frequently but only request and therefore decompress
@@ -71,6 +68,7 @@ struct CORE_API FCompressedGrowableBuffer
 	}
 
 private:
+
 	/** Helper structure for book keeping. */
 	struct FBufferBookKeeping
 	{
@@ -103,7 +101,3 @@ private:
 	/** Book keeping information for decompression/ access.					*/
 	TArray<FBufferBookKeeping>	BookKeepingInfo;
 };
-
-
-
-

@@ -12,8 +12,8 @@ FString FK2Node_BaseMCDelegateHelper::DelegatePinName(TEXT("Delegate"));
 
 /////// UK2Node_BaseMCDelegate ///////////
 
-UK2Node_BaseMCDelegate::UK2Node_BaseMCDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_BaseMCDelegate::UK2Node_BaseMCDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -63,11 +63,14 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
-	const auto Property = DelegateReference.ResolveMember<UMulticastDelegateProperty>(this);
-	const auto PropertyOwnerClass = (Property ? Property->GetOwnerClass() : NULL);
+	UClass* PropertyOwnerClass = DelegateReference.GetMemberParentClass(this);
+	if (PropertyOwnerClass != nullptr)
+	{
+		PropertyOwnerClass = PropertyOwnerClass->GetAuthoritativeClass();
+	}
 	const auto Blueprint = GetBlueprint();
 	
-	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass || PropertyOwnerClass == Blueprint->SkeletonGeneratedClass);
+	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass);
 
 	UEdGraphPin* SelfPin = NULL;
 	if (bUseSelf)
@@ -87,22 +90,28 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 
 UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelClass) const
 {
-	FMemberReference ReferenceToUse;
+	UClass* OwnerClass = DelegateReference.GetMemberParentClass(this);
+	if (bForceNotFromSkelClass)
+	{
+		OwnerClass = (OwnerClass != nullptr) ? OwnerClass->GetAuthoritativeClass() : nullptr;
+	}
+	else if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(OwnerClass))
+	{
+		UBlueprint* DelegateBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+		// favor the skeleton class, because the generated class may not 
+		// have the delegate yet (hasn't been compiled with it), or it could 
+		// be out of date
+		OwnerClass = DelegateBlueprint->SkeletonGeneratedClass;
+	}
 
-	if(!bForceNotFromSkelClass)
+	FMemberReference ReferenceToUse;
+	FGuid DelegateGuid;
+
+	if (OwnerClass != nullptr)
 	{
-		ReferenceToUse = DelegateReference;
+		UBlueprint::GetGuidFromClassByFieldName<UFunction>(OwnerClass, DelegateReference.GetMemberName(), DelegateGuid);
 	}
-	else
-	{
-		UClass* OwnerClass = DelegateReference.GetMemberParentClass(this);
-		FGuid DelegateGuid;
-		if (OwnerClass)
-		{
-			UBlueprint::GetGuidFromClassByFieldName<UFunction>(OwnerClass, DelegateReference.GetMemberName(), DelegateGuid);
-		}
-		ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateGuid, OwnerClass ? OwnerClass->GetAuthoritativeClass() : NULL, false);
-	}
+	ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateGuid, OwnerClass, /*bIsConsideredSelfContext =*/false);
 
 	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(this);
 	return (DelegateProperty != NULL) ? DelegateProperty->SignatureFunction : NULL;
@@ -150,7 +159,7 @@ void UK2Node_BaseMCDelegate::ExpandNode(class FKismetCompilerContext& CompilerCo
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
 	const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
-	if(bAllowMultipleSelfs && CompilerContext.bIsFullCompile)
+	if(bAllowMultipleSelfs)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 		check(Schema);
@@ -201,10 +210,59 @@ void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FS
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetPropertyName().ToString() ));
 }
 
+void UK2Node_BaseMCDelegate::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+
+	// Since nodes no longer have a sense of scope when they're placed, look at the connection we're coming from, and use that to coerce the Target pin
+	if (FromPin != nullptr)
+	{
+		bool bConnected = false;
+
+		// Only do the fixup if we're going coming from an output pin, which implies a contextual drag
+		if (FromPin->Direction == EGPD_Output)
+		{
+			if (FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
+			{
+				UProperty* DelegateProperty = DelegateReference.ResolveMember<UProperty>(this);
+				if (DelegateProperty)
+				{
+					UClass* DelegateOwner = DelegateProperty->GetOwnerClass();
+					if (FromPin->PinType.PinSubCategoryObject == DelegateOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(DelegateOwner))
+					{
+						// If we get here, then the property delegate is also available on the FromPin's class.
+						// Fix up the type by propagating it from the FromPin to our target pin
+						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
+						TargetPin->PinType.PinSubCategory.Empty();
+						TargetPin->PinType.PinSubCategoryObject = DelegateOwner;
+
+						// And finally, try to establish the connection
+						if (K2Schema->TryCreateConnection(FromPin, TargetPin))
+						{
+							bConnected = true;
+
+							DelegateReference.SetFromField<UProperty>(DelegateProperty, false);
+							TargetPin->bHidden = false;
+							FromPin->GetOwningNode()->NodeConnectionListChanged();
+							this->NodeConnectionListChanged();
+						}
+
+					}
+				}
+			}
+		}
+
+		if (!bConnected)
+		{
+			Super::AutowireNewNode(FromPin);
+		}
+	}
+}
+
 /////// UK2Node_AddDelegate ///////////
 
-UK2Node_AddDelegate::UK2Node_AddDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_AddDelegate::UK2Node_AddDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -247,8 +305,8 @@ void UK2Node_AddDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FStri
 
 /////// UK2Node_ClearDelegate ///////////
 
-UK2Node_ClearDelegate::UK2Node_ClearDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ClearDelegate::UK2Node_ClearDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -271,8 +329,8 @@ FNodeHandlingFunctor* UK2Node_ClearDelegate::CreateNodeHandler(FKismetCompilerCo
 
 /////// UK2Node_RemoveDelegate ///////////
 
-UK2Node_RemoveDelegate::UK2Node_RemoveDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_RemoveDelegate::UK2Node_RemoveDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -308,8 +366,8 @@ FNodeHandlingFunctor* UK2Node_RemoveDelegate::CreateNodeHandler(FKismetCompilerC
 
 /////// UK2Node_CallDelegate ///////////
 
-UK2Node_CallDelegate::UK2Node_CallDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallDelegate::UK2Node_CallDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

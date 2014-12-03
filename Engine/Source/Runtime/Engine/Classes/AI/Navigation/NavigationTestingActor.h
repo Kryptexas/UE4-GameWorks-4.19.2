@@ -31,14 +31,18 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	class UCapsuleComponent* CapsuleComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Editor Preview */
+	DEPRECATED_FORGAME(4.6, "EdRenderComp should not be accessed directly, please use GetEdRenderComp() function instead. EdRenderComp will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UNavTestRenderingComponent> EdRenderComp;
+	class UNavTestRenderingComponent* EdRenderComp;
 #endif // WITH_EDITORONLY_DATA
+public:
 
 	/** @todo document */
 	UPROPERTY(EditAnywhere, Category=Agent)
@@ -129,6 +133,7 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 #endif
 
 	FNavPathSharedPtr LastPath;
+	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
 
 	/** Dtor */
 	virtual ~ANavigationTestingActor();
@@ -159,8 +164,21 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	void GatherDetailedData(class ANavigationTestingActor* Goal);
 	void SearchPathTo(class ANavigationTestingActor* Goal);
 
+	/*	Called when given path becomes invalid (via @see PathObserverDelegate)
+	 *	NOTE: InvalidatedPath doesn't have to be instance's current Path
+	 */
+	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
+
 	// Virtual method to override if you want to customize the query being 
 	// constructed for the path find (e.g. change the filter or add 
 	// constraints/goal evaluators).
 	virtual FPathFindingQuery BuildPathFindingQuery(const ANavigationTestingActor* Goal) const;
+
+public:
+	/** Returns CapsuleComponent subobject **/
+	class UCapsuleComponent* GetCapsuleComponent() const;
+#if WITH_EDITORONLY_DATA
+	/** Returns EdRenderComp subobject **/
+	class UNavTestRenderingComponent* GetEdRenderComp() const;
+#endif
 };

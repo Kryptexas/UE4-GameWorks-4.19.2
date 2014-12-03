@@ -39,7 +39,7 @@ void FPoseLinkBase::Initialize(const FAnimationInitializeContext& Context)
 	}
 }
 
-void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	checkf( !bProcessed, TEXT( "Initialize already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
 		Context.AnimInstance ? *Context.AnimInstance->GetFullName() : TEXT( "None" ), Context.GetAnimBlueprintClass() ? *Context.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );

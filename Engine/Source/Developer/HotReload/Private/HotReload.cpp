@@ -220,7 +220,7 @@ private:
 	bool InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar);
 
 	/** Checks to see if a pending compilation action has completed and optionally waits for it to finish.  If completed, fires any appropriate callbacks and reports status provided bFireEvents is true. */
-	void CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideText = FText::GetEmpty(), bool bFireEvents = true);
+	void CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, bool bFireEvents = true);
 
 	/** Called when the compile data for a module need to be update in memory and written to config */
 	void UpdateModuleCompileData(FName ModuleName);
@@ -233,6 +233,9 @@ private:
 
 	/** Access the module's file and read the timestamp from the file system. Returns true if the timestamp was read successfully. */
 	bool GetModuleFileTimeStamp(FName ModuleName, FDateTime& OutFileTimeStamp) const;
+
+	/** Checks if the specified array of modules to recompile contains only game modules */
+	bool ContainsOnlyGameModules(const TArray< FModuleToRecompile >& ModuleNames) const;
 
 	/** FTicker delegate (hot-reload from IDE) */
 	FTickerDelegate TickerDelegate;
@@ -256,6 +259,9 @@ private:
 
 	/** New module DLLs */
 	TArray<FRecompiledModule> NewModules;
+
+	/** Moduels that have been recently recompiled from the editor **/
+	TSet<FString> ModulesRecentlyCompiledInTheEditor;
 
 	/** Delegate broadcast when a module has been hot-reloaded */
 	FHotReloadEvent HotReloadEvent;
@@ -402,14 +408,21 @@ FString FHotReloadModule::GetModuleCompileMethod(FName InModuleName)
 bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
 {
 #if WITH_HOT_RELOAD
-	const bool bShowProgressDialog = true;
-	const bool bShowCancelButton = false;
+	UE_LOG(LogHotReload, Log, TEXT("Recompiling module %s..."), *InModuleName.ToString());
+
+	// This is an internal request for hot-reload (not from IDE)
+	bIsHotReloadingFromEditor = true;
+	// A list of modules that have been recompiled in the editor is going to prevent false
+	// hot-reload from IDE events as this call is blocking any potential callbacks coming from the filesystem
+	// and bIsHotReloadingFromEditor may not be enough to prevent those from being treated as actual hot-reload from IDE modules
+	ModulesRecentlyCompiledInTheEditor.Empty();
 
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("CodeModuleName"), FText::FromName( InModuleName ) );
 	const FText StatusUpdate = FText::Format( NSLOCTEXT("ModuleManager", "Recompile_SlowTaskName", "Compiling {CodeModuleName}..."), Args );
 
-	GWarn->BeginSlowTask( StatusUpdate, bShowProgressDialog, bShowCancelButton );
+	FScopedSlowTask SlowTask(1, StatusUpdate);
+	SlowTask.MakeDialog();
 
 	ModuleCompilerStartedEvent.Broadcast();
 
@@ -438,7 +451,8 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 		ModuleToRecompile.ModuleFileSuffix = UniqueSuffix;
 		ModuleToRecompile.NewModuleFilename = UniqueModuleFileName;
 		ModulesToRecompile.Add( ModuleToRecompile );
-		bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );
+		ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(UniqueModuleFileName));
+		bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );		
 	}
 
 	if( bWasSuccessful )
@@ -457,6 +471,10 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 			FModuleToRecompile ModuleToRecompile;
 			ModuleToRecompile.ModuleName = InModuleName.ToString();
 			ModulesToRecompile.Add( ModuleToRecompile );
+			if (FModuleManager::Get().IsModuleLoaded(InModuleName))
+			{
+				ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetModuleFilename(InModuleName)));
+			}
 			bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );
 		}
 
@@ -468,7 +486,8 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 		}
 	}
 
-	GWarn->EndSlowTask();
+	bIsHotReloadingFromEditor = false;
+
 	return bWasSuccessful;
 #else
 	return false;
@@ -800,7 +819,9 @@ void FHotReloadModule::OnHotReloadBinariesChanged(const TArray<struct FFileChang
 				{
 					for (auto& GameModule : GameModuleNames)
 					{
-						if (Filename.Contains(GameModule) && !NewModules.ContainsByPredicate([&](const FRecompiledModule& Module){ return Module.Name == GameModule; }))
+						if (Filename.Contains(GameModule) && 
+							  !NewModules.ContainsByPredicate([&](const FRecompiledModule& Module){ return Module.Name == GameModule; }) &&
+								!ModulesRecentlyCompiledInTheEditor.Contains(FPaths::ConvertRelativePathToFull(Change.Filename)))
 						{
 							// Add to queue. We do not hot-reload here as there may potentially be other modules being compiled.
 							NewModules.Add(FRecompiledModule(GameModule, Change.Filename));
@@ -891,26 +912,29 @@ void FHotReloadModule::DoHotReloadFromIDE()
 
 		UE_LOG(LogHotReload, Log, TEXT("Starting Hot-Reload from IDE"));
 
-		GWarn->BeginSlowTask(LOCTEXT("CompilingGameCode", "Compiling Game Code"), true);
+		FScopedSlowTask SlowTask(100.f, LOCTEXT("CompilingGameCode", "Compiling Game Code"));
+		SlowTask.MakeDialog();
 
 		// Update compile data before we start compiling
 		for (auto& NewModule : NewModules)
 		{
+			// Move on 10% / num items
+			SlowTask.EnterProgressFrame(10.f/NewModules.Num());
+
 			UpdateModuleCompileData(*NewModule.Name);
 			OnModuleCompileSucceeded(*NewModule.Name, NewModule.NewFilename);
 		}
 
-
+		SlowTask.EnterProgressFrame(10);
 		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
 
+		SlowTask.EnterProgressFrame(80);
 		check(PackagesToRebind.Num() || DependentModules.Num())
 		{
 			const bool bRecompileFinished = true;
 			const ECompilationResult::Type RecompileResult = ECompilationResult::Succeeded;
 			Result = DoHotReloadInternal(bRecompileFinished, RecompileResult, PackagesToRebind, DependentModules, *GLog);
 		}
-
-		GWarn->EndSlowTask();
 	}
 
 	RecordAnalyticsEvent(TEXT("IDE"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
@@ -1108,10 +1132,15 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 		ExtraArg += TEXT( "-FailIfGeneratedCodeChanges " );
 	}
 
-	// Shared PCH does no work with hot-reloading modules as we don't scan all modules for them.
-	// Also, if there's nothing to compile, don't bother linking the DLLs as the old ones are up-to-date
-	ExtraArg += TEXT("-nosharedpch -canskiplink ");
+	// If there's nothing to compile, don't bother linking the DLLs as the old ones are up-to-date
+	ExtraArg += TEXT("-canskiplink ");
 
+	// Shared PCH does no work with hot-reloading engine/editor modules as we don't scan all modules for them.
+	if (!ContainsOnlyGameModules(ModuleNames))
+	{
+		ExtraArg += TEXT("-nosharedpch ");
+	}
+	
 	FString TargetName = GameName;
 
 #if WITH_EDITOR
@@ -1197,7 +1226,7 @@ bool FHotReloadModule::InvokeUnrealBuildToolForCompile(const FString& InCmdLineP
 #endif // WITH_HOT_RELOAD
 }
 
-void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideText, bool bFireEvents)
+void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, bool bFireEvents)
 {
 #if WITH_HOT_RELOAD
 	bCompileStillInProgress = false;
@@ -1208,33 +1237,20 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 	{
 		bCompileStillInProgress = true;
 
-		// Ensure slow task messages are seen.
-		GWarn->PushStatus();
-
-		// Update the slow task dialog if we were summoned from a synchronous recompile path
-		if (GIsSlowTask)
+		FText StatusUpdate;
+		if ( ModulesBeingCompiled.Num() > 0 )
 		{
-			if ( !SlowTaskOverrideText.IsEmpty() )
-			{
-				GWarn->StatusUpdate(-1, -1, SlowTaskOverrideText);
-			}
-			else
-			{
-				FText StatusUpdate;
-				if ( ModulesBeingCompiled.Num() > 0 )
-				{
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
-					StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
-				}
-				else
-				{
-					StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
-				}
-
-				GWarn->StatusUpdate(-1, -1, StatusUpdate);
-			}
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
+			StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
 		}
+		else
+		{
+			StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
+		}
+
+		FScopedSlowTask SlowTask(0, StatusUpdate, GIsSlowTask);
+		SlowTask.MakeDialog();
 
 		// Check to see if the compile has finished yet
 		int32 ReturnCode = -1;
@@ -1272,9 +1288,6 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 		}
 		
 		bRequestCancelCompilation = false;
-
-		// Restore any status from before the loop - see PushStatus() above.
-		GWarn->PopStatus();
 
 		if( !bCompileStillInProgress )		
 		{
@@ -1480,6 +1493,22 @@ bool FHotReloadModule::IsAnyGameModuleLoaded() const
 	}
 
 	return false;
+}
+
+bool FHotReloadModule::ContainsOnlyGameModules(const TArray<FModuleToRecompile>& ModulesToCompile) const
+{
+	const FString AbsoluteGameDir(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
+	bool bOnlyGameModules = true;
+	for (auto& ModuleToCompile : ModulesToCompile)
+	{
+		const FString FullModulePath(FPaths::ConvertRelativePathToFull(ModuleToCompile.NewModuleFilename));
+		if (!FullModulePath.StartsWith(AbsoluteGameDir))
+		{
+			bOnlyGameModules = false;
+			break;
+		}
+	}
+	return bOnlyGameModules;
 }
 
 #undef LOCTEXT_NAMESPACE

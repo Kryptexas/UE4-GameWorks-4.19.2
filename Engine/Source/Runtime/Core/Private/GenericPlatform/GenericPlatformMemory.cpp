@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MallocAnsi.h"
 #include "GenericPlatformMemoryPoolStats.h"
 #include "MemoryMisc.h"
@@ -33,6 +33,8 @@ FGenericPlatformMemoryStats::FGenericPlatformMemoryStats()
 	, PeakUsedVirtual( 0 )
 {}
 
+bool FGenericPlatformMemory::bIsOOM = false;
+
 void FGenericPlatformMemory::SetupMemoryPools()
 {
 	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory, we still need to make this call to set the short name, etc
@@ -48,6 +50,7 @@ void FGenericPlatformMemory::Init()
 
 void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 {
+	bIsOOM = true;
 	UE_LOG(LogMemory, Fatal, TEXT("Ran out of memory allocating %llu bytes with alignment %u"), Size, Alignment);
 }
 
@@ -160,7 +163,7 @@ void FGenericPlatformMemory::Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
 	}
 }
 
-FGenericPlatformMemory::FSharedMemoryRegion::FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize)
+FGenericPlatformMemory::FSharedMemoryRegion::FSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize)
 	:	AccessMode(InAccessMode)
 	,	Address(InAddress)
 	,	Size(InSize)
@@ -168,7 +171,7 @@ FGenericPlatformMemory::FSharedMemoryRegion::FSharedMemoryRegion(const FString &
 	FCString::Strcpy(Name, sizeof(Name) - 1, *InName);
 }
 
-FGenericPlatformMemory::FSharedMemoryRegion * FGenericPlatformMemory::MapNamedSharedMemoryRegion(const FString & Name, bool bCreate, uint32 AccessMode, SIZE_T Size)
+FGenericPlatformMemory::FSharedMemoryRegion * FGenericPlatformMemory::MapNamedSharedMemoryRegion(const FString& Name, bool bCreate, uint32 AccessMode, SIZE_T Size)
 {
 	UE_LOG(LogHAL, Error, TEXT("FGenericPlatformMemory::MapNamedSharedMemoryRegion not implemented on this platform"));
 	return NULL;

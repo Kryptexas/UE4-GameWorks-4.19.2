@@ -9,6 +9,13 @@ public class UE4EditorServices : ModuleRules
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 		PublicIncludePaths.Add("Runtime/Launch/Private"); // Yuck. Required for RequiredProgramMainCPPInclude.h. (Also yuck).
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "Projects", "DesktopPlatform" });
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"DesktopPlatform",
+				"Json",
+				"Projects",
+			}
+		);
 	}
 }

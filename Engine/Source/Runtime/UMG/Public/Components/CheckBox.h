@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,12 +9,26 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, bool, bIsChecked );
 
 /**
- * Check box widget
+ * The checkbox widget allows you to display a toggled state of 'unchecked', 'checked' and 
+ * 'indeterminable.  You can use the checkbox for a classic checkbox, or as a toggle button,
+ * or as radio buttons.
+ * 
+ * ● Single Child
+ * ● Toggle
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UCheckBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
+	/** Whether the check box is currently in a checked state */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	TEnumAsByte<ESlateCheckBoxState::Type> CheckedState;
+
+	/** A bindable delegate for the IsChecked. */
+	UPROPERTY()
+	FGetCheckBoxState CheckedStateDelegate;
 
 public:
 	/** The checkbox bar style */
@@ -61,24 +75,16 @@ public:
 	UPROPERTY()
 	USlateBrushAsset* UndeterminedPressedImage_DEPRECATED;
 
-	/** Whether the check box is currently in a checked state */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	TEnumAsByte<ESlateCheckBoxState::Type> CheckedState;
-
-	/** A bindable delegate for the IsChecked. */
-	UPROPERTY()
-	FGetCheckBoxState CheckedStateDelegate;
-
 	/** How the content of the toggle button should align within the given space */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Spacing between the check box image and its content */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FMargin Padding;
 
 	/** The color of the background border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateColor BorderBackgroundColor;
 
 public:
@@ -86,6 +92,8 @@ public:
 	/** Called when the checked state has changed */
 	UPROPERTY(BlueprintAssignable)
 	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
+
+public:
 
 	/** Returns true if this button is currently pressed */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -106,6 +114,8 @@ public:
 	/** Sets the checked state. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetCheckedState(ESlateCheckBoxState::Type InCheckedState);
+
+public:
 	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

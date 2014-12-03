@@ -19,6 +19,8 @@
 #include <cxxabi.h>
 #include "ApplePlatformSymbolication.h"
 #endif
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY(LogSelectionDetails);
 

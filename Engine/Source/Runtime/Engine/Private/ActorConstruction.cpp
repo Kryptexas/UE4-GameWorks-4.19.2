@@ -88,20 +88,42 @@ void AActor::DestroyConstructedComponents()
 	GetComponents(PreviouslyAttachedComponents);
 	for (int32 i = 0; i < PreviouslyAttachedComponents.Num(); i++)
 	{
-		UActorComponent*& Component = PreviouslyAttachedComponents[i];
-		if (Component && Component->bCreatedByConstructionScript)
+		UActorComponent* Component = PreviouslyAttachedComponents[i];
+		if (Component)
 		{
-			if (Component == RootComponent)
+			bool bDestroyComponent = false;
+			if (Component->bCreatedByConstructionScript)
 			{
-				RootComponent = NULL;
+				bDestroyComponent = true;
+			}
+			else
+			{
+				UActorComponent* OuterComponent = Component->GetTypedOuter<UActorComponent>();
+				while (OuterComponent)
+				{
+					if (OuterComponent->bCreatedByConstructionScript)
+					{
+						bDestroyComponent = true;
+						break;
+					}
+					OuterComponent = OuterComponent->GetTypedOuter<UActorComponent>();
+				}
 			}
 
-			Component->DestroyComponent();
+			if (bDestroyComponent)
+			{
+				if (Component == RootComponent)
+				{
+					RootComponent = NULL;
+				}
 
-			// Rename component to avoid naming conflicts in the case where we rerun the SCS and name the new components the same way.
-			FName const NewBaseName( *(FString::Printf(TEXT("TRASH_%s"), *Component->GetClass()->GetName())) );
-			FName const NewObjectName = MakeUniqueObjectName(this, GetClass(), NewBaseName);
-			Component->Rename(*NewObjectName.ToString(), this, REN_ForceNoResetLoaders);
+				Component->DestroyComponent();
+
+				// Rename component to avoid naming conflicts in the case where we rerun the SCS and name the new components the same way.
+				FName const NewBaseName( *(FString::Printf(TEXT("TRASH_%s"), *Component->GetClass()->GetName())) );
+				FName const NewObjectName = MakeUniqueObjectName(this, GetClass(), NewBaseName);
+				Component->Rename(*NewObjectName.ToString(), this, REN_ForceNoResetLoaders);
+			}
 		}
 	}
 }
@@ -472,7 +494,7 @@ void AActor::FinishAndRegisterComponent(UActorComponent* Component)
 	SerializedComponents.Add(Component);
 }
 
-UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString & InName)
+UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString& InName)
 {
 	UActorComponent* NewActorComp = NULL;
 	if(Template != NULL)

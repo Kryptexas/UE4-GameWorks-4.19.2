@@ -410,8 +410,8 @@ private:
 public:
 
 	// Constructors.
-	UModel(const class FPostConstructInitializeProperties& PCIP)
-	: UObject(PCIP)
+	UModel(const FObjectInitializer& ObjectInitializer)
+	: UObject(ObjectInitializer)
 	, Nodes( this )
 	, Verts( this )
 	, Vectors( this )
@@ -432,7 +432,7 @@ public:
 			}
 		}
 	}
-	ENGINE_API UModel( const class FPostConstructInitializeProperties& PCIP,ABrush* Owner, bool InRootOutside=1 );
+	ENGINE_API UModel( const FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside=1 );
 
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar );	

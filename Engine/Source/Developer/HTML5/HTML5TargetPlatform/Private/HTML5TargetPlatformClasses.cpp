@@ -11,6 +11,6 @@
 /* UHTML5TargetSettings structors
  *****************************************************************************/
 
-UHTML5TargetSettings::UHTML5TargetSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UHTML5TargetSettings::UHTML5TargetSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }

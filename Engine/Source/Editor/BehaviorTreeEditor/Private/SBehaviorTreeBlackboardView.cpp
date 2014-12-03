@@ -12,6 +12,7 @@
 #include "BehaviorTreeEditorCommands.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardView"
 
@@ -465,11 +466,12 @@ int32 SBehaviorTreeBlackboardView::GetSelectedEntryIndex(bool& bOutIsInherited) 
 	return INDEX_NONE;
 }
 
-FBlackboardEntry* SBehaviorTreeBlackboardView::GetSelectedEntry() const
+FBlackboardEntry* SBehaviorTreeBlackboardView::GetSelectedEntry(bool& bOutIsInherited) const
 {
 	TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> Entry = GetSelectedEntryInternal();
 	if(Entry.IsValid())
 	{
+		bOutIsInherited = Entry->bIsInherited;
 		return &Entry->Key;
 	}
 
@@ -550,7 +552,8 @@ bool SBehaviorTreeBlackboardView::IsUsingSavedValues() const
 
 bool SBehaviorTreeBlackboardView::HasSelectedItems() const
 {
-	return GetSelectedEntry() != nullptr;
+	bool bIsInherited = false;
+	return GetSelectedEntry(bIsInherited) != nullptr;
 }
 
 bool SBehaviorTreeBlackboardView::IsDebuggerActive() const

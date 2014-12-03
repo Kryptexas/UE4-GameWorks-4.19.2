@@ -10,6 +10,7 @@
 #include "BlueprintEditorModes.h"
 #include "BlueprintEditorTabs.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "SDockTab.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LiveEditor, Log, All);
 
@@ -36,7 +37,7 @@ class FComponentsEditorModeOverride : public FBlueprintEditorApplicationMode
 {
 public:
 	FComponentsEditorModeOverride(TSharedPtr<FBlueprintEditor> InBlueprintEditor, FName InModeName)
-		: FBlueprintEditorApplicationMode(InBlueprintEditor, InModeName)
+		: FBlueprintEditorApplicationMode(InBlueprintEditor, InModeName, FBlueprintEditorApplicationModes::GetLocalizedMode)
 	{
 	}
 
@@ -209,7 +210,7 @@ void FLiveEditor::InstallHooks()
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(LiveEditorModule::LiveEditorApp, FOnSpawnTab::CreateStatic(&SpawnLiveEditorTab))
 		.SetDisplayName(NSLOCTEXT("LiveEditorPlugin", "TabTitle", "Live Editor"))
-		.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsCategory())
+		.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LiveEditor.TabIcon"));
 }
 

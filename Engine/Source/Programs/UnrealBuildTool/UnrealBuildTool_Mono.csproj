@@ -86,19 +86,14 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
-  <Choose>
-    <When Condition="Exists('HTML5\UEBuildHTML5.cs')">
-      <ItemGroup>
-        <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
-        <Compile Include="HTML5\HTML5ToolChain.cs" />
-        <Compile Include="HTML5\UEBuildHTML5.cs" />
-      </ItemGroup>
-    </When>
-  </Choose>
   <ItemGroup>
     <Compile Include="..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
+    <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
+    <Compile Include="HTML5\HTML5ToolChain.cs" />
+    <Compile Include="HTML5\HTML5SDKInfo.cs" />
+    <Compile Include="HTML5\UEBuildHTML5.cs" />
     <Compile Include="Configuration\UEBuildClient.cs" />
     <Compile Include="Configuration\UEBuildDeploy.cs" />
     <Compile Include="Configuration\UEBuildBinary.cs" />
@@ -144,6 +139,7 @@
     <Compile Include="System\LinkEnvironment.cs" />
     <Compile Include="System\LocalExecutor.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
+    <Compile Include="System\SNDBS.cs" />
     <Compile Include="System\Plugins.cs" />
     <Compile Include="System\Project.cs" />
     <Compile Include="System\ProjectFileGenerator.cs" />

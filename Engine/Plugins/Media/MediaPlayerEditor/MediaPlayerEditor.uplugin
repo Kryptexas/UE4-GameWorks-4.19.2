@@ -6,6 +6,7 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
+	"DocsURL" : "https://forums.unrealengine.com/showthread.php?46879-Media-Framework-Documentation-for-4-5-Preview",
 	"EngineVersion" : "4.5.0",
 	"Description" : "Content Editor for MediaPlayer Assets.",
 	"Category" : "Media.Editors",

@@ -52,7 +52,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	
 	// Register to the PostGarbageCollect delegate, as we want to use this to trigger the RefreshAllBroweser delegate from 
 	// here rather then from Core
-	FCoreDelegates::PostGarbageCollect.AddUObject(this, &UUnrealEdEngine::OnPostGarbageCollect);
+	FCoreUObjectDelegates::PostGarbageCollect.AddUObject(this, &UUnrealEdEngine::OnPostGarbageCollect);
 
 	// register to color picker changed event and trigger RedrawAllViewports when that happens */
 	FCoreDelegates::ColorPickerChanged.AddUObject(this, &UUnrealEdEngine::OnColorPickerChanged);
@@ -110,27 +110,51 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		PropertyModule.RegisterCustomClassLayout("ProjectPackagingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FProjectPackagingSettingsCustomization::MakeInstance));
 	}
 
-	if ( FParse::Param( FCommandLine::Get(),TEXT("COOKONTHESIDE")) )
+	UEditorExperimentalSettings const* ExperimentalSettings =  GetDefault<UEditorExperimentalSettings>();
+	ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave;
+	BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+
+	if ( ExperimentalSettings->bDisableCookInEditor)
 	{
 		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
-		CookServer->Initialize( ECookMode::CookOnTheFly, ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave );
+		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags );
+
+		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreUObjectDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
+	}
+	else if ( ExperimentalSettings->bCookOnTheSide )
+	{
+		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+		CookServer->Initialize( ECookMode::CookOnTheFly, BaseCookingFlags );
 		CookServer->StartNetworkFileServer( false );
 
-		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
-		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
-	}
-	else if ( FParse::Param( FCommandLine::Get(), TEXT("COOKINTHEEDITOR")))
-	{
-		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
-		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave );
-
-		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
-		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
+		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreUObjectDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
 	}
 }
 
 bool UUnrealEdEngine::CanCookByTheBookInEditor() const 
 { 
+	////////////////////////////////////////
+	// hack remove this hack when we properly support changing the mobileHDR setting 
+	// check if our mobile hdr setting in memory is different from the one which is saved in the config file
+	bool ConfigSetting = false;
+	if ( !GConfig->GetBool( TEXT("/Script/Engine.RendererSettings"), TEXT("r.MobileHDR"), ConfigSetting, GEngineIni) )
+	{
+		// if we can't get the config setting then don't risk it
+		return false;
+	}
+
+	// this was stolen from void IsMobileHDR()
+	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	const bool CurrentRSetting = MobileHDRCvar->GetValueOnAnyThread() == 1;
+
+	if ( CurrentRSetting != ConfigSetting )
+	{
+		return false;
+	}
+	////////////////////////////////////////
+
 	if ( CookServer )
 	{
 		return CookServer->GetCookMode() == ECookMode::CookByTheBookFromTheEditor; 
@@ -146,6 +170,11 @@ void UUnrealEdEngine::StartCookByTheBookInEditor( const TArray<ITargetPlatform*>
 bool UUnrealEdEngine::IsCookByTheBookInEditorFinished() const 
 { 
 	return !CookServer->IsCookByTheBookRunning();
+}
+
+void UUnrealEdEngine::CancelCookByTheBookInEditor()
+{
+	CookServer->QueueCancelCookByTheBook();
 }
 
 void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo) const
@@ -247,8 +276,8 @@ void UUnrealEdEngine::FinishDestroy()
 {
 	if( CookServer)
 	{
-		FCoreDelegates::OnObjectPropertyChanged.RemoveAll( CookServer );
-		FCoreDelegates::OnObjectModified.RemoveAll( CookServer );
+		FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(CookServer);
+		FCoreUObjectDelegates::OnObjectModified.RemoveAll(CookServer);
 	}
 
 	if(PackageAutoSaver.Get())
@@ -264,7 +293,7 @@ void UUnrealEdEngine::FinishDestroy()
 	}
 
 	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
-	FCoreDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
 	FCoreDelegates::ColorPickerChanged.RemoveAll(this);
 	Super::FinishDestroy();
 }
@@ -651,13 +680,13 @@ FString FClassPickerDefaults::GetDescription() const
 #undef LOCTEXT_NAMESPACE
 
 
-UUnrealEdKeyBindings::UUnrealEdKeyBindings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdKeyBindings::UUnrealEdKeyBindings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UUnrealEdOptions::UUnrealEdOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdOptions::UUnrealEdOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1121,6 +1150,37 @@ void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiv
 					if(Visualizer.IsValid())
 					{
 						Visualizer->DrawVisualization(Comp, View, PDI);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void UUnrealEdEngine::DrawComponentVisualizersHUD(const FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
+{
+	// Iterate over all selected actors
+	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = Cast<AActor>(*It);
+		if (Actor != NULL)
+		{
+			// Then iterate over components of that actor
+			TArray<UActorComponent*> Components;
+			Actor->GetComponents(Components);
+
+			for (int32 CompIdx = 0; CompIdx<Components.Num(); CompIdx++)
+			{
+				UActorComponent* Comp = Components[CompIdx];
+				if (Comp->IsRegistered())
+				{
+					// Try and find a visualizer
+
+					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
+					if (Visualizer.IsValid())
+					{
+						Visualizer->DrawVisualizationHUD(Comp, Viewport, View, Canvas);
 					}
 				}
 			}

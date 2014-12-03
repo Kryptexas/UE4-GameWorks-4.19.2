@@ -41,9 +41,30 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	check( IsInGameThread() );
 	check( !GIsThreadedRendering );
 
-	// Initialize the RHI capabilities.
-	GMaxRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
-	GMaxRHIShaderPlatformValue = SP_METAL;
+
+	// get the device to ask about capabilities
+	id<MTLDevice> Device = [IOSAppDelegate GetDelegate].IOSView->MetalDevice;
+	// A8 can use 256 bits of MRTs
+	bool bCanUseWideMRTs = [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1];
+	// only allow GBuffers, etc on A8s (A7s are just not going to cut it)
+	if (bCanUseWideMRTs && FParse::Param(FCommandLine::Get(),TEXT("metalmrt")))
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
+		GMaxRHIShaderPlatform = SP_METAL_MRT;
+	}
+	else
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
+		GMaxRHIShaderPlatform = SP_METAL;
+	}
+
+	if (FPlatformMisc::IsDebuggerPresent() && UE_BUILD_DEBUG)
+	{
+		// Enable GL debug markers if we're running in Xcode
+		extern int32 GEmitMeshDrawEvent;
+		GEmitMeshDrawEvent = 1;
+		GEmitDrawEvents = true;
+	}
 
 	GPixelCenterOffset = 0.0f;
 	GSupportsVertexInstancing = false;
@@ -69,10 +90,13 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GMaxCubeTextureDimensions = 4096;
 	GMaxTextureArrayLayers = 2048;
 
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_NumPlatforms;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIShaderPlatform == SP_METAL_MRT) ? SP_METAL_MRT : SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
+
+	// @todo metal mrt:
+	GSupportsVolumeTextureRendering = false;
 
 // 	GDrawUPVertexCheckCount = MAX_uint16;
 
@@ -98,9 +122,11 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_DepthStencil		].BlockBytes		= 4;
 	GPixelFormats[PF_X24_G8				].PlatformFormat	= MTLPixelFormatStencil8;
 	GPixelFormats[PF_X24_G8				].BlockBytes		= 1;
-	GPixelFormats[PF_ShadowDepth		].PlatformFormat	= MTLPixelFormatDepth32Float;
+	GPixelFormats[PF_ShadowDepth		].PlatformFormat	= GPixelFormats[PF_DepthStencil].PlatformFormat; // all depth formats must be the same, for the pipeline state hash (see NUMBITS_DEPTH_ENABLED)
 	GPixelFormats[PF_R32_FLOAT			].PlatformFormat	= MTLPixelFormatR32Float;
-	GPixelFormats[PF_G16R16				].PlatformFormat	= MTLPixelFormatRG16Unorm;
+	GPixelFormats[PF_G16R16				].PlatformFormat	= MTLPixelFormatInvalid;//MTLPixelFormatRG16Unorm;
+	// we can't render to this in Metal, so mark it as unsupported (although we could texture from it, but we are only using it for render targets)
+	GPixelFormats[PF_G16R16				].Supported			= false;
 	GPixelFormats[PF_G16R16F			].PlatformFormat	= MTLPixelFormatRG16Float;
 	GPixelFormats[PF_G16R16F_FILTER		].PlatformFormat	= MTLPixelFormatRG16Float;
 	GPixelFormats[PF_G32R32F			].PlatformFormat	= MTLPixelFormatRG32Float;

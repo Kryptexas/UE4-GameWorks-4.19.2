@@ -284,7 +284,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (float)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Float")
 	static bool EqualEqual_FloatFloat(float A, float B);
 
-	/* Returns true if (|A - B| < ErrorTolerance) */
+	/* Returns true if A is nearly equal to B (|A - B| < ErrorTolerance) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Nearly Equal (float)", Keywords = "== equal"), Category="Math|Float")
 	static bool NearlyEqual_FloatFloat(float A, float B, float ErrorTolerance = 1.e-6f);
 
@@ -319,6 +319,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns the tan of A (expects Radians)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Tan (Radians)", CompactNodeTitle = "TAN"), Category="Math|Trig")
 	static float Tan(float A);
+
+	/* Returns the inverse tan (atan) (result is in Radians)*/
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan (Radians)"), Category="Math|Trig")
+	static float Atan(float A);
 
 	/* Returns the inverse tan (atan2) of A/B (result is in Radians)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan2 (Radians)"), Category="Math|Trig")
@@ -379,6 +383,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns the tan of A (expects Degrees)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Tan (Degrees)", CompactNodeTitle = "TANd"), Category="Math|Trig")
 	static float DegTan(float A);
+
+	/* Returns the inverse tan (atan) (result is in Degrees)*/
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan (Degrees)"), Category="Math|Trig")
+	static float DegAtan(float A);
 
 	/* Returns the inverse tan (atan2) of A/B (result is in Degrees)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan2 (Degrees)"), Category="Math|Trig")
@@ -521,13 +529,13 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "RotateVectorAroundAxis"), Category="Math|Vector")
 	static FVector RotateAngleAxis(FVector InVect, float AngleDeg, FVector Axis);
 
-	/* Returns true if the values are equal (A == B) */
+	/* Returns true if vector A is equal to vector B (A == B) within a specified error tolerance */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (vector)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Vector")
-	static bool EqualEqual_VectorVector(FVector A, FVector B);
+	static bool EqualEqual_VectorVector(FVector A, FVector B, float ErrorTolerance = 1.e-4f);
 
-	/* Returns true if the values are not equal (A != B) */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (vector)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Vector")
-	static bool NotEqual_VectorVector(FVector A, FVector B);
+	/* Returns true if vector A is not equal to vector B (A != B) within a specified error tolerance */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Not Equal (vector)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Vector")
+	static bool NotEqual_VectorVector(FVector A, FVector B, float ErrorTolerance = 1.e-4f);
 
 	/* Returns the dot product of two vectors */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Dot Product", CompactNodeTitle = "."), Category="Math|Vector" )
@@ -544,6 +552,14 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** Returns the length of a 2d FVector. */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Vector2dLength"), Category="Math|Vector2D")
 	static float VSize2D(FVector2D A);
+
+	/* Returns the squared length of the FVector */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "VectorLengthSquared"), Category="Math|Vector")
+	static float VSizeSquared(FVector A);
+
+	/** Returns the squared length of a 2d FVector. */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Vector2dLengthSquared"), Category="Math|Vector2D")
+	static float VSize2DSquared(FVector2D A);
 
 	/* Returns a unit normal version of the FVector A */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Normalize"), Category="Math|Vector")
@@ -572,7 +588,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** 
 	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
 	 * @param ConeDir	The base "center" direction of the cone.
-	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in degrees.
+	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in radians.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Math|Random")
 	static FVector RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle);
@@ -581,9 +597,37 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Vector")
 	static FVector MirrorVectorByNormal(FVector InVect, FVector InNormal);
 
-	// Projects one vector (X) onto another (Y) and returns the projected vector.
-	UFUNCTION(BlueprintPure, Category="Math|Vector" )
-	static FVector ProjectOnTo(FVector X, FVector Y);
+	/**
+	* Projects one vector (V) onto another (Target) and returns the projected vector.
+	* If Target is nearly zero in length, returns the zero vector.
+	*
+	* @param  V Vector to project.
+	* @param  Target Vector on which we are projecting.
+	* @return V projected on to Target.
+	*/
+	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
+	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
+
+	 /**
+	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
+	 *
+	 * @param  Point Point to project onto the plane.
+	 * @param  PlaneBase A point on the plane.
+	 * @param  PlaneNormal Normal of the plane.
+	 * @return Point projected onto the plane.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector", meta=(Keywords = "ProjectOnTo"))
+	static FVector ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal);
+
+	/**
+	* Projects a vector onto a plane defined by a normalized vector (PlaneNormal).
+	*
+	* @param  V Vector to project onto the plane.
+	* @param  PlaneNormal Normal of the plane.
+	* @return Vector projected onto the plane.
+	*/
+	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
+	static FVector ProjectVectorOnToPlane(FVector V, FVector PlaneNormal);
 
 	/** Negate a vector. */
 	UFUNCTION(BlueprintPure, Category="Math|Vector")
@@ -613,13 +657,13 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Rotator functions.
 	//
 
-	//Returns true if rotator A is equal to rotator B (A == B)
+	//Returns true if rotator A is equal to rotator B (A == B) within a specified error tolerance
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (Rotator)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Rotator")
-	static bool EqualEqual_RotatorRotator(FRotator A, FRotator B);
+	static bool EqualEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance = 1.e-4f);
 
-	//Returns true if rotator A does not equal rotator B (A != B)
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (Rotator)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Rotator")
-	static bool NotEqual_RotatorRotator(FRotator A, FRotator B);
+	//Returns true if rotator A is not equal to rotator B (A != B) within a specified error tolerance
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Not Equal (Rotator)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Rotator")
+	static bool NotEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance = 1.e-4f);
 
 	//Returns rotator representing rotator A scaled by B 
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ScaleRotator", CompactNodeTitle = "*", Keywords = "* multiply rotate rotation"), Category="Math|Rotator")
@@ -1190,7 +1234,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	//
 	
 	/** 
-	 *	Transform a position by the supplied transform 
+	 *	Transform a position by the supplied transform.
 	 *	For example, if T was an object's transform, would transform a position from local space to world space.
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(Keywords="location"))
@@ -1204,25 +1248,35 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector TransformDirection(const FTransform& T, FVector Direction);
 
 	/** 
-	 *	Transform a position by the inverse of the supplied transform 
+	 *	Transform a position by the inverse of the supplied transform.
 	 *	For example, if T was an object's transform, would transform a position from world space to local space.
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(Keywords="location"))
 	static FVector InverseTransformLocation(const FTransform& T, FVector Location);
 
 	/** 
-	 *	Transform a direction vector by the inverse of the supplied transform - will not change its length 
+	 *	Transform a direction vector by the inverse of the supplied transform - will not change its length.
 	 *	For example, if T was an object's transform, would transform a direction from world space to local space.
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Transform")
 	static FVector InverseTransformDirection(const FTransform& T, FVector Direction);
 
-	/** Multiply two transforms in order */
-	UFUNCTION(BlueprintPure, meta=(ToolTip = "Multiply two transforms in order: A * B", Keywords="add"), Category="Math|Transform")
+	/**
+	 * Compose two transforms in order: A * B.
+	 *
+	 * Order matters when composing transforms:
+	 * A * B will yield a transform that logically first applies A then B to any subsequent transformation.
+	 *
+	 * Example: LocalToWorld = ComposeTransforms(DeltaRotation, LocalToWorld) will change rotation in local space by DeltaRotation.
+	 * Example: LocalToWorld = ComposeTransforms(LocalToWorld, DeltaRotation) will change rotation in world space by DeltaRotation.
+	 *
+	 * @return New transform: A * B
+	 */
+	UFUNCTION(BlueprintPure, meta=(Keywords="multiply *"), Category="Math|Transform")
 	static FTransform ComposeTransforms(const FTransform& A, const FTransform& B);
 
 	/** 
-	 *  Convert a world-transform from world-space into local-space
+	 *  Convert a world-transform from world-space into local-space.
 	 *  @param		WorldTransform	The transform you wish to convert
 	 *  @param		LocalTransform	The transform the conversion is relative to
 	 *  @return		A new relative transform
@@ -1230,15 +1284,15 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(Keywords="cast convert"))
 	static FTransform ConvertTransformToRelative(const FTransform& WorldTransform, const FTransform& LocalTransform);
 
-	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
+	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1). */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (Transform)"), Category="Math|Transform")
 	static FTransform TLerp(const FTransform& A, const FTransform& B, float Alpha);
 
-	/* Easeing  between A and B using a specified easing function */
+	/** Ease between A and B using a specified easing function. */
 	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (Transform)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
 	static FTransform TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
 
-	/** Tries to reach a target transform */
+	/** Tries to reach a target transform. */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
 	static FTransform TInterpTo(const FTransform& Current, const FTransform& Target, float DeltaTime, float InterpSpeed);
 
@@ -1246,27 +1300,27 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Vector2D functions
 	//
 
-	//Returns addition of Vector A and Vector B (A + B)
+	/** Returns addition of Vector A and Vector B (A + B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d + vector2d", CompactNodeTitle = "+", Keywords = "+ add plus", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Vector2D")
 	static FVector2D Add_Vector2DVector2D(FVector2D A, FVector2D B);
 
-	//Returns subtraction of Vector B from Vector A (A - B)
+	/** Returns subtraction of Vector B from Vector A (A - B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d - vector2d", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector2D")
 	static FVector2D Subtract_Vector2DVector2D(FVector2D A, FVector2D B);
 
-	//Returns Vector A scaled by B
+	/** Returns Vector A scaled by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d * float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Vector2D")
 	static FVector2D Multiply_Vector2DFloat(FVector2D A, float B);
 
-	//Returns Vector A divided by B
+	/** Returns Vector A divided by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d / float", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector2D")
 	static FVector2D Divide_Vector2DFloat(FVector2D A, float B);
 
-	//Returns Vector A added by B
+	/** Returns Vector A added by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d + float", CompactNodeTitle = "+", Keywords = "+ add plus"), Category="Math|Vector2D")
 	static FVector2D Add_Vector2DFloat(FVector2D A, float B);
 
-	//Returns Vector A subtracted by B
+	/** Returns Vector A subtracted by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d - float", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector2D")
 	static FVector2D Subtract_Vector2DFloat(FVector2D A, float B);
 

@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // USizeBox
 
-USizeBox::USizeBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USizeBox::USizeBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 }
@@ -238,7 +238,7 @@ const FSlateBrush* USizeBox::GetEditorIcon()
 
 const FText USizeBox::GetPaletteCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Panel", "Panel");
 }
 
 #endif

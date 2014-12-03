@@ -108,8 +108,8 @@ struct FFunctionEntryHelper
 	}
 };
 
-UK2Node_FunctionEntry::UK2Node_FunctionEntry(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_FunctionEntry::UK2Node_FunctionEntry(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -202,7 +202,7 @@ void UK2Node_FunctionEntry::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<F
 
 	if(RedirectPinNames.Num() > 0)
 	{
-		const FString & OldPinName = RedirectPinNames[0];
+		const FString& OldPinName = RedirectPinNames[0];
 
 		
 		// first add functionname.param

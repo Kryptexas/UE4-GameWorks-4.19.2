@@ -22,7 +22,7 @@ void FMovieSceneAnimationTrackInstance::Update( float Position, float LastPositi
 
 	for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 	{
-		IMatineeAnimInterface* AnimInterface = InterfaceCast<IMatineeAnimInterface>(RuntimeObjects[i]);
+		IMatineeAnimInterface* AnimInterface = Cast<IMatineeAnimInterface>(RuntimeObjects[i]);
 		if (AnimInterface)
 		{
 			UMovieSceneAnimationSection* AnimSection = Cast<UMovieSceneAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));

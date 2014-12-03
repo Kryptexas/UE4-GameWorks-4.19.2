@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 
 
-UMeshComponent::UMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMeshComponent::UMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CastShadow = true;
 	bUseAsOccluder = true;

@@ -194,6 +194,7 @@ namespace AutomationTool
 			this.RawProjectPath = InParams.RawProjectPath;
 			this.MapsToCook = InParams.MapsToCook;
 			this.DirectoriesToCook = InParams.DirectoriesToCook;
+            this.InternationalizationPreset = InParams.InternationalizationPreset;
             this.CulturesToCook = InParams.CulturesToCook;
 			this.ClientCookedTargets = InParams.ClientCookedTargets;
 			this.ServerCookedTargets = InParams.ServerCookedTargets;
@@ -269,7 +270,10 @@ namespace AutomationTool
             this.bDebugBuildsActuallyUseDebugCRT = InParams.bDebugBuildsActuallyUseDebugCRT;
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
+			this.ArchiveMetaData = InParams.ArchiveMetaData;
 			this.Distribution = InParams.Distribution;
+			this.Prereqs = InParams.Prereqs;
+			this.NoBootstrapExe = InParams.NoBootstrapExe;
             this.OBBinAPK = InParams.OBBinAPK;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
@@ -299,6 +303,7 @@ namespace AutomationTool
 			List<UnrealTargetConfiguration> ServerConfigsToBuild = null,
 			ParamList<string> MapsToCook = null,
 			ParamList<string> DirectoriesToCook = null,
+            string InternationalizationPreset = null,
             ParamList<string> CulturesToCook = null,
 			ParamList<string> ClientCookedTargets = null,
 			ParamList<string> EditorTargets = null,
@@ -331,7 +336,9 @@ namespace AutomationTool
 			bool? NoXGE = null,
 			bool? Package = null,
 			bool? Pak = null,
-			bool? SignedPak = null,
+			bool? Prereqs = null,
+			bool? NoBootstrapExe = null,
+            bool? SignedPak = null,
             bool? NullRHI = null,
             bool? FakeClient = null,
             bool? EditorTest = null,
@@ -350,6 +357,7 @@ namespace AutomationTool
 			int? NumClients = null,
 			bool? Archive = null,
 			string ArchiveDirectoryParam = null,
+			bool? ArchiveMetaData = null,
 			ParamList<string> ProgramTargets = null,
 			bool? Distribution = null,
             bool? OBBinAPK = null,
@@ -370,6 +378,7 @@ namespace AutomationTool
 			{
 				this.DirectoriesToCook = DirectoriesToCook;
 			}
+            this.InternationalizationPreset = ParseParamValueIfNotSpecified(Command, InternationalizationPreset, "i18npreset");
             if (CulturesToCook != null)
 			{
                 this.CulturesToCook = CulturesToCook;
@@ -450,7 +459,10 @@ namespace AutomationTool
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
+			this.ArchiveMetaData = GetParamValueIfNotSpecified(Command, ArchiveMetaData, this.ArchiveMetaData, "archivemetadata");
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
+			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
+			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
             this.OBBinAPK = GetParamValueIfNotSpecified(Command, OBBinAPK, this.OBBinAPK, "obbinapk");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -772,6 +784,12 @@ namespace AutomationTool
 		[Help("archivedirectory=Path", "Directory to archive the builds to, i.e. -archivedirectory=C:\\Archive")]
 		public string ArchiveDirectoryParam;
 
+		/// <summary>
+		/// Whether the project should use non monolithic staging
+		/// </summary>
+		[Help("archivemetadata", "Archive extra metadata files in addition to the build (e.g. build.properties)")]
+		public bool ArchiveMetaData;
+
 		#endregion
 
 		#region Build
@@ -885,6 +903,11 @@ namespace AutomationTool
 		public ParamList<string> DirectoriesToCook = new ParamList<string>();
 
         /// <summary>
+        /// Cook: Internationalization preset to cook.
+        /// </summary>
+        public string InternationalizationPreset;
+
+        /// <summary>
         /// Cook: List of cultures to cook.
         /// </summary>
         public ParamList<string> CulturesToCook = new ParamList<string>();
@@ -951,13 +974,19 @@ namespace AutomationTool
 		public bool bUsesSlateEditorStyle = false;
 
         /// <summary>
-        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        // so that you can debug your program's code.
+        /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
+        /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
+        /// our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
+        /// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
+        /// so that you can debug your program's code.
         /// </summary>
         public bool bDebugBuildsActuallyUseDebugCRT = false;
+
+        /// <summary>
+        /// On Windows, adds an executable to the root of the staging directory which checks for prerequisites being 
+		/// installed and launches the game with a path to the .uproject file.
+		/// </summary>
+        public bool NoBootstrapExe { get; set; }
 
 		#endregion
 
@@ -1112,7 +1141,10 @@ namespace AutomationTool
 		[Help("distribution", "package for distribution the project")]
 		public bool Distribution { get; set; }
 
-        [Help("obbinapk", "package with OBB data in APK assets directory")]
+		[Help("prereqs", "stage prerequisites along with the project")]
+		public bool Prereqs { get; set; }
+
+		[Help("obbinapk", "package with OBB data in APK assets directory")]
         public bool OBBinAPK {get; set; }
 
         [Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
@@ -1195,11 +1227,6 @@ namespace AutomationTool
 						EditorTarget = TargetData.TargetName;
 					}
 
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.RocketGame, out TargetData))
-					{
-						GameTarget = TargetData.TargetName;
-					}
-
 					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Program, out TargetData))
 					{
 						ProgramTarget = TargetData.TargetName;
@@ -1249,7 +1276,6 @@ namespace AutomationTool
 				var ValidGameTargetTypes = new TargetRules.TargetType[]
 				{
 					GameTargetType,
-					TargetRules.TargetType.RocketGame,
 					TargetRules.TargetType.Program		
 				};
 
@@ -1377,6 +1403,19 @@ namespace AutomationTool
 					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0]));
 				}
 			}
+
+			// for the moment, allow the commandline to override the ini if set.  This will keep us from breaking licensee packaging scripts until we have
+			// the full solution for per-platform packaging settings.
+			if (!Manifests)
+			{				
+				ConfigCacheIni GameIni = new ConfigCacheIni("Game", Path.GetDirectoryName(RawProjectPath));
+				String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
+				bool bSetting = false;
+				if (!GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))
+				{
+					Manifests = bSetting;
+				}
+			}
 		}
 
 		#endregion
@@ -1417,6 +1456,11 @@ namespace AutomationTool
 		{
 			get { return !CommandUtils.IsNullOrEmpty(DirectoriesToCook); }
 		}
+
+        public bool HasInternationalizationPreset
+        {
+            get { return !String.IsNullOrEmpty(InternationalizationPreset); }
+        }
 
         public bool HasCulturesToCook
         {
@@ -1690,6 +1734,7 @@ namespace AutomationTool
 
 				CommandUtils.Log("AdditionalServerMapParams={0}", AdditionalServerMapParams);
 				CommandUtils.Log("Archive={0}", Archive);
+				CommandUtils.Log("ArchiveMetaData={0}", ArchiveMetaData);
 				CommandUtils.Log("BaseArchiveDirectory={0}", BaseArchiveDirectory);
 				CommandUtils.Log("BaseStageDirectory={0}", BaseStageDirectory);
 				CommandUtils.Log("Build={0}", Build);
@@ -1736,6 +1781,8 @@ namespace AutomationTool
 				CommandUtils.Log("Distribution={0}", Distribution);
                 CommandUtils.Log("OBBinAPK={0}", OBBinAPK);
                 CommandUtils.Log("Prebuilt={0}", Prebuilt);
+				CommandUtils.Log("Prereqs={0}", Prereqs);
+				CommandUtils.Log("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.Log("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.Log("Rocket={0}", Rocket);
 				CommandUtils.Log("Run={0}", Run);

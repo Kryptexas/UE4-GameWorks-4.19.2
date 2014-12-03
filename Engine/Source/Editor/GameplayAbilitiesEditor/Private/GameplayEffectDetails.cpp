@@ -3,25 +3,20 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayEffectDetails.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "BlueprintUtilities.h"
-#include "KismetEditorUtilities.h"
-#include "AbilitySystemGlobals.h"
 #include "GameplayAbilitiesModule.h"
-#include "SGameplayAttributeGraphPin.h"
 #include "GameplayEffectTemplate.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectDetailsCustomization"
 
 DEFINE_LOG_CATEGORY(LogGameplayEffectDetails);
 
-// --------------------------------------------------------SGameplayAttributeGraphPin----------------------------
+// --------------------------------------------------------FGameplayEffectDetails---------------------------------------
 
 TSharedRef<IDetailCustomization> FGameplayEffectDetails::MakeInstance()
 {
 	return MakeShareable(new FGameplayEffectDetails);
 }
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FGameplayEffectDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	MyDetailLayout = &DetailLayout;
@@ -64,7 +59,6 @@ void FGameplayEffectDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout
 		}
 	}
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 /** Recursively hide properties that are not default editable according to the Template */
 bool FGameplayEffectDetails::HideProperties(IDetailLayoutBuilder& DetailLayout, TSharedPtr<IPropertyHandle> PropHandle, UGameplayEffectTemplate* Template)
@@ -130,6 +124,11 @@ void FGameplayEffectDetails::OnTemplateChange()
 		for (TFieldIterator<UProperty> PropIt(UGameplayEffect::StaticClass(), EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt)
 		{
 			UProperty* Property = *PropIt;
+			// don't overwrite the template property
+			if (Property->GetFName() == "Template")
+			{
+				continue;
+			}
 			if (!Property->Identical_InContainer(Template, DefObj))
 			{
 				Property->CopyCompleteValue_InContainer(Obj, Template);
@@ -145,6 +144,5 @@ void FGameplayEffectDetails::OnTemplateChange()
 
 
 //-------------------------------------------------------------------------------------
-
 
 #undef LOCTEXT_NAMESPACE

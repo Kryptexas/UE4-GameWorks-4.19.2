@@ -10,8 +10,8 @@
 UTextureRenderTarget
 -----------------------------------------------------------------------------*/
 
-UTextureRenderTarget::UTextureRenderTarget(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureRenderTarget::UTextureRenderTarget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NeverStream = true;
 	SRGB = true;

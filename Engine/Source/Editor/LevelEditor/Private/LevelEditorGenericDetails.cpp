@@ -7,6 +7,10 @@
 #include "AssetSelection.h"
 #include "SSurfaceProperties.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "SurfaceIterators.h"
+#include "ScopedTransaction.h"
+
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FLevelEditorGenericDetails"
 
@@ -22,6 +26,43 @@ void FLevelEditorGenericDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	if( AssetSelectionUtils::GetNumSelectedSurfaces( SelectionInfo.SharedWorld ) > 0 )
 	{
 		AddSurfaceDetails( DetailLayout );
+	}
+}
+
+void FLevelEditorGenericDetails::GetSelectedSurfaceMaterials(IMaterialListBuilder& MaterialList) const
+{
+	for (TSelectedSurfaceIterator<> SurfaceIt(GWorld); SurfaceIt; ++SurfaceIt)
+	{
+        FBspSurf* SelectedSurface = *SurfaceIt;
+
+		const bool bCanBeReplaced = true;
+		MaterialList.AddMaterial( 0, SelectedSurface->Material, bCanBeReplaced );
+	}
+}
+
+void FLevelEditorGenericDetails::OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll )
+{
+	bool bModelDirtied = false;
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "PolySetMaterial", "Set Material") );
+		GEditor->FlagModifyAllSelectedSurfacesInLevels( GWorld );
+
+		for ( TSelectedSurfaceIterator<> It(GWorld) ; It ; ++It )
+		{
+			UModel* Model = It.GetModel();
+			const int32 SurfaceIndex = It.GetSurfaceIndex();
+
+			Model->Surfs[SurfaceIndex].Material = NewMaterial;
+			GEditor->polyUpdateMaster( Model, SurfaceIndex, 0 );
+			Model->MarkPackageDirty();
+
+			bModelDirtied = true;
+		}
+	}
+	GEditor->RedrawLevelEditingViewports();
+	if ( bModelDirtied )
+	{
+		ULevel::LevelDirtiedEvent.Broadcast();
 	}
 }
 
@@ -81,57 +122,6 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 
 	struct Local
 	{
-		static TSharedRef<SWidget> OnGetApplyMaterialMenu( const FLevelEditorCommands* InCommands, const TSharedPtr<const FUICommandList> InCommandBindings )
-		{
-			// Get the first material in the selection
-			// If it exists allow it to be applied to the selected surfaces
-			UMaterialInterface* Material = GEditor->GetSelectedObjects()->GetTop<UMaterialInterface>();
-
-			//Check for unloaded materials...
-			if (!Material)
-			{
-				TArray<FAssetData> Assets;
-				AssetSelectionUtils::GetSelectedAssets( Assets );				
-				for (int i=0; i<Assets.Num(); i++)
-				{
-					FAssetData* AssetData = &Assets[i];
-					if ( AssetData->GetClass()->IsChildOf(UMaterialInterface::StaticClass()) )
-					{
-						Material = Cast<UMaterialInterface>( AssetData->GetAsset() );
-						if (Material)
-						{
-							break;
-						}
-					}	
-				}
-			}
-
-			FText ApplyMaterialStr;
-			if( Material )
-			{
-				// Generate a string indicating what material will be applied
-				ApplyMaterialStr = FText::Format( LOCTEXT("ApplyMaterialToSurface", "Apply Material: {0}"), FText::FromString( Material->GetName() ) );
-			}
-
-			if( Material )
-			{
-				FMenuBuilder ApplyMaterialBuilder( true, InCommandBindings );
-				{
-					ApplyMaterialBuilder.AddMenuEntry( InCommands->ApplyMaterialToSurface, NAME_None, ApplyMaterialStr );
-				}
-
-				return ApplyMaterialBuilder.MakeWidget();
-			}
-			else
-			{
-				// No material is selected, show a generic message
-				return
-					SNew( STextBlock )
-					.Text( LOCTEXT("NoMaterialSelected", "No Material Selected") )
-					.IsEnabled( false );
-			}
-		}
-
 		static FReply ExecuteExecCommand(FString InCommand)
 		{
 			GUnrealEd->Exec( GWorld, *InCommand );
@@ -140,6 +130,17 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 	};
 
 	const FSlateFontInfo& FontInfo = IDetailLayoutBuilder::GetDetailFont();
+
+	IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory( "Surface Materials", LOCTEXT("BSPSurfaceMaterials", "Surface Materials").ToString() );
+	{
+		FMaterialListDelegates MaterialListDelegates;
+		MaterialListDelegates.OnGetMaterials.BindSP(this, &FLevelEditorGenericDetails::GetSelectedSurfaceMaterials);
+		MaterialListDelegates.OnMaterialChanged.BindSP(this, &FLevelEditorGenericDetails::OnMaterialChanged);
+
+		TSharedRef<FMaterialList> MaterialList = MakeShareable(new FMaterialList(DetailBuilder, MaterialListDelegates));
+
+		MaterialsCategory.AddCustomBuilder( MaterialList );
+	}
 
 	// Add a new section for static meshes
 	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "Geometry", LOCTEXT("BSPSurfacesTitle", "Geometry").ToString() );
@@ -182,19 +183,6 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 				[
 					AlignmentBuilder.MakeWidget()
 				]
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( 2.0f )
-			[
-				SNew( SComboButton )
-				.ButtonContent()
-				[
-					SNew( STextBlock )
-					.Text( LOCTEXT("ApplyMaterialMenu", "Apply Material") ) 
-					.Font( FontInfo )
-				]
-				.OnGetMenuContent_Static( &Local::OnGetApplyMaterialMenu, &Commands, CommandBindings )
 			]
 		]
 	];

@@ -2,14 +2,14 @@
 
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "BlueprintUtilities.h"
 
 #include "LauncherServices.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "TargetDeviceServices.h"
 #include "IMainFrameModule.h"
 
@@ -113,6 +113,15 @@ public:
 protected:
 
 	/**
+	 * Adds a message to the message log.
+	 *
+	 * @param Text The main message text.
+	 * @param Detail The detailed description.
+	 * @param TutorialLink A link to an associated tutorial.
+	 */
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
+
+	/**
 	 * Checks whether the specified platform has a default device that can be launched on.
 	 *
 	 * @param PlatformName - The name of the platform to check.
@@ -213,7 +222,7 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( PlayInCameraLocation, "Current Camera Location", "Spawn the player at the current camera location", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( PlayInDefaultPlayerStart, "Default Player Start", "Spawn the player at the map's default player start", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( PlayInNetworkSettings, "Network Settings...", "Open the settings for the 'Play In' feature", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( PlayInNetworkDedicatedServer, "Run Dedicated Server", "If enabled, a dedicated server will be launched and connected to behind the scenes.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND( PlayInNetworkDedicatedServer, "Run Dedicated Server", "If checked, a separate dedicated server will be launched. Otherwise the first player will act as a listen server that all other players connect to.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( PlayInSettings, "Advanced Settings...", "Open the settings for the 'Play In' feature", EUserInterfaceActionType::Button, FInputGesture() );
 
 	// SIE & PIE controls
@@ -228,7 +237,7 @@ void FPlayWorldCommands::RegisterCommands()
 
 	// Launch
 	UI_COMMAND( RepeatLastLaunch, "Launch", "Launches the game on the device as the last session launched from the dropdown next to the Play on Device button on the level editor toolbar", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt | EModifierKey::Shift ) )
-	UI_COMMAND( OpenDeviceManager, "Device Manager...", "Opens the device manager", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenDeviceManager, "Device Manager...", "View and manage connected devices.", EUserInterfaceActionType::Button, FInputGesture() );
 }
 
 
@@ -534,22 +543,27 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 	MenuBuilder.EndSection();
 
 	// Basic network options
-	if ( GetDefault<ULevelEditorPlaySettings>()->RunUnderOneProcess )
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	if ( PlayInSettings->IsPlayNumberOfClientsActive() || PlayInSettings->IsPlayNetDedicatedActive() )
 	{
-		MenuBuilder.BeginSection("LevelEditorPlayInWindowNetwork", LOCTEXT("LevelEditorPlayInWindowNetworkSection", "Network Settings"));
+		MenuBuilder.BeginSection("LevelEditorPlayInWindowNetwork", LOCTEXT("LevelEditorPlayInWindowNetworkSection", "Multiplayer Options"));
+		if ( PlayInSettings->IsPlayNumberOfClientsActive() )
 		{
-			TSharedRef<SWidget> NumPlayers = SNew(SSpinBox<int32>)
+			TSharedRef<SWidget> NumPlayers = SNew(SSpinBox<int32>)	// Copy limits from PlayNumberOfClients meta data
 				.MinValue(1)
-				.MaxValue(64)
-				.ToolTipText(LOCTEXT( "NumberOfClientsToolTip", "Number of clients to spawn in the PIE session" ))
+				.MaxValue(TNumericLimits<int32>::Max())
+				.MinSliderValue(1)
+				.MaxSliderValue(64)
+				.ToolTipText(LOCTEXT( "NumberOfClientsToolTip", "The editor and listen server count as players, a dedicated server will not. Clients make up the remainder." ))
 				.Value(FInternalPlayWorldCommandCallbacks::GetNumberOfClients())
 				.OnValueCommitted_Static(&FInternalPlayWorldCommandCallbacks::SetNumberOfClients);
 			
-			MenuBuilder.AddWidget(NumPlayers, LOCTEXT( "NumberOfClientsMenuWidget", "Number of Clients" ));
+			MenuBuilder.AddWidget(NumPlayers, LOCTEXT( "NumberOfClientsMenuWidget", "Number of Players" ));
 		}
-		
-		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().PlayInNetworkDedicatedServer );
-
+		if ( PlayInSettings->IsPlayNetDedicatedActive() )
+		{
+			MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().PlayInNetworkDedicatedServer );
+		}
 		MenuBuilder.EndSection();
 	}
 
@@ -764,7 +778,12 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	// options section
 	MenuBuilder.BeginSection("LevelEditorLaunchOptions");
 	{
-		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().OpenDeviceManager );
+		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().OpenDeviceManager,
+			NAME_None,
+			TAttribute<FText>(),
+			TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "DeviceDetails.TabIcon")
+			);
 		
 		ProjectTargetPlatformEditorModule.AddOpenProjectTargetPlatformEditorMenuItem(MenuBuilder);
 	}
@@ -1380,7 +1399,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	check(PlatformInfo);
 
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-	bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+	bool bHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
 
 	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
 	{
@@ -1397,48 +1416,49 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	{
 		FString NotInstalledTutorialLink;
 		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-		int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink);
+		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink);
 		
 		// report to analytics
 		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
 
 		// report to message log
-		FText MessageLogText;
-		FText MessageLogTextDetail;
+		bool UnrecoverableError = false;
 
-		switch (Result)
+		if ((Result & ETargetPlatformReadyStatus::SDKNotFound) != 0)
 		{
-			case ETargetPlatformReadyStatus::SDKNotFound:
-				MessageLogText = LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not be found");
-				MessageLogTextDetail = FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName());
-				break;
+			AddMessageLog(
+				LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
+				FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
+				NotInstalledTutorialLink
+			);
 
-			case ETargetPlatformReadyStatus::ProvisionNotFound:
-				MessageLogText = LOCTEXT("ProvisionNotFoundMessage", "Provision not found");
-				MessageLogTextDetail = LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.");
-				break;
-
-			case ETargetPlatformReadyStatus::SigningKeyNotFound:
-				MessageLogText = LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found");
-				MessageLogTextDetail = LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.");
-				break;
-
-			default:
-				break;
+			UnrecoverableError = true;
 		}
 
-		if (!MessageLogText.IsEmpty())
+		if ((Result & ETargetPlatformReadyStatus::ProvisionNotFound) != 0)
 		{
-			TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
-			Message->AddToken(FTextToken::Create(MessageLogText));
-			Message->AddToken(FTextToken::Create(MessageLogTextDetail));
-			Message->AddToken(FTutorialToken::Create(NotInstalledTutorialLink));
-			Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+			AddMessageLog(
+				LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
+				LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
+				NotInstalledTutorialLink
+			);
 
-			FMessageLog MessageLog("PackagingResults");
-			MessageLog.AddMessage(Message);
-			MessageLog.Open();
+			UnrecoverableError = true;
+		}
 
+		if ((Result & ETargetPlatformReadyStatus::SigningKeyNotFound) != 0)
+		{
+			AddMessageLog(
+				LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
+				LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
+				NotInstalledTutorialLink
+			);
+
+			UnrecoverableError = true;
+		}
+
+		if (UnrecoverableError)
+		{
 			return false;
 		}
 
@@ -1639,27 +1659,35 @@ bool FInternalPlayWorldCommandCallbacks::HasPlayWorld()
 
 int32 FInternalPlayWorldCommandCallbacks::GetNumberOfClients()
 {
-	return GetDefault<ULevelEditorPlaySettings>()->PlayNumberOfClients;
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	int32 PlayNumberOfClients(0);
+	PlayInSettings->GetPlayNumberOfClients(PlayNumberOfClients);	// Ignore 'state' of option (handled externally)
+	return PlayNumberOfClients;
 }
 
 
 void FInternalPlayWorldCommandCallbacks::SetNumberOfClients(int32 NumClients, ETextCommit::Type CommitInfo)
 {
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	PlayInSettings->PlayNumberOfClients = NumClients;
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	PlayInSettings->SetPlayNumberOfClients(NumClients);
 }
 
 
 void FInternalPlayWorldCommandCallbacks::OnToggleDedicatedServerPIE()
 {
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	PlayInSettings->PlayNetDedicated = !PlayInSettings->PlayNetDedicated;
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	bool PlayNetDedicated;
+	PlayInSettings->GetPlayNetDedicated(PlayNetDedicated);			// Ignore 'state' of option, as we're toggling it regardless
+	PlayInSettings->SetPlayNetDedicated(!PlayNetDedicated);
 }
 
 
 bool FInternalPlayWorldCommandCallbacks::OnIsDedicatedServerPIEEnabled()
 {
-	return GetDefault<ULevelEditorPlaySettings>()->PlayNetDedicated;
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	bool PlayNetDedicated(false);
+	PlayInSettings->GetPlayNetDedicated(PlayNetDedicated);			// Ignore 'state' of option (handled externally)
+	return PlayNetDedicated;
 }
 
 
@@ -1697,6 +1725,20 @@ bool FInternalPlayWorldCommandCallbacks::CanPossessEjectPlayer()
 		}
 	}
 	return false;
+}
+
+
+void FInternalPlayWorldCommandCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+{
+	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
+	Message->AddToken(FTextToken::Create(Text));
+	Message->AddToken(FTextToken::Create(Detail));
+	Message->AddToken(FTutorialToken::Create(TutorialLink));
+	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+
+	FMessageLog MessageLog("PackagingResults");
+	MessageLog.AddMessage(Message);
+	MessageLog.Open();
 }
 
 

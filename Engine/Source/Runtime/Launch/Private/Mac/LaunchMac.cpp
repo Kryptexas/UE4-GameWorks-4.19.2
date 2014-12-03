@@ -2,10 +2,11 @@
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
+#include "MacPlatformCrashContext.h"
 
 #if WITH_EDITOR
 	#include "MainFrame.h"
-	#include "Settings.h"
+	#include "ISettingsModule.h"
 #endif
 
 #include <signal.h>
@@ -19,7 +20,7 @@ extern void LaunchStaticShutdownAfterError();
 /**
  * Game-specific crash reporter
  */
-void EngineCrashHandler(const FGenericCrashContext & GenericContext)
+void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FMacCrashContext& Context = static_cast< const FMacCrashContext& >( GenericContext );
 	
@@ -42,7 +43,7 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 
-@interface UE4AppDelegate : NSObject <NSApplicationDelegate>
+@interface UE4AppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {
 #if WITH_EDITOR
 	NSString* Filename;

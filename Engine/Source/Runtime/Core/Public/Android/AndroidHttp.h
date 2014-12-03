@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GenericPlatform/GenericPlatformHttp.h"
 
 /**
  * Platform specific Http implementations
@@ -19,7 +20,7 @@ public:
 	 *
 	 * @return NULL if default implementation is to be used
 	 */
-	static class FHttpManager * CreatePlatformHttpManager();
+	static FHttpManager* CreatePlatformHttpManager();
 
 	/**
 	 * Platform shutdown step
@@ -31,7 +32,7 @@ public:
 	 *
 	 * @return request object
 	 */
-	static class IHttpRequest* ConstructRequest();
+	static IHttpRequest* ConstructRequest();
 };
 
 

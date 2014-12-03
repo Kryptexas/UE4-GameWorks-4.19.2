@@ -10,8 +10,8 @@
 #include "AnimationUtils.h"
 #include "AnimEncoding.h"
 
-UAnimCompress_LeastDestructive::UAnimCompress_LeastDestructive(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_LeastDestructive::UAnimCompress_LeastDestructive(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Least Destructive");
 	TranslationCompressionFormat = ACF_None;

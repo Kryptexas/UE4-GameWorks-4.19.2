@@ -11,8 +11,8 @@
 //----------------------------------------------------------------------//
 TWeakObjectPtr<ALogVisualizerCameraController> ALogVisualizerCameraController::Instance;
 
-ALogVisualizerCameraController::ALogVisualizerCameraController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALogVisualizerCameraController::ALogVisualizerCameraController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SpeedScale = 1.5f;
 }

@@ -9,8 +9,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeWaveParam implementation
 -----------------------------------------------------------------------------*/
-USoundNodeWaveParam::USoundNodeWaveParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeWaveParam::USoundNodeWaveParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimSequence.h"
 
-UAnimationAsset::UAnimationAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -96,6 +96,34 @@ void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnim
 {
 }
 
+USkeletalMesh* UAnimationAsset::GetPreviewMesh() 
+{
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
+	if(!PreviewMesh)
+	{
+		// if preview mesh isn't loaded, see if we have set
+		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
+		// load it since now is the time to load
+		if(!PreviewMeshStringRef.ToString().IsEmpty())
+		{
+			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
+			// if somehow skeleton changes, just nullify it. 
+			if (PreviewMesh && PreviewMesh->Skeleton != Skeleton)
+			{
+				PreviewMesh = NULL;
+				SetPreviewMesh(NULL);
+			}
+		}
+	}
+
+	return PreviewMesh;
+}
+
+void UAnimationAsset::SetPreviewMesh(USkeletalMesh* PreviewMesh)
+{
+	Modify();
+	PreviewSkeletalMesh = PreviewMesh;
+}
 #endif
 
 void UAnimationAsset::ValidateSkeleton()
@@ -226,7 +254,7 @@ bool FBoneContainer::BoneIsChildOf(const int32& BoneIndex, const int32& ParentBo
 	return RefSkeleton->BoneIsChildOf(BoneIndex, ParentBoneIndex);
 }
 
-void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton & TargetSkeleton)
+void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton)
 {
 	int32 const SkelMeshLinkupIndex = TargetSkeleton.GetMeshLinkupIndex(&SourceSkeletalMesh);
 	check(SkelMeshLinkupIndex != INDEX_NONE);

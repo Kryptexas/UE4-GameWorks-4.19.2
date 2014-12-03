@@ -131,7 +131,7 @@ public:
 		OutOffsets.Empty( OffsetsCount );
 		OutOffsets.AddUninitialized( OffsetsCount );
 		uint32* MappedOffsets = (uint32*)RHILockVertexBuffer( Buffers[BufferIndex], 0, OffsetsBufferSize, RLM_ReadOnly );
-		FMemory::Memcpy( OutOffsets.GetTypedData(), MappedOffsets, OffsetsBufferSize );
+		FMemory::Memcpy( OutOffsets.GetData(), MappedOffsets, OffsetsBufferSize );
 		RHIUnlockVertexBuffer( Buffers[BufferIndex] );
 	}
 
@@ -221,10 +221,9 @@ class FRadixSortClearOffsetsCS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -308,8 +307,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -426,8 +424,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -523,8 +520,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -683,17 +679,16 @@ IMPLEMENT_SHADER_TYPE(,FRadixSortDownsweepCS,TEXT("RadixSortShaders"),TEXT("Radi
  * @param Count - How many items in the buffer need to be sorted.
  * @returns The index of the buffer containing sorted results.
  */
-int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 KeyMask, int32 Count)
+int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 KeyMask, int32 Count, ERHIFeatureLevel::Type FeatureLevel)
 {
 	FRadixSortParameters SortParameters;
 	FRadixSortUniformBufferRef SortUniformBufferRef;
 	const bool bDebugOffsets = CVarDebugOffsets.GetValueOnRenderThread() != 0;
 	const bool bDebugSort = CVarDebugSort.GetValueOnRenderThread() != 0;
 
-	const auto FeatureLevel = GRHIFeatureLevel;
 	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
-	SCOPED_DRAW_EVENTF(RHICmdList, SortGPU, DEC_PARTICLE, TEXT("SortGPU_%d"), Count);
+	SCOPED_DRAW_EVENTF(RHICmdList, SortGPU, TEXT("SortGPU_%d"), Count);
 
 	// Determine how many tiles need to be sorted.
 	const int32 TileCount = Count / TILE_SIZE;
@@ -833,7 +828,7 @@ enum
  * @param TestSize - The number of elements to sort.
  * @returns true if the sort succeeded.
  */
-static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
+static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize, ERHIFeatureLevel::Type FeatureLevel)
 {
 	FRandomStream RandomStream(0x3819FFE4);
 	FGPUSortBuffers SortBuffers;
@@ -850,7 +845,7 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
 	const bool bDebugOffsets = CVarDebugOffsets.GetValueOnRenderThread() != 0;
 	const bool bDebugSort = CVarDebugSort.GetValueOnRenderThread() != 0;
 
-	if (GRHIFeatureLevel != ERHIFeatureLevel::SM5)
+	if (FeatureLevel != ERHIFeatureLevel::SM5)
 	{
 		return false;
 	}
@@ -884,10 +879,10 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
 		uint32* Buffer;
 
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(KeysBufferRHI[0], /*Offset=*/ 0, BufferSize, RLM_WriteOnly);
-		FMemory::Memcpy(Buffer, Keys.GetTypedData(), BufferSize);
+		FMemory::Memcpy(Buffer, Keys.GetData(), BufferSize);
 		RHICmdList.UnlockVertexBuffer(KeysBufferRHI[0]);
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(ValuesBufferRHI[0], /*Offset=*/ 0, BufferSize, RLM_WriteOnly);
-		FMemory::Memcpy(Buffer, Keys.GetTypedData(), BufferSize);
+		FMemory::Memcpy(Buffer, Keys.GetData(), BufferSize);
 		RHICmdList.UnlockVertexBuffer(ValuesBufferRHI[0]);
 	}
 
@@ -899,7 +894,7 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
 		SortBuffers.RemoteValueSRVs[BufferIndex] = ValuesBufferSRV[BufferIndex];
 		SortBuffers.RemoteValueUAVs[BufferIndex] = ValuesBufferUAV[BufferIndex];
 	}
-	ResultBufferIndex = SortGPUBuffers(RHICmdList, SortBuffers, 0, 0xFFFFFFFF, TestSize);
+	ResultBufferIndex = SortGPUBuffers(RHICmdList, SortBuffers, 0, 0xFFFFFFFF, TestSize, FeatureLevel);
 
 	// Download results from the GPU.
 	{
@@ -911,10 +906,10 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
 		SortedValues.AddUninitialized(TestSize);
 
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(KeysBufferRHI[ResultBufferIndex], /*Offset=*/ 0, BufferSize, RLM_ReadOnly);
-		FMemory::Memcpy(SortedKeys.GetTypedData(), Buffer, BufferSize);
+		FMemory::Memcpy(SortedKeys.GetData(), Buffer, BufferSize);
 		RHICmdList.UnlockVertexBuffer(KeysBufferRHI[ResultBufferIndex]);
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(ValuesBufferRHI[ResultBufferIndex], /*Offset=*/ 0, BufferSize, RLM_ReadOnly);
-		FMemory::Memcpy(SortedValues.GetTypedData(), Buffer, BufferSize);
+		FMemory::Memcpy(SortedValues.GetData(), Buffer, BufferSize);
 		RHICmdList.UnlockVertexBuffer(ValuesBufferRHI[ResultBufferIndex]);
 	}
 
@@ -964,17 +959,17 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
  * Executes a sort test with debug information enabled.
  * @param TestSize - The number of elements to sort.
  */
-static void RunGPUSortTestWithDebug(FRHICommandListImmediate& RHICmdList, int32 TestSize)
+static void RunGPUSortTestWithDebug(FRHICommandListImmediate& RHICmdList, int32 TestSize, ERHIFeatureLevel::Type FeatureLevel)
 {
 	static IConsoleVariable* IVarDebugOffsets = IConsoleManager::Get().FindConsoleVariable(TEXT("GPUSort.DebugOffsets"));
 	static IConsoleVariable* IVarDebugSort = IConsoleManager::Get().FindConsoleVariable(TEXT("GPUSort.DebugSort"));
 	const bool bWasDebuggingOffsets = CVarDebugOffsets.GetValueOnRenderThread() != 0;
 	const bool bWasDebuggingSort = CVarDebugSort.GetValueOnRenderThread() != 0;
-	IVarDebugOffsets->Set(1);
-	IVarDebugSort->Set(1);
-	RunGPUSortTest(RHICmdList, TestSize);
-	IVarDebugOffsets->Set(bWasDebuggingOffsets ? 1 : 0);
-	IVarDebugSort->Set(bWasDebuggingSort ? 1 : 0);
+	IVarDebugOffsets->Set(1, ECVF_SetByCode);
+	IVarDebugSort->Set(1, ECVF_SetByCode);
+	RunGPUSortTest(RHICmdList, TestSize, FeatureLevel);
+	IVarDebugOffsets->Set(bWasDebuggingOffsets ? 1 : 0, ECVF_SetByCode);
+	IVarDebugSort->Set(bWasDebuggingSort ? 1 : 0, ECVF_SetByCode);
 }
 
 /**
@@ -982,13 +977,13 @@ static void RunGPUSortTestWithDebug(FRHICommandListImmediate& RHICmdList, int32 
  * information enabled.
  * @param TestSize - The number of elements to sort.
  */
-static bool TestGPUSortForSize(FRHICommandListImmediate& RHICmdList, int32 TestSize)
+static bool TestGPUSortForSize(FRHICommandListImmediate& RHICmdList, int32 TestSize, ERHIFeatureLevel::Type FeatureLevel)
 {
 	check(IsInRenderingThread());
-	const bool bResult = RunGPUSortTest(RHICmdList, TestSize);
+	const bool bResult = RunGPUSortTest(RHICmdList, TestSize, FeatureLevel);
 	if (bResult == false)
 	{
-		RunGPUSortTestWithDebug(RHICmdList, TestSize);
+		RunGPUSortTestWithDebug(RHICmdList, TestSize, FeatureLevel);
 	}
 	return bResult;
 }
@@ -997,17 +992,17 @@ static bool TestGPUSortForSize(FRHICommandListImmediate& RHICmdList, int32 TestS
  * Test that GPU sorting works.
  * @param TestToRun - The test to run.
  */
-static bool TestGPUSort_RenderThread(FRHICommandListImmediate& RHICmdList, EGPUSortTest TestToRun)
+static bool TestGPUSort_RenderThread(FRHICommandListImmediate& RHICmdList, EGPUSortTest TestToRun, ERHIFeatureLevel::Type FeatureLevel)
 {
 	check(IsInRenderingThread());
 
 	switch (TestToRun)
 	{
 	case GPU_SORT_TEST_SMALL:
-		return TestGPUSortForSize(RHICmdList, GPU_SORT_TEST_SIZE_SMALL);
+		return TestGPUSortForSize(RHICmdList, GPU_SORT_TEST_SIZE_SMALL, FeatureLevel);
 
 	case GPU_SORT_TEST_LARGE:
-		return TestGPUSortForSize(RHICmdList, GPU_SORT_TEST_SIZE_LARGE);
+		return TestGPUSortForSize(RHICmdList, GPU_SORT_TEST_SIZE_LARGE, FeatureLevel);
 
 	case GPU_SORT_TEST_EXHAUSTIVE:
 		{
@@ -1015,7 +1010,7 @@ static bool TestGPUSort_RenderThread(FRHICommandListImmediate& RHICmdList, EGPUS
 			int32 TestSize = GPU_SORT_TEST_SIZE_MIN;
 			while (TestSize <= GPU_SORT_TEST_SIZE_MAX)
 			{
-				if (TestGPUSortForSize(RHICmdList, TestSize) == false)
+				if (TestGPUSortForSize(RHICmdList, TestSize, FeatureLevel) == false)
 				{
 					return false;
 				}
@@ -1026,7 +1021,7 @@ static bool TestGPUSort_RenderThread(FRHICommandListImmediate& RHICmdList, EGPUS
 			TestSize = GPU_SORT_TEST_SIZE_MIN;
 			while (TestSize <= GPU_SORT_TEST_SIZE_MAX)
 			{
-				if (TestGPUSortForSize(RHICmdList, TestSize - 1) == false)
+				if (TestGPUSortForSize(RHICmdList, TestSize - 1, FeatureLevel) == false)
 				{
 					return false;
 				}
@@ -1039,7 +1034,7 @@ static bool TestGPUSort_RenderThread(FRHICommandListImmediate& RHICmdList, EGPUS
 		for ( int32 i = 0; i < 1000; ++i )
 		{
 			int32 TestSize = FMath::TruncToInt(FMath::SRand() * (float)(GPU_SORT_TEST_SIZE_MAX - GPU_SORT_TEST_SIZE_MIN)) + GPU_SORT_TEST_SIZE_MIN;
-			if (TestGPUSortForSize(RHICmdList, (TestSize + 0xF) & 0xFFFFFFF0) == false)
+			if (TestGPUSortForSize(RHICmdList, (TestSize + 0xF) & 0xFFFFFFF0, FeatureLevel) == false)
 			{
 				return false;
 			}
@@ -1054,12 +1049,13 @@ static bool TestGPUSort_RenderThread(FRHICommandListImmediate& RHICmdList, EGPUS
  * Test that GPU sorting works.
  * @param TestToRun - The test to run.
  */
-void TestGPUSort(EGPUSortTest TestToRun)
+void TestGPUSort(EGPUSortTest TestToRun, ERHIFeatureLevel::Type FeatureLevel)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FTestGPUSortCommand,
 		EGPUSortTest, TestToRun, TestToRun,
+		ERHIFeatureLevel::Type, FeatureLevel, FeatureLevel,
 	{
-		TestGPUSort_RenderThread(RHICmdList, TestToRun);
+		TestGPUSort_RenderThread(RHICmdList, TestToRun, FeatureLevel);
 	});
 }

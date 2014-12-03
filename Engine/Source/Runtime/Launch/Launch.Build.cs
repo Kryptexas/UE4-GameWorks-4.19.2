@@ -23,7 +23,6 @@ public class Launch : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"InputCore",
-                "Media",
 				"MediaAssets",
                 "MoviePlayer",
 				"Networking",
@@ -32,6 +31,7 @@ public class Launch : ModuleRules
 				"RenderCore",
 				"RHI",
 				"SandboxFile",
+				"Serialization",
 				"ShaderCore",
 				"Slate",
 				"SlateCore",
@@ -43,7 +43,7 @@ public class Launch : ModuleRules
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-				"HeadMountedDisplay",
+					"HeadMountedDisplay",
 				}
 			);
 
@@ -70,7 +70,7 @@ public class Launch : ModuleRules
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			PrivateDependencyModuleNames.AddRange(
-					new string[] {
+				new string[] {
 					"NetworkFile",
 					"StreamingFile",
     				"AutomationWorker",
@@ -80,6 +80,7 @@ public class Launch : ModuleRules
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
+                "Media",
 				"Renderer",
 			}
 		);
@@ -192,7 +193,6 @@ public class Launch : ModuleRules
 				AddThirdPartyPrivateStaticDependencies(Target, "SDL");
 			}
         }
-
 
 		// @todo ps4 clang bug: this works around a PS4/clang compiler bug (optimizations)
 		if (Target.Platform == UnrealTargetPlatform.PS4)

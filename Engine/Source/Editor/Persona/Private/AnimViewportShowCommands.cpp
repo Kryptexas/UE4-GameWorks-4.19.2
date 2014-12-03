@@ -6,7 +6,6 @@
 void FAnimViewportShowCommands::RegisterCommands()
 {
 	UI_COMMAND( ToggleGrid, "Grid", "Display Grid", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-	UI_COMMAND( HighlightOrigin, "Highlight Origin", "Highlight the origin lines on the grid", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 
 	UI_COMMAND( ToggleFloor, "Floor", "Display Floor", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( ToggleSky, "Sky", "Display Sky", EUserInterfaceActionType::ToggleButton, FInputGesture() );

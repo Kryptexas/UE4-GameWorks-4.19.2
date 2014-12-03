@@ -2,9 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "AssetRegistryModule.h"
+#include "Engine/ObjectLibrary.h"
 
-UObjectLibrary::UObjectLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsFullyLoaded = false;
 	bUseWeakReferences = false;

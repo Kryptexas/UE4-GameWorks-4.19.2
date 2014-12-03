@@ -405,6 +405,24 @@ namespace UnrealBuildTool
             }
         }
 
+		/// <summary>
+		/// Determines whether the given path is ignored for the active build.
+		/// </summary>
+		/// <param name="InString">The path to check</param>
+		/// <returns>true if the path should be ignored for the build</returns>
+		public static bool IsPathIgnoredForBuild(string InPath)
+		{
+			if (BuildingRocket())
+			{
+				string NormalizedPath = InPath.Replace('\\', '/').ToLowerInvariant();
+				if (NormalizedPath.Contains("/notforlicensees/") || NormalizedPath.Contains("/epicinternal/") || NormalizedPath.Contains("/noredist/"))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
         /// <summary>
         /// See if the given string was pass in on the command line
         /// </summary>
@@ -1529,14 +1547,6 @@ namespace UnrealBuildTool
 
                         if ( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject))
                         {
-                            // We don't currently support building game targets in rocket.
-                            if (UnrealBuildTool.RunningRocket() && Target.Rules != null && Target.TargetType == TargetRules.TargetType.Game)
-                            {
-                                throw new BuildException(
-                                    "You currently can not build a game target in Rocket.\nTry again in a future release.\nFor now, build and run your editor project."
-                                );
-                            }
-
                             // Generate an action graph if we were asked to do that.  The graph generation needs access to the include dependency cache, so
                             // we generate it before saving and cleaning that up.
                             if( GeneratingActionGraph )
@@ -1744,7 +1754,7 @@ namespace UnrealBuildTool
 
             // Figure out how long we took to execute.
             double BuildDuration = (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds;
-            if (ExecutorName == "Local" || ExecutorName == "Distcc")
+            if (ExecutorName == "Local" || ExecutorName == "Distcc" || ExecutorName == "SNDBS")
             {
                 Log.TraceInformation("Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
                     System.Environment.ProcessorCount,
@@ -1803,7 +1813,7 @@ namespace UnrealBuildTool
 			bool bIsRunning = false;
 			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && Target.TargetType == TargetRules.TargetType.Editor)
 			{
-				var EditorProcessFilenames = UEBuildTarget.MakeBinaryPaths("Launcher", "UE4Editor", Target.Platform, Target.Configuration, UEBuildBinaryType.Executable, null, false, null, "UE4Editor");
+				var EditorProcessFilenames = UEBuildTarget.MakeBinaryPaths("Launcher", "UE4Editor", Target.Platform, Target.Configuration, UEBuildBinaryType.Executable, null, null, "UE4Editor");
 				if (EditorProcessFilenames.Length != 1)
 				{
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeBinaryPaths");

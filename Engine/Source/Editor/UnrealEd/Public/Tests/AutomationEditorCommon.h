@@ -4,7 +4,6 @@
 #include "AssetRegistryModule.h"
 #include "ModuleManager.h"
 #include "AutomationCommon.h"
-
 #include "Tests/AutomationTestSettings.h"
 
 //Includes needed for opening certain assets
@@ -94,8 +93,49 @@ namespace AutomationEditorCommonUtils
 	* @param FactorySettings - An array of custom settings to apply to the factory
 	*/
 	void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings);
-}
 
+	/**
+	* Writes a number to a text file.
+	*
+	* @param InTestName - is the folder that has the same name as the test. (For Example: "Performance").
+	* @param InItemBeingTested - is the name for the thing that is being tested. (For Example: "MapName").
+	* @param InFileName - is the name of the file with an extension
+	* @param InNumberToBeWritten - is the float number that is expected to be written to the file.
+	* @param Delimiter - is the delimiter to be used. TEXT(",")
+	*/
+	void WriteToTextFile(const FString& InTestName, const FString& InTestItem, const FString& InFileName, const float& InEntry, const FString& Delimiter);
+
+	/**
+	* Returns the sum of the numbers available in an array of float.
+
+	* @param InFloatArray - is the name of the array intended to be used.
+	* @param bisAveragedInstead - will return the average of the available numbers instead of the sum.
+	*/
+	float TotalFromFloatArray(const TArray<float>& InFloatArray, bool bisAveragedInstead);
+
+	/**
+	* Returns the largest value from an array of float numbers.
+
+	* @param InFloatArray - is the name of the array intended to be used.
+	*/
+	float LargestValueInFloatArray(const TArray<float>& InFloatArray);
+
+	/**
+	* Returns the contents of a text file as an array of FString.
+
+	* @param InFileLocation - is the location of the file.
+	* @param OutArray - The name of the array that will store the data.
+	*/
+	void CreateArrayFromFile(const FString& InFileLocation, TArray<FString>& OutArray);
+
+	/**
+	* Returns true if the archive/file can be written to otherwise false.
+
+	* @param InFilePath - is the location of the file.
+	* @param InArchiveName - is the name of the archive to be used.
+	*/
+	bool IsArchiveWriteable(const FString& InFilePath, const FArchive* InArchiveName);
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -128,20 +168,19 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStartPIECommand, bool, bSimulate
 DEFINE_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
 
 /**
-* This will display the average FPS and Memory numbers over a duration of time.
-*/
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerformanceCommand, float, Duration);
-
-/**
 * Loads a map
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorLoadMap, FString, MapName);
 
 /**
-* Generates the editor performance capture chart.
-* @param Input the name of the map.
+* Waits for shaders to finish compiling before moving on to the next thing.
 */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerformanceCharts, FString, MapName);
+DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompiling);
+
+/**
+* Latent command that changes the editor viewport to the first available bookmarked view.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FChangeViewportToFirstAvailableBookmarkCommand);
 
 //////////////////////////////////////////////////////////////////////////
 // FEditorAutomationTestUtilities

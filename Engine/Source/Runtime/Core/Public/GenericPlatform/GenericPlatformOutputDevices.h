@@ -6,6 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+
+class FFeedbackContext;
+class FOutputDevice;
+class FOutputDeviceConsole;
+class FOutputDeviceError;
+class FString;
 
 /**
 * Generic implementation for most platforms
@@ -19,16 +26,16 @@ struct CORE_API FGenericPlatformOutputDevices
 
 	static FString						GetAbsoluteLogFilename();
 
-	static class FOutputDevice*			GetLog();
-	static class FOutputDevice*			GetEventLog()
+	static FOutputDevice*				GetLog();
+	static FOutputDevice*				GetEventLog()
 	{
-		return NULL; // normally only used for dedicated servers
+		return nullptr; // normally only used for dedicated servers
 	}
-	static class FOutputDeviceConsole*	GetLogConsole()
+	static FOutputDeviceConsole*		GetLogConsole()
 	{
-		return NULL; // normally only used for PC
+		return nullptr; // normally only used for PC
 	}
-	static class FOutputDeviceError*	GetError();
-	static class FFeedbackContext*		GetWarn();
+	static FOutputDeviceError*			GetError();
+	static FFeedbackContext*			GetWarn();
 };
 

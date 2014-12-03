@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SecureHash.cpp: SHA and MD5 has functions
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "SecureHash.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogSecureHash, Log, All);
+
 
 /*-----------------------------------------------------------------------------
 	MD5 functions, adapted from MD5 RFC by Brandon Reinhart

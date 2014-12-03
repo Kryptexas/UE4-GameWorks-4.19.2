@@ -4,7 +4,7 @@
 	Transform.cpp
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #if !ENABLE_VECTORIZED_TRANSFORM
 
@@ -49,7 +49,7 @@ FString FTransform::ToString() const
 	return FString::Printf(TEXT("%f,%f,%f|%f,%f,%f|%f,%f,%f"), T.X, T.Y, T.Z, R.Pitch, R.Yaw, R.Roll, S.X, S.Y, S.Z);
 }
 
-bool FTransform::InitFromString( const FString & Source )
+bool FTransform::InitFromString( const FString& Source )
 {
 	TArray<FString> ComponentStrings;
 	Source.ParseIntoArray(&ComponentStrings, TEXT("|"), true);

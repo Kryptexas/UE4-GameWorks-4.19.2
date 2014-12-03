@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FUdpMessagingModule"
@@ -16,7 +20,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		if (!SupportsNetworkedTransport())
 		{
@@ -32,19 +36,20 @@ public:
 		}
 
 		// register settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
-			FSettingsSectionDelegates SettingsDelegates;
-			SettingsDelegates.ModifiedDelegate = FOnSettingsSectionModified::CreateRaw(this, &FUdpMessagingModule::HandleSettingsSaved);
-
-			SettingsModule->RegisterSettings("Project", "Plugins", "UdpMessaging",
+			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "UdpMessaging",
 				LOCTEXT("UdpMessagingSettingsName", "UDP Messaging"),
 				LOCTEXT("UdpMessagingSettingsDescription", "Configure the UDP Messaging plug-in."),
-				GetMutableDefault<UUdpMessagingSettings>(),
-				SettingsDelegates
+				GetMutableDefault<UUdpMessagingSettings>()
 			);
+
+			if (SettingsSection.IsValid())
+			{
+				SettingsSection->OnModified().BindRaw(this, &FUdpMessagingModule::HandleSettingsSaved);
+			}
 		}
 
 		// register application events
@@ -54,14 +59,14 @@ public:
 		RestartServices();
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		// unregister application events
 		FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveAll(this);
 		FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveAll(this);
 
 		// unregister settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -73,7 +78,7 @@ public:
 		ShutdownTunnel();
 	}
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -81,7 +86,7 @@ public:
 protected:
 
 	/** Initializes the message bridge with the current settings. */
-	void InitializeBridge( )
+	void InitializeBridge()
 	{
 		ShutdownBridge();
 
@@ -129,12 +134,11 @@ protected:
 		GLog->Logf(TEXT("UdpMessaging: Initializing bridge on interface %s to multicast group %s."), *UnicastEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString());
 
 		MessageBridge = FMessageBridgeBuilder()
-			.UsingJsonSerializer()
 			.UsingTransport(MakeShareable(new FUdpMessageTransport(UnicastEndpoint, MulticastEndpoint, Settings->MulticastTimeToLive)));
 	}
 
 	/** Initializes the message tunnel with the current settings. */
-	void InitializeTunnel( )
+	void InitializeTunnel()
 	{
 		ShutdownTunnel();
 
@@ -186,7 +190,7 @@ protected:
 	}
 
 	/** Restarts the bridge and tunnel services. */
-	void RestartServices( )
+	void RestartServices()
 	{
 		const UUdpMessagingSettings& Settings = *GetDefault<UUdpMessagingSettings>();
 
@@ -221,11 +225,11 @@ protected:
 	 * @todo gmp: this should be moved into an Engine module, so it can be shared with other transports
 	 * @return true if networked transport is supported, false otherwise.
 	 */
-	bool SupportsNetworkedTransport( ) const
+	bool SupportsNetworkedTransport() const
 	{
 		if (FApp::IsGame())
 		{
-			// disallow in Debug and Development configurations
+			// only allow in Debug and Development configurations for now
 			if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
 			{
 				return false;
@@ -251,7 +255,7 @@ protected:
 	}
 
 	/** Shuts down the message bridge. */
-	void ShutdownBridge( )
+	void ShutdownBridge()
 	{
 		if (MessageBridge.IsValid())
 		{
@@ -262,7 +266,7 @@ protected:
 	}
 
 	/** Shuts down the message tunnel. */
-	void ShutdownTunnel( )
+	void ShutdownTunnel()
 	{
 		if (MessageTunnel.IsValid())
 		{
@@ -273,21 +277,21 @@ protected:
 
 private:
 
-	// Callback for when an has been reactivated (i.e. return from sleep on iOS).
-	void HandleApplicationHasReactivated( )
+	/** Callback for when an has been reactivated (i.e. return from sleep on iOS). */
+	void HandleApplicationHasReactivated()
 	{
 		RestartServices();
 	}
 
-	// Callback for when the application will be deactivated (i.e. sleep on iOS).
-	void HandleApplicationWillDeactivate( )
+	/** Callback for when the application will be deactivated (i.e. sleep on iOS).*/
+	void HandleApplicationWillDeactivate()
 	{
 		ShutdownBridge();
 		ShutdownTunnel();
 	}
 
-	// Callback for when the settings were saved.
-	bool HandleSettingsSaved( )
+	/** Callback for when the settings were saved. */
+	bool HandleSettingsSaved()
 	{
 		RestartServices();
 
@@ -296,10 +300,10 @@ private:
 
 private:
 
-	// Holds the message bridge if present
+	/** Holds the message bridge if present. */
 	IMessageBridgePtr MessageBridge;
 
-	// Holds the message tunnel if present
+	/** Holds the message tunnel if present. */
 	IUdpMessageTunnelPtr MessageTunnel;
 };
 

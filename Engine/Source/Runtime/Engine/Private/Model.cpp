@@ -490,7 +490,7 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 #if WITH_EDITOR
 	if( EmptyPolys )
 	{
-		Polys = new( GetOuter(), NAME_None, RF_Transactional )UPolys(FPostConstructInitializeProperties());
+		Polys = new( GetOuter(), NAME_None, RF_Transactional )UPolys(FObjectInitializer());
 	}
 #endif // WITH_EDITOR
 
@@ -501,8 +501,8 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 //
 // Create a new model and allocate all objects needed for it.
 //
-UModel::UModel( const class FPostConstructInitializeProperties& PCIP,ABrush* Owner, bool InRootOutside )
-:	UObject(PCIP)
+UModel::UModel( const class FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside )
+:	UObject(ObjectInitializer)
 ,	Nodes		( this )
 ,	Verts		( this )
 ,	Vectors		( this )
@@ -516,7 +516,7 @@ UModel::UModel( const class FPostConstructInitializeProperties& PCIP,ABrush* Own
 	EmptyModel( 1, 1 );
 	if( Owner )
 	{
-		check(Owner->BrushComponent);
+		check(Owner->GetBrushComponent());
 		Owner->Brush = this;
 #if WITH_EDITOR
 		Owner->InitPosRotScale();
@@ -537,7 +537,7 @@ void UModel::BuildBound()
 		for( int32 i=0; i<Polys->Element.Num(); i++ )
 			for( int32 j=0; j<Polys->Element[i].Vertices.Num(); j++ )
 				NewPoints.Add(Polys->Element[i].Vertices[j]);
-		Bounds = FBoxSphereBounds( NewPoints.GetTypedData(), NewPoints.Num() );
+		Bounds = FBoxSphereBounds( NewPoints.GetData(), NewPoints.Num() );
 	}
 }
 

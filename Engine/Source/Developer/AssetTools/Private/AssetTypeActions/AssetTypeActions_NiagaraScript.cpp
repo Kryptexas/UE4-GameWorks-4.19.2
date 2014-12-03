@@ -10,21 +10,6 @@
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
-void FAssetTypeActions_NiagaraScript::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
-{
-	auto Scripts = GetTypedWeakObjectPtrs<UNiagaraScript>(InObjects);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("NiagaraScript_Edit", "Edit"),
-		LOCTEXT("NiagaraScript_EditTooltip", "Opens the selected script in editor."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_NiagaraScript::ExecuteEdit, Scripts ),
-		FCanExecuteAction()
-		)
-		);
-}
-
 void FAssetTypeActions_NiagaraScript::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
@@ -36,18 +21,6 @@ void FAssetTypeActions_NiagaraScript::OpenAssetEditor( const TArray<UObject*>& I
 		{
 			FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>( "NiagaraEditor" );
 			TSharedRef< INiagaraEditor > NewNiagaraEditor = NiagaraEditorModule.CreateNiagaraEditor( EToolkitMode::Standalone, EditWithinLevelEditor, Script );
-		}
-	}
-}
-
-void FAssetTypeActions_NiagaraScript::ExecuteEdit(TArray<TWeakObjectPtr<UNiagaraScript>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }

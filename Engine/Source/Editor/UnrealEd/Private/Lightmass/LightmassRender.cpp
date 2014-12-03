@@ -208,12 +208,12 @@ public:
 			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
 			FMaterialShaderMapId ResourceId;
 			//@todo - always use highest quality level for static lighting
-			MaterialInstance->GetMaterialResourceId(GRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
+			MaterialInstance->GetMaterialResourceId(GMaxRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
 
 			// Override with a special usage so we won't re-use the shader map used by the MI for rendering
 			ResourceId.Usage = GetShaderMapUsage();
 
-			CacheShaders(ResourceId, GRHIShaderPlatform, true);
+			CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
 		}
 		else
 		{
@@ -222,7 +222,7 @@ public:
 			// Copy the material resource Id
 			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map
 
-			CacheShaders(GRHIShaderPlatform, true);
+			CacheShaders(GMaxRHIShaderPlatform, true);
 		}
 	}
 
@@ -306,7 +306,7 @@ public:
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
-		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
+		EMaterialProperty DiffuseInput = MP_BaseColor;
 
 		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
 		// 						  RETURNED VALUES (F16 'textures')
@@ -329,13 +329,12 @@ public:
 			{
 			case MP_EmissiveColor:
 				// Emissive is ALWAYS returned...
-				return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_EmissiveColor),MCT_Float3,true,true);
+				return Compiler->Max(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_EmissiveColor),MCT_Float3,true,true), Compiler->Constant3(0, 0, 0));
 			case MP_DiffuseColor:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					EMaterialProperty DiffuseInput = UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 1 ? MP_DiffuseColor : MP_BaseColor;
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, DiffuseInput),MCT_Float3,true,true);
+					return Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, DiffuseInput),MCT_Float3,true,true));
 				}
 				break;
 			case MP_SpecularColor: 
@@ -343,8 +342,8 @@ public:
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
 					return Compiler->AppendVector(
-						Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, MP_SpecularColor),MCT_Float3,true,true), 
-						Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_Roughness),MCT_Float1));
+						Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, MP_SpecularColor),MCT_Float3,true,true)), 
+						Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_Roughness),MCT_Float1)));
 				}
 				break;
 			case MP_Normal:
@@ -372,7 +371,7 @@ public:
 					}
 					else
 					{
-						return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3,true,true);
+						return Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true));
 					}
 				}
 				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive))
@@ -384,9 +383,9 @@ public:
 					}
 					else
 					{
-						ColoredOpacity = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3,true,true);
+						ColoredOpacity = Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true));
 					}
-					return Compiler->Lerp(Compiler->Constant3(1.0f, 1.0f, 1.0f), ColoredOpacity, Compiler->ForceCast( MaterialInterface->CompileProperty(&ProxyCompiler,MP_Opacity), MCT_Float1));
+					return Compiler->Lerp(Compiler->Constant3(1.0f, 1.0f, 1.0f), ColoredOpacity, Compiler->Saturate(Compiler->ForceCast( MaterialInterface->CompileProperty(&ProxyCompiler,MP_Opacity), MCT_Float1)));
 				}
 				break;
 			default:
@@ -496,7 +495,6 @@ public:
 	bool IsMaterialInputConnected(UMaterial* InMaterial, EMaterialProperty MaterialInput)
 	{
 		bool bConnected = false;
-		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 
 		switch (MaterialInput)
 		{
@@ -504,10 +502,10 @@ public:
 			bConnected = InMaterial->EmissiveColor.Expression != NULL;
 			break;
 		case MP_DiffuseColor:
-			bConnected = (UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 1 ? InMaterial->DiffuseColor.Expression : InMaterial->BaseColor.Expression) != NULL;
+			bConnected = InMaterial->BaseColor.Expression != NULL;
 			break;
 		case MP_SpecularColor:
-			bConnected = InMaterial->SpecularColor.Expression != NULL;
+			bConnected = InMaterial->Specular.Expression != NULL;
 			break;
 		case MP_Normal:
 			bConnected = InMaterial->Normal.Expression != NULL;
@@ -1003,7 +1001,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 					case MP_Opacity:		OutputName += TEXT("Transmissive");		break;
 					}
 					OutputName += TEXT(".BMP");
-					FFileHelper::CreateBitmap(*OutputName,InOutSizeX,InOutSizeY,OutputBuffer.GetTypedData());
+					FFileHelper::CreateBitmap(*OutputName,InOutSizeX,InOutSizeY,OutputBuffer.GetData());
 				}
 			}
 		}
@@ -1050,7 +1048,7 @@ bool FLightmassMaterialRenderer::CreateRenderTarget(EPixelFormat InFormat, int32
 
 	if (RenderTarget == NULL)
 	{
-		RenderTarget = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+		RenderTarget = new UTextureRenderTarget2D(FObjectInitializer());
 		check(RenderTarget);
 		RenderTarget->AddToRoot();
 		RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);

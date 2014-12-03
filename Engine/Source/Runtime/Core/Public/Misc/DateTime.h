@@ -2,50 +2,48 @@
 
 #pragma once
 
+#include "HAL/Platform.h"
+#include "Misc/Timespan.h"
+
 
 class FArchive;
 class FOutputDevice;
+class FString;
 class UObject;
 
 
-namespace EDayOfWeek
+/**
+ * Enumerates the days of the week in 7-day calendars.
+ */
+enum class EDayOfWeek
 {
-	/**
-	 * Enumerates the days of the week in 7-day calendars.
-	 */
-	enum Type
-	{
-		Monday = 0,
-		Tuesday,
-		Wednesday,
-		Thursday,
-		Friday,
-		Saturday,
-		Sunday
-	};
+	Monday = 0,
+	Tuesday,
+	Wednesday,
+	Thursday,
+	Friday,
+	Saturday,
+	Sunday
 };
 
 
-namespace EMonthOfYear
+/**
+ * Enumerates the months of the year in 12-month calendars.
+ */
+enum class EMonthOfYear
 {
-	/**
-	 * Enumerates the months of the year in 12-month calendars.
-	 */
-	enum Type
-	{
-		January = 1,
-		February,
-		March,
-		April,
-		May,
-		June,
-		July,
-		August,
-		September,
-		October,
-		November,
-		December
-	};
+	January = 1,
+	February,
+	March,
+	April,
+	May,
+	June,
+	July,
+	August,
+	September,
+	October,
+	November,
+	December
 };
 
 
@@ -75,10 +73,8 @@ struct FDateTime
 {
 public:
 
-	/**
-	 * Default constructor (no initialization).
-	 */
-	FDateTime( ) { }
+	/** Default constructor (no initialization). */
+	FDateTime() { }
 
 	/**
 	 * Creates and initializes a new instance with the specified number of ticks.
@@ -108,7 +104,6 @@ public:
 	 * Returns result of adding the given time span to this date.
 	 *
 	 * @return A date whose value is the sum of this date and the given time span.
-	 *
 	 * @see FTimespan
 	 */
 	FDateTime operator+( const FTimespan& Other ) const
@@ -252,7 +247,7 @@ public:
 	 *
 	 * @return A FDateTime object containing the date.
 	 */
-	FDateTime GetDate( ) const
+	FDateTime GetDate() const
 	{
 		return FDateTime(Ticks - (Ticks % ETimespan::TicksPerDay));
 	}
@@ -272,7 +267,7 @@ public:
 	 * @return Day of the month.
 	 * @see GetHour, GetHour12, GetMillisecond, GetMinute, GetMonth, GetSecond, GetYear
 	 */
-	CORE_API int32 GetDay( ) const;
+	CORE_API int32 GetDay() const;
 
 	/**
 	 * Calculates this date's day of the week (Sunday - Saturday).
@@ -280,7 +275,7 @@ public:
 	 * @return The week day.
 	 * @see GetDayOfYear, GetMonthOfYear, GetTimeOfDay
 	 */
-	CORE_API EDayOfWeek::Type GetDayOfWeek( ) const;
+	CORE_API EDayOfWeek GetDayOfWeek() const;
 
 	/**
 	 * Gets this date's day of the year.
@@ -288,7 +283,7 @@ public:
 	 * @return The day of year.
 	 * @see GetDayOfWeek, GetMonthOfYear, GetTimeOfDay
 	 */
-	CORE_API int32 GetDayOfYear( ) const;
+	CORE_API int32 GetDayOfYear() const;
 
 	/**
 	 * Gets this date's hour part in 24-hour clock format (0 to 23).
@@ -296,7 +291,7 @@ public:
 	 * @return The hour.
 	 * @see GetDay, GetDayOfWeek, GetDayOfYear, GetHour12, GetMillisecond, GetMinute, GetMonth, GetSecond, GetYear
 	 */
-	int32 GetHour( ) const
+	int32 GetHour() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerHour) % 24);
 	}
@@ -307,7 +302,7 @@ public:
 	 * @return The hour in AM/PM format.
 	 * @see GetDay, GetHour, GetMillisecond, GetMinute, GetMonth, GetSecond, GetYear
 	 */
-	CORE_API int32 GetHour12( ) const;
+	CORE_API int32 GetHour12() const;
 
 	/**
 	 * Returns the Julian Day for this date.
@@ -319,7 +314,7 @@ public:
 	 * @return Julian Day.
 	 * @see FromJulianDay, GetModifiedJulianDay
 	 */
-	double GetJulianDay( ) const
+	double GetJulianDay() const
 	{
 		return (double)(1721425.5 + Ticks / ETimespan::TicksPerDay);
 	}
@@ -333,7 +328,7 @@ public:
 	 * @return Modified Julian Day
 	 * @see GetJulianDay
 	 */
-	double GetModifiedJulianDay( ) const
+	double GetModifiedJulianDay() const
 	{
 		return (GetJulianDay() - 2400000.5);
 	}
@@ -344,7 +339,7 @@ public:
 	 * @return The millisecond.
 	 * @see GetDay, GetHour, GetHour12, GetMinute, GetMonth, GetSecond, GetYear
 	 */
-	int32 GetMillisecond( ) const
+	int32 GetMillisecond() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerMillisecond) % 1000);
 	}
@@ -355,7 +350,7 @@ public:
 	 * @return The minute.
 	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMonth, GetSecond, GetYear
 	 */
-	int32 GetMinute( ) const
+	int32 GetMinute() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerMinute) % 60);
 	}
@@ -366,7 +361,7 @@ public:
 	 * @return The month.
 	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMinute, GetSecond, GetYear
 	 */
-	CORE_API int32 GetMonth( ) const;
+	CORE_API int32 GetMonth() const;
 
 	/**
 	 * Gets the date's month of the year (January to December).
@@ -374,9 +369,9 @@ public:
 	 * @return Month of year.
 	 * @see GetDayOfWeek, GetDayOfYear, GetTimeOfDay
 	 */
-	EMonthOfYear::Type GetMonthOfYear( ) const
+	EMonthOfYear GetMonthOfYear() const
 	{
-		return static_cast<EMonthOfYear::Type>(GetMonth());
+		return static_cast<EMonthOfYear>(GetMonth());
 	}
 
 	/**
@@ -385,7 +380,7 @@ public:
 	 * @return The second.
 	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMinute, GetMonth, GetYear
 	 */
-	int32 GetSecond( ) const
+	int32 GetSecond() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerSecond) % 60);
 	}
@@ -395,7 +390,7 @@ public:
 	 *
 	 * @return Number of ticks since midnight, January 1, 0001.
 	 */
-	int64 GetTicks( ) const
+	int64 GetTicks() const
 	{
 		return Ticks;
 	}
@@ -406,7 +401,7 @@ public:
 	 * @param Time of day since midnight.
 	 * @see GetDayOfWeek, GetDayOfYear, GetMonthOfYear
 	 */
-	FTimespan GetTimeOfDay( ) const
+	FTimespan GetTimeOfDay() const
 	{
 		return FTimespan(Ticks % ETimespan::TicksPerDay);
 	}
@@ -417,7 +412,7 @@ public:
 	 * @return The year.
 	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMinute, GetMonth, GetSecond
 	 */
-	CORE_API int32 GetYear( ) const;
+	CORE_API int32 GetYear() const;
 
 	/**
 	 * Imports a date and time value from a text buffer.
@@ -437,7 +432,7 @@ public:
 	 * @param true if it is in the afternoon, false otherwise.
 	 * @see IsMorning
 	 */
-	bool IsAfternoon( ) const
+	bool IsAfternoon() const
 	{
 		return (GetHour() >= 12);
 	}
@@ -448,7 +443,7 @@ public:
 	 * @param true if it is in the morning, false otherwise.
 	 * @see IsAfternoon
 	 */
-	bool IsMorning( ) const
+	bool IsMorning() const
 	{
 		return (GetHour() < 12);
 	}
@@ -469,7 +464,7 @@ public:
 	 * @return String representation.
 	 * @see ParseIso8601, ToString
 	 */
-	CORE_API FString ToIso8601( ) const;
+	CORE_API FString ToIso8601() const;
 
 	/**
 	 * Returns the string representation of this date using a default format.
@@ -480,7 +475,7 @@ public:
 	 * @return String representation.
 	 * @see Parse, ToIso8601
 	 */
-	CORE_API FString ToString( ) const;
+	CORE_API FString ToString() const;
 
 	/**
 	 * Returns the string representation of this date.
@@ -497,7 +492,7 @@ public:
 	 * @return Time of day.
 	 * @see FromUnixTimestamp
 	 */
-	CORE_API int32 ToUnixTimestamp( ) const
+	CORE_API int32 ToUnixTimestamp() const
 	{
 		return static_cast<int32>((Ticks - FDateTime(1970, 1, 1).Ticks) / ETimespan::TicksPerSecond);
 	}
@@ -560,20 +555,13 @@ public:
 	static CORE_API bool IsLeapYear( int32 Year );
 
 	/**
-	 * Checks whether the date and time components are valid.
-	 *
-	 * @return true if the components are valid, false otherwise.
-	 */
-	static CORE_API bool IsValid( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond );
-
-	/**
 	 * Returns the maximum date value.
 	 *
 	 * The maximum date value is December 31, 9999, 23:59:59.9999999.
 	 *
 	 * @see MinValue
 	 */
-	static FDateTime MaxValue( )
+	static FDateTime MaxValue()
 	{
 		return FDateTime(3652059 * ETimespan::TicksPerDay - 1);
 	}
@@ -585,7 +573,7 @@ public:
 	 *
 	 * @see MaxValue
 	 */
-	static FDateTime MinValue( )
+	static FDateTime MinValue()
 	{
 		return FDateTime(0);
 	}
@@ -593,10 +581,14 @@ public:
 	/**
 	 * Gets the local date and time on this computer.
 	 *
+	 * This method takes into account the local computer's time zone and daylight saving
+	 * settings. For time zone independent time comparisons, and when comparing times
+	 * between different computers, please use UtcNow() instead.
+	 *
 	 * @return Current date and time.
-	 * @see Today
+	 * @see Today, UtcNow
 	 */
-	static CORE_API FDateTime Now( );
+	static CORE_API FDateTime Now();
 
 	/**
 	 * Converts a string to a date and time.
@@ -626,9 +618,9 @@ public:
 	 * The time component is set to 00:00:00
 	 *
 	 * @return Current date.
-	 * @see Now
+	 * @see Now, UtcNow
 	 */
-	static FDateTime Today( )
+	static FDateTime Today()
 	{
 		return Now().GetDate();
 	}
@@ -636,9 +628,31 @@ public:
 	/**
 	 * Gets the UTC date and time on this computer.
 	 *
+	 * This method returns the Coordinated Universal Time (UTC), which does not take the
+	 * local computer's time zone and daylight savings settings into account. It should be
+	 * used when comparing dates and times that should be independent of the user's locale.
+	 * To get the date and time in the current locale, use Now() instead.
+	 *
 	 * @return Current date and time.
+	 * @see Now
 	 */
-	static CORE_API FDateTime UtcNow( );
+	static CORE_API FDateTime UtcNow();
+
+	/**
+	 * Validates the given components of a date and time value.
+	 *
+	 * The allow ranges for the components are:
+	 *		Year: 1 - 9999
+	 *		Month: 1 - 12
+	 *		Day: 1 - DaysInMonth(Month)
+	 *		Hour: 0 - 23
+	 *		Minute: 0 - 59
+	 *		Second: 0 - 59
+	 *		Millisecond: 0 - 999
+	 *
+	 * @return true if the components are valid, false otherwise.
+	 */
+	static CORE_API bool Validate( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond );
 
 public:
 
@@ -666,14 +680,10 @@ public:
 
 protected:
 
-	/**
-	 * Holds the days per month in a non-leap year.
-	 */
+	/** Holds the days per month in a non-leap year. */
 	static const int32 DaysPerMonth[];
 
-	/**
-	 * Holds the cumulative days per month in a non-leap year.
-	 */
+	/** Holds the cumulative days per month in a non-leap year. */
 	static const int32 DaysToMonth[];
 
 private:

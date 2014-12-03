@@ -3,7 +3,7 @@
 #include "OpenGLDrvPrivate.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 // This header file gives access to the thread_policy_set function.
 #include <mach/thread_act.h>
@@ -20,6 +20,9 @@ struct FPlatformOpenGLContext
 	}
 };
 
+// Event for coordinating pausing of render thread to keep inline with the ios display link.
+static FEvent* FrameReadyEvent = NULL;
+
 struct FPlatformOpenGLDevice
 {
 	FPlatformOpenGLContext RenderingContext;
@@ -28,6 +31,21 @@ struct FPlatformOpenGLDevice
 
 	FPlatformOpenGLDevice()
 	{
+		// make sure the app is compiled with ES2 support (we fallback tro ES2 mode in IOSView, but that is too early to show a warning
+		// so, we will wait until now to show it
+		// if we get here, and don't support ES2, then something has gone very wrong, and we need to alert the user
+
+		bool bSupportsES2 = false;
+		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsOpenGLES2"), bSupportsES2, GEngineIni);
+		if (!bSupportsES2)
+		{
+			NSLog(@"App requires Metal but it doesn't exist");
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, 
+				*(NSLOCTEXT("Renderer", "MetalAPIMissingInfo", "This application requires the Metal API which is not available on this device. Metal requires an A7 processor and iOS 8, or later.\n\nDevices that have an A7 are iPhone 5S, iPad Air, and iPad mini with Retina display. Any device older than those will not work.").ToString()), 
+				*(NSLOCTEXT("Renderer", "MetalAPIMissingTitle", "Metal required but not available").ToString()));
+			abort();
+		}
+
 		//SetRealTimeMode(pthread_self(), 20, 60);
 
 		bSingleContext = !GUseThreadedRendering;
@@ -61,6 +79,16 @@ struct FPlatformOpenGLDevice
 
 		PlatformSharedContextSetup(this);
 		InitDefaultGLContextState();
+        
+        // Hook into the ios framepacer, if it's enabled for this platform.
+        if( FIOSPlatformRHIFramePacer::IsEnabled() )
+        {
+            if( FrameReadyEvent == nullptr )
+            {
+                FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+                FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
+            }
+        }
 	}
 
 	bool SetRealTimeMode(pthread_t ThreadHandle, uint32 NormalProcessingTimeMs, uint32 ConstraintProcessingTimeMs)
@@ -115,20 +143,10 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 	return (void*)Context->Context;
 }
 
-
-// Event for coordinating pausing of render thread to keep inline with the ios display link.
-static FEvent* FrameReadyEvent = NULL;
-
 bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
-    if( FIOSPlatformRHIFramePacer::IsEnabled() )
+    if( FrameReadyEvent != nullptr )
     {
-        if( FrameReadyEvent == NULL )
-        {
-            FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
-            FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 1 );
-        }
-    
         FrameReadyEvent->Wait();
     }
     

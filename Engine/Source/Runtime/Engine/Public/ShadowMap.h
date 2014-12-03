@@ -2,6 +2,10 @@
 
 #pragma once
 
+// Forward declarations
+class ULightComponent;
+class UInstancedStaticMeshComponent;
+
 struct FSignedDistanceFieldShadowSample
 {
 	/** Normalized and encoded distance to the nearest shadow transition, in the range [0, 1], where .5 is at the transition. */
@@ -15,7 +19,7 @@ struct FSignedDistanceFieldShadowSample
 
 struct FQuantizedSignedDistanceFieldShadowSample
 {
-	enum {NumFilterableComponents = 2};
+	enum { NumFilterableComponents = 2 };
 	uint8 Distance;
 	uint8 PenumbraSize;
 	uint8 Coverage;
@@ -37,28 +41,28 @@ struct FQuantizedSignedDistanceFieldShadowSample
 	{
 		if (Index == 0)
 		{
-			Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InComponent * 255.0f),0,255);
+			Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InComponent * 255.0f), 0, 255);
 		}
 		else
 		{
 			checkSlow(Index == 1);
-			PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InComponent * 255.0f),0,255);
+			PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InComponent * 255.0f), 0, 255);
 		}
 	}
 
 	/** Equality operator */
-	bool operator==( const FQuantizedSignedDistanceFieldShadowSample& RHS ) const
+	bool operator==(const FQuantizedSignedDistanceFieldShadowSample& RHS) const
 	{
 		return Distance == RHS.Distance &&
-			   PenumbraSize == RHS.PenumbraSize &&
-			   Coverage == RHS.Coverage;
+			PenumbraSize == RHS.PenumbraSize &&
+			Coverage == RHS.Coverage;
 	}
 
 	FQuantizedSignedDistanceFieldShadowSample() {}
 	FQuantizedSignedDistanceFieldShadowSample(const FSignedDistanceFieldShadowSample& InSample)
 	{
-		Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InSample.Distance * 255.0f),0,255);
-		PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InSample.PenumbraSize * 255.0f),0,255);
+		Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InSample.Distance * 255.0f), 0, 255);
+		PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InSample.PenumbraSize * 255.0f), 0, 255);
 		Coverage = InSample.IsMapped ? 255 : 0;
 	}
 };
@@ -88,14 +92,13 @@ public:
 	};
 	virtual ShadowMapDataType GetType() const { return UNKNOWN; }
 
-	virtual void Quantize( TArray<struct FQuantizedShadowSample>& OutData ) const {}
-	virtual void Quantize( TArray<struct FQuantizedSignedDistanceFieldShadowSample>& OutData ) const {}
+	virtual void Quantize(TArray<FQuantizedSignedDistanceFieldShadowSample>& OutData) const {}
 
-	virtual void Serialize( FArchive* OutShadowMap ) {}
+	virtual void Serialize(FArchive* OutShadowMap) {}
 
 protected:
 
-	FShadowMapData2D(uint32 InSizeX,uint32 InSizeY):
+	FShadowMapData2D(uint32 InSizeX, uint32 InSizeY) :
 		SizeX(InSizeX),
 		SizeY(InSizeY)
 	{
@@ -115,30 +118,30 @@ class FShadowSignedDistanceFieldData2D : public FShadowMapData2D
 {
 public:
 
-	FShadowSignedDistanceFieldData2D(uint32 InSizeX,uint32 InSizeY)
-	:	FShadowMapData2D(InSizeX, InSizeY)
+	FShadowSignedDistanceFieldData2D(uint32 InSizeX, uint32 InSizeY)
+		: FShadowMapData2D(InSizeX, InSizeY)
 	{
 		Data.Empty(SizeX * SizeY);
 		Data.AddZeroed(SizeX * SizeY);
 	}
 
-	const FSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) const { return Data[SizeX * Y + X]; }
-	FSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) { return Data[SizeX * Y + X]; }
+	const FSignedDistanceFieldShadowSample& operator()(uint32 X, uint32 Y) const { return Data[SizeX * Y + X]; }
+	FSignedDistanceFieldShadowSample& operator()(uint32 X, uint32 Y) { return Data[SizeX * Y + X]; }
 
-	virtual ShadowMapDataType GetType() const { return SHADOW_SIGNED_DISTANCE_FIELD_DATA; }
-	virtual void Quantize( TArray<struct FQuantizedSignedDistanceFieldShadowSample>& OutData ) const
+	virtual ShadowMapDataType GetType() const override { return SHADOW_SIGNED_DISTANCE_FIELD_DATA; }
+	virtual void Quantize(TArray<FQuantizedSignedDistanceFieldShadowSample>& OutData) const override
 	{
-		OutData.Empty( Data.Num() );
-		OutData.AddUninitialized( Data.Num() );
-		for( int32 Index = 0; Index < Data.Num(); Index++ )
+		OutData.Empty(Data.Num());
+		OutData.AddUninitialized(Data.Num());
+		for (int32 Index = 0; Index < Data.Num(); Index++)
 		{
 			OutData[Index] = Data[Index];
 		}
 	}
 
-	virtual void Serialize( FArchive* OutShadowMap )
+	virtual void Serialize(FArchive* OutShadowMap) override
 	{
-		for( int32 Index = 0; Index < Data.Num(); Index++ )
+		for (int32 Index = 0; Index < Data.Num(); Index++)
 		{
 			OutShadowMap->Serialize(&Data[Index], sizeof(FSignedDistanceFieldShadowSample));
 		}
@@ -155,8 +158,8 @@ class FQuantizedShadowSignedDistanceFieldData2D : public FShadowMapData2D
 {
 public:
 
-	FQuantizedShadowSignedDistanceFieldData2D(uint32 InSizeX,uint32 InSizeY)
-	:	FShadowMapData2D(InSizeX, InSizeY)
+	FQuantizedShadowSignedDistanceFieldData2D(uint32 InSizeX, uint32 InSizeY)
+		: FShadowMapData2D(InSizeX, InSizeY)
 	{
 		Data.Empty(SizeX * SizeY);
 		Data.AddZeroed(SizeX * SizeY);
@@ -164,23 +167,18 @@ public:
 
 	FQuantizedSignedDistanceFieldShadowSample* GetData() { return Data.GetData(); }
 
-	const FQuantizedSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) const { return Data[SizeX * Y + X]; }
-	FQuantizedSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) { return Data[SizeX * Y + X]; }
+	const FQuantizedSignedDistanceFieldShadowSample& operator()(uint32 X, uint32 Y) const { return Data[SizeX * Y + X]; }
+	FQuantizedSignedDistanceFieldShadowSample& operator()(uint32 X, uint32 Y) { return Data[SizeX * Y + X]; }
 
-	virtual ShadowMapDataType GetType() const { return SHADOW_SIGNED_DISTANCE_FIELD_DATA_QUANTIZED; }
-	virtual void Quantize( TArray<struct FQuantizedSignedDistanceFieldShadowSample>& OutData ) const
+	virtual ShadowMapDataType GetType() const override { return SHADOW_SIGNED_DISTANCE_FIELD_DATA_QUANTIZED; }
+	virtual void Quantize(TArray<FQuantizedSignedDistanceFieldShadowSample>& OutData) const override
 	{
-		OutData.Empty( Data.Num() );
-		OutData.AddUninitialized( Data.Num() );
-		for( int32 Index = 0; Index < Data.Num(); Index++ )
-		{
-			OutData[Index] = Data[Index];
-		}
+		OutData = Data;
 	}
 
-	virtual void Serialize( FArchive* OutShadowMap )
+	virtual void Serialize(FArchive* OutShadowMap) override
 	{
-		for( int32 Index = 0; Index < Data.Num(); Index++ )
+		for (int32 Index = 0; Index < Data.Num(); Index++)
 		{
 			OutShadowMap->Serialize(&Data[Index], sizeof(FQuantizedSignedDistanceFieldShadowSample));
 		}
@@ -212,8 +210,14 @@ public:
 	TArray<FGuid> LightGuids;
 
 	/** Default constructor. */
-	FShadowMap() : 
-		NumRefs(0) 
+	FShadowMap() :
+		NumRefs(0)
+	{
+	}
+
+	FShadowMap(TArray<FGuid> LightGuids)
+		: LightGuids(MoveTemp(LightGuids))
+		, NumRefs(0)
 	{
 	}
 
@@ -231,7 +235,7 @@ public:
 	}
 
 	// FShadowMap interface.
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) {}
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) {}
 	virtual void Serialize(FArchive& Ar);
 	virtual FShadowMapInteraction GetInteraction() const = 0;
 
@@ -242,14 +246,14 @@ public:
 	// Reference counting.
 	void AddRef()
 	{
-		check( IsInGameThread() );
+		check(IsInGameThread());
 		NumRefs++;
 	}
 	void Release()
 	{
-		check( IsInGameThread() );
+		check(IsInGameThread());
 		checkSlow(NumRefs > 0);
-		if(--NumRefs == 0)
+		if (--NumRefs == 0)
 		{
 			Cleanup();
 		}
@@ -264,7 +268,7 @@ protected:
 
 private:
 	int32 NumRefs;
-	
+
 	// FDeferredCleanupInterface
 	ENGINE_API virtual void FinishCleanup();
 };
@@ -276,28 +280,41 @@ public:
 	/**
 	 * Executes all pending shadow-map encoding requests.
 	 * @param	InWorld				World in which the textures exist
-	 * @param	bLightingSuccessful	Whether the lighting build was successful or not.	 
+	 * @param	bLightingSuccessful	Whether the lighting build was successful or not.
 	 */
-	ENGINE_API static void EncodeTextures( UWorld* InWorld, bool bLightingSuccessful );
+	ENGINE_API static void EncodeTextures(UWorld* InWorld, bool bLightingSuccessful);
 
 	/**
 	 * Constructs mip maps for a single shadowmap texture.
 	 */
-	static void EncodeSingleTexture(struct FShadowMapPendingTexture& PendingTexture, UShadowMapTexture2D* Texture, TArray< TArray<FFourDistanceFieldSamples> >& MipData);
+	static void EncodeSingleTexture(struct FShadowMapPendingTexture& PendingTexture, UShadowMapTexture2D* Texture, TArray< TArray<FFourDistanceFieldSamples>>& MipData);
 
-	static FShadowMap2D* AllocateShadowMap(
-		UObject* LightMapOuter, 
-		const TMap<ULightComponent*,FShadowMapData2D*>& ShadowMapData,
-		const FBoxSphereBounds& Bounds, 
+	static ENGINE_API FShadowMap2D* AllocateShadowMap(
+		UObject* LightMapOuter,
+		const TMap<ULightComponent*, FShadowMapData2D*>& ShadowMapData,
+		const FBoxSphereBounds& Bounds,
 		ELightMapPaddingType InPaddingType,
 		EShadowMapFlags InShadowmapFlags);
 
+	/**
+	 * Allocates texture space for the shadow-map and stores the shadow-map's raw data for deferred encoding.
+	 * If the shadow-map has no shadows in it, it will return NULL.
+	 * @param	Component - The component that owns this shadowmap
+	 * @param	InstancedShadowMapData - The raw shadow-map data to fill the texture with.
+	 * @param	Bounds - The bounds of the primitive the shadow-map will be rendered on.  Used as a hint to pack shadow-maps on nearby primitives in the same texture.
+	 * @param	InPaddingType - the method for padding the shadowmap.
+	 * @param	ShadowmapFlags - flags that determine how the shadowmap is stored (e.g. streamed or not)
+	 */
+	static FShadowMap2D* AllocateInstancedShadowMap(UInstancedStaticMeshComponent* Component, TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>> InstancedShadowMapData,
+		const FBoxSphereBounds& Bounds, ELightMapPaddingType PaddingType, EShadowMapFlags ShadowmapFlags);
+
 	FShadowMap2D();
 
-	FShadowMap2D(const TMap<ULightComponent*,FShadowMapData2D*>& ShadowMapData);
+	FShadowMap2D(const TMap<ULightComponent*, FShadowMapData2D*>& ShadowMapData);
+	FShadowMap2D(TArray<FGuid> LightGuids);
 
 	// Accessors.
-	class UShadowMapTexture2D* GetTexture() const { check(IsValid()); return Texture; }
+	UShadowMapTexture2D* GetTexture() const { check(IsValid()); return Texture; }
 	const FVector2D& GetCoordinateScale() const { check(IsValid()); return CoordinateScale; }
 	const FVector2D& GetCoordinateBias() const { check(IsValid()); return CoordinateBias; }
 	bool IsValid() const { return Texture != NULL; }
@@ -309,7 +326,7 @@ public:
 	virtual FShadowMapInteraction GetInteraction() const;
 
 	// Runtime type casting.
-	virtual class FShadowMap2D* GetShadowMap2D() { return this; }
+	virtual FShadowMap2D* GetShadowMap2D() { return this; }
 	virtual const FShadowMap2D* GetShadowMap2D() const { return this; }
 
 	/** Call to enable/disable status update of LightMap encoding */
@@ -345,4 +362,4 @@ private:
 
 
 /** Shadowmap reference serializer */
-extern FArchive& operator<<(FArchive& Ar,FShadowMap*& R);
+extern ENGINE_API FArchive& operator<<(FArchive& Ar, FShadowMap*& R);

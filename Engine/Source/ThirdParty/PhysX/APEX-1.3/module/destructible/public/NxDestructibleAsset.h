@@ -1204,11 +1204,29 @@ public:
 	virtual FractureTools::ICutoutSet&		getCutoutSet() = 0;
 
 	/**
+	Partitions (and possibly re-orders) the mesh array if the triangles form disjoint islands.
+	mesh: pointer to array of NxExplicitRenderTriangles which make up the mesh
+	meshTriangleCount: the size of the meshTriangles array
+	meshPartition: user-allocated array for mesh partition, will be filled with the end elements of contiguous subsets of meshTriangles.
+	meshPartitionMaxCount: size of user-allocated meshPartitionArray
+
+	Returns the number of partitions.  The value may be larger than meshPartitionMaxCount.  In that case, the partitions beyond meshPartitionMaxCount are not recorded.
+	*/
+	virtual physx::PxU32					partitionMeshByIslands
+	(
+	physx::NxExplicitRenderTriangle* mesh,
+	physx::PxU32 meshTriangleCount,
+	physx::PxU32* meshPartition,
+	physx::PxU32 meshPartitionMaxCount,
+	physx::PxF32 padding = 0.0001f
+	) = 0;
+
+	/**
 		Builds a new IExplicitHierarchicalMesh from an array of triangles, used as the starting
 		point for fracturing.  It will contain only one chunk, at depth 0.
 
 		meshTriangles: pointer to array of NxExplicitRenderTriangles which make up the mesh
-		meshTriangleCount the size of the meshTriangles array
+		meshTriangleCount: the size of the meshTriangles array
 		submeshData: pointer to array of NxExplicitSubmeshData, describing the submeshes
 		submeshCount: the size of the submeshData array
 		meshPartition: if not NULL, an array of size meshPartitionCount, giving the end elements of contiguous subsets of meshTriangles.

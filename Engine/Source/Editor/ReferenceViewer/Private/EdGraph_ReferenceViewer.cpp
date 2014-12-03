@@ -4,8 +4,8 @@
 #include "AssetRegistryModule.h"
 #include "AssetThumbnail.h"
 
-UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AssetThumbnailPool = MakeShareable( new FAssetThumbnailPool(1024) );
 

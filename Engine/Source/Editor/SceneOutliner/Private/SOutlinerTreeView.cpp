@@ -311,7 +311,7 @@ namespace SceneOutliner
 				{
 					if (DraggedActors->Num() == 1)
 					{
-						const AActor* Actor = DraggedActors->GetTypedData()[0].Get();
+						const AActor* Actor = DraggedActors->GetData()[0].Get();
 						if (Actor)
 						{
 							Args.Add(TEXT("SourceName"), FText::FromString(Actor->GetActorLabel()));
@@ -319,7 +319,7 @@ namespace SceneOutliner
 					}
 					else
 					{
-						const auto DraggedFolder = DraggedFolders->GetTypedData()[0].Pin();
+						const auto DraggedFolder = DraggedFolders->GetData()[0].Pin();
 						if (DraggedFolder.IsValid())
 						{
 							Args.Add(TEXT("SourceName"), FText::FromString(DraggedFolder->LeafName.ToString()));

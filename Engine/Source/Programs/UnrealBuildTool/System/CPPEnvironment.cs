@@ -223,6 +223,9 @@ namespace UnrealBuildTool
 		/** True if we're compiling a DLL */
 		public bool bIsBuildingDLL = false;
 
+		/** Whether we should compile using the statically-linked CRT. This is not widely supported for the whole engine, but is required for programs that need to run without dependencies. */
+		public bool bUseStaticCRT = false;
+
 		/** Whether the CLR (Common Language Runtime) support should be enabled for C++ targets (C++/CLI). */
 		public CPPCLRMode CLRMode = CPPCLRMode.CLRDisabled;
 
@@ -270,6 +273,7 @@ namespace UnrealBuildTool
 			bCreateDebugInfo                       = InCopyEnvironment.bCreateDebugInfo;
 			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;
 			bIsBuildingDLL                         = InCopyEnvironment.bIsBuildingDLL;
+			bUseStaticCRT						   = InCopyEnvironment.bUseStaticCRT;
 			CLRMode                                = InCopyEnvironment.CLRMode;
 			CPPIncludeInfo.IncludePaths            .UnionWith(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
 			CPPIncludeInfo.SystemIncludePaths      .UnionWith(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);

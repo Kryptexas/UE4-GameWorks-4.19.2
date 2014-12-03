@@ -84,19 +84,15 @@ void Main(
 
 	//@mw todo:
 	//Go over with Brian to determine the proper defines to wrap it and test cases to fix it.
-	/*
+#if !(GL3_PROFILE || GL4_PROFILE || COMPILER_GLSL_ES2 || COMPILER_GLSL || METAL_PROFILE)
 	float2 PixelPos = SvPosition - View.ViewRectMin.xy;	
 	MaterialParameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
 	MaterialParameters.ScreenPosition.zw = SvPosition.zw;
 	
 	MaterialParameters.ScreenPosition.xyz *= MaterialParameters.ScreenPosition.w;
-	*/
+#endif
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
-#if DIFFUSE_SPEC_INPUTS
-	half3 DiffuseColor = GetMaterialDiffuseColor( MaterialParameters );
-	half3 SpecularColor = GetMaterialSpecularColor( MaterialParameters );
-#else
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
 	half  Metallic = GetMaterialMetallic( MaterialParameters );
@@ -109,7 +105,6 @@ void Main(
 	half DielectricSpecular = 0.08 * Specular;
 	half3 DiffuseColor = BaseColor - BaseColor * Metallic;	// 1 mad
 	half3 SpecularColor = (DielectricSpecular - DielectricSpecular * Metallic) + BaseColor * Metallic;	// 2 mad
-#endif
 #endif
 
 	half Roughness = GetMaterialRoughness(MaterialParameters);

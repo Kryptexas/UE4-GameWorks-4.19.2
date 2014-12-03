@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UTableViewBase
 
-UTableViewBase::UTableViewBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTableViewBase::UTableViewBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
 }

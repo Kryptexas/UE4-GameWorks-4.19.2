@@ -21,7 +21,7 @@ const float MaxVertexAnimBlendWeight = 5.0f;
 FSkeletalMeshObject
 -----------------------------------------------------------------------------*/
 
-FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource) 
+FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel)
 :	MinDesiredLODLevel(0)
 ,	MaxDistanceFactor(0.f)
 ,	WorkingMinDesiredLODLevel(0)
@@ -38,6 +38,7 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,	CustomSortAlternateIndexMode((ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode)
 ,	bUsePerBoneMotionBlur(InMeshComponent->bPerBoneMotionBlur)
 ,	StatId(InMeshComponent->SkeletalMesh->GetStatID(true))
+,	FeatureLevel(InFeatureLevel)
 {
 	check(SkeletalMeshResource);
 

@@ -14,6 +14,11 @@
 #include "BlueprintEditorUtils.h"
 #include "WidgetTemplateClass.h"
 #include "WidgetBlueprintEditor.h"
+#include "SSearchBox.h"
+#include "WidgetBlueprint.h"
+#include "WidgetBlueprintEditorUtils.h"
+
+#include "Components/PanelWidget.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -21,6 +26,7 @@ void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 {
 	BlueprintEditor = InBlueprintEditor;
 	bRebuildTreeRequested = false;
+	bIsUpdatingSelection = false;
 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddRaw(this, &SHierarchyView::OnObjectsReplaced);
@@ -87,6 +93,8 @@ SHierarchyView::~SHierarchyView()
 
 void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
 	if ( bRebuildTreeRequested || bRefreshRequested )
 	{
 		if ( bRebuildTreeRequested )
@@ -107,11 +115,25 @@ void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 }
 
-FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+void SHierarchyView::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
+}
+
+void SHierarchyView::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
+}
+
+FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
 
-	if ( BlueprintEditor.Pin()->DesignerCommandList->ProcessCommandBindings(InKeyboardEvent) )
+	if ( BlueprintEditor.Pin()->DesignerCommandList->ProcessCommandBindings(InKeyEvent) )
 	{
 		return FReply::Handled();
 	}
@@ -138,55 +160,16 @@ FText SHierarchyView::GetSearchText() const
 
 void SHierarchyView::OnEditorSelectionChanged()
 {
-	WidgetTreeView->ClearSelection();
-
-	bool bFirst = true;
-
-	// Update the selection and expansion in the tree to match the new selection
-	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
-	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	if ( !bIsUpdatingSelection )
 	{
-		UWidget* TemplateWidget = WidgetRef.GetTemplate();
+		WidgetTreeView->ClearSelection();
 
-		if ( TemplateWidget )
+		if ( RootWidgets.Num() > 0 )
 		{
-			TArray< UWidget* > Widgets;
-			Widgets.Add(TemplateWidget);
-
-			UWidget* Parent = TemplateWidget->GetParent();
-			while ( Parent != NULL )
-			{
-				Widgets.Add(Parent);
-				Parent = Parent->GetParent();
-			}
-
-			TSharedPtr<FHierarchyModel> CurrentItem = RootWidgets[0];
-			WidgetTreeView->SetItemExpansion(CurrentItem, true);
-
-			for ( int32 WidgetIndex = Widgets.Num() - 1; WidgetIndex >= 0; WidgetIndex-- )
-			{
-				UWidget* WidgetItem = Widgets[WidgetIndex];
-
-				TArray< TSharedPtr<FHierarchyModel> > Children;
-				CurrentItem->GatherChildren(Children);
-
-				for ( auto C : Children )
-				{
-					if ( C->IsModel(WidgetItem) )
-					{
-						WidgetTreeView->SetItemExpansion(C, true);
-						CurrentItem = C;
-
-						if ( WidgetIndex == 0 )
-						{
-							WidgetTreeView->SetItemSelection(CurrentItem, true, ESelectInfo::Direct);
-						}
-					}
-				}
-			}
-
-			WidgetTreeView->RequestScrollIntoView(CurrentItem);
+			RootWidgets[0]->RefreshSelection();
 		}
+
+		RestoreSelectedItems();
 	}
 }
 
@@ -198,7 +181,7 @@ UWidgetBlueprint* SHierarchyView::GetBlueprint() const
 		return CastChecked<UWidgetBlueprint>(BP);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
@@ -211,7 +194,7 @@ void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
 
 TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 {
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, nullptr);
 
 	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), FVector2D(0, 0));
 
@@ -231,9 +214,26 @@ TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(TSharedPtr
 
 void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyModel> SelectedItem, ESelectInfo::Type SelectInfo)
 {
-	if ( SelectedItem.IsValid() && SelectInfo != ESelectInfo::Direct )
+	if ( SelectInfo != ESelectInfo::Direct )
 	{
-		SelectedItem->OnSelection();
+		bIsUpdatingSelection = true;
+
+		TArray< TSharedPtr<FHierarchyModel> > SelectedItems = WidgetTreeView->GetSelectedItems();
+
+		TSet<FWidgetReference> Clear;
+		BlueprintEditor.Pin()->SelectWidgets(Clear, false);
+
+		for ( TSharedPtr<FHierarchyModel>& Item : SelectedItems )
+		{
+			Item->OnSelection();
+		}
+
+		if ( RootWidgets.Num() > 0 )
+		{
+			RootWidgets[0]->RefreshSelection();
+		}
+
+		bIsUpdatingSelection = false;
 	}
 }
 
@@ -258,7 +258,7 @@ void SHierarchyView::RebuildTreeView()
 {
 	SAssignNew(WidgetTreeView, STreeView< TSharedPtr<FHierarchyModel> >)
 		.ItemHeight(20.0f)
-		.SelectionMode(ESelectionMode::Single)
+		.SelectionMode(ESelectionMode::Multi)
 		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler< TSharedPtr<FHierarchyModel> >::OnGetFilteredChildren)
 		.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
 		.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
@@ -325,6 +325,38 @@ void SHierarchyView::RecursiveExpand(TSharedPtr<FHierarchyModel>& Model)
 		}
 	}
 }
+
+void SHierarchyView::RestoreSelectedItems()
+{
+	for ( TSharedPtr<FHierarchyModel>& Model : RootWidgets )
+	{
+		RecursiveSelection(Model);
+	}
+}
+
+void SHierarchyView::RecursiveSelection(TSharedPtr<FHierarchyModel>& Model)
+{
+	if ( Model->ContainsSelection() )
+	{
+		// Expand items that contain selection.
+		WidgetTreeView->SetItemExpansion(Model, true);
+
+		TArray< TSharedPtr<FHierarchyModel> > Children;
+		Model->GatherChildren(Children);
+
+		for ( TSharedPtr<FHierarchyModel>& ChildModel : Children )
+		{
+			RecursiveSelection(ChildModel);
+		}
+	}
+
+	if ( Model->IsSelected() )
+	{
+		WidgetTreeView->SetItemSelection(Model, true, ESelectInfo::Direct);
+		WidgetTreeView->RequestScrollIntoView(Model);
+	}
+}
+
 
 //@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?
 

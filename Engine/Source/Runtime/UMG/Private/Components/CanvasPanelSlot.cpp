@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UCanvasPanelSlot
 
-UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCanvasPanelSlot::UCanvasPanelSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(NULL)
 {
 	LayoutData.Offsets = FMargin(0, 0, 100, 30);

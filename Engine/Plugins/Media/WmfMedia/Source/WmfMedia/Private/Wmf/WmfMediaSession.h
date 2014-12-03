@@ -5,6 +5,10 @@
 #include "AllowWindowsPlatformTypes.h"
 
 
+// forward declarations
+enum class EMediaPlaybackDirections;
+
+
 /**
  * Enumerates possible states of media playback.
  */
@@ -52,9 +56,6 @@ public:
 	 */
 	FWmfMediaSession( const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology );
 
-	/** Virtual destructor .*/
-	virtual ~FWmfMediaSession( ) { }
-
 public:
 
 	/**
@@ -62,7 +63,7 @@ public:
 	 *
 	 * @return Capabilities bit mask.
 	 */
-	DWORD GetCapabilities( ) const
+	DWORD GetCapabilities() const
 	{
 		return Capabilities;
 	}
@@ -73,7 +74,7 @@ public:
 	 * @return Error result code.
 	 * @see GetSessionState
 	 */
-	HRESULT GetLastError( ) const
+	HRESULT GetLastError() const
 	{
 		return LastError;
 	}
@@ -83,14 +84,14 @@ public:
 	 *
 	 * @return Presentation clock time, or FTimespan::MinValue if no clock is available.
 	 */
-	FTimespan GetPosition( ) const;
+	FTimespan GetPosition() const;
 
 	/**
 	 * Gets the current playback rate.
 	 *
 	 * @return Playback rate.
 	 */
-	float GetRate( ) const
+	float GetRate() const
 	{
 		return CurrentRate;
 	}
@@ -101,7 +102,7 @@ public:
 	 * @return Media session state.
 	 * @see GetLastError
 	 */
-	EMediaStates GetState( ) const
+	EMediaStates GetState() const
 	{
 		return CurrentState;
 	}
@@ -120,7 +121,7 @@ public:
 	 *
 	 * @return true if looping, false otherwise.
 	 */
-	bool IsLooping( ) const
+	bool IsLooping() const
 	{
 		return Looping;
 	}
@@ -173,7 +174,7 @@ public:
 	 *
 	 * @return true if scrubbing is supported, false otherwise.
 	 */
-	bool SupportsScrubbing( ) const
+	bool SupportsScrubbing() const
 	{
 		return CanScrub;
 	}
@@ -182,11 +183,11 @@ public:
 
 	// IMFAsyncCallback interface
 
-	STDMETHODIMP_(ULONG) AddRef( );
+	STDMETHODIMP_(ULONG) AddRef();
 	STDMETHODIMP GetParameters( unsigned long*, unsigned long*);
 	STDMETHODIMP Invoke( IMFAsyncResult* AsyncResult );
 	STDMETHODIMP QueryInterface( REFIID RefID, void** Object );
-	STDMETHODIMP_(ULONG) Release( );
+	STDMETHODIMP_(ULONG) Release();
 
 protected:
 
@@ -195,74 +196,76 @@ protected:
 	 *
 	 * @return true if the state is being changed, false otherwise.
 	 */
-	bool ChangeState( );
+	bool ChangeState();
 
 	/**
 	 * Gets the playback position as known by the internal WMF clock.
 	 *
 	 * @return The internal playback position.
 	 */
-	FTimespan GetInternalPosition( ) const;
+	FTimespan GetInternalPosition() const;
 
 	/**
-	 * Updates the current state.
+	 * Updates the state machine after a state transition was completed.
+	 *
+	 * @param CompletedState The state that was completed.
 	 */
 	void UpdateState( EMediaStates CompletedState );
 
 private:
 
-	// Caches whether the media supports scrubbing.
+	/** Caches whether the media supports scrubbing. */
 	bool CanScrub;
 
-	// The session's capabilities.
+	/** The session's capabilities. */
 	DWORD Capabilities;
 
-	// Whether a new state change has been requested.
+	/** Whether a new state change has been requested. */
 	bool ChangeRequested;
 
-	// Critical section for locking access to this object.
+	/** Critical section for locking access to this object. */
 	mutable FCriticalSection CriticalSection;
 
-	// The current playback rate.
+	/** The current playback rate. */
 	float CurrentRate;
 
-	// The current playback state.
+	/** The current playback state. */
 	EMediaStates CurrentState;
 
-	// The duration of the media.
+	/** The duration of the media. */
 	FTimespan Duration;
 
-	// The media session that handles all playback.
+	/** The media session that handles all playback. */
 	TComPtr<IMFMediaSession> MediaSession;
 
-	// Caches the last error result code (0 = no error).
+	/** Caches the last error result code (0 = no error). */
 	HRESULT LastError;
 
-	// Whether playback should loop to the beginning.
+	/** Whether playback should loop to the beginning. */
 	bool Looping;
 
-	// The media session's clock.
+	/** The media session's clock. */
 	TComPtr<IMFPresentationClock> PresentationClock;
 
-	// Optional interface for controlling playback rates.
+	/** Optional interface for controlling playback rates. */
 	TComPtr<IMFRateControl> RateControl;
 
-	// Optional interface for querying supported playback rates.
+	/** Optional interface for querying supported playback rates. */
 	TComPtr<IMFRateSupport> RateSupport;
 
-	// Holds a reference counter for this instance.
+	/** Holds a reference counter for this instance. */
 	int32 RefCount;
 
-	// The requested playback position.
+	/** The requested playback position. */
 	FTimespan RequestedPosition;
 
-	// The requested playback rate.
+	/** The requested playback rate. */
 	float RequestedRate;
 
-	// The requested playback state.
+	/** The requested playback state. */
 	EMediaStates RequestedState;
 
-	// Whether a state change is currently in progress.
+	/** Whether a state change is currently in progress. */
 	bool StateChangePending;
 };
 

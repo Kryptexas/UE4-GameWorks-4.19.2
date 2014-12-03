@@ -15,6 +15,8 @@
 #include "SFlipbookEditorViewportToolbar.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
 #include "SFlipbookTimeline.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -299,18 +301,20 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Details(const FSpawnTabArgs& Args
 
 void FFlipbookEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_FlipbookEditor", "Flipbook Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner(FFlipbookEditorTabs::ViewportID, FOnSpawnTab::CreateSP(this, &FFlipbookEditor::SpawnTab_Viewport))
 		.SetDisplayName( LOCTEXT("ViewportTab", "Viewport") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
 
 	TabManager->RegisterTabSpawner(FFlipbookEditorTabs::DetailsID, FOnSpawnTab::CreateSP(this, &FFlipbookEditor::SpawnTab_Details))
 		.SetDisplayName( LOCTEXT("DetailsTabLabel", "Details") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
 void FFlipbookEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

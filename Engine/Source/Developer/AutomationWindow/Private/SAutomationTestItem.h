@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationTestItem.h: Declares the SAutomationTestItem class.
-=============================================================================*/
-
 #pragma once
+
 
 DECLARE_DELEGATE_OneParam(FOnItemCheckedStateChanged, TSharedPtr<IAutomationReport> /*TestStatus*/);
 
@@ -37,7 +34,7 @@ public:
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
@@ -61,8 +58,8 @@ protected:
 	/**
 	 * Returns the tool tip for the automation test result.
 	 *
-	 * @param ClusterIndex - the cluster index.
-	 * @return The tooltip text
+	 * @param ClusterIndex The cluster index.
+	 * @return The tooltip text.
 	 */
 	FText GetTestToolTip( int32 ClusterIndex ) const;
 
@@ -76,7 +73,7 @@ protected:
 	/**
 	 * Returns color that indicates test status per cluster.
 	 *
-	 * @param ClusterIndex - the cluster index.
+	 * @param ClusterIndex The cluster index.
 	 * @return The background Color.
 	 */
 	FSlateColor ItemStatus_BackgroundColor( const int32 ClusterIndex ) const;
@@ -91,8 +88,8 @@ protected:
 	/**
 	 * Helper to ensure throbber is visible when in process and icon is visible otherwise.
 	 *
-	 * @param ClusterIndex - the cluster index.
- 	 * @param bForInProcessThrobber - If throbbing is in process.
+	 * @param ClusterIndex The cluster index.
+ 	 * @param bForInProcessThrobber If throbbing is in process.
 	 * @return The visibility state.
 	 */
 	EVisibility ItemStatus_GetStatusVisibility( const int32 ClusterIndex, const bool bForInProcessThrobber ) const;
@@ -100,7 +97,7 @@ protected:
 	/**
 	 * Color of progress bar for internal tree test nodes.
 	 *
-	 * @param ClusterIndex - the cluster index.
+	 * @param ClusterIndex The cluster index.
 	 * @return The progress bar color.
 	 */
 	FSlateColor ItemStatus_ProgressColor( const int32 ClusterIndex ) const;
@@ -108,7 +105,7 @@ protected:
 	/**
 	 * Returns percent completion for an internal tree node for all enabled child tests.
 	 *
-	 * @param ClusterIndex - the cluster index.
+	 * @param ClusterIndex The cluster index.
 	 * @return The percent complete.
 	 */
 	TOptional<float> ItemStatus_ProgressFraction( const int32 ClusterIndex ) const;
@@ -116,38 +113,34 @@ protected:
 	/**
 	 * Returns image that denotes the status of a particular test on the given platform cluster.
 	 *
-	 * @param ClusterIndex - the cluster index.
+	 * @param ClusterIndex The cluster index.
 	 * @return the status image.
 	 */
 	const FSlateBrush* ItemStatus_StatusImage( const int32 ClusterIndex ) const;
 	
 	/**
-	 * The number of participants required for this test item in string form
+	 * The number of participants required for this test item in string form.
 	 *
-	 * @return The number of participants needed
+	 * @return The number of participants needed.
 	 */
 	FText ItemStatus_NumParticipantsRequiredText( ) const;
 
 private:
 
-	/**
-	 * Handle the testing checkbox click.
-	 *
-	 * @param The checkbox state.
-	 */
+	/** Handle the testing checkbox click. */
 	void HandleTestingCheckbox_Click( ESlateCheckBoxState::Type );
 
 private:
 
-	// The column width
+	/** The column width. */
 	float ColumnWidth;
 
-	// Holds the highlight string for the automation test.
+	/** Holds the highlight string for the automation test. */
 	TAttribute<FText> HighlightText;
 
-	// Holds the automation report
+	/** Holds the automation report. */
 	TSharedPtr<IAutomationReport> TestStatus;
 
-	// Holds a delegate to be invoked when the check box state changed.
+	/** Holds a delegate to be invoked when the check box state changed. */
 	FOnItemCheckedStateChanged OnCheckedStateChangedDelegate;
 };

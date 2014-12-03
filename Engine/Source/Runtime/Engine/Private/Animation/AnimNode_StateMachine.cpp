@@ -209,13 +209,15 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 			// Move to the default state
 			SetState(Context, Machine->InitialState);
 
+			// initialize first update
+			bFirstUpdate = true;
 			// Fire off any entry notifications the default state has
 			Context.AnimInstance->AddAnimNotifyFromGeneratedClass(GetStateInfo(Machine->InitialState).StartNotify);
 		}
 	}
 }
 
-void FAnimNode_StateMachine::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_StateMachine::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	if (FBakedAnimationStateMachine* Machine = GetMachineDescription())
 	{
@@ -334,6 +336,13 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 	}
 	while (bFoundValidTransition && (TransitionCountThisFrame < MaxTransitionsPerFrame));
 
+	// in the first update, we don't like to transition from entry state
+	// so we throw out any transition data at the first update
+	if (bFirstUpdate)
+	{
+		ActiveTransitionArray.Empty();
+		bFirstUpdate = false;
+	}
 
 	StatesUpdated.Empty(StatesUpdated.Num());
 

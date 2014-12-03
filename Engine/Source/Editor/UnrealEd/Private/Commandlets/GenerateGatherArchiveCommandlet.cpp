@@ -6,8 +6,8 @@
 #include "Internationalization/InternationalizationArchive.h"
 #include "Internationalization/InternationalizationManifest.h"
 #include "Internationalization/InternationalizationMetadata.h"
-#include "InternationalizationArchiveJsonSerializer.h"
-#include "InternationalizationManifestJsonSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateArchiveCommandlet, Log, All);
@@ -15,8 +15,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGenerateArchiveCommandlet, Log, All);
 /**
  *	UGenerateGatherArchiveCommandlet
  */
-UGenerateGatherArchiveCommandlet::UGenerateGatherArchiveCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenerateGatherArchiveCommandlet::UGenerateGatherArchiveCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -138,7 +138,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
-	FInternationalizationManifestJsonSerializer ManifestSerializer;
+	FJsonInternationalizationManifestSerializer ManifestSerializer;
 	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 
 	ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
@@ -149,7 +149,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		BuildArchiveFromManifest( InternationalizationManifest, InternationalizationArchive, SourceCulture, CulturesToGenerate[Culture] );
 
 		const FString CulturePath = DestinationPath / CulturesToGenerate[Culture];
-		FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 		TSharedRef< FInternationalizationArchive > OutputInternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 
 		// Read in any existing archive for this culture.
@@ -161,13 +161,13 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 			ExistingArchiveJsonObject = ReadJSONTextFile( ExistingArchiveFileName );
 			
 			// Some of the existing archives were saved out with an "Unnamed" namespace for the root instead of the empty string.  We try to fix that here.
-			if( ExistingArchiveJsonObject->HasField( FInternationalizationArchiveJsonSerializer::TAG_NAMESPACE ) )
+			if( ExistingArchiveJsonObject->HasField( FJsonInternationalizationArchiveSerializer::TAG_NAMESPACE ) )
 			{
-				FString RootNamespace = ExistingArchiveJsonObject->GetStringField( FInternationalizationArchiveJsonSerializer::TAG_NAMESPACE );
+				FString RootNamespace = ExistingArchiveJsonObject->GetStringField( FJsonInternationalizationArchiveSerializer::TAG_NAMESPACE );
 				if( RootNamespace == TEXT("Unnamed") )
 				{
-					ExistingArchiveJsonObject->RemoveField( FInternationalizationArchiveJsonSerializer::TAG_NAMESPACE );
-					ExistingArchiveJsonObject->SetStringField( FInternationalizationArchiveJsonSerializer::TAG_NAMESPACE, TEXT("") );
+					ExistingArchiveJsonObject->RemoveField( FJsonInternationalizationArchiveSerializer::TAG_NAMESPACE );
+					ExistingArchiveJsonObject->SetStringField( FJsonInternationalizationArchiveSerializer::TAG_NAMESPACE, TEXT("") );
 				}
 			}
 
@@ -178,15 +178,15 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 				static bool PurgeNamespaceOfEmptyEntries(const TSharedPtr<FJsonObject>& JSONObject)
 				{
 					bool ModifiedChildrenArray = false;
-					if( JSONObject->HasField( FInternationalizationArchiveJsonSerializer::TAG_CHILDREN ) )
+					if( JSONObject->HasField( FJsonInternationalizationArchiveSerializer::TAG_CHILDREN ) )
 					{
-						TArray<TSharedPtr<FJsonValue>> ChildrenArray = JSONObject->GetArrayField(FInternationalizationArchiveJsonSerializer::TAG_CHILDREN);
+						TArray<TSharedPtr<FJsonValue>> ChildrenArray = JSONObject->GetArrayField(FJsonInternationalizationArchiveSerializer::TAG_CHILDREN);
 						for( int32 ChildIndex = ChildrenArray.Num() - 1; ChildIndex >= 0; --ChildIndex )
 						{
 							TSharedPtr<FJsonObject> Child = ChildrenArray[ ChildIndex ]->AsObject();
-							TSharedPtr<FJsonObject> TranslationObject = Child->GetObjectField(FInternationalizationArchiveJsonSerializer::TAG_TRANSLATION);
+							TSharedPtr<FJsonObject> TranslationObject = Child->GetObjectField(FJsonInternationalizationArchiveSerializer::TAG_TRANSLATION);
 
-							const FString& TranslatedText = TranslationObject->GetStringField(FInternationalizationArchiveJsonSerializer::TAG_TRANSLATION_TEXT);
+							const FString& TranslatedText = TranslationObject->GetStringField(FJsonInternationalizationArchiveSerializer::TAG_TRANSLATION_TEXT);
 
 							if(TranslatedText.IsEmpty())
 							{
@@ -197,26 +197,26 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 						}
 						if(ModifiedChildrenArray)
 						{
-							JSONObject->RemoveField(FInternationalizationArchiveJsonSerializer::TAG_CHILDREN);
+							JSONObject->RemoveField(FJsonInternationalizationArchiveSerializer::TAG_CHILDREN);
 							if(ChildrenArray.Num())
 							{
-								JSONObject->SetArrayField(FInternationalizationArchiveJsonSerializer::TAG_CHILDREN, ChildrenArray);
+								JSONObject->SetArrayField(FJsonInternationalizationArchiveSerializer::TAG_CHILDREN, ChildrenArray);
 							}
 						}
 					}
 
 					bool ModifiedSubnamespaceArray = false;
-					if( JSONObject->HasField( FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES ) )
+					if( JSONObject->HasField( FJsonInternationalizationArchiveSerializer::TAG_SUBNAMESPACES ) )
 					{
-						TArray<TSharedPtr<FJsonValue>> SubnamespaceArray = JSONObject->GetArrayField(FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES);
+						TArray<TSharedPtr<FJsonValue>> SubnamespaceArray = JSONObject->GetArrayField(FJsonInternationalizationArchiveSerializer::TAG_SUBNAMESPACES);
 
 						for( int32 Index = SubnamespaceArray.Num() - 1; Index >= 0; --Index )
 						{
 							TSharedPtr<FJsonObject> Subnamespace = SubnamespaceArray[ Index ]->AsObject();
 							ModifiedSubnamespaceArray = PurgeNamespaceOfEmptyEntries(Subnamespace);
 
-							bool HasChildren = Subnamespace->HasField( FInternationalizationArchiveJsonSerializer::TAG_CHILDREN );
-							bool HasSubnamespaces = Subnamespace->HasField( FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES );
+							bool HasChildren = Subnamespace->HasField( FJsonInternationalizationArchiveSerializer::TAG_CHILDREN );
+							bool HasSubnamespaces = Subnamespace->HasField( FJsonInternationalizationArchiveSerializer::TAG_SUBNAMESPACES );
 
 							if(!HasChildren && !HasSubnamespaces)
 							{
@@ -227,10 +227,10 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 						}
 						if(ModifiedSubnamespaceArray)
 						{
-							JSONObject->RemoveField(FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES);
+							JSONObject->RemoveField(FJsonInternationalizationArchiveSerializer::TAG_SUBNAMESPACES);
 							if(SubnamespaceArray.Num())
 							{
-								JSONObject->SetArrayField(FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES, SubnamespaceArray);
+								JSONObject->SetArrayField(FJsonInternationalizationArchiveSerializer::TAG_SUBNAMESPACES, SubnamespaceArray);
 							}
 						}
 					}

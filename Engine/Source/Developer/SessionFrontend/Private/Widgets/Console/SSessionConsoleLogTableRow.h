@@ -112,14 +112,14 @@ public:
 
 private:
 
-	// Gets the border color for this row.
-	FSlateColor HandleGetBorderColor( ) const
+	/** Gets the border color for this row. */
+	FSlateColor HandleGetBorderColor() const
 	{
 		return FLinearColor((GetTypeHash(LogMessage->InstanceId) & 0xff) * 360.0f / 256.0f, 0.8f, 0.3f, 1.0f).HSVToLinearRGB();
 	}
 
-	// Gets the text color for this log entry.
-	FSlateColor HandleGetTextColor( ) const
+	/** Gets the text color for this log entry. */
+	FSlateColor HandleGetTextColor() const
 	{
 		if ((LogMessage->Verbosity == ELogVerbosity::Error) ||
 			(LogMessage->Verbosity == ELogVerbosity::Fatal))
@@ -138,9 +138,9 @@ private:
 
 private:
 
-	// Holds the highlight string for the log message.
+	/** Holds the highlight string for the log message. */
 	TAttribute<FText> HighlightText;
 
-	// Holds a reference to the log message that is displayed in this row.
+	/** Holds a reference to the log message that is displayed in this row. */
 	FSessionLogMessagePtr LogMessage;
 };

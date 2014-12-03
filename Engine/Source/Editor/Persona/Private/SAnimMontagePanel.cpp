@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #include "PersonaPrivatePCH.h"
-
 #include "SAnimMontagePanel.h"
 #include "ScopedTransaction.h"
 #include "SCurveEditor.h"
@@ -10,8 +8,13 @@
 #include "SAnimSegmentsPanel.h"
 #include "SMontageEditor.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
+#include "SExpandableArea.h"
+#include "STextEntryPopup.h"
+#include "STextComboBox.h"
+
 
 #define LOCTEXT_NAMESPACE "AnimMontagePanel"
+
 
 //////////////////////////////////////////////////////////////////////////
 // SMontageBranchingPointNode
@@ -259,7 +262,8 @@ int32 SMontageBranchingPointNode::OnPaint(const FPaintArgs& Args, const FGeometr
 
 	if(BranchingPoint->TriggerTimeOffset != 0.f) //Do we have an offset to render?
 	{
-		if(BranchingPoint->DisplayTime != 0.f && BranchingPoint->DisplayTime != Montage->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesn't help the user
+		float BranchingPointTime = BranchingPoint->GetTime();
+		if(BranchingPointTime != 0.f && BranchingPointTime != Montage->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesn't help the user
 		{
 			// ScrubHandle
 			FVector2D MarkerPosition = TextPos;
@@ -354,6 +358,43 @@ void SAnimMontagePanel::Update()
 			SAssignNew( MontageSlots, SVerticalBox )
 			);
 
+		/************************************************************************/
+		/* Status Bar                                                                     */
+		/************************************************************************/
+		{
+			MontageSlots->AddSlot()
+				.AutoHeight()
+				[
+					// Header, shows name of timeline we are editing
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush(TEXT("Graph.TitleBackground")))
+					.HAlign(HAlign_Center)
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.FillWidth(3.f)
+						.HAlign(HAlign_Right)
+						.VAlign(VAlign_Center)
+						[
+							SAssignNew(StatusBarWarningImage, SImage)
+							.Image(FEditorStyle::GetBrush("AnimSlotManager.Warning"))
+							.Visibility(EVisibility::Hidden)
+						]
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						[
+							SAssignNew(StatusBarTextBlock, STextBlock)
+							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12))
+							.ColorAndOpacity(FLinearColor(1, 1, 1, 0.5))
+						]
+					]
+				];
+		}
+
 		// ===================================
 		// Section Name Track
 		// ===================================
@@ -388,35 +429,75 @@ void SAnimMontagePanel::Update()
 		// ===================================
 		{
 			int32 NumAnimTracks = Montage->SlotAnimTracks.Num();
-			SlotNameTextBoxes.Empty(NumAnimTracks);
-			SlotNameTextBoxes.AddZeroed(NumAnimTracks);
+
+			SlotNameComboBoxes.Empty(NumAnimTracks);
+			SlotNameComboSelectedNames.Empty(NumAnimTracks);
+			SlotWarningImages.Empty(NumAnimTracks);
+			SlotNameComboBoxes.AddZeroed(NumAnimTracks);
+			SlotNameComboSelectedNames.AddZeroed(NumAnimTracks);
+			SlotWarningImages.AddZeroed(NumAnimTracks);
+
+			RefreshComboLists();
+			check(SlotNameComboBoxes.Num() == NumAnimTracks);
+			check(SlotNameComboSelectedNames.Num() == NumAnimTracks);
 
 			for (int32 SlotAnimIdx = 0; SlotAnimIdx < NumAnimTracks; SlotAnimIdx++)
 			{
 				TSharedRef<S2ColumnWidget> SectionTrack = Create2ColumnWidget(MontageSlots.ToSharedRef());
+				
+				int32 FoundIndex = SlotNameList.Find(SlotNameComboSelectedNames[SlotAnimIdx]);
+				TSharedPtr<FString> ComboItem = SlotNameComboListItems[FoundIndex];
 
 				// Right column
 				SectionTrack->RightColumn->AddSlot()
-					.VAlign(VAlign_Center)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Fill)
 				.FillHeight(1)
 				[
-					SNew(SHorizontalBox)
+					SNew(SVerticalBox)
 
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding( FMargin(5.0f, 0.5f) )
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Fill)
 					[
-						SAssignNew(SlotNameTextBoxes[SlotAnimIdx], SEditableTextBox)
-						.Style( FEditorStyle::Get(), "SpecialEditableTextBox" )
-						.HintText( LOCTEXT("SlotName", "Slot Name") )
-						.Text(this, &SAnimMontagePanel::GetMontageSlotName, SlotAnimIdx)
-						.Font( FEditorStyle::GetFontStyle("Editor.SearchBoxFont") )
-						.SelectAllTextWhenFocused( true )
-						.RevertTextOnEscape( true )
-						.ClearKeyboardFocusOnCommit( false )
-						.OnTextCommitted( this, &SAnimMontagePanel::OnSlotNodeNameChangeCommit, SlotAnimIdx )
-						.OnTextChanged(this, &SAnimMontagePanel::OnSlotNameChanged, SlotAnimIdx)
+						SAssignNew(SlotNameComboBoxes[SlotAnimIdx], STextComboBox)
+						.OptionsSource(&SlotNameComboListItems)
+						.OnSelectionChanged(this, &SAnimMontagePanel::OnSlotNameChanged, SlotAnimIdx)
+						.OnComboBoxOpening(this, &SAnimMontagePanel::OnSlotListOpening, SlotAnimIdx)
+						.InitiallySelectedItem(ComboItem)
+						.ContentPadding(2)
+						.ToolTipText(*ComboItem)
 					]
+
+					+ SVerticalBox::Slot()
+						.HAlign(HAlign_Left)
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.HAlign(HAlign_Left)
+							[
+								SNew(SButton)
+								.Text(LOCTEXT("AnimSlotNode_DetailPanelManageButtonLabel", "Anim Slot Manager"))
+								.ToolTipText(LOCTEXT("AnimSlotNode_DetailPanelManageButtonToolTipText", "Open Anim Slot Manager to edit Slots and Groups."))
+								.OnClicked(this, &SAnimMontagePanel::OnOpenAnimSlotManager)
+								.Content()
+								[
+									SNew(SImage)
+									.Image(FEditorStyle::GetBrush("MeshPaint.FindInCB"))
+								]
+							]
+
+							+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.FillWidth(2.f)
+								.HAlign(HAlign_Left)
+								.VAlign(VAlign_Center)
+								[
+									SAssignNew(SlotWarningImages[SlotAnimIdx], SImage)
+									.Image(FEditorStyle::GetBrush("AnimSlotManager.Warning"))
+									.Visibility(EVisibility::Hidden)
+								]
+						]
 				];
 
 				SectionTrack->LeftColumn->AddSlot()
@@ -439,6 +520,7 @@ void SAnimMontagePanel::Update()
 					.OnAnimSegmentNodeClicked( this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx )
 					.OnPreAnimUpdate( Editor, &SMontageEditor::PreAnimUpdate )
 					.OnPostAnimUpdate( Editor, &SMontageEditor::PostAnimUpdate )
+					.OnAnimSegmentRemoved(this, &SAnimMontagePanel::OnAnimSegmentRemoved, SlotAnimIdx )
 					.OnBarDrag(Editor, &SMontageEditor::OnEditSectionTime)
 					.OnBarDrop(Editor, &SMontageEditor::OnEditSectionTimeFinish)
 					.OnBarClicked(SharedThis(this), &SAnimMontagePanel::ShowSectionInDetailsView)
@@ -497,6 +579,8 @@ void SAnimMontagePanel::Update()
 			}
 		}
 	}
+
+	UpdateSlotGroupWarningVisibility();
 }
 
 void SAnimMontagePanel::SetMontage(class UAnimMontage * InMontage)
@@ -529,7 +613,7 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 	MenuBuilder.EndSection();
 
 	// Sections
-	MenuBuilder.BeginSection("AnimMontageSections", LOCTEXT("Sections", "Sections") );
+	MenuBuilder.BeginSection("AnimMontageSections", LOCTEXT("Sections", "Sections"));
 	{
 		UIAction.ExecuteAction.BindRaw(this, &SAnimMontagePanel::OnNewSectionClicked, static_cast<float>(DataPosX));
 		MenuBuilder.AddMenuEntry(LOCTEXT("NewMontageSection", "New Montage Section"), LOCTEXT("NewMontageSectionToolTip", "Adds a new Montage Section"), FSlateIcon(), UIAction);
@@ -556,6 +640,17 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 	}
 	MenuBuilder.EndSection();
 
+	MenuBuilder.BeginSection("AnimMontageElementBulkActions", LOCTEXT("BulkLinkActions", "Bulk Link Actions"));
+	{
+		MenuBuilder.AddSubMenu(LOCTEXT("SetElementLink_SubMenu", "Set Elements to..."), LOCTEXT("SetElementLink_TooTip", "Sets all montage elements (Branching Points, Sections, Notifies) to a chosen link type."), FNewMenuDelegate::CreateSP(this, &SAnimMontagePanel::FillElementSubMenuForTimes));
+
+		if(Montage->SlotAnimTracks.Num() > 1)
+		{
+			MenuBuilder.AddSubMenu(LOCTEXT("SetToSlotMenu", "Link all Elements to Slot..."), LOCTEXT("SetToSlotMenuToolTip", "Link all elements to a selected slot"), FNewMenuDelegate::CreateSP(this, &SAnimMontagePanel::FillSlotSubMenu));
+		}
+	}
+	MenuBuilder.EndSection();
+
 	LastContextHeading.Empty();
 }
 
@@ -573,25 +668,26 @@ void SAnimMontagePanel::SummonBranchNodeContextMenu( FMenuBuilder& MenuBuilder, 
 	LastContextHeading = "Branch Point";
 }
 
+void SAnimMontagePanel::FillElementSubMenuForTimes(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(LOCTEXT("SubLinkAbs", "Absolute"), LOCTEXT("SubLinkAbs", "Set all elements to absolute link"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToLinkMode, EAnimLinkMethod::Absolute)));
+	MenuBuilder.AddMenuEntry(LOCTEXT("SubLinkRel", "Relative"), LOCTEXT("SubLinkRel", "Set all elements to relative link"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToLinkMode, EAnimLinkMethod::Relative)));
+	MenuBuilder.AddMenuEntry(LOCTEXT("SubLinkPro", "Proportional"), LOCTEXT("SubLinkPro", "Set all elements to proportional link"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToLinkMode, EAnimLinkMethod::Proportional)));
+}
+
+void SAnimMontagePanel::FillSlotSubMenu(FMenuBuilder& Menubuilder)
+{
+	for(int32 SlotIdx = 0 ; SlotIdx < Montage->SlotAnimTracks.Num() ; ++SlotIdx)
+	{
+		FSlotAnimationTrack& Slot = Montage->SlotAnimTracks[SlotIdx];
+		Menubuilder.AddMenuEntry(FText::Format(LOCTEXT("SubSlotMenuNameEntry", "{SlotName}"), FText::FromString(Slot.SlotName.ToString())), LOCTEXT("SubSlotEntry", "Set to link to this slot"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToSlot, SlotIdx)));
+	}
+}
+
 /** Slots */
 void SAnimMontagePanel::OnNewSlotClicked()
 {
-	// Show dialog to enter new track name
-	TSharedRef<STextEntryPopup> TextEntry =
-		SNew(STextEntryPopup)
-		.Label( LOCTEXT("NewSlotNameLabel", "Slot Name") )
-		.OnTextCommitted( this, &SAnimMontagePanel::CreateNewSlot );
-
-
-	// Show dialog to enter new event name
-	FSlateApplication::Get().PushMenu(
-		AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-		TextEntry,
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-		);
-
-	TextEntry->FocusDefaultWidget();
+	MontageEditor.Pin()->AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName.ToString());
 }
 
 void SAnimMontagePanel::CreateNewSlot(const FText& NewSlotName, ETextCommit::Type CommitInfo)
@@ -723,51 +819,270 @@ void SAnimMontagePanel::ClearSelected()
 	MontageEditor.Pin()->ClearDetailsView();
 }
 
-void SAnimMontagePanel::OnSlotNodeNameChangeCommit(const FText& NewText, ETextCommit::Type CommitInfo, int32 SlotNodeIndex)
+void SAnimMontagePanel::OnSlotNameChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo, int32 AnimSlotIndex)
 {
-	MontageEditor.Pin()->RenameSlotNode(SlotNodeIndex, NewText.ToString());
-}
-
-void SAnimMontagePanel::CheckSlotName(const FText& SlotName, int32 SlotNodeIndex, bool bShouldCheckCollapsed) const
-{
-	if (!SlotNameTextBoxes.IsValidIndex(SlotNodeIndex))
+	// if it's set from code, we did that on purpose
+	if (SelectInfo != ESelectInfo::Direct)
 	{
-		return;
-	}
+		int32 ItemIndex = SlotNameComboListItems.Find(NewSelection);
+		if (ItemIndex != INDEX_NONE)
+		{
+			FName NewSlotName = SlotNameList[ItemIndex];
 
-	bool bCanSetError = true;
-	if (bShouldCheckCollapsed)
-	{
-		// Check whether the text box is collapsed or not. If collapsed, hide the error message
-		FWidgetPath WidgetPath;
-		FSlateApplication::Get().FindPathToWidget(SlotNameTextBoxes[SlotNodeIndex].ToSharedRef(), WidgetPath);
+			SlotNameComboSelectedNames[AnimSlotIndex] = NewSlotName;
+			if (SlotNameComboBoxes[AnimSlotIndex].IsValid())
+			{
+				SlotNameComboBoxes[AnimSlotIndex]->SetToolTipText(FText::FromString(*NewSelection));
+			}
 
-		bCanSetError = WidgetPath.IsValid();
-	}
+			if (Montage->GetSkeleton()->ContainsSlotName(NewSlotName))
+			{
+				MontageEditor.Pin()->RenameSlotNode(AnimSlotIndex, NewSlotName.ToString());
+			}
+			
+			UpdateSlotGroupWarningVisibility();
 
-	if (bCanSetError && SlotName.IsEmpty())
-	{
-		FText Error = LOCTEXT("Error_SlotNameIsEmpty", "Please provide a slot name for this asset.");
-		SlotNameTextBoxes[SlotNodeIndex]->SetError(Error);
-	}
-	else
-	{
-		SlotNameTextBoxes[SlotNodeIndex]->SetError(FText::GetEmpty());
+			// Clear selection, so Details panel for AnimNotifies doesn't show outdated information.
+			ClearSelected();
+		}
 	}
 }
 
-FText SAnimMontagePanel::GetMontageSlotName(int32 SlotIndex) const
+void SAnimMontagePanel::OnSlotListOpening(int32 AnimSlotIndex)
 {
-	FText SlotName = MontageEditor.Pin()->GetMontageSlotName(SlotIndex);
-
-	CheckSlotName(SlotName, SlotIndex, true);
-
-	return SlotName;
+	// Refresh Slot Names, in case we used the Anim Slot Manager to make changes.
+	RefreshComboLists(true);
 }
 
-void SAnimMontagePanel::OnSlotNameChanged(const FText& NewText, int32 SlotNodeIndex)
+FReply SAnimMontagePanel::OnOpenAnimSlotManager()
 {
-	CheckSlotName(NewText, SlotNodeIndex);
+	if (Persona.IsValid())
+	{
+		Persona.Pin()->GetTabManager()->InvokeTab(FPersonaTabs::SkeletonSlotNamesID);
+	}
+	return FReply::Handled();
+}
+
+void SAnimMontagePanel::RefreshComboLists(bool bOnlyRefreshIfDifferent /*= false*/)
+{
+	// Make sure all slots defined in the montage are registered in our skeleton.
+	int32 NumAnimTracks = Montage->SlotAnimTracks.Num();
+	for (int32 TrackIndex = 0; TrackIndex < NumAnimTracks; TrackIndex++)
+	{
+		FName TrackSlotName = Montage->SlotAnimTracks[TrackIndex].SlotName;
+		Montage->GetSkeleton()->RegisterSlotNode(TrackSlotName);
+		SlotNameComboSelectedNames[TrackIndex] = TrackSlotName;
+	}
+
+	// Refresh Slot Names
+	{
+		TArray<TSharedPtr<FString>>	NewSlotNameComboListItems;
+		TArray<FName> NewSlotNameList;
+
+		bool bIsSlotNameListDifferent = false;
+
+		const TArray<FAnimSlotGroup>& SlotGroups = Montage->GetSkeleton()->GetSlotGroups();
+		for (auto SlotGroup : SlotGroups)
+		{
+			int32 Index = 0;
+			for (auto SlotName : SlotGroup.SlotNames)
+			{
+				NewSlotNameList.Add(SlotName);
+
+				FString ComboItemString = FString::Printf(TEXT("%s.%s"), *SlotGroup.GroupName.ToString(), *SlotName.ToString());
+				NewSlotNameComboListItems.Add(MakeShareable(new FString(ComboItemString)));
+
+				bIsSlotNameListDifferent = bIsSlotNameListDifferent || (!SlotNameComboListItems.IsValidIndex(Index) || (SlotNameComboListItems[Index] != NewSlotNameComboListItems[Index]));
+				Index++;
+			}
+		}
+
+		// Refresh if needed
+		if (bIsSlotNameListDifferent || !bOnlyRefreshIfDifferent || (NewSlotNameComboListItems.Num() == 0))
+		{
+			SlotNameComboListItems = NewSlotNameComboListItems;
+			SlotNameList = NewSlotNameList;
+
+			// Update Combo Boxes
+			for (int32 TrackIndex = 0; TrackIndex < NumAnimTracks; TrackIndex++)
+			{
+				if (SlotNameComboBoxes[TrackIndex].IsValid())
+				{
+					FName SelectedSlotName = SlotNameComboSelectedNames[TrackIndex];
+					if (Montage->GetSkeleton()->ContainsSlotName(SelectedSlotName))
+					{
+						int32 FoundIndex = SlotNameList.Find(SelectedSlotName);
+						TSharedPtr<FString> ComboItem = SlotNameComboListItems[FoundIndex];
+
+						SlotNameComboBoxes[TrackIndex]->SetSelectedItem(ComboItem);
+						SlotNameComboBoxes[TrackIndex]->SetToolTipText(FText::FromString(*ComboItem));
+					}
+					SlotNameComboBoxes[TrackIndex]->RefreshOptions();
+				}
+			}
+		}
+	}
+}
+
+void SAnimMontagePanel::UpdateSlotGroupWarningVisibility()
+{
+	bool bShowStatusBarWarning = false;
+	FName MontageGroupName = Montage->GetGroupName();
+
+	int32 NumAnimTracks = Montage->SlotAnimTracks.Num();
+	if (NumAnimTracks > 0)
+	{
+		TArray<FName> UniqueSlotNameList;
+		for (int32 TrackIndex = 0; TrackIndex < NumAnimTracks; TrackIndex++)
+		{
+			FName CurrentSlotName = SlotNameComboSelectedNames[TrackIndex];
+			FName CurrentSlotGroupName = Montage->GetSkeleton()->GetSlotGroupName(CurrentSlotName);
+
+			int32 SlotNameCount = 0;
+			for (int32 Index = 0; Index < NumAnimTracks; Index++)
+			{
+				if (CurrentSlotName == SlotNameComboSelectedNames[Index])
+				{
+					SlotNameCount++;
+				}
+			}
+			
+			// Verify that slot names are unique.
+			bool bSlotNameAlreadyInUse = UniqueSlotNameList.Contains(CurrentSlotName);
+			if (!bSlotNameAlreadyInUse)
+			{
+				UniqueSlotNameList.Add(CurrentSlotName);
+			}
+
+			bool bDifferentGroupName = (CurrentSlotGroupName != MontageGroupName);
+			bool bShowWarning = bDifferentGroupName || bSlotNameAlreadyInUse;
+			bShowStatusBarWarning = bShowStatusBarWarning || bShowWarning;
+
+			SlotWarningImages[TrackIndex]->SetVisibility(bShowWarning ? EVisibility::Visible : EVisibility::Hidden);
+			if (bDifferentGroupName)
+			{
+				FText WarningText = FText::Format(LOCTEXT("AnimMontagePanel_SlotGroupMismatchToolTipText", "Slot's group '{0}' is different than the Montage's group '{1}'. All slots must belong to the same group."), FText::FromName(CurrentSlotGroupName), FText::FromName(MontageGroupName));
+				SlotWarningImages[TrackIndex]->SetToolTipText(WarningText);
+				StatusBarTextBlock->SetText(WarningText);
+				StatusBarTextBlock->SetToolTipText(WarningText);
+			}
+			if (bSlotNameAlreadyInUse)
+			{
+				FText WarningText = FText::Format(LOCTEXT("AnimMontagePanel_SlotNameAlreadyInUseToolTipText", "Slot named '{0}' is already used in this Montage. All slots must be unique"), FText::FromName(CurrentSlotName));
+				SlotWarningImages[TrackIndex]->SetToolTipText(WarningText);
+				StatusBarTextBlock->SetText(WarningText);
+				StatusBarTextBlock->SetToolTipText(WarningText);
+			}
+		}
+	}
+
+	// Update Status bar
+	StatusBarWarningImage->SetVisibility(bShowStatusBarWarning ? EVisibility::Visible : EVisibility::Hidden);
+	if (!bShowStatusBarWarning)
+	{
+		StatusBarTextBlock->SetText(FText::Format(LOCTEXT("AnimMontagePanel_StatusBarText", "Montage Group: '{0}'"), FText::FromName(MontageGroupName)));
+		StatusBarTextBlock->SetToolTipText(LOCTEXT("AnimMontagePanel_StatusBarToolTipText", "The Montage Group is set by the first slot's group."));
+	}
+}
+
+void SAnimMontagePanel::OnSetElementsToLinkMode(EAnimLinkMethod::Type NewLinkMethod)
+{
+	TArray<FAnimLinkableElement*> Elements;
+	CollectLinkableElements(Elements);
+
+	for(FAnimLinkableElement* Element : Elements)
+	{
+		Element->ChangeLinkMethod(NewLinkMethod);
+	}
+
+	// Handle notify state links
+	for(FAnimNotifyEvent& Notify : Montage->Notifies)
+	{
+		if(Notify.GetDuration() > 0.0f)
+		{
+			// Always keep link methods in sync between notifies and duration links
+			if(Notify.GetLinkMethod() != Notify.EndLink.GetLinkMethod())
+			{
+				Notify.EndLink.ChangeLinkMethod(Notify.GetLinkMethod());
+			}
+		}
+	}
+}
+
+void SAnimMontagePanel::OnSetElementsToSlot(int32 SlotIndex)
+{
+	TArray<FAnimLinkableElement*> Elements;
+	CollectLinkableElements(Elements);
+
+	for(FAnimLinkableElement* Element : Elements)
+	{
+		Element->ChangeSlotIndex(SlotIndex);
+	}
+
+	// Handle notify state links
+	for(FAnimNotifyEvent& Notify : Montage->Notifies)
+	{
+		if(Notify.GetDuration() > 0.0f)
+		{
+			// Always keep link methods in sync between notifies and duration links
+			if(Notify.GetSlotIndex() != Notify.EndLink.GetSlotIndex())
+			{
+				Notify.EndLink.ChangeSlotIndex(Notify.GetSlotIndex());
+			}
+		}
+	}
+}
+
+void SAnimMontagePanel::CollectLinkableElements(TArray<FAnimLinkableElement*> &Elements)
+{
+	for(auto& Composite : Montage->CompositeSections)
+	{
+		FAnimLinkableElement* Element = &Composite;
+		Elements.Add(Element);
+	}
+
+	for(auto& BranchingPoint : Montage->BranchingPoints)
+	{
+		FAnimLinkableElement* Element = &BranchingPoint;
+		Elements.Add(Element);
+	}
+
+	for(auto& Notify : Montage->Notifies)
+	{
+		FAnimLinkableElement* Element = &Notify;
+		Elements.Add(Element);
+	}
+}
+
+void SAnimMontagePanel::OnAnimSegmentRemoved(int32 SegmentIndex, int32 SlotIndex)
+{
+	TArray<FAnimLinkableElement*> LinkableElements;
+	CollectLinkableElements(LinkableElements);
+
+	for(FAnimNotifyEvent& Notify : Montage->Notifies)
+	{
+		if(Notify.NotifyStateClass)
+		{
+			LinkableElements.Add(&Notify.EndLink);
+		}
+	}
+
+	// Go through the linkable elements and fix the indices.
+	// BG TODO: Once we can identify moved segments, remove
+	for(FAnimLinkableElement* Element : LinkableElements)
+	{
+		if(Element->GetSlotIndex() == SlotIndex)
+		{
+			if(Element->GetSegmentIndex() == SegmentIndex)
+			{
+				Element->Clear();
+			}
+			else if(Element->GetSegmentIndex() > SegmentIndex)
+			{
+				Element->SetSegmentIndex(Element->GetSegmentIndex() - 1);
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

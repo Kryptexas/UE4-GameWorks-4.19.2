@@ -14,8 +14,8 @@
 /////////////////////////////////////////////////////
 // UAnimStateConduitNode
 
-UAnimStateConduitNode::UAnimStateConduitNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimStateConduitNode::UAnimStateConduitNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
 }

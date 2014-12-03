@@ -25,7 +25,7 @@ uint32 UPathFollowingComponent::NextRequestId = 0;
 const float UPathFollowingComponent::DefaultAcceptanceRadius = -1.f;
 UPathFollowingComponent::FRequestCompletedSignature UPathFollowingComponent::UnboundRequestDelegate;
 
-UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bAutoActivate = true;
@@ -54,11 +54,11 @@ UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructIniti
 void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
 {
 #if ENABLE_VISUAL_LOG
-	FVisualLog& Vlog = FVisualLog::Get();
+	FVisualLogger& Vlog = FVisualLogger::Get();
 	if (Vlog.IsRecording() && 
 		Path.IsValid() && Path->IsValid() && Path->GetPathPoints().Num())
 	{
-		FVisLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner);
+		FVisualLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->TimeSeconds);
 		Path->DescribeSelfToVisLog(Entry);
 
 		const FVector PathEnd = Path->GetPathPoints().Last().Location;
@@ -77,7 +77,7 @@ void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalA
 #endif // ENABLE_VISUAL_LOG
 }
 
-void LogBlockHelper(AActor* LogOwner, class UNavMovementComponent* MoveComp, float RadiusPct, float HeightPct, const FVector& SegmentStart, const FVector& SegmentEnd)
+void LogBlockHelper(AActor* LogOwner, UNavMovementComponent* MoveComp, float RadiusPct, float HeightPct, const FVector& SegmentStart, const FVector& SegmentEnd)
 {
 #if ENABLE_VISUAL_LOG
 	if (MoveComp && LogOwner)
@@ -243,7 +243,7 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 	{
 		const EPathFollowingResult::Type FinishResult = bSilent ? EPathFollowingResult::Skipped : EPathFollowingResult::Aborted;
 
-		INavLinkCustomInterface* CustomNavLink = InterfaceCast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+		INavLinkCustomInterface* CustomNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
 		if (CustomNavLink)
 		{
 			CustomNavLink->OnLinkMoveFinished(this);
@@ -546,7 +546,7 @@ int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath*
 void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationActor)
 {
 	DestinationActor = InDestinationActor;
-	DestinationAgent = InterfaceCast<const INavAgentInterface>(InDestinationActor);
+	DestinationAgent = Cast<const INavAgentInterface>(InDestinationActor);
 	MoveOffset = DestinationAgent ? DestinationAgent->GetMoveGoalOffset(GetOwner()) : FVector::ZeroVector;
 }
 
@@ -623,7 +623,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	//SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
 
 	const AAIController* MyAI = Cast<AAIController>(GetOwner());
-	const ANavigationData* NavData = MyAI && MyAI->NavComponent ? MyAI->NavComponent->GetNavData() : NULL;
+	const ANavigationData* NavData = MyAI && MyAI->GetNavComponent() ? MyAI->GetNavComponent()->GetNavData() : NULL;
 	if (Path.IsValid())
 	{
 		Path->ShortcutNodeRefs.Reset();
@@ -635,7 +635,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	}
 
 	const APawn* MyPawn = MyAI->GetPawn();
-	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->CapsuleComponent) ? MyAI->GetCharacter()->CapsuleComponent->GetScaledCapsuleHalfHeight() : 0.0f;
+	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->GetCapsuleComponent()) ? MyAI->GetCharacter()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
 	const FVector PawnLocation = MyPawn->GetActorLocation();
 
 #if USE_PHYSIC_FOR_VISIBILITY_TESTS
@@ -682,7 +682,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 			Path->ShortcutNodeRefs.Reserve(RaycastResult.CorridorPolysCount);
 			Path->ShortcutNodeRefs.SetNumUninitialized(RaycastResult.CorridorPolysCount);
 		}
-		FPlatformMemory::Memcmp(Path->ShortcutNodeRefs.GetTypedData(), RaycastResult.CorridorPolys, RaycastResult.CorridorPolysCount * sizeof(NavNodeRef));
+		FPlatformMemory::Memcmp(Path->ShortcutNodeRefs.GetData(), RaycastResult.CorridorPolys, RaycastResult.CorridorPolysCount * sizeof(NavNodeRef));
 #else
 		const bool RaycastHitResult = NavData->Raycast(PawnLocation, AdjustedDestination, HitLocation, QueryFilter);
 #endif
@@ -746,6 +746,12 @@ void UPathFollowingComponent::UpdatePathSegment()
 			OnSegmentFinished();
 			OnPathFinished(EPathFollowingResult::Success);
 		}
+		else if (HasReachedDestination(CurrentLocation))
+		{
+			// always check for destination, acceptance radius may cause it to pass before reaching last segment
+			OnSegmentFinished();
+			OnPathFinished(EPathFollowingResult::Success);
+		}
 		else if (bFollowingLastSegment)
 		{
 			// use goal actor for end of last path segment
@@ -757,16 +763,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 				CurrentDestination.Set(NULL, GoalLocation);
 			}
 
-			// include goal actor in reach test only for last segment 
-			if (HasReachedDestination(CurrentLocation))
-			{
-				OnSegmentFinished();
-				OnPathFinished(EPathFollowingResult::Success);
-			}
-			else
-			{
-				UpdateMoveFocus();
-			}
+			UpdateMoveFocus();
 		}
 		else
 		{
@@ -809,25 +806,16 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 		return;
 	}
 
+	//const FVector CurrentLocation = MovementComp->IsMovingOnGround() ? MovementComp->GetActorFeetLocation() : MovementComp->GetActorLocation();
 	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
+	const FVector CurrentTarget = GetCurrentTargetLocation();
+	FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
 
-	// check if already at acceptance radius
-	if (HasReachedDestination(CurrentLocation))
-	{
-		OnSegmentFinished();
-		OnPathFinished(EPathFollowingResult::Success);
-	}
-	else
-	{
-		const FVector CurrentTarget = GetCurrentTargetLocation();
-		FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
+	const int32 LastSegmentStartIndex = Path->GetPathPoints().Num() - 2;
+	const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
 
-		const int32 LastSegmentStartIndex = Path->GetPathPoints().Num() - 2;
-		const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
-
-		PostProcessMove.ExecuteIfBound(this, MoveVelocity);
-		MovementComp->RequestDirectMove(MoveVelocity, bNotFollowingLastSegment);
-	}
+	PostProcessMove.ExecuteIfBound(this, MoveVelocity);
+	MovementComp->RequestDirectMove(MoveVelocity, bNotFollowingLastSegment);
 }
 
 bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAcceptanceRadius, bool bExactSpot) const
@@ -861,7 +849,7 @@ bool UPathFollowingComponent::HasReached(const AActor* TestGoal, float InAccepta
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	const INavAgentInterface* NavAgent = InterfaceCast<const INavAgentInterface>(TestGoal);
+	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(TestGoal);
 	if (NavAgent)
 	{
 		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(GetOwner());
@@ -1016,9 +1004,9 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	bHeightFailed = (CurrentHeight > UseHeight) ? 1 : 0;
 }
 
-void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint)
+void UPathFollowingComponent::StartUsingCustomLink(INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint)
 {
-	INavLinkCustomInterface* PrevNavLink = InterfaceCast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+	INavLinkCustomInterface* PrevNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
 	if (PrevNavLink)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Force finish custom move using navlink: %s"), *GetNameSafe(CurrentCustomLinkOb.Get()));
@@ -1027,7 +1015,7 @@ void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface
 		CurrentCustomLinkOb.Reset();
 	}
 
-	UObject* NewNavLinkOb = CustomNavLink ? CustomNavLink->GetUObjectInterfaceNavLinkCustomInterface() : NULL;
+	UObject* NewNavLinkOb = Cast<UObject>(CustomNavLink);
 	if (NewNavLinkOb)
 	{
 		CurrentCustomLinkOb = NewNavLinkOb;
@@ -1043,9 +1031,9 @@ void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface
 	}
 }
 
-void UPathFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
+void UPathFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink)
 {
-	UObject* NavLinkOb = CustomNavLink ? CustomNavLink->GetUObjectInterfaceNavLinkCustomInterface() : NULL;
+	UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
 	if (CurrentCustomLinkOb == NavLinkOb)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetNameSafe(NavLinkOb));
@@ -1298,7 +1286,7 @@ FString UPathFollowingComponent::GetResultDesc(EPathFollowingResult::Type Result
 	return TEXT("Unknown");
 }
 
-void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const
+void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const
 {
 	Canvas->SetDrawColor(FColor::Blue);
 	UFont* RenderFont = GEngine->GetSmallFont();
@@ -1318,9 +1306,9 @@ void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const FDebugDi
 }
 
 #if ENABLE_VISUAL_LOG
-void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UPathFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory Category;
+	FVisualLogStatusCategory Category;
 	Category.Category = TEXT("Path following");
 
 	if (DestinationActor.IsValid())

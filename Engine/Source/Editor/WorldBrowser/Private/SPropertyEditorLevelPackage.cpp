@@ -4,6 +4,7 @@
 #include "SPropertyEditorLevelPackage.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

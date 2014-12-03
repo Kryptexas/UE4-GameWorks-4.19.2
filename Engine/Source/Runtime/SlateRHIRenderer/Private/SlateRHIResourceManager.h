@@ -26,7 +26,13 @@ public:
 
 	void Empty();
 
+	void EmptyUTextureResources();
+	void EmptyMaterialResources();
+	void EmptyDynamicTextureResources();
+
 	void ReleaseResources();
+
+	uint32 GetNumObjectResources() const { return UTextureResourceMap.Num() + MaterialResourceMap.Num(); }
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -171,6 +177,11 @@ private:
 	 */
 	FSlateShaderResourceProxy* GetMaterialResource( const FSlateBrush& InBrush );
 
+	/**
+	 * Called when the application exists before the UObject system shuts down so we can free object resources
+	 */
+	void OnAppExit();
+
 private:
 	/** Map of all active dynamic resources being used by brushes */
 	FDynamicResourceMap DynamicResourceMap;
@@ -179,7 +190,9 @@ private:
 	/** List of old utexture resources that are free to use as new resources */
 	TArray< TSharedPtr<FSlateUTextureResource> > UTextureFreeList;
 	/** List of old dynamic resources that are free to use as new resources */
-	TArray< TSharedPtr<FSlateDynamicTextureResource> > DynamicTextureFreeList;
+	TArray< TSharedPtr<FSlateDynamicTextureResource> > DynamicTextureFreeList;\
+	/** List of old material resources that are free to use as new resources */
+	TArray< TSharedPtr<FSlateMaterialResource> > MaterialResourceFreeList;
 	/** Static Texture atlases which have been created */
 	TArray<class FSlateTextureAtlasRHI*> TextureAtlases;
 	/** Static Textures created that are not atlased */	

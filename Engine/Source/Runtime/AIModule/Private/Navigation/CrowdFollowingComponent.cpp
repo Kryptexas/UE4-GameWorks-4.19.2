@@ -10,7 +10,7 @@
 
 DEFINE_LOG_CATEGORY(LogCrowdFollowing);
 
-UCrowdFollowingComponent::UCrowdFollowingComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bAffectFallingVelocity = false;
 	bRotateToVelocity = true;
@@ -204,7 +204,7 @@ void UCrowdFollowingComponent::UpdateCrowdAgentParams() const
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UpdateAgentParams(IAgent);
 	}
 }
@@ -284,7 +284,7 @@ void UCrowdFollowingComponent::Initialize()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->RegisterAgent(IAgent);
 	}
 	else
@@ -307,7 +307,7 @@ void UCrowdFollowingComponent::Cleanup()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UnregisterAgent(IAgent);
 	}
 }
@@ -379,12 +379,12 @@ void UCrowdFollowingComponent::OnLanded()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (bEnableCrowdSimulation && CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UpdateAgentState(IAgent);
 	}
 }
 
-void UCrowdFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
+void UCrowdFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink)
 {
 	const bool bPrevCustomLink = CurrentCustomLinkOb.IsValid();
 	Super::FinishUsingCustomLink(CustomNavLink);
@@ -395,7 +395,7 @@ void UCrowdFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterfa
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (bPrevCustomLink && !bCurrentCustomLink && CrowdManager)
 		{
-			const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+			const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 			CrowdManager->OnAgentFinishedCustomLink(IAgent);
 		}
 	}
@@ -551,7 +551,19 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 		const int32 PathPartSize = 15;
 		const int32 LastPolyIdx = NavMeshPath->PathCorridor.Num() - 1;
-		const int32 PathPartEndIdx = FMath::Min(PathStartIndex + PathPartSize, LastPolyIdx);
+		int32 PathPartEndIdx = FMath::Min(PathStartIndex + PathPartSize, LastPolyIdx);
+
+		FVector PtA, PtB;
+		const bool bStartIsNavLink = RecastNavData->GetLinkEndPoints(NavMeshPath->PathCorridor[PathStartIndex], PtA, PtB);
+		const bool bEndIsNavLink = RecastNavData->GetLinkEndPoints(NavMeshPath->PathCorridor[PathPartEndIdx], PtA, PtB);
+		if (bStartIsNavLink)
+		{
+			PathStartIndex = FMath::Max(0, PathStartIndex - 1);
+		}
+		if (bEndIsNavLink)
+		{
+			PathPartEndIdx = FMath::Max(0, PathPartEndIdx - 1);
+		}
 
 		bFinalPathPart = (PathPartEndIdx == LastPolyIdx);
 		if (!bFinalPathPart)
@@ -717,7 +729,10 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 	if (!bAllowStrafe && MovementComp && bEnableCrowdSimulation)
 	{
 		const FVector AgentLoc = MovementComp->GetActorLocation();
-		const FVector ForwardDir = CrowdAgentMoveDirection.IsNearlyZero() && MovementComp && MovementComp->GetOwner() ?
+
+		// if we're not moving, falling, or don't have a crowd agent move direction, set our focus to ahead of the rotation of our owner to keep the same rotation,
+		// otherwise use the Crowd Agent Move Direction to move in the direction we're supposed to be going
+		const FVector ForwardDir = MovementComp->GetOwner() && ((Status != EPathFollowingStatus::Moving) || (CharacterMovement && (CharacterMovement->MovementMode == MOVE_Falling)) || CrowdAgentMoveDirection.IsNearlyZero()) ?
 			MovementComp->GetOwner()->GetActorRotation().Vector() :
 			CrowdAgentMoveDirection;
 
@@ -844,7 +859,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 
 #if ENABLE_VISUAL_LOG
 
-void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UCrowdFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	if (!bEnableCrowdSimulation)
 	{
@@ -852,7 +867,7 @@ void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapsho
 		return;
 	}
 
-	FVisLogEntry::FStatusCategory Category;
+	FVisualLogStatusCategory Category;
 	Category.Category = TEXT("Path following");
 
 	if (DestinationActor.IsValid())

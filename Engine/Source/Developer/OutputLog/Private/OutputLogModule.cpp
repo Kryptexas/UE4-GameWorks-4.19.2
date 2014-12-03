@@ -4,6 +4,7 @@
 #include "SDebugConsole.h"
 #include "SOutputLog.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FOutputLogModule, OutputLog );
 
@@ -71,7 +72,7 @@ void FOutputLogModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OutputLogModule::OutputLogTabName, FOnSpawnTab::CreateStatic( &SpawnOutputLog ) )
 		.SetDisplayName(NSLOCTEXT("UnrealEditor", "OutputLogTab", "Output Log"))
 		.SetTooltipText(NSLOCTEXT("UnrealEditor", "OutputLogTooltipText", "Open the Output Log tab."))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() )
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsLogCategory() )
 		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "Log.TabIcon") );
 	
 	OutputLogHistory = MakeShareable(new FOutputLogHistory);

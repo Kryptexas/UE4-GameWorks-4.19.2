@@ -199,13 +199,22 @@ TSharedRef<SWidget> SDialogueVoicePropertyEditor::OnGetMenuContent()
 {
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UDialogueVoice::StaticClass());
+
 	UDialogueVoice* DialogueVoice = NULL;
 	{
 		UObject* Object = NULL;
 		DialogueVoicePropertyHandle->GetValue(Object);
 		DialogueVoice = Cast<UDialogueVoice>(Object);
 	}
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(DialogueVoice, false, &AllowedClasses, OnShouldFilterAsset, FOnAssetSelected::CreateSP( this, &SDialogueVoicePropertyEditor::OnAssetSelectedFromPicker ), FSimpleDelegate::CreateSP( this, &SDialogueVoicePropertyEditor::CloseMenu) );
+
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+		DialogueVoice,
+		false,
+		AllowedClasses,
+		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
+		OnShouldFilterAsset,
+		FOnAssetSelected::CreateSP(this, &SDialogueVoicePropertyEditor::OnAssetSelectedFromPicker),
+		FSimpleDelegate::CreateSP(this, &SDialogueVoicePropertyEditor::CloseMenu));
 }
 
 void SDialogueVoicePropertyEditor::CloseMenu()
@@ -572,7 +581,7 @@ FReply SRemovableDialogueVoicePropertyEditor::OnMouseButtonDown( const FGeometry
 		bIsPressed = true;
 
 		//we need to capture the mouse for MouseUp events
-		Reply =  FReply::Handled().CaptureMouse( AsShared() ).SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		Reply = FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), EFocusCause::Mouse);
 	}
 
 	//return the constructed reply

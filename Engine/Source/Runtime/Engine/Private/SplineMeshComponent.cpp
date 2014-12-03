@@ -215,8 +215,8 @@ void FSplineMeshSceneProxy::ReleaseResources()
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshComponent
 
-USplineMeshComponent::USplineMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USplineMeshComponent::USplineMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Static;
 
@@ -354,6 +354,18 @@ void USplineMeshComponent::SetEndOffset(FVector2D EndOffset)
 	MarkSplineParamsDirty();
 }
 
+ESplineMeshAxis::Type USplineMeshComponent::GetForwardAxis() const
+{
+	return ForwardAxis;
+}
+
+void USplineMeshComponent::SetForwardAxis(ESplineMeshAxis::Type InForwardAxis)
+{
+	ForwardAxis = InForwardAxis;
+	MarkSplineParamsDirty();
+}
+
+
 void USplineMeshComponent::MarkSplineParamsDirty()
 {
 	MarkRenderStateDirty();
@@ -422,7 +434,7 @@ FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
 	}
 }
 
-FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Use util to generate bounds of spline
 	FInterpCurvePoint<FVector> Start(0.f, SplineParams.StartPos, SplineParams.StartTangent, SplineParams.StartTangent, CIM_CurveUser);

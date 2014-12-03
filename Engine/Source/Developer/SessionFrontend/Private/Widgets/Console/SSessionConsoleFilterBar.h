@@ -40,15 +40,10 @@ public:
 	 *
 	 * @return Filter string.
 	 */
-	FText GetFilterText( ) const
-	{
-		return FilterStringTextBox->GetText();
-	}
+	FText GetFilterText() const;
 
-	/**
-	 * Resets the categories and filter counters.
-	 */
-	void ResetFilter( );
+	/** Resets the categories and filter counters. */
+	void ResetFilter();
 
 protected:
 
@@ -56,6 +51,7 @@ protected:
 	 * Adds a category filter.
 	 *
 	 * @param Category The filter's category.
+	 * @see AddVerbosityFilter
 	 */
 	void AddCategoryFilter( const FName& Category );
 
@@ -65,69 +61,70 @@ protected:
 	 * @param Verbosity The filters verbosity level.
 	 * @param Name The name of the filter.
 	 * @param Icon The name of the filter's icon.
+	 * @see AddVerbosityFilter
 	 */
 	void AddVerbosityFilter( ELogVerbosity::Type Verbosity, const FString& Name, const FName& Icon );
 
 private:
 
-	// Callback for generating a row widget for the category filter list.
+	/** Callback for generating a row widget for the category filter list. */
 	TSharedRef<ITableRow> HandleCategoryFilterGenerateRow( FSessionConsoleCategoryFilterPtr Filter, const TSharedRef<STableViewBase>& OwnerTable );
 
-	// Callback for getting the text for a row in the category filter drop-down.
+	/** Callback for getting the text for a row in the category filter drop-down. */
 	FString HandleCategoryFilterGetRowText( FSessionConsoleCategoryFilterPtr Filter ) const;
 
-	// Callback for changing the enabled state of a category filter.
+	/** Callback for changing the enabled state of a category filter. */
 	void HandleCategoryFilterStateChanged( const FName& ChangedCategory, bool Enabled );
 
-	// Callback for changing the filter string text box text.
+	/** Callback for changing the filter string text box text. */
 	void HandleFilterStringTextChanged( const FText& NewText );
 
-	// Callback for changing the checked state of the 'Filter' check box.
+	/** Callback for changing the checked state of the 'Filter' check box. */
 	void HandleHighlightOnlyCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckedState );
 
-	// Callback for generating a row widget for the verbosity filter list.
+	/** Callback for generating a row widget for the verbosity filter list. */
 	TSharedRef<ITableRow> HandleVerbosityFilterGenerateRow( FSessionConsoleVerbosityFilterPtr Filter, const TSharedRef<STableViewBase>& OwnerTable );
 
-	// Callback for getting the text for a row in the verbosity filter drop-down.
+	/** Callback for getting the text for a row in the verbosity filter drop-down. */
 	FString HandleVerbosityFilterGetRowText( FSessionConsoleVerbosityFilterPtr Filter ) const;
 
-	// Callback for changing the check state of a filter button.
+	/** Callback for changing the check state of a filter button. */
 	void HandleVerbosityFilterStateChanged( ELogVerbosity::Type Verbosity, bool Enabled );
 
 private:
 
-	// Holds the list of category filters.
+	/** Holds the list of category filters. */
 	TArray<FSessionConsoleCategoryFilterPtr> CategoriesList;
 
-	// Holds the category filters list view.
+	/** Holds the category filters list view. */
 	TSharedPtr<SListView<FSessionConsoleCategoryFilterPtr>> CategoriesListView;
 
-	// Holds the log message counters for category filters.
+	/** Holds the log message counters for category filters. */
 	TMap<FName, int32> CategoryCounters;
 
-	// Holds the list of disabled log categories.
+	/** Holds the list of disabled log categories. */
 	TArray<FName> DisabledCategories;
 
-	// Holds the list of disabled log verbosities.
+	/** Holds the list of disabled log verbosities. */
 	TArray<ELogVerbosity::Type> DisabledVerbosities;
 
-	// Holds the filter check box.
+	/** Holds the filter check box. */
 	TSharedPtr<SCheckBox> HighlightOnlyCheckBox;
 
-	// Holds the filter string text box.
+	/** Holds the filter string text box. */
 	TSharedPtr<SSearchBox> FilterStringTextBox;
 
-	// Holds the verbosity filters.
+	/** Holds the verbosity filters. */
 	TArray<FSessionConsoleVerbosityFilterPtr> VerbositiesList;
 
-	// Holds the verbosity filters list view.
+	/** Holds the verbosity filters list view. */
 	TSharedPtr< SListView<FSessionConsoleVerbosityFilterPtr>> VerbositiesListView;
 
-	// Holds the log message counters for verbosity filters.
+	/** Holds the log message counters for verbosity filters. */
 	TMap<ELogVerbosity::Type, int32> VerbosityCounters;
 
 private:
 
-	// Holds a delegate that is executed when the filter settings changed.
+	/** Holds a delegate that is executed when the filter settings changed. */
 	FSimpleDelegate OnFilterChanged;
 };

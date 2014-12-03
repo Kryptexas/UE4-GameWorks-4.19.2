@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UPaperFlipbookFactory
 
-UPaperFlipbookFactory::UPaperFlipbookFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperFlipbookFactory::UPaperFlipbookFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

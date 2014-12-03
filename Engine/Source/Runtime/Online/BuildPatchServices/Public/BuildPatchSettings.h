@@ -9,7 +9,7 @@ struct FBuildPatchSettings
 	// The directory to analyze
 	FString RootDirectory;
 	// The ID of the app of this build
-	uint32 InAppID;
+	uint32 AppID;
 	// The name of the app of this build
 	FString AppName;
 	// The version string for this build

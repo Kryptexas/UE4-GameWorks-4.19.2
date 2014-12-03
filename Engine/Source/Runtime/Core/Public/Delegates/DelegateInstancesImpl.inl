@@ -23,6 +23,7 @@
 #define RAW_METHOD_DELEGATE_INSTANCE_CLASS FUNC_COMBINE(TBaseRawMethodDelegateInstance_, FUNC_COMBINE(FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX))
 #define UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS FUNC_COMBINE(TBaseUObjectMethodDelegateInstance_, FUNC_COMBINE(FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX))
 #define STATIC_DELEGATE_INSTANCE_CLASS FUNC_COMBINE(TBaseStaticDelegateInstance_, FUNC_COMBINE(FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX))
+#define FUNCTOR_DELEGATE_INSTANCE_CLASS FUNC_COMBINE(TBaseFunctorDelegateInstance_, FUNC_COMBINE(FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX))
 #define UFUNCTION_DELEGATE_INSTANCE_CLASS FUNC_COMBINE(TBaseUFunctionDelegateInstance_, FUNC_COMBINE(FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX))
 
 #if FUNC_IS_CONST
@@ -74,7 +75,7 @@ template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME> class RAW_METHOD_
 /**
  * Implements a delegate binding for shared pointer member functions.
  */
-template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME, ESPMode::Type SPMode>
+template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME, ESPMode SPMode>
 class SP_METHOD_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
 {
@@ -181,10 +182,9 @@ public:
 	{
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
 		// See the comment in multi-cast delegate's Remove() method for more information.
-		if ((InOtherDelegate.GetType() == EDelegateInstanceType::SharedPointerMethod) || 
+		if ((InOtherDelegate.GetType() == EDelegateInstanceType::SharedPointerMethod) ||
 			(InOtherDelegate.GetType() == EDelegateInstanceType::ThreadSafeSharedPointerMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::UObjectMethod))
+			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod))
 		{
 			return (GetRawMethodPtrInternal() == InOtherDelegate.GetRawMethodPtr() && UserObject.HasSameObject(InOtherDelegate.GetRawUserObject()));
 		}
@@ -203,7 +203,7 @@ public:
 	 */
 	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( const TSharedPtr<UserClass, SPMode>& InUserObjectRef, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new SP_METHOD_DELEGATE_INSTANCE_CLASS<UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS, SPMode>(InUserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		return new SP_METHOD_DELEGATE_INSTANCE_CLASS(InUserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 	/**
@@ -243,7 +243,7 @@ protected:
 private:
 
 	// Declare ourselves as a friend so we can access other template permutations in IsSameFunction().
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode::Type SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
+	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members.
 	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
@@ -386,7 +386,7 @@ public:
 	 */
 	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new RAW_METHOD_DELEGATE_INSTANCE_CLASS<UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS>(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		return new RAW_METHOD_DELEGATE_INSTANCE_CLASS(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 protected:
@@ -410,7 +410,7 @@ protected:
 private:
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode::Type SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
+	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
 	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Pointer to the user's class which contains a method we would like to call.
@@ -540,9 +540,7 @@ public:
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
 		// See the comment in multi-cast delegate's Remove() method for more information.
 		if ((InOtherDelegate.GetType() == EDelegateInstanceType::UObjectMethod) || 
-			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::SharedPointerMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::ThreadSafeSharedPointerMethod))
+			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod))
 		{
 			return (GetRawMethodPtrInternal() == InOtherDelegate.GetRawMethodPtr()) && (UserObject.Get() == InOtherDelegate.GetRawUserObject());
 		}
@@ -561,7 +559,7 @@ public:
 	 */
 	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, FMethodPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS<UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS>(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		return new UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS(InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 protected:
@@ -585,7 +583,7 @@ protected:
 private:
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW,ESPMode::Type SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
+	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW,ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
 	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class RAW_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Pointer to the user's class which contains a method we would like to call.
@@ -598,6 +596,7 @@ private:
 	FUNC_PAYLOAD_MEMBERS
 };
 
+#if !FUNC_IS_CONST
 
 /**
  * Implements a delegate binding for regular C++ functions.
@@ -675,8 +674,7 @@ public:
 
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const override
 	{
-		// Call the member function on the user's object.  And yes, this is the correct C++ syntax for calling a
-		// pointer-to-member function.
+		// Call the static function
 		checkSlow(StaticFuncPtr != nullptr);
 
 		return StaticFuncPtr(DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN);
@@ -717,7 +715,7 @@ public:
 	 */
 	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( FFuncPtr InFunc DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new STATIC_DELEGATE_INSTANCE_CLASS<FUNC_PAYLOAD_TEMPLATE_ARGS>(InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		return new STATIC_DELEGATE_INSTANCE_CLASS(InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 private:
@@ -730,7 +728,126 @@ private:
 };
 
 
-#if !FUNC_IS_CONST
+/**
+ * Implements a delegate binding for C++ functors, e.g. lambdas.
+ */
+template<typename FunctorType, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME>
+class FUNCTOR_DELEGATE_INSTANCE_CLASS
+	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
+{
+public:
+	static_assert(TAreTypesEqual<FunctorType, typename TRemoveReference<FunctorType>::Type>::Value, "FunctorType cannot be a reference");
+
+	/**
+	 * Creates and initializes a new instance
+	 *
+	 * @param InFunctor C++ functor
+	 */
+	FUNCTOR_DELEGATE_INSTANCE_CLASS(const FunctorType& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
+		: Functor(InFunctor)
+		DELEGATE_COMMA_PAYLOAD_INITIALIZER_LIST
+	{
+	}
+
+	FUNCTOR_DELEGATE_INSTANCE_CLASS(FunctorType&& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
+	: Functor(MoveTemp(InFunctor))
+	DELEGATE_COMMA_PAYLOAD_INITIALIZER_LIST
+	{
+	}
+
+public:
+	// IDelegateInstance interface
+
+	virtual FName GetFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+	virtual const void* GetRawMethodPtr() const override
+	{
+		// casting operator() to void* is not legal C++ if it's a member function
+		// and wouldn't necessarily be a useful thing to return anyway
+		check(0);
+		return nullptr;
+	}
+
+	virtual const void* GetRawUserObject() const override
+	{
+		// returning &Functor wouldn't be particularly useful to the comparison code
+		// as it would always be unique because we store a copy of the functor
+		check(0);
+		return nullptr;
+	}
+
+	virtual EDelegateInstanceType::Type GetType() const override
+	{
+		return EDelegateInstanceType::Functor;
+	}
+
+	virtual bool HasSameObject(const void* UserObject) const override
+	{
+		// Functor Delegates aren't bound to a user object so they can never match
+		return false;
+	}
+
+	virtual bool IsSafeToExecute() const override
+	{
+		// Functors are always considered safe to execute!
+		return true;
+	}
+
+public:
+
+	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
+
+	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy() override
+	{
+		return Create(Functor DELEGATE_COMMA_PAYLOAD_PASSIN);
+	}
+
+	virtual RetValType Execute(FUNC_PARAM_LIST) const override
+	{
+		return Functor(DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN);
+	}
+
+#if FUNC_IS_VOID
+	virtual bool ExecuteIfSafe(FUNC_PARAM_LIST) const override
+	{
+		Execute(FUNC_PARAM_PASSTHRU);
+
+		return true;
+	}
+#endif
+
+	virtual bool IsSameFunction(const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& InOtherDelegate) const override
+	{
+		// There's no nice way to implement this (we don't have the type info necessary to compare against OtherDelegate's Functor)
+		return false;
+	}
+
+public:
+
+	/**
+	* Creates a new static function delegate binding for the given function pointer.
+	*
+	* @param InFunctor C++ functor
+	* @return The new delegate.
+	*/
+	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create(const FunctorType& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
+	{
+		return new FUNCTOR_DELEGATE_INSTANCE_CLASS<FunctorType, FUNC_PAYLOAD_TEMPLATE_ARGS>(InFunctor DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+	}
+	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create(FunctorType&& InFunctor DELEGATE_COMMA_PAYLOAD_LIST)
+	{
+		return new FUNCTOR_DELEGATE_INSTANCE_CLASS<FunctorType, FUNC_PAYLOAD_TEMPLATE_ARGS>(MoveTemp(InFunctor) DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+	}
+
+private:
+	FunctorType Functor;
+
+	// Payload member variables, if any.
+	FUNC_PAYLOAD_MEMBERS
+};
 
 /**
  * Implements a delegate binding for UFunctions.
@@ -752,11 +869,6 @@ class UFUNCTION_DELEGATE_INSTANCE_CLASS
 #if !FUNC_IS_VOID
 		RetValType Result;		// UFunction return value.
 #endif
-
-		// Constructor.
-		FParmsWithPayload( DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST )
-			DELEGATE_PARMS_COLON_INITIALIZER_LIST
-		{ }
 	};
 
 public:
@@ -823,7 +935,7 @@ public:
 
 	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
+	virtual DELEGATE_INSTANCE_INTERFACE_CLASS* CreateCopy( ) override
 	{
 		return Create(UserObjectPtr.Get(), GetFunctionName() DELEGATE_COMMA_PAYLOAD_PASSIN);
 	}
@@ -832,7 +944,7 @@ public:
 	{
 		checkSlow(IsSafeToExecute());
 
-		FParmsWithPayload Parms = FParmsWithPayload(DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN);
+		FParmsWithPayload Parms = { DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN };
 		UserObjectPtr->ProcessEvent(CachedFunction, &Parms);
 
 #if !FUNC_IS_VOID
@@ -876,7 +988,7 @@ public:
 	 */
 	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, const FName& InFunctionName DELEGATE_COMMA_PAYLOAD_LIST )
 	{
-		return new UFUNCTION_DELEGATE_INSTANCE_CLASS<UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS>(InUserObject, InFunctionName DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+		return new UFUNCTION_DELEGATE_INSTANCE_CLASS(InUserObject, InFunctionName DELEGATE_COMMA_PAYLOAD_PASSTHRU);
 	}
 
 public:

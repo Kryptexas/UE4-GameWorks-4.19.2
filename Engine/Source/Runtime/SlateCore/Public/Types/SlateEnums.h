@@ -29,6 +29,12 @@ namespace EButtonClickMethod
 		 * even if the button wasn't pressed down over it.
 		 */
 		MouseUp,
+
+		/**
+		 * Inside a list, buttons can only be clicked with precise tap.
+		 * Moving the pointer will scroll the list, also allows drag-droppable buttons.
+		 */
+		 PreciseClick
 	};
 }
 
@@ -50,23 +56,54 @@ namespace EButtonTouchMethod
 	};
 }
 
-
 UENUM(BlueprintType)
-namespace EFocusMoveDirection
+namespace EButtonPressMethod
 {
 	/**
-	 * Enumerates directions in which the focus can move.
-	 */
+	* Enumerates different methods that a button can be triggered with keyboard/controller. Normally, DownAndUp is appropriate.
+	*/
 	enum Type
 	{
-		/** Move to next widget. */
-		Next,
+		/**
+		* User must press the button, then release while the button has focus to trigger the click.
+		* This is the most common type of button.
+		*/
+		DownAndUp,
 
-		/** Move focus to previous widget. */
-		Previous
+		/**
+		* Click will be triggered immediately on button press.
+		*/
+		ButtonPress,
+
+		/**
+		* Click will always be triggered when a button release occurs on the focused button,
+		* even if the button wasn't pressed while focused.
+		*/
+		ButtonRelease,
 	};
 }
 
+/**
+ * Navigation context for event
+ */
+UENUM(BlueprintType)
+enum class EUINavigation : uint8
+{
+	/** Four cardinal directions*/
+	Left,
+	Right,
+	Up,
+	Down,
+
+	/** Conceptual next and previous*/
+	Next,
+	Previous,
+
+	/** Number of navigation types*/
+	Num,
+	/** Denotes an invalid navigation, more important used to denote no specified navigation*/
+	Invalid
+};
 
 /**
  * Enumerates horizontal alignment options, i.e. for widget slots.
@@ -115,7 +152,7 @@ UENUM(BlueprintType)
 enum EMenuPlacement
 {
 	/** Place the menu immediately below the anchor */
-	MenuPlacement_BelowAnchor UMETA(DisplayName="Below Anchor"),
+	MenuPlacement_BelowAnchor UMETA(DisplayName="Below"),
 
 	/** Place the menu immediately below the anchor and match is width to the anchor's content */
 	MenuPlacement_ComboBox UMETA(DisplayName="Combo Box"),
@@ -124,10 +161,13 @@ enum EMenuPlacement
 	MenuPlacement_ComboBoxRight UMETA(DisplayName="Combo Box Right"),
 
 	/** Place the menu to the right of the anchor */
-	MenuPlacement_MenuRight UMETA(DisplayName="Menu Right"),
+	MenuPlacement_MenuRight UMETA(DisplayName="Right"),
 
 	/** Place the menu immediately above the anchor, not transition effect */
-	MenuPlacement_AboveAnchor UMETA(DisplayName="Above Anchor"),
+	MenuPlacement_AboveAnchor UMETA(DisplayName="Above"),
+
+	/** Place the menu to the left of the anchor */
+	MenuPlacement_MenuLeft UMETA(DisplayName="Left"),
 };
 
 

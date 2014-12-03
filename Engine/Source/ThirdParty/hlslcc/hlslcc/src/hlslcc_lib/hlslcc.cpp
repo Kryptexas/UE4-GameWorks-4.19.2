@@ -3,15 +3,14 @@
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
-#include "mesa/ast.h"
-#include "mesa/glsl_parser_extras.h"
-#include "mesa/ir_optimization.h"
-#include "mesa/loop_analysis.h"
-#include "mesa/macros.h"
+#include "ast.h"
+#include "glsl_parser_extras.h"
+#include "ir_optimization.h"
+#include "loop_analysis.h"
+#include "macros.h"
 #include "ir_track_image_access.h"
-#include "glsl/ir_gen_glsl.h"
-#include "mesa/ir_print_visitor.h"
-#include "mesa/ir_rvalue_visitor.h"
+#include "ir_print_visitor.h"
+#include "ir_rvalue_visitor.h"
 #include "PackUniformBuffers.h"
 #include "OptValueNumbering.h"
 #include "IRDump.h"
@@ -270,8 +269,12 @@ int HlslCrossCompile(
 		ParseState->language_version = 100;
 	}
 
-	InShaderBackEnd->GenerateMain(InShaderFrequency, InEntryPoint, ir, ParseState);
+	if (!InShaderBackEnd->GenerateMain(InShaderFrequency, InEntryPoint, ir, ParseState))
+	{
+		goto done;
+	}
 	TIMER(gen_main);
+
 	if (!InShaderBackEnd->OptimizeAndValidate(ir, ParseState))
 	{
 		goto done;
@@ -549,7 +552,7 @@ bool FCodeBackend::Validate(exec_list* Instructions, _mesa_glsl_parse_state* Par
 	return true;
 }
 
-ir_function_signature* FCodeBackend::FindAndMarkEntryPointFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, const char* EntryPoint)
+ir_function_signature* FCodeBackend::FindEntryPointFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, const char* EntryPoint)
 {
 	ir_function_signature* EntryPointSig = nullptr;
 	foreach_iter(exec_list_iterator, Iter, *Instructions)

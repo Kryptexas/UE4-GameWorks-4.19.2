@@ -33,7 +33,7 @@
 enum EConsoleVariableFlags
 {
 	/**
-	 * Default, no flags are set
+	 * Default, no flags are set, the value is set by the constructor 
 	 */
 	ECVF_Default = 0x0,
 	/**
@@ -81,6 +81,36 @@ enum EConsoleVariableFlags
 
 	/* those cvars control other cvars with the flag ECVF_Scalability, names should start with "sg." */
 	ECVF_ScalabilityGroup = 0x80,
+
+	// ------------------------------------------------
+
+	/* to get some history of where the last value was set by ( useful for track down why a cvar is in a specific state */
+	ECVF_SetByMask =				0xff000000,
+	
+	// the ECVF_SetBy are sorted in override order (weak to strong), the value is not serialized, it only affects it's override behavior when calling Set()
+
+	// lowest priority (default after console variable creation)
+	ECVF_SetByConstructor =			0x00000000,
+	// from Scalability.ini (lower priority than game settings so it's easier to override partially)
+	ECVF_SetByScalability =			0x01000000,
+	// (in game UI or from file)
+	ECVF_SetByGameSetting =			0x02000000,
+	// project settings (editor UI or from file, higher priority than game setting to allow to enforce some setting fro this project)
+	ECVF_SetByProjectSetting =		0x03000000,
+	// per device setting (e.g. specific iOS device, higher priority than per project to do device specific settings)
+	ECVF_SetByDeviceProfile =		0x04000000,
+	// per project setting (ini file e.g. Engine.ini or Game.ini)
+	ECVF_SetBySystemSettingsIni =	0x05000000,
+	// consolevariables.ini (for multiple projects)
+	ECVF_SetByConsoleVariablesIni = 0x06000000,
+	// a minus command e.g. -VSync (very high priority to enforce the setting for the application)
+	ECVF_SetByCommandline =			0x07000000,
+	// least useful, likely a hack, maybe better to find the correct SetBy...
+	ECVF_SetByCode =				0x08000000,
+	// editor UI or console in game or editor
+	ECVF_SetByConsole =				0x09000000,
+
+	// ------------------------------------------------
 };
 
 class IConsoleVariable;
@@ -200,8 +230,11 @@ class IConsoleVariable : public IConsoleObject
 {
 public:
 
-	/** Set the internal value from the specified string. */
-	virtual void Set(const TCHAR* InValue) = 0;
+	/**
+	 * Set the internal value from the specified string. 
+	 * @param SetBy anything in ECVF_LastSetMask e.g. ECVF_SetByScalability
+	 **/
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy = ECVF_SetByCode) = 0;
 	/**
 	 * Get the internal value as int (should not be used on strings).
 	 * @return value is not rounded (simple cast)
@@ -227,16 +260,16 @@ public:
 	// convenience methods
 
 	/** Set the internal value from the specified int. */
-	void Set(int32 InValue)
+	void Set(int32 InValue, EConsoleVariableFlags SetBy = ECVF_SetByCode)
 	{
 		// inefficient but no common code path
-		Set(*FString::Printf(TEXT("%d"), InValue));
+		Set(*FString::Printf(TEXT("%d"), InValue), SetBy);
 	}
 	/** Set the internal value from the specified float. */
-	void Set(float InValue)
+	void Set(float InValue, EConsoleVariableFlags SetBy = ECVF_SetByCode)
 	{
 		// inefficient but no common code path
-		Set(*FString::Printf(TEXT("%g"), InValue));
+		Set(*FString::Printf(TEXT("%g"), InValue), SetBy);
 	}
 
 };
@@ -410,7 +443,7 @@ struct CORE_API IConsoleManager
 	 * @param	Help		Help text for this command
 	 * @param	Flags		Optional flags bitmask
 	 */
-	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
+	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, uint32 Flags = (uint32)ECVF_Default) = 0;
 
 	/**
 	 * Unregisters a console object, if that object was registered. O(n), n is the console object count
@@ -478,7 +511,7 @@ struct CORE_API IConsoleManager
 	
 	/**
 	 */
-	virtual void GetConsoleHistory(TArray<FString>& Out) const = 0; 
+	virtual void GetConsoleHistory(TArray<FString>& Out) = 0; 
 
 	/**
 	 * Check if a name (command or variable) has been registered with the console manager

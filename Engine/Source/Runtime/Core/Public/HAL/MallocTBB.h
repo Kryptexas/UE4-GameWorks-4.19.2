@@ -32,7 +32,7 @@ public:
 		return true;
 	}
 
-	virtual const TCHAR * GetDescriptiveName( ) override
+	virtual const TCHAR* GetDescriptiveName( ) override
 	{
 		return TEXT("TBB");
 	}

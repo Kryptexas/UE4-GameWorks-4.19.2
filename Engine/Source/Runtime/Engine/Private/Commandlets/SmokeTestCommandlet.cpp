@@ -8,8 +8,8 @@
 #include "EnginePrivate.h"
 #include "Commandlets/SmokeTestCommandlet.h"
 
-USmokeTestCommandlet::USmokeTestCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USmokeTestCommandlet::USmokeTestCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	IsClient = false;
 	IsEditor = false;

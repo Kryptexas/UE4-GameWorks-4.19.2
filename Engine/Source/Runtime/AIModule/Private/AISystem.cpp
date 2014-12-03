@@ -6,10 +6,11 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "Perception/AIPerceptionSystem.h"
 #include "GameFramework/PlayerController.h"
+#include "HotSpots/AIHotSpotManager.h"
 #include "AISystem.h"
 
 
-UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
@@ -24,6 +25,23 @@ UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCI
 UAISystem::~UAISystem()
 {
 	CleanupWorld(true, true, NULL);
+}
+
+void UAISystem::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		UWorld* WorldOuter = Cast<UWorld>(GetOuter());
+		UObject* ManagersOuter = WorldOuter != NULL ? (UObject*)WorldOuter : (UObject*)this;
+		
+		TSubclassOf<UAIHotSpotManager> HotSpotManagerClass = HotSpotManagerClassName.ResolveClass();
+		if (HotSpotManagerClass)
+		{
+			HotSpotManager = NewObject<UAIHotSpotManager>(ManagersOuter, HotSpotManagerClass);
+		}
+	}
 }
 
 void UAISystem::InitializeActorsForPlay(bool bTimeGotReset)

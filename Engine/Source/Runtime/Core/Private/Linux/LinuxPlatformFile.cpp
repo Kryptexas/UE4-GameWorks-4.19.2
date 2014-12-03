@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include <sys/file.h>	// flock()
 #include <sys/stat.h>   // mkdirp()
 
@@ -226,6 +226,11 @@ FDateTime FLinuxPlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 	return UnixEpoch + TimeSinceEpoch;
 }
 
+FString FLinuxPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return Filename;
+}
+
 IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename)
 {
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), O_RDONLY);
@@ -248,10 +253,7 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 	{
 		Flags |= O_APPEND;
 	}
-	else
-	{
-		Flags |= O_TRUNC;
-	}
+
 	if (bAllowRead)
 	{
 		Flags |= O_RDWR;
@@ -267,21 +269,34 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 		return NULL;
 	}
 
+	// Caveat: cannot specify O_TRUNC in flags, as this will corrupt the file which may be "locked" by other process. We will ftruncate() it once we "lock" it
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), Flags, S_IRUSR | S_IWUSR);
 	if (Handle != -1)
 	{
 		// mimic Windows "exclusive write" behavior (we don't use FILE_SHARE_WRITE) by locking the file.
-		// note that the lock will be removed by itself when the last file descriptor is close()d
+		// note that the (non-mandatory) "lock" will be removed by itself when the last file descriptor is close()d
 		if (flock(Handle, LOCK_EX | LOCK_NB) == -1)
 		{
 			// if locked, consider operation a failure
-			if (EWOULDBLOCK == errno)
+			if (EAGAIN == errno || EWOULDBLOCK == errno)
 			{
 				close(Handle);
-				return NULL;
+				return nullptr;
 			}
-
 			// all the other locking errors are ignored.
+		}
+
+		// truncate the file now that we locked it
+		if (!bAppend)
+		{
+			if (ftruncate(Handle, 0) != 0)
+			{
+				int ErrNo = errno;
+				UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "ftruncate() failed for '%s': errno=%d (%s)" ),
+															Filename, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+				close(Handle);
+				return nullptr;
+			}
 		}
 
 		FFileHandleLinux* FileHandleLinux = new FFileHandleLinux(Handle);
@@ -291,8 +306,10 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 		}
 		return FileHandleLinux;
 	}
-	UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "open('%s', Flags=0x%08X) failed: errno=%d (%s)" ), *NormalizeFilename(Filename), Flags, errno, ANSI_TO_TCHAR(strerror(errno)));
-	return NULL;
+
+	int ErrNo = errno;
+	UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "open('%s', Flags=0x%08X) failed: errno=%d (%s)" ), *NormalizeFilename(Filename), Flags, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+	return nullptr;
 }
 
 bool FLinuxPlatformFile::DirectoryExists(const TCHAR* Directory)
@@ -319,8 +336,8 @@ bool FLinuxPlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 {
 	bool Result = false;
 
-	// If Directory is an empty string, assume that we want to iterate Binaries/Mac (current dir), but because we're an app bundle, iterate bundle's Contents/Frameworks instead
-	DIR* Handle = opendir(TCHAR_TO_UTF8(*NormalizeFilename(Directory)));
+	FString NormalizedDirectory = NormalizeFilename(Directory);
+	DIR* Handle = opendir(TCHAR_TO_UTF8(*NormalizedDirectory));
 	if (Handle)
 	{
 		Result = true;
@@ -329,7 +346,28 @@ bool FLinuxPlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 		{
 			if (FCString::Strcmp(UTF8_TO_TCHAR(Entry->d_name), TEXT(".")) && FCString::Strcmp(UTF8_TO_TCHAR(Entry->d_name), TEXT("..")))
 			{
-				Result = Visitor.Visit(*(FString(Directory) / UTF8_TO_TCHAR(Entry->d_name)), Entry->d_type == DT_DIR);
+				bool bIsDirectory = false;
+				FString UnicodeEntryName = UTF8_TO_TCHAR(Entry->d_name);
+				if (Entry->d_type != DT_UNKNOWN)
+				{
+					bIsDirectory = Entry->d_type == DT_DIR;
+				}
+				else
+				{
+					// filesystem does not support d_type, fallback to stat
+					struct stat FileInfo;
+					FString AbsoluteUnicodeName = NormalizedDirectory / UnicodeEntryName;	
+					if (stat(TCHAR_TO_UTF8(*AbsoluteUnicodeName), &FileInfo) != -1)
+					{
+						bIsDirectory = ((FileInfo.st_mode & S_IFMT) == S_IFDIR);
+					}
+					else
+					{
+						int ErrNo = errno;
+						UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "Cannot determine whether '%s' is a directory - d_type not supported and stat() failed with errno=%d (%s)"), *AbsoluteUnicodeName, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
+					}
+				}
+				Result = Visitor.Visit(*(FString(Directory) / UnicodeEntryName), bIsDirectory);
 			}
 		}
 		closedir(Handle);

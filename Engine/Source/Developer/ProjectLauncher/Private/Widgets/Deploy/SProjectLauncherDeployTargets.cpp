@@ -154,8 +154,16 @@ FText SProjectLauncherDeployTargets::HandleDeviceListRowToolTipText(ITargetDevic
 {
 	FTextBuilder Builder;
 	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipName", "Name: {0}"), FText::FromString(DeviceProxy->GetName()));
-	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetTargetPlatformName(NAME_None /*@Todo: Fix this!*/)));
-	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetTargetDeviceId(NAME_None /*@Todo: Fix this!*/)));
+	
+	if (DeviceProxy->HasVariant(NAME_None))
+	{	
+		Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetTargetPlatformName(NAME_None)));
+		Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetTargetDeviceId(NAME_None)));
+	}
+	else
+	{
+		Builder.AppendLine(LOCTEXT("InvalidDevice", "Invalid Device"));
+	}
 
 	return Builder.ToText();
 }

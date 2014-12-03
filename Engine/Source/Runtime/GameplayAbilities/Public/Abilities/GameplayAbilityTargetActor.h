@@ -2,7 +2,19 @@
 #pragma once
 
 #include "GameplayAbility.h"
+#include "Abilities/GameplayAbilityWorldReticle.h"
 #include "GameplayAbilityTargetActor.generated.h"
+
+UENUM(BlueprintType)
+namespace ETargetAbilitySelfSelection
+{
+	enum Type
+	{
+		TASS_Permit			UMETA(DisplayName = "Allow self-selection"),
+		TASS_Forbid			UMETA(DisplayName = "Forbid self-selection"),
+		TASS_Require 		UMETA(DisplayName = "Force self-selection (add to final data)")
+	};
+}
 
 /** TargetActors are spawned to assist with ability targeting. They are spawned by ability tasks and create/determine the outgoing targeting data passed from one task to another. */
 UCLASS(Blueprintable, abstract, notplaceable)
@@ -17,7 +29,7 @@ public:
 	bool StaticTargetFunction;
 
 	/** The TargetData this class produces can be entirely generated on the server. We don't require the client to send us full or partial TargetData (possibly just a 'confirm') */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Advanced)
 	bool ShouldProduceTargetDataOnServer;
 
 	/** Describes where the targeting action starts, usually the player character or a socket on the player character. */
@@ -30,12 +42,16 @@ public:
 	/** Initialize and begin targeting logic  */
 	virtual void StartTargeting(UGameplayAbility* Ability);
 
+	virtual bool IsConfirmTargetingAllowed();
+
 	/** Requesting targeting data, but not necessarily stopping/destroying the task. Useful for external target data requests. */
 	virtual void ConfirmTargetingAndContinue();
 
-	/** Outside code is saying 'stop and just give me what you have' */
+	/** Outside code is saying 'stop and just give me what you have.' Returns true if the ability accepts this and can be forgotten. */
 	UFUNCTION()
 	virtual void ConfirmTargeting();
+
+	void NotifyPlayerControllerOfRejectedConfirmation();
 
 	/** Outside code is saying 'stop everything and just forget about it' */
 	UFUNCTION()
@@ -70,6 +86,18 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
+	/** Parameters for world reticle. Usage of these parameters is dependent on the reticle. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
+	FWorldReticleParameters ReticleParams;
+
+	/** Reticle that will appear on top of acquired targets. Reticles will be spawned/despawned as targets are acquired/lost. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
+	TSubclassOf<AGameplayAbilityWorldReticle> ReticleClass;		//Using a special class for replication purposes.
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (ExposeOnSpawn = true), Category = Targeting)
+	FGameplayTargetDataFilterHandle Filter;
+
+	/** Draw the debug information (if applicable) for this targeting actor. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (ExposeOnSpawn = true), Category = Targeting)
 	bool bDebug;
 };

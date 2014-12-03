@@ -16,8 +16,8 @@
 	USkeletonFactory implementation.
 ------------------------------------------------------------------------------*/
 
-USkeletonFactory::USkeletonFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletonFactory::USkeletonFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = false;
 	SupportedClass = USkeleton::StaticClass();

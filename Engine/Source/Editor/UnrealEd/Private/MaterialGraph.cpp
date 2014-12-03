@@ -14,8 +14,8 @@
 
 #define LOCTEXT_NAMESPACE "MaterialGraph"
 
-UMaterialGraph::UMaterialGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraph::UMaterialGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -30,8 +30,6 @@ void UMaterialGraph::RebuildGraph()
 	if (!MaterialFunction)
 	{
 		// Initialize the material input list.
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("DiffuseColor", "Diffuse Color"), MP_DiffuseColor ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SpecularColor", "Specular Color"), MP_SpecularColor ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("BaseColor", "Base Color"), MP_BaseColor ) );	
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Metallic", "Metallic"), MP_Metallic ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Specular", "Specular"), MP_Specular ) );
@@ -125,12 +123,12 @@ void UMaterialGraph::LinkGraphNodesFromMaterial()
 		for (int32 Index = 0; Index < MaterialInputs.Num(); ++Index)
 		{
 			UEdGraphPin* InputPin = RootNode->GetInputPin(Index);
-			auto ExpressionInput = MaterialInputs[Index].GetInput(Material);
+			auto ExpressionInput = MaterialInputs[Index].GetExpressionInput(Material);
 
-			if (ExpressionInput->Expression)
+			if (ExpressionInput.Expression)
 			{
-				UMaterialGraphNode* GraphNode = CastChecked<UMaterialGraphNode>(ExpressionInput->Expression->GraphNode);
-				InputPin->MakeLinkTo(GraphNode->GetOutputPin(GetValidOutputIndex(ExpressionInput)));
+				UMaterialGraphNode* GraphNode = CastChecked<UMaterialGraphNode>(ExpressionInput.Expression->GraphNode);
+				InputPin->MakeLinkTo(GraphNode->GetOutputPin(GetValidOutputIndex(&ExpressionInput)));
 			}
 		}
 	}
@@ -176,7 +174,8 @@ void UMaterialGraph::LinkMaterialExpressionsFromGraph() const
 			check(InputPins.Num() == MaterialInputs.Num());
 			for (int32 PinIndex = 0; PinIndex < InputPins.Num() && PinIndex < MaterialInputs.Num(); ++PinIndex)
 			{
-				FExpressionInput* MaterialInput = MaterialInputs[PinIndex].GetInput(Material);
+				FExpressionInput& MaterialInput = MaterialInputs[PinIndex].GetExpressionInput(Material);
+
 				if (InputPins[PinIndex]->LinkedTo.Num() > 0)
 				{
 					UMaterialGraphNode* ConnectedNode = CastChecked<UMaterialGraphNode>(InputPins[PinIndex]->LinkedTo[0]->GetOwningNode());
@@ -187,18 +186,18 @@ void UMaterialGraph::LinkMaterialExpressionsFromGraph() const
 					{
 						if (OutputPins[OutPinIndex] == InputPins[PinIndex]->LinkedTo[0])
 						{
-							if (MaterialInput->OutputIndex != OutPinIndex || MaterialInput->Expression != ConnectedNode->MaterialExpression)
+							if (MaterialInput.OutputIndex != OutPinIndex || MaterialInput.Expression != ConnectedNode->MaterialExpression)
 							{
 								ConnectedNode->MaterialExpression->Modify();
-								MaterialInput->Connect(OutPinIndex, ConnectedNode->MaterialExpression);
+								MaterialInput.Connect(OutPinIndex, ConnectedNode->MaterialExpression);
 							}
 							break;
 						}
 					}
 				}
-				else if (MaterialInput->Expression)
+				else if (MaterialInput.Expression)
 				{
-					MaterialInput->Expression = NULL;
+					MaterialInput.Expression = NULL;
 				}
 			}
 		}
@@ -292,11 +291,6 @@ void UMaterialGraph::LinkMaterialExpressionsFromGraph() const
 	}
 }
 
-bool UMaterialGraph::IsInputVisible(int32 Index) const
-{
-	return FMaterialEditorUtilities::IsInputVisible(Material, Index);
-}
-
 bool UMaterialGraph::IsInputActive(UEdGraphPin* GraphPin) const
 {
 	if (Material && RootNode)
@@ -324,7 +318,9 @@ void UMaterialGraph::GetUnusedExpressions(TArray<UEdGraphNode*>& UnusedNodes) co
 		RootNode->GetInputPins(InputPins);
 		for (int32 Index = 0; Index < InputPins.Num(); ++Index)
 		{
-			if (IsInputVisible(Index)
+			check(Index < MaterialInputs.Num());
+			
+			if (MaterialInputs[Index].IsVisiblePin(Material)
 				&& InputPins[Index]->LinkedTo.Num() > 0 && InputPins[Index]->LinkedTo[0])
 			{
 				NodesToCheck.Push(InputPins[Index]->LinkedTo[0]->GetOwningNode());

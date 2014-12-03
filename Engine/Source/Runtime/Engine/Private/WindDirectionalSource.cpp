@@ -1,16 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Components/WindDirectionalSourceComponent.h"
 #include "Engine/WindDirectionalSource.h"
 
-AWindDirectionalSource::AWindDirectionalSource(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	Component = PCIP.CreateDefaultSubobject<UWindDirectionalSourceComponent>(this, TEXT("WindDirectionalSourceComponent0"));
+	Component = ObjectInitializer.CreateDefaultSubobject<UWindDirectionalSourceComponent>(this, TEXT("WindDirectionalSourceComponent0"));
 	RootComponent = Component;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -40,13 +41,13 @@ AWindDirectionalSource::AWindDirectionalSource(const class FPostConstructInitial
 			ArrowComponent->bUseInEditorScaling = true;
 		}
 
-		if (SpriteComponent)
+		if (GetSpriteComponent())
 		{
-			SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
-			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
-			SpriteComponent->AttachParent = Component;
+			GetSpriteComponent()->Sprite = ConstructorStatics.SpriteTexture.Get();
+			GetSpriteComponent()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Wind;
+			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
+			GetSpriteComponent()->AttachParent = Component;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -98,8 +99,8 @@ void FWindSourceSceneProxy::ApplyWorldOffset(FVector InOffset)
 	}
 }
 
-UWindDirectionalSourceComponent::UWindDirectionalSourceComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWindDirectionalSourceComponent::UWindDirectionalSourceComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Strength = 1.0f;
 	Speed = 1.0f;
@@ -135,3 +136,10 @@ FWindSourceSceneProxy* UWindDirectionalSourceComponent::CreateSceneProxy() const
 		);
 }
 
+
+/** Returns Component subobject **/
+UWindDirectionalSourceComponent* AWindDirectionalSource::GetComponent() const { return Component; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* AWindDirectionalSource::GetArrowComponent() const { return ArrowComponent; }
+#endif

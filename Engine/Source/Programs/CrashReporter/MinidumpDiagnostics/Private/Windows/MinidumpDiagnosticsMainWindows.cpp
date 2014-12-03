@@ -8,6 +8,15 @@
 
 IMPLEMENT_APPLICATION( MinidumpDiagnostics, "MinidumpDiagnostics" )
 
+	
+/** 
+ * A null crash handler to suppress error report generation
+ */
+int32 EmptyCrashHandler( LPEXCEPTION_POINTERS ExceptionInfo )
+{
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
 // More Windows glue
 int32 GuardedMain(int32 Argc, TCHAR* Argv[])
 {
@@ -41,7 +50,7 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[])
 			ReturnCode = GuardedMain( ArgC, ArgV );
 			GIsGuarded = 0;
 		}
-		__except( NullReportCrash( GetExceptionInformation() ) )
+		__except( EmptyCrashHandler( GetExceptionInformation() ) )
 		{
 		}
 	}

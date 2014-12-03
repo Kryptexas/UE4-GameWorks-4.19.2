@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 
-UNavAreaMeta::UNavAreaMeta(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavAreaMeta::UNavAreaMeta(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

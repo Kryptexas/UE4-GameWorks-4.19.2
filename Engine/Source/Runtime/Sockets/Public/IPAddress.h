@@ -61,6 +61,22 @@ public:
 	 */
 	virtual int32 GetPort() const = 0;
 
+	/** 
+	 * Set Platform specific port data
+	 */
+	virtual void SetPlatformPort(int32 InPort)
+	{
+		SetPort(InPort);
+	}
+
+	/** 
+	 * Get platform specific port data.
+	 */
+	virtual int32 GetPlatformPort() const
+	{
+		return GetPort();
+	}
+
 	/** Sets the address to be any address */
 	virtual void SetAnyAddress() = 0;
 

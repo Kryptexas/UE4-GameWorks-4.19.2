@@ -94,7 +94,5 @@ namespace SkeletalMeshTools
 	
 	void UnchunkSkeletalModel(TArray<FSkinnedMeshChunk*>& Chunks, TArray<int32>& PointToOriginalMap, const FSkinnedModelData& SrcModel);
 
-	void RechunkModels(TIndirectArray<FStaticLODModel>& DestModels, USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk);
-
 	void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant);
 };

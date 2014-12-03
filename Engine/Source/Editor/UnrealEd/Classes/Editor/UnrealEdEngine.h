@@ -234,6 +234,8 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 
 	/** Draw component visualizers for components for selected actors */
 	void DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI);
+	/** Draw component visualizers HUD elements for components for selected actors */
+	void DrawComponentVisualizersHUD(const FViewport* Viewport, const FSceneView* View, FCanvas* Canvas);
 
 	/** Updates the property windows of selected actors */
 	virtual void UpdateFloatingPropertyWindows();
@@ -551,6 +553,12 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * Checks if the cook by the book is finished
 	 */
 	virtual bool IsCookByTheBookInEditorFinished() const override;
+
+
+	/**
+	 * cancels the current cook by the book in editor
+	 */
+	virtual void CancelCookByTheBookInEditor() override;
 
 
 

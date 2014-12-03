@@ -1,15 +1,27 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "PropertyPath.h"
+#include "DiffUtils.h"
+
 class KISMET_API FDetailsDiff
 {
 public:
-	FDetailsDiff( const UObject* InObject, const TMap< FName, const UProperty* >& InPropertyMap, const TSet< FName >& InDifferingProperties );
+	DECLARE_DELEGATE( FOnDisplayedPropertiesChanged );
 
-	void HighlightProperty( FName PropertyName );
+	FDetailsDiff( const UObject* InObject, const TArray< FPropertyPath >& InDifferingProperties, FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChanged );
+
+	void HighlightProperty( const FPropertySoftPath& PropertyName );
 	TSharedRef< SWidget > DetailsWidget();
+	TArray<FPropertySoftPath> GetDisplayedProperties() const;
 
 private:
-	TMap< FName, const UProperty* > PropertyMap;
+	void HandlePropertiesChanged();
+
+	FOnDisplayedPropertiesChanged OnDisplayedPropertiesChanged;
+
+	TArray< FPropertyPath > DifferingProperties;
+	const UObject* DisplayedObject;
+
 	TSharedPtr< class IDetailsView > DetailsView;
 };

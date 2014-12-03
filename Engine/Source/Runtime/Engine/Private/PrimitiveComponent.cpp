@@ -59,8 +59,8 @@ int32 UPrimitiveComponent::CurrentTag = 2147483647 / 4;
 // 0 is reserved to mean invalid
 uint64 UPrimitiveComponent::NextComponentId = 1;
 
-UPrimitiveComponent::UPrimitiveComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PostPhysicsComponentTick.bCanEverTick = false;
 	PostPhysicsComponentTick.bStartWithTickEnabled = true;
@@ -168,8 +168,10 @@ void UPrimitiveComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMater
 		// Ensure we don't have any NULL elements.
 		if( UsedMaterials[ MatIndex ] )
 		{
+			auto World = GetWorld();
+
 			UsedTextures.Reset();
-			UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, QualityLevel, false, GRHIFeatureLevel, false );
+			UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, QualityLevel, false, World ? World->FeatureLevel : GMaxRHIFeatureLevel, false);
 
 			for( int32 TextureIndex=0; TextureIndex<UsedTextures.Num(); TextureIndex++ )
 			{
@@ -540,6 +542,11 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, IndirectLightingCacheQuality))
 		{
 			return Mobility == EComponentMobility::Movable;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow))
+		{
+			return !bSelfShadowOnly;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow))
@@ -1254,6 +1261,10 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	if ( IsPendingKill() )
 	{
 		//UE_LOG(LogPrimitiveComponent, Log, TEXT("%s deleted move physics %d"),*Actor->GetName(),Actor->Physics);
+		if (OutHit)
+		{
+			*OutHit = FHitResult();
+		}
 		return false;
 	}
 
@@ -1264,6 +1275,10 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	{
 		// TODO: Static components without an owner can move, should they be able to?
 		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after initialization"), *GetFullName());
+		if (OutHit)
+		{
+			*OutHit = FHitResult();
+		}
 		return false;
 	}
 
@@ -1295,7 +1310,6 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			{
 				*OutHit = BlockingHit;
 			}
-
 			return true;
 		}
 		DeltaSizeSq = 0.f;
@@ -1572,7 +1586,7 @@ void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& B
 	Owner.DispatchBlockingHit(this, BlockingHit.Component.Get(), true, BlockingHit);
 
 	// BlockingHit.GetActor() could be marked for deletion in DispatchBlockingHit(), which would make the weak pointer return NULL.
-	if ( BlockingHit.GetActor() != NULL )
+	if ( BlockingHit.GetActor() != nullptr && BlockingHit.Component.Get() != nullptr)
 	{
 		BlockingHit.GetActor()->DispatchBlockingHit(BlockingHit.Component.Get(), this, false, BlockingHit);
 	}
@@ -2205,9 +2219,10 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 		// bGenerateOverlapEvents is false or collision is disabled
 
 		// End all overlaps that exist, in case bGenerateOverlapEvents was true last tick (i.e. was just turned off)
-		for (auto CompIt = OverlappingComponents.CreateIterator(); CompIt; ++CompIt)
+		// Iterate backwards since EndComponentOverlap will remove items from OverlappingComponents.
+		for (int32 OverlapIdx = OverlappingComponents.Num()-1; OverlapIdx >= 0; --OverlapIdx)
 		{
-			const FOverlapInfo& OtherOverlap = *CompIt;
+			const FOverlapInfo& OtherOverlap = OverlappingComponents[OverlapIdx];
 			if (OtherOverlap.OverlapInfo.Component.IsValid())
 			{
 				EndComponentOverlap(OtherOverlap, bDoNotifies, false);
@@ -2503,6 +2518,15 @@ void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)
 	if( bRenderCustomDepth != bValue )
 	{
 		bRenderCustomDepth = bValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UPrimitiveComponent::SetRenderInMainPass(bool bValue)
+{
+	if (bRenderInMainPass != bValue)
+	{
+		bRenderInMainPass = bValue;
 		MarkRenderStateDirty();
 	}
 }

@@ -185,6 +185,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnAssetsPreDelete OnAssetsPreDelete;
 	/** Called when one or more assets have been deleted */
 	static FOnAssetsDeleted OnAssetsDeleted;
+	/** Called when Action or Axis mappings have been changed */
+	static FSimpleMulticastDelegate OnActionAxisMappingsChanged;
 };
 
 /**

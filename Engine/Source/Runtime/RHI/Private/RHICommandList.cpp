@@ -45,30 +45,83 @@ TAutoConsoleVariable<int32> CVarRHICmdWidth(
 	8,
 	TEXT("Number of threads."));
 
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
+	TEXT("r.RHICmdUseDeferredContexts"),
+	1,
+	TEXT("True to use deferred contexts to parallelize command list execution.\n"));
+static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
+	TEXT("r.RHIDeferredContextWidth"),
+	99999,
+	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list.\n"));
+#endif
 
 RHI_API FRHICommandListExecutor GRHICommandList;
 
-static FGraphEventArray OutstandingTasks;
+static FGraphEventArray AllOutstandingTasks;
+static FGraphEventArray WaitOutstandingTasks;
 static FGraphEventRef RHIThreadTask;
 static FGraphEventRef RenderThreadSublistDispatchTask;
 
 
 DECLARE_CYCLE_STAT(TEXT("RHI Thread Execute"), STAT_RHIThreadExecute, STATGROUP_RHICMDLIST);
 
+static TStatId GCurrentExecuteStat;
+
+struct FRHICommandStat : public FRHICommand<FRHICommandStat>
+{
+	TStatId CurrentExecuteStat;
+	FORCEINLINE_DEBUGGABLE FRHICommandStat(TStatId InCurrentExecuteStat)
+		: CurrentExecuteStat(InCurrentExecuteStat)
+	{
+	}
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		GCurrentExecuteStat = CurrentExecuteStat;
+	}
+};
+
+void FRHICommandListImmediate::SetCurrentStat(TStatId Stat)
+{
+	new (AllocCommand<FRHICommandStat>()) FRHICommandStat(Stat);
+}
+
+FRHICommandBase* GCurrentCommand = nullptr;
+
 void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdList)
 {
 	CmdList.bExecuting = true;
+#if PLATFORM_RHI_USES_CONTEXT_OBJECT
+	check(CmdList.Context);
+#endif
+
+	bool bDoStats = false;
+	//STAT(bDoStats = FThreadStats::IsCollectingData() && (IsInRenderingThread() || IsInRHIThread());)
+	FRHICommandListIterator Iter(CmdList);
+	if (bDoStats)
 	{
-		FRHICommandListIterator Iter(CmdList);
 		while (Iter.HasCommandsLeft())
 		{
 			FRHICommandBase* Cmd = Iter.NextCommand();
 			//FPlatformMisc::Prefetch(Cmd->Next);
-			Cmd->CallExecuteAndDestruct();
+			FScopeCycleCounter Scope(GCurrentExecuteStat);
+			Cmd->CallExecuteAndDestruct(CmdList);
+		}
+	}
+	else
+	{
+		while (Iter.HasCommandsLeft())
+		{
+			FRHICommandBase* Cmd = Iter.NextCommand();
+			GCurrentCommand = Cmd;
+			//FPlatformMisc::Prefetch(Cmd->Next);
+			Cmd->CallExecuteAndDestruct(CmdList);
 		}
 	}
 	CmdList.Reset();
 }
+
+
 
 class FExecuteRHIThreadTask
 {
@@ -184,10 +237,10 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 			static_assert(sizeof(FRHICommandList) == sizeof(FRHICommandListImmediate), "We are memswapping FRHICommandList and FRHICommandListImmediate; they need to be swappable.");
 			SwapCmdList->ExchangeCmdList(CmdList);
 
-			if (OutstandingTasks.Num() || RenderThreadSublistDispatchTask.GetReference())
+			if (AllOutstandingTasks.Num() || RenderThreadSublistDispatchTask.GetReference())
 			{
-				FGraphEventArray Prereq(OutstandingTasks);
-				OutstandingTasks.Reset();
+				FGraphEventArray Prereq(AllOutstandingTasks);
+				AllOutstandingTasks.Reset();
 				if (RenderThreadSublistDispatchTask.GetReference())
 				{
 					Prereq.Add(RenderThreadSublistDispatchTask);
@@ -215,10 +268,13 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 					FTaskGraphInterface::Get().WaitUntilTaskCompletes(RenderThreadSublistDispatchTask, ENamedThreads::RenderThread_Local);
 					RenderThreadSublistDispatchTask = nullptr;
 				}
-				if (RHIThreadTask.GetReference())
+				while (RHIThreadTask.GetReference())
 				{
 					FTaskGraphInterface::Get().WaitUntilTaskCompletes(RHIThreadTask, ENamedThreads::RenderThread_Local);
-					RHIThreadTask = nullptr;
+					if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
+					{
+						RHIThreadTask = nullptr;
+					}
 				}
 			}
 			return;
@@ -235,7 +291,7 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(RenderThreadSublistDispatchTask, ENamedThreads::RenderThread_Local);
 				RenderThreadSublistDispatchTask = nullptr;
 			}
-			if (RHIThreadTask.GetReference())
+			while (RHIThreadTask.GetReference())
 			{
 				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
 				{
@@ -243,7 +299,10 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListExecutor::ExecuteInner 3."));
 				}
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(RHIThreadTask, ENamedThreads::RenderThread_Local);
-				RHIThreadTask = nullptr;
+				if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
+				{
+					RHIThreadTask = nullptr;
+				}
 			}
 		}
 	}
@@ -259,7 +318,10 @@ static FORCEINLINE bool IsInRenderingOrRHIThread()
 
 void FRHICommandListExecutor::ExecuteList(FRHICommandListBase& CmdList)
 {
-	check(IsInRenderingOrRHIThread() && &CmdList != &GetImmediateCommandList());
+	check(&CmdList != &GetImmediateCommandList() &&
+		(PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE || IsInRenderingOrRHIThread())
+		);
+
 	if (IsInRenderingThread() && !GetImmediateCommandList().IsExecuting()) // don't flush if this is a recursive call and we are already executing the immediate command list
 	{
 		GetImmediateCommandList().Flush();
@@ -323,7 +385,7 @@ void FRHICommandListExecutor::LatchBypass()
 			if (FParse::Param(FCommandLine::Get(),TEXT("parallelrendering")) && CVarRHICmdBypass.GetValueOnRenderThread() >= 1)
 			{
 				IConsoleVariable* BypassVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmdBypass"));
-				BypassVar->Set(0);
+				BypassVar->Set(0, ECVF_SetByCommandline);
 			}
 		}
 
@@ -365,6 +427,8 @@ bool FRHICommandListExecutor::IsRHIThreadActive()
 	return !!RHIThreadTask.GetReference();
 }
 
+DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.RHIThreadFence"), STAT_RHIThreadFence, STATGROUP_TaskGraphTasks);
+
 FGraphEventRef FRHICommandListExecutor::RHIThreadFence()
 {
 	check(IsInRenderingThread() && GRHIThread);
@@ -372,12 +436,31 @@ FGraphEventRef FRHICommandListExecutor::RHIThreadFence()
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIThreadFence_Dispatch);
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 	}
-	// this isn't quite right, but is probably fine for current uses. If there is a RenderThreadSublistDispatchTask, then we need that to be the fence, however, then that RT thread task needs to "do not complete until" or something so we can track the actual completion.
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	FGraphEventArray Finish;
 	if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
 	{
 		RHIThreadTask = nullptr;
 	}
-	return RHIThreadTask;
+	if (RHIThreadTask.GetReference())
+	{
+		Finish.Add(RHIThreadTask);
+	}
+	if (RenderThreadSublistDispatchTask.GetReference() && RenderThreadSublistDispatchTask->IsComplete())
+	{
+		RenderThreadSublistDispatchTask = nullptr;
+	}
+	if (RenderThreadSublistDispatchTask.GetReference())
+	{
+		Finish.Add(RenderThreadSublistDispatchTask);
+	}
+	if (Finish.Num())
+	{
+		return TGraphTask<FNullGraphTask>::CreateTask( &Finish, ENamedThreads::RenderThread )
+			.ConstructAndDispatchWhenReady(GET_STATID(STAT_RHIThreadFence), ENamedThreads::RHIThread);
+	}
+#endif
+	return FGraphEventRef();
 }
 void FRHICommandListExecutor::WaitOnRHIThreadFence(FGraphEventRef& Fence)
 {
@@ -421,11 +504,113 @@ void FRHICommandListBase::Reset()
 	NumCommands = 0;
 	Root = nullptr;
 	CommandLink = &Root;
+#if PLATFORM_RHI_USES_CONTEXT_OBJECT
+	static_assert(USE_DYNAMIC_RHI, "PLATFORM_RHI_USES_CONTEXT_OBJECT current requires a dynamic RHI");
+	Context = GDynamicRHI ? RHIGetDefaultContext() : nullptr;
+#else
+	Context = nullptr;
+#endif
 #if USE_RHICOMMAND_STATE_REDUCTION
 	StateCache = nullptr;
 #endif
 	UID = GRHICommandList.UIDCounter.Increment();
 }
+
+
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+DECLARE_CYCLE_STAT(TEXT("Parallel Async Chain Translate"), STAT_ParallelChainTranslate, STATGROUP_RHICMDLIST);
+
+class FParallelTranslateCommandList
+{
+	FRHICommandListBase** RHICmdLists;
+	int32 NumCommandLists;
+	IRHICommandContextContainer* ContextContainer;
+public:
+
+	FParallelTranslateCommandList(FRHICommandListBase** InRHICmdLists, int32 InNumCommandLists, IRHICommandContextContainer* InContextContainer)
+		: RHICmdLists(InRHICmdLists)
+		, NumCommandLists(InNumCommandLists)
+		, ContextContainer(InContextContainer)
+	{
+		check(RHICmdLists && ContextContainer && NumCommandLists);
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FParallelTranslateCommandList, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_ParallelChainTranslate);
+		check(ContextContainer && RHICmdLists);
+		IRHICommandContext* Context = ContextContainer->GetContext();
+		check(Context);
+		for (int32 Index = 0; Index < NumCommandLists; Index++)
+		{
+			RHICmdLists[Index]->SetContext(Context);
+			delete RHICmdLists[Index];
+		}
+		ContextContainer->FinishContext();
+	}
+};
+
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Parallel Async Chains Links"), STAT_ParallelChainLinkCount, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Wait for Parallel Async CmdList"), STAT_ParallelChainWait, STATGROUP_RHICMDLIST);
+DECLARE_CYCLE_STAT(TEXT("Parallel Async Chain Execute"), STAT_ParallelChainExecute, STATGROUP_RHICMDLIST);
+
+struct FRHICommandWaitForAndSubmitSubListParallel : public FRHICommand<FRHICommandWaitForAndSubmitSubListParallel>
+{
+	FGraphEventRef TranslateCompletionEvent;
+	IRHICommandContextContainer* ContextContainer;
+	int32 Num;
+	int32 Index;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandWaitForAndSubmitSubListParallel(FGraphEventRef& InTranslateCompletionEvent, IRHICommandContextContainer* InContextContainer, int32 InNum, int32 InIndex)
+		: TranslateCompletionEvent(InTranslateCompletionEvent)
+		, ContextContainer(InContextContainer)
+		, Num(InNum)
+		, Index(InIndex)
+	{
+		check(ContextContainer && Num);
+	}
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		check(ContextContainer && Num && IsInRHIThread());
+		INC_DWORD_STAT_BY(STAT_ParallelChainLinkCount, 1);
+
+		if (TranslateCompletionEvent.GetReference() && !TranslateCompletionEvent->IsComplete())
+		{
+			SCOPE_CYCLE_COUNTER(STAT_ParallelChainWait);
+			if (IsInRenderingThread())
+			{
+				FTaskGraphInterface::Get().WaitUntilTaskCompletes(TranslateCompletionEvent, ENamedThreads::RenderThread_Local);
+			}
+			else if (IsInRHIThread())
+			{
+				FTaskGraphInterface::Get().WaitUntilTaskCompletes(TranslateCompletionEvent, ENamedThreads::RHIThread);
+			}
+			else
+			{
+				check(0);
+			}
+		}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_ParallelChainExecute);
+			ContextContainer->SubmitAndFreeContextContainer(Index, Num);
+		}
+	}
+};
+#endif
+
+
 
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Async Chains Links"), STAT_ChainLinkCount, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Wait for Async CmdList"), STAT_ChainWait, STATGROUP_RHICMDLIST);
@@ -440,10 +625,10 @@ struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitFo
 		, RHICmdList(InRHICmdList)
 	{
 	}
-	void Execute()
+	void Execute(FRHICommandListBase& CmdList)
 	{
 		INC_DWORD_STAT_BY(STAT_ChainLinkCount, 1);
-		if (!EventToWaitFor->IsComplete())
+		if (EventToWaitFor.GetReference() && !EventToWaitFor->IsComplete())
 		{
 			check(!GRHIThread || !IsInRHIThread()); // things should not be dispatched if they can't complete without further waits
 			SCOPE_CYCLE_COUNTER(STAT_ChainWait);
@@ -458,18 +643,114 @@ struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitFo
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ChainExecute);
+			RHICmdList->CopyContext(CmdList);
 			delete RHICmdList;
 		}
 	}
 };
 
-void FRHICommandListBase::QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList)
+void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, FRHICommandList** CmdLists, int32 Num)
 {
-	check(IsInRenderingThread() && IsImmediate());
-	OutstandingTasks.Add(AnyThreadCompletionEvent);
+	check(IsInRenderingThread() && IsImmediate() && Num);
 	if (GRHIThread)
 	{
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we should start on the stuff before this async list
+	}
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	if (Num && GRHIThread)
+	{
+		IRHICommandContextContainer* ContextContainer = nullptr;
+		if (CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() >= 1)
+		{
+			ContextContainer = RHIGetCommandContextContainer(0);
+		}
+		if (ContextContainer)
+		{
+			int32 EffectiveThreads = FMath::Min<int32>(Num, CVarRHIDeferredContextWidth.GetValueOnRenderThread());
+
+			int32 Start = 0;
+			if (EffectiveThreads)
+			{
+
+				int32 NumPer = Num / EffectiveThreads;
+				int32 Extra = Num - NumPer * EffectiveThreads;
+
+				for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+				{
+					int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+					check(Last >= Start);
+
+					if (!ContextContainer)
+					{
+						ContextContainer = RHIGetCommandContextContainer(0);
+					}
+					check(ContextContainer);
+
+					FGraphEventArray Prereq;
+					FRHICommandListBase** RHICmdLists = (FRHICommandListBase**)Alloc(sizeof(FRHICommandListBase*) * (1 + Last - Start), ALIGNOF(FRHICommandListBase*));
+					for (int32 Index = Start; Index <= Last; Index++)
+					{
+						FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
+						FRHICommandList* CmdList = CmdLists[Index];
+						RHICmdLists[Index - Start] = CmdList;
+						if (AnyThreadCompletionEvent.GetReference())
+						{
+							Prereq.Add(AnyThreadCompletionEvent);
+							AllOutstandingTasks.Add(AnyThreadCompletionEvent);
+							WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
+						}
+					}
+					FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(&Prereq, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[0], 1 + Last - Start, ContextContainer);
+
+					AllOutstandingTasks.Add(TranslateCompletionEvent);
+					new (AllocCommand<FRHICommandWaitForAndSubmitSubListParallel>()) FRHICommandWaitForAndSubmitSubListParallel(TranslateCompletionEvent, ContextContainer, EffectiveThreads, ThreadIndex);
+					if (GRHIThread)
+					{
+						FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
+					}
+
+					ContextContainer = nullptr;
+					Start = Last + 1;
+				}
+				return;
+			}
+		}
+	}
+#endif
+	for (int32 Index = 0; Index < Num; Index++)
+	{
+		FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
+		FRHICommandList* CmdList = CmdLists[Index];
+		if (AnyThreadCompletionEvent.GetReference())
+		{
+			if (GRHIThread)
+			{
+				AllOutstandingTasks.Add(AnyThreadCompletionEvent);
+			}
+			WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
+		}
+		new (AllocCommand<FRHICommandWaitForAndSubmitSubList>()) FRHICommandWaitForAndSubmitSubList(AnyThreadCompletionEvent, CmdList);
+	}
+	if (GRHIThread)
+	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
+	}
+}
+
+void FRHICommandListBase::QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList)
+{
+	check(IsInRenderingThread() && IsImmediate());
+	if (GRHIThread)
+	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we should start on the stuff before this async list
+	}
+	if (AnyThreadCompletionEvent.GetReference())
+	{
+		if (GRHIThread)
+		{
+			AllOutstandingTasks.Add(AnyThreadCompletionEvent);
+		}
+		WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
 	}
 	new (AllocCommand<FRHICommandWaitForAndSubmitSubList>()) FRHICommandWaitForAndSubmitSubList(AnyThreadCompletionEvent, CmdList);
 	if (GRHIThread)
@@ -491,7 +772,7 @@ struct FRHICommandWaitForAndSubmitRTSubList : public FRHICommand<FRHICommandWait
 		, RHICmdList(InRHICmdList)
 	{
 	}
-	void Execute()
+	void Execute(FRHICommandListBase& CmdList)
 	{
 		INC_DWORD_STAT_BY(STAT_RTChainLinkCount, 1);
 		{
@@ -516,6 +797,7 @@ struct FRHICommandWaitForAndSubmitRTSubList : public FRHICommand<FRHICommandWait
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_RTChainExecute);
+			RHICmdList->CopyContext(CmdList);
 			delete RHICmdList;
 		}
 	}
@@ -535,10 +817,11 @@ struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
 		: RHICmdList(InRHICmdList)
 	{
 	}
-	void Execute()
+	void Execute(FRHICommandListBase& CmdList)
 	{
 		INC_DWORD_STAT_BY(STAT_ChainLinkCount, 1);
 		SCOPE_CYCLE_COUNTER(STAT_ChainExecute);
+		RHICmdList->CopyContext(CmdList);
 		delete RHICmdList;
 	}
 };
@@ -554,7 +837,7 @@ void FRHICommandList::BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextu
 	check(IsImmediate() && IsInRenderingThread());
 	if (Bypass())
 	{
-		BeginDrawingViewport_Internal(Viewport, RenderTargetRHI);
+		CMD_CONTEXT(BeginDrawingViewport)(Viewport, RenderTargetRHI);
 		return;
 	}
 	new (AllocCommand<FRHICommandBeginDrawingViewport>()) FRHICommandBeginDrawingViewport(Viewport, RenderTargetRHI);
@@ -565,7 +848,7 @@ void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPr
 	check(IsImmediate() && IsInRenderingThread());
 	if (Bypass())
 	{
-		EndDrawingViewport_Internal(Viewport, bPresent, bLockToVsync);
+		CMD_CONTEXT(EndDrawingViewport)(Viewport, bPresent, bLockToVsync);
 	}
 	else
 	{
@@ -583,7 +866,7 @@ void FRHICommandList::BeginFrame()
 {
 	if (Bypass())
 	{
-		BeginFrame_Internal();
+		CMD_CONTEXT(BeginFrame)();
 		return;
 	}
 	new (AllocCommand<FRHICommandBeginFrame>()) FRHICommandBeginFrame();
@@ -593,7 +876,7 @@ void FRHICommandList::EndFrame()
 {
 	if (Bypass())
 	{
-		EndFrame_Internal();
+		CMD_CONTEXT(EndFrame)();
 		return;
 	}
 	new (AllocCommand<FRHICommandEndFrame>()) FRHICommandEndFrame();
@@ -606,49 +889,48 @@ DECLARE_CYCLE_STAT(TEXT("Prewait dispatch"), STAT_PrewaitDispatch, STATGROUP_RHI
 void FRHICommandListBase::WaitForTasks(bool bKnownToBeComplete)
 {
 	check(IsImmediate() && IsInRenderingThread());
-	if (GRHIThread)
+	if (WaitOutstandingTasks.Num())
 	{
-		if (bKnownToBeComplete)
+		bool bAny = false;
+		for (int32 Index = 0; Index < WaitOutstandingTasks.Num(); Index++)
 		{
-			check(!OutstandingTasks.Num());
-		}
-		else if (OutstandingTasks.Num() || RenderThreadSublistDispatchTask.GetReference())
-		{
+			if (!WaitOutstandingTasks[Index]->IsComplete())
 			{
-				SCOPE_CYCLE_COUNTER(STAT_PrewaitDispatch);
-				// as long as we are sitting around, make sure the rhi thread is not
-				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
-			}
-			check(!OutstandingTasks.Num());
-			if (RenderThreadSublistDispatchTask.GetReference())
-			{
-				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
-				{
-					// this is a deadlock. RT tasks must be done by now or they won't be done. We could add a third queue...
-					UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListBase::WaitForRHIThreadTasks."));
-				}
-				FTaskGraphInterface::Get().WaitUntilTaskCompletes(RenderThreadSublistDispatchTask, ENamedThreads::RenderThread_Local);
-				RenderThreadSublistDispatchTask = nullptr;
+				check(!bKnownToBeComplete);
+				bAny = true;
+				break;
 			}
 		}
-	}	
-	else
-	{
-		if (OutstandingTasks.Num())
+		if (bAny)
 		{
-			if (bKnownToBeComplete)
-			{
-				for (int32 Index = 0; Index < OutstandingTasks.Num(); Index++)
-				{
-					check(OutstandingTasks[Index]->IsComplete());
-				}
-			}
-			else
-			{
-				SCOPE_CYCLE_COUNTER(STAT_ExplicitWait);
-				FTaskGraphInterface::Get().WaitUntilTasksComplete(OutstandingTasks, ENamedThreads::RenderThread_Local);
-			}
-			OutstandingTasks.Reset();
+			SCOPE_CYCLE_COUNTER(STAT_ExplicitWait);
+			FTaskGraphInterface::Get().WaitUntilTasksComplete(WaitOutstandingTasks, ENamedThreads::RenderThread_Local);
+		}
+		WaitOutstandingTasks.Reset();
+	}
+}
+
+DECLARE_CYCLE_STAT(TEXT("Explicit wait for dispatch"), STAT_ExplicitWaitDispatch, STATGROUP_RHICMDLIST);
+void FRHICommandListBase::WaitForDispatch()
+{
+	check(IsImmediate() && IsInRenderingThread());
+	check(!AllOutstandingTasks.Num()); // dispatch before you get here
+	if (RenderThreadSublistDispatchTask.GetReference() && RenderThreadSublistDispatchTask->IsComplete())
+	{
+		RenderThreadSublistDispatchTask = nullptr;
+	}
+	while (RenderThreadSublistDispatchTask.GetReference())
+	{
+		SCOPE_CYCLE_COUNTER(STAT_ExplicitWaitDispatch);
+		if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
+		{
+			// this is a deadlock. RT tasks must be done by now or they won't be done. We could add a third queue...
+			UE_LOG(LogRHI, Fatal, TEXT("Deadlock in FRHICommandListBase::WaitForDispatch."));
+		}
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(RenderThreadSublistDispatchTask, ENamedThreads::RenderThread_Local);
+		if (RenderThreadSublistDispatchTask.GetReference() && RenderThreadSublistDispatchTask->IsComplete())
+		{
+			RenderThreadSublistDispatchTask = nullptr;
 		}
 	}
 }
@@ -662,7 +944,7 @@ void FRHICommandListBase::WaitForRHIThreadTasks()
 	{
 		RHIThreadTask = nullptr;
 	}
-	if (RHIThreadTask.GetReference())
+	while (RHIThreadTask.GetReference())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ExplicitWaitRHIThread);
 		if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
@@ -679,7 +961,10 @@ void FRHICommandListBase::WaitForRHIThreadTasks()
 		{
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(RHIThreadTask, ENamedThreads::RenderThread_Local);
 		}
-		RHIThreadTask = nullptr;
+		if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
+		{
+			RHIThreadTask = nullptr;
+		}
 	}
 }
 
@@ -689,24 +974,10 @@ void FRHICommandListBase::HandleRTThreadTaskCompletion(const FGraphEventRef& MyC
 	check(!IsImmediate() && !IsInRenderingThread() && !IsInRHIThread())
 	for (int32 Index = 0; Index < RTTasks.Num(); Index++)
 	{
-		if (RTTasks[Index]->IsComplete())
+		if (!RTTasks[Index]->IsComplete())
 		{
-			RTTasks.RemoveAtSwap(Index, 1, false);
-			Index--;
+			MyCompletionGraphEvent->DontCompleteUntil(RTTasks[Index]);
 		}
-	}
-	if (RTTasks.Num())
-	{
-		FGraphEventRef WaitFor;
-		if (RTTasks.Num() > 1)
-		{
-			WaitFor = TGraphTask<FNullGraphTask>::CreateTask(&RTTasks).ConstructAndDispatchWhenReady(GET_STATID(STAT_HandleRTThreadTaskCompletion_Join));
-		}
-		else
-		{
-			WaitFor = RTTasks[0];
-		}
-		MyCompletionGraphEvent->DontCompleteUntil(WaitFor);
 	}
 	RTTasks.Empty();
 }

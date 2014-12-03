@@ -4,7 +4,7 @@
 	MallocProfiler.cpp: Memory profiling support.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #if USE_MALLOC_PROFILER
 
@@ -28,8 +28,13 @@ CORE_API FMallocProfiler* GMallocProfiler;
 
 /** Magic value, determining that file is a memory profiler file.				*/
 #define MEMORY_PROFILER_MAGIC						0xDA15F7D8
-/** Version of memory profiler.													*/
-#define MEMORY_PROFILER_VERSION						4
+/** 
+ * Version of memory profiler
+ * 
+ *	5 - Changed uint32 to uint64 in the FProfilerHeader to support profiler files larger than 4.0GB
+ *		Removed NumDataFiles, no longer used.
+ */
+#define MEMORY_PROFILER_VERSION						5
 
 /*=============================================================================
 	Profiler header.
@@ -49,25 +54,23 @@ struct FProfilerHeader
 	FString ExecutableName;
 
 	/** Offset in file for name table.					*/
-	uint32	NameTableOffset;
+	uint64	NameTableOffset;
 	/** Number of name table entries.					*/
-	uint32	NameTableEntries;
+	uint64	NameTableEntries;
 
 	/** Offset in file for callstack address table.		*/
-	uint32	CallStackAddressTableOffset;
+	uint64	CallStackAddressTableOffset;
 	/** Number of callstack address entries.			*/
-	uint32	CallStackAddressTableEntries;
+	uint64	CallStackAddressTableEntries;
 
 	/** Offset in file for callstack table.				*/
-	uint32	CallStackTableOffset;
+	uint64	CallStackTableOffset;
 	/** Number of callstack entries.					*/
-	uint32	CallStackTableEntries;
+	uint64	CallStackTableEntries;
 	/** The file offset for module information.			*/
-	uint32	ModulesOffset;
+	uint64	ModulesOffset;
 	/** The number of module entries.					*/
-	uint32	ModuleEntries;
-	/** Number of data files total.						*/
-	uint32	NumDataFiles;
+	uint64	ModuleEntries;
 
 	/**
 	 * Serialization operator.
@@ -91,8 +94,7 @@ struct FProfilerHeader
 			<< Header.CallStackTableOffset
 			<< Header.CallStackTableEntries
 			<< Header.ModulesOffset
-			<< Header.ModuleEntries
-			<< Header.NumDataFiles;
+			<< Header.ModuleEntries;
 
 		check( Ar.IsSaving() );
 		Header.ExecutableName.SerializeAsANSICharArray(Ar,255);
@@ -283,10 +285,6 @@ FMallocProfiler::FMallocProfiler(FMalloc* InMalloc)
 ,	MemoryOperationCount( 0 )
 {
 	StartTime = FPlatformTime::Seconds();
-
-	// Add callbacks for garbage collection
-	FCoreDelegates::PreGarbageCollect.AddStatic( FMallocProfiler::SnapshotMemoryGCStart );
-	FCoreDelegates::PostGarbageCollect.AddStatic( FMallocProfiler::SnapshotMemoryGCEnd );
 }
 
 /**
@@ -508,10 +506,7 @@ void FMallocProfiler::EndProfiling()
 		Header.Version				= MEMORY_PROFILER_VERSION;
 		Header.PlatformName			= FPlatformProperties::PlatformName();
 		Header.bShouldSerializeSymbolInfo = SERIALIZE_SYMBOL_INFO ? 1 : 0;
-#if PLATFORM_WINDOWS
 		Header.ExecutableName		= FPlatformProcess::ExecutableName();
-#endif // PLATFORM_WINDOWS
-		Header.NumDataFiles			= 1;
 
 		// Write out name table and update header with offset and count.
 		Header.NameTableOffset	= SymbolFileWriter->Tell();
@@ -547,7 +542,7 @@ void FMallocProfiler::EndProfiling()
 		TArray<FStackWalkModuleInfo> ProcModules;
 		ProcModules.Reserve(Header.ModuleEntries);
 
-		Header.ModuleEntries = FPlatformStackWalk::GetProcessModuleSignatures(ProcModules.GetTypedData(), ProcModules.Num());
+		Header.ModuleEntries = FPlatformStackWalk::GetProcessModuleSignatures(ProcModules.GetData(), ProcModules.Num());
 
 		for(uint32 ModuleIndex = 0; ModuleIndex < Header.ModuleEntries; ++ModuleIndex)
 		{
@@ -1046,7 +1041,7 @@ void FMallocProfilerBufferedFileWriter::Serialize( void* V, int64 Length )
 		if (BaseFilePath == TEXT(""))
 		{
 			const FString SysTime = FDateTime::Now().ToString();
-			BaseFilePath = FPaths::ProfilingDir() + GGameName + TEXT("-") + SysTime + TEXT("/") + GGameName;
+			BaseFilePath = FPaths::ProfilingDir() + FApp::GetGameName() + TEXT("-") + SysTime + TEXT("/") + FApp::GetGameName();
 		}
 			
 		// Create file writer to serialize data to HDD.

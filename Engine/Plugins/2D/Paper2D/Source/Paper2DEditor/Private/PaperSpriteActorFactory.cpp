@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteActorFactory
 
-UPaperSpriteActorFactory::UPaperSpriteActorFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteActorFactory::UPaperSpriteActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = NSLOCTEXT("Paper2D", "PaperSpriteFactoryDisplayName", "Add Sprite");
 	NewActorClass = APaperSpriteActor::StaticClass();
@@ -20,7 +20,7 @@ void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		GEditor->SetActorLabelUnique(NewActor, Sprite->GetName());
 
 		APaperSpriteActor* TypedActor = CastChecked<APaperSpriteActor>(NewActor);
-		UPaperSpriteComponent* RenderComponent = TypedActor->RenderComponent;
+		UPaperSpriteComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();
@@ -41,7 +41,7 @@ void UPaperSpriteActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 	{
 		if (APaperSpriteActor* TypedActor = Cast<APaperSpriteActor>(CDO))
 		{
-			UPaperSpriteComponent* RenderComponent = TypedActor->RenderComponent;
+			UPaperSpriteComponent* RenderComponent = TypedActor->GetRenderComponent();
 			check(RenderComponent);
 
 			RenderComponent->SetSprite(Sprite);

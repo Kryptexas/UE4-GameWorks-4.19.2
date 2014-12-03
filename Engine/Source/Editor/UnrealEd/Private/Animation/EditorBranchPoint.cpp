@@ -8,8 +8,8 @@
 
 
 
-UEditorBranchPoint::UEditorBranchPoint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorBranchPoint::UEditorBranchPoint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	BranchIndex = INDEX_NONE;
@@ -33,6 +33,7 @@ bool UEditorBranchPoint::ApplyChangesToMontage()
 	{
 		if(Montage->BranchingPoints.IsValidIndex(BranchIndex))
 		{
+			BranchingPoint.OnChanged(BranchingPoint.GetTime());
 			Montage->BranchingPoints[BranchIndex] = BranchingPoint;
 			return true;
 		}

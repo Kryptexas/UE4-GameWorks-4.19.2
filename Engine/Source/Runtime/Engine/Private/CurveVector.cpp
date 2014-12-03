@@ -7,8 +7,8 @@
 #include "EnginePrivate.h"
 
 
-UCurveVector::UCurveVector(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveVector::UCurveVector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

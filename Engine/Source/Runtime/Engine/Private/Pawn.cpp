@@ -14,8 +14,7 @@
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
 #include "NetworkingDistanceConstants.h"
-#include "VisualLog.h"
-#include "AIController.h"
+#include "VisualLogger/VisualLogger.h"
 #include "Engine/InputDelegateBinding.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
@@ -26,12 +25,19 @@ DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
 FDetailedTickStats GDetailedPathFindingStats( 30, 10, 1, 20, TEXT("pathfinding") );
 #endif
 
-APawn::APawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APawn::APawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
-	AIControllerClass = AAIController::StaticClass();
+	if (HasAnyFlags(RF_ClassDefaultObject) && GetClass() == APawn::StaticClass())
+	{
+		AIControllerClass = LoadClass<AController>(NULL, *((UEngine*)(UEngine::StaticClass()->GetDefaultObject()))->AIControllerClassName.ToString(), NULL, LOAD_None, NULL);
+	}
+	else
+	{
+		AIControllerClass = ((APawn*)APawn::StaticClass()->GetDefaultObject())->AIControllerClass;
+	}
 	bCanBeDamaged = true;
 	
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
@@ -987,7 +993,7 @@ void APawn::PostNetReceiveLocationAndRotation()
 		TeleportTo( ReplicatedMovement.Location, ReplicatedMovement.Rotation, false, true );
 		// SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
 
-		INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
+		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
 		{
 			PredictionInterface->SmoothCorrection(OldLocation);
@@ -1043,7 +1049,7 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
 }
 
-void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
+void APawn::MoveIgnoreActorAdd(AActor* ActorToIgnore)
 {
 	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
@@ -1052,7 +1058,7 @@ void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
 	}
 }
 
-void APawn::MoveIgnoreActorRemove(AActor * ActorToIgnore)
+void APawn::MoveIgnoreActorRemove(AActor* ActorToIgnore)
 {
 	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )

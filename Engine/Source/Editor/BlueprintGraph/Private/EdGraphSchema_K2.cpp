@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EdGraphSchema_K2.cpp
-=============================================================================*/
-
-
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "Engine/LevelScriptBlueprint.h"
@@ -35,6 +30,8 @@
 #include "K2Node_GetEnumeratorNameAsString.h"
 #include "K2Node_Tunnel.h"
 #include "K2Node_SetFieldsInStruct.h"
+#include "GenericCommands.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintMetadata
@@ -87,6 +84,12 @@ const FName FBlueprintMetadata::MD_Tooltip(TEXT("Tooltip"));
 const FName FBlueprintMetadata::MD_CallInEditor(TEXT("CallInEditor"));
 
 const FName FBlueprintMetadata::MD_DataTablePin(TEXT("DataTablePin"));
+
+const FName FBlueprintMetadata::MD_NativeMakeFunction(TEXT("HasNativeMake"));
+const FName FBlueprintMetadata::MD_NativeBreakFunction(TEXT("HasNativeBreak"));
+
+const FName FBlueprintMetadata::MD_DynamicOutputType(TEXT("DeterminesOutputType"));
+const FName FBlueprintMetadata::MD_DynamicOutputParam(TEXT("DynamicOutputParam"));
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -290,8 +293,8 @@ const UScriptStruct* UEdGraphSchema_K2::ColorStruct = nullptr;
 
 bool UEdGraphSchema_K2::bGeneratingDocumentation = false;
 
-UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema_K2::UEdGraphSchema_K2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Initialize cached static references to well-known struct types
 	if (VectorStruct == nullptr)
@@ -320,14 +323,14 @@ bool UEdGraphSchema_K2::DoesFunctionHaveOutParameters( const UFunction* Function
 	return false;
 }
 
-bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InAllowedFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo) const
+bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InAllowedFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason) const
 {
 	if (CanUserKismetCallFunction(InFunction))
 	{
 		bool bLatentFuncsAllowed = true;
 		bool bIsConstructionScript = false;
 
-		if(InDestGraph != NULL)
+		if(InDestGraph != nullptr)
 		{
 			bLatentFuncsAllowed = (GetGraphType(InDestGraph) == GT_Ubergraph || (GetGraphType(InDestGraph) == GT_Macro));
 			bIsConstructionScript = IsConstructionScript(InDestGraph);
@@ -339,6 +342,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 			const bool bAllowPureFuncs = (InAllowedFunctionTypes & FT_Pure) != 0;
 			if (!bAllowPureFuncs)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("PureFunctionsNotAllowed", "Pure functions are not allowed.");
+				}
+
 				return false;
 			}
 		}
@@ -347,6 +355,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 			const bool bAllowImperativeFuncs = (InAllowedFunctionTypes & FT_Imperative) != 0;
 			if (!bAllowImperativeFuncs)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("ImpureFunctionsNotAllowed", "Impure functions are not allowed.");
+				}
+
 				return false;
 			}
 		}
@@ -355,12 +368,22 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bAllowConstFuncs = (InAllowedFunctionTypes & FT_Const) != 0;
 		if (bIsConstFunc && !bAllowConstFuncs)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("ConstFunctionsNotAllowed", "Const functions are not allowed.");
+			}
+
 			return false;
 		}
 
 		const bool bIsLatent = InFunction->HasMetaData(FBlueprintMetadata::MD_Latent);
 		if (bIsLatent && !bLatentFuncsAllowed)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("LatentFunctionsNotAllowed", "Latent functions cannot be used here.");
+			}
+
 			return false;
 		}
 
@@ -371,11 +394,21 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 			const bool bAllowProtectedFuncs = (InAllowedFunctionTypes & FT_Protected) != 0;
 			if (!bAllowProtectedFuncs)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("ProtectedFunctionsNotAllowed", "Protected functions are not allowed.");
+				}
+
 				return false;
 			}
 
 			if (!bFuncBelongsToSubClass)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("ProtectedFunctionInaccessible", "Function is protected and inaccessible.");
+				}
+
 				return false;
 			}
 		}
@@ -384,12 +417,22 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bFuncBelongsToClass = bFuncBelongsToSubClass && (InFunction->GetOuterUClass() == InClass);
 		if (bIsPrivate && !bFuncBelongsToClass)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("PrivateFunctionInaccessible", "Function is private and inaccessible.");
+			}
+
 			return false;
 		}
 
 		const bool bIsUnsafeForConstruction = InFunction->GetBoolMetaData(FBlueprintMetadata::MD_UnsafeForConstructionScripts);	
 		if (bIsUnsafeForConstruction && bIsConstructionScript)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("FunctionUnsafeForConstructionScript", "Function cannot be used in a Construction Script.");
+			}
+
 			return false;
 		}
 
@@ -398,9 +441,17 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		{
 			if (InDestGraph && !InFunction->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 			{
-				UClass* ParentClass = FBlueprintEditorUtils::FindBlueprintForGraphChecked(InDestGraph)->ParentClass;
-				if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+				auto BP = FBlueprintEditorUtils::FindBlueprintForGraph(InDestGraph);
+				const bool bIsFunctLib = BP && (EBlueprintType::BPTYPE_FunctionLibrary == BP->BlueprintType);
+				UClass* ParentClass = BP ? BP->ParentClass : NULL;
+				const bool bIncompatibleParrent = ParentClass && (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
+				if (!bIsFunctLib && bIncompatibleParrent)
 				{
+					if(OutReason != nullptr)
+					{
+						*OutReason = LOCTEXT("FunctionRequiresWorldContext", "Function requires a world context.");
+					}
+
 					return false;
 				}
 			}
@@ -409,6 +460,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bFunctionHidden = FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, InClass);
 		if (bFunctionHidden)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("HiddenFunctionInaccessible", "Function is hidden and inaccessible.");
+			}
+
 			return false;
 		}
 
@@ -419,6 +475,38 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bAllowForEachCall = !bFunctionStatic && !bIsLatent && !bIsPureFunc && !bIsConstFunc && !bHasReturnParams && !bHasArrayPointerParms;
 		if (bInCalledForEach && !bAllowForEachCall)
 		{
+			if(OutReason != nullptr)
+			{
+				if(bFunctionStatic)
+				{
+					*OutReason = LOCTEXT("StaticFunctionsNotAllowedInForEachContext", "Static functions cannot be used within a ForEach context.");
+				}
+				else if(bIsLatent)
+				{
+					*OutReason = LOCTEXT("LatentFunctionsNotAllowedInForEachContext", "Latent functions cannot be used within a ForEach context.");
+				}
+				else if(bIsPureFunc)
+				{
+					*OutReason = LOCTEXT("PureFunctionsNotAllowedInForEachContext", "Pure functions cannot be used within a ForEach context.");
+				}
+				else if(bIsConstFunc)
+				{
+					*OutReason = LOCTEXT("ConstFunctionsNotAllowedInForEachContext", "Const functions cannot be used within a ForEach context.");
+				}
+				else if(bHasReturnParams)
+				{
+					*OutReason = LOCTEXT("FunctionsWithReturnValueNotAllowedInForEachContext", "Functions that return a value cannot be used within a ForEach context.");
+				}
+				else if(bHasArrayPointerParms)
+				{
+					*OutReason = LOCTEXT("FunctionsWithArrayParmsNotAllowedInForEachContext", "Functions with array parameters cannot be used within a ForEach context.");
+				}
+				else
+				{
+					*OutReason = LOCTEXT("FunctionNotAllowedInForEachContext", "Function cannot be used within a ForEach context.");
+				}
+			}
+
 			return false;
 		}
 
@@ -429,10 +517,20 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bAllowReturnValuesForNoneOrSingleActors = !bClassIsAnActor || InTargetInfo.Actors.Num() <= 1 || !bFunctionHasReturnOrOutParameters;
 		if (!bAllowReturnValuesForNoneOrSingleActors)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("FunctionNotAllowedWithMultipleTargets", "Functions that return a value cannot be used with multiple targets.");
+			}
+
 			return false;
 		}
 
 		return true;
+	}
+
+	if(OutReason != nullptr)
+	{
+		*OutReason = LOCTEXT("FunctionInvalid", "Invalid function.");
 	}
 
 	return false;
@@ -509,7 +607,7 @@ bool UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(const UFunction* InFunction)
 	return FNoOutputParametersHelper::Check(InFunction);
 }
 
-FString UEdGraphSchema_K2::GetFriendlySignitureName(const UFunction* Function)
+FString UEdGraphSchema_K2::GetFriendlySignatureName(const UFunction* Function)
 {
 	return UK2Node_CallFunction::GetUserFacingFunctionName( Function );
 }
@@ -744,6 +842,12 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 		{
 			return false;
 		}
+		
+		// cannot have level script variables
+		if (InClass->IsChildOf(ALevelScriptActor::StaticClass()))
+		{
+			return false;
+		}
 
 		const UClass* ParentClass = InClass;
 		while(ParentClass)
@@ -819,7 +923,16 @@ static bool IsUsingNonExistantVariable(const UEdGraphNode* InGraphNode, UBluepri
 			{
 				TArray<FName> CurrentVars;
 				FBlueprintEditorUtils::GetClassVariableList(OwnerBlueprint, CurrentVars);
-				if (false == CurrentVars.Contains(Variable->GetVarName()))
+				if ( false == CurrentVars.Contains(Variable->GetVarName()) )
+				{
+					bNonExistantVariable = true;
+				}
+			}
+			else if(Variable->VariableReference.IsLocalScope())
+			{
+				// If there is no member scope, or we can't find the local variable in the member scope, then it's non-existant
+				if(!Variable->VariableReference.GetMemberScope(Variable) 
+					||  (Variable->VariableReference.GetMemberScope(Variable) && !FBlueprintEditorUtils::FindLocalVariable(OwnerBlueprint, Variable->VariableReference.GetMemberScope(Variable), Variable->GetVarName())))
 				{
 					bNonExistantVariable = true;
 				}
@@ -1072,6 +1185,7 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					{
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().FindVariableReferences);
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeVariableDefinition);
+						GetReplaceVariableMenu(InGraphNode,OwnerBlueprint, MenuBuilder, true);
 					}
 
 					if (InGraphNode->IsA(UK2Node_SetFieldsInStruct::StaticClass()))
@@ -1133,6 +1247,8 @@ void UEdGraphSchema_K2::OnCreateNonExistentVariable( UK2Node_Variable* Variable,
 {
 	if (UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
 	{
+		const FScopedTransaction Transaction( LOCTEXT("CreateMissingVariable", "Create Missing Variable") );
+
 		if (FBlueprintEditorUtils::AddMemberVariable(OwnerBlueprint,Variable->GetVarName(), Pin->PinType))
 		{
 			Variable->VariableReference.SetSelfMember( Variable->GetVarName() );
@@ -1140,30 +1256,112 @@ void UEdGraphSchema_K2::OnCreateNonExistentVariable( UK2Node_Variable* Variable,
 	}	
 }
 
-void UEdGraphSchema_K2::OnReplaceVariableForVariableNode( UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName)
+void UEdGraphSchema_K2::OnCreateNonExistentLocalVariable( UK2Node_Variable* Variable,  UBlueprint* OwnerBlueprint)
 {
 	if (UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
 	{
-		Variable->VariableReference.SetSelfMember( FName(*VariableName) );
+		const FScopedTransaction Transaction( LOCTEXT("CreateMissingLocalVariable", "Create Missing Local Variable") );
+
+		FName VarName = Variable->GetVarName();
+		if (FBlueprintEditorUtils::AddLocalVariable(OwnerBlueprint, Variable->GetGraph(), VarName, Pin->PinType))
+		{
+			FGuid LocalVarGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(OwnerBlueprint, Variable->GetGraph(), VarName);
+			if (LocalVarGuid.IsValid())
+			{
+				Variable->VariableReference.SetLocalMember(VarName, Variable->GetGraph()->GetName(), LocalVarGuid);
+			}
+		}
+	}	
+}
+
+void UEdGraphSchema_K2::OnReplaceVariableForVariableNode( UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName, bool bIsSelfMember)
+{
+	if(UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_ReplaceVariable", "Replace Variable") );
+		Variable->Modify();
+		Pin->Modify();
+
+		if (bIsSelfMember)
+		{
+			Variable->VariableReference.SetSelfMember( FName(*VariableName) );
+		}
+		else
+		{
+			Variable->VariableReference.SetLocalMember( FName(*VariableName), Variable->GetGraph()->GetName(), FBlueprintEditorUtils::FindLocalVariableGuidByName(OwnerBlueprint, Variable->GetGraph(), *VariableName));
+		}
 		Pin->PinName = VariableName;
+		Variable->ReconstructNode();
 	}
 }
 
-void UEdGraphSchema_K2::GetReplaceNonExistentVariableMenu(FMenuBuilder& MenuBuilder, UK2Node_Variable* Variable,  UBlueprint* OwnerBlueprint)
+void UEdGraphSchema_K2::GetReplaceVariableMenu(FMenuBuilder& MenuBuilder, UK2Node_Variable* Variable,  UBlueprint* OwnerBlueprint, bool bReplaceExistingVariable/*=false*/)
 {
 	if (UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
 	{
+		FName ExistingVariableName = bReplaceExistingVariable? Variable->GetVarName() : NAME_None;
+
+		FText ReplaceVariableWithTooltipFormat;
+		if(!bReplaceExistingVariable)
+		{
+			ReplaceVariableWithTooltipFormat = LOCTEXT("ReplaceNonExistantVarToolTip", "Variable '{OldVariable}' does not exist, replace with matching variable '{AlternateVariable}'?");
+		}
+		else
+		{
+			ReplaceVariableWithTooltipFormat = LOCTEXT("ReplaceExistantVarToolTip", "Replace Variable '{OldVariable}' with matching variable '{AlternateVariable}'?");
+		}
+
 		TArray<FName> Variables;
 		FBlueprintEditorUtils::GetNewVariablesOfType(OwnerBlueprint, Pin->PinType, Variables);
 
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("Variables", "Variables"));
 		for (TArray<FName>::TIterator VarIt(Variables); VarIt; ++VarIt)
 		{
-			const FText AlternativeVar = FText::FromName( *VarIt );
-			const FText Desc = FText::Format( LOCTEXT("ReplaceNonExistantVarToolTip", "Variable '{0}' does not exist, replace with matching variable '{0}'?"), Variable->GetVarNameText(), AlternativeVar );
+			if(*VarIt != ExistingVariableName)
+			{
+				const FText AlternativeVar = FText::FromName( *VarIt );
 
-			MenuBuilder.AddMenuEntry( AlternativeVar, Desc, FSlateIcon(), FUIAction(
-				FExecuteAction::CreateStatic(&UEdGraphSchema_K2::OnReplaceVariableForVariableNode, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint, (*VarIt).ToString() ) ) );
+				FFormatNamedArguments TooltipArgs;
+				TooltipArgs.Add(TEXT("OldVariable"), Variable->GetVarNameText());
+				TooltipArgs.Add(TEXT("AlternateVariable"), AlternativeVar);
+				const FText Desc = FText::Format(ReplaceVariableWithTooltipFormat, TooltipArgs);
+
+				MenuBuilder.AddMenuEntry( AlternativeVar, Desc, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateStatic(&UEdGraphSchema_K2::OnReplaceVariableForVariableNode, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint, (*VarIt).ToString(), /*bIsSelfMember=*/true ) ) );
+			}
 		}
+		MenuBuilder.EndSection();
+
+		FText ReplaceLocalVariableWithTooltipFormat;
+		if(!bReplaceExistingVariable)
+		{
+			ReplaceLocalVariableWithTooltipFormat = LOCTEXT("ReplaceNonExistantLocalVarToolTip", "Variable '{OldVariable}' does not exist, replace with matching local variable '{AlternateVariable}'?");
+		}
+		else
+		{
+			ReplaceLocalVariableWithTooltipFormat = LOCTEXT("ReplaceExistantLocalVarToolTip", "Replace Variable '{OldVariable}' with matching local variable '{AlternateVariable}'?");
+		}
+
+		TArray<FName> LocalVariables;
+		FBlueprintEditorUtils::GetLocalVariablesOfType(Variable->GetGraph(), Pin->PinType, LocalVariables);
+
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("LocalVariables", "LocalVariables"));
+		for (TArray<FName>::TIterator VarIt(LocalVariables); VarIt; ++VarIt)
+		{
+			if(*VarIt != ExistingVariableName)
+			{
+				const FText AlternativeVar = FText::FromName( *VarIt );
+
+				FFormatNamedArguments TooltipArgs;
+				TooltipArgs.Add(TEXT("OldVariable"), Variable->GetVarNameText());
+				TooltipArgs.Add(TEXT("AlternateVariable"), AlternativeVar);
+				const FText Desc = FText::Format( ReplaceLocalVariableWithTooltipFormat, TooltipArgs );
+
+				MenuBuilder.AddMenuEntry( AlternativeVar, Desc, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateStatic(&UEdGraphSchema_K2::OnReplaceVariableForVariableNode, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint, (*VarIt).ToString(), /*bIsSelfMember=*/false ) ) );
+			}
+		}
+		MenuBuilder.EndSection();
 	}
 }
 
@@ -1172,12 +1370,27 @@ void UEdGraphSchema_K2::GetNonExistentVariableMenu( const UEdGraphNode* InGraphN
 
 	if (const UK2Node_Variable* Variable = Cast<const UK2Node_Variable>(InGraphNode))
 	{
-		// create missing variable
-		{			
-			const FText Label = FText::Format( LOCTEXT("CreateNonExistentVar", "Create variable '{0}'"), Variable->GetVarNameText());
-			const FText Desc = FText::Format( LOCTEXT("CreateNonExistentVarToolTip", "Variable '{0}' does not exist, create it?"), Variable->GetVarNameText());
-			MenuBuilder->AddMenuEntry( Label, Desc, FSlateIcon(), FUIAction(
-				FExecuteAction::CreateStatic( &UEdGraphSchema_K2::OnCreateNonExistentVariable, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint) ) );
+		// Creating missing variables should never occur in a Macro Library or Interface, they do not support variables
+		if(OwnerBlueprint->BlueprintType != BPTYPE_MacroLibrary && OwnerBlueprint->BlueprintType != BPTYPE_Interface )
+		{		
+			// Creating missing member variables should never occur in a Function Library, they do not support variables
+			if(OwnerBlueprint->BlueprintType != BPTYPE_FunctionLibrary)
+			{
+				// create missing variable
+				const FText Label = FText::Format( LOCTEXT("CreateNonExistentVar", "Create variable '{0}'"), Variable->GetVarNameText());
+				const FText Desc = FText::Format( LOCTEXT("CreateNonExistentVarToolTip", "Variable '{0}' does not exist, create it?"), Variable->GetVarNameText());
+				MenuBuilder->AddMenuEntry( Label, Desc, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateStatic( &UEdGraphSchema_K2::OnCreateNonExistentVariable, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint) ) );
+			}
+
+			// Only allow creating missing local variables if in a function graph
+			if(InGraphNode->GetGraph()->GetSchema()->GetGraphType(InGraphNode->GetGraph()) == GT_Function)
+			{
+				const FText Label = FText::Format( LOCTEXT("CreateNonExistentLocalVar", "Create local variable '{0}'"), Variable->GetVarNameText());
+				const FText Desc = FText::Format( LOCTEXT("CreateNonExistentLocalVarToolTip", "Local variable '{0}' does not exist, create it?"), Variable->GetVarNameText());
+				MenuBuilder->AddMenuEntry( Label, Desc, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateStatic( &UEdGraphSchema_K2::OnCreateNonExistentLocalVariable, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint) ) );
+			}
 		}
 
 		// delete this node
@@ -1186,19 +1399,44 @@ void UEdGraphSchema_K2::GetNonExistentVariableMenu( const UEdGraphNode* InGraphN
 			MenuBuilder->AddMenuEntry( FGenericCommands::Get().Delete, NAME_None, FGenericCommands::Get().Delete->GetLabel(), Desc);
 		}
 
+		GetReplaceVariableMenu(InGraphNode, OwnerBlueprint, MenuBuilder);
+	}
+}
+
+void UEdGraphSchema_K2::GetReplaceVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* InOwnerBlueprint, FMenuBuilder* InMenuBuilder, bool bInReplaceExistingVariable/* = false*/) const
+{
+	if (const UK2Node_Variable* Variable = Cast<const UK2Node_Variable>(InGraphNode))
+	{
 		// replace with matching variables
 		if (UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
 		{
-			TArray<FName> Variables;
-			FBlueprintEditorUtils::GetNewVariablesOfType(OwnerBlueprint, Pin->PinType, Variables);
+			FName ExistingVariableName = bInReplaceExistingVariable? Variable->GetVarName() : NAME_None;
 
-			if (Variables.Num() > 0)
+			TArray<FName> Variables;
+			FBlueprintEditorUtils::GetNewVariablesOfType(InOwnerBlueprint, Pin->PinType, Variables);
+			Variables.RemoveSwap(ExistingVariableName);
+
+			TArray<FName> LocalVariables;
+			FBlueprintEditorUtils::GetLocalVariablesOfType(Variable->GetGraph(), Pin->PinType, LocalVariables);
+			LocalVariables.RemoveSwap(ExistingVariableName);
+
+			if (Variables.Num() > 0 || LocalVariables.Num() > 0)
 			{
-				MenuBuilder->AddSubMenu(
+				FText ReplaceVariableWithTooltip;
+				if(bInReplaceExistingVariable)
+				{
+					ReplaceVariableWithTooltip = LOCTEXT("ReplaceVariableWithToolTip", "Replace Variable '{0}' with another variable?");
+				}
+				else
+				{
+					ReplaceVariableWithTooltip = LOCTEXT("ReplaceMissingVariableWithToolTip", "Variable '{0}' does not exist, replace with another variable?");
+				}
+
+				InMenuBuilder->AddSubMenu(
 					FText::Format( LOCTEXT("ReplaceVariableWith", "Replace variable '{0}' with..."), Variable->GetVarNameText()),
-					FText::Format( LOCTEXT("ReplaceVariableWithToolTip", "Variable '{0}' does not exist, replace with another variable?"), Variable->GetVarNameText()),
-					FNewMenuDelegate::CreateStatic( &UEdGraphSchema_K2::GetReplaceNonExistentVariableMenu,
-					const_cast<UK2Node_Variable*>(Variable),OwnerBlueprint));
+					FText::Format( ReplaceVariableWithTooltip, Variable->GetVarNameText()),
+					FNewMenuDelegate::CreateStatic( &UEdGraphSchema_K2::GetReplaceVariableMenu,
+					const_cast<UK2Node_Variable*>(Variable),InOwnerBlueprint, bInReplaceExistingVariable));
 			}
 		}
 	}
@@ -1365,6 +1603,63 @@ const FPinConnectionResponse UEdGraphSchema_K2::DetermineConnectionResponseOfCom
 	}
 }
 
+static FText GetPinIncompatibilityMessage(const UEdGraphPin* PinA, const UEdGraphPin* PinB)
+{
+	const FEdGraphPinType& PinAType = PinA->PinType;
+	const FEdGraphPinType& PinBType = PinB->PinType;
+
+	FFormatNamedArguments MessageArgs;
+	MessageArgs.Add(TEXT("PinAName"), PinA->GetDisplayName());
+	MessageArgs.Add(TEXT("PinBName"), PinB->GetDisplayName());
+	MessageArgs.Add(TEXT("PinAType"), UEdGraphSchema_K2::TypeToText(PinAType));
+	MessageArgs.Add(TEXT("PinBType"), UEdGraphSchema_K2::TypeToText(PinBType));
+
+	const UEdGraphPin* InputPin = (PinA->Direction == EGPD_Input) ? PinA : PinB;
+	const FEdGraphPinType& InputType  = InputPin->PinType;
+	const UEdGraphPin* OutputPin = (InputPin == PinA) ? PinB : PinA;
+	const FEdGraphPinType& OutputType = OutputPin->PinType;
+
+	FText MessageFormat = LOCTEXT("DefaultPinIncompatibilityMessage", "{PinAType} is not compatible with {PinBType}.");
+
+	if (OutputType.PinCategory == UEdGraphSchema_K2::PC_Struct)
+	{
+		if (InputType.PinCategory == UEdGraphSchema_K2::PC_Struct)
+		{
+			MessageFormat = LOCTEXT("StructsIncompatible", "Only exactly matching structures are considered compatible.");
+
+			const UStruct* OutStruct = Cast<const UStruct>(OutputType.PinSubCategoryObject.Get());
+			const UStruct* InStruct  = Cast<const UStruct>(InputType.PinSubCategoryObject.Get());
+			if ((OutStruct != nullptr) && (InStruct != nullptr) && OutStruct->IsChildOf(InStruct))
+			{
+				MessageFormat = LOCTEXT("ChildStructIncompatible", "Only exactly matching structures are considered compatible. Derived structures are disallowed.");
+			}
+		}
+	}
+	else if (OutputType.PinCategory == UEdGraphSchema_K2::PC_Class)
+	{
+		if ((InputType.PinCategory == UEdGraphSchema_K2::PC_Object) || 
+			(InputType.PinCategory == UEdGraphSchema_K2::PC_Interface))
+		{
+			MessageArgs.Add(TEXT("OutputName"), OutputPin->GetDisplayName());
+			MessageArgs.Add(TEXT("InputName"),  InputPin->GetDisplayName());
+			MessageFormat = LOCTEXT("ClassObjectIncompatible", "'{PinAName}' and '{PinBName}' are incompatible ('{OutputName}' is an object type, and '{InputName}' is a reference to an object instance).");
+		}
+	}
+	else if ((OutputType.PinCategory == UEdGraphSchema_K2::PC_Object) )//|| (OutputType.PinCategory == UEdGraphSchema_K2::PC_Interface))
+	{
+		if (InputType.PinCategory == UEdGraphSchema_K2::PC_Class)
+		{
+			MessageArgs.Add(TEXT("OutputName"), OutputPin->GetDisplayName());
+			MessageArgs.Add(TEXT("InputName"),  InputPin->GetDisplayName());
+			MessageArgs.Add(TEXT("InputType"),  UEdGraphSchema_K2::TypeToText(InputType));
+
+			MessageFormat = LOCTEXT("CannotGetClass", "'{PinAName}' and '{PinBName}' are not inherently compatible ('{InputName}' is an object type, and '{OutputName}' is a reference to an object instance).\nWe cannot use {OutputName}'s class because it is not a child of {InputType}.");
+		}
+	}
+
+	return FText::Format(MessageFormat, MessageArgs);
+}
+
 const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const
 {
 	const UK2Node* OwningNodeA = Cast<UK2Node>(PinA->GetOwningNodeUnchecked());
@@ -1442,19 +1737,8 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 		}
 		else
 		{
-			if (OutputPin && InputPin && (PC_Struct == OutputPin->PinType.PinCategory) && (PC_Struct == InputPin->PinType.PinCategory)
-				&& (OutputPin->PinType.PinSubCategoryObject != InputPin->PinType.PinSubCategoryObject))
-			{
-				FString Msg(TEXT("Only exactly matching structures are considered compatible."));
-				auto InStruct = Cast<const UStruct>(InputPin->PinType.PinSubCategoryObject.Get());
-				auto OutStruct = Cast<const UStruct>(OutputPin->PinType.PinSubCategoryObject.Get());
-				if (InStruct && OutStruct && OutStruct->IsChildOf(InStruct))
-				{
-					Msg += TEXT(" Derived structures are disallowed.");
-				}
-				return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, Msg);
-			}
-			return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, FString::Printf(TEXT("%s is not compatible with %s"), *TypeToText(PinA->PinType).ToString(), *TypeToText(PinB->PinType).ToString()));
+			FText IncompatibilityReasonText = GetPinIncompatibilityMessage(PinA, PinB);
+			return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, IncompatibilityReasonText.ToString());
 		}
 	}
 }
@@ -1689,6 +1973,20 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 			TargetFunction = TEXT("Conv_InterfaceToObject");
 		}
 	}
+	else if (OutputPin->PinType.PinCategory == PC_Object)
+	{
+		UClass const* OutputClass = Cast<UClass const>(OutputPin->PinType.PinSubCategoryObject.Get());
+		if (InputPin->PinType.PinCategory == PC_Class)
+		{
+			UClass const* InputClass = Cast<UClass const>(InputPin->PinType.PinSubCategoryObject.Get());
+			if ((OutputClass != nullptr) &&
+				(InputClass != nullptr) &&
+				OutputClass->IsChildOf(InputClass))
+			{
+				TargetFunction = TEXT("GetObjectClass");
+			}
+		}
+	}
 
 	return TargetFunction != NAME_None;
 }
@@ -1866,17 +2164,22 @@ FString UEdGraphSchema_K2::IsPinDefaultValid(const UEdGraphPin* Pin, const FStri
 	const bool bIsReference = Pin->PinType.bIsReference;
 	const bool bIsAutoCreateRefTerm = IsAutoCreateRefTerm(Pin);
 
+	FFormatNamedArguments MessageArgs;
+	MessageArgs.Add(TEXT("PinName"), Pin->GetDisplayName());
+
 	if (OwningBP->BlueprintType != BPTYPE_Interface)
 	{
 		if( !bIsAutoCreateRefTerm )
 		{
 			if( bIsArray )
 			{
-				return TEXT("Literal values are not allowed for array parameters.  Use a Make Array node instead");
+				FText MsgFormat = LOCTEXT("BadArrayDefaultVal", "Array inputs (like '{PinName}') must have an input wired into them (try connecting a MakeArray node).");
+				return FText::Format(MsgFormat, MessageArgs).ToString();
 			}
 			else if( bIsReference )
 			{
-				return TEXT("Literal values are not allowed for pass-by-reference parameters.");
+				FText MsgFormat = LOCTEXT("BadRefDefaultVal", "'{PinName}' must have an input wired into it (\"by ref\" params expect a valid input to operate on).");
+				return FText::Format(MsgFormat, MessageArgs).ToString();
 			}
 		}
 	}
@@ -2677,6 +2980,13 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 		}
 		else
 		{
+			UObject* SubCategoryObj = Type.PinSubCategoryObject.Get();
+			FString SubCategoryObjName = SubCategoryObj->GetName();
+			if (UField* SubCategoryField = Cast<UField>(SubCategoryObj))
+			{
+				SubCategoryObjName = SubCategoryField->GetDisplayNameText().ToString();
+			}
+
 			if( !Type.bIsWeakPointer )
 			{
 				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
@@ -2692,14 +3002,15 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 				{
 					Args.Add(TEXT("Category"), (!bIsInterface ? GetCategoryText(Type.PinCategory) : GetCategoryText(PC_Interface)));
 				}
-				Args.Add(TEXT("ObjectName"), FText::FromString(FName::NameToDisplayString(Type.PinSubCategoryObject.Get()->GetName(), false)));
+
+				Args.Add(TEXT("ObjectName"), FText::FromString(FName::NameToDisplayString(SubCategoryObjName, /*bIsBool =*/false)));
 				PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{ObjectName} {Category}"), Args);
 			}
 			else
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
-				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
+				Args.Add(TEXT("ObjectName"), FText::FromString(SubCategoryObjName));
 				PropertyText = FText::Format(LOCTEXT("WeakPtrAsText", "{ObjectName} Weak {Category}"), Args);
 			}
 		}
@@ -2720,7 +3031,7 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PropertyTitle"), PropertyText);
-		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "Array of {PropertyTitle}"), Args);
+		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "Array of {PropertyTitle}s"), Args);
 	}
 	else if (Type.bIsReference)
 	{
@@ -3473,6 +3784,11 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 	{
 		static FName SetStringName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetStringPropertyByName));
 		SetFunctionName = SetStringName;
+	}
+	else if ( PinType.PinCategory == K2Schema->PC_Text)
+	{
+		static FName SetTextName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetTextPropertyByName));
+		SetFunctionName = SetTextName;
 	}
 	else if(PinType.PinCategory == K2Schema->PC_Name)
 	{

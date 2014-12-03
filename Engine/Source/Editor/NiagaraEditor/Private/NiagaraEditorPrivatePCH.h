@@ -6,6 +6,7 @@
 
 #include "NiagaraEditorModule.h"
 #include "NiagaraEditor.h"
+#include "NiagaraCompiler.h"
 #include "NiagaraEffectEditor.h"
 
 #include "GraphEditor.h"

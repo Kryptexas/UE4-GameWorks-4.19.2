@@ -1,14 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Sorting.h: Generic sorting definitions.
-=============================================================================*/
-
 #pragma once
 
-/*----------------------------------------------------------------------------
-	Sorting template.
-----------------------------------------------------------------------------*/
 
 /**
  * Default predicate class. Assumes < operator is defined for the template type.
@@ -335,12 +328,16 @@ public:
 
 		while (AStart < BStart && BStart < Num)
 		{
+			int32 NewAOffset = BinarySearchLast(First + AStart, BStart - AStart, First[BStart], Predicate) + 1;
+			AStart += NewAOffset;
+
+			if (AStart >= BStart) // done
+				break;
+
 			int32 NewBOffset = BinarySearchFirst(First + BStart, Num - BStart, First[AStart], Predicate);
-
 			TRotationPolicy::Rotate(First, AStart, BStart + NewBOffset, NewBOffset);
-
 			BStart += NewBOffset;
-			AStart += BinarySearchLast(First + AStart, BStart - AStart, First[AStart + NewBOffset], Predicate) + 1;
+			AStart += NewBOffset + 1;
 		}
 	}
 
@@ -449,11 +446,11 @@ public:
 			}
 			else
 			{
-				for (int32 SubgroupStart = 0; SubgroupStart < Num; SubgroupStart += 2)
+				for (int32 Subgroup = 0; Subgroup < Num; Subgroup += 2)
 				{
-					if (SubgroupStart + 1 < Num && Predicate(First[SubgroupStart + 1], First[SubgroupStart]))
+					if (Subgroup + 1 < Num && Predicate(First[Subgroup + 1], First[Subgroup]))
 					{
-						Exchange(First[SubgroupStart], First[SubgroupStart + 1]);
+						Exchange(First[Subgroup], First[Subgroup + 1]);
 					}
 				}
 			}

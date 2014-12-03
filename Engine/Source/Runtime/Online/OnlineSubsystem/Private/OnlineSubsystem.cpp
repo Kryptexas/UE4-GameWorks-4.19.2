@@ -81,7 +81,7 @@ bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const 
 
 		FUniqueNetIdMatcher PlayerMatch(UniqueId);
 		if (bIsSessionOwner || 
-			Session->RegisteredPlayers.FindMatch(PlayerMatch) != INDEX_NONE)
+			Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) != INDEX_NONE)
 		{
 			bFound = true;
 		}
@@ -94,6 +94,20 @@ bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const 
 
 static void ResetAchievements()
 {
+	auto IdentityInterface = Online::GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("ResetAchievements command: couldn't get the identity interface"));
+		return;
+	}
+	
+	TSharedPtr<FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(0);
+	if(!UserId.IsValid())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("ResetAchievements command: invalid UserId"));
+		return;
+	}
+
 	auto AchievementsInterface = Online::GetAchievementsInterface();
 	if (!AchievementsInterface.IsValid())
 	{
@@ -101,7 +115,7 @@ static void ResetAchievements()
 		return;
 	}
 
-	AchievementsInterface->ResetAchievements(FUniqueNetIdString());
+	AchievementsInterface->ResetAchievements(*UserId);
 }
 
 FAutoConsoleCommand CmdResetAchievements(

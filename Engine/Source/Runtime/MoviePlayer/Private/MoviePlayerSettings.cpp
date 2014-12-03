@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "MoviePlayerSettings"
 
-UMoviePlayerSettings::UMoviePlayerSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMoviePlayerSettings::UMoviePlayerSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }
 

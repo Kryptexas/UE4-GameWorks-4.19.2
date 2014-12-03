@@ -19,55 +19,24 @@ void FAssetTypeActions_SoundWave::GetActions( const TArray<UObject*>& InObjects,
 
 	auto SoundNodes = GetTypedWeakObjectPtrs<USoundWave>(InObjects);
 
-	/*MenuBuilder.AddMenuEntry(
-		LOCTEXT("SoundWave_CompressionPreview", "Compression Preview"),
-		LOCTEXT("SoundWave_CompressionPreviewTooltip", "Opens the selected sound node waves in the compression preview window."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::ExecuteCompressionPreview, SoundNodes ),
-			FCanExecuteAction()
-			)
-		);*/
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SoundWave_Reimport", "Reimport"),
-		LOCTEXT("SoundWave_ReimportTooltip", "Reimports the selected waves from file."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::ExecuteReimport, SoundNodes ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SoundWave_FindInExplorer", "Find Source"),
-		LOCTEXT("SoundWave_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::ExecuteFindInExplorer, SoundNodes ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::CanExecuteSourceCommands, SoundNodes )
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SoundWave_OpenInExternalEditor", "Open Source"),
-		LOCTEXT("SoundWave_OpenInExternalEditorTooltip", "Opens the selected asset in an external editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::ExecuteOpenInExternalEditor, SoundNodes ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::CanExecuteSourceCommands, SoundNodes )
-			)
-		);
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SoundWave_CreateCue", "Create Cue"),
-		LOCTEXT("SoundWave_CreateCueTooltip", "Creates a sound cue ."),
-		FSlateIcon(),
+		LOCTEXT("SoundWave_CreateCueTooltip", "Creates a sound cue using this sound wave."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.SoundCue"),
 		FUIAction(
 		FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundWave::ExecuteCreateSoundCue, SoundNodes ),
 		FCanExecuteAction()
-		)
-	);
+			)
+		);
+}
+
+void FAssetTypeActions_SoundWave::GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const
+{
+	for (auto& Asset : TypeAssets)
+	{
+		const auto SoundWave = CastChecked<USoundWave>(Asset);
+		OutSourceFilePaths.Add(FReimportManager::ResolveImportFilename(SoundWave->SourceFilePath, SoundWave));
+	}
 }
 
 void FAssetTypeActions_SoundWave::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -123,70 +92,6 @@ void FAssetTypeActions_SoundWave::ExecuteCompressionPreview(TArray<TWeakObjectPt
 	}
 
 	OpenAssetEditor(ObjectsToEdit);*/
-}
-
-void FAssetTypeActions_SoundWave::ExecuteReimport(TArray<TWeakObjectPtr<USoundWave>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		USoundWave* SoundWave = (*ObjIt).Get();
-		if ( SoundWave )
-		{
-			FReimportManager::Instance()->Reimport(SoundWave, /*bAskForNewFileIfMissing=*/true);
-		}
-	}
-}
-
-void FAssetTypeActions_SoundWave::ExecuteFindInExplorer(TArray<TWeakObjectPtr<USoundWave>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-			{
-				FPlatformProcess::ExploreFolder( *FPaths::GetPath(SourceFilePath) );
-			}
-		}
-	}
-}
-
-void FAssetTypeActions_SoundWave::ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<USoundWave>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
-			}
-		}
-	}
-}
-
-bool FAssetTypeActions_SoundWave::CanExecuteSourceCommands(TArray<TWeakObjectPtr<USoundWave>> Objects) const
-{
-	bool bHaveSourceAsset = false;
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			const FString& SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
-
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE )
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 void FAssetTypeActions_SoundWave::ExecuteCreateSoundCue(TArray<TWeakObjectPtr<USoundWave>> Objects)

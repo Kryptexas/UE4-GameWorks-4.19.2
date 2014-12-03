@@ -296,6 +296,13 @@ public:
 	 */
 	FPakFile(IPlatformFile* LowerLevel, const TCHAR* Filename, bool bIsSigned);
 
+	/**
+	 * Creates a pak file using the supplied archive
+	 *
+	 * @param Archive	Pointer to the archive which contains the pak file data
+	 */
+	FPakFile(FArchive* Archive);
+
 	~FPakFile();
 
 	/**
@@ -1077,6 +1084,24 @@ public:
 		// Fall back to lower level.
 		FDateTime Result = LowerLevel->GetAccessTimeStamp(Filename);
 		return Result;
+	}
+
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		FPakFile* PakFile = NULL;
+		auto FileEntry = FindFileInPakFiles(Filename, &PakFile);
+		if (FileEntry)
+		{
+			const FString Path(FPaths::GetPath(Filename));
+			const FPakDirectory* PakDirectory = PakFile->FindDirectory(*Path);
+			const FString* RealFilename = PakDirectory->FindKey(const_cast<FPakEntry*>(FileEntry));
+			return *RealFilename;
+		}
+		else
+		{
+			// Fall back to lower level.
+			return LowerLevel->GetFilenameOnDisk(Filename);
+		}
 	}
 
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;

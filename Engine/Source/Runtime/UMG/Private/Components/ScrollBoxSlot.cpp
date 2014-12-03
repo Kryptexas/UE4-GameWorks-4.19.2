@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UScrollBoxSlot
 
-UScrollBoxSlot::UScrollBoxSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScrollBoxSlot::UScrollBoxSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(nullptr)
 {
 	HorizontalAlignment = HAlign_Fill;

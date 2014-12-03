@@ -2,6 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
+#include "SWidgetSwitcher.h"
 
 
 /* Local constants

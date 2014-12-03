@@ -15,8 +15,8 @@
 	USoundCue implementation.
 -----------------------------------------------------------------------------*/
 
-USoundCue::USoundCue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCue::USoundCue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	VolumeMultiplier = 0.75f;
 	PitchMultiplier = 1.0f;
@@ -331,7 +331,7 @@ void USoundCue::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstance
 {
 	if (FirstNode)
 	{
-		FirstNode->ParseNodes(AudioDevice,NodeWaveInstanceHash,ActiveSound,ParseParams,WaveInstances);
+		FirstNode->ParseNodes(AudioDevice,(UPTRINT)FirstNode,ActiveSound,ParseParams,WaveInstances);
 	}
 }
 

@@ -1,10 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Json.h"
-#include "InternationalizationManifestJsonSerializer.h"
 #include "Internationalization/InternationalizationMetadata.h"
-#include "InternationalizationMetadataJsonSerializer.h"
+#include "Json.h"
+#include "JsonInternationalizationManifestSerializer.h"
+#include "JsonInternationalizationMetadataSerializer.h"
 #include "ISourceControlModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextCommandletBase, Log, All);
@@ -15,8 +15,8 @@ TSharedPtr<FConflictReportInfo> FConflictReportInfo::StaticConflictInstance;
 //////////////////////////////////////////////////////////////////////////
 //UGatherTextCommandletBase
 
-UGatherTextCommandletBase::UGatherTextCommandletBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGatherTextCommandletBase::UGatherTextCommandletBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -201,7 +201,7 @@ bool FManifestInfo::AddManifestDependency( const FString& InManifestFilePath )
 
 	if( FPaths::FileExists( InManifestFilePath ) )
 	{
-		FInternationalizationManifestJsonSerializer ManifestSerializer;
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
 		TSharedPtr< FJsonObject > LoadedManifestDependencyJsonObject = UGatherTextCommandletBase::ReadJSONTextFile( InManifestFilePath );
 
 		TSharedRef< FInternationalizationManifest > LoadedManifestDependency = MakeShareable( new FInternationalizationManifest );
@@ -296,11 +296,11 @@ void FManifestInfo::ApplyManifestDependencies()
 						FString Message = UGatherTextCommandletBase::MungeLogOutput( FString::Printf(TEXT("Found previously entered localized string [%s] %s %s=\"%s\" %s. It was previously \"%s\" %s in dependency manifest %s."),
 							*ManifestEntry->Namespace,
 							*ContextIt->Key,
-							*FInternationalizationMetaDataJsonSerializer::MetadataToString( ContextIt->KeyMetadataObj ),
+							*FJsonInternationalizationMetaDataSerializer::MetadataToString( ContextIt->KeyMetadataObj ),
 							*ManifestEntry->Source.Text,
-							*FInternationalizationMetaDataJsonSerializer::MetadataToString(ManifestEntry->Source.MetadataObj),
+							*FJsonInternationalizationMetaDataSerializer::MetadataToString(ManifestEntry->Source.MetadataObj),
 							*DependencyEntry->Source.Text,
-							*FInternationalizationMetaDataJsonSerializer::MetadataToString(DependencyEntry->Source.MetadataObj),
+							*FJsonInternationalizationMetaDataSerializer::MetadataToString(DependencyEntry->Source.MetadataObj),
 							*DependencyFileName));
 						UE_LOG(LogGatherTextCommandletBase, Warning, TEXT("%s"), *Message);
 
@@ -323,7 +323,7 @@ void FManifestInfo::ApplyManifestDependencies()
 							*ManifestEntry->Namespace,
 							*ContextIt->Key,
 							*ManifestEntry->Source.Text,
-							*FInternationalizationMetaDataJsonSerializer::MetadataToString( ManifestEntry->Source.MetadataObj ));
+							*FJsonInternationalizationMetaDataSerializer::MetadataToString( ManifestEntry->Source.MetadataObj ));
 					}
 				}
 			}
@@ -360,11 +360,11 @@ bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Na
 				*EntryDescription,
 				*Namespace,
 				*Context.Key,
-				*FInternationalizationMetaDataJsonSerializer::MetadataToString( Context.KeyMetadataObj ),
+				*FJsonInternationalizationMetaDataSerializer::MetadataToString( Context.KeyMetadataObj ),
 				*Source.Text,
-				*FInternationalizationMetaDataJsonSerializer::MetadataToString( Source.MetadataObj ),
+				*FJsonInternationalizationMetaDataSerializer::MetadataToString( Source.MetadataObj ),
 				*ExistingEntry->Source.Text,
-				*FInternationalizationMetaDataJsonSerializer::MetadataToString( ExistingEntry->Source.MetadataObj ),
+				*FJsonInternationalizationMetaDataSerializer::MetadataToString( ExistingEntry->Source.MetadataObj ),
 				*ExistingEntrySourceLocation));
 
 			UE_LOG(LogGatherTextCommandletBase, Warning, TEXT("%s"), *Message);
@@ -383,7 +383,7 @@ bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Na
 				*Namespace,
 				*Context.Key,
 				*Source.Text,
-				*FInternationalizationMetaDataJsonSerializer::MetadataToString( Source.MetadataObj ));
+				*FJsonInternationalizationMetaDataSerializer::MetadataToString( Source.MetadataObj ));
 		}
 	}
 	return bAddSuccessful;
@@ -652,7 +652,7 @@ FString FConflictReportInfo::ToString()
 		
 		if(bAddToReport)
 		{
-			FString KeyMetadataString = FInternationalizationMetaDataJsonSerializer::MetadataToString( Conflict->KeyMetadataObj );
+			FString KeyMetadataString = FJsonInternationalizationMetaDataSerializer::MetadataToString( Conflict->KeyMetadataObj );
 			Report += FString::Printf(TEXT("%s - %s %s\n"), *Namespace, *Key, *KeyMetadataString );
 						
 			for(auto EntryIter = Conflict->EntriesBySourceLocation.CreateConstIterator(); EntryIter; ++EntryIter)
@@ -664,7 +664,7 @@ FString FConflictReportInfo::ToString()
 
 				const FString& SourceText = EntryIter.Value().Text.ReplaceCharWithEscapedChar();
 
-				FString SourceMetadataString =  FInternationalizationMetaDataJsonSerializer::MetadataToString( EntryIter.Value().MetadataObj );
+				FString SourceMetadataString =  FJsonInternationalizationMetaDataSerializer::MetadataToString( EntryIter.Value().MetadataObj );
 				Report += FString::Printf(TEXT("\t%s - \"%s\" %s\n"), *ProcessedSourceLocation, *SourceText, *SourceMetadataString);
 			}
 			Report += TEXT("\n");

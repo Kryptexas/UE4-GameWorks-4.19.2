@@ -573,9 +573,9 @@ int32 FProjectedShadowInfo::UpdateShadowCastingObjectBuffers() const
 
 					ObjectBoxBounds.Add(FVector4(MinViewSpacePosition, 0));
 					ObjectBoxBounds.Add(FVector4(MaxViewSpacePosition, 0));
-					ObjectBoxBounds.Add(FVector4(ObjectXAxis / ObjectXAxis.SizeSquared(), 0));
-					ObjectBoxBounds.Add(FVector4(ObjectYAxis / ObjectYAxis.SizeSquared(), 0));
-					ObjectBoxBounds.Add(FVector4(ObjectZAxis / ObjectZAxis.SizeSquared(), 0));
+					ObjectBoxBounds.Add(FVector4(ObjectXAxis / FMath::Max(ObjectXAxis.SizeSquared(), KINDA_SMALL_NUMBER), 0));
+					ObjectBoxBounds.Add(FVector4(ObjectYAxis / FMath::Max(ObjectYAxis.SizeSquared(), KINDA_SMALL_NUMBER), 0));
+					ObjectBoxBounds.Add(FVector4(ObjectZAxis / FMath::Max(ObjectZAxis.SizeSquared(), KINDA_SMALL_NUMBER), 0));
 				}
 
 				checkSlow(ObjectData.Num() % FDistanceFieldObjectBuffers::ObjectDataStride == 0);
@@ -629,10 +629,10 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 {
 	if (GDistanceFieldShadowing
 		&& View.GetFeatureLevel() >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform))
+		&& DoesPlatformSupportDistanceFieldShadowing(View.GetShaderPlatform()))
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderRayTracedDistanceFieldShadows);
-		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow);
 
 		// Update the global distance field atlas
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
@@ -674,7 +674,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, ClearTiles, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
 						TShaderMapRef<FClearTilesCS> ComputeShader(View.ShaderMap);
 
 						uint32 GroupSizeX = FMath::DivideAndRoundUp(LightTileDimensions.X, GDistanceFieldAOTileSizeX);
@@ -688,7 +688,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					}
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, CullObjects, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, CullObjects);
 
 						TShaderMapRef<FShadowObjectCullVS> VertexShader(View.ShaderMap);
 						TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
@@ -728,8 +728,8 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
 
 				{
-					const FIntPoint ExpandedBufferSize = GetBufferSizeForAO();
-					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ExpandedBufferSize / GAODownsampleFactor, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+					const FIntPoint BufferSize = GetBufferSizeForAO();
+					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 					GRenderTargetPool.FindFreeElement(Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
 				}
 
@@ -745,7 +745,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					uint32 GroupSizeY = FMath::DivideAndRoundUp(ScissorRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
 						SetRenderTarget(RHICmdList, NULL, NULL);
 
 						if (bDirectionalLight && GShadowScatterTileCulling)
@@ -778,7 +778,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				{
 					GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
 
-					SCOPED_DRAW_EVENT(RHICmdList, Upsample, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, Upsample);
 
 					RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -815,7 +815,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 						ScissorRect.Min.X / GAODownsampleFactor, ScissorRect.Min.Y / GAODownsampleFactor, 
 						ScissorRect.Width() / GAODownsampleFactor, ScissorRect.Height() / GAODownsampleFactor,
 						FIntPoint(ScissorRect.Width(), ScissorRect.Height()),
-						GetBufferSizeForAO() / GAODownsampleFactor,
+						GetBufferSizeForAO(),
 						*VertexShader);
 				}
 			}

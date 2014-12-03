@@ -156,29 +156,29 @@ bool SEditableTextBox::HasKeyboardFocus() const
 }
 
 
-FReply SEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SEditableTextBox::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	FReply Reply = FReply::Handled();
 
-	if ( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared )
+	if ( InFocusEvent.GetCause() != EFocusCause::Cleared )
 	{
 		// Forward keyboard focus to our editable text widget
-		Reply.SetKeyboardFocus( EditableText.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+		Reply.SetUserFocus(EditableText.ToSharedRef(), InFocusEvent.GetCause());
 	}
 
 	return Reply;
 }
 
 
-FReply SEditableTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SEditableTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	FKey Key = InKeyboardEvent.GetKey();
+	FKey Key = InKeyEvent.GetKey();
 
 	if( Key == EKeys::Escape && EditableText->HasKeyboardFocus() )
 	{
 		// Clear selection
 		EditableText->ClearSelection();
-		return FReply::Handled().SetKeyboardFocus( SharedThis( this ), EKeyboardFocusCause::Cleared );
+		return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Cleared);
 	}
 
 	return FReply::Unhandled();

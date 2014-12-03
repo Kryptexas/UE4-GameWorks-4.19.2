@@ -4,8 +4,8 @@
 #include "EnvironmentQueryEditorModule.h"
 #include "EnvironmentQuery/EnvQuery.h"
 
-UEnvironmentQueryFactory::UEnvironmentQueryFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEnvironmentQueryFactory::UEnvironmentQueryFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UEnvQuery::StaticClass();
 	bEditAfterNew = true;
@@ -20,6 +20,11 @@ UObject* UEnvironmentQueryFactory::FactoryCreateNew(UClass* Class,UObject* InPar
 
 bool UEnvironmentQueryFactory::CanCreateNew() const
 {
+	if (GetDefault<UEditorExperimentalSettings>()->bEQSEditor)
+	{
+		return true;
+	}
+
 	// Check ini to see if we should enable creation
 	bool bEnableEnvironmentQueryEd = false;
 	GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnableEnvironmentQueryEd, GEngineIni);

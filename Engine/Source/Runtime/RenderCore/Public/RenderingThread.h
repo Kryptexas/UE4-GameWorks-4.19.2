@@ -224,7 +224,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		if(GIsThreadedRendering || !IsInGameThread()) \
 		{ \
 			CheckNotBlockedOnRenderThread(); \
-			TGraphTask<EURCMacro_##TypeName>::CreateTask().template ConstructAndDispatchWhenReady<ParamType1>(ParamValue1); \
+			TGraphTask<EURCMacro_##TypeName>::CreateTask().ConstructAndDispatchWhenReady(ParamValue1); \
 		} \
 		else \
 		{ \
@@ -270,7 +270,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		if(GIsThreadedRendering || !IsInGameThread()) \
 		{ \
 			CheckNotBlockedOnRenderThread(); \
-			TGraphTask<EURCMacro_##TypeName>::CreateTask().template ConstructAndDispatchWhenReady<ParamType1,ParamType2>(ParamValue1,ParamValue2); \
+			TGraphTask<EURCMacro_##TypeName>::CreateTask().ConstructAndDispatchWhenReady(ParamValue1,ParamValue2); \
 		} \
 		else \
 		{ \
@@ -318,7 +318,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		if(GIsThreadedRendering || !IsInGameThread()) \
 		{ \
 			CheckNotBlockedOnRenderThread(); \
-			TGraphTask<EURCMacro_##TypeName>::CreateTask().template ConstructAndDispatchWhenReady<ParamType1,ParamType2,ParamType3>(ParamValue1,ParamValue2,ParamValue3); \
+			TGraphTask<EURCMacro_##TypeName>::CreateTask().ConstructAndDispatchWhenReady(ParamValue1,ParamValue2,ParamValue3); \
 		} \
 		else \
 		{ \
@@ -369,7 +369,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		if(GIsThreadedRendering || !IsInGameThread()) \
 		{ \
 			CheckNotBlockedOnRenderThread(); \
-			TGraphTask<EURCMacro_##TypeName>::CreateTask().template ConstructAndDispatchWhenReady<ParamType1,ParamType2,ParamType3,ParamType4>(ParamValue1,ParamValue2,ParamValue3,ParamValue4); \
+			TGraphTask<EURCMacro_##TypeName>::CreateTask().ConstructAndDispatchWhenReady(ParamValue1,ParamValue2,ParamValue3,ParamValue4); \
 		} \
 		else \
 		{ \

@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_StateResult
 
-UAnimGraphNode_StateResult::UAnimGraphNode_StateResult(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_StateResult::UAnimGraphNode_StateResult(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

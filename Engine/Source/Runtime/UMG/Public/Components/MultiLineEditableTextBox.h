@@ -4,8 +4,10 @@
 
 #include "MultiLineEditableTextBox.generated.h"
 
-/** Editable text box widget */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * Allows a user to enter multiple lines of text
+ */
+UCLASS(meta=(DisplayName="Text Box (Multi-Line)"))
 class UMG_API UMultiLineEditableTextBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -14,6 +16,12 @@ public:
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMultiLineEditableTextBoxChangedEvent, const FText&, Text);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMultiLineEditableTextBoxCommittedEvent, const FText&, Text, ETextCommit::Type, CommitMethod);
+
+public:
+	
+	/** The text content for this editable text box widget */
+	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
+	FText Text;
 
 public:
 
@@ -28,28 +36,32 @@ public:
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
-	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
-	FText Text;
-
 	/** The justification of the text in the multilinebox */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content)
 	TEnumAsByte<ETextJustify::Type> Justification;
 
+	/** Whether to wrap text automatically based on the widget's computed horizontal space.*/
+	UPROPERTY(EditDefaultsOnly, Category=Content)
+	bool bAutoWrapText;
+
+	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category=Content)
+	float WrapTextAt;
+
 	/** Font color and opacity (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateFontInfo Font;
 
 	/** Text color and opacity (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor ForegroundColor;
 
 	/** The color of the background/border around the editable text (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor BackgroundColor;
 
 	/** Text color and opacity when read-only (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor ReadOnlyForegroundColor;
 
 	/** Called whenever the text is changed interactively by the user */
@@ -63,6 +75,8 @@ public:
 	/** Provide a alternative mechanism for error reporting. */
 	//SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
 
+public:
+
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	FText GetText() const;
@@ -73,6 +87,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetError(FText InError);
+
+	//TODO UMG Add Set ReadOnlyForegroundColor
+	//TODO UMG Add Set BackgroundColor
+	//TODO UMG Add Set ForegroundColor
+	//TODO UMG Add Set Font
+	//TODO UMG Add Set Justification
+
+public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

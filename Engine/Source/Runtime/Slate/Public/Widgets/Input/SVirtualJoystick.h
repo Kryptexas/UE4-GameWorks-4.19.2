@@ -114,10 +114,7 @@ public:
 
 	void SetControls(const TArray<FControlInfo>& InControls)
 	{
-		if (ShouldDisplayTouchInterface())
-		{
-			Controls = InControls;
-		}
+		Controls = InControls;
 	}
 
 	/**

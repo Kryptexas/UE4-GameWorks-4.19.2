@@ -4,7 +4,7 @@
 	WindowsPlatformProcess.cpp: Windows implementations of Process functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "EngineVersion.h"
 #include "Resources/Windows/ModuleVersionResource.h"
 
@@ -30,6 +30,39 @@
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
+
+void FWindowsPlatformProcess::AddDllDirectory(const TCHAR* Directory)
+{
+	// Normalize the input directory
+	FString NormalizedDirectory = Directory;
+	FPaths::NormalizeDirectoryName(NormalizedDirectory);
+	FPaths::MakePlatformFilename(NormalizedDirectory);
+
+	// Get the current value of the PATH variable
+	TArray<TCHAR> PathVariable;
+	PathVariable.AddUninitialized(GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
+	verify(::GetEnvironmentVariable(TEXT("PATH"), PathVariable.GetData(), PathVariable.Num()) == PathVariable.Num() - 1);
+
+	// Set the new path variable with the input directory at the start. Skip over any existing instances of the input directory.
+	FString NewPathVariable = NormalizedDirectory;
+	for(const TCHAR* PathPos = PathVariable.GetData(); PathPos < PathVariable.GetData() + PathVariable.Num(); )
+	{
+		// Scan to the end of this directory
+		const TCHAR* PathEnd = PathPos;
+		while(*PathEnd != ';' && *PathEnd != 0) PathEnd++;
+
+		// Add it to the new path variable if it doesn't match the input directory
+		if(PathEnd - PathPos != NormalizedDirectory.Len() || FCString::Strnicmp(*NormalizedDirectory, PathPos, PathEnd - PathPos) != 0)
+		{
+			NewPathVariable.AppendChar(TEXT(';'));
+			NewPathVariable.AppendChars(PathPos, PathEnd - PathPos);
+		}
+
+		// Move to the next string
+		PathPos = PathEnd + 1;
+	}
+	SetEnvironmentVariable(TEXT("PATH"), *NewPathVariable);
+}
 
 void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -304,7 +337,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
 		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), HANDLE(PipeWrite), HANDLE(PipeWrite) };
-	if( !CreateProcess( NULL, CommandLine.GetCharArray().GetTypedData(), &Attr, &Attr, true, CreateFlags,
+	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags,
 		NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo ) )
 	{
 		if (OutProcessID)
@@ -553,7 +586,7 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
 		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), WritablePipes[0], WritablePipes[1] };
-	if (CreateProcess(NULL, CommandLine.GetCharArray().GetTypedData(), &Attr, &Attr, true, CreateFlags,
+	if (CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags,
 		NULL, NULL, &StartupInfo, &ProcInfo))
 	{
 		if (bRedirectOutput)
@@ -1044,7 +1077,7 @@ bool FWindowsPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Ou
 
 #include "AllowWindowsPlatformTypes.h"
 
-FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString & InName, HANDLE InSemaphore)
+FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString& InName, HANDLE InSemaphore)
 	:	FSemaphore(InName)
 	,	Semaphore(InSemaphore)
 {
@@ -1098,7 +1131,7 @@ void FWindowsPlatformProcess::FWindowsSemaphore::Unlock()
 	}
 }
 
-FWindowsPlatformProcess::FSemaphore * FWindowsPlatformProcess::NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks)
+FWindowsPlatformProcess::FSemaphore* FWindowsPlatformProcess::NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks)
 {
 	HANDLE Semaphore = NULL;
 	

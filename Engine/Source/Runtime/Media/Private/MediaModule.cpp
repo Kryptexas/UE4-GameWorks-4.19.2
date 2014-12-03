@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPrivatePCH.h"
+#include "IMediaModule.h"
+#include "IMediaPlayerFactory.h"
+#include "IMediaPlayer.h"
 #include "ModuleManager.h"
 
 
@@ -88,13 +91,13 @@ public:
 
 private:
 
-	// Holds an event delegate that is invoked after a video player factory has been added.
+	/** Holds an event delegate that is invoked after a video player factory has been added. */
 	FOnFactoryAdded FactoryAddedEvent;
 
-	// Holds an event delegate that is invoked after a video player factory has been removed.
+	/** Holds an event delegate that is invoked after a video player factory has been removed. */
 	FOnFactoryRemoved FactoryRemovedEvent;
 
-	// Holds the registered video player factories.
+	/** Holds the registered video player factories. */
 	TArray<IMediaPlayerFactory*> MediaPlayerFactories;
 };
 

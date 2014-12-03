@@ -14,6 +14,7 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "STextComboBox.h"
 
 const int32 DefaultHullCount = 4;
 const int32 DefaultVertsPerHull = 12;
@@ -426,7 +427,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			SNew(SSpinBox<int32>)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 			.MinValue(0)
-			.MaxValue(8)
+			.MaxValue(7)
 			.Value(this, &FMeshBuildSettingsLayout::GetSrcLightmapIndex)
 			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnSrcLightmapIndexChanged)
 		];
@@ -445,7 +446,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			SNew(SSpinBox<int32>)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 			.MinValue(0)
-			.MaxValue(8)
+			.MaxValue(7)
 			.Value(this, &FMeshBuildSettingsLayout::GetDstLightmapIndex)
 			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDstLightmapIndexChanged)
 		];

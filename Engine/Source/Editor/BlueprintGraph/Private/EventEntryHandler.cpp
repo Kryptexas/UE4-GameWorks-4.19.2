@@ -10,7 +10,7 @@ void FKCHandler_EventEntry::RegisterNet(FKismetFunctionContext& Context, UEdGrap
 	if(!bIsDelegateOutput)
 	{
 		// This net is an event parameter; push to be a private class member variable
-		FBPTerminal* Term = new (Context.EventGraphLocals) FBPTerminal();
+		FBPTerminal* Term = Context.CreateLocalTerminal(ETerminalSpecification::TS_ForcedShared);
 		Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
 
 		Context.NetMap.Add(Net, Term);

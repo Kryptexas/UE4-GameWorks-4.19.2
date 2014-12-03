@@ -137,8 +137,62 @@ namespace iPhonePackager
 				case "install":
 					{
 						string IPAPath = GamePath;
+						string AdditionalCommandline = Program.AdditionalCommandline;
 
-						if (File.Exists(GamePath))
+						if (!String.IsNullOrEmpty(AdditionalCommandline))
+						{
+							// Read the mobile provision to check for issues
+							FileOperations.ReadOnlyZipFileSystem Zip = new FileOperations.ReadOnlyZipFileSystem(IPAPath);
+							try
+							{
+								// Compare the commandline embedded to prevent us from any unnecessary writing.
+								byte[] CommandlineBytes = Zip.ReadAllBytes("ue4commandline.txt");
+								string ExistingCommandline = Encoding.UTF8.GetString(CommandlineBytes, 0, CommandlineBytes.Length);
+								if (ExistingCommandline != AdditionalCommandline)
+								{
+									// Ensure we have a temp dir to stage our temporary ipa
+									if( !Directory.Exists( Config.PCStagingRootDir ) )
+									{
+										Directory.CreateDirectory(Config.PCStagingRootDir);
+									}
+
+									string TmpFilePath = Path.Combine(Path.GetDirectoryName(Config.PCStagingRootDir), Path.GetFileNameWithoutExtension(IPAPath) + ".tmp.ipa");
+									if( File.Exists( TmpFilePath ) )
+									{
+										File.Delete(TmpFilePath);
+									}
+
+									File.Copy(IPAPath, TmpFilePath);
+								
+									// Get the project name:
+									string ProjectFile = ExistingCommandline.Split(' ').FirstOrDefault();
+
+									// Write out the new commandline.
+									FileOperations.ZipFileSystem WritableZip = new FileOperations.ZipFileSystem(TmpFilePath);
+									byte[] NewCommandline = Encoding.UTF8.GetBytes(ProjectFile + " " + AdditionalCommandline);
+									WritableZip.WriteAllBytes("ue4commandline.txt", NewCommandline);
+
+									// We need to residn the application after the commandline file has changed.
+									CodeSignatureBuilder CodeSigner = new CodeSignatureBuilder();
+									CodeSigner.FileSystem = WritableZip;
+
+									CodeSigner.PrepareForSigning();
+									CodeSigner.PerformSigning();
+
+									WritableZip.Close();
+
+									// Set the deploying ipa path to our new ipa
+									IPAPath = TmpFilePath;
+								}
+							}
+							catch (System.Exception ex)
+							{
+								Program.Warning(String.Format("Failed to override the commandline.txt file: ({0})", ex.Message));
+							}
+							Zip.Close();
+						}
+
+						if (File.Exists(IPAPath))
 						{
 							if (!String.IsNullOrEmpty(Config.DeviceId) && !Config.DeviceId.Contains("All_iOS_On"))
 							{

@@ -15,8 +15,6 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Animation; }
 
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<UMorphTarget>> Objects);
 	/** Handler for when Move to Mesh is requested **/
 	void ExecuteMovetoMesh(TArray<TWeakObjectPtr<UMorphTarget>> Objects);
 };

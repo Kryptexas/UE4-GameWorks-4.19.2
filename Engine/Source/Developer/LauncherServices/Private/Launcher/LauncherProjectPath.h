@@ -13,11 +13,11 @@ public:
 	/**
 	 * Gets the name of the Unreal project to use.
 	 */
-	static FString GetProjectName(const FString & ProjectPath);
+	static FString GetProjectName(const FString& ProjectPath);
 
 	/**
 	 * Gets the base project path for the project (e.g. Samples/Showcases/MyShowcase)
 	 */
-	static FString GetProjectBasePath(const FString & ProjectPath);
+	static FString GetProjectBasePath(const FString& ProjectPath);
 
 };

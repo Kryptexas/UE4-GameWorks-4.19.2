@@ -4,7 +4,7 @@
 	MallocTTB.cpp: IntelTTB Malloc
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MallocTBB.h"
 
 // Only use for supported platforms

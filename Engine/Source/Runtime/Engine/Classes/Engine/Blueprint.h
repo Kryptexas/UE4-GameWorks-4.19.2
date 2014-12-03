@@ -55,6 +55,7 @@ namespace EKismetCompileType
 		Full,
 		StubAfterFailure, 
 		BytecodeOnly,
+		Cpp,
 	};
 };
 
@@ -70,9 +71,19 @@ public:
 	/** Whether or not this compile is for a duplicated blueprint */
 	bool bIsDuplicationInstigated;
 
+	TSharedPtr<FString> OutHeaderSourceCode;
+	TSharedPtr<FString> OutCppSourceCode;
+
+	bool DoesRequireCppCodeGeneration() const
+	{
+		return (CompileType == EKismetCompileType::Cpp);
+	}
+
 	bool DoesRequireBytecodeGeneration() const
 	{
-		return (CompileType == EKismetCompileType::Full) || (CompileType == EKismetCompileType::BytecodeOnly);
+		return (CompileType == EKismetCompileType::Full) 
+			|| (CompileType == EKismetCompileType::BytecodeOnly) 
+			|| (CompileType == EKismetCompileType::Cpp);
 	}
 
 	/** Whether or not this compile type should operate on the generated class of the blueprint, as opposed to just the skeleton */
@@ -341,6 +352,15 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Set of functions actually compiled for this class */
 	UPROPERTY(transient, duplicatetransient)
 	TArray<class UEdGraph*> EventGraphs;
+
+	/** 
+	 * Flag indicating that a read only duplicate of this blueprint is being created, used to disable logic in ::PostDuplicate,
+	 *
+	 * This flag needs to be copied on duplication (because it's the duplicated object that we're disabling on PostDuplicate),
+	 * but we don't *need* to serialize it for permanent objects.
+	 */
+	UPROPERTY()
+	mutable bool bDuplicatingReadOnly;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Array of component template objects, used by AddComponent function */
@@ -392,6 +412,7 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 #endif // WITH_EDITORONLY_DATA
 
 public:
+
 	/** Broadcasts a notification whenever the blueprint has changed. */
 	DECLARE_EVENT_OneParam( UBlueprint, FChangedEvent, class UBlueprint* );
 	FChangedEvent& OnChanged() { return ChangedEvent; }
@@ -414,9 +435,11 @@ public:
 	/** The blueprint is currently compiled */
 	UPROPERTY(transient)
 	uint32 bBeingCompiled:1;
-#endif // WITH_EDITORONLY_DATA
 
-#if WITH_EDITORONLY_DATA
+	/** CRC for CDO calculated right after the latest compilation */
+	UPROPERTY(transient, duplicatetransient)
+	uint32 CrcPreviousCompiledCDO;
+
 	bool bCachedDependenciesUpToDate;
 	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
 

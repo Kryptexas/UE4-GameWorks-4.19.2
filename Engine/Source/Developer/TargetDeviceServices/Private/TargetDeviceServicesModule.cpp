@@ -16,7 +16,7 @@ public:
 
 	// ITargetDeviceServicesModule interface
 
-	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager( ) override
+	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager() override
 	{
 		if (!DeviceProxyManagerSingleton.IsValid())
 		{
@@ -26,7 +26,7 @@ public:
 		return DeviceProxyManagerSingleton.ToSharedRef();
 	}
 
-	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager( ) override
+	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager() override
 	{
 		if (!DeviceServiceManagerSingleton.IsValid())
 		{
@@ -38,18 +38,12 @@ public:
 
 private:
 
-	// Holds the device proxy manager singleton.
+	/** Holds the device proxy manager singleton. */
 	ITargetDeviceProxyManagerPtr DeviceProxyManagerSingleton;
 
-	// Holds the device service manager singleton.
+	/** Holds the device service manager singleton. */
 	ITargetDeviceServiceManagerPtr DeviceServiceManagerSingleton;
 };
-
-
-// Dummy class initialization
-UTargetDeviceServiceMessages::UTargetDeviceServiceMessages( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
-{ }
 
 
 IMPLEMENT_MODULE(FTargetDeviceServicesModule, TargetDeviceServices);

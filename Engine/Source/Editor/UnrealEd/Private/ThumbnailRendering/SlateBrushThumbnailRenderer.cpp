@@ -5,8 +5,8 @@
 // FPreviewScene derived helpers for rendering
 #include "ThumbnailHelpers.h"
 
-USlateBrushThumbnailRenderer::USlateBrushThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USlateBrushThumbnailRenderer::USlateBrushThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

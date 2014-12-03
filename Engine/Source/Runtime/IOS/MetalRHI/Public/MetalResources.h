@@ -171,8 +171,10 @@ public:
 
 
 	EPixelFormat PixelFormat;
+	uint8 FormatKey;
 	id<MTLTexture> Texture;
     id<MTLTexture> MSAATexture;
+	id<MTLTexture> StencilTexture;
 	uint32 SizeX, SizeY, SizeZ;
 	bool bIsCubemap;
 	
@@ -182,6 +184,10 @@ public:
 
 	// how much memory is allocated for this texture
 	uint64 TotalTextureSize;
+
+private:
+	// next format for the pixel format mapping
+	static uint8 NextKey;
 };
 
 class FMetalTexture2D : public FRHITexture2D
@@ -272,8 +278,8 @@ public:
 	// Where in the ring buffer to store the result
 	uint32 Offset;
 
-	// The command buffer this query is being rendered in - used to make sure the command buffer is complete whewn we read the result
-	uint64 CommandBufferIndex;
+	// This event will be fired when the command buffer that rendered the OQ mesh is completed by the GPU
+	FEvent* QueryCompleteEvent;
 };
 
 /** Index buffer resource class that stores stride information. */

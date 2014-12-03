@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_EnumEquality"
 
-UK2Node_EnumEquality::UK2Node_EnumEquality(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EnumEquality::UK2Node_EnumEquality(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -225,36 +225,33 @@ void UK2Node_EnumEquality::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
-	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
-		// Get the enum equality node and the KismetMathLibrary function info for use when we build those nodes
-		FName ConditionalFunctionName = "";
-		UClass* ConditionalFunctionClass = NULL;
-		GetConditionalFunction(ConditionalFunctionName, &ConditionalFunctionClass);
+	// Get the enum equality node and the KismetMathLibrary function info for use when we build those nodes
+	FName ConditionalFunctionName = "";
+	UClass* ConditionalFunctionClass = NULL;
+	GetConditionalFunction(ConditionalFunctionName, &ConditionalFunctionClass);
 
-		// Create the conditional node we're replacing the enum node for
-		UK2Node_CallFunction* ConditionalNode = SourceGraph->CreateBlankNode<UK2Node_CallFunction>();
-		ConditionalNode->FunctionReference.SetExternalMember(ConditionalFunctionName, ConditionalFunctionClass);
-		ConditionalNode->AllocateDefaultPins();
-		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(ConditionalNode, this);
+	// Create the conditional node we're replacing the enum node for
+	UK2Node_CallFunction* ConditionalNode = SourceGraph->CreateBlankNode<UK2Node_CallFunction>();
+	ConditionalNode->FunctionReference.SetExternalMember(ConditionalFunctionName, ConditionalFunctionClass);
+	ConditionalNode->AllocateDefaultPins();
+	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(ConditionalNode, this);
 
-		// Rewire the enum pins to the new conditional node
-		UEdGraphPin* LeftSideConditionalPin = ConditionalNode->FindPinChecked(TEXT("A"));
-		UEdGraphPin* RightSideConditionalPin = ConditionalNode->FindPinChecked(TEXT("B"));
-		UEdGraphPin* ReturnConditionalPin = ConditionalNode->FindPinChecked(Schema->PN_ReturnValue);
-		UEdGraphPin* Input1Pin = GetInput1Pin();
-		UEdGraphPin* Input2Pin = GetInput2Pin();
-		LeftSideConditionalPin->PinType = Input1Pin->PinType;
-		RightSideConditionalPin->PinType = Input2Pin->PinType;
-		CompilerContext.MovePinLinksToIntermediate(*Input1Pin, *LeftSideConditionalPin);
-		CompilerContext.MovePinLinksToIntermediate(*Input2Pin, *RightSideConditionalPin);
-		CompilerContext.MovePinLinksToIntermediate(*GetReturnValuePin(), *ReturnConditionalPin);
+	// Rewire the enum pins to the new conditional node
+	UEdGraphPin* LeftSideConditionalPin = ConditionalNode->FindPinChecked(TEXT("A"));
+	UEdGraphPin* RightSideConditionalPin = ConditionalNode->FindPinChecked(TEXT("B"));
+	UEdGraphPin* ReturnConditionalPin = ConditionalNode->FindPinChecked(Schema->PN_ReturnValue);
+	UEdGraphPin* Input1Pin = GetInput1Pin();
+	UEdGraphPin* Input2Pin = GetInput2Pin();
+	LeftSideConditionalPin->PinType = Input1Pin->PinType;
+	RightSideConditionalPin->PinType = Input2Pin->PinType;
+	CompilerContext.MovePinLinksToIntermediate(*Input1Pin, *LeftSideConditionalPin);
+	CompilerContext.MovePinLinksToIntermediate(*Input2Pin, *RightSideConditionalPin);
+	CompilerContext.MovePinLinksToIntermediate(*GetReturnValuePin(), *ReturnConditionalPin);
 
-		// Break all links to the Select node so it goes away for at scheduling time
-		BreakAllNodeLinks();
-	}
+	// Break all links to the Select node so it goes away for at scheduling time
+	BreakAllNodeLinks();
 }
 
 void UK2Node_EnumEquality::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

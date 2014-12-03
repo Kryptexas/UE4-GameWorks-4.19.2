@@ -1,11 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/**
- * 
- * Skinned Mesh Component that supports Bone Skinned Mesh rendering
- * This class does not support animation
- *
- */
 
 #pragma once
 #include "Components/MeshComponent.h"
@@ -56,6 +50,21 @@ namespace EMeshComponentUpdateFlag
 		AlwaysTickPose,
 		// Tick only when rendered, and it will only RefreshBoneTransforms when rendered
 		OnlyTickPoseWhenRendered,
+	};
+}
+
+/** Flag for specifying bone space */
+UENUM()
+namespace EBoneSpaces
+{
+	enum Type
+	{
+		/** Set absolute position of bone in world space */
+		WorldSpace		UMETA(DisplayName = "World Space"),
+		/** Set position of bone in components reference frame */
+		ComponentSpace	UMETA(DisplayName = "Component Space"),
+		/** Set position of bone relative to parent bone */
+		//LocalSpace		UMETA( DisplayName = "Parent Bone Space" ),
 	};
 }
 
@@ -125,6 +134,15 @@ struct FSkelMeshComponentLODInfo
 		}
 	
 };
+
+
+/**
+ *
+ * Skinned mesh component that supports bone skinned mesh rendering.
+ * This class does not support animation.
+ *
+ * @see USkeletalMeshComponent
+*/
 
 UCLASS(hidecategories=Object, config=Engine, editinlinenew, abstract)
 class ENGINE_API USkinnedMeshComponent : public UMeshComponent
@@ -423,7 +441,7 @@ protected:
 
 public:
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool HasAnySockets() const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
@@ -579,7 +597,7 @@ protected:
 	 *						  If MasterPoseComponent exists, it will applied to MasterPoseComponent's bound
 	 * @param UsePhysicsAsset	: Whether or not to use PhysicsAsset for calculating bound of mesh
 	 */
-	FBoxSphereBounds CalcMeshBound(const FVector & RootOffset, bool UsePhysicsAsset, const FTransform & Transform) const;
+	FBoxSphereBounds CalcMeshBound(const FVector& RootOffset, bool UsePhysicsAsset, const FTransform& Transform) const;
 
 	/**
 	 * return true if it needs update. Return false if not
@@ -674,7 +692,7 @@ public:
 	 * 
 	 * @return Quaternion of the bone
 	 */
-	FQuat GetBoneQuaternion( FName BoneName, int32 Space = 0 ) const; 
+	FQuat GetBoneQuaternion(FName BoneName, EBoneSpaces::Type Space = EBoneSpaces::WorldSpace) const;
 
 	/** Get Bone Location
 	 *
@@ -683,7 +701,7 @@ public:
 	 * 
 	 * @return Vector of the bone
 	 */
-	FVector GetBoneLocation( FName BoneName, int32 Space = 0 ) const; 
+	FVector GetBoneLocation( FName BoneName, EBoneSpaces::Type Space = EBoneSpaces::WorldSpace) const; 
 
 	/** 
 	 * Fills the given array with the names of all the bones in this component's current SkeletalMesh 
@@ -866,7 +884,7 @@ public:
 	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
 	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
-	void AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion);
+	void AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
 
 	virtual bool IsPlayingRootMotion(){ return false; }
 };

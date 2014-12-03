@@ -240,6 +240,10 @@ public:
 	/** @todo document */
 	TMap<TWeakObjectPtr<AActor>,class UActorChannel*> ActorChannels;
 
+	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
+	UPROPERTY()
+	TArray<class UActorChannel*> KeepProcessingActorChannelBunches;
+
 	/** Actors that have gone dormant on this connection	
 	 *  The only way to get on this list is when the actor channel closes. UActorChannel::Close.
      *  Once in this set, and only then, is an actor considered network dormant.
@@ -307,7 +311,7 @@ public:
 	static class UNetConnection* GNetConnectionBeingCleanedUp;
 
 	// Constructors and destructors.
-	ENGINE_API UNetConnection(const class FPostConstructInitializeProperties& PCIP);
+	ENGINE_API UNetConnection(const FObjectInitializer& ObjectInitializer);
 
 	// Begin UObject interface.
 
@@ -524,10 +528,10 @@ public:
 	 */
 	class UVoiceChannel* GetVoiceChannel();
 
-	void FlushDormancy(class AActor * Actor);
+	void FlushDormancy(class AActor* Actor);
 
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
-	void FlushDormancyForObject( UObject * Object );
+	void FlushDormancyForObject( UObject* Object );
 
 	/** Wrapper for setting the current client login state, so we can trap for debugging, and verbosity purposes. */
 	ENGINE_API void SetClientLoginState( const EClientLoginState::Type NewState );

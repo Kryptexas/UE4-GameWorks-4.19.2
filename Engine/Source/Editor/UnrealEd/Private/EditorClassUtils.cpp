@@ -5,6 +5,7 @@
 
 #include "IDocumentation.h"
 #include "SourceCodeNavigation.h"
+#include "SHyperlink.h"
 
 FString FEditorClassUtils::GetDocumentationPage(const UClass* Class)
 {
@@ -98,7 +99,7 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const 
 
 		TWeakObjectPtr<UBlueprint> BlueprintPtr = Blueprint;
 
-		SAssignNew(SourceHyperlink, SHyperlink)
+		SourceHyperlink = SNew(SHyperlink)
 			.Style(FEditorStyle::Get(), "EditBPHyperlink")
 			.TextStyle(FEditorStyle::Get(), "DetailsView.EditBlueprintHyperlinkStyle")
 			.OnNavigate_Static(&Local::OnEditBlueprintClicked, BlueprintPtr, ObjectWeakPtr)
@@ -119,7 +120,7 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const 
 				}
 			};
 
-			SAssignNew(SourceHyperlink, SHyperlink)
+			SourceHyperlink = SNew(SHyperlink)
 				.Style(FCoreStyle::Get(), "Hyperlink")
 				.TextStyle(FEditorStyle::Get(), "DetailsView.GoToCodeHyperlinkStyle")
 				.OnNavigate_Static(&Local::OnEditCodeClicked, ClassHeaderPath)

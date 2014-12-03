@@ -2,7 +2,9 @@
 
 #pragma once
 
+
+/* Private dependencies
+ *****************************************************************************/
+
 #include "Core.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
 #include "Engine.h"

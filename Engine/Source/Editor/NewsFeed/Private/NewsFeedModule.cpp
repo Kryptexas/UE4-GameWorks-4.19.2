@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "NewsFeedPrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FNewsFeedModule"
@@ -19,7 +21,7 @@ public:
 	virtual void StartupModule( ) override
 	{
 		// register settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -34,7 +36,7 @@ public:
 	virtual void ShutdownModule( ) override
 	{
 		// unregister settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

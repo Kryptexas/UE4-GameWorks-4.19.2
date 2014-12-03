@@ -91,8 +91,8 @@ struct FMinimalViewInfo
 	ENGINE_API void BlendViewInfo(FMinimalViewInfo& OtherInfo, float OtherWeight);
 
 	/** Applies weighting to this view, in order to be blended with another one. Equals to this *= Weight. */
-	ENGINE_API void ApplyBlendWeight(const float & Weight);
+	ENGINE_API void ApplyBlendWeight(const float& Weight);
 
 	/** Combines this view with another one which will be weighted. Equals to this += OtherView * Weight. */
-	ENGINE_API void AddWeightedViewInfo(const FMinimalViewInfo & OtherView, const float & Weight);
+	ENGINE_API void AddWeightedViewInfo(const FMinimalViewInfo& OtherView, const float& Weight);
 };

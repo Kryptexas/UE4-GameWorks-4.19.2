@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeResizable.h"
+#include "ScopedTransaction.h"
 
 namespace GraphNodeResizableDefs
 {
@@ -106,6 +107,10 @@ FReply SGraphNodeResizable::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 		UserSize.Y = FMath::RoundToFloat(UserSize.Y);
 
 		GetNodeObj()->ResizeNode(UserSize);
+
+		// End resize transaction
+		ResizeTransactionPtr.Reset();
+
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 	return FReply::Unhandled();
@@ -191,6 +196,14 @@ FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 			GraphNode->ResizeNode( UserSize );
 			DeltaNodePos = GetCorrectedNodePosition() - GetPosition();
 		}
+
+		if (!ResizeTransactionPtr.IsValid() && UserSize != StoredUserSize)
+		{
+			// Start resize transaction.  The transaction is started here so all MoveTo actions are captured while empty
+			//	transactions are not created
+			ResizeTransactionPtr = MakeShareable(new FScopedTransaction(NSLOCTEXT("GraphEditor", "ResizeNodeAction", "Resize Node")));
+		}
+
 		SGraphNode::FNodeSet NodeFilter;
 		SGraphNode::MoveTo( GetPosition() + DeltaNodePos, NodeFilter );
 	}

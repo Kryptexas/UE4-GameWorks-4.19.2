@@ -119,6 +119,16 @@ public:
 namespace
 {
 	FFunctionalTestingMaps FFunctionalTestingMapsAutomationTestInstance(TEXT("FFunctionalTestingMaps"));
+
+	void CreateFTestingLogPage()
+	{
+		static bool bMessageLogPageCreated = false;
+		if (bMessageLogPageCreated == false)
+		{
+			FMessageLog("FunctionalTestingLog").NewPage(LOCTEXT("NewLogLabel", "Functional Test"));
+			bMessageLogPageCreated = true;
+		}
+	}
 }
 
 /** 
@@ -160,8 +170,6 @@ void FFunctionalTestingMapsBase::GetTests(TArray<FString>& OutBeautifiedNames, T
 			}
 		}
 	}
-
-	FMessageLog("FunctionalTestingLog").NewPage(LOCTEXT("NewLogLabel", "Functional Test"));
 }
 
 /** 
@@ -173,6 +181,8 @@ void FFunctionalTestingMapsBase::GetTests(TArray<FString>& OutBeautifiedNames, T
 bool FFunctionalTestingMapsBase::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
+
+	CreateFTestingLogPage();
 
 	SetSuppressLogs(true);
 	ExecutionInfo.Clear();

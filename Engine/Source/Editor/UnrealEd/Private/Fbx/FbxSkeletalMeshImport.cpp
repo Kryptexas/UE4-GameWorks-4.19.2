@@ -742,7 +742,7 @@ bool UnFbx::FFbxImporter::RetrievePoseFromBindPose(const TArray<FbxNode*>& NodeA
 	return (PoseArray.Size() > 0);
 }
 
-bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, TArray<FbxNode*> &SortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose)
+bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData ,TArray<FbxNode*> &SortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose)
 {
 	bOutDiffPose = false;
 	int32 SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh
@@ -781,16 +781,16 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		for ( int32 i = 0; i < NodeArray.Num(); i++)
 		{
 			FbxMesh* FbxMesh = NodeArray[i]->GetMesh();
-				const int32 SkinDeformerCount = FbxMesh->GetDeformerCount(FbxDeformer::eSkin);
-				for (int32 DeformerIndex=0; DeformerIndex < SkinDeformerCount; DeformerIndex++)
+			const int32 SkinDeformerCount = FbxMesh->GetDeformerCount(FbxDeformer::eSkin);
+			for (int32 DeformerIndex=0; DeformerIndex < SkinDeformerCount; DeformerIndex++)
+			{
+				FbxSkin* Skin = (FbxSkin*)FbxMesh->GetDeformer(DeformerIndex, FbxDeformer::eSkin);
+				for ( int32 ClusterIndex = 0; ClusterIndex < Skin->GetClusterCount(); ClusterIndex++)
 				{
-					FbxSkin* Skin = (FbxSkin*)FbxMesh->GetDeformer(DeformerIndex, FbxDeformer::eSkin);
-					for ( int32 ClusterIndex = 0; ClusterIndex < Skin->GetClusterCount(); ClusterIndex++)
-					{
-						ClusterArray.Add(Skin->GetCluster(ClusterIndex));
-					}
-				}			
+					ClusterArray.Add(Skin->GetCluster(ClusterIndex));
+				}
 			}
+		}
 
 		if (ClusterArray.Num() == 0)
 		{
@@ -871,7 +871,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	FbxArray<FbxAMatrix> GlobalsPerLink;
 	GlobalsPerLink.Grow(SortedLinks.Num());
 	GlobalsPerLink[0].SetIdentity();
-	
+
 	bool GlobalLinkFoundFlag;
 	FbxVector4 LocalLinkT;
 	FbxQuaternion LocalLinkQ;
@@ -880,6 +880,8 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	bool bAnyLinksNotInBindPose = false;
 	FString LinksWithoutBindPoses;
 	int32 NumberOfRoot = 0;
+
+	int32 RootIdx = -1;
 
 	for (LinkIndex=0; LinkIndex<SortedLinks.Num(); LinkIndex++)
 	{
@@ -909,6 +911,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		if (ParentIndex == INDEX_NONE)
 		{
 			++NumberOfRoot;
+			RootIdx = LinkIndex;
 			if (NumberOfRoot > 1)
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("MultipleRootsFound", "Multiple roots are found in the bone hierarchy. We only support single root bone.")), FFbxErrors::SkeletalMesh_MultipleRoots);
@@ -962,9 +965,6 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 
 		if (!GlobalLinkFoundFlag)
 		{
-			// The node is not included in a bind pose and is not associated with any cluster, so just use its 'default'
-			// matrix as its bind pose.  
-			// Passing a time of Infinite (the default value) to EvaluateGlobalTransform returns the 'default' matrix for the node
 			GlobalsPerLink[LinkIndex] = Link->EvaluateGlobalTransform();
 		}
 		
@@ -978,8 +978,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			
 			GlobalsPerLink[LinkIndex] = T0Matrix;
 		}
-		
-
+	
 		if (LinkIndex)
 		{
 			FbxAMatrix	Matrix;
@@ -1038,6 +1037,17 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		JointMatrix.Transform.SetScale3D(Converter.ConvertScale(LocalLinkS));
 	}
 	
+	if(TemplateData)
+	{
+		FbxAMatrix FbxAddedMatrix;
+		BuildFbxMatrixForImportTransform(FbxAddedMatrix, TemplateData);
+		FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
+
+		VBone& RootBone = ImportData.RefBonesBinary[RootIdx];
+		FTransform& RootTransform = RootBone.BonePos.Transform;
+		RootTransform.SetFromMatrix(RootTransform.ToMatrixWithScale() * AddedMatrix);
+	}
+	
 	if(bAnyLinksNotInBindPose)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_BonesAreMissingFromBindPose", "Warning: The following bones are missing from the bind pose.  This can happen for bones that are not vert weighted.  If they are not in the correct orientation after importing, please set the \"Use T0 as ref pose\" option or add them to the bind pose and reimport the skeletal mesh \n\n{0}"), FText::FromString(LinksWithoutBindPoses))), FFbxErrors::SkeletalMesh_BonesAreMissingFromBindPose);
@@ -1079,7 +1089,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 	if ( !FbxShapeArray  )
 	{
-		UObject * ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_PendingKill);
+		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_PendingKill);
 		USkeletalMesh* ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
 
 		if (ExistingSkelMesh)
@@ -1120,7 +1130,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	bool bUseTime0AsRefPose = ImportOptions->bUseT0AsRefPose;
 	// Note: importing morph data causes additional passes through this function, so disable the warning dialogs
 	// from popping up again on each additional pass.  
-	if ( !ImportBone(NodeArray, *SkelMeshImportDataPtr, SortedLinkArray,  bDiffPose, (FbxShapeArray != NULL), bUseTime0AsRefPose))
+	if ( !ImportBone(NodeArray, *SkelMeshImportDataPtr, TemplateImportData, SortedLinkArray,  bDiffPose, (FbxShapeArray != NULL), bUseTime0AsRefPose))
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FbxSkeletaLMeshimport_MultipleRootFound", "Multiple roots found")), FFbxErrors::SkeletalMesh_MultipleRoots);
 		// I can't delete object here since this is middle of import
@@ -1129,6 +1139,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkeletalMesh->Rename(NULL, GetTransientPackage());
 		return NULL;
 	}
+
+ 	FbxNode* RootNode = Scene->GetRootNode();
+ 	if(RootNode && TemplateImportData)
+ 	{
+ 		ApplyTransformSettingsToFbxNode(RootNode, TemplateImportData);
+ 	}
 
 	// Create a list of all unique fbx materials.  This needs to be done as a separate pass before reading geometry
 	// so that we know about all possible materials before assigning material indices to each triangle
@@ -1224,7 +1240,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	SkeletalMesh->LODInfo[0].ReductionSettings = Settings;
 
 	// Create initial bounding box based on expanded version of reference pose for meshes without physics assets. Can be overridden by artist.
-	FBox BoundingBox( SkelMeshImportDataPtr->Points.GetTypedData(), SkelMeshImportDataPtr->Points.Num() );
+	FBox BoundingBox(SkelMeshImportDataPtr->Points.GetData(), SkelMeshImportDataPtr->Points.Num());
 	FBox Temp = BoundingBox;
 	FVector MidMesh		= 0.5f*(Temp.Min + Temp.Max);
 	BoundingBox.Min		= Temp.Min + 1.0f*(Temp.Min - MidMesh);
@@ -1314,7 +1330,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
 		{
 			USkeletalMeshComponent* SkelComp = *It;
-			if(SkelComp->SkeletalMesh == SkeletalMesh && SkelComp->GetScene())
+			if(SkelComp->SkeletalMesh == SkeletalMesh)
 			{
 				FComponentReregisterContext ReregisterContext(SkelComp);
 			}
@@ -1359,7 +1375,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 		// see if we have skeleton set up
 		// if creating skeleton, create skeleeton
-		USkeleton * Skeleton = ImportOptions->SkeletonForAnimation;
+		USkeleton* Skeleton = ImportOptions->SkeletonForAnimation;
 		if (Skeleton == NULL)
 		{
 			FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *SkeletalMesh->GetName());
@@ -1412,11 +1428,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString ParentPackageName, FString ObjectName, bool bAllowReplace)
 {
 	// See if this sequence already exists.
-	UObject * 	ParentPkg = CreatePackage(NULL, *ParentPackageName);
+	UObject* 	ParentPkg = CreatePackage(NULL, *ParentPackageName);
 	FString 	ParentPath = FString::Printf(TEXT("%s/%s"), *FPackageName::GetLongPackagePath(*ParentPackageName), *ObjectName);
-	UObject * 	Parent = CreatePackage(NULL, *ParentPath);
+	UObject* 	Parent = CreatePackage(NULL, *ParentPath);
 	// See if an object with this name exists
-	UObject * Object = LoadObject<UObject>(Parent, *ObjectName, NULL, LOAD_None, NULL);
+	UObject* Object = LoadObject<UObject>(Parent, *ObjectName, NULL, LOAD_None, NULL);
 
 	// if object with same name but different class exists, warn user
 	if ((Object != NULL) && (Object->GetClass() != AssetClass))
@@ -1451,9 +1467,9 @@ UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString Par
 	return Object;
 }
 
-void UnFbx::FFbxImporter::SetupAnimationDataFromMesh(USkeletalMesh* SkeletalMesh, UObject* InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* TemplateImportData, const FString & Name)
+void UnFbx::FFbxImporter::SetupAnimationDataFromMesh(USkeletalMesh* SkeletalMesh, UObject* InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* TemplateImportData, const FString& Name)
 {
-	USkeleton * Skeleton = SkeletalMesh->Skeleton;
+	USkeleton* Skeleton = SkeletalMesh->Skeleton;
 
 	if (Scene->GetSrcObjectCount<FbxAnimStack>() > 0)
 	{
@@ -2656,7 +2672,7 @@ private:
 	bool bKeepOverlappingVertices;
 };
 
-void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject * InParent, const FString& InFilename, int32 LODIndex )
+void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* InParent, const FString& InFilename, int32 LODIndex )
 {
 	FbxString ShapeNodeName;
 	TMap<FString, TArray<FbxShape*>> ShapeNameToShapeArray;
@@ -2923,7 +2939,7 @@ FFbxLogger::~FFbxLogger()
 {
 	if(TokenizedErrorMessages.Num() > 0)
 	{
-		const TCHAR * LogTitle = TEXT("FBXImport");
+		const TCHAR* LogTitle = TEXT("FBXImport");
 		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
 		LogListing->SetLabel(FText::FromString("FBX Import"));

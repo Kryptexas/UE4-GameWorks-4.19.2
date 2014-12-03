@@ -22,7 +22,10 @@ struct AssetMarshalDefs
 namespace AssetUtil
 {
 	/** Extract the names of the assets which are being dragged*/
-	UNREALED_API TArray<FAssetData>	ExtractAssetDataFromDrag( const class FDragDropEvent &DragDropEvent );
+	UNREALED_API TArray<FAssetData>	ExtractAssetDataFromDrag( const FDragDropEvent& DragDropEvent );
+
+	/** Extract the names of the assets which are being dragged*/
+	UNREALED_API TArray<FAssetData> ExtractAssetDataFromDrag( const TSharedPtr<FDragDropOperation>& Operation );
 
 	/**
 	 *  Given an array of asset names, loads the assets into an array of objects

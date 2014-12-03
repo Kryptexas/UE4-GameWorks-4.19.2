@@ -157,6 +157,16 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 				FCanExecuteAction()
 				)
 				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("SetCurrentPreviewMesh", "Set Current Preview Mesh"),
+				LOCTEXT("SetCurrentPreviewMesh_ToolTip", "Set current preview mesh to be used when previewed by this asset. This only applies when you open Persona using this asset."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnSetCurrentPreviewMesh, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -276,6 +286,27 @@ void SAnimationSequenceBrowser::OnExportToFBX(TArray<FAssetData> SelectedAssets)
 	}
 }
 
+void SAnimationSequenceBrowser::OnSetCurrentPreviewMesh(TArray<FAssetData> SelectedAssets)
+{
+	if(SelectedAssets.Num() > 0)
+	{
+		USkeletalMesh * PreviewMesh = PersonaPtr.Pin()->GetMesh();
+
+		if (PreviewMesh)
+		{
+			TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+			for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+			{
+				UAnimationAsset * AnimAsset = Cast<UAnimationAsset>(Iter->GetAsset());
+				if (AnimAsset)
+				{
+					AnimAsset->SetPreviewMesh(PreviewMesh);
+				}
+			}
+		}
+	}
+}
+
 void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets)
 {
 	if(SelectedAssets.Num() > 0)
@@ -328,8 +359,8 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 	if ( Selected.Num() > 0 )
 	{
 		// ask which skeleton users would like to choose
-		USkeleton * OldSkeleton = PersonaPtr.Pin()->GetSkeleton();
-		USkeleton * NewSkeleton = NULL;
+		USkeleton* OldSkeleton = PersonaPtr.Pin()->GetSkeleton();
+		USkeleton* NewSkeleton = NULL;
 		bool		bDuplicateAssets = true;
 
 		const FText Message = LOCTEXT("RemapSkeleton_Warning", "This will duplicate the asset and convert to new skeleton.");
@@ -408,8 +439,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
 
-	TWeakPtr< SMenuAnchor > MenuAnchorPtr;
-	
+	TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
+	TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;	
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -432,10 +463,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, BackMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(BackMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, true )
 					[
@@ -456,10 +487,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, FwdMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(FwdMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, false )
 					[
@@ -818,6 +849,7 @@ void SAnimationSequenceBrowser::CreateAssetTooltipResources()
 	ViewportClient->SetRealtime(true);
 	ViewportClient->SetViewMode(VMI_Lit);
 	ViewportClient->ToggleOrbitCamera(true);
+	ViewportClient->VisibilityDelegate.BindSP(this, &SAnimationSequenceBrowser::IsToolTipPreviewVisible);
 
 	// Add the scene viewport
 	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
@@ -848,7 +880,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 
 		USkeleton* Skeleton = Asset->GetSkeleton();
 		
-		MeshToUse = Skeleton->GetPreviewMesh(true);
+		MeshToUse = Skeleton->GetAssetPreviewMesh(Asset);
 		check(MeshToUse);
 		if(PreviewComponent->SkeletalMesh != MeshToUse)
 		{
@@ -861,7 +893,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 		float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
 		float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
 
-		ViewportClient->SetViewRotation(FRotator(0.0f, 135.0f, 0.0f));
+		ViewportClient->SetViewRotation(FRotator(0.0f, -45.0f, 0.0f));
 		ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
 	}
 
@@ -893,6 +925,18 @@ void SAnimationSequenceBrowser::Tick(const FGeometry& AllottedGeometry, const do
 		// Tick the world to update preview viewport for tooltips
 		PreviewComponent->GetScene()->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
 	}
+}
+
+bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
+{
+	bool bVisible = false;
+	// during persona recording, disable this
+	if( PersonaPtr.IsValid() && PersonaPtr.Pin()->Recorder.InRecording() == false 
+		&& ViewportWidget.IsValid())
+	{
+		bVisible = ViewportWidget->GetVisibility() == EVisibility::Visible;
+	}
+	return bVisible;
 }
 
 FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene) : FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)

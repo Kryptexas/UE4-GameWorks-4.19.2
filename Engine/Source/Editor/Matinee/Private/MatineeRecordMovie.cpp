@@ -3,6 +3,8 @@
 #include "MatineeModule.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee.h"
+#include "STextComboBox.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "MatineeMovieCapture"

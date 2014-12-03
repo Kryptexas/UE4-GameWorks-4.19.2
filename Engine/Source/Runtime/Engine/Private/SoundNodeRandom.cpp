@@ -12,8 +12,8 @@
 /*-----------------------------------------------------------------------------
     USoundNodeRandom implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeRandom::USoundNodeRandom(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeRandom::USoundNodeRandom(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bRandomizeWithoutReplacement = true;
 	NumRandomUsed = 0;

@@ -9,11 +9,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogPawnMovementComponent, Log, All);
 //----------------------------------------------------------------------//
 // UPawnMovementComponent
 //----------------------------------------------------------------------//
-UPawnMovementComponent::UPawnMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-}
-
 void UPawnMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent)
 {
 	if (NewUpdatedComponent)

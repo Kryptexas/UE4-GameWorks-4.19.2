@@ -60,9 +60,7 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
-	void ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindow > CurrentEventWindow, FVector2D const MousePosition);
-
-	void ProcessEvent(NSEvent* Event);
+	void ProcessNSEvent(NSEvent* const Event);
 
 	void OnWindowDraggingFinished();
 
@@ -78,6 +76,8 @@ public:
 
 	bool IsProcessingNSEvent() const { return bIsProcessingNSEvent; }
 
+	bool IsWorkspaceSessionActive() const { return bIsWorkspaceSessionActive; }
+
 #if WITH_EDITOR
     virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
 
@@ -91,7 +91,7 @@ public:
 
 public:
 
-	void OnDragEnter( FCocoaWindow* Window, void *InPasteboard );
+	void OnDragEnter(FCocoaWindow* Window, NSPasteboard* InPasteboard);
 	void OnDragOver( FCocoaWindow* Window );
 	void OnDragOut( FCocoaWindow* Window );
 	void OnDragDrop( FCocoaWindow* Window );
@@ -108,8 +108,6 @@ public:
 
 	void OnMouseCursorLock( bool bLockEnabled );
 
-	static FCocoaWindow* FindMacEventWindow( NSEvent* CocoaEvent );
-	static TSharedPtr< FMacWindow > FindMacWindowByNSWindow( FCocoaWindow* const WindowHandle );
 	static void ProcessEvent(FMacEvent const* const Event);
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
@@ -131,13 +129,13 @@ private:
 
 	void ResendEvent( NSEvent* Event );
 	FCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
-	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
+	TSharedPtr<FMacWindow> LocateWindowUnderCursor( const NSPoint Position );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 
 	void UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow );
 
-	void HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
+	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 #if WITH_EDITOR
 	void RecordUsage(EGestureEvent::Type Gesture);
@@ -156,9 +154,17 @@ private:
 	EMouseButtons::Type LastPressedMouseButton;
 
 	FCriticalSection WindowsMutex;
-	TArray< TSharedRef< FMacWindow > > Windows;
+	TArray<TSharedRef<FMacWindow>> Windows;
 
-	TSharedRef< class HIDInputInterface > HIDInput;
+	struct FSavedWindowOrderInfo
+	{
+		int32 WindowNumber;
+		int32 Level;
+		FSavedWindowOrderInfo(int32 InWindowNumber, int32 InLevel) : WindowNumber(InWindowNumber), Level(InLevel) {}
+	};
+	TArray<FSavedWindowOrderInfo> SavedWindowsOrder;
+
+	TSharedRef<class HIDInputInterface> HIDInput;
 
 	FCocoaWindow* DraggedWindow;
 
@@ -168,8 +174,6 @@ private:
 
 	bool bSystemModalMode;
 	bool bIsProcessingNSEvent;
-
-	TSharedPtr< FMacWindow > LastEventWindow;
 
 	/** The current set of modifier keys that are pressed. This is used to detect differences between left and right modifier keys on key up events*/
 	uint32 ModifierKeysFlags;
@@ -181,11 +185,19 @@ private:
 
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
+	bool bIsWorkspaceSessionActive;
+
 	/** Notification center observer for application activation events */
 	id AppActivationObserver;
 
 	/** Notification center observer for application deactivation events */
 	id AppDeactivationObserver;
+
+	/** Notification center observer for workspace activation events */
+	id WorkspaceActivationObserver;
+
+	/** Notification center observer for workspace deactivation events */
+	id WorkspaceDeactivationObserver;
 
 #if WITH_EDITOR
 	/** Holds the last gesture used to try and capture unique uses for gestures. */
@@ -195,9 +207,10 @@ private:
 	int32 GestureUsage[EGestureEvent::Count];
 #endif
 
-	void* EventMonitor;
+	id EventMonitor;
 
 	friend class FMacWindow;
+	friend class FMacEvent;
 };
 
 extern FMacApplication* MacApplication;

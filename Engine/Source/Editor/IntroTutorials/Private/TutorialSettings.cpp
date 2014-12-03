@@ -3,8 +3,8 @@
 #include "IntroTutorialsPrivatePCH.h"
 #include "TutorialSettings.h"
 
-UTutorialSettings::UTutorialSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTutorialSettings::UTutorialSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

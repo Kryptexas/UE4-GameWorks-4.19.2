@@ -15,7 +15,7 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InCo
 	Material = InComponent->GetMaterial(0);
 	AlternateMaterial = InComponent->GetMaterial(1);
 	MaterialSplitIndex = INDEX_NONE;
-	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene()->GetFeatureLevel());
+	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 
 	SourceSprite = InComponent->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
 }
@@ -153,12 +153,12 @@ void FPaperSpriteSceneProxy::SetSprite_RenderThread(const FSpriteDrawCallRecord&
 		Record.Color = NewDynamicData.Color;
 		Record.Destination = NewDynamicData.Destination;
 		Record.Texture = NewDynamicData.Texture;
-		Record.RenderVerts.Append(NewDynamicData.RenderVerts.GetTypedData(), SplitIndex);
+		Record.RenderVerts.Append(NewDynamicData.RenderVerts.GetData(), SplitIndex);
 
 		AltRecord.Color = NewDynamicData.Color;
 		AltRecord.Destination = NewDynamicData.Destination;
 		AltRecord.Texture = NewDynamicData.Texture;
-		AltRecord.RenderVerts.Append(NewDynamicData.RenderVerts.GetTypedData() + SplitIndex, NewDynamicData.RenderVerts.Num() - SplitIndex);
+		AltRecord.RenderVerts.Append(NewDynamicData.RenderVerts.GetData() + SplitIndex, NewDynamicData.RenderVerts.Num() - SplitIndex);
 	}
 	else
 	{

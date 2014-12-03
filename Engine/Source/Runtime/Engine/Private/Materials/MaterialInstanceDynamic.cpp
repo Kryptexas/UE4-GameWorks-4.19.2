@@ -7,8 +7,8 @@
 #include "EnginePrivate.h"
 #include "MaterialInstanceSupport.h"
 
-UMaterialInstanceDynamic::UMaterialInstanceDynamic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialInstanceDynamic::UMaterialInstanceDynamic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

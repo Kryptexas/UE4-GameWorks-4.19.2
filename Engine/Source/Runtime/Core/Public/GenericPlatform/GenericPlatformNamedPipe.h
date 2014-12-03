@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "Platform.h"
+#include "HAL/Platform.h"
+
+class FString;
 
 #if PLATFORM_SUPPORTS_NAMED_PIPES
 

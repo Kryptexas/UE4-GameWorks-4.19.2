@@ -357,6 +357,21 @@ public:
 		return Result;
 	}
 
+	virtual FString	GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		FString Result;
+		FString UserFilename(*ConvertToSandboxPath(Filename));
+		if (LowerLevel->FileExists(*UserFilename))
+		{
+			Result = LowerLevel->GetFilenameOnDisk(*UserFilename);
+		}
+		else if (OkForInnerAccess(Filename))
+		{
+			Result = LowerLevel->GetFilenameOnDisk(Filename);
+		}
+		return Result;
+	}
+
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		IFileHandle* Result = LowerLevel->OpenRead( *ConvertToSandboxPath( Filename ) );

@@ -2,6 +2,7 @@
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorAsset.h"
+#include "SPropertyEditorNewAsset.h"
 #include "PropertyNode.h"
 #include "PropertyEditor.h"
 #include "AssetThumbnail.h"
@@ -14,6 +15,7 @@
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
 #include "Particles/ParticleSystem.h"
+
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 DECLARE_DELEGATE( FOnCopy );
@@ -71,7 +73,6 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	PropertyHandle = InArgs._PropertyHandle;
 	OnSetObject = InArgs._OnSetObject;
 
-	UObject* Object = NULL;
 	if(PropertyEditor.IsValid())
 	{
 		UProperty* NodeProperty = PropertyEditor->GetPropertyNode()->GetProperty();
@@ -79,9 +80,34 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		check(ObjectProperty);
 
 		bAllowClear = !(NodeProperty->PropertyFlags & CPF_NoClear);
-		PropertyEditor->GetPropertyHandle()->GetValue( Object );
 		ObjectClass = ObjectProperty->PropertyClass;
 		bIsActor = ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() );
+
+		FString ClassFilterString = NodeProperty->GetMetaData("AllowedClasses");
+		if(ClassFilterString.IsEmpty())
+		{
+			CustomClassFilters.Add(ObjectClass);
+		}
+		else
+		{
+			TArray<FString> CustomClassFilterNames;
+			ClassFilterString.ParseIntoArray(&CustomClassFilterNames, TEXT(","), true);
+
+			for(auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
+			{
+				const FString& ClassName = *It;
+
+				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+				if(!Class)
+				{
+					Class = LoadObject<UClass>(nullptr, *ClassName);
+				}
+				if(Class)
+				{
+					CustomClassFilters.Add(Class);
+				}
+			}
+		}
 	}
 	else
 	{
@@ -89,8 +115,21 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		ObjectPath = InArgs._ObjectPath;
 		ObjectClass = InArgs._Class;
 		bIsActor = ObjectClass->IsChildOf( AActor::StaticClass() );
+
+		CustomClassFilters.Add(ObjectClass);
 	}
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
+
+	if (InArgs._NewAssetFactories.IsSet())
+	{
+		NewAssetFactories = InArgs._NewAssetFactories.GetValue();
+	}
+	else if (ObjectClass->GetClass() != UObject::StaticClass())
+	{
+		TArray<const UClass*> AllowedClasses;
+		AllowedClasses.Add(ObjectClass);
+		NewAssetFactories = PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses);
+	}
 	
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 	ChildSlot
@@ -172,7 +211,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		]
 	];
 
-	if(!bIsActor)
+	if(!bIsActor && InArgs._DisplayUseSelected)
 	{
 		ButtonBox->AddSlot()
 		.VAlign(VAlign_Center)
@@ -183,16 +222,19 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		];
 	}
 
-	ButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding( 2.0f, 0.0f )
-	.VAlign(VAlign_Center)
-	[
-		PropertyCustomizationHelpers::MakeBrowseButton(
-			FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnBrowse ),
-			TAttribute<FText>( this, &SPropertyEditorAsset::GetOnBrowseToolTip )
-			)
-	];
+	if(InArgs._DisplayBrowse)
+	{
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding( 2.0f, 0.0f )
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnBrowse ),
+				TAttribute<FText>( this, &SPropertyEditorAsset::GetOnBrowseToolTip )
+				)
+		];
+	}
 
 	if(bIsActor)
 	{
@@ -286,14 +328,22 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 		TSharedPtr<SceneOutliner::FOutlinerFilters> ActorFilters = MakeShareable( new SceneOutliner::FOutlinerFilters );
 		ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ) ) ) );
 
-		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object), bAllowClear, ActorFilters, FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );
+		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object),
+																	 bAllowClear,
+																	 ActorFilters,
+																	 FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected),
+																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ),
+																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );
 	}
 	else
 	{
-		TArray<const UClass*> AllowedClasses;
-		AllowedClasses.Add(ObjectClass);
-
-		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData, bAllowClear, &AllowedClasses, OnShouldFilterAsset, FOnAssetSelected::CreateSP( this, &SPropertyEditorAsset::OnAssetSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ) );
+		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData,
+																	 bAllowClear,
+																	 CustomClassFilters,
+																	 NewAssetFactories,
+																	 OnShouldFilterAsset,
+																	 FOnAssetSelected::CreateSP(this, &SPropertyEditorAsset::OnAssetSelected),
+																	 FSimpleDelegate::CreateSP(this, &SPropertyEditorAsset::CloseComboButton));
 	}
 }
 
@@ -502,7 +552,7 @@ void SPropertyEditorAsset::OnActorSelected( AActor* InActor )
 
 void SPropertyEditorAsset::OnGetAllowedClasses(TArray<const UClass*>& AllowedClasses)
 {
-	AllowedClasses.Add(ObjectClass);
+	AllowedClasses.Append(CustomClassFilters);
 }
 
 void SPropertyEditorAsset::OnOpenAssetEditor()

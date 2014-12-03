@@ -29,6 +29,13 @@ public:
 		// Rolls properties into a single menu item that will spawn a drag-drop
 		// menu for users to pick a node type from.
 		ConsolidatePropertyActions = (1<<0),
+
+		// Rolls bound node spawners into a single menu entry that will spawn 
+		// multiple nodes, each bound to a single binding.
+		ConsolidateBoundActions    = (1<<1),
+
+		// Will clear all action categories (except the section's root) 
+		FlattenCategoryHierarcy    = (1<<2),
 	};
 	
 public:

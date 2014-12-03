@@ -6,7 +6,7 @@
 /* FMessageTracer structors
  *****************************************************************************/
 
-FMessageTracer::FMessageTracer( )
+FMessageTracer::FMessageTracer()
 	: Breaking(false)
 	, ResetPending(false)
 	, Running(false)
@@ -15,7 +15,7 @@ FMessageTracer::FMessageTracer( )
 }
 
 
-FMessageTracer::~FMessageTracer( )
+FMessageTracer::~FMessageTracer()
 {
 	delete ContinueEvent;
 }
@@ -62,7 +62,7 @@ bool FMessageTracer::Tick( float DeltaTime )
 	}
 
 	// process new traces
-	TBaseDelegate_NoParams<void> Trace;
+	TraceDelegate Trace;
 
 	while (Traces.Dequeue(Trace))
 	{
@@ -171,7 +171,7 @@ void FMessageTracer::ProcessHandledMessage( IMessageContextRef Context, double T
 }
 
 
-void FMessageTracer::ProcessRemovedInterceptor( IInterceptMessagesRef Interceptor, FName MessageType, double TimeSeconds )
+void FMessageTracer::ProcessRemovedInterceptor( IMessageInterceptorRef Interceptor, FName MessageType, double TimeSeconds )
 {
 
 }
@@ -253,10 +253,17 @@ void FMessageTracer::ProcessSentMessage( IMessageContextRef Context, double Time
 }
 
 
-void FMessageTracer::ResetMessages( )
+void FMessageTracer::ResetMessages()
 {
 	MessageInfos.Reset();
 	MessageTypes.Reset();
+
+	for (TMap<FMessageAddress, FMessageTracerEndpointInfoPtr>::TIterator It(AddressesToEndpointInfos); It; ++It)
+	{
+		FMessageTracerEndpointInfoPtr& EndpointInfo = It.Value();
+		EndpointInfo->ReceivedMessages.Reset();
+		EndpointInfo->SentMessages.Reset();
+	}
 
 	MessagesResetDelegate.Broadcast();
 }

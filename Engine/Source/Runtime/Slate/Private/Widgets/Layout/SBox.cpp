@@ -3,6 +3,8 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SBox"), STAT_SlateOnPaint_SBox, STATGROUP_Slate );
+
 SBox::SBox()
 : ChildSlot()
 {

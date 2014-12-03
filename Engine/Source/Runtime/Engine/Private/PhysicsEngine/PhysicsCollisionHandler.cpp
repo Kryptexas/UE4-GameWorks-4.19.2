@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 
-UPhysicsCollisionHandler::UPhysicsCollisionHandler(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsCollisionHandler::UPhysicsCollisionHandler(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ImpactReFireDelay = 0.1f;
 }

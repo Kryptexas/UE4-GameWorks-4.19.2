@@ -8,10 +8,24 @@
 
 struct FReplicationFlags;
 
+/**
+ * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
+ * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
+ *
+ * @see [ActorComponent](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/Components/index.html#actorcomponents)
+ * @see USceneComponent
+ * @see UPrimitiveComponent
+ */
 UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UActorComponent(const FObjectInitializer& ObjectInitializer);
 
 	/** Main tick function for the Actor */
 	UPROPERTY()
@@ -32,6 +46,19 @@ protected:
 	 */
 	uint32 bRegistered:1;
 
+	/** If the render state is currently created for this component */
+	uint32 bRenderStateCreated:1;
+
+	/** If the physics state is currently created for this component */
+	uint32 bPhysicsStateCreated:1;
+
+	/** Is this component currently replicating? Should the network code consider it for replication? Owning Actor must be replicating first! */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category=ComponentReplication,meta=(DisplayName = "Component Replicates"))
+	uint32 bReplicates:1;
+
+	/** Is this component safe to ID over the network by name?  */
+	uint32 bNetAddressable:1;
+
 private:
 	/** Is this component in need of its whole state being sent to the renderer? */
 	uint32 bRenderStateDirty:1;
@@ -45,19 +72,15 @@ private:
 public:
 
 	/** Does this component automatically register with its owner */
-	UPROPERTY()
 	uint32 bAutoRegister:1;
 
 	/** Should this component be ticked in the editor */
-	UPROPERTY()
 	uint32 bTickInEditor:1;
 
 	/** If true, this component never needs a render update. */
-	UPROPERTY(transient)
 	uint32 bNeverNeedsRenderUpdate:1;
 
 	/** Can we tick this concurrently on other threads? */
-	UPROPERTY()
 	uint32 bAllowConcurrentTick:1;
 
 	/** True if this component was created by a construction script, and will be destroyed by DestroyConstructedComponents */
@@ -73,7 +96,6 @@ public:
 	uint32 bIsActive:1;
 
 	/** If TRUE, we call the virtual InitializeComponent */
-	UPROPERTY()
 	uint32 bWantsInitializeComponent:1;
 
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
@@ -166,20 +188,6 @@ public:
 	ENetMode GetNetMode() const;
 
 protected:
-	/** If the render state is currently created for this component */
-	uint32 bRenderStateCreated:1;
-
-	/** If the physics state is currently created for this component */
-	uint32 bPhysicsStateCreated:1;
-
-	/** Is this component currently replicating? Should the network code consider it for replication? Owning Actor must be replicating first! */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category=ComponentReplication,meta=(DisplayName = "Component Replicates"))
-	uint32 bReplicates:1;
-
-	/** Is this component safe to ID over the network by name?  */
-	UPROPERTY(transient)
-	uint32 bNetAddressable:1;
-
 
 	/** 
 	 * Pointer to the world that this component is currently registered with. 
@@ -429,13 +437,13 @@ public:
 	virtual void PostNetReceive() { }
 
 	/** Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation */
-	virtual TSharedPtr<class FComponentInstanceDataBase> GetComponentInstanceData() const { return NULL; }
+	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const { return NULL; }
 
 	/** The type of the component instance data that this component is interested in */
 	virtual FName GetComponentInstanceDataType() const { return NAME_None; }
 
 	/** Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData */
-	virtual void ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData ) {}
+	virtual void ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData ) {}
 
 	// Begin UObject interface.
 	virtual void BeginDestroy() override;

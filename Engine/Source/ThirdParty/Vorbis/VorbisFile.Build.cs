@@ -33,7 +33,14 @@ public class VorbisFile : ModuleRules
         {
             string VorbisLibPath = VorbisPath + "Lib/HTML5";
             PublicLibraryPaths.Add(VorbisLibPath);
-            PublicAdditionalLibraries.Add(VorbisLibPath + "/libvorbisfile.bc");
+            if (UEBuildConfiguration.bCompileForSize)
+            {
+                PublicAdditionalLibraries.Add(VorbisPath + "Lib/HTML5/libvorbisfile_Oz.bc");
+            }
+            else
+            {
+                PublicAdditionalLibraries.Add(VorbisPath + "Lib/HTML5/libvorbisfile.bc");
+            }
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{

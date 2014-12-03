@@ -2,16 +2,18 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/Light.h"
 #include "Engine/PointLight.h"
 #include "Engine/DirectionalLight.h"
+#include "Engine/GeneratedMeshAreaLight.h"
 #include "Components/ArrowComponent.h"
 #include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
 
-ALight::ALight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALight::ALight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	LightComponent = PCIP.CreateAbstractDefaultSubobject<ULightComponent>(this, TEXT("LightComponent0"));
+	LightComponent = ObjectInitializer.CreateAbstractDefaultSubobject<ULightComponent>(this, TEXT("LightComponent0"));
 
 	bHidden = true;
 	bCollideWhenPlacing = true;
@@ -152,10 +154,10 @@ void ALight::SetAffectTranslucentLighting(bool bNewValue)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-APointLight::APointLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UPointLightComponent>(TEXT("LightComponent0")))
+APointLight::APointLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPointLightComponent>(TEXT("LightComponent0")))
 {
-	PointLightComponent = CastChecked<UPointLightComponent>(LightComponent);
+	PointLightComponent = CastChecked<UPointLightComponent>(GetLightComponent());
 	PointLightComponent->Mobility = EComponentMobility::Stationary;
 
 	RootComponent = PointLightComponent;
@@ -165,9 +167,9 @@ void APointLight::PostLoad()
 {
 	Super::PostLoad();
 
-	if (LightComponent->Mobility == EComponentMobility::Static)
+	if (GetLightComponent()->Mobility == EComponentMobility::Static)
 	{
-		LightComponent->LightFunctionMaterial = NULL;
+		GetLightComponent()->LightFunctionMaterial = NULL;
 	}
 }
 
@@ -182,26 +184,26 @@ void APointLight::LoadedFromAnotherClass(const FName& OldClassName)
 		static FName PointLightMovable_NAME(TEXT("PointLightMovable"));
 		static FName PointLightStationary_NAME(TEXT("PointLightStationary"));
 
-		check(LightComponent != NULL);
+		check(GetLightComponent() != NULL);
 
 		if(OldClassName == PointLightStatic_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Static;
+			GetLightComponent()->Mobility = EComponentMobility::Static;
 		}
 		else if(OldClassName == PointLightMovable_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Movable;
+			GetLightComponent()->Mobility = EComponentMobility::Movable;
 		}
 		else if(OldClassName == PointLightStationary_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Stationary;
+			GetLightComponent()->Mobility = EComponentMobility::Stationary;
 		}
 	}
 }
 #endif // WITH_EDITOR
 
-ADirectionalLight::ADirectionalLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UDirectionalLightComponent>(TEXT("LightComponent0")))
+ADirectionalLight::ADirectionalLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UDirectionalLightComponent>(TEXT("LightComponent0")))
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -216,7 +218,7 @@ ADirectionalLight::ADirectionalLight(const class FPostConstructInitializePropert
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	UDirectionalLightComponent* DirectionalLightComponent = CastChecked<UDirectionalLightComponent>(LightComponent);
+	UDirectionalLightComponent* DirectionalLightComponent = CastChecked<UDirectionalLightComponent>(GetLightComponent());
 	DirectionalLightComponent->Mobility = EComponentMobility::Stationary;
 	DirectionalLightComponent->RelativeRotation = FRotator(-46.0f, 0.0f, 0.0f);
 	// Make directional light icons big since they tend to be important
@@ -226,7 +228,7 @@ ADirectionalLight::ADirectionalLight(const class FPostConstructInitializePropert
 	RootComponent = DirectionalLightComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = FColor(150, 200, 255);
@@ -246,9 +248,9 @@ void ADirectionalLight::PostLoad()
 {
 	Super::PostLoad();
 
-	if (LightComponent->Mobility == EComponentMobility::Static)
+	if (GetLightComponent()->Mobility == EComponentMobility::Static)
 	{
-		LightComponent->LightFunctionMaterial = NULL;
+		GetLightComponent()->LightFunctionMaterial = NULL;
 	}
 #if WITH_EDITORONLY_DATA
 	if(ArrowComponent != nullptr)
@@ -269,7 +271,7 @@ void ADirectionalLight::LoadedFromAnotherClass(const FName& OldClassName)
 		static FName DirectionalLightMovable_NAME(TEXT("DirectionalLightMovable"));
 		static FName DirectionalLightStationary_NAME(TEXT("DirectionalLightStationary"));
 
-		UDirectionalLightComponent* DirLightComp = CastChecked<UDirectionalLightComponent>(LightComponent);
+		UDirectionalLightComponent* DirLightComp = CastChecked<UDirectionalLightComponent>(GetLightComponent());
 
 		if(OldClassName == DirectionalLightStatic_NAME)
 		{
@@ -324,15 +326,24 @@ void APointLight::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 }
 #endif
 
-AGeneratedMeshAreaLight::AGeneratedMeshAreaLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGeneratedMeshAreaLight::AGeneratedMeshAreaLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	bEditable = false;
 #endif // WITH_EDITORONLY_DATA
 
-	LightComponent->CastStaticShadows = false;
+	GetLightComponent()->CastStaticShadows = false;
 }
 
-// EOF
+bool ALight::IsToggleable() const
+{
+	return !LightComponent->HasStaticLighting();
+}
 
+/** Returns LightComponent subobject **/
+ULightComponent* ALight::GetLightComponent() const { return LightComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ADirectionalLight::GetArrowComponent() const { return ArrowComponent; }
+#endif

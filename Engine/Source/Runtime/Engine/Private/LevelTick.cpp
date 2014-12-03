@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Components/SceneCaptureComponentCube.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
@@ -114,7 +116,7 @@ FDetailedTickStats::FDetailedTickStats( int32 InNumObjectsToReport, float InTime
 FDetailedTickStats::~FDetailedTickStats()
 {
 	// remove callback as we are dead
-	FCoreDelegates::PreGarbageCollect.RemoveRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.RemoveRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
 }
 
 /**
@@ -174,7 +176,7 @@ void FDetailedTickStats::EndObject( UObject* Object, float DeltaTime, bool bForS
 		{
 			GCCallBackRegistered = true;
 			// register callback so that we can avoid finding the wrong stats for new objects reusing memory that used to be associated with a different object
-			FCoreDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
+			FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
 		}
 
 		FTickStats NewTickStats;
@@ -386,7 +388,7 @@ bool UWorld::IsPaused()
 	return ( (Info->Pauser != NULL && TimeSeconds >= PauseDelay) ||
 				(bRequestedBlockOnAsyncLoading && GetNetMode() == NM_Client) ||
 				(GEngine->ShouldCommitPendingMapChange(this)) ||
-				(IsPlayInEditor() && bDebugPauseExecution && !bDebugStepExecution) );
+				(IsPlayInEditor() && bDebugPauseExecution) );
 }
 
 
@@ -1237,11 +1239,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		BroadcastPostTickFlush(RealDeltaSeconds); // note: undilated time is being used here
 	}
 
-	// Update SpeedTree wind objects.
-	Scene->UpdateSpeedTreeWind(TimeSeconds);
-
 	if( Scene )
 	{
+		// Update SpeedTree wind objects.
+		Scene->UpdateSpeedTreeWind(TimeSeconds);
+
 		USceneCaptureComponent2D::UpdateDeferredCaptures( Scene );
 		USceneCaptureComponentCube::UpdateDeferredCaptures( Scene );
 	}
@@ -1259,8 +1261,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	}
 
 	// Finish up.
-	bDebugStepExecution = false; // If debugging, clean out step check
-
 	if(bDebugFrameStepExecution)
 	{
 		bDebugPauseExecution = true;
@@ -1273,7 +1273,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	if ( FullPurgeTriggered )
 	{
-		// NOTE: This will block until all current Async I/O requests have been completed before doing the GC.
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
 		CleanupActors();
 		FullPurgeTriggered = false;

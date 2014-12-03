@@ -6,7 +6,6 @@
 #include "SSkeletonAnimNotifies.h"
 #include "IDocumentation.h"
 #include "SAnimBlueprintParentPlayerList.h"
-#include "SSkeletonSlotGroupNames.h"
 #include "SSkeletonSlotNames.h"
 #include "SSkeletonSmartNameManager.h"
 
@@ -56,7 +55,7 @@ const FName FPersonaModes::AnimBlueprintEditMode( "GraphName" );
 // FPersonaAppMode
 
 FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InModeName)
-	: FApplicationMode(InModeName)
+	: FApplicationMode(InModeName, FPersonaModes::GetLocalizedMode)
 {
 	MyPersona = InPersona;
 
@@ -67,7 +66,6 @@ FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InM
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetManagerTabSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotGroupNamesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonCurveNameManagerSummoner(InPersona)));
 }
 
@@ -162,7 +160,7 @@ FAnimationAssetBrowserSummoner::FAnimationAssetBrowserSummoner(TSharedPtr<class 
 	: FWorkflowTabFactory(FPersonaTabs::AssetBrowserID, InHostingApp)
 {
 	TabLabel = LOCTEXT("AssetBrowserTabTitle", "Asset Browser");
-	TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.ContentBrowser");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.TabIcon");
 
 	EnableTabPadding();
 	bIsSingleton = true;
@@ -186,6 +184,7 @@ FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditor
 	: FWorkflowTabFactory(FPersonaTabs::PreviewViewportID, InHostingApp)
 {
 	TabLabel = LOCTEXT("ViewportTabTitle", "Viewport");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 	bIsSingleton = true;
 

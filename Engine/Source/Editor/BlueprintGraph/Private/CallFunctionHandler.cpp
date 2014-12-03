@@ -225,7 +225,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 								{
 									UClass* InterfaceClass = CastChecked<UClass>(PinMatch->PinType.PinSubCategoryObject.Get());
 
-									FBPTerminal* ClassTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+									FBPTerminal* ClassTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 									ClassTerm->Name       = InterfaceClass->GetName();
 									ClassTerm->bIsLiteral = true;
 									ClassTerm->Source     = Node;
@@ -496,21 +496,12 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 	UFunction* Function = FindFunction(Context, Node);
 	if (Function != NULL)
 	{
-		// Auto-created term defaults
-		TArray<FString> AutoCreateRefTermPinNames;
-		const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
-		if (bHasAutoCreateRefTerms)
-		{
-			CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
-		}
-
 		TArray<FString> DefaultToSelfParamNames;
 		TArray<FString> RequiresSetValue;
 
 		if (Function->HasMetaData(FBlueprintMetadata::MD_DefaultToSelf))
 		{
 			FString const DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-			AutoCreateRefTermPinNames.Remove(DefaltToSelfPinName);
 
 			DefaultToSelfParamNames.Add(DefaltToSelfPinName);
 		}
@@ -519,7 +510,6 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			const bool bHasIntrinsicWorldContext = Context.Blueprint->ParentClass->GetDefaultObject()->ImplementsGetWorld();
 
 			FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
-			AutoCreateRefTermPinNames.Remove(WorldContextPinName);
 
 			if (bHasIntrinsicWorldContext)
 			{
@@ -553,38 +543,6 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 					CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "PinMustHaveConnection_Error", "Pin @@ must have a connection").ToString(), Pin);
 				}
 			}
-
-			// Check for default term for ref parameters
-			if (bHasAutoCreateRefTerms && (AutoCreateRefTermPinNames.Contains(Pin->PinName)))
-			{
-				if (Pin->PinType.bIsReference
-					&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
-					&& !CompilerContext.GetSchema()->IsSelfPin(*Pin)
-					&& (Pin->Direction == EGPD_Input)
-					&& !bIsConnected
-					&& (Pin->PinType.bIsArray || !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject))
-				{
-					// These terms have to be class members, because they hold default values.  If we don't have a valid ubergraph context, we've already failed, so no use creating the term
-					if (CompilerContext.UbergraphContext != NULL)
-					{
-						check(CompilerContext.UbergraphContext->NetNameMap);
-						FBPTerminal* Term = new (Context.EventGraphLocals) FBPTerminal();
-						Term->CopyFromPin(Pin, *CompilerContext.UbergraphContext->NetNameMap->MakeValidName(Pin));
-						Term->Name += TEXT("_RefProperty");
-						Term->bIsLocal = true;
-						if (!Pin->PinType.bIsArray)
-						{
-							Term->PropertyDefault = Pin->DefaultObject ? Pin->DefaultObject->GetPathName() : Pin->DefaultValue;
-						}
-
-						Context.NetMap.Add(Pin, Term);
-					}
-					else
-					{
-						CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "PinMustHaveConnection_Error", "Pin @@ must have a connection").ToString(), Pin);
-					}
-				}
-			}
 		}
 	}
 
@@ -600,7 +558,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		// from object to interface
 		if ((Pin->PinType.PinCategory == K2Schema->PC_Interface) && (Pin->LinkedTo[0]->PinType.PinCategory == K2Schema->PC_Object))
 		{
-			FBPTerminal* InterfaceTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+			FBPTerminal* InterfaceTerm = Context.CreateLocalTerminal();
 			InterfaceTerm->CopyFromPin(Pin, Context.NetNameMap->MakeValidName(Pin) + TEXT("_CastInput"));
 			InterfaceTerm->Source = Node;
 
@@ -614,12 +572,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 void FKCHandler_CallFunction::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net)
 {
 	// This net is an output from a function call
-	FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-
-	FString NetName = Context.NetNameMap->MakeValidName(Net);
-
-	Term->CopyFromPin(Net, NetName);
-
+	FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 	Context.NetMap.Add(Net, Term);
 }
 

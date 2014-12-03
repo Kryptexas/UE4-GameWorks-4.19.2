@@ -88,42 +88,93 @@ void SDetailsViewBase::HideFilterArea(bool bHide)
 	DetailsViewArgs.bAllowSearch = !bHide;
 }
 
-void SDetailsViewBase::HighlightProperty(const UProperty* Property)
+static void GetPropertiesInOrderDisplayedRecursive(const TArray< TSharedRef<IDetailTreeNode> >& TreeNodes, TArray< FPropertyPath > &OutLeaves)
 {
-	// Clear the previously enabled highlight:
-	auto PrevPropertyPtr = PrevHighlightedProperty.Pin();
-	if( PrevPropertyPtr.IsValid() )
+	for (auto& TreeNode : TreeNodes)
 	{
-		PrevPropertyPtr->SetIsHighlighted( false );
-	}
-
-	if( !Property )
-	{
-		return;
-	}
-
-	// Find the newly highlighted node, and enable the highlight:
-	FName PropertyOwnerFName = Property->GetOwnerStruct()->GetFName();
-	FClassInstanceToPropertyMap* PropertyNodeMap = ClassToPropertyMap.Find(PropertyOwnerFName);
-	if( PropertyNodeMap )
-	{
-		FName InstanceName = NAME_None;
-		FPropertyNodeMap* NodeMap = PropertyNodeMap->Find(InstanceName);
-		if( NodeMap )
+		if (TreeNode->IsLeaf())
 		{
-			TSharedPtr<FPropertyNode>* PropertyNode = NodeMap->PropertyNameToNode.Find(Property->GetFName());
-			if( PropertyNode )
+			FPropertyPath Path = TreeNode->GetPropertyPath();
+			// Some leaf nodes are not associated with properties, specifically the collision presets.
+			// @todo doc: investigate what we can do about this, result is that for these fields
+			// we can't highlight hte property in the diff tool.
+			if( Path.GetNumProperties() != 0 )
 			{
-				(*PropertyNode)->SetIsHighlighted( true );
-				PrevHighlightedProperty = *PropertyNode;
-				auto TreeNodePtr = (*PropertyNode)->GetTreeNode();
-				if ( TreeNodePtr.IsValid() )
-				{
-					DetailTree->RequestScrollIntoView(TreeNodePtr.ToSharedRef());
-				}
+				OutLeaves.Push(Path);
+			}
+		}
+		else
+		{
+			TArray< TSharedRef<IDetailTreeNode> > Children;
+			TreeNode->GetChildren(Children);
+			GetPropertiesInOrderDisplayedRecursive(Children, OutLeaves);
+		}
+	}
+}
+TArray< FPropertyPath > SDetailsViewBase::GetPropertiesInOrderDisplayed() const
+{
+	TArray< FPropertyPath > Ret;
+	GetPropertiesInOrderDisplayedRecursive(RootTreeNodes, Ret);
+	return Ret;
+}
+
+static TSharedPtr< IDetailTreeNode > FindTreeNodeFromPropertyRecursive( const TArray< TSharedRef<IDetailTreeNode> >& Nodes, const FPropertyPath& Property )
+{
+	for (auto& TreeNode : Nodes)
+	{
+		if (TreeNode->IsLeaf())
+		{
+			FPropertyPath tmp = TreeNode->GetPropertyPath();
+			if( Property == tmp )
+			{
+				return TreeNode;
+			}
+		}
+		else
+		{
+			TArray< TSharedRef<IDetailTreeNode> > Children;
+			TreeNode->GetChildren(Children);
+			auto Result = FindTreeNodeFromPropertyRecursive(Children, Property);
+			if( Result.IsValid() )
+			{
+				return Result;
 			}
 		}
 	}
+
+	return TSharedPtr< IDetailTreeNode >();
+}
+
+void SDetailsViewBase::HighlightProperty(const FPropertyPath& Property)
+{
+	auto PrevHighlightedNodePtr = CurrentlyHighlightedNode.Pin();
+	if (PrevHighlightedNodePtr.IsValid())
+	{
+		PrevHighlightedNodePtr->SetIsHighlighted(false);
+	}
+
+	auto NextNodePtr = FindTreeNodeFromPropertyRecursive( RootTreeNodes, Property );
+	if (NextNodePtr.IsValid())
+	{
+		NextNodePtr->SetIsHighlighted(true);
+		auto ParentCategory = NextNodePtr->GetParentCategory();
+		if (ParentCategory.IsValid())
+		{
+			DetailTree->SetItemExpansion(ParentCategory.ToSharedRef(), true);
+		}
+		DetailTree->RequestScrollIntoView(NextNodePtr.ToSharedRef());
+	}
+	CurrentlyHighlightedNode = NextNodePtr;
+}
+
+void SDetailsViewBase::ShowAllAdvancedProperties()
+{
+	CurrentFilter.bShowAllAdvanced = true;
+}
+
+void SDetailsViewBase::SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChangedDelegate)
+{
+	OnDisplayedPropertiesChangedDelegate = InOnDisplayedPropertiesChangedDelegate;
 }
 
 EVisibility SDetailsViewBase::GetTreeVisibility() const
@@ -199,7 +250,6 @@ void SDetailsViewBase::CreateColorPickerWindow(const TSharedRef< FPropertyEditor
 	OpenColorPicker(PickerArgs);
 }
 
-
 void SDetailsViewBase::SetColorPropertyFromColorPicker(FLinearColor NewColor)
 {
 	const TSharedPtr< FPropertyNode > PinnedColorPropertyNode = ColorPropertyNode.Pin();
@@ -216,7 +266,7 @@ void SDetailsViewBase::SetColorPropertyFromColorPicker(FLinearColor NewColor)
 
 			PinnedColorPropertyNode->NotifyPreChange(Property, GetNotifyHook());
 
-			FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ValueSet);
 			PinnedColorPropertyNode->NotifyPostChange(ChangeEvent, GetNotifyHook());
 		}
 	}
@@ -230,7 +280,7 @@ void SDetailsViewBase::OnColorPickerWindowClosed(const TSharedRef<SWindow>& Wind
 		UProperty* Property = PinnedColorPropertyNode->GetProperty();
 		if (Property && PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ArrayAdd);
+			FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ArrayAdd);
 			PinnedColorPropertyNode->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -258,7 +308,6 @@ bool SDetailsViewBase::IsPropertyEditingEnabled() const
 	return !IsPropertyEditingEnabledDelegate.IsBound() || IsPropertyEditingEnabledDelegate.Execute();
 }
 
-
 void SDetailsViewBase::SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler )
 {
 	KeyframeHandler = InKeyframeHandler;
@@ -267,6 +316,16 @@ void SDetailsViewBase::SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandl
 TSharedPtr<IDetailKeyframeHandler> SDetailsViewBase::GetKeyframeHandler() 
 {
 	return KeyframeHandler;
+}
+
+void SDetailsViewBase::SetExtensionHandler(TSharedPtr<class IDetailPropertyExtensionHandler> InExtensionHandler)
+{
+	ExtensionHandler = InExtensionHandler;
+}
+
+TSharedPtr<IDetailPropertyExtensionHandler> SDetailsViewBase::GetExtensionHandler()
+{
+	return ExtensionHandler;
 }
 
 void SDetailsViewBase::SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance OnGetGenericDetails)
@@ -301,6 +360,11 @@ void SDetailsViewBase::RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode,
 
 void SDetailsViewBase::RefreshTree()
 {
+	if (OnDisplayedPropertiesChangedDelegate.IsBound())
+	{
+		OnDisplayedPropertiesChangedDelegate.Execute();
+	}
+
 	DetailTree->RequestTreeRefresh();
 }
 
@@ -491,7 +555,8 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutBuilderImpl& CustomD
 				FClassInstanceToPropertyMap& InstancedPropertyMap = ClassToPropertyMap.FindChecked(Class->GetFName());
 				for (FClassInstanceToPropertyMap::TIterator InstanceIt(InstancedPropertyMap); InstanceIt; ++InstanceIt)
 				{
-					CustomDetailLayout.SetCurrentCustomizationClass(CastChecked<UClass>(Class), InstanceIt.Key());
+					FName Key = InstanceIt.Key();
+					CustomDetailLayout.SetCurrentCustomizationClass(CastChecked<UClass>(Class), Key);
 
 					const FOnGetDetailCustomizationInstance& DetailDelegate = LayoutIt.Value()->DetailLayoutDelegate;
 
@@ -556,13 +621,13 @@ bool SDetailsViewBase::SupportsKeyboardFocus() const
 	return DetailsViewArgs.bSearchInitialKeyFocus && SearchBox->SupportsKeyboardFocus() && GetFilterBoxVisibility() == EVisibility::Visible;
 }
 
-FReply SDetailsViewBase::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
+FReply SDetailsViewBase::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	FReply Reply = FReply::Handled();
 
-	if (InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared)
+	if (InFocusEvent.GetCause() != EFocusCause::Cleared)
 	{
-		Reply.SetKeyboardFocus(SearchBox.ToSharedRef(), InKeyboardFocusEvent.GetCause());
+		Reply.SetUserFocus(SearchBox.ToSharedRef(), InFocusEvent.GetCause());
 	}
 
 	return Reply;
@@ -607,6 +672,15 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 		}
 		DeferredActions.Empty();
 	}
+
+	if( RootPropertyNode == RootNodePendingKill )
+	{
+		// Reaquire the root property node.  It may have been changed by the deferred actions if something like a blueprint editor forcefully resets a details panel during a posteditchange
+		RootPropertyNode = GetRootNode();
+
+		RestoreExpandedItems();
+	}
+
 
 	bool bValidateExternalNodes = true;
 	FPropertyNode::DataValidationResult Result = RootPropertyNode->EnsureDataIsValid();
@@ -755,6 +829,13 @@ void SDetailsViewBase::SaveExpandedItems()
 	TArray<FString> ExpandedPropertyItems;
 	GetExpandedItems(RootPropertyNode, ExpandedPropertyItems);
 
+	// Handle spaces in expanded node names by wrapping them in quotes
+	for( FString& String : ExpandedPropertyItems )
+	{
+		String.InsertAt(0, '"');
+		String.AppendChar('"');
+	}
+
 	TArray<FString> ExpandedCustomItems = ExpandedDetailNodes.Array();
 
 	// Expanded custom items may have spaces but SetSingleLineArray doesnt support spaces (treats it as another element in the array)
@@ -860,7 +941,8 @@ void SDetailsViewBase::UpdateFilteredDetails()
 
 		RootTreeNodes = DetailLayout->GetRootTreeNodes();
 	}
-	DetailTree->RequestTreeRefresh();
+
+	RefreshTree();
 }
 
 /**
@@ -1068,9 +1150,15 @@ void SDetailsViewBase::UpdatePropertyMap()
 
 	CustomUpdatePropertyMap();
 
-	// Ask for custom detail layouts
-	QueryCustomDetailLayout(*DetailLayout);
-
+	// Ask for custom detail layouts, unless disabled. One reason for disabling custom layouts is that the custom layouts
+	// inhibit our ability to find a single property's tree node. This is problematic for the diff and merge tools, that need
+	// to display and highlight each changed property for the user. We could whitelist 'good' customizations here if 
+	// we can make them work with the diff/merge tools.
+	if( !bDisableCustomDetailLayouts )
+	{
+		QueryCustomDetailLayout(*DetailLayout);
+	}
+	
 	DetailLayout->GenerateDetailLayout();
 
 	UpdateFilteredDetails();

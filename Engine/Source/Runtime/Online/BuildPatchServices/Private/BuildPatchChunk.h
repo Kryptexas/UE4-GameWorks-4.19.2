@@ -6,6 +6,28 @@
 
 #pragma once
 
+#include "BuildPatchChunk.generated.h"
+
+/**
+ * A UStruct wrapping SHA1 hash data for serialization
+ */
+USTRUCT()
+struct FSHAHashData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	uint8 Hash[FSHA1::DigestSize];
+
+	FSHAHashData();
+
+	bool operator==(const FSHAHashData& Other) const;
+	bool operator!=(const FSHAHashData& Other) const;
+	FString ToString() const;
+};
+
+static_assert(FSHA1::DigestSize == 20, "If this changes a lot of stuff here will break!");
+
 /**
  * Constant values and typedefs
  */
@@ -25,12 +47,6 @@ namespace FBuildPatchData
 		FileData			= 1,
 	};
 }
-
-// The chunk header magic codeword, for quick checking that the opened file is a chunk file.
-#define CHUNK_HEADER_MAGIC		0xB1FE3AA2
-
-// The chunk header version number.
-#define CHUNK_HEADER_VERSION	2
 
 /**
  * Declares a struct to store the info for a chunk header
@@ -63,24 +79,20 @@ struct FChunkHeader
 	// The ChunkHash for this chunk
 	uint64 RollingHash;
 	// The FileHash for this chunk
-	FSHAHash SHAHash;
+	FSHAHashData SHAHash;
 	// How the chunk data is stored
 	uint8 StoredAs;
 
 	/**
 	 * Default Constructor sets the magic and version ready for writing out
 	 */
-	FChunkHeader()
-		: Magic( CHUNK_HEADER_MAGIC )
-		, Version( CHUNK_HEADER_VERSION )
-		, HashType( HASH_ROLLING )
-	{}
+	FChunkHeader();
 
 	/**
 	 * Checks if the Header Magic was set to the correct value
 	 * @return	true if the header magic value is correct
 	 */
-	const bool IsValidMagic() const { return Magic == CHUNK_HEADER_MAGIC; }
+	const bool IsValidMagic() const;
 
 	/**
 	 * Serialization operator.
@@ -88,97 +100,7 @@ struct FChunkHeader
 	 * @param	Header		Header to serialize
 	 * @return	Passed in archive
 	 */
-	friend FArchive& operator << ( FArchive& Ar, FChunkHeader& Header )
-	{
-		// The constant sizes for each version of a header struct. Must be updated
-		// If new member variables are added the version MUST be bumped and handled properly here,
-		// and these values must never change.
-		static const uint32 Version1Size = 41;
-		static const uint32 Version2Size = 62;
-		// Calculate how much space left in the archive for reading data ( will be 0 when writing )
-		const int64 ArchiveSizeLeft = Ar.TotalSize() - Ar.Tell();
-		// Make sure the archive has enough data to read from, or we are saving instead.
-		bool bSuccess = Ar.IsSaving() || ( ArchiveSizeLeft >= Version1Size );
-		if( bSuccess )
-		{
-			Ar	<< Header.Magic
-				<< Header.Version
-				<< Header.HeaderSize
-				<< Header.DataSize
-				<< Header.Guid
-				<< Header.RollingHash
-				<< Header.StoredAs;
-
-			// From version 2, we have a hash type choice. Previous versions default as only rolling
-			if( Header.Version >= 2 )
-			{
-				bSuccess = Ar.IsSaving() || ( ArchiveSizeLeft >= Version2Size );
-				if( bSuccess )
-				{
-					Ar << Header.SHAHash;
-					Ar << Header.HashType;
-				}
-			}
-		}
-
-		// If we had a size error, zero out the header values
-		if( !bSuccess )
-		{
-			Header.Magic = 0;
-			Header.Version = 0;
-			Header.HeaderSize = 0;
-			Header.DataSize = 0;
-			Header.Guid.Invalidate();
-			Header.RollingHash = 0;
-			Header.StoredAs = 0;
-		}
-
-		return Ar;
-	}
-};
-
-/**
- * Declares a struct to store the info for a chunk part
- */
-struct FChunkPart
-{
-	// The GUID of the chunk containing this part
-	FGuid  Guid;
-	// The offset of the first byte into the chunk
-	uint32 Offset;
-	// The size of this part
-	uint32 Size;
-
-	/**
-	 * Default Constructor
-	 */
-	FChunkPart()
-		: Guid()
-		, Offset( 0 )
-		, Size( 0 )
-	{}
-};
-
-/**
- * Declares a struct to store the info about a piece of a chunk that is inside a file
- */
-struct FFileChunkPart
-{
-	// The file containing this piece
-	FString Filename;
-	// The offset into the file of this piece
-	uint64 FileOffset;
-	// The FChunkPart that can be salvaged from this file
-	FChunkPart ChunkPart;
-
-	/**
-	 * Default Constructor
-	 */
-	FFileChunkPart()
-		: Filename()
-		, FileOffset( 0 )
-		, ChunkPart()
-	{}
+	friend FArchive& operator<< (FArchive& Ar, FChunkHeader& Header);
 };
 
 /**

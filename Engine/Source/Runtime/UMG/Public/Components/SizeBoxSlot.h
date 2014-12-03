@@ -13,6 +13,19 @@ class UMG_API USizeBoxSlot : public UPanelSlot
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** The padding area between the slot and the content it contains. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (SizeBox Slot)")
+	FMargin Padding;
+
+	/** The alignment of the object horizontally. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (SizeBox Slot)")
+	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
+
+	/** The alignment of the object vertically. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (SizeBox Slot)")
+	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+
+public:
 
 	UFUNCTION(BlueprintCallable, Category="Layout (SizeBox Slot)")
 	void SetPadding(FMargin InPadding);
@@ -33,19 +46,6 @@ public:
 	void BuildSlot(TSharedRef<SBox> InSizeBox);
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-
-protected:
-	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (SizeBox Slot)")
-	FMargin Padding;
-
-	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (SizeBox Slot)")
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (SizeBox Slot)")
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 private:
 

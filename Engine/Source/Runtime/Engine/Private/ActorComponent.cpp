@@ -2,10 +2,13 @@
 // ActorComponent.cpp: Actor component implementation.
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
+#include "Engine/LevelStreamingPersistent.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
@@ -96,8 +99,8 @@ FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 }
 
 
-UActorComponent::UActorComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
@@ -289,16 +292,14 @@ void UActorComponent::BeginDestroy()
 		UninitializeComponent();
 	}
 
+	ExecuteUnregisterEvents();
+
 	// Ensure that we call OnComponentDestroyed before we destroy this component
 	if(bHasBeenCreated)
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		//UE_LOG(LogActor, Warning, TEXT("UChildActorComponent::BeginDestroy called on '%s' before without OnComponentDestroyed being called."), *this->GetPathName());
-#endif
 		OnComponentDestroyed();
 	}
 
-	ExecuteUnregisterEvents();
 	World = NULL;
 
 	// Remove from the parent's OwnedComponents list
@@ -449,6 +450,7 @@ void UActorComponent::OnUnregister()
 void UActorComponent::InitializeComponent()
 {
 	check(bRegistered);
+	check(!bHasBeenInitialized);
 	bHasBeenInitialized = true;
 }
 
@@ -604,7 +606,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		// can happen with undo because the owner will be restored "next"
 		//checkf(!Owner->IsPendingKill(), TEXT("%s"), *GetFullName());
 
-		if(InWorld != GetOwner()->GetWorld())
+		if(InWorld != Owner->GetWorld())
 		{
 			// The only time you should specify a scene that is not GetOwner()->GetWorld() is when you don't have an Actor
 			UE_LOG(LogActorComponent, Log, TEXT("RegisterComponentWithWorld: (%s) Specifying a world, but an Owner Actor found, and InWorld is not GetOwner()->GetWorld()"), *GetPathName());
@@ -616,6 +618,31 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 
 	ExecuteRegisterEvents();
 	RegisterAllComponentTickFunctions(true);
+
+	if (Owner == nullptr || Owner->bActorInitialized)
+	{
+		if (!bHasBeenInitialized && bWantsInitializeComponent)
+		{
+			InitializeComponent();
+		}
+	}
+
+	// If this is a blueprint created component and it has component children they can miss getting registered in some scenarios
+	if (bCreatedByConstructionScript)
+	{
+		TArray<UObject*> Children;
+		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
+
+		for (UObject* Child : Children)
+		{
+			UActorComponent* ChildComponent = Cast<UActorComponent>(Child);
+			if (ChildComponent && !ChildComponent->IsRegistered())
+			{
+				ChildComponent->RegisterComponentWithWorld(InWorld);
+			}
+		}
+
+	}
 }
 
 void UActorComponent::RegisterComponent()
@@ -655,7 +682,13 @@ void UActorComponent::UnregisterComponent()
 
 void UActorComponent::DestroyComponent()
 {
-	// First, unregister if registered
+	// Ensure that we call UninitializeComponent before we destroy this component
+	if (bHasBeenInitialized)
+	{
+		UninitializeComponent();
+	}
+
+	// Unregister if registered
 	if(IsRegistered())
 	{
 		UnregisterComponent();
@@ -1140,13 +1173,10 @@ void UActorComponent::SetIsReplicated(bool ShouldReplicate)
 	check(GetComponentClassCanReplicate()); // Only certain component classes can replicate!
 	bReplicates = ShouldReplicate;
 
-	if (ShouldReplicate)
+	AActor* Owner = GetOwner();
+	if (Owner)
 	{
-		AActor* Owner = GetOwner();
-		if (Owner)
-		{
-			Owner->ReplicatedComponents.AddUnique( this );
-		}
+		Owner->UpdateReplicatedComponent( this );
 	}
 }
 

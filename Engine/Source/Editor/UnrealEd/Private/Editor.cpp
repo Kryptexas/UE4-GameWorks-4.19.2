@@ -89,6 +89,8 @@
 #include "BehaviorTree/BehaviorTreeManager.h"
 
 #include "HotReloadInterface.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -140,6 +142,7 @@ FEditorDelegates::FOnBlueprintContextMenuCreated		FEditorDelegates::OnBlueprintC
 FSimpleMulticastDelegate								FEditorDelegates::OnShutdownPostPackagesSaved;
 FEditorDelegates::FOnAssetsPreDelete					FEditorDelegates::OnAssetsPreDelete;
 FEditorDelegates::FOnAssetsDeleted						FEditorDelegates::OnAssetsDeleted;
+FSimpleMulticastDelegate								FEditorDelegates::OnActionAxisMappingsChanged;
 
 /*-----------------------------------------------------------------------------
 	Globals.
@@ -163,10 +166,10 @@ static inline USelection*& PrivateGetSelectedObjects()
 
 static void PrivateInitSelectedSets()
 {
-	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
+	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FObjectInitializer());
 	PrivateGetSelectedActors()->AddToRoot();
 
-	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
+	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FObjectInitializer());
 	PrivateGetSelectedObjects()->AddToRoot();
 }
 
@@ -180,8 +183,8 @@ static void PrivateDestroySelectedSets()
 #endif
 }
 
-UEditorEngine::UEditorEngine(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UEditorEngine::UEditorEngine(const class FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	if (!IsRunningCommandlet())
 	{
@@ -204,7 +207,7 @@ UEditorEngine::UEditorEngine(const class FPostConstructInitializeProperties& PCI
 				, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
 				, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
 				, EditorCylinderMesh(TEXT("/Engine/EditorMeshes/EditorCylinder"))
-				, SmallFont(TEXT("/Engine/EditorResources/SmallFont"))
+				, SmallFont(TEXT("/Engine/EngineFonts/Roboto"))
 			{
 			}
 		};
@@ -417,8 +420,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
 
 	// Allocate temporary model.
-	TempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
-	ConversionTempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
+	TempModel = new UModel( FObjectInitializer(),NULL, 1 );
+	ConversionTempModel = new UModel( FObjectInitializer(),NULL, 1 );
 
 	// create the timer manager
 	TimerManager = MakeShareable( new FTimerManager() );
@@ -495,9 +498,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FSlateApplication::Get().SetAppIcon(FEditorStyle::GetBrush(TEXT("Editor.AppIcon")));
 
 	FCoreDelegates::ModalErrorMessage.BindUObject(this, &UEditorEngine::OnModalMessageDialog);
-	FCoreDelegates::ShouldLoadOnTop.BindUObject(this, &UEditorEngine::OnShouldLoadOnTop);
+	FCoreUObjectDelegates::ShouldLoadOnTop.BindUObject(this, &UEditorEngine::OnShouldLoadOnTop);
 	FCoreDelegates::PreWorldOriginOffset.AddUObject(this, &UEditorEngine::PreWorldOriginOffset);
-	FCoreDelegates::OnAssetLoaded.AddUObject(this, &UEditorEngine::OnAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddUObject(this, &UEditorEngine::OnAssetLoaded);
 	FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UEditorEngine::OnLevelAddedToWorld);
 	FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UEditorEngine::OnLevelRemovedFromWorld);
 	FLevelStreamingGCHelper::OnGCStreamedOutLevels.AddUObject(this, &UEditorEngine::OnGCStreamedOutLevels);
@@ -582,7 +585,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		bool bEnvironmentQueryEditor = false;
 		GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnvironmentQueryEditor, GEngineIni);
-		if (bEnvironmentQueryEditor)
+		if (bEnvironmentQueryEditor || GetDefault<UEditorExperimentalSettings>()->bEQSEditor)
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
@@ -745,9 +748,9 @@ void UEditorEngine::FinishDestroy()
 		// Unregister events
 		FEditorDelegates::MapChange.RemoveAll(this);
 		FCoreDelegates::ModalErrorMessage.Unbind();
-		FCoreDelegates::ShouldLoadOnTop.Unbind();
+		FCoreUObjectDelegates::ShouldLoadOnTop.Unbind();
 		FCoreDelegates::PreWorldOriginOffset.RemoveAll(this);
-		FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+		FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 		FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 		FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);
@@ -989,12 +992,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		if (!PlayWorld)
 		{
 			// Adjust the global volume multiplier if the window has focus and there is no pie world or no viewport overriding audio.
-			GVolumeMultiplier = GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel;
+			FApp::SetVolumeMultiplier( GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel );
 		}
 		else
 		{
 			// If there is currently a pie world a viewport is overriding audio settings do not adjust the volume.
-			GVolumeMultiplier = 1.0f;
+			FApp::SetVolumeMultiplier( 1.0f );
 		}
 	}
 
@@ -1473,7 +1476,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 }
 
-float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
+float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing ) const
 {
 	float MaxTickRate = 0.0f;
 	if( !ShouldThrottleCPUUsage() )
@@ -2127,9 +2130,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 	ABrush* Brush = Cast< ABrush >( InActor );
 	if( Brush )
 	{
-		if( Brush->BrushComponent && Brush->BrushComponent->Brush )
+		if( Brush->GetBrushComponent() && Brush->GetBrushComponent()->Brush )
 		{
-			Brush->BrushComponent->Brush->Polys->Element.ModifyAllItems();
+			Brush->GetBrushComponent()->Brush->Polys->Element.ModifyAllItems();
 		}
 	}
 
@@ -2275,7 +2278,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 				// Scale all of the polygons of the brush.
 				const FScaleMatrix matrix( FVector( ModifiedScale.X , ModifiedScale.Y, ModifiedScale.Z ) );
 				
-				if(Brush->BrushComponent->Brush && Brush->BrushComponent->Brush->Polys)
+				if(Brush->GetBrushComponent()->Brush && Brush->GetBrushComponent()->Brush->Polys)
 				{
 					// @todo UE4 : verify this code
 					// Brush Transform doesn't seem to change from this code path
@@ -2284,9 +2287,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 					// if this causes any issue, please contact LH
 					FTransform BrushActorToWorld = Brush->ActorToWorld();
 
-					for( int32 poly = 0 ; poly < Brush->BrushComponent->Brush->Polys->Element.Num() ; poly++ )
+					for( int32 poly = 0 ; poly < Brush->GetBrushComponent()->Brush->Polys->Element.Num() ; poly++ )
 					{
-						FPoly* Poly = &(Brush->BrushComponent->Brush->Polys->Element[poly]);
+						FPoly* Poly = &(Brush->GetBrushComponent()->Brush->Polys->Element[poly]);
 
 						FBox bboxBefore(0);
 						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
@@ -2342,7 +2345,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						Poly->Finalize((ABrush*)InActor,0);
 					}
 
-					Brush->BrushComponent->Brush->BuildBound();
+					Brush->GetBrushComponent()->Brush->BuildBound();
 
 					if( !Brush->IsStaticBrush() )
 					{
@@ -2730,7 +2733,7 @@ void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFi
 		if( CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)) )
 		{
 			UFactory* Factory = Cast<UFactory>( CurrentClass->GetDefaultObject() );
-			if( Factory->bEditorImport && Factory->ValidForCurrentGame() && Obj->GetClass()->IsChildOf(Factory->GetSupportedClass()) )
+			if( Factory->bEditorImport && Obj->GetClass()->IsChildOf(Factory->GetSupportedClass()) )
 			{
 				Factories.Add( Factory );
 			}
@@ -2936,14 +2939,14 @@ void SoundWaveQualityPreview( USoundWave* SoundWave, FPreviewInfo* PreviewInfo )
 	{
 		TArray<uint8> Input;
 		Input.AddUninitialized(WaveInfo.SampleDataSize);
-		FMemory::Memcpy(Input.GetTypedData(), WaveInfo.SampleDataStart, Input.Num());
+		FMemory::Memcpy(Input.GetData(), WaveInfo.SampleDataStart, Input.Num());
 		TArray<uint8> Output;
 		Compressor->Recompress(NAME_OGG, Input, QualityInfo, Output );
 		if (Output.Num())
 		{
 			PreviewInfo->OggVorbisSize = Output.Num();
 			PreviewInfo->DecompressedOggVorbis = ( uint8* )FMemory::Malloc(Output.Num());
-			FMemory::Memcpy(PreviewInfo->DecompressedOggVorbis, Output.GetTypedData(), Output.Num());
+			FMemory::Memcpy(PreviewInfo->DecompressedOggVorbis, Output.GetData(), Output.Num());
 		}
 	}
 
@@ -3776,17 +3779,17 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 			if( SMActor )
 			{
 				SourceActors.Add(Actor);
-				Info.GetFromActor(SMActor, SMActor->StaticMeshComponent);
+				Info.GetFromActor(SMActor, SMActor->GetStaticMeshComponent());
 			}
 			else if( FoliageActor )
 			{
 				SourceActors.Add(Actor);
-				Info.GetFromActor(FoliageActor, FoliageActor->StaticMeshComponent);
+				Info.GetFromActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 			}
 			else if ( bFromSkeletalMesh )
 			{
 				SourceActors.Add(Actor);
-				Info.GetFromActor(SKMActor, SKMActor->SkeletalMeshComponent);
+				Info.GetFromActor(SKMActor, SKMActor->GetSkeletalMeshComponent());
 			}
 
 			// Get the actor group if any
@@ -3830,7 +3833,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				{					
 					AStaticMeshActor* SMActor = CastChecked<AStaticMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ) );
 					SMActor->UnregisterAllComponents();
-					Info.SetToActor(SMActor, SMActor->StaticMeshComponent);
+					Info.SetToActor(SMActor, SMActor->GetStaticMeshComponent());
 					SMActor->RegisterAllComponents();
 					GEditor->SelectActor( SMActor, true, false );
 					Actor = SMActor;
@@ -3839,7 +3842,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				{					
 					AInteractiveFoliageActor* FoliageActor = World->SpawnActor<AInteractiveFoliageActor>( Info.Location, Info.Rotation, SpawnInfo );
 					FoliageActor->UnregisterAllComponents();
-					Info.SetToActor(FoliageActor, FoliageActor->StaticMeshComponent);
+					Info.SetToActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 					FoliageActor->RegisterAllComponents();
 					GEditor->SelectActor( FoliageActor, true, false );
 					Actor = FoliageActor;
@@ -3850,7 +3853,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					// checked
 					ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ));
 					SkeletalMeshActor->UnregisterAllComponents();
-					Info.SetToActor(SkeletalMeshActor, SkeletalMeshActor->SkeletalMeshComponent);
+					Info.SetToActor(SkeletalMeshActor, SkeletalMeshActor->GetSkeletalMeshComponent());
 					SkeletalMeshActor->RegisterAllComponents();
 					GEditor->SelectActor( SkeletalMeshActor, true, false );
 					Actor = SkeletalMeshActor;
@@ -3975,55 +3978,93 @@ UBrushBuilder* UEditorEngine::FindBrushBuilder( UClass* BrushBuilderClass )
 	return Builder;
 }
 
-bool UEditorEngine::SnapToSocket (AActor* ParentActor, AActor* ChildActor, const FName SocketName)
+bool UEditorEngine::AttachActorToComponent(AActor* ParentActor, AActor* ChildActor, USkeletalMeshComponent* SkeletalMeshComponent, const FName SocketName)
+{
+	bool bAttachedToSocket = false;
+
+	if(SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+	{
+	    USkeletalMeshSocket const* const Socket = SkeletalMeshComponent->SkeletalMesh->FindSocket(SocketName);
+	    if (Socket)
+	    {
+		    bAttachedToSocket = Socket->AttachActor(ChildActor, SkeletalMeshComponent);
+	    }
+	    else
+	    {
+		    // now search bone, if bone exists, snap to the bone
+		    int32 BoneIndex = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(SocketName);
+		    if (BoneIndex != INDEX_NONE)
+		    {
+			    ChildActor->GetRootComponent()->SnapTo(ParentActor->GetRootComponent(), SocketName);
+			    bAttachedToSocket = true;
+    
+    #if WITH_EDITOR
+			    ChildActor->PreEditChange(NULL);
+			    ChildActor->PostEditChange();
+    #endif // WITH_EDITOR
+		    }
+	    }
+	}
+
+	return bAttachedToSocket;
+}
+
+bool UEditorEngine::AttachActorToComponent(AActor* ChildActor, UStaticMeshComponent* StaticMeshComponent, const FName SocketName)
+{
+	bool bAttachedToSocket = false;
+
+	if(StaticMeshComponent && StaticMeshComponent->StaticMesh)
+	{
+	    UStaticMeshSocket const* const Socket = StaticMeshComponent->StaticMesh->FindSocket(SocketName);
+	    if (Socket)
+	    {
+		    bAttachedToSocket = Socket->AttachActor(ChildActor, StaticMeshComponent);
+	    }
+	}
+
+	return bAttachedToSocket;
+}
+
+bool UEditorEngine::SnapToSocket (AActor* ParentActor, AActor* ChildActor, const FName SocketName, USceneComponent* Component)
 {
 	bool bAttachedToSocket = false;
 
 	ASkeletalMeshActor* ParentSkelMeshActor = Cast<ASkeletalMeshActor>(ParentActor);
 	if (ParentSkelMeshActor != NULL &&
-		ParentSkelMeshActor->SkeletalMeshComponent &&
-		ParentSkelMeshActor->SkeletalMeshComponent->SkeletalMesh)
+		ParentSkelMeshActor->GetSkeletalMeshComponent() &&
+		ParentSkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh)
 	{
-		USkeletalMeshComponent* const SkeletalMeshComponent = ParentSkelMeshActor->SkeletalMeshComponent;
-		USkeletalMeshSocket const* const Socket = SkeletalMeshComponent->SkeletalMesh->FindSocket(SocketName);
-		if (Socket)
-		{
-			bAttachedToSocket = Socket->AttachActor(ChildActor, SkeletalMeshComponent);
-		}
-		else
-		{
-			// now search bone, if bone exists, snap to the bone
-			int32 BoneIndex = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(SocketName);
-			if (BoneIndex!=INDEX_NONE)
-			{
-				ChildActor->GetRootComponent()->SnapTo(ParentActor->GetRootComponent(), SocketName);
-				bAttachedToSocket = true;
-
-#if WITH_EDITOR
-				ChildActor->PreEditChange( NULL );
-				ChildActor->PostEditChange();
-#endif // WITH_EDITOR
-			}
-		}
+		bAttachedToSocket = AttachActorToComponent(ParentActor, ChildActor, ParentSkelMeshActor->GetSkeletalMeshComponent(), SocketName);
 	}
 
 	AStaticMeshActor* ParentStaticMeshActor = Cast<AStaticMeshActor>(ParentActor);
 	if (ParentStaticMeshActor != NULL &&
-		ParentStaticMeshActor->StaticMeshComponent &&
-		ParentStaticMeshActor->StaticMeshComponent->StaticMesh)
+		ParentStaticMeshActor->GetStaticMeshComponent() &&
+		ParentStaticMeshActor->GetStaticMeshComponent()->StaticMesh)
 	{
-		UStaticMeshComponent* const StaticMeshComponent = ParentStaticMeshActor->StaticMeshComponent;
-		UStaticMeshSocket const* const Socket = StaticMeshComponent->StaticMesh->FindSocket(SocketName);
-		if (Socket)
+		bAttachedToSocket = AttachActorToComponent(ChildActor, ParentStaticMeshActor->GetStaticMeshComponent(), SocketName);
+	}
+
+	// if the component is in a blueprint actor
+	if (Component && ParentActor->OwnsComponent(Component))
+	{
+		USkeletalMeshComponent* const SkeletalMeshComponent = Cast<USkeletalMeshComponent>(Component);
+		if (SkeletalMeshComponent)
 		{
-			bAttachedToSocket = Socket->AttachActor(ChildActor, StaticMeshComponent);
+			bAttachedToSocket = AttachActorToComponent(ParentActor, ChildActor, SkeletalMeshComponent, SocketName);
+		}
+
+		UStaticMeshComponent* const StaticMeshComponent = Cast<UStaticMeshComponent>(Component);		
+		if (StaticMeshComponent)
+		{
+			bAttachedToSocket = AttachActorToComponent(ChildActor, StaticMeshComponent, SocketName);
 		}
 	}
 
 	return bAttachedToSocket;
 }
 
-void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const FName SocketName)
+void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const FName SocketName, USceneComponent* Component)
 {
 	if (CanParentActors(ParentActor, ChildActor))
 	{
@@ -4056,7 +4097,7 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		}
 
 		// Try snapping to socket if requested
-		if( (SocketName != NAME_None) && SnapToSocket(ParentActor, ChildActor, SocketName))
+		if ((SocketName != NAME_None) && SnapToSocket(ParentActor, ChildActor, SocketName, Component))
 		{
 			// Refresh editor if snapping to socket was successful
 			RedrawLevelEditingViewports();
@@ -4289,8 +4330,10 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 
 bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 				 FOutputDevice* Error, ULinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
-				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp )
+				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
+	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
+
 	UObject* Base = InBase;
 	if ( !Base && InOuter && InOuter->PackageFlags & PKG_ContainsMap )
 	{
@@ -4303,6 +4346,8 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 	{
 		OriginalPackageFlags = InOuter->PackageFlags;
 	}
+
+	SlowTask.EnterProgressFrame(10);
 
 	UWorld* World = Cast<UWorld>(Base);
 	if ( World )
@@ -4318,7 +4363,11 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 		bAutoAddPkgToSCC = IsPackageValidForAutoAdding( InOuter, Filename );
 	}
 
-	bool bSuccess = UPackage::SavePackage(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp);
+	SlowTask.EnterProgressFrame(70);
+
+	bool bSuccess = UPackage::SavePackage(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+
+	SlowTask.EnterProgressFrame(10);
 
 	// If the package is a valid candidate for being automatically-added to source control, go ahead and add it
 	// to the default changelist
@@ -4339,6 +4388,8 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FMarkForAdd>(), SourceControlHelpers::PackageFilename(Filename));
 		}
 	}
+
+	SlowTask.EnterProgressFrame(10);
 
 	if ( World )
 	{
@@ -4398,14 +4449,12 @@ void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
 			// Don't do this when autosaving or PIE saving so that actor adds can still undo.
 			World->ShrinkLevel();
 
-			GWarn->PushStatus();
-			GWarn->StatusUpdate( -1, -1, FText::Format(NSLOCTEXT("UnrealEd", "SavingMapStatus_CollectingGarbage", "Saving map: {0}... (Collecting garbage)"), FText::FromString(World->GetName())) );
-		
-			// NULL empty or "invalid" entries (e.g. IsPendingKill()) in actors array.
-			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-
-			GWarn->PopStatus();
-
+			{
+				FScopedSlowTask SlowTask(0, FText::Format(NSLOCTEXT("UnrealEd", "SavingMapStatus_CollectingGarbage", "Saving map: {0}... (Collecting garbage)"), FText::FromString(World->GetName())));
+				// NULL empty or "invalid" entries (e.g. IsPendingKill()) in actors array.
+				CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+			}
+			
 			// Compact and sort actors array to remove empty entries.
 			// Don't do this when autosaving or PIE saving so that actor adds can still undo.
 			World->PersistentLevel->SortActorList();
@@ -4602,7 +4651,7 @@ bool UEditorEngine::SplitActorLabel( FString& InOutLabel, int32& OutIdx ) const
 	return false;
 }
 
-void UEditorEngine::SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel ) const
+void UEditorEngine::SetActorLabelUnique(AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels) const
 {
 	check( Actor );
 
@@ -4610,38 +4659,32 @@ void UEditorEngine::SetActorLabelUnique( AActor* Actor, const FString& NewActorL
 	FString ModifiedActorLabel = NewActorLabel;
 	int32   LabelIdx           = 0;
 
-	for (;;)
+	FCachedActorLabels ActorLabels;
+	if (!InExistingActorLabels)
 	{
-		// Check for a duplicate actor name
-		bool Duplicate = false;
-		for (FActorIterator It(Actor->GetWorld()); It; ++It)
+		InExistingActorLabels = &ActorLabels;
+
+		TSet<AActor*> IgnoreActors;
+		IgnoreActors.Add(Actor);
+		ActorLabels.Populate(Actor->GetWorld(), IgnoreActors);
+	}
+
+
+	if (InExistingActorLabels->Contains(ModifiedActorLabel))
+	{
+		// See if the current label ends in a number, and try to create a new label based on that
+		if (!SplitActorLabel( Prefix, LabelIdx ))
 		{
-			if (Actor != *It && It->GetActorLabel() == ModifiedActorLabel)
-			{
-				Duplicate = true;
-				break;
-			}
+			// If there wasn't a number on there, append a number, starting from 2 (1 before incrementing below)
+			LabelIdx = 1;
 		}
 
-		// If there wasn't one, we can stop looping
-		if (!Duplicate)
+		// Update the actor label until we find one that doesn't already exist
+		while (InExistingActorLabels->Contains(ModifiedActorLabel))
 		{
-			break;
+			++LabelIdx;
+			ModifiedActorLabel = FString::Printf(TEXT("%s%d"), *Prefix, LabelIdx);
 		}
-
-		if (LabelIdx == 0)
-		{
-			// See if the current label ends in a number, and try to create a new label based on that
-			if (!SplitActorLabel( Prefix, LabelIdx ))
-			{
-				// If there wasn't a number on there, append an underscore and start the numbering from 2 (1 before incrementing below)
-				Prefix += TEXT('_');
-				LabelIdx = 1;
-			}
-		}
-
-		++LabelIdx;
-		ModifiedActorLabel = FString::Printf(TEXT("%s%d"), *Prefix, LabelIdx);
 	}
 
 	Actor->SetActorLabel( ModifiedActorLabel );
@@ -5139,7 +5182,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 	// using ULightComponent::StaticClass()->GetDefaultObject() will not work since each light actor sets default component properties differently.
 	ALight* OldActorDefaultObject = InOldActor.GetClass()->GetDefaultObject<ALight>();
 	check(OldActorDefaultObject);
-	UActorComponent* DefaultLightComponent = OldActorDefaultObject->LightComponent;
+	UActorComponent* DefaultLightComponent = OldActorDefaultObject->GetLightComponent();
 	check(DefaultLightComponent);
 
 	// The component we are copying from class
@@ -6123,7 +6166,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	}
 
 	// Use a level factory to spawn all the actors using the ExportText
-	ULevelFactory* Factory = new ULevelFactory(FPostConstructInitializeProperties());
+	ULevelFactory* Factory = new ULevelFactory(FObjectInitializer());
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
@@ -6820,10 +6863,17 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 			bool ValidWorld = false;
 			for (int32 idx=0; idx < WorldList.Num(); ++idx)
 			{
-				if (WorldList[idx].World())
+				FWorldContext& WorldContext = WorldList[idx];
+				if (World == WorldContext.SeamlessTravelHandler.GetLoadedWorld())
+				{
+					// World valid, but not loaded yet
+					ValidWorld = true;
+					break;
+				}
+				else if (WorldContext.World())
 				{
 					TArray<UWorld*> OtherWorlds;
-					EditorLevelUtils::GetWorlds(WorldList[idx].World(), OtherWorlds, true, false);
+					EditorLevelUtils::GetWorlds(WorldContext.World(), OtherWorlds, true, false);
 
 					if (OtherWorlds.Contains(World))
 					{
@@ -7026,7 +7076,7 @@ namespace EditorUtilities
 	}
 
 
-	void CopySingleActorProperty( UObject* const InSourceObject, UObject* const InTargetObject, UProperty* const InProperty )
+	void CopySingleActorPropertyRecursive(const void* const InSourcePtr, void* const InTargetPtr, UObject* const InTargetObject, UProperty* const InProperty)
 	{
 		// Properties that are *object* properties are tricky
 		// Sometimes the object will be a reference to a PIE-world object, and copying that reference back to an actor CDO asset is not a good idea
@@ -7035,48 +7085,91 @@ namespace EditorUtilities
 		bool bNeedsGenericCopy = true;
 		if( UObjectPropertyBase* const ObjectProperty = Cast<UObjectPropertyBase>(InProperty) )
 		{
-			UObject* const SourceObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(InSourceObject);
-			if( SourceObjectPropertyValue && SourceObjectPropertyValue->GetOutermost()->PackageFlags & PKG_PlayInEditor )
+			const int32 PropertyArrayDim = InProperty->ArrayDim;
+			for (int32 ArrayIndex = 0; ArrayIndex < PropertyArrayDim; ArrayIndex++)
 			{
-				// Not all the code paths below actually copy the object, but even if they don't we need to claim that they
-				// did, as copying a reference to an object in a PIE world leads to crashes
-				bNeedsGenericCopy = false;
-
-				// REFERENCE an existing actor in the editor world from a REFERENCE in the PIE world
-				if( SourceObjectPropertyValue->IsA(AActor::StaticClass()) )
+				UObject* const SourceObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(InSourcePtr, ArrayIndex);
+				if (SourceObjectPropertyValue && SourceObjectPropertyValue->GetOutermost()->PackageFlags & PKG_PlayInEditor)
 				{
-					// We can try and fix-up an actor reference from the PIE world to instead be the version from the persistent world
-					AActor* const EditorWorldActor = GetEditorWorldCounterpartActor(Cast<AActor>(SourceObjectPropertyValue));
-					if( EditorWorldActor )
+					// Not all the code paths below actually copy the object, but even if they don't we need to claim that they
+					// did, as copying a reference to an object in a PIE world leads to crashes
+					bNeedsGenericCopy = false;
+
+					// REFERENCE an existing actor in the editor world from a REFERENCE in the PIE world
+					if (SourceObjectPropertyValue->IsA(AActor::StaticClass()))
 					{
-						ObjectProperty->SetObjectPropertyValue_InContainer(InTargetObject, EditorWorldActor);
+						// We can try and fix-up an actor reference from the PIE world to instead be the version from the persistent world
+						AActor* const EditorWorldActor = GetEditorWorldCounterpartActor(Cast<AActor>(SourceObjectPropertyValue));
+						if (EditorWorldActor)
+						{
+							ObjectProperty->SetObjectPropertyValue_InContainer(InTargetPtr, EditorWorldActor, ArrayIndex);
+						}
 					}
-				}
-				// REFERENCE an existing actor component in the editor world from a REFERENCE in the PIE world
-				else if( SourceObjectPropertyValue->IsA(UActorComponent::StaticClass()) && InTargetObject->IsA(AActor::StaticClass()) )
-				{
-					AActor* const TargetActor = Cast<AActor>(InTargetObject);
-					TArray<UActorComponent*> TargetComponents;
-					TargetActor->GetComponents(TargetComponents);
-
-					// We can try and fix-up an actor component reference from the PIE world to instead be the version from the persistent world
-					int32 TargetComponentIndex = 0;
-					UActorComponent* const EditorWorldComponent = FindMatchingComponentInstance(Cast<UActorComponent>(SourceObjectPropertyValue), TargetActor, TargetComponents, TargetComponentIndex);
-					if(EditorWorldComponent)
+					// REFERENCE an existing actor component in the editor world from a REFERENCE in the PIE world
+					else if (SourceObjectPropertyValue->IsA(UActorComponent::StaticClass()) && InTargetObject->IsA(AActor::StaticClass()))
 					{
-						ObjectProperty->SetObjectPropertyValue_InContainer(InTargetObject, EditorWorldComponent);
+						AActor* const TargetActor = Cast<AActor>(InTargetObject);
+						TArray<UActorComponent*> TargetComponents;
+						TargetActor->GetComponents(TargetComponents);
+
+						// We can try and fix-up an actor component reference from the PIE world to instead be the version from the persistent world
+						int32 TargetComponentIndex = 0;
+						UActorComponent* const EditorWorldComponent = FindMatchingComponentInstance(Cast<UActorComponent>(SourceObjectPropertyValue), TargetActor, TargetComponents, TargetComponentIndex);
+						if (EditorWorldComponent)
+						{
+							ObjectProperty->SetObjectPropertyValue_InContainer(InTargetPtr, EditorWorldComponent, ArrayIndex);
+						}
 					}
 				}
 			}
+		}
+		else if (UStructProperty* const StructProperty = Cast<UStructProperty>(InProperty))
+		{
+			const int32 PropertyArrayDim = InProperty->ArrayDim;
+			for (int32 ArrayIndex = 0; ArrayIndex < PropertyArrayDim; ArrayIndex++)
+			{
+				const void* const SourcePtr = StructProperty->ContainerPtrToValuePtr<void>(InSourcePtr, ArrayIndex);
+				void* const TargetPtr = StructProperty->ContainerPtrToValuePtr<void>(InTargetPtr, ArrayIndex);
+
+				for (TFieldIterator<UProperty> It(StructProperty->Struct); It; ++It)
+				{
+					UProperty* const InnerProperty = *It;
+					CopySingleActorPropertyRecursive(SourcePtr, TargetPtr, InTargetObject, InnerProperty);
+				}
+			}
+
+			bNeedsGenericCopy = false;
+		}
+		else if (UArrayProperty* const ArrayProperty = Cast<UArrayProperty>(InProperty))
+		{
+			check(InProperty->ArrayDim == 1);
+			FScriptArrayHelper SourceArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(InSourcePtr));
+			FScriptArrayHelper TargetArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(InTargetPtr));
+
+			UProperty* InnerProperty = ArrayProperty->Inner;
+			int32 Num = SourceArrayHelper.Num();
+
+			TargetArrayHelper.EmptyAndAddUninitializedValues(Num);
+
+			for (int32 Index = 0; Index < Num; Index++)
+			{
+				CopySingleActorPropertyRecursive(SourceArrayHelper.GetRawPtr(Index), TargetArrayHelper.GetRawPtr(Index), InTargetObject, InnerProperty);
+			}
+
+			bNeedsGenericCopy = false;
 		}
 		
 		// Handle copying properties that either aren't an object, or aren't part of the PIE world
 		if( bNeedsGenericCopy )
 		{
-			InProperty->CopyCompleteValue_InContainer(InTargetObject, InSourceObject);
+			InProperty->CopyCompleteValue_InContainer(InTargetPtr, InSourcePtr);
 		}
 	}
 
+	void CopySingleActorProperty(const UObject* const InSourceObject, UObject* const InTargetObject, UProperty* const InProperty)
+	{
+		CopySingleActorPropertyRecursive(InSourceObject, InTargetObject, InTargetObject, InProperty);
+	}
 
 	int32 CopyActorProperties( AActor* SourceActor, AActor* TargetActor, const ECopyOptions::Type Options )
 	{
@@ -7369,4 +7462,28 @@ UWorld::InitializationValues UEditorEngine::GetEditorWorldInitializationValues()
 	return UWorld::InitializationValues()
 		.ShouldSimulatePhysics(false)
 		.EnableTraceCollision(true);
+}
+
+FCachedActorLabels::FCachedActorLabels()
+{
+	
+}
+
+FCachedActorLabels::FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors)
+{
+	Populate(World, IgnoredActors);
+}
+
+void FCachedActorLabels::Populate(UWorld* World, const TSet<AActor*>& IgnoredActors)
+{
+	ActorLabels.Empty();
+
+	for (FActorIterator It(World); It; ++It)
+	{
+		if (!IgnoredActors.Contains(*It))
+		{
+			ActorLabels.Add(It->GetActorLabel());
+		}
+	}
+	ActorLabels.Shrink();
 }

@@ -1,11 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "WidgetReference.h"
+#include "Blueprint/UserWidget.h"
+#include "WidgetBlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-FWidgetHandle::FWidgetHandle(UWidget* Widget)
-	: Widget(Widget)
+FWidgetHandle::FWidgetHandle(UWidget* InWidget)
+	: Widget(InWidget)
 {
 
 }
@@ -19,9 +22,9 @@ FWidgetReference::FWidgetReference()
 
 }
 
-FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, TSharedPtr< FWidgetHandle > TemplateHandle)
-	: WidgetEditor(WidgetEditor)
-	, TemplateHandle(TemplateHandle)
+FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, TSharedPtr< FWidgetHandle > InTemplateHandle)
+	: WidgetEditor(InWidgetEditor)
+	, TemplateHandle(InTemplateHandle)
 {
 	
 }
@@ -30,7 +33,7 @@ bool FWidgetReference::IsValid() const
 {
 	if ( TemplateHandle.IsValid() )
 	{
-		return TemplateHandle->Widget.Get() != NULL && GetPreview();
+		return TemplateHandle->Widget.Get() != nullptr && GetPreview();
 	}
 
 	return false;
@@ -43,7 +46,7 @@ UWidget* FWidgetReference::GetTemplate() const
 		return TemplateHandle->Widget.Get();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 UWidget* FWidgetReference::GetPreview() const
@@ -52,14 +55,17 @@ UWidget* FWidgetReference::GetPreview() const
 	{
 		UUserWidget* PreviewRoot = WidgetEditor.Pin()->GetPreview();
 
-		if ( PreviewRoot && TemplateHandle->Widget.Get() )
+		if ( PreviewRoot )
 		{
-			UWidget* PreviewWidget = PreviewRoot->GetHandleFromName(TemplateHandle->Widget.Get()->GetName());
-			return PreviewWidget;
+			if ( UWidget* TemplateWidget = TemplateHandle->Widget.Get() )
+			{
+				UWidget* PreviewWidget = PreviewRoot->GetWidgetFromName(TemplateWidget->GetFName());
+				return PreviewWidget;
+			}
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

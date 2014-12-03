@@ -3,13 +3,18 @@
 
 #include "PersonaPrivatePCH.h"
 #include "AnimationRecorder.h"
+#include "SAnimationDlgs.h"
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "FAnimationRecorder"
 
 /////////////////////////////////////////////////////
 
 FAnimationRecorder::FAnimationRecorder()
-	: SampleRate(30)
+	: IntervalTime(1.0f/DEFAULT_SAMPLERATE)
+	, MaxFrame(DEFAULT_SAMPLERATE * 60 * 10) // for now, set the max limit to 10 mins. 
 	, AnimationObject(NULL)
 {
 
@@ -17,13 +22,67 @@ FAnimationRecorder::FAnimationRecorder()
 
 FAnimationRecorder::~FAnimationRecorder()
 {
-	StopRecord();
+	StopRecord(false);
 }
 
-void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSequence * InAnimationObject, float InDuration)
+// get record configuration
+bool GetRecordConfig(FString& AssetPath, FString& AssetName)
 {
-	Duration = InDuration;
-	check (Duration > 0.f);
+	TSharedRef<SCreateAnimationDlg> NewAnimDlg =
+		SNew(SCreateAnimationDlg);
+
+	if(NewAnimDlg->ShowModal() != EAppReturnType::Cancel)
+	{
+		AssetPath = NewAnimDlg->GetFullAssetPath();
+		AssetName = NewAnimDlg->GetAssetName();
+		return true;
+	}
+
+	return false;
+}
+
+bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent * Component)
+{
+	// ask for path
+	FString AssetPath;
+	FString AssetName;
+
+	if (!Component || !Component->SkeletalMesh || !Component->SkeletalMesh->Skeleton)
+	{
+		return false;
+	}
+
+	if(GetRecordConfig(AssetPath, AssetName))
+	{
+		// create the asset
+		UObject* 	Parent = CreatePackage(NULL, *AssetPath);
+		UObject* Object = LoadObject<UObject>(Parent, *AssetName, NULL, LOAD_None, NULL);
+		// if object with same name exists, warn user
+		if(Object)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_AssetExist", "Asset with same name exists. Can't overwrite another asset"));
+			return false; // Move on to next sequence...
+		}
+
+		// If not, create new one now.
+		UAnimSequence * NewSeq = ConstructObject<UAnimSequence>(UAnimSequence::StaticClass(), Parent, *AssetName, RF_Public|RF_Standalone);
+		if(NewSeq)
+		{
+			// set skeleton
+			NewSeq->SetSkeleton(Component->SkeletalMesh->Skeleton);
+			// Notify the asset registry
+			FAssetRegistryModule::AssetCreated(NewSeq);
+			StartRecord(Component, NewSeq);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSequence * InAnimationObject)
+{
 	TimePassed = 0.f;
 	AnimationObject = InAnimationObject;
 
@@ -33,20 +92,11 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 
 	PreviousSpacesBases = Component->SpaceBases;
 
-	check (SampleRate!=0.f);
-	const float IntervalTime = 1.f/SampleRate;
-	// prepare to record
-	// how many frames we need?
-	int32 MaxFrame = Duration/IntervalTime+1;
-	int32 NumBones = PreviousSpacesBases.Num();
-	check (MaxFrame > 0);
-	check (Component->SkeletalMesh);
-
 	LastFrame = 0;
-	AnimationObject->SequenceLength = Duration;
-	AnimationObject->NumFrames = MaxFrame;
+	AnimationObject->SequenceLength = 0.f;
+	AnimationObject->NumFrames = 0;
 
-	USkeleton * AnimSkeleton = AnimationObject->GetSkeleton();
+	USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
 	// add all frames
 	for (int32 BoneIndex=0; BoneIndex <PreviousSpacesBases.Num(); ++BoneIndex)
 	{
@@ -54,72 +104,94 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 		int32 BoneTreeIndex = AnimSkeleton->GetSkeletonBoneIndexFromMeshBoneIndex(Component->SkeletalMesh, BoneIndex);
 		if (BoneTreeIndex != INDEX_NONE)
 		{
+			// add tracks for the bone existing
 			FName BoneTreeName = AnimSkeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
-			int32 NewTrack = AnimationObject->RawAnimationData.AddZeroed(1);
 			AnimationObject->AnimationTrackNames.Add(BoneTreeName);
-
-			FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[NewTrack];
 			// add mapping to skeleton bone track
 			AnimationObject->TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(BoneTreeIndex));
-			RawTrack.PosKeys.AddZeroed(MaxFrame);
-			RawTrack.RotKeys.AddZeroed(MaxFrame);
-			RawTrack.ScaleKeys.AddZeroed(MaxFrame);
 		}
 	}
+
+	int32 NumTracks = AnimationObject->AnimationTrackNames.Num();
+	// add tracks
+	AnimationObject->RawAnimationData.AddZeroed(NumTracks);
 
 	// record the first frame;
 	Record(Component, PreviousSpacesBases, 0);
 }
 
-void FAnimationRecorder::StopRecord()
+void FAnimationRecorder::StopRecord(bool bShowMessage)
 {
 	if (AnimationObject)
 	{
-		// if LastFrame doesn't match with NumFrames, we need to adjust data
-		if ( LastFrame + 1 < AnimationObject->NumFrames )
-		{
-			int32 NewMaxFrame = LastFrame + 1;
-			int32 OldMaxFrame = AnimationObject->NumFrames;
-			// Set New Frames/Time
-			AnimationObject->NumFrames = NewMaxFrame;
-			AnimationObject->SequenceLength = (float)(NewMaxFrame)/SampleRate;
+		int32 NumFrames = LastFrame  + 1;
+		AnimationObject->NumFrames = NumFrames;
 
-			for (int32 TrackId=0; TrackId <AnimationObject->RawAnimationData.Num(); ++TrackId)
-			{
-				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackId];
-				// add mapping to skeleton bone track
-				RawTrack.PosKeys.RemoveAt(NewMaxFrame, OldMaxFrame-NewMaxFrame);
-				RawTrack.RotKeys.RemoveAt(NewMaxFrame, OldMaxFrame-NewMaxFrame);
-				RawTrack.ScaleKeys.RemoveAt(NewMaxFrame, OldMaxFrame-NewMaxFrame);
-			}
-		}
-
+		// can't use TimePassed. That is just total time that has been passed, not necessarily match with frame count
+		AnimationObject->SequenceLength = NumFrames * IntervalTime;
 		AnimationObject->PostProcessSequence();
 		AnimationObject->MarkPackageDirty();
-		AnimationObject = NULL;
 
+		// notify to user
+		if (bShowMessage)
+		{
+			const FText NotificationText = FText::Format( LOCTEXT("RecordAnimation", "'{0}' has been successfully recorded [{1} frames : {2} sec(s)]" ), 
+				FText::FromString( AnimationObject->GetName() ),
+				FText::AsNumber( AnimationObject->NumFrames ),
+				FText::AsNumber( AnimationObject->SequenceLength ));
+
+			//This is not showing well in the Persona, so opening dialog first. 
+			//right now it will crash if you don't wait until end of the record, so it is important for users to know
+			//this is done
+					
+			FNotificationInfo Info(NotificationText);
+			Info.ExpireDuration = 5.0f;
+			Info.bUseLargeFont = false;
+			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+			if ( Notification.IsValid() )
+			{
+				Notification->SetCompletionState( SNotificationItem::CS_Success );
+			}
+
+			FMessageDialog::Open(EAppMsgType::Ok, NotificationText);
+		}
+
+		AnimationObject = NULL;
 		PreviousSpacesBases.Empty();
 	}
 }
 
 // return false if nothing to update
 // return true if it has properly updated
-bool FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime)
+void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime)
 {
+	// if no animation object, return
+	if (!AnimationObject)
+	{
+		return;
+	}
+
 	const float MaxDelta = 1.f/10.f;
 	float UseDelta = FMath::Min<float>(DeltaTime, MaxDelta);
+
+	// if longer than 1 second, you'll see the halt on the animation
+	if (UseDelta <= 0.f)
+	{
+		return;
+	}
 
 	float PreviousTimePassed = TimePassed;
 	TimePassed += UseDelta;
 
-	check (SampleRate!=0.f);
-	const float IntervalTime = 1.f/SampleRate;
-
 	// time passed has been updated
 	// now find what frames we need to update
-	int32 MaxFrame = Duration/IntervalTime;
-	int32 FramesRecorded = (PreviousTimePassed / IntervalTime);
-	int32 FramesToRecord = FMath::Min<int32>(TimePassed / IntervalTime, MaxFrame);
+	int32 FramesRecorded = LastFrame;
+	int32 FramesToRecord = FPlatformMath::TruncToInt(TimePassed / IntervalTime);
+
+	if (FramesRecorded >= FramesToRecord)
+	{
+		return;
+	}
 
 	TArray<FTransform> & SpaceBases = Component->SpaceBases;
 
@@ -128,23 +200,23 @@ bool FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 	TArray<FTransform> BlendedSpaceBases;
 	BlendedSpaceBases.AddZeroed(SpaceBases.Num());
 
+	UE_LOG(LogAnimation, Warning, TEXT("DeltaTime : %0.2f, Current Frame Count : %d, Frames To Record : %d, TimePassed : %0.2f"), DeltaTime
+		, FramesRecorded, FramesToRecord, TimePassed);
+
 	// if we need to record frame
 	while (FramesToRecord > FramesRecorded)
 	{
 		// find what frames we need to record
 		// convert to time
-		float NewTime = (FramesRecorded + 1) * IntervalTime;
+		float CurrentTime = (FramesRecorded + 1) * IntervalTime;
+		float BlendAlpha = (CurrentTime - PreviousTimePassed)/UseDelta;
 
-		float PercentageOfNew = (NewTime - PreviousTimePassed)/UseDelta;
-		//float PercentageOfOld = (TimePassed-NewTime)/UseDelta;
-
-		// make sure this is almost 1 = PercentageOfNew
-		//ensure ( FMath::IsNearlyEqual(PercentageOfNew + PercentageOfOld, 1.f, KINDA_SMALL_NUMBER));
+		UE_LOG(LogAnimation, Warning, TEXT("Current Frame Count : %d, BlendAlpha : %0.2f"), FramesRecorded + 1, BlendAlpha);
 
 		// for now we just concern component space, not skeleton space
 		for (int32 BoneIndex=0; BoneIndex<SpaceBases.Num(); ++BoneIndex)
 		{
-			BlendedSpaceBases[BoneIndex].Blend(PreviousSpacesBases[BoneIndex], SpaceBases[BoneIndex], PercentageOfNew);
+			BlendedSpaceBases[BoneIndex].Blend(PreviousSpacesBases[BoneIndex], SpaceBases[BoneIndex], BlendAlpha);
 		}
 
 		Record(Component, BlendedSpaceBases, FramesRecorded + 1);
@@ -154,15 +226,19 @@ bool FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 	//save to current transform
 	PreviousSpacesBases = Component->SpaceBases;
 
-	// if we reached MaxFrame, return false;
-	return (MaxFrame > FramesRecorded);
+	// if we passed MaxFrame, just stop it
+	if (FramesRecorded > MaxFrame)
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("Animation Recording exceeds the time limited (10 mins). Stopping recording animation... "))
+		StopRecord(true);
+	}
 }
 
 void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTransform> SpacesBases, int32 FrameToAdd )
 {
 	if (ensure (AnimationObject))
 	{
-		USkeleton * AnimSkeleton = AnimationObject->GetSkeleton();
+		USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
 		for (int32 TrackIndex=0; TrackIndex <AnimationObject->RawAnimationData.Num(); ++TrackIndex)
 		{
 			// verify if this bone exists in skeleton
@@ -178,9 +254,12 @@ void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTra
 				}
 
 				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackIndex];
-				RawTrack.PosKeys[FrameToAdd] = LocalTransform.GetTranslation();
-				RawTrack.RotKeys[FrameToAdd] = LocalTransform.GetRotation();
-				RawTrack.ScaleKeys[FrameToAdd] = LocalTransform.GetScale3D();
+				RawTrack.PosKeys.Add(LocalTransform.GetTranslation());
+				RawTrack.RotKeys.Add(LocalTransform.GetRotation());
+				RawTrack.ScaleKeys.Add(LocalTransform.GetScale3D());
+
+				// verification
+				check (FrameToAdd == RawTrack.PosKeys.Num()-1);
 			}
 		}
 

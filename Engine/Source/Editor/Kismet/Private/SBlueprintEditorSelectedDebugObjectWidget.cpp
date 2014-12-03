@@ -20,6 +20,7 @@
 #include "SLevelOfDetailBranchNode.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 #include "Engine/GameInstance.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 

@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/BTDecorator.h"
 
-UBTDecorator::UBTDecorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator::UBTDecorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "UnknownDecorator";
 
@@ -25,7 +25,7 @@ void UBTDecorator::InitializeDecorator(uint8 MyChildIndex)
 	ChildIndex = MyChildIndex;
 }
 
-bool UBTDecorator::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	return true;
 }
@@ -35,25 +35,25 @@ void UBTDecorator::SetIsInversed(bool bShouldBeInversed)
 	bInverseCondition = bShouldBeInversed;
 }
 
-void UBTDecorator::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData)
+void UBTDecorator::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
 {
 }
 
-void UBTDecorator::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
+void UBTDecorator::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
 }
 
-void UBTDecorator::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
+void UBTDecorator::OnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
 {
 }
 
-bool UBTDecorator::WrappedCanExecute(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator::WrappedCanExecute(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	const UBTDecorator* NodeOb = bCreateNodeInstance ? (const UBTDecorator*)GetNodeInstance(OwnerComp, NodeMemory) : this;
 	return NodeOb ? (IsInversed() != NodeOb->CalculateRawConditionValue(OwnerComp, NodeMemory)) : false;
 }
 
-void UBTDecorator::WrappedOnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
+void UBTDecorator::WrappedOnNodeActivation(FBehaviorTreeSearchData& SearchData) const
 {
 	if (bNotifyActivation)
 	{
@@ -65,7 +65,7 @@ void UBTDecorator::WrappedOnNodeActivation(struct FBehaviorTreeSearchData& Searc
 	}
 };
 
-void UBTDecorator::WrappedOnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const
+void UBTDecorator::WrappedOnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const
 {
 	if (bNotifyDeactivation)
 	{
@@ -77,7 +77,7 @@ void UBTDecorator::WrappedOnNodeDeactivation(struct FBehaviorTreeSearchData& Sea
 	}
 }
 
-void UBTDecorator::WrappedOnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
+void UBTDecorator::WrappedOnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 	if (bNotifyProcessed)
 	{

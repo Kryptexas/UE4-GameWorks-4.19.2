@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance
 //----------------------------------------------------------------------//
-void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType)
+void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType)
 {
 	if (Node == NULL)
 	{
@@ -43,7 +43,7 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 	}
 }
 
-void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
+void FBehaviorTreeInstance::InjectNodes(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
 {
 	if (Node == NULL)
 	{
@@ -69,7 +69,7 @@ void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp,
 	}
 }
 
-void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType)
+void FBehaviorTreeInstance::Cleanup(UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType)
 {
 	FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
 	if (Info.FirstNodeInstance >= 0)
@@ -89,7 +89,7 @@ void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp, EBT
 	Info.InstanceMemory = InstanceMemory;
 }
 
-void FBehaviorTreeInstance::CleanupNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType)
+void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType)
 {
 	if (Node == NULL)
 	{
@@ -190,7 +190,7 @@ void FBehaviorTreeSearchData::AssignSearchId()
 //----------------------------------------------------------------------//
 // FBlackboardKeySelector
 //----------------------------------------------------------------------//
-void FBlackboardKeySelector::CacheSelectedKey(class UBlackboardData* BlackboardAsset)
+void FBlackboardKeySelector::CacheSelectedKey(UBlackboardData* BlackboardAsset)
 {
 	if (BlackboardAsset && !(bNoneIsAllowedValue && SelectedKeyName == NAME_None))
 	{
@@ -204,7 +204,7 @@ void FBlackboardKeySelector::CacheSelectedKey(class UBlackboardData* BlackboardA
 	}
 }
 
-void FBlackboardKeySelector::InitSelectedKey(class UBlackboardData* BlackboardAsset)
+void FBlackboardKeySelector::InitSelectedKey(UBlackboardData* BlackboardAsset)
 {
 	check(BlackboardAsset);
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
@@ -304,7 +304,7 @@ void FBlackboardKeySelector::AddNameFilter(UObject* Owner)
 //----------------------------------------------------------------------//
 // UBehaviorTreeTypes
 //----------------------------------------------------------------------//
-UBehaviorTreeTypes::UBehaviorTreeTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeTypes::UBehaviorTreeTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

@@ -27,17 +27,21 @@ class UAbilityTask_SpawnActor: public UAbilityTask
 
 	UPROPERTY(BlueprintAssignable)
 	FSpawnActorDelegate	Success;
+
+	/** Called when we can't spawn: on clients or potentially on server if they fail to spawn (rare) */
+	UPROPERTY(BlueprintAssignable)
+	FSpawnActorDelegate	DidNotSpawn;
 	
 	/** Spawn new Actor on the network authority (server) */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category="Ability|Tasks")
-	static UAbilityTask_SpawnActor* SpawnActor(UObject* WorldContextObject, TSubclassOf<AActor> Class);
+	static UAbilityTask_SpawnActor* SpawnActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> Class);
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
-	bool BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AActor> Class, AActor*& SpawnedActor);
+	bool BeginSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> Class, AActor*& SpawnedActor);
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
-	void FinishSpawningActor(UObject* WorldContextObject, AActor* SpawnedActor);
+	void FinishSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, AActor* SpawnedActor);
 
 protected:
-	
+	FGameplayAbilityTargetDataHandle CachedTargetDataHandle;
 };

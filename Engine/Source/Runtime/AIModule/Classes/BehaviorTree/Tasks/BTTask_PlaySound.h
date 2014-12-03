@@ -11,7 +11,7 @@ class USoundCue;
  * Plays the specified sound when executed.
  */
 UCLASS()
-class UBTTask_PlaySound : public UBTTaskNode
+class AIMODULE_API UBTTask_PlaySound : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 

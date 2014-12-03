@@ -7,6 +7,10 @@
 #include "MessageLog.h"
 
 #if SOURCE_CONTROL_WITH_SLATE
+#include "SExpandableArea.h"
+#include "SThrobber.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SSourceControlLogin"
 

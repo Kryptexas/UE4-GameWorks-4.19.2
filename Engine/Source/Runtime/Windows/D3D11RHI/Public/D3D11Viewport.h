@@ -80,7 +80,7 @@ public:
 		CustomPresent = InCustomPresent;
 	}
 
-	virtual void* GetNativeWindow(void** AddParam = nullptr) const override { return (void*)&WindowHandle; }
+	virtual void* GetNativeWindow(void** AddParam = nullptr) const override { return (void*)WindowHandle; }
 
 private:
 
@@ -100,6 +100,7 @@ private:
 	int32 SyncCounter;
 	bool bSyncedLastFrame;
 	HWND WindowHandle;
+	uint32 MaximumFrameLatency;
 	uint32 SizeX;
 	uint32 SizeY;
 	bool bIsFullscreen;

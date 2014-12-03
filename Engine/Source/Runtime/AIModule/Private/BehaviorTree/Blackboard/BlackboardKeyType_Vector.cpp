@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
-UBlackboardKeyType_Vector::UBlackboardKeyType_Vector(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType_Vector::UBlackboardKeyType_Vector(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FVector);
 	SupportedOp = EBlackboardKeyOperation::Basic;
@@ -17,6 +17,11 @@ FVector UBlackboardKeyType_Vector::GetValue(const uint8* RawData)
 bool UBlackboardKeyType_Vector::SetValue(uint8* RawData, const FVector& Value)
 {
 	return SetValueInMemory<FVector>(RawData, Value);
+}
+
+bool UBlackboardKeyType_Vector::Clear(uint8* RawData) const 
+{
+	return SetValueInMemory<FVector>(RawData, FAISystem::InvalidLocation);
 }
 
 FString UBlackboardKeyType_Vector::DescribeValue(const uint8* RawData) const

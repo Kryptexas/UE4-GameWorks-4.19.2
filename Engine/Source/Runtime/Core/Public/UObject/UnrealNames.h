@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	UnrealNames.h: Header file registering global hardcoded Unreal names.
-=============================================================================*/
+#ifndef _UNREAL_NAMES_H_
+#define _UNREAL_NAMES_H_
 
 //
 // Macros.
@@ -209,3 +207,5 @@ REGISTER_NAME(500,PerformanceCapture)
 	#undef REGISTER_NAME
 	#undef REGISTERING_ENUM
 #endif
+
+#endif // _UNREAL_NAMES_H_

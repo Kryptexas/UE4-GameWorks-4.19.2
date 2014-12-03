@@ -18,8 +18,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogFileServerCommandlet, Log, All);
 /* UFileServerCommandlet structors
  *****************************************************************************/
 
-UFileServerCommandlet::UFileServerCommandlet( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UFileServerCommandlet::UFileServerCommandlet( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 	IsClient = false;

@@ -6,7 +6,7 @@ AndroidAffinity.h: Android affinity profile masks definitions.
 
 #pragma once
 
-#include "GenericPlatformAffinity.h"
+#include "GenericPlatform/GenericPlatformAffinity.h"
 
 class FAndroidAffinity : public FGenericPlatformAffinity
 {

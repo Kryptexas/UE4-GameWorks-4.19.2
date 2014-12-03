@@ -1,18 +1,20 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Components/TextRenderComponent.h"
 #include "DynamicMeshBuilder.h"
-#include "../../../../Source/Runtime/Engine/Classes/Engine/TextRenderActor.h"
+#include "Engine/Font.h"
+#include "Engine/TextRenderActor.h"
 #include "LocalVertexFactory.h"
 
-ATextRenderActor::ATextRenderActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ATextRenderActor::ATextRenderActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TextRender = PCIP.CreateDefaultSubobject<UTextRenderComponent>(this, TEXT("NewTextRenderComponent"));
+	TextRender = ObjectInitializer.CreateDefaultSubobject<UTextRenderComponent>(this, TEXT("NewTextRenderComponent"));
 	RootComponent = TextRender;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
@@ -111,7 +113,7 @@ public:
 
 		// Copy the vertex data into the vertex buffer.
 		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-		FMemory::Memcpy(VertexBufferData,Vertices.GetTypedData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
+		FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
 };
@@ -129,7 +131,7 @@ public:
 
 		// Copy the index data into the index buffer.
 		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(uint16), RLM_WriteOnly);
-		FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(uint16));
+		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint16));
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 };
@@ -420,7 +422,7 @@ FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	}
 
 	TextMaterial = EffectiveMaterial;
-	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance(GetScene()->GetFeatureLevel());
+	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance(GetScene().GetFeatureLevel());
 }
 
 FTextRenderSceneProxy::~FTextRenderSceneProxy()
@@ -430,6 +432,13 @@ FTextRenderSceneProxy::~FTextRenderSceneProxy()
 
 void FTextRenderSceneProxy::CreateRenderThreadResources()
 {
+	if(Font && Font->FontCacheType == EFontCacheType::Runtime)
+	{
+		// Runtime fonts can't currently be used here as they use the font cache from Slate application
+		// which can only be used on the game thread
+		return;
+	}
+
 	if(BuildStringMesh(VertexBuffer.Vertices, IndexBuffer.Indices))
 	{
 		// Init vertex factory
@@ -726,8 +735,8 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 
 // ------------------------------------------------------
 
-UTextRenderComponent::UTextRenderComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextRenderComponent::UTextRenderComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -802,7 +811,7 @@ bool UTextRenderComponent::ShouldRecreateProxyOnUpdateTransform() const
 	return true;
 }
 
-FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if(!Text.IsEmpty() && Font)
 	{
@@ -992,3 +1001,10 @@ void UTextRenderComponent::PostLoad()
 
 	Super::PostLoad();
 }
+
+/** Returns TextRender subobject **/
+UTextRenderComponent* ATextRenderActor::GetTextRender() const { return TextRender; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ATextRenderActor::GetSpriteComponent() const { return SpriteComponent; }
+#endif

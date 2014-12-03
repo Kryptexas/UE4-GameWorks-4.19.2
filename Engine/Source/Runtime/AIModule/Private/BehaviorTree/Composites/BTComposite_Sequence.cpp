@@ -3,14 +3,14 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Composites/BTComposite_Sequence.h"
 
-UBTComposite_Sequence::UBTComposite_Sequence(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTComposite_Sequence::UBTComposite_Sequence(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Sequence";
 
 	OnNextChild.BindUObject(this, &UBTComposite_Sequence::GetNextChildHandler);
 }
 
-int32 UBTComposite_Sequence::GetNextChildHandler(struct FBehaviorTreeSearchData& SearchData, int32 PrevChild, EBTNodeResult::Type LastResult) const
+int32 UBTComposite_Sequence::GetNextChildHandler(FBehaviorTreeSearchData& SearchData, int32 PrevChild, EBTNodeResult::Type LastResult) const
 {
 	// failure = quit
 	int32 NextChildIdx = BTSpecialChild::ReturnToParent;

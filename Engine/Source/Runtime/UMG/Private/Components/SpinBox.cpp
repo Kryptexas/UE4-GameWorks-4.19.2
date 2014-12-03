@@ -7,11 +7,11 @@
 /////////////////////////////////////////////////////
 // USpinBox
 
-USpinBox::USpinBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpinBox::USpinBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	// HACK Special font initialization hack since there are no font assets yet for slate.
-	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 	// Grab other defaults from slate arguments.
 	SSpinBox<float>::FArguments Defaults;
@@ -40,16 +40,9 @@ void USpinBox::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> USpinBox::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-	
 	MySpinBox = SNew(SSpinBox<float>)
 	.Style(&WidgetStyle)
-	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.Font(Font)
 	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 	.SelectAllTextOnCommit(SelectAllTextOnCommit)
 	.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged))
@@ -315,7 +308,7 @@ const FSlateBrush* USpinBox::GetEditorIcon()
 
 const FText USpinBox::GetPaletteCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif

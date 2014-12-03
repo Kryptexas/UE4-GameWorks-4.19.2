@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////
 // UEditorUtilityBlueprint
 
-UEditorUtilityBlueprint::UEditorUtilityBlueprint(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorUtilityBlueprint::UEditorUtilityBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

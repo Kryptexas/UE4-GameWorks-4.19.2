@@ -20,8 +20,8 @@ Notes:
 /** Size of the network recv buffer */
 #define NETWORK_MAX_PACKET (576)
 
-UIpNetDriver::UIpNetDriver(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UIpNetDriver::UIpNetDriver(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -279,7 +279,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	}
 }
 
-void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject * SubObject )
+void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject* SubObject )
 {
 	bool bIsServer = IsServer();
 

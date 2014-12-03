@@ -6,6 +6,10 @@
 #include "Sound/SoundWave.h"
 #include "MediaSoundWave.generated.h"
 
+
+// forward declarations
+class FMediaSampleQueue;
+class IMediaPlayer;
 class UMediaPlayer;
 
 
@@ -29,7 +33,7 @@ class MEDIAASSETS_API UMediaSoundWave
 public:
 
 	/** Destructor. */
-	~UMediaSoundWave( );
+	~UMediaSoundWave();
 
 public:
 
@@ -48,7 +52,7 @@ public:
 	 *
 	 * @return The player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetPlayer( ) const;
+	TSharedPtr<IMediaPlayer> GetPlayer() const;
 
 public:
 
@@ -71,20 +75,20 @@ public:
 protected:
 
 	/** Initializes the audio track. */
-	void InitializeTrack( );
+	void InitializeTrack();
 
 private:
 
 	/** Callback for when the UMediaPlayer asset changed its media. */
-	void HandleMediaPlayerMediaChanged( );
+	void HandleMediaPlayerMediaChanged();
 
 private:
 
 	/** The audio sample queue. */
-	FMediaSampleQueueRef AudioQueue;
+	TSharedRef<FMediaSampleQueue, ESPMode::ThreadSafe> AudioQueue;
 
 	/** Holds the selected audio track. */
-	IMediaTrackPtr AudioTrack;
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> AudioTrack;
 
 	/** Holds the media player asset currently being used. */
 	UMediaPlayer* CurrentMediaPlayer;

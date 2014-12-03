@@ -9,8 +9,8 @@
 // Life cycle                                                        
 //----------------------------------------------------------------------//
 
-UNavigationComponent::UNavigationComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationComponent::UNavigationComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bIsPathPartial(false)
 	, AsynPathQueryID(INVALID_NAVQUERYID)
 {
@@ -824,12 +824,12 @@ ANavigationData* UNavigationComponent::PickNavData() const
 
 	if (MyNavAgent == NULL)
 	{
-		MyNavAgent = InterfaceCast<INavAgentInterface>( GetOuter() );
+		MyNavAgent = Cast<INavAgentInterface>( GetOuter() );
 	}
 
 	if (MyPathObserver == NULL)
 	{
-		MyPathObserver = InterfaceCast<INavPathObserverInterface>( GetOuter() );
+		MyPathObserver = Cast<INavPathObserverInterface>( GetOuter() );
 	}
 
 	if (GetWorld() != NULL && GetWorld()->GetNavigationSystem() != NULL && MyNavAgent != NULL)
@@ -863,17 +863,14 @@ void UNavigationComponent::CacheNavQueryExtent() const
 	if (MyNavAgent)
 	{
 		const FNavAgentProperties* AgentProperties = MyNavAgent->GetNavAgentProperties();
-		// it's possible to have NULL AgentProperties if controlled pawn doesn't have a movement component
-		if (AgentProperties)
-		{
-			NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
-				, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
-				, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
-		}
+		check(AgentProperties);
+		NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
+			, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
+			, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
 	}
 }
 
-void UNavigationComponent::OnNavDataRegistered(class ANavigationData* NavData)
+void UNavigationComponent::OnNavDataRegistered(ANavigationData* NavData)
 {
 	// re-pick regardless of whether we have MyNavData set already - the new one can be better!
 	PickNavData();
@@ -905,7 +902,7 @@ void UNavigationComponent::SetReceiveSmartLinkUpdates(bool bEnabled)
 	bUpdateForSmartLinks = bEnabled;
 }
 
-void UNavigationComponent::OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink)
+void UNavigationComponent::OnCustomLinkBroadcast(UNavLinkCustomComponent* NearbyLink)
 {
 	// update only when agent is actually moving
 	if (NearbyLink == NULL || !Path.IsValid() ||
@@ -962,7 +959,7 @@ void UNavigationComponent::SwapCurrentMoveGoal(const AActor* NewGoalActor)
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
-void UNavigationComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void UNavigationComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	// path will be drawn by path following
 }

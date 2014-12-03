@@ -499,41 +499,33 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}
 
-#elif USE_PARTICLE_SUBUVS
+#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 0 && USE_PARTICLE_SUBUVS
 	SetUV(Interpolants, 0, Input.TexCoords[0]);
 #endif	// NUM_MATERIAL_TEXCOORDS
 
 #if NEEDS_LIGHTMAP_COORDINATE
-	#if USE_INSTANCING
-	//float2 InstanceLightMapBias = float2(Input.InstanceInverseTransform1.w, Input.InstanceInverseTransform2.w);
-	//Interpolants.LightMapCoordinate.xy = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + InstanceLightMapBias;
-	#if (ES2_PROFILE || ES3_1_PROFILE)
-	SetLightMapCoordinate(Interpolants, (float4)0, (float2)0);
-		#else
-	Interpolants.LightMapCoordinate = 0;
-		#endif	// ES2_PROFILE
-	#else
-	
-	float4 LightMapCoordinate = 0;
+	float2 LightMapCoordinate = 0;
 	float2 ShadowMapCoordinate = 0;
 
-	#if (ES2_PROFILE || ES3_1_PROFILE)
-		LightMapCoordinate.xy = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
-		LightMapCoordinate.y *= 0.5;
-		LightMapCoordinate.zw = LightMapCoordinate.xy;
-		LightMapCoordinate.w += 0.5;
-			#if STATICLIGHTING_TEXTUREMASK
-			ShadowMapCoordinate = Input.LightMapCoordinate * ShadowMapCoordinateScaleBias.xy + ShadowMapCoordinateScaleBias.zw;
-			#endif	// STATICLIGHTING_TEXTUREMASK
+	#if USE_INSTANCING
+		#if !USE_INSTANCING_EMULATED
+		float2 InstanceLightMapBias = float2(Input.InstanceInverseTransform1.w, Input.InstanceInverseTransform2.w);
 		#else
-		LightMapCoordinate.xy = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
-			#if STATICLIGHTING_TEXTUREMASK
+		float2 InstanceLightMapBias = float2(CPUInstanceInverseTransform[1].w, CPUInstanceInverseTransform[2].w);
+		#endif // !USE_INSTANCING_EMULATED
+		LightMapCoordinate = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + InstanceLightMapBias;
+	#else
+		LightMapCoordinate = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
+	#endif
+	#if STATICLIGHTING_TEXTUREMASK
+		#if USE_INSTANCING
+			ShadowMapCoordinate = Input.LightMapCoordinate * ShadowMapCoordinateScaleBias.xy + GetInstanceShadowMapBias(Input).xy;
+		#else
 			ShadowMapCoordinate = Input.LightMapCoordinate * ShadowMapCoordinateScaleBias.xy + ShadowMapCoordinateScaleBias.zw;
-			#endif	// STATICLIGHTING_TEXTUREMASK
-		#endif	// ES2_PROFILE
+		#endif
+	#endif	// STATICLIGHTING_TEXTUREMASK
 
 	SetLightMapCoordinate(Interpolants, LightMapCoordinate, ShadowMapCoordinate);
-	#endif	// USE_INSTANCING
 #endif	// NEEDS_LIGHTMAP_COORDINATE
 
 	SetTangents(Interpolants, Intermediates.TangentToWorld[0], Intermediates.TangentToWorld[2], Intermediates.TangentToWorldSign);

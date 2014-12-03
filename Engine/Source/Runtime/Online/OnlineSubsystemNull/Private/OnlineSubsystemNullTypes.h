@@ -5,6 +5,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "IPAddress.h"
 
+class FOnlineSubsystemNull;
 
 /** 
  * Implementation of session information
@@ -33,7 +34,7 @@ PACKAGE_SCOPE:
 	 * Initialize a Null session info with the address of this machine
 	 * and an id for the session
 	 */
-	void Init();
+	void Init(const FOnlineSubsystemNull& Subsystem);
 
 	/** The ip & port that the host is listening on (valid for LAN/GameServer) */
 	TSharedPtr<class FInternetAddr> HostAddr;

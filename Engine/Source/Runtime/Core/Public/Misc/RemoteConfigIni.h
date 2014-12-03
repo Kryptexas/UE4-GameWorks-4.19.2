@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * Stores info relating to remote config files
  */
@@ -43,38 +44,40 @@ struct FRemoteConfigAsyncIOInfo
 class FRemoteConfigAsyncWorker
 {
 public:
-	/** Constructor */
+
+	/** Constructor. */
 	FRemoteConfigAsyncWorker(const TCHAR* InFilename, FRemoteConfigAsyncIOInfo& InIOInfo, FString* InContents, bool bInIsRead);
 
-	/** Performs the actual IO operations */
+	/** Performs the actual IO operations. */
 	void DoWork();
 
-	/** Returns true if the read IO operation succeeded */
+	/** Returns true if the read IO operation succeeded. */
 	bool IsReadSuccess() const;
 
 	/** Returns the local IO info object */
 	FRemoteConfigAsyncIOInfo& GetIOInfo();
 
-	/** Give the name for external event viewers */
+	/** Give the name for external event viewers. */
 	static const TCHAR* Name();
 
-	/** Indicates to the thread pool that this task is abandonable */
+	/** Indicates to the thread pool that this task is abandonable. */
 	bool CanAbandon();
 
 	/** Abandon routine */
 	void Abandon();
 
 private:
-	/** Name of the remote config file */
+
+	/** Name of the remote config file. */
 	TCHAR Filename[1024];
 
-	/** Local copy of the IO info object, for thread safety */
+	/** Local copy of the IO info object, for thread safety. */
 	FRemoteConfigAsyncIOInfo IOInfo;
 
-	/** Contents to write out */
+	/** Contents to write out. */
 	FString Contents;
 
-	/** true if read operation, false if write */
+	/** true if read operation, false if write. */
 	bool bIsRead;
 };
 
@@ -102,114 +105,114 @@ public:
 class FRemoteConfigAsyncTaskManager
 {
 public:
-	/** Returns a reference to the global FRemoteConfigAsyncTaskManager object */
+
+	/** Returns a reference to the global FRemoteConfigAsyncTaskManager object. */
 	CORE_API static FRemoteConfigAsyncTaskManager* Get();
 
-	/** Handles cached write tasks */
+	/** Handles cached write tasks. */
 	CORE_API void Tick();
 
-	/** Add an async IO task to the queue and kick it off */
+	/** Add an async IO task to the queue and kick it off. */
 	bool StartTask(const TCHAR* InFilename, const TCHAR* RemotePath, FRemoteConfigAsyncIOInfo& InIOInfo, FString* InContents, bool bInIsRead);
 
 	/** Returns true if the task has completed */
 	bool IsFinished(const TCHAR* InFilename);
 
-	/** Returns true if the all tasks in the queue have completed (or, if the queue is empty) */
+	/** Returns true if the all tasks in the queue have completed (or, if the queue is empty). */
 	bool AreAllTasksFinished(bool bDoRemoval);
 
-	/** Safely retrieve the read data from the completed async task */
+	/** Safely retrieve the read data from the completed async task. */
 	bool GetReadData(const TCHAR* InFilename, FRemoteConfigAsyncIOInfo& OutIOInfo);
 
 private:
-	/** Returns true if file exists in the cached task list */
+
+	/** Returns true if file exists in the cached task list. */
 	bool FindCachedWriteTask(const TCHAR* InFilename, bool bCompareContents, const TCHAR* InContents);
 
 	/** List of pending async IO operations */
 	TMap<FString, FAsyncTask<FRemoteConfigAsyncWorker>* > PendingTasks;
 
-	/** List of cached off write tasks waiting for currently pending tasks to complete */
+	/** List of cached off write tasks waiting for currently pending tasks to complete. */
 	TArray<FRemoteConfigAsyncCachedWriteTask> CachedWriteTasks;
 
-	/** Object used for synchronization via a scoped lock **/
+	/** Object used for synchronization via a scoped lock. **/
 	FCriticalSection SynchronizationObject;
 };
 
 
 /**
- * Manages remote config files
+ * Manages remote config files.
  */
 class FRemoteConfig
 {
 public:
+
 	/** Constructor */
 	FRemoteConfig();
 
-	/** Returns a reference to the global FRemoteConfig object */
+	/** Returns a reference to the global FRemoteConfig object. */
 	static FRemoteConfig* Get();
 
-	/** Returns true if the specified config file has been flagged as being remote **/
+	/** Returns true if the specified config file has been flagged as being remote. */
 	bool IsRemoteFile(const TCHAR* Filename);
 
-	/** Returns true if the specified file is remote and still needs to be read **/
+	/** Returns true if the specified file is remote and still needs to be read. */
 	bool ShouldReadRemoteFile(const TCHAR* Filename);
 
-	/** Simple accessor function **/
+	/** Simple accessor function. */
 	FRemoteConfigAsyncIOInfo* FindConfig(const TCHAR* Filename);
 
-	/** Returns true if the task has completed */
+	/** Returns true if the task has completed. */
 	bool IsFinished(const TCHAR* InFilename);
 
-	/** Queues up a new async task for reading a remote config file **/
+	/** Queues up a new async task for reading a remote config file. */
 	bool Read(const TCHAR* GeneratedIniFile, const TCHAR* DefaultIniFile);
 
-	/** Queues up a new async task for writing a remote config file **/
+	/** Queues up a new async task for writing a remote config file. */
 	bool Write(const TCHAR* Filename, FString& Contents);
 
-	/** Waits on the async read if it hasn't finished yet... times out if the operation has taken too long **/
+	/** Waits on the async read if it hasn't finished yet... times out if the operation has taken too long. */
 	void FinishRead(const TCHAR* Filename);
 
-	/** Finishes all pending async IO tasks **/
+	/** Finishes all pending async IO tasks. */
 	CORE_API static void Flush();
 
-	/* Replaces chars used by the ini parser with "special chars" */
+	/* Replaces chars used by the ini parser with "special chars". */
 	CORE_API static FString ReplaceIniCharWithSpecialChar(const FString& Str);
 
-	/* Replaces "special chars" that have been inserted to avoid problems with the ini parser with equivalent regular chars */
+	/* Replaces "special chars" that have been inserted to avoid problems with the ini parser with equivalent regular chars. */
 	CORE_API static FString ReplaceIniSpecialCharWithChar(const FString& Str);
 	
 private:
-	/** Creates the remote path string for the specified file */
+
+	/** Creates the remote path string for the specified file. */
 	FString GenerateRemotePath(const TCHAR* Filename);
 
-	/** List of remote config file info */
+	/** List of remote config file info. */
 	TMap<FString, FRemoteConfigAsyncIOInfo> ConfigBuffers;
 
-	/** Async IO operation timeout */
+	/** Async IO operation timeout. */
 	float Timeout;
 
-	/** If true, remote ops are allowed */
+	/** If true, remote ops are allowed. */
 	bool bIsEnabled;
 
-	/** true if the list of desired remote files has been filled out */
+	/** true if the list of desired remote files has been filled out. */
 	bool bHasCachedFilenames;
 
-	/** List of desired remote files */
+	/** List of desired remote files. */
 	TArray<FString> CachedFileNames;
 };
 
 
-/** Returns true if no remote version of this config file exists and/or isn't being used */
+/** Returns true if no remote version of this config file exists and/or isn't being used. */
 bool IsUsingLocalIniFile(const TCHAR* FilenameToLoad, const TCHAR* IniFileName);
 
-/** Contains the logic for processing config files, local or remote */
+/** Contains the logic for processing config files, local or remote. */
 void ProcessIniContents(const TCHAR* FilenameToLoad, const TCHAR* IniFileName, FConfigFile* Config, bool bDoEmptyConfig, bool bDoCombine, bool bDoWrite);
 
-/** Returns the timestamp of the appropriate config file */
+/** Returns the timestamp of the appropriate config file. */
 FDateTime GetIniTimeStamp(const TCHAR* FilenameToLoad, const TCHAR* IniFileName);
 
-/** Before overwriting the local file with the contents from the remote file, we save off a copy of the local file (if it exists) */
+/** Before overwriting the local file with the contents from the remote file, we save off a copy of the local file (if it exists). */
 void MakeLocalCopy(const TCHAR* Filename);
-
-
-
-

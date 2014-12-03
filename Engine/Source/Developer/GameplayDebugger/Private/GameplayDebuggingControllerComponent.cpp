@@ -5,7 +5,7 @@
 #include "GameFramework/PlayerInput.h"
 #include "BehaviorTreeDelegates.h"
 #include "TimerManager.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugging, Log, All);
 
@@ -13,8 +13,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugging, Log, All);
 #define BUGIT_VIEWS (1<<EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead)
 #define BREAK_LINE_TEXT TEXT("________________________________________________________________")
 
-UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, KeyPressActivationTime(0.4f)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -29,6 +29,7 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 	bWaitingForOwnersComponent = false;
 
 	ControlKeyPressedTime = 0;
+	ActivationKey = FInputChord(EKeys::Apostrophe, false, false, false, false);
 }
 
 void UGameplayDebuggingControllerComponent::OnRegister()
@@ -126,7 +127,6 @@ void UGameplayDebuggingControllerComponent::BindActivationKeys()
 	if (PlayerOwner.IsValid() && PlayerOwner->InputComponent && PlayerOwner->PlayerInput)
 	{
 		// find current activation key used for 'EnableGDT' binding
-		FInputChord ActivationKey(EKeys::Quote, false, false, false, false);
 		for (uint32 BindIndex = 0; BindIndex < (uint32)PlayerOwner->PlayerInput->DebugExecBindings.Num(); BindIndex++)
 		{
 			if (PlayerOwner->PlayerInput->DebugExecBindings[BindIndex].Command == TEXT("EnableGDT"))
@@ -156,7 +156,6 @@ void UGameplayDebuggingControllerComponent::OnActivationKeyPressed()
 			BindAIDebugViewKeys();
 			GetDebuggingReplicator()->EnableDraw(true);
 			GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
-			PlayerOwner->ConsoleCommand(TEXT("ShowFlag.DebugAI 1"), false);
 		}
 
 		ControlKeyPressedTime = GetWorld()->GetTimeSeconds();
@@ -205,10 +204,6 @@ void UGameplayDebuggingControllerComponent::CloseDebugTool()
 		GetDebuggingReplicator()->EnableDraw(false);
 		GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
 		bToolActivated = false;
-		if (PlayerOwner.IsValid())
-		{
-			PlayerOwner->ConsoleCommand(TEXT("ShowFlag.DebugAI 0"), false);
-		}
 	}
 }
 

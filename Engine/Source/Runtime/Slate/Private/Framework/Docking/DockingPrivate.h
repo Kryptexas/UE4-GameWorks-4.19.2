@@ -3,7 +3,7 @@
 #pragma once
 
 
-#include "Slate.h"
+#include "SlateBasics.h"
 
 #define DEBUG_TAB_MANAGEMENT 0
 

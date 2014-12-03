@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UEditorGameAgnosticSettings::UEditorGameAgnosticSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorGameAgnosticSettings::UEditorGameAgnosticSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCopyStarterContentPreference = true;
 	AutoScalabilityWorkScaleAmount = 1;
@@ -57,8 +57,8 @@ void UEditorGameAgnosticSettings::AutoApplyScalabilityBenchmark()
 {
 	const TCHAR* Section = TEXT("EngineBenchmarkResult");
 
-	GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "RunningEngineBenchmark", "Running engine benchmark..."));
-	GWarn->PushStatus();
+	FScopedSlowTask SlowTask(0, NSLOCTEXT("UnrealEd", "RunningEngineBenchmark", "Running engine benchmark..."));
+	SlowTask.MakeDialog();
 
 
 	Scalability::FQualityLevels Temporary = Scalability::BenchmarkQualityLevels(AutoScalabilityWorkScaleAmount);
@@ -74,8 +74,6 @@ void UEditorGameAgnosticSettings::AutoApplyScalabilityBenchmark()
 
 	Scalability::SetQualityLevels(Temporary);
 	Scalability::SaveState(GEditorGameAgnosticIni);
-
-	GWarn->PopStatus();
 }
 
 bool UEditorGameAgnosticSettings::IsScalabilityBenchmarkValid() const

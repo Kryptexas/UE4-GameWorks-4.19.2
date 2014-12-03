@@ -228,7 +228,7 @@ static const TCHAR* ImportProperties(
 					ExistingBrush->Rename();
 
 				// Create model.
-				UModelFactory* ModelFactory = new UModelFactory(FPostConstructInitializeProperties());
+				UModelFactory* ModelFactory = new UModelFactory(FObjectInitializer());
 				ModelFactory->FactoryCreateText( UModel::StaticClass(), SubobjectRoot, FName(BrushName, FNAME_Add, true), RF_NoFlags, NULL, TEXT("t3d"), SourceText, SourceText+FCString::Strlen(SourceText), Warn );
 				ImportedBrush = 1;
 			}
@@ -549,8 +549,8 @@ static const TCHAR* ImportProperties(
 	{
 		check(GIsEditor);
 		ABrush* Actor = (ABrush*)DestData;
-		check(Actor->BrushComponent);
-		if( Actor->BrushComponent->Mobility == EComponentMobility::Static )
+		check(Actor->GetBrushComponent());
+		if( Actor->GetBrushComponent()->Mobility == EComponentMobility::Static )
 		{
 			// Prepare static brush.
 			Actor->SetNotForClientOrServer();

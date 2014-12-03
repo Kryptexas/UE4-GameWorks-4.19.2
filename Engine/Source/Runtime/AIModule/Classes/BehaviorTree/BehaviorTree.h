@@ -6,6 +6,10 @@
 #include "Engine/Blueprint.h"
 #include "BehaviorTree.generated.h"
 
+class UBTCompositeNode;
+class UBlackboardData;
+class UBTDecorator;
+
 UCLASS(BlueprintType)
 class AIMODULE_API UBehaviorTree : public UObject
 {
@@ -13,7 +17,7 @@ class AIMODULE_API UBehaviorTree : public UObject
 
 	/** root node of loaded tree */
 	UPROPERTY()
-	class UBTCompositeNode* RootNode;
+	UBTCompositeNode* RootNode;
 
 #if WITH_EDITORONLY_DATA
 
@@ -29,11 +33,11 @@ class AIMODULE_API UBehaviorTree : public UObject
 
 	/** blackboard asset for this tree */
 	UPROPERTY()
-	class UBlackboardData* BlackboardAsset;
+	UBlackboardData* BlackboardAsset;
 
 	/** root level decorators, used by subtrees */
 	UPROPERTY()
-	TArray<class UBTDecorator*> RootDecorators;
+	TArray<UBTDecorator*> RootDecorators;
 
 	/** logic operators for root level decorators, used by subtrees  */
 	UPROPERTY()

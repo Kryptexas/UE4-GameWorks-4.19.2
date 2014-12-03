@@ -219,7 +219,7 @@ enum EExprToken
 	EX_ObjToInterfaceCast   = 0x52,	// Converting an object reference to native interface variable
 	EX_EndOfScript			= 0x53, // Last byte in script code
 	EX_CrossInterfaceCast	= 0x54, // Converting an interface variable reference to native interface variable
-	//						= 0x55,
+	EX_InterfaceToObjCast   = 0x55, // Converting an interface variable reference to an object
 	//						= 0x56,
 	//						= 0x57,
 	//						= 0x58,
@@ -234,6 +234,7 @@ enum EExprToken
 	EX_BindDelegate			= 0x61, // bind object and name to delegate
 	EX_RemoveMulticastDelegate = 0x62, // Remove a delegate from a multicast delegate's targets
 	EX_CallMulticastDelegate = 0x63, // Call multicast delegate
+	Ex_LetValueOnPersistentFrame = 0x64,
 	EX_Max					= 0x100,
 };
 

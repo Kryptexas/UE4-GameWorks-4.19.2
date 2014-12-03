@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "UnrealFrontendPrivatePCH.h"
 #include "UnrealFrontendMain.h"
 #include "ExceptionHandling.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -9,7 +10,7 @@
 static FString GSavedCommandLine;
 
 
-@interface UE4AppDelegate : NSObject<NSApplicationDelegate>
+@interface UE4AppDelegate : NSObject<NSApplicationDelegate, NSFileManagerDelegate>
 {
 }
 

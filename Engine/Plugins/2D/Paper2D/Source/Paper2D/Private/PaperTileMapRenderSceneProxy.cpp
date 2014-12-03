@@ -19,7 +19,7 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 
 		if (Material)
 		{
-			MaterialRelevance = Material->GetRelevance(GetScene()->GetFeatureLevel());
+			MaterialRelevance = Material->GetRelevance(GetScene().GetFeatureLevel());
 		}
 	}
 }

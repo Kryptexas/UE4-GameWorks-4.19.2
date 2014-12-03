@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
-UEnvironmentQueryGraphNode_Option::UEnvironmentQueryGraphNode_Option(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEnvironmentQueryGraphNode_Option::UEnvironmentQueryGraphNode_Option(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
 #include "HierarchyTabSummoner.h"
 #include "SHierarchyView.h"
+#include "WidgetBlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -14,7 +14,7 @@ FHierarchyTabSummoner::FHierarchyTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("SlateHierarchyTabLabel", "Hierarchy");
-	TabIcon = FEditorStyle::Get().GetBrush("Kismet.Tabs.Palette");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette");
 
 	bIsSingleton = true;
 

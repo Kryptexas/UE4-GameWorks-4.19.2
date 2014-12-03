@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformMemory.h"
 /**
  *	Linux implementation of the FGenericPlatformMemoryStats.
  */
@@ -29,7 +29,7 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 		/** Returns true if we need to unlink this region on destruction (no other process will be able to access it) */
 		bool NeedsToUnlinkRegion() const { return bCreatedThisRegion; }
 
-		FLinuxSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize, int InFd, bool bInCreatedThisRegion)
+		FLinuxSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize, int InFd, bool bInCreatedThisRegion)
 			:	FSharedMemoryRegion(InName, InAccessMode, InAddress, InSize)
 			,	Fd(InFd)
 			,	bCreatedThisRegion(bInCreatedThisRegion)
@@ -51,7 +51,7 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 	static const FPlatformMemoryConstants& GetConstants();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
+	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 	// End FGenericPlatformMemory interface
 };

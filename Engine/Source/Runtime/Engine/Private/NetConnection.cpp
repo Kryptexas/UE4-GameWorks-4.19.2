@@ -10,6 +10,7 @@
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "DataChannel.h"
+#include "Engine/PackageMapClient.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
@@ -17,8 +18,8 @@
 
 UNetConnection* UNetConnection::GNetConnectionBeingCleanedUp = NULL;
 
-UNetConnection::UNetConnection(const class FPostConstructInitializeProperties& PCIP)
-:	UPlayer(PCIP)
+UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
+:	UPlayer(ObjectInitializer)
 ,	Driver				( NULL )
 ,	PackageMap			( NULL )
 ,	Viewer				( NULL )
@@ -115,7 +116,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	}
 
 	// Create package map.
-	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
+	PackageMap = new( this )UPackageMapClient( FObjectInitializer(), this, Driver->GuidCache );
 
 	// Create the voice channel
 	CreateChannel(CHTYPE_Voice, true, VOICE_CHANNEL_INDEX);
@@ -162,7 +163,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	}
 
 	// Create package map.
-	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
+	PackageMap = new( this )UPackageMapClient( FObjectInitializer(), this, Driver->GuidCache );
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -298,8 +299,8 @@ void UNetConnection::CleanUp()
 	Driver = NULL;
 }
 
-UChildConnection::UChildConnection(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UChildConnection::UChildConnection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -500,7 +501,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		{
 			DelayedPacket& B = *(new(Delayed)DelayedPacket);
 			B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
-			FMemory::Memcpy( B.Data.GetTypedData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+			FMemory::Memcpy( B.Data.GetData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 
 			for( int32 i=Delayed.Num()-1; i>=0; i-- )
 			{
@@ -524,7 +525,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			{
 				DelayedPacket& B = *(new(Delayed)DelayedPacket);
 				B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
-				FMemory::Memcpy( B.Data.GetTypedData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+				FMemory::Memcpy( B.Data.GetData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 				B.SendTime = FPlatformTime::Seconds() + (double(PacketSimulationSettings.PktLag)  + 2.0f * (FMath::FRand() - 0.5f) * double(PacketSimulationSettings.PktLagVariance))/ 1000.f;
 			}
 		}
@@ -601,7 +602,7 @@ void UNetConnection::ReceivedNak( int32 NakPacketId )
  * @NumBits		Number of bits in data blob
  * @PacketId	PacketId of the packet used to produce this ack data
 */
-static uint32 CalcPingAckData( const uint8 * BunchData, const int32 NumBits, const int32 PacketId )
+static uint32 CalcPingAckData( const uint8* BunchData, const int32 NumBits, const int32 PacketId )
 {
 	// Simply walk the bunch data, based upon OutPacketId, to get 'good enough' random data for verification
 	const int32	BunchBytesFloor = NumBits / 8;
@@ -1031,14 +1032,14 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	// Add the bits to the queue
 	if ( SizeInBits )
 	{
-		SendBuffer.SerializeBits( const_cast< uint8 * >( Bits ), SizeInBits );
+		SendBuffer.SerializeBits( const_cast< uint8* >( Bits ), SizeInBits );
 		ValidateSendBuffer();
 	}
 
 	// Add any extra bits
 	if ( ExtraSizeInBits )
 	{
-		SendBuffer.SerializeBits( const_cast< uint8 * >( ExtraBits ), ExtraSizeInBits );
+		SendBuffer.SerializeBits( const_cast< uint8* >( ExtraBits ), ExtraSizeInBits );
 		ValidateSendBuffer();
 	}
 
@@ -1379,6 +1380,11 @@ void UNetConnection::Tick()
 			OpenChannels[i]->Tick();
 		}
 
+		for ( int32 i = KeepProcessingActorChannelBunches.Num() - 1; i >= 0; i-- )
+		{
+			KeepProcessingActorChannelBunches[i]->ProcessQueuedBunches();
+		}
+
 		// If channel 0 has closed, mark the connection as closed.
 		if( Channels[0]==NULL && (OutReliable[0]!=0 || InReliable[0]!=0) )
 		{
@@ -1622,7 +1628,7 @@ void UNetConnection::CleanupDormantActorState()
 	DormantReplicatorMap.Empty();
 }
 
-void UNetConnection::FlushDormancy( class AActor * Actor )
+void UNetConnection::FlushDormancy( class AActor* Actor )
 {
 	UE_LOG( LogNetDormancy, Verbose, TEXT( "FlushDormancy: %s. Connection: %s" ), *Actor->GetName(), *GetName() );
 	
@@ -1631,9 +1637,8 @@ void UNetConnection::FlushDormancy( class AActor * Actor )
 	{
 		FlushDormancyForObject( Actor );
 
-		for ( int32 i = 0; i < Actor->ReplicatedComponents.Num(); ++i )
+		for ( UActorComponent* ActorComp : Actor->GetReplicatedComponents() )
 		{
-			UActorComponent * ActorComp = Actor->ReplicatedComponents[i].Get();
 			if ( ActorComp && ActorComp->GetIsReplicated() )
 			{
 				FlushDormancyForObject( ActorComp );
@@ -1664,7 +1669,7 @@ void UNetConnection::FlushDormancy( class AActor * Actor )
 }
 
 /** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
-void UNetConnection::FlushDormancyForObject( UObject * Object )
+void UNetConnection::FlushDormancyForObject( UObject* Object )
 {
 	static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.DormancyValidate" ) );
 	const bool ValidateProperties = ( ValidateCVar && ValidateCVar->GetValueOnGameThread() == 1 );

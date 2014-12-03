@@ -5,7 +5,7 @@
 
 #pragma once
 
-class FSlateOpenGLTexture : public TSlateTexture< GLuint >
+class FSlateOpenGLTexture : public TSlateTexture< GLuint >, public FSlateUpdatableTexture
 {
 public:
 	FSlateOpenGLTexture( uint32 InSizeX, uint32 InSizeY )
@@ -28,6 +28,11 @@ public:
 	uint32 GetWidth() const { return SizeX; }
 	uint32 GetHeight() const { return SizeY; }
 
+	// FSlateUpdatableTexture interface
+	virtual FSlateShaderResource* GetSlateResource() override {return this;}
+	virtual void ResizeTexture( uint32 Width, uint32 Height ) override;
+	virtual void UpdateTexture(const TArray<uint8>& Bytes) override;
+
 private:
 	static GLuint NullTexture;
 
@@ -48,8 +53,9 @@ public:
 
 	/** FSlateFontAtlas interface */
 	virtual void ConditionalUpdateTexture();
-	virtual class FSlateShaderResource* GetTexture() { return Texture; }
+	virtual class FSlateShaderResource* GetSlateTexture() override { return FontTexture; }
+	virtual class FTextureResource* GetEngineTexture() override { return nullptr; }
 private:
-	FSlateOpenGLTexture* Texture;
+	FSlateOpenGLTexture* FontTexture;
 };
 

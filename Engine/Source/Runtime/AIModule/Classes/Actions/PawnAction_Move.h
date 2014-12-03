@@ -33,18 +33,27 @@ protected:
 
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
 	uint32 bAllowStrafe : 1;
+	
+	/** if set to true (default) will make action succeed when the pawn's collision component overlaps with goal's collision component */
+	UPROPERTY()
+	uint32 bFinishOnOverlap : 1;
 
 	/** if set, movement will use path finding */
+	UPROPERTY()
 	uint32 bUsePathfinding : 1;
 
 	/** if set, GoalLocation will be projected on navigation before using  */
+	UPROPERTY()
 	uint32 bProjectGoalToNavigation : 1;
 
 	/** if set, path to GoalActor will be updated with goal's movement */
+	UPROPERTY()
 	uint32 bUpdatePathToGoal : 1;
 
 	/** if set, other actions with the same priority will be aborted when path is changed */
+	UPROPERTY()
 	uint32 bAbortChildActionOnPathChange : 1;
+
 public:
 	virtual void BeginDestroy() override;
 
@@ -60,6 +69,7 @@ public:
 	void OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event);
 
 	void SetAcceptableRadius(float NewAcceptableRadius) { AcceptableRadius = NewAcceptableRadius; }
+	void SetFinishOnOverlap(bool bNewFinishOnOverlap) { bFinishOnOverlap = bNewFinishOnOverlap; }
 	void EnableStrafing(bool bNewStrafing) { bAllowStrafe = bNewStrafing; }
 	void EnablePathUpdateOnMoveGoalLocationChange(bool bEnable) { bUpdatePathToGoal = bEnable; }
 	void EnableGoalLocationProjectionToNavigation(bool bEnable) { bProjectGoalToNavigation = bEnable; }

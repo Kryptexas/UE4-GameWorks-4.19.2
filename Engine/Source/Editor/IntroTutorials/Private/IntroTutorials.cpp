@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
-#include "SIntroTutorials.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -18,7 +17,7 @@
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
 #include "TutorialSettings.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "EditorTutorial.h"
 #include "SEditorTutorials.h"
 #include "STutorialsBrowser.h"
@@ -30,11 +29,16 @@
 #include "STutorialButton.h"
 #include "ToolkitManager.h"
 #include "BlueprintEditor.h"
+#include "EngineBuildSettings.h"
 #include "IDocumentation.h"
+#include "SDockTab.h"
+#include "ModuleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
 IMPLEMENT_MODULE(FIntroTutorials, IntroTutorials)
+
 
 FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
@@ -116,7 +120,8 @@ void FIntroTutorials::StartupModule()
 	}
 
 	// Register to display our settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
 	if (SettingsModule != nullptr)
 	{
 		SettingsModule->RegisterSettings("Editor", "General", "Tutorials",
@@ -144,6 +149,9 @@ void FIntroTutorials::StartupModule()
 		ContentIntroCurveAsset->AddToRoot();
 		ContentIntroCurve = ContentIntroCurveAsset;
 	}
+
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("TutorialsBrowser"), FOnSpawnTab::CreateRaw(this, &FIntroTutorials::SpawnTutorialsBrowserTab))
+		.SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
 void FIntroTutorials::ShutdownModule()
@@ -169,7 +177,7 @@ void FIntroTutorials::ShutdownModule()
 		MainFrameModule.OnMainFrameCreationFinished().RemoveAll(this);
 	}
 
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if (SettingsModule != nullptr)
 	{
 		SettingsModule->UnregisterSettings("Editor", "General", "Tutorials");
@@ -189,6 +197,8 @@ void FIntroTutorials::ShutdownModule()
 		ContentIntroCurve.Get()->RemoveFromRoot();
 		ContentIntroCurve = nullptr;
 	}
+
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("TutorialsBrowser"));
 }
 
 void FIntroTutorials::AddSummonTutorialsMenuExtension(FMenuBuilder& MenuBuilder)
@@ -286,27 +296,30 @@ void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWel
 
 bool FIntroTutorials::MaybeOpenWelcomeTutorial()
 {
-	// try editor startup tutorial
-	TSubclassOf<UEditorTutorial> EditorStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UEditorTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
-	if(EditorStartupTutorialClass != nullptr)
+	if(FParse::Param(FCommandLine::Get(), TEXT("TestTutorialAlerts")) || !FEngineBuildSettings::IsInternalBuild())
 	{
-		UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-		if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+		// try editor startup tutorial
+		TSubclassOf<UEditorTutorial> EditorStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UEditorTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+		if(EditorStartupTutorialClass != nullptr)
 		{
-			LaunchTutorial(Tutorial);
-			return true;
+			UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+			{
+				LaunchTutorial(Tutorial);
+				return true;
+			}
 		}
-	}
 
-	// Try project startup tutorial
-	TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
-	if(ProjectStartupTutorialClass != nullptr)
-	{
-		UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-		if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+		// Try project startup tutorial
+		TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+		if(ProjectStartupTutorialClass != nullptr)
 		{
-			LaunchTutorial(Tutorial);
-			return true;
+			UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+			{
+				LaunchTutorial(Tutorial);
+				return true;
+			}
 		}
 	}
 
@@ -364,11 +377,17 @@ FOnIsPicking& FIntroTutorials::OnIsPicking()
 	return OnIsPickingDelegate;
 }
 
-void FIntroTutorials::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
+FOnValidatePickingCandidate& FIntroTutorials::OnValidatePickingCandidate()
+{
+	return OnValidatePickingCandidateDelegate;
+}
+
+void FIntroTutorials::SummonTutorialBrowser()
 {
 	if(TutorialRoot.IsValid())
 	{
-		TutorialRoot->SummonTutorialBrowser(InWindow, InFilter);
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+		LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"));
 	}
 }
 
@@ -439,6 +458,23 @@ float FIntroTutorials::GetIntroCurveValue(float InTime)
 	}
 
 	return 1.0f;
+}
+
+TSharedRef<SDockTab> FIntroTutorials::SpawnTutorialsBrowserTab(const FSpawnTabArgs& SpawnTabArgs)
+{
+	TAttribute<FText> Label = LOCTEXT("TutorialsBrowserTabLabel", "Tutorials");
+
+	TSharedRef<SDockTab> NewTab = SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		.Label(Label)
+		.ToolTip(IDocumentation::Get()->CreateToolTip(Label, nullptr, "Shared/TutorialsBrowser", "Tab"));	
+
+	TSharedRef<STutorialsBrowser> TutorialsBrowser = SNew(STutorialsBrowser)
+		.OnLaunchTutorial(FOnLaunchTutorial::CreateRaw(this, &FIntroTutorials::LaunchTutorial));
+
+	NewTab->SetContent(TutorialsBrowser);
+
+	return NewTab;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IDeviceProfileServicesModule.h: Declares the IDeviceProfileServicesModule interface.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Device Profile Editor module
@@ -17,12 +14,12 @@ public:
 	/**
 	 * Gets the profile services manager.
 	 *
-	 * @return - the profile services manager.
+	 * @return The profile services manager.
 	 */
 	virtual IDeviceProfileServicesUIManagerRef GetProfileServicesManager( ) = 0;
 
-	/**
-	 * Virtual destructor.
-	 */
+public:
+
+	/** Virtual destructor. */
 	virtual ~IDeviceProfileServicesModule( ) { }
 };

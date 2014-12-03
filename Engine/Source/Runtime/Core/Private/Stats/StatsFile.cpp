@@ -4,7 +4,7 @@
 	StatsFile.cpp: Implements stats file related functionality.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #if	STATS
 
@@ -84,6 +84,7 @@ FStatsThreadState::FStatsThreadState( FString const& Filename )
 	, LastFullFrameMetaAndNonFrame( -1 )
 	, LastFullFrameProcessed( -1 )
 	, bWasLoaded( true )
+	, bFindMemoryExtensiveStats( false )
 	, CurrentGameFrame( -1 )
 	, CurrentRenderFrame( -1 )
 {
@@ -220,6 +221,52 @@ void FStatsThreadState::AddMessages( TArray<FStatMessage>& InMessages )
 		new (Messages)FStatMessage( InMessages[Index] );
 	}
 	bWasLoaded = false;
+}
+
+void FStatsThreadState::ProcessMetaDataForLoad(TArray<FStatMessage>& Data)
+{
+	check(bWasLoaded);
+	for (int32 Index = 0; Index < Data.Num() ; Index++)
+	{
+		FStatMessage& Item = Data[Index];
+		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
+		if (Op == EStatOperation::SetLongName)
+		{
+			FindOrAddMetaData(Item);
+		}
+		else if (Op == EStatOperation::AdvanceFrameEventGameThread)
+		{
+			check(Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
+			if (Item.GetValue_int64() > 0)
+			{
+				CurrentGameFrame = Item.GetValue_int64();
+				if (CurrentGameFrame > MaxFrameSeen)
+				{
+					MaxFrameSeen = CurrentGameFrame;
+				}
+				if (MinFrameSeen < 0)
+				{
+					MinFrameSeen = CurrentGameFrame;
+				}
+			}
+		}
+		else if (Op == EStatOperation::AdvanceFrameEventRenderThread)
+		{
+			check(Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
+			if (Item.GetValue_int64() > 0)
+			{
+				CurrentRenderFrame = Item.GetValue_int64();
+				if (CurrentGameFrame > MaxFrameSeen)
+				{
+					MaxFrameSeen = CurrentGameFrame;
+				}
+				if (MinFrameSeen < 0)
+				{
+					MinFrameSeen = CurrentGameFrame;
+				}
+			}
+		}
+	}
 }
 
 /*-----------------------------------------------------------------------------

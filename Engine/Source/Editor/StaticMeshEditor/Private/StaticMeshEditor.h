@@ -63,7 +63,7 @@ public:
 
 	virtual bool IsPrimValid(const FPrimData& InPrimData) const override;
 	virtual bool HasSelectedPrims() const;
-	virtual void AddSelectedPrim(const FPrimData& InPrimData) override;
+	virtual void AddSelectedPrim(const FPrimData& InPrimData, bool bClearSelection) override;
 	virtual void RemoveSelectedPrim(const FPrimData& InPrimData) override;
 	virtual void RemoveInvalidPrims() override;
 	virtual bool IsSelectedPrim(const FPrimData& InPrimData) const override;

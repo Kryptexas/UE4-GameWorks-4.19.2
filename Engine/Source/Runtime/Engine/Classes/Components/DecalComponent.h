@@ -86,7 +86,7 @@ public:
 	// End UActorComponent Interface
 
 	// Begin USceneComponent Interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent Interface
 };
 

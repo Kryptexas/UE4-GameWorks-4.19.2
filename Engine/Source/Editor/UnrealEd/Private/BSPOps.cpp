@@ -514,7 +514,7 @@ void FBSPOps::csgPrepMovingBrush( ABrush* Actor )
 	check(Actor);
 //	UE_LOG(LogBSPOps, Log,  TEXT("Preparing brush %s"), *Actor->GetName() );  // moved here so that we can easily debug when an actor has lost parts of its brush
 
-	check(Actor->BrushComponent);
+	check(Actor->GetBrushComponent());
 	check(Actor->Brush);
 	check(Actor->Brush->RootOutside);
 
@@ -523,7 +523,7 @@ void FBSPOps::csgPrepMovingBrush( ABrush* Actor )
 	RebuildBrush(Actor->Brush);
 
 	// Make sure simplified collision is up to date.
-	Actor->BrushComponent->BuildSimpleBrushCollision();
+	Actor->GetBrushComponent()->BuildSimpleBrushCollision();
 }
 
 /**
@@ -533,25 +533,25 @@ void FBSPOps::csgPrepMovingBrush( ABrush* Actor )
 void FBSPOps::csgCopyBrush( ABrush* Dest, ABrush* Src, uint32 PolyFlags, EObjectFlags ResFlags, bool bNeedsPrep, bool bCopyPosRotScale, bool bAllowEmpty )
 {
 	check(Src);
-	check(Src->BrushComponent);
+	check(Src->GetBrushComponent());
 	check(Src->Brush);
 
 	// Handle empty brush.
 	if( !bAllowEmpty && !Src->Brush->Polys->Element.Num() )
 	{
 		Dest->Brush = NULL;
-		Dest->BrushComponent->Brush = NULL;
+		Dest->GetBrushComponent()->Brush = NULL;
 		return;
 	}
 
 	// Duplicate the brush and its polys.
 	Dest->PolyFlags		= PolyFlags;
-	Dest->Brush			= new( Dest, NAME_None, ResFlags )UModel(FPostConstructInitializeProperties(), NULL, Src->Brush->RootOutside );
-	Dest->Brush->Polys	= new( Dest->Brush, NAME_None, ResFlags )UPolys(FPostConstructInitializeProperties());
+	Dest->Brush			= new( Dest, NAME_None, ResFlags )UModel(FObjectInitializer(), NULL, Src->Brush->RootOutside );
+	Dest->Brush->Polys	= new( Dest->Brush, NAME_None, ResFlags )UPolys(FObjectInitializer());
 	check(Dest->Brush->Polys->Element.GetOwner()==Dest->Brush->Polys);
 	Dest->Brush->Polys->Element.AssignButKeepOwner(Src->Brush->Polys->Element);
 	check(Dest->Brush->Polys->Element.GetOwner()==Dest->Brush->Polys);
-	Dest->BrushComponent->Brush = Dest->Brush;
+	Dest->GetBrushComponent()->Brush = Dest->Brush;
 	if(Src->BrushBuilder != nullptr)
 	{
 		Dest->BrushBuilder = DuplicateObject<UBrushBuilder>(Src->BrushBuilder, Dest);
@@ -584,7 +584,7 @@ void FBSPOps::csgCopyBrush( ABrush* Dest, ABrush* Src, uint32 PolyFlags, EObject
 ABrush*	FBSPOps::csgAddOperation( ABrush* Actor, uint32 PolyFlags, EBrushType BrushType)
 {
 	check(Actor);
-	check(Actor->BrushComponent);
+	check(Actor->GetBrushComponent());
 	check(Actor->Brush);
 	check(Actor->Brush->Polys);
 	check(Actor->GetWorld());
@@ -1215,11 +1215,11 @@ void FBSPOps::RebuildBrush(UModel* Brush)
  */
 void FBSPOps::RotateBrushVerts(ABrush* Brush, const FRotator& Rotation, bool bClearComponents)
 {
-	if(Brush->BrushComponent->Brush && Brush->BrushComponent->Brush->Polys)
+	if(Brush->GetBrushComponent()->Brush && Brush->GetBrushComponent()->Brush->Polys)
 	{
-		for( int32 poly = 0 ; poly < Brush->BrushComponent->Brush->Polys->Element.Num() ; poly++ )
+		for( int32 poly = 0 ; poly < Brush->GetBrushComponent()->Brush->Polys->Element.Num() ; poly++ )
 		{
-			FPoly* Poly = &(Brush->BrushComponent->Brush->Polys->Element[poly]);
+			FPoly* Poly = &(Brush->GetBrushComponent()->Brush->Polys->Element[poly]);
 
 			// Rotate the vertices.
 			for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
@@ -1237,7 +1237,7 @@ void FBSPOps::RotateBrushVerts(ABrush* Brush, const FRotator& Rotation, bool bCl
 			Poly->Finalize(Brush,0);
 		}
 
-		Brush->BrushComponent->Brush->BuildBound();
+		Brush->GetBrushComponent()->Brush->BuildBound();
 
 		if( !Brush->IsStaticBrush() )
 		{

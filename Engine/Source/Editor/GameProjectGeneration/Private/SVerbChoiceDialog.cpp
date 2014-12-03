@@ -2,6 +2,7 @@
 
 #include "GameProjectGenerationPrivatePCH.h"
 #include "SVerbChoiceDialog.h"
+#include "SHyperlink.h"
 
 int32 SVerbChoiceDialog::ShowModal( const FText& InTitle, const FText& InMessage, const TArray<FText>& InButtons )
 {
@@ -110,15 +111,15 @@ void SVerbChoiceDialog::Construct( const FArguments& InArgs )
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FReply SVerbChoiceDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SVerbChoiceDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	//see if we pressed the Enter or Spacebar keys
-	if( InKeyboardEvent.GetKey() == EKeys::Escape )
+	if( InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		return HandleButtonClicked(EAppReturnType::Cancel);
 	}
 
-	if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+	if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 	{
 		CopyMessageToClipboard();
 

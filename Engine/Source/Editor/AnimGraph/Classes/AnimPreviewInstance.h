@@ -57,6 +57,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 
 	// Begin UAnimSingleNodeInstance interface
 	virtual void RestartMontage(UAnimMontage* Montage, FName FromSection = FName()) override;
+	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping = true, float InPlayRate = 1.f) override;
 	// End UAnimSingleNodeInstance interface
 
 	/** Montage preview functions */

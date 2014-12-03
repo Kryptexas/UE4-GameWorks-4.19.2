@@ -9,7 +9,7 @@ namespace ListConstants
 	static const float OvershootBounceRate = 250.0f;
 }
 
-void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
+void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
 {
 	HeaderRow = InHeaderRow;
 
@@ -33,6 +33,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 				.ItemWidth( InItemWidth )
 				.ItemHeight( InItemHeight )
 				.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
+				.ItemAlignment( InItemAlignment )
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -52,6 +53,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 			.ItemWidth( InItemWidth )
 			.ItemHeight( InItemHeight )
 			.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
+			.ItemAlignment( InItemAlignment )
 		);
 
 	if (InHeaderRow.IsValid())
@@ -91,7 +93,7 @@ bool STableViewBase::SupportsKeyboardFocus() const
 }
 
 
-void STableViewBase::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void STableViewBase::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	bShowSoftwareCursor = false;
 }
@@ -167,7 +169,7 @@ void STableViewBase::TickInertialScroll( const FGeometry& AllottedGeometry, cons
 		{
 			if ( CanUseInertialScroll(ScrollVelocity) )
 			{
-				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, EAllowOverscroll::Yes);
+				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll);
 			}
 			else
 			{
@@ -185,7 +187,7 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 	{
 		TickInertialScroll(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-		if ( !IsRightClickScrolling() )
+		if ( !IsRightClickScrolling() && AllowOverscroll == EAllowOverscroll::Yes)
 		{
 			// If we are currently in overscroll, the list will need refreshing.
 			// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
@@ -225,9 +227,12 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			
 			ScrollOffset = FMath::Max(0.0, ScrollOffset);
 			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) );
-			const float OverscrollAmount = Overscroll.GetOverscroll();
-			ItemsPanel->SetOverscrollAmount( OverscrollAmount );
-			
+
+			if (AllowOverscroll == EAllowOverscroll::Yes)
+			{
+				const float OverscrollAmount = Overscroll.GetOverscroll();
+				ItemsPanel->SetOverscrollAmount( OverscrollAmount );
+			}
 
 			UpdateSelectionSet();
 
@@ -242,7 +247,7 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 			NotifyItemScrolledIntoView();
 
-			bWasAtEndOfList = FMath::IsNearlyZero(ScrollBar->DistanceFromBottom()) ? true : false;
+			bWasAtEndOfList = ScrollBar->DistanceFromBottom() < KINDA_SMALL_NUMBER ? true : false;
 
 			bItemsNeedRefresh = false;
 			ItemsPanel->SetRefreshPending(false);
@@ -358,7 +363,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		{
 			TickScrollDelta -= ScrollByAmount;
 
-			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
+			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, AllowOverscroll );
 
 			FReply Reply = FReply::Handled();
 
@@ -413,9 +418,9 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 }
 
 
-FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetKey() == EKeys::End )
+	if ( InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::End )
 	{
 		ScrollOffset = GetNumItemsBeingObserved();
 		RequestListRefresh();
@@ -455,10 +460,10 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
 		TickScrollDelta -= ScrollByAmount;
 
-		const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
-
-		if (AmountScrolledWhileRightMouseDown > SlatePanTriggerDistance)
+		if (AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistnace())
 		{
+			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
+
 			// The user has moved the list some amount; they are probably
 			// trying to scroll. From now on, the list assumes the user is scrolling
 			// until they lift their finger.
@@ -503,7 +508,8 @@ TSharedPtr<SHeaderRow> STableViewBase::GetHeaderRow() const
 
 bool STableViewBase::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= SlatePanTriggerDistance && this->ScrollBar->IsNeeded();
+	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace() &&
+		(this->ScrollBar->IsNeeded() || AllowOverscroll == EAllowOverscroll::Yes);
 }
 
 bool STableViewBase::IsUserScrolling() const
@@ -557,16 +563,17 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, SoftwareCursorPosition( ForceInitToZero )
 	, bShowSoftwareCursor( false )
 	, Overscroll()
+	, AllowOverscroll(EAllowOverscroll::Yes)
 	, bItemsNeedRefresh( true )	
 {
 }
 
-float STableViewBase::ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll )
+float STableViewBase::ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll )
 {
 	const int32 NumItemsBeingObserved = GetNumItemsBeingObserved();
 	const float FractionalScrollOffsetInItems = (ScrollOffset + GetScrollRateInItems() * ScrollByAmountInSlateUnits) / NumItemsBeingObserved;
 	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( FractionalScrollOffsetInItems*NumItemsBeingObserved, -10.0f, NumItemsBeingObserved+10.0f ) * NumItemsBeingObserved;
-	if (AllowOverscroll == EAllowOverscroll::Yes)
+	if (InAllowOverscroll == EAllowOverscroll::Yes)
 	{
 		Overscroll.ScrollBy( ClampedScrollOffsetInItems - ScrollByAmountInSlateUnits );
 	}

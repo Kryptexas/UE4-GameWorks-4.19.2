@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_LatentOnlineCall::UK2Node_LatentOnlineCall(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_LatentOnlineCall::UK2Node_LatentOnlineCall(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UOnlineBlueprintCallProxyBase, Activate);
 }

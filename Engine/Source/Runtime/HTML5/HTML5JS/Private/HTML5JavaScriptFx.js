@@ -101,6 +101,67 @@ var UE_JavaScriptLibary =
             alert(text);
         }
         return 1; 
+    },
+
+    UE_GetCurrentCultureName: function (address, outsize) {
+        var culture_name = navigator.language || navigator.browserLanguage;
+        if (culture_name.lenght >= outsize) {
+            return 0;
+        }
+        Module.writeAsciiToMemory(culture_name, address);
+        return 1;
+    },
+
+    UE_MakeHTTPDataRequest: function (ctx, url, verb, payload, freeBuffer, onload, onerror, onprogress) {
+	    var _url = Pointer_stringify(url);
+	    var _verb = Pointer_stringify(verb);
+	    var _payload = Pointer_stringify(payload);
+
+	    var xhr = new XMLHttpRequest();
+	    xhr.open(_verb, _url, true);
+	    xhr.responseType = 'arraybuffer';
+
+	    // Onload event handler
+	    xhr.addEventListener('load', function (e) {
+   	        if (xhr.status === 200 || _url.substr(0, 4).toLowerCase() !== "http") {
+       	            var byteArray = new Uint8Array(xhr.response);
+       	            var buffer = _malloc(byteArray.length);
+       	            HEAPU8.set(byteArray, buffer);
+       	            if (onload) 
+       	                    Runtime.dynCall('viii', onload, [ctx, buffer, byteArray.length]);
+       	            if (freeBuffer) 
+       	                    _free(buffer);
+   	        } 
+   	        else{
+   	            if (onerror) Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
+   	        }
+	    });
+
+	    // Onerror event handler
+	    xhr.addEventListener('error', function (e) {
+	        if (onerror) Runtime.dynCall('viii', onerror, [ctx, xhr.status, xhr.statusText]);
+	    });
+
+	    // Onprogress event handler
+	    xhr.addEventListener('progress', function (e) {
+	        if (onprogress) Runtime.dynCall('viii', onprogress, [ctx, e.loaded, e.lengthComputable || e.lengthComputable === undefined ? e.total : 0]);
+	    });
+
+	    // Bypass possible browser redirection limit
+	    try {
+	        if (xhr.channel instanceof Ci.nsIHttpChannel)
+	            xhr.channel.redirectionLimit = 0;
+	    } catch (ex) { }
+
+	    if (_verb === "POST") {
+	        //Send the proper header information along with the request
+	        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	        xhr.setRequestHeader("Content-length", _payload.length);
+	        xhr.setRequestHeader("Connection", "close");
+	        xhr.send(_payload);
+	    } else {
+	        xhr.send(null);
+	    }
     }
 };
 

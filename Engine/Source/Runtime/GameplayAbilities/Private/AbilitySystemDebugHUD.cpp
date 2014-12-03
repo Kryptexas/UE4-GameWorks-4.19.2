@@ -5,7 +5,7 @@
 #include "AbilitySystemDebugHUD.h"
 #include "DebugRenderSceneProxy.h"
 
-AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 
 }
@@ -86,7 +86,7 @@ void AAbilitySystemDebugHUD::DrawDebugAbilitySystemComponent(UAbilitySystemCompo
 	DrawWithBackground(Font, String, Color, EAlignHorizontal::Left, X, EAlignVertical::Top, Y);
 
 
-	for (const UAttributeSet * Set : Component->SpawnedAttributes)
+	for (const UAttributeSet* Set : Component->SpawnedAttributes)
 	{
 		if (!Set)
 			continue;

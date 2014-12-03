@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "MarginCustomization.h"
 #include "ScopedTransaction.h"
+#include "SNumericEntryBox.h"
 
 TSharedRef<IPropertyTypeCustomization> FMarginStructCustomization::MakeInstance() 
 {

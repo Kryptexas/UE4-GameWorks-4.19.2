@@ -1,10 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DateTimeTest.cpp: Unit test for the FDateTime class.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
@@ -34,7 +30,8 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 #undef TestUnixEquivalent
 
 #define TestYear( Desc, A, B ) if( (A.GetYear()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetYear()),(B)));
-#define TestMonth( Desc, A, B ) if( (A.GetMonth()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetMonth()),static_cast<int32>(B)));
+#define TestMonth( Desc, A, B ) if( (A.GetMonth()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetMonth()),B));
+#define TestMonthOfYear( Desc, A, B ) if( (A.GetMonthOfYear()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(static_cast<int32>(A.GetMonthOfYear())),static_cast<int32>(B)));
 #define TestDay( Desc, A, B ) if( (A.GetDay()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetDay()),(B)));
 #define TestHour( Desc, A, B ) if( (A.GetHour()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetHour()),(B)));
 #define TestMinute( Desc, A, B ) if( (A.GetMinute()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetMinute()),(B)));
@@ -42,7 +39,8 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 #define TestMillisecond( Desc, A, B ) if( (A.GetMillisecond()) != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A.GetMillisecond()),(B)));
 
 	TestYear( TEXT("Testing Unix Epoch Year"), UnixEpoch, 1970 );
-	TestMonth( TEXT("Testing Unix Epoch Month"), UnixEpoch, EMonthOfYear::January );
+	TestMonth( TEXT("Testing Unix Epoch Month"), UnixEpoch, 1 );
+	TestMonthOfYear( TEXT("Testing Unix Epoch MonthOfYear"), UnixEpoch, EMonthOfYear::January );
 	TestDay( TEXT("Testing Unix Epoch Day"), UnixEpoch, 1 );
 	TestHour( TEXT("Testing Unix Epoch Hour"), UnixEpoch, 0 );
 	TestMinute( TEXT("Testing Unix Epoch Minute"), UnixEpoch, 0 );
@@ -50,7 +48,8 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 	TestMillisecond( TEXT("Testing Unix Epoch Millisecond"), UnixEpoch, 0 );
 
 	TestYear( TEXT("Testing Unix Billennium Year"), UnixBillennium, 2001 );
-	TestMonth( TEXT("Testing Unix Billennium Month"), UnixBillennium, EMonthOfYear::September );
+	TestMonth( TEXT("Testing Unix Billennium MonthOfYear"), UnixBillennium, 9 );
+	TestMonthOfYear( TEXT("Testing Unix Billennium Month"), UnixBillennium, EMonthOfYear::September );
 	TestDay( TEXT("Testing Unix Billennium Day"), UnixBillennium, 9 );
 	TestHour( TEXT("Testing Unix Billennium Hour"), UnixBillennium, 1 );
 	TestMinute( TEXT("Testing Unix Billennium Minute"), UnixBillennium, 46 );
@@ -58,7 +57,8 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 	TestMillisecond( TEXT("Testing Unix Billennium Millisecond"), UnixBillennium, 0 );
 
 	TestYear( TEXT("Testing Unix Ones Year"), UnixOnes, 2005 );
-	TestMonth( TEXT("Testing Unix Ones Month"), UnixOnes, EMonthOfYear::March );
+	TestMonth( TEXT("Testing Unix Ones Month"), UnixOnes, 3 );
+	TestMonthOfYear( TEXT("Testing Unix Ones MonthOfYear"), UnixOnes, EMonthOfYear::March );
 	TestDay( TEXT("Testing Unix Ones Day"), UnixOnes, 18 );
 	TestHour( TEXT("Testing Unix Ones Hour"), UnixOnes, 1 );
 	TestMinute( TEXT("Testing Unix Ones Minute"), UnixOnes, 58 );
@@ -66,7 +66,8 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 	TestMillisecond( TEXT("Testing Unix Ones Millisecond"), UnixOnes, 0 );
 
 	TestYear( TEXT("Testing Unix Decimal Sequence Year"), UnixDecimalSequence, 2009 );
-	TestMonth( TEXT("Testing Unix Decimal Sequence Month"), UnixDecimalSequence, EMonthOfYear::February );
+	TestMonth( TEXT("Testing Unix Decimal Sequence Month"), UnixDecimalSequence, 2 );
+	TestMonthOfYear( TEXT("Testing Unix Decimal Sequence MonthOfYear"), UnixDecimalSequence, EMonthOfYear::February );
 	TestDay( TEXT("Testing Unix Decimal Sequence Day"), UnixDecimalSequence, 13 );
 	TestHour( TEXT("Testing Unix Decimal Sequence Hour"), UnixDecimalSequence, 23 );
 	TestMinute( TEXT("Testing Unix Decimal Sequence Minute"), UnixDecimalSequence, 31 );
@@ -75,6 +76,7 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 
 	TestYear( TEXT("Testing Test Date Time Year"), TestDateTime, 2013 );
 	TestMonth( TEXT("Testing Test Date Time Month"), TestDateTime, 8 );
+	TestMonthOfYear( TEXT("Testing Test Date Time MonthOfYear"), TestDateTime, EMonthOfYear::August );
 	TestDay( TEXT("Testing Test Date Time Day"), TestDateTime, 14 );
 	TestHour( TEXT("Testing Test Date Time Hour"), TestDateTime, 12 );
 	TestMinute( TEXT("Testing Test Date Time Minute"), TestDateTime, 34 );

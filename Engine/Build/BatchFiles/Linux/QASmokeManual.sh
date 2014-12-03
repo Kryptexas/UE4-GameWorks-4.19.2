@@ -12,6 +12,16 @@ Header()
   echo "Original location: $LOG_FILE"
 }
 
+OneTimeSetup()
+{
+  echo "Performing one-time setup"
+  set -x
+  cp Engine/Build/Git/Setup.sh .
+  ./Setup.sh
+  rm Setup.sh
+  set +x
+}
+
 GenerateProjectFiles()
 {
   echo "Generating project files"
@@ -70,6 +80,7 @@ if [ -z "$1" ]; then
 
   pushd ../../../.. >> /dev/null
   Run Header
+  Run OneTimeSetup
   Run GenerateProjectFiles
 
   # rebuild dependencies locally for editor targets (extra safety still)

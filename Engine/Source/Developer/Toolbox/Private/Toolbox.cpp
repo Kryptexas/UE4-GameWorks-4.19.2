@@ -7,6 +7,9 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 
@@ -154,14 +157,14 @@ void FToolboxModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( "DebugTools", FOnSpawnTab::CreateStatic( &CreateDebugToolsTab ) )
 		.SetDisplayName( NSLOCTEXT("Toolbox", "DebugTools", "Debug Tools") )
 		.SetTooltipText( NSLOCTEXT("Toolbox", "DebugToolsTooltipText", "Open the Debug Tools tab.") )
-		.SetGroup( MenuStructure.GetDeveloperToolsCategory() )
+		.SetGroup( MenuStructure.GetDeveloperToolsDebugCategory() )
 		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "DebugTools.TabIcon") );
 	if ( CanShowModulesTab() )
 	{
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner( "ModulesTab", FOnSpawnTab::CreateStatic( &CreateModulesTab ) )
 			.SetDisplayName( NSLOCTEXT("Toolbox", "Modules", "Modules") )
 			.SetTooltipText( NSLOCTEXT("Toolbox", "ModulesTooltipText", "Open the Modules tab.") )
-			.SetGroup( MenuStructure.GetDeveloperToolsCategory() )
+			.SetGroup( MenuStructure.GetDeveloperToolsMiscCategory() )
 			.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "Modules.TabIcon") );
 	}
 }

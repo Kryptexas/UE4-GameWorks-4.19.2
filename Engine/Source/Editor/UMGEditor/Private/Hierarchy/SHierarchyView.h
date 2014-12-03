@@ -2,10 +2,16 @@
 
 #pragma once
 
-#include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
-#include "TreeFilterHandler.h"
+#include "Misc/TextFilter.h"
+#include "SCompoundWidget.h"
 #include "SHierarchyViewItem.h"
+#include "TreeFilterHandler.h"
+#include "WidgetBlueprintEditorUtils.h"
+
+class FWidgetBlueprintEditor;
+class UWidget;
+class UWidgetBlueprint;
 
 //TODO rename SUMGEditorHierarchy
 
@@ -27,9 +33,10 @@ public:
 	virtual ~SHierarchyView();
 
 	// Begin SWidget
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
-
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	// End SWidget
 
 private:
@@ -88,6 +95,12 @@ private:
 	/** Recursively expands the models based on the expansion set. */
 	void RecursiveExpand(TSharedPtr<FHierarchyModel>& Model);
 
+	/**  */
+	void RestoreSelectedItems();
+
+	/**  */
+	void RecursiveSelection(TSharedPtr<FHierarchyModel>& Model);
+
 private:
 
 	/** Cached pointer to the blueprint editor that owns this tree. */
@@ -111,12 +124,15 @@ private:
 	/** The filter used by the search box */
 	TSharedPtr<WidgetTextFilter> SearchBoxWidgetFilter;
 
+	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
+	TArray<FName> ExpandedItems;
+
 	/** Has a full refresh of the tree been requested?  This happens when the user is filtering the tree */
 	bool bRefreshRequested;
 
 	/** Is the tree in such a changed state that the whole widget needs rebuilding? */
 	bool bRebuildTreeRequested;
 
-	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
-	TArray<FName> ExpandedItems;
+	/** Flag to ignore selections while the hierarchy view is updating the selection. */
+	bool bIsUpdatingSelection;
 };

@@ -3,8 +3,8 @@
 #include "SlateCorePrivatePCH.h"
 #include "SlateWidgetStyleContainerInterface.h"
 
-USlateWidgetStyleContainerInterface::USlateWidgetStyleContainerInterface( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+USlateWidgetStyleContainerInterface::USlateWidgetStyleContainerInterface( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

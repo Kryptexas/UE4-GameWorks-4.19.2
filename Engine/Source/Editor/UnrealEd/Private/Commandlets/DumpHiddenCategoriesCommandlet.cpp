@@ -162,8 +162,8 @@ static int32 GetHiddenProperties(uint32 Indent, UClass* Class, FString& JsonOut)
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-UDumpHiddenCategoriesCommandlet::UDumpHiddenCategoriesCommandlet(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UDumpHiddenCategoriesCommandlet::UDumpHiddenCategoriesCommandlet(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

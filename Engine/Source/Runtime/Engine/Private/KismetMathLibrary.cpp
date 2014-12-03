@@ -26,8 +26,8 @@ float EaseAlpha(float InAlpha, uint8 EasingFunc, float BlendExp, int32 Steps)
 	return InAlpha;
 }
 
-UKismetMathLibrary::UKismetMathLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetMathLibrary::UKismetMathLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -392,6 +392,11 @@ float UKismetMathLibrary::Tan(float A)
 	return FMath::Tan(A);
 }	
 
+float UKismetMathLibrary::Atan(float A)
+{
+	return FMath::Atan(A);
+}
+
 float UKismetMathLibrary::Atan2(float A, float B)
 {
 	return FMath::Atan2(A, B);
@@ -420,6 +425,11 @@ float UKismetMathLibrary::DegAcos(float A)
 float UKismetMathLibrary::DegTan(float A)
 {
 	return FMath::Tan(PI/(180.f) * A);
+}
+
+float UKismetMathLibrary::DegAtan(float A)
+{
+	return (180.f)/PI * FMath::Atan(A);
 }
 
 float UKismetMathLibrary::DegAtan2(float A, float B)
@@ -683,14 +693,14 @@ FVector  UKismetMathLibrary::RotateAngleAxis(FVector InVect, float AngleDeg, FVe
 	return InVect.RotateAngleAxis(AngleDeg, Axis.SafeNormal());
 }
 
-bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B)
+bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
 {
-	return (A.X == B.X) && (A.Y == B.Y) && (A.Z == B.Z);
+	return A.Equals(B, ErrorTolerance);
 }	
 
-bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B)
+bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
 {
-	return (A.X != B.X) || (A.Y != B.Y) || (A.Z != B.Z);
+	return !A.Equals(B, ErrorTolerance);
 }	
 
 float UKismetMathLibrary::Dot_VectorVector(FVector A, FVector B)
@@ -711,6 +721,16 @@ float UKismetMathLibrary::VSize(FVector A)
 float UKismetMathLibrary::VSize2D(FVector2D A)
 {
 	return A.Size();
+}
+
+float UKismetMathLibrary::VSizeSquared(FVector A)
+{
+	return A.SizeSquared();
+}
+
+float UKismetMathLibrary::VSize2DSquared(FVector2D A)
+{
+	return A.SizeSquared();
 }
 
 FVector UKismetMathLibrary::Normal(FVector A)
@@ -763,8 +783,7 @@ FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHa
 
 FVector UKismetMathLibrary::MirrorVectorByNormal(FVector A, FVector B)
 {
-	B = B.SafeNormal();
-	return A - 2.f * B * (B | A);
+	return FMath::GetReflectionVector(A, B);
 }
 
 FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
@@ -784,9 +803,27 @@ FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
 	return RRot;
 }
 
-FVector UKismetMathLibrary::ProjectOnTo(FVector X, FVector Y)
+FVector UKismetMathLibrary::ProjectVectorOnToVector(FVector V, FVector Target)
 {
-	return X.ProjectOnTo( Y );
+	if (Target.SizeSquared() > SMALL_NUMBER)
+	{
+		return V.ProjectOnTo(Target);
+	}
+	else
+	{
+		FFrame::KismetExecutionMessage(TEXT("Divide by zero: ProjectVectorOnToVector with zero Target vector"), ELogVerbosity::Warning);
+		return FVector::ZeroVector;
+	}
+}
+
+FVector UKismetMathLibrary::ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal)
+{
+	return FVector::PointPlaneProject(Point, PlaneBase, PlaneNormal);
+}
+
+FVector UKismetMathLibrary::ProjectVectorOnToPlane(FVector V, FVector PlaneNormal)
+{
+	return FVector::VectorPlaneProject(V, PlaneNormal);
 }
 
 FVector UKismetMathLibrary::NegateVector(FVector A)
@@ -834,14 +871,14 @@ FVector UKismetMathLibrary::GetDirectionVector(FVector From, FVector To)
 }
 
 
-bool UKismetMathLibrary::EqualEqual_RotatorRotator(FRotator A, FRotator B)
+bool UKismetMathLibrary::EqualEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
 {
-	return (A.Pitch == B.Pitch) && (A.Yaw == B.Yaw) && (A.Roll == B.Roll);
+	return A.Equals(B, ErrorTolerance);
 }	
 
-bool UKismetMathLibrary::NotEqual_RotatorRotator(FRotator A, FRotator B)
+bool UKismetMathLibrary::NotEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
 {
-	return (A.Pitch != B.Pitch) || (A.Yaw != B.Yaw) || (A.Roll != B.Roll);
+	return !A.Equals(B, ErrorTolerance);
 }	
 
 FRotator UKismetMathLibrary::Multiply_RotatorFloat(FRotator A, float B)

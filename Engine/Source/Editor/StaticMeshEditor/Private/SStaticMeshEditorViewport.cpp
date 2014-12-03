@@ -25,6 +25,7 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "SDockTab.h"
 
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
@@ -55,13 +56,13 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 			SAssignNew(OverlayTextVerticalBox, SVerticalBox)
 		];
 
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
 
 }
 
 SStaticMeshEditorViewport::~SStaticMeshEditorViewport()
 {
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	if (EditorViewportClient.IsValid())
 	{
 		EditorViewportClient->Viewport = NULL;

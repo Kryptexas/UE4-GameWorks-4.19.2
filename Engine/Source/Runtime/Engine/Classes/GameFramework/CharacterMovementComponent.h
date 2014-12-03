@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "AI/RVOAvoidanceInterface.h"
 #include "Animation/AnimationAsset.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
@@ -122,9 +123,15 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
  */
 
 UCLASS()
-class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
+class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public IRVOAvoidanceInterface, public INetworkPredictionInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UCharacterMovementComponent(const FObjectInitializer& ObjectInitializer);
 
 protected:
 
@@ -434,6 +441,9 @@ public:
 	UPROPERTY()
 	float CrouchedSpeedMultiplier_DEPRECATED;
 
+	UPROPERTY()
+	float UpperImpactNormalScale_DEPRECATED;
+
 protected:
 
 	/**
@@ -508,14 +518,6 @@ public:
 	/** When exiting water, jump if control pitch angle is this high or above. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	float JumpOutOfWaterPitch;
-
-	/**
-	 * Impacts on the upper hemisphere will have the vertical velocity scaled by this factor of the normal's Z component (in AdjustUpperHemisphereImpact()).
-	 * This can dampen such impacts to feel less like a capsule. A value of 0 indicates that this behavior is disabled.
-	 * @see AdjustUpperHemisphereImpact()
-	 */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
-	float UpperImpactNormalScale;
 
 	/** Information about the floor the Character is standing on (updated only during walking movement). */
 	UPROPERTY(Category="Character Movement", VisibleInstanceOnly, BlueprintReadOnly)
@@ -621,6 +623,9 @@ public:
 	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
 	uint32 bUseRVOAvoidance:1;
 
+	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
+	float AvoidanceConsiderationRadius;
+	
 	/**
 	 * Should use acceleration for path following?
 	 * If true, acceleration is applied when path following to reach the target velocity.
@@ -996,7 +1001,8 @@ public:
 
 	/**
 	 * Get the lateral acceleration to use during falling movement. The Z component of the result is ignored.
-	 * Default implementation returns current Acceleration value modified by GetAirControl(), with Z component removed.
+	 * Default implementation returns current Acceleration value modified by GetAirControl(), with Z component removed,
+	 * with magnitude clamped to GetMaxAcceleration().
 	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime Time step for the current update.
@@ -1005,9 +1011,8 @@ public:
 	virtual FVector GetFallingLateralAcceleration(float DeltaTime);
 	
 	/**
-	 * Get the air control to use during falling movement. This is a multiplier applied to the acceleration used when falling.
-	 * Given an initial air control (TickAirControl), applies the result of BoostAirControl(). If non-zero and FindAirControlImpact()
-	 * returns true, we then apply the result of LimitAirControl().
+	 * Get the air control to use during falling movement.
+	 * Given an initial air control (TickAirControl), applies the result of BoostAirControl().
 	 * This function is used internally by GetFallingLateralAcceleration().
 	 *
 	 * @param DeltaTime			Time step for the current update.
@@ -1016,7 +1021,7 @@ public:
 	 * @return Air control to use during falling movement.
 	 * @see AirControl, BoostAirControl(), LimitAirControl(), GetFallingLateralAcceleration()
 	 */
-	virtual float GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
+	virtual FVector GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 protected:
 
@@ -1033,30 +1038,32 @@ protected:
 	virtual float BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 	/**
-	 * Checks if air control will cause the player collision shape to hit something given current conditions.
-	 * This function is used internally by GetAirControl().
+	 * Checks if air control will cause the player collision shape to hit something given the current location.
+	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
-	 * @param TickAirControl	Current air control value.
+	 * @param AdditionalTime	Time to look ahead further, applying acceleration and gravity.
+	 * @param FallVelocity		Velocity to test with.
 	 * @param FallAcceleration	Acceleration used during movement.
+	 * @param Gravity			Gravity to apply to any additional time.
 	 * @param OutHitResult		Result of impact, valid if this function returns true.
 	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
 	 * @see GetAirControl()
 	 */
-	virtual bool FindAirControlImpact(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, FHitResult& OutHitResult);
+	virtual bool FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult);
 
 	/**
 	 * Limits the air control to use during falling movement, given an impact from FindAirControlImpact().
-	 * This function is used internally by GetAirControl().
+	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
-	 * @param TickAirControl	Current air control value.
 	 * @param FallAcceleration	Acceleration used during movement.
-	 * @param HitResult			Result of impact from FindAirControlImpact().
-	 * @return Modified air control to use during falling movement
+	 * @param HitResult			Result of impact.
+	 * @param bCheckForValidLandingSpot If true, will use IsValidLandingSpot() to determine if HitResult is a walkable surface. If false, this check is skipped.
+	 * @return Modified air control acceleration to use during falling movement.
 	 * @see FindAirControlImpact()
 	 */
-	virtual float LimitAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, const FHitResult& HitResult);
+	virtual FVector LimitAirControl(float DeltaTime, const FVector& FallAcceleration, const FHitResult& HitResult, bool bCheckForValidLandingSpot);
 	
 
 	/** Handle landing against Hit surface over remaingTime and iterations, calling SetPostLandedPhysics() and starting the new movement mode. */
@@ -1250,6 +1257,9 @@ protected:
 	 */
 	virtual void MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL);
 
+	/** Notification that the character is stuck in geometry.  Only called during walking movement. */
+	virtual void OnCharacterStuckInGeometry();
+
 	/**
 	 * Adjusts velocity when walking so that Z velocity is zero.
 	 * When bMaintainHorizontalGroundVelocity is false, also rescales the velocity vector to maintain the original magnitude, but in the horizontal direction.
@@ -1278,8 +1288,8 @@ protected:
 
 	/**
 	 * Calculate slide vector along a surface.
-	 * Has special treatment when falling, to avoid boosting up slopes (calling HandleSlopeBoosting in this case).
-	 * Calls AdjustUpperHemisphereImpact() for upward falling movement that hits the top of the capsule, because commonly we don't want this to behave like a smooth capsule.
+	 * Has special treatment when falling, to avoid boosting up slopes (calling HandleSlopeBoosting() in this case).
+	 *
 	 * @param Delta:	Attempted move.
 	 * @param Time:		Amount of move to apply (between 0 and 1).
 	 * @param Normal:	Normal opposed to movement. Not necessarily equal to Hit.Normal (but usually is).
@@ -1289,10 +1299,9 @@ protected:
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
 	/**
-	 * Given an upward impact on the top of the capsule, allows calculation of a different movement delta. This can dampen such impacts to feel less like a capsule.
-	 * Default implementation scales the Delta Z value by: 1 - (Abs(Normal.Z) * UpperImpactNormalScale), clamped to [0..1]
-	 * @see UpperImpactNormalScale
+	 * (DEPRECATED) Given an upward impact on the top of the capsule, allows calculation of a different movement delta.
 	 */
+	DEPRECATED(4.6, "AdjustUpperHemisphereImpact() is deprecated, for custom behavior override ComputeSlideVector() instead.")
 	virtual FVector AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const;
 
 	/** 
@@ -1396,7 +1405,7 @@ protected:
 
 	/** Called when the collision capsule touches another primitive component */
 	UFUNCTION()
-	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	// Enum used to control GetPawnCapsuleExtent behavior
 	enum EShrinkCapsuleExtent
@@ -1621,7 +1630,7 @@ public:
 	}
 
 	/** Simulate Root Motion physics on Simulated Proxies */
-	void SimulateRootMotion(float DeltaSeconds, const FTransform & LocalRootMotionTransform);
+	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);
 
 	// RVO Avoidance
 
@@ -1638,6 +1647,21 @@ protected:
 
 	/** lock avoidance velocity */
 	void SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration);
+
+	/** BEGIN IRVOAvoidanceInterface */
+	virtual void SetRVOAvoidanceUID(int32 UID) override;
+	virtual int32 GetRVOAvoidanceUID() override;
+	virtual void SetRVOAvoidanceWeight(float Weight) override;
+	virtual float GetRVOAvoidanceWeight() override;
+	virtual FVector GetRVOAvoidanceOrigin() override;
+	virtual float GetRVOAvoidanceRadius() override;
+	virtual float GetRVOAvoidanceHeight() override;
+	virtual float GetRVOAvoidanceConsiderationRadius() override;
+	virtual FVector GetVelocityForRVOConsideration() override;
+	virtual int32 GetAvoidanceGroupMask() override;
+	virtual int32 GetGroupsToAvoidMask() override;
+	virtual int32 GetGroupsToIgnoreMask() override;
+	/** END IRVOAvoidanceInterface */
 
 public:
 

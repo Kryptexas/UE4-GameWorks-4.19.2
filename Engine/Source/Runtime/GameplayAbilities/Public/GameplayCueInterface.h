@@ -7,8 +7,8 @@
 #include "GameplayCueInterface.generated.h"
 
 
-/** Interface for actors that wish to handle GameplayCue events from GameplayEffects */
-UINTERFACE(MinimalAPI)
+/** Interface for actors that wish to handle GameplayCue events from GameplayEffects. Native only because blueprints can't implement interfaces with native functions */
+UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UGameplayCueInterface: public UInterface
 {
 	GENERATED_UINTERFACE_BODY()
@@ -21,12 +21,26 @@ class GAMEPLAYABILITIES_API IGameplayCueInterface
 	virtual void HandleGameplayCue(AActor *Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
 	virtual void HandleGameplayCues(AActor *Self, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
-	
+
+	/** Default native handler, called if no tag matches found */
+	virtual void GameplayCueDefaultHandler(EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
 	/** Internal function to map ufunctions directly to gameplaycue tags */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category = GameplayCue, meta = (BlueprintInternalUseOnly = "true"))
 	void BlueprintCustomHandler(EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
+	/** Call from a Cue handler event to continue checking for additional, more generic handlers. Called from the ability system blueprint library */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Ability|GameplayCue")
+	virtual void ForwardGameplayCueToParent();
+
 	static void DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);	
+
+	IGameplayCueInterface() : bForwardToParent(false) {}
+
+private:
+	/** If true, keep checking for additional handlers */
+	bool bForwardToParent;
+
 };
 
 
@@ -67,8 +81,6 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 
 	void AddCue(const FGameplayTag& Tag);
 	void RemoveCue(const FGameplayTag& Tag);
-
-	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{

@@ -24,10 +24,13 @@ class FBlueprintActionDatabaseRegistrar;
 class BLUEPRINTGRAPH_API FBlueprintActionDatabase : public FGCObject, public FTickableEditorObject
 {
 public:
-	typedef TMap<TWeakObjectPtr<UObject>, int32> FPrimingQueue;
-	typedef TArray<UBlueprintNodeSpawner*>       FActionList;
-	typedef TMap<UObject const*, FActionList>    FActionRegistry;
-	
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDatabaseEntryUpdated, UObject*);
+
+	typedef TMap<TWeakObjectPtr<UObject>, int32>			FPrimingQueue;
+	typedef TArray<UBlueprintNodeSpawner*>					FActionList;
+	typedef TMap<UObject const*, FActionList>				FActionRegistry;
+	typedef TMap<FName, TArray<UBlueprintNodeSpawner*>>		FUnloadedActionRegistry;
+
 public:
 	/**
 	 * Getter to access the database singleton. Will populate the database first 
@@ -81,7 +84,7 @@ public:
 	 * 
 	 * @param  AssetObject	The asset entry you want rebuilt.
 	 */
-	void RefreshAssetActions(UObject const* const AssetObject);
+	void RefreshAssetActions(UObject* const AssetObject);
 
 	/**
 	 * Finds the database entry for the specified class and wipes it. The entry 
@@ -89,13 +92,28 @@ public:
 	 * 
 	 * @param  AssetObject	
 	 */
-	void ClearAssetActions(UObject const* const AssetObject);
+	void ClearAssetActions(UObject* const AssetObject);
 	
 	/**
-	 * 
-	 * @return An estimated memory footprint of this database (in bytes).
+	 * Finds the database entry for the specified unloaded asset and wipes it.
+	 * The entry won't be rebuilt, unless RefreshAssetActions() is explicitly called after.
+	 *
+	 * @param ObjectPath	Object's path to lookup into the database
 	 */
-	int32 EstimatedSize() const;
+	void ClearUnloadedAssetActions(FName ObjectPath);
+
+	/**
+	 * Moves the unloaded asset actions from one location to another
+	 *
+	 * @param SourceObjectPath	The object path that the data can currently be found under
+	 * @param TargetObjectPath	The object path that the data should be moved to
+	 */
+	void MoveUnloadedAssetActions(FName SourceObjectPath, FName TargetObjectPath);
+
+	/** */
+	FOnDatabaseEntryUpdated& OnEntryUpdated() { return EntryRefreshDelegate; }
+	/** */
+	FOnDatabaseEntryUpdated& OnEntryRemoved() { return EntryRemovedDelegate; }
 
 private:
 	/** Private constructor for singleton purposes. */
@@ -119,9 +137,20 @@ private:
 	FActionRegistry ActionRegistry;
 
 	/** 
+	 * A map of associated object paths for each node-class that is associated
+	 * with it. This is used for unloaded assets that will need to be replaced
+	 * after the asset is loaded with the final (and more complete) nodespawner.
+	 */
+	FUnloadedActionRegistry UnloadedActionRegistry;
+
+	/** 
 	 * References newly allocated actions that need to be "primed". Priming is 
 	 * something we do on Tick() aimed at speeding up performance (like pre-
 	 * caching each spawner's template-node, etc.).
 	 */
 	FPrimingQueue ActionPrimingQueue;
+
+	/** */
+	FOnDatabaseEntryUpdated EntryRefreshDelegate;
+	FOnDatabaseEntryUpdated EntryRemovedDelegate;
 };

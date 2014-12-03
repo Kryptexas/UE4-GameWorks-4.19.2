@@ -26,9 +26,14 @@ namespace EGameplayAbilityInstancingPolicy
 
 	enum Type
 	{
-		NonInstanced,			// This ability is never instanced. Anything that executes the ability is operating on the CDO.
-		InstancedPerActor,		// Each actor gets their own instance of this ability. State can be saved, replication is possible.
-		InstancedPerExecution,	// We instance this ability each time it is executed. Replication possible but not recommended.
+		// This ability is never instanced. Anything that executes the ability is operating on the CDO.
+		NonInstanced,
+
+		// Each actor gets their own instance of this ability. State can be saved, replication is possible.
+		InstancedPerActor,
+
+		// We instance this ability each time it is executed. Replication possible but not recommended.
+		InstancedPerExecution,
 	};
 }
 
@@ -41,9 +46,14 @@ namespace EGameplayAbilityNetExecutionPolicy
 
 	enum Type
 	{
-		Predictive		UMETA(DisplayName = "Predictive"),	// Part of this ability runs predictively on the client.
-		Server			UMETA(DisplayName = "Server"),		// This ability must be OK'd by the server before doing anything on a client.
-		Client			UMETA(DisplayName = "Client"),		// This ability runs as long the client says it does.
+		// Part of this ability runs predictively on the client.
+		Predictive		UMETA(DisplayName = "Predictive"),
+
+		// This ability must be OK'd by the server before doing anything on a client.
+		Server			UMETA(DisplayName = "Server"),
+
+		// This ability runs as long the client says it does.
+		Client			UMETA(DisplayName = "Client"),
 	};
 }
 
@@ -56,9 +66,11 @@ namespace EGameplayAbilityReplicationPolicy
 
 	enum Type
 	{
-		ReplicateNone		UMETA(DisplayName = "Replicate None"),	// We don't replicate the instance of the ability to anyone.
-		ReplicateAll		UMETA(DisplayName = "Replicate All"),	// We replicate the instance of the ability to everyone (even simulating clients).
-		ReplicateOwner		UMETA(DisplayName = "Replicate Owner"),	// Only replicate the instance of the ability to the owner.
+		// We don't replicate the instance of the ability to anyone.
+		ReplicateNo			UMETA(DisplayName = "Do Not Replicate"),
+
+		// We replicate the instance of the ability to the owner.
+		ReplicateYes		UMETA(DisplayName = "Replicate"),
 	};
 }
 
@@ -68,11 +80,17 @@ namespace EGameplayAbilityActivationMode
 {
 	enum Type
 	{
-		Authority,			// We are the authority activating this ability
-		NonAuthority,		// We are not the authority but aren't predicting yet. This is a mostly invalid state to be in.
+		// We are the authority activating this ability
+		Authority,
 
-		Predicting,			// We are predicting the activation of this ability
-		Confirmed,			// We are not the authority, but the authority has confirmed this activation
+		// We are not the authority but aren't predicting yet. This is a mostly invalid state to be in.
+		NonAuthority,
+
+		// We are predicting the activation of this ability
+		Predicting,
+
+		// We are not the authority, but the authority has confirmed this activation
+		Confirmed,
 	};
 }
 
@@ -110,6 +128,11 @@ struct FGameplayAbilitySpecHandle
 		return Handle != Other.Handle;
 	}
 
+	friend uint32 GetTypeHash(const FGameplayAbilitySpecHandle& SpecHandle)
+	{
+		return ::GetTypeHash(SpecHandle.Handle);
+	}
+
 private:
 
 	UPROPERTY()
@@ -133,27 +156,43 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	virtual ~FGameplayAbilityActorInfo() {}
 
+	/** The actor that owns the abilities, shouldn't be null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
-	TWeakObjectPtr<AActor>	Actor;
+	TWeakObjectPtr<AActor>	OwnerActor;
 
-	/** PlayerController associated with this actor. This will often be null! */
+	/** The physical representation of the owner, used for targeting and animation. This will often be null! */
+	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
+	TWeakObjectPtr<AActor>	AvatarActor;
+
+	/** PlayerController associated with the owning actor. This will often be null! */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<APlayerController>	PlayerController;
 
-	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
-	TWeakObjectPtr<UAnimInstance>	AnimInstance;
-
+	/** Ability System component associated with the owner actor, shouldn't be null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UAbilitySystemComponent>	AbilitySystemComponent;
 
+	/** Anim instance of the avatar actor. Often null */
+	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
+	TWeakObjectPtr<UAnimInstance>	AnimInstance;
+
+	/** Movement component of the avatar actor. Often null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UMovementComponent>	MovementComponent;
 
+	/** Returns true if this actor is locally controlled. Only true for players on the client that owns them */
 	bool IsLocallyControlled() const;
 
+	/** Returns true if the owning actor has net authority */
 	bool IsNetAuthority() const;
 
-	virtual void InitFromActor(AActor *Actor, UAbilitySystemComponent* InAbilitySystemComponent);
+	/** Initializes the info from an owning actor. Will set both owner and avatar */
+	virtual void InitFromActor(AActor *OwnerActor, AActor *AvatarActor, UAbilitySystemComponent* InAbilitySystemComponent);
+
+	/** Sets a new avatar actor, keeps same owner and ability system component */
+	virtual void SetAvatarActor(AActor *AvatarActor);
+
+	/** Clears out any actor info, both owner and avatar */
 	virtual void ClearActorInfo();
 };
 
@@ -173,12 +212,14 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	FGameplayAbilityActivationInfo()
 		: ActivationMode(EGameplayAbilityActivationMode::Authority)
+		, bCanBeEndedByOtherInstance(false)
 	{
 
 	}
 
-	FGameplayAbilityActivationInfo(AActor * InActor, FPredictionKey InPredictionKey)
-		: PredictionKey(InPredictionKey)
+	FGameplayAbilityActivationInfo(AActor* InActor, FPredictionKey InPredictionKey)
+		: bCanBeEndedByOtherInstance(false)
+		, PredictionKey(InPredictionKey)
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
 		// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
@@ -187,6 +228,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, FPredictionKey InPredictionKey = FPredictionKey())
 		: ActivationMode(InType)
+		, bCanBeEndedByOtherInstance(false)
 		, PredictionKey(InPredictionKey)
 	{
 	}
@@ -215,6 +257,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
 
+	/** An ability that runs on multiple game instances can be canceled by a remote instance, but only if that remote instance has already confirmed starting it. */
+	UPROPERTY()
+	bool bCanBeEndedByOtherInstance;
+
 private:
 
 	UPROPERTY()
@@ -230,13 +276,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), IsActive(false)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), InputPressed(false), ActiveCount(0)
 	{
 		
 	}
 
-	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
-	: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), IsActive(false)
+	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE, UObject* InSourceObject=nullptr)
+		: Ability(InAbility), Level(InLevel), InputID(InInputID), SourceObject(InSourceObject), InputPressed(false), ActiveCount(0)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -257,13 +303,17 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	UPROPERTY()
 	int32	InputID;
 
+	/** Object this ability was created from, can be an actor or static object. Useful to bind an ability to a gameplay object */
+	UPROPERTY()
+	UObject* SourceObject;
+
 	/** Is input currently pressed. Set to false when input is released */
 	UPROPERTY(NotReplicated)
 	bool	InputPressed;
 
-	/** Is this ability active? (Literally: has EndAbility been called on it since ActivateAbility was called on it */
-	UPROPERTY()
-	bool	IsActive;
+	/** A count of the number of times this ability has been activated minus the number of times it has been ended. For instanced abilities this will be the number of currently active instances. Can't replicate until prediction accurately handles this.*/
+	UPROPERTY(NotReplicated)
+	uint8	ActiveCount;
 
 	/** Activation state of this ability. This is not replicated since it needs to be overwritten locally on clients during prediction. */
 	UPROPERTY(NotReplicated)
@@ -284,6 +334,80 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 		Abilities.Append(NonReplicatedInstances);
 		return Abilities;
 	}
+
+	bool IsActive() const;
+};
+
+// ----------------------------------------------------
+
+
+/** Data about montages that is replicated to simulated clients */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** AnimMontage ref */
+	UPROPERTY()
+	UAnimMontage* AnimMontage;
+
+	/** Play Rate */
+	UPROPERTY()
+	float PlayRate;
+
+	/** Montage position */
+	UPROPERTY()
+	float Position;
+
+	/** NextSectionID */
+	UPROPERTY()
+	uint8 NextSectionID;
+
+	/** Bit set when montage has been stopped. */
+	UPROPERTY()
+	uint8 IsStopped : 1;
+	
+	/** Bit flipped every time a new Montage is played. To trigger replication when the same montage is played again. */
+	UPROPERTY()
+	uint8 ForcePlayBit : 1;
+
+	FGameplayAbilityRepAnimMontage()
+		: AnimMontage(NULL),
+		PlayRate(0.f),
+		Position(0.f),
+		NextSectionID(0),
+		IsStopped(0),
+		ForcePlayBit(0)
+	{
+	}
+
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+};
+
+/** Data about montages that were played locally (all montages in case of server. predictive montages in case of client). Never replicated directly. */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilityLocalAnimMontage
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityLocalAnimMontage()
+	: AnimMontage(nullptr), PlayBit(false), AnimatingAbility(nullptr)
+	{
+	}
+
+	UPROPERTY()
+	UAnimMontage* AnimMontage;
+
+	UPROPERTY()
+	bool PlayBit;
+
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+
+	/** The ability, if any, that instigated this montage */
+	UPROPERTY()
+	UGameplayAbility* AnimatingAbility;
 };
 
 // ----------------------------------------------------
@@ -297,7 +421,6 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	: Instigator(NULL)
 	, Target(NULL)
 	{
-		// do nothing
 	}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)

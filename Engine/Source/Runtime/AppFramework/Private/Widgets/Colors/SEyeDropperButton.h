@@ -160,10 +160,10 @@ public:
 		return SButton::OnMouseMove( MyGeometry, MouseEvent );
 	}
 
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		// Escape key when in dropper mode
-		if (InKeyboardEvent.GetKey() == EKeys::Escape &&
+		if (InKeyEvent.GetKey() == EKeys::Escape &&
 			HasMouseCapture() &&
 			bWasClickActivated)
 		{

@@ -258,10 +258,10 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 	{
 		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[OrderedDrawingPolicies[Index]];
 		bool bDrawnShared = false;
-		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
+		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
-		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetData()->MeshId);
+		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetData();
 		for (int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
 			if (StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
@@ -309,25 +309,25 @@ class FDrawVisibleAnyThreadTask
 public:
 
 	FDrawVisibleAnyThreadTask(
-		TStaticMeshDrawList<DrawingPolicyType>* InCaller,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
-		const typename DrawingPolicyType::ContextDataType InPolicyContext,
-		const TBitArray<SceneRenderingBitArrayAllocator>* InStaticMeshVisibilityMap,
-		const TArray<uint64, SceneRenderingAllocator>* InBatchVisibilityArray,
+		TStaticMeshDrawList<DrawingPolicyType>& InCaller,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
+		const typename DrawingPolicyType::ContextDataType& InPolicyContext,
+		const TBitArray<SceneRenderingBitArrayAllocator>& InStaticMeshVisibilityMap,
+		const TArray<uint64, SceneRenderingAllocator>& InBatchVisibilityArray,
 		int32 InFirstPolicy,
 		int32 InLastPolicy,
-		bool* InOutDirty
+		bool& InOutDirty
 		)
-		: Caller(*InCaller)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
+		: Caller(InCaller)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
 		, PolicyContext(InPolicyContext)
-		, StaticMeshVisibilityMap(*InStaticMeshVisibilityMap)
-		, BatchVisibilityArray(*InBatchVisibilityArray)
+		, StaticMeshVisibilityMap(InStaticMeshVisibilityMap)
+		, BatchVisibilityArray(InBatchVisibilityArray)
 		, FirstPolicy(InFirstPolicy)
 		, LastPolicy(InLastPolicy)
-		, OutDirty(*InOutDirty)
+		, OutDirty(InOutDirty)
 	{
 	}
 
@@ -355,15 +355,14 @@ public:
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
-	const FViewInfo& View,
 	const typename DrawingPolicyType::ContextDataType PolicyContext,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray,
-	int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty
+	FParallelCommandListSet& ParallelCommandListSet
 	)
 {
 
-	int32 EffectiveThreads = FMath::Min<int32>(OrderedDrawingPolicies.Num(), Width);
+	int32 EffectiveThreads = FMath::Min<int32>(OrderedDrawingPolicies.Num(), ParallelCommandListSet.Width);
 
 	int32 Start = 0;
 	if (EffectiveThreads)
@@ -379,12 +378,12 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 			check(Last >= Start);
 
 			{
-				FRHICommandList* CmdList = new FRHICommandList;
+				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-					.ConstructAndDispatchWhenReady(this, CmdList, &View, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &OutDirty);
+					.ConstructAndDispatchWhenReady(*this, *CmdList, ParallelCommandListSet.View, PolicyContext, StaticMeshVisibilityMap, BatchVisibilityArray, Start, Last, ParallelCommandListSet.OutDirty);
 
-				ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 			}
 
 			Start = Last + 1;
@@ -412,10 +411,10 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 	{
 		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
 		FVector DrawingPolicyCenter = DrawingPolicyLink->CachedBoundingSphere.Center;
-		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
+		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
-		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetData()->MeshId);
+		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
 			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))

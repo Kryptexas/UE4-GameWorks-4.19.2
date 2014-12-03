@@ -27,20 +27,22 @@ public:
 		: BytesRead(0)
 		, ReadBuffer(InReadBuffer)
 		, ReadBufferSize(InReadBufferSize)
-		, RefCount(1)
+		, RefCount(0)
 	{ }
 
 	/** Virtual destructor. */
-	virtual ~FWmfMediaReadState( ) { }
+	virtual ~FWmfMediaReadState() { }
 
 public:
 
 	/**
-	 * Sets the number of bytes read.
+	 * Adds the specified number of bytes read.
+	 *
+	 * @param BytesToAdd The number of bytes to add.
 	 */
-	void AddBytesRead( uint64 InBytesRead )
+	void AddBytesRead( uint64 BytesToAdd )
 	{
-		BytesRead += InBytesRead;
+		BytesRead += BytesToAdd;
 	}
 
 	/**
@@ -48,7 +50,7 @@ public:
 	 *
 	 * @return The buffer.
 	 */
-	BYTE* GetReadBuffer( ) const
+	BYTE* GetReadBuffer() const
 	{
 		return ReadBuffer;
 	}
@@ -58,7 +60,7 @@ public:
 	 *
 	 * @return The size of the buffer (in bytes).
 	 */
-	ULONG GetReadBufferSize( ) const
+	ULONG GetReadBufferSize() const
 	{
 		return ReadBufferSize;
 	}
@@ -68,7 +70,7 @@ public:
 	 *
 	 * @return Bytes read count.
 	 */
-	uint64 GetBytesRead( ) const
+	uint64 GetBytesRead() const
 	{
 		return BytesRead;
 	}
@@ -88,12 +90,12 @@ public:
 		return QISearch( this, QITab, RefID, Object );
 	}
 
-	STDMETHODIMP_(ULONG) AddRef( )
+	STDMETHODIMP_(ULONG) AddRef()
 	{
 		return FPlatformAtomics::InterlockedIncrement(&RefCount);
 	}
 
-	STDMETHODIMP_( ULONG ) Release( )
+	STDMETHODIMP_( ULONG ) Release()
 	{
 		int32 CurrentRefCount = FPlatformAtomics::InterlockedDecrement(&RefCount);
 	
@@ -107,16 +109,16 @@ public:
 
 private:
 
-	// Number of bytes read.
+	/** Number of bytes read. */
 	uint64 BytesRead;
 
-	// The buffer that receives the read data.
+	/** The buffer that receives the read data. */
 	BYTE* ReadBuffer;
 
-	// The size of the read buffer.
+	/** The size of the read buffer. */
 	ULONG ReadBufferSize;
 
-	// Holds a reference counter for this instance.
+	/** Holds a reference counter for this instance. */
 	int32 RefCount;
 };
 

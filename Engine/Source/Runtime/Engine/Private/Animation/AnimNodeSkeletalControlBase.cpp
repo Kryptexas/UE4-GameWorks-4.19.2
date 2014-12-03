@@ -13,7 +13,7 @@ void FAnimNode_SkeletalControlBase::Initialize(const FAnimationInitializeContext
 	ComponentPose.Initialize(Context);
 }
 
-void FAnimNode_SkeletalControlBase::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_SkeletalControlBase::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	InitializeBoneReferences(Context.AnimInstance->RequiredBones);
 	ComponentPose.CacheBones(Context);

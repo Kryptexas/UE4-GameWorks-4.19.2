@@ -3,7 +3,7 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 
-UBehaviorTreeGraphNode_SubtreeTask::UBehaviorTreeGraphNode_SubtreeTask(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraphNode_SubtreeTask::UBehaviorTreeGraphNode_SubtreeTask(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	SubtreeVersion = 0;
 }
@@ -60,51 +60,55 @@ bool UBehaviorTreeGraphNode_SubtreeTask::UpdateInjectedNodes()
 	if (SubRoot)
 	{
 		UBehaviorTree* BTAsset = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
-		for (int32 Index = 0; Index < SubRoot->Decorators.Num(); Index++)
+
+		if(BTAsset)
 		{
-			UBehaviorTreeGraphNode* SubNode = SubRoot->Decorators[Index];
-			if (SubNode)
+			for (int32 Index = 0; Index < SubRoot->Decorators.Num(); Index++)
 			{
-				SubNode->PrepareForCopying();
-
-				UBehaviorTreeGraphNode* InjectedNode = Cast<UBehaviorTreeGraphNode>(StaticDuplicateObject(SubNode, GetOuter(), TEXT("")));
-
-				SubNode->PostCopyNode();
-				InjectedNode->PostCopyNode();
-
-				InjectedNode->ParentNode = this;
-				InjectedNode->bInjectedNode = true;
-
-				UBTDecorator* InjectedInstance = Cast<UBTDecorator>(InjectedNode->NodeInstance);
-				if (InjectedInstance)
+				UBehaviorTreeGraphNode* SubNode = SubRoot->Decorators[Index];
+				if (SubNode)
 				{
-					InjectedInstance->InitializeFromAsset(BTAsset);
-				}
+					SubNode->PrepareForCopying();
 
-				UBehaviorTreeGraphNode_CompositeDecorator* CompNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(InjectedNode);
-				if (CompNode)
-				{
-					UEdGraph* SubGraph = CompNode->GetBoundGraph();
-					if (SubGraph)
+					UBehaviorTreeGraphNode* InjectedNode = Cast<UBehaviorTreeGraphNode>(StaticDuplicateObject(SubNode, GetOuter(), TEXT("")));
+
+					SubNode->PostCopyNode();
+					InjectedNode->PostCopyNode();
+
+					InjectedNode->ParentNode = this;
+					InjectedNode->bInjectedNode = true;
+
+					UBTDecorator* InjectedInstance = Cast<UBTDecorator>(InjectedNode->NodeInstance);
+					if (InjectedInstance)
 					{
-						SubGraph->bEditable = false;
+						InjectedInstance->InitializeFromAsset(*BTAsset);
+					}
 
-						for (int32 SubIndex = 0; SubIndex < SubGraph->Nodes.Num(); SubIndex++)
+					UBehaviorTreeGraphNode_CompositeDecorator* CompNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(InjectedNode);
+					if (CompNode)
+					{
+						UEdGraph* SubGraph = CompNode->GetBoundGraph();
+						if (SubGraph)
 						{
-							UBehaviorTreeDecoratorGraphNode_Decorator* InjectedDecorator = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(SubGraph->Nodes[SubIndex]);
-							if (InjectedDecorator)
+							SubGraph->bEditable = false;
+
+							for (int32 SubIndex = 0; SubIndex < SubGraph->Nodes.Num(); SubIndex++)
 							{
-								InjectedInstance = Cast<UBTDecorator>(InjectedDecorator->NodeInstance);
-								if (InjectedInstance)
+								UBehaviorTreeDecoratorGraphNode_Decorator* InjectedDecorator = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(SubGraph->Nodes[SubIndex]);
+								if (InjectedDecorator)
 								{
-									InjectedInstance->InitializeFromAsset(BTAsset);
+									InjectedInstance = Cast<UBTDecorator>(InjectedDecorator->NodeInstance);
+									if (InjectedInstance)
+									{
+										InjectedInstance->InitializeFromAsset(*BTAsset);
+									}
 								}
 							}
 						}
 					}
-				}
 
-				Decorators.Add(InjectedNode);
+					Decorators.Add(InjectedNode);
+				}
 			}
 		}
 	}

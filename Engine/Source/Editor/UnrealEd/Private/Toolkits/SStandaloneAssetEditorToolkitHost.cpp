@@ -9,6 +9,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "SuperSearchModule.h"
 #include "MainFrame.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "StandaloneAssetEditorToolkit"
 
@@ -131,6 +132,8 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 	TSharedRef<SWidget> SuperSearchWidget = SuperSearchModule.MakeSearchBox(ExposedEditableTextBox);
 #endif
 	
+	MenuOverlayWidgetContent.Reset();
+	MenuWidgetContent.Reset();
 	this->ChildSlot
 	[
 		SNew( SVerticalBox )
@@ -262,16 +265,16 @@ UWorld* SStandaloneAssetEditorToolkitHost::GetWorld() const
 }
 
 
-FReply SStandaloneAssetEditorToolkitHost::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SStandaloneAssetEditorToolkitHost::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// Check to see if any of the actions for the level editor can be processed by the current keyboard event
+	// Check to see if any of the actions for the level editor can be processed by the current event
 	// If we are in debug mode do not process commands
-	if( HostedToolkit.IsValid() && HostedToolkit->ProcessCommandBindings( InKeyboardEvent ) )
+	if( HostedToolkit.IsValid() && HostedToolkit->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}
 
-	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 

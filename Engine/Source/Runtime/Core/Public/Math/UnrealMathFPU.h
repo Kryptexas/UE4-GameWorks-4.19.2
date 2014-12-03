@@ -594,9 +594,12 @@ FORCEINLINE VectorRegister VectorNormalize( const VectorRegister& Vector )
 #define USE_FAST_QUAT_MUL 1
 
 /**
-* Multiplies two quaternions: The order matters.
+* Multiplies two quaternions; the order matters.
 *
-* @param Result	Pointer to where the result should be stored
+* When composing quaternions: VectorQuaternionMultiply(C, A, B) will yield a quaternion C = A * B
+* that logically first applies B then A to any subsequent transformation (right first, then left).
+*
+* @param Result	Pointer to where the result Quat1 * Quat2 should be stored
 * @param Quat1	Pointer to the first quaternion (must not be the destination)
 * @param Quat2	Pointer to the second quaternion (must not be the destination)
 */
@@ -639,11 +642,14 @@ FORCEINLINE void VectorQuaternionMultiply( void *Result, const void* Quat1, cons
 }
 
 /**
-* Multiplies two quaternions: The order matters.
+* Multiplies two quaternions; the order matters.
 *
-* @param Result	Returns Quat1 * Quat2
+* Order matters when composing quaternions: C = VectorQuaternionMultiply2(A, B) will yield a quaternion C = A * B
+* that logically first applies B then A to any subsequent transformation (right first, then left).
+*
 * @param Quat1	Pointer to the first quaternion
 * @param Quat2	Pointer to the second quaternion
+* @return Quat1 * Quat2
 */
 FORCEINLINE VectorRegister VectorQuaternionMultiply2( const VectorRegister& Quat1, const VectorRegister& Quat2 )
 {

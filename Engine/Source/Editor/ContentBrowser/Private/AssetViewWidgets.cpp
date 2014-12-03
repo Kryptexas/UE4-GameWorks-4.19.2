@@ -10,6 +10,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "BreakIterator.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -18,10 +19,10 @@
 // FAssetViewModeUtils
 ///////////////////////////////
 
-FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyboardEvent& InKeyboardEvent )
+FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyEvent& InKeyEvent )
 {
 	// All asset views use Ctrl-C to copy references to assets
-	if ( InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetCharacter() == 'C' )
+	if ( InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'C' )
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
@@ -60,9 +61,9 @@ FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetView
 // Asset view modes
 ///////////////////////////////
 
-FReply SAssetTileView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetTileView::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyboardEvent);
+	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyEvent);
 
 	if ( Reply.IsEventHandled() )
 	{
@@ -70,13 +71,13 @@ FReply SAssetTileView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 	}
 	else
 	{
-		return STileView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyboardEvent);
+		return STileView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyEvent);
 	}
 }
 
-FReply SAssetListView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetListView::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyboardEvent);
+	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyEvent);
 
 	if ( Reply.IsEventHandled() )
 	{
@@ -84,13 +85,13 @@ FReply SAssetListView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 	}
 	else
 	{
-		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyboardEvent);
+		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyEvent);
 	}
 }
 
-FReply SAssetColumnView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetColumnView::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyboardEvent);
+	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyEvent);
 
 	if ( Reply.IsEventHandled() )
 	{
@@ -98,7 +99,7 @@ FReply SAssetColumnView::OnKeyDown( const FGeometry& InGeometry, const FKeyboard
 	}
 	else
 	{
-		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyboardEvent);
+		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyEvent);
 	}
 }
 
@@ -499,6 +500,21 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 						if (UProperty* Field = FindField<UProperty>(AssetClass, TagIt.Key()))
 						{
 							DisplayName = Field->GetDisplayNameText();
+
+							// Strip off enum prefixes if they exist
+							if (UByteProperty* ByteProperty = Cast<UByteProperty>(Field))
+							{
+								if (ByteProperty->Enum)
+								{
+									const FString EnumPrefix = ByteProperty->Enum->GenerateEnumPrefix();
+									if (EnumPrefix.Len() && ValueString.StartsWith(EnumPrefix))
+									{
+										ValueString = ValueString.RightChop(EnumPrefix.Len() + 1);	// +1 to skip over the underscore
+									}
+								}
+
+								ValueString = FName::NameToDisplayString(ValueString, false);
+							}
 						}
 						else
 						{
@@ -918,7 +934,7 @@ bool SAssetViewItem::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 
 SAssetListItem::~SAssetListItem()
 {
-	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -1090,7 +1106,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	SetForceMipLevelsToBeResident(true);
 
 	// listen for asset loads so we can force mips to stream in if required
-	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -1123,7 +1139,7 @@ FOptionalSize SAssetListItem::GetSCCImageSize() const
 
 SAssetTileItem::~SAssetTileItem()
 {
-	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -1294,7 +1310,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 	SetForceMipLevelsToBeResident(true);
 
 	// listen for asset loads so we can force mips to stream in if required
-	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

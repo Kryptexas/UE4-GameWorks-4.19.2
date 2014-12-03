@@ -7,7 +7,7 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
-UBehaviorTreeGraphNode_CompositeDecorator::UBehaviorTreeGraphNode_CompositeDecorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraphNode_CompositeDecorator::UBehaviorTreeGraphNode_CompositeDecorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bShowOperations = true;
 	bCanAbortFlow = false;
@@ -167,7 +167,7 @@ void UBehaviorTreeGraphNode_CompositeDecorator::OnBlackboardUpdate()
 			UBTNode* MyNodeInstance = MyNode ? Cast<UBTNode>(MyNode->NodeInstance) : NULL;
 			if (MyNodeInstance)
 			{
-				MyNodeInstance->InitializeFromAsset(BTAsset);
+				MyNodeInstance->InitializeFromAsset(*BTAsset);
 			}
 		}
 	}

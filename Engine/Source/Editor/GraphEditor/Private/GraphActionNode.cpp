@@ -472,8 +472,8 @@ TSharedPtr<FGraphActionNode> FGraphActionNode::FindMatchingParent(FString const&
 	{
 		if (ChildNode->IsCategoryNode())
 		{
-			// @TODO: should we be matching grouping as well?
 			if ((NodeToAdd->SectionID == ChildNode->SectionID) &&
+				(NodeToAdd->Grouping  == ChildNode->Grouping)  &&
 				(ParentName == ChildNode->DisplayText.ToString()))
 			{
 				FoundCategoryNode = ChildNode;

@@ -33,9 +33,6 @@ public:
 	/** Close all tutorial content */
 	void CloseAllTutorialContent();
 
-	/** Summon the browser widget for the specified window */
-	void SummonTutorialBrowser(TWeakPtr<SWindow> InWindow = nullptr, const FString& InFilter = TEXT(""));
-
 	/** Reload tutorials that we know about */
 	void ReloadTutorials();
 

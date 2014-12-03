@@ -1,16 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceServiceManager.cpp: Implements the FTargetDeviceManager class.
-=============================================================================*/
-
 #include "TargetDeviceServicesPrivatePCH.h"
 
 
 /* FTargetDeviceServiceManager structors
  *****************************************************************************/
 
-FTargetDeviceServiceManager::FTargetDeviceServiceManager( )
+FTargetDeviceServiceManager::FTargetDeviceServiceManager()
 {
 	IMessageBusPtr MessageBus = IMessagingModule::Get().GetDefaultBus();
 
@@ -25,7 +21,7 @@ FTargetDeviceServiceManager::FTargetDeviceServiceManager( )
 }
 
 
-FTargetDeviceServiceManager::~FTargetDeviceServiceManager( )
+FTargetDeviceServiceManager::~FTargetDeviceServiceManager()
 {
 	ShutdownTargetPlatforms();
 
@@ -140,7 +136,7 @@ bool FTargetDeviceServiceManager::AddTargetDevice(ITargetDevicePtr InDevice)
 }
 
 
-void FTargetDeviceServiceManager::InitializeTargetPlatforms( )
+void FTargetDeviceServiceManager::InitializeTargetPlatforms()
 {
 	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
@@ -168,7 +164,7 @@ void FTargetDeviceServiceManager::InitializeTargetPlatforms( )
 }
 
 
-void FTargetDeviceServiceManager::LoadSettings( )
+void FTargetDeviceServiceManager::LoadSettings()
 {
 	if (GConfig == nullptr)
 	{
@@ -269,7 +265,7 @@ void FTargetDeviceServiceManager::RemoveTargetDevice(ITargetDevicePtr InDevice)
 }
 
 
-void FTargetDeviceServiceManager::SaveSettings( )
+void FTargetDeviceServiceManager::SaveSettings()
 {
 	if (GConfig == nullptr)
 	{
@@ -315,7 +311,7 @@ void FTargetDeviceServiceManager::SaveSettings( )
 }
 
 
-void FTargetDeviceServiceManager::ShutdownTargetPlatforms( )
+void FTargetDeviceServiceManager::ShutdownTargetPlatforms()
 {
 	ITargetPlatformManagerModule* Module = FModuleManager::GetModulePtr<ITargetPlatformManagerModule>("TargetPlatform");
 	if (Module)
@@ -336,7 +332,7 @@ void FTargetDeviceServiceManager::ShutdownTargetPlatforms( )
 /* FTargetDeviceServiceManager callbacks
  *****************************************************************************/
 
-void FTargetDeviceServiceManager::HandleMessageBusShutdown( )
+void FTargetDeviceServiceManager::HandleMessageBusShutdown()
 {
 	MessageBusPtr.Reset();
 }

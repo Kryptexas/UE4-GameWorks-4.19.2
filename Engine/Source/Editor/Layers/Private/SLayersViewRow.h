@@ -4,8 +4,6 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "SLayerStats.h"
 
-#define LOCTEXT_NAMESPACE "LayersView"
-
 namespace LayersView
 {
 	/** IDs for list columns */
@@ -32,19 +30,9 @@ public:
 	 * @param	InViewModel			The layer the row widget is supposed to represent
 	 * @param	InOwnerTableView	The owner of the row widget
 	 */
-	void Construct( const FArguments& InArgs,  TSharedRef< FLayerViewModel > InViewModel, TSharedRef< STableViewBase > InOwnerTableView )
-	{
-		ViewModel = InViewModel;
+	void Construct( const FArguments& InArgs,  TSharedRef< FLayerViewModel > InViewModel, TSharedRef< STableViewBase > InOwnerTableView );
 
-		HighlightText = InArgs._HighlightText;
-
-		SMultiColumnTableRow< TSharedPtr< FLayerViewModel > >::Construct( FSuperRowType::FArguments(), InOwnerTableView );
-	}
-
-	~SLayersViewRow()
-	{
-		ViewModel->OnRenamedRequest().RemoveSP(InlineTextBlock.Get(), &SInlineEditableTextBlock::EnterEditingMode);
-	}
+	~SLayersViewRow();
 
 protected:
 
@@ -55,102 +43,20 @@ protected:
 	 *
 	 * @return a widget to represent the contents of a cell in this row of a TableView. 
 	 */
-	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName & ColumnID ) override
-	{
-		TSharedPtr< SWidget > TableRowContent;
-
-		if( ColumnID == LayersView::ColumnID_LayerLabel )
-		{
-			TableRowContent =
-				SNew( SHorizontalBox )
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( 0.0f, 1.0f, 3.0f, 1.0f )
-				[
-					SNew( SImage )
-					.Image( FEditorStyle::GetBrush( TEXT( "Layer.Icon16x" ) ) )
-					.ColorAndOpacity( FSlateColor::UseForeground() )
-				]
-
-				+SHorizontalBox::Slot()
-				.FillWidth( 1.0f )
-				[
-					SAssignNew(InlineTextBlock, SInlineEditableTextBlock)
-					.Font( FEditorStyle::GetFontStyle("LayersView.LayerNameFont") )
-					.Text( ViewModel.Get(), &FLayerViewModel::GetNameAsText )
-					.ColorAndOpacity( this, &SLayersViewRow::GetColorAndOpacity )
-					.HighlightText( HighlightText )
-					.ToolTipText( LOCTEXT("DoubleClickToolTip", "Double Click to Select All Actors") )
-					.OnVerifyTextChanged(this, &SLayersViewRow::OnRenameLayerTextChanged)
-					.OnTextCommitted(this, &SLayersViewRow::OnRenameLayerTextCommitted)
-					.IsSelected(this, &SLayersViewRow::IsSelectedExclusively)
-				]
-			;
-
-			ViewModel->OnRenamedRequest().AddSP(InlineTextBlock.Get(), &SInlineEditableTextBlock::EnterEditingMode);
-		}
-		else if( ColumnID == LayersView::ColumnID_Visibility )
-		{
-			TableRowContent = 
-				SAssignNew( VisibilityButton, SButton )
-				.ContentPadding( 0 )
-				.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
-				.OnClicked( this, &SLayersViewRow::OnToggleVisibility )
-				.ToolTipText( LOCTEXT("VisibilityButtonToolTip", "Toggle Layer Visibility") )
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.HAlign( HAlign_Center )
-				.VAlign( VAlign_Center )
-				.Content()
-				[
-					SNew( SImage )
-					.Image( this, &SLayersViewRow::GetVisibilityBrushForLayer )
-					.ColorAndOpacity( this, &SLayersViewRow::GetForegroundColorForButton )
-				]
-			;
-		}
-		else
-		{
-			checkf(false, TEXT("Unknown ColumnID provided to SLayersView") );
-		}
-
-		return TableRowContent.ToSharedRef();
-	}
+	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnID ) override;
 
 	/** Callback when the SInlineEditableTextBlock is committed, to update the name of the layer this row represents. */
-	void OnRenameLayerTextCommitted(const FText& InText, ETextCommit::Type eInCommitType)
-	{
-		if (!InText.IsEmpty())
-		{
-			ViewModel->RenameTo(*InText.ToString());
-		}
-	}
+	void OnRenameLayerTextCommitted(const FText& InText, ETextCommit::Type eInCommitType);
 
 	/** Callback when the SInlineEditableTextBlock is changed, to check for error conditions. */
-	bool OnRenameLayerTextChanged(const FText& NewText, FText& OutErrorMessage)
-	{
-		FString OutMessage;
-		if ( !ViewModel->CanRenameTo( *NewText.ToString(), OutMessage ) )
-		{
-			OutErrorMessage = FText::FromString( OutMessage );
-			return false;
-		}
-
-		return true;
-	}
+	bool OnRenameLayerTextChanged(const FText& NewText, FText& OutErrorMessage);
 
 	/**
 	 * Called during drag and drop when the drag leaves a widget.
 	 *
 	 * @param DragDropEvent   The drag and drop event.
 	 */
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override
-	{
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
-		if (DragActorOp.IsValid())
-		{
-			DragActorOp->ResetToDefaultToolTip();
-		}
-	}
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 
 	/**
 	 * Called during drag and drop when the the mouse is being dragged over a widget.
@@ -160,36 +66,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
-	{
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
-		if (!DragActorOp.IsValid())
-		{
-			return FReply::Unhandled();
-		}
-
-		bool bCanAssign = false;
-		FText Message;
-		if( DragActorOp->Actors.Num() > 1 )
-		{
-			bCanAssign = ViewModel->CanAssignActors( DragActorOp->Actors, OUT Message );
-		}
-		else
-		{
-			bCanAssign = ViewModel->CanAssignActor( DragActorOp->Actors[ 0 ], OUT Message );
-		}
-
-		if ( bCanAssign )
-		{
-			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, Message );
-		}
-		else
-		{
-			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, Message );
-		}
-
-		return FReply::Handled();
-	}
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 	/**
 	 * Called when the user is dropping something onto a widget; terminates drag and drop.
@@ -199,18 +76,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
-	{
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
-		if (!DragActorOp.IsValid())
-		{
-			return FReply::Unhandled();
-		}
-
-		ViewModel->AddActors( DragActorOp->Actors );
-
-		return FReply::Handled();
-	}
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 
 private:
@@ -221,10 +87,7 @@ private:
 	 *	@param	Button	The SButton Widget to get the Foreground Color for
 	 *	@return			The ForegroundColor
 	 */
-	FSlateColor GetForegroundColorForButton() const
-	{
-		return ( VisibilityButton.IsValid() && ( VisibilityButton->IsHovered() || VisibilityButton->IsPressed() ) ) ? FEditorStyle::GetSlateColor( "InvertedForeground" ) : FSlateColor::UseForeground();
-	}
+	FSlateColor GetForegroundColorForButton() const;
 
 	/**
 	 *	Returns the Color and Opacity for displaying the bound Layer's Name.
@@ -232,26 +95,7 @@ private:
 	 *
 	 *	@return	The SlateColor to render the Layer's name in
 	 */
-	FSlateColor GetColorAndOpacity() const
-	{
-		if ( !FSlateApplication::Get().IsDragDropping() )
-		{
-			return FSlateColor::UseForeground();
-		}
-
-		bool bCanAcceptDrop = false;
-		TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
-
-		if (DragDropOp.IsValid() && DragDropOp->IsOfType<FActorDragDropGraphEdOp>())
-		{
-			TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
-
-			FText Message;
-			bCanAcceptDrop = ViewModel->CanAssignActors( DragDropActorOp->Actors, OUT Message );
-		}
-
-		return ( bCanAcceptDrop ) ? FSlateColor::UseForeground() : FLinearColor( 0.30f, 0.30f, 0.30f );
-	}
+	FSlateColor GetColorAndOpacity() const;
 
 	/**
 	 *	Called when the user clicks on the visibility icon for a layer's row widget
@@ -270,10 +114,7 @@ private:
 	 *
 	 *	@return	The SlateBrush representing the layer's visibility state
 	 */
-	const FSlateBrush* GetVisibilityBrushForLayer() const
-	{
-		return ( ViewModel->IsVisible() ) ? FEditorStyle::GetBrush( "Layer.VisibleIcon16x" ) : FEditorStyle::GetBrush( "Layer.NotVisibleIcon16x" );
-	}
+	const FSlateBrush* GetVisibilityBrushForLayer() const;
 
 
 private:
@@ -291,5 +132,3 @@ private:
 	TSharedPtr< SInlineEditableTextBlock > InlineTextBlock;
 };
 
-
-#undef LOCTEXT_NAMESPACE

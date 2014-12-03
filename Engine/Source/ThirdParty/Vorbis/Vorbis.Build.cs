@@ -47,12 +47,10 @@ public class Vorbis : ModuleRules
 			if (UEBuildConfiguration.bCompileForSize)
 			{
 				PublicAdditionalLibraries.Add(VorbisPath + "Lib/HTML5/libvorbis_Oz.bc");
-				PublicAdditionalLibraries.Add(VorbisPath + "Lib/HTML5/libvorbisfile_Oz.bc");
 			}
 			else
 			{
 				PublicAdditionalLibraries.Add(VorbisPath + "Lib/HTML5/libvorbis.bc");
-				PublicAdditionalLibraries.Add(VorbisPath + "Lib/HTML5/libvorbisfile.bc");
 			}
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)

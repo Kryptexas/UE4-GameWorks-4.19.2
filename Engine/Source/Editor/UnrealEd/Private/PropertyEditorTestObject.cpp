@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 
 
-UPropertyEditorTestObject::UPropertyEditorTestObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPropertyEditorTestObject::UPropertyEditorTestObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -5,6 +5,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintEditorModule.h"
+#include "BlueprintEditor.h"
 #include "AssetRegistryModule.h"
 #include "SBlueprintDiff.h"
 #include "ISourceControlModule.h"
@@ -15,26 +16,33 @@
 void FAssetTypeActions_Blueprint::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
 	auto Blueprints = GetTypedWeakObjectPtrs<UBlueprint>(InObjects);
+	
+	if (Blueprints.Num() > 1)
+	{
+		// Ensure that all the selected blueprints are actors
+		bool bCanEditSharedDefaults = true;
+		for (auto Blueprint : Blueprints)
+		{
+			if (!Blueprint.Get()->ParentClass->IsChildOf(AActor::StaticClass()))
+			{
+				bCanEditSharedDefaults = false;
+				break;
+			}
+		}
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Blueprint_EditAction", "Open in Full Editor"),
-		LOCTEXT("Blueprint_EditActionTooltip", "Opens the selected blueprints in the either the blueprint editor or in Persona (depending on type)."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::ExecuteEdit, Blueprints ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Blueprint_EditDefaults", "Edit Defaults"),
-		LOCTEXT("Blueprint_EditDefaultsTooltip", "Edits the default properties for the selected blueprints."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::ExecuteEditDefaults, Blueprints ),
-			FCanExecuteAction()
-			)
-		);
+		if (bCanEditSharedDefaults)
+		{
+			MenuBuilder.AddMenuEntry(
+			LOCTEXT("Blueprint_EditDefaults", "Edit Shared Defaults"),
+			LOCTEXT("Blueprint_EditDefaultsTooltip", "Edit the shared default properties of the selected blueprints."),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.BlueprintDefaults"),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::ExecuteEditDefaults, Blueprints ),
+				FCanExecuteAction()
+				)
+			);
+		}	
+	}
 
 	if ( Blueprints.Num() == 1 && CanCreateNewDerivedBlueprint() )
 	{
@@ -45,7 +53,7 @@ void FAssetTypeActions_Blueprint::GetActions( const TArray<UObject*>& InObjects,
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("Blueprint_NewDerivedBlueprint", "Create Blueprint based on this"),
 			DynamicTooltipAttribute,
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.CreateClassBlueprint"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint, Blueprints[0] ),
 				FCanExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::CanExecuteNewDerivedBlueprint, Blueprints[0] )
@@ -73,21 +81,22 @@ void FAssetTypeActions_Blueprint::OpenAssetEditor( const TArray<UObject*>& InObj
 	}
 }
 
-void FAssetTypeActions_Blueprint::ExecuteEdit(TArray<TWeakObjectPtr<UBlueprint>> Objects)
+bool FAssetTypeActions_Blueprint::CanMerge() const
 {
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+	return true;
+}
+
+void FAssetTypeActions_Blueprint::Merge(UObject* InObject)
+{
+	UBlueprint* AsBlueprint = CastChecked<UBlueprint>(InObject);
+	// Kludge to get the merge panel in the blueprint editor to show up:
+	bool Success = FAssetEditorManager::Get().OpenEditorForAsset(InObject);
+	if( Success )
 	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			// Force full (non data-only) editor if possible.
-			const bool bSavedForceFullEditor = Object->bForceFullEditor;
-			Object->bForceFullEditor = true;
+		FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>( "Kismet" );
 
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
-
-			Object->bForceFullEditor = bSavedForceFullEditor;
-		}
+		FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(AsBlueprint, false));
+		BlueprintEditor->CreateMergeToolTab();
 	}
 }
 

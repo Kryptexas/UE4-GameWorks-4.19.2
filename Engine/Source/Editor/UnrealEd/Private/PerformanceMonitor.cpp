@@ -5,6 +5,8 @@
 #include "SScalabilitySettings.h"
 #include "PerformanceMonitor.h"
 #include "ShaderCompiler.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "PerformanceMonitor"
 
@@ -273,9 +275,11 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 
 		if (PercentUnderTarget >= CVarPercentThreshold->GetFloat())
 		{
+			static IConsoleVariable* CVarCoarseSampleTime = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.CoarseSampleTime"));
+
 			Arguments.Add(TEXT("Framerate"), CVarMinFPS->GetInt());
 			Arguments.Add(TEXT("Percentage"), FMath::FloorToFloat(PercentUnderTarget));
-			SampleTime = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.CoarseSampleTime"))->GetInt();
+			SampleTime = CVarCoarseSampleTime->GetInt();
 
 			bLowFramerate = true;
 		}

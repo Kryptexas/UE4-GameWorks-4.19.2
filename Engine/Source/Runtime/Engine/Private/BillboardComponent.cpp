@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/Light.h"
 #include "LevelUtils.h"
 
 namespace BillboardConstants
@@ -63,9 +64,9 @@ public:
 			// to match the lights color.  
 			if (ALight* Light = Cast<ALight>(Owner))
 			{
-				if (Light->LightComponent)
+				if (Light->GetLightComponent())
 				{
-					Color = Light->LightComponent->LightColor.ReinterpretAsLinear();
+					Color = Light->GetLightComponent()->LightColor.ReinterpretAsLinear();
 					Color.A = 255;
 				}
 			}
@@ -295,8 +296,8 @@ private:
 #endif // #if WITH_EDITORONLY_DATA
 };
 
-UBillboardComponent::UBillboardComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBillboardComponent::UBillboardComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -347,7 +348,7 @@ FPrimitiveSceneProxy* UBillboardComponent::CreateSceneProxy()
 	return new FSpriteSceneProxy(this, SpriteScale);
 }
 
-FBoxSphereBounds UBillboardComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UBillboardComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	const float NewScale = LocalToWorld.GetScale3D().GetMax() * (Sprite ? (float)FMath::Max(Sprite->GetSizeX(),Sprite->GetSizeY()) : 1.0f);
 	return FBoxSphereBounds(LocalToWorld.GetLocation(),FVector(NewScale,NewScale,NewScale),FMath::Sqrt(3.0f * FMath::Square(NewScale)));

@@ -3,9 +3,9 @@
 #include "CableComponentPluginPrivatePCH.h"
 
 
-ACableActor::ACableActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ACableActor::ACableActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	CableComponent = PCIP.CreateDefaultSubobject<UCableComponent>(this, TEXT("CableComponent0"));
+	CableComponent = ObjectInitializer.CreateDefaultSubobject<UCableComponent>(this, TEXT("CableComponent0"));
 	RootComponent = CableComponent;
 }

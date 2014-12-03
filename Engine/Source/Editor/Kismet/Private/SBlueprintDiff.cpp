@@ -21,6 +21,7 @@
 #include "SSCSEditor.h"
 #include "SCSDiff.h"
 #include "WorkflowOrientedApp/SModeWidget.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 
@@ -103,10 +104,8 @@ class FCDODiffControl	: public TSharedFromThis<FCDODiffControl>
 {
 public:
 	FCDODiffControl( const UObject* InOldCDO
-					, FNamePropertyMap InOldProperties
 					, const UObject* InNewCDO
-					, FNamePropertyMap InNewProperities
-					, TArray<FName> InDifferingProperties );
+					, const TArray<FPropertySoftPath>& InDifferingProperties );
 
 	TSharedRef<SWidget> OldDetailsWidget() { return OldDetails.DetailsWidget(); }
 	TSharedRef<SWidget> NewDetailsWidget() { return NewDetails.DetailsWidget(); }
@@ -119,24 +118,28 @@ private:
 	bool HasPrevDifference() const override;
 
 	void HighlightCurrentDifference();
+
+	void UpdateDisplayedDifferences();
+
 	FDetailsDiff OldDetails;
 	FDetailsDiff NewDetails;
 
-	TArray< FName > DifferingProperties;
+	TArray<FPropertySoftPath> DisplayedDifferingProperties;
+	FPropertySoftPathSet DifferingProperties;
 	int CurrentDifference;
 };
 
 FCDODiffControl::FCDODiffControl( 
 		const UObject* InOldCDO
-		, FNamePropertyMap InOldProperties
 		, const UObject* InNewCDO
-		, FNamePropertyMap InNewProperities
-		, TArray<FName> InDifferingProperties )
-	: OldDetails(InOldCDO, InOldProperties, TSet<FName>(InDifferingProperties))
-	, NewDetails(InNewCDO, InNewProperities, TSet<FName>(InDifferingProperties))
-	, DifferingProperties( InDifferingProperties )
+		, const TArray<FPropertySoftPath>& InDifferingProperties)
+	: OldDetails(InOldCDO, DiffUtils::ResolveAll( InOldCDO, InDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged::CreateRaw(this, &FCDODiffControl::UpdateDisplayedDifferences) )
+	, NewDetails(InNewCDO, DiffUtils::ResolveAll( InNewCDO, InDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged::CreateRaw(this, &FCDODiffControl::UpdateDisplayedDifferences) )
+	, DisplayedDifferingProperties()
+	, DifferingProperties(InDifferingProperties)
 	, CurrentDifference( -1 )
 {
+	UpdateDisplayedDifferences();
 }
 
 void FCDODiffControl::NextDiff()
@@ -153,20 +156,65 @@ void FCDODiffControl::PrevDiff()
 
 bool FCDODiffControl::HasNextDifference() const
 {
-	return DifferingProperties.IsValidIndex(CurrentDifference + 1);
+	return DisplayedDifferingProperties.IsValidIndex(CurrentDifference + 1);
 }
 
 bool FCDODiffControl::HasPrevDifference() const
 {
-	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
+	return DisplayedDifferingProperties.IsValidIndex(CurrentDifference - 1);
 }
 
 void FCDODiffControl::HighlightCurrentDifference()
 {
-	const FName PropertyName = DifferingProperties[CurrentDifference];
+	const FPropertySoftPath& PropertyName = DisplayedDifferingProperties[CurrentDifference];
 
 	OldDetails.HighlightProperty(PropertyName);
 	NewDetails.HighlightProperty(PropertyName);
+}
+
+void FCDODiffControl::UpdateDisplayedDifferences()
+{
+	DisplayedDifferingProperties.Empty();
+	CurrentDifference = 0;
+
+	// create differing properties list based on what is displayed by the old properties..
+	TArray<FPropertySoftPath> OldProperties = OldDetails.GetDisplayedProperties();
+	TArray<FPropertySoftPath> NewProperties = NewDetails.GetDisplayedProperties();
+
+	// zip the two sets of properties, zip iterators are not trivial to write in c++,
+	// so this procedural stuff will have to do:
+	int IterOld = 0;
+	int IterNew = 0;
+	while (IterOld != OldProperties.Num() || IterNew != NewProperties.Num())
+	{
+		if (IterOld != OldProperties.Num() && IterNew != NewProperties.Num()
+			&& OldProperties[IterOld] == NewProperties[IterNew])
+		{
+			if( DifferingProperties.Contains(OldProperties[IterOld]) )
+			{
+				DisplayedDifferingProperties.Push(OldProperties[IterOld]);
+			}
+			++IterOld;
+			++IterNew;
+		}
+		else if (IterOld != OldProperties.Num())
+		{
+			if (DifferingProperties.Contains(OldProperties[IterOld]))
+			{
+				DisplayedDifferingProperties.Push(OldProperties[IterOld]);
+			}
+			++IterOld;
+		}
+		else
+		{
+			check(IterNew != NewProperties.Num());
+			if (DifferingProperties.Contains(NewProperties[IterNew]))
+			{
+				DisplayedDifferingProperties.Push(NewProperties[IterNew]);
+			}
+			++IterNew;
+		}
+	}
 }
 
 /*List item that entry for a graph*/
@@ -227,7 +275,7 @@ public:
 	void OnSelectionChanged(FSharedDiffOnGraph Item, ESelectInfo::Type SelectionType);
 
 	/** Called when user presses key within the diff view */
-	void KeyWasPressed(const FKeyboardEvent& InKeyboardEvent);
+	void KeyWasPressed(const FKeyEvent& InKeyEvent);
 
 private:
 
@@ -256,48 +304,6 @@ private:
 	/** Key commands processed by this widget */
 	TSharedPtr< FUICommandList > KeyCommands;
 };
-
-FNamePropertyMap DiffUtils::GetProperties( const UObject* ForObj )
-{
-	FNamePropertyMap Ret;
-	if( ForObj )
-	{
-		const UClass* Class = ForObj->GetClass();
-		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			if ((!PropertyIt->HasAnyPropertyFlags(CPF_Parm) && PropertyIt->HasAnyPropertyFlags(CPF_Edit)))
-			{
-				Ret.Add(PropertyIt->GetFName(), *PropertyIt);
-			}
-		}
-	}
-	return Ret;
-}
-
-static void GetPropertyNameSet( const UObject& ForObj, TSet< FName >& OutProperties )
-{
-	if( const UClass* Class = ForObj.GetClass() )
-	{
-		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			if ((!PropertyIt->HasAnyPropertyFlags(CPF_Parm) && PropertyIt->HasAnyPropertyFlags(CPF_Edit)))
-			{
-				OutProperties.Add(PropertyIt->GetFName());
-			}
-		}
-	}
-}
-
-const UObject* DiffUtils::GetCDO( const UBlueprint* ForBlueprint )
-{
-	if( !ForBlueprint 
-		|| !ForBlueprint->GeneratedClass )
-	{
-		return NULL;
-	}
-
-	return ForBlueprint->GeneratedClass->ClassDefaultObject;
-}
 
 TSharedRef<SWidget>	FDiffResultItem::GenerateWidget() const
 {
@@ -425,7 +431,7 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateDiffListWidget()
 			}
 		};
 
-		Sort(DiffListSource.GetTypedData(),DiffListSource.Num(), SortDiff());
+		Sort(DiffListSource.GetData(),DiffListSource.Num(), SortDiff());
 
 		TSharedPtr<SListViewType> DiffListRef;
 		TSharedRef<SHorizontalBox> Result =	SNew(SHorizontalBox)
@@ -602,11 +608,11 @@ void FListItemGraphToDiff::OnGraphChanged( const FEdGraphEditAction& Action )
 	Diff->OnGraphChanged(this);
 }
 
-void FListItemGraphToDiff::KeyWasPressed( const FKeyboardEvent& InKeyboardEvent )
+void FListItemGraphToDiff::KeyWasPressed( const FKeyEvent& InKeyEvent )
 {
 	if ( KeyCommands.IsValid() )
 	{
-		KeyCommands->ProcessCommandBindings(InKeyboardEvent);
+		KeyCommands->ProcessCommandBindings(InKeyEvent);
 	}
 }
 
@@ -614,132 +620,6 @@ FDiffPanel::FDiffPanel()
 {
 	Blueprint = NULL;
 	LastFocusedPin = NULL;
-}
-
-void DiffUtils::CompareUnrelatedObjects( const UObject* A, const TMap< FName, const UProperty* >& PropertyMapA, UObject const* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties )
-{
-	TSet<FName> PropertiesInA, PropertiesInB;
-	if( A )
-	{
-		GetPropertyNameSet(*A, PropertiesInA);
-	}
-	if( B )
-	{
-		GetPropertyNameSet(*B, PropertiesInB);
-	}
-
-	// any properties in A that aren't in B are differing:
-	OutDifferingProperties.Append( PropertiesInA.Difference(PropertiesInB).Array() );
-
-	// and the converse:
-	OutDifferingProperties.Append( PropertiesInB.Difference(PropertiesInA).Array() );
-
-	// for properties in common, dig out the uproperties and determine if they're identical:
-	if( A && B )
-	{
-		TSet<FName> Common = PropertiesInA.Intersect(PropertiesInB);
-		for (const auto& PropertyName : Common)
-		{
-			const UProperty* const* AProp = PropertyMapA.Find(PropertyName);
-			const UProperty* const* BProp = PropertyMapB.Find(PropertyName);
-			
-			if( !AProp && !BProp )
-			{
-				OutIdenticalProperties.Add(PropertyName);
-				continue;
-			}
-
-			check( AProp && BProp );
-			if( (*AProp)->SameType(*BProp) )
-			{
-				const void* AValue = (*AProp)->ContainerPtrToValuePtr<void>(A);
-				const void* BValue = (*BProp)->ContainerPtrToValuePtr<void>(B);
-
-				if ((*AProp)->Identical(AValue, BValue, PPF_DeepComparison))
-				{
-					OutIdenticalProperties.Add(PropertyName);
-					continue;
-				}
-			}
-
-			OutDifferingProperties.Add(PropertyName);
-		}
-	}
-}
-
-void DiffUtils::CompareUnrelatedSCS(const UBlueprint* A, const UBlueprint* B, TArray< FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys )
-{
-	// we get bitten by const shallowness here, avoid mutation:
-	const TArray<USCS_Node*> NodesInA = A && A->SimpleConstructionScript ? A->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
-	const TArray<USCS_Node*> NodesInB = B && B->SimpleConstructionScript ? B->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
-
-	const auto FindByName = []( const TArray<USCS_Node*>& NodeList, FName Name ) -> USCS_Node*
-	{
-		for( auto Node : NodeList )
-		{
-			if( Node->VariableName == Name )
-			{
-				return Node;
-			}
-		}
-		return nullptr;
-	};
-
-	int32 SortKey = 0;
-	for( auto NodeInA : NodesInA )
-	{
-		auto NodeInB = FindByName( NodesInB, NodeInA->VariableName );
-		if( NodeInB )
-		{
-			// diff NodeA vs NodeB:
-			FNamePropertyMap PropertyMapA = DiffUtils::GetProperties(NodeInA->ComponentTemplate);
-			FNamePropertyMap PropertyMapB = DiffUtils::GetProperties(NodeInB->ComponentTemplate);
-			TArray<FName> IdenticalProperties, DifferingProperties;
-
-			DiffUtils::CompareUnrelatedObjects(A, PropertyMapA, B, PropertyMapB, IdenticalProperties, DifferingProperties);
-			for( auto Property : DifferingProperties )
-			{
-				FSCSDiffEntry Diff = { NodeInA->VariableName, Property };
-				OutDifferingEntries.Push( Diff );
-
-				if (OptionalOutSortKeys)
-				{
-					OptionalOutSortKeys->Push(SortKey);
-				}
-			}
-		}
-		else
-		{
-			// Node A was added:
-			FSCSDiffEntry Diff = { NodeInA->VariableName, FName() };
-			OutDifferingEntries.Push( Diff );
-
-			if (OptionalOutSortKeys)
-			{
-				OptionalOutSortKeys->Push(SortKey);
-			}
-		}
-
-		++SortKey;
-	}
-
-	// add nodes that were added in B:
-	for( auto NodeInB : NodesInB )
-	{
-		if( FindByName( NodesInA, NodeInB->VariableName ) == nullptr )
-		{
-			// Node B was added:
-			FSCSDiffEntry Diff = { NodeInB->VariableName, FName() };
-			OutDifferingEntries.Push(Diff);
-
-			if (OptionalOutSortKeys)
-			{
-				OptionalOutSortKeys->Push(SortKey);
-			}
-		}
-
-		++SortKey;
-	}
 }
 
 int32 GetCurrentIndex( SListView< TSharedPtr< struct FDiffSingleResult> > const& ListView, const TArray< TSharedPtr< FDiffSingleResult > >& ListViewSource )
@@ -997,7 +877,7 @@ bool SBlueprintDiff::HasPrevDiff() const
 
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
-	HandleGraphChanged( GraphOld ? GraphOld->GetName() : GraphNew->GetName() );
+	HandleGraphChanged( GraphOld ? GraphOld->GetFName() : GraphNew->GetFName() );
 
 	ResetGraphEditors();
 
@@ -1229,19 +1109,19 @@ FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
 	return Default;
 }
 
-void SBlueprintDiff::HandleGraphChanged( const FString& GraphName )
+void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
 {
 	TArray<UEdGraph*> GraphsOld, GraphsNew;
 	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
 	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
 
 	UEdGraph* GraphOld = NULL;
-	if( UEdGraph** Iter = GraphsOld.FindByPredicate(FMatchName(GraphName)) )
+	if( UEdGraph** Iter = GraphsOld.FindByPredicate(FMatchFName(GraphName)) )
 	{
 		GraphOld = *Iter;
 	}
 	UEdGraph* GraphNew = NULL;
-	if (UEdGraph** Iter = GraphsNew.FindByPredicate(FMatchName(GraphName)))
+	if (UEdGraph** Iter = GraphsNew.FindByPredicate(FMatchFName(GraphName)))
 	{
 		GraphNew = *Iter;
 	}
@@ -1373,13 +1253,11 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 {
 	const UObject* A = DiffUtils::GetCDO(PanelOld.Blueprint);
-	FNamePropertyMap PropertyMapA = DiffUtils::GetProperties(A);
 	const UObject* B = DiffUtils::GetCDO(PanelNew.Blueprint);
-	FNamePropertyMap PropertyMapB = DiffUtils::GetProperties(B);
-	TArray<FName> IdenticalProperties, DifferingProperties;
-	DiffUtils::CompareUnrelatedObjects( A, PropertyMapA, B, PropertyMapB, IdenticalProperties, DifferingProperties);
+	TArray<FPropertySoftPath> DifferingProperties;
+	DiffUtils::CompareUnrelatedObjects( A, B, DifferingProperties);
 
-	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, PropertyMapA, B, PropertyMapB, DifferingProperties) );
+	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, B, DifferingProperties) );
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
 	DiffControl = NewDiffControl;
 	return SNew(SSplitter)
@@ -1455,13 +1333,13 @@ void SBlueprintDiff::SetCurrentMode(FName NewMode)
 	}
 }
 
-FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) 
+FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
 {
 	TArray< FGraphToDiff>  Selected = GraphsToDiff->GetSelectedItems();
 	for(auto It(Selected.CreateIterator());It;++It)
 	{
 		FGraphToDiff& Diff = *It;
-		Diff->KeyWasPressed(InKeyboardEvent);
+		Diff->KeyWasPressed(InKeyEvent);
 	}
 	return FReply::Handled();
 }

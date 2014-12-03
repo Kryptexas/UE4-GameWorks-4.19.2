@@ -10,9 +10,16 @@ class UMaterialInstanceDynamic;
 UENUM()
 enum EBlendableLocation
 {
+	// Input0:former pass color, Input1:SeparateTranslucency
 	BL_AfterTonemapping UMETA(DisplayName="After Tonemapping"),
+	// Input0:former pass color, Input1:SeparateTranslucency
 	BL_BeforeTonemapping UMETA(DisplayName="Before Tonemapping"),
+	// Input0:former pass color, Input1:SeparateTranslucency
 	BL_BeforeTranslucency UMETA(DisplayName="Before Translucency"),
+	// Input0:former pass color, Input1:SeparateTranslucency, Input2: BloomOutput
+	// vector parameters: Engine.FilmWhitePoint
+	// scalar parameters: Engine.FilmSaturation, Engine.FilmContrast
+	BL_ReplacingTonemapper UMETA(DisplayName="Replacing the Tonemapper"),
 //	BL_AfterOpaque,
 //	BL_AfterFog,
 //	BL_AfterTranslucency,
@@ -20,7 +27,7 @@ enum EBlendableLocation
 	BL_MAX,
 };
 
-/** Dummy class needed to support InterfaceCast<IBlendableInterface>(Object) */
+/** Dummy class needed to support Cast<IBlendableInterface>(Object) */
 UINTERFACE()
 class UBlendableInterface : public UInterface
 {
@@ -44,18 +51,21 @@ struct FPostProcessMaterialNode
 	FPostProcessMaterialNode()
 		: MaterialInterface(0), bIsMID(false), Location(BL_MAX), Priority(0)
 	{
+		check(!IsValid());
 	}
 
 	// constructor
 	FPostProcessMaterialNode(UMaterialInterface* InMaterialInterface, EBlendableLocation InLocation, int32 InPriority)
 		: MaterialInterface(InMaterialInterface), bIsMID(false), Location(InLocation), Priority(InPriority)
 	{
+		check(IsValid());
 	}
 
 	// constructor
 	FPostProcessMaterialNode(UMaterialInstanceDynamic* InMID, EBlendableLocation InLocation, int32 InPriority)
 		: MaterialInterface((UMaterialInterface*)InMID), bIsMID(true), Location(InLocation), Priority(InPriority)
 	{
+		check(IsValid());
 	}
 
 	UMaterialInterface* GetMaterialInterface() const { return MaterialInterface; }
@@ -86,6 +96,8 @@ struct FPostProcessMaterialNode
 
 	EBlendableLocation GetLocation() const { return Location; }
 	int32 GetPriority() const { return Priority; }
+
+	bool IsValid() const { return MaterialInterface != 0; }
 
 private:
 	UMaterialInterface* MaterialInterface;

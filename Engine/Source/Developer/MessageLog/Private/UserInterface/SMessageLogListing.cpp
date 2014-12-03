@@ -4,6 +4,7 @@
 #include "SMessageLogListing.h"
 #include "IMessageLogListing.h"
 #include "SMessageLogMessageListRow.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"
@@ -182,6 +183,17 @@ void SMessageLogListing::BroadcastMessageTokenClicked( TSharedPtr<FTokenizedMess
 	MessageLogListingViewModel->ExecuteToken(Token);
 }
 
+void SMessageLogListing::BroadcastMessageDoubleClicked(TSharedPtr< class FTokenizedMessage > Message)
+{
+	if (Message->GetMessageTokens().Num() > 0)
+	{
+		TSharedPtr<IMessageToken> MessageLink = Message->GetMessageLink();
+		if (MessageLink.IsValid())
+		{
+			MessageLogListingViewModel->ExecuteToken(MessageLink->AsShared());
+		}
+	}	
+}
 
 const TArray< TSharedRef<FTokenizedMessage> > SMessageLogListing::GetSelectedMessages() const
 {
@@ -239,7 +251,8 @@ TSharedRef<ITableRow> SMessageLogListing::MakeMessageLogListItemWidget( TSharedR
 	return
 		SNew(SMessageLogMessageListRow, OwnerTable)
 		.Message(Message)
-		.OnTokenClicked( this, &SMessageLogListing::BroadcastMessageTokenClicked );
+		.OnTokenClicked( this, &SMessageLogListing::BroadcastMessageTokenClicked )
+		.OnMessageDoubleClicked( this, &SMessageLogListing::BroadcastMessageDoubleClicked );
 }
 
 
@@ -294,9 +307,9 @@ const TSharedRef< const FUICommandList > SMessageLogListing::GetCommandList() co
 }
 
 
-FReply SMessageLogListing::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMessageLogListing::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	return UICommandList->ProcessCommandBindings( InKeyboardEvent ) ? FReply::Handled() : FReply::Unhandled();
+	return UICommandList->ProcessCommandBindings( InKeyEvent ) ? FReply::Handled() : FReply::Unhandled();
 }
 
 

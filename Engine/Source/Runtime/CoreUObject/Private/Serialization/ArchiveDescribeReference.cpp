@@ -15,7 +15,6 @@ FArchiveDescribeReference::FArchiveDescribeReference( UObject* Src, UObject* InT
 	ArIgnoreOuterRef					= true;
 	ArIgnoreClassRef					= false;
 
-	GSerializedProperty = NULL;
 	Source->Serialize( *this );
 }
 
@@ -23,9 +22,9 @@ FArchive& FArchiveDescribeReference::operator<<( class UObject*& Obj )
 {
 	if (Obj == Target)
 	{
-		if (GSerializedProperty)
+		if (GetSerializedProperty())
 		{
-			Output.Logf(TEXT("        [%s]"), *GSerializedProperty->GetFullName());
+			Output.Logf(TEXT("        [%s]"), *GetSerializedProperty()->GetFullName());
 		}
 		else
 		{

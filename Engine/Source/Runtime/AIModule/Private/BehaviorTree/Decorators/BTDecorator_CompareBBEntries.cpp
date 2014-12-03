@@ -4,7 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_CompareBBEntries.h"
 
-UBTDecorator_CompareBBEntries::UBTDecorator_CompareBBEntries(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_CompareBBEntries::UBTDecorator_CompareBBEntries(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Compare Blackboard entries";
 
@@ -19,7 +19,7 @@ void UBTDecorator_CompareBBEntries::PostInitProperties()
 	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_CompareBBEntries::OnBlackboardChange);
 }
 
-void UBTDecorator_CompareBBEntries::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_CompareBBEntries::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
@@ -30,7 +30,7 @@ void UBTDecorator_CompareBBEntries::InitializeFromAsset(class UBehaviorTree* Ass
 
 // @note I know it's ugly to have "return" statements in many places inside a function, but the way 
 // around was very awkward here 
-bool UBTDecorator_CompareBBEntries::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
+bool UBTDecorator_CompareBBEntries::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
 {
 	// first of all require same type
 	// @todo this could be checked statically (i.e. in editor, asset creation time)!

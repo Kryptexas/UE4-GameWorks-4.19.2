@@ -37,12 +37,14 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 {
 	// Declarations.
 	DECLARE_CLASS(UObject,UObject,CLASS_Abstract|CLASS_NoExport,CASTCLASS_None,CoreUObject,NO_API)
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(UObject)
 
 	typedef UObject WithinClass;
 	static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
 	// Constructors and destructors.
-	UObject(const class FPostConstructInitializeProperties& PCIP);
+	UObject() { };
+	UObject(const FObjectInitializer& ObjectInitializer);
 	UObject( EStaticConstructor, EObjectFlags InFlags );
 
 	static void StaticRegisterNativesUObject() 
@@ -529,9 +531,6 @@ public:
 	 */
 	void ReinitializeProperties( UObject* SourceObject=NULL, struct FObjectInstancingGraph* InstanceGraph=NULL );
 
-	/** Handle culture change. */
-	virtual void CultureChange();
-
 	/**
 	 * This will return detail info about this specific object. (e.g. AudioComponent will return the name of the cue,
 	 * ParticleSystemComponent will return the name of the ParticleSystem)  The idea here is that in many places
@@ -561,10 +560,6 @@ public:
 	 */
 	void ConditionalPostLoadSubobjects( struct FObjectInstancingGraph* OuterInstanceGraph=NULL );
 
-	/** Make sure this object has been shut down. */
-	void ConditionalShutdownAfterError();
-
-
 	/**
 	 * Starts caching of platform specific data for the target platform
 	 * Called when cooking before serialization so that object can prepare platform specific data
@@ -572,14 +567,14 @@ public:
 	 * 
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
-	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform* TargetPlatform ) {  }
 
 	/**
 	 * Clears cached cooked platform data for specific platform
 	 * 
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
-	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform ) {  }
 
 	/**
 	 * Clear all cached cooked platform data
@@ -587,6 +582,13 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void ClearAllCachedCookedPlatformData() { }
+
+	/**
+	 * Have we finished loading all the cooked platform data for the target platforms requested in BeginCacheForCookedPlatformData
+	 * 
+	 * @param	TargetPlatform target platform to check for cooked platform data
+	 */
+	virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) { return true; }
 
 
 	/**
@@ -949,6 +951,7 @@ public:
 	DECLARE_FUNCTION(execInterfaceToBool);
 	DECLARE_FUNCTION(execObjectToInterface);
 	DECLARE_FUNCTION(execInterfaceToInterface);
+	DECLARE_FUNCTION(execInterfaceToObject);
 
 	// Dynamic array functions
 	// Array support
@@ -968,6 +971,8 @@ public:
 
 	DECLARE_FUNCTION(execBindDelegate);
 	DECLARE_FUNCTION(execCallMulticastDelegate);
+
+	DECLARE_FUNCTION(execLetValueOnPersistentFrame);
 
 	// -- K2 support functions
 	struct Object_eventExecuteUbergraph_Parms

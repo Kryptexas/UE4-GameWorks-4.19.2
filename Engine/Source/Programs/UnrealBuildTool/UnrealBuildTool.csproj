@@ -168,6 +168,7 @@
         <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
         <Compile Include="HTML5\HTML5ToolChain.cs" />
         <Compile Include="HTML5\UEBuildHTML5.cs" />
+        <Compile Include="HTML5\HTML5SDKInfo.cs" />
       </ItemGroup>
     </When>
   </Choose>
@@ -225,6 +226,7 @@
     <Compile Include="System\Distcc.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
+    <Compile Include="System\SNDBS.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />
     <Compile Include="System\DirectoryLookupCache.cs" />
     <Compile Include="System\CPPEnvironment.cs" />

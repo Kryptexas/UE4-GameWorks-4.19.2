@@ -37,7 +37,7 @@ public:
 	/**
 	 * Adds a device to the group.
 	 *
-	 * @param DeviceID - The identifier of the device to add.
+	 * @param DeviceID The identifier of the device to add.
 	 */
 	virtual void AddDevice(const FString& DeviceID) = 0;
 	
@@ -72,14 +72,14 @@ public:
 	/**
 	 * Removes a device from the group.
 	 *
-	 * @param DeviceID - The identifier of the device to remove.
+	 * @param DeviceID The identifier of the device to remove.
 	 */
 	virtual void RemoveDevice(const FString& DeviceID) = 0;
 
 	/**
 	 * Sets the name of the device group.
 	 *
-	 * @param NewName - The new name.
+	 * @param NewName The new name.
 	 */
 	virtual void SetName(const FString& NewName) = 0;
 
@@ -101,8 +101,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ILauncherDeviceGroup() { }
 };

@@ -19,6 +19,13 @@ namespace KismetCompilerDebugOptions
 	enum { EmitNodeComments = DebuggingCompiler };
 }
 
+enum ETerminalSpecification
+{
+	TS_Unspecified,
+	TS_Literal,
+	TS_ForcedShared,
+};
+
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
@@ -58,6 +65,7 @@ public:
 	TIndirectArray<FBPTerminal> Parameters;
 	TIndirectArray<FBPTerminal> Results;
 	TIndirectArray<FBPTerminal> VariableReferences;
+	TIndirectArray<FBPTerminal> PersistentFrameVariableReferences;
 	TIndirectArray<FBPTerminal> Literals;
 	TIndirectArray<FBPTerminal> Locals;
 	TIndirectArray<FBPTerminal> EventGraphLocals;
@@ -83,8 +91,10 @@ public:
 
 	// Stored calls of latent function (on current class), needed to tell if blueprint should be tickable
 	TArray< UK2Node_CallFunction* > LatentFunctionCalls;
+
+	bool bGeneratingCpp;
 public:
-	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint);
+	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp);
 	
 	~FKismetFunctionContext();
 
@@ -528,6 +538,9 @@ public:
 			}
 		}
 	}
+
+	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminalFromPinAutoChooseScope(UEdGraphPin* Net, const FString& NewName);
+	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminal(ETerminalSpecification Spec = ETerminalSpecification::TS_Unspecified);
 };
 
 //////////////////////////////////////////////////////////////////////////

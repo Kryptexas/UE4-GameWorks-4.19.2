@@ -1,37 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "InternationalizationManifest.h"
-#include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
-#include "InternationalizationArchiveJsonSerializer.h"
 #include "TextLocalizationResourceGenerator.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextLocalizationResourceGenerator, Log, All);
 
-TSharedPtr<FJsonObject> FTextLocalizationResourceGenerator::ReadJSONTextFile(const FString& InFilePath)
-{
-	//read in file as string
-	FString FileContents;
-	if ( !FFileHelper::LoadFileToString(FileContents, *InFilePath) )
-	{
-		UE_LOG(LogTextLocalizationResourceGenerator, Error,TEXT("Failed to load file %s."), *InFilePath);
-		return NULL;
-	}
-
-	//parse as JSON
-	TSharedPtr<FJsonObject> JSONObject;
-
-	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( FileContents );
-
-	if( !FJsonSerializer::Deserialize( Reader, JSONObject ) || !JSONObject.IsValid())
-	{
-		UE_LOG(LogTextLocalizationResourceGenerator, Error,TEXT("Invalid JSON in file %s."), *InFilePath);
-		return NULL;
-	}
-
-	return JSONObject;
-}
 
 void FTextLocalizationResourceGenerator::FLocalizationEntryTracker::ReportCollisions() const
 {
@@ -164,7 +140,7 @@ bool FTextLocalizationResourceGenerator::FLocalizationEntryTracker::WriteToArchi
 	return WasSuccessful;
 }
 
-bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, const TSharedRef<FInternationalizationManifest>& InternationalizationManifest, const FString& CultureToGenerate, FArchive* const DestinationArchive)
+bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, const TSharedRef<FInternationalizationManifest>& InternationalizationManifest, const FString& CultureToGenerate, FArchive* const DestinationArchive, IInternationalizationArchiveSerializer& ArchiveSerializer)
 {
 	FLocalizationEntryTracker LocalizationEntryTracker;
 
@@ -188,17 +164,33 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 		// Read each archive file from the culture-named directory in the source path.
 		FString ArchiveFilePath = CulturePath / ArchiveName;
 		ArchiveFilePath = FPaths::ConvertRelativePathToFull(ArchiveFilePath);
-		TSharedPtr<FJsonObject> ArchiveJSONObject = ReadJSONTextFile(ArchiveFilePath);
-		if( !(ArchiveJSONObject.IsValid()) )
+		TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive);
+
+#if 0 // @todo Json: Serializing from FArchive is currently broken
+		FArchive* ArchiveFile = IFileManager::Get().CreateFileReader(*ArchiveFilePath);
+
+		if (ArchiveFile == nullptr)
 		{
 			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("No archive found at %s."), *ArchiveFilePath);
 			continue;
 		}
-		TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
+			
+		ArchiveSerializer.DeserializeArchive(*ArchiveFile, InternationalizationArchive);
+#else
+		FString ArchiveContent;
+
+		if (!FFileHelper::LoadFileToString(ArchiveContent, *ArchiveFilePath))
 		{
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
-			ArchiveSerializer.DeserializeArchive(ArchiveJSONObject.ToSharedRef(), InternationalizationArchive);
+			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("Failed to load file %s."), *ArchiveFilePath);
+			continue;
 		}
+
+		if (!ArchiveSerializer.DeserializeArchive(ArchiveContent, InternationalizationArchive))
+		{
+			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("Failed to serialize archive from file %s."), *ArchiveFilePath);
+			continue;
+		}
+#endif
 
 		// Generate text localization resource from manifest and archive entries.
 		for(TManifestEntryByContextIdContainer::TConstIterator i = InternationalizationManifest->GetEntriesByContextIdIterator(); i; ++i)

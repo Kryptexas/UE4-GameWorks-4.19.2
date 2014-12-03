@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBlueprintDebug, Log, All);
 

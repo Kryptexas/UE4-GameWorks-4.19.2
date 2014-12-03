@@ -5,16 +5,16 @@
 #include "Engine/NiagaraActor.h"
 #include "Components/NiagaraComponent.h"
 
-ANiagaraActor::ANiagaraActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	NiagaraComponent = PCIP.CreateDefaultSubobject<UNiagaraComponent>(this, TEXT("NiagaraComponent0"));
+	NiagaraComponent = ObjectInitializer.CreateDefaultSubobject<UNiagaraComponent>(this, TEXT("NiagaraComponent0"));
 
 	RootComponent = NiagaraComponent;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -59,3 +59,12 @@ ANiagaraActor::ANiagaraActor(const class FPostConstructInitializeProperties& PCI
 	}
 #endif // WITH_EDITORONLY_DATA
 }
+
+/** Returns NiagaraComponent subobject **/
+UNiagaraComponent* ANiagaraActor::GetNiagaraComponent() const { return NiagaraComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ANiagaraActor::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ANiagaraActor::GetArrowComponent() const { return ArrowComponent; }
+#endif

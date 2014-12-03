@@ -7,8 +7,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectileMovement, Log, All);
 
 const float UProjectileMovementComponent::MIN_TICK_TIME = 0.0002f;
 
-UProjectileMovementComponent::UProjectileMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UProjectileMovementComponent::UProjectileMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateOnlyIfRendered = false;
 	bInitialVelocityInLocalSpace = true;
@@ -28,13 +28,20 @@ UProjectileMovementComponent::UProjectileMovementComponent(const class FPostCons
 
 	MaxSimulationTimeStep = 0.05f;
 	MaxSimulationIterations = 8;
+
+	bBounceAngleAffectsFriction = false;
+	bIsSliding = false;
+	PreviousHitTime = 1.f;
+	PreviousHitNormal = FVector::UpVector;
 }
 
-void UProjectileMovementComponent::Serialize( FArchive& Ar)
+void UProjectileMovementComponent::PostLoad()
 {
-	Super::Serialize(Ar);
+	Super::PostLoad();
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REFACTOR_PROJECTILE_MOVEMENT)
+	const int32 LinkerUE4Ver = GetLinkerUE4Version();
+
+	if (LinkerUE4Ver < VER_UE4_REFACTOR_PROJECTILE_MOVEMENT)
 	{
 		// Old code used to treat Bounciness as Friction as well.
 		Friction = FMath::Clamp(1.f - Bounciness, 0.f, 1.f);
@@ -101,11 +108,9 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	}
 
 	float RemainingTime	= DeltaTime;
-	int32	NumBounces = 0;
+	int32 NumBounces = 0;
 	int32 Iterations = 0;
 	FHitResult Hit(1.f);
-	FVector OldHitNormal(0.f,0.f,1.f);
-	bool bSliding = false;
 
 	while( RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent )
 	{
@@ -117,10 +122,9 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 		Hit.Time = 1.f;
 		const FVector OldVelocity = Velocity;
-		FVector MoveDelta = ComputeMoveDelta(Velocity, TimeTick, !bSliding);
+		FVector MoveDelta = ComputeMoveDelta(OldVelocity, TimeTick);
 
-		const FVector TmpVelocity = Velocity;
-		const FRotator NewRotation = bRotationFollowsVelocity ? Velocity.Rotation() : ActorOwner->GetActorRotation();
+		const FRotator NewRotation = bRotationFollowsVelocity ? OldVelocity.Rotation() : ActorOwner->GetActorRotation();
 
 		// Move the component
 		if (bShouldBounce)
@@ -142,62 +146,145 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		}
 
 		// Handle hit result after movement
-		if (Hit.Time == 1.f)
+		if( !Hit.bBlockingHit )
 		{
-			bSliding = false;
-			Velocity = CalculateVelocity(Velocity, TimeTick, !bSliding);
+			PreviousHitTime = 1.f;
+			bIsSliding = false;
+
+			// Only calculate new velocity if events didn't change it during the movement update.
+			if (Velocity == OldVelocity)
+			{
+				Velocity = ComputeVelocity(Velocity, TimeTick);				
+			}
 		}
 		else
 		{
-			if ( Velocity == TmpVelocity )
+			// Only calculate new velocity if events didn't change it during the movement update.
+			if (Velocity == OldVelocity)
 			{
 				// re-calculate end velocity for partial time
-				Velocity = CalculateVelocity(OldVelocity, TimeTick*Hit.Time, !bSliding);
+				Velocity = (Hit.Time > KINDA_SMALL_NUMBER) ? ComputeVelocity(OldVelocity, TimeTick * Hit.Time) : OldVelocity;
 			}
-			if ( HandleHitWall(Hit, TimeTick, MoveDelta) )
+
+			if (HandleHitWall(Hit, TimeTick, MoveDelta))
 			{
 				break;
 			}
-			if( NumBounces < 2 )
-			{
-				RemainingTime += TimeTick * (1.f - Hit.Time);
-			}
-			NumBounces++;
 
-			// if velocity still into wall (after HitWall() had a chance to adjust), slide along wall
-			if ( (Velocity | Hit.Normal) <= 0.f || (Hit.Time == 0.f && NumBounces > 1) )
+			NumBounces++;
+			float SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
+			FVector Normal = ConstrainNormalToPlane(Hit.Normal);
+
+			// Multiple hits within very short time period?
+			const bool bMultiHit = (PreviousHitTime < 1.f && Hit.Time <= KINDA_SMALL_NUMBER);
+
+			// if velocity still into wall (after HandleHitWall() had a chance to adjust), slide along wall
+			const float DotTolerance = 0.01f;
+			bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Normal)) ||
+						 ((Velocity.SafeNormal() | Normal) <= DotTolerance);
+			
+			if (bIsSliding)
 			{
-				if ( (NumBounces > 1) && ((OldHitNormal | Hit.Normal) <= 0.f) )
+				if (bMultiHit && (PreviousHitNormal | Normal) <= 0.f)
 				{
 					//90 degree or less corner, so use cross product for direction
-					FVector NewDir = (Hit.Normal ^ OldHitNormal);
+					FVector NewDir = (Normal ^ PreviousHitNormal);
 					NewDir = NewDir.SafeNormal();
-					Velocity = (Velocity | NewDir) * NewDir;
-					if ((TmpVelocity | Velocity) < 0.f)
+					Velocity = Velocity.ProjectOnToNormal(NewDir);
+					if ((OldVelocity | Velocity) < 0.f)
 					{
 						Velocity *= -1.f;
 					}
+					Velocity = ConstrainDirectionToPlane(Velocity);
 				}
 				else 
 				{
 					//adjust to move along new wall
-					Velocity = Velocity - Hit.Normal * (Velocity | Hit.Normal);
-					if ( (Velocity | OldVelocity) <= 0.f )
-					{
-						if (Velocity.SizeSquared() < FMath::Square(BounceVelocityStopSimulatingThreshold))
-						{
-							StopSimulating(Hit);
-							break;
-						}
-					}
+					Velocity = ComputeSlideVector(Velocity, 1.f, Normal, Hit);
 				}
-				OldHitNormal = Hit.Normal;
-				bSliding = true;
+
+				// Check min velocity.
+				if (Velocity.SizeSquared() < FMath::Square(BounceVelocityStopSimulatingThreshold))
+				{
+					StopSimulating(Hit);
+					break;
+				}
+				
+				// Velocity is now parallel to the impact surface.
+				if (SubTickTimeRemaining > KINDA_SMALL_NUMBER)
+				{
+					if (!HandleSliding(Hit, SubTickTimeRemaining))
+					{
+						break;
+					}
+					Normal = ConstrainNormalToPlane(Hit.Normal);
+				}
+			}
+
+			PreviousHitTime = Hit.Time;
+			PreviousHitNormal = Normal;
+			
+			// A few initial bounces should add more time and iterations to complete most of the simulation.
+			if (NumBounces <= 2 && SubTickTimeRemaining >= MIN_TICK_TIME)
+			{
+				RemainingTime += SubTickTimeRemaining;
+				Iterations--;
 			}
 		}
 	}
 
 	UpdateComponentVelocity();
+}
+
+
+bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTickTimeRemaining)
+{
+	FHitResult InitialHit(Hit);
+	const FVector OldHitNormal = ConstrainDirectionToPlane(Hit.Normal);
+
+	// Velocity is now parallel to the impact surface.
+	// Perform the move now, before adding gravity/accel again, so we don't just keep hitting the surface.
+	SafeMoveUpdatedComponent(Velocity * SubTickTimeRemaining, UpdatedComponent->GetComponentRotation(), true, Hit);
+
+	// A second hit can deflect the velocity (through the normal bounce code), for the next iteration.
+	if (Hit.bBlockingHit)
+	{
+		if (HandleHitWall(Hit, SubTickTimeRemaining, Velocity * SubTickTimeRemaining))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// Find velocity after elapsed time
+		const FVector PostTickVelocity = ComputeVelocity(Velocity, SubTickTimeRemaining);
+
+		// If pointing back into surface, apply friction and acceleration.
+		const FVector Force = (PostTickVelocity - Velocity);
+		const float ForceDotN = (Force | OldHitNormal);
+		if (ForceDotN < 0.f)
+		{
+			const FVector ProjectedForce = FVector::VectorPlaneProject(Force, OldHitNormal);
+			const FVector NewVelocity = Velocity + ProjectedForce;
+
+			const FVector FrictionForce = -NewVelocity.SafeNormal() * FMath::Min(-ForceDotN * Friction, NewVelocity.Size());
+			Velocity = ConstrainDirectionToPlane(NewVelocity + FrictionForce);
+		}
+		else
+		{
+			Velocity = PostTickVelocity;
+		}
+
+		// Check min velocity
+		if (Velocity.SizeSquared() < FMath::Square(BounceVelocityStopSimulatingThreshold))
+		{
+			StopSimulating(InitialHit);
+			return false;
+		}
+	}
+
+	SubTickTimeRemaining = SubTickTimeRemaining * (1.f - Hit.Time);
+	return true;
 }
 
 
@@ -210,12 +297,17 @@ void UProjectileMovementComponent::SetVelocityInLocalSpace(FVector NewVelocity)
 }
 
 
-FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled)
+// Deprecated
+FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled_UNUSED) const
 {
-	FVector NewVelocity = OldVelocity;
+	return ComputeVelocity(OldVelocity, DeltaTime);
+}
 
-	const FVector Acceleration = ComputeAcceleration(OldVelocity, DeltaTime, bGravityEnabled);
-	NewVelocity += Acceleration * DeltaTime;
+FVector UProjectileMovementComponent::ComputeVelocity(FVector InitialVelocity, float DeltaTime) const
+{
+	// v = v0 + a*t
+	const FVector Acceleration = ComputeAcceleration(InitialVelocity, DeltaTime);
+	FVector NewVelocity = InitialVelocity + (Acceleration * DeltaTime);
 
 	return LimitVelocity(NewVelocity);
 }
@@ -229,52 +321,40 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 		NewVelocity = NewVelocity.ClampMaxSize(CurrentMaxSpeed);
 	}
 
-	return NewVelocity;
+	return ConstrainDirectionToPlane(NewVelocity);
 }
 
-FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const
+FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime) const
 {
-	// p = p0 + v*t
-	FVector Delta = InVelocity * DeltaTime;
-	
-	const FVector Acceleration = ComputeAcceleration(InVelocity, DeltaTime, bGravityEnabled);
-	if (!Acceleration.IsZero())
-	{
-		// p = p0 + v*t (above) + 1/2*a*t^2 (below)
-		Delta += 0.5f * Acceleration * FMath::Square(DeltaTime);
+	// Velocity Verlet integration (http://en.wikipedia.org/wiki/Verlet_integration#Velocity_Verlet)
+	// The addition of p0 is done outside this method, we are just computing the delta.
+	// p = p0 + v0*t + 1/2*a*t^2
 
-		// limit velocity, else acceleration will push this result over the allowed velocity constraint during this timestep.
-		const FVector EffectiveVelocity = Delta / DeltaTime;
-		const FVector ClampedVelocity = LimitVelocity(EffectiveVelocity);
-		if (ClampedVelocity != EffectiveVelocity)
-		{
-			// Maintain direction but change magnitude
-			Delta = Delta.SafeNormal() * (GetMaxSpeed() * DeltaTime);
-		}
-	}
+	// We use ComputeVelocity() here to infer the acceleration, to make it easier to apply custom velocities.
+	// p = p0 + v0*t + 1/2*((v1-v0)/t)*t^2
+	// p = p0 + v0*t + 1/2*((v1-v0))*t
 
+	const FVector NewVelocity = ComputeVelocity(InVelocity, DeltaTime);
+	const FVector Delta = (InVelocity * DeltaTime) + (NewVelocity - InVelocity) * (0.5f * DeltaTime);
 	return Delta;
 }
 
-FVector UProjectileMovementComponent::ComputeAcceleration(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const
+FVector UProjectileMovementComponent::ComputeAcceleration(const FVector& InVelocity, float DeltaTime) const
 {
 	FVector Acceleration(FVector::ZeroVector);
 
-	if (bGravityEnabled)
-	{
-		Acceleration.Z += GetEffectiveGravityZ();
-	}
+	Acceleration.Z += GetEffectiveGravityZ();
 
 	if (bIsHomingProjectile && HomingTargetComponent.IsValid())
 	{
-		Acceleration += ComputeHomingAcceleration(InVelocity, DeltaTime, bGravityEnabled);
+		Acceleration += ComputeHomingAcceleration(InVelocity, DeltaTime);
 	}
 
 	return Acceleration;
 }
 
 // Allow the projectile to track towards its homing target.
-FVector UProjectileMovementComponent::ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const
+FVector UProjectileMovementComponent::ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime) const
 {
 	FVector HomingAcceleration = ((HomingTargetComponent->GetComponentLocation() - UpdatedComponent->GetComponentLocation()).SafeNormal() * HomingAccelerationMagnitude);
 	return HomingAcceleration;
@@ -316,21 +396,28 @@ bool UProjectileMovementComponent::HandleHitWall(const FHitResult& Hit, float Ti
 FVector UProjectileMovementComponent::ComputeBounceResult(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
 {
 	FVector TempVelocity = Velocity;
+	const FVector Normal = ConstrainNormalToPlane(Hit.Normal);
+	const float VDotNormal = (TempVelocity | Normal);
 
-	// Project velocity onto normal in reflected direction.
-	const FVector ProjectedNormal = Hit.Normal * -(TempVelocity | Hit.Normal);
+	// Only if velocity is opposed by normal
+	if (VDotNormal < 0.f)
+	{
+		// Project velocity onto normal in reflected direction.
+		const FVector ProjectedNormal = Normal * -VDotNormal;
 
-	// Point velocity in direction parallel to surface
-	TempVelocity += ProjectedNormal;
+		// Point velocity in direction parallel to surface
+		TempVelocity += ProjectedNormal;
 
-	// Only tangential velocity should be affected by friction.
-	TempVelocity *= FMath::Clamp(1.f - Friction, 0.f, 1.f);
+		// Only tangential velocity should be affected by friction.
+		const float ScaledFriction = (bBounceAngleAffectsFriction || bIsSliding) ? FMath::Clamp(-VDotNormal / TempVelocity.Size(), 0.f, 1.f) * Friction : Friction;
+		TempVelocity *= FMath::Clamp(1.f - ScaledFriction, 0.f, 1.f);
 
-	// Coefficient of restitution only applies perpendicular to impact.
-	TempVelocity += (ProjectedNormal * FMath::Max(Bounciness, 0.f));
+		// Coefficient of restitution only applies perpendicular to impact.
+		TempVelocity += (ProjectedNormal * FMath::Max(Bounciness, 0.f));
 
-	// Bounciness or Friction > 1 could cause us to exceed velocity.
-	TempVelocity = LimitVelocity(TempVelocity);
+		// Bounciness could cause us to exceed max speed.
+		TempVelocity = LimitVelocity(TempVelocity);
+	}
 
 	return TempVelocity;
 }
@@ -401,7 +488,7 @@ bool UProjectileMovementComponent::CheckStillInWorld()
 			ActorOwner->OutsideWorldBounds();
 			// not safe to use physics or collision at this point
 			ActorOwner->SetActorEnableCollision(false);
-			FHitResult Hit;
+			FHitResult Hit(1.f);
 			StopSimulating(Hit);
 			return false;
 		}

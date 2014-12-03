@@ -5,6 +5,9 @@
 /** Query delegate to see if we are in picking mode */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnIsPicking, FName& /* OutWidgetNameToHighlight */);
 
+/** Query delegate for name of any picked widget and check if it matches the 'pickable' name of the given widget */
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnValidatePickingCandidate, TSharedRef<SWidget> /*InWidget*/, FName& /* OutWidgetNameToHighlight */, bool& /*bOutShouldHighlight*/);
+
 class UEditorTutorial;
 struct FTutorialContent;
 class STutorialRoot;
@@ -17,6 +20,9 @@ public:
 
 	/** Get the delegate used to check for whether we are picking widgets */
 	FOnIsPicking& OnIsPicking();
+	
+	/** Get the delegate used to validate the given widget for pickings */
+	FOnValidatePickingCandidate& OnValidatePickingCandidate();
 
 	void GoToPreviousStage();
 
@@ -24,7 +30,7 @@ public:
 
 	float GetIntroCurveValue(float InTime);
 
-	void SummonTutorialBrowser(TWeakPtr<SWindow> InWindow = nullptr, const FString& InFilter = TEXT(""));
+	void SummonTutorialBrowser();
 
 	static FString AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial);
 
@@ -80,6 +86,9 @@ private:
 	/** Internal helper to launch a tutorial from a path */
 	void LaunchTutorialByName(const FString& InAssetPath, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate());
 
+	/** Spawn a tab for browsing tutorials */
+	TSharedRef<SDockTab> SpawnTutorialsBrowserTab(const FSpawnTabArgs& SpawnTabArgs);
+
 public:
 
 	// IIntroTutorials interface
@@ -109,6 +118,9 @@ private:
 
 	/** Delegate used to determine whether we are in picking mode */
 	FOnIsPicking OnIsPickingDelegate;
+	
+	/** Delegate used to determine if we are in picking mode, get the name of any picked widget and check if it matches the 'pickable' name of the given widget */
+	FOnValidatePickingCandidate OnValidatePickingCandidateDelegate;
 
 	/** Root widget for tutorial overlay system */
 	TSharedPtr<STutorialRoot> TutorialRoot;

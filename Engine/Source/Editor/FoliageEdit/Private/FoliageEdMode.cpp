@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	FoliageEdMode.cpp: Foliage editing mode
-================================================================================*/
-
 #include "UnrealEd.h"
 #include "StaticMeshResources.h"
 #include "ObjectTools.h"
@@ -24,9 +20,9 @@
 // Classes
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType.h"
-#include "Landscape/LandscapeComponent.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
-#include "Landscape/LandscapeInfo.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeInfo.h"
 #include "Components/SplineMeshComponent.h"
 
 #define FOLIAGE_SNAP_TRACE (10000.f)
@@ -79,12 +75,6 @@ void FEdModeFoliage::AddReferencedObjects(FReferenceCollector& Collector)
 	FEdMode::AddReferencedObjects(Collector);
 
 	Collector.AddReferencedObject(SphereBrushComponent);
-}
-
-/** FEdMode: Called when the mode is created */
-void FEdModeFoliage::Initialize()
-{
-	FEditorDelegates::MapChange.AddSP(this, &FEdModeFoliage::NotifyMapRebuild);
 }
 
 /** FEdMode: Called when the mode is entered */
@@ -218,18 +208,6 @@ void FEdModeFoliage::NotifyToolChanged()
 			SelectionIFA->ApplySelectionToComponents(false);
 		}
 		SelectionIFA = nullptr;
-	}
-}
-
-void FEdModeFoliage::NotifyMapRebuild(uint32 MapChangeFlags) const
-{
-	if (MapChangeEventFlags::MapRebuild & MapChangeFlags)
-	{
-		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
-		if (IFA)
-		{
-			IFA->MapRebuild();
-		}
 	}
 }
 
@@ -840,12 +818,13 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			// record that we've made changes to this instance already, so we don't touch it again.
 			Instance.Flags |= FOLIAGE_Readjusted;
 
+			// See if we need to update the location in the instance hash
 			bool bReapplyLocation = false;
+			FVector OldInstanceLocation = Instance.Location;
 
 			// remove any Z offset first, so the offset is reapplied to any new 
 			if (FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER)
 			{
-				MeshInfo->InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
 				Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, -Instance.ZOffset));
 				bReapplyLocation = true;
 			}
@@ -1009,6 +988,11 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 							(Settings->GroundSlope < 0.f && Hit.Normal.Z >= FMath::Cos(-PI * Settings->GroundSlope / 180.f) + SMALL_NUMBER))
 						{
 							InstancesToDelete.Add(InstanceIndex);
+							if (bReapplyLocation)
+							{
+								// restore the location so the hash removal will succeed
+								Instance.Location = OldInstanceLocation;
+							}
 							continue;
 						}
 					}
@@ -1031,6 +1015,11 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 								if (HitWeight <= FMath::FRand())
 								{
 									InstancesToDelete.Add(InstanceIndex);
+									if (bReapplyLocation)
+									{
+										// restore the location so the hash removal will succeed
+										Instance.Location = OldInstanceLocation;
+									}
 									continue;
 								}
 							}
@@ -1051,6 +1040,11 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 									if (!CheckVertexColor(Settings, VertexColor))
 									{
 										InstancesToDelete.Add(InstanceIndex);
+										if (bReapplyLocation)
+										{
+											// restore the location so the hash removal will succeed
+											Instance.Location = OldInstanceLocation;
+										}
 										continue;
 									}
 								}
@@ -1066,6 +1060,11 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 				if (Instance.Location.Z < Settings->HeightMin || Instance.Location.Z > Settings->HeightMax)
 				{
 					InstancesToDelete.Add(InstanceIndex);
+					if (bReapplyLocation)
+					{
+						// restore the location so the hash removal will succeed
+						Instance.Location = OldInstanceLocation;
+					}
 					continue;
 				}
 			}
@@ -1074,11 +1073,13 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			{
 				// Reapply the Z offset in new local space
 				Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Instance.ZOffset));
+				bReapplyLocation = true;
 			}
 
-			// Re-add to the hash
+			// Update the hash
 			if (bReapplyLocation)
 			{
+				MeshInfo->InstanceHash->RemoveInstance(OldInstanceLocation, InstanceIndex);
 				MeshInfo->InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
 			}
 
@@ -1329,7 +1330,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 				const FStaticMeshComponentLODInfo* InstanceMeshLODInfo = nullptr;
 				if (StaticMeshComponent->LODData.Num() > 0)
 				{
-					InstanceMeshLODInfo = StaticMeshComponent->LODData.GetTypedData();
+					InstanceMeshLODInfo = StaticMeshComponent->LODData.GetData();
 					bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
 				}
 
@@ -1478,7 +1479,7 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStat
 	const FStaticMeshComponentLODInfo* InstanceMeshLODInfo = nullptr;
 	if (InStaticMeshComponent->LODData.Num() > 0)
 	{
-		InstanceMeshLODInfo = InStaticMeshComponent->LODData.GetTypedData();
+		InstanceMeshLODInfo = InStaticMeshComponent->LODData.GetData();
 		bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
 	}
 
@@ -1668,7 +1669,7 @@ void FEdModeFoliage::BakeFoliage(UFoliageType* Settings, bool bSelectedOnly)
 			UWorld* World = IFA->GetWorld();
 			check(World != nullptr);
 			AStaticMeshActor* SMA = World->SpawnActor<AStaticMeshActor>(Instance.Location, Instance.Rotation);
-			SMA->StaticMeshComponent->StaticMesh = Settings->GetStaticMesh();
+			SMA->GetStaticMeshComponent()->StaticMesh = Settings->GetStaticMesh();
 			SMA->GetRootComponent()->SetRelativeScale3D(Instance.DrawScale3D);
 			SMA->MarkComponentsRenderStateDirty();
 		}

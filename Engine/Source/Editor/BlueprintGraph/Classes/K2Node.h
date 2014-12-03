@@ -131,6 +131,10 @@ class UK2Node : public UEdGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
+	// UObject interface
+	BLUEPRINTGRAPH_API virtual void PostLoad() override;
+	// End of UObject interface
+
 	// UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void ReconstructNode() override;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
@@ -303,8 +307,6 @@ class UK2Node : public UEdGraphNode
 	 * extensible way for new nodes, and game module nodes to add themselves to
 	 * context menus.
 	 *
-	 * @TODO: Not operational yet (stubbed in to prep for blueprint action menu refactor).
-	 *
 	 * @param  ActionListOut	The list to be populated with new spawners.
 	 */
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const {}
@@ -312,8 +314,6 @@ class UK2Node : public UEdGraphNode
 	/**
 	 * Override to provide a default category for specific node types to be 
 	 * listed under.
-	 *
-	 * @TODO: Not operational yet (stubbed in to prep for blueprint action menu refactor).
 	 *
 	 * @return A localized category string (or an empty string if you want this node listed at the menu's root).
 	 */
@@ -392,7 +392,7 @@ protected:
 	 * 
 	 * returns the redirect type
 	 */
-	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName & NewPinName, const UK2Node * NewPinNode) const;
+	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node * NewPinNode) const;
 
 	/** 
 	 * Sends a message to the owning blueprint's CurrentMessageLog, if there is one available.  Otherwise, defaults to logging to the normal channels.
@@ -415,6 +415,8 @@ protected:
 			ReferencedObject->GetLinker()->Preload(ReferencedObject);
 		}
 	}
+
+	void FixupPinDefaultValues();
 };
 
 
@@ -464,6 +466,11 @@ public:
 		MemberName = InField->GetFName();
 		bSelfContext = bIsConsideredSelfContext;
 		bWasDeprecated = false;
+
+		if (MemberParentClass != nullptr)
+		{
+			MemberParentClass = MemberParentClass->GetAuthoritativeClass();
+		}
 
 		MemberGuid.Invalidate();
 		if (InField->GetOwnerClass())
@@ -645,11 +652,15 @@ public:
 				MemberGuid.Invalidate();
 				UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
 
-				// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
-				if(MemberParentClass != NULL && SelfScope != NULL)
+				if (MemberParentClass != nullptr)
 				{
-					SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
-				}
+					MemberParentClass = MemberParentClass->GetAuthoritativeClass();
+					// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
+					if (SelfScope != NULL)
+					{
+						SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
+					}
+				}	
 			}
 			else if(TargetScope != NULL)
 			{

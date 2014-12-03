@@ -14,8 +14,8 @@ const FString& UK2Node_EnumLiteral::GetEnumInputPinName()
 	return Name;
 }
 
-UK2Node_EnumLiteral::UK2Node_EnumLiteral(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EnumLiteral::UK2Node_EnumLiteral(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -80,8 +80,7 @@ public:
 		UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(InPin);
 		if (Context.NetMap.Find(Net) == NULL)
 		{
-			FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 			Context.NetMap.Add(Net, Term);
 		}
 

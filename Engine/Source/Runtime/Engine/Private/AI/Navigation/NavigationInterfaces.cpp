@@ -8,31 +8,37 @@
 #include "AI/Navigation/NavPathObserverInterface.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
+#include "AI/RVOAvoidanceInterface.h"
 
 uint32 INavLinkCustomInterface::NextUniqueId = 1;
 
-UNavAgentInterface::UNavAgentInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URVOAvoidanceInterface::URVOAvoidanceInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UNavigationPathGenerator::UNavigationPathGenerator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavAgentInterface::UNavAgentInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UNavNodeInterface::UNavNodeInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationPathGenerator::UNavigationPathGenerator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UNavLinkHostInterface::UNavLinkHostInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavNodeInterface::UNavNodeInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UNavLinkCustomInterface::UNavLinkCustomInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavLinkHostInterface::UNavLinkHostInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+UNavLinkCustomInterface::UNavLinkCustomInterface(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -59,12 +65,12 @@ FNavigationLink INavLinkCustomInterface::GetModifier(const INavLinkCustomInterfa
 	return LinkMod;
 }
 
-UNavPathObserverInterface::UNavPathObserverInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavPathObserverInterface::UNavPathObserverInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UNavRelevantInterface::UNavRelevantInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavRelevantInterface::UNavRelevantInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

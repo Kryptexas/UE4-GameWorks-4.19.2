@@ -64,6 +64,12 @@ public:
 	/** See SlotPadding attribute */
 	void SetSlotPadding(TAttribute<FMargin> InSlotPadding);
 
+	/** See MinDesiredSlotWidth attribute */
+	void SetMinDesiredSlotWidth(TAttribute<float> InMinDesiredSlotWidth);
+
+	/** See MinDesiredSlotHeight attribute */
+	void SetMinDesiredSlotHeight(TAttribute<float> InMinDesiredSlotHeight);
+
 	/**
 	 * Dynamically add a new slot to the UI at specified Column and Row.
 	 *

@@ -108,239 +108,38 @@
 #define SSSS_FOLLOW_SURFACE 0
 #endif
 
-/**
- * This define allows to specify a different source for the SSS strength
- * (instead of using the alpha channel of the color framebuffer). This is
- * useful when the alpha channel of the mian color buffer is used for something
- * else.
- */
-#ifndef SSSS_STREGTH_SOURCE
-#define SSSS_STREGTH_SOURCE (colorM.a)
-#endif
-
-/**
- * If SSSS_N_KERNELWEIGHTCOUNT is defined at this point, a custom filter kernel must be
- * set by the runtime.
- */
-#ifdef SSSS_N_KERNELWEIGHTCOUNT
-/**
- * Filter kernel layout is as follows:
- *   - Weights in the RGB channels.
- *   - Offsets in the A channel.
- */
-float4 kernel[SSSS_N_KERNELWEIGHTCOUNT]; 
-#else
-/**
- * Here you have ready-to-use kernels for quickstarters. Three kernels are 
- * readily available, with varying quality.
- * To create new kernels take a look into SSS::calculateKernel, or simply
- * push CTRL+C in the demo to copy the customized kernel into the clipboard.
- *
- * Note: these preset kernels are not used by the demo. They are calculated on
- * the fly depending on the selected values in the interface, by directly using
- * SSS::calculateKernel.
- *
- * Quality ranges from 0 to 2, being 2 the highest quality available.
- * The quality is with respect to 1080p; for 720p Quality=0 suffices.
- */
-#define SSSS_QUALITY 2	// todo: expose
-
-#if SSSS_QUALITY == 2
-#define SSSS_N_KERNELWEIGHTCOUNT 13
-/*const static float4 kernel[] = {
-    float4(0.530605, 0.613514, 0.739601, 0),
-    float4(0.0211412, 0.0459286, 0.0378196, 0.0208333),
-    float4(0.0402784, 0.0657244, 0.04631, 0.0833333),
-    float4(0.0493588, 0.0367726, 0.0219485, 0.1875),
-    float4(0.0410172, 0.0199899, 0.0118481, 0.333333),
-    float4(0.0263642, 0.0119715, 0.00684598, 0.520833),
-    float4(0.017924, 0.00711691, 0.00347194, 0.75),
-    float4(0.0128496, 0.00356329, 0.00132016, 1.02083),
-    float4(0.0094389, 0.00139119, 0.000416598, 1.33333),
-    float4(0.00700976, 0.00049366, 0.000151938, 1.6875),
-    float4(0.00500364, 0.00020094, 5.28848e-005, 2.08333),
-    float4(0.00333804, 7.85443e-005, 1.2945e-005, 2.52083),
-    float4(0.000973794, 1.11862e-005, 9.43437e-007, 3),
-};*/
-const static float4 kernel[] = {
-	float4(0.540384, 0.622941, 0.739601, 0),
-	float4(0.0207007, 0.0448084, 0.0378196, 0.0208333),
-	float4(0.0394393, 0.0641214, 0.04631, 0.0833333),
-	float4(0.0483305, 0.0358757, 0.0219485, 0.1875),
-	float4(0.0401626, 0.0195023, 0.0118481, 0.333333),
-	float4(0.0258149, 0.0116795, 0.00684598, 0.520833),
-	float4(0.0175505, 0.00694333, 0.00347194, 0.75),
-	float4(0.0125819, 0.00347638, 0.00132016, 1.02083),
-	float4(0.00924226, 0.00135726, 0.000416598, 1.33333),
-	float4(0.00686372, 0.000481619, 0.000151938, 1.6875),
-	float4(0.0048994, 0.000196039, 5.28848e-005, 2.08333),
-	float4(0.0032685, 7.66286e-005, 1.2945e-005, 2.52083),
-	float4(0.000953506, 1.09134e-005, 9.43437e-007, 3),
-};
-#elif SSSS_QUALITY == 1
-#define SSSS_N_KERNELWEIGHTCOUNT 9
-const static float4 kernel[] = {
-    float4(0.536343, 0.624624, 0.748867, 0),
-    float4(0.0324462, 0.0656718, 0.0532821, 0.03125),
-    float4(0.0582416, 0.0659959, 0.0411329, 0.125),
-    float4(0.0571056, 0.0287432, 0.0172844, 0.28125),
-    float4(0.0347317, 0.0151085, 0.00871983, 0.5),
-    float4(0.0216301, 0.00794618, 0.00376991, 0.78125),
-    float4(0.0144609, 0.00317269, 0.00106399, 1.125),
-    float4(0.0100386, 0.000914679, 0.000275702, 1.53125),
-    float4(0.00317394, 0.000134823, 3.77269e-005, 2),
-};
-#elif SSSS_QUALITY == 0
-#define SSSS_N_KERNELWEIGHTCOUNT 6
-const static float4 kernel[] = {
-    float4(0.560479, 0.669086, 0.784728, 0),
-    float4(0.0771802, 0.113491, 0.0793803, 0.08),
-    float4(0.0821904, 0.0358608, 0.0209261, 0.32),
-    float4(0.03639, 0.0130999, 0.00643685, 0.72),
-    float4(0.0192831, 0.00282018, 0.00084214, 1.28),
-    float4(0.00471691, 0.000184771, 5.07565e-005, 2),
-};
-#else
-#error Quality must be one of {0,1,2}
-#endif
-#endif
-
-float4 Quantize8Bit(float4 In)
-{
-	return floor(In * 255.999f) / 255.0f;
-}
-
-float4 GetKernel(uint SampleIndex, uint SubsurfaceProfileInt)
-{
-	const float4 TableMax = float4(1, 1, 1, 3.0f);
-
-	// profiled on NV670 fullscreen, one pass (total: 2 pass), samples: 13+1+13, large object filling the screen
-
-	// texture lookup
-	float4 Value = SSProfilesTexture.Load(int3(SampleIndex, SubsurfaceProfileInt, 0)) * TableMax;		// 0.88ms for 8bit
-	// simulated  8 bit lookup
-//	float4 Value = Quantize8Bit(kernel[SampleIndex] / TableMax) * TableMax;			// 1.33ms same look as texture
-	// float reference
-//	float4 Value = kernel[SampleIndex];												// 0.85ms, quite a bit different in look, need to use more than 8 bit?
-
-	return Value;
-}
-
 //-----------------------------------------------------------------------------
 // Porting Functions
-
-#if SSSS_HLSL_3 == 1
-#define SSSSTexture2D sampler2D
-#define SSSSSampleLevelZero(tex, coord) tex2Dlod(tex, float4(coord, 0.0, 0.0))
-#define SSSSSampleLevelZeroPoint(tex, coord) tex2Dlod(tex, float4(coord, 0.0, 0.0))
-#define SSSSSample(tex, coord) tex2D(tex, coord)
-#define SSSSSamplePoint(tex, coord) tex2D(tex, coord)
-#define SSSSSampleLevelZeroOffset(tex, coord, offset) tex2Dlod(tex, float4(coord + offset * SSSS_PIXEL_SIZE, 0.0, 0.0))
-#define SSSSSampleOffset(tex, coord, offset) tex2D(tex, coord + offset * SSSS_PIXEL_SIZE)
-#define SSSSLerp(a, b, t) lerp(a, b, t)
-#define SSSSSaturate(a) saturate(a)
-#define SSSSMad(a, b, c) mad(a, b, c)
-#define SSSSMul(v, m) mul(v, m)
-#define SSSS_FLATTEN [flatten]
-#define SSSS_BRANCH [branch]
-#define SSSS_UNROLL [unroll]
-#endif
-#if SSSS_HLSL_4 == 1
 #define SSSSTexture2D Texture2D
 #define SSSSSampleLevelZero(tex, coord) tex.SampleLevel(LinearSampler, coord, 0)
 #define SSSSSampleLevelZeroPoint(tex, coord) tex.SampleLevel(PointSampler, coord, 0)
-
-// EPIC changed start
 #define SSSSSampleShadowmap(coord)	float4(0,0,0,0)	// todo: not used yet
 #define SSSSSampleMasking(texcoord)	(GetScreenSpaceData(texcoord).GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)	// todo: masking doesn't work with filtering ideally put in alpha to get it filtered
-#define SSSSSampleSceneColor(coord) (SSSSSampleMasking(coord) * Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, coord))
-#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, coord))		// todo: could be made point
-#define SSSSSampleSceneDepth(coord) CalcSceneDepth(coord)		// todo: could be made linear
-#define SSSSSampleSceneDepthPoint(coord) CalcSceneDepth(coord)
-// EPIC changed end
-
+#define SSSSSampleSceneColor(coord) Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, coord, 0)
+#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, coord))		// todo: could be made point
 #define SSSSSampleLevelZeroOffset(tex, coord, offset) tex.SampleLevel(LinearSampler, coord, 0, offset)
 #define SSSSSampleOffset(tex, coord, offset) SSSSSampleLevelZeroOffset(tex, coord, offset)
 #define SSSSLerp(a, b, t) lerp(a, b, t)
-#define SSSSSaturate(a) saturate(a)
 #define SSSSMad(a, b, c) mad(a, b, c)
 #define SSSSMul(v, m) mul(v, m)
-#define SSSS_FLATTEN [flatten]
-#define SSSS_BRANCH [branch]
-#define SSSS_UNROLL [unroll]
-#endif
-#if SSSS_GLSL_3 == 1
-#define SSSSTexture2D sampler2D
-#define SSSSSampleLevelZero(tex, coord) textureLod(tex, coord, 0.0)
-#define SSSSSampleLevelZeroPoint(tex, coord) textureLod(tex, coord, 0.0)
-#define SSSSSample(tex, coord) texture(tex, coord)
-#define SSSSSamplePoint(tex, coord) texture(tex, coord)
-#define SSSSSampleLevelZeroOffset(tex, coord, offset) textureLodOffset(tex, coord, 0.0, offset)
-#define SSSSSampleOffset(tex, coord, offset) texture(tex, coord, offset)
-#define SSSSLerp(a, b, t) mix(a, b, t)
-#define SSSSSaturate(a) clamp(a, 0.0, 1.0)
-#define SSSSMad(a, b, c) (a * b + c)
-#define SSSSMul(v, m) (m * v)
-#define SSSS_FLATTEN
-#define SSSS_BRANCH
-#define SSSS_UNROLL
-#define float2 vec2
-#define float3 vec3
-#define float4 vec4
-#define int2 ivec2
-#define int3 ivec3
-#define int4 ivec4
-#define float4x4 mat4x4
-#endif
+#define SSSS_FLATTEN FLATTEN
+#define SSSS_BRANCH BRANCH
+#define SSSS_UNROLL UNROLL
 
 
 //-----------------------------------------------------------------------------
 // Separable SSS Transmittance Function
 
-float3 SSSSTransmittance(
-        /**
-         * This parameter allows to control the transmittance effect. Its range
-         * should be 0..1. Higher values translate to a stronger effect.
-         */
-        float translucency,
+// @param translucency This parameter allows to control the transmittance effect. Its range should be 0..1. Higher values translate to a stronger effect.
+// @param sssWidth this parameter should be the same as the 'SSSSBlurPS' one. See below for more details.
+// @param worldPosition Position in world space.
+// @param worldNormal Normal in world space.
+// @param light Light vector: lightWorldPosition - worldPosition.
+// @param lightViewProjection Regular world to light space matrix.
+// @param lightFarPlane Far plane distance used in the light projection matrix.
 
-        /**
-         * This parameter should be the same as the 'SSSSBlurPS' one. See below
-         * for more details.
-         */
-        float sssWidth,
-
-        /**
-         * Position in world space.
-         */
-        float3 worldPosition,
-
-        /**
-         * Normal in world space.
-         */
-        float3 worldNormal,
-
-        /**
-         * Light vector: lightWorldPosition - worldPosition.
-         */
-        float3 light,
-		
-// EPIC changed start
-        /**
-         * Linear 0..1 shadow map.
-         */
-//        SSSSTexture2D shadowMap,
-// EPIC changed end
-
-        /**
-         * Regular world to light space matrix.
-         */
-        float4x4 lightViewProjection,
-
-        /**
-         * Far plane distance used in the light projection matrix.
-         */
-        float lightFarPlane) {
+float3 SSSSTransmittance(float translucency, float sssWidth, float3 worldPosition, float3 worldNormal, float3 light, float4x4 lightViewProjection, float lightFarPlane)
+ {
     /**
      * Calculate the scale of the effect.
      */
@@ -378,104 +177,64 @@ float3 SSSSTransmittance(
      * Using the profile, we finally approximate the transmitted lighting from
      * the back of the object:
      */
-    return profile * SSSSSaturate(0.3 + dot(light, -worldNormal));
-}
-
-//-----------------------------------------------------------------------------
-// Separable SSS Reflectance Vertex Shader
-
-void SSSSBlurVS(float4 position,
-                out float4 svPosition,
-                inout float2 texcoord) {
-    svPosition = position;
+    return profile * saturate(0.3 + dot(light, -worldNormal));
 }
 
 //-----------------------------------------------------------------------------
 // Separable SSS Reflectance Pixel Shader
 
-float4 SSSSBlurPS(
-        /**
-         * The usual quad texture coordinates.
-         */
-        float2 texcoord,
-
-// EPIC changed start
-        /**
-         * This is a SRGB or HDR color input buffer, which should be the final
-         * color frame, resolved in case of using multisampling. The desired
-         * SSS strength should be stored in the alpha channel (1 for full
-         * strength, 0 for disabling SSS). If this is not possible, you an
-         * customize the source of this value using SSSS_STREGTH_SOURCE.
-         *
-         * When using non-SRGB buffers, you
-         * should convert to linear before processing, and back again to gamma
-         * space before storing the pixels (see Chapter 24 of GPU Gems 3 for
-         * more info)
-         *
-         * IMPORTANT: WORKING IN A NON-LINEAR SPACE WILL TOTALLY RUIN SSS!
-         */
-//        SSSSTexture2D colorTex,
-		/**
-         * The linear depth buffer of the scene, resolved in case of using
-         * multisampling. The resolve should be a simple average to avoid
-         * artifacts in the silhouette of objects.
-         */
-//        SSSSTexture2D depthTex,
-// EPIC changed end
-
-        /**
-         * This parameter specifies the global level of subsurface scattering
-         * or, in other words, the width of the filter. It's specified in
-         * world space units.
-         */
-        float sssWidth,
-
-        /**
-         * Direction of the blur:
-         *   - First pass:   float2(1.0, 0.0)
-         *   - Second pass:  float2(0.0, 1.0)
-         */
-        float2 dir,
-
-        /**
-         * This parameter indicates whether the stencil buffer should be
-         * initialized. Should be set to 'true' for the first pass if not
-         * previously initialized, to enable optimization of the second
-         * pass.
-         */
-        bool initStencil) {
-
+// @param texcoord The usual quad texture coordinates.
+// @param dir Direction of the blur: First pass:   float2(1.0, 0.0), Second pass:  float2(0.0, 1.0)
+// @param initStencil indicates whether the stencil buffer should be initialized. Should be set to 'true' for the first pass if not previously initialized, to enable optimization of the second pass.
+float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initStencil)
+{
     // Fetch color of current pixel:
-    float4 colorM = SSSSSampleSceneColorPoint(texcoord);
+    float4 colorM = SSSSSampleSceneColorPoint(ViewportUV);
 
-    // Initialize the stencil buffer in case it was not already available:
+	// we store the depth in alpha
+	float depthM = colorM.a;
+
+	colorM.a = ComputeMaskFromDepthInAlpha(colorM.a);
+
+	// we don't need to process pixels that are not part of the subsurafce scattering (optimization, also prevents divide by later on)
+	BRANCH if(!colorM.a)
+	{
+		// todo: need to check for proper clear
+//		discard;
+		return 0.0f;
+	}
+
+	float SSSStrength = GetSubsurfaceStrength(GBufferUV);
+
+	// Initialize the stencil buffer in case it was not already available:
     if (initStencil) // (Checked in compile time, it's optimized away)
-        if (SSSS_STREGTH_SOURCE == 0.0) discard;
+        if (SSSStrength == 0.0) discard;
 
-    // Fetch linear depth of current pixel:
-    float depthM = SSSSSampleSceneDepthPoint(texcoord).r;
+	float SSSScaleX = SSSParams.x;
 
-    // Calculate the sssWidth scale (1.0 for a unit plane sitting on the
-    // projection window):
-//    float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(SSSS_FOVY));
-	float distanceToProjectionWindow = SSSParams.y;
-//	float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(90.0f));
-
-	float scale = distanceToProjectionWindow / depthM;
+	float scale = SSSScaleX / depthM;
 
     // Calculate the final step to fetch the surrounding pixels:
-    float2 finalStep = sssWidth * scale * dir * 0.5f;										// hacked in 0.5 - -1..1 to 0..1 but why this isn't in demo code?
-	finalStep *= SSSS_STREGTH_SOURCE; // Modulate it using the alpha channel.
-    finalStep *= 1.0 / 3.0; // Divide by 3 as the kernels range from -3 to 3.
+    float2 finalStep = scale * dir;
 
-	FGBufferData GBufferData = GetGBufferData(texcoord);
+	// ideally this comes from a half res buffer as well - there are some minor artifacts
+	finalStep *= SSSStrength; // Modulate it using the opacity (0..1 range)
+    
+	FGBufferData GBufferData = GetGBufferData(GBufferUV);
 
 	// 0..255, which SubSurface profile to pick
+	// ideally this comes from a half res buffer as well - there are some minor artifacts
 	uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(GBufferData);
 
     // Accumulate the center sample:
-    float4 colorBlurred = colorM;
-	colorBlurred.rgb *= GetKernel(0, SubsurfaceProfileInt).rgb;
+    float4 colorBlurred = 0;
+
+	// center sample is added in Recombine pass
+	colorBlurred.a = colorM.a;
+
+//#if SSS_DIRECTION == 0
+	colorBlurred.rgb = colorM.rgb * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
+//#endif
 
 	// Accumulate the other samples:
     SSSS_UNROLL
@@ -484,37 +243,49 @@ float4 SSSSBlurPS(
 		// Kernel.a = 0..3
 		half4 Kernel = GetKernel(SSSS_N_KERNELWEIGHTOFFSET + i, SubsurfaceProfileInt);
 
-		float3 LocalAccum = 0;
+		float4 LocalAccum = 0;
 
+		float2 UVOffset = Kernel.a * finalStep;
 		// The kernel is symtrical, we want to use that property.
 		// Half the GetKernel() calls (more expensive if done by texture)
 		// Half the weighting computations (saves 3mul per lookup sample)
-		// We don't sum up with (x+=y;x+=z;) but with (x+=(y+z);), order allows for better texture lookup grouping
 		SSSS_UNROLL
 		for (int Side = -1; Side <= 1; Side += 2)
 		{
 			// Fetch color and depth for current sample:
-			float2 offset = texcoord + Kernel.a * finalStep * Side;
-			float4 color = SSSSSampleSceneColor(offset);
+			float4 color = SSSSSampleSceneColor(ViewportUV + UVOffset * Side);
+
+			float LocalDepth = color.a;
+			
+			color.a = ComputeMaskFromDepthInAlpha(color.a);
+
+			// approximation, ideally we would reconstruct the mask with ComputeMaskFromDepthInAlpha() and do manual bilinear filter
+			// needed?
+//			color.rgb *= color.a;
+
 
 #if SSSS_FOLLOW_SURFACE == 1
-			// If the difference in depth is huge, we lerp color back to "colorM":
-			float depth = SSSSSampleSceneDepth(offset).r;
-			float s = SSSSSaturate(6000.0f / 400000 * distanceToProjectionWindow *
-				//        float s = SSSSSaturate(300.0f/400000 * distanceToProjectionWindow *
-				sssWidth * abs(depthM - depth));
-			color.rgb = SSSSLerp(color.rgb, colorM.rgb, s);
+			// If the difference in depth is huge, we weight the sample less or not at all
+			float s = saturate(12000.0f / 400000 * SSSParams.y *
+	//        float s = saturate(300.0f/400000 * SSSParams.y *
+				abs(depthM - LocalDepth));
+
+			color *= 1 - s;
 #endif
+
 			// Accumulate left and right 
-			LocalAccum += color.rgb;
+			LocalAccum += color;
 		}
 
-		// Accumulate to final value
-		colorBlurred.rgb += Kernel.rgb * LocalAccum;
+		// Accumulate to final value (left and right sample with the same weight)
+		colorBlurred += Kernel * LocalAccum;
 	}
 
-	// hack - normalize
-//	colorBlurred.rgb /= 1.0f - kernel[0].rgb;
+	// normalize (some samples are rejected because of depth or the other material is no SSS, compensate for that)
+	colorBlurred.rgb *= 1.0f / max(colorBlurred.a, 0.00001f);
+
+	// alpha stored the SceneDepth (0 if there is no subsurface scattering)
+	colorBlurred.a = depthM;
 
     return colorBlurred;
 }

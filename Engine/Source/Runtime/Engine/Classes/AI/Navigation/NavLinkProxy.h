@@ -23,21 +23,28 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 	UPROPERTY()
 	TArray<FNavigationSegmentLink> SegmentLinks;
 
+private_subobject:
 	/** Smart link: can affect path following */
+	DEPRECATED_FORGAME(4.6, "SmartLinkComp should not be accessed directly, please use GetSmartLinkComp() function instead. SmartLinkComp will soon be private and your code will not compile.")
 	UPROPERTY(VisibleAnywhere, Category=SmartLink)
-	TSubobjectPtr<class UNavLinkCustomComponent> SmartLinkComp;
+	class UNavLinkCustomComponent* SmartLinkComp;
+public:
 
 	/** Smart link: toggle relevancy */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
 	bool bSmartLinkIsRelevant;
 
 #if WITH_EDITORONLY_DATA
+private_subobject:
 	/** Editor Preview */
+	DEPRECATED_FORGAME(4.6, "EdRenderComp should not be accessed directly, please use GetEdRenderComp() function instead. EdRenderComp will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UNavLinkRenderingComponent> EdRenderComp;
+	class UNavLinkRenderingComponent* EdRenderComp;
 
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
+public:
 #endif // WITH_EDITORONLY_DATA
 
 	// BEGIN INavRelevantInterface
@@ -86,4 +93,14 @@ protected:
 	FSmartLinkReachedSignature OnSmartLinkReached;
 
 	void NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint);
+
+public:
+	/** Returns SmartLinkComp subobject **/
+	class UNavLinkCustomComponent* GetSmartLinkComp() const;
+#if WITH_EDITORONLY_DATA
+	/** Returns EdRenderComp subobject **/
+	class UNavLinkRenderingComponent* GetEdRenderComp() const;
+	/** Returns SpriteComponent subobject **/
+	class UBillboardComponent* GetSpriteComponent() const;
+#endif
 };

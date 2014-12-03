@@ -6,8 +6,8 @@
 
 #include "Abilities/GameplayAbility.h"
 
-UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RegisteredCallbacks = false;
 

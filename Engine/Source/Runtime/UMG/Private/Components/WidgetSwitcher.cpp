@@ -1,14 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
+#include "SWidgetSwitcher.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
 // UWidgetSwitcher
 
-UWidgetSwitcher::UWidgetSwitcher(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetSwitcher::UWidgetSwitcher(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
 

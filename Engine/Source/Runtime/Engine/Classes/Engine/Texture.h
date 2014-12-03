@@ -19,7 +19,7 @@ enum TextureCompressionSettings
 	TC_Displacementmap,
 	TC_VectorDisplacementmap,
 	TC_HDR,
-	TC_EditorIcon,
+	TC_EditorIcon UMETA(DisplayName="TC_UserInterface2D"),
 	TC_Alpha,
 	TC_DistanceFieldFont,
 	TC_MAX,
@@ -31,8 +31,8 @@ enum TextureFilter
 	TF_Nearest UMETA(DisplayName="Nearest"),
 	TF_Bilinear UMETA(DisplayName="Bi-linear"),
 	TF_Trilinear UMETA(DisplayName="Tri-linear"),
-	/** use setting from the LOD TextureGroup */
-	TF_Default UMETA(DisplayName="Default (from TextureGroup)"),
+	/** use setting from the Texture Group */
+	TF_Default UMETA(DisplayName="Default (from Texture Group)"),
 	TF_MAX,
 };
 
@@ -504,8 +504,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AssetRegistrySearchable, AdvancedDisplay)
 	TEnumAsByte<enum TextureFilter> Filter;
 
-	/** Texture group this texture belongs to for LOD bias */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, meta=(DisplayName="LOD Group"), AssetRegistrySearchable)
+	/** Texture group this texture belongs to */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, meta=(DisplayName="Texture Group"), AssetRegistrySearchable)
 	TEnumAsByte<enum TextureGroup> LODGroup;
 
 public:
@@ -593,8 +593,14 @@ public:
 	/**
 	 * Begins caching platform data in the background for the platform requested
 	 */
-	ENGINE_API virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
+	ENGINE_API virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform* TargetPlatform ) override;
 
+	/**
+	 * Have we finished loading all the cooked platform data for the target platforms requested in BeginCacheForCookedPlatformData
+	 * 
+	 * @param	TargetPlatform target platform to check for cooked platform data
+	 */
+	ENGINE_API virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) override;
 
 	/**
 	 * Begins caching platform data in the background.

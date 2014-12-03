@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "AssetRegistryModule.h"
 
 class SFbxOptionWindow : public SCompoundWidget
@@ -54,9 +54,9 @@ public:
 		return FReply::Handled();
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		if( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return OnCancel();
 		}

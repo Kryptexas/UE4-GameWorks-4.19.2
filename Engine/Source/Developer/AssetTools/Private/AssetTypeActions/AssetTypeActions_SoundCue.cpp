@@ -16,17 +16,6 @@ UClass* FAssetTypeActions_SoundCue::GetSupportedClass() const
 void FAssetTypeActions_SoundCue::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
 	auto SoundCues = GetTypedWeakObjectPtrs<USoundCue>(InObjects);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SoundCue_Edit", "Edit"),
-		LOCTEXT("SoundCue_EditTooltip", "Opens the selected sound cues in the sound cue editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SoundCue::ExecuteEdit, SoundCues ),
-			FCanExecuteAction()
-			)
-		);
-
 	FAssetTypeActions_SoundBase::GetActions(InObjects, MenuBuilder);
 
 	MenuBuilder.AddMenuEntry(
@@ -51,18 +40,6 @@ void FAssetTypeActions_SoundCue::OpenAssetEditor( const TArray<UObject*>& InObje
 		{
 			ISoundCueEditorModule* SoundCueEditorModule = &FModuleManager::LoadModuleChecked<ISoundCueEditorModule>( "SoundCueEditor" );
 			SoundCueEditorModule->CreateSoundCueEditor(Mode, EditWithinLevelEditor, SoundCue);
-		}
-	}
-}
-
-void FAssetTypeActions_SoundCue::ExecuteEdit(TArray<TWeakObjectPtr<USoundCue>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }

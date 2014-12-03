@@ -47,7 +47,7 @@ FActiveSound::FActiveSound()
 	, OcclusionCheckInterval(0.f)
 	, LastOcclusionCheckTime(0.f)
 	, LastLocation(FVector::ZeroVector)
-	, LastReverbVolume(NULL)
+	, LastAudioVolume(NULL)
 	, LastUpdateTime(0.f)
 	, SourceInteriorVolume(1.f)
 	, SourceInteriorLPF(1.f)
@@ -66,7 +66,7 @@ FArchive& operator<<( FArchive& Ar, FActiveSound* ActiveSound )
 	if( !Ar.IsLoading() && !Ar.IsSaving() )
 	{
 		Ar << ActiveSound->Sound;
-		Ar << ActiveSound->LastReverbVolume;
+		Ar << ActiveSound->LastAudioVolume;
 		Ar << ActiveSound->WaveInstances;
 		Ar << ActiveSound->SoundNodeOffsetMap;
 	}
@@ -86,7 +86,7 @@ void FActiveSound::AddReferencedObjects( FReferenceCollector& Collector)
 	}
 
 	Collector.AddReferencedObject(Sound);
-	Collector.AddReferencedObject(LastReverbVolume);
+	Collector.AddReferencedObject(LastAudioVolume);
 	Collector.AddReferencedObject(SoundClassOverride);
 }
 
@@ -304,22 +304,22 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 {
 	// Get the settings of the ambient sound
 	FInteriorSettings Ambient;
-	class AReverbVolume* ReverbVolume;
+	class AAudioVolume* AudioVolume;
 	if (!bGotInteriorSettings || (GIsEditor && !World->IsGameWorld()) || (ParseParams.Transform.GetTranslation() - LastLocation).SizeSquared() > KINDA_SMALL_NUMBER)
 	{
-		ReverbVolume = World->GetAudioSettings(ParseParams.Transform.GetTranslation(), NULL, &Ambient);
+		AudioVolume = World->GetAudioSettings(ParseParams.Transform.GetTranslation(), NULL, &Ambient);
 		LastInteriorSettings = Ambient;
-		LastReverbVolume = ReverbVolume;
+		LastAudioVolume = AudioVolume;
 		bGotInteriorSettings = true;
 	}
 	else
 	{
 		// use previous settings as we haven't moved
 		Ambient = LastInteriorSettings;
-		ReverbVolume = LastReverbVolume;
+		AudioVolume = LastAudioVolume;
 	}
 
-	// Check to see if we've moved to a new reverb volume
+	// Check to see if we've moved to a new audio volume
 	if( LastUpdateTime < Listener.InteriorStartTime )
 	{
 		SourceInteriorVolume = CurrentInteriorVolume;
@@ -327,7 +327,7 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 		LastUpdateTime = FApp::GetCurrentTime();
 	}
 
-	if( Listener.Volume == ReverbVolume || !bAllowSpatialization )
+	if( Listener.Volume == AudioVolume || !bAllowSpatialization )
 	{
 		// Ambient and listener in same ambient zone
 		CurrentInteriorVolume = ( SourceInteriorVolume * ( 1.0f - Listener.InteriorVolumeInterp ) ) + Listener.InteriorVolumeInterp;
@@ -357,16 +357,16 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 		else
 		{
 			// The ambient sound is 'inside' - use the ambient sound's interior volume multiplied with the listeners exterior volume
-			CurrentInteriorVolume = ( SourceInteriorVolume * ( 1.0f - Listener.InteriorVolumeInterp ) ) + ( Ambient.InteriorVolume * Listener.InteriorVolumeInterp );
-			float CurrentExteriorVolume = ( SourceInteriorVolume * ( 1.0f - Listener.ExteriorVolumeInterp ) ) + ( Listener.InteriorSettings.ExteriorVolume * Listener.ExteriorVolumeInterp );
-			ParseParams.VolumeMultiplier *= CurrentInteriorVolume*CurrentExteriorVolume;
+			CurrentInteriorVolume = (( SourceInteriorVolume * ( 1.0f - Listener.InteriorVolumeInterp ) ) + ( Ambient.InteriorVolume * Listener.InteriorVolumeInterp ))
+										* (( SourceInteriorVolume * ( 1.0f - Listener.ExteriorVolumeInterp ) ) + ( Listener.InteriorSettings.ExteriorVolume * Listener.ExteriorVolumeInterp ));
+			ParseParams.VolumeMultiplier *= CurrentInteriorVolume;
 
-			CurrentInteriorLPF = ( SourceInteriorLPF * ( 1.0f - Listener.InteriorLPFInterp ) ) + ( Ambient.InteriorLPF * Listener.InteriorLPFInterp );
-			float CurrentExteriorLPF = ( SourceInteriorLPF * ( 1.0f - Listener.ExteriorLPFInterp ) ) + ( Listener.InteriorSettings.ExteriorLPF * Listener.ExteriorLPFInterp );
-			ParseParams.HighFrequencyGain *= CurrentInteriorLPF*CurrentExteriorLPF;
+			CurrentInteriorLPF = (( SourceInteriorLPF * ( 1.0f - Listener.InteriorLPFInterp ) ) + ( Ambient.InteriorLPF * Listener.InteriorLPFInterp ))
+										* (( SourceInteriorLPF * ( 1.0f - Listener.ExteriorLPFInterp ) ) + ( Listener.InteriorSettings.ExteriorLPF * Listener.ExteriorLPFInterp ));
+			ParseParams.HighFrequencyGain *= CurrentInteriorLPF;
 
 			UE_LOG(LogAudio, Verbose, TEXT( "Ambient in diff volume, ambient inside. Volume *= %g LPF *= %g (%s)" ),
-				CurrentInteriorVolume*CurrentExteriorVolume, CurrentInteriorLPF*CurrentExteriorLPF, ( WaveInstances.Num() > 0 ) ? GetAWaveName(WaveInstances) : TEXT( "NULL" ) );
+				CurrentInteriorVolume, CurrentInteriorLPF, ( WaveInstances.Num() > 0 ) ? GetAWaveName(WaveInstances) : TEXT( "NULL" ) );
 		}
 	}
 }

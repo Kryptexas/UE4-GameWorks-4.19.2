@@ -101,16 +101,6 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	}
 }
 
-/** 
-* Clears a view. 
-*/
-void FDeferredShadingSceneRenderer::ClearView(FRHICommandListImmediate& RHICmdList)
-{
-	// Clear the G Buffer render targets
-	const bool bClearBlack = Views[0].Family->EngineShowFlags.ShaderComplexity || Views[0].Family->EngineShowFlags.StationaryLightOverlap;
-	GSceneRenderTargets.ClearGBufferTargets(RHICmdList, bClearBlack ? FLinearColor(0, 0, 0, 0) : Views[0].BackgroundColor);
-}
-
 namespace
 {
 	FVector4 ClearQuadVertices[4] = 
@@ -130,7 +120,7 @@ extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
 void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdList)
 {
 	// Assumes BeginRenderingSceneColor() has been called before this function
-	SCOPED_DRAW_EVENT(RHICmdList, ClearGBufferAtMaxZ, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, ClearGBufferAtMaxZ);
 
 	// Clear the G Buffer render targets
 	const bool bClearBlack = Views[0].Family->EngineShowFlags.ShaderComplexity || Views[0].Family->EngineShowFlags.StationaryLightOverlap;
@@ -180,7 +170,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 	// Clear each viewport by drawing background color at MaxZ depth
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
-		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("ClearView%d"), ViewIndex);
+		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("ClearView%d"), ViewIndex);
 
 		FViewInfo& View = Views[ViewIndex];
 
@@ -202,14 +192,14 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandLi
 		// Draw the scene's base pass draw lists.
 		FScene::EBasePassDrawListType MaskedDrawType = FScene::EBasePass_Masked;
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticMaskedNoLightmap, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, StaticMaskedNoLightmap);
 			bDirty |= Scene->BasePassNoLightMapDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassSimpleDynamicLightingDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassCachedVolumeIndirectLightingDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassCachedPointIndirectLightingDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 		}
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticMaskedLightmapped, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, StaticMaskedLightmapped);
 			bDirty |= Scene->BasePassHighQualityLightMapDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassDistanceFieldShadowMapLightMapDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassLowQualityLightMapDrawList[MaskedDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
@@ -218,23 +208,25 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandLi
 	return bDirty;
 }
 
-void FDeferredShadingSceneRenderer::RenderBasePassStaticDataMaskedParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+void FDeferredShadingSceneRenderer::RenderBasePassStaticDataMaskedParallel(FParallelCommandListSet& ParallelCommandListSet)
 {
 	// Draw the scene's base pass draw lists.
 	FScene::EBasePassDrawListType MaskedDrawType = FScene::EBasePass_Masked;
 	{
-		SCOPED_DRAW_EVENT(ParentCmdList, StaticMaskedNoLightmap, DEC_SCENE_ITEMS);
-		Scene->BasePassNoLightMapDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassSimpleDynamicLightingDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassCachedVolumeIndirectLightingDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassCachedPointIndirectLightingDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, StaticMaskedNoLightmap);
+		Scene->BasePassNoLightMapDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassSimpleDynamicLightingDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassCachedVolumeIndirectLightingDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassCachedPointIndirectLightingDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 
 	{
-		SCOPED_DRAW_EVENT(ParentCmdList, StaticMaskedLightmapped, DEC_SCENE_ITEMS);
-		Scene->BasePassHighQualityLightMapDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassDistanceFieldShadowMapLightMapDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassLowQualityLightMapDrawList[MaskedDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, StaticMaskedLightmapped);
+		Scene->BasePassHighQualityLightMapDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassDistanceFieldShadowMapLightMapDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassLowQualityLightMapDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 }
 
@@ -244,14 +236,14 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandL
 	{
 		FScene::EBasePassDrawListType OpaqueDrawType = FScene::EBasePass_Default;
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticOpaqueNoLightmap, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, StaticOpaqueNoLightmap);
 			bDirty |= Scene->BasePassNoLightMapDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassSimpleDynamicLightingDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassCachedVolumeIndirectLightingDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassCachedPointIndirectLightingDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 		}
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticOpaqueLightmapped, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, StaticOpaqueLightmapped);
 			bDirty |= Scene->BasePassHighQualityLightMapDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassDistanceFieldShadowMapLightMapDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 			bDirty |= Scene->BasePassLowQualityLightMapDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
@@ -261,22 +253,24 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandL
 	return bDirty;
 }
 
-void FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefaultParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+void FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefaultParallel(FParallelCommandListSet& ParallelCommandListSet)
 {
 	FScene::EBasePassDrawListType OpaqueDrawType = FScene::EBasePass_Default;
 	{
-		SCOPED_DRAW_EVENT(ParentCmdList, StaticOpaqueNoLightmap, DEC_SCENE_ITEMS);
-		Scene->BasePassNoLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassSimpleDynamicLightingDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassCachedVolumeIndirectLightingDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassCachedPointIndirectLightingDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, StaticOpaqueNoLightmap);
+		Scene->BasePassNoLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassSimpleDynamicLightingDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassCachedVolumeIndirectLightingDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassCachedPointIndirectLightingDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 
 	{
-		SCOPED_DRAW_EVENT(ParentCmdList, StaticOpaqueLightmapped, DEC_SCENE_ITEMS);
-		Scene->BasePassHighQualityLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassDistanceFieldShadowMapLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
-		Scene->BasePassLowQualityLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, StaticOpaqueLightmapped);
+		Scene->BasePassHighQualityLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassDistanceFieldShadowMapLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassLowQualityLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 }
 
@@ -332,7 +326,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticData(FRHICommandList& RH
 	return bDirty;
 }
 
-void FDeferredShadingSceneRenderer::RenderBasePassStaticDataParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+void FDeferredShadingSceneRenderer::RenderBasePassStaticDataParallel(FParallelCommandListSet& ParallelCommandListSet)
 {
 	SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
 
@@ -342,16 +336,16 @@ void FDeferredShadingSceneRenderer::RenderBasePassStaticDataParallel(FViewInfo& 
 	// rendering the default opaque geometry afterward.
 	if (EarlyZPassMode != DDM_None)
 	{
-		RenderBasePassStaticDataMaskedParallel(View, Width, ParentCmdList, OutDirty);
-		RenderBasePassStaticDataDefaultParallel(View, Width, ParentCmdList, OutDirty);
+		RenderBasePassStaticDataMaskedParallel(ParallelCommandListSet);
+		RenderBasePassStaticDataDefaultParallel(ParallelCommandListSet);
 	}
 	else
 	{
 		// Otherwise, in the case where we're not using a depth-only pre-pass, there
 		// is an advantage to rendering default opaque first to help cull the more
 		// expensive masked geometry.
-		RenderBasePassStaticDataDefaultParallel(View, Width, ParentCmdList, OutDirty);
-		RenderBasePassStaticDataMaskedParallel(View, Width, ParentCmdList, OutDirty);
+		RenderBasePassStaticDataDefaultParallel(ParallelCommandListSet);
+		RenderBasePassStaticDataMaskedParallel(ParallelCommandListSet);
 	}
 }
 
@@ -366,7 +360,7 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& R
 	bool bDirty = false;
 
 	SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
-	SCOPED_DRAW_EVENT(RHICmdList, Dynamic, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
 	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
@@ -456,15 +450,15 @@ class FRenderBasePassDynamicDataThreadTask
 public:
 
 	FRenderBasePassDynamicDataThreadTask(
-		FDeferredShadingSceneRenderer* InThisRenderer,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
-		bool* InOutDirty
+		FDeferredShadingSceneRenderer& InThisRenderer,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
+		bool& InOutDirty
 		)
-		: ThisRenderer(*InThisRenderer)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
-		, OutDirty(*InOutDirty)
+		: ThisRenderer(InThisRenderer)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
+		, OutDirty(InOutDirty)
 	{
 	}
 
@@ -487,14 +481,13 @@ public:
 	}
 };
 
-void FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(FViewInfo& View, FRHICommandList& ParentCmdList, bool& bOutDirty)
+void FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet)
 {
-	FRHICommandList* CmdList = new FRHICommandList;
-
+	FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 	FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderBasePassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-		.ConstructAndDispatchWhenReady(this, CmdList, &View, &bOutDirty);
+		.ConstructAndDispatchWhenReady(*this, *CmdList, ParallelCommandListSet.View, ParallelCommandListSet.OutDirty);
 
-	ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+	ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 }
 
 static void SetupBasePassView(FRHICommandList& RHICmdList, const FIntRect& ViewRect, bool bShaderComplexity)
@@ -514,15 +507,39 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FIntRect& ViewR
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
 	}
 	RHICmdList.SetViewport(ViewRect.Min.X, ViewRect.Min.Y, 0, ViewRect.Max.X, ViewRect.Max.Y, 1);
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 }
 
-void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+class FBasePassParallelCommandListSet : public FParallelCommandListSet
 {
-	// this is probably only needed on the first view
-	SetupBasePassView(ParentCmdList, View.ViewRect, !!ViewFamily.EngineShowFlags.ShaderComplexity);
+public:
+	const FSceneViewFamily& ViewFamily;
 
-	RenderBasePassStaticDataParallel(View, Width, ParentCmdList, OutDirty);
-	RenderBasePassDynamicDataParallel(View, ParentCmdList, OutDirty);
+	FBasePassParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, const FSceneViewFamily& InViewFamily)
+		: FParallelCommandListSet(InView, InParentCmdList, InOutDirty, bInParallelExecute)
+		, ViewFamily(InViewFamily)
+	{
+		SetStateOnCommandList(ParentCmdList);
+	}
+	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
+	{
+		GSceneRenderTargets.BeginRenderingGBuffer(CmdList, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad);
+		SetupBasePassView(CmdList, View.ViewRect, !!ViewFamily.EngineShowFlags.ShaderComplexity);
+	}
+};
+
+static TAutoConsoleVariable<int32> CVarRHICmdBasePassDeferredContexts(
+	TEXT("r.RHICmdBasePassDeferredContexts"),
+	1,
+	TEXT("True to use deferred contexts to parallelize base pass command list execution.\n"));
+
+void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty)
+{
+	FBasePassParallelCommandListSet ParallelSet(View, ParentCmdList, &OutDirty, CVarRHICmdBasePassDeferredContexts.GetValueOnRenderThread() > 0, ViewFamily);
+
+	RenderBasePassStaticDataParallel(ParallelSet);
+	RenderBasePassDynamicDataParallel(ParallelSet);
 }
 
 bool FDeferredShadingSceneRenderer::RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
@@ -605,6 +622,41 @@ void FDeferredShadingSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICm
 * Renders the view family. 
 */
 
+DECLARE_STATS_GROUP(TEXT("Command List Markers"), STATGROUP_CommandListMarkers, STATCAT_Advanced);
+
+DECLARE_CYCLE_STAT(TEXT("PrePass"), STAT_CLM_PrePass, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("AfterPrePass"), STAT_CLM_AfterPrePass, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("BasePass"), STAT_CLM_BasePass, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("AfterBasePass"), STAT_CLM_AfterBasePass, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("Lighting"), STAT_CLM_Lighting, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("AfterLighting"), STAT_CLM_AfterLighting, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("Translucency"), STAT_CLM_Translucency, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("AfterTranslucency"), STAT_CLM_AfterTranslucency, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLM_Velocity, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("AfterVelocity"), STAT_CLM_AfterVelocity, STATGROUP_CommandListMarkers);
+DECLARE_CYCLE_STAT(TEXT("AfterFrame"), STAT_CLM_AfterFrame, STATGROUP_CommandListMarkers);
+
+/**
+ * Returns true if the depth Prepass needs to run
+ */
+static FORCEINLINE bool NeedsPrePass(const FDeferredShadingSceneRenderer* Renderer)
+{
+	return (RHIHasTiledGPU(Renderer->ViewFamily.GetShaderPlatform()) == false) && 
+		(Renderer->EarlyZPassMode != DDM_None || GEarlyZPassMovable != 0);
+}
+
+static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bClearDepth)
+{
+	// if we didn't to the prepass above, then we will need to clear now, otherwise, it's already been cleared and rendered to
+	ERenderTargetLoadAction DepthLoadAction = bClearDepth ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad;
+
+	const bool bClearBlack = View.Family->EngineShowFlags.ShaderComplexity || View.Family->EngineShowFlags.StationaryLightOverlap;
+	const FLinearColor ClearColor = (bClearBlack ? FLinearColor(0, 0, 0, 0) : View.BackgroundColor);
+
+	// clearing the GBuffer
+	GSceneRenderTargets.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, ClearColor);
+}
+
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
 	bool bDBuffer = IsDBufferEnabled();
@@ -619,7 +671,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		return;
 	}
-	SCOPED_DRAW_EVENT(RHICmdList, Scene,DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Scene);
 	
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
@@ -633,8 +685,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (GRHIThread)
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
-		//QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionCull_Dispatch);
-		//FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we want to make sure this all gets to the GPU this frame and doesn't hang around
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostInitViews_FlushDel);
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
 	}
@@ -711,19 +761,18 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
-	RenderPrePass(RHICmdList);
+	bool bDepthWasCleared = false;
+	if (NeedsPrePass(this))
+	{
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
+		RenderPrePass(RHICmdList);
+		// at this point, the depth was cleared
+		bDepthWasCleared = true;
+	}
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
 	
 	GSceneRenderTargets.AllocGBufferTargets();
 	
-	// Clear scene color buffer if necessary.
-	if ( bRequiresRHIClear )
-	{
-		ClearView(RHICmdList);
-
-		// Only clear once.
-		bRequiresRHIClear = false;
-	}
-
 	// Clear LPVs for all views
 	if ( FeatureLevel >= ERHIFeatureLevel::SM5 )
 	{
@@ -743,9 +792,21 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// e.g. ambient cubemaps, ambient occlusion, deferred decals
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
 			GCompositionLighting.ProcessBeforeBasePass(RHICmdList, Views[ViewIndex]);
 		}
+	}
+
+	// Clear the G Buffer render targets
+	bool bIsGBufferCurrent = false;
+	if (bRequiresRHIClear)
+	{
+		// set GBuffer to be current, and clear it
+		SetAndClearViewGBuffer(RHICmdList, Views[0], !bDepthWasCleared);
+
+		// depth was cleared now no matter what
+		bDepthWasCleared = true;
+		bIsGBufferCurrent = true;
 	}
 
 	if(bIsWireframe && FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(Views[0]))
@@ -754,20 +815,23 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SetRenderTarget(RHICmdList, GSceneRenderTargets.GetEditorPrimitivesColor(), GSceneRenderTargets.GetEditorPrimitivesDepth());
 		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 	}
-	else
+	else if (!bIsGBufferCurrent)
 	{
-		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, true);
+		// make sure the GBuffer is set, in case we didn't need to clear above
+		ERenderTargetLoadAction DepthLoadAction = bDepthWasCleared ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
+		GSceneRenderTargets.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction);
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));
 
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_BasePass));
 	RenderBasePass(RHICmdList);
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterBasePass));
 
 	if(ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
 	}
 
@@ -800,7 +864,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		Scene->FXSystem->PostRenderOpaque(
 			RHICmdList,
-			Views.GetTypedData(),
+			Views.GetData(),
 			GSceneRenderTargets.GetSceneDepthTexture(),
 			GSceneRenderTargets.GetGBufferATexture()
 			);
@@ -814,7 +878,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
 	if ( bIsOcclusionTesting )
 	{
-		//FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 		BeginOcclusionTests(RHICmdList);
 	}
 
@@ -823,7 +886,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
 		OcclusionSubmittedFence = FRHICommandListExecutor::RHIThreadFence();
 	}
-	
+
 	// Render lighting.
 	if (ViewFamily.EngineShowFlags.Lighting
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
@@ -837,14 +900,16 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// e.g. deferred decals, blurred GBuffer
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
 			GCompositionLighting.ProcessAfterBasePass(RHICmdList, Views[ViewIndex]);
 		}
 
 		// Clear the translucent lighting volumes before we accumulate
 		ClearTranslucentVolumeLighting(RHICmdList);
 
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Lighting));
 		RenderLights(RHICmdList);
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterLighting));
 
 		GRenderTargetPool.AddPhaseEvent(TEXT("AfterRenderLights"));
 
@@ -869,7 +934,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// e.g. ambient cubemaps, ambient occlusion, LPV indirect
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{	
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
 			GCompositionLighting.ProcessLighting(RHICmdList, Views[ViewIndex]);
 		}
 	}
@@ -906,7 +971,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			if (Scene->bIsEditorScene)
 			{
 				// Precompute Atmospheric Textures
-				Scene->AtmosphericFog->PrecomputeTextures(RHICmdList, Views.GetTypedData(), &ViewFamily);
+				Scene->AtmosphericFog->PrecomputeTextures(RHICmdList, Views.GetData(), &ViewFamily);
 			}
 #endif
 			RenderAtmosphere(RHICmdList, LightShaftOutput);
@@ -931,7 +996,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Translucency));
 		RenderTranslucency(RHICmdList);
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterTranslucency));
 
 		if (ViewFamily.EngineShowFlags.Refraction)
 		{
@@ -963,17 +1030,19 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
 	// Render the velocities of movable objects
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Velocity));
 	RenderVelocities(RHICmdList, VelocityRT);
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterVelocity));
 
 	// Finish rendering for each view.
 	if(ViewFamily.bResolveScene)
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, PostProcessing, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
 		SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
 			GPostProcessing.Process(RHICmdList, Views[ ViewIndex ], VelocityRT);
 
@@ -991,6 +1060,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	VelocityRT.SafeRelease();
 
 	RenderFinish(RHICmdList);
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterFrame));
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View)
@@ -1036,7 +1106,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 		// Draw the dynamic occluder primitives using a depth drawing policy.
 		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, &View, FDepthDrawingPolicyFactory::ContextType(EarlyZPassMode), true);
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, Dynamic, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 			for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
 			{
 				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
@@ -1081,6 +1151,8 @@ static void SetupPrePassView(FRHICommandList& RHICmdList, const FIntRect& ViewRe
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
 	RHICmdList.SetViewport(ViewRect.Min.X, ViewRect.Min.Y, 0, ViewRect.Max.X, ViewRect.Max.Y, 1);
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View)
@@ -1094,19 +1166,19 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 		// Draw opaque occluders which support a separate position-only
 		// vertex buffer to minimize vertex fetch bandwidth, which is
 		// often the bottleneck during the depth only pass.
-		SCOPED_DRAW_EVENT(RHICmdList, PosOnlyOpaque, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, PosOnlyOpaque);
 		bDirty |= Scene->PositionOnlyDepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
 	}
 	{
 		// Draw opaque occluders, using double speed z where supported.
-		SCOPED_DRAW_EVENT(RHICmdList, Opaque, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Opaque);
 		bDirty |= Scene->DepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
 	}
 
 	if(EarlyZPassMode >= DDM_AllOccluders)
 	{
 		// Draw opaque occluders with masked materials
-		SCOPED_DRAW_EVENT(RHICmdList, Opaque, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Opaque);
 		bDirty |= Scene->MaskedDepthDrawList.DrawVisible(RHICmdList, View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility);
 	}
 
@@ -1124,15 +1196,15 @@ class FRenderPrepassDynamicDataThreadTask
 public:
 
 	FRenderPrepassDynamicDataThreadTask(
-		FDeferredShadingSceneRenderer* InThisRenderer,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
-		bool* InOutDirty
+		FDeferredShadingSceneRenderer& InThisRenderer,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
+		bool& InOutDirty
 		)
-		: ThisRenderer(*InThisRenderer)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
-		, OutDirty(*InOutDirty)
+		: ThisRenderer(InThisRenderer)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
+		, OutDirty(InOutDirty)
 	{
 	}
 
@@ -1158,53 +1230,74 @@ public:
 	}
 };
 
-
-void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+class FPrePassParallelCommandListSet : public FParallelCommandListSet
 {
-	SetupPrePassView(ParentCmdList, View.ViewRect);
+public:
+	FPrePassParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute)
+		: FParallelCommandListSet(InView, InParentCmdList, InOutDirty, bInParallelExecute)
+	{
+		SetStateOnCommandList(ParentCmdList);
+	}
+	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
+	{
+		GSceneRenderTargets.BeginRenderingPrePass(CmdList);
+		SetupPrePassView(CmdList, View.ViewRect);
+	}
+};
+
+static TAutoConsoleVariable<int32> CVarRHICmdPrePassDeferredContexts(
+	TEXT("r.RHICmdPrePassDeferredContexts"),
+	1,
+	TEXT("True to use deferred contexts to parallelize prepass command list execution.\n"));
+
+void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty)
+{
+	FPrePassParallelCommandListSet ParallelCommandListSet(View, ParentCmdList, &OutDirty, CVarRHICmdPrePassDeferredContexts.GetValueOnRenderThread() > 0);
+
 
 	// Draw the static occluder primitives using a depth drawing policy.
 	{
 		// Draw opaque occluders which support a separate position-only
 		// vertex buffer to minimize vertex fetch bandwidth, which is
 		// often the bottleneck during the depth only pass.
-		SCOPED_DRAW_EVENT(ParentCmdList, PosOnlyOpaque, DEC_SCENE_ITEMS);
-		Scene->PositionOnlyDepthDrawList.DrawVisibleParallel(View, View.StaticMeshOccluderMap, View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, PosOnlyOpaque);
+		Scene->PositionOnlyDepthDrawList.DrawVisibleParallel(View.StaticMeshOccluderMap, View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 	{
 		// Draw opaque occluders, using double speed z where supported.
-		SCOPED_DRAW_EVENT(ParentCmdList, Opaque, DEC_SCENE_ITEMS);
-		Scene->DepthDrawList.DrawVisibleParallel(View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, Opaque);
+		Scene->DepthDrawList.DrawVisibleParallel(View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 
 	if(EarlyZPassMode >= DDM_AllOccluders)
 	{
 		// Draw opaque occluders with masked materials
-		SCOPED_DRAW_EVENT(ParentCmdList, Opaque, DEC_SCENE_ITEMS);
-		Scene->MaskedDepthDrawList.DrawVisibleParallel(View,View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility, Width, ParentCmdList, OutDirty);
+		// we can't insert this event on the parent command list; need to pass it along to the ParallelCommandListSet
+		//SCOPED_DRAW_EVENT(ParentCmdList, Opaque);
+		Scene->MaskedDepthDrawList.DrawVisibleParallel(View.StaticMeshOccluderMap,View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 	{
-		FRHICommandList* CmdList = new FRHICommandList;
+		FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 		FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderPrepassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-			.ConstructAndDispatchWhenReady(this, CmdList, &View, &OutDirty);
+			.ConstructAndDispatchWhenReady(*this, *CmdList, View, OutDirty);
 
-		ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+		ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 	}
 }
-
 
 /** Renders the scene's prepass and occlusion queries */
 bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, PrePass, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, PrePass);
 	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
 
 	bool bDirty = false;
 
 	GSceneRenderTargets.BeginRenderingPrePass(RHICmdList);
 
-	
 	// Clear the depth buffer.
 	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
 	RHICmdList.Clear(false,FLinearColor::Black,true,0.0f,true,0, FIntRect());
@@ -1215,20 +1308,19 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 		if (GRHICommandList.UseParallelAlgorithms())
 		{
 			FScopedCommandListWaitForTasks Flusher(RHICmdList);
-			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				const FViewInfo& View = Views[ViewIndex];
-				RenderPrePassViewParallel(View, Width, RHICmdList, bDirty);
+				RenderPrePassViewParallel(View, RHICmdList, bDirty);
 			}
 		}
 		else
 		{
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				const FViewInfo& View = Views[ViewIndex];
 				bDirty |= RenderPrePassView(RHICmdList, View);
 			}
@@ -1255,26 +1347,24 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 	}
 	else
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, BasePass, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, BasePass);
 		SCOPE_CYCLE_COUNTER(STAT_BasePassDrawTime);
 
 		if (GRHICommandList.UseParallelAlgorithms())
 		{
 			FScopedCommandListWaitForTasks Flusher(RHICmdList);
-			int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
-
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				FViewInfo& View = Views[ViewIndex];
-				RenderBasePassViewParallel(View, Width, RHICmdList, bDirty);
+				RenderBasePassViewParallel(View, RHICmdList, bDirty);
 			}
 		}
 		else
 		{
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				FViewInfo& View = Views[ViewIndex];
 
 				bDirty |= RenderBasePassView(RHICmdList, View);
@@ -1301,7 +1391,7 @@ void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdLi
 
 			if(LightPropagationVolume)
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs);
 				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
 				LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
 				LightPropagationVolume->Clear(RHICmdList, View);
@@ -1323,7 +1413,7 @@ void FDeferredShadingSceneRenderer::PropagateLPVs(FRHICommandListImmediate& RHIC
 
 			if(LightPropagationVolume)
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
 				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
 				
 				LightPropagationVolume->Propagate(RHICmdList, View);
@@ -1397,11 +1487,11 @@ FGlobalBoundShaderState DownsampleDepthBoundShaderState;
 /** Updates the downsized depth buffer with the current full resolution depth buffer. */
 void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList)
 {
-	if (GSceneRenderTargets.UseDownsizedOcclusionQueries() && IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
+	if (GSceneRenderTargets.UseDownsizedOcclusionQueries() && (FeatureLevel >= ERHIFeatureLevel::SM4))
 	{
 		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSmallDepthSurface());
 
-		SCOPED_DRAW_EVENT(RHICmdList, DownsampleDepth, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DownsampleDepth);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{

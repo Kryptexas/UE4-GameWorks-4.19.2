@@ -2,8 +2,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 
-UAbilityTask_WaitMovementModeChange::UAbilityTask_WaitMovementModeChange(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitMovementModeChange::UAbilityTask_WaitMovementModeChange(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RequiredMode = MOVE_None;
 }
@@ -17,7 +17,7 @@ UAbilityTask_WaitMovementModeChange* UAbilityTask_WaitMovementModeChange::Create
 
 void UAbilityTask_WaitMovementModeChange::Activate()
 {
-	ACharacter* Character = Cast<ACharacter>(GetActor());
+	ACharacter* Character = Cast<ACharacter>(GetAvatarActor());
 	if (Character)
 	{
 		Character->MovementModeChangedDelegate.AddDynamic(this, &UAbilityTask_WaitMovementModeChange::OnMovementModeChange);

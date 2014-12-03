@@ -4,6 +4,8 @@
 
 #include "WidgetTemplate.h"
 
+class UWidget;
+
 /**
  * A template that can spawn any widget derived from the UWidget class.
  */

@@ -17,6 +17,7 @@
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "EditorViewportCommands.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 
@@ -108,21 +109,25 @@ protected:
 
 void FMaterialInstanceEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_MaterialInstanceEditor", "Material Instance Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 	
-	TabManager->RegisterTabSpawner( PreviewTabId,		FOnSpawnTab::CreateSP(this, &FMaterialInstanceEditor::SpawnTab_Preview) )
-		.SetDisplayName( LOCTEXT("ViewportTab", "Viewport") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+	TabManager->RegisterTabSpawner( PreviewTabId, FOnSpawnTab::CreateSP( this, &FMaterialInstanceEditor::SpawnTab_Preview ) )
+		.SetDisplayName( LOCTEXT( "ViewportTab", "Viewport" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports" ) );
 	
-	TabManager->RegisterTabSpawner( PropertiesTabId,	FOnSpawnTab::CreateSP(this, &FMaterialInstanceEditor::SpawnTab_Properties) )
-		.SetDisplayName( LOCTEXT("PropertiesTab", "Details") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+	TabManager->RegisterTabSpawner( PropertiesTabId, FOnSpawnTab::CreateSP( this, &FMaterialInstanceEditor::SpawnTab_Properties ) )
+		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
 	
-	TabManager->RegisterTabSpawner( ParentsTabId,		FOnSpawnTab::CreateSP(this, &FMaterialInstanceEditor::SpawnTab_Parents) )
+	TabManager->RegisterTabSpawner( ParentsTabId, FOnSpawnTab::CreateSP(this, &FMaterialInstanceEditor::SpawnTab_Parents) )
 		.SetDisplayName( LOCTEXT("ParentsTab", "Parents") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette" ) );
 }
 
 void FMaterialInstanceEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -631,7 +636,7 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 	//rebuild the property window to account for the possibility that the item changed was
 	//a static switch
 
-	UObject * PropertyClass = PropertyThatChanged->GetOuter();
+	UObject* PropertyClass = PropertyThatChanged->GetOuter();
 	if(PropertyClass && PropertyClass->GetName() == TEXT("DEditorStaticSwitchParameterValue")  && MaterialEditorInstance->Parent && MaterialEditorInstance->SourceInstance )
 	{
 		TArray<FGuid> PreviousExpressions(MaterialEditorInstance->VisibleExpressions);
@@ -692,7 +697,7 @@ void FMaterialInstanceEditor::DrawMessages( FViewport* Viewport, FCanvas* Canvas
 	Canvas->PushAbsoluteTransform(FMatrix::Identity);
 	if ( MaterialEditorInstance->Parent && MaterialEditorInstance->SourceInstance )
 	{
-		const FMaterialResource* MaterialResource = MaterialEditorInstance->SourceInstance->GetMaterialResource(GRHIFeatureLevel);
+		const FMaterialResource* MaterialResource = MaterialEditorInstance->SourceInstance->GetMaterialResource(GMaxRHIFeatureLevel);
 		UMaterial* BaseMaterial = MaterialEditorInstance->SourceInstance->GetMaterial();
 		int32 DrawPositionY = 5;
 		if ( BaseMaterial && MaterialResource )

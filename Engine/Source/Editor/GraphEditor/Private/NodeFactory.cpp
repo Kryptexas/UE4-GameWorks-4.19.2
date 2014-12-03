@@ -32,6 +32,7 @@
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_StateMachineBase.h"
+#include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimStateNode.h"
 #include "AnimStateEntryNode.h"
 #include "AnimStateConduitNode.h"
@@ -46,6 +47,7 @@
 #include "AnimationNodes/SGraphNodeSequencePlayer.h"
 #include "AnimationNodes/SGraphNodeAnimationResult.h"
 #include "AnimationNodes/SGraphNodeStateMachineInstance.h"
+#include "AnimationNodes/SGraphNodeLayeredBoneBlend.h"
 #include "AnimationPins/SGraphPinPose.h"
 
 #include "KismetPins/SGraphPinBool.h"
@@ -106,6 +108,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UAnimGraphNode_SequencePlayer* SequencePlayer = Cast<UAnimGraphNode_SequencePlayer>(InNode))
 		{
 			return SNew(SGraphNodeSequencePlayer, SequencePlayer);
+		}
+		else if (UAnimGraphNode_LayeredBoneBlend* LayeredBlend = Cast<UAnimGraphNode_LayeredBoneBlend>(InNode))
+		{
+			return SNew(SGraphNodeLayeredBoneBlend, LayeredBlend);
 		}
 	}
 
@@ -368,10 +374,17 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 
 	if (const UEdGraphSchema_Niagara* NSchema = Cast<const UEdGraphSchema_Niagara>(InPin->GetSchema()))
 	{
-		UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
-		if (InPin->PinType.PinSubCategoryObject == VectorStruct)
+		if (InPin->PinType.PinCategory == NSchema->PC_Float)
+		{
+			return SNew(SGraphPinNum, InPin);
+		}
+		if (InPin->PinType.PinCategory == NSchema->PC_Vector)
 		{
 			return SNew(SGraphPinVector4, InPin);
+		}
+		if (InPin->PinType.PinCategory == NSchema->PC_Matrix)
+		{
+			return SNew(SGraphPin, InPin);
 		}
 	}
 

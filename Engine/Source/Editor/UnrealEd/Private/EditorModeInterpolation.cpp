@@ -10,6 +10,8 @@
 
 #include "Editor/Matinee/Public/MatineeModule.h"
 #include "Editor/Matinee/Public/IMatinee.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 static const float	CurveHandleScale = 0.5f;
 

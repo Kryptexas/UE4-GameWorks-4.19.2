@@ -59,7 +59,12 @@ struct FKCHandlerDelegateHelper
 
 		if (!BoundProperty)
 		{
-			MessageLog.Error(*LOCTEXT("NoDelegateProperty", "Event Dispatcher has no property @@").ToString(), DelegateNode);
+			FString const OwnerName = PropertyOwnerClass->GetName();
+			FString const PropName  = DelegateNode->GetPropertyName().ToString();
+
+			FText const ErrorFormat = LOCTEXT("DelegateNotFound", "Could not find an event-dispatcher named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+			MessageLog.Error(*FString::Printf(*ErrorFormat.ToString(), *PropName, *OwnerName, *OwnerName), DelegateNode);
+
 			return NULL;
 		}
 
@@ -87,7 +92,7 @@ struct FKCHandlerDelegateHelper
 		check(SelfPin && NetPin && BoundProperty && DelegateNode);
 
 		FBPTerminal* Term = new(Context.VariableReferences) FBPTerminal();
-		Term->CopyFromPin(SelfPin, Context.NetNameMap->MakeValidName(SelfPin));
+		Term->CopyFromPin(SelfPin, BoundProperty->GetName());
 		Term->AssociatedVarProperty = BoundProperty;
 
 		FBPTerminal** pContextTerm = Context.NetMap.Find(NetPin);
@@ -157,8 +162,7 @@ void FKCHandler_AddRemoveDelegate::RegisterNets(FKismetFunctionContext& Context,
 	FBPTerminal* Term = FoundTerm ? *FoundTerm : NULL;
 	if(NULL == Term)
 	{
-		Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-		Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+		Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 		Context.NetMap.Add(Net, Term);
 	}
 }
@@ -238,8 +242,7 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 		FBPTerminal* InputObjTerm = FoundTerm ? *FoundTerm : NULL;
 		if(NULL == InputObjTerm)
 		{
-			InputObjTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			InputObjTerm->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+			InputObjTerm = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 			Context.NetMap.Add(Net, InputObjTerm);
 		}
 	}
@@ -258,8 +261,7 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 		FBPTerminal* OutDelegateTerm = FoundTerm ? *FoundTerm : NULL;
 		if(NULL == OutDelegateTerm)
 		{
-			OutDelegateTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			OutDelegateTerm->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+			OutDelegateTerm = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 			if (NULL == FMemberReference::ResolveSimpleMemberReference<UFunction>(OutDelegateTerm->Type.PinSubCategoryMemberReference))
 			{
 				FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), OutDelegateTerm->Type.PinSubCategoryMemberReference);
@@ -293,7 +295,7 @@ void FKCHandler_CreateDelegate::Compile(FKismetFunctionContext& Context, UEdGrap
 	}
 
 	{
-		FBPTerminal* DelegateNameTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* DelegateNameTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		DelegateNameTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Name;
 		DelegateNameTerm->Name = DelegateNode->GetFunctionName().ToString();
 		DelegateNameTerm->bIsLiteral = true;

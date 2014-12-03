@@ -320,11 +320,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 			// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 			SubversionSourceControlUtils::QuoteFilename(DescriptionFilename);
 			Parameters.Add(FString(TEXT("--file ")) + DescriptionFilename);
-
-			if(DescriptionFile.IsUnicode())
-			{
-				Parameters.Add(TEXT("--encoding utf-8"));
-			}
+			Parameters.Add(TEXT("--encoding utf-8"));
 
 			// we need commit directories that are marked for add here if we are committing any child files that are also marked for add
 			TArray<FString> FilesToCommit = InCommand.Files;

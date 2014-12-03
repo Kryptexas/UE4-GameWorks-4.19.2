@@ -35,7 +35,7 @@ public:
 	virtual void DumpAllocatorStats( FOutputDevice& Ar ) override;
 	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override;
 	virtual bool IsInternallyThreadSafe() const override {  return true; }
-	virtual const TCHAR * GetDescriptiveName() override { return TEXT("jemalloc"); }
+	virtual const TCHAR* GetDescriptiveName() override { return TEXT("jemalloc"); }
 
 protected:
 

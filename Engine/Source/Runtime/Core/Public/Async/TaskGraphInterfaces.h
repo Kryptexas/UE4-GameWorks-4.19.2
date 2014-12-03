@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "Misc/Build.h"
 
 #if !defined(STATS)
 #error "STATS must be defined as either zero or one."
@@ -526,65 +528,65 @@ public:
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T& Arg)
+		FGraphEventRef ConstructAndDispatchWhenReady(T&& Arg1)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T>(Arg1));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1,typename T2>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1,Arg2);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1,typename T2, typename T3>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1,Arg2,Arg3);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1,typename T2, typename T3, typename T4>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1,Arg2,Arg3,Arg4);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1,typename T2, typename T3, typename T4, typename T5>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1,Arg2,Arg3,Arg4,Arg5);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6, const T7& Arg7)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6, const T7& Arg7, const T8& Arg8)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7, T8&& Arg8)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7), Forward<T8>(Arg8));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
 		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6, const T7& Arg7, const T8& Arg8, const T9& Arg9)
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7, T8&& Arg8, T9&& Arg9)
 		{
-			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9);
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7), Forward<T8>(Arg8), Forward<T9>(Arg9));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
 	private:
@@ -976,7 +978,7 @@ public:
 	  *	@param StatId The stat id for this task.
 	  * @param InDesiredThread - Thread to run on
 	**/
-	FSimpleDelegateGraphTask(const FDelegate& InTaskDeletegate, const TStatId& StatId, ENamedThreads::Type InDesiredThread)
+	FSimpleDelegateGraphTask(const FDelegate& InTaskDeletegate, const TStatId StatId, ENamedThreads::Type InDesiredThread)
 		: FCustomStatIDGraphTaskBase(StatId)
 		, TaskDelegate(InTaskDeletegate)
 		, DesiredThread(InDesiredThread)
@@ -991,7 +993,7 @@ public:
 	  * @param InDesiredThread - Thread to run on
 	  * @return completion handle for the new task 
 	**/
-	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId& InStatId, const FGraphEventArray* InPrerequisites = NULL, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId InStatId, const FGraphEventArray* InPrerequisites = NULL, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
 	{
 		return TGraphTask<FSimpleDelegateGraphTask>::CreateTask(InPrerequisites).ConstructAndDispatchWhenReady<const FDelegate&>(InTaskDeletegate, InStatId, InDesiredThread);
 	}
@@ -1003,7 +1005,7 @@ public:
 	  * @param InDesiredThread - Thread to run on
 	  * @return completion handle for the new task 
 	**/
-	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId& InStatId, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId&& InStatId, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
 	{
 		FGraphEventArray Prerequisites;
 		check(InPrerequisite.GetReference());
@@ -1041,7 +1043,7 @@ public:
 	  *	@param InStatId - The stat id for this task.
 	  * @param InDesiredThread - Thread to run on
 	**/
-	FDelegateGraphTask(const FDelegate& InTaskDeletegate, const TStatId& InStatId, ENamedThreads::Type InDesiredThread)
+	FDelegateGraphTask(const FDelegate& InTaskDeletegate, const TStatId InStatId, ENamedThreads::Type InDesiredThread)
 		: FCustomStatIDGraphTaskBase(InStatId)
 		, TaskDelegate(InTaskDeletegate)
 		, DesiredThread(InDesiredThread)
@@ -1057,7 +1059,7 @@ public:
 	  * @param InDesiredThread - Thread to run on
 	  * @return completion handle for the new task 
 	**/
-	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId& InStatId, const FGraphEventArray* InPrerequisites = NULL, ENamedThreads::Type InCurrentThreadIfKnown = ENamedThreads::AnyThread, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId InStatId, const FGraphEventArray* InPrerequisites = NULL, ENamedThreads::Type InCurrentThreadIfKnown = ENamedThreads::AnyThread, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
 	{
 		return TGraphTask<FDelegateGraphTask>::CreateTask(InPrerequisites, InCurrentThreadIfKnown).ConstructAndDispatchWhenReady<const FDelegate&>(InTaskDeletegate, InStatId, InDesiredThread);
 	}
@@ -1070,7 +1072,7 @@ public:
 	  * @param InDesiredThread - Thread to run on
 	  * @return completion handle for the new task 
 	**/
-	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId& InStatId, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InCurrentThreadIfKnown = ENamedThreads::AnyThread, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TStatId InStatId, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InCurrentThreadIfKnown = ENamedThreads::AnyThread, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
 	{
 		FGraphEventArray Prerequisites;
 		check(InPrerequisite.GetReference());

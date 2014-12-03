@@ -10,19 +10,20 @@ ROOT_DIR = ../../src
 TEST_SRCS = $(ROOT_DIR)/hlslcc_test/main.cpp
 MAIN_SRCS = $(ROOT_DIR)/hlslcc_exe/main.cpp
 LIB_SRCS = $(wildcard $(ROOT_DIR)/hlslcc_lib/*.cpp) \
+	$(wildcard $(ROOT_DIR)/hlslcc_lib/*.c) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/mesa/*.c) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/mesa/*.cpp) \
-	$(wildcard $(ROOT_DIR)/hlslcc_lib/Metal/*.cpp) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/glsl/*.cpp)
 
 LIB_OBJS := $(LIB_SRCS:.cpp=.o)
 LIB_OBJS := $(LIB_OBJS:.c=.o)
 MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)
 
-LIB = ../../lib/Linux/libhlslcc.a
+# expecting TARGET_ARCH to be set
+LIB = ../../lib/Linux/$TARGET_ARCH/libhlslcc.a
 MAIN = ../../bin/Linux/hlslcc_64
 
-all: lib main
+all: lib 
 lib: $(LIB)
 main: $(MAIN)
 
@@ -34,7 +35,7 @@ CXXFLAGS = -std=c++11
 ifeq ($(DEBUG),1)
 CPPFLAGS += -g -O0
 else
-CPPFLAGS += -O3 -march=native -mtune=native
+CPPFLAGS += -O2
 endif
 
 
@@ -48,7 +49,7 @@ $(LIB): $(LIB_OBJS)
 	ar cr $@ $^
 
 $(MAIN): $(MAIN_OBJS) $(LIB)
-	$(CXX) $(CPPFLAGS) $^ -L../../lib/Linux -lhlslcc -o $@ 
+	$(CXX) $(CPPFLAGS) $^ -L../../lib/Linux/$TARGET_ARCH -lhlslcc -o $@ 
 
 clean:
 	rm -f $(LIB_OBJS) $(MAIN_OBJS) $(LIB) $(MAIN)

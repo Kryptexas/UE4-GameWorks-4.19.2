@@ -44,7 +44,7 @@ public:
 
 	virtual bool IsRunningPlatform( ) const override;
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
 		if (Feature == ETargetPlatformFeatures::Packaging)
 		{
@@ -72,7 +72,7 @@ public:
 
 	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override;
 
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const override;
+	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
 #endif // WITH_ENGINE
 
 	DECLARE_DERIVED_EVENT(FHTML5TargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);

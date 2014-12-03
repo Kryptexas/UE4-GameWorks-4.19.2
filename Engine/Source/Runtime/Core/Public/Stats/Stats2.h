@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnStats.h: Performance stats framework.
-=============================================================================*/
 #pragma once
+
+#include "ChunkedArray.h"
 
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds
@@ -56,6 +55,9 @@ struct CORE_API FStats
 
 	/** Advances stats for the current frame. */
 	static void AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate = FOnAdvanceRenderingThreadStats() );
+
+	/** Current game thread stats frame. */
+	static int32 GameThreadStatsFrame;
 };
 
 #if STATS
@@ -950,6 +952,16 @@ typedef TStatMessage<EComplexStatField> FComplexStatMessage;
 
 template<> struct TIsPODType<FComplexStatMessage> { enum { Value = true }; };
 
+
+struct EStatMessagesArrayConstants
+{
+	enum
+	{
+		MESSAGES_CHUNK_SIZE = 64*1024,
+	};
+};
+typedef TChunkedArray<FStatMessage,(uint32)EStatMessagesArrayConstants::MESSAGES_CHUNK_SIZE> FStatMessagesArray;
+
 /**
 * A stats packet. Sent between threads. Includes and array of messages and some information about the thread. 
 */
@@ -964,8 +976,8 @@ struct FStatPacket
 	/** true if this packet has broken callstacks **/
 	bool bBrokenCallstacks;
 	/** messages in this packet **/
-	TArray<FStatMessage> StatMessages;
-	/** Size we presize the message buffer to, currently the max of what we have seen so far. **/
+	FStatMessagesArray StatMessages;
+	/** Size we presize the message buffer to, currently the max of what we have seen for the last PRESIZE_MAX_NUM_ENTRIES. **/
 	TArray<int32> StatMessagesPresize;
 
 	/** constructor **/
@@ -993,6 +1005,12 @@ struct FStatPacket
 */
 class FThreadStats
 {
+	enum
+	{
+		PRESIZE_MAX_NUM_ENTRIES = 10,
+		PRESIZE_MAX_SIZE = EStatMessagesArrayConstants::MESSAGES_CHUNK_SIZE,
+	};
+
 	/** Used to control when we are collecting stats. User of the stats system increment and decrement this counter as they need data. **/
 	CORE_API static FThreadSafeCounter MasterEnableCounter;
 	/** Every time bMasterEnable changes, we update this. This is used to determine frames that have complete data. **/
@@ -1008,12 +1026,18 @@ class FThreadStats
 
 	friend class FStatsThread;
 
+	/** Current game frame for this thread stat. */
+	int32 CurrentGameFrame;
+
 	/** Tracks current stack depth for cycle counters. **/
 	uint32 ScopeCount;
-	/** Tracks current stack depth for cycle counters. **/
-	bool bSawExplicitFlush;
+
 	/** Tracks current stack depth for cycle counters. **/
 	uint32 bWaitForExplicitFlush;
+
+	/** Tracks current stack depth for cycle counters. **/
+	bool bSawExplicitFlush;
+
 	/** The data we are eventually going to send to the stats thread. **/
 	FStatPacket Packet;
 
@@ -1046,19 +1070,8 @@ public:
 		FThreadStats* Stats = (FThreadStats*)FPlatformTLS::GetTlsValue(TlsSlot);
 		if (Stats)
 		{
-			FPlatformTLS::SetTlsValue(TlsSlot, NULL);
+			FPlatformTLS::SetTlsValue(TlsSlot, nullptr);
 			delete Stats;
-		}
-	}
-
-	/** Used to send messages that came in before the thread was ready. Adds em and flushes **/
-	static void AddMessages(TArray<FStatMessage> const& Messages)
-	{
-		if (WillEverCollectData())
-		{
-			FThreadStats* ThreadStats = GetThreadStats();
-			ThreadStats->Packet.StatMessages += Messages;
-			ThreadStats->Flush();
 		}
 	}
 
@@ -1096,7 +1109,7 @@ public:
 		{
 			FThreadStats* ThreadStats = GetThreadStats();
 			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation, Value, bIsCycle);
-			if (!ThreadStats->ScopeCount) // we can't guarantee other threads will ever be flushed, so we need to flush ever counter item!
+			if(!ThreadStats->ScopeCount)
 			{
 				ThreadStats->Flush();
 			}
@@ -1116,7 +1129,7 @@ public:
 	}
 	static FORCEINLINE_STATS bool IsCollectingData(TStatId StatId)
 	{
-		// we don't test StatId for NULL here because we assume it is non-null. If it is NULL, that indicates a problem with higher level code.
+		// we don't test StatId for nullptr here because we assume it is non-null. If it is nullptr, that indicates a problem with higher level code.
 		return !StatId.IsNone() && IsCollectingData();
 	}
 
@@ -1261,7 +1274,7 @@ public:
 	void AddThreadMetadata( const FName InThreadFName, uint32 InThreadID );
 
 	/** Adds a regular metadata. */
-	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
+	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
 
 	/** Access the singleton. */
 	static FStartupMessages& Get();
@@ -1287,10 +1300,10 @@ public:
 	 * @param InGroup, group to look up
 	 * @param InCategory, the category the group belongs to
 	 * @param bDefaultEnable, If this is the first time this group has been set up, this sets the default enable value for this group.
-	 * @param bCanBeDisabled, If this is true, this is a memory counter or something and can never be disabled
+	 * @param bShouldClearEveryFrame, If this is true, this is a memory counter or an accumulator
 	 * @return a pointer to a FName (valid forever) that determines if this group is active
 	 */
-	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) = 0;
+	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) = 0;
 
 	/**
 	 * Enables or disabled a particular group of stats
@@ -1330,7 +1343,7 @@ struct FThreadSafeStaticStatBase
 {
 protected:
 	mutable TStatIdData* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
-	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
+	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
 };
 
 template<class TStatData, bool TCompiledIn>
@@ -1435,8 +1448,6 @@ struct FStat_##StatName\
 
 #define STAT_GROUP_TO_FStatGroup(Group) FStatGroup_##Group
 
-#define STAT_IS_COLLECTING(Stat) (FThreadStats::IsCollectingData(GET_STATID(Stat)))
-
 #define DEFINE_STAT(Stat) \
 	struct FThreadSafeStaticStat<FStat_##Stat> StatPtr_##Stat;
 
@@ -1505,11 +1516,11 @@ struct FStat_##StatName\
 	#define SCOPE_CYCLE_COUNTER_GUARD
 #endif // UE_BUILD_DEBUG
 
-#define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId) \
+#define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,Stat,GroupId) \
 	SCOPE_CYCLE_COUNTER_GUARD \
-	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
-	static DEFINE_STAT(StatId) \
-	FScopeCycleCounter CycleCount_##StatId(GET_STATID(StatId));
+	DECLARE_STAT(CounterName,Stat,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
+	static DEFINE_STAT(Stat) \
+	FScopeCycleCounter CycleCount_##Stat(GET_STATID(Stat));
 
 #define QUICK_SCOPE_CYCLE_COUNTER(Stat) \
 	SCOPE_CYCLE_COUNTER_GUARD \
@@ -1672,6 +1683,7 @@ DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Niagara"),STATGROUP_Niagara, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Object"),STATGROUP_Object, STATCAT_Advanced);
+DECLARE_STATS_GROUP_VERBOSE(TEXT("ObjectVerbose"),STATGROUP_ObjectVerbose, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("OpenGL RHI"),STATGROUP_OpenGLRHI, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Pak File"),STATGROUP_PakFile, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Particle Mem"),STATGROUP_ParticleMem, STATCAT_Advanced);
@@ -1709,5 +1721,6 @@ DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("StatUnit FPS"), STAT_FPS, STATGROUP_Engi
 /** Stats for the stat system */
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawStats"),STAT_DrawStats,STATGROUP_StatSystem, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Stat messages memory"),STAT_StatMessagesMemory,STATGROUP_StatSystem, CORE_API);
 
 #endif

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationReportManager.cpp: Implements the FAutomationReportManager class.
-=============================================================================*/
-
 #include "AutomationControllerPrivatePCH.h"
 
 
@@ -21,10 +17,12 @@ void FAutomationReportManager::Empty()
 	ReportRoot->Empty();
 }
 
+
 void FAutomationReportManager::ClustersUpdated( const int32 NumClusters )
 {
 	ReportRoot->ClustersUpdated(NumClusters);
 }
+
 
 void FAutomationReportManager::ResetForExecution(const int32 NumTestPasses)
 {
@@ -37,6 +35,7 @@ void FAutomationReportManager::StopRunningTests()
 {
 	ReportRoot->StopRunningTest();
 }
+
 
 TSharedPtr<IAutomationReport> FAutomationReportManager::GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 PassIndex, const int32 NumDevicesInCluster)
 {
@@ -75,15 +74,18 @@ int32 FAutomationReportManager::GetEnabledTestsNum() const
 	return ReportRoot->GetEnabledTestsNum();
 }
 
+
 void FAutomationReportManager::GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const
 {
 	ReportRoot->GetEnabledTestNames(OutEnabledTestNames,FString());
 }
 
+
 void FAutomationReportManager::SetEnabledTests(const TArray<FString>& EnabledTests)
 {
 	ReportRoot->SetEnabledTests(EnabledTests,FString());
 }
+
 
 const bool FAutomationReportManager::ExportReport(uint32 FileExportTypeMask, const int32 NumDeviceClusters)
 {

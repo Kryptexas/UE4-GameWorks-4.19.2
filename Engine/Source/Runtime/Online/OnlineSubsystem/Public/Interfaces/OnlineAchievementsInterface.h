@@ -108,7 +108,7 @@ public:
 	 *
 	 * @return Whether we have kicked off a read attempt
 	 */
-	virtual void QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate()) = 0;
+	virtual void QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) = 0;
 
 	
 	/**
@@ -118,7 +118,7 @@ public:
 	 *
 	 * @return Whether we have kicked off a read attempt
 	 */
-	virtual void QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate() ) = 0;
+	virtual void QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate() ) = 0;
 
 	
 	/**

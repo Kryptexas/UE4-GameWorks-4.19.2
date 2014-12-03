@@ -80,10 +80,10 @@ public:
 
 private:
 
-	// Holds a pointer to the breakpoint that is shown in this row.
+	/** Holds a pointer to the breakpoint that is shown in this row. */
 	IMessageTracerBreakpointPtr Breakpoint;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

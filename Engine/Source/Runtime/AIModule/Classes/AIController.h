@@ -90,13 +90,18 @@ public:
 	UPROPERTY()
 	uint32 bWantsPlayerState:1;
 
+private_subobject:
 	/** Component used for pathfinding and querying environment's navigation. */
+	DEPRECATED_FORGAME(4.6, "NavComponent should not be accessed directly, please use GetNavComponent() function instead. NavComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<UNavigationComponent> NavComponent;
+	UNavigationComponent* NavComponent;
 
 	/** Component used for moving along a path. */
+	DEPRECATED_FORGAME(4.6, "PathFollowingComponent should not be accessed directly, please use GetPathFollowingComponent() function instead. PathFollowingComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<UPathFollowingComponent> PathFollowingComponent;
+	UPathFollowingComponent* PathFollowingComponent;
+
+public:
 
 	/** Component responsible for behaviors. */
 	UPROPERTY()
@@ -104,12 +109,13 @@ public:
 
 	UPROPERTY()
 	UAIPerceptionComponent* PerceptionComponent;
-	
+
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ActionsComp should not be accessed directly, please use GetActionsComp() function instead. ActionsComp will soon be private and your code will not compile.")
+	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
+	UPawnActionsComponent* ActionsComp;
+
 public:
-
-	UPROPERTY(BlueprintReadOnly, Category = AI)
-	TSubobjectPtr<UPawnActionsComponent> ActionsComp;
-
 	/** Event called when PossessedPawn is possesed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
 	void OnPossess(APawn* PossessedPawn);
@@ -162,7 +168,7 @@ public:
 	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 	/** Returns the Move Request ID for the current move */
-	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
+	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return GetPathFollowingComponent() ? GetPathFollowingComponent()->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
 
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
@@ -205,7 +211,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual FVector GetFocalPoint() const;
 
-	FORCEINLINE FVector GetFocalPoint(EAIFocusPriority::Type Priority) const {  return FocusInformation.Priorities.IsValidIndex(Priority) ? *FocusInformation.Priorities[Priority].Position : FAISystem::InvalidLocation; }
+	FVector GetFocalPoint(EAIFocusPriority::Type Priority) const;
 	FORCEINLINE FFocusKnowledge::FFocusItem GetFocusItem(EAIFocusPriority::Type Priority) const { return FocusInformation.Priorities.IsValidIndex(Priority) ? FocusInformation.Priorities[Priority] : FFocusKnowledge::FFocusItem(); }
 	
 	/** Set FocalPoint as absolute position or offset from base. */
@@ -253,7 +259,7 @@ public:
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const override;
+	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot) const override;
 #endif
 
 	virtual void Reset() override;
@@ -293,12 +299,12 @@ public:
 	//----------------------------------------------------------------------//
 	// Actions
 	//----------------------------------------------------------------------//
-	bool PerformAction(UPawnAction* Action, EAIRequestPriority::Type Priority, UObject* const Instigator = NULL);
+	bool PerformAction(UPawnAction& Action, EAIRequestPriority::Type Priority, UObject* const Instigator = NULL);
 
 	//----------------------------------------------------------------------//
 	// debug/dev-time 
 	//----------------------------------------------------------------------//
-	virtual FString GetDebugIcon() const {return FString();}
+	virtual FString GetDebugIcon() const;
 	
 	// Cheat/debugging functions
 	static void ToggleAIIgnorePlayers() { bAIIgnorePlayers = !bAIIgnorePlayers; }
@@ -306,6 +312,14 @@ public:
 
 	/** If true, AI controllers will ignore players. */
 	static bool bAIIgnorePlayers;
+
+public:
+	/** Returns NavComponent subobject **/
+	UNavigationComponent* GetNavComponent() const;
+	/** Returns PathFollowingComponent subobject **/
+	UPathFollowingComponent* GetPathFollowingComponent() const;
+	/** Returns ActionsComp subobject **/
+	UPawnActionsComponent* GetActionsComp() const;
 };
 
 

@@ -10,6 +10,7 @@
 #include "MaterialEditor.h"
 #include "SMaterialPalette.h"
 #include "MaterialEditorActions.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "MaterialPalette"
 

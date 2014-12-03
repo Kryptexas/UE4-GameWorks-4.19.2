@@ -22,15 +22,9 @@ public:
 	/** Get the filename of this temp file - empty if it failed to be created */
 	const FString& GetFilename() const;
 
-	/** Check whether the file text we are using is unicode or not */
-	bool IsUnicode() const;
-
 private:
 	/** The filename we are writing to */
 	FString Filename;
-
-	/** Whether the file text is unicode or not */
-	bool bIsUnicode;
 };
 
 class FSubversionSourceControlRevision;

@@ -3,8 +3,8 @@
 
 #include "EnginePrivate.h"
 
-UBoxComponent::UBoxComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBoxComponent::UBoxComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BoxExtent = FVector(32.0f, 32.0f, 32.0f);
 
@@ -42,7 +42,7 @@ void UBoxComponent::UpdateBodySetup()
 	}
 
 	check(ShapeBodySetup->AggGeom.BoxElems.Num() == 1);
-	FKBoxElem* se = ShapeBodySetup->AggGeom.BoxElems.GetTypedData();
+	FKBoxElem* se = ShapeBodySetup->AggGeom.BoxElems.GetData();
 
 	// @todo UE4 do we allow this now?
 	// check for malformed values
@@ -73,7 +73,7 @@ bool UBoxComponent::IsZeroExtent() const
 	return BoxExtent.IsZero();
 }
 
-FBoxSphereBounds UBoxComponent::CalcBounds(const FTransform & LocalToWorld) const 
+FBoxSphereBounds UBoxComponent::CalcBounds(const FTransform& LocalToWorld) const 
 {
 	return FBoxSphereBounds( FBox( -BoxExtent, BoxExtent ) ).TransformBy(LocalToWorld);
 }

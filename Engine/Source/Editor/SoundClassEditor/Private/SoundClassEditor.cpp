@@ -16,6 +16,8 @@
 #include "ScopedTransaction.h"
 #include "Toolkits/IToolkitHost.h"
 #include "SSoundClassActionMenu.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundClassEditor, Log, All );
@@ -29,17 +31,20 @@ const FName FSoundClassEditor::PropertiesTabId( TEXT( "SoundClassEditor_Properti
 
 void FSoundClassEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SoundClassEditor", "Sound Class Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( GraphCanvasTabId, FOnSpawnTab::CreateSP(this, &FSoundClassEditor::SpawnTab_GraphCanvas) )
 		.SetDisplayName( LOCTEXT( "GraphCanvasTab", "Graph" ) )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "GraphEditor.EventGraph_16x"));
 
 	TabManager->RegisterTabSpawner( PropertiesTabId, FOnSpawnTab::CreateSP(this, &FSoundClassEditor::SpawnTab_Properties) )
 		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 }
 
 void FSoundClassEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -115,7 +120,7 @@ void FSoundClassEditor::InitSoundClassEditor( const EToolkitMode::Type Mode, con
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = true;
 	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, SoundClassEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ObjectToEdit );
-	
+
 	ISoundClassEditorModule* SoundClassEditorModule = &FModuleManager::LoadModuleChecked<ISoundClassEditorModule>( "SoundClassEditor" );
 	AddMenuExtender(SoundClassEditorModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 	AddToolbarExtender(SoundClassEditorModule->GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));

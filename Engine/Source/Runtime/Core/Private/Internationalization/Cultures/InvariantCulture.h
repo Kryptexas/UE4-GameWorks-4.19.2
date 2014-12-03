@@ -1,6 +1,8 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#if !UE_ENABLE_ICU
+
 #include "Culture.h"
 
 #define LOCTEXT_NAMESPACE "Internationalization"
@@ -10,9 +12,6 @@ class FInvariantCulture
 public:
 	static FCultureRef Create()
 	{
-#if UE_ENABLE_ICU
-		FCultureRef Culture = MakeShareable( new FCulture( FString() ) );
-#else
 		TArray<FString> InNativeDigits;
 
 		for (int i = 0; i<=10; ++i)
@@ -131,7 +130,7 @@ public:
 			);
 
 
-		FCultureRef Culture = MakeShareable( new FCulture(
+		FCultureRef Culture = FCulture::Create(
 			  LOCTEXT("InvariantCultureDisplayName", "Invariant Language (Invariant Country)")		//const FText DisplayName
 			, FString(TEXT("Invariant Language (Invariant Country)"))			//const FString EnglishName
 			, 1033												//const int KeyboardLayoutId
@@ -144,11 +143,12 @@ public:
 			, InvariantCultureNumberFormatting					//const FNumberFormattingRules NumberFormattingRule
 			, InvariantCultureTextFormatting						//const FTextFormattingRules TextFormattingRule
 			, InvariantCultureDateFormatting						//const FDateTimeFormattingRules DateTimeFormattingRule
-			) );
-#endif
+			).ToSharedRef();
 
 		return Culture;
 	}
 };
 
 #undef LOCTEXT_NAMESPACE
+
+#endif

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SSearchBox.h"
 
 
 void SSearchBox::Construct( const FArguments& InArgs )
@@ -115,8 +116,8 @@ void SSearchBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	CurrentTime = InCurrentTime;
 
 	if ( bTypingFilterText && InCurrentTime > LastTypeTime + FilterDelayAfterTyping)
-	{
-		OnTextChangedDelegate.ExecuteIfBound( LastPendingTextChangedValue );
+{
+	OnTextChangedDelegate.ExecuteIfBound( LastPendingTextChangedValue );
 		bTypingFilterText = false;
 	}
 }
@@ -165,10 +166,10 @@ FReply SSearchBox::OnClearSearch()
 {
 	// We clear the focus to commit any unset values as the search box is typically used for filtering
 	// and the widget could get immediately destroyed before committing its value.
-	FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 
 	this->SetText( FText::GetEmpty() );
-	return FReply::Handled().SetKeyboardFocus( EditableText.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+	return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
 FSlateFontInfo SSearchBox::GetWidgetFont() const

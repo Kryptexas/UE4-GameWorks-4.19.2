@@ -4,6 +4,7 @@
 
 #include "GameplayAbilityTargetActor.h"
 #include "GameplayAbilityWorldReticle.h"
+#include "GameplayAbilityTargetDataFilter.h"
 #include "GameplayAbilityTargetActor_Radius.generated.h"
 
 /** Selects everything within a given radius of the source actor. */
@@ -18,6 +19,7 @@ public:
 	
 	virtual void ConfirmTargetingAndContinue() override;
 
+	/** Radius of target acquisition around the ability's start location. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Radius)
 	float Radius;
 

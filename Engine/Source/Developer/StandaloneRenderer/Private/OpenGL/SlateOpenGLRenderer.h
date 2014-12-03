@@ -45,6 +45,7 @@ struct FSlateOpenGLContext
 	SDL_Window* WindowHandle;
 	SDL_GLContext Context;
 	bool bReleaseWindowOnDestroy;
+	GLuint VertexArrayObject; 
 #else
 #error "Unknown platform"
 #endif
@@ -145,6 +146,8 @@ public:
 	virtual void ReleaseDynamicResource( const FSlateBrush& Brush ) override;
 	virtual bool GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes) override;
 	virtual void LoadStyleResources(const ISlateStyle& Style) override;
+	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) override;
+	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
 
 private:
 	/** 

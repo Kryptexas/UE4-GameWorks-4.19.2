@@ -96,7 +96,7 @@ protected:
 	void AppendBytes(const void* Data, int32 Length)
 	{
 		const int32 Offset = CompressedBytes.AddUninitialized(Length);
-		FMemory::Memcpy(CompressedBytes.GetTypedData() + Offset, Data, Length);
+		FMemory::Memcpy(CompressedBytes.GetData() + Offset, Data, Length);
 	}
 
 	void CompressTranslation_Identity(const FTranslationTrack& TranslationData)
@@ -122,7 +122,7 @@ protected:
 		const int32 NumKeys = TranslationData.PosKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds(TranslationData.PosKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds(TranslationData.PosKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -179,7 +179,7 @@ protected:
 		const int32 NumKeys = TranslationData.PosKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds(TranslationData.PosKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds(TranslationData.PosKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -225,7 +225,7 @@ protected:
 		const int32 NumKeys = TranslationData.PosKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds(TranslationData.PosKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds(TranslationData.PosKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -371,7 +371,7 @@ protected:
 		const int32 NumKeys = RotationData.RotKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds = CalculateQuatACF96Bounds(RotationData.RotKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds = CalculateQuatACF96Bounds(RotationData.RotKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -459,7 +459,7 @@ protected:
 		const int32 NumKeys = RotationData.RotKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds = CalculateQuatACF96Bounds(RotationData.RotKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds = CalculateQuatACF96Bounds(RotationData.RotKeys.GetData(), NumKeys);
 		FVector Range(KeyBounds.Max - KeyBounds.Min);
 
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
@@ -607,7 +607,7 @@ protected:
 		const int32 NumKeys = ScaleData.ScaleKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds(ScaleData.ScaleKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds(ScaleData.ScaleKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -664,7 +664,7 @@ protected:
 		const int32 NumKeys = ScaleData.ScaleKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds(ScaleData.ScaleKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds(ScaleData.ScaleKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -710,7 +710,7 @@ protected:
 		const int32 NumKeys = ScaleData.ScaleKeys.Num();
 
 		// Determine the bounds
-		const FBox KeyBounds(ScaleData.ScaleKeys.GetTypedData(), NumKeys);
+		const FBox KeyBounds(ScaleData.ScaleKeys.GetData(), NumKeys);
 		const bool bHasX = (FMath::Abs(KeyBounds.Max.X) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.X) >= ZeroingThreshold);
 		const bool bHasY = (FMath::Abs(KeyBounds.Max.Y) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Y) >= ZeroingThreshold);
 		const bool bHasZ = (FMath::Abs(KeyBounds.Max.Z) >= ZeroingThreshold) || (FMath::Abs(KeyBounds.Min.Z) >= ZeroingThreshold);
@@ -928,8 +928,8 @@ public:
 	}
 };
 
-UAnimCompress_RemoveLinearKeys::UAnimCompress_RemoveLinearKeys(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_RemoveLinearKeys::UAnimCompress_RemoveLinearKeys(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bNeedsSkeleton = true;
 	Description = TEXT("Remove Linear Keys");
@@ -945,8 +945,8 @@ UAnimCompress_RemoveLinearKeys::UAnimCompress_RemoveLinearKeys(const class FPost
 }
 
 
-UAnimCompress_PerTrackCompression::UAnimCompress_PerTrackCompression(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_PerTrackCompression::UAnimCompress_PerTrackCompression(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Compress each track independently");
 	MaxPosDiffBitwise = 0.007f;
@@ -1184,7 +1184,7 @@ void UAnimCompress_PerTrackCompression::CompressUsingUnderlyingCompressor(
 		bool bSkipTranslationTrack = false;
 #if( SKIP_FORCEMESHTRANSLATION_TRACKS || SKIP_ANIMROTATIONONLY_TRACKS )
 		{
-			USkeleton * Skeleton = AnimSeq->Skeleton;
+			USkeleton* Skeleton = AnimSeq->Skeleton;
 			check (Skeleton);
 			int32 const BoneTreeIndex = AnimSeq->TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 			bSkipTranslationTrack = (Skeleton->GetBoneTranslationRetargetingMode(BoneTreeIndex) == EBoneTranslationRetargetingMode::Skeleton);

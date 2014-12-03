@@ -11,7 +11,10 @@ namespace UnrealBuildTool
 {
 	public class AndroidToolChain : UEToolChain
 	{
-		static private bool bHasNDKExtensionsCompiled = false;
+		static private string ModuleHasNDKExtensionsCompiled = null;
+
+		// the number of the clang version being used to compile 
+		static private float ClangVersionFloat = 0;
 
 		// the list of architectures we will compile for
 		static private string[] Arches = null;
@@ -187,8 +190,13 @@ namespace UnrealBuildTool
 			string ClangVersion = "";
 			string GccVersion = "";
 
-			// prefer clang 3.3, but fall back to 3.1 if needed for now
-			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")))
+			// prefer clang 3.5, but fall back if needed for now
+			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")))
+			{
+				ClangVersion = "3.5";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")))
 			{
 				ClangVersion = "3.3";
 				GccVersion = "4.8";
@@ -202,6 +210,9 @@ namespace UnrealBuildTool
 			{
 				return;
 			}
+
+			ClangVersionFloat = float.Parse(ClangVersion, System.Globalization.CultureInfo.InvariantCulture);
+			// Console.WriteLine("Compiling with clang {0}", ClangVersionFloat);
 
             string ArchitecturePath = "";
             string ArchitecturePathWindows32 = @"prebuilt\windows";
@@ -269,6 +280,13 @@ namespace UnrealBuildTool
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
 
+			// new for clang4.5 warnings:
+			if (ClangVersionFloat >= 3.5)
+			{
+				Result += " -Wno-undefined-bool-conversion"; // 'this' pointer cannot be null in well-defined C++ code; pointer may be assumed to always convert to true (if (this))
+
+			}
+
 			// shipping builds will cause this warning with "ensure", so disable only in those case
 			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
@@ -276,7 +294,7 @@ namespace UnrealBuildTool
 			}
 
 			// debug info
-			if (CompileEnvironment.Config.bCreateDebugInfo)
+            if (CompileEnvironment.Config.bCreateDebugInfo && !UnrealBuildTool.BuildingRocket())
 			{
 				Result += " -g2 -gdwarf-2";
 			}
@@ -406,7 +424,12 @@ namespace UnrealBuildTool
 			Result += " -Wl,-shared,-Bsymbolic";
 			Result += " -Wl,--no-undefined";
 
-			if (Architecture == "-armv7")
+            if (UnrealBuildTool.BuildingRocket())
+            {
+                Result += " -Wl,--strip-debug";
+            }
+
+            if (Architecture == "-armv7")
 			{
 				Result += ToolchainParamsArm;
 				Result += " -march=armv7-a";
@@ -534,14 +557,18 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		static void ConditionallyAddNDKSourceFiles(List<FileItem> SourceFiles)
+		static void ConditionallyAddNDKSourceFiles(List<FileItem> SourceFiles, string ModuleName)
 		{
-			if (!bHasNDKExtensionsCompiled)
+			// We need to add the extra glue and cpu code only once to the first module. But since
+			// this is called multiple times for the same module we remember the module we
+			// add the extra code to and add it to that always. I.e. it makes this call
+			// consistent within one UBT invocation.
+			if (null == ModuleHasNDKExtensionsCompiled || ModuleHasNDKExtensionsCompiled.Equals(ModuleName))
 			{
 				SourceFiles.Add(FileItem.GetItemByPath(Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/native_app_glue/android_native_app_glue.c"));
 				SourceFiles.Add(FileItem.GetItemByPath(Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/cpufeatures/cpu-features.c"));
+				ModuleHasNDKExtensionsCompiled = ModuleName;
 			}
-			bHasNDKExtensionsCompiled = true;
 		}
 
 		// cache the location of NDK tools
@@ -561,7 +588,7 @@ namespace UnrealBuildTool
 
 			if (!bHasPrintedApiLevel)
 			{
-				Console.WriteLine("Compiling with NDK API '{0}'", GetNdkApiLevel());
+				Console.WriteLine("Compiling Native code with NDK API '{0}'", GetNdkApiLevel());
 				bHasPrintedApiLevel = true;
 			}
 
@@ -576,7 +603,7 @@ namespace UnrealBuildTool
 			// Directly added NDK files for NDK extensions
 			if (!UnrealBuildTool.RunningRocket())
 			{
-				ConditionallyAddNDKSourceFiles(SourceFiles);
+				ConditionallyAddNDKSourceFiles(SourceFiles, ModuleName);
 			}
 
 			// Add preprocessor definitions to the argument list.

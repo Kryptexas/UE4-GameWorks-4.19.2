@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
+#include "UdpSerializeMessageTask.h"
 
 
 /* FUdpMessageTransport structors
@@ -20,18 +21,32 @@ FUdpMessageTransport::FUdpMessageTransport( const FIPv4Endpoint& InLocalEndpoint
 { }
 
 
-FUdpMessageTransport::~FUdpMessageTransport( )
+FUdpMessageTransport::~FUdpMessageTransport()
 {
 	StopTransport();
 }
 
 
-/* ITransportMessages interface
+/* IMessageTransport interface
  *****************************************************************************/
 
-bool FUdpMessageTransport::StartTransport( )
+bool FUdpMessageTransport::StartTransport()
 {
-	// create network sockets
+	// create & initialize unicast socket
+	UnicastSocket = FUdpSocketBuilder(TEXT("UdpMessageUnicastSocket"))
+		.AsNonBlocking()
+		.WithMulticastLoopback()
+		.BoundToEndpoint(LocalEndpoint)
+		.WithReceiveBufferSize(UDP_MESSAGING_RECEIVE_BUFFER_SIZE);
+
+	if (UnicastSocket == nullptr)
+	{
+		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
+
+		return false;
+	}
+
+	// create & initialize multicast socket (optional)
 	MulticastSocket = FUdpSocketBuilder(TEXT("UdpMessageMulticastSocket"))
 		.AsNonBlocking()
 		.AsReusable()
@@ -39,45 +54,27 @@ bool FUdpMessageTransport::StartTransport( )
 		.BoundToPort(MulticastEndpoint.GetPort())
 		.JoinedToGroup(MulticastEndpoint.GetAddress())
 		.WithMulticastLoopback()
-		.WithMulticastTtl(MulticastTtl);
+		.WithMulticastTtl(MulticastTtl)
+		.WithReceiveBufferSize(UDP_MESSAGING_RECEIVE_BUFFER_SIZE);
 
 	if (MulticastSocket == nullptr)
 	{
 		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create multicast socket on %s, joined to %s with TTL %i"), *LocalEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString(), MulticastTtl);
-
-		return false;
 	}
-
-	UnicastSocket = FUdpSocketBuilder(TEXT("UdpMessageUnicastSocket"))
-		.AsNonBlocking()
-		.WithMulticastLoopback()
-		.BoundToEndpoint(LocalEndpoint);
-
-	if (UnicastSocket == nullptr)
-	{
-		SocketSubsystem->DestroySocket(MulticastSocket);
-		MulticastSocket = nullptr;
-
-		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
-
-		return false;
-	}
-
-	// adjust buffer sizes
-	int32 NewSize = 0;
-	MulticastSocket->SetReceiveBufferSize(2 * 1024 * 1024, NewSize);
-	UnicastSocket->SetReceiveBufferSize(2 * 1024 * 1024, NewSize);
-
-	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
 
 	// initialize threads
+	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
+
 	MessageProcessor = new FUdpMessageProcessor(UnicastSocket, FGuid::NewGuid(), MulticastEndpoint);
-	MessageProcessor->OnMessageReceived().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReceived);
+	MessageProcessor->OnMessageReassembled().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReassembled);
 	MessageProcessor->OnNodeDiscovered().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeDiscovered);
 	MessageProcessor->OnNodeLost().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeLost);
 
-	MulticastReceiver = new FUdpSocketReceiver(MulticastSocket, ThreadWaitTime, TEXT("UdpMessageMulticastReceiver"));
-	MulticastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
+	if (MulticastSocket != nullptr)
+	{
+		MulticastReceiver = new FUdpSocketReceiver(MulticastSocket, ThreadWaitTime, TEXT("UdpMessageMulticastReceiver"));
+		MulticastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
+	}
 
 	UnicastReceiver = new FUdpSocketReceiver(UnicastSocket, ThreadWaitTime, TEXT("UdpMessageUnicastReceiver"));
 	UnicastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
@@ -86,7 +83,7 @@ bool FUdpMessageTransport::StartTransport( )
 }
 
 
-void FUdpMessageTransport::StopTransport( )
+void FUdpMessageTransport::StopTransport()
 {
 	// shut down threads
 	delete MulticastReceiver;
@@ -113,23 +110,31 @@ void FUdpMessageTransport::StopTransport( )
 }
 
 
-bool FUdpMessageTransport::TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients )
+bool FUdpMessageTransport::TransportMessage( const IMessageContextRef& Context, const TArray<FGuid>& Recipients )
 {
 	if (MessageProcessor == nullptr)
 	{
 		return false;
 	}
 
-	// published message
-	if (Recipients.Num() == 0)
+	if (Context->GetRecipients().Num() > UDP_MESSAGING_MAX_RECIPIENTS)
 	{
-		return MessageProcessor->EnqueueOutboundMessage(Data, FGuid());
+		return false;
 	}
 
-	// sent message
+	FUdpSerializedMessageRef SerializedMessage = MakeShareable(new FUdpSerializedMessage());
+	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
+
+	// publish the message
+	if (Recipients.Num() == 0)
+	{
+		return MessageProcessor->EnqueueOutboundMessage(SerializedMessage, FGuid());
+	}
+
+	// send the message
 	for (int32 Index = 0; Index < Recipients.Num(); ++Index)
 	{
-		if (!MessageProcessor->EnqueueOutboundMessage(Data, Recipients[Index]))
+		if (!MessageProcessor->EnqueueOutboundMessage(SerializedMessage, Recipients[Index]))
 		{
 			return false;
 		}
@@ -141,6 +146,18 @@ bool FUdpMessageTransport::TransportMessage( const IMessageDataRef& Data, const 
 
 /* FUdpMessageTransport event handlers
  *****************************************************************************/
+
+void FUdpMessageTransport::HandleProcessorMessageReassembled( const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
+{
+	// @todo gmp: move message deserialization into an async task
+	FUdpDeserializedMessageRef DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
+
+	if (DeserializedMessage->Deserialize(ReassembledMessage))
+	{
+		MessageReceivedDelegate.ExecuteIfBound(DeserializedMessage, NodeId);
+	}
+}
+
 
 void FUdpMessageTransport::HandleSocketDataReceived( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender )
 {

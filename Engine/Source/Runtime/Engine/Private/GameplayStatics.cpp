@@ -6,18 +6,20 @@
 #include "PlatformFeatures.h"
 #include "LatentActions.h"
 #include "IForceFeedbackSystem.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/Character.h"
+#include "Sound/DialogueWave.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundCue.h"
 #include "Engine/GameInstance.h"
+#include "GameFramework/SaveGame.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
 
-UGameplayStatics::UGameplayStatics(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayStatics::UGameplayStatics(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -555,15 +557,17 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 	return PSC;
 }
 
-void UGameplayStatics::BreakHitResult(const FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem)
+void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, float& Time, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem)
 {
+	bBlockingHit = Hit.bBlockingHit;
+	Time = Hit.Time;
 	Location = Hit.Location;
 	Normal = Hit.Normal;
 	ImpactPoint = Hit.ImpactPoint;
-	ImpactNormal = Hit.ImpactNormal;
+	ImpactNormal = Hit.ImpactNormal;	
 	PhysMat = Hit.PhysMaterial.Get();
 	HitActor = Hit.GetActor();
-	HitComponent = Hit.Component.Get();
+	HitComponent = Hit.GetComponent();
 	HitBoneName = Hit.BoneName;
 	HitItem = Hit.Item;
 }

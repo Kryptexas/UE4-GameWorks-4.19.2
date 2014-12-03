@@ -71,10 +71,14 @@ protected:
 };
 
 /** cache of instances with sorted tests */
+USTRUCT()
 struct FEnvQueryInstanceCache
 {
-	/** query template */
-	TWeakObjectPtr<UEnvQuery> Template;
+	GENERATED_USTRUCT_BODY()
+
+	/** query template, duplicated in manager's world */
+	UPROPERTY()
+	UEnvQuery* Template;
 
 	/** instance to duplicate */
 	FEnvQueryInstance Instance;
@@ -107,6 +111,10 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 {
 	GENERATED_UCLASS_BODY()
 
+	// We need to implement GetWorld() so that any EQS-related blueprints (such as blueprint contexts) can implement
+	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.
+	virtual class UWorld* GetWorld() const;
+
 	/** [FTickableGameObject] tick function */
 	virtual void Tick(float DeltaTime) override;
 
@@ -129,6 +137,9 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** finds UEnvQuery matching QueryName by first looking at instantiated queries (from InstanceCache)
 	 *	falling back to looking up all UEnvQuery and testing their name */
 	UEnvQuery* FindQueryTemplate(const FString& QueryName) const;
+
+	/** creates local context object */
+	UEnvQueryContext* PrepareLocalContext(TSubclassOf<UEnvQueryContext> ContextClass);
 
 	/** execute query */
 	bool AbortQuery(int32 RequestID);
@@ -160,7 +171,15 @@ protected:
 	TArray<TSharedPtr<FEnvQueryInstance> > RunningQueries;
 
 	/** cache of instances */
+	UPROPERTY(transient)
 	TArray<FEnvQueryInstanceCache> InstanceCache;
+
+	/** local cache of context objects for managing BP based objects */
+	UPROPERTY(transient)
+	TArray<UEnvQueryContext*> LocalContexts;
+
+	/** local contexts mapped by class names */
+	TMap<FName, UEnvQueryContext*> LocalContextMap;
 
 	/** next ID for running query */
 	int32 NextQueryID;

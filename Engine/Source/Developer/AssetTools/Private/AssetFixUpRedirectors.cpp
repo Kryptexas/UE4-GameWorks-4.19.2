@@ -140,13 +140,16 @@ bool FAssetFixUpRedirectors::UpdatePackageStatus(const TArray<FRedirectorRefs>& 
 
 void FAssetFixUpRedirectors::LoadReferencingPackages(TArray<FRedirectorRefs>& RedirectorsToFix, TArray<UPackage*>& OutReferencingPackagesToSave) const
 {
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "LoadingReferencingPackages", "Loading Referencing Packages..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTask( RedirectorsToFix.Num(), LOCTEXT( "LoadingReferencingPackages", "Loading Referencing Packages..." ) );
+	SlowTask.MakeDialog();
+
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 	// Load all packages that reference each redirector, if possible
 	for ( auto RedirectorRefsIt = RedirectorsToFix.CreateIterator(); RedirectorRefsIt; ++RedirectorRefsIt )
 	{
+		SlowTask.EnterProgressFrame(1);
+
 		FRedirectorRefs& RedirectorRefs = *RedirectorRefsIt;
 		if ( ISourceControlModule::Get().IsEnabled() )
 		{

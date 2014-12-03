@@ -22,12 +22,10 @@ void SConstraintCanvas::Construct( const SConstraintCanvas::FArguments& InArgs )
 	}
 }
 
-
 void SConstraintCanvas::ClearChildren( )
 {
 	Children.Empty();
 }
-
 
 int32 SConstraintCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
@@ -149,7 +147,6 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 	}
 }
 
-
 int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
@@ -171,13 +168,35 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	return MaxLayerId;
 }
 
-
 FVector2D SConstraintCanvas::ComputeDesiredSize() const
 {
-	// ConstraintCanvas widgets have no desired size -- their size is always determined by their container
-	return FVector2D::ZeroVector;
-}
+	FVector2D DesiredSize(0,0);
 
+	// Arrange the children now in their proper z-order.
+	for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+	{
+		const SConstraintCanvas::FSlot& CurChild = Children[ChildIndex];
+
+		const FMargin Offset = CurChild.OffsetAttr.Get();
+		const FVector2D Alignment = CurChild.AlignmentAttr.Get();
+		const FAnchors Anchors = CurChild.AnchorsAttr.Get();
+
+		const FVector2D SlotSize = FVector2D(Offset.Right, Offset.Bottom);
+		const FVector2D WidgetDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+
+		const bool AutoSize = CurChild.AutoSizeAttr.Get();
+
+		const FVector2D Size = AutoSize ? WidgetDesiredSize : SlotSize;
+
+		const bool bIsDockedHorizontally = ( Anchors.Minimum.X == Anchors.Maximum.X ) && ( Anchors.Minimum.X == 0 || Anchors.Minimum.X == 1 );
+		const bool bIsDockedVertically = ( Anchors.Minimum.Y == Anchors.Maximum.Y ) && ( Anchors.Minimum.Y == 0 || Anchors.Minimum.Y == 1 );
+
+		DesiredSize.X = FMath::Max(DesiredSize.X, Size.X + ( bIsDockedHorizontally ? FMath::Abs(Offset.Left) : 0.0f ));
+		DesiredSize.Y = FMath::Max(DesiredSize.Y, Size.Y + ( bIsDockedVertically ? FMath::Abs(Offset.Top) : 0.0f ));
+	}
+
+	return DesiredSize;
+}
 
 FChildren* SConstraintCanvas::GetChildren()
 {

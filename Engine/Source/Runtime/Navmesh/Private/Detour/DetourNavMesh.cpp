@@ -1073,7 +1073,7 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 		// Find polygon to connect to.
 		const float* p = &targetCon->pos[3];
 		float nearestPt[3];
-		dtPolyRef ref = findNearestPolyInTile(tile, p, ext, nearestPt);
+		dtPolyRef ref = findNearestPolyInTile(tile, p, ext, nearestPt, true);
 		if (!ref)
 			continue;
 		// findNearestPoly may return too optimistic results, further check to make sure. 
@@ -1187,7 +1187,7 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 		// Find polygon to connect to.
 		const float* p = &con->pos[0]; // First vertex
 		float nearestPt[3];
-		dtPolyRef ref = findNearestPolyInTile(tile, p, ext, nearestPt);
+		dtPolyRef ref = findNearestPolyInTile(tile, p, ext, nearestPt, true);
 		if (!ref) continue;
 		// findNearestPoly may return too optimistic results, further check to make sure. 
 		if (dtSqr(nearestPt[0]-p[0])+dtSqr(nearestPt[2]-p[2]) > dtSqr(con->rad))
@@ -1372,7 +1372,7 @@ void dtNavMesh::closestPointOnPolyInTile(const dtMeshTile* tile, unsigned int ip
 
 dtPolyRef dtNavMesh::findNearestPolyInTile(const dtMeshTile* tile,
 										   const float* center, const float* extents,
-										   float* nearestPt) const
+										   float* nearestPt, bool bExcludeUnwalkable) const
 {
 	float bmin[3], bmax[3];
 	dtVsub(bmin, center, extents);
@@ -1380,7 +1380,7 @@ dtPolyRef dtNavMesh::findNearestPolyInTile(const dtMeshTile* tile,
 	
 	// Get nearby polygons from proximity grid.
 	dtPolyRef polys[128];
-	int polyCount = queryPolygonsInTile(tile, bmin, bmax, polys, 128);
+	int polyCount = queryPolygonsInTile(tile, bmin, bmax, polys, 128, bExcludeUnwalkable);
 	
 	// Find nearest polygon amongst the nearby polygons.
 	dtPolyRef nearest = 0;
@@ -1410,7 +1410,7 @@ dtPolyRef dtNavMesh::findNearestPolyInTile(const dtMeshTile* tile,
 }
 
 int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
-								   dtPolyRef* polys, const int maxPolys) const
+									dtPolyRef* polys, const int maxPolys, bool bExcludeUnwalkable) const
 {
 	if (tile->bvTree)
 	{
@@ -1448,7 +1448,12 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, co
 			if (isLeafNode && overlap)
 			{
 				if (n < maxPolys)
-					polys[n++] = base | (dtPolyRef)node->i;
+				{
+					if (!bExcludeUnwalkable || tile->polys[node->i].flags)
+					{
+						polys[n++] = base | (dtPolyRef)node->i;
+					}
+				}
 			}
 			
 			if (overlap || isLeafNode)
@@ -1473,6 +1478,9 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, co
 			// Do not return off-mesh connection polygons.
 			if (p->getType() != DT_POLYTYPE_GROUND)
 				continue;
+			if (p->flags == 0 && bExcludeUnwalkable)
+				continue;
+
 			// Calc polygon bounds.
 			const float* v = &tile->verts[p->verts[0]*3];
 			dtVcopy(bmin, v);
@@ -1957,9 +1965,12 @@ dtStatus dtNavMesh::removeTile(dtTileRef ref, unsigned char** data, int* dataSiz
 		for (int j = 0; j < nneis; ++j)
 			unconnectExtLinks(neis[j], tile);
 	}
-		
+
+	// Whether caller wants to own tile data
+	bool callerOwnsData = (data && dataSize);
+
 	// Reset tile.
-	if (tile->flags & DT_TILE_FREE_DATA)
+	if ((tile->flags & DT_TILE_FREE_DATA) && !callerOwnsData)
 	{
 		// Owns data
 		dtFree(tile->data);

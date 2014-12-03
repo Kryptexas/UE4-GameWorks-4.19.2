@@ -4,7 +4,7 @@
 #pragma once
 #include "BlockingVolume.generated.h"
 
-/** An invisible volume used to block other actors */
+/** An invisible volume used to block other actors. */
 UCLASS(MinimalAPI)
 class ABlockingVolume : public AVolume
 {

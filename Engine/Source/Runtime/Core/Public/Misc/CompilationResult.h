@@ -2,9 +2,6 @@
 
 #pragma once
 
-/*=============================================================================
-	CompilationResult.h:  Defines an enum for return codes between build tools.
-=============================================================================*/
 
 /**
  * Enumerates possible results of a compilation operation.
@@ -26,7 +23,9 @@ namespace ECompilationResult
 		/** Compilation failed because generated code changed which was not supported */
 		FailedDueToHeaderChange = 1,
 		/** Compilation failed due to compilation errors */
-		OtherCompilationError,
+		OtherCompilationError = 2,
+		/** The process has most likely crashed. This is what UE returns in case of an assert */
+		CrashOrAssert = 3,
 		/** Compilation is not supported in the current build */
 		Unsupported,
 		/** Unknown error */
@@ -50,6 +49,8 @@ namespace ECompilationResult
 			return TEXT("FailedDueToHeaderChange");
 		case ECompilationResult::OtherCompilationError:
 			return TEXT("OtherCompilationError");
+		case ECompilationResult::CrashOrAssert:
+			return TEXT("CrashOrAssert");
 		case ECompilationResult::Unsupported:
 			return TEXT("Unsupported");
 		};

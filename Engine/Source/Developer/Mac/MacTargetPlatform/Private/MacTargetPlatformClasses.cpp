@@ -11,6 +11,6 @@
 /* UMacTargetSettings structors
  *****************************************************************************/
 
-UMacTargetSettings::UMacTargetSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMacTargetSettings::UMacTargetSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }

@@ -99,8 +99,8 @@ TSharedRef< FHyperlinkDecorator > FHyperlinkDecorator::Create( FString Id, const
 }
 
 FHyperlinkDecorator::FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate, const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate )
-	: Id( InId )
-	, NavigateDelegate( InNavigateDelegate )
+	: NavigateDelegate( InNavigateDelegate )
+	, Id(InId)
 	, ToolTipTextDelegate( InToolTipTextDelegate )
 	, ToolTipDelegate( InToolTipDelegate )
 {
@@ -122,12 +122,20 @@ bool FHyperlinkDecorator::Supports( const FTextRunParseResults& RunParseResult, 
 TSharedRef< ISlateRun > FHyperlinkDecorator::Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style)
 {
 	FString StyleName = TEXT("Hyperlink");
+	FString TextStyleName = TEXT("");
 
 	const FTextRange* const MetaDataStyleNameRange = RunParseResult.MetaData.Find( TEXT("style") );
 	if ( MetaDataStyleNameRange != NULL )
 	{
 		const FString MetaDataStyleName = OriginalText.Mid(MetaDataStyleNameRange->BeginIndex, MetaDataStyleNameRange->EndIndex - MetaDataStyleNameRange->BeginIndex);
 		StyleName = *MetaDataStyleName;
+	}
+
+	const FTextRange* const MetaDataTextStyleNameRange = RunParseResult.MetaData.Find(TEXT("textstyle"));
+	if (MetaDataTextStyleNameRange != NULL)
+	{
+		const FString MetaDataTextStyleName = OriginalText.Mid(MetaDataTextStyleNameRange->BeginIndex, MetaDataTextStyleNameRange->EndIndex - MetaDataTextStyleNameRange->BeginIndex);
+		TextStyleName = *MetaDataTextStyleName;
 	}
 
 	FTextRange ModelRange;
@@ -146,6 +154,13 @@ TSharedRef< ISlateRun > FHyperlinkDecorator::Create(const TSharedRef<class FText
 		RunInfo.MetaData.Add(Pair.Key, OriginalText.Mid( Pair.Value.BeginIndex, Pair.Value.EndIndex - Pair.Value.BeginIndex));
 	}
 
-	return FSlateHyperlinkRun::Create( RunInfo, InOutModelText, Style->GetWidgetStyle<FHyperlinkStyle>( FName( *StyleName ) ), NavigateDelegate, ToolTipDelegate, ToolTipTextDelegate, ModelRange );
+	FHyperlinkStyle HyperlinkStyle = Style->GetWidgetStyle<FHyperlinkStyle>(FName(*StyleName));
+
+	if (!TextStyleName.IsEmpty() && Style->HasWidgetStyle<FTextBlockStyle>(FName(*TextStyleName)))
+	{
+		HyperlinkStyle.SetTextStyle(Style->GetWidgetStyle<FTextBlockStyle>(FName(*TextStyleName)));
+	}
+
+	return FSlateHyperlinkRun::Create(RunInfo, InOutModelText, HyperlinkStyle, NavigateDelegate, ToolTipDelegate, ToolTipTextDelegate, ModelRange);
 }
 #endif //WITH_FANCY_TEXT

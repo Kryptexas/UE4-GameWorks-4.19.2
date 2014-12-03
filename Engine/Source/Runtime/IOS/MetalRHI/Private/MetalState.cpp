@@ -286,10 +286,9 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 		uint8* Key = BlendSettingsToUniqueKeyMap.Find(BlendBitMask);
 		if (Key == NULL)
 		{
-			NSLog(@"Making a new key [BlendBitMask: %x, Key: %d]", BlendBitMask, NextKey);
 			Key = &BlendSettingsToUniqueKeyMap.Add(BlendBitMask, NextKey++);
 
-			// only giving 5 bits to the key, we need 4 of them
+			// only giving 5 bits to the key, since we need to pack a bunch of them into 64 bits
 			checkf(NextKey < 32, TEXT("Too many unique blend states to fit into the PipelineStateHash"));
 		}
 		// set the key

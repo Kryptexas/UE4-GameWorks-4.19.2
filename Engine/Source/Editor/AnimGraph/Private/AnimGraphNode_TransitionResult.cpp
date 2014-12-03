@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "UAnimGraphNode_TransitionResult"
 
-UAnimGraphNode_TransitionResult::UAnimGraphNode_TransitionResult(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_TransitionResult::UAnimGraphNode_TransitionResult(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -24,12 +24,13 @@ protected:
 	/** The toolbar extension for this mode */
 	TSharedPtr<FExtender> ToolbarExtender;
 
+	/** The workspace menu category for this mode */
+	TSharedPtr<FWorkspaceItem> WorkspaceMenuCategory;
+
 public:
-	FApplicationMode(FName InModeName)
-		: ModeName(InModeName)
-	{
-		ToolbarExtender = MakeShareable(new FExtender);
-	}
+	FApplicationMode(FName InModeName);
+
+	FApplicationMode(FName InModeName, FText(*GetLocalizedMode)(const FName));
 
 	virtual ~FApplicationMode() {}
 
@@ -46,4 +47,7 @@ public:
 	}
 
 	TSharedPtr<FExtender> GetToolbarExtender() { return ToolbarExtender; }
+
+	/** @return The the workspace category for this asset editor */
+	TSharedRef<FWorkspaceItem> GetWorkspaceMenuCategory() { return WorkspaceMenuCategory.ToSharedRef(); }
 };

@@ -42,9 +42,6 @@ class SEditorTutorials : public SCompoundWidget
 	/** Launch a tutorial - will interrogate parent to get the tutorial data to display */
 	void LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited);
 
-	/** Show the tutorials browser in this window */
-	void ShowBrowser(const FString& InFilter);
-
 	/** hide the tutorials browser in this window */
 	void HideContent();
 
@@ -89,12 +86,6 @@ private:
 	float GetProgress() const;
 
 private:
-	/** The root widget of the tutorial home page */
-	TSharedPtr<STutorialsBrowser> TutorialHome;
-
-	/** Navigation widget */
-	TSharedPtr<SWidget> NavigationWidget;
-
 	/** Box that contains varied content for current tutorial */
 	TSharedPtr<SHorizontalBox> ContentBox;
 

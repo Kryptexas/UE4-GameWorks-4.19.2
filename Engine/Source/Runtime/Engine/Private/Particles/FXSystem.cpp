@@ -162,10 +162,12 @@ void FFXSystem::Tick(float DeltaSeconds)
 		// Test GPU sorting if requested.
 		if (FXConsoleVariables::TestGPUSort.GetValueOnGameThread() != 0)
 		{
-			TestGPUSort((EGPUSortTest)FXConsoleVariables::TestGPUSort.GetValueOnGameThread());
+			TestGPUSort((EGPUSortTest)FXConsoleVariables::TestGPUSort.GetValueOnGameThread(), GetFeatureLevel());
 			// Reset CVar
 			static IConsoleVariable* CVarTestGPUSort = IConsoleManager::Get().FindConsoleVariable(TEXT("FX.TestGPUSort"));
-			CVarTestGPUSort->Set(0);
+
+			// todo: bad use of console variables, this should be a console command 
+			CVarTestGPUSort->Set(0, ECVF_SetByCode);
 		}
 
 		// Before ticking GPU particles, ensure any pending curves have been

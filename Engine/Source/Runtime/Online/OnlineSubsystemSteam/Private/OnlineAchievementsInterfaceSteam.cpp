@@ -135,7 +135,7 @@ void FOnlineAchievementsSteam::OnWriteAchievementsComplete(const FUniqueNetIdSte
 	Delegate.ExecuteIfBound(PlayerId, bWasSuccessful);
 }
 
-void FOnlineAchievementsSteam::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate)
+void FOnlineAchievementsSteam::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
 	if (!bHaveConfiguredAchievements)
 	{
@@ -150,7 +150,7 @@ void FOnlineAchievementsSteam::QueryAchievements(const FUniqueNetId& PlayerId, c
 	StatsInt->QueryAchievementsInternal( FUniqueNetIdSteam(PlayerId), Delegate );
 }
 
-void FOnlineAchievementsSteam::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
+void FOnlineAchievementsSteam::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate )
 {
 	if (!bHaveConfiguredAchievements)
 	{

@@ -309,6 +309,7 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 	case SE_BLEND_Translucent:
 	case SE_BLEND_TranslucentDistanceField:
 	case SE_BLEND_TranslucentDistanceFieldShadowed:
+	case SE_BLEND_TranslucentAlphaOnly:
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		break;
 	case SE_BLEND_Additive:
@@ -344,6 +345,7 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 	case SE_BLEND_Translucent:
 	case SE_BLEND_TranslucentDistanceField:
 	case SE_BLEND_TranslucentDistanceFieldShadowed:
+	case SE_BLEND_TranslucentAlphaOnly:
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
 		break;
 	case SE_BLEND_Additive:
@@ -362,6 +364,8 @@ FGlobalBoundShaderState FBatchedElements::MaskedBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::DistanceFieldBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::HitTestingBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::ColorChannelMaskShaderState;
+FGlobalBoundShaderState FBatchedElements::AlphaOnlyShaderState;
+FGlobalBoundShaderState FBatchedElements::GammaAlphaOnlyShaderState;
 
 /** Global alpha ref test value for rendering masked batched elements */
 float GBatchedElementAlphaRefVal = 128.f;
@@ -545,6 +549,29 @@ void FBatchedElements::PrepareShaders(
 				    BlendMode
 				    );
 		    }
+			else if(BlendMode == SE_BLEND_TranslucentAlphaOnly)
+			{
+				SetBlendState(RHICmdList, BlendMode);
+
+				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
+			    {
+					TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, *AlphaOnlyPixelShader);
+
+					AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
+					AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+			    }
+			    else
+			    {
+					TShaderMapRef<FSimpleElementGammaAlphaOnlyPS> GammaAlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, *GammaAlphaOnlyPixelShader);
+
+					GammaAlphaOnlyPixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
+					GammaAlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+			    }
+			}
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
 				TShaderMapRef<FSimpleElementColorChannelMaskPS> ColorChannelMaskPixelShader(GetGlobalShaderMap(FeatureLevel));
@@ -571,16 +598,16 @@ void FBatchedElements::PrepareShaders(
 					FSimpleElementGammaBasePS* BasePixelShader;
 					FGlobalBoundShaderState* BoundShaderState;
 
+					TShaderMapRef<FSimpleElementGammaPS_SRGB> PixelShader_SRGB(GetGlobalShaderMap(FeatureLevel));
+					TShaderMapRef<FSimpleElementGammaPS_Linear> PixelShader_Linear(GetGlobalShaderMap(FeatureLevel));
 					if (Texture->bSRGB)
 					{
-						static TShaderMapRef<FSimpleElementGammaPS_SRGB> PixelShader(GetGlobalShaderMap(FeatureLevel));
-						BasePixelShader = *PixelShader;
+						BasePixelShader = *PixelShader_SRGB;
 						BoundShaderState = &RegularSRGBBoundShaderState;
 					}
 					else
 					{
-						static TShaderMapRef<FSimpleElementGammaPS_Linear> PixelShader(GetGlobalShaderMap(FeatureLevel));
-						BasePixelShader = *PixelShader;
+						BasePixelShader = *PixelShader_Linear;
 						BoundShaderState = &RegularLinearBoundShaderState;
 					}
 
@@ -881,7 +908,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
 						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
-						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetTypedData(), sizeof(FSimpleElementVertex));
+						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 
 						SpriteList.Empty(6);
 						CurrentTexture = Sprite.Texture;
@@ -889,7 +916,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					}
 
 					int32 SpriteListIndex = SpriteList.AddUninitialized(6);
-					FSimpleElementVertex* Vertex = SpriteList.GetTypedData();
+					FSimpleElementVertex* Vertex = SpriteList.GetData();
 
 					// Compute the sprite vertices.
 					const FVector WorldSpriteX = CameraX * Sprite.SizeX;
@@ -921,7 +948,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					const int32 VertexCount = SpriteList.Num();
 					const int32 PrimCount = VertexCount / 3;
 					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
-					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetTypedData(), sizeof(FSimpleElementVertex));
+					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 				}
 			}
 		}
@@ -947,7 +974,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						0,
 						MeshElement.MaxVertex - MeshElement.MinVertex + 1,
 						MeshElement.Indices.Num() / 3,
-						MeshElement.Indices.GetTypedData(),
+						MeshElement.Indices.GetData(),
 						sizeof(uint16),
 						&MeshVertices[MeshElement.MinVertex],
 						sizeof(FSimpleElementVertex)
@@ -975,7 +1002,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						RHICmdList,
 						PT_QuadList,
 						MeshElement.Vertices.Num() / 4,
-						MeshElement.Vertices.GetTypedData(),
+						MeshElement.Vertices.GetData(),
 						sizeof(FSimpleElementVertex)
 						);
 				}

@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFbxSkeletalMeshImportData::UFbxSkeletalMeshImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxSkeletalMeshImportData::UFbxSkeletalMeshImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bImportMeshesInBoneHierarchy(true)
 {
 }

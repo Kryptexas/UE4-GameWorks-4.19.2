@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "HAL/Platform.h"
+
 
 /**
  * Helper object for batching callback requests and firing on destruction of the FScopedCallback object.
@@ -11,39 +13,36 @@ template< class CallbackType >
 class TScopedCallback
 {
 public:
-	TScopedCallback()
-		:	Counter( 0 )
-	{}
 
-	/**
-	 * Fires a callback if outstanding requests exist.
-	 */
+	TScopedCallback()
+		:	Counter(0)
+	{ }
+
+	/** Fires a callback if outstanding requests exist. */
 	~TScopedCallback()
 	{
-		if ( HasRequests() )
+		if (HasRequests())
 		{
 			CallbackType::FireCallback();
 		}
 	}
 
-	/**
-	 * Request a callback.
-	 */
+	/** Request a callback. */
 	void Request()
 	{
 		++Counter;
 	}
 
-	/**
-	 * Unrequest a callback.
-	 */
+	/** Unrequest a callback. */
 	void Unrequest()
 	{
 		--Counter;
 	}
 
 	/**
-	 * @return	true if there are outstanding requests, false otherwise.
+	 * Checks whether this callback has outstanding requests.
+	 *
+	 * @return true if there are outstanding requests, false otherwise.
 	 */
 	bool HasRequests() const
 	{
@@ -51,7 +50,7 @@ public:
 	}
 
 private:
+
 	/** Counts callback requests. */
 	int32	Counter;
 };
-

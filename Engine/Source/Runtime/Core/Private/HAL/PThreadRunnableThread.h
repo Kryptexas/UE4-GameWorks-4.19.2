@@ -4,7 +4,7 @@
 
 #include <pthread.h>
 
-#if PLATFORM_LINUX
+#if PLATFORM_LINUX || PLATFORM_ANDROID
 #define PTHREAD_NULL -1
 #else
 #define PTHREAD_NULL NULL
@@ -66,6 +66,7 @@ protected:
 		switch (Priority)
 		{
 			// 0 is the lowest, 31 is the highest possible priority for pthread
+            case TPri_Highest: return 30;
 			case TPri_AboveNormal: return 25;
 			case TPri_Normal: return 15;
 			case TPri_BelowNormal: return 5;

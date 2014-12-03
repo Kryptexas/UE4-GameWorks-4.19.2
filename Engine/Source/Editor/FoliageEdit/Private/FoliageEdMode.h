@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	FoliageEdMode.h: Foliage editing
-================================================================================*/
-
 #pragma once
+
 
 // Forward declarations
 class ULandscapeComponent;
@@ -166,9 +163,6 @@ public:
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
-	/** FEdMode: Called when the mode is created */
-	virtual void Initialize() override;
-
 	/** FEdMode: Called when the mode is entered */
 	virtual void Enter() override;
 
@@ -183,12 +177,6 @@ public:
 
 	/** Called when the user changes the current tool in the UI */
 	void NotifyToolChanged();
-
-	/**
-	* Called when the BSP map is rebuilt so that foliage actors can self-update without tying them to the editor.
-	* @param MapChangeFlags Map change type flags.
-	*/
-	void NotifyMapRebuild(uint32 MapChangeFlags) const;
 
 	/**
 	 * Called when the mouse is moved over the viewport

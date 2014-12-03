@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-
+#include "CorePrivatePCH.h"
+#include "Misc/MonitoredProcess.h"
 
 /* FMonitoredProcess structors
  *****************************************************************************/
@@ -12,16 +12,16 @@ FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InPar
 	, Hidden(InHidden)
 	, KillTree(false)
 	, Params(InParams)
-	, ReadPipe(NULL)
-	, StartTime(0)
-	, Thread(NULL)
-	, URL(InURL)
-	, WritePipe(NULL)
+	, ReadPipe(nullptr)
 	, ReturnCode(0)
+	, StartTime(0)
+	, Thread(nullptr)
+	, URL(InURL)
+	, WritePipe(nullptr)
 { }
 
 
-FMonitoredProcess::~FMonitoredProcess( )
+FMonitoredProcess::~FMonitoredProcess()
 {
 	if (IsRunning())
 	{
@@ -35,7 +35,7 @@ FMonitoredProcess::~FMonitoredProcess( )
 /* FMonitoredProcess interface
  *****************************************************************************/
 
-FTimespan FMonitoredProcess::GetDuration( ) const
+FTimespan FMonitoredProcess::GetDuration() const
 {
 	if (IsRunning())
 	{
@@ -46,7 +46,7 @@ FTimespan FMonitoredProcess::GetDuration( ) const
 }
 
 
-bool FMonitoredProcess::Launch( )
+bool FMonitoredProcess::Launch()
 {
 	if (IsRunning())
 	{
@@ -58,7 +58,7 @@ bool FMonitoredProcess::Launch( )
 		return false;
 	}
 
-	ProcessHandle = FPlatformProcess::CreateProc(*URL, *Params, false, Hidden, Hidden, NULL, 0, *FPaths::RootDir(), WritePipe);
+	ProcessHandle = FPlatformProcess::CreateProc(*URL, *Params, false, Hidden, Hidden, nullptr, 0, *FPaths::RootDir(), WritePipe);
 
 	if (!ProcessHandle.IsValid())
 	{
@@ -94,7 +94,7 @@ void FMonitoredProcess::ProcessOutput( const FString& Output )
 /* FRunnable interface
  *****************************************************************************/
 
-uint32 FMonitoredProcess::Run( )
+uint32 FMonitoredProcess::Run()
 {
 	// monitor the process
 	StartTime = FDateTime::UtcNow();
@@ -109,7 +109,7 @@ uint32 FMonitoredProcess::Run( )
 			{
 				FPlatformProcess::TerminateProc(ProcessHandle, KillTree);
 				CanceledDelegate.ExecuteIfBound();
-				Thread = NULL;
+				Thread = nullptr;
 
 				return 0;
 			}
@@ -120,7 +120,7 @@ uint32 FMonitoredProcess::Run( )
 
 	// close output pipes
 	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
-	ReadPipe = WritePipe = NULL;
+	ReadPipe = WritePipe = nullptr;
 
 	// get completion status
 	if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
@@ -129,7 +129,7 @@ uint32 FMonitoredProcess::Run( )
 	}
 
 	CompletedDelegate.ExecuteIfBound(ReturnCode);
-	Thread = NULL;
+	Thread = nullptr;
 
 	return 0;
 }

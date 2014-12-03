@@ -1,11 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================
-	SDeviceProfileDetailsPanel.cpp: Implements the SDeviceProfileDetailsPanel class.
-=============================================================================*/
-
-
 #include "DeviceProfileEditorPCH.h"
 #include "DeviceProfiles/DeviceProfile.h"
 

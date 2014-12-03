@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "HIDInputInterface.h"
 
 
@@ -153,7 +153,8 @@ void HIDInputInterface::FHIDDeviceInfo::SetupMappings()
 		RightAnalogYMapping = kHIDUsage_GD_Rz;
 		RightTriggerAnalogMapping = kHIDUsage_GD_Ry;
 	}
-	else if (VendorID == 0x45e && (ProductID == 0x28e || ProductID == 0x719))
+	else if ((VendorID == 0x45e && (ProductID == 0x28e || ProductID == 0x719)) // Original Microsoft controller
+			 || (VendorID == 0xe6f && ProductID == 0x401)) // GameStop version
 	{
 		// Xbox 360 Controller
 		ButtonsMapping[1]	= 0;	// A

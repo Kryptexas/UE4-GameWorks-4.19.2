@@ -164,9 +164,6 @@
 #ifndef PLATFORM_TCHAR_IS_4_BYTES
 	#define PLATFORM_TCHAR_IS_4_BYTES			0
 #endif
-#ifndef PLATFORM_HAS_vsnprintf
-	#define PLATFORM_HAS_vsnprintf				1
-#endif
 #ifndef PLATFORM_HAS_BSD_TIME
 	#define PLATFORM_HAS_BSD_TIME				1
 #endif
@@ -270,6 +267,19 @@
 
 #ifndef PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
 	#define PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING 1
+#endif
+
+#ifndef PLATFORM_RHI_USES_CONTEXT_OBJECT
+	#define PLATFORM_RHI_USES_CONTEXT_OBJECT 0
+#endif
+
+#ifndef PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	#define PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE		0
+#endif
+
+
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE && !PLATFORM_RHI_USES_CONTEXT_OBJECT
+	#error "PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE requires PLATFORM_RHI_USES_CONTEXT_OBJECT"
 #endif
 
 //These are deprecated old defines that we want to make sure are not used
@@ -398,6 +408,12 @@
 #ifndef OPERATOR_DELETE_THROW_SPEC
 	#define OPERATOR_DELETE_THROW_SPEC
 #endif
+#ifndef OPERATOR_NEW_NOTHROW_SPEC
+	#define OPERATOR_NEW_NOTHROW_SPEC throw()
+#endif
+#ifndef OPERATOR_DELETE_NOTHROW_SPEC
+	#define OPERATOR_DELETE_NOTHROW_SPEC throw()
+#endif
 
 #ifndef checkAtCompileTime
 	#define checkAtCompileTime(expr, msg) \
@@ -409,6 +425,16 @@
 #ifndef DLLEXPORT
 	#define DLLEXPORT
 	#define DLLIMPORT
+#endif
+
+
+#ifndef DEPRECATED_FORGAME
+	#define DEPRECATED_FORGAME(...)
+#endif
+
+// This is a temporary macro, will be removed when TSubobjectPtr can be safely removed
+#ifndef private_subobject
+#define private_subobject public
 #endif
 
 // explicit bool support
@@ -583,12 +609,12 @@ typedef FPlatformTypes::CHAR16		UCS2CHAR;	///< A 16-bit character containing a U
 typedef FPlatformTypes::CHAR16		UTF16CHAR;	///< A 16-bit character containing a UTF16 (Unicode, 16-bit, variable-width) code unit.
 typedef FPlatformTypes::CHAR32		UTF32CHAR;	///< A 32-bit character containing a UTF32 (Unicode, 32-bit, fixed-width) code unit.
 
-typedef FPlatformTypes::UPTRINT UPTRINT;	///< An unsigned integer the same size as a pointer
-typedef FPlatformTypes::PTRINT PTRINT;		///< A signed integer the same size as a pointer
-typedef FPlatformTypes::SIZE_T SIZE_T;		///< A signed integer the same size as a pointer
+typedef FPlatformTypes::UPTRINT UPTRINT;		///< An unsigned integer the same size as a pointer
+typedef FPlatformTypes::PTRINT PTRINT;			///< A signed integer the same size as a pointer
+typedef FPlatformTypes::SIZE_T SIZE_T;			///< An unsigned integer the same size as a pointer, the same as UPTRINT
 
-typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;	///< The type of the NULL constant.
-typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR; ///< The type of the C++ nullptr keyword.
+typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;		///< The type of the NULL constant.
+typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR;	///< The type of the C++ nullptr keyword.
 
 //------------------------------------------------------------------
 // Test the global types

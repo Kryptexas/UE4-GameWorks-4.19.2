@@ -7,6 +7,8 @@
 #include "IHeadMountedDisplay.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
+#include "Camera/CameraAnimInst.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
@@ -14,8 +16,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // APlayerCameraManager
 
-APlayerCameraManager::APlayerCameraManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	static FName NAME_Default(TEXT("Default"));
 
@@ -40,7 +42,7 @@ APlayerCameraManager::APlayerCameraManager(const class FPostConstructInitializeP
 	bFollowHmdOrientation = false;
 
 	// create dummy transform component
-	TransformComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
+	TransformComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
 	RootComponent = TransformComponent;
 }
 
@@ -218,7 +220,7 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 	{
 		UCameraAnimInst* const AnimInst = ActiveAnims[Idx];
 
-		if (!AnimInst->bFinished)
+		if (AnimCameraActor && !AnimInst->bFinished)
 		{
 			// clear out animated camera actor
 			InitTempCameraActor(AnimCameraActor, AnimInst);
@@ -327,13 +329,13 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 	// fov
 	const float FOVMin = 5.f;
 	const float FOVMax = 170.f;
-	InOutPOV.FOV += (AnimatedCamActor->CameraComponent->FieldOfView - AnimInst->InitialFOV) * Scale;
+	InOutPOV.FOV += (AnimatedCamActor->GetCameraComponent()->FieldOfView - AnimInst->InitialFOV) * Scale;
 	InOutPOV.FOV = FMath::Clamp<float>(InOutPOV.FOV, FOVMin, FOVMax);
 
 	// postprocess
-	if (AnimatedCamActor->CameraComponent.Get()->PostProcessBlendWeight > 0.f)
+	if (AnimatedCamActor->GetCameraComponent()->PostProcessBlendWeight > 0.f)
 	{
-		AddCachedPPBlend(AnimatedCamActor->CameraComponent.Get()->PostProcessSettings, AnimatedCamActor->CameraComponent.Get()->PostProcessBlendWeight);
+		AddCachedPPBlend(AnimatedCamActor->GetCameraComponent()->PostProcessSettings, AnimatedCamActor->GetCameraComponent()->PostProcessBlendWeight);
 	}
 }
 
@@ -440,10 +442,10 @@ void APlayerCameraManager::InitTempCameraActor(ACameraActor* CamActor, UCameraAn
 			ACameraActor const* const DefaultCamActor = GetDefault<ACameraActor>();
 			if (DefaultCamActor)
 			{
-				CamActor->CameraComponent->AspectRatio = DefaultCamActor->CameraComponent->AspectRatio;
-				CamActor->CameraComponent->FieldOfView = AnimInstToInitFor->CamAnim->BaseFOV;
-				CamActor->CameraComponent->PostProcessSettings = AnimInstToInitFor->CamAnim->BasePostProcessSettings;
-				CamActor->CameraComponent->PostProcessBlendWeight = AnimInstToInitFor->CamAnim->BasePostProcessBlendWeight;
+				CamActor->GetCameraComponent()->AspectRatio = DefaultCamActor->GetCameraComponent()->AspectRatio;
+				CamActor->GetCameraComponent()->FieldOfView = AnimInstToInitFor->CamAnim->BaseFOV;
+				CamActor->GetCameraComponent()->PostProcessSettings = AnimInstToInitFor->CamAnim->BasePostProcessSettings;
+				CamActor->GetCameraComponent()->PostProcessBlendWeight = AnimInstToInitFor->CamAnim->BasePostProcessBlendWeight;
 			}
 		}
 	}
@@ -485,7 +487,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 	if (ACameraActor* CamActor = Cast<ACameraActor>(OutVT.Target))
 	{
 		// Viewing through a camera actor.
-		CamActor->CameraComponent->GetCameraView(DeltaTime, OutVT.POV);
+		CamActor->GetCameraComponent()->GetCameraView(DeltaTime, OutVT.POV);
 	}
 	else
 	{
@@ -637,6 +639,7 @@ void APlayerCameraManager::Destroyed()
 	if (AnimCameraActor)
 	{
 		AnimCameraActor->Destroy();
+		AnimCameraActor = NULL;
 	}
 	Super::Destroyed();
 }
@@ -1226,3 +1229,6 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 		}
 	}
 }
+
+/** Returns TransformComponent subobject **/
+USceneComponent* APlayerCameraManager::GetTransformComponent() const { return TransformComponent; }

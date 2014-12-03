@@ -18,8 +18,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogDiffPackagesCommandlet, Log, All);
 // whether to skip levels when building the initial diff sets (for debugging)
 #define OPTIMIZE_LEVEL_DIFFS 1
 
-UDiffPackagesCommandlet::UDiffPackagesCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDiffPackagesCommandlet::UDiffPackagesCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -740,7 +740,7 @@ int32 UDiffPackagesCommandlet::Main(const FString& Params)
 			{
 				if ( Comparison.ObjectSets[PackageIndex] != NULL )
 				{
-					AllObjectSets[PackageIndex].AddRawItem(Comparison.ObjectSets[PackageIndex]);
+					AllObjectSets[PackageIndex].Add(Comparison.ObjectSets[PackageIndex]);
 				}
 			}
 
@@ -763,7 +763,7 @@ int32 UDiffPackagesCommandlet::Main(const FString& Params)
 				{
 					if ( Comparison.ObjectSets[PackageIndex] != NULL )
 					{
-						AllObjectSets[PackageIndex].AddRawItem(Comparison.ObjectSets[PackageIndex]);
+						AllObjectSets[PackageIndex].Add(Comparison.ObjectSets[PackageIndex]);
 					}
 				}
 

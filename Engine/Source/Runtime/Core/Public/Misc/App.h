@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	App.h: Declares the FApp class.
-=============================================================================*/
-
 #pragma once
+
 
 // platforms which can have runtime threading switches
 #define HAVE_RUNTIME_THREADING_SWITCHES			(PLATFORM_DESKTOP || PLATFORM_ANDROID || PLATFORM_IOS)
+
 
 /**
  * Provides information about the application.
@@ -54,7 +52,20 @@ public:
 	 */
 	FORCEINLINE static const TCHAR* GetGameName()
 	{
-		return GGameName;
+		return GInternalGameName;
+	}
+
+	/**
+	* Sets the name of the currently running game.
+	*
+	* @param InGameName Name of the curently running game.
+	*/
+	FORCEINLINE static void SetGameName(const TCHAR* InGameName)
+	{
+		// At the moment Strcpy is not safe as we don't check the buffer size on all platforms, so we use strncpy here.
+		FCString::Strncpy(GInternalGameName, InGameName, ARRAY_COUNT(GInternalGameName));
+		// And make sure the GameName string is null terminated.
+		GInternalGameName[ARRAY_COUNT(GInternalGameName) - 1] = 0;
 	}
 
 	/**
@@ -64,7 +75,6 @@ public:
 	 * that can be used to identify it from anywhere on the network.
 	 *
 	 * @return Instance identifier, or an invalid GUID if there is no local instance.
-	 *
 	 * @see GetSessionId
 	 */
 	FORCEINLINE static FGuid GetInstanceId()
@@ -88,7 +98,6 @@ public:
 	 * Gets the name of the application, i.e. "UE4" or "Rocket".
 	 *
 	 * @todo need better application name discovery. this is quite horrible and may not work on future platforms.
-	 *
 	 * @return Application name string.
 	 */
 	static FString GetName()
@@ -119,7 +128,6 @@ public:
 	 * Conversely, sessions that were launched separately will have different session identifiers.
 	 *
 	 * @return Session identifier, or an invalid GUID if there is no local instance.
-	 *
 	 * @see GetInstanceId
 	 */
 	FORCEINLINE static FGuid GetSessionId()
@@ -153,13 +161,23 @@ public:
 	}
 
 	/**
+	* Reports if the game name is empty
+	*
+	* @return true if the game name is empty
+	*/
+	FORCEINLINE static bool IsGameNameEmpty()
+	{
+		return (GInternalGameName[0] == 0);
+	}
+
+	/**
 	 * Reports if the game name has been set
 	 *
 	 * @return true if the game name has been set
 	 */
-	static bool HasGameName()
+	FORCEINLINE static bool HasGameName()
 	{
-		return (GGameName[0] != 0) && (FCString::Stricmp(GGameName, TEXT("None")) != 0);
+		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
 	}
 
 	/**
@@ -276,7 +294,7 @@ public:
 	/**
 	 * Sets application benchmarking mode.
 	 *
-	 * @param bVal - True sets application in benchmark mode, false sets to non-benchmark mode.
+	 * @param bVal True sets application in benchmark mode, false sets to non-benchmark mode.
 	 */
 	static void SetBenchmarking(bool bVal)
 	{
@@ -296,7 +314,7 @@ public:
 	/**
 	 * Sets time step in seconds if a fixed delta time is wanted.
 	 *
-	 * @param seconds - Time step in seconds for fixed delta time.
+	 * @param seconds Time step in seconds for fixed delta time.
 	 */
 	static void SetFixedDeltaTime(double Seconds)
 	{
@@ -344,9 +362,7 @@ public:
 		return LastTime;
 	}
 
-	/**
-	 * Updates Last time to CurrentTime.
-	 */
+	/** Updates Last time to CurrentTime. */
 	static void UpdateLastTime()
 	{
 		LastTime = CurrentTime;
@@ -365,51 +381,83 @@ public:
 	/**
 	 * Sets time delta in seconds.
 	 *
-	 * @param seconds - Time in seconds.
+	 * @param seconds Time in seconds.
 	 */
 	static void SetDeltaTime(double Seconds)
 	{
 		DeltaTime = Seconds;
 	}
 
+	/**
+	 * Get Volume Multiplier
+	 * 
+	 * @return Current volume multiplier
+	 */
+	FORCEINLINE static float GetVolumeMultiplier()
+	{
+		return VolumeMultiplier;
+	}
+
+	/**
+	 * Set Volume Multiplier
+	 * 
+	 * @param  InVolumeMultiplier	new volume multiplier
+	 */
+	FORCEINLINE static void SetVolumeMultiplier(float InVolumeMultiplier)
+	{
+		VolumeMultiplier = InVolumeMultiplier;
+	}
+
+	/**
+	 * Helper function to get UnfocusedVolumeMultiplier from config and store so it's not retrieved every frame
+	 * 
+	 * @return Volume multiplier to use when app loses focus
+	 */
+	static float GetUnfocusedVolumeMultiplier();
+
 private:
 
-	// Holds the instance identifier.
+	/** Holds the instance identifier. */
 	static FGuid InstanceId;
 
-	// Holds the session identifier.
+	/** Holds the session identifier. */
 	static FGuid SessionId;
 
-	// Holds the session name.
+	/** Holds the session name. */
 	static FString SessionName;
 
-	// Holds the name of the user that launched session.
+	/** Holds the name of the user that launched session. */
 	static FString SessionOwner;
 
-	// Holds a flag indicating whether this is a standalone session.
+	/** Holds a flag indicating whether this is a standalone session. */
 	static bool Standalone;
 
-	// Holds a flag Whether we are in benchmark mode or not.
+	/** Holds a flag Whether we are in benchmark mode or not. */
 	static bool bIsBenchmarking;
 
-	// Holds time step if a fixed delta time is wanted.
+	/** Holds time step if a fixed delta time is wanted. */
 	static double FixedDeltaTime;
 
-	// Holds current time.
+	/** Holds current time. */
 	static double CurrentTime;
 
-	// Holds previous value of CurrentTime.
+	/** Holds previous value of CurrentTime. */
 	static double LastTime;
 
-	// Holds current delta time in seconds.
+	/** Holds current delta time in seconds. */
 	static double DeltaTime;
+
+	/** Use to affect the app volume when it loses focus */
+	static float VolumeMultiplier;
+
+	/** Read from config to define the volume when app loses focus */
+	static float UnfocusedVolumeMultiplier;
 };
 
 
-/**
- * Called to determine the result of IsServerForOnlineSubsystems()
- */
+/** Called to determine the result of IsServerForOnlineSubsystems() */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FQueryIsRunningServer, FName);
+
 
 /**
  * @return true if there is a running game world that is a server (including listen servers), false otherwise

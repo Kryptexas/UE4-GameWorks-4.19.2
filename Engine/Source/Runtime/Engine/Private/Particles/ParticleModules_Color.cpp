@@ -5,6 +5,8 @@
 	Color-related particle module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "Distributions/DistributionFloatParticleParameter.h"
+#include "Distributions/DistributionVectorParticleParameter.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Color/ParticleModuleColor.h"
@@ -16,9 +18,10 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
 
-UParticleModuleColorBase::UParticleModuleColorBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleColorBase::UParticleModuleColorBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -30,8 +33,8 @@ UParticleModuleColorBase::UParticleModuleColorBase(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 	UParticleModuleColor implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleColor::UParticleModuleColor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleColor::UParticleModuleColor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = false;
@@ -182,8 +185,8 @@ void UParticleModuleColor::SetToSensibleDefaults(UParticleEmitter* Owner)
 /*-----------------------------------------------------------------------------
 	UParticleModuleColor_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleColor_Seeded::UParticleModuleColor_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleColor_Seeded::UParticleModuleColor_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -218,8 +221,8 @@ void UParticleModuleColor_Seeded::EmitterLoopingNotify(FParticleEmitterInstance*
 /*-----------------------------------------------------------------------------
 	UParticleModuleColorOverLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleColorOverLife::UParticleModuleColorOverLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleColorOverLife::UParticleModuleColorOverLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -478,8 +481,8 @@ void UParticleModuleColorOverLife::SetToSensibleDefaults(UParticleEmitter* Owner
 /*-----------------------------------------------------------------------------
 	UParticleModuleColorScaleOverLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleColorScaleOverLife::UParticleModuleColorScaleOverLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleColorScaleOverLife::UParticleModuleColorScaleOverLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;

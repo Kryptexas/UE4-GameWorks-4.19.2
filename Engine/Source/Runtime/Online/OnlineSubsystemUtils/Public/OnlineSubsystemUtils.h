@@ -11,6 +11,11 @@
 #ifdef ONLINESUBSYSTEMUTILS_API
 ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate);
 ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);
+
+/**
+ * Try to retrieve the active listen port for a server session
+ */
+ONLINESUBSYSTEMUTILS_API int32 GetPortFromNetDriver(FName InstanceName);
 #endif
 
 /** Macro to handle the boilerplate of accessing the proper online subsystem and getting the requested interface (UWorld version) */
@@ -27,8 +32,7 @@ namespace Online
 	{
 #if UE_EDITOR // at present, multiple worlds are only possible in the editor
 		FName Identifier = SubsystemName; 
-		if (GIsPlayInEditorWorld &&
-			World != NULL)
+		if (World != NULL)
 		{
 			FWorldContext& CurrentContext = GEngine->GetWorldContextFromWorldChecked(World);
 			if (CurrentContext.WorldType == EWorldType::PIE)

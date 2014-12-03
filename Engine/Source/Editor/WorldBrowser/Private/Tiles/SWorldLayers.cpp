@@ -3,6 +3,7 @@
 
 #include "WorldTileCollectionModel.h"
 #include "SWorldLayers.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

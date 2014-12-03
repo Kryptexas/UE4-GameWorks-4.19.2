@@ -6,6 +6,14 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "HAL/PlatformCodeAnalysis.h"
+#include <wchar.h>
+#include <string.h>
+
+class FMalloc;
+class FOutputDevice;
+class FString;
 
 /** Holds generic memory stats, internally implemented as a map. */
 struct FGenericMemoryStats;
@@ -92,6 +100,9 @@ struct FPlatformMemoryStats;
 /** Generic implementation for most platforms, these tend to be unused and unimplemented. */
 struct CORE_API FGenericPlatformMemory
 {
+	/** Set to true if we encounters out of memory. */
+	static bool bIsOOM;
+
 	/**
 	 * Various memory regions that can be used with memory stats. The exact meaning of
 	 * the enums are relatively platform-dependent, although the general ones (Physical, GPU)
@@ -136,7 +147,7 @@ struct CORE_API FGenericPlatformMemory
 		SIZE_T			GetSize() const			{ return Size; }
 	
 		
-		FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize);
+		FSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize);
 
 	protected:
 
@@ -161,7 +172,7 @@ struct CORE_API FGenericPlatformMemory
 	/** Initializes platform memory specific constants. */
 	static void Init();
 	
-	static CA_NORETURN void OnOutOfMemory(uint64 Size, uint32 Alignment);
+	static CA_NO_RETURN void OnOutOfMemory(uint64 Size, uint32 Alignment);
 
 	/** Initializes the memory pools, should be called by the init function. */
 	static void SetupMemoryPools();
@@ -169,7 +180,7 @@ struct CORE_API FGenericPlatformMemory
 	/**
 	 * @return the default allocator.
 	 */
-	static class FMalloc* BaseAllocator();
+	static FMalloc* BaseAllocator();
 
 	/**
 	 * @return platform specific current memory statistics.
@@ -211,10 +222,10 @@ struct CORE_API FGenericPlatformMemory
 	static void BinnedFreeToOS( void* Ptr );
 
 	/** Dumps basic platform memory statistics into the specified output device. */
-	static void DumpStats( class FOutputDevice& Ar );
+	static void DumpStats( FOutputDevice& Ar );
 
 	/** Dumps basic platform memory statistics and allocator specific statistics into the specified output device. */
-	static void DumpPlatformAndAllocatorStats( class FOutputDevice& Ar );
+	static void DumpPlatformAndAllocatorStats( FOutputDevice& Ar );
 
 	/** @name Memory functions */
 
@@ -272,7 +283,7 @@ struct CORE_API FGenericPlatformMemory
 	 *
 	 * @return pointer to FSharedMemoryRegion (or its descendants) if successful, NULL if not.
 	 */
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & Name, bool bCreate, uint32 AccessMode, SIZE_T Size);
+	static FSharedMemoryRegion* MapNamedSharedMemoryRegion(const FString& Name, bool bCreate, uint32 AccessMode, SIZE_T Size);
 
 	/**
 	 * Unmaps a name shared memory region

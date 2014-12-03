@@ -7,6 +7,7 @@
 #include "TextEditHelper.h"
 #include "SlateWordWrapper.h"
 #include "PlainTextLayoutMarshaller.h"
+#include "GenericCommands.h"
 
 void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition)
 {
@@ -229,6 +230,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	SelectionStart = TOptional<FTextLocation>();
 	PreferredCursorScreenOffsetInLine = 0;
 
+	ModiferKeyForNewLine = InArgs._ModiferKeyForNewLine;
+
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
 	CachedSize = FVector2D::ZeroVector;
@@ -406,6 +409,22 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 			TextLayout->AddLine(LineText, Runs);
 		}
 
+		{
+			const FTextLocation OldCursorPos = CursorInfo.GetCursorInteractionLocation();
+
+			// Make sure the cursor is still at a valid location
+			if(OldCursorPos.GetLineIndex() >= Lines.Num() || OldCursorPos.GetOffset() > Lines[OldCursorPos.GetLineIndex()].Text->Len())
+			{
+				const int32 LastLineIndex = Lines.Num() - 1;
+				const FTextLocation NewCursorPosition = FTextLocation(LastLineIndex, Lines[LastLineIndex].Text->Len());
+
+				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+				UpdatePreferredCursorScreenOffsetInLine();
+				UpdateCursorHighlight();
+			}
+		}
+
 		return true;
 	}
 
@@ -445,7 +464,7 @@ void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFractio
 	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().Y;
 }
 
-FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
@@ -474,13 +493,13 @@ FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeome
 		// of making sure that gets scrolled into view
 		PositionToScrollIntoView = TOptional<FScrollInfo>();
 
-		return SWidget::OnKeyboardFocusReceived( MyGeometry, InKeyboardFocusEvent );
+		return SWidget::OnFocusReceived( MyGeometry, InFocusEvent );
 	}
 
 	return FReply::Handled();
 }
 
-void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SMultiLineEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus lost code if it's due to the context menu opening
 	if (!ContextMenuWindow.IsValid())
@@ -502,14 +521,14 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 		// When focus is lost let anyone who is interested that text was committed
 		// See if user explicitly tabbed away or moved focus
 		ETextCommit::Type TextAction;
-		switch (InKeyboardFocusEvent.GetCause())
+		switch (InFocusEvent.GetCause())
 		{
-		case EKeyboardFocusCause::Keyboard:
-		case EKeyboardFocusCause::Mouse:
+		case EFocusCause::Navigation:
+		case EFocusCause::Mouse:
 			TextAction = ETextCommit::OnUserMovedFocus;
 			break;
 
-		case EKeyboardFocusCause::Cleared:
+		case EFocusCause::Cleared:
 			TextAction = ETextCommit::OnCleared;
 			break;
 
@@ -1694,22 +1713,39 @@ FReply SMultiLineEditableText::OnEscape()
 
 void SMultiLineEditableText::OnEnter()
 {
-	if (AnyTextSelected())
+	if ( FSlateApplication::Get().GetModifierKeys().AreModifersDown(ModiferKeyForNewLine) )
 	{
-		// Delete selected text
-		DeleteSelectedText();
-	}
+		if ( AnyTextSelected() )
+		{
+			// Delete selected text
+			DeleteSelectedText();
+		}
 
-	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
-	if (TextLayout->SplitLineAt(CursorInteractionPosition))
+		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+		if ( TextLayout->SplitLineAt(CursorInteractionPosition) )
+		{
+			// Adjust the cursor position to be at the beginning of the new line
+			const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
+			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+		}
+
+		ClearSelection();
+		UpdateCursorHighlight();
+	}
+	else
 	{
-		// Adjust the cursor position to be at the beginning of the new line
-		const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
-	}
+		//Always clear the local undo chain on commit.
+		ClearUndoStates();
 
-	ClearSelection();
-	UpdateCursorHighlight();
+		const FText EditedText = GetEditableText();
+
+		// When enter is pressed text is committed.  Let anyone interested know about it.
+		OnTextCommitted.ExecuteIfBound(EditedText, ETextCommit::OnEnter);
+
+		// Reload underlying value now it is committed  (commit may alter the value) 
+		// so it can be re-displayed in the edit box if it retains focus
+		LoadText();
+	}
 }
 
 bool SMultiLineEditableText::CanExecuteCut() const
@@ -2054,7 +2090,7 @@ void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation)
 void SMultiLineEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 {
 	// Give this focus when the context menu has been dismissed
-	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::OtherWidgetLostFocus);
+	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EFocusCause::OtherWidgetLostFocus);
 }
 
 void SMultiLineEditableText::LoadText()
@@ -2097,7 +2133,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 
 	// If we're auto-wrapping, we need to hide the scrollbars until the first valid auto-wrap has been performed
 	// If we don't do this, then we can get some nasty layout shuffling as the scrollbars appear for one frame and then vanish again
-	const EVisibility ScrollBarVisiblityOverride = (AutoWrapText.Get() && CachedSize != AllottedGeometry.Size) ? EVisibility::Collapsed : EVisibility::Visible;
+	const EVisibility ScrollBarVisiblityOverride = (AutoWrapText.Get() && CachedSize.IsZero()) ? EVisibility::Collapsed : EVisibility::Visible;
 
 	// Try and make sure that the line containing the cursor is in view
 	if (PositionToScrollIntoView.IsSet())
@@ -2262,12 +2298,12 @@ FReply SMultiLineEditableText::OnKeyChar( const FGeometry& MyGeometry,const FCha
 	return FTextEditHelper::OnKeyChar( InCharacterEvent, SharedThis( this ) );
 }
 
-FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FTextEditHelper::OnKeyDown( InKeyboardEvent, SharedThis( this ) );
+	FReply Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
 
 	// Process keybindings if the event wasn't already handled
-	if (!Reply.IsEventHandled() && UICommandList->ProcessCommandBindings(InKeyboardEvent))
+	if (!Reply.IsEventHandled() && UICommandList->ProcessCommandBindings(InKeyEvent))
 	{
 		Reply = FReply::Handled();
 	}
@@ -2275,7 +2311,7 @@ FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKe
 	return Reply;
 }
 
-FReply SMultiLineEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMultiLineEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
@@ -2422,7 +2458,7 @@ bool SMultiLineEditableText::IsAtEndOfDocument( const FTextLocation& Location ) 
 	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
 	const int32 NumberOfLines = Lines.Num();
 
-	return NumberOfLines == 0 || ( NumberOfLines - 1 == Location.GetLineIndex() && Lines[ Location.GetLineIndex() ].Text->Len()-1 == Location.GetOffset() );
+	return NumberOfLines == 0 || ( NumberOfLines - 1 == Location.GetLineIndex() && Lines[ Location.GetLineIndex() ].Text->Len() == Location.GetOffset() );
 }
 
 bool SMultiLineEditableText::IsAtBeginningOfLine( const FTextLocation& Location ) const
@@ -2433,7 +2469,7 @@ bool SMultiLineEditableText::IsAtBeginningOfLine( const FTextLocation& Location 
 bool SMultiLineEditableText::IsAtEndOfLine( const FTextLocation& Location ) const
 {
 	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
-	return Lines[ Location.GetLineIndex() ].Text->Len()-1 == Location.GetOffset();
+	return Lines[ Location.GetLineIndex() ].Text->Len() == Location.GetOffset();
 }
 
 bool SMultiLineEditableText::IsAtWordStart( const FTextLocation& Location ) const

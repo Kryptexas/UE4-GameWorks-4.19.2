@@ -13,6 +13,7 @@
 #include "Slate/SceneViewport.h"
 #include "RendererInterface.h"
 #include "BufferVisualizationData.h"
+#include "Interfaces/Interface_PostProcessVolume.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -75,6 +76,13 @@ static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusion(
 	TEXT("Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n")
 	TEXT(" 0: off, sets AmbientOcclusionIntensity to 0\n")
 	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusionStaticFraction(
+	TEXT("r.DefaultFeature.AmbientOcclusionStaticFraction"),
+	1,
+	TEXT("Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets AmbientOcclusionStaticFraction to 0\n")
+	TEXT(" 1: on (default, costs extra pass, only useful if there is some baked lighting)"));
 
 static TAutoConsoleVariable<int32> CVarDefaultAutoExposure(
 	TEXT("r.DefaultFeature.AutoExposure"),
@@ -266,12 +274,11 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsReflectionCapture(false)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
-	, RenderingCompositePassContext(0)
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
 #endif
-	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GRHIFeatureLevel)
+	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GMaxRHIFeatureLevel)
 {
 	check(UnscaledViewRect.Min.X >= 0);
 	check(UnscaledViewRect.Min.Y >= 0);
@@ -395,7 +402,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	bReverseCulling = (Family && Family->Scene) ? FMath::IsNegativeFloat(ViewMatrices.ViewMatrix.Determinant()) : false;
 
 	// OpenGL Gamma space output in GLSL flips Y when rendering directly to the back buffer (so not needed on PC, as we never render directly into the back buffer)
-	static bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform));
+	auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+	static bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(ShaderPlatform) && !IsPCPlatform(ShaderPlatform));
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	check(MobileHDRCvar);
 	bReverseCulling = (bPlatformRequiresReverseCulling && MobileHDRCvar->GetValueOnAnyThread() == 0) ? !bReverseCulling : bReverseCulling;
@@ -805,7 +813,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 				continue;
 			}
 
-			IBlendableInterface* BlendableInterface = InterfaceCast<IBlendableInterface>(Object);
+			IBlendableInterface* BlendableInterface = Cast<IBlendableInterface>(Object);
 			
 			if(!BlendableInterface)
 			{
@@ -817,8 +825,8 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	}
 }
 
-/** Dummy class needed to support InterfaceCast<IBlendableInterface>(Object) */
-UBlendableInterface::UBlendableInterface(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) 
+/** Dummy class needed to support Cast<IBlendableInterface>(Object) */
+UBlendableInterface::UBlendableInterface(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) 
 {
 }
 
@@ -907,6 +915,15 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 			if (Value >= 0 && Value < AAM_MAX)
 			{
 				FinalPostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
+			}
+		}
+
+		{
+			int32 Value = CVarDefaultAmbientOcclusionStaticFraction.GetValueOnGameThread();
+
+			if(!Value)
+			{
+				FinalPostProcessSettings.AmbientOcclusionStaticFraction = 0.0f;
 			}
 		}
 	}
@@ -1022,7 +1039,8 @@ void FSceneView::EndFinalPostprocessSettings()
 		}
 
 		// Not supported in ES2.
-		if(Family->Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2)
+		auto FeatureLevel = Family->Scene->GetFeatureLevel();
+		if(FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
 		{
 			FinalPostProcessSettings.ScreenPercentage = 100.0f;
 		}
@@ -1106,18 +1124,19 @@ void FSceneView::EndFinalPostprocessSettings()
 
 	// Anti-Aliasing
 	{
+		const auto FeatureLevel = GetFeatureLevel();
+
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-		static uint32 MSAAValue = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
+		static uint32 MSAAValue = GShaderPlatformForFeatureLevel[FeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
 
 		int32 Quality = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 6);
-		const auto FeatureLevel = GetFeatureLevel();
 
 		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
 			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
-			|| (FeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue > 1)))
+			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1)))
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
@@ -1379,7 +1398,7 @@ ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
 	}
 	else
 	{
-		return GRHIFeatureLevel;
+		return GMaxRHIFeatureLevel;
 	}
 }
 

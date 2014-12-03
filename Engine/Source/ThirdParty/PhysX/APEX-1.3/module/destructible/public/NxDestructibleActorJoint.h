@@ -181,16 +181,16 @@ PX_INLINE bool NxDestructibleActorJointDesc::isValid() const
 
 	for (int i = 0; i < 2; ++i)
 	{
-		if (abs(globalAxis[i].magnitudeSquared() - 1.0f) > 0.1f)
+		if (PxAbs(globalAxis[i].magnitudeSquared() - 1.0f) > 0.1f)
 		{
 			return false;
 		}
-		if (abs(globalNormal[i].magnitudeSquared() - 1.0f) > 0.1f)
+		if (PxAbs(globalNormal[i].magnitudeSquared() - 1.0f) > 0.1f)
 		{
 			return false;
 		}
 		//check orthogonal pairs
-		if (abs(globalAxis[i].dot(globalNormal[i])) > 0.1f)
+		if (PxAbs(globalAxis[i].dot(globalNormal[i])) > 0.1f)
 		{
 			return false;
 		}

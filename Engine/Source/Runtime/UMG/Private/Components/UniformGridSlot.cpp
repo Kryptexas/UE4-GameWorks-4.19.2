@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UUniformGridSlot
 
-UUniformGridSlot::UUniformGridSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUniformGridSlot::UUniformGridSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(NULL)
 {
 	HorizontalAlignment = HAlign_Left;

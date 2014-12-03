@@ -15,7 +15,7 @@ public:
 	/** FViewportClient interface */
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.0f, bool bGamepad = false) override;
-	virtual UWorld* GetWorld() const override { return World; }
+	virtual UWorld* GetWorld() const override { return nullptr; }
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -52,7 +52,4 @@ private:
 
 	/** Checkerboard texture */
 	UTexture2D* CheckerboardTexture;
-
-	/** The UWorld that this level editor is viewing and allowing the user to interact with through */
-	UWorld* World;
 };

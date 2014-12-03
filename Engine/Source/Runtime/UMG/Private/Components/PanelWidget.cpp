@@ -12,8 +12,8 @@
 /////////////////////////////////////////////////////
 // UPanelWidget
 
-UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPanelWidget::UPanelWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bCanHaveMultipleChildren(true)
 {
 }
@@ -26,7 +26,7 @@ void UPanelWidget::ReleaseSlateResources(bool bReleaseChildren)
 	{
 		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
 		{
-			if ( Slots[SlotIndex]->Content != NULL )
+			if ( Slots[SlotIndex]->Content != nullptr )
 			{
 				Slots[SlotIndex]->ReleaseSlateResources(bReleaseChildren);
 			}
@@ -41,6 +41,11 @@ int32 UPanelWidget::GetChildrenCount() const
 
 UWidget* UPanelWidget::GetChildAt(int32 Index) const
 {
+	if ( Index < 0 || Index >= Slots.Num() )
+	{
+		return nullptr;
+	}
+
 	return Slots[Index]->Content;
 }
 
@@ -60,13 +65,18 @@ int32 UPanelWidget::GetChildIndex(UWidget* Content) const
 
 bool UPanelWidget::RemoveChildAt(int32 Index)
 {
+	if ( Index < 0 || Index >= Slots.Num() )
+	{
+		return false;
+	}
+
 	UPanelSlot* Slot = Slots[Index];
 	if ( Slot->Content )
 	{
-		Slot->Content->Slot = NULL;
+		Slot->Content->Slot = nullptr;
 	}
 
-	Slot->Parent = NULL;
+	Slot->Parent = nullptr;
 	Slots.RemoveAt(Index);
 
 	OnSlotRemoved(Slot);
@@ -78,12 +88,12 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 {
 	if ( Content == nullptr )
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	if ( !bCanHaveMultipleChildren && GetChildrenCount() > 0 )
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	Content->RemoveFromParent();
@@ -105,8 +115,13 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 	return Slot;
 }
 
-void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
+bool UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 {
+	if ( Index < 0 || Index >= Slots.Num() )
+	{
+		return false;
+	}
+
 	UPanelSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
@@ -116,27 +131,27 @@ void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 	}
 
 	Slot->SynchronizeProperties();
+
+	return true;
 }
 
-void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
+#if WITH_EDITOR
+
+UPanelSlot* UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 {
-	UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	if ( Content )
-	{
-		Content->Slot = Slot;
-	}
-
-	// Only allow inserting within the valid range of slots (and one more than the size).
-	Index = FMath::Clamp(Index, 0, FMath::Max(Slots.Num(), 1));
-
-	Slots.Insert(Slot, Index);
-
-	OnSlotAdded(Slot);
+	UPanelSlot* NewSlot = AddChild(Content);
+	ShiftChild(Index, Content);
+	return NewSlot;
 }
+
+void UPanelWidget::ShiftChild(int32 Index, UWidget* Child)
+{
+	int32 CurrentIndex = GetChildIndex(Child);
+	Slots.RemoveAt(CurrentIndex);
+	Slots.Insert(Child->Slot, FMath::Clamp(Index, 0, Slots.Num()));
+}
+
+#endif
 
 bool UPanelWidget::RemoveChild(UWidget* Content)
 {
@@ -171,7 +186,7 @@ void UPanelWidget::SetIsDesignTime(bool bInDesignTime)
 	int32 Children = GetChildrenCount();
 	for ( int32 SlotIndex = 0; SlotIndex < Children; SlotIndex++ )
 	{
-		if ( Slots[SlotIndex]->Content != NULL )
+		if ( Slots[SlotIndex]->Content != nullptr )
 		{
 			Slots[SlotIndex]->Content->SetIsDesignTime(bInDesignTime);
 		}
@@ -185,12 +200,17 @@ void UPanelWidget::PostLoad()
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
 	{
 		// Remove any slots where their content is null, we don't support content-less slots.
-		if ( Slots[SlotIndex]->Content == NULL )
+		if ( Slots[SlotIndex]->Content == nullptr )
 		{
 			Slots.RemoveAt(SlotIndex);
 			SlotIndex--;
 		}
 	}
+}
+
+const TArray<UPanelSlot*>& UPanelWidget::GetSlots() const
+{
+	return Slots;
 }
 
 /////////////////////////////////////////////////////

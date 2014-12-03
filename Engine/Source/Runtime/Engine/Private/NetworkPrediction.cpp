@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 
 
-UNetworkPredictionInterface::UNetworkPredictionInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNetworkPredictionInterface::UNetworkPredictionInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

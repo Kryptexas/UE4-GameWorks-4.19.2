@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BTCompositeNode.h"
 
-UBTCompositeNode::UBTCompositeNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTCompositeNode::UBTCompositeNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "UnknownComposite";
 	bUseChildExecutionNotify = false;
@@ -16,7 +16,7 @@ void UBTCompositeNode::InitializeComposite(uint16 InLastExecutionIndex)
 	LastExecutionIndex = InLastExecutionIndex;
 }
 
-int32 UBTCompositeNode::FindChildToExecute(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& LastResult) const
+int32 UBTCompositeNode::FindChildToExecute(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& LastResult) const
 {
 	FBTCompositeMemory* NodeMemory = GetNodeMemory<FBTCompositeMemory>(SearchData);
 	int32 RetIdx = BTSpecialChild::ReturnToParent;
@@ -45,7 +45,7 @@ int32 UBTCompositeNode::FindChildToExecute(struct FBehaviorTreeSearchData& Searc
 	return RetIdx;
 }
 
-int32 UBTCompositeNode::GetChildIndex(struct FBehaviorTreeSearchData& SearchData, const class UBTNode* ChildNode) const
+int32 UBTCompositeNode::GetChildIndex(FBehaviorTreeSearchData& SearchData, const UBTNode* ChildNode) const
 {
 	if (ChildNode->GetParentNode() != this)
 	{
@@ -56,7 +56,7 @@ int32 UBTCompositeNode::GetChildIndex(struct FBehaviorTreeSearchData& SearchData
 	return GetChildIndex(ChildNode);
 }
 
-int32 UBTCompositeNode::GetChildIndex(const class UBTNode* ChildNode) const
+int32 UBTCompositeNode::GetChildIndex(const UBTNode* ChildNode) const
 {
 	for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ChildIndex++)
 	{
@@ -70,12 +70,12 @@ int32 UBTCompositeNode::GetChildIndex(const class UBTNode* ChildNode) const
 	return BTSpecialChild::ReturnToParent;
 }
 
-void UBTCompositeNode::OnChildActivation(struct FBehaviorTreeSearchData& SearchData, const class UBTNode* ChildNode) const
+void UBTCompositeNode::OnChildActivation(FBehaviorTreeSearchData& SearchData, const UBTNode* ChildNode) const
 {
 	OnChildActivation(SearchData, GetChildIndex(SearchData, ChildNode));
 }
 
-void UBTCompositeNode::OnChildActivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIndex) const
+void UBTCompositeNode::OnChildActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIndex) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIndex];
 	FBTCompositeMemory* NodeMemory = GetNodeMemory<FBTCompositeMemory>(SearchData);
@@ -94,12 +94,12 @@ void UBTCompositeNode::OnChildActivation(struct FBehaviorTreeSearchData& SearchD
 	NodeMemory->CurrentChild = ChildIndex;
 }
 
-void UBTCompositeNode::OnChildDeactivation(struct FBehaviorTreeSearchData& SearchData, const class UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::OnChildDeactivation(FBehaviorTreeSearchData& SearchData, const UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const
 {
 	OnChildDeactivation(SearchData, GetChildIndex(SearchData, ChildNode), NodeResult);
 }
 
-void UBTCompositeNode::OnChildDeactivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIndex, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::OnChildDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIndex, EBTNodeResult::Type& NodeResult) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIndex];
 
@@ -117,7 +117,7 @@ void UBTCompositeNode::OnChildDeactivation(struct FBehaviorTreeSearchData& Searc
 	}
 }
 
-void UBTCompositeNode::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
+void UBTCompositeNode::OnNodeActivation(FBehaviorTreeSearchData& SearchData) const
 {
 	OnNodeRestart(SearchData);
 
@@ -136,7 +136,7 @@ void UBTCompositeNode::OnNodeActivation(struct FBehaviorTreeSearchData& SearchDa
 	}
 }
 
-void UBTCompositeNode::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 	if (bUseNodeDeactivationNotify)
 	{
@@ -150,14 +150,14 @@ void UBTCompositeNode::OnNodeDeactivation(struct FBehaviorTreeSearchData& Search
 	}
 }
 
-void UBTCompositeNode::OnNodeRestart(struct FBehaviorTreeSearchData& SearchData) const
+void UBTCompositeNode::OnNodeRestart(FBehaviorTreeSearchData& SearchData) const
 {
 	FBTCompositeMemory* NodeMemory = GetNodeMemory<FBTCompositeMemory>(SearchData);
 	NodeMemory->CurrentChild = BTSpecialChild::NotInitialized;
 	NodeMemory->OverrideChild = BTSpecialChild::NotInitialized;
 }
 
-void UBTCompositeNode::NotifyDecoratorsOnActivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIdx) const
+void UBTCompositeNode::NotifyDecoratorsOnActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
 	for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
@@ -182,7 +182,7 @@ void UBTCompositeNode::NotifyDecoratorsOnActivation(struct FBehaviorTreeSearchDa
 	}
 }
 
-void UBTCompositeNode::NotifyDecoratorsOnDeactivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::NotifyDecoratorsOnDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
 	for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
@@ -205,7 +205,7 @@ void UBTCompositeNode::NotifyDecoratorsOnDeactivation(struct FBehaviorTreeSearch
 	}
 }
 
-void UBTCompositeNode::NotifyDecoratorsOnFailedActivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::NotifyDecoratorsOnFailedActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
 	const uint16 ActiveInstanceIdx = SearchData.OwnerComp->GetActiveInstanceIdx();
@@ -225,19 +225,19 @@ void UBTCompositeNode::NotifyDecoratorsOnFailedActivation(struct FBehaviorTreeSe
 	SearchData.OwnerComp->StoreDebuggerSearchStep(GetChildNode(ChildIdx), ActiveInstanceIdx, NodeResult);
 }
 
-void UBTCompositeNode::NotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::NotifyChildExecution(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 }
 
-void UBTCompositeNode::NotifyNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
+void UBTCompositeNode::NotifyNodeActivation(FBehaviorTreeSearchData& SearchData) const
 {
 }
 
-void UBTCompositeNode::NotifyNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::NotifyNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 }
 
-void UBTCompositeNode::ConditionalNotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, const class UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const
+void UBTCompositeNode::ConditionalNotifyChildExecution(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, const UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const
 {
 	if (bUseChildExecutionNotify)
 	{
@@ -275,7 +275,7 @@ struct FOperationStackInfo
 		NumLeft(DecoratorOp.Number), Op(DecoratorOp.Operation), bHasForcedResult(0) {};
 };
 
-static bool UpdateOperationStack(const class UBehaviorTreeComponent* OwnerComp, FString& Indent,
+static bool UpdateOperationStack(const UBehaviorTreeComponent* OwnerComp, FString& Indent,
 								 TArray<FOperationStackInfo>& Stack, bool bTestResult,
 								 int32& FailedDecoratorIdx, int32& NodeDecoratorIdx, bool& bShouldStoreNodeIndex)
 {
@@ -340,7 +340,7 @@ static bool UpdateOperationStack(const class UBehaviorTreeComponent* OwnerComp, 
 	return bTestResult;
 }
 
-bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* OwnerComp, int32 InstanceIdx, int32 ChildIdx) const
+bool UBTCompositeNode::DoDecoratorsAllowExecution(UBehaviorTreeComponent* OwnerComp, int32 InstanceIdx, int32 ChildIdx) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
 	bool bResult = true;
@@ -438,7 +438,7 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 	return bResult;
 }
 
-int32 UBTCompositeNode::GetMatchingChildIndex(int32 ActiveInstanceIdx, struct FBTNodeIndex& NodeIdx) const
+int32 UBTCompositeNode::GetMatchingChildIndex(int32 ActiveInstanceIdx, FBTNodeIndex& NodeIdx) const
 {
 	const int32 OutsideRange = BTSpecialChild::ReturnToParent;
 	const int32 UnlimitedRange = Children.Num() - 1;
@@ -470,7 +470,7 @@ int32 UBTCompositeNode::GetMatchingChildIndex(int32 ActiveInstanceIdx, struct FB
 	return (ActiveInstanceIdx > NodeIdx.InstanceIndex) ? UnlimitedRange : OutsideRange;
 }
 
-int32 UBTCompositeNode::GetNextChild(struct FBehaviorTreeSearchData& SearchData, int32 LastChildIdx, EBTNodeResult::Type LastResult) const
+int32 UBTCompositeNode::GetNextChild(FBehaviorTreeSearchData& SearchData, int32 LastChildIdx, EBTNodeResult::Type LastResult) const
 {
 	FBTCompositeMemory* NodeMemory = GetNodeMemory<FBTCompositeMemory>(SearchData);
 	int32 NextChildIndex = BTSpecialChild::ReturnToParent;
@@ -505,7 +505,7 @@ void UBTCompositeNode::SetChildOverride(FBehaviorTreeSearchData& SearchData, int
 	}
 }
 
-void UBTCompositeNode::RequestDelayedExecution(class UBehaviorTreeComponent* OwnerComp, EBTNodeResult::Type LastResult) const
+void UBTCompositeNode::RequestDelayedExecution(UBehaviorTreeComponent* OwnerComp, EBTNodeResult::Type LastResult) const
 {
 	OwnerComp->RequestExecution(LastResult);
 }
@@ -522,12 +522,12 @@ uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index, EBTChildIndex Child
 	return (LastExecutionIndex + 1);
 }
 
-bool UBTCompositeNode::CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
+bool UBTCompositeNode::CanPushSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
 {
 	return true;
 }
 
-void UBTCompositeNode::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTCompositeNode::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

@@ -17,7 +17,14 @@ public class MeshUtilities : ModuleRules
 				"Slate",      // For FSlateTextureAtlas
 				"SlateCore",
 				"UnrealEd",
+				"Landscape",
 			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Landscape",
+				}
 		);
 
 		AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");

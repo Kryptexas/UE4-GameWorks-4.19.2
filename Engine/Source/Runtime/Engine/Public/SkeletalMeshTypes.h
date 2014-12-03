@@ -549,7 +549,7 @@ struct TGPUSkinVertexBase
 	* @param Ar - archive to serialize with
 	*/
 	void Serialize(FArchive& Ar);
-	void Serialize(FArchive& Ar, FVector & OutPosition)
+	void Serialize(FArchive& Ar, FVector& OutPosition)
 	{
 		Serialize(Ar);
 	}
@@ -799,7 +799,7 @@ public:
 	* Initializes the buffer with the given vertices.
 	* @param InVertices - The vertices to initialize the buffer with.
 	*/
-	void Init(const TArray<FSoftSkinVertex>& InVertices);
+	ENGINE_API void Init(const TArray<FSoftSkinVertex>& InVertices);
 
 	/**
 	* Serializer for this class
@@ -1219,6 +1219,13 @@ public:
 		uint8* VertBase = Data + VertexIndex * Stride;
 		return ((FGPUSkinVertexColor*)(VertBase))->VertexColor;
 	}
+
+	/**
+	 * Assignment operator - Initializes the buffer with the given colors.
+	 * @param InColors - The colors to initialize the buffer with.
+	 */
+	FSkeletalMeshVertexColorBuffer& operator=(const TArray<FColor>& InColors);
+
 private:
 	/** The vertex data storage type */
 	FSkeletalMeshVertexDataInterface* VertexData;
@@ -1232,7 +1239,17 @@ private:
 	/** 
 	 * Allocates the vertex data storage type
 	 */
-	void AllocateData();	
+	void AllocateData();
+
+	/**
+	 * Resizes the vertex data storage & updates the cached info.
+	 */
+	void ResizeData(int32 NumVertices);
+
+	/**
+	 * Update the cached 'VertexData' information.
+	 */
+	void UpdateCachedInfo();
 
 	/** 
 	 * Copy the contents of the source color to the destination vertex in the buffer 
@@ -1632,7 +1649,7 @@ public:
 	 * Initialize vertex buffers from skel mesh chunks.
 	 * @param BuildFlags See EVertexFlags.
 	 */
-	void BuildVertexBuffers(uint32 VertexFlags);
+	ENGINE_API void BuildVertexBuffers(uint32 VertexFlags);
 
 	/** Utility function for returning total number of faces in this LOD. */
 	ENGINE_API int32 GetTotalFaces() const;

@@ -750,7 +750,7 @@ bool PlatformInitOpenGL()
 			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
 		}
 
-		if	( SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | DebugFlag ) )
+		if	( SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, DebugFlag ) )
 		{
 			verifyf( false, TEXT("OpenGLRHI: %s\n."), SDL_GetError() );
 			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());

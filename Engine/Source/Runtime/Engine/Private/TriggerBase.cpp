@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/TriggerBase.h"
 
-ATriggerBase::ATriggerBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ATriggerBase::ATriggerBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -25,15 +25,15 @@ ATriggerBase::ATriggerBase(const class FPostConstructInitializeProperties& PCIP)
 	bCanBeDamaged = false;
 
 	// ATriggerBase is requesting UShapeComponent which is abstract, however it is responsibility
-	// of a derived class to override this type with PCIP.SetDefaultSubobjectClass.
-	CollisionComponent = PCIP.CreateAbstractDefaultSubobject<UShapeComponent>(this, TEXT("CollisionComp"));
+	// of a derived class to override this type with ObjectInitializer.SetDefaultSubobjectClass.
+	CollisionComponent = ObjectInitializer.CreateAbstractDefaultSubobject<UShapeComponent>(this, TEXT("CollisionComp"));
 	if (CollisionComponent)
 	{
 		RootComponent = CollisionComponent;
 		CollisionComponent->bHiddenInGame = false;
 	}
 
-	SpriteComponent = PCIP.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		SpriteComponent->Sprite = ConstructorStatics.TriggerTextureObject.Get();
@@ -48,3 +48,8 @@ ATriggerBase::ATriggerBase(const class FPostConstructInitializeProperties& PCIP)
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 }
+
+/** Returns CollisionComponent subobject **/
+UShapeComponent* ATriggerBase::GetCollisionComponent() const { return CollisionComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ATriggerBase::GetSpriteComponent() const { return SpriteComponent; }

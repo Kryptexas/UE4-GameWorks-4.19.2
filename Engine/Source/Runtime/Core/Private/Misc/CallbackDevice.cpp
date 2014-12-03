@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 const FVector DefaultRefVector(0);
 
@@ -20,42 +20,37 @@ FCoreDelegates::FHotFixDelegate& FCoreDelegates::GetHotfixDelegate(EHotfixDelega
 	return HotFixDelegates[HotFix];
 }
 
+FCoreDelegates::FObjectArrayForDebugVisualizersDelegate& FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate()
+{
+	static FObjectArrayForDebugVisualizersDelegate StaticDelegate;
+	return StaticDelegate;
+}
+
+FCoreDelegates::FGetSerialNumberBlocksForDebugVisualizersDelegate& FCoreDelegates::GetSerialNumberBlocksForDebugVisualizersDelegate()
+{
+	static FGetSerialNumberBlocksForDebugVisualizersDelegate StaticDelegate;
+	return StaticDelegate;
+}
+
 FCoreDelegates::FOnMountPak FCoreDelegates::OnMountPak;
 FCoreDelegates::FOnUserLoginChangedEvent FCoreDelegates::OnUserLoginChangedEvent; 
 FCoreDelegates::FOnUserControllerConnectionChange FCoreDelegates::OnControllerConnectionChange;
 FCoreDelegates::FOnSafeFrameChangedEvent FCoreDelegates::OnSafeFrameChangedEvent;
 FCoreDelegates::FOnHandleSystemEnsure FCoreDelegates::OnHandleSystemEnsure;
 FCoreDelegates::FOnHandleSystemError FCoreDelegates::OnHandleSystemError;
-FCoreDelegates::FOnPreObjectPropertyChanged FCoreDelegates::OnPreObjectPropertyChanged;
-FCoreDelegates::FOnObjectPropertyChanged FCoreDelegates::OnObjectPropertyChanged;
 FCoreDelegates::FOnActorLabelChanged FCoreDelegates::OnActorLabelChanged;
 
 #if WITH_EDITOR
-	FCoreDelegates::FOnObjectModified  FCoreDelegates::OnObjectModified;
-	FCoreDelegates::FOnAssetLoaded FCoreDelegates::OnAssetLoaded;
-	FCoreDelegates::FOnObjectSaved FCoreDelegates::OnObjectSaved;
 	FSimpleMulticastDelegate FCoreDelegates::PreModal;
 	FSimpleMulticastDelegate FCoreDelegates::PostModal;
 #endif	//WITH_EDITOR
-FSimpleMulticastDelegate FCoreDelegates::OnCultureChanged;
 FSimpleMulticastDelegate FCoreDelegates::OnShutdownAfterError;
 FSimpleMulticastDelegate FCoreDelegates::OnInit;
 FSimpleMulticastDelegate FCoreDelegates::OnExit;
 FSimpleMulticastDelegate FCoreDelegates::OnPreExit;
-FSimpleMulticastDelegate FCoreDelegates::PreGarbageCollect;
-FSimpleMulticastDelegate FCoreDelegates::PostGarbageCollect;
-FCoreDelegates::FGetSerialNumberBlocksForDebugVisualizersDelegate FCoreDelegates::GetSerialNumberBlocksDebugVisualizers;
-FCoreDelegates::FObjectArrayForDebugVisualizersDelegate FCoreDelegates::ObjectArrayForDebugVisualizers;
-FCoreDelegates::FOnRedirectorFollowed FCoreDelegates::RedirectorFollowed;
-FSimpleMulticastDelegate FCoreDelegates::PreLoadMap;
-FSimpleMulticastDelegate FCoreDelegates::PostLoadMap;
 FSimpleMulticastDelegate FCoreDelegates::ColorPickerChanged;
 FCoreDelegates::FOnModalMessageBox FCoreDelegates::ModalErrorMessage;
-FCoreDelegates::FOnLoadObjectsOnTop FCoreDelegates::ShouldLoadOnTop;
 FCoreDelegates::FOnInviteAccepted FCoreDelegates::OnInviteAccepted;
-FCoreDelegates::FStringAssetReferenceLoaded FCoreDelegates::StringAssetReferenceLoaded;
-FCoreDelegates::FStringAssetReferenceSaving FCoreDelegates::StringAssetReferenceSaving;
-FCoreDelegates::FPackageCreatedForLoad FCoreDelegates::PackageCreatedForLoad;
 FCoreDelegates::FWorldOriginOffset FCoreDelegates::PreWorldOriginOffset;
 FCoreDelegates::FWorldOriginOffset FCoreDelegates::PostWorldOriginOffset;
 FCoreDelegates::FStarvedGameLoop FCoreDelegates::StarvedGameLoop;

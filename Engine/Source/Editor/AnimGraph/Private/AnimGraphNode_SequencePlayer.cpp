@@ -7,6 +7,11 @@
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
 #include "AnimationGraphSchema.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"
+#include "EditorCategoryUtils.h"
+#include "BlueprintNodeSpawner.h"
+
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
 /////////////////////////////////////////////////////
@@ -45,8 +50,8 @@ public:
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SequencePlayer
 
-UAnimGraphNode_SequencePlayer::UAnimGraphNode_SequencePlayer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_SequencePlayer::UAnimGraphNode_SequencePlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -170,6 +175,143 @@ void UAnimGraphNode_SequencePlayer::GetMenuEntries(FGraphContextMenuBuilder& Con
 	}
 }
 
+FText UAnimGraphNode_SequencePlayer::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Animation);
+}
+
+void UAnimGraphNode_SequencePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto LoadedAssetSetup = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UAnimSequence> SequencePtr)
+	{
+		UAnimGraphNode_SequencePlayer* SequencePlayerNode = CastChecked<UAnimGraphNode_SequencePlayer>(NewNode);
+		SequencePlayerNode->Node.Sequence = SequencePtr.Get();
+	};
+
+	auto UnloadedAssetSetup = [](UEdGraphNode* NewNode, bool bIsTemplateNode, const FAssetData AssetData)
+	{
+		UAnimGraphNode_SequencePlayer* SequencePlayerNode = CastChecked<UAnimGraphNode_SequencePlayer>(NewNode);
+		if (bIsTemplateNode)
+		{
+			if (const FString* SkeletonTag = AssetData.TagsAndValues.Find(TEXT("Skeleton")))
+			{
+				SequencePlayerNode->UnloadedSkeletonName = *SkeletonTag;
+			}
+		}
+		else
+		{
+			UAnimSequence* Sequence = Cast<UAnimSequence>(AssetData.GetAsset());
+			check(Sequence != nullptr);
+			SequencePlayerNode->Node.Sequence = Sequence;
+		}
+	};	
+
+	const UObject* QueryObject = ActionRegistrar.GetActionKeyFilter();
+	if (QueryObject == nullptr)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		// define a filter to help in pulling UAnimSequence asset data from the registry
+		FARFilter Filter;
+		Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		// Find matching assets and add an entry for each one
+		TArray<FAssetData> SequenceList;
+		AssetRegistryModule.Get().GetAssets(Filter, /*out*/SequenceList);
+
+		for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;			
+
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			if (Asset.IsAssetLoaded())
+			{
+				TWeakObjectPtr<UAnimSequence> AnimSequence = Cast<UAnimSequence>(Asset.GetAsset());
+				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, AnimSequence);
+				NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(AnimSequence->GetFName()), AnimSequence->IsValidAdditive());
+			}
+			else
+			{
+				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(UnloadedAssetSetup, Asset);
+				NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), /*bKnownToBeAdditive =*/false);
+			}
+			ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
+		}
+	}
+	else if (const UAnimSequence* AnimSequence = Cast<UAnimSequence>(QueryObject))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+
+		TWeakObjectPtr<UAnimSequence> SequencePtr = AnimSequence;
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, SequencePtr);
+		NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(AnimSequence->GetFName()), AnimSequence->IsValidAdditive());
+
+		ActionRegistrar.AddBlueprintAction(QueryObject, NodeSpawner);
+	}
+	else if (QueryObject == GetClass())
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		// define a filter to help in pulling UAnimSequence asset data from the registry
+		FARFilter Filter;
+		Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		// Find matching assets and add an entry for each one
+		TArray<FAssetData> SequenceList;
+		AssetRegistryModule.Get().GetAssets(Filter, /*out*/SequenceList);
+
+		for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;
+			if (Asset.IsAssetLoaded())
+			{
+				continue;
+			}
+
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(UnloadedAssetSetup, Asset);
+			NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), /*bKnownToBeAdditive =*/false);
+			ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
+		}
+	}	
+}
+
+bool UAnimGraphNode_SequencePlayer::IsActionFilteredOut(class FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	for (UBlueprint* Blueprint : FilterContext.Blueprints)
+	{
+		if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+		{
+			if(Node.Sequence)
+			{
+				if(Node.Sequence->GetSkeleton() != AnimBlueprint->TargetSkeleton)
+				{
+					// Sequence does not use the same skeleton as the Blueprint, cannot use
+					bIsFilteredOut = true;
+					break;
+				}
+			}
+			else 
+			{
+				FAssetData SkeletonData(AnimBlueprint->TargetSkeleton);
+				if(UnloadedSkeletonName != SkeletonData.GetExportTextName())
+				{
+					bIsFilteredOut = true;
+					break;
+				}
+			}
+		}
+		else
+		{
+			// Not an animation Blueprint, cannot use
+			bIsFilteredOut = true;
+			break;
+		}
+	}
+	return bIsFilteredOut;
+}
+
 void UAnimGraphNode_SequencePlayer::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.Sequence == NULL)
@@ -178,7 +320,7 @@ void UAnimGraphNode_SequencePlayer::ValidateAnimNodeDuringCompilation(class USke
 	}
 	else
 	{
-		USkeleton * SeqSkeleton = Node.Sequence->GetSkeleton();
+		USkeleton* SeqSkeleton = Node.Sequence->GetSkeleton();
 		if (SeqSkeleton&& // if anim sequence doesn't have skeleton, it might be due to anim sequence not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!SeqSkeleton->IsCompatible(ForSkeleton))
 		{

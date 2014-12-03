@@ -409,6 +409,21 @@ static bool RendererExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 	return false;
 }
+
+ICustomCulling* GCustomCullingImpl = nullptr;
+
+void FRendererModule::RegisterCustomCullingImpl(ICustomCulling* impl)
+{
+	check(GCustomCullingImpl == nullptr);
+	GCustomCullingImpl = impl;
+}
+
+void FRendererModule::UnregisterCustomCullingImpl(ICustomCulling* impl)
+{
+	check(GCustomCullingImpl == impl);
+	GCustomCullingImpl = nullptr;
+}
+
 FStaticSelfRegisteringExec RendererExecRegistration(RendererExec);
 
 void FRendererModule::ExecVisualizeTextureCmd( const FString& Cmd )

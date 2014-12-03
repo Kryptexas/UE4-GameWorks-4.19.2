@@ -55,8 +55,8 @@ namespace FFunctionalTesting
 
 FAutomationTestExecutionInfo* UFunctionalTestingManager::ExecutionInfo = NULL;
 
-UFunctionalTestingManager::UFunctionalTestingManager( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UFunctionalTestingManager::UFunctionalTestingManager( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, bIsRunning(false)
 	, bLooped(false)
 	, bWaitForNavigationBuildFinish(false)

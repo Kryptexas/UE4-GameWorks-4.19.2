@@ -6,8 +6,8 @@
 #include "K2Node_MacroInstance.h"
 #include "K2Node_Tunnel.h"
 
-UK2Node_Tunnel::UK2Node_Tunnel(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Tunnel::UK2Node_Tunnel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsEditable = true;
 }

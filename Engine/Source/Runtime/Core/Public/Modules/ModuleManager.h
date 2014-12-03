@@ -151,6 +151,16 @@ public:
 	TSharedPtr<IModuleInterface> LoadModule( const FName InModuleName, const bool bWasReloaded = false );
 
 	/**
+	 * Loads the specified module, checking to ensure it exists.
+	 *
+	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
+	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
+	 * @return The loaded module, or nullptr if the load operation failed.
+	 * @see AbandonModule, IsModuleLoaded, LoadModuleChecked, LoadModulePtr, LoadModuleWithFailureReason, UnloadModule
+	 */
+	TSharedPtr<IModuleInterface> LoadModuleChecked( const FName InModuleName, const bool bWasReloaded = false );
+
+	/**
 	 * Loads a module in memory then calls PostLoad.
 	 *
 	 * @param InModuleName The name of the module to load.
@@ -427,6 +437,11 @@ public:
 
 	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
+	/**
+	 * Calls for each auto-startup module its StartupModule function.
+	 */
+	void InitializeAutoStartupModules();
+
 protected:
 
 	/**
@@ -499,6 +514,13 @@ private:
 
 	/** Finds modules matching a given name wildcard within a given directory. */
 	void FindModulePathsInDirectory(const FString &DirectoryName, bool bIsGameDirectory, const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
+
+	/**
+	 * Loads array of module names that needs to be auto-loaded.
+	 *
+	 * @param OutModules Output array to fill with module names.
+	 */
+	void GetAutoStartupModuleList(TArray<FString>& OutModules) const;
 
 private:
 
@@ -604,6 +626,17 @@ class FDefaultGameModuleImpl
 	}
 };
 
+/**
+ * Callback to retrieve auto-startup modules list.
+ *
+ * It should return string ptr to auto-startup module for consecutive indices
+ * until the list is finished. Then this function should return nullptr.
+ *
+ * @param Index Auto-startup module index to return.
+ *
+ * @returns Auto-startup module name.
+ */
+extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 
 /**
  * Module implementation boilerplate for regular modules.
@@ -692,17 +725,28 @@ class FDefaultGameModuleImpl
 	#define IMPLEMENT_DEBUGGAME()
 #endif 
 
+#define REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER() \
+	struct FRegisterAutoStartupModuleListEnumerator \
+	{ \
+		FRegisterAutoStartupModuleListEnumerator() \
+		{ \
+			extern const ANSICHAR* EnumAutoStartupModuleName(int Index); \
+			GEnumAutoStartupModuleName = &EnumAutoStartupModuleName; \
+		} \
+	} RegisterAutoStartupModuleListEnumerator;
+
 #if IS_PROGRAM
 
 	#if IS_MONOLITHIC
 		#define IMPLEMENT_APPLICATION( ModuleName, GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GGameName[64] = TEXT( GameName ); \
+			TCHAR GInternalGameName[64] = TEXT( GameName ); \
 			IMPLEMENT_DEBUGGAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE(FDefaultGameModuleImpl, ModuleName) \
 			PER_MODULE_BOILERPLATE \
-			FEngineLoop GEngineLoop;
+			FEngineLoop GEngineLoop; \
+			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
 
 	#else		
 
@@ -712,12 +756,13 @@ class FDefaultGameModuleImpl
 			{ \
 				FAutoSet##ModuleName() \
 				{ \
-					FCString::Strncpy(GGameName, TEXT( GameName ), ARRAY_COUNT(GGameName)); \
+					FCString::Strncpy(GInternalGameName, TEXT( GameName ), ARRAY_COUNT(GInternalGameName)); \
 				} \
 			} AutoSet##ModuleName; \
 			PER_MODULE_BOILERPLATE \
 			PER_MODULE_BOILERPLATE_ANYLINK(FDefaultGameModuleImpl, ModuleName) \
-			FEngineLoop GEngineLoop;
+			FEngineLoop GEngineLoop; \
+			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
 	#endif
 
 #else
@@ -730,7 +775,7 @@ class FDefaultGameModuleImpl
 
 		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, DEPRECATED_GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
+			TCHAR GInternalGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
 			IMPLEMENT_DEBUGGAME() \
@@ -741,19 +786,21 @@ class FDefaultGameModuleImpl
 			{ \
 				extern void UELinkerFixups(); \
 				UELinkerFixups(); \
-			}
+			} \
+			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
 
 	#else	//PLATFORM_DESKTOP
 
 		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, DEPRECATED_GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
+			TCHAR GInternalGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
 			IMPLEMENT_DEBUGGAME() \
 			PER_MODULE_BOILERPLATE \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
+			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
 
 	#endif	//PLATFORM_DESKTOP
 
@@ -761,7 +808,8 @@ class FDefaultGameModuleImpl
 
 	#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, GameName ) \
 		/* Nothing special to do for modular builds.  The game name will be set via the command-line */ \
-		IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName )
+		IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
+		REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
 #endif	//IS_MONOLITHIC
 
 #endif

@@ -213,7 +213,7 @@ public:
 	/** An interaction which draws the view's interaction elements. */
 	FViewElementDrawer* Drawer;
 
-	/* Final position of the view in the final render target (in pixels), potentially scaled down by ScreenPercentage */
+	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
 	FIntRect ViewRect;
 
 	/* Final position of the view in the final render target (in pixels), potentially constrained by an aspect ratio requirement (black bars) */
@@ -332,9 +332,6 @@ public:
 	 * This is used when capturing the scene for reflection captures, which aren't updated at runtime. 
 	 */
 	bool bStaticSceneOnly;
-
-	/** 0 if valid (we are rendering a screen postprocess pass )*/
-	struct FRenderingCompositePassContext* RenderingCompositePassContext; 
 
 	/** Aspect ratio constrained view rect. In the editor, when attached to a camera actor and the camera black bar showflag is enabled, the normal viewrect 
 	  * remains as the full viewport, and the black bars are just simulated by drawing black bars. This member stores the effective constrained area within the
@@ -618,6 +615,8 @@ public:
 	ENGINE_API void ComputeFamilySize();
 
 	ENGINE_API ERHIFeatureLevel::Type GetFeatureLevel() const;
+
+	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 };
 
 /**

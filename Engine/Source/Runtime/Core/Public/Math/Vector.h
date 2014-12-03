@@ -467,7 +467,7 @@ public:
 	 *
 	 * @param A copy of the vector with each component set to +1 or -1
 	 */
-	FORCEINLINE FVector GetSignVector();
+	FORCEINLINE FVector GetSignVector() const;
 
 	/**
 	 * Projects 2D components of vector based on Z.
@@ -591,10 +591,18 @@ public:
 	/**
 	 * Gets a copy of this vector projected onto the input vector.
 	 *
-	 * @param A Vector to project onto, does not assume it is normalized.
+	 * @param A	Vector to project onto, does not assume it is normalized.
 	 * @return Projected vector.
 	 */
 	FORCEINLINE FVector ProjectOnTo( const FVector& A ) const ;
+
+	/**
+	 * Gets a copy of this vector projected onto the input vector, which is assumed to be unit length.
+	 * 
+	 * @param  Normal Vector to project onto (assumed to be unit length).
+	 * @return Projected vector.
+	 */
+	FORCEINLINE FVector ProjectOnToNormal(const FVector& Normal ) const;
 
 	/**
 	 * Return the FRotator corresponding to the direction that the vector
@@ -659,7 +667,7 @@ public:
 	 * @param	InSourceString	FString containing the vector values.
 	 * @return true if the X,Y,Z values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString );
+	bool InitFromString( const FString& InSourceString );
 
 	/** 
 	 * Converts a Cartesian unit vector into spherical coordinates on the unit sphere.
@@ -710,7 +718,7 @@ public:
 	 *
 	 * @param Point The Point we are checking.
 	 * @param PlaneBase The Base Point in the plane.
-	 * @param PlaneNormal The Normal of the plane.
+	 * @param PlaneNormal The Normal of the plane (assumed to be unit length).
 	 * @return Signed distance between point and plane.
 	 */
 	static float PointPlaneDist( const FVector &Point, const FVector &PlaneBase, const FVector &PlaneNormal );
@@ -740,10 +748,19 @@ public:
 	*
 	* @param Point The point to project onto the plane
 	* @param PlaneBase Point on the plane
-	* @param PlaneNorm Normal of the plane
-	* @return Projection of Point onto plane ABC
+	* @param PlaneNorm Normal of the plane (assumed to be unit length).
+	* @return Projection of Point onto plane
 	*/
-	static FVector PointPlaneProject(const FVector& Point, const FVector& PlaneBase, const FVector& PlaneNorm);
+	static FVector PointPlaneProject(const FVector& Point, const FVector& PlaneBase, const FVector& PlaneNormal);
+
+	/**
+	 * Calculate the projection of a vector on the plane defined by PlaneNormal.
+	 * 
+	 * @param  V The vector to project onto the plane.
+	 * @param  PlaneNormal Normal of the plane (assumed to be unit length).
+	 * @return Projection of V onto plane.
+	 */
+	static FVector VectorPlaneProject(const FVector& V, const FVector& PlaneNormal);
 
 	/**
 	 * Euclidean distance between two points.
@@ -770,27 +787,49 @@ public:
 	 * @param Size The size of the box.
 	 * @return Pushout required.
 	 */
-	static FORCEINLINE float BoxPushOut( const FVector & Normal, const FVector & Size );
+	static FORCEINLINE float BoxPushOut( const FVector& Normal, const FVector& Size );
 
 	/**
-	 * See if two normal vectors (or plane normals) are nearly parallel.
+	 * See if two normal vectors are nearly parallel, meaning the angle between them is close to 0 degrees.
 	 *
-	 * @param Normal1 First normalized vector.
-	 * @param Normal1 Second normalized vector.
+	 * @param  Normal1 First normalized vector.
+	 * @param  Normal1 Second normalized vector.
+	 * @param  ParallelCosineThreshold Normals are parallel if absolute value of dot product (cosine of angle between them) is greater than or equal to this. For example: cos(1.0 degrees).
 	 * @return true if vectors are nearly parallel, false otherwise.
 	 */
-	static bool Parallel( const FVector &Normal1, const FVector &Normal2 );
+	static bool Parallel(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold = THRESH_NORMALS_ARE_PARALLEL);
 
 	/**
-	 * See if two planes are coplanar.
+	 * See if two normal vectors are coincident (nearly parallel and point in the same direction).
+	 * 
+	 * @param  Normal1 First normalized vector.
+	 * @param  Normal2 Second normalized vector.
+	 * @param  ParallelCosineThreshold Normals are coincident if dot product (cosine of angle between them) is greater than or equal to this. For example: cos(1.0 degrees).
+	 * @return true if vectors are coincident (nearly parallel and point in the same direction), false otherwise.
+	 */
+	static bool Coincident(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold = THRESH_NORMALS_ARE_PARALLEL);
+
+	/**
+	 * See if two normal vectors are nearly orthogonal (perpendicular), meaning the angle between them is close to 90 degrees.
+	 * 
+	 * @param  Normal1 First normalized vector.
+	 * @param  Normal2 Second normalized vector.
+	 * @param  OrthogonalCosineThreshold Normals are orthogonal if absolute value of dot product (cosine of angle between them) is less than or equal to this. For example: cos(89.0 degrees).
+	 * @return true if vectors are orthogonal (perpendicular), false otherwise.
+	 */
+	static bool Orthogonal(const FVector& Normal1, const FVector& Normal2, float OrthogonalCosineThreshold = THRESH_NORMALS_ARE_ORTHOGONAL);
+
+	/**
+	 * See if two planes are coplanar. They are coplanar if the normals are nearly parallel and the planes include the same set of points.
 	 *
 	 * @param Base1 The base point in the first plane.
 	 * @param Normal1 The normal of the first plane.
 	 * @param Base2 The base point in the second plane.
 	 * @param Normal2 The normal of the second plane.
+	 * @param ParallelCosineThreshold Normals are parallel if absolute value of dot product is greater than or equal to this.
 	 * @return true if the planes are coplanar, false otherwise.
 	 */
-	static bool Coplanar( const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2 );
+	static bool Coplanar(const FVector& Base1, const FVector& Normal1, const FVector& Base2, const FVector& Normal2, float ParallelCosineThreshold = THRESH_NORMALS_ARE_PARALLEL);
 
 	/**
 	 * Triple product of three vectors: X dot (Y cross Z).
@@ -811,6 +850,22 @@ public:
 	 * @return The path length.
 	 */
 	static CORE_API float EvaluateBezier(const FVector* ControlPoints, int32 NumPoints, TArray<FVector>& OutPoints);
+
+	/**
+	 * Converts a vector containing radian values to a vector containing degree values.
+	 *
+	 * @param RadVector	Vector containing radian values
+	 * @return Vector  containing degree values
+	 */
+	static FVector RadiansToDegrees(const FVector& RadVector);
+
+	/**
+	 * Converts a vector containing degree values to a vector containing radian values.
+	 *
+	 * @param DegVector	Vector containing degree values
+	 * @return Vector containing radian values
+	 */
+	static FVector DegreesToRadians(const FVector& DegVector);
 
 	/**
 	 * Given a current set of cluster centers, a set of points, iterate N times to move clusters to be central. 
@@ -1025,17 +1080,34 @@ inline FVector FVector::PointPlaneProject(const FVector& Point, const FVector& P
 	return Point - FVector::PointPlaneDist(Point,PlaneBase,PlaneNorm) * PlaneNorm;
 }
 
-inline bool FVector::Parallel( const FVector &Normal1, const FVector &Normal2 )
+inline FVector FVector::VectorPlaneProject(const FVector& V, const FVector& PlaneNormal)
 {
-	const float NormalDot = Normal1 | Normal2;
-	return (FMath::Abs(NormalDot - 1.f) <= THRESH_VECTORS_ARE_PARALLEL);
+	return V - V.ProjectOnToNormal(PlaneNormal);
 }
 
-inline bool FVector::Coplanar( const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2 )
+inline bool FVector::Parallel(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold)
 {
-	if      (!FVector::Parallel(Normal1,Normal2)) return false;
+	const float NormalDot = Normal1 | Normal2;
+	return FMath::Abs(NormalDot) >= ParallelCosineThreshold;
+}
+
+inline bool FVector::Coincident(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold)
+{
+	const float NormalDot = Normal1 | Normal2;
+	return NormalDot >= ParallelCosineThreshold;
+}
+
+inline bool FVector::Orthogonal(const FVector& Normal1, const FVector& Normal2, float OrthogonalCosineThreshold)
+{
+	const float NormalDot = Normal1 | Normal2;
+	return FMath::Abs(NormalDot) <= OrthogonalCosineThreshold;
+}
+
+inline bool FVector::Coplanar(const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2, float ParallelCosineThreshold)
+{
+	if      (!FVector::Parallel(Normal1,Normal2,ParallelCosineThreshold)) return false;
 	else if (FVector::PointPlaneDist (Base2,Base1,Normal1) > THRESH_POINT_ON_PLANE) return false;
-	else    return true;
+	else return true;
 }
 
 inline float FVector::Triple( const FVector& X, const FVector& Y, const FVector& Z )
@@ -1044,6 +1116,16 @@ inline float FVector::Triple( const FVector& X, const FVector& Y, const FVector&
 	(	(X.X * (Y.Y * Z.Z - Y.Z * Z.Y))
 	+	(X.Y * (Y.Z * Z.X - Y.X * Z.Z))
 	+	(X.Z * (Y.X * Z.Y - Y.Y * Z.X)) );
+}
+
+inline FVector FVector::RadiansToDegrees(const FVector& RadVector)
+{
+	return RadVector * (180.f / PI);
+}
+
+inline FVector FVector::DegreesToRadians(const FVector& DegVector)
+{
+	return DegVector * (PI / 180.f);
 }
 
 FORCEINLINE FVector::FVector()
@@ -1376,7 +1458,7 @@ FORCEINLINE void FVector::ToDirectionAndLength(FVector &OutDir, float &OutLength
 	}
 }
 
-FORCEINLINE FVector FVector::GetSignVector()
+FORCEINLINE FVector FVector::GetSignVector() const
 {
 	return FVector
 		(
@@ -1586,6 +1668,11 @@ FORCEINLINE FVector FVector::ProjectOnTo( const FVector& A ) const
 	return (A * ((*this | A) / (A | A))); 
 }
 
+FORCEINLINE FVector FVector::ProjectOnToNormal(const FVector& Normal) const
+{
+	return (Normal * (*this | Normal));
+}
+
 
 FORCEINLINE bool FVector::ContainsNaN() const
 {
@@ -1702,7 +1789,7 @@ FORCEINLINE FString FVector::ToCompactString() const
 	return ReturnString;
 }
 
-FORCEINLINE bool FVector::InitFromString( const FString & InSourceString )
+FORCEINLINE bool FVector::InitFromString( const FString& InSourceString )
 {
 	X = Y = Z = 0;
 
@@ -1749,7 +1836,7 @@ FORCEINLINE float FVector::DistSquared( const FVector &V1, const FVector &V2 )
 	return FMath::Square(V2.X-V1.X) + FMath::Square(V2.Y-V1.Y) + FMath::Square(V2.Z-V1.Z);
 }
 
-FORCEINLINE float FVector::BoxPushOut( const FVector & Normal, const FVector & Size )
+FORCEINLINE float FVector::BoxPushOut( const FVector& Normal, const FVector& Size )
 {
 	return FMath::Abs(Normal.X*Size.X) + FMath::Abs(Normal.Y*Size.Y) + FMath::Abs(Normal.Z*Size.Z);
 }

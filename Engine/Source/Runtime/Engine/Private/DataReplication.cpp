@@ -10,6 +10,7 @@
 #include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/PackageMapClient.h"
 
 class FNetSerializeCB : public INetSerializeCB
 {
@@ -18,11 +19,23 @@ public:
 
 	FNetSerializeCB( UNetDriver * InNetDriver ) : Driver( InNetDriver ) { }
 
-	virtual void NetSerializeStruct( UStruct * Struct, FArchive & Ar, UPackageMap *	Map, void * Data, bool & bHasUnmapped )
+	virtual void NetSerializeStruct( UScriptStruct* Struct, FArchive& Ar, UPackageMap* Map, void* Data, bool& bHasUnmapped )
 	{
-		TSharedPtr<FRepLayout> RepLayout = Driver->GetStructRepLayout( Struct );
-
-		RepLayout->SerializePropertiesForStruct( Struct, Ar, Map, Data, bHasUnmapped );
+		if (Struct->StructFlags & STRUCT_NetSerializeNative)
+		{
+			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
+			check(CppStructOps); // else should not have STRUCT_NetSerializeNative
+			check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_NetSerializeNative
+			if (!CppStructOps->NetSerialize(Ar, Map, bHasUnmapped, Data))
+			{
+				UE_LOG(LogNet, Warning, TEXT("NetSerializeStruct: Native NetSerialize %s failed."), *Struct->GetFullName());
+			}
+		}
+		else
+		{
+			TSharedPtr<FRepLayout> RepLayout = Driver->GetStructRepLayout(Struct);
+			RepLayout->SerializePropertiesForStruct(Struct, Ar, Map, Data, bHasUnmapped);
+		}
 	}
 
 	UNetDriver * Driver;
@@ -40,7 +53,7 @@ static bool IsCustomDeltaProperty( UProperty * Property )
 	return false;
 }
 
-bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connection, void * Src, UProperty * Property, int32 ArrayDim, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> &NewFullState, TSharedPtr<INetDeltaBaseState> & OldState )
+bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connection, void* Src, UProperty * Property, int32 ArrayDim, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> &NewFullState, TSharedPtr<INetDeltaBaseState> & OldState )
 {
 	check( NewFullState.IsValid() == false ); // NewState is passed in as NULL and instantiated within this function if necessary
 
@@ -80,7 +93,7 @@ bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connectio
  *	Utility function to make a copy of the net properties 
  *	@param	Source - Memory to copy initial state from
 **/
-void FObjectReplicator::InitRecentProperties( uint8 * Source )
+void FObjectReplicator::InitRecentProperties( uint8* Source )
 {
 	check( GetObject() != NULL );
 	check( Connection != NULL );
@@ -120,7 +133,7 @@ void FObjectReplicator::InitRecentProperties( uint8 * Source )
 }
 
 /** Takes Data, and compares against shadow state to log differences */
-bool FObjectReplicator::ValidateAgainstState( const UObject * ObjectState )
+bool FObjectReplicator::ValidateAgainstState( const UObject* ObjectState )
 {
 	if ( !RepLayout.IsValid() )
 	{
@@ -143,7 +156,7 @@ bool FObjectReplicator::ValidateAgainstState( const UObject * ObjectState )
 	return true;
 }
 
-void FObjectReplicator::InitWithObject( UObject * InObject, UNetConnection * InConnection, bool bUseDefaultState )
+void FObjectReplicator::InitWithObject( UObject* InObject, UNetConnection * InConnection, bool bUseDefaultState )
 {
 	check( GetObject() == NULL );
 	check( ObjectClass == NULL );
@@ -175,7 +188,7 @@ void FObjectReplicator::InitWithObject( UObject * InObject, UNetConnection * InC
 	RepLayout = Connection->Driver->GetObjectClassRepLayout( ObjectClass );
 
 	// Make a copy of the net properties
-	uint8 * Source = bUseDefaultState ? (uint8*)GetObject()->GetClass()->GetDefaultObject() : (uint8*)InObject;
+	uint8* Source = bUseDefaultState ? (uint8*)GetObject()->GetClass()->GetDefaultObject() : (uint8*)InObject;
 
 	InitRecentProperties( Source );
 
@@ -305,7 +318,7 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 
 void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 {
-	UObject * Object = GetObject();
+	UObject* Object = GetObject();
 
 	if ( Object == NULL )
 	{
@@ -368,9 +381,9 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 	}
 }
 
-bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags & RepFlags, bool & bOutHasUnmapped )
+bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags& RepFlags, bool & bOutHasUnmapped )
 {
-	UObject * Object = GetObject();
+	UObject* Object = GetObject();
 
 	if ( Object == NULL )
 	{
@@ -488,19 +501,9 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 				}
 
 				// Pointer to destination.
-				uint8 * DestRecent = RepState->StaticBuffer.GetTypedData();
-
-				uint8 * Data = ReplicatedProp->ContainerPtrToValuePtr<uint8>((uint8*)Object, Element);
+				uint8* Data = ReplicatedProp->ContainerPtrToValuePtr<uint8>((uint8*)Object, Element);
 				TArray<uint8>	MetaData;
 				PTRINT Offset = 0;
-
-				// Copy current value over to Recent for comparison
-				if ( DestRecent )
-				{
-					Offset = ReplicatedProp->ContainerPtrToValuePtr<uint8>(DestRecent, Element) - DestRecent;
-					check( Offset >= 0 && Offset < RepState->StaticBuffer.Num() ); //@todo if we move properties outside of the memory block, then this will not work anyway
-					ReplicatedProp->CopySingleValue( DestRecent + Offset, Data );
-				}
 
 				// Receive custom delta property.
 				UStructProperty * StructProperty = Cast< UStructProperty >( ReplicatedProp );
@@ -545,26 +548,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 					return false;
 				}
 
-				// See if it changed from our local value
-				bool PropertyChanged = true;
-
-				if ( DestRecent )
-				{
-					// POD types can do a memcmp with a call to Identical
-					if ( ReplicatedProp->Identical( DestRecent + Offset, Data ) )
-					{
-						PropertyChanged = false;
-					}
-				}
-
 				// Successfully received it.
-				UE_LOG( LogNetTraffic, Log, TEXT( " %s - %s - Change: %d" ), *Object->GetName(), *ReplicatedProp->GetName(), PropertyChanged );
+				UE_LOG( LogNetTraffic, Log, TEXT( " %s - %s" ), *Object->GetName(), *ReplicatedProp->GetName());
 
 				// Notify the Object if this var is RepNotify
-				if ( PropertyChanged )
-				{
-					QueuePropertyRepNotify( Object, ReplicatedProp, Element, MetaData );
-				}
+				QueuePropertyRepNotify( Object, ReplicatedProp, Element, MetaData );
 			}	
 			
 			// Next.
@@ -766,7 +754,7 @@ void FObjectReplicator::PostReceivedBunch()
 			}
 			else if (RepNotifyFunc->NumParms == 1)
 			{
-				Object->ProcessEvent(RepNotifyFunc, RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetTypedData()) );
+				Object->ProcessEvent(RepNotifyFunc, RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetData()) );
 			}
 			else if (RepNotifyFunc->NumParms == 2)
 			{
@@ -785,7 +773,7 @@ void FObjectReplicator::PostReceivedBunch()
 				TFieldIterator<UProperty> Itr(RepNotifyFunc);
 				check(Itr);
 				
-				Itr->CopyCompleteValue( Itr->ContainerPtrToValuePtr<void>(Parms), RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetTypedData()) );
+				Itr->CopyCompleteValue( Itr->ContainerPtrToValuePtr<void>(Parms), RepProperty->ContainerPtrToValuePtr<uint8>(RepState->StaticBuffer.GetData()) );
 				++Itr;
 				check(Itr);
 
@@ -838,7 +826,7 @@ static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetir
 	return Rec;
 }
 
-void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32 & LastIndex, bool & bContentBlockWritten )
+void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32& LastIndex, bool & bContentBlockWritten )
 {
 	if ( LifetimeCustomDeltaProperties.Num() == 0 )
 	{
@@ -846,7 +834,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32
 		return;
 	}
 
-	UObject * Object = GetObject();
+	UObject* Object = GetObject();
 
 	check( Object );
 	check( OwningChannel );
@@ -909,7 +897,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32
 /** Replicates properties to the Bunch. Returns true if it wrote anything */
 bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlags RepFlags )
 {
-	UObject * Object = GetObject();
+	UObject* Object = GetObject();
 
 	if ( Object == NULL )
 	{
@@ -923,7 +911,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	check( RepState )
 	check( RepState->StaticBuffer.Num() );
 
-	UNetConnection * OwningChannelConnection = OwningChannel->Connection;
+	UNetConnection* OwningChannelConnection = OwningChannel->Connection;
 
 	const int32 StartingBitNum = Bunch.GetNumBits();
 
@@ -943,7 +931,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	// Replicate Queued (unreliable functions)
 	if ( RemoteFunctions != NULL && RemoteFunctions->GetNumBits() > 0 )
 	{
-		static const auto * CVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.RPC.Debug" ) );
+		static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.RPC.Debug" ) );
 
 		if ( CVar && CVar->GetValueOnGameThread() == 1 )
 		{
@@ -1119,7 +1107,7 @@ void FObjectReplicator::StartBecomingDormant()
 
 void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 {
-	UObject * Object = GetObject();
+	UObject* Object = GetObject();
 
 	if ( Object == NULL || Object->IsPendingKill() )
 	{
@@ -1143,7 +1131,7 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 	}
 }
 
-void FObjectReplicator::QueuePropertyRepNotify( UObject * Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData )
+void FObjectReplicator::QueuePropertyRepNotify( UObject* Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData )
 {
 	if ( !Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 	{

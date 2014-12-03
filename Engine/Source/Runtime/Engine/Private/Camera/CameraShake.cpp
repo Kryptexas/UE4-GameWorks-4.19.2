@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UCameraShake
 
-UCameraShake::UCameraShake(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCameraShake::UCameraShake(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AnimPlayRate = 1.0f;
 	AnimScale = 1.0f;

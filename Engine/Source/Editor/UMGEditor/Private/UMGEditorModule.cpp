@@ -13,8 +13,11 @@
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/MarginTrackEditor.h"
 #include "Animation/Sequencer2DTransformTrackEditor.h"
-
+#include "IUMGModule.h"
+#include "ComponentReregisterContext.h"
+#include "WidgetComponent.h"
 #include "DesignerCommands.h"
+#include "WidgetBlueprint.h"
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
@@ -74,6 +77,8 @@ public:
 	{
 		if ( UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint) )
 		{
+			TComponentReregisterContext<UWidgetComponent> ComponentReregisterContext;
+
 			FWidgetBlueprintCompiler Compiler(WidgetBlueprint, Results, CompileOptions, ObjLoaded);
 			Compiler.Compile();
 			check(Compiler.NewClass);

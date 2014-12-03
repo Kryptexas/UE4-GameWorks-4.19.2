@@ -7,8 +7,8 @@
 #include "MovieSceneMarginTrackInstance.h"
 #include "MovieSceneCommonHelpers.h"
 
-UMovieSceneMarginTrack::UMovieSceneMarginTrack(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UMovieSceneMarginTrack::UMovieSceneMarginTrack(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

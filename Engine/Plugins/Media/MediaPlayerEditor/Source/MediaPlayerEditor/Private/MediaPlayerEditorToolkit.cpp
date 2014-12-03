@@ -2,7 +2,7 @@
 
 #include "MediaPlayerEditorPrivatePCH.h"
 #include "Factories.h"
-
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FMediaPlayerEditorToolkit"
 
@@ -26,7 +26,7 @@ FMediaPlayerEditorToolkit::FMediaPlayerEditorToolkit( const TSharedRef<ISlateSty
 { }
 
 
-FMediaPlayerEditorToolkit::~FMediaPlayerEditorToolkit( )
+FMediaPlayerEditorToolkit::~FMediaPlayerEditorToolkit()
 {
 	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
@@ -107,17 +107,20 @@ FString FMediaPlayerEditorToolkit::GetDocumentationLink() const
 
 void FMediaPlayerEditorToolkit::RegisterTabSpawners( const TSharedRef<class FTabManager>& TabManager )
 {
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_MediaPlayerEditor", "Media Player Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
+
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	TabManager->RegisterTabSpawner( ViewerTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, ViewerTabId ) )
+		.SetDisplayName( LOCTEXT( "PlayerTabName", "Player" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports" ) );
 
-	TabManager->RegisterTabSpawner(ViewerTabId, FOnSpawnTab::CreateSP(this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, ViewerTabId))
-		.SetDisplayName(LOCTEXT("PlayerTabName", "Player"))
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
-	
-	TabManager->RegisterTabSpawner(DetailsTabId, FOnSpawnTab::CreateSP(this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, DetailsTabId))
-		.SetDisplayName(LOCTEXT("DetailsTabName", "Details") )
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
+	TabManager->RegisterTabSpawner( DetailsTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, DetailsTabId ) )
+		.SetDisplayName( LOCTEXT( "DetailsTabName", "Details" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
 }
 
 
@@ -133,25 +136,25 @@ void FMediaPlayerEditorToolkit::UnregisterTabSpawners( const TSharedRef<class FT
 /* IToolkit interface
  *****************************************************************************/
 
-FText FMediaPlayerEditorToolkit::GetBaseToolkitName( ) const
+FText FMediaPlayerEditorToolkit::GetBaseToolkitName() const
 {
 	return LOCTEXT("AppLabel", "Media Asset Editor");
 }
 
 
-FName FMediaPlayerEditorToolkit::GetToolkitFName( ) const
+FName FMediaPlayerEditorToolkit::GetToolkitFName() const
 {
 	return FName("MediaPlayerEditor");
 }
 
 
-FLinearColor FMediaPlayerEditorToolkit::GetWorldCentricTabColorScale( ) const
+FLinearColor FMediaPlayerEditorToolkit::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
 
-FString FMediaPlayerEditorToolkit::GetWorldCentricTabPrefix( ) const
+FString FMediaPlayerEditorToolkit::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("WorldCentricTabPrefix", "MediaPlayer ").ToString();
 }
@@ -182,7 +185,7 @@ void FMediaPlayerEditorToolkit::PostRedo( bool bSuccess )
 /* FMediaPlayerEditorToolkit implementation
  *****************************************************************************/
 
-void FMediaPlayerEditorToolkit::BindCommands( )
+void FMediaPlayerEditorToolkit::BindCommands()
 {
 	const FMediaPlayerEditorCommands& Commands = FMediaPlayerEditorCommands::Get();
 
@@ -214,7 +217,7 @@ void FMediaPlayerEditorToolkit::BindCommands( )
 
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FMediaPlayerEditorToolkit::ExtendToolBar( )
+void FMediaPlayerEditorToolkit::ExtendToolBar()
 {
 	struct Local
 	{
@@ -247,7 +250,7 @@ void FMediaPlayerEditorToolkit::ExtendToolBar( )
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
-float FMediaPlayerEditorToolkit::GetForwardRate( ) const
+float FMediaPlayerEditorToolkit::GetForwardRate() const
 {
 	float Rate = MediaPlayer->GetRate();
 
@@ -260,7 +263,7 @@ float FMediaPlayerEditorToolkit::GetForwardRate( ) const
 }
 
 
-float FMediaPlayerEditorToolkit::GetReverseRate( ) const
+float FMediaPlayerEditorToolkit::GetReverseRate() const
 {
 	float Rate = MediaPlayer->GetRate();
 
@@ -276,61 +279,61 @@ float FMediaPlayerEditorToolkit::GetReverseRate( ) const
 /* FMediaPlayerEditorToolkit callbacks
  *****************************************************************************/
 
-bool FMediaPlayerEditorToolkit::HandleForwardMediaActionCanExecute( ) const
+bool FMediaPlayerEditorToolkit::HandleForwardMediaActionCanExecute() const
 {
 	return MediaPlayer->SupportsRate(GetForwardRate(), false);
 }
 
 
-void FMediaPlayerEditorToolkit::HandleForwardMediaActionExecute( )
+void FMediaPlayerEditorToolkit::HandleForwardMediaActionExecute()
 {
 	MediaPlayer->SetRate(GetForwardRate());
 }
 
 
-bool FMediaPlayerEditorToolkit::HandlePauseMediaActionCanExecute( ) const
+bool FMediaPlayerEditorToolkit::HandlePauseMediaActionCanExecute() const
 {
 	return MediaPlayer->CanPause();
 }
 
 
-void FMediaPlayerEditorToolkit::HandlePauseMediaActionExecute( )
+void FMediaPlayerEditorToolkit::HandlePauseMediaActionExecute()
 {
 	MediaPlayer->Pause();
 }
 
 
-bool FMediaPlayerEditorToolkit::HandlePlayMediaActionCanExecute( ) const
+bool FMediaPlayerEditorToolkit::HandlePlayMediaActionCanExecute() const
 {
 	return MediaPlayer->CanPlay() && (MediaPlayer->GetRate() != 1.0f);
 }
 
 
-void FMediaPlayerEditorToolkit::HandlePlayMediaActionExecute( )
+void FMediaPlayerEditorToolkit::HandlePlayMediaActionExecute()
 {
 	MediaPlayer->Play();
 }
 
 
-bool FMediaPlayerEditorToolkit::HandleReverseMediaActionCanExecute( ) const
+bool FMediaPlayerEditorToolkit::HandleReverseMediaActionCanExecute() const
 {
 	return MediaPlayer->SupportsRate(GetReverseRate(), false);
 }
 
 
-void FMediaPlayerEditorToolkit::HandleReverseMediaActionExecute( )
+void FMediaPlayerEditorToolkit::HandleReverseMediaActionExecute()
 {
 	MediaPlayer->SetRate(GetReverseRate());
 }
 
 
-bool FMediaPlayerEditorToolkit::HandleRewindMediaActionCanExecute( ) const
+bool FMediaPlayerEditorToolkit::HandleRewindMediaActionCanExecute() const
 {
 	return MediaPlayer->GetTime() > FTimespan::Zero();
 }
 
 
-void FMediaPlayerEditorToolkit::HandleRewindMediaActionExecute( )
+void FMediaPlayerEditorToolkit::HandleRewindMediaActionExecute()
 {
 	MediaPlayer->Rewind();
 }

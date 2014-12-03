@@ -4,6 +4,7 @@
 
 #include "SlateWrapperTypes.h"
 
+#include "SWidgetSwitcher.h"
 #include "WidgetSwitcherSlot.generated.h"
 
 /** The Slot for the UWidgetSwitcher, contains the widget that is flowed vertically */
@@ -15,15 +16,15 @@ class UMG_API UWidgetSwitcherSlot : public UPanelSlot
 public:
 	
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Widget Switcher Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Widget Switcher Slot)")
 	FMargin Padding;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Widget Switcher Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Widget Switcher Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Widget Switcher Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Widget Switcher Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 public:

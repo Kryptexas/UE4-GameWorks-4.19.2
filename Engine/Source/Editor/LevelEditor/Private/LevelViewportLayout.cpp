@@ -5,6 +5,7 @@
 #include "LevelViewportTabContent.h"
 #include "LevelViewportLayout.h"
 #include "SLevelViewport.h"
+#include "SDockTab.h"
 
 namespace ViewportLayoutDefs
 {
@@ -98,7 +99,6 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 void SViewportsOverlay::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	CachedSize = AllottedGeometry.Size;
-	LevelViewportTab->Tick();
 }
 
 SOverlay::FOverlaySlot& SViewportsOverlay::AddSlot()
@@ -270,7 +270,7 @@ void FLevelViewportLayout::RequestMaximizeViewport( TSharedRef<class SLevelViewp
 
 		// We flush commands here because there could be a pending slow viewport draw already enqueued in the render thread
 		// We take the hitch here so that our transition to/from maximize animation is responsive next tick
-		FSlateApplication::Get().GetRenderer()->FlushCommands();
+		FlushRenderingCommands();
 
 		DeferredMaximizeCommands.Add( FMaximizeViewportCommand(ViewportToMaximize, bWantMaximize, bWantImmersive) );
 	}
@@ -568,7 +568,7 @@ bool FLevelViewportLayout::IsViewportImmersive( const SLevelViewport& InViewport
 EVisibility FLevelViewportLayout::OnGetNonMaximizedVisibility() const
 {
 	// The non-maximized viewports are not visible if there is a maximized viewport on top of them
-	return (!bIsQueryingLayoutMetrics && MaximizedViewport.IsValid() && !bIsTransitioning) ? EVisibility::Collapsed : EVisibility::Visible;
+	return (!bIsQueryingLayoutMetrics && MaximizedViewport.IsValid() && !bIsTransitioning && DeferredMaximizeCommands.Num() == 0) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
@@ -655,7 +655,7 @@ void FLevelViewportLayout::FinishMaximizeTransition()
 		{
 			// We first need to clear keyboard focus so that Slate doesn't assume that focus won't need to change
 			// simply because the viewport widget object is the same -- it has a new widget path!
-			FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+			FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 
 			// Set keyboard focus directly
 			ViewportToFocus->SetKeyboardFocusToThisViewport();
@@ -668,7 +668,7 @@ void FLevelViewportLayout::FinishMaximizeTransition()
 }
 
 
-void FLevelViewportLayout::Tick()
+void FLevelViewportLayout::Tick( float DeltaTime )
 {
 	// If we have an animation that has finished playing, then complete the transition
 	if( bIsTransitioning && !MaximizeAnimation.IsPlaying() )
@@ -694,4 +694,9 @@ void FLevelViewportLayout::Tick()
 		}
 		DeferredMaximizeCommands.Empty();
 	}
+}
+
+bool FLevelViewportLayout::IsTickable() const
+{
+	return DeferredMaximizeCommands.Num() > 0 || (bIsTransitioning && !MaximizeAnimation.IsPlaying());
 }

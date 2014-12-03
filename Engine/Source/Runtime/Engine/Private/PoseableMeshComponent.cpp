@@ -7,9 +7,10 @@
 #include "EnginePrivate.h"
 #include "AnimTree.h"
 #include "Animation/AnimInstance.h"
+#include "Components/PoseableMeshComponent.h"
 
-UPoseableMeshComponent::UPoseableMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPoseableMeshComponent::UPoseableMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
@@ -87,8 +88,8 @@ void UPoseableMeshComponent::FillSpaceBases()
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 	// Build in 3 passes.
-	FTransform* LocalTransformsData = LocalAtoms.GetTypedData(); 
-	FTransform* SpaceBasesData = SpaceBases.GetTypedData();
+	FTransform* LocalTransformsData = LocalAtoms.GetData(); 
+	FTransform* SpaceBasesData = SpaceBases.GetData();
 	
 	SpaceBases[0] = LocalAtoms[0];
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)

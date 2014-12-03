@@ -205,6 +205,7 @@ public:
 	 * @param		bCheckDirty					If true, only packages that are dirty in PackagesToSave will be saved	
 	 * @param		bPromptToSave				If true the user will be prompted with a list of packages to save, otherwise all passed in packages are saved
 	 * @param		OutFailedPackages			[out] If specified, will be filled in with all of the packages that failed to save successfully
+	 * @param		bAlreadyCheckedOut			If true, the user will not be prompted with the source control dialog
 	 *
 	 * @return		An enum value signifying success, failure, user declined, or cancellation. If any packages at all failed to save during execution, the return code will be 
 	 *				failure, even if other packages successfully saved. If the user cancels at any point during any prompt, the return code will be cancellation, even though it
@@ -212,7 +213,7 @@ public:
 	 *				Save" option on the dialog, the return code will indicate the user has declined out of the prompt. This way calling code can distinguish between a decline and a cancel
 	 *				and then proceed as planned, or abort its operation accordingly.
 	 */
-	UNREALED_API static EPromptReturnCode PromptForCheckoutAndSave( const TArray<UPackage*>& PackagesToSave, bool bCheckDirty, bool bPromptToSave, TArray<UPackage*>* OutFailedPackages = NULL );
+	UNREALED_API static EPromptReturnCode PromptForCheckoutAndSave( const TArray<UPackage*>& PackagesToSave, bool bCheckDirty, bool bPromptToSave, TArray<UPackage*>* OutFailedPackages = NULL, bool bAlreadyCheckedOut = false );
 
 	////////////////////////////////////////////////////////////////////////////
 	// Import/Export

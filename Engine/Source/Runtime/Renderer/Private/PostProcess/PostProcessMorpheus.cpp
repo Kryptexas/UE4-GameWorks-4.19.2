@@ -112,8 +112,8 @@ public:
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, -0.5f);
 			}				
-			      
-            QuadTexTransform = FMatrix::Identity;            
+				  
+			QuadTexTransform = FMatrix::Identity;            
 		}
 	}
 	
@@ -177,7 +177,7 @@ IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusPS,TEXT("MorpheusInclude"),TEXT("Mai
 
 void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessMorpheus, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessMorpheus);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -193,7 +193,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	FIntRect DestRect = View.UnscaledViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 
-    const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
@@ -213,23 +213,23 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 
 	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-    FMatrix QuadTexTransform;
-    FMatrix QuadPosTransform = FMatrix::Identity;
+	FMatrix QuadTexTransform;
+	FMatrix QuadPosTransform = FMatrix::Identity;
 
 	PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 
 	// Draw a quad mapping scene color to the view's render target
-    DrawTransformedRectangle(
+	DrawTransformedRectangle(
 		Context.RHICmdList,
-        0, 0,
-        DestRect.Width(), DestRect.Height(),
-        QuadPosTransform,
-        SrcRect.Min.X, SrcRect.Min.Y,
-        SrcRect.Width(), SrcRect.Height(),
-        QuadTexTransform,
-        DestRect.Size(),
-        SrcSize
-        );
+		0, 0,
+		DestRect.Width(), DestRect.Height(),
+		QuadPosTransform,
+		SrcRect.Min.X, SrcRect.Min.Y,
+		SrcRect.Width(), SrcRect.Height(),
+		QuadTexTransform,
+		DestRect.Size(),
+		SrcSize
+		);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

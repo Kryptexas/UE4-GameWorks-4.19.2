@@ -9,14 +9,14 @@ public class Settings : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"CoreUObject",
+				"Core",
 			}
 		);
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core",
+				"CoreUObject",
             }
         );
 
@@ -24,7 +24,6 @@ public class Settings : ModuleRules
 			new string[]
             {
                 "Developer/Settings/Private",
-                "Developer/Settings/Private/Widgets",
             }
 		);
 	}

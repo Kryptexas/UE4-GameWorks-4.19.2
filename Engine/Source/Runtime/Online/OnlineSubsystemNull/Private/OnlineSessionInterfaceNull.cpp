@@ -4,6 +4,7 @@
 #include "OnlineSessionInterfaceNull.h"
 #include "OnlineIdentityInterface.h"
 #include "OnlineSubsystemNull.h"
+#include "OnlineSubsystemUtils.h"
 #include "OnlineAsyncTaskManagerNull.h"
 #include "SocketSubsystem.h"
 #include "LANBeacon.h"
@@ -18,7 +19,7 @@ FOnlineSessionInfoNull::FOnlineSessionInfoNull() :
 {
 }
 
-void FOnlineSessionInfoNull::Init()
+void FOnlineSessionInfoNull::Init(const FOnlineSubsystemNull& Subsystem)
 {
 	// Read the IP from the system
 	bool bCanBindAll;
@@ -37,7 +38,7 @@ void FOnlineSessionInfoNull::Init()
 	}
 
 	// Now set the port that was configured
-	HostAddr->SetPort(FURL::UrlConfig.DefaultPort);
+	HostAddr->SetPort(GetPortFromNetDriver(Subsystem.GetInstanceName()));
 
 	FGuid OwnerGuid;
 	FPlatformMisc::CreateGuid(OwnerGuid);
@@ -214,7 +215,7 @@ bool FOnlineSessionNull::CreateSession(int32 HostingPlayerNum, FName SessionName
 
 		// Setup the host session info
 		FOnlineSessionInfoNull* NewSessionInfo = new FOnlineSessionInfoNull();
-		NewSessionInfo->Init();
+		NewSessionInfo->Init(*NullSubsystem);
 		Session->SessionInfo = MakeShareable(NewSessionInfo);
 
 		Result = UpdateLANStatus();
@@ -279,7 +280,7 @@ bool FOnlineSessionNull::NeedsToAdvertise( FNamedOnlineSession& Session )
 	// b) Not started public LAN session (same as usually)
 	// d) Joinable presence-enabled session that would be advertised with in an online service
 	// (all of that only if we're server)
-	return Session.SessionSettings.bShouldAdvertise && NullSubsystem->IsServer() &&
+	return Session.SessionSettings.bShouldAdvertise && IsHost(Session) &&
 		(
 			(
 			  Session.SessionSettings.bIsLANMatch && 			  
@@ -852,7 +853,7 @@ bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TShare
 			const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 			FUniqueNetIdMatcher PlayerMatch(*PlayerId);
-			if (Session->RegisteredPlayers.FindMatch(PlayerMatch) == INDEX_NONE)
+			if (Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) == INDEX_NONE)
 			{
 				Session->RegisteredPlayers.Add(PlayerId);
 				RegisterVoice(*PlayerId);
@@ -902,7 +903,7 @@ bool FOnlineSessionNull::UnregisterPlayers(FName SessionName, const TArray< TSha
 			const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 			FUniqueNetIdMatcher PlayerMatch(*PlayerId);
-			int32 RegistrantIndex = Session->RegisteredPlayers.FindMatch(PlayerMatch);
+			int32 RegistrantIndex = Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch);
 			if (RegistrantIndex != INDEX_NONE)
 			{
 				Session->RegisteredPlayers.RemoveAtSwap(RegistrantIndex);
@@ -955,6 +956,9 @@ void FOnlineSessionNull::AppendSessionToPacket(FNboSerializeToBufferNull& Packet
 		<< Session->OwningUserName
 		<< Session->NumOpenPrivateConnections
 		<< Session->NumOpenPublicConnections;
+
+	// Try to get the actual port the netdriver is using
+	SetPortFromNetDriver(*NullSubsystem, Session->SessionInfo);
 
 	// Write host info (host addr, session id, and key)
 	Packet << *StaticCastSharedPtr<FOnlineSessionInfoNull>(Session->SessionInfo);
@@ -1222,4 +1226,31 @@ void FOnlineSessionNull::RegisterLocalPlayer(const FUniqueNetId& PlayerId, FName
 void FOnlineSessionNull::UnregisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnUnregisterLocalPlayerCompleteDelegate& Delegate)
 {
 	Delegate.ExecuteIfBound(PlayerId, true);
+}
+
+void FOnlineSessionNull::SetPortFromNetDriver(const FOnlineSubsystemNull& Subsystem, const TSharedPtr<FOnlineSessionInfo>& SessionInfo)
+{
+	auto NetDriverPort = GetPortFromNetDriver(Subsystem.GetInstanceName());
+	auto SessionInfoNull = StaticCastSharedPtr<FOnlineSessionInfoNull>(SessionInfo);
+	if (SessionInfoNull.IsValid() && SessionInfoNull->HostAddr.IsValid())
+	{
+		SessionInfoNull->HostAddr->SetPort(NetDriverPort);
+	}
+}
+
+bool FOnlineSessionNull::IsHost(const FNamedOnlineSession& Session) const
+{
+	if (NullSubsystem->IsDedicated())
+	{
+		return true;
+	}
+
+	IOnlineIdentityPtr IdentityInt = NullSubsystem->GetIdentityInterface(); 
+	if (!IdentityInt.IsValid())
+	{
+		return false;
+	}
+
+	TSharedPtr<FUniqueNetId> UserId = IdentityInt->GetUniquePlayerId(Session.HostingPlayerNum);
+	return (UserId.IsValid() && (*UserId == *Session.OwningUserId));
 }

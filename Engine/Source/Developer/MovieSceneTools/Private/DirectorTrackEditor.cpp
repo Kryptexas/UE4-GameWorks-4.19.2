@@ -364,7 +364,7 @@ void FShotSection::CalculateThumbnailWidthAndResize()
 	float SavedTime = Sequencer.Pin()->GetGlobalTime();
 	
 	Sequencer.Pin()->SetGlobalTime(Section->GetStartTime());
-	uint32 OutThumbnailWidth = AnimatableShotToolConstants::DirectorTrackHeight * Camera->CameraComponent->AspectRatio;
+	uint32 OutThumbnailWidth = AnimatableShotToolConstants::DirectorTrackHeight * Camera->GetCameraComponent()->AspectRatio;
 
 	// restore the global time
 	Sequencer.Pin()->SetGlobalTime(SavedTime);

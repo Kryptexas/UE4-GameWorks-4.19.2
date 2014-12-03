@@ -9,6 +9,9 @@
 #include "BlueprintEditorUtils.h"
 
 #include "SlateChildSizeCustomization.h"
+#include "SNumericEntryBox.h"
+#include "Components/SlateWrapperTypes.h"
+#include "Widgets/Input/SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

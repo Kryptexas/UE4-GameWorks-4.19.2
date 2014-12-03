@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UOnlineBlueprintCallProxyBase
 
-UOnlineBlueprintCallProxyBase::UOnlineBlueprintCallProxyBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOnlineBlueprintCallProxyBase::UOnlineBlueprintCallProxyBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

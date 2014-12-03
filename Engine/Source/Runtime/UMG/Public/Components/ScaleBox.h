@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,8 +8,11 @@
  * Allows you to place content with a desired size and have it scale to meet the constraints placed on this box's alloted area.  If
  * you needed to have a background image scale to fill an area but not become distorted with different aspect ratios, or if you need
  * to auto fit some text to an area, this is the control for you.
+ *
+ * ● Single Child
+ * ● Aspect Ratio
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UScaleBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -17,12 +20,17 @@ class UMG_API UScaleBox : public UContentWidget
 public:
 
 	/** Controls in what direction content can be scaled */
-	UPROPERTY(EditDefaultsOnly, Category="Stretching")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
 	TEnumAsByte<EStretchDirection::Type> StretchDirection;
 
 	/** The stretching rule to apply when content is stretched */
-	UPROPERTY(EditDefaultsOnly, Category="Stretching")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
 	TEnumAsByte<EStretch::Type> Stretch;
+
+public:
+
+	//TODO UMG Add Set Stretch
+	//TODO UMG Add Set Stretch DIrection
 
 public:
 

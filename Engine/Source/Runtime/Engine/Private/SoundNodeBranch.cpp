@@ -10,8 +10,8 @@
 /*-----------------------------------------------------------------------------
     USoundNodeLocality implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeBranch::USoundNodeBranch(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeBranch::USoundNodeBranch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

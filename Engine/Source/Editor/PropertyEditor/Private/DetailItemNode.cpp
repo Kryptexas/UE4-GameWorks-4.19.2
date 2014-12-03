@@ -22,6 +22,7 @@ FDetailItemNode::FDetailItemNode(const FDetailLayoutCustomization& InCustomizati
 	, bShouldBeVisibleDueToChildFiltering( false )
 	, bTickable( false )
 	, bIsExpanded( InCustomization.HasCustomBuilder() ? !InCustomization.CustomBuilderRow->IsInitiallyCollapsed() : false )
+	, bIsHighlighted( false )
 {
 	
 }
@@ -79,8 +80,6 @@ FDetailItemNode::~FDetailItemNode()
 
 void FDetailItemNode::InitPropertyEditor()
 {
-	Customization.GetPropertyNode()->SetTreeNode( this->AsShared() );
-
 	if( Customization.GetPropertyNode()->GetProperty() && Customization.GetPropertyNode()->GetProperty()->IsA<UArrayProperty>() )
 	{
 		const bool bUpdateFilteredNodes = false;
@@ -109,13 +108,19 @@ void FDetailItemNode::InitGroup()
 {
 	Customization.DetailGroup->OnItemNodeInitialized( AsShared(), ParentCategory.Pin().ToSharedRef(), IsParentEnabled );
 
-	// Restore saved expansion state
-	FName GroupName = Customization.DetailGroup->GetGroupName();
-	if( GroupName != NAME_None )
+	if (Customization.DetailGroup->ShouldStartExpanded())
 	{
-		bIsExpanded = ParentCategory.Pin()->GetSavedExpansionState( *this );
+		bIsExpanded = true;
 	}
-
+	else
+	{
+		// Restore saved expansion state
+		FName GroupName = Customization.DetailGroup->GetGroupName();
+		if (GroupName != NAME_None)
+		{
+			bIsExpanded = ParentCategory.Pin()->GetSavedExpansionState(*this);
+		}
+	}
 }
 
 bool FDetailItemNode::HasMultiColumnWidget() const
@@ -138,16 +143,17 @@ void FDetailItemNode::ToggleExpansion()
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
-	FGraphNodeMetaData TagMeta(TEXT("DetailRowItem"));
-	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
-	{
-		TagMeta.FriendlyName = Customization.GetPropertyNode()->GetDisplayName();
-	}
+	FTagMetaData TagMeta(TEXT("DetailRowItem"));
 	if (ParentCategory.IsValid())
 	{
-		FString Tag = FString::Printf(TEXT("%s_%s"), *TagMeta.FriendlyName, *ParentCategory.Pin()->GetCategoryPathName());
-		TagMeta.Tag = *Tag;
-		TagMeta.TabTypeToOpen = TEXT("LevelEditorSelectionDetails");
+		if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid())
+		{
+			TagMeta.Tag = *FString::Printf(TEXT("DetailRowItem.%s"), *Customization.GetPropertyNode()->GetDisplayName());
+		}
+		else if (Customization.HasCustomWidget() )
+		{
+			TagMeta.Tag = Customization.GetWidgetRow().RowTagName;
+		}
 	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{
@@ -155,7 +161,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 			SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
 			.IsEnabled(IsParentEnabled)
 			.DisplayName(Customization.GetPropertyNode()->GetDisplayName())
-			.AddMetaData<FTutorialMetaData>(TagMeta)
+			.AddMetaData<FTagMetaData>(TagMeta)
 			.InnerCategory( true );
 	}
 	else
@@ -163,7 +169,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 		return
 			SNew(SDetailSingleItemRow, &Customization, HasMultiColumnWidget(), AsShared(), OwnerTable )
 			.IsEnabled( IsParentEnabled )
-			.AddMetaData<FTutorialMetaData>(TagMeta)
+			.AddMetaData<FTagMetaData>(TagMeta)
 			.ColumnSizeData(ColumnSizeData);
 	}
 }
@@ -289,7 +295,11 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 
 			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
-			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering == false || InFilter.DifferingProperties.Find(PropertyNodePin->GetProperty()->GetFName()) != NULL;
+			bool bPassesDifferingFilter = true;
+			if( InFilter.bShowOnlyDiffering )
+			{
+				 bPassesDifferingFilter = InFilter.WhitelistedProperties.Find(*FPropertyNode::CreatePropertyPath(PropertyNodePin.ToSharedRef())) != NULL;
+			}
 
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
 			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter;
@@ -374,6 +384,17 @@ FName FDetailItemNode::GetNodeName() const
 	}
 
 	return NAME_None;
+}
+
+FPropertyPath FDetailItemNode::GetPropertyPath() const
+{
+	FPropertyPath Ret;
+	auto PropertyNode = Customization.GetPropertyNode();
+	if( PropertyNode.IsValid() )
+	{
+		Ret = *FPropertyNode::CreatePropertyPath( PropertyNode.ToSharedRef() );
+	}
+	return Ret;
 }
 
 void FDetailItemNode::FilterNode( const FDetailFilter& InFilter )

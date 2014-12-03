@@ -3,14 +3,84 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "DetailCustomizations.h"
-
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 #include "PropertyEditing.h"
 #include "ObjectEditorUtils.h"
 #include "WidgetGraphSchema.h"
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
+#include "WidgetGraphSchema.h"
+#include "Components/Widget.h"
+#include "WidgetBlueprint.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "WidgetBlueprintEditor.h"
+#include "Components/PanelSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
+
+
+class SGraphSchemaActionButton : public SCompoundWidget, public FGCObject
+{
+public:
+
+	SLATE_BEGIN_ARGS(SGraphSchemaActionButton) {}
+	SLATE_END_ARGS()
+
+		void Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InEditor, TSharedPtr<FEdGraphSchemaAction> InClickAction)
+	{
+		Editor = InEditor;
+		Action = InClickAction;
+
+		ChildSlot
+		[
+			SNew(SButton)
+			.ToolTipText(Action->TooltipDescription)
+			.OnClicked(this, &SGraphSchemaActionButton::AddOrViewEventBinding)
+			.HAlign(HAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(Action->MenuDescription)
+			]
+		];
+	}
+
+private:
+	FReply AddOrViewEventBinding()
+	{
+		UBlueprint* Blueprint = Editor.Pin()->GetBlueprintObj();
+
+		UEdGraph* TargetGraph = nullptr;
+		if ( Blueprint->UbergraphPages.Num() > 0 )
+		{
+			TargetGraph = Blueprint->UbergraphPages[0]; // Just use the first graph
+		}
+
+		if ( TargetGraph != nullptr )
+		{
+			Editor.Pin()->SetCurrentMode(FWidgetBlueprintApplicationModes::GraphMode);
+
+			// Figure out a decent place to stick the node
+			const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
+
+			Action->PerformAction(TargetGraph, nullptr, NewNodePos);
+		}
+
+		return FReply::Handled();
+	}
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		Action->AddReferencedObjects(Collector);
+	}
+
+private:
+	TWeakPtr<FWidgetBlueprintEditor> Editor;
+
+	TSharedPtr<FEdGraphSchemaAction> Action;
+};
+
 
 void FBlueprintWidgetCustomization::CreateDelegateCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property, UWidget* Widget )
 {
@@ -260,7 +330,7 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 
 	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory("Events", LOCTEXT("Events", "Events").ToString(), ECategoryPriority::Uncommon);
 
-	PropertyCategory.AddCustomRow(LOCTEXT("FindInLevelScript_Filter", "Find in Level Script").ToString())
+	PropertyCategory.AddCustomRow(DelegateProperty->GetName())
 	.NameContent()
 	[
 		SNew(SHorizontalBox)
@@ -285,36 +355,8 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 	.MinDesiredWidth(200)
 	.MaxDesiredWidth(200)
 	[
-		SNew(SButton)
-		.ToolTipText(ClickAction->TooltipDescription)
-		.OnClicked(this, &FBlueprintWidgetCustomization::AddOrViewEventBinding, ClickAction)
-		.HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(ClickAction->MenuDescription)
-		]
+		SNew(SGraphSchemaActionButton, Editor.Pin(), ClickAction)
 	];
-}
-
-FReply FBlueprintWidgetCustomization::AddOrViewEventBinding(TSharedPtr<FEdGraphSchemaAction> Action)
-{
-	UEdGraph* TargetGraph = NULL;
-	if ( Blueprint->UbergraphPages.Num() > 0 )
-	{
-		TargetGraph = Blueprint->UbergraphPages[0]; // Just use the first graph
-	}
-
-	if ( TargetGraph != NULL )
-	{
-		Editor.Pin()->SetCurrentMode(FWidgetBlueprintApplicationModes::GraphMode);
-
-		// Figure out a decent place to stick the node
-		const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
-
-		Action->PerformAction(TargetGraph, NULL, NewNodePos);
-	}
-
-	return FReply::Handled();
 }
 
 void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
@@ -331,14 +373,14 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 			if ( Widget->Slot )
 			{
 				UClass* SlotClass = Widget->Slot->GetClass();
-				FString LayoutCatName = FString("Layout (") + SlotClass->GetDisplayNameText().ToString() + FString(")");
+				FString LayoutCatName = FString(TEXT("Slot (")) + SlotClass->GetDisplayNameText().ToString() + FString(TEXT(")"));
 
 				DetailLayout.EditCategory(LayoutCategoryKey, LayoutCatName, ECategoryPriority::TypeSpecific);
 			}
 			else
 			{
 				auto& Category = DetailLayout.EditCategory(LayoutCategoryKey);
-				//TODO UMG Hide Category
+				// TODO UMG Hide Category
 			}
 		}
 	}
@@ -364,16 +406,16 @@ void FBlueprintWidgetCustomization::PerformBindingCustomization(IDetailLayoutBui
 			{
 				if ( DelegateProperty->GetName().EndsWith(TEXT("Delegate")) )
 				{
-					CreateDelegateCustomization(DetailLayout, DelegateProperty, Widget);
+					//CreateDelegateCustomization(DetailLayout, DelegateProperty, Widget);
 				}
 				else if ( DelegateProperty->GetName().EndsWith(TEXT("Event")) )
 				{
 					CreateEventCustomization(DetailLayout, DelegateProperty, Widget);
 				}
 			}
-			else if ( UMulticastDelegateProperty* DelegateProperty = Cast<UMulticastDelegateProperty>(Property) )
+			else if ( UMulticastDelegateProperty* MulticastDelegateProperty = Cast<UMulticastDelegateProperty>(Property) )
 			{
-				CreateMulticastEventCustomization(DetailLayout, OutObjects[0].Get()->GetFName(), PropertyClass, DelegateProperty);
+				CreateMulticastEventCustomization(DetailLayout, OutObjects[0].Get()->GetFName(), PropertyClass, MulticastDelegateProperty);
 			}
 		}
 	}

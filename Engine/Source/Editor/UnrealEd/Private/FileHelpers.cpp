@@ -27,6 +27,8 @@
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 
 #include "PackageTools.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
@@ -343,6 +345,11 @@ static bool SaveWorld(UWorld* World,
 					   bool bAutosaving,
 					   bool bPIESaving)
 {
+	// SaveWorld not reentrant - check that we are not already in the process of saving here (for example, via autosave)
+	static bool bIsReentrant = false;
+	check(!bIsReentrant);
+	TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
+
 	if ( !World )
 	{
 		FinalFilename = LOCTEXT("FilenameUnavailable", "Filename Not available!").ToString();
@@ -485,7 +492,11 @@ static bool SaveWorld(UWorld* World,
 
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("MapFilename"), FText::FromString( FPaths::GetCleanFilename(FinalFilename) ) );
-		GWarn->BeginSlowTask( FText::Format( NSLOCTEXT("UnrealEd", "SavingMap_F", "Saving map: {MapFilename}..." ), Args ), true, true );
+		
+		FScopedSlowTask SlowTask(100, FText::Format( NSLOCTEXT("UnrealEd", "SavingMap_F", "Saving map: {MapFilename}..." ), Args ));
+		SlowTask.MakeDialog(true);
+
+		SlowTask.EnterProgressFrame(25);
 
 		// Rename the package and the object, as necessary
 		if ( bRenamePackageToFile )
@@ -501,6 +512,8 @@ static bool SaveWorld(UWorld* World,
 			}
 		}
 
+		SlowTask.EnterProgressFrame(50);
+
 		// Save package.
 		{
 			const FString AutoSavingString = (bAutosaving || bPIESaving) ? TEXT("true") : TEXT("false");
@@ -510,6 +523,8 @@ static bool SaveWorld(UWorld* World,
 			bSuccess = GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true AUTOSAVING=%s KEEPDIRTY=%s"), *Package->GetName(), *FinalFilename, *AutoSavingString, *KeepDirtyString ), SaveErrors );
 			SaveErrors.Flush();
 		}
+
+		SlowTask.EnterProgressFrame(25);
 
 		// If the package save was not successful. Rename anything we changed back to the original name.
 		if( bRenamePackageToFile && !bSuccess )
@@ -524,8 +539,6 @@ static bool SaveWorld(UWorld* World,
 				World->Rename(*OriginalWorldName, NULL, REN_NonTransactional);
 			}
 		}
-
-		GWarn->EndSlowTask();
 	}
 
 	return bSuccess;
@@ -588,13 +601,14 @@ static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& I
 	FString NewNameSuggestion = InNewNameSuggestion;
 	if (NewNameSuggestion.IsEmpty())
 	{
-		NewNameSuggestion = TEXT("NewMap");
-	}
+		const FString DefaultName = TEXT("NewMap");
+		FString PackageName = DefaultPath / DefaultName;
+		FString Name;
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
 
-	FString PackageName = DefaultPath / NewNameSuggestion;
-	FString Name;
-	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
+		NewNameSuggestion = FPaths::GetCleanFilename(PackageName);
+	}
 
 	FSaveAssetDialogConfig SaveAssetDialogConfig;
 	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveLevelDialogTitle", "Save Level As");
@@ -2504,6 +2518,11 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 		*bOutPackagesNeededSaving = false;
 	}
 
+	if( bSaveContentPackages )
+	{
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	}
+
 	// A list of all packages that need to be saved
 	TArray<UPackage*> PackagesToSave;
 
@@ -2512,11 +2531,9 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 		GetDirtyWorldPackages(PackagesToSave);
 	}
 
-	// Don't iterate through content packages if we dont plan on saving them
+	// Don't iterate through content packages if we don't plan on saving them
 	if( bSaveContentPackages )
 	{
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-
 		GetDirtyContentPackages(PackagesToSave);
 	}
 
@@ -2620,6 +2637,7 @@ bool FEditorFileUtils::SaveCurrentLevel()
  * @param		bCheckDirty					If true, only packages that are dirty in PackagesToSave will be saved	
  * @param		bPromptToSave				If true the user will be prompted with a list of packages to save, otherwise all passed in packages are saved
  * @param		OutFailedPackages			[out] If specified, will be filled in with all of the packages that failed to save successfully
+ * @param		bAlreadyCheckedOut			If true, the user will not be prompted with the source control dialog
  *
  * @return		An enum value signifying success, failure, user declined, or cancellation. If any packages at all failed to save during execution, the return code will be 
  *				failure, even if other packages successfully saved. If the user cancels at any point during any prompt, the return code will be cancellation, even though it
@@ -2627,7 +2645,7 @@ bool FEditorFileUtils::SaveCurrentLevel()
  *				Save" option on the dialog, the return code will indicate the user has declined out of the prompt. This way calling code can distinguish between a decline and a cancel
  *				and then proceed as planned, or abort its operation accordingly.
  */
-FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( const TArray<UPackage*>& InPackages, bool bCheckDirty, bool bPromptToSave, TArray<UPackage*>* OutFailedPackages )
+FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( const TArray<UPackage*>& InPackages, bool bCheckDirty, bool bPromptToSave, TArray<UPackage*>* OutFailedPackages, bool bAlreadyCheckedOut )
 {
 	// Check for re-entrance into this function
 	if ( bIsPromptingForCheckoutAndSave )
@@ -2780,7 +2798,7 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 		TArray<UPackage*> PackagesNotNeedingCheckout;
 
 		// Prompt to check-out any packages under source control
-		const bool UserResponse = FEditorFileUtils::PromptToCheckoutPackages( false, PackagesToSave, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout );
+		const bool UserResponse = bAlreadyCheckedOut || FEditorFileUtils::PromptToCheckoutPackages( false, PackagesToSave, &PackagesCheckedOutOrMadeWritable, &PackagesNotNeedingCheckout );
 
 		if( UserResponse || PackagesNotNeedingCheckout.Num() > 0 )
 		{
@@ -2789,7 +2807,14 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 
 			if ( UserResponse )
 			{
-				FinalSaveList.Append(PackagesCheckedOutOrMadeWritable);
+				if (bAlreadyCheckedOut)
+				{
+					FinalSaveList.Append(PackagesToSave);
+				}
+				else
+				{
+					FinalSaveList.Append(PackagesCheckedOutOrMadeWritable);
+				}
 			}
 
 			const FScopedBusyCursor BusyCursor;

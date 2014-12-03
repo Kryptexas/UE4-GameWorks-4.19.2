@@ -14,40 +14,36 @@ class FWmfMediaPlayer
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FWmfMediaPlayer( );
+	/** Default constructor. */
+	FWmfMediaPlayer();
 
-	/**
-	 * Destructor.
-	 */
-	~FWmfMediaPlayer( );
+	/** Destructor. */
+	~FWmfMediaPlayer();
 
 public:
 
 	// IMediaInfo interface
 
-	virtual FTimespan GetDuration( ) const override;
+	virtual FTimespan GetDuration() const override;
 	virtual TRange<float> GetSupportedRates( EMediaPlaybackDirections Direction, bool Unthinned ) const override;
-	virtual FString GetUrl( ) const override;
+	virtual FString GetUrl() const override;
 	virtual bool SupportsRate( float Rate, bool Unthinned ) const override;
-	virtual bool SupportsScrubbing( ) const override;
-	virtual bool SupportsSeeking( ) const override;
+	virtual bool SupportsScrubbing() const override;
+	virtual bool SupportsSeeking() const override;
 
 public:
 
 	// IMediaPlayer interface
 
-	virtual void Close( ) override;
-	virtual const IMediaInfo& GetMediaInfo( ) const override;
-	virtual float GetRate( ) const override;
-	virtual FTimespan GetTime( ) const override;
-	virtual const TArray<IMediaTrackRef>& GetTracks( ) const override;
-	virtual bool IsLooping( ) const override;
-	virtual bool IsPaused( ) const override;
-	virtual bool IsPlaying( ) const override;
-	virtual bool IsReady( ) const override;
+	virtual void Close() override;
+	virtual const IMediaInfo& GetMediaInfo() const override;
+	virtual float GetRate() const override;
+	virtual FTimespan GetTime() const override;
+	virtual const TArray<IMediaTrackRef>& GetTracks() const override;
+	virtual bool IsLooping() const override;
+	virtual bool IsPaused() const override;
+	virtual bool IsPlaying() const override;
+	virtual bool IsReady() const override;
 	virtual bool Open( const FString& Url ) override;
 	virtual bool Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl ) override;
 	virtual bool Seek( const FTimespan& Time ) override;
@@ -55,13 +51,13 @@ public:
 	virtual bool SetRate( float Rate ) override;
 
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaClosed, FOnMediaClosed);
-	virtual FOnMediaClosed& OnClosed( ) override
+	virtual FOnMediaClosed& OnClosed() override
 	{
 		return ClosedEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaOpened, FOnMediaOpened);
-	virtual FOnMediaOpened& OnOpened( ) override
+	virtual FOnMediaOpened& OnOpened() override
 	{
 		return OpenedEvent;
 	}
@@ -98,6 +94,9 @@ private:
 
 	/** Holds the asynchronous callback object for the media stream. */
 	TComPtr<FWmfMediaSession> MediaSession;
+
+	/** Holds a pointer to the media source object. */
+	TComPtr<IMFMediaSource> MediaSource;
 
 	/** The URL of the currently opened media. */
 	FString MediaUrl;

@@ -16,6 +16,8 @@
 #include "ActorEditorUtils.h"
 #include "EditorStyle.h"
 #include "ComponentVisualizer.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorModes, Log, All);
 
@@ -821,12 +823,12 @@ void FEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,
 
 			// Static mesh vertices
 			AStaticMeshActor* Actor = Cast<AStaticMeshActor>( SelectedActor );
-			if( Actor && Actor->StaticMeshComponent && Actor->StaticMeshComponent->StaticMesh
-				&& Actor->StaticMeshComponent->StaticMesh->RenderData )
+			if( Actor && Actor->GetStaticMeshComponent() && Actor->GetStaticMeshComponent()->StaticMesh
+				&& Actor->GetStaticMeshComponent()->StaticMesh->RenderData )
 			{
 				FTransform ActorToWorld = Actor->ActorToWorld();
 				Vertices.Empty();
-				const FPositionVertexBuffer& VertexBuffer = Actor->StaticMeshComponent->StaticMesh->RenderData->LODResources[0].PositionVertexBuffer;
+				const FPositionVertexBuffer& VertexBuffer = Actor->GetStaticMeshComponent()->StaticMesh->RenderData->LODResources[0].PositionVertexBuffer;
 				for( uint32 i = 0 ; i < VertexBuffer.GetNumVertices() ; i++ )
 				{
 					Vertices.AddUnique( ActorToWorld.TransformPosition( VertexBuffer.VertexPosition(i) ) );

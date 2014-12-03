@@ -71,8 +71,8 @@ bool ParseIntegerFields(FRequiredIntField* IntFieldArray, int32 ArrayCount, TSha
 //////////////////////////////////////////////////////////////////////////
 // UPaperTiledImporterFactory
 
-UPaperTiledImporterFactory::UPaperTiledImporterFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTiledImporterFactory::UPaperTiledImporterFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = false;
 	//bEditAfterNew = true;

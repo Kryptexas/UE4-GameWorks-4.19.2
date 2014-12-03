@@ -15,9 +15,12 @@ class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
+private_subobject:
 	/** DefaultPawn collision component */
-	UPROPERTY(Category = AbilitySystem, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UAbilitySystemComponent> AbilitySystemComponent;
+	DEPRECATED_FORGAME(4.6, "AbilitySystemComponent should not be accessed directly, please use GetAbilitySystemComponent() function instead. AbilitySystemComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = AbilitySystem, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UAbilitySystemComponent* AbilitySystemComponent;
+public:
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
 	FGameplayCueHandler	GameplayCueHandler;
@@ -26,4 +29,7 @@ class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public
 	//UGameplayAbilitySet * DefaultAbilitySet;
 
 	static FName AbilitySystemComponentName;
+
+	/** Returns AbilitySystemComponent subobject **/
+	class UAbilitySystemComponent* GetAbilitySystemComponent();
 };

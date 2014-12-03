@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionDatabase.h"
 #include "EdGraphSchema_K2.h"       // for CanUserKismetCallFunction()
+#include "EditorCategoryUtils.h"
 #include "KismetEditorUtilities.h"	// for IsClassABlueprintSkeleton(), IsClassABlueprintInterface(), GetBoundsForSelectedNodes(), etc.
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
@@ -12,12 +13,12 @@
 #include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "Stats.h"					// for RETURN_QUICK_DECLARE_CYCLE_STAT()
-#include "ScopedTimers.h"			// for FScopedDurationTimer
 #include "CallbackDevice.h"			// for FCoreDelegates::OnAssetLoaded
 #include "ModuleManager.h"
 #include "AssetRegistryModule.h"	// for OnAssetAdded()/OnAssetRemoved()
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
@@ -38,7 +39,7 @@
 #include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.h"
 // used below in BlueprintActionDatabaseImpl::GetNodeSpectificActions()
-#include "EdGraph/EdGraphNode_Comment.h"
+#include "EdGraphNode_Comment.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionDatabase"
@@ -81,6 +82,13 @@ namespace FBlueprintNodeSpawnerFactory
 	static UBlueprintNodeSpawner* MakeDocumentationNodeSpawner();
 
 	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	static UBlueprintNodeSpawner* MakeCommentNodeSpawner();
+
+	/**
 	 * Constructs a delegate binding node along with a connected event that is  
 	 * triggered from the specified delegate.
 	 * 
@@ -104,6 +112,15 @@ namespace FBlueprintNodeSpawnerFactory
 	 * @return 
 	 */
 	static UBlueprintNodeSpawner* MakeActorBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty);
+
+	/**
+	 * Constructs UK2Node_Event spawner that is owned by UAnimInstance. Used for Anim Notificatios and montage 
+	 * branching points.
+	 *
+	 * @param EventName
+	 * @return A new node-spawner, set up to spawn UK2Node_Event
+	 */
+	static UBlueprintNodeSpawner* MakeAnimOwnedEventSpawner(FName SignatureName, FText CustomCategory);
 };
 
 //------------------------------------------------------------------------------
@@ -146,6 +163,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeMessageNodeSpawn
 	};
 	NodeSpawner->SetNodeFieldDelegate = UBlueprintFunctionNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeFunctionLambda);
 
+	NodeSpawner->DefaultMenuSignature.MenuName = FText::Format(LOCTEXT("MessageNodeMenuName", "{0} (Message)"), NodeSpawner->DefaultMenuSignature.MenuName);
 	return NodeSpawner;
 }
 
@@ -165,16 +183,40 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeDocumentationNod
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(OuterGraph);
 		check(Blueprint != nullptr);
 
-		float const OldNodePosX = NewNode->NodePosX;
-		float const OldNodePosY = NewNode->NodePosY;
-
+		float const OldNodePosX   = NewNode->NodePosX;
+		float const OldNodePosY   = NewNode->NodePosY;
+		float const OldHalfHeight = NewNode->NodeHeight / 2.f;
+		float const OldHalfWidth  = NewNode->NodeWidth  / 2.f;
+		
 		static const float DocNodePadding = 50.0f;
-		FSlateRect Bounds(OldNodePosX - DocNodePadding, OldNodePosY - DocNodePadding, OldNodePosX + DocNodePadding, OldNodePosY + DocNodePadding);
+		FSlateRect Bounds(OldNodePosX - OldHalfWidth, OldNodePosY - OldHalfHeight, OldNodePosX + OldHalfWidth, OldNodePosY + OldHalfHeight);
 		FKismetEditorUtilities::GetBoundsForSelectedNodes(Blueprint, Bounds, DocNodePadding);
 		DocNode->SetBounds(Bounds);
 	};
 
 	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMessageNodeLambda);
+
+	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawner()
+{
+	UBlueprintNodeSpawner* NodeSpawner = MakeDocumentationNodeSpawner<UEdGraphNode_Comment>();
+	NodeSpawner->DefaultMenuSignature.MenuName = LOCTEXT("AddCommentActionMenuName", "Add Comment...");
+
+	auto OverrideMenuNameLambda = [](FBlueprintActionContext const& Context, IBlueprintNodeBinder::FBindingSet const& /*Bindings*/, FBlueprintActionUiSpec* UiSpecOut)
+	{
+		for (UBlueprint* Blueprint : Context.Blueprints)
+		{
+			if (FKismetEditorUtilities::GetNumberOfSelectedNodes(Blueprint) > 0)
+			{
+				UiSpecOut->MenuName = LOCTEXT("AddCommentFromSelectionMenuName", "Add Comment to Selection");
+				break;
+			}
+		}
+	};
+	NodeSpawner->DynamicUiSignatureGetter = UBlueprintNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(OverrideMenuNameLambda);
 
 	return NodeSpawner;
 }
@@ -199,6 +241,22 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeActorBoundEventS
 	return UBlueprintBoundEventNodeSpawner::Create(UK2Node_ActorBoundEvent::StaticClass(), DelegateProperty);
 }
 
+//------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName SignatureName, FText CustomCategory)
+{
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/)
+	{
+		UK2Node_Event* ActorRefNode = CastChecked<UK2Node_Event>(NewNode);
+		ActorRefNode->EventSignatureClass = UAnimInstance::StaticClass();
+	};
+
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(UK2Node_Event::StaticClass(), SignatureName);
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda);
+	NodeSpawner->DefaultMenuSignature.Category = CustomCategory;
+
+	return NodeSpawner;
+}
+
 /*******************************************************************************
  * Static FBlueprintActionDatabase Helpers
  ******************************************************************************/
@@ -218,10 +276,30 @@ namespace BlueprintActionDatabaseImpl
 	static bool IsPropertyBlueprintVisible(UProperty const* const Property);
 
 	/**
+	 * Checks to see if the specified function is a blueprint owned function
+	 * that was inherited from an implemented interface.
+	 *
+	 * @param  Function	 The function to check.
+	 * @return True if the function is owned by a blueprint, and some (implemented) interface has a matching function name.
+	 */
+	static bool IsBlueprintInterfaceFunction(const UFunction* Function);
+
+	/**
+	 * Checks to see if the specified function is a blueprint owned function
+	 * that was inherited from the blueprint's parent.
 	 * 
+	 * @param  Function	 The function to check.
+	 * @return True if the function is owned by a blueprint, and some parent has a matching function name.
+	 */
+	static bool IsInheritedBlueprintFunction(const UFunction* Function);
+
+	/**
+	 * Retrieves all the actions pertaining to a class and its fields (functions,
+	 * variables, delegates, etc.). Actions that are conceptually owned by the 
+	 * class.
 	 * 
-	 * @param  Class	
-	 * @param  ActionListOut	
+	 * @param  Class			The class you want actions for.
+	 * @param  ActionListOut	The array you want filled with the requested actions.
 	 */
 	static void GetClassMemberActions(UClass* const Class, FActionList& ActionListOut);
 
@@ -272,6 +350,14 @@ namespace BlueprintActionDatabaseImpl
 	static void AddComponentClassActions(TSubclassOf<UActorComponent> const ComponentClass, FActionList& ActionListOut);
 
 	/**
+	 * Adds custom actions to operate on the provided skeleton. Used primarily
+	 * to find AnimNotify event vocabulary
+	 *
+	 * @Param Skeleton	The skeleton that may have anim notifies defined on it.
+	 */
+	static void AddSkeletonActions( const USkeleton& Skeleton, FActionList& ActionListOut);
+
+	/**
 	 * If the associated class is a blueprint generated class, then this will
 	 * loop over the blueprint's graphs and create any node-spawners associated
 	 * with those graphs (like UK2Node_MacroInstance spawners for macro graphs).
@@ -280,6 +366,16 @@ namespace BlueprintActionDatabaseImpl
 	 * @param  ActionListOut	The list you want populated with new spawners.
 	 */
 	static void AddBlueprintGraphActions(UBlueprint const* const Blueprint, FActionList& ActionListOut);
+	
+	/**
+	 * If the associated class is an anim blueprint generated class, then this
+	 * will loop over AnimNotification events in the anim blueprint generated
+	 * class and create node spawners for those events.
+	 *
+	 * @param  Blueprint		The blueprint which you want graph associated node-spawners for.
+	 * @param  ActionListOut	The list you want populated with new spawners.
+	 */
+	static void AddAnimBlueprintGraphActions( UAnimBlueprint const* AnimBlueprint, FActionList& ActionListOut );
 
 	/**
 	 * Emulates UEdGraphSchema::GetGraphContextActions(). If the supplied class  
@@ -335,6 +431,14 @@ namespace BlueprintActionDatabaseImpl
 	static void OnAssetRemoved(FAssetData const& AssetInfo);
 
 	/**
+	 * Callback to refresh the database when an object has been renamed (to clear 
+	 * any related classes that were stored in the database under the old name) 
+	 * 
+	 * @param  AssetInfo	Data regarding the freshly removed asset.
+	 */
+	static void OnAssetRenamed(FAssetData const& AssetInfo, const FString& InOldName);
+
+	/**
 	 * Callback to clear all levels from the database when a world is destroyed 
 	 * 
 	 * @param  DestroyedWorld	The world that was destroyed
@@ -372,6 +476,44 @@ static bool BlueprintActionDatabaseImpl::IsPropertyBlueprintVisible(UProperty co
 }
 
 //------------------------------------------------------------------------------
+static bool BlueprintActionDatabaseImpl::IsBlueprintInterfaceFunction(const UFunction* Function)
+{
+	bool bIsBpInterfaceFunc = false;
+	if (UClass* FuncClass = Function->GetOwnerClass())
+	{
+		if (UBlueprint* BpOuter = Cast<UBlueprint>(FuncClass->ClassGeneratedBy))
+		{
+			FName FuncName = Function->GetFName();
+
+			for (int32 InterfaceIndex = 0; (InterfaceIndex < BpOuter->ImplementedInterfaces.Num()) && !bIsBpInterfaceFunc; ++InterfaceIndex)
+			{
+				FBPInterfaceDescription& InterfaceDesc = BpOuter->ImplementedInterfaces[InterfaceIndex];
+				bIsBpInterfaceFunc = (InterfaceDesc.Interface->FindFunctionByName(FuncName) != nullptr);
+			}
+		}
+	}
+	return bIsBpInterfaceFunc;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionDatabaseImpl::IsInheritedBlueprintFunction(const UFunction* Function)
+{
+	bool bIsBpInheritedFunc = false;
+	if (UClass* FuncClass = Function->GetOwnerClass())
+	{
+		if (UBlueprint* BpOwner = Cast<UBlueprint>(FuncClass->ClassGeneratedBy))
+		{
+			FName FuncName = Function->GetFName();
+			if (UClass* ParentClass = BpOwner->ParentClass)
+			{
+				bIsBpInheritedFunc = (ParentClass->FindFunctionByName(FuncName, EIncludeSuperFlag::IncludeSuper) != nullptr);
+			}
+		}
+	}
+	return bIsBpInheritedFunc;
+}
+
+//------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::GetClassMemberActions(UClass* const Class, FActionList& ActionListOut)
 {
 	// class field actions (nodes that represent and perform actions on
@@ -403,7 +545,16 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 	{
 		UFunction* Function = *FunctionIt;
 
-		if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
+		bool const bIsInheritedFunction = BlueprintActionDatabaseImpl::IsInheritedBlueprintFunction(Function);
+		if (bIsInheritedFunction)
+		{
+			// inherited functions will be captured when the parent class is ran
+			// through this function (no need to duplicate)
+			continue;
+		}
+
+		bool const bIsBpInterfaceFunc = BlueprintActionDatabaseImpl::IsBlueprintInterfaceFunction(Function);
+		if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && !bIsBpInterfaceFunc)
 		{
 			if (UBlueprintEventNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(Function))
 			{
@@ -422,6 +573,9 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 
 			if (FKismetEditorUtilities::IsClassABlueprintInterface(Class))
 			{
+				FuncSpawner->DefaultMenuSignature.MenuName = FText::Format(LOCTEXT("InterfaceCallMenuName", "{0} (Interface Call)"), 
+					FuncSpawner->DefaultMenuSignature.MenuName);
+
 				ActionListOut.Add(MakeMessageNodeSpawner(Function));
 			}
 		}
@@ -437,7 +591,7 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 	bool const bIsActorClass = Class->IsChildOf<AActor>();
 	
 	// loop over all the properties in the specified class; exclude-super because 
-	// we can always get the super properties by looking up that class separately 
+	// we can always get the super properties by looking up that class separateHavely 
 	for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 	{
 		UProperty* Property = *PropertyIt;
@@ -490,8 +644,11 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* Class, FActionList& ActionListOut)
 {
+	Class = Class->GetAuthoritativeClass();
+	check(Class);
+
 	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	bool bIsCastPermitted  = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
 
@@ -503,11 +660,11 @@ static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Class
 			CastNode->TargetType = TargetType;
 		};
 
-		UBlueprintNodeSpawner* CastObjNodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_DynamicCast::StaticClass());
+		UBlueprintNodeSpawner* CastObjNodeSpawner = UBlueprintNodeSpawner::Create<UK2Node_DynamicCast>();
 		CastObjNodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeCastNodeLambda, Class);
 		ActionListOut.Add(CastObjNodeSpawner);
 
-		UBlueprintNodeSpawner* CastClassNodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_ClassDynamicCast::StaticClass());
+		UBlueprintNodeSpawner* CastClassNodeSpawner = UBlueprintNodeSpawner::Create<UK2Node_ClassDynamicCast>();
 		CastClassNodeSpawner->CustomizeNodeDelegate = CastObjNodeSpawner->CustomizeNodeDelegate;
 		ActionListOut.Add(CastClassNodeSpawner);
 	}
@@ -522,6 +679,44 @@ static void BlueprintActionDatabaseImpl::AddComponentClassActions(TSubclassOf<UA
 		{
 			ActionListOut.Add(NodeSpawner);
 		}
+	}
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::AddSkeletonActions(const USkeleton& Skeleton, FActionList& ActionListOut)
+{
+	for (int32 I = 0; I < Skeleton.AnimationNotifies.Num(); ++I)
+	{
+		FName NotifyName = Skeleton.AnimationNotifies[I];
+		FString Label = NotifyName.ToString();
+
+		FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
+		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName), FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AnimNotify)));
+	}
+
+	// @todo anim: fix this to be same as notifies, save same list in the 
+	// add montage menus
+	// find all montages that uses current target skeleton
+	TArray<FName> BranchingPointHandlers;
+
+	for (FObjectIterator Iter(UAnimMontage::StaticClass()); Iter; ++Iter)
+	{
+		UAnimMontage * Montage = CastChecked<UAnimMontage>(*Iter);
+		if (Montage && Montage->GetSkeleton() == &Skeleton)
+		{
+			// now add event handler if exists
+			for (int32 I = 0; I < Montage->BranchingPoints.Num(); ++I)
+			{
+				BranchingPointHandlers.AddUnique(Montage->BranchingPoints[I].EventName);
+			}
+		}
+	}
+
+	for( auto NotifyName: BranchingPointHandlers )
+	{
+		FString Label = NotifyName.ToString();
+		FString SignatureName = FString::Printf(TEXT("MontageBranchingPoint_%s"), *Label);
+		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName),  FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::BranchPoint)));
 	}
 }
 
@@ -553,13 +748,31 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 				ActionListOut.Add(SetVarSpawner);
 			}
 		}
-	}	
+	}
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::AddAnimBlueprintGraphActions(UAnimBlueprint const* AnimBlueprint, FActionList& ActionListOut)
+{
+	if (UAnimBlueprintGeneratedClass* GeneratedClass = AnimBlueprint->GetAnimBlueprintGeneratedClass())
+	{
+		for (int32 NotifyIdx = 0; NotifyIdx < GeneratedClass->AnimNotifies.Num(); NotifyIdx++)
+		{
+			FName NotifyName = GeneratedClass->AnimNotifies[NotifyIdx].NotifyName;
+			if (NotifyName != NAME_None)
+			{
+				FString Label = NotifyName.ToString();
+				FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
+				ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName), FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AnimNotify)));
+			}
+		}
+	}
 }
 
 //------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::GetNodeSpecificActions(TSubclassOf<UEdGraphNode const> const NodeClass, FBlueprintActionDatabaseRegistrar& Registrar)
 {
-	using namespace FBlueprintNodeSpawnerFactory; // for MakeDocumentationNodeSpawner()
+	using namespace FBlueprintNodeSpawnerFactory; // for MakeCommentNodeSpawner()/MakeDocumentationNodeSpawner()
 
 	if (NodeClass->IsChildOf<UK2Node>() && !NodeClass->HasAnyClassFlags(CLASS_Abstract))
 	{
@@ -575,11 +788,11 @@ static void BlueprintActionDatabaseImpl::GetNodeSpecificActions(TSubclassOf<UEdG
 	//        with a better (more generalized) solution.
 	else if (NodeClass == UEdGraphNode_Comment::StaticClass())
 	{
-		Registrar.AddBlueprintAction(MakeDocumentationNodeSpawner<UEdGraphNode_Comment>());
+		Registrar.AddBlueprintAction(MakeCommentNodeSpawner());
 	}
 	else if (NodeClass == UEdGraphNode_Documentation::StaticClass())
 	{
-		// @TODO: BOO! (see comment above)
+		// @TODO: BOOOOOOO! (see comment above)
 		Registrar.AddBlueprintAction(MakeDocumentationNodeSpawner<UEdGraphNode_Documentation>());
 	}
 }
@@ -600,7 +813,6 @@ static void BlueprintActionDatabaseImpl::OnAssetLoaded(UObject* NewObject)
 	if (UBlueprint* NewBlueprint = Cast<UBlueprint>(NewObject))
 	{
 		OnBlueprintChanged(NewBlueprint);
-		NewBlueprint->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
 	}
 	else
 	{
@@ -617,20 +829,7 @@ static void BlueprintActionDatabaseImpl::OnAssetAdded(FAssetData const& NewAsset
 		UObject* AssetObject = NewAssetInfo.GetAsset();
 		if (UBlueprint* NewBlueprint = Cast<UBlueprint>(AssetObject))
 		{
-			FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
-			// this callback can be triggered twice from the asset registry (once 
-			// when it is initially created, and again when it is permanently 
-			// saved)
-			bool const bNewlyCreated = (ActionDatabase.GetAllActions().Find(NewBlueprint) == nullptr);
-
-			OnBlueprintChanged(NewBlueprint);
-			// have to be careful not to register this callback twice for the 
-			// blueprint (since this function can be triggered multiple times 
-			// for the same asset)
-			if (bNewlyCreated)
-			{
-				NewBlueprint->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
-			}			
+			OnBlueprintChanged(NewBlueprint);			
 		}
 		else 
 		{
@@ -664,12 +863,23 @@ static void BlueprintActionDatabaseImpl::OnAssetRemoved(FAssetData const& AssetI
 	if (AssetInfo.IsAssetLoaded())
 	{
 		UObject* AssetObject = AssetInfo.GetAsset();
-		if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
-		{
-			BlueprintAsset->OnChanged().RemoveStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
-		}
 		// the delete went through, so we don't need to track these for re-add
 		PendingDelete.Remove(AssetObject);
+	}
+	else
+	{
+		ActionDatabase.ClearUnloadedAssetActions(AssetInfo.ObjectPath);
+	}
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnAssetRenamed(FAssetData const& AssetInfo, const FString& InOldName)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+
+	if (!AssetInfo.IsAssetLoaded())
+	{
+		ActionDatabase.MoveUnloadedAssetActions(*InOldName, AssetInfo.ObjectPath);
 	}
 }
 
@@ -678,7 +888,7 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 {
 	for(auto It = DestroyedWorld->GetLevelIterator() ; It ; ++It)
 	{
-		if(const ULevelScriptBlueprint* LevelScript = (*It)->GetLevelScriptBlueprint(true))
+		if(const ULevelScriptBlueprint* LevelScript = (*It)->GetLevelScriptBlueprint(/*bDontCreate =*/true))
 		{
 			FBlueprintActionDatabase::Get().ClearAssetActions((UObject*)LevelScript);
 		}
@@ -721,15 +931,12 @@ FBlueprintActionDatabase& FBlueprintActionDatabase::Get()
 FBlueprintActionDatabase::FBlueprintActionDatabase()
 {
 	RefreshAll();
-	for (TObjectIterator<UBlueprint> BpIt; BpIt; ++BpIt)
-	{
-		BpIt->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
-	}
-	FCoreDelegates::OnAssetLoaded.AddStatic(&BlueprintActionDatabaseImpl::OnAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddStatic(&BlueprintActionDatabaseImpl::OnAssetLoaded);
 
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
 	AssetRegistry.OnAssetAdded().AddStatic(&BlueprintActionDatabaseImpl::OnAssetAdded);
 	AssetRegistry.OnAssetRemoved().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRemoved);
+	AssetRegistry.OnAssetRenamed().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRenamed);
 
 	FEditorDelegates::OnAssetsPreDelete.AddStatic(&BlueprintActionDatabaseImpl::OnAssetsPendingDelete);
 
@@ -752,7 +959,7 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 
 	// entries that were removed from the database, in preparation for a delete
 	// (but the user ended up not deleting the object)
-	for (UObject const* AssetObj : BlueprintActionDatabaseImpl::PendingDelete)
+	for (UObject* AssetObj : BlueprintActionDatabaseImpl::PendingDelete)
 	{
 		if (IsValid(AssetObj))
 		{
@@ -761,8 +968,13 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 	}
 	BlueprintActionDatabaseImpl::PendingDelete.Empty();
 
-	double TotalFrameDuration = 0.0;
-	while ((ActionPrimingQueue.Num() > 0) && (TotalFrameDuration < DurationThreshold))
+	
+	// priming every database entry at once would cause a hitch, so we spread it 
+	// out over several frames
+	static int32 const PrimingMaxPerFrame = 16;
+	int32 PrimedCount = 0;
+
+	while ((ActionPrimingQueue.Num() > 0) && (PrimedCount < PrimingMaxPerFrame))
 	{
 		auto ActionIndex = ActionPrimingQueue.CreateIterator();	
 			
@@ -773,12 +985,11 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 			if (FActionList* ClassActionList = ActionRegistry.Find(ActionsKey.Get()))
 			{
 				int32& ActionListIndex = ActionIndex.Value();
-				for (; (ActionListIndex < ClassActionList->Num()) && (TotalFrameDuration < DurationThreshold); ++ActionListIndex)
+				for (; (ActionListIndex < ClassActionList->Num()) && (PrimedCount < PrimingMaxPerFrame); ++ActionListIndex)
 				{
-					FScopedDurationTimer ScopedTimer(TotalFrameDuration);
-
 					UBlueprintNodeSpawner* Action = (*ClassActionList)[ActionListIndex];
 					Action->Prime();
+					++PrimedCount;
 				}
 
 				if (ActionListIndex >= ClassActionList->Num())
@@ -815,6 +1026,12 @@ void FBlueprintActionDatabase::RefreshAll()
 		UClass* const Class = (*ClassIt);
 		RefreshClassActions(Class);
 	}
+	// this handles creating entries for skeletons that were loaded before the database was alive:
+	for( TObjectIterator<USkeleton> SkeletonIt; SkeletonIt; ++SkeletonIt )
+	{
+		FActionList& ClassActionList = ActionRegistry.FindOrAdd(*SkeletonIt);
+		BlueprintActionDatabaseImpl::AddSkeletonActions(**SkeletonIt, ClassActionList);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -833,7 +1050,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 	}
 	else if (bIsBlueprintClass)
 	{
-		UBlueprint const* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy);
+		UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy);
 		if ((Blueprint != nullptr) && BlueprintActionDatabaseImpl::IsObjectValidForDatabase(Blueprint))
 		{
 			// to prevent us from hitting this twice on init (once for the skel 
@@ -858,7 +1075,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 			ClassActionList.Empty();
 		}
 
-		FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue, Class);
+		FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, UnloadedActionRegistry, ActionPrimingQueue, Class);
 		if (!bIsInitializing)
 		{
 			// if this a call to RefreshClassActions() from somewhere other than 
@@ -882,7 +1099,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 			// if we're only refreshing this class (and not init'ing the whole 
 			// database), then we have to reach out to individual nodes in case 
 			// they'd add entries for this as well
-			FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue);
+			FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, UnloadedActionRegistry, ActionPrimingQueue);
 			Registrar.ActionKeyFilter = Class; // only want actions for this class
 
 			RegisterAllNodeActions(Registrar);
@@ -900,60 +1117,140 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 		}
 	}
 
-	// @TODO: account for all K2ActionMenuBuilder methods...
-	//   GetLiteralsFromActorSelection() - UK2Node_Literal
-	//   GetAnimNotifyMenuItems()
-	//   GetMatineeControllers() - UK2Node_MatineeController
-	//   GetEventDispatcherNodesForClass()
-	//   GetBoundEventsFromActorSelection() - handle with filter
-	//   GetFunctionCallsOnSelectedActors() - handle with filter
-	//   GetAddComponentActionsUsingSelectedAssets() 
-	//   GetFunctionCallsOnSelectedComponents() - handle with filter
-	//   GetBoundEventsFromComponentSelection() - handle with filter 
-	//   GetPinAllowedMacros()
-	//   GetFuncNodesWithPinType()
-	//   GetVariableGettersSettersForClass()
+	// blueprints are handled in RefreshAssetActions()
+	if (!bIsInitializing && !bIsBlueprintClass)
+	{
+		EntryRefreshDelegate.Broadcast(Class);
+	}
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabase::RefreshAssetActions(UObject const* const AssetObject)
+void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 {
 	using namespace BlueprintActionDatabaseImpl;
 	check(BlueprintActionDatabaseImpl::IsObjectValidForDatabase(AssetObject));
 
+	bool const bHadExistingEntry = ActionRegistry.Contains(AssetObject);
 	FActionList& AssetActionList = ActionRegistry.FindOrAdd(AssetObject);
 	AssetActionList.Empty();
 
-	if (UBlueprint const* Blueprint = Cast<UBlueprint>(AssetObject))
+	if(const USkeleton* Skeleton = Cast<USkeleton>(AssetObject))
 	{
-		AddBlueprintGraphActions(Blueprint, AssetActionList);
-		if (UClass* SkeletonClass = Blueprint->SkeletonGeneratedClass)
+		AddSkeletonActions(*Skeleton, AssetActionList);
+	}
+
+	UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject);
+	if (BlueprintAsset != nullptr)
+	{
+		AddBlueprintGraphActions(BlueprintAsset, AssetActionList);
+		if (UClass* SkeletonClass = BlueprintAsset->SkeletonGeneratedClass)
 		{
 			GetClassMemberActions(SkeletonClass, AssetActionList);
 		}
+
+		if( const UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(BlueprintAsset) )
+		{
+			AddAnimBlueprintGraphActions( AnimBlueprint, AssetActionList );
+		}
+
+		// have to be careful not to register this callback twice for the 
+		// blueprint
+		if (!bHadExistingEntry)
+		{
+			BlueprintAsset->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+		}
 	}
 
-	FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue);
+	FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, UnloadedActionRegistry, ActionPrimingQueue);
 	Registrar.ActionKeyFilter = AssetObject; // make sure actions only associated with this asset get added
 	// nodes may have actions they wish to add actions for this asset
 	RegisterAllNodeActions(Registrar);
+
+	// Will clear up any unloaded asset actions associated with this object, if any
+	ClearUnloadedAssetActions(*AssetObject->GetPathName());
 
 	if (AssetActionList.Num() > 0)
 	{
 		// queue these assets for priming
 		ActionPrimingQueue.Add(AssetObject, 0);
 	}
-	else
+	// we don't want to clear entries for blueprints, mainly because we 
+	// use the presence of an entry to know if we've set the blueprint's 
+	// OnChanged(), but also because most blueprints will have actions at some 
+	// later point
+	else if (BlueprintAsset == nullptr)
 	{
 		ClearAssetActions(AssetObject);
+	}
+
+	if (!bIsInitializing)
+	{
+		EntryRefreshDelegate.Broadcast(AssetObject);
 	}
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabase::ClearAssetActions(UObject const* const AssetObject)
+void FBlueprintActionDatabase::ClearAssetActions(UObject* const AssetObject)
 {
-	check(BlueprintActionDatabaseImpl::IsObjectValidForDatabase(AssetObject));
-	ActionRegistry.Remove(AssetObject);
+	FActionList* ActionList = ActionRegistry.Find(AssetObject);
+
+	bool const bHasEntry = (ActionList != nullptr);
+	if (bHasEntry)
+	{
+		for (UBlueprintNodeSpawner* Action : *ActionList)
+		{
+			// because some asserts expect everything to be cleaned up in a 
+			// single GC pass, we can't wait for the GC'd Action to release its
+			// template node from the cache
+			Action->ClearCachedTemplateNode();
+		}
+		ActionRegistry.Remove(AssetObject);
+	}
+
+	if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
+	{
+		BlueprintAsset->OnChanged().RemoveStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+	}
+
+	if (bHasEntry && (ActionList->Num() > 0) && !BlueprintActionDatabaseImpl::bIsInitializing)
+	{
+		EntryRemovedDelegate.Broadcast(AssetObject);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::ClearUnloadedAssetActions(FName ObjectPath)
+{
+	// Check if the asset can be found in the unloaded action registry, if it can, we need to remove it
+	if(TArray<UBlueprintNodeSpawner*>* UnloadedActionList = UnloadedActionRegistry.Find(ObjectPath))
+	{
+		for(UBlueprintNodeSpawner* NodeSpawner : *UnloadedActionList)
+		{
+			FActionList* ActionList = ActionRegistry.Find(NodeSpawner->NodeClass);
+
+			// Remove the NodeSpawner from the main registry, it will be replaced with the loaded version of the action
+			ActionList->Remove(NodeSpawner);
+		}
+
+		// Remove the asset's path from the unloaded registry, it is no longer needed
+		UnloadedActionRegistry.Remove(ObjectPath);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::MoveUnloadedAssetActions(FName SourceObjectPath, FName TargetObjectPath)
+{
+	// Check if the asset can be found in the unloaded action registry, if it can, we need to remove it and re-add under the new name
+	if(TArray<UBlueprintNodeSpawner*>* UnloadedActionList = UnloadedActionRegistry.Find(SourceObjectPath))
+	{
+		check(!UnloadedActionRegistry.Find(TargetObjectPath));
+
+		// Add the entire array to the database under the new path
+		UnloadedActionRegistry.Add(TargetObjectPath, *UnloadedActionList);
+
+		// Remove the old asset's path from the unloaded registry, it is no longer needed
+		UnloadedActionRegistry.Remove(SourceObjectPath);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -966,17 +1263,6 @@ FBlueprintActionDatabase::FActionRegistry const& FBlueprintActionDatabase::GetAl
 		RefreshAll();
 	}
 	return ActionRegistry;
-}
-
-//------------------------------------------------------------------------------
-int32 FBlueprintActionDatabase::EstimatedSize() const
-{
-	int32 TotalSize = sizeof(*this);
-	for (TObjectIterator<UBlueprintNodeSpawner> NodeSpawnerIt; NodeSpawnerIt; ++NodeSpawnerIt)
-	{
-		TotalSize += sizeof(**NodeSpawnerIt);
-	}
-	return TotalSize;
 }
 
 //------------------------------------------------------------------------------

@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineService.cpp: Implements the FEngineService class.
-=============================================================================*/
-
 #include "EnginePrivate.h"
+#include "EngineService.h"
+#include "EngineServiceMessages.h"
 #include "MessageEndpoint.h"
 #include "MessageEndpointBuilder.h"
-#include "EngineServiceMessages.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngineService, Log, All)
 
@@ -15,7 +13,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogEngineService, Log, All)
 /* FEngineService structors
  *****************************************************************************/
 
-FEngineService::FEngineService( )
+FEngineService::FEngineService()
 {
 	// always grant access to session owner
 	AuthorizedUsers.Add(FApp::GetSessionOwner());
@@ -58,7 +56,7 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 		Message->InstanceId = FApp::GetInstanceId();
 		Message->SessionId = FApp::GetSessionId();
 
-		if (GEngine == NULL)
+		if (GEngine == nullptr)
 		{
 			Message->InstanceType = TEXT("Unknown");
 		}
@@ -83,7 +81,7 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 			Message->InstanceType = TEXT("Other");
 		}
 
-		FWorldContext const* ContextToUse = NULL;
+		FWorldContext const* ContextToUse = nullptr;
 
 		// TODO: Should we be iterating here and sending a message for each context?
 
@@ -97,17 +95,17 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 				ContextToUse = &WorldContext;
 				break;
 			}
-			else if (WorldContext.WorldType == EWorldType::PIE && (ContextToUse == NULL || ContextToUse->WorldType != EWorldType::PIE))
+			else if (WorldContext.WorldType == EWorldType::PIE && (ContextToUse == nullptr || ContextToUse->WorldType != EWorldType::PIE))
 			{
 				ContextToUse = &WorldContext;
 			}
-			else if (WorldContext.WorldType == EWorldType::Editor && ContextToUse == NULL)
+			else if (WorldContext.WorldType == EWorldType::Editor && ContextToUse == nullptr)
 			{	
 				ContextToUse = &WorldContext;
 			}
 		}
 
-		if (ContextToUse != NULL && ContextToUse->World() != NULL)
+		if (ContextToUse != nullptr && ContextToUse->World() != nullptr)
 		{
 			Message->CurrentLevel = ContextToUse->World()->GetMapName();
 			Message->HasBegunPlay = ContextToUse->World()->HasBegunPlay();
@@ -156,7 +154,7 @@ void FEngineService::HandleExecuteCommandMessage( const FEngineServiceExecuteCom
 {
 	if (AuthorizedUsers.Contains(Message.UserName))
 	{
-		if (GEngine != NULL)
+		if (GEngine != nullptr)
 		{
 			GEngine->DeferredCommands.Add(Message.Command);
 
@@ -184,17 +182,17 @@ void FEngineService::HandleTerminateMessage( const FEngineServiceTerminate& Mess
 {
 	if (AuthorizedUsers.Contains(Message.UserName))
 	{
-		if (GEngine != NULL)
+		if (GEngine != nullptr)
 		{
 			UE_LOG(LogEngineService, Log, TEXT("%s terminated this instance remotely."), *Message.UserName);
 
 			if (GEngine->IsEditor())
 			{
-				GEngine->Exec( NULL, TEXT("QUIT_EDITOR"), *GLog);
+				GEngine->Exec( nullptr, TEXT("QUIT_EDITOR"), *GLog);
 			}
 			else
 			{
-				GEngine->Exec( NULL, TEXT("QUIT"), *GLog);
+				GEngine->Exec( nullptr, TEXT("QUIT"), *GLog);
 			}
 		}
 		else

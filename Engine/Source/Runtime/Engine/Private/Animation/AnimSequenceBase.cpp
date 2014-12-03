@@ -58,12 +58,29 @@ void FAnimNotifyEvent::RefreshEndTriggerOffset( EAnimEventTriggerOffsets::Type P
 
 float FAnimNotifyEvent::GetTriggerTime() const
 {
-	return DisplayTime + TriggerTimeOffset;
+	return GetTime() + TriggerTimeOffset;
 }
 
 float FAnimNotifyEvent::GetEndTriggerTime() const
 {
-	return GetTriggerTime() + Duration + EndTriggerTimeOffset;
+	return GetTriggerTime() + GetDuration() + EndTriggerTimeOffset;
+}
+
+float FAnimNotifyEvent::GetDuration() const
+{
+	return NotifyStateClass ? EndLink.GetTime() - GetTime() : 0.0f;
+}
+
+void FAnimNotifyEvent::SetDuration(float NewDuration)
+{
+	Duration = NewDuration;
+	EndLink.SetTime(GetTime() + Duration);
+}
+
+void FAnimNotifyEvent::SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame /*= EAnimLinkMethod::Absolute*/)
+{
+	FAnimLinkableElement::SetTime(NewTime, ReferenceFrame);
+	SetDuration(Duration);
 }
 
 /////////////////////////////////////////////////////
@@ -111,7 +128,7 @@ void FRawCurveTracks::EvaluateCurveData(class UAnimInstance* Instance, float Cur
 	// evaluate the curve data at the CurrentTime and add to Instance
 	for (auto CurveIter = FloatCurves.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
-		const FFloatCurve & Curve = *CurveIter;
+		const FFloatCurve& Curve = *CurveIter;
 
 		Instance->AddCurveValue( Curve.CurveUid, Curve.FloatCurve.Eval(CurrentTime)*BlendWeight, Curve.GetCurveTypeFlags() );
 	}
@@ -192,8 +209,8 @@ ENGINE_API bool FRawCurveTracks::DuplicateCurveData(USkeleton::AnimCurveUID ToCo
 
 /////////////////////////////////////////////////////
 
-UAnimSequenceBase::UAnimSequenceBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSequenceBase::UAnimSequenceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, RateScale(1.0f)
 {
 }
@@ -332,7 +349,7 @@ void UAnimSequenceBase::SortNotifies()
  * Supports playing backwards (DeltaTime<0).
  * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
  */
-void UAnimSequenceBase::GetAnimNotifies(const float & StartTime, const float & DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
 	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) )
@@ -378,7 +395,7 @@ void UAnimSequenceBase::GetAnimNotifies(const float & StartTime, const float & D
  * Supports playing backwards (CurrentPosition<PreviousPosition).
  * Only supports contiguous range, does NOT support looping and wrapping over.
  */
-void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float & PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
 	if( (Notifies.Num() == 0) || (PreviousPosition == CurrentPosition) )
@@ -393,7 +410,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float & Previous
 	{
 		for (int32 NotifyIndex=0; NotifyIndex<Notifies.Num(); NotifyIndex++)
 		{
-			const FAnimNotifyEvent & AnimNotifyEvent = Notifies[NotifyIndex];
+			const FAnimNotifyEvent& AnimNotifyEvent = Notifies[NotifyIndex];
 			const float NotifyStartTime = AnimNotifyEvent.GetTriggerTime();
 			const float NotifyEndTime = AnimNotifyEvent.GetEndTriggerTime();
 
@@ -407,7 +424,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float & Previous
 	{
 		for (int32 NotifyIndex=0; NotifyIndex<Notifies.Num(); NotifyIndex++)
 		{
-			const FAnimNotifyEvent & AnimNotifyEvent = Notifies[NotifyIndex];
+			const FAnimNotifyEvent& AnimNotifyEvent = Notifies[NotifyIndex];
 			const float NotifyStartTime = AnimNotifyEvent.GetTriggerTime();
 			const float NotifyEndTime = AnimNotifyEvent.GetEndTriggerTime();
 
@@ -423,24 +440,19 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 {
 	float& CurrentTime = *(Instance.TimeAccumulator);
 	const float PreviousTime = CurrentTime;
-
 	const float PlayRate = Instance.PlayRateMultiplier * this->RateScale;
+
+	float MoveDelta = 0.f;
+
 	if( Context.IsLeader() )
 	{
 		const float DeltaTime = Context.GetDeltaTime();
-		const float MoveDelta = PlayRate * DeltaTime;
+		MoveDelta = PlayRate * DeltaTime;
+
 		if( MoveDelta != 0.f )
 		{
 			// Advance time
 			FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
-
-			if( Context.ShouldGenerateNotifies() )
-			{
-				// Harvest and record notifies
-				TArray<const FAnimNotifyEvent*> AnimNotifies;
-				GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
-				InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
-			}
 		}
 
 		Context.SetSyncPoint(CurrentTime / SequenceLength);
@@ -451,22 +463,19 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 		CurrentTime = Context.GetSyncPoint() * SequenceLength;
 		//@TODO: NOTIFIES: Calculate AdvanceType based on what the new delta time is
 
-		if( Context.ShouldGenerateNotifies() && (CurrentTime != PreviousTime) )
+		if( CurrentTime != PreviousTime )
 		{
 			// Figure out delta time 
-			float MoveDelta = CurrentTime - PreviousTime;
+			MoveDelta = CurrentTime - PreviousTime;
 			// if we went against play rate, then loop around.
 			if( (MoveDelta * PlayRate) < 0.f )
 			{
 				MoveDelta += FMath::Sign<float>(PlayRate) * SequenceLength;
 			}
-
-			// Harvest and record notifies
-			TArray<const FAnimNotifyEvent*> AnimNotifies;
-			GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
-			InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
 		}
 	}
+
+	OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
 
 	// Evaluate Curve data now - even if time did not move, we still need to return curve if it exists
 	EvaluateCurveData(InstanceOwner, CurrentTime, Instance.EffectiveBlendWeight);
@@ -520,7 +529,7 @@ void UAnimSequenceBase::RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate
 {
 	OnNotifyChanged.Add(Delegate);
 }
-void UAnimSequenceBase::UnregisterOnNotifyChanged(void * Unregister)
+void UAnimSequenceBase::UnregisterOnNotifyChanged(void* Unregister)
 {
 	OnNotifyChanged.RemoveAll(Unregister);
 }
@@ -530,9 +539,9 @@ void UAnimSequenceBase::ClampNotifiesAtEndOfSequence()
 	const float NotifyClampTime = SequenceLength - 0.01f; //Slight offset so that notify is still draggable
 	for(int i = 0; i < Notifies.Num(); ++ i)
 	{
-		if(Notifies[i].DisplayTime >= SequenceLength)
+		if(Notifies[i].GetTime() >= SequenceLength)
 		{
-			Notifies[i].DisplayTime = NotifyClampTime;
+			Notifies[i].SetTime(NotifyClampTime);
 			Notifies[i].TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetBefore);
 		}
 	}
@@ -628,35 +637,6 @@ void UAnimSequenceBase::EvaluateCurveData(class UAnimInstance* Instance, float C
 	RawCurveData.EvaluateCurveData(Instance, CurrentTime, BlendWeight);
 }
 
-void UAnimSequenceBase::ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const
-{
-	// Fallback to root bone from reference skeleton.
-	if (RequiredBones)
-	{
-		const FReferenceSkeleton & RefSkeleton = RequiredBones->GetReferenceSkeleton();
-		if (RefSkeleton.GetNum() > 0)
-		{
-			RootTransform = RefSkeleton.GetRefBonePose()[0];
-			return;
-		}
-	}
-
-	USkeleton * MySkeleton = GetSkeleton();
-	// If we don't have a RequiredBones array, get root bone from default skeleton.
-	if (!RequiredBones && MySkeleton)
-	{
-		const FReferenceSkeleton RefSkeleton = MySkeleton->GetReferenceSkeleton();
-		if (RefSkeleton.GetNum() > 0)
-		{
-			RootTransform = RefSkeleton.GetRefBonePose()[0];
-			return;
-		}
-	}
-
-	// Otherwise, use identity.
-	RootTransform = FTransform::Identity;
-};
-
 void UAnimSequenceBase::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -671,4 +651,15 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 		}
 	}
 	RawCurveData.Serialize(Ar);
+}
+
+void UAnimSequenceBase::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const
+{
+	if (Context.ShouldGenerateNotifies())
+	{
+		// Harvest and record notifies
+		TArray<const FAnimNotifyEvent*> AnimNotifies;
+		GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
+		InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
+	}
 }

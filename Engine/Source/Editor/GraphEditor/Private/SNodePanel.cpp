@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "ScopedTransaction.h"
+#include "MarqueeOperation.h"
 
 struct FZoomLevelEntry
 {
@@ -193,7 +194,7 @@ namespace NodePanelDefs
 	// Default Zoom Padding Value
 	static const float DefaultZoomPadding = 25.f;
 	// Node Culling Guardband Area
-	static const float GuardBandArea = 0.5f;
+	static const float GuardBandArea = 0.25f;
 	// Scaling factor to reduce speed of mouse zooming
 	static const float MouseZoomScaling = 0.05f;
 };
@@ -297,7 +298,7 @@ void SNodePanel::Construct()
 	bAllowContinousZoomInterpolation = false;
 	bTeleportInsteadOfScrollingWhenZoomingToFit = false;
 
-	DeferredSelectionTargetObject = NULL;
+	DeferredSelectionTargetObjects.Empty();
 	DeferredMovementTargetObject = NULL;
 
 	bIsPanning = false;
@@ -406,19 +407,23 @@ void SNodePanel::OnEndNodeInteraction(const TSharedRef<SNode>& InNodeToDrag)
 // Ticks this widget.  Override in derived classes, but always call the parent implementation.
 void SNodePanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if(DeferredSelectionTargetObject != NULL)
+	if(DeferredSelectionTargetObjects.Num() > 0)
 	{
-		TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(DeferredSelectionTargetObject);
-		if (pWidget != NULL)
+		FGraphPanelSelectionSet NewSelectionSet;
+		for (const UObject* SelectionTarget : DeferredSelectionTargetObjects)
 		{
-			SelectionManager.SelectSingleNode(const_cast<SelectedItemType>(DeferredSelectionTargetObject));
-			DeferredSelectionTargetObject = NULL;
+			if (TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(SelectionTarget))
+			{
+				NewSelectionSet.Add(const_cast<SelectedItemType>(SelectionTarget));
+			}
 		}
-		else
+
+		if (NewSelectionSet.Num() > 0)
 		{
-			// The selection target does not have a corresponding widget. Just end the selection.
-			DeferredSelectionTargetObject = NULL;
+			SelectionManager.SetSelectionSet(NewSelectionSet);
 		}
+		DeferredSelectionTargetObjects.Empty();
+
 
 		// Since we want to move to a target object, do not zoom to extent. Panning and zoom will not begin until next tick however due to the nodes potentially not having a size yet.
 		if( DeferredMovementTargetObject )
@@ -673,7 +678,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 				// Update the amount to pan panel
 				UpdateViewOffset(MyGeometry, MouseEvent.GetScreenSpacePosition());
 
-				const bool bCursorInDeadZone = TotalMouseDelta <= SlatePanTriggerDistance;
+				const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
 
 				if ( NodeBeingDragged.IsValid() )
 				{
@@ -770,7 +775,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 	// Did the user move the cursor sufficiently far, or is it in a dead zone?
 	// In Dead zone     - implies actions like summoning context menus and general clicking.
 	// Out of Dead Zone - implies dragging actions like moving nodes and marquee selection.
-	const bool bCursorInDeadZone = TotalMouseDelta <= SlatePanTriggerDistance;
+	const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
 
 	// Set to true later if we need to finish with the software cursor
 	bool bRemoveSoftwareCursor = false;
@@ -805,7 +810,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 
 		if (WidgetToFocus.IsValid())
 		{
-			ReplyState.SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+			ReplyState.SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly);
 		}
 	}
 	else if ( bIsLeftMouseButtonEffecting )
@@ -909,23 +914,23 @@ FCursorReply SNodePanel::OnCursorQuery( const FGeometry& MyGeometry, const FPoin
 		FCursorReply::Cursor( EMouseCursor::Default );
 }
 
-FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if( IsEditable.Get() )
 	{
-		LastKeyGestureDetected.Key = InKeyboardEvent.GetKey();
-		LastKeyGestureDetected.bAlt = InKeyboardEvent.IsAltDown();
-		LastKeyGestureDetected.bCtrl = InKeyboardEvent.IsControlDown();
-		LastKeyGestureDetected.bShift = InKeyboardEvent.IsShiftDown();
-		LastKeyGestureDetected.bCmd = InKeyboardEvent.IsCommandDown();
+		LastKeyGestureDetected.Key = InKeyEvent.GetKey();
+		LastKeyGestureDetected.bAlt = InKeyEvent.IsAltDown();
+		LastKeyGestureDetected.bCtrl = InKeyEvent.IsControlDown();
+		LastKeyGestureDetected.bShift = InKeyEvent.IsShiftDown();
+		LastKeyGestureDetected.bCmd = InKeyEvent.IsCommandDown();
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(LastKeyGestureDetected.Key == InKeyboardEvent.GetKey())
+	if(LastKeyGestureDetected.Key == InKeyEvent.GetKey())
 	{
 		LastKeyGestureDetected.Key = EKeys::Invalid;
 		LastKeyGestureDetected.bAlt = false;
@@ -937,7 +942,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& I
 	return FReply::Unhandled();
 }
 
-void SNodePanel::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SNodePanel::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	LastKeyGestureDetected.Key = EKeys::Invalid;
 	LastKeyGestureDetected.bAlt = false;
@@ -1056,7 +1061,8 @@ FSlateRect SNodePanel::ComputeSensibleGraphBounds() const
 
 void SNodePanel::SelectAndCenterObject(const UObject* ObjectToSelect, bool bCenter)
 {
-	DeferredSelectionTargetObject = ObjectToSelect;
+	DeferredSelectionTargetObjects.Empty();
+	DeferredSelectionTargetObjects.Add(ObjectToSelect);
 
 	if( bCenter )
 	{
@@ -1090,7 +1096,6 @@ void SNodePanel::RemoveAllNodes()
 void SNodePanel::PopulateVisibleChildren(const FGeometry& AllottedGeometry)
 {
 	VisibleChildren.Empty();
-
 	for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
 	{
 		const TSharedRef<SNode>& SomeChild = Children[ChildIndex];

@@ -14,8 +14,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperJsonImporterFactory
 
-UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = false;
 	//bEditAfterNew = true;

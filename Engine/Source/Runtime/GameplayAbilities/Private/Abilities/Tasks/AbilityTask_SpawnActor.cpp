@@ -5,20 +5,22 @@
 #include "Abilities/Tasks/AbilityTask_SpawnActor.h"
 
 
-UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }
 
-UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UObject* WorldContextObject, TSubclassOf<AActor> InClass)
+UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> InClass)
 {
-	return NewTask<UAbilityTask_SpawnActor>(WorldContextObject);
+	auto MyObj = NewTask<UAbilityTask_SpawnActor>(WorldContextObject);
+	MyObj->CachedTargetDataHandle = TargetData;
+	return MyObj;
 }
 
 // ---------------------------------------------------------------------------------------
 
-bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AActor> InClass, AActor*& SpawnedActor)
+bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> InClass, AActor*& SpawnedActor)
 {
 	if (Ability.IsValid() && Ability.Get()->GetCurrentActorInfo()->IsNetAuthority())
 	{
@@ -26,14 +28,33 @@ bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, TS
 		SpawnedActor = World->SpawnActorDeferred<AActor>(InClass, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
 	}
 	
-	return (SpawnedActor != nullptr);
+	if (SpawnedActor == nullptr)
+	{
+		DidNotSpawn.Broadcast(nullptr);
+		return false;
+	}
+
+	return true;
 }
 
-void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, AActor* SpawnedActor)
+void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, AActor* SpawnedActor)
 {
 	if (SpawnedActor)
 	{
-		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+		FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+
+		if (FGameplayAbilityTargetData* LocationData = CachedTargetDataHandle.Get(0))		//Hardcode to use data 0. It's OK if data isn't useful/valid.
+		{
+			//Set location. Rotation is unaffected.
+			if (LocationData->HasHitResult())
+			{
+				SpawnTransform.SetLocation(LocationData->GetHitResult()->Location);
+			}
+			else if (LocationData->HasEndPoint())
+			{
+				SpawnTransform.SetLocation(LocationData->GetEndPoint());
+			}
+		}
 
 		SpawnedActor->FinishSpawning(SpawnTransform);
 

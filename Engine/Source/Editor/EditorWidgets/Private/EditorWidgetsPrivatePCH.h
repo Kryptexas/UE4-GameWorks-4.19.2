@@ -3,7 +3,7 @@
 #pragma once
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorWidgetsModule.h"
 #include "SObjectNameEditableTextBox.h"
 #include "SAssetDiscoveryIndicator.h"

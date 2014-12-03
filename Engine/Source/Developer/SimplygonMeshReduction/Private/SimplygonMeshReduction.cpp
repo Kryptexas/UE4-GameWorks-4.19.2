@@ -225,7 +225,7 @@ public:
 		// Insert a new LOD model entry if needed.
 		if ( LODIndex == SkeletalMeshResource->LODModels.Num() )
 		{
-			SkeletalMeshResource->LODModels.AddRawItem(0);
+			SkeletalMeshResource->LODModels.Add(0);
 		}
 
 		// We'll need to store the max deviation after optimization if we wish to recalculate the LOD's display distance
@@ -233,7 +233,7 @@ public:
 
 		// Swap in a new model, delete the old.
 		check( LODIndex < SkeletalMeshResource->LODModels.Num() );
-		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetTypedData();
+		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
 		delete LODModels[LODIndex];
 
 		// Copy over LOD info from LOD0 if there is no previous info.
@@ -404,7 +404,7 @@ public:
 		TArray<uint8> LicenseFileContents;
 		if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(*DllPath, TEXT("license.dat")), FILEREAD_Silent) && LicenseFileContents.Num() > 0)
 		{
-			LicenseData = (const char*)LicenseFileContents.GetTypedData();
+			LicenseData = (const char*)LicenseFileContents.GetData();
 		}
 
 		SimplygonSDK::ISimplygonSDK* SDK = NULL;

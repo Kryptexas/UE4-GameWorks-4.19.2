@@ -5,14 +5,16 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "Engine/Font.h"
+#include "Engine/LevelStreamingPersistent.h"
+#include "Engine/ObjectReferencer.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Console.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "FileManagerGeneric.h"
 #include "Database.h"
 #include "SkeletalMeshMerge.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "RenderCore.h"
 #include "ShaderCompiler.h"
 #include "ColorList.h"
@@ -84,7 +86,8 @@
 #include "Engine/GameInstance.h"
 #include "HotReloadInterface.h"
 #include "STestSuite.h"
-
+#include "Engine/DemoNetDriver.h"
+#include "SThrobber.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -145,7 +148,8 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("Set the display resolution for the current game view. Has no effect in the editor.\n")
 	TEXT("e.g. 1280x720w for windowed\n")
 	TEXT("     1920x1080f for fullscreen\n")
-	TEXT("     1920x1080wf for windowed fullscreen")
+	TEXT("     1920x1080wf for windowed fullscreen\n")
+	TEXT("     1920x1080wm for windowed mirror")
 	);
 
 static TAutoConsoleVariable<float> CVarDepthOfFieldNearBlurSizeThreshold(
@@ -318,11 +322,13 @@ void SystemResolutionSinkCallback()
 
 		if( GSystemResolution.ResX != ResX ||
 			GSystemResolution.ResY != ResY ||
-			GSystemResolution.WindowMode != WindowMode)
+			GSystemResolution.WindowMode != WindowMode ||
+			GSystemResolution.bForceRefresh)
 		{
 			GSystemResolution.ResX = ResX;
 			GSystemResolution.ResY = ResY;
 			GSystemResolution.WindowMode = WindowMode;
+			GSystemResolution.bForceRefresh = false;
 
 			if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 			{
@@ -662,6 +668,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	}
 #endif // !UE_BUILD_SHIPPING
 
+	InitializeRunningAverageDeltaTime();
+
 	// Add to root.
 	AddToRoot();
 
@@ -991,6 +999,9 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			DeltaTime = 0.01;
 		}
 
+		// Give engine chance to update frame rate smoothing
+		UpdateRunningAverageDeltaTime(DeltaTime);
+
 		// Get max tick rate based on network settings and current delta time.
 		const float MaxTickRate	= GetMaxTickRate( DeltaTime );
 		float WaitTime		= 0;
@@ -1155,7 +1166,7 @@ void UEngine::ParseCommandline()
 	
 		if (CVarDumpFrames)
 		{
-			CVarDumpFrames->Set(1);
+			CVarDumpFrames->Set(1, ECVF_SetByCommandline);
 		}
 	}
 
@@ -1709,22 +1720,23 @@ public:
 
 bool UEngine::InitializeHMDDevice()
 {
-	if( !GIsEditor )
+	if (!GIsEditor)
 	{
-		if (FParse::Param(FCommandLine::Get(),TEXT("emulatestereo")))
+		if (FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
 		{
 			TSharedPtr<FFakeStereoRenderingDevice> FakeStereoDevice(new FFakeStereoRenderingDevice());
 			StereoRenderingDevice = FakeStereoDevice;
 		}
 		// No reason to connect an HMD on a dedicated server.  Also fixes dedicated servers stealing the oculus connection.
-		else if(!HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")) && !IsRunningDedicatedServer())
+		else if (!HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !IsRunningDedicatedServer())
 		{
 			// Get a list of plugins that implement this feature
-			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>( IHeadMountedDisplayModule::GetModularFeatureName() );
-			for( auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt && !HMDDevice.IsValid(); ++HMDModuleIt )
+			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>(IHeadMountedDisplayModule::GetModularFeatureName());
+			HMDImplementations.Sort(FHMDPluginSorter());
+			for (auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt && !HMDDevice.IsValid(); ++HMDModuleIt)
 			{
 				HMDDevice = (*HMDModuleIt)->CreateHeadMountedDisplay();
-				if( HMDDevice.IsValid() )
+				if (HMDDevice.IsValid())
 				{
 					StereoRenderingDevice = HMDDevice;
 				}
@@ -1786,7 +1798,7 @@ ULocalPlayer* GetLocalPlayerFromControllerId_local(const TArray<class ULocalPlay
 	return NULL;
 }
 
-ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId )
+ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId )
 {
 	if (GetWorldContextFromGameViewport(InViewport) != NULL)
 	{
@@ -1989,73 +2001,57 @@ static void ShowSubobjectGraph( FOutputDevice& Ar, UObject* CurrentObject, const
 			Ar.Logf(TEXT("%s+ %s"), *IndentString, IndentString.Len() == 0 ? *CurrentObject->GetPathName() : *CurrentObject->GetName());
 			for ( int32 ObjIndex = 0; ObjIndex < ReferencedObjs.Num(); ObjIndex++ )
 			{
-				ShowSubobjectGraph(Ar, ReferencedObjs[ObjIndex], IndentString + TEXT("|\t"));
+				ShowSubobjectGraph( Ar, ReferencedObjs[ObjIndex], IndentString + TEXT( "|\t" ) );
 			}
 		}
 	}
 }
-
-/** Holds information about memory usage. */
-struct FMemItem
-{
-	int32		Count;
-	SIZE_T	Num, Max, Res;
-	UObject* Object;
-
-	FMemItem()
-		: Count(0)
-		, Num(0)
-		, Max(0)
-		, Res(0)
-		, Object( NULL )
-	{}
-
-	FMemItem( UObject* InObject, SIZE_T	InRes )
-		: Count(0)
-		, Num(0)
-		, Max(0)
-		, Res(InRes)
-		, Object( InObject )
-	{}
-
-	void Add( FArchiveCountMem& Ar, SIZE_T InRes )
-	{
-		Count ++; 
-		Num += Ar.GetNum(); 
-		Max += Ar.GetMax(); 
-		Res += InRes;
-	}
-
-	void AddRes( SIZE_T InRes )
-	{
-		Count ++; 
-		Res += InRes;
-	}
-};
-
 struct FItem
 {
 	UClass*	Class;
-	int32		Count;
-	SIZE_T	Num, Max, Res, TrueRes;
+	int32 Count;
+	SIZE_T Num;
+	SIZE_T Max;
+	/** Resource size of the object and all of its references, the 'old-style'. */
+	SIZE_T ResourceSize;
+	/** Only exclusive resource size, the truer resource size. */
+	SIZE_T TrueResourceSize;
+
 	FItem( UClass* InClass=NULL )
-	: Class(InClass), Count(0), Num(0), Max(0), Res(0), TrueRes(0)
+	: Class(InClass), Count(0), Num(0), Max(0), ResourceSize(0), TrueResourceSize(0)
 	{}
-	void Add( FArchiveCountMem& Ar, SIZE_T InRes, SIZE_T InTrueRes )
+
+	FItem( UClass* InClass, int32 InCount, SIZE_T InNum, SIZE_T InMax, SIZE_T InResourceSize, SIZE_T InTrueResourceSize ) :
+		Class( InClass ),
+		Count( InCount ),
+		Num( InNum ), 
+		Max( InMax ), 
+		ResourceSize( InResourceSize ), 
+		TrueResourceSize( InTrueResourceSize )
+	{}
+
+	void Add( FArchiveCountMem& Ar, SIZE_T InResourceSize, SIZE_T InTrueResourceSize )
 	{
 		Count++;
 		Num += Ar.GetNum();
 		Max += Ar.GetMax();
-		Res += InRes;
-		TrueRes += InTrueRes;
+		ResourceSize += InResourceSize;
+		TrueResourceSize += InTrueResourceSize;
 	}
 };
+
 struct FSubItem
 {
 	UObject* Object;
-	SIZE_T Num, Max, Res, TrueRes;
-	FSubItem( UObject* InObject, SIZE_T InNum, SIZE_T InMax, SIZE_T InRes, SIZE_T InTrueRes )
-	: Object( InObject ), Num( InNum ), Max( InMax ), Res( InRes ), TrueRes( InTrueRes )
+	SIZE_T Num;
+	SIZE_T Max;
+	/** Resource size of the object and all of its references, the 'old-style'. */
+	SIZE_T ResourceSize;
+	/** Only exclusive resource size, the truer resource size. */
+	SIZE_T TrueResourceSize;
+
+	FSubItem( UObject* InObject, SIZE_T InNum, SIZE_T InMax, SIZE_T InResourceSize, SIZE_T InTrueResourceSize )
+	: Object( InObject ), Num( InNum ), Max( InMax ), ResourceSize( InResourceSize ), TrueResourceSize( InTrueResourceSize )
 	{}
 };
 
@@ -2587,10 +2583,10 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
 		APlayerController* PlayerController = *Iterator;
-		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->Mesh.IsValid())
+		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->GetMesh())
 		{
 			PlayerPawn = PlayerController->GetCharacter();
-			PlayerMesh = PlayerController->GetCharacter()->Mesh->SkeletalMesh;
+			PlayerMesh = PlayerController->GetCharacter()->GetMesh()->SkeletalMesh;
 			break;
 		}
 	}
@@ -2641,7 +2637,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 		ASkeletalMeshActor* const SMA = PlayerPawn->GetWorld()->SpawnActor<ASkeletalMeshActor>( SpawnLocation, PlayerPawn->GetActorRotation()*-1);
 		if (SMA)
 		{
-			SMA->SkeletalMeshComponent->SetSkeletalMesh(CompositeMesh);
+			SMA->GetSkeletalMeshComponent()->SetSkeletalMesh(CompositeMesh);
 		}
 	}
 
@@ -2967,7 +2963,7 @@ bool UEngine::HandleRecompileGlobalShadersCommand( const TCHAR* Cmd, FOutputDevi
 bool UEngine::HandleDumpShaderStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString FlagStr(FParse::Token(Cmd, 0));
-	EShaderPlatform Platform = GRHIShaderPlatform;
+	EShaderPlatform Platform = GMaxRHIShaderPlatform;
 	if (FlagStr.Len() > 0)
 	{
 		Platform = ShaderFormatToLegacyShaderPlatform(FName(*FlagStr));
@@ -2981,7 +2977,7 @@ bool UEngine::HandleDumpShaderStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar 
 bool UEngine::HandleDumpMaterialStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString FlagStr(FParse::Token(Cmd, 0));
-	EShaderPlatform Platform = GRHIShaderPlatform;
+	EShaderPlatform Platform = GMaxRHIShaderPlatform;
 	if (FlagStr.Len() > 0)
 	{
 		Platform = ShaderFormatToLegacyShaderPlatform(FName(*FlagStr));
@@ -3266,7 +3262,7 @@ bool UEngine::HandleRemoteTextureStatsCommand( const TCHAR* Cmd, FOutputDevice& 
 			if( UsedMaterials[ MatIndex ] )
 			{
 				UsedTextures.Reset();
-				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
+				UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GMaxRHIFeatureLevel, true);
 
 				// Increase usage count for all referenced textures
 				for( int32 TextureIndex=0; TextureIndex<UsedTextures.Num(); TextureIndex++ )
@@ -4298,15 +4294,15 @@ struct FHierarchyNode
 	TSet<UObject*> Items;
 	int64 Inc;
 	int64 Exc;
-	int32 IncCnt;
-	int32 ExcCnt;
+	int32 IncCount;
+	int32 ExcCount;
 	FHierarchyNode()
 		: This(NULL)
 		, Parent(NULL)
 		, Inc(-1)
 		, Exc(-1)
-		, IncCnt(-1)
-		, ExcCnt(-1)
+		, IncCount(-1)
+		, ExcCount(-1)
 	{
 	}
 	bool operator< (FHierarchyNode const& Other) const
@@ -4379,45 +4375,45 @@ struct FHierarchy
 			AddClass((UClass*)This);
 		}
 	}
-	FHierarchyNode& Compute(UObject* This, TMap<UObject*, FSubItem> const& Objects, bool bCntItems)
+	FHierarchyNode& Compute(UObject* This, TMap<UObject*, FSubItem> const& Objects, bool bCountItems)
 	{
 		FHierarchyNode& Node = Nodes.FindChecked(This);
 		if (Node.Inc < 0)
 		{
 			Node.Exc = 0;
-			Node.ExcCnt = 1;
+			Node.ExcCount = 1;
 			if (This)
 			{
 				FSubItem const& Item = Objects.FindChecked(This);
 				Node.Exc += Item.Max;
-				Node.Exc += Item.TrueRes;
-				if (bCntItems)
+				Node.Exc += Item.TrueResourceSize;
+				if (bCountItems)
 				{
-					Node.ExcCnt += Node.Items.Num();
+					Node.ExcCount += Node.Items.Num();
 				}
 				else
 				{
-					Node.ExcCnt += Node.Children.Num();
+					Node.ExcCount += Node.Children.Num();
 				}
 			}
 			Node.Inc = Node.Exc;
-			Node.IncCnt = Node.ExcCnt;
+			Node.IncCount = Node.ExcCount;
 			for (TSet<UObject*>::TConstIterator It(Node.Children); It; ++It)
 			{
-				FHierarchyNode& Child = Compute(*It, Objects, bCntItems);
+				FHierarchyNode& Child = Compute(*It, Objects, bCountItems);
 				Node.Inc += Child.Inc;
-				if (!bCntItems)
+				if (!bCountItems)
 				{
-					Node.IncCnt += Child.IncCnt;
+					Node.IncCount += Child.IncCount;
 				}
 			}
 			for (TSet<UObject*>::TConstIterator It(Node.Items); It; ++It)
 			{
-				FHierarchyNode& Child = Compute(*It, Objects, bCntItems);
+				FHierarchyNode& Child = Compute(*It, Objects, bCountItems);
 				Node.Inc += Child.Inc;
-				if (bCntItems)
+				if (bCountItems)
 				{
-					Node.IncCnt += Child.IncCnt;
+					Node.IncCount += Child.IncCount;
 				}
 			}
 		}
@@ -4432,7 +4428,7 @@ struct FHierarchy
 		}
 		Out.Sort();
 	}
-	FString Size(uint64 Mem)
+	static FString Size(uint64 Mem)
 	{
 		if (Mem / 1024 < 10000)
 		{
@@ -4444,14 +4440,22 @@ struct FHierarchy
 		}
 		return FString::Printf(TEXT("%4lldG"), Mem / (1024*1024*1024));
 	}
-	void LogSet(TSet<UObject*> const& In, bool bCntItems, int Indent)
+	void LogSet(TSet<UObject*> const& In, UClass* ClassToCheck, bool bCntItems, int Indent)
 	{
 		TArray<FHierarchyNode> Children;
 		SortSet(In, Children);
 		int32 Index = 0;
 		for (; Index < Children.Num(); Index++)
 		{
-			if (!Log(Children[Index].This, bCntItems, Indent + 1, Index + 1 < Children.Num()))
+			UObject* Child = Children[Index].This;
+			// Only makes sense for flat hierarchy.
+			const bool bIsClassToCheck = Child->IsA( ClassToCheck );
+			if( !bIsClassToCheck )
+			{
+				continue;
+			}
+
+			if( !Log( Child, ClassToCheck, bCntItems, Indent + 1, Index + 1 < Children.Num() ) )
 			{
 				break;
 			}
@@ -4462,21 +4466,21 @@ struct FHierarchy
 			FHierarchyNode Extra;
 			Extra.Exc = 0;
 			Extra.Inc = 0;
-			Extra.ExcCnt = 0;
-			Extra.IncCnt = 0;
+			Extra.ExcCount = 0;
+			Extra.IncCount = 0;
 			for (; Index < Children.Num(); Index++)
 			{
 				Extra.Exc += Children[Index].Exc;
 				Extra.Inc += Children[Index].Inc;
-				Extra.ExcCnt += Children[Index].ExcCnt;
-				Extra.IncCnt += Children[Index].IncCnt;
+				Extra.ExcCount += Children[Index].ExcCount;
+				Extra.IncCount += Children[Index].IncCount;
 				NumExtra++;
 			}
-			FString Line = FString::Printf(TEXT("%s        %5d %s (%d)"), *Size(Extra.Inc), Extra.IncCnt, TEXT("More"), NumExtra);
+			FString Line = FString::Printf(TEXT("%s        %5d %s (%d)"), *Size(Extra.Inc), Extra.IncCount, TEXT("More"), NumExtra);
 			UE_LOG(LogEngine, Log, TEXT("%s%s") , FCString::Spc(2 * (Indent + 1)), *Line);
 		}
 	}
-	bool Log(UObject* This, bool bCntItems, int Indent = 0, bool bAllowCull = true)
+	bool Log(UObject* This, UClass* ClassToCheck, bool bCountItems, int Indent = 0, bool bAllowCull = true)
 	{
 		FHierarchyNode& Node = Nodes.FindChecked(This);
 		if (bAllowCull && Node.Inc < Limit && Node.Exc < Limit)
@@ -4486,30 +4490,31 @@ struct FHierarchy
 		FString Line;
 		if (Node.IsLeaf())
 		{
-			Line = FString::Printf(TEXT("%s        %5d %s"), *Size(Node.Inc), Node.IncCnt, Node.This ? *Node.This->GetFullName() : TEXT("Root"));
+			Line = FString::Printf(TEXT("%s        %5d %s"), *Size(Node.Inc), Node.IncCount, Node.This ? *Node.This->GetFullName() : TEXT("Root"));
 			UE_LOG(LogEngine, Log, TEXT("%s%s") , FCString::Spc(2 * Indent), *Line);
 		}
 		else
 		{
-			Line = FString::Printf(TEXT("%s %sx %5d %s"), *Size(Node.Inc), *Size(Node.Exc), Node.IncCnt, Node.This ? *Node.This->GetFullName() : TEXT("Root"));
+			Line = FString::Printf(TEXT("%s %sx %5d %s"), *Size(Node.Inc), *Size(Node.Exc), Node.IncCount, Node.This ? *Node.This->GetFullName() : TEXT("Root"));
 			UE_LOG(LogEngine, Log, TEXT("%s%s") , FCString::Spc(2 * Indent), *Line);
-			if (bCntItems && Node.Children.Num())
+			if (bCountItems && Node.Children.Num())
 			{
 				UE_LOG(LogEngine, Log, TEXT("%s%s") , FCString::Spc(2 * (Indent + 1)), TEXT("Child Classes"));
 			}
-			LogSet(Node.Children, bCntItems, Indent + 2);
+			LogSet(Node.Children, ClassToCheck, bCountItems, Indent + 2);
 
-			if (bCntItems && Node.Items.Num())
+			if (bCountItems && Node.Items.Num())
 			{
 				UE_LOG(LogEngine, Log, TEXT("%s%s") , FCString::Spc(2 * (Indent + 1)), TEXT("Instances"));
 			}
-			LogSet(Node.Items, bCntItems, Indent);
+			LogSet(Node.Items, ClassToCheck, bCountItems, Indent);
 		}
 
 		return true;
 	}
 };
 
+// @TODO yrx 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
 bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if (FParse::Command(&Cmd,TEXT("LIST2")))
@@ -4526,12 +4531,162 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		MemAnalyze.PrintResults(Ar, FObjectMemoryAnalyzer::EPrintFlags::PrintReferences);
 		return true;
 	}
-	if (FParse::Command(&Cmd,TEXT("Mem")))
-	{			
+	else if (FParse::Command(&Cmd,TEXT("MemSub")))
+	{
+		struct FCompareByInclusiveSize
+		{
+			FORCEINLINE bool operator()( const FItem& A, const FItem& B ) const 
+			{ 
+				return A.Max > B.Max; 
+			}
+		};
 
+		struct FLocal
+		{
+			static void GetReferencedObjs( UObject* CurrentObject, TArray<UObject*>& out_ReferencedObjs )
+			{
+				TArray<UObject*> ReferencedObjs;
+				FReferenceFinder RefCollector( ReferencedObjs, CurrentObject, true, false, false, false );
+				RefCollector.FindReferences( CurrentObject );
+
+				out_ReferencedObjs.Append( ReferencedObjs );
+				for( UObject*& RefObj : ReferencedObjs )
+				{
+					GetReferencedObjs( RefObj, out_ReferencedObjs );
+				}
+			}
+		};
+
+		int32 Limit = 16;
+		FParse::Value(Cmd, TEXT("CULL="), Limit);
+		Limit *= 1024;
+
+		UClass* ClassToCheck = NULL;
+		ParseObject<UClass>(Cmd, TEXT("CLASS="  ), ClassToCheck, ANY_PACKAGE );
+		if (ClassToCheck == NULL)
+		{
+			ClassToCheck = UObject::StaticClass();
+		}
+
+		TMap<UClass*,FItem> ObjectsByClass;
+
+		UE_LOG( LogEngine, Log, TEXT("**********************************************") );
+		UE_LOG( LogEngine, Log, TEXT("Obj MemSub for class '%s'"), *ClassToCheck->GetName() );
+		UE_LOG( LogEngine, Log, TEXT("") );
+
+		for( FObjectIterator It(ClassToCheck); It; ++It )
+		{
+			UObject* Obj = *It;
+			if( Obj->IsTemplate( RF_ClassDefaultObject ) )
+			{
+				continue;
+			}
+
+			// Get references.
+			TArray<UObject*> ReferencedObjects;
+			FLocal::GetReferencedObjs( Obj, ReferencedObjects );
+
+			// Calculate memory usage.
+			FItem ThisObject( Obj->GetClass() );
+			for( UObject*& RefObj : ReferencedObjects )
+			{
+				FArchiveCountMem Count( RefObj );
+				// Get the 'old-style' resource size and the truer resource size
+				const SIZE_T ResourceSize = It->GetResourceSize( EResourceSizeMode::Inclusive );
+				const SIZE_T TrueResourceSize = It->GetResourceSize( EResourceSizeMode::Exclusive );
+				ThisObject.Add( Count, ResourceSize, TrueResourceSize );
+			}
+
+			FItem& ClassObjects = ObjectsByClass.FindOrAdd( ThisObject.Class );
+			ClassObjects.Count++;
+			ClassObjects.Num += ThisObject.Num;
+			ClassObjects.Max += ThisObject.Max;
+			ClassObjects.ResourceSize += ThisObject.ResourceSize;
+			ClassObjects.TrueResourceSize += ThisObject.TrueResourceSize;
+		}
+
+		ObjectsByClass.ValueSort( FCompareByInclusiveSize() );
+
+		UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s %6s, %6s"), 
+			TEXT("Class"),
+			TEXT("IncMax"),
+			TEXT("IncNum"),
+			TEXT("ResInc"),
+			TEXT("ResExc"),
+			TEXT("Count") );
+
+		FItem Total;
+		FItem Culled;
+		for( const auto& It : ObjectsByClass )
+		{
+			UClass* Class = It.Key;
+			const FItem& ClassObjects = It.Value;
+
+			if( ClassObjects.Max < (SIZE_T)Limit )
+			{
+				Culled.Count += ClassObjects.Count;
+				Culled.Num += ClassObjects.Num;
+				Culled.Max += ClassObjects.Max;
+				Culled.ResourceSize += ClassObjects.ResourceSize;
+				Culled.TrueResourceSize += ClassObjects.TrueResourceSize;
+			}
+			else
+			{
+				UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s %6s, %6i"), 
+					*Class->GetName(), 
+					*FHierarchy::Size(ClassObjects.Max), *FHierarchy::Size(ClassObjects.Num), 
+					*FHierarchy::Size(ClassObjects.ResourceSize), *FHierarchy::Size(ClassObjects.TrueResourceSize),
+					ClassObjects.Count 
+					);
+
+			}
+
+			Total.Count += ClassObjects.Count;
+			Total.Num += ClassObjects.Num;
+			Total.Max += ClassObjects.Max;
+			Total.ResourceSize += ClassObjects.ResourceSize;
+			Total.TrueResourceSize += ClassObjects.TrueResourceSize;
+		}
+
+		if( Culled.Count > 0 )
+		{
+			UE_LOG( LogEngine, Log, TEXT("") );
+			UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s %6s, %6i"), 
+				TEXT("(Culled)"), 
+				*FHierarchy::Size(Culled.Max), *FHierarchy::Size(Culled.Num), 
+				*FHierarchy::Size(Culled.ResourceSize), *FHierarchy::Size(Culled.TrueResourceSize),
+				Culled.Count 
+				);
+		}
+
+		UE_LOG( LogEngine, Log, TEXT("") );
+		UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s %6s, %6i"), 
+			TEXT("Total"), 
+			*FHierarchy::Size(Total.Max), *FHierarchy::Size(Total.Num), 
+			*FHierarchy::Size(Total.ResourceSize), *FHierarchy::Size(Total.TrueResourceSize),
+			Total.Count 
+			);
+		UE_LOG( LogEngine, Log, TEXT("**********************************************") );
+		return true;
+	}
+	else if (FParse::Command(&Cmd,TEXT("Mem")))
+	{
 		int32 Limit = 50;
 		FParse::Value(Cmd, TEXT("CULL="), Limit);
 		Limit *= 1024;
+
+		UClass* ClassToCheck = NULL;
+		ParseObject<UClass>(Cmd, TEXT("CLASS="  ), ClassToCheck, ANY_PACKAGE );
+
+		if (ClassToCheck == NULL)
+		{
+			ClassToCheck = UObject::StaticClass();
+		}
+		else
+		{
+			// Class is set, so lower a bit the limit.
+			Limit /= 10;
+		}
 
 		FHierarchy Classes(Limit);
 		FHierarchy Outers(Limit);
@@ -4549,16 +4704,19 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			Outers.AddOuter(*It);
 			Flat.AddFlat(*It);
 		}
+
 		UE_LOG(LogEngine, Log, TEXT("********************************************** By Outer Hierarchy") );
 		Outers.Compute(NULL, Objects, false);
-		Outers.Log(NULL, false);
+		Outers.Log( ClassToCheck, UObject::StaticClass(), false );
+		
 
 		UE_LOG(LogEngine, Log, TEXT("********************************************** By Class Hierarchy") );
 		Classes.Compute(NULL, Objects, true);
-		Classes.Log(NULL, true);
+		Classes.Log( ClassToCheck, UObject::StaticClass(), true );
+
 		UE_LOG(LogEngine, Log, TEXT("********************************************** Flat") );
 		Flat.Compute(NULL, Objects, false);
-		Flat.Log(NULL, false);
+		Flat.Log( NULL, ClassToCheck, false );
 		UE_LOG(LogEngine, Log, TEXT("**********************************************") );
 
 		return true;
@@ -4763,7 +4921,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				}					
 				//MSEND
 
-				Ar.Logf( TEXT("%140s % 10iK % 10iK % 10iK % 10iK"), *ObjItem.Object->GetFullName(), (int32)ObjItem.Num / 1024, (int32)ObjItem.Max / 1024, (int32)ObjItem.Res / 1024, (int32)ObjItem.TrueRes / 1024 );
+				Ar.Logf( TEXT("%140s % 10iK % 10iK % 10iK % 10iK"), *ObjItem.Object->GetFullName(), (int32)ObjItem.Num / 1024, (int32)ObjItem.Max / 1024, (int32)ObjItem.ResourceSize / 1024, (int32)ObjItem.TrueResourceSize / 1024 );
 			}
 			Ar.Log( TEXT("") );
 		}
@@ -4786,11 +4944,11 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 			for( int32 i=0; i<List.Num(); i++ )
 			{
-				Ar.Logf(TEXT(" %100s % 6i % 10iK % 10iK % 10iK % 10iK"), *List[i].Class->GetName(), (int32)List[i].Count, (int32)(List[i].Num/1024), (int32)(List[i].Max/1024), (int32)(List[i].Res/1024), (int32)(List[i].TrueRes/1024) );
+				Ar.Logf(TEXT(" %100s % 6i % 10iK % 10iK % 10iK % 10iK"), *List[i].Class->GetName(), (int32)List[i].Count, (int32)(List[i].Num/1024), (int32)(List[i].Max/1024), (int32)(List[i].ResourceSize/1024), (int32)(List[i].TrueResourceSize/1024) );
 			}
 			Ar.Log( TEXT("") );
 		}
-		Ar.Logf( TEXT("%i Objects (%.3fM / %.3fM / %.3fM / %.3fM)"), Total.Count, (float)Total.Num/1024.0/1024.0, (float)Total.Max/1024.0/1024.0, (float)Total.Res/1024.0/1024.0, (float)Total.TrueRes/1024.0/1024.0 );
+		Ar.Logf( TEXT("%i Objects (%.3fM / %.3fM / %.3fM / %.3fM)"), Total.Count, (float)Total.Num/1024.0/1024.0, (float)Total.Max/1024.0/1024.0, (float)Total.ResourceSize/1024.0/1024.0, (float)Total.TrueResourceSize/1024.0/1024.0 );
 		return true;
 
 	}
@@ -5734,20 +5892,31 @@ static TAutoConsoleVariable<int32> CVarUnsteadyFPS(
 	TEXT("t.UnsteadyFPS"),0,
 	TEXT("Causes FPS to bounce around randomly in the 8-32 range."));
 
-/** Get tick rate limitor. */
-float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
+void UEngine::InitializeRunningAverageDeltaTime()
 {
-	float MaxTickRate = 0;
+	// Running average delta time, initial value at 100 FPS so fast machines don't have to creep up
+	// to a good frame rate due to code limiting upward "mobility".
+	RunningAverageDeltaTime = 1 / 100.f;
+}
 
-	if (FPlatformProperties::AllowsFramerateSmoothing())
+bool UEngine::IsAllowedFramerateSmoothing(bool bAllowFrameRateSmoothing) const
+{
+	return FPlatformProperties::AllowsFramerateSmoothing() && bSmoothFrameRate && bAllowFrameRateSmoothing && !IsRunningDedicatedServer();
+}
+
+/** Compute tick rate limitor. */
+void UEngine::UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing)
+{
+	if (IsAllowedFramerateSmoothing(bAllowFrameRateSmoothing))
 	{
 		// Smooth the framerate if wanted. The code uses a simplistic running average. Other approaches, like reserving
 		// a percentage of time, ended up creating negative feedback loops in conjunction with GPU load and were abandonend.
-		if( bSmoothFrameRate && bAllowFrameRateSmoothing && !IsRunningDedicatedServer() )
-		{
 			if( DeltaTime < 0.0f )
 			{
-#if (UE_BUILD_SHIPPING && WITH_EDITOR)
+#if PLATFORM_ANDROID
+				UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
+				DeltaTime = 0.01;
+#elif (UE_BUILD_SHIPPING && WITH_EDITOR)
 				// End users don't have access to the secure parts of UDN. The localized string points to the release notes,
 				// which should include a link to the AMD CPU drivers download site.
 				UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("CPU time drift detected! Please consult release notes on how to address this."));
@@ -5757,13 +5926,19 @@ float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 #endif
 			}
 
-			// Running average delta time, initial value at 100 FPS so fast machines don't have to creep up
-			// to a good frame rate due to code limiting upward "mobility".
-			static float RunningAverageDeltaTime = 1 / 100.f;
-
 			// Keep track of running average over 300 frames, clamping at min of 5 FPS for individual delta times.
 			RunningAverageDeltaTime = FMath::Lerp<float>( RunningAverageDeltaTime, FMath::Min<float>( DeltaTime, 0.2f ), 1 / 300.f );
+	}
+}
 
+
+/** Get tick rate limitor. */
+float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) const
+{
+	float MaxTickRate = 0;
+
+	if (IsAllowedFramerateSmoothing(bAllowFrameRateSmoothing))
+	{
 			// Work in FPS domain as that is what the function will return.
 			MaxTickRate = 1.f / RunningAverageDeltaTime;
 
@@ -5777,7 +5952,6 @@ float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 				MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
 			}
 		}
-	}
 
 	if (CVarCauseHitches.GetValueOnGameThread())
 	{
@@ -6060,14 +6234,14 @@ static FVector2D TransformLocationToMap(FVector2D TopLeftPos, FVector2D BottomRi
 /** Utility for drawing a volume geometry (as seen from above) onto the canvas */
 static void DrawVolumeOnCanvas(const AVolume* Volume, FCanvas* Canvas, const FVector2D& TopLeftPos, const FVector2D& BottomRightPos, const FVector2D& MapOrigin, const FVector2D& MapSize, const FColor& VolColor)
 {
-	if(Volume && Volume->BrushComponent && Volume->BrushComponent->BrushBodySetup)
+	if(Volume && Volume->GetBrushComponent() && Volume->GetBrushComponent()->BrushBodySetup)
 	{
-		FTransform BrushTM = Volume->BrushComponent->ComponentToWorld;
+		FTransform BrushTM = Volume->GetBrushComponent()->ComponentToWorld;
 
 		// Iterate over each piece
-		for(int32 ConIdx=0; ConIdx<Volume->BrushComponent->BrushBodySetup->AggGeom.ConvexElems.Num(); ConIdx++)
+		for(int32 ConIdx=0; ConIdx<Volume->GetBrushComponent()->BrushBodySetup->AggGeom.ConvexElems.Num(); ConIdx++)
 		{
-			FKConvexElem& ConvElem = Volume->BrushComponent->BrushBodySetup->AggGeom.ConvexElems[ConIdx];
+			FKConvexElem& ConvElem = Volume->GetBrushComponent()->BrushBodySetup->AggGeom.ConvexElems[ConIdx];
 
 #if 0 // @todo UE4 physx fix this once we have convexelem drawing again
 			// Draw each triangle that makes up the convex hull
@@ -6564,7 +6738,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 
 #if ENABLE_VISUAL_LOG
-			if (FVisualLog::Get().IsRecording() || FVisualLog::Get().IsRecordingOnServer())
+			if (FVisualLogger::Get().IsRecording() || FVisualLogger::Get().IsRecordingOnServer() )
 			{
 				int32 XSize;
 				int32 YSize;
@@ -6834,17 +7008,6 @@ DEFINE_STAT(STAT_IntentionalHitch);
 DEFINE_STAT(STAT_PlatformMessageTime);
 DEFINE_STAT(STAT_FrameSyncTime);
 DEFINE_STAT(STAT_DeferredTickTime);
-
-/** Landscape stats */
-
-DEFINE_STAT(STAT_LandscapeDynamicDrawTime);
-DEFINE_STAT(STAT_LandscapeStaticDrawLODTime);
-DEFINE_STAT(STAT_LandscapeVFDrawTime);
-DEFINE_STAT(STAT_LandscapeComponents);
-DEFINE_STAT(STAT_LandscapeDrawCalls);
-DEFINE_STAT(STAT_LandscapeTriangles);
-DEFINE_STAT(STAT_LandscapeVertexMem);
-DEFINE_STAT(STAT_LandscapeComponentMem);
 
 /** Input stat */
 DEFINE_STAT(STAT_InputTime);
@@ -7151,7 +7314,7 @@ ULocalPlayer* UEngine::GetGamePlayer( UWorld * InWorld, int32 InPlayer )
 	return PlayerList[ InPlayer ];
 }
 
-ULocalPlayer* UEngine::GetGamePlayer( const UGameViewportClient * InViewport, int32 InPlayer )
+ULocalPlayer* UEngine::GetGamePlayer( const UGameViewportClient* InViewport, int32 InPlayer )
 {
 	const TArray<class ULocalPlayer*>& PlayerList = GetGamePlayers(InViewport);
 	check( InPlayer < PlayerList.Num() );
@@ -7260,7 +7423,25 @@ void UEngine::ShutdownWorldNetDriver( UWorld * World )
 		if (NetDriver)
 		{
 			UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
+			World->SetNetDriver(NULL);
 			DestroyNamedNetDriver(World, NetDriver->NetDriverName);
+		}
+
+		// Take care of the demo net driver specifically (so the world can clear the DemoNetDriver property)
+		World->DestroyDemoNetDriver();
+
+		// Also disconnect any net drivers that have this set as their world, to avoid GC issues
+		FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(World);
+
+		for (int32 Index = 0; Index < Context.ActiveNetDrivers.Num(); Index++)
+		{
+			NetDriver = Context.ActiveNetDrivers[Index].NetDriver;
+			if (NetDriver && NetDriver->GetWorld() == World)
+			{
+				UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
+				DestroyNamedNetDriver(World, NetDriver->NetDriverName);
+				Index--;
+			}
 		}
 	}
 }
@@ -7285,6 +7466,7 @@ void UEngine::ShutdownAllNetDrivers()
 				}
 				NetDriver->SetWorld(NULL);
 				DestroyNamedNetDriver(It->World(), NetDriver->NetDriverName);
+				Index--;
 			}
 		}
 
@@ -7311,7 +7493,7 @@ UNetDriver* UEngine::FindNamedNetDriver(UWorld * InWorld, FName NetDriverName)
 	return FindNamedNetDriver_Local(GetWorldContextFromWorldChecked(InWorld).ActiveNetDrivers, NetDriverName);
 }
 
-UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame * InPendingNetGame, FName NetDriverName)
+UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame* InPendingNetGame, FName NetDriverName)
 {
 	return FindNamedNetDriver_Local(GetWorldContextFromPendingNetGameChecked(InPendingNetGame).ActiveNetDrivers, NetDriverName);
 }
@@ -7463,6 +7645,9 @@ void UEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureT
 
 	UE_LOG(LogNet, Log, TEXT("TravelFailure: %s, Reason for Failure: '%s'"), ETravelFailure::ToString(FailureType), *ErrorString);
 
+	// Give the GameInstance a chance to handle the failure.
+	HandleTravelFailure_NotifyGameInstance(InWorld, FailureType);
+
 	ENetMode NetMode = GetNetMode(InWorld);
 
 	switch (FailureType)
@@ -7504,6 +7689,9 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 			}
 		}
 
+		// Give the GameInstance a chance to handle the failure.
+		HandleNetworkFailure_NotifyGameInstance(World, NetDriver, FailureType);
+
 		ENetMode FailureNetMode = NetDriver->GetNetMode();	// NetMode of the driver that failed
 		bool bShouldTravel = true;
 
@@ -7534,6 +7722,44 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 		{
 			CallHandleDisconnectForFailure(World, NetDriver);
 		}
+	}
+}
+
+void UEngine::HandleNetworkFailure_NotifyGameInstance(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType)
+{
+	bool bIsServer = true;
+
+	if (NetDriver != nullptr)
+	{
+		bIsServer = NetDriver->GetNetMode() != NM_Client;
+	}
+
+	if (World != nullptr && World->GetGameInstance() != nullptr)
+	{
+		World->GetGameInstance()->HandleNetworkError(FailureType, bIsServer);
+	}
+	else
+	{
+		// Since the UWorld passed in might be null, as well as the NetDriver's UWorld,
+		// go through the world contexts until we find the one with this net driver.
+		for (auto& Context : WorldList)
+		{
+			if (Context.PendingNetGame != nullptr &&
+				Context.PendingNetGame->NetDriver == NetDriver &&
+				Context.OwningGameInstance != nullptr)
+			{
+				// Use the GameInstance from the current context.
+				Context.OwningGameInstance->HandleNetworkError(FailureType, bIsServer);
+			}
+		}
+	}
+}
+
+void UEngine::HandleTravelFailure_NotifyGameInstance(UWorld *World, ETravelFailure::Type FailureType)
+{
+	if (World != nullptr && World->GetGameInstance() != nullptr)
+	{
+		World->GetGameInstance()->HandleTravelError(FailureType);
 	}
 }
 
@@ -7887,7 +8113,7 @@ EBrowseReturnVal::Type UEngine::Browse( FWorldContext& WorldContext, FURL URL, F
 			ShutdownWorldNetDriver(WorldContext.World());
 		}
 
-		WorldContext.PendingNetGame = new UPendingNetGame(FPostConstructInitializeProperties(), URL);
+		WorldContext.PendingNetGame = new UPendingNetGame(FObjectInitializer(), URL);
 		WorldContext.PendingNetGame->InitNetDriver();
 		if( !WorldContext.PendingNetGame->NetDriver )
 		{
@@ -8289,7 +8515,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	}
 
 	// send a callback message
-	FCoreDelegates::PreLoadMap.Broadcast();
+	FCoreUObjectDelegates::PreLoadMap.Broadcast();
 
 	// Cancel any pending texture streaming requests.  This avoids a significant delay on consoles 
 	// when loading a map and there are a lot of outstanding texture streaming requests from the previous map.
@@ -8326,13 +8552,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	UE_LOG(LogLoad, Log,  TEXT("LoadMap: %s"), *URL.ToString() );
 	GInitRunaway();
 
-	// Get network package map.
-	UPackageMap* PackageMap = NULL;
-	if( Pending )
-	{
-		PackageMap = Pending->GetNetDriver()->ServerConnection->PackageMap;
-	}
-
 	// Unload the current world
 	if( WorldContext.World() )
 	{
@@ -8356,8 +8575,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		// Clean up networking
 		ShutdownWorldNetDriver(WorldContext.World());
 
-		// Clean up game state.
-		WorldContext.World()->FlushLevelStreaming( NULL, true );
+		// Make sure there are no pending visibility requests.
+		WorldContext.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 		
 		// send a message that all levels are going away (NULL means every sublevel is being removed
 		// without a call to RemoveFromWorld for each)
@@ -8523,7 +8742,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				const FName PIEPackageFName = FName(*PIEPackageName);
 				UWorld::WorldTypePreLoadMap.FindOrAdd( PIEPackageFName ) = WorldContext.WorldType;
 
-				WorldPackage = LoadPackage(CreatePackage(NULL, *PIEPackageName), *SourceWorldPackage, LOAD_None);
+				uint32 LoadFlags = LOAD_None;
+				auto NewPackage = CreatePackage(NULL, *PIEPackageName);
+				if (NewPackage != nullptr && WorldContext.WorldType == EWorldType::PIE)
+				{
+					NewPackage->PackageFlags |= PKG_PlayInEditor;
+					LoadFlags |= LOAD_PackageForPIE;
+				}
+				WorldPackage = LoadPackage(NewPackage, *SourceWorldPackage, LoadFlags);
 
 				// Clean up the world type list now that PostLoad has occurred
 				UWorld::WorldTypePreLoadMap.Remove( PIEPackageFName );
@@ -8628,18 +8854,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			// Otherwise we are probably loading new map while in PIE, so we need to rename world package and all streaming levels
 			else if (Pending == NULL)
 			{
-#if WITH_EDITOR
-				WorldPackage->PIEInstanceID = WorldContext.PIEInstance;
-#endif				
-				const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), WorldContext.PIEInstance);
-			
-				WorldPackage->Rename(*PIEPackageName);
-				for (int32 StreamingLevelIdx = 0; StreamingLevelIdx < NewWorld->StreamingLevels.Num(); StreamingLevelIdx++)
-				{
-					NewWorld->StreamingLevels[StreamingLevelIdx]->RenameForPIE(WorldContext.PIEInstance);
-				}
-				
-				NewWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
+				NewWorld->RenameToPIEWorld(WorldContext.PIEInstance);
 			}
 		}
 	}
@@ -8767,7 +8982,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	}
 
 	// send a callback message
-	FCoreDelegates::PostLoadMap.Broadcast();
+	FCoreUObjectDelegates::PostLoadMap.Broadcast();
 	
 	WorldContext.World()->bWorldWasLoadedThisTick = true;
 
@@ -8860,6 +9075,13 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 		// The pending net driver is renamed to the current "game net driver"
 		NetDriver->NetDriverName = NAME_GameNetDriver;
 		NetDriver->SetWorld(Context.World());
+	}
+
+	// Attach the DemoNetDriver to the world if there is one
+	if ( Context.PendingNetGame->DemoNetDriver != NULL )
+	{
+		Context.PendingNetGame->DemoNetDriver->SetWorld( Context.World() );
+		Context.World()->DemoNetDriver = Context.PendingNetGame->DemoNetDriver;
 	}
 
 	// Reset the Navigation System
@@ -9522,7 +9744,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		// Update level streaming, forcing existing levels to be unloaded and their streaming objects 
 		// removed from the world info.	We can't kick off async loading in this update as we want to 
 		// collect garbage right below.
-		Context.World()->FlushLevelStreaming( NULL, true );
+		Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 		
 		// make sure any looping sounds, etc are stopped
 		if (GetAudioDevice() != NULL)
@@ -9569,12 +9791,12 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 			Context.PendingLevelStreamingStatusUpdates.Empty();
 
-			Context.World()->FlushLevelStreaming(NULL, false);
+			Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Full );
 		}
 		else
 		{
-			// This will cause the newly added persistent level to be made visible and kick off async loading for others.
-			Context.World()->FlushLevelStreaming( NULL, true );
+			// Make sure there are no pending visibility requests.
+			Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 		}
 
 		// delay the use of streaming volumes for a few frames
@@ -9674,8 +9896,9 @@ struct FFindInstancedReferenceSubobjectHelper
 		check(ContainerAddress);
 		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
 		{
-			if (Prop->HasAnyPropertyFlags(CPF_InstancedReference))
+			if (Prop->HasAllPropertyFlags(CPF_PersistentInstance))
 			{
+				ensure(Prop->HasAllPropertyFlags(CPF_InstancedReference));
 				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
 				if (ObjectProperty)
 				{
@@ -9896,14 +10119,15 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 					{
 						UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject, NULL);
 						ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
+
+						// We also need to make sure to fixup any properties here
+						ComponentsOnNewObject.Add(NewEditInlineSubobject);
 					}
 				}
 			}
 		}
 	}
 	
-
-
 	// Replace anything with an outer of the old object with NULL, unless it already has a replacement
 	TArray<UObject*> ObjectsInOuter;
 	GetObjectsWithOuter(OldObject, ObjectsInOuter, true);
@@ -9918,7 +10142,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Replace references to old classes and instances on this object with the corresponding new ones
 	FArchiveReplaceObjectRef<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 
-	// Replace references inside each individual component (overkill, but required in the case that all pointers to the new components were clobbered by deserializing the old stuff)
+	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
 	for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
 	{
 		UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
@@ -10051,11 +10275,6 @@ bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 		&& !IsMobilePlatform(GShaderPlatformForFeatureLevel[FeatureLevel]);
 }
 
-bool AllowHighQualityLightmaps()
-{
-	return AllowHighQualityLightmaps(GRHIFeatureLevel);
-}
-
 // Helper function for changing system resolution via the r.setres console command
 void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWindowMode::Type InWindowMode)
 {
@@ -10081,7 +10300,7 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 	}
 
 	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, *WindowModeSuffix);
-	CVarSystemResolution->Set(*NewValue);
+	CVarSystemResolution->Set(*NewValue, ECVF_SetByCode);
 }
 
 
@@ -10127,7 +10346,7 @@ void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<F
 				const FString Filename = Local::GenerateScreenshotFilename(TEXT("bmp"));
 				if (Filename.Len() > 0)
 				{
-					FFileHelper::CreateBitmap(*Filename, Width, Height, Colors.GetTypedData());
+					FFileHelper::CreateBitmap(*Filename, Width, Height, Colors.GetData());
 				}
 			}
 			break;
@@ -10808,14 +11027,14 @@ int32 UEngine::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Can
 			ULocalPlayer* LocalPlayer = GetFirstGamePlayer(World);
 			if (LocalPlayer)
 			{
-				const AReverbVolume* ReverbVolume = AudioDevice->CurrentReverbVolume;
-				if (ReverbVolume && ReverbVolume->Settings.ReverbEffect)
+				const AAudioVolume* AudioVolume = AudioDevice->CurrentAudioVolume;
+				if (AudioVolume && AudioVolume->Settings.ReverbEffect)
 				{
-					TheString = FString::Printf(TEXT("  Reverb Volume Effect: %s (Priority: %g Volume Name: %s)"), *ReverbVolume->Settings.ReverbEffect->GetName(), ReverbVolume->Priority, *ReverbVolume->GetName());
+					TheString = FString::Printf(TEXT("  Audio Volume Reverb Effect: %s (Priority: %g Volume Name: %s)"), *AudioVolume->Settings.ReverbEffect->GetName(), AudioVolume->Priority, *AudioVolume->GetName());
 				}
 				else
 				{
-					TheString = TEXT("  Reverb Volume: None");
+					TheString = TEXT("  Audio Volume Reverb Effect: None");
 				}
 				Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FLinearColor::White);
 				Y += 12;

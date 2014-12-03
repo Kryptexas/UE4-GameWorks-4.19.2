@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimMontageFactory"
 
-UAnimMontageFactory::UAnimMontageFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimMontageFactory::UAnimMontageFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	SupportedClass = UAnimMontage::StaticClass();
@@ -68,7 +68,7 @@ UObject* UAnimMontageFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 
 		if(SourceAnimation)
 		{
-			USkeleton * SourceSkeleton = SourceAnimation->GetSkeleton();
+			USkeleton* SourceSkeleton = SourceAnimation->GetSkeleton();
 			//Make sure we haven't asked to create an AnimComposite with mismatching skeletons
 			check(TargetSkeleton == NULL || TargetSkeleton == SourceSkeleton);
 			TargetSkeleton = SourceSkeleton;
@@ -84,7 +84,7 @@ UObject* UAnimMontageFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 			FSlotAnimationTrack NewTrack;
 			NewTrack.AnimTrack.AnimSegments.Add(NewSegment);
 
-			NewTrack.SlotName = FName("");
+			NewTrack.SlotName = FAnimSlotGroup::DefaultSlotName;
 			AnimMontage->SlotAnimTracks.Add( NewTrack );
 			AnimMontage->SetSequenceLength(SourceAnimation->SequenceLength);
 		}

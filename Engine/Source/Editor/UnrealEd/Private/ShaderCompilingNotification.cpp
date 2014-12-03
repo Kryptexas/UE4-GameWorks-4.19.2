@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "GlobalEditorNotification.h"
 #include "ShaderCompiler.h"
+#include "SNotificationList.h"
 
 /** Notification class for asynchronous shader compiling. */
 class FShaderCompilingNotificationImpl : public FGlobalEditorNotification

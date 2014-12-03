@@ -31,7 +31,7 @@ void FAnimNode_BlendListBase::Initialize(const FAnimationInitializeContext& Cont
 	LastActiveChildIndex = INDEX_NONE;
 }
 
-void FAnimNode_BlendListBase::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_BlendListBase::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	for(int32 ChildIndex=0; ChildIndex<BlendPose.Num(); ChildIndex++)
 	{

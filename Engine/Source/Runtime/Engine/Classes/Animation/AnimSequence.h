@@ -496,6 +496,18 @@ class UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
+	/** If this is on, it will allow extracting of root motion **/
+	UPROPERTY(EditAnywhere, Category = RootMotion)
+	bool bEnableRootMotion;
+
+	/** Root Bone will be locked to that position when extracting root motion.**/
+	UPROPERTY(EditAnywhere, Category = RootMotion)
+	TEnumAsByte<ERootMotionRootLock::Type> RootMotionRootLock;
+
+	/** Have we copied root motion settings from an owning montage */
+	UPROPERTY()
+	bool bRootMotionSettingsCopiedFromMontage;
+
 #if WITH_EDITORONLY_DATA
 	/** Saved version number with CompressAnimations commandlet. To help with doing it in multiple passes. */
 	UPROPERTY()
@@ -549,9 +561,19 @@ class UAnimSequence : public UAnimSequenceBase
 	// End of UAnimationAsset interface
 
 	// Begin UAnimSequenceBase interface
-	ENGINE_API virtual void ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const override;
+	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
 	ENGINE_API virtual void UpgradeMorphTargetCurves() override;
+	ENGINE_API virtual bool HasRootMotion() const { return bEnableRootMotion; }
 	// End UAnimSequenceBase interface
+
+	// Extract Root Motion transform from the animation
+	FTransform ExtractRootMotion(const float & StartTime, const float & DeltaTime, const float bAllowLooping) const;
+
+	// Extract Root Motion transform from a contiguous position range (no looping)
+	FTransform ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const;
+
+	// Extract the transform from the root track for the given animation position
+	FTransform ExtractRootTrackTransform(float Pos, const FBoneContainer * RequiredBones) const;
 
 	// Begin Transform related functions 
 
@@ -563,7 +585,7 @@ class UAnimSequence : public UAnimSequenceBase
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	void GetAnimationPose( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	void GetAnimationPose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 	/** 
 	 * Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones 
@@ -572,7 +594,7 @@ class UAnimSequence : public UAnimSequenceBase
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	ENGINE_API void GetBonePose( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	ENGINE_API void GetBonePose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 private:
 	/** 
@@ -583,7 +605,7 @@ private:
 	 * @param	RequiredBones		BoneContainer
 	 * @param	ExtractionContext	Extraction Context to access root motion extraction information.
 	 */
-	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const;
 	
 	/** 
 	 * Retarget a single bone transform, to apply right after extraction.
@@ -593,7 +615,7 @@ private:
 	 * @param	PoseBoneIndex		Bone Index in Bone Transform array.
 	 * @param	RequiredBones		BoneContainer
 	 */	
-	void RetargetBoneTransform(FTransform & BoneTransform, const int32 & SkeletonBoneIndex, const int32 & PoseBoneIndex, const FBoneContainer & RequiredBones) const;
+	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const int32& PoseBoneIndex, const FBoneContainer& RequiredBones) const;
 
 public:
 	/** 
@@ -603,7 +625,7 @@ public:
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	ENGINE_API void GetBonePose_Additive( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	ENGINE_API void GetBonePose_Additive( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 	/** 
 	 * Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones 
@@ -612,7 +634,7 @@ public:
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	ENGINE_API void GetAdditiveBasePose(FTransformArrayA2 & OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	ENGINE_API void GetAdditiveBasePose(FTransformArrayA2 & OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 	/**
 	 * Get Bone Transform of the Time given, relative to Parent for the Track Given
@@ -681,7 +703,7 @@ public:
 	 *
 	 * @param	TrackIndex		Track Index
 	 */
-	int32 GetSkeletonIndexFromTrackIndex(const int32 & TrackIndex) const 
+	int32 GetSkeletonIndexFromTrackIndex(const int32& TrackIndex) const 
 	{ 
 		return TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex; 
 	}
@@ -737,6 +759,7 @@ public:
 	 * This increases framecount + time, so that it requires recompression
 	 */
 	ENGINE_API bool AddLoopingInterpolation();
+
 #endif
 
 	/** 
@@ -753,13 +776,13 @@ private:
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	void GetBonePose_AdditiveMeshRotationOnly( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	void GetBonePose_AdditiveMeshRotationOnly( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 #if WITH_EDITOR
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bConvertSpaces );
+	void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces );
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	
@@ -769,6 +792,9 @@ private:
 	bool ConvertAnimationDataToRiggingData(FAnimSequenceTrackContainer & RiggingAnimationData);
 	bool ConvertRiggingDataToAnimationData(FAnimSequenceTrackContainer & RiggingAnimationData);
 	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, FAnimSequenceTrackContainer * RiggingAnimationData) const;
+
+	/** Verify Track Map is valid, if not, fix up */
+	void VerifyTrackMap();
 #endif
 
 	/**

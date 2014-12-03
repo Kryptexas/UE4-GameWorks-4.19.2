@@ -3,7 +3,7 @@
 #pragma once
 
 #include "GameplayTagsManager.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 /** Widget allowing user to tag assets with gameplay tags */
 class SGameplayTagWidget : public SCompoundWidget

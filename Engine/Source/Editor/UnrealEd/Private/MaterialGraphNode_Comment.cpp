@@ -8,12 +8,13 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialFunction.h"
 #include "MaterialEditorUtilities.h"
+#include "GenericCommands.h"
 
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Comment
 
-UMaterialGraphNode_Comment::UMaterialGraphNode_Comment(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphNode_Comment::UMaterialGraphNode_Comment(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

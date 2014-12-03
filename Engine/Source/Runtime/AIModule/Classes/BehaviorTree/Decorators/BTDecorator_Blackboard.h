@@ -3,6 +3,7 @@
 #pragma once
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BehaviorTree/BTDecorator.h"
+#include "BTDecorator_BlackboardBase.h"
 #include "BTDecorator_Blackboard.generated.h"
 
 /**
@@ -78,7 +79,7 @@ protected:
 	virtual void BuildDescription();
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void InitializeFromAsset(class UBehaviorTree* Asset) override;
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 
 #endif
 

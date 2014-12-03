@@ -12,19 +12,23 @@
 #include "PropertyCustomizationHelpers.h"
 
 #include "WidgetBlueprintApplicationModes.h"
-//#include "WidgetDefafaultsApplicationMode.h"
+#include "WidgetBlueprintEditorUtils.h"
 #include "WidgetDesignerApplicationMode.h"
 #include "WidgetGraphApplicationMode.h"
 
 #include "WidgetBlueprintEditorToolbar.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanel.h"
+#include "GenericCommands.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
-	, PreviewBlueprint(NULL)
+	, PreviewBlueprint(nullptr)
+	, HoverTime(0)
 {
-	
 }
 
 FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
@@ -64,7 +68,11 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 
-	SequencerObjectBindingManager->InitPreviewObjects();
+	// If the user has close the sequencer tab, this will not be initialized.
+	if ( SequencerObjectBindingManager.IsValid() )
+	{
+		SequencerObjectBindingManager->InitPreviewObjects();
+	}
 
 	DesignerCommandList = MakeShareable(new FUICommandList);
 
@@ -89,7 +97,7 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 		);
 }
 
-void FWidgetBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+void FWidgetBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated/* = false*/)
 {
 	//FBlueprintEditor::RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode);
 
@@ -119,7 +127,7 @@ void FWidgetBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>&
 	}
 }
 
-void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
+void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets, bool bAppendOrToggle)
 {
 	TSet<FWidgetReference> TempSelection;
 	for ( const FWidgetReference& Widget : Widgets )
@@ -135,10 +143,23 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 	// Finally change the selected widgets after we've updated the details panel 
 	// to ensure values that are pending are committed on focus loss, and migrated properly
 	// to the old selected widgets.
-	SelectedWidgets.Empty();
+	if ( !bAppendOrToggle )
+	{
+		SelectedWidgets.Empty();
+	}
 	SelectedObjects.Empty();
 
-	SelectedWidgets.Append(TempSelection);
+	for ( const FWidgetReference& Widget : TempSelection )
+	{
+		if ( bAppendOrToggle && SelectedWidgets.Contains(Widget) )
+		{
+			SelectedWidgets.Remove(Widget);
+		}
+		else
+		{
+			SelectedWidgets.Add(Widget);
+		}
+	}
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -179,7 +200,7 @@ void FWidgetBlueprintEditor::CleanSelection()
 
 	if ( TempSelection.Num() != SelectedWidgets.Num() )
 	{
-		SelectWidgets(TempSelection);
+		SelectWidgets(TempSelection, false);
 	}
 }
 
@@ -243,7 +264,7 @@ void FWidgetBlueprintEditor::DeleteSelectedWidgets()
 
 	// Clear the selection now that the widget has been deleted.
 	TSet<FWidgetReference> Empty;
-	SelectWidgets(Empty);
+	SelectWidgets(Empty, false);
 }
 
 bool FWidgetBlueprintEditor::CanCopySelectedWidgets()
@@ -324,6 +345,8 @@ void FWidgetBlueprintEditor::PasteWidgets()
 void FWidgetBlueprintEditor::Tick(float DeltaTime)
 {
 	FBlueprintEditor::Tick(DeltaTime);
+
+	HoverTime += DeltaTime;
 
 	// Tick the preview scene world.
 	if ( !GIntraFrameDebuggingGameThread )
@@ -413,7 +436,7 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 
 			if ( PreviewWidget )
 			{
-				FString PreviewWidgetName = PreviewWidget->GetName();
+				FName PreviewWidgetName = PreviewWidget->GetFName();
 				UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
 
 				if ( TemplateWidget )
@@ -489,7 +512,7 @@ FWidgetReference FWidgetBlueprintEditor::GetReferenceFromPreview(UWidget* Previe
 
 		if ( PreviewWidget )
 		{
-			FString Name = PreviewWidget->GetName();
+			FName Name = PreviewWidget->GetFName();
 			return GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Name));
 		}
 	}
@@ -644,6 +667,31 @@ FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 	}
 
 	return AppearanceInfo;
+}
+
+void FWidgetBlueprintEditor::ClearHoveredWidget()
+{
+	HoveredWidget = FWidgetReference();
+	HoverTime = 0;
+}
+
+void FWidgetBlueprintEditor::SetHoveredWidget(FWidgetReference& InHoveredWidget)
+{
+	if ( !( InHoveredWidget == HoveredWidget ) )
+	{
+		HoveredWidget = InHoveredWidget;
+		HoverTime = 0;
+	}
+}
+
+FWidgetReference FWidgetBlueprintEditor::GetHoveredWidget() const
+{
+	return HoveredWidget;
+}
+
+float FWidgetBlueprintEditor::GetHoveredWidgetTime() const
+{
+	return HoverTime;
 }
 
 #undef LOCTEXT_NAMESPACE

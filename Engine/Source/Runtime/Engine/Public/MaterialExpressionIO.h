@@ -40,7 +40,7 @@ struct FExpressionInput
 	{
 	}
 
-	int32 Compile(class FMaterialCompiler* Compiler, int32 MultiplexIndex=INDEX_NONE);
+	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler, int32 MultiplexIndex=INDEX_NONE);
 
 	/**
 	 * Tests if the input has a material expression connected to it

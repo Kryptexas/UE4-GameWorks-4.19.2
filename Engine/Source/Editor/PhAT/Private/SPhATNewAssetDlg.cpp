@@ -2,6 +2,8 @@
 
 #include "PhATModule.h"
 #include "SPhATNewAssetDlg.h"
+#include "SNumericEntryBox.h"
+#include "STextComboBox.h"
 
 // Add in the constants from the static mesh editor as we need them here too
 const int32 DefaultHullCount = 4;
@@ -221,10 +223,10 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 	];
 }
 
-FReply SPhATNewAssetDlg::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SPhATNewAssetDlg::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	//see if we pressed the Enter or Spacebar keys
-	if (InKeyboardEvent.GetKey() == EKeys::Escape)
+	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		return OnClicked(EAppReturnType::Cancel);
 	}

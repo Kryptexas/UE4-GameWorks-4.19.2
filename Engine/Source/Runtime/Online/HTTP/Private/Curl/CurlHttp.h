@@ -19,7 +19,7 @@ namespace
 	* @param Size size of allocation in bytes
 	* @return Pointer to memory chunk or NULL if failed
 	*/
-	void * CurlMalloc(size_t Size)
+	void* CurlMalloc(size_t Size)
 	{
 		check(Size);
 		return FMemory::Malloc(Size);
@@ -30,7 +30,7 @@ namespace
 	*
 	* @param Ptr pointer to memory chunk (may be NULL)
 	*/
-	void CurlFree(void * Ptr)
+	void CurlFree(void* Ptr)
 	{
 		FMemory::Free(Ptr);
 	}
@@ -42,7 +42,7 @@ namespace
 	* @param Size size of allocation in bytes
 	* @return Pointer to memory chunk or NULL if failed
 	*/
-	void * CurlRealloc(void * Ptr, size_t Size)
+	void* CurlRealloc(void* Ptr, size_t Size)
 	{
 		check(Size);
 		return FMemory::Realloc(Ptr, Size);
@@ -78,9 +78,9 @@ namespace
 	* @param ElemSize size of each element in bytes (may be 0)
 	* @return Pointer to memory chunk, filled with zeroes or NULL if failed
 	*/
-	void * CurlCalloc(size_t NumElems, size_t ElemSize)
+	void* CurlCalloc(size_t NumElems, size_t ElemSize)
 	{
-		void * Return = NULL;
+		void* Return = NULL;
 		const size_t Size = NumElems * ElemSize;
 		if (Size)
 		{
@@ -178,7 +178,7 @@ private:
 	 * @param UserData data we associated with request (will be a pointer to FCurlHttpRequest instance)
 	 * @return number of bytes actually written to buffer, or CURL_READFUNC_ABORT to abort the operation
 	 */
-	static size_t StaticUploadCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData);
+	static size_t StaticUploadCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData);
 
 	/**
 	 * Method called when libcurl wants us to supply more data (see CURLOPT_READFUNCTION)
@@ -188,7 +188,7 @@ private:
 	 * @param BlockSizeInBytes size of a single block
 	 * @return number of bytes actually written to buffer, or CURL_READFUNC_ABORT to abort the operation
 	 */
-	size_t UploadCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
+	size_t UploadCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
 
 	/**
 	 * Static callback to be used as header function (CURLOPT_HEADERFUNCTION), will dispatch the call to proper instance
@@ -199,7 +199,7 @@ private:
 	 * @param UserData data we associated with request (will be a pointer to FCurlHttpRequest instance)
 	 * @return number of bytes actually processed, error is triggered if it does not match number of bytes passed
 	 */
-	static size_t StaticReceiveResponseHeaderCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData);
+	static size_t StaticReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData);
 
 	/**
 	 * Method called when libcurl wants us to receive response header (see CURLOPT_HEADERFUNCTION). Headers will be passed
@@ -211,7 +211,7 @@ private:
 	 * @param BlockSizeInBytes size of a single block
 	 * @return number of bytes actually processed, error is triggered if it does not match number of bytes passed
 	 */
-	size_t ReceiveResponseHeaderCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
+	size_t ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
 
 	/**
 	 * Static callback to be used as write function (CURLOPT_WRITEFUNCTION), will dispatch the call to proper instance
@@ -222,7 +222,7 @@ private:
 	 * @param UserData data we associated with request (will be a pointer to FCurlHttpRequest instance)
 	 * @return number of bytes actually processed, error is triggered if it does not match number of bytes passed
 	 */
-	static size_t StaticReceiveResponseBodyCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData);
+	static size_t StaticReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData);
 
 	/**
 	 * Method called when libcurl wants us to receive response body (see CURLOPT_WRITEFUNCTION)
@@ -232,7 +232,7 @@ private:
 	 * @param BlockSizeInBytes size of a single block
 	 * @return number of bytes actually processed, error is triggered if it does not match number of bytes passed
 	 */
-	size_t ReceiveResponseBodyCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
+	size_t ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	/**
@@ -245,7 +245,7 @@ private:
 	 * @param UserData data we associated with request (will be a pointer to FCurlHttpRequest instance)
 	 * @return must return 0
 	 */
-	static size_t StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void * UserData);
+	static size_t StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void* UserData);
 
 	/**
 	 * Method called with debug information about libcurl activities (see CURLOPT_DEBUGFUNCTION)

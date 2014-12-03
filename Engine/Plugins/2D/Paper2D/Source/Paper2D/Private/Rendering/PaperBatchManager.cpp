@@ -64,9 +64,9 @@ UPaperBatchComponent* FPaperBatchManager::GetBatchComponent(UWorld* World)
 	return Batcher;
 }
 
-FPaperBatchSceneProxy* FPaperBatchManager::GetBatcher(FSceneInterface* Scene)
+FPaperBatchSceneProxy* FPaperBatchManager::GetBatcher(FSceneInterface& Scene)
 {
-	UPaperBatchComponent* BatchComponent = GetBatchComponent(Scene->GetWorld());
+	UPaperBatchComponent* BatchComponent = GetBatchComponent(Scene.GetWorld());
 	FPaperBatchSceneProxy* BatchProxy = static_cast<FPaperBatchSceneProxy*>(BatchComponent->SceneProxy);
 	check(BatchProxy);
 	return BatchProxy;

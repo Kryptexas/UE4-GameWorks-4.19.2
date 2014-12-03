@@ -5,6 +5,7 @@
 
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "SDockTab.h"
 
 
 /*-----------------------------------------------------------------------------

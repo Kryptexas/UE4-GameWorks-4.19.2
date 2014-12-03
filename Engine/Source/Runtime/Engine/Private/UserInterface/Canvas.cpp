@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "Engine/Font.h"
+#include "EngineFontServices.h"
 #include "TileRendering.h"
 #include "RHIStaticStates.h"
 #include "WordWrapper.h"
@@ -35,7 +37,6 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 ,	CurrentWorldTime(0)
 ,	CurrentDeltaWorldTime(0)
 ,	FeatureLevel(InFeatureLevel)
-,	ShaderPlatform(GRHIShaderPlatform)
 {
 	Construct();
 
@@ -57,7 +58,6 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentWorldTime(InWorldTime)
 ,	CurrentDeltaWorldTime(InWorldDeltaTime)
 ,	FeatureLevel(InFeatureLevel)
-,	ShaderPlatform(GRHIShaderPlatform)
 {
 	Construct();
 }
@@ -251,7 +251,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			BatchedDrawCommand,
 			FBatchedDrawParameters,Parameters,DrawParameters,
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, CanvasBatchedElements, DEC_CANVAS);
+			SCOPED_DRAW_EVENT(RHICmdList, CanvasBatchedElements);
 
 			// draw batched items
 			Parameters.RenderData->BatchedElements.Draw(
@@ -320,16 +320,17 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 	{
 		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
 		FTileRenderer::DrawTile(
-			RHICmdList,
+			RHICmdList, 
 			*View, 
 			Data->MaterialRenderProxy, 
 			bNeedsToSwitchVerticalAxis,
 			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
 			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-			Canvas->IsHitTesting(), Tile.HitProxyId
+			Canvas->IsHitTesting(), Tile.HitProxyId,
+			Tile.InColor
 			);
 	}
-
+	
 	delete View->Family;
 	delete View;
 	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
@@ -400,7 +401,7 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		DrawTileCommand,
 		FDrawTileParameters, Parameters, DrawTileParameters,
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTile, DEC_CANVAS);
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTile);
 		for (int32 TileIdx = 0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++)
 		{
 			const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
@@ -411,8 +412,8 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 				Parameters.bNeedsToSwitchVerticalAxis,
 				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
 				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-				Parameters.bIsHitTesting, Tile.HitProxyId
-				);
+				Parameters.bIsHitTesting, Tile.HitProxyId,
+				Tile.InColor);
 		}
 
 		delete Parameters.View->Family;
@@ -493,7 +494,7 @@ FBatchedElements* FCanvas::GetBatchedElements(EElementType InElementType, FBatch
 }
 
 
-void FCanvas::AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,const FMaterialRenderProxy* MaterialRenderProxy,FHitProxyId HitProxyId,bool bFreezeTime)
+void FCanvas::AddTileRenderItem(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, const FMaterialRenderProxy* MaterialRenderProxy, FHitProxyId HitProxyId, bool bFreezeTime, FColor InColor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_AddTileRenderTime);
 
@@ -520,7 +521,7 @@ void FCanvas::AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 	// add the quad to the tile render batch
-	RenderBatch->AddTile( X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId);
+	RenderBatch->AddTile( X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor);
 }
 
 FCanvas::~FCanvas()
@@ -555,6 +556,11 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 		return;
 	}
 
+	// Update the font cache with new text before elements are drawn
+	{
+		FEngineFontServices::Get().UpdateCache();
+	}
+
 	// FCanvasSortElement compare class
 	struct FCompareFCanvasSortElement
 	{
@@ -566,7 +572,7 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 	// sort the array of FCanvasSortElement entries so that higher sort keys render first (back-to-front)
 	SortedElements.Sort(FCompareFCanvasSortElement());
 
-	SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush, DEC_CANVAS);
+	SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 	const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
 
 	check(IsValidRef(RenderTargetTexture));
@@ -633,6 +639,11 @@ void FCanvas::Flush_GameThread(bool bForce)
 		return;
 	}
 
+	// Update the font cache with new text before elements are drawn
+	{
+		FEngineFontServices::Get().UpdateCache();
+	}
+
 	// FCanvasSortElement compare class
 	struct FCompareFCanvasSortElement
 	{
@@ -646,6 +657,11 @@ void FCanvas::Flush_GameThread(bool bForce)
 	if( ViewRect.Area() <= 0 )
 	{
 		ViewRect = FIntRect( FIntPoint::ZeroValue, RenderTarget->GetSizeXY() );
+	}
+	if (IsScaledToRenderTarget() && IsValidRef(RenderTarget->GetRenderTargetTexture()))
+	{
+		ViewRect = FIntRect(0, 0, RenderTarget->GetRenderTargetTexture()->GetSizeX(), 
+								  RenderTarget->GetRenderTargetTexture()->GetSizeY());
 	}
 
 	struct FCanvasFlushParameters
@@ -664,7 +680,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 		CanvasFlushSetupCommand,
 		FCanvasFlushParameters,Parameters,FlushParameters,
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush, DEC_CANVAS);
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 
 		// Set the RHI render target.
 		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
@@ -811,7 +827,7 @@ void FCanvas::Clear(const FLinearColor& Color)
 		FColor,Color,GammaCorrectedColor,
 		FRenderTarget*,CanvasRenderTarget,GetRenderTarget(),
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear, DEC_CANVAS);
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
 		if( CanvasRenderTarget )
 		{
 			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
@@ -851,7 +867,7 @@ void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, flo
 	BatchedElements->AddTriangle(V00,V11,V01,FinalTexture,BlendMode);
 }
 
-int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,class UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
+int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
 {
 	const float Z = 1.0f;
 	FCanvasTextItem TextItem( FVector2D( StartX, StartY ), FText::FromString( Text ), Font, Color );
@@ -875,7 +891,7 @@ void FCanvas::DrawNGon(const FVector2D& Center, const FColor& Color, int32 NumSi
 	DrawItem(NGonItem);
 }
 
-int32 FCanvas::DrawShadowedText( float StartX,float StartY,const FText& Text,class UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
+int32 FCanvas::DrawShadowedText( float StartX,float StartY,const FText& Text,const UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
 {
 	const float Z = 1.0f;
 	FCanvasTextItem TextItem( FVector2D( StartX, StartY ), Text, Font, Color );
@@ -894,7 +910,7 @@ int32 FCanvas::DrawShadowedText( float StartX,float StartY,const FText& Text,cla
 }
 
 
-ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
+ENGINE_API void StringSize(const UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
 {
 	// this functionality has been moved to a static function in UIString
 	FTextSizingParameters Parameters(Font,1.f,1.f);
@@ -911,7 +927,7 @@ ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
  * @param	DefaultCharHeight	[out] will be set to the height of the typical character
  * @param	pDefaultChar		if specified, pointer to a single character to use for calculating the default character size
  */
-static void GetDefaultCharSize( UFont* DrawFont, float& DefaultCharWidth, float& DefaultCharHeight, const TCHAR* pDefaultChar=NULL )
+static void GetDefaultCharSize( const UFont* DrawFont, float& DefaultCharWidth, float& DefaultCharHeight, const TCHAR* pDefaultChar=NULL )
 {
 	TCHAR DefaultChar = pDefaultChar != NULL ? *pDefaultChar : TEXT('0');
 	DrawFont->GetCharSize(DefaultChar, DefaultCharWidth, DefaultCharHeight);
@@ -941,10 +957,10 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 		const float ScaleX = Parameters.Scaling.X;
 		const float ScaleY = Parameters.Scaling.Y;
 
-
-		const float CharIncrement = ( (float)Parameters.DrawFont->Kerning + Parameters.SpacingAdjust.X ) * ScaleX;
+		const float DefaultCharIncrement = Parameters.SpacingAdjust.X * ScaleX;
 		const float DefaultScaledHeight = DefaultCharHeight * ScaleY + Parameters.SpacingAdjust.Y * ScaleY;
 		const TCHAR* pCurrentPos;
+		const TCHAR* pPrevPos = nullptr;
 		for ( pCurrentPos = pText; *pCurrentPos && pCurrentPos < pText + TextLength; ++pCurrentPos )
 		{
 			float CharWidth, CharHeight;
@@ -956,6 +972,13 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 			{
 				CharHeight = DefaultCharHeight;
 			}
+
+			float CharSpacing = DefaultCharIncrement;
+			if ( pPrevPos )
+			{
+				CharSpacing += Parameters.DrawFont->GetCharKerning( *pPrevPos, Ch );
+			}
+
 			CharWidth *= ScaleX;
 			CharHeight *= ScaleY;
 
@@ -965,7 +988,7 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 				// if we have another character, append the character spacing
 				if ( *pNextPos )
 				{
-					CharWidth += CharIncrement;
+					CharWidth += CharSpacing;
 				}
 			}
 
@@ -996,11 +1019,12 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 					}
 				}
 			}
+
+			pPrevPos = pCurrentPos;
 		}
 
 		OutLastCharacterIndex = pCurrentPos - pText;
 	}
-
 }
 
 void UCanvas::CanvasStringSize( FTextSizingParameters& Parameters, const TCHAR* const pText )
@@ -1090,8 +1114,8 @@ void UCanvas::WrapString( FTextSizingParameters& Parameters, const float InCurX,
 	UCanvas object functions.
 -----------------------------------------------------------------------------*/
 
-UCanvas::UCanvas(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCanvas::UCanvas(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -1356,7 +1380,7 @@ void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float XL, float YL, flo
 }
 
 
-void UCanvas::ClippedStrLen( UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text )
+void UCanvas::ClippedStrLen( const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text )
 {
 	XL = 0;
 	YL = 0;
@@ -1370,7 +1394,7 @@ void UCanvas::ClippedStrLen( UFont* Font, float ScaleX, float ScaleY, int32& XL,
 	}
 }
 
-void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ... ) 
+void VARARGS UCanvas::WrappedStrLenf( const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ... ) 
 {
 	TCHAR Text[4096];
 	GET_VARARGS( Text, ARRAY_COUNT(Text), ARRAY_COUNT(Text)-1, Fmt, Fmt );
@@ -1379,7 +1403,7 @@ void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, i
 	WrappedPrint( false, 0.0f, 0.0f, XL, YL, Font, ScaleX, ScaleY, false, false, Text, Info ); 
 }
 
-float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+float UCanvas::DrawText(const UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	ensure(InFont);
 	int32		XL		= 0;
@@ -1399,12 +1423,12 @@ float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, fl
 	return (float)YL;
 }
 
-float UCanvas::DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+float UCanvas::DrawText(const UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	return DrawText(InFont, FText::FromString(InText), X, Y, XScale, YScale, RenderInfo);
 }
 
-int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) 
+int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, const UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) 
 {
 	if (ClipX < 0 || ClipY < 0)
 	{
@@ -1476,7 +1500,7 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 	return WrappedStrings.Num();
 }
 
-void UCanvas::StrLen( UFont* InFont, const FString& InText, float& XL, float& YL)
+void UCanvas::StrLen( const UFont* InFont, const FString& InText, float& XL, float& YL)
 {
 	if (InFont == NULL)
 	{
@@ -1492,7 +1516,7 @@ void UCanvas::StrLen( UFont* InFont, const FString& InText, float& XL, float& YL
 	}
 }
 
-void UCanvas::TextSize(UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX, float ScaleY)
+void UCanvas::TextSize(const UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX, float ScaleY)
 {
 	int32 XLi, YLi;
 

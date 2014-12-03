@@ -8,8 +8,11 @@
 #include "Editor/DestructibleMeshEditor/Public/IDestructibleMeshEditor.h"
 
 #include "ApexDestructibleAssetImport.h"
+#include "Engine/DestructibleMesh.h"
 
 #include "FbxMeshUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -18,60 +21,20 @@ void FAssetTypeActions_StaticMesh::GetActions( const TArray<UObject*>& InObjects
 	auto Meshes = GetTypedWeakObjectPtrs<UStaticMesh>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_Edit", "Edit"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_EditTooltip", "Opens the selected meshes in the static mesh editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteEdit, Meshes ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_Reimport", "Reimport"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_ReimportTooltip", "Reimports the selected meshes from file."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteReimport, Meshes ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddSubMenu(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_ImportLOD", "ImportLOD"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_ImportLODtooltip", "Imports meshes into the LODs"),
-		FNewMenuDelegate::CreateSP( this, &FAssetTypeActions_StaticMesh::GetImportLODMenu, Meshes )
-	);
-
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_FindInExplorer", "Find Source"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteFindInExplorer, Meshes ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::CanExecuteSourceCommands, Meshes )
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_OpenInExternalEditor", "Open Source"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_OpenInExternalEditorTooltip", "Opens the selected asset in an external editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteOpenInExternalEditor, Meshes ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::CanExecuteSourceCommands, Meshes )
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_CreateDestructibleMesh", "Create Destructible Mesh"),
 		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_CreateDestructibleMeshTooltip", "Creates a DestructibleMesh from the StaticMesh and opens it in the DestructibleMesh editor."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.DestructibleComponent"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteCreateDestructibleMesh, Meshes ),
 			FCanExecuteAction()
 			)
 		);
+
+	MenuBuilder.AddSubMenu(
+		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_ImportLOD", "Import LOD"),
+		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_ImportLODtooltip", "Imports meshes into the LODs"),
+		FNewMenuDelegate::CreateSP( this, &FAssetTypeActions_StaticMesh::GetImportLODMenu, Meshes )
+	);
 }
 
 void FAssetTypeActions_StaticMesh::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -102,26 +65,14 @@ UThumbnailInfo* FAssetTypeActions_StaticMesh::GetThumbnailInfo(UObject* Asset) c
 	return ThumbnailInfo;
 }
 
-void FAssetTypeActions_StaticMesh::ExecuteEdit(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
+void FAssetTypeActions_StaticMesh::GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const
 {
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+	for (auto& Asset : TypeAssets)
 	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
+		const auto StaticMesh = CastChecked<UStaticMesh>(Asset);
+		if (StaticMesh->AssetImportData)
 		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
-		}
-	}
-}
-
-void FAssetTypeActions_StaticMesh::ExecuteReimport(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
+			OutSourceFilePaths.Add(FReimportManager::ResolveImportFilename(StaticMesh->AssetImportData->SourceFilePath, StaticMesh));
 		}
 	}
 }
@@ -139,44 +90,12 @@ void FAssetTypeActions_StaticMesh::GetImportLODMenu(class FMenuBuilder& MenuBuil
 		FText ToolTip = NSLOCTEXT("AssetTypeActions_StaticMesh", "ReimportTip", "Reimport over existing LOD");
 		if(LOD == First->GetNumLODs())
 		{
-			Description = FText::Format( NSLOCTEXT("AssetTypeActions_StaticMesh", "Import LOD (number)", "Import LOD {0}"), LODText );
+			Description = FText::Format( NSLOCTEXT("AssetTypeActions_StaticMesh", "LOD (number)", "LOD {0}"), LODText );
 			ToolTip = NSLOCTEXT("AssetTypeActions_StaticMesh", "NewImportTip", "Import new LOD");
 		}
 
 		MenuBuilder.AddMenuEntry( Description, ToolTip, FSlateIcon(),
 			FUIAction(FExecuteAction::CreateStatic( &FbxMeshUtils::ImportMeshLODDialog, Cast<UObject>(StaticMesh), LOD) )) ;
-	}
-}
-
-void FAssetTypeActions_StaticMesh::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object && Object->AssetImportData )
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->AssetImportData->SourceFilePath, Object);
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-			{
-				FPlatformProcess::ExploreFolder( *FPaths::GetPath(SourceFilePath) );
-			}
-		}
-	}
-}
-
-void FAssetTypeActions_StaticMesh::ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object && Object->AssetImportData )
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->AssetImportData->SourceFilePath, Object);
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
-			}
-		}
 	}
 }
 
@@ -207,26 +126,6 @@ void FAssetTypeActions_StaticMesh::ExecuteCreateDestructibleMesh(TArray<TWeakObj
 	{
 		FAssetTools::Get().SyncBrowserToAssets(Assets);
 	}
-}
-
-bool FAssetTypeActions_StaticMesh::CanExecuteSourceCommands(TArray<TWeakObjectPtr<UStaticMesh>> Objects) const
-{
-	bool bHaveSourceAsset = false;
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object && Object->AssetImportData )
-		{
-			const FString& SourceFilePath = FReimportManager::ResolveImportFilename(Object->AssetImportData->SourceFilePath, Object);
-
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE )
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

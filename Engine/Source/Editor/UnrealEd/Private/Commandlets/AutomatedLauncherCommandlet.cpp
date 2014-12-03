@@ -5,8 +5,8 @@
 #include "LauncherAutomatedService.h"
 
 
-UAutomatedLauncherCommandlet::UAutomatedLauncherCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAutomatedLauncherCommandlet::UAutomatedLauncherCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

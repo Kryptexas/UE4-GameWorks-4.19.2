@@ -31,6 +31,7 @@ protected:
 
 private:
 	void ClearCompleteNotification();
+	FText GetNotificationText() const;
 
 	bool bPreviouslyDetectedBuild;
 	double TimeOfStartedBuild;

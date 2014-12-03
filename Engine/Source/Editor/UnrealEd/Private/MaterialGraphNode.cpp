@@ -11,7 +11,6 @@
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
-#include "Materials/MaterialExpressionCustomTexture.h"
 #include "Materials/MaterialExpressionFontSample.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
@@ -34,14 +33,15 @@
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 #include "EditorClassUtils.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
 /////////////////////////////////////////////////////
 // UMaterialGraphNode
 
-UMaterialGraphNode::UMaterialGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphNode::UMaterialGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bPreviewNeedsUpdate(false)
 	, bIsErrorExpression(false)
 	, bIsPreviewExpression(false)
@@ -301,21 +301,18 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 				Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().UseCurrentTexture);
 
 				// Add a 'Convert To Texture' option for convertible types
-				if (MaterialGraph->MaterialFunction == NULL)
+				Context.MenuBuilder->BeginSection("MaterialEditorMenu0");
 				{
-					Context.MenuBuilder->BeginSection("MaterialEditorMenu0");
+					if ( MaterialExpression->IsA(UMaterialExpressionTextureSample::StaticClass()))
 					{
-						if ( MaterialExpression->IsA(UMaterialExpressionTextureSample::StaticClass()))
-						{
-							Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertToTextureObjects);
-						}
-						else if ( MaterialExpression->IsA(UMaterialExpressionTextureObject::StaticClass()))
-						{
-							Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertToTextureSamples);
-						}
+						Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertToTextureObjects);
 					}
-					Context.MenuBuilder->EndSection();
+					else if ( MaterialExpression->IsA(UMaterialExpressionTextureObject::StaticClass()))
+					{
+						Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertToTextureSamples);
+					}
 				}
+				Context.MenuBuilder->EndSection();
 			}
 
 			// Add a 'Convert To Parameter' option for convertible types
@@ -326,14 +323,22 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 				|| MaterialExpression->IsA(UMaterialExpressionTextureSample::StaticClass())
 				|| MaterialExpression->IsA(UMaterialExpressionComponentMask::StaticClass()))
 			{
-				if (MaterialGraph->MaterialFunction == NULL)
+				Context.MenuBuilder->BeginSection("MaterialEditorMenu1");
 				{
-					Context.MenuBuilder->BeginSection("MaterialEditorMenu1");
-					{
-						Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertObjects);
-					}
-					Context.MenuBuilder->EndSection();
+					Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertObjects);
 				}
+				Context.MenuBuilder->EndSection();
+			}
+
+			// Add a 'Convert To Constant' option for convertible types
+			if (MaterialExpression->IsA(UMaterialExpressionScalarParameter::StaticClass())
+				|| MaterialExpression->IsA(UMaterialExpressionVectorParameter::StaticClass()))
+			{
+				Context.MenuBuilder->BeginSection("MaterialEditorMenu1");
+				{
+					Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().ConvertToConstant);
+				}
+				Context.MenuBuilder->EndSection();
 			}
 
 			Context.MenuBuilder->BeginSection("MaterialEditorMenu2");
@@ -711,10 +716,6 @@ bool UMaterialGraphNode::UsesVectorColour(UMaterialExpression* Expression)
 bool UMaterialGraphNode::UsesObjectColour(UMaterialExpression* Expression)
 {
 	if (Expression->IsA<UMaterialExpressionTextureBase>())
-	{
-		return true;
-	}
-	else if (Expression->IsA<UMaterialExpressionCustomTexture>())
 	{
 		return true;
 	}

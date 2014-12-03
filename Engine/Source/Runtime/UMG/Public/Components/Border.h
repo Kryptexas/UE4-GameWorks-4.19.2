@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,9 +8,11 @@ class USlateBrushAsset;
 
 /**
  * A border is a container widget that can contain one child widget, providing an opportunity 
- * to surround it with a border image and adjustable padding.
+ * to surround it with a background image and adjustable padding.
+ *
+ * ● Single Child
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UBorder : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -18,7 +20,7 @@ class UMG_API UBorder : public UContentWidget
 public:
 
 	/** Color and opacity multiplier of content in the border */
-	UPROPERTY(EditDefaultsOnly, Category="Content")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Content")
 	FLinearColor ContentColorAndOpacity;
 
 	/** A bindable delegate for the ContentColorAndOpacity. */
@@ -26,19 +28,19 @@ public:
 	FGetLinearColor ContentColorAndOpacityDelegate;
 
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category="Content")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Content")
 	FMargin Padding;
 
 	/** The alignment of the content horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category="Content")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Content")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the content vertically. */
-	UPROPERTY(EditDefaultsOnly, Category="Content")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Content")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** Brush to drag as the background */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=(DisplayName="Brush"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, meta=( DisplayName="Brush" ))
 	FSlateBrush Background;
 
 	/** A bindable delegate for the Brush. */
@@ -46,7 +48,7 @@ public:
 	FGetSlateBrush BackgroundDelegate;
 
 	/** Color and opacity of the actual border image */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor BrushColor;
 
 	/** A bindable delegate for the BrushColor. */
@@ -54,8 +56,10 @@ public:
 	FGetLinearColor BrushColorDelegate;
 
 	/** Whether or not to show the disabled effect when this border is disabled */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	bool bShowEffectWhenDisabled;
+
+public:
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;

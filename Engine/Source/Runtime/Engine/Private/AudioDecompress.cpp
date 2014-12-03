@@ -316,7 +316,7 @@ void FAsyncAudioDecompressWorker::DoWork( void )
 			// Extract the data
 			Wave->SampleRate = QualityInfo.SampleRate;
 			Wave->NumChannels = QualityInfo.NumChannels;
-			Wave->Duration = QualityInfo.Duration;
+			if(QualityInfo.Duration > 0.0f) Wave->Duration = QualityInfo.Duration;
 
 			Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
 			Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );

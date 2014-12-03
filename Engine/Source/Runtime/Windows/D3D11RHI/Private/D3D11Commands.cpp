@@ -48,7 +48,7 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
-#define WITH_GPA (!PLATFORM_XBOXONE)
+#define WITH_GPA (1)
 #if WITH_GPA
 	#define GPA_WINDOWS 1
 	#include <GPUPerfAPI/Gpa.h>
@@ -578,13 +578,6 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Vertex
 {
 	VALIDATE_BOUND_SHADER(VertexShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Vertex>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
 	{
 		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
 		StateCache.SetConstantBuffer<SF_Vertex>(ConstantBuffer, BufferIndex);
@@ -598,13 +591,6 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShad
 {
 	VALIDATE_BOUND_SHADER(HullShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Hull>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
 	{
 		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
 		StateCache.SetConstantBuffer<SF_Hull>(ConstantBuffer, BufferIndex);
@@ -618,13 +604,6 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef Domain
 {
 	VALIDATE_BOUND_SHADER(DomainShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Domain>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
 	{
 		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
 		StateCache.SetConstantBuffer<SF_Domain>(ConstantBuffer, BufferIndex);
@@ -638,13 +617,6 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef Geom
 {
 	VALIDATE_BOUND_SHADER(GeometryShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Geometry>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
 	{
 		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
 		StateCache.SetConstantBuffer<SF_Geometry>(ConstantBuffer, BufferIndex);
@@ -659,13 +631,6 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelSh
 	VALIDATE_BOUND_SHADER(PixelShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
 
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Pixel>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
 	{
 		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
 		StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
@@ -679,13 +644,6 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef Compu
 {
 	//VALIDATE_BOUND_SHADER(ComputeShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Compute>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
 	{
 		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
 		StateCache.SetConstantBuffer<SF_Compute>(ConstantBuffer, BufferIndex);
@@ -1185,7 +1143,7 @@ FORCEINLINE void SetResource(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCac
 }
 
 template <class D3DResourceType, EShaderFrequency ShaderFrequency>
-inline int32 SetShaderResourcesFromBuffer(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, FD3D11UniformBuffer* RESTRICT Buffer, const uint32 * RESTRICT ResourceMap, int32 BufferIndex)
+inline int32 SetShaderResourcesFromBuffer(FD3D11DynamicRHI* RESTRICT D3D11RHI, FD3D11StateCache* RESTRICT StateCache, FD3D11UniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex)
 {
 	int32 NumSetCalls = 0;
 	uint32 BufferOffset = ResourceMap[BufferIndex];

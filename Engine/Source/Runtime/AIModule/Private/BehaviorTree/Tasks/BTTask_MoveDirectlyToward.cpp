@@ -6,8 +6,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "BehaviorTree/Tasks/BTTask_MoveDirectlyToward.h"
 
-UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, AcceptableRadius(50.f)
 	, bProjectVectorGoalToNavigation(true)
 	, bAllowStrafe(true)
@@ -36,7 +36,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeCompone
 			AActor* TargetActor = Cast<AActor>(KeyValue);
 			if (TargetActor)
 			{
-				RequestResult = bForceMoveToLocation ?
+				RequestResult = bDisablePathUpdateOnGoalLocationChange ?
 					MyController->MoveToLocation(TargetActor->GetActorLocation(), AcceptableRadius, /*bStopOnOverlap=*/true, /*bUsePathfinding=*/false, /*bProjectDestinationToNavigation=*/bProjectVectorGoalToNavigation, bAllowStrafe) :
 					MyController->MoveToActor(TargetActor, AcceptableRadius, /*bStopOnOverlap=*/true, /*bUsePathfinding=*/false, bAllowStrafe);
 			}
@@ -70,9 +70,9 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(UBehaviorTreeComponent
 	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
 	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
 
-	if (MyController && MyController->PathFollowingComponent)
+	if (MyController && MyController->GetPathFollowingComponent())
 	{
-		MyController->PathFollowingComponent->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
+		MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
 	}
 
 	return Super::AbortTask(OwnerComp, NodeMemory);

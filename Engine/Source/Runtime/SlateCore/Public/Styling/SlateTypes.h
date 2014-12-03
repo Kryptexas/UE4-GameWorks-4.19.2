@@ -50,47 +50,47 @@ struct SLATECORE_API FCheckBoxStyle : public FSlateWidgetStyle
 	/* CheckBox appearance when the CheckBox is unchecked (normal) */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush UncheckedImage;
-	FCheckBoxStyle & SetUncheckedImage( const FSlateBrush & InUncheckedImage ){ UncheckedImage = InUncheckedImage; return *this; }
+	FCheckBoxStyle & SetUncheckedImage( const FSlateBrush& InUncheckedImage ){ UncheckedImage = InUncheckedImage; return *this; }
 
 	/* CheckBox appearance when the CheckBox is unchecked and hovered */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush UncheckedHoveredImage;
-	FCheckBoxStyle & SetUncheckedHoveredImage( const FSlateBrush & InUncheckedHoveredImage ){ UncheckedHoveredImage = InUncheckedHoveredImage; return *this; }
+	FCheckBoxStyle & SetUncheckedHoveredImage( const FSlateBrush& InUncheckedHoveredImage ){ UncheckedHoveredImage = InUncheckedHoveredImage; return *this; }
 
 	/* CheckBox appearance when the CheckBox is unchecked and hovered */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush UncheckedPressedImage;
-	FCheckBoxStyle & SetUncheckedPressedImage( const FSlateBrush & InUncheckedPressedImage ){ UncheckedPressedImage = InUncheckedPressedImage; return *this; }
+	FCheckBoxStyle & SetUncheckedPressedImage( const FSlateBrush& InUncheckedPressedImage ){ UncheckedPressedImage = InUncheckedPressedImage; return *this; }
 
 	/* CheckBox appearance when the CheckBox is checked */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush CheckedImage;
-	FCheckBoxStyle & SetCheckedImage( const FSlateBrush & InCheckedImage ){ CheckedImage = InCheckedImage; return *this; }
+	FCheckBoxStyle & SetCheckedImage( const FSlateBrush& InCheckedImage ){ CheckedImage = InCheckedImage; return *this; }
 
 	/* CheckBox appearance when checked and hovered */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush CheckedHoveredImage;
-	FCheckBoxStyle & SetCheckedHoveredImage( const FSlateBrush & InCheckedHoveredImage ){ CheckedHoveredImage = InCheckedHoveredImage; return *this; }
+	FCheckBoxStyle & SetCheckedHoveredImage( const FSlateBrush& InCheckedHoveredImage ){ CheckedHoveredImage = InCheckedHoveredImage; return *this; }
 
 	/* CheckBox appearance when checked and pressed */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush CheckedPressedImage;
-	FCheckBoxStyle & SetCheckedPressedImage( const FSlateBrush & InCheckedPressedImage ){ CheckedPressedImage = InCheckedPressedImage; return *this; }
+	FCheckBoxStyle & SetCheckedPressedImage( const FSlateBrush& InCheckedPressedImage ){ CheckedPressedImage = InCheckedPressedImage; return *this; }
 	
 	/* CheckBox appearance when the CheckBox is undetermined */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush UndeterminedImage;
-	FCheckBoxStyle & SetUndeterminedImage( const FSlateBrush & InUndeterminedImage ){ UndeterminedImage = InUndeterminedImage; return *this; }
+	FCheckBoxStyle & SetUndeterminedImage( const FSlateBrush& InUndeterminedImage ){ UndeterminedImage = InUndeterminedImage; return *this; }
 
 	/* CheckBox appearance when CheckBox is undetermined and hovered */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush UndeterminedHoveredImage;
-	FCheckBoxStyle & SetUndeterminedHoveredImage( const FSlateBrush & InUndeterminedHoveredImage ){ UndeterminedHoveredImage = InUndeterminedHoveredImage; return *this; }
+	FCheckBoxStyle & SetUndeterminedHoveredImage( const FSlateBrush& InUndeterminedHoveredImage ){ UndeterminedHoveredImage = InUndeterminedHoveredImage; return *this; }
 
 	/* CheckBox appearance when CheckBox is undetermined and pressed */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Appearance )
 	FSlateBrush UndeterminedPressedImage;
-	FCheckBoxStyle & SetUndeterminedPressedImage( const FSlateBrush & InUndeterminedPressedImage ){ UndeterminedPressedImage = InUndeterminedPressedImage; return *this; }
+	FCheckBoxStyle & SetUndeterminedPressedImage( const FSlateBrush& InUndeterminedPressedImage ){ UndeterminedPressedImage = InUndeterminedPressedImage; return *this; }
 
 	/** Padding */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
@@ -171,15 +171,18 @@ struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateFontInfo Font;
 	FTextBlockStyle& SetFont(const FSlateFontInfo& InFont) { Font = InFont; return *this; }
+	FTextBlockStyle& SetFont(TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName = NAME_None) { Font = FSlateFontInfo(InCompositeFont, InSize, InTypefaceFontName); return *this; }
+	FTextBlockStyle& SetFont(const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName = NAME_None) { Font = FSlateFontInfo(InFontObject, InSize, InTypefaceFontName); return *this; }
 	FTextBlockStyle& SetFont(const FName& InFontName, uint16 InSize) { Font = FSlateFontInfo(InFontName, InSize); return *this; }
 	FTextBlockStyle& SetFont(const FString& InFontName, uint16 InSize) { Font = FSlateFontInfo(*InFontName, InSize); return *this; }
 	FTextBlockStyle& SetFont(const WIDECHAR* InFontName, uint16 InSize) { Font = FSlateFontInfo(InFontName, InSize); return *this; }
 	FTextBlockStyle& SetFont(const ANSICHAR* InFontName, uint16 InSize) { Font = FSlateFontInfo(InFontName, InSize); return *this; }
-	FTextBlockStyle& SetFontName(const FName& InFontName) { Font.FontName = InFontName; return *this; }
-	FTextBlockStyle& SetFontName(const FString& InFontName) { Font.FontName = FName(*InFontName); return *this; }
-	FTextBlockStyle& SetFontName(const WIDECHAR* InFontName) { Font.FontName = InFontName; return *this; }
-	FTextBlockStyle& SetFontName(const ANSICHAR* InFontName) { Font.FontName = InFontName; return *this; }
+	FTextBlockStyle& SetFontName(const FName& InFontName) { Font = FSlateFontInfo(InFontName, Font.Size); return *this; }
+	FTextBlockStyle& SetFontName(const FString& InFontName) { Font = FSlateFontInfo(InFontName, Font.Size); return *this; }
+	FTextBlockStyle& SetFontName(const WIDECHAR* InFontName) { Font = FSlateFontInfo(InFontName, Font.Size); return *this; }
+	FTextBlockStyle& SetFontName(const ANSICHAR* InFontName) { Font = FSlateFontInfo(InFontName, Font.Size); return *this; }
 	FTextBlockStyle& SetFontSize(uint16 InSize) { Font.Size = InSize; return *this; }
+	FTextBlockStyle& SetTypefaceFontName(const FName& InTypefaceFontName) { Font.TypefaceFontName = InTypefaceFontName; return *this; }
 
 	/** The color and opacity of this text */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=(DisplayName="Color"))

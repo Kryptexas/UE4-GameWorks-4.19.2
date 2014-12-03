@@ -4,10 +4,10 @@
 	UnOutputDevices.cpp: Collection of FOutputDevice subclasses
 =============================================================================*/
 
-#include "Core.h"
-
-#include <stdio.h>
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "Templates/UniquePtr.h"
+#include <stdio.h>
 
 // #if _MSC_VER
 // #pragma warning (push)

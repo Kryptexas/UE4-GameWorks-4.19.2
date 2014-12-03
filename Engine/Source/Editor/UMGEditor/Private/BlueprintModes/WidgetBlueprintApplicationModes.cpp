@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 
 // Mode constants
-const FName FWidgetBlueprintApplicationModes::DesignerMode("DesignModeName");
-const FName FWidgetBlueprintApplicationModes::GraphMode("GraphModeName");
+const FName FWidgetBlueprintApplicationModes::DesignerMode("DesignerName");
+const FName FWidgetBlueprintApplicationModes::GraphMode("GraphName");
 
 FText FWidgetBlueprintApplicationModes::GetLocalizedMode(const FName InMode)
 {

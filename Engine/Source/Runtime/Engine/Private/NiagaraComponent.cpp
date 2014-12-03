@@ -6,33 +6,34 @@
 #include "VectorVM.h"
 #include "ParticleHelper.h"
 #include "Particles/ParticleResources.h"
-#include "Engine/NiagaraConstants.h"
 #include "Engine/NiagaraEffectRenderer.h"
+#include "Engine/NiagaraEffect.h"
+#include "Engine/NiagaraSimulation.h"
 #include "MeshBatch.h"
 #include "SceneUtils.h"
+#include "ComponentReregisterContext.h"
 
-DECLARE_CYCLE_STAT(TEXT("Tick"),STAT_NiagaraTick,STATGROUP_Niagara);
-DECLARE_CYCLE_STAT(TEXT("Simulate"),STAT_NiagaraSimulate,STATGROUP_Niagara);
-DECLARE_CYCLE_STAT(TEXT("Spawn + Kill"),STAT_NiagaraSpawnAndKill,STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Gen Verts"),STAT_NiagaraGenerateVertices,STATGROUP_Niagara);
 DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGROUP_Niagara);
 
-
-DEFINE_LOG_CATEGORY_STATIC(LogNiagaraComponent, All, All);
 
 
 FNiagaraSceneProxy::FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 		:	FPrimitiveSceneProxy(InComponent)
 {
-	if (InComponent->RenderModuleType == Sprites)
-	{
-		EffectRenderer = new NiagaraEffectRendererSprites(InComponent, this);
-	}
-	else  if (InComponent->RenderModuleType == Ribbon)
-	{
-		EffectRenderer = new NiagaraEffectRendererRibbon(InComponent, this);
-	}
+	UpdateEffectRenderers(InComponent->Effect);
+}
 
+void FNiagaraSceneProxy::UpdateEffectRenderers(UNiagaraEffect *InEffect)
+{
+	EffectRenderers.Empty();
+	if (InEffect)
+	{
+		for (TSharedPtr<FNiagaraSimulation>Emitter : InEffect->Emitters)
+		{
+			AddEffectRenderer(Emitter->GetEffectRenderer());
+		}
+	}
 }
 
 FNiagaraSceneProxy::~FNiagaraSceneProxy()
@@ -43,21 +44,39 @@ FNiagaraSceneProxy::~FNiagaraSceneProxy()
 /** Called on render thread to assign new dynamic data */
 void FNiagaraSceneProxy::SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData)
 {
-	EffectRenderer->SetDynamicData_RenderThread(NewDynamicData);
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			Renderer->SetDynamicData_RenderThread(NewDynamicData);
+		}
+	}
 	return;
 }
 
 
 void FNiagaraSceneProxy::ReleaseRenderThreadResources()
 {
-	EffectRenderer->ReleaseRenderThreadResources();
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			Renderer->ReleaseRenderThreadResources();
+		}
+	}
 	return;
 }
 
 // FPrimitiveSceneProxy interface.
 void FNiagaraSceneProxy::CreateRenderThreadResources()
 {
-	EffectRenderer->CreateRenderThreadResources();
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			Renderer->CreateRenderThreadResources();
+		}
+	}
 	return;
 }
 
@@ -73,27 +92,43 @@ void FNiagaraSceneProxy::OnTransformChanged()
 
 void FNiagaraSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
 {
-	EffectRenderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber);
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			Renderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber, this);
+		}
+	}
 	return;
-
 }
 		  
 void FNiagaraSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) 
 {
-	EffectRenderer->DrawDynamicElements(PDI, View);
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			Renderer->DrawDynamicElements(PDI, View, this);
+		}
+	}
 	return;
 }
 
 FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View)
 {
-	return EffectRenderer->GetViewRelevance(View);
+	FPrimitiveViewRelevance Relevance;
+	Relevance.bDynamicRelevance = true;
+
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			Relevance |= Renderer->GetViewRelevance(View, this);
+		}
+	}
+	return Relevance;
 }
-/*
-virtual bool CanBeOccluded() const override
-{
-	return !MaterialRelevance.bDisableDepthTest;
-}
-*/
+
 
 uint32 FNiagaraSceneProxy::GetMemoryFootprint() const
 { 
@@ -103,13 +138,23 @@ uint32 FNiagaraSceneProxy::GetMemoryFootprint() const
 uint32 FNiagaraSceneProxy::GetAllocatedSize() const
 { 
 	uint32 DynamicDataSize = 0;
-	return FPrimitiveSceneProxy::GetAllocatedSize() + EffectRenderer->GetDynamicDataSize();
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		if (Renderer)
+		{
+			DynamicDataSize += Renderer->GetDynamicDataSize();
+		}
+	}
+	return FPrimitiveSceneProxy::GetAllocatedSize() + DynamicDataSize;
 }
 
 
 void FNiagaraSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
-	EffectRenderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector);
+	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	{
+		Renderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector, this);
+	}
 }
 
 
@@ -129,308 +174,67 @@ namespace ENiagaraVectorAttr
 }
 
 
-/**
- * A niagara particle simulation.
- */
-class FNiagaraSimulation
-{
-public:
-	explicit FNiagaraSimulation(const UNiagaraComponent* InComponent)
-		: SpawnRate(InComponent->SpawnRate)
-		, Component(*InComponent)
-		, UpdateScript(*InComponent->UpdateScript)
-		, SpawnScript(InComponent->SpawnScript)
-		, ConstantTable(InComponent->UpdateScript->ConstantTable)
-		, SpawnRemainder(0.0f)
-		, CachedBounds(ForceInit)
-	{
-		check(InComponent->UpdateScript && UpdateScript.ByteCode.Num());
-
-		// make room for constants
-		while (ConstantTable.Num() < 10)	
-		{
-			ConstantTable.Add( FVector4(0.0f, 0.0f, 0.0f, 0.0f) );
-		}
-	}
-
-	void Tick(float DeltaSeconds)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraTick);
-
-		const int32 NumAttributes = UpdateScript.Attributes.Num();
-
-		// Cache the ComponentToWorld transform.
-		CachedComponentToWorld = Component.GetComponentToWorld();
-		
-		Data.SwapBuffers();
-
-		// Figure out how many we will spawn.
-		int32 NumToSpawn = CalcNumToSpawn(DeltaSeconds);
-		int32 MaxNewParticles = Data.GetNumParticles() + NumToSpawn;
-
-		// Remember the stride of the original data.
-		int32 PrevNumVectorsPerAttribute = Data.GetParticleAllocation();
-
-		Data.Allocate( MaxNewParticles );
-		// Simulate particles forward by DeltaSeconds.
-		UpdateParticles(
-			DeltaSeconds,
-			Data.GetPreviousBuffer(),
-			PrevNumVectorsPerAttribute,
-			Data.GetCurrentBuffer(),
-			MaxNewParticles,
-			Data.GetNumParticles()
-			);
-
-		SpawnAndKillParticles(
-			NumToSpawn
-			);
-
-		DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"), STAT_NiagaraNumParticles, STATGROUP_Niagara);
-		INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, Data.GetNumParticles());
-
-	}
-
-	FBox GetBounds() const { return CachedBounds; }
-
-
-	FNiagaraEmitterParticleData &GetData()	{ return Data; }
-
-	void SetConstant(int Idx, const FVector4 &Value)
-	{
-		check(Idx < ConstantTable.Num());
-		ConstantTable[Idx] = Value;
-	}
-
-private:
-	/** Temporary stuff for the prototype. */
-	float SpawnRate;
-
-	/** The component. */
-	const UNiagaraComponent& Component;
-	/** The particle update script. */
-	UNiagaraScript& UpdateScript;
-	/** The particle spawn script. */
-	UNiagaraScript *SpawnScript;
-	/** Local constant table. */
-	TArray<FVector4> ConstantTable;
-	/** particle simulation data */
-	FNiagaraEmitterParticleData Data;
-	/** Keep partial particle spawns from last frame */
-	float SpawnRemainder;
-	/** The cached ComponentToWorld transform. */
-	FTransform CachedComponentToWorld;
-	/** Cached bounds. */
-	FBox CachedBounds;
-
-
-	/* builtin constants are setup in the tick function, but a script may have additional constants 
-	 derived from unconnected nodes, so we need to merge those into the simulation constant table */
-	void MergeScriptConstants(UNiagaraScript *Script)
-	{
-		// start at NumBuiltinConstants+1, because index 0 is always the fixed zero constant
-		for (int i = NiagaraConstants::NumBuiltinConstants + 1; i < Script->ConstantTable.Num(); i++)
-		{
-			if (ConstantTable.Num() <= i)
-			{
-				ConstantTable.Add(FVector4());
-			}
-			ConstantTable[i] = Script->ConstantTable[i];
-		}
-	}
-
-	/** Calc number to spawn */
-	int32 CalcNumToSpawn(float DeltaSeconds)
-	{
-		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * SpawnRate);
-		int32 NumToSpawn = FMath::FloorToInt(FloatNumToSpawn);
-		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
-		return NumToSpawn;
-	}
-
-	/** Run VM to update particle positions */
-	void UpdateParticles(
-		float DeltaSeconds,
-		FVector4* PrevParticles,
-		int32 PrevNumVectorsPerAttribute,
-		FVector4* Particles,
-		int32 NumVectorsPerAttribute,
-		int32 NumParticles
-		)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraSimulate);
-
-		VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = { 0 };
-		VectorRegister* OutputRegisters[VectorVM::MaxOutputRegisters] = {0};
-		const int32 NumAttr = UpdateScript.Attributes.Num();
-
-		check(NumAttr < VectorVM::MaxInputRegisters);
-		check(NumAttr < VectorVM::MaxOutputRegisters);
-
-		// Setup input and output registers.
-		for (int32 AttrIndex = 0; AttrIndex < NumAttr; ++AttrIndex)
-		{
-			InputRegisters[AttrIndex] = (VectorRegister*)(PrevParticles + AttrIndex * PrevNumVectorsPerAttribute);
-			OutputRegisters[AttrIndex] = (VectorRegister*)(Particles + AttrIndex * NumVectorsPerAttribute);
-		}
-
-		// copy script specific constants into the constant table
-		MergeScriptConstants(&UpdateScript);
-
-		VectorVM::Exec(
-			UpdateScript.ByteCode.GetData(),
-			InputRegisters,
-			NumAttr,
-			OutputRegisters,
-			NumAttr,
-			ConstantTable.GetData(),
-			NumParticles
-			);
-	}
-
-	int32 SpawnAndKillParticles(int32 NumToSpawn)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NiagaraSpawnAndKill);
-		int32 OrigNumParticles = Data.GetNumParticles();
-		int32 CurNumParticles = OrigNumParticles;
-		CurNumParticles = SpawnParticles(NumToSpawn);
-
-		// run the spawn graph over all new particles
-		if (SpawnScript && SpawnScript->ByteCode.Num())
-		{
-			VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = { 0 };
-			VectorRegister* OutputRegisters[VectorVM::MaxOutputRegisters] = { 0 };
-			const int32 NumAttr = SpawnScript->Attributes.Num();
-			const int32 NumVectors = NumToSpawn;
-
-			check(NumAttr < VectorVM::MaxInputRegisters);
-			check(NumAttr < VectorVM::MaxOutputRegisters);
-
-			FVector4 *NewParticlesStart = Data.GetCurrentBuffer() + OrigNumParticles;
-
-			// Setup input and output registers.
-			for (int32 AttrIndex = 0; AttrIndex < NumAttr; ++AttrIndex)
-			{
-				InputRegisters[AttrIndex] = (VectorRegister*)(NewParticlesStart + AttrIndex * Data.GetParticleAllocation());
-				OutputRegisters[AttrIndex] = (VectorRegister*)(NewParticlesStart + AttrIndex * Data.GetParticleAllocation());
-			}
-
-			// copy script specific constants into the constant table
-			MergeScriptConstants(SpawnScript);
-
-			VectorVM::Exec(
-				SpawnScript->ByteCode.GetData(),
-				InputRegisters,
-				NumAttr,
-				OutputRegisters,
-				NumAttr,
-				ConstantTable.GetData(),
-				NumVectors
-				);
-		}
-
-		// Iterate over looking for dead particles and move from the end of the list to the dead location, compacting in the process
-		int32 ParticleIndex = 0;
-		const FVector4* ParticleRelativeTimes = Data.GetAttributeData("Age");
-		while (ParticleIndex < OrigNumParticles)
-		{
-			if (ParticleRelativeTimes[ParticleIndex].X > 1.0f)
-			{
-				// Particle is dead, move one from the end here.
-				MoveParticleToIndex(--CurNumParticles, ParticleIndex);
-			}
-			ParticleIndex++;
-		}
-
-		Data.SetNumParticles(CurNumParticles);
-		return CurNumParticles;
-	}
-
-	/** Spawn a new particle at this index */
-	int32 SpawnParticles(int32 NumToSpawn)
-	{
-		FVector4 *PosPtr = Data.GetAttributeDataWrite("Position");
-		FVector4 *VelPtr = Data.GetAttributeDataWrite("Velocity");
-		FVector4 *ColPtr = Data.GetAttributeDataWrite("Color");
-		FVector4 *RotPtr = Data.GetAttributeDataWrite("Rotation");
-		FVector4 *AgePtr = Data.GetAttributeDataWrite("Age");
-
-		// Spawn new Particles at the end of the buffer
-		int32 ParticleIndex = Data.GetNumParticles();
-		for (int32 i = 0; i < NumToSpawn; i++)
-		{
-			FVector SpawnLocation = CachedComponentToWorld.GetLocation();
-			SpawnLocation.X += FMath::FRandRange(-20.f, 20.f);
-			SpawnLocation.Y += FMath::FRandRange(-20.f, 20.f);
-			SpawnLocation.Z += FMath::FRandRange(-20.f, 20.f);
-
-			PosPtr[ParticleIndex] = SpawnLocation;
-			ColPtr[ParticleIndex] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-			VelPtr[ParticleIndex] = FVector4(0.0f, 0.0f, 2.0f, 0.0f);
-			RotPtr[ParticleIndex] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-			AgePtr[ParticleIndex] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-			ParticleIndex++;
-		}
-		return ParticleIndex;
-	}
-
-	/** Util to move a particle */
-	void MoveParticleToIndex(int32 SrcIndex, int32 DestIndex)
-	{
-		FVector4 *SrcPtr = Data.GetCurrentBuffer() + SrcIndex;
-		FVector4 *DestPtr = Data.GetCurrentBuffer() + DestIndex;
-
-		for (int32 AttrIndex = 0; AttrIndex < Data.GetNumAttributes(); AttrIndex++)
-		{
-			*DestPtr = *SrcPtr;
-			DestPtr += Data.GetParticleAllocation();
-			SrcPtr += Data.GetParticleAllocation();
-		}
-	}
-
-};
 
 //////////////////////////////////////////////////////////////////////////
 
-UNiagaraComponent::UNiagaraComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraComponent::UNiagaraComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
-	RenderModuleType = ERenderModuleType::Sprites;
-	SpawnRate = 20.f;
-	Simulation = nullptr;
 }
 
 
 void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	if (Simulation)
-	{
-		EmitterAge += DeltaSeconds;
+//	EmitterAge += DeltaSeconds;
 
-		Simulation->SetConstant(0, FVector4(0.0f, 0.0f, 0.0f, 0.0f) );	// zero constant
-		Simulation->SetConstant(1, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
-		Simulation->SetConstant(2, FVector4(ComponentToWorld.GetTranslation()));
-		Simulation->SetConstant(3, FVector4(EmitterAge, EmitterAge, EmitterAge, EmitterAge));
-		Simulation->SetConstant(4, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)) );
-		Simulation->SetConstant(5, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)) );
-		Simulation->SetConstant(6, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)) );
+	if (Effect)
+	{ 
 
-		Simulation->Tick(DeltaSeconds);
-		UpdateComponentToWorld();
-		MarkRenderDynamicDataDirty();
+		//Todo, open this up to the UI and setting via code and BPs.
+		static FName Const_Zero(TEXT("ZERO"));
+		Effect->SetConstant(Const_Zero, FVector4(0.0f, 0.0f, 0.0f, 0.0f));	// zero constant
+		static FName Const_DeltaTime(TEXT("Delta Time"));
+		Effect->SetConstant(Const_DeltaTime, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
+		static FName Const_EmitterPos(TEXT("Emitter Position"));
+		Effect->SetConstant(Const_EmitterPos, FVector4(ComponentToWorld.GetTranslation()));
+		//static FName Const_Age(TEXT("Emitter Age"));
+		//Effect->SetConstant(Const_Age, FVector4(EmitterAge, EmitterAge, EmitterAge, EmitterAge));
+		static FName Const_EmitterX(TEXT("Emitter X Axis"));
+		Effect->SetConstant(Const_EmitterX, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)));
+		static FName Const_EmitterY(TEXT("Emitter Y Axis"));
+		Effect->SetConstant(Const_EmitterY, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)));
+		static FName Const_EmitterZ(TEXT("Emitter Z Axis"));
+		Effect->SetConstant(Const_EmitterZ, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)));
+		static FName Const_EmitterTransform(TEXT("Emitter Transform"));
+		Effect->SetConstant(Const_EmitterTransform, ComponentToWorld.ToMatrixWithScale());
+		Effect->Tick(DeltaSeconds);
 	}
+
+	UpdateComponentToWorld();
+	MarkRenderDynamicDataDirty();
 }
 
 void UNiagaraComponent::OnRegister()
 {
 	Super::OnRegister();
-
-	ensure(Simulation == NULL);
-	if (UpdateScript && UpdateScript->ByteCode.Num() && UpdateScript->Attributes.Num() == ENiagaraVectorAttr::MaxVectorAttribs)
+	if (Effect)
 	{
-		Simulation = new FNiagaraSimulation(this);
+		Effect->Init(this);
+
+		// initialize all render modules
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			FChangeNiagaraRenderModule,
+			UNiagaraEffect*, InEffect, this->Effect,
+			UNiagaraComponent*, InComponent, this,
+			{
+				for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->Emitters)
+				{
+					Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
+				}
+			}
+		);
 	}
 	VectorVM::Init();
 }
@@ -439,29 +243,28 @@ void UNiagaraComponent::OnRegister()
 void UNiagaraComponent::OnUnregister()
 {
 	Super::OnUnregister();
-
-	if(Simulation != NULL)
-	{
-		delete Simulation;
-		Simulation = NULL;
-	}
 }
 
 void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
-	if (Simulation && SceneProxy)
+	if (Effect && SceneProxy)
 	{
 		FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
-		FNiagaraDynamicDataBase* DynamicData = NiagaraProxy->GetEffectRenderer()->GenerateVertexData(Simulation->GetData());
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FSendNiagaraDynamicData,
-			NiagaraEffectRenderer*, EffectRenderer, (NiagaraEffectRenderer*)NiagaraProxy->GetEffectRenderer(),
-			FNiagaraDynamicDataBase*,DynamicData,DynamicData,
+		for (int32 i = 0; i < Effect->Emitters.Num(); i++)
 		{
-			EffectRenderer->SetDynamicData_RenderThread(DynamicData);
-		});
+			FNiagaraSimulation *Emitter = Effect->GetEmitter(i);
+			FNiagaraDynamicDataBase* DynamicData = Emitter->GetEffectRenderer()->GenerateVertexData(Effect->Emitters[i]->GetData());
+
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				FSendNiagaraDynamicData,
+				NiagaraEffectRenderer*, EffectRenderer, Emitter->GetEffectRenderer(),
+				FNiagaraDynamicDataBase*, DynamicData, DynamicData,
+				{
+				EffectRenderer->SetDynamicData_RenderThread(DynamicData);
+			});
+		}
 	}
+
 }
 
 int32 UNiagaraComponent::GetNumMaterials() const
@@ -469,34 +272,20 @@ int32 UNiagaraComponent::GetNumMaterials() const
 	return 0;
 }
 
-UMaterialInterface* UNiagaraComponent::GetMaterial(int32 ElementIndex) const
-{
-	return NULL;
 
-	UMaterialInterface* RequestedMaterial = NULL;
-	if (ElementIndex == 0)
-	{
-		RequestedMaterial = Material;
-	}
-	return RequestedMaterial;
-}
-
-void UNiagaraComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial)
-{
-	if (ElementIndex == 0)
-	{
-		Material = InMaterial;
-	}
-}
-
-FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox SimBounds(ForceInit);
-	//if (Simulation)
-	//{
-		//SimBounds = Simulation->GetBounds();
-	//}
-	//if (!SimBounds.IsValid)
+
+	/*
+	if (Effect)
+	{
+		for (FNiagaraSimulation Sim : Effect->Emitters)
+		{
+			SimBounds += Sim->GetBounds();
+		}
+	}
+	*/
 	{
 		SimBounds.Min = FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
 		SimBounds.Max = FVector(+HALF_WORLD_MAX,+HALF_WORLD_MAX,+HALF_WORLD_MAX);
@@ -506,7 +295,9 @@ FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform & LocalToWorld) 
 
 FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 {
-	return new FNiagaraSceneProxy(this);
+	FNiagaraSceneProxy *Proxy = new FNiagaraSceneProxy(this);
+	Proxy->UpdateEffectRenderers(Effect);
+	return Proxy;
 }
 
 #if WITH_EDITOR

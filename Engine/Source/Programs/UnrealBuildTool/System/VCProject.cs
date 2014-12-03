@@ -252,7 +252,7 @@ namespace UnrealBuildTool
 				if( Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64 )
 				{
 					// In Rocket, shipping game targets are always 32-bit
-					if( Configuration == UnrealTargetConfiguration.Shipping && ProjectTarget.TargetRules.Type == TargetRules.TargetType.RocketGame )
+					if( Configuration == UnrealTargetConfiguration.Shipping && ProjectTarget.TargetRules.Type == TargetRules.TargetType.Game )
 					{
 						if( Platform != UnrealTargetPlatform.Win32 )
 						{
@@ -976,7 +976,7 @@ namespace UnrealBuildTool
 					{
 						// Figure out what the compiled binary will be called so that we can point the IDE to the correct file
 						string TargetConfigurationName = TargetRulesObject.ConfigurationName;
-						if (TargetConfigurationName != TargetRules.TargetType.Game.ToString() && TargetConfigurationName != TargetRules.TargetType.RocketGame.ToString() && TargetConfigurationName != TargetRules.TargetType.Program.ToString())
+						if (TargetConfigurationName != TargetRules.TargetType.Game.ToString() && TargetConfigurationName != TargetRules.TargetType.Program.ToString())
 						{
 							BaseExeName = "UE4" + TargetConfigurationName;
 						}
@@ -1060,7 +1060,7 @@ namespace UnrealBuildTool
 						{
 							VCUserFileContent.Append(
 								"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);
-							if ((TargetRulesObject.Type != TargetRules.TargetType.RocketGame) && (TargetRulesObject.Type != TargetRules.TargetType.Game))
+							if (TargetRulesObject.Type != TargetRules.TargetType.Game)
 							{
 								string DebugOptions = UProjectPath;
 

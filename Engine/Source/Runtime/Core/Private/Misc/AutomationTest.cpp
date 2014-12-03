@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationTest.cpp
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ModuleManager.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);
 
@@ -456,15 +453,18 @@ void FAutomationTestFramework::SetDeveloperDirectoryIncluded(const bool bInDevel
 	bDeveloperDirectoryIncluded = bInDeveloperDirectoryIncluded;
 }
 
+
 void FAutomationTestFramework::SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn)
 {
 	bVisualCommandletFilterOn = bInVisualCommandletFilterOn;
 }
 
+
 FOnTestScreenshotCaptured& FAutomationTestFramework::OnScreenshotCaptured()
 {
 	return TestScreenshotCapturedDelegate;
 }
+
 
 void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots )
 {
@@ -472,15 +472,18 @@ void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEn
 	bUseFullSizeScreenShots = bInUseFullSizeScreenshots;
 }
 
+
 bool FAutomationTestFramework::IsScreenshotAllowed() const
 {
 	return bScreenshotsEnabled;
 }
 
+
 bool FAutomationTestFramework::ShouldUseFullSizeScreenshots() const
 {
 	return bUseFullSizeScreenShots;
 }
+
 
 void FAutomationTestFramework::PrepForAutomationTests()
 {
@@ -646,8 +649,7 @@ FAutomationTestFramework::FAutomationTestFramework()
 ,	bUseFullSizeScreenShots(false)
 ,	NetworkRoleIndex(0)
 ,	bForceSmokeTests(false)
-{
-}
+{ }
 
 
 FAutomationTestFramework::~FAutomationTestFramework()
@@ -655,6 +657,7 @@ FAutomationTestFramework::~FAutomationTestFramework()
 	CachedContext = NULL;
 	AutomationTestClassNameToInstanceMap.Empty();
 }
+
 
 void FAutomationTestBase::ClearExecutionInfo()
 {
@@ -744,4 +747,3 @@ void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInf
 		TestInfo.Add( NewTestInfo );
 	}
 }
-

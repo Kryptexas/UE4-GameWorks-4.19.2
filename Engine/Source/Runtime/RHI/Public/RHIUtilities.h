@@ -120,11 +120,92 @@ struct FRWBufferByteAddress
 	}
 };
 
+/**
+ * Convert the ESimpleRenderTargetMode into usable values 
+ * @todo: Can we easily put this into a .cpp somewhere?
+ */
+inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLoadAction& ColorLoadAction, ERenderTargetStoreAction& ColorStoreAction, ERenderTargetLoadAction& DepthLoadAction, ERenderTargetStoreAction& DepthStoreAction, FLinearColor& ClearColor, float& ClearDepth)
+{
+	// set defaults
+	ColorStoreAction = ERenderTargetStoreAction::EStore;
+	DepthStoreAction = ERenderTargetStoreAction::EStore;
+	ClearColor = FLinearColor(0, 0, 0, 0);
+	ClearDepth = 0.0f;
+
+	switch (Mode)
+	{
+	case ESimpleRenderTargetMode::EExistingColorAndDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		break;
+	case ESimpleRenderTargetMode::EUninitializedColorAndDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
+		DepthLoadAction = ERenderTargetLoadAction::ENoAction;
+		break;
+	case ESimpleRenderTargetMode::EUninitializedColorExistingDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		break;
+	case ESimpleRenderTargetMode::EUninitializedColorClearDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ENoAction;
+		DepthLoadAction = ERenderTargetLoadAction::EClear;
+		break;
+	case ESimpleRenderTargetMode::EClearToDefault:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::EClear;
+		break;
+	case ESimpleRenderTargetMode::EClearColorToBlack:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		ClearColor = FLinearColor::Black;
+		break;
+	case ESimpleRenderTargetMode::EClearColorToBlackWithFullAlpha:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		ClearColor = FLinearColor(0, 0, 0, 1);
+		break;
+	case ESimpleRenderTargetMode::EClearColorToWhite:
+		ColorLoadAction = ERenderTargetLoadAction::EClear;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		ClearColor = FLinearColor::White;
+		break;
+	case ESimpleRenderTargetMode::EClearDepthToOne:
+		ColorLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthLoadAction = ERenderTargetLoadAction::EClear;
+		ClearDepth = 1.0f;
+		break;
+	case ESimpleRenderTargetMode::EExistingContents_NoDepthStore:
+		ColorLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
+		break;
+	default:
+		UE_LOG(LogRHI, Fatal, TEXT("Using a ESimpleRenderTargetMode that wasn't decoded in DecodeRenderTargetMode [value = %d]"), (int32)Mode);
+	}
+}
+
 /** Helper for the common case of using a single color and depth render target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget);
 	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+}
+
+/** Helper for the common case of using a single color and depth render target. */
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, ESimpleRenderTargetMode Mode)
+{
+	ERenderTargetLoadAction ColorLoadAction, DepthLoadAction;
+	ERenderTargetStoreAction ColorStoreAction, DepthStoreAction;
+	FLinearColor ClearColor;
+	float ClearDepth;
+	DecodeRenderTargetMode(Mode, ColorLoadAction, ColorStoreAction, DepthLoadAction, DepthStoreAction, ClearColor, ClearDepth);
+
+	// now make the FRHISetRenderTargetsInfo that encapsulates all of the info
+	FRHIRenderTargetView ColorView(NewRenderTarget, 0, -1, ColorLoadAction, ColorStoreAction);
+	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(NewDepthStencilTarget, DepthLoadAction, DepthStoreAction));
+	Info.ClearColors[0] = ClearColor;
+	Info.DepthClearValue = ClearDepth;
+	RHICmdList.SetRenderTargetsAndClear(Info);
 }
 
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
@@ -196,7 +277,7 @@ inline void RHICreateTargetableShaderResource2D(
 
 	if (NumSamples > 1)
 	{
-		bForceSeparateTargetAndShaderResource = RHISupportsSeparateMSAAAndResolveTextures(GRHIShaderPlatform);
+		bForceSeparateTargetAndShaderResource = RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform);
 	}
 
 	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)

@@ -106,7 +106,7 @@ public:
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override;
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override;
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override;
 
 	virtual bool SupportsTextureFormat( FName Format ) const 
 	{
@@ -130,7 +130,7 @@ public:
 
 	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override;
 
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const override;
+	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
 #endif //WITH_ENGINE
 
 	virtual bool SupportsVariants() const override;

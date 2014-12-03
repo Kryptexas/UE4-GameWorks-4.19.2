@@ -13,8 +13,8 @@
 // I can't make this member since I  need to change this in const function
 bool bNeedReinitializeFilter = false;
 
-UBlendSpaceBase::UBlendSpaceBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlendSpaceBase::UBlendSpaceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }
@@ -58,7 +58,7 @@ void UBlendSpaceBase::PostLoad()
 
 void UBlendSpaceBase::InitializePerBoneBlend()
 {
-	const USkeleton * MySkeleton = GetSkeleton();
+	const USkeleton* MySkeleton = GetSkeleton();
 	// also initialize perbone interpolation data
 	for (int32 Id=0; Id<PerBoneBlend.Num(); ++Id) 
 	{
@@ -87,7 +87,7 @@ void UBlendSpaceBase::InitializeFilter(FBlendFilter * Filter) const
 	}
 }
 
-FVector UBlendSpaceBase::FilterInput(FBlendFilter * Filter, const FVector & BlendInput, float DeltaTime) const
+FVector UBlendSpaceBase::FilterInput(FBlendFilter * Filter, const FVector& BlendInput, float DeltaTime) const
 {
 	if (bNeedReinitializeFilter)
 	{
@@ -282,20 +282,25 @@ void UBlendSpaceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, c
 							float& CurrentSampleDataTime = SampleEntry.Time;
 							CurrentSampleDataTime = SampleNormalizedCurrentTime * Sample.Animation->SequenceLength;
 
+							// Figure out delta time 
+							float DeltaTimePosition = CurrentSampleDataTime - PrevSampleDataTime;
+							const float SampleMoveDelta = MoveDelta * Sample.Animation->RateScale;
+
+							// if we went against play rate, then loop around.
+							if ((SampleMoveDelta * DeltaTimePosition) < 0.f)
+							{
+								DeltaTimePosition += FMath::Sign<float>(SampleMoveDelta) * Sample.Animation->SequenceLength;
+							}
+
 							if( bGenerateNotifies && (!bTriggerNotifyHighestWeightedAnim || (I == HighestWeightIndex)))
 							{
-								// Figure out delta time 
-								float DeltaTimePosition = CurrentSampleDataTime - PrevSampleDataTime;
-								const float SampleMoveDelta = MoveDelta * Sample.Animation->RateScale;
-
-								// if we went against play rate, then loop around.
-								if ((SampleMoveDelta * DeltaTimePosition) < 0.f)
-								{
-									DeltaTimePosition += FMath::Sign<float>(SampleMoveDelta) * Sample.Animation->SequenceLength;
-								}
-
 								// Harvest and record notifies
 								Sample.Animation->GetAnimNotifies(PrevSampleDataTime, DeltaTimePosition, Instance.bLooping, Notifies);
+							}
+
+							if (Context.RootMotionMode == ERootMotionMode::RootMotionFromEverything && Sample.Animation->bEnableRootMotion)
+							{
+								Context.RootMotionMovementParams.AccumulateWithBlend(Sample.Animation->ExtractRootMotion(PrevSampleDataTime, DeltaTimePosition, Instance.bLooping), SampleEntry.GetWeight());
 							}
 
 							// handle curves
@@ -372,7 +377,7 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 
 // @todo fixme: slow approach. If the perbone gets popular, we should change this to array of weight 
 // we should think about changing this to 
-int32 UBlendSpaceBase::GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer & RequiredBones) const
+int32 UBlendSpaceBase::GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const
 {
 	for (int32 Iter=0; Iter<PerBoneBlend.Num(); ++Iter)
 	{
@@ -408,7 +413,7 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 		// i'd like to change this later
 		for (auto NewIt=NewSampleDataList.CreateConstIterator(); NewIt; ++NewIt)
 		{
-			const FBlendSampleData & NewSample = *NewIt;
+			const FBlendSampleData& NewSample = *NewIt;
 			// if same sample is found, interpolate
 			if (NewSample.SampleDataIndex == OldSample.SampleDataIndex)
 			{
@@ -464,7 +469,7 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 
 		for (auto NewIt=FinalSampleDataList.CreateConstIterator(); NewIt; ++NewIt)
 		{
-			const FBlendSampleData & NewSample = *NewIt;
+			const FBlendSampleData& NewSample = *NewIt;
 			if (NewSample.SampleDataIndex == OldSample.SampleDataIndex)
 			{
 				bNewTargetFound = true;
@@ -490,7 +495,7 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 	return (TotalFinalWeight > ZERO_ANIMWEIGHT_THRESH);
 }
 
-bool UBlendSpaceBase::UpdateParameter(int32 Index, const FBlendParameter & Parameter)
+bool UBlendSpaceBase::UpdateParameter(int32 Index, const FBlendParameter& Parameter)
 {
 	check ( Index >= 0 && Index <=2 );
 
@@ -525,7 +530,7 @@ bool UBlendSpaceBase::UpdateParameter(int32 Index, const FBlendParameter & Param
 	return true;
 }
 
-bool UBlendSpaceBase::AddSample(const FBlendSample & BlendSample)
+bool UBlendSpaceBase::AddSample(const FBlendSample& BlendSample)
 {
 	FBlendSample NewBlendSample = BlendSample;
 
@@ -541,7 +546,7 @@ bool UBlendSpaceBase::AddSample(const FBlendSample & BlendSample)
 	return true;
 }
 
-bool UBlendSpaceBase::EditSample(const FBlendSample & BlendSample, FVector & NewValue)
+bool UBlendSpaceBase::EditSample(const FBlendSample& BlendSample, FVector& NewValue)
 {
 	int32 NewIndex = SampleData.Find(BlendSample);
 	if (NewIndex!=INDEX_NONE)
@@ -584,7 +589,7 @@ bool UBlendSpaceBase::EditSample(const FBlendSample & BlendSample, FVector & New
 	return false;
 }
 
-bool UBlendSpaceBase::EditSampleAnimation(const FBlendSample & BlendSample, class UAnimSequence* AnimSequence)
+bool UBlendSpaceBase::EditSampleAnimation(const FBlendSample& BlendSample, class UAnimSequence* AnimSequence)
 {
 	int32 NewIndex = SampleData.Find(BlendSample);
 	if (NewIndex!=INDEX_NONE)
@@ -608,7 +613,7 @@ bool UBlendSpaceBase::EditSampleAnimation(const FBlendSample & BlendSample, clas
 	return false;
 }
 
-bool UBlendSpaceBase::DeleteSample(const FBlendSample & BlendSample)
+bool UBlendSpaceBase::DeleteSample(const FBlendSample& BlendSample)
 {
 	int32 NewIndex = SampleData.Find(BlendSample);
 	if (NewIndex!=INDEX_NONE)
@@ -643,7 +648,7 @@ bool UBlendSpaceBase::ValidateSampleInput(FBlendSample & BlendSample, int32 Orig
 		}
 	}
 
-	const USkeleton * MySkeleton = GetSkeleton();
+	const USkeleton* MySkeleton = GetSkeleton();
 	if (BlendSample.Animation &&
 		(! MySkeleton ||
 		! BlendSample.Animation->GetSkeleton()->IsCompatible(MySkeleton)))
@@ -727,7 +732,7 @@ bool UBlendSpaceBase::IsTooCloseToExistingSamplePoint(const FVector& SampleValue
 	return false;
 }
 
-FVector UBlendSpaceBase::ClampBlendInput(const FVector & BlendInput)  const
+FVector UBlendSpaceBase::ClampBlendInput(const FVector& BlendInput)  const
 {
 	FVector ClampedBlendInput;
 
@@ -845,7 +850,7 @@ float UBlendSpaceBase::GetAnimationLengthFromSampleData(const TArray<FBlendSampl
 		const int32 SampleDataIndex = SampleDataList[I].SampleDataIndex;
 		if ( SampleData.IsValidIndex(SampleDataIndex) )
 		{
-			const FBlendSample & Sample = SampleData[SampleDataIndex];
+			const FBlendSample& Sample = SampleData[SampleDataIndex];
 			if (Sample.Animation)
 			{
 				// apply rate scale to get actual playback time
@@ -909,7 +914,7 @@ void UBlendSpaceBase::FillupGridElements(const TArray<FVector> & PointList, cons
 	GridSamples.AddUninitialized(GridElements.Num());
 	for (int32 I=0; I<GridElements.Num(); ++I)
 	{
-		const FEditorElement & ViewGrid = GridElements[I];
+		const FEditorElement& ViewGrid = GridElements[I];
 		FEditorElement NewGrid;
 		float TotalWeight = 0.f;
 		for (int32 J=0; J<FEditorElement::MAX_VERTICES; ++J)

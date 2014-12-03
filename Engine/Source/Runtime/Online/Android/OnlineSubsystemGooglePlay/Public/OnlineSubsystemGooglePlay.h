@@ -91,6 +91,12 @@ PACKAGE_SCOPE:
 	/** Returns the Google Play-specific version of Achievements, useful to avoid unnecessary casting */
 	FOnlineAchievementsGooglePlayPtr GetAchievementsGooglePlay() const { return AchievementsInterface; }
 
+	/**
+	* Is IAP available for use
+	* @return true if IAP should be available, false otherwise
+	*/
+	bool IsInAppPurchasingEnabled();
+
 private:
 
 	/** Google callback when auth is complete */
@@ -104,6 +110,8 @@ private:
 
 	/** Interface to the online identity system */
 	FOnlineIdentityGooglePlayPtr IdentityInterface;
+
+	FOnlineStoreGooglePlayPtr StoreInterface;
 
 	/** Interface to the online leaderboards */
 	FOnlineLeaderboardsGooglePlayPtr LeaderboardsInterface;

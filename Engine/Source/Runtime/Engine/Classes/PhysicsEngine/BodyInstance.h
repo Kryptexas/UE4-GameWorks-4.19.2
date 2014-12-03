@@ -18,6 +18,7 @@ namespace physx
 {
 	class PxRigidActor;
 	class PxAggregate;
+	class PxRigidBody;
 	class PxRigidDynamic;
 	class PxGeometry;
 	class PxShape;
@@ -26,7 +27,7 @@ namespace physx
 }
 #endif // WITH_PHYSX
 
-UENUM()
+UENUM(BlueprintType)
 namespace ELockedAxis
 {
 	enum Type
@@ -198,6 +199,15 @@ public:
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
 
+	/** If true, mass will not be automatically computed and you must set it directly */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics)
+	uint32 bOverrideMass : 1;
+
+	/**Mass of the body in KG. By default we compute this based on physical material and mass scale.
+	   *@see bOverrideMass to set this directly */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
+	float MassInKg;
+
 	/** Locks physical movement along specified axis.*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName="Locked Axis"))
 	TEnumAsByte<ELockedAxis::Type> LockedAxisMode;
@@ -206,6 +216,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics)
 	FVector CustomLockedAxis;
 
+	/** Locks physical movement along axis. */
+	void SetDOFLock(ELockedAxis::Type NewAxisMode);
+
 	FVector GetLockedAxis() const;
 	void CreateDOFLock();
 
@@ -213,21 +226,24 @@ public:
 	FConstraintInstance * DOFConstraint;
 
 	/** The parent body that we are welded to*/
-	FBodyInstance * WeldParent;
+	FBodyInstance* WeldParent;
 
 #if WITH_PHYSX
 	/** Figures out the new FCollisionNotifyInfo needed for pending notification. It adds it, and then returns an array that goes from pair index to notify collision index */
-	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
+	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance* Body0, const FBodyInstance* Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
 
 #endif
 
 protected:
 
-	/** Whether this instance of the object has its own custom walkability override setting. */
+	/** Whether this instance of the object has its own custom walkable slope override setting. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
 	uint32 bOverrideWalkableSlopeOnInstance:1;
 
-	/** Custom walkability override setting for this instance. @see GetWalkableFloorOverride() */
+	/**
+	 * Custom walkable slope override setting for this instance.
+	 * @see GetWalkableSlopeOverride(), SetWalkableSlopeOverride()
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics, meta=(editcondition="bOverrideWalkableSlopeOnInstance"))
 	struct FWalkableSlopeOverride WalkableSlopeOverride;
 
@@ -341,7 +357,7 @@ public:
 
 	/** 
 	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
-	void UnWeld(FBodyInstance * Body);
+	void UnWeld(FBodyInstance* Body);
 
 	/**
 	 * After adding/removing shapes call this function to update mass distribution etc... */
@@ -374,6 +390,9 @@ public:
 	/** Returns the slope override struct for this instance. If we don't have our own custom setting, it will return the setting from the body setup. */
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
 
+	/** Sets a custom slope override struct for this instance. Implicitly sets bOverrideWalkableSlopeOnInstance to true. */
+	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
+
 	/** Returns whether this body wants (and can) use the async scene. */
 	bool UseAsyncScene() const;
 
@@ -386,6 +405,8 @@ public:
 	physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const;
 	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes. */
 	physx::PxRigidDynamic* GetPxRigidDynamic() const;
+	/** Return the PxRigidBody if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidBody can exist in only one of the two scenes. */
+	physx::PxRigidBody* GetPxRigidBody() const;
 
 	/** 
 	 *	Utility to get all the shapes from a FBodyInstance 
@@ -627,10 +648,11 @@ public:
 
 	const FCollisionResponse& GetCollisionResponse() const { return CollisionResponses; }
 
-private:
 #if WITH_PHYSX
+public:
 	FPhysxUserData PhysxUserData;
 
+private:
 	/**
 	 *  Trace a box against just this bodyinstance
 	 *  @param  OutHit          Information about hit against this component, if true is returned
@@ -662,8 +684,6 @@ private:
 
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
-	friend class ULandscapeHeightfieldCollisionComponent;
-	friend class ULandscapeMeshCollisionComponent;
 
 #if WITH_BOX2D
 

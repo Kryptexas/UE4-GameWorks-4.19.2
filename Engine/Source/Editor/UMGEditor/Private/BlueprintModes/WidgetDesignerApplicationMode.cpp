@@ -21,6 +21,9 @@
 #include "SequencerTabSummoner.h"
 #include "DetailsTabSummoner.h"
 #include "AnimationTabSummoner.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
+
+#define LOCTEXT_NAMESPACE "WidgetDesignerMode"
 
 /////////////////////////////////////////////////////
 // FWidgetDesignerApplicationMode
@@ -28,6 +31,9 @@
 FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor)
 	: FWidgetBlueprintApplicationMode(InWidgetEditor, FWidgetBlueprintApplicationModes::DesignerMode)
 {
+	// Override the default created category here since "Designer Editor" sounds awkward
+	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_WidgetDesigner", "Widget Designer"));
+
 	TabLayout = FTabManager::NewLayout( "WidgetBlueprintEditor_Designer_Layout_v3" )
 	->AddArea
 	(
@@ -104,7 +110,6 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 		)
 	);
 
-
 	// Add Tab Spawners
 	//TabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InWidgetEditor)));
 	TabFactories.RegisterFactory(MakeShareable(new FDetailsTabSummoner(InWidgetEditor)));
@@ -141,3 +146,5 @@ void FWidgetDesignerApplicationMode::PostActivateMode()
 {
 	//FWidgetBlueprintApplicationMode::PostActivateMode();
 }
+
+#undef LOCTEXT_NAMESPACE

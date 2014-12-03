@@ -72,7 +72,7 @@ public:
 		#endif
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
 		if (Feature == ETargetPlatformFeatures::Packaging)
 		{
@@ -84,7 +84,7 @@ public:
 	}
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const override;
-	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const override;
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const override;
 
 
 #if WITH_ENGINE
@@ -106,7 +106,7 @@ public:
 
 	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override;
 
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const override;
+	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
 #endif // WITH_ENGINE
 
 

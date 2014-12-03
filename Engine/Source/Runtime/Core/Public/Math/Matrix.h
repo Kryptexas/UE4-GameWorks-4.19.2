@@ -3,6 +3,7 @@
 #pragma once
 
 /**
+ * 4x4 matrix of floating point values.
  * Matrix-matrix multiplication happens with a pre-multiple of the transpose --
  * in other words, Res = Mat1.operator*(Mat2) means Res = Mat2^T * Mat1, as
  * opposed to Res = Mat1 * Mat2.
@@ -331,8 +332,8 @@ public:
 	*/
 	void To3x4MatrixTranspose( float* Out ) const
 	{
-		const float * RESTRICT Src = &(M[0][0]);
-		float * RESTRICT Dest = Out;
+		const float* RESTRICT Src = &(M[0][0]);
+		float* RESTRICT Dest = Out;
 
 		Dest[0] = Src[0];   // [0][0]
 		Dest[1] = Src[4];   // [1][0]

@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperRuntimeSettings
 
-UPaperRuntimeSettings::UPaperRuntimeSettings(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperRuntimeSettings::UPaperRuntimeSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, DefaultPixelsPerUnrealUnit(2.56f)
 	, bEnableSpriteAtlasGroups(false)
 	, bEnableTileMapEditing(false)

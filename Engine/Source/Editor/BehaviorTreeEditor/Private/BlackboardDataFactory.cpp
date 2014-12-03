@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeFactory"
 
-UBlackboardDataFactory::UBlackboardDataFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlackboardDataFactory::UBlackboardDataFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UBlackboardData::StaticClass();
 	bCreateNew = true;

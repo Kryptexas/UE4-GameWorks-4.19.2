@@ -74,6 +74,9 @@ struct FTextureLODSettings
 	 */
 	ENGINE_API int32 GetNumStreamedMips( int32 InLODGroup ) const;
 
+	ENGINE_API int32 GetMinLODMipCount( int32 InLODGroup ) const;
+	ENGINE_API int32 GetMaxLODMipCount( int32 InLODGroup ) const;
+
 	/**
 	 * Returns the filter state that should be used for the passed in texture, taking
 	 * into account other system settings.
@@ -82,6 +85,17 @@ struct FTextureLODSettings
 	 * @return	Filter sampler state for passed in texture
 	 */
 	ENGINE_API ESamplerFilter GetSamplerFilter( const UTexture* Texture ) const;
+
+	ENGINE_API ESamplerFilter GetSamplerFilter( int32 InLODGroup) const;
+
+	/**
+	 * Returns the LODGroup mip gen settings
+	 *
+	 * @param	InLODGroup		The LOD Group ID 
+	 * @return	TextureMipGenSettings for lod group
+	 */
+	ENGINE_API const TextureMipGenSettings& GetTextureMipGenSettings( int32 InLODGroup ) const; 
+
 
 	/**
 	 * Returns the texture group names, sorted like enum.

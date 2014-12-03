@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UScriptBlueprint
 
-UScriptBlueprint::UScriptBlueprint(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScriptBlueprint::UScriptBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -5,7 +5,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryGenerator_Composite::UEnvQueryGenerator_Composite(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryGenerator_Composite::UEnvQueryGenerator_Composite(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 
 }

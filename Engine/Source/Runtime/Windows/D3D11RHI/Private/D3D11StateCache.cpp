@@ -185,13 +185,7 @@ void FD3D11StateCacheBase::VerifyCacheState()
 		Direct3DDeviceIMContext->OMGetBlendState(BlendState.GetInitReference(), BlendFactor, &SampleMask);
 
 		check(BlendState.GetReference() == CurrentBlendState);
-#ifdef PLATFORM_XBOXONE
-		//MONO BUG WORKAROUND and a check to make sure it isn't fixed yet.
-		// mono's OMGetBlendState fails to set elements 2 and 3 (they don't change when you call OMGetBlendState)
-		check(FMemory::Memcmp(BlendFactor, CurrentBlendFactor, sizeof(float)*2) == 0);
-#else
 		check(FMemory::Memcmp(BlendFactor, CurrentBlendFactor, sizeof(CurrentBlendFactor)) == 0);
-#endif
 		check(SampleMask == CurrentBlendSampleMask);
 	}
 
@@ -232,10 +226,7 @@ void FD3D11StateCacheBase::VerifyCacheState()
 		for (uint32 Index = 0; Index < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; Index++)
 		{
 			check(VertexBuffers[Index] == CurrentVertexBuffers[Index].VertexBuffer);
-#ifndef PLATFORM_XBOXONE
-			//Broken on mono.  will return stride = "previous stride" after call to IASetVertexBuffers(0,1,0,0,0);
 			check(Strides[Index] == CurrentVertexBuffers[Index].Stride);
-#endif
 			check(Offsets[Index] == CurrentVertexBuffers[Index].Offset);
 			if (VertexBuffers[Index])
 			{
@@ -295,7 +286,17 @@ void FD3D11StateCacheBase::ClearState()
 
 #if D3D11_ALLOW_STATE_CACHE
 	// Shader Resource View State Cache
-	FMemory::Memzero(CurrentShaderResourceViews, sizeof(CurrentShaderResourceViews));
+	for (uint32 ShaderFrequency = 0; ShaderFrequency < SF_MAX; ShaderFrequency++ )
+	{
+		for (uint32 Index = 0; Index < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; Index++)
+		{
+			if(CurrentShaderResourceViews[ShaderFrequency][Index])
+			{
+				CurrentShaderResourceViews[ShaderFrequency][Index]->Release();
+				CurrentShaderResourceViews[ShaderFrequency][Index] = NULL;
+			}
+		}
+	}
 
 	// Rasterizer State Cache
 	CurrentRasterizerState = nullptr;

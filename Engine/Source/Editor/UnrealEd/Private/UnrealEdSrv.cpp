@@ -27,13 +27,20 @@
 #include "Editor/ActorPositioning.h"
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Landscape/LandscapeInfo.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeGizmoActiveActor.h"
-#include "Landscape/LandscapeComponent.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape.h"
+#include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeProxy.h"
+#include "LandscapeGizmoActiveActor.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "ComponentReregisterContext.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+#include "Engine/DestructibleMesh.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 
@@ -42,6 +49,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 //@hack: this needs to be cleaned up!
 static TCHAR TempStr[MAX_EDCMD], TempName[MAX_EDCMD], Temp[MAX_EDCMD];
 static uint16 Word1, Word4;
+
 
 /**
  * Dumps a set of selected objects to debugf.
@@ -519,7 +527,9 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 		}
 
 		// Fixed up for Landscape fix match case
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		auto& LandscapeInfoMap = GetLandscapeInfoMap(InWorld);
+
+		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
 			if (LandscapeInfo)
@@ -572,7 +582,7 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 		}
 
 		// Fix proxies relative transformations to LandscapeActor
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->FixupProxiesWeightmaps();
@@ -589,7 +599,7 @@ bool UUnrealEdEngine::HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutput
 
 	if (World && World->GetWorldSettings())
 	{
-		for (auto It = World->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = GetLandscapeInfoMap(World).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			for (auto LandscapeComponentIt = Info->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
@@ -611,7 +621,7 @@ bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, 
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
 	{
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RecreateCollisionComponents();
@@ -760,7 +770,10 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		FString ConfigFilePath;
 		if(FParse::Value(Str,TEXT("REGENLOC="), ConfigFilePath))
 		{
-			FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+			FJsonInternationalizationManifestSerializer ManifestSerializer;
+
+			FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 		}
 	}
 #endif
@@ -1254,8 +1267,8 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 				FString FileName;
 				const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
-				FFileHelper::GenerateNextBitmapFilename(*BaseFileName, FileName);
-				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetTypedData());
+				FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
+				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
 			}
 		};
 
@@ -2845,11 +2858,11 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 					{
 						if (Actor->IsA(AStaticMeshActor::StaticClass()))
 						{
-							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->StaticMeshComponent, NULL);
+							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NULL);
 						}
 						else if (Actor->IsA(ASkeletalMeshActor::StaticClass()))
 						{
-							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->SkeletalMeshComponent);
+							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent());
 						}
 						else if (Actor->IsA(ABrush::StaticClass()))
 						{
@@ -2976,7 +2989,10 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	FString ConfigFilePath;
 	if( FParse::Value(Str,TEXT("REGENLOC="), ConfigFilePath) )
 	{
-		FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
+
+		FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 	}
 #endif
 

@@ -42,7 +42,7 @@ public:
 		const FString BaseNetName = Context.NetNameMap->MakeValidName(Node);
 
 		// Create a term to store a bool that determines if we're in the first execution of the node or not
-		FBPTerminal* FirstRunTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* FirstRunTerm = Context.CreateLocalTerminal();
 		FirstRunTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 		FirstRunTerm->Source = Node;
 		FirstRunTerm->Name = BaseNetName + TEXT("_FirstRun");
@@ -52,7 +52,7 @@ public:
 		// If there is already a data node from expansion phase
 		if (!GateNode || !GateNode->DataNode)
 		{
-			FBPTerminal* DataTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+			FBPTerminal* DataTerm = Context.CreateLocalTerminal();
 			DataTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 			DataTerm->Source = Node;
 			DataTerm->Name = BaseNetName + TEXT("_Data");
@@ -62,7 +62,7 @@ public:
 		// Create a local scratch bool for run-time if there isn't already one
 		if (!GenericBoolTerm)
 		{
-			GenericBoolTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+			GenericBoolTerm = Context.CreateLocalTerminal();
 			GenericBoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 			GenericBoolTerm->Source = Node;
 			GenericBoolTerm->Name = BaseNetName + TEXT("_ScratchBool");
@@ -71,7 +71,7 @@ public:
 		// Create a local scratch int for run-time index tracking if there isn't already one
 		if (!IndexTerm)
 		{
-			IndexTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+			IndexTerm = Context.CreateLocalTerminal();
 			IndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 			IndexTerm->Source = Node;
 			IndexTerm->Name = BaseNetName + TEXT("_ScratchIndex");
@@ -162,26 +162,23 @@ public:
 		FBPTerminal* FirstRunBoolTerm = FirstRunTermMap.FindRef(GateNode);
 
 		// Create a literal pin that represents a -1 value
-		FBPTerminal* InvalidIndexTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-		InvalidIndexTerm->bIsLocal = true;
+		FBPTerminal* InvalidIndexTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		InvalidIndexTerm->bIsLiteral = true;
 		InvalidIndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 		InvalidIndexTerm->Name = TEXT("-1");
 
 		// Create a literal pin that represents a true value
-		FBPTerminal* TrueBoolTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* TrueBoolTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		TrueBoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 		TrueBoolTerm->bIsLiteral = true;
-		TrueBoolTerm->bIsLocal = true;
 		TrueBoolTerm->Name = TEXT("true");
 
 		// Get the out pins and create a literal describing how many logical outs there are
 		TArray<UEdGraphPin*> OutPins;
 		GateNode->GetOutPins(OutPins);
-		FBPTerminal* NumOutsTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* NumOutsTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		NumOutsTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 		NumOutsTerm->bIsLiteral = true;
-		NumOutsTerm->bIsLocal = true;
 		NumOutsTerm->Name = FString::Printf(TEXT("%d"), OutPins.Num());
 
 		///////////////////////////////////////////////////
@@ -398,8 +395,7 @@ public:
 			IndexEqualityStatement.FunctionContext = NULL;
 			IndexEqualityStatement.bIsParentContext = false;
 			// LiteralIndexTerm will be the right side of the == statemnt
-			FBPTerminal* LiteralIndexTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			LiteralIndexTerm->bIsLocal = true;
+			FBPTerminal* LiteralIndexTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 			LiteralIndexTerm->bIsLiteral = true;
 			LiteralIndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 			LiteralIndexTerm->Name = FString::Printf(TEXT("%d"), OutIdx);
@@ -446,8 +442,7 @@ public:
 		PrintStatement.FunctionContext = NULL;
 		PrintStatement.bIsParentContext = false;
 		// Create a local int for use in the equality call function below (LiteralTerm = the right hand side of the EqualEqual_IntInt or NotEqual_BoolBool statement)
-		FBPTerminal* LiteralStringTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-		LiteralStringTerm->bIsLocal = true;
+		FBPTerminal* LiteralStringTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		LiteralStringTerm->bIsLiteral = true;
 		LiteralStringTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_String;
 		LiteralStringTerm->Name = FString::Printf(*LOCTEXT("MultiGateNode IndexWarning", "MultiGate Node failed! Out of bounds indexing of the out pins. There are only %d outs available.").ToString(), OutPins.Num());
@@ -457,8 +452,8 @@ public:
 	}
 };
 
-UK2Node_MultiGate::UK2Node_MultiGate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MultiGate::UK2Node_MultiGate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -612,48 +607,45 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	/////////////////////////////
+	// Handle the "Reset"
+	/////////////////////////////
+
+	// Redirect the reset pin if linked to
+	UEdGraphPin* ResetPin = GetResetPin();
+	if (ResetPin->LinkedTo.Num() > 0)
 	{
+		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
 		/////////////////////////////
-		// Handle the "Reset"
+		// Temporary Variable node
 		/////////////////////////////
 
-		// Redirect the reset pin if linked to
-		UEdGraphPin* ResetPin = GetResetPin();
-		if (ResetPin->LinkedTo.Num() > 0)
-		{
-			const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+		// Create the node
+		UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
+		TempVarNode->VariableType.PinCategory = Schema->PC_Int;
+		TempVarNode->AllocateDefaultPins();
+		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
+		// Give a reference of the variable node to the multi gate node
+		DataNode = TempVarNode;
 
-			/////////////////////////////
-			// Temporary Variable node
-			/////////////////////////////
+		/////////////////////////////
+		// Assignment node
+		/////////////////////////////
 
-			// Create the node
-			UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
-			TempVarNode->VariableType.PinCategory = Schema->PC_Int;
-			TempVarNode->AllocateDefaultPins();
-			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
-			// Give a reference of the variable node to the multi gate node
-			DataNode = TempVarNode;
+		// Create the node
+		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
+		AssignmentNode->AllocateDefaultPins();
+		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
 
-			/////////////////////////////
-			// Assignment node
-			/////////////////////////////
+		// Coerce the wildcards pin types (set the default of the value to 0)
+		AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+		AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
+		AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+		AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
 
-			// Create the node
-			UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
-			AssignmentNode->AllocateDefaultPins();
-			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
-
-			// Coerce the wildcards pin types (set the default of the value to 0)
-			AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
-			AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
-			AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
-			AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
-
-			// Move the "Reset" link to the Assignment node
-			CompilerContext.MovePinLinksToIntermediate(*ResetPin, *AssignmentNode->GetExecPin());
-		}
+		// Move the "Reset" link to the Assignment node
+		CompilerContext.MovePinLinksToIntermediate(*ResetPin, *AssignmentNode->GetExecPin());
 	}
 }
 

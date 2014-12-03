@@ -3,7 +3,9 @@
 #pragma once
 
 #include "Abilities/GameplayAbility.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
 #include "GameplayCueView.h"
+#include "GameplayCueInterface.h"
 #include "AbilitySystemBlueprintLibrary.generated.h"
 
 class UAnimMontage;
@@ -32,9 +34,6 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromLocations(const FGameplayAbilityTargetingLocationInfo& SourceLocation, const FGameplayAbilityTargetingLocationInfo& TargetLocation);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-	static FGameplayAbilityTargetDataHandle	AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data);
-
-	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
@@ -44,7 +43,22 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActor(AActor* Actor);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActorArray(TArray<TWeakObjectPtr<AActor>> ActorArray, bool OneTargetPerHandle);
+
+	/** Create a new target data handle with filtration performed on the data */
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FGameplayAbilityTargetDataHandle	FilterTargetData(FGameplayAbilityTargetDataHandle TargetDataHandle, FGameplayTargetDataFilterHandle ActorFilterClass);
+
+	/** Create a handle for filtering target data, filling out all fields */
+	UFUNCTION(BlueprintPure, Category = "Filter")
+	static FGameplayTargetDataFilterHandle MakeFilterHandle(FGameplayTargetDataFilter Filter, AActor* FilterActor);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static TArray<AActor*> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	/** Returns true if the given TargetData has at least 1 actor targeted */
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static bool TargetDataHasActor(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static bool TargetDataHasHitResult(FGameplayAbilityTargetDataHandle HitResult, int32 Index);
@@ -76,6 +90,22 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static bool HasHitResult(FGameplayCueParameters Parameters);
+
+	/** Forwards the gameplay cue to another gameplay cue interface object */
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayCue")
+	static void ForwardGameplayCueToTarget(TScriptInterface<IGameplayCueInterface> TargetCueInterface, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
+	/** Gets the instigating actor (Pawn/Avatar) of the GameplayCue */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static AActor*	GetInstigatorActor(FGameplayCueParameters Parameters);
+
+	/** Gets instigating world location */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static FTransform GetInstigatorTransform(FGameplayCueParameters Parameters);
+
+	/** Gets instigating world location */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static FVector GetOrigin(FGameplayCueParameters Parameters);
 
 
 	// -------------------------------------------------------------------------------

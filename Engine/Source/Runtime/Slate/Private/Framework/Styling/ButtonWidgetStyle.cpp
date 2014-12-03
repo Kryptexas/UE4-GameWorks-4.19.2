@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UButtonWidgetStyle::UButtonWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UButtonWidgetStyle::UButtonWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

@@ -2,7 +2,7 @@
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 
-UBehaviorTreeDecoratorGraphNode::UBehaviorTreeDecoratorGraphNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeDecoratorGraphNode::UBehaviorTreeDecoratorGraphNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bAllowModifingInputs = true;
 }

@@ -526,6 +526,10 @@ class IAnalyticsProvider;
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
 DECLARE_DELEGATE(FEndStreamingPauseDelegate);
 
+/**
+ * Abstract base class of all Engine classes, responsible for management of systems critical to editor or game systems.
+ * Also defines default classes for certain engine systems.
+ */
 UCLASS(abstract, config=Engine, defaultconfig, transient)
 class ENGINE_API UEngine
 	: public UObject
@@ -658,10 +662,13 @@ public:
 	UPROPERTY()
 	TSubclassOf<class UGameUserSettings> GameUserSettingsClass;
 
+	/** name of Controller class to be used as default AIController class for pawns */
+	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AI", DisplayName = "Default AIController class for all Pawns"))
+	FStringClassReference AIControllerClassName;
+
 	/** Global instance of the user game settings */
 	UPROPERTY()
 	class UGameUserSettings* GameUserSettings;
-
 
 	/** @todo document */
 	UPROPERTY()
@@ -1711,7 +1718,13 @@ public:
 	void TickDeferredCommands();
 
 	/** Get tick rate limiter. */
-	virtual float GetMaxTickRate( float /*DeltaTime*/, bool bAllowFrameRateSmoothing = true );
+	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const;
+
+	/** Updates the running average delta time */
+	virtual void UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing = true);
+
+	/** Whether we're allowed to do frame rate smoothing */
+	bool IsAllowedFramerateSmoothing(bool bAllowFrameRateSmoothing) const;
 
 	/**
 	 * Pauses / un-pauses the game-play when focus of the game's window gets lost / gained.
@@ -1792,7 +1805,7 @@ public:
 	 * @returns	pointer to the LocalPlayer with the given index
 	 */
 	ULocalPlayer* GetGamePlayer( UWorld * InWorld, int32 InPlayer );
-	ULocalPlayer* GetGamePlayer( const UGameViewportClient * InViewport, int32 InPlayer );
+	ULocalPlayer* GetGamePlayer( const UGameViewportClient* InViewport, int32 InPlayer );
 	
 	/**
 	 * return the first ULocalPlayer in the GamePlayers array.
@@ -2031,7 +2044,7 @@ public:
 	 * @param	ControllerId	the game pad index of the player to search for
 	 * @return	The player that has the ControllerId specified, or nullptr if no players have that ControllerId
 	 */
-	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId );
+	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId );
 	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
 
 	void SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID);
@@ -2154,6 +2167,13 @@ protected:
 	 * Loads all Engine object references from their corresponding config entries.
 	 */
 	virtual void InitializeObjectReferences();
+
+	/** 
+	 * Initializes the running average delta to some good initial framerate 
+	 */
+	virtual void InitializeRunningAverageDeltaTime();
+
+	float RunningAverageDeltaTime;
 
 	/** Broadcasts when a world is added. */
 	FWorldAddedEvent			WorldAddedEvent;
@@ -2508,6 +2528,12 @@ public:
 
 private:
 	void CreateGameUserSettings();
+
+	/** Allows subclasses to pass the failure to a UGameInstance if possible (mainly for blueprints) */
+	virtual void HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType);
+
+	/** Allows subclasses to pass the failure to a UGameInstance if possible (mainly for blueprints) */
+	virtual void HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType);
 
 public:
 	/**

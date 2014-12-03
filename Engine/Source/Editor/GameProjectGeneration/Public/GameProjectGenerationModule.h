@@ -4,8 +4,23 @@
 #pragma once
 
 #include "ModuleInterface.h"
+#include "ModuleDescriptor.h"
 
 struct FTemplateCategory;
+
+/** Context information used when validating that source code is being placed in the correct place for a given module */
+struct FModuleContextInfo
+{
+	/** Path to the Source folder of the module */
+	FString ModuleSourcePath;
+
+	/** Name of the module */
+	FString ModuleName;
+
+	/** Type of this module, eg, Runtime, Editor, etc */
+	enum EHostType::Type ModuleType;
+};
+
 
 /**
  * Game Project Generation module
@@ -63,16 +78,21 @@ public:
 	virtual bool UpdateCodeProject(FText& OutFailReason);
 
 	/** Gets the current projects source file count */
-	virtual int32 GetProjectCodeFileCount();
+	virtual bool ProjectHasCodeFiles();
+
+	/** Returns the path to the module's include header */
+	virtual FString DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo);
+
+	virtual TArray<FModuleContextInfo> GetCurrentProjectModules();
 
 	/** Gets file and size info about the source directory */
 	virtual void GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize);
 
-	/** Update code resource files */
-	virtual bool UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
-
 	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
 	virtual void CheckAndWarnProjectFilenameValid();
+
+	/** Generate basic project source code */
+	virtual bool GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
 	/**
 	 * Update the list of supported target platforms based upon the parameters provided

@@ -3,6 +3,7 @@
 #include "SharedSettingsWidgetsPrivatePCH.h"
 #include "SHyperlinkLaunchURL.h"
 #include "EditorStyleSet.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "SHyperlinkLaunchURL"
 

@@ -219,7 +219,7 @@ FPlatformOpenGLContext::FPlatformOpenGLContext()
 , VirtualScreen(0)
 , VendorID(0)
 , RendererID(0)
-, SupportsDepthFetchDuringDepthTest(false)
+, SupportsDepthFetchDuringDepthTest(true)
 {
 }
 
@@ -433,19 +433,22 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 				PlatformContext->VendorID = 0x1002;
 			}
 			
-			// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
-			// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.
-			switch((PlatformContext->RendererID & kCGLRendererIDMatchingMask))
+			if(FPlatformMisc::IsRunningOnMavericks())
 			{
-				case kCGLRendererATIRadeonX4000ID:
+				// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
+				// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.
+				switch((PlatformContext->RendererID & kCGLRendererIDMatchingMask))
 				{
-					// @todo: remove once AMD fix the AMDX4000 driver for GCN cards so that it is possible to sample the depth while also stencil testing to the same DEPTH_STENCIL texture - it works on all other cards we have.
-					PlatformContext->SupportsDepthFetchDuringDepthTest = false;
-					break;
-				}
-				default:
-				{
-					PlatformContext->SupportsDepthFetchDuringDepthTest = true;
+					case kCGLRendererATIRadeonX4000ID:
+					{
+						// @todo: remove once AMD fix the AMDX4000 driver for GCN cards so that it is possible to sample the depth while also stencil testing to the same DEPTH_STENCIL texture - it works on all other cards we have.
+						PlatformContext->SupportsDepthFetchDuringDepthTest = false;
+						break;
+					}
+					default:
+					{
+						PlatformContext->SupportsDepthFetchDuringDepthTest = true;
+					}
 				}
 			}
 		}

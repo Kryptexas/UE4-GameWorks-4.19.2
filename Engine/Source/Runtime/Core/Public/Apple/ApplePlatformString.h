@@ -9,6 +9,13 @@
 #include "StandardPlatformString.h"
 #include "AssertionMacros.h"
 #include "OutputDevice.h"
+#include "HAL/Platform.h"
+
+#if PLATFORM_MAC
+#include "Mac/MacSystemIncludes.h"
+#elif PLATFORM_IOS
+#include "IOS/IOSSystemIncludes.h"
+#endif
 
 /**
 * Mac string implementation

@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "Windows/WindowsSystemIncludes.h"
 
 /** Windows implementation of the process handle. */
 #if PLATFORM_WINDOWS && defined(__clang__)	// @todo clang: Clang on Windows has a bug with non-type template arguments
@@ -58,7 +60,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 		HANDLE			GetSemaphore() { return Semaphore; }
 
 		/** Constructor */
-		FWindowsSemaphore(const FString & InName, HANDLE InSemaphore);
+		FWindowsSemaphore(const FString& InName, HANDLE InSemaphore);
 
 		/** Destructor */
 		virtual ~FWindowsSemaphore();
@@ -75,6 +77,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void FreeDllHandle( void* DllHandle );
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
 	static int32 GetDllApiVersion( const TCHAR* Filename );
+	static void AddDllDirectory(const TCHAR* Directory);
 	static void PushDllDirectory(const TCHAR* Directory);
 	static void PopDllDirectory(const TCHAR* Directory);
 	static void CleanFileCache();
@@ -115,7 +118,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
 	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
-	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
+	static FSemaphore* NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks = 1);
 	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 	static bool Daemonize();
 

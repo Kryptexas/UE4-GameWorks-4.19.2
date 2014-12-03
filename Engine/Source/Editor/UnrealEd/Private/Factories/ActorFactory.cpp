@@ -26,11 +26,17 @@ ActorFactory.cpp:
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Engine/NiagaraActor.h"
+#include "Engine/NiagaraEffect.h"
+
 #include "VectorField/VectorField.h"
 
 #include "Engine/TriggerBox.h"
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
+#include "Engine/TextRenderActor.h"
+
+#include "Engine/DestructibleMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
@@ -80,7 +86,8 @@ FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& In
 		// Transform the model axis with this new pitch rotation to see if there is any need for yaw
 		TransformedModelAxis = (InActorRotation * DeltaRotation).RotateVector(InModelAxis);
 
-		if (!FVector::Parallel(InWorldNormal, TransformedModelAxis))
+		const float ParallelDotThreshold = 0.98f; // roughly 11.4 degrees (!)
+		if (!FVector::Coincident(InWorldNormal, TransformedModelAxis, ParallelDotThreshold))
 		{
 			const float Yaw = FMath::Atan2(InWorldNormal.X, InWorldNormal.Y) - FMath::Atan2(TransformedModelAxis.X, TransformedModelAxis.Y);
 
@@ -96,8 +103,8 @@ FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& In
 /*-----------------------------------------------------------------------------
 UActorFactory
 -----------------------------------------------------------------------------*/
-UActorFactory::UActorFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactory::UActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("DefaultName","Actor");
 	bShowInEditorQuickMenu = false;
@@ -223,8 +230,8 @@ void UActorFactory::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 /*-----------------------------------------------------------------------------
 UActorFactoryStaticMesh
 -----------------------------------------------------------------------------*/
-UActorFactoryStaticMesh::UActorFactoryStaticMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryStaticMesh::UActorFactoryStaticMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("StaticMeshDisplayName", "Static Mesh");
 	NewActorClass = AStaticMeshActor::StaticClass();
@@ -251,7 +258,7 @@ void UActorFactoryStaticMesh::PostSpawnActor( UObject* Asset, AActor* NewActor)
 
 	// Change properties
 	AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>( NewActor );
-	UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+	UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 	check(StaticMeshComponent);
 
 	StaticMeshComponent->UnregisterComponent();
@@ -268,8 +275,8 @@ UObject* UActorFactoryStaticMesh::GetAssetFromActorInstance(AActor* Instance)
 	check(Instance->IsA(NewActorClass));
 	AStaticMeshActor* SMA = CastChecked<AStaticMeshActor>(Instance);
 
-	check(SMA->StaticMeshComponent);
-	return SMA->StaticMeshComponent->StaticMesh;
+	check(SMA->GetStaticMeshComponent());
+	return SMA->GetStaticMeshComponent()->StaticMesh;
 }
 
 void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -278,7 +285,7 @@ void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 	{
 		UStaticMesh* StaticMesh = CastChecked<UStaticMesh>(Asset);
 		AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>(CDO);
-		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 
 		StaticMeshComponent->StaticMesh = StaticMesh;
 		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
@@ -294,8 +301,8 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 /*-----------------------------------------------------------------------------
 UActorFactoryDeferredDecal
 -----------------------------------------------------------------------------*/
-UActorFactoryDeferredDecal::UActorFactoryDeferredDecal(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryDeferredDecal::UActorFactoryDeferredDecal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 { 
 	DisplayName = LOCTEXT("DeferredDecalDisplayName", "Deferred Decal");
 	NewActorClass = ADecalActor::StaticClass();
@@ -432,8 +439,8 @@ TargetMaterial :
 /*-----------------------------------------------------------------------------
 UActorFactoryTextRender
 -----------------------------------------------------------------------------*/
-UActorFactoryTextRender::UActorFactoryTextRender(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Property initialization
 	DisplayName = LOCTEXT("TextRenderDisplayName", "Text Render");
@@ -445,8 +452,8 @@ UActorFactoryTextRender::UActorFactoryTextRender(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 UActorFactoryEmitter
 -----------------------------------------------------------------------------*/
-UActorFactoryEmitter::UActorFactoryEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryEmitter::UActorFactoryEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("EmitterDisplayName", "Emitter");
 	NewActorClass = AEmitter::StaticClass();
@@ -471,7 +478,7 @@ void UActorFactoryEmitter::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	GEditor->SetActorLabelUnique(NewActor, ParticleSystem->GetName());
 
 	// Term Component
-	NewEmitter->ParticleSystemComponent->UnregisterComponent();
+	NewEmitter->GetParticleSystemComponent()->UnregisterComponent();
 
 	// Change properties
 	NewEmitter->SetTemplate(ParticleSystem);
@@ -487,16 +494,16 @@ void UActorFactoryEmitter::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	}
 
 	// Init Component
-	NewEmitter->ParticleSystemComponent->RegisterComponent();
+	NewEmitter->GetParticleSystemComponent()->RegisterComponent();
 }
 
 UObject* UActorFactoryEmitter::GetAssetFromActorInstance(AActor* Instance)
 {
 	check(Instance->IsA(NewActorClass));
 	AEmitter* Emitter = CastChecked<AEmitter>(Instance);
-	if (Emitter->ParticleSystemComponent.IsValid())
+	if (Emitter->GetParticleSystemComponent())
 	{
-		return Emitter->ParticleSystemComponent->Template;
+		return Emitter->GetParticleSystemComponent()->Template;
 	}
 	else
 	{
@@ -515,11 +522,87 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 }
 
 
+
+
+
+/*-----------------------------------------------------------------------------
+UActorFactoryNiagara
+-----------------------------------------------------------------------------*/
+UActorFactoryNiagara::UActorFactoryNiagara(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("EmitterDisplayName", "NiagaraEffect");
+	NewActorClass = ANiagaraActor::StaticClass();
+}
+
+bool UActorFactoryNiagara::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UNiagaraEffect::StaticClass()))
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoEffect", "A valid Niagara effect must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+void UActorFactoryNiagara::PostSpawnActor(UObject* Asset, AActor* NewActor)
+{
+	UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
+	ANiagaraActor* NiagaraActor = CastChecked<ANiagaraActor>(NewActor);
+
+	GEditor->SetActorLabelUnique(NewActor, Effect->GetName());
+
+	// Term Component
+	NiagaraActor->GetNiagaraComponent()->UnregisterComponent();
+
+	// Change properties
+	NiagaraActor->GetNiagaraComponent()->Effect = Effect;
+
+	// if we're created by Kismet on the server during gameplay, we need to replicate the emitter
+	if (NiagaraActor->GetWorld()->HasBegunPlay() && NiagaraActor->GetWorld()->GetNetMode() != NM_Client)
+	{
+		NiagaraActor->SetReplicates(true);
+		NiagaraActor->bAlwaysRelevant = true;
+		NiagaraActor->NetUpdateFrequency = 0.1f; // could also set bNetTemporary but LD might further trigger it or something
+	}
+
+	// Init Component
+	NiagaraActor->GetNiagaraComponent()->RegisterComponent();
+}
+
+UObject* UActorFactoryNiagara::GetAssetFromActorInstance(AActor* Instance)
+{
+	check(Instance->IsA(NewActorClass));
+	ANiagaraActor* NewActor = CastChecked<ANiagaraActor>(Instance);
+	if (NewActor->GetNiagaraComponent())
+	{
+		return NewActor->GetNiagaraComponent()->Effect;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+void UActorFactoryNiagara::PostCreateBlueprint(UObject* Asset, AActor* CDO)
+{
+	if (Asset != NULL && CDO != NULL)
+	{
+		UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
+		ANiagaraActor* Actor = CastChecked<ANiagaraActor>(CDO);
+		Actor->GetNiagaraComponent()->Effect = Effect;
+	}
+}
+
+
+
+
 /*-----------------------------------------------------------------------------
 UActorFactoryPlayerStart
 -----------------------------------------------------------------------------*/
-UActorFactoryPlayerStart::UActorFactoryPlayerStart(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPlayerStart::UActorFactoryPlayerStart(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("PlayerStartDisplayName", "Player Start");
 	NewActorClass = APlayerStart::StaticClass();
@@ -528,8 +611,8 @@ UActorFactoryPlayerStart::UActorFactoryPlayerStart(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 UActorFactoryTargetPoint
 -----------------------------------------------------------------------------*/
-UActorFactoryTargetPoint::UActorFactoryTargetPoint( const class FPostConstructInitializeProperties& PCIP )
-: Super( PCIP )
+UActorFactoryTargetPoint::UActorFactoryTargetPoint( const FObjectInitializer& ObjectInitializer )
+: Super( ObjectInitializer )
 {
 	DisplayName = LOCTEXT( "TargetPointDisplayName", "Target Point" );
 	NewActorClass = ATargetPoint::StaticClass();
@@ -538,8 +621,8 @@ UActorFactoryTargetPoint::UActorFactoryTargetPoint( const class FPostConstructIn
 /*-----------------------------------------------------------------------------
 UActorFactoryNote
 -----------------------------------------------------------------------------*/
-UActorFactoryNote::UActorFactoryNote( const class FPostConstructInitializeProperties& PCIP )
-: Super( PCIP )
+UActorFactoryNote::UActorFactoryNote( const FObjectInitializer& ObjectInitializer )
+: Super( ObjectInitializer )
 {
 	DisplayName = LOCTEXT( "NoteDisplayName", "Note" );
 	NewActorClass = ANote::StaticClass();
@@ -548,8 +631,8 @@ UActorFactoryNote::UActorFactoryNote( const class FPostConstructInitializeProper
 /*-----------------------------------------------------------------------------
 UActorFactoryPhysicsAsset
 -----------------------------------------------------------------------------*/
-UActorFactoryPhysicsAsset::UActorFactoryPhysicsAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPhysicsAsset::UActorFactoryPhysicsAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("PhysicsAssetDisplayName", "Skeletal Physics");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
@@ -588,28 +671,28 @@ void UActorFactoryPhysicsAsset::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	GEditor->SetActorLabelUnique(NewActor, PhysicsAsset->GetName());
 
 	// Term Component
-	NewSkelActor->SkeletalMeshComponent->UnregisterComponent();
+	NewSkelActor->GetSkeletalMeshComponent()->UnregisterComponent();
 
 	// Change properties
-	NewSkelActor->SkeletalMeshComponent->SkeletalMesh = UseSkelMesh;
+	NewSkelActor->GetSkeletalMeshComponent()->SkeletalMesh = UseSkelMesh;
 	if (NewSkelActor->GetWorld()->IsPlayInEditor())
 	{
 		NewSkelActor->ReplicatedMesh = UseSkelMesh;
 		NewSkelActor->ReplicatedPhysAsset = PhysicsAsset;
 	}
-	NewSkelActor->SkeletalMeshComponent->PhysicsAssetOverride = PhysicsAsset;
+	NewSkelActor->GetSkeletalMeshComponent()->PhysicsAssetOverride = PhysicsAsset;
 
 	// set physics setup
-	NewSkelActor->SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
-	NewSkelActor->SkeletalMeshComponent->BodyInstance.bSimulatePhysics = true;
-	NewSkelActor->SkeletalMeshComponent->bBlendPhysics = true;
+	NewSkelActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+	NewSkelActor->GetSkeletalMeshComponent()->BodyInstance.bSimulatePhysics = true;
+	NewSkelActor->GetSkeletalMeshComponent()->bBlendPhysics = true;
 
 	NewSkelActor->bAlwaysRelevant = true;
 	NewSkelActor->bReplicateMovement = true;
 	NewSkelActor->SetReplicates(true);
 
 	// Init Component
-	NewSkelActor->SkeletalMeshComponent->RegisterComponent();
+	NewSkelActor->GetSkeletalMeshComponent()->RegisterComponent();
 }
 
 void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -624,14 +707,14 @@ void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO
 
 			USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.Get();
 
-			SkeletalPhysicsActor->SkeletalMeshComponent->SkeletalMesh = UseSkelMesh;
-			SkeletalPhysicsActor->SkeletalMeshComponent->PhysicsAssetOverride = PhysicsAsset;
+			SkeletalPhysicsActor->GetSkeletalMeshComponent()->SkeletalMesh = UseSkelMesh;
+			SkeletalPhysicsActor->GetSkeletalMeshComponent()->PhysicsAssetOverride = PhysicsAsset;
 		}
 
 		// set physics setup
-		SkeletalPhysicsActor->SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
-		SkeletalPhysicsActor->SkeletalMeshComponent->BodyInstance.bSimulatePhysics = true;
-		SkeletalPhysicsActor->SkeletalMeshComponent->bBlendPhysics = true;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->BodyInstance.bSimulatePhysics = true;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->bBlendPhysics = true;
 
 		SkeletalPhysicsActor->bAlwaysRelevant = true;
 		SkeletalPhysicsActor->bReplicateMovement = true;
@@ -643,8 +726,8 @@ void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO
 /*-----------------------------------------------------------------------------
 UActorFactoryAnimationAsset
 -----------------------------------------------------------------------------*/
-UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("SingleAnimSkeletalDisplayName", "Single Animation Skeletal");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
@@ -682,7 +765,7 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 		// skeleton should be loaded by this time. If not, we have problem
 		// so I'm changing this to load directly not using tags and values
-		USkeleton * Skeleton = Cast<USkeleton>(SkeletonData.GetAsset());
+		USkeleton* Skeleton = Cast<USkeleton>(SkeletonData.GetAsset());
 		if (Skeleton)
 		{
 			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
@@ -742,7 +825,7 @@ USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* A
 	if( AnimationAsset != NULL )
 	{
 		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetPreviewMesh(true) : NULL;
+		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetAssetPreviewMesh(AnimationAsset) : NULL;
 	}
 	else if( VertexAnimation != NULL )
 	{
@@ -767,7 +850,7 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 	ASkeletalMeshActor* NewSMActor = CastChecked<ASkeletalMeshActor>(NewActor);
-	USkeletalMeshComponent* NewSASComponent = (NewSMActor->SkeletalMeshComponent);
+	USkeletalMeshComponent* NewSASComponent = (NewSMActor->GetSkeletalMeshComponent());
 
 	if( NewSASComponent )
 	{
@@ -803,7 +886,7 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 		UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
-		USkeletalMeshComponent* SkeletalComponent = (SkeletalMeshActor->SkeletalMeshComponent);
+		USkeletalMeshComponent* SkeletalComponent = (SkeletalMeshActor->GetSkeletalMeshComponent());
 		if (AnimationAsset)
 		{
 			SkeletalComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
@@ -821,8 +904,8 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 /*-----------------------------------------------------------------------------
 UActorFactorySkeletalMesh
 -----------------------------------------------------------------------------*/
-UActorFactorySkeletalMesh::UActorFactorySkeletalMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactorySkeletalMesh::UActorFactorySkeletalMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 { 
 	DisplayName = LOCTEXT("SkeletalMeshDisplayName", "Skeletal Mesh");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
@@ -867,7 +950,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 
 		// skeleton should be loaded by this time. If not, we have problem
 		// so I'm changing this to load directly not using tags and values
-		USkeleton * Skeleton = Cast<USkeleton>(TargetSkeleton.GetAsset());
+		USkeleton* Skeleton = Cast<USkeleton>(TargetSkeleton.GetAsset());
 		if(Skeleton)
 		{
 			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
@@ -890,7 +973,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 	if ( !SkeletalMeshData.IsValid() && AssetData.GetClass()->IsChildOf( USkeleton::StaticClass() ) )
 	{
 		// so I'm changing this to load directly not using tags and values
-		USkeleton * Skeleton = Cast<USkeleton>(AssetData.GetAsset());
+		USkeleton* Skeleton = Cast<USkeleton>(AssetData.GetAsset());
 		if(Skeleton)
 		{
 			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
@@ -956,20 +1039,20 @@ void UActorFactorySkeletalMesh::PostSpawnActor( UObject* Asset, AActor* NewActor
 	GEditor->SetActorLabelUnique(NewActor, SkeletalMesh->GetName());
 
 	// Term Component
-	NewSMActor->SkeletalMeshComponent->UnregisterComponent();
+	NewSMActor->GetSkeletalMeshComponent()->UnregisterComponent();
 
 	// Change properties
-	NewSMActor->SkeletalMeshComponent->SkeletalMesh = SkeletalMesh;
+	NewSMActor->GetSkeletalMeshComponent()->SkeletalMesh = SkeletalMesh;
 	if (NewSMActor->GetWorld()->IsGameWorld())
 	{
 		NewSMActor->ReplicatedMesh = SkeletalMesh;
 	}
 
 	// Init Component
-	NewSMActor->SkeletalMeshComponent->RegisterComponent();
+	NewSMActor->GetSkeletalMeshComponent()->RegisterComponent();
 	if( AnimBlueprint )
 	{
-		NewSMActor->SkeletalMeshComponent->SetAnimInstanceClass(AnimBlueprint->GeneratedClass);
+		NewSMActor->GetSkeletalMeshComponent()->SetAnimInstanceClass(AnimBlueprint->GeneratedClass);
 	}
 }
 
@@ -981,8 +1064,8 @@ void UActorFactorySkeletalMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Asset);
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
-		SkeletalMeshActor->SkeletalMeshComponent->SkeletalMesh = SkeletalMesh;
-		SkeletalMeshActor->SkeletalMeshComponent->AnimBlueprintGeneratedClass = AnimBlueprint ? Cast<UAnimBlueprintGeneratedClass>(AnimBlueprint->GeneratedClass) : NULL;
+		SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh = SkeletalMesh;
+		SkeletalMeshActor->GetSkeletalMeshComponent()->AnimBlueprintGeneratedClass = AnimBlueprint ? Cast<UAnimBlueprintGeneratedClass>(AnimBlueprint->GeneratedClass) : NULL;
 	}
 }
 
@@ -995,8 +1078,8 @@ FQuat UActorFactorySkeletalMesh::AlignObjectToSurfaceNormal(const FVector& InSur
 /*-----------------------------------------------------------------------------
 UActorFactoryCameraActor
 -----------------------------------------------------------------------------*/
-UActorFactoryCameraActor::UActorFactoryCameraActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryCameraActor::UActorFactoryCameraActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("CameraDisplayName", "Camera");
 	NewActorClass = ACameraActor::StaticClass();
@@ -1005,8 +1088,8 @@ UActorFactoryCameraActor::UActorFactoryCameraActor(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 UActorFactoryAmbientSound
 -----------------------------------------------------------------------------*/
-UActorFactoryAmbientSound::UActorFactoryAmbientSound(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryAmbientSound::UActorFactoryAmbientSound(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("AmbientSoundDisplayName", "Ambient Sound");
 	NewActorClass = AAmbientSound::StaticClass();
@@ -1037,7 +1120,7 @@ void UActorFactoryAmbientSound::PostSpawnActor( UObject* Asset, AActor* NewActor
 	{
 		AAmbientSound* NewSound = CastChecked<AAmbientSound>( NewActor );
 		GEditor->SetActorLabelUnique(NewSound, AmbientSound->GetName());
-		NewSound->AudioComponent->SetSound(AmbientSound);
+		NewSound->GetAudioComponent()->SetSound(AmbientSound);
 	}
 }
 
@@ -1046,8 +1129,8 @@ UObject* UActorFactoryAmbientSound::GetAssetFromActorInstance(AActor* Instance)
 	check(Instance->IsA(NewActorClass));
 	AAmbientSound* SoundActor = CastChecked<AAmbientSound>(Instance);
 
-	check(SoundActor->AudioComponent);
-	return SoundActor->AudioComponent->Sound;
+	check(SoundActor->GetAudioComponent());
+	return SoundActor->GetAudioComponent()->Sound;
 }
 
 void UActorFactoryAmbientSound::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -1059,7 +1142,7 @@ void UActorFactoryAmbientSound::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		if (AmbientSound != NULL)
 		{
 			AAmbientSound* NewSound = CastChecked<AAmbientSound>(CDO);
-			NewSound->AudioComponent->SetSound(AmbientSound);
+			NewSound->GetAudioComponent()->SetSound(AmbientSound);
 		}
 	}
 }
@@ -1067,8 +1150,8 @@ void UActorFactoryAmbientSound::PostCreateBlueprint( UObject* Asset, AActor* CDO
 /*-----------------------------------------------------------------------------
 UActorFactoryClass
 -----------------------------------------------------------------------------*/
-UActorFactoryClass::UActorFactoryClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryClass::UActorFactoryClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ClassDisplayName", "Class");
 }
@@ -1142,8 +1225,8 @@ AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const F
 /*-----------------------------------------------------------------------------
 UActorFactoryBlueprint
 -----------------------------------------------------------------------------*/
-UActorFactoryBlueprint::UActorFactoryBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryBlueprint::UActorFactoryBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("BlueprintDisplayName", "Blueprint");
 }
@@ -1242,8 +1325,8 @@ void UActorFactoryBlueprint::PostSpawnActor( UObject* Asset, AActor* NewActor)
 /*-----------------------------------------------------------------------------
 UActorFactoryMatineeActor
 -----------------------------------------------------------------------------*/
-UActorFactoryMatineeActor::UActorFactoryMatineeActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryMatineeActor::UActorFactoryMatineeActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("MatineeDisplayName", "Matinee");
 	NewActorClass = AMatineeActor::StaticClass();
@@ -1302,8 +1385,8 @@ void UActorFactoryMatineeActor::PostCreateBlueprint( UObject* Asset, AActor* CDO
 /*-----------------------------------------------------------------------------
 UActorFactoryDirectionalLight
 -----------------------------------------------------------------------------*/
-UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("DirectionalLightDisplayName", "Directional Light");
 	NewActorClass = ADirectionalLight::StaticClass();
@@ -1314,8 +1397,8 @@ UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const class FPostCo
 /*-----------------------------------------------------------------------------
 UActorFactorySpotLight
 -----------------------------------------------------------------------------*/
-UActorFactorySpotLight::UActorFactorySpotLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactorySpotLight::UActorFactorySpotLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("SpotLightDisplayName", "Spot Light");
 	NewActorClass = ASpotLight::StaticClass();
@@ -1326,8 +1409,8 @@ UActorFactorySpotLight::UActorFactorySpotLight(const class FPostConstructInitial
 /*-----------------------------------------------------------------------------
 UActorFactoryPointLight
 -----------------------------------------------------------------------------*/
-UActorFactoryPointLight::UActorFactoryPointLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPointLight::UActorFactoryPointLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("PointLightDisplayName", "Point Light");
 	NewActorClass = APointLight::StaticClass();
@@ -1338,8 +1421,8 @@ UActorFactoryPointLight::UActorFactoryPointLight(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 UActorFactorySkyLight
 -----------------------------------------------------------------------------*/
-UActorFactorySkyLight::UActorFactorySkyLight( const class FPostConstructInitializeProperties& PCIP )
-: Super( PCIP )
+UActorFactorySkyLight::UActorFactorySkyLight( const FObjectInitializer& ObjectInitializer )
+: Super( ObjectInitializer )
 {
 	DisplayName = LOCTEXT( "SkyLightDisplayName", "Sky Light" );
 	NewActorClass = ASkyLight::StaticClass();
@@ -1348,8 +1431,8 @@ UActorFactorySkyLight::UActorFactorySkyLight( const class FPostConstructInitiali
 /*-----------------------------------------------------------------------------
 UActorFactorySphereReflectionCapture
 -----------------------------------------------------------------------------*/
-UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ReflectionCaptureSphereDisplayName", "Sphere Reflection Capture");
 	NewActorClass = ASphereReflectionCapture::StaticClass();
@@ -1360,8 +1443,8 @@ UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const
 /*-----------------------------------------------------------------------------
 UActorFactoryBoxReflectionCapture
 -----------------------------------------------------------------------------*/
-UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ReflectionCaptureBoxDisplayName", "Box Reflection Capture");
 	NewActorClass = ABoxReflectionCapture::StaticClass();
@@ -1372,8 +1455,8 @@ UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const class
 /*-----------------------------------------------------------------------------
 UActorFactoryPlaneReflectionCapture
 -----------------------------------------------------------------------------*/
-UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ReflectionCapturePlaneDisplayName", "Plane Reflection Capture");
 	NewActorClass = APlaneReflectionCapture::StaticClass();
@@ -1384,8 +1467,8 @@ UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const c
 /*-----------------------------------------------------------------------------
 UActorFactoryAtmosphericFog
 -----------------------------------------------------------------------------*/
-UActorFactoryAtmosphericFog::UActorFactoryAtmosphericFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryAtmosphericFog::UActorFactoryAtmosphericFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("AtmosphericFogDisplayName", "Atmospheric Fog");
 	NewActorClass = AAtmosphericFog::StaticClass();
@@ -1394,8 +1477,8 @@ UActorFactoryAtmosphericFog::UActorFactoryAtmosphericFog(const class FPostConstr
 /*-----------------------------------------------------------------------------
 UActorFactoryExponentialHeightFog
 -----------------------------------------------------------------------------*/
-UActorFactoryExponentialHeightFog::UActorFactoryExponentialHeightFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryExponentialHeightFog::UActorFactoryExponentialHeightFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ExponentialHeightFogDisplayName", "Exponential Height Fog");
 	NewActorClass = AExponentialHeightFog::StaticClass();
@@ -1404,8 +1487,8 @@ UActorFactoryExponentialHeightFog::UActorFactoryExponentialHeightFog(const class
 /*-----------------------------------------------------------------------------
 UActorFactoryInteractiveFoliage
 -----------------------------------------------------------------------------*/
-UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("InteractiveFoliageDisplayName", "Interactive Foliage");
 	NewActorClass = AInteractiveFoliageActor::StaticClass();
@@ -1414,8 +1497,8 @@ UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const class FPo
 /*-----------------------------------------------------------------------------
 UActorFactoryTriggerBox
 -----------------------------------------------------------------------------*/
-UActorFactoryTriggerBox::UActorFactoryTriggerBox(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTriggerBox::UActorFactoryTriggerBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("TriggerBoxDisplayName", "Box Trigger");
 	NewActorClass = ATriggerBox::StaticClass();
@@ -1424,8 +1507,8 @@ UActorFactoryTriggerBox::UActorFactoryTriggerBox(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 UActorFactoryTriggerCapsule
 -----------------------------------------------------------------------------*/
-UActorFactoryTriggerCapsule::UActorFactoryTriggerCapsule(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTriggerCapsule::UActorFactoryTriggerCapsule(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("TriggerCapsuleDisplayName", "Capsule Trigger");
 	NewActorClass = ATriggerCapsule::StaticClass();
@@ -1434,8 +1517,8 @@ UActorFactoryTriggerCapsule::UActorFactoryTriggerCapsule(const class FPostConstr
 /*-----------------------------------------------------------------------------
 UActorFactoryTriggerSphere
 -----------------------------------------------------------------------------*/
-UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("TriggerSphereDisplayName", "Sphere Trigger");
 	NewActorClass = ATriggerSphere::StaticClass();
@@ -1444,8 +1527,8 @@ UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const class FPostConstruc
 /*-----------------------------------------------------------------------------
 UActorFactoryDestructible
 -----------------------------------------------------------------------------*/
-UActorFactoryDestructible::UActorFactoryDestructible(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryDestructible::UActorFactoryDestructible(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("DestructibleDisplayName", "Destructible");
 	NewActorClass = ADestructibleActor::StaticClass();
@@ -1471,13 +1554,13 @@ void UActorFactoryDestructible::PostSpawnActor( UObject* Asset, AActor* NewActor
 	GEditor->SetActorLabelUnique(NewActor, DestructibleMesh->GetName());
 
 	// Term Component
-	NewDestructibleActor->DestructibleComponent->UnregisterComponent();
+	NewDestructibleActor->GetDestructibleComponent()->UnregisterComponent();
 
 	// Change properties
-	NewDestructibleActor->DestructibleComponent->SetSkeletalMesh( DestructibleMesh );
+	NewDestructibleActor->GetDestructibleComponent()->SetSkeletalMesh( DestructibleMesh );
 
 	// Init Component
-	NewDestructibleActor->DestructibleComponent->RegisterComponent();
+	NewDestructibleActor->GetDestructibleComponent()->RegisterComponent();
 }
 
 UObject* UActorFactoryDestructible::GetAssetFromActorInstance(AActor* Instance)
@@ -1485,8 +1568,8 @@ UObject* UActorFactoryDestructible::GetAssetFromActorInstance(AActor* Instance)
 	check(Instance->IsA(NewActorClass));
 	ADestructibleActor* DA = CastChecked<ADestructibleActor>(Instance);
 
-	check(DA->DestructibleComponent);
-	return DA->DestructibleComponent->SkeletalMesh;
+	check(DA->GetDestructibleComponent());
+	return DA->GetDestructibleComponent()->SkeletalMesh;
 }
 
 void UActorFactoryDestructible::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -1496,7 +1579,7 @@ void UActorFactoryDestructible::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		UDestructibleMesh* DestructibleMesh = CastChecked<UDestructibleMesh>(Asset);
 		ADestructibleActor* DestructibleActor = CastChecked<ADestructibleActor>(CDO);
 
-		DestructibleActor->DestructibleComponent->SetSkeletalMesh(DestructibleMesh);
+		DestructibleActor->GetDestructibleComponent()->SetSkeletalMesh(DestructibleMesh);
 	}
 }
 
@@ -1510,8 +1593,8 @@ FQuat UActorFactoryDestructible::AlignObjectToSurfaceNormal(const FVector& InSur
 /*-----------------------------------------------------------------------------
 UActorFactoryVectorField
 -----------------------------------------------------------------------------*/
-UActorFactoryVectorFieldVolume::UActorFactoryVectorFieldVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryVectorFieldVolume::UActorFactoryVectorFieldVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("VectorFieldVolumeDisplayName", "Vector Field Volume");
 	NewActorClass = AVectorFieldVolume::StaticClass();
@@ -1535,9 +1618,9 @@ void UActorFactoryVectorFieldVolume::PostSpawnActor( UObject* Asset, AActor* New
 
 	GEditor->SetActorLabelUnique(NewActor, VectorField->GetName());
 
-	if ( VectorFieldVolumeActor && VectorFieldVolumeActor->VectorFieldComponent )
+	if ( VectorFieldVolumeActor && VectorFieldVolumeActor->GetVectorFieldComponent() )
 	{
-		VectorFieldVolumeActor->VectorFieldComponent->VectorField = VectorField;
+		VectorFieldVolumeActor->GetVectorFieldComponent()->VectorField = VectorField;
 		VectorFieldVolumeActor->PostEditChange();
 	}
 }
@@ -1554,9 +1637,9 @@ void CreateBrushForVolumeActor( AVolume* NewActor, UBrushBuilder* BrushBuilder )
 		NewActor->PreEditChange(NULL);
 
 		NewActor->PolyFlags = 0;
-		NewActor->Brush = new( NewActor, NAME_None, RF_Transactional )UModel(FPostConstructInitializeProperties(), NULL, true );
-		NewActor->Brush->Polys = new( NewActor->Brush, NAME_None, RF_Transactional )UPolys(FPostConstructInitializeProperties());
-		NewActor->BrushComponent->Brush = NewActor->Brush;
+		NewActor->Brush = new( NewActor, NAME_None, RF_Transactional )UModel(FObjectInitializer(), NULL, true );
+		NewActor->Brush->Polys = new( NewActor->Brush, NAME_None, RF_Transactional )UPolys(FObjectInitializer());
+		NewActor->GetBrushComponent()->Brush = NewActor->Brush;
 		if(BrushBuilder != nullptr)
 		{
 			NewActor->BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder, NewActor);
@@ -1584,8 +1667,8 @@ void CreateBrushForVolumeActor( AVolume* NewActor, UBrushBuilder* BrushBuilder )
 /*-----------------------------------------------------------------------------
 UActorFactoryBoxVolume
 -----------------------------------------------------------------------------*/
-UActorFactoryBoxVolume::UActorFactoryBoxVolume( const class FPostConstructInitializeProperties& PCIP )
-: Super(PCIP)
+UActorFactoryBoxVolume::UActorFactoryBoxVolume( const FObjectInitializer& ObjectInitializer )
+: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT( "BoxVolumeDisplayName", "Box Volume" );
 	NewActorClass = AVolume::StaticClass();
@@ -1624,8 +1707,8 @@ void UActorFactoryBoxVolume::PostSpawnActor( UObject* Asset, AActor* NewActor )
 /*-----------------------------------------------------------------------------
 UActorFactorySphereVolume
 -----------------------------------------------------------------------------*/
-UActorFactorySphereVolume::UActorFactorySphereVolume( const class FPostConstructInitializeProperties& PCIP )
-: Super(PCIP)
+UActorFactorySphereVolume::UActorFactorySphereVolume( const FObjectInitializer& ObjectInitializer )
+: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT( "SphereVolumeDisplayName", "Sphere Volume" );
 	NewActorClass = AVolume::StaticClass();
@@ -1666,8 +1749,8 @@ void UActorFactorySphereVolume::PostSpawnActor( UObject* Asset, AActor* NewActor
 /*-----------------------------------------------------------------------------
 UActorFactoryCylinderVolume
 -----------------------------------------------------------------------------*/
-UActorFactoryCylinderVolume::UActorFactoryCylinderVolume( const class FPostConstructInitializeProperties& PCIP )
-: Super(PCIP)
+UActorFactoryCylinderVolume::UActorFactoryCylinderVolume( const FObjectInitializer& ObjectInitializer )
+: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT( "CylinderVolumeDisplayName", "Cylinder Volume" );
 	NewActorClass = AVolume::StaticClass();

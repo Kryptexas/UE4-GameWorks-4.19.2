@@ -231,7 +231,6 @@ namespace AutomationTool
 					break;
 				case TargetRules.TargetType.Client:
 				case TargetRules.TargetType.Game:
-				case TargetRules.TargetType.RocketGame:
 					if (!bIsCodeBasedProject)
 					{
 						BinPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries");
@@ -593,7 +592,7 @@ namespace AutomationTool
             }
             if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
             {
-                throw new AutomationException("All branches must have the blank project /Samples/SampleGames/BlankProject");
+                throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
             }
 
             CommandUtils.Log("  Base Engine:");

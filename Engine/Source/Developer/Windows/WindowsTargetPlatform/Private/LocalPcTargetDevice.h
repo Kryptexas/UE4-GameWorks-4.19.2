@@ -61,7 +61,7 @@ public:
 	virtual void Disconnect( )
 	{ }
 
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
+	virtual ETargetDeviceTypes GetDeviceType( ) const override
 	{
 		if (::GetSystemMetrics(SM_TABLETPC) != 0)
 		{
@@ -291,7 +291,7 @@ public:
 		return ProcessHandle.Close();
 	}
 
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetDeviceFeatures Feature ) const override
 	{
 		switch (Feature)
 		{
@@ -321,11 +321,11 @@ public:
 		return true;
 	}
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override
+	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) override
 	{
 	}
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override
+	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override
 	{
 		return false;
 	}

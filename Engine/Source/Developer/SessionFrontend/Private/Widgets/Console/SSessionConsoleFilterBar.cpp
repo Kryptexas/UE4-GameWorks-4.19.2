@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
-
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SSessionConsoleFilterBar"
 
@@ -131,7 +131,7 @@ bool SSessionConsoleFilterBar::FilterLogMessage( const FSessionLogMessageRef& Lo
 }
 
 
-void SSessionConsoleFilterBar::ResetFilter( )
+void SSessionConsoleFilterBar::ResetFilter()
 {
 	CategoriesList.Reset();
 	CategoryCounters.Reset();
@@ -271,6 +271,11 @@ void SSessionConsoleFilterBar::HandleVerbosityFilterStateChanged( ELogVerbosity:
 	}
 
 	OnFilterChanged.ExecuteIfBound();
+}
+
+FText SSessionConsoleFilterBar::GetFilterText() const
+{
+	return FilterStringTextBox->GetText();
 }
 
 

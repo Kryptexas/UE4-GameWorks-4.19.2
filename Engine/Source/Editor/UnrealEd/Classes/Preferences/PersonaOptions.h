@@ -50,7 +50,7 @@ class UNREALED_API UPersonaOptions : public UObject
 	uint32 DefaultLocalAxesSelection;
 
 public:
-	void SetViewportBackgroundColor( const FLinearColor & InViewportBackgroundColor);
+	void SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor);
 	void SetShowGrid( bool bInShowGrid );
 	void SetHighlightOrigin( bool bInHighlightOrigin );
 	void SetShowFloor( bool bInShowFloor );

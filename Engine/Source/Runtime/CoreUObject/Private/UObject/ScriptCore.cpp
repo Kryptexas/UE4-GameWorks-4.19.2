@@ -201,7 +201,7 @@ void FFrame::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const cla
 			V,
 			*Object->GetFullName(),
 			*Node->GetFullName(),
-			Code - Node->Script.GetTypedData(),
+			Code - Node->Script.GetData(),
 			*GetStackTrace()
 		);
 	}
@@ -214,7 +214,7 @@ void FFrame::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const cla
 			V,
 			*Object->GetFullName(),
 			*Node->GetFullName(),
-			Code - Node->Script.GetTypedData(),
+			Code - Node->Script.GetData(),
 			GScriptStackForScriptWarning ? *(FString(TEXT("\r\n")) + GetStackTrace()) : TEXT("")
 		);
 #endif
@@ -402,9 +402,16 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 	}
 	else
 	{
-		// Make new stack frame in the current context.
-		uint8* Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
-		FMemory::Memzero( Frame, Function->PropertiesSize );
+		uint8* Frame = NULL;
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+		Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+#endif
+		const bool bUsePersistentFrame = (NULL != Frame);
+		if (!bUsePersistentFrame)
+		{
+			Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
+			FMemory::Memzero(Frame, Function->PropertiesSize);
+		}
 		FFrame NewStack( this, Function, Frame, &Stack, Function->Children );
 		FOutParmRec** LastOut = &NewStack.OutParms;
 		UProperty* Property;
@@ -457,7 +464,7 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 				// warning: Stack.MostRecentPropertyAddress could be NULL for optional out parameters
 				// if that's the case, we use the extra memory allocated for the out param in the function's locals
 				// so there's always a valid address
-				Out->PropAddr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : Property->ContainerPtrToValuePtr<uint8>(Frame);
+				Out->PropAddr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : Property->ContainerPtrToValuePtr<uint8>(NewStack.Locals);
 				Out->Property = Property;
 
 				// add the new out param info to the stack frame's linked list
@@ -489,10 +496,13 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 		}
 #endif
 
-		// Initialize any local struct properties with defaults
-		for ( UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next )
+		if (!bUsePersistentFrame)
 		{
-			LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			// Initialize any local struct properties with defaults
+			for (UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next)
+			{
+				LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			}
 		}
 
 		const bool bIsValidFunction = (Function->FunctionFlags & FUNC_Native) || (Function->Script.Num() > 0);
@@ -503,12 +513,15 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 			ProcessInternal( NewStack, Result );
 		}
 
-		// destruct properties on the stack, except for out params since we know we didn't use that memory
-		for (UProperty* Destruct = Function->DestructorLink; Destruct; Destruct = Destruct->DestructorLinkNext)
+		if (!bUsePersistentFrame)
 		{
-			if (!Destruct->HasAnyPropertyFlags(CPF_OutParm))
+			// destruct properties on the stack, except for out params since we know we didn't use that memory
+			for (UProperty* Destruct = Function->DestructorLink; Destruct; Destruct = Destruct->DestructorLinkNext)
 			{
-				Destruct->DestroyValue_InContainer(NewStack.Locals);
+				if (!Destruct->HasAnyPropertyFlags(CPF_OutParm))
+				{
+					Destruct->DestroyValue_InContainer(NewStack.Locals);
+				}
 			}
 		}
 	}
@@ -667,7 +680,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		LastParameter = *It;
 	}
 
-	UStrProperty* LastStringParameter = Cast<UStrProperty>(LastParameter);
+	UStrProperty* LastStringParameter = dynamic_cast<UStrProperty*>(LastParameter);
 
 
 	// Parse all function parameters.
@@ -681,7 +694,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		UProperty* propertyParam = *It;
 		if (NumParamsEvaluated == 0 && Executor)
 		{
-			UObjectPropertyBase* Op = Cast<UObjectPropertyBase>(*It);
+			UObjectPropertyBase* Op = dynamic_cast<UObjectPropertyBase*>(*It);
 			if( Op && Executor->IsA(Op->PropertyClass) )
 			{
 				// First parameter is implicit reference to object executing the command.
@@ -829,15 +842,27 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 
 	// Scope required for scoped script stats.
 	{
-		// Create a new local execution stack.
-		FFrame NewStack( this, Function, FMemory_Alloca(Function->PropertiesSize), NULL, Function->Children );
-		checkSlow(NewStack.Locals || Function->ParmsSize == 0);
+		uint8* Frame = NULL;
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+		Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+#endif
+		const bool bUsePersistentFrame = (NULL != Frame);
+		if (!bUsePersistentFrame)
+		{
+			Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
+			// zero the local property memory
+			FMemory::Memzero(Frame + Function->ParmsSize, Function->PropertiesSize - Function->ParmsSize);
+		}
 
 		// initialize the parameter properties
-		FMemory::Memcpy( NewStack.Locals, Parms, Function->ParmsSize );
+		FMemory::Memcpy(Frame, Parms, Function->ParmsSize);
 
-		// zero the local property memory
-		FMemory::Memzero( NewStack.Locals+Function->ParmsSize, Function->PropertiesSize-Function->ParmsSize );
+		// Create a new local execution stack.
+		FFrame NewStack(this, Function, Frame, NULL, Function->Children);
+
+		checkSlow(NewStack.Locals || Function->ParmsSize == 0);
+
+
 
 		// if the function has out parameters, fill the stack frame's out parameter info with the info for those params 
 		if ( Function->HasAnyFunctionFlags(FUNC_HasOutParms) )
@@ -879,10 +904,14 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #endif
 		}
 
-		for ( UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next )
+		if (!bUsePersistentFrame)
 		{
-			LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			for (UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next)
+			{
+				LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			}
 		}
+
 		// Call native function or UObject::ProcessInternal.
 		if (Function->FunctionFlags & FUNC_Native)
 		{
@@ -895,17 +924,20 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 			Function->Invoke(this, NewStack, (uint8*)Parms + Function->ReturnValueOffset);
 		}
 
-		// Destroy local variables except function parameters.!! see also UObject::CallFunctionByNameWithArguments
-		// also copy back constructed value parms here so the correct copy is destroyed when the event function returns
-		for (UProperty* P = Function->DestructorLink; P; P = P->DestructorLinkNext)
+		if (!bUsePersistentFrame)
 		{
-			if (!P->IsInContainer(Function->ParmsSize))
+			// Destroy local variables except function parameters.!! see also UObject::CallFunctionByNameWithArguments
+			// also copy back constructed value parms here so the correct copy is destroyed when the event function returns
+			for (UProperty* P = Function->DestructorLink; P; P = P->DestructorLinkNext)
 			{
-				P->DestroyValue_InContainer(NewStack.Locals);
-			}
-			else if (!(P->PropertyFlags & CPF_OutParm))
-			{
-				FMemory::Memcpy(P->ContainerPtrToValuePtr<uint8>(Parms), P->ContainerPtrToValuePtr<uint8>(NewStack.Locals), P->ArrayDim * P->ElementSize);
+				if (!P->IsInContainer(Function->ParmsSize))
+				{
+					P->DestroyValue_InContainer(NewStack.Locals);
+				}
+				else if (!(P->PropertyFlags & CPF_OutParm))
+				{
+					FMemory::Memcpy(P->ContainerPtrToValuePtr<uint8>(Parms), P->ContainerPtrToValuePtr<uint8>(NewStack.Locals), P->ArrayDim * P->ElementSize);
+				}
 			}
 		}
 	}
@@ -1186,10 +1218,29 @@ void UObject::execPopExecutionFlowIfNot( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_PopExecutionFlowIfNot, execPopExecutionFlowIfNot );
 
+void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
+{
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+	Stack.MostRecentProperty = NULL;
+	Stack.MostRecentPropertyAddress = NULL;
+
+	auto DestProperty = Stack.ReadProperty();
+	checkSlow(DestProperty);
+	auto UberGraphFunction = CastChecked<UFunction>(DestProperty->GetOwnerStruct());
+	auto FrameBase = Stack.Object->GetClass()->GetPersistentUberGraphFrame(Stack.Object, UberGraphFunction);
+	checkSlow(FrameBase);
+	auto DestAddress = DestProperty->ContainerPtrToValuePtr<uint8>(FrameBase);
+
+	Stack.Step(Stack.Object, DestAddress);
+#else
+	checkf(false, TEXT("execLetValueOnPersistentFrame: UberGraphPersistentFrame is not supported by current build!")
+#endif
+}
+IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
 void UObject::execLet( FFrame& Stack, RESULT_DECL )
 {
-	checkSlow(!IsA(UBoolProperty::StaticClass()));
+	checkSlow(!dynamic_cast<UBoolProperty*>(this));
 
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -1224,13 +1275,13 @@ void UObject::execLetObj( FFrame& Stack, RESULT_DECL )
 	}
 
 	void* ObjAddr = Stack.MostRecentPropertyAddress;
-	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Stack.MostRecentProperty);
+	UObjectPropertyBase* ObjectProperty = dynamic_cast<UObjectPropertyBase*>(Stack.MostRecentProperty);
 	if (ObjectProperty == NULL)
 	{
 		UArrayProperty* ArrayProp = ExactCast<UArrayProperty>(Stack.MostRecentProperty);
 		if (ArrayProp != NULL)
 		{
-			ObjectProperty = Cast<UObjectPropertyBase>(ArrayProp->Inner);
+			ObjectProperty = dynamic_cast<UObjectPropertyBase*>(ArrayProp->Inner);
 		}
 	}
 
@@ -1259,13 +1310,13 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 	}
 
 	void* ObjAddr = Stack.MostRecentPropertyAddress;
-	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Stack.MostRecentProperty);
+	UObjectPropertyBase* ObjectProperty = dynamic_cast<UObjectPropertyBase*>(Stack.MostRecentProperty);
 	if (ObjectProperty == NULL)
 	{
 		UArrayProperty* ArrayProp = ExactCast<UArrayProperty>(Stack.MostRecentProperty);
 		if (ArrayProp != NULL)
 		{
-			ObjectProperty = Cast<UObjectPropertyBase>(ArrayProp->Inner);
+			ObjectProperty = dynamic_cast<UObjectPropertyBase*>(ArrayProp->Inner);
 		}
 	}
 	
@@ -1319,7 +1370,7 @@ void UObject::execLetBool( FFrame& Stack, RESULT_DECL )
 	Stack.Step( Stack.Object, &NewValue );
 	if( BoolAddr )
 	{
-		checkSlow(BoolProperty->IsA(UBoolProperty::StaticClass()));
+		checkSlow(dynamic_cast<UBoolProperty*>(BoolProperty));
 		BoolProperty->SetPropertyValue( BoolAddr, NewValue );
 	}
 }
@@ -1392,7 +1443,7 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	Stack.Step( this, &NewContext );
 
 	// Execute or skip the following expression in the object's context.
-	if (NewContext != NULL)
+	if (IsValid(NewContext))
 	{
 		Stack.Code += sizeof(CodeSkipSizeType) + sizeof(ScriptPointerType) + sizeof(uint8);
 		Stack.Step( NewContext, Result );
@@ -1401,7 +1452,14 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	{
 		if (!bCanFailSilently)
 		{
-			if (Stack.MostRecentProperty != NULL)
+			if (NewContext && NewContext->IsPendingKill())
+			{
+				const FString Desc = FString::Printf(TEXT("Cannot access '%s'. It is pending kill. Property: '%s'")
+					, *GetNameSafe(NewContext), *GetNameSafe(Stack.MostRecentProperty));
+				FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
+				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			}
+			else if (Stack.MostRecentProperty != NULL)
 			{
 				const FString Desc = FString::Printf(TEXT("Accessed None '%s'"), *Stack.MostRecentProperty->GetName());
 				FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
@@ -1738,7 +1796,7 @@ void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 	for( UProperty* StructProp = ScriptStruct->PropertyLink; StructProp; StructProp = StructProp->PropertyLinkNext )
 	{
 		// Const struct arrays aren't supported yet
-		if( StructProp->IsA(UArrayProperty::StaticClass()) )
+		if ( dynamic_cast<UArrayProperty*>(StructProp) )
 		{
 			continue;
 		}
@@ -1860,9 +1918,10 @@ void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
 	UClass* MetaClass = (UClass*)Stack.ReadObject();
 
 	// Compile actor expression.
-	UObject* Castee=NULL;
+	UObject* Castee = nullptr;
 	Stack.Step( Stack.Object, &Castee );
-	*(UObject**)Result = (Castee && Castee->IsA(UClass::StaticClass()) && ((UClass*)Castee)->IsChildOf(MetaClass)) ? Castee : NULL;
+	UClass* CasteeClass = dynamic_cast<UClass*>(Castee);
+	*(UObject**)Result = (CasteeClass && CasteeClass->IsChildOf(MetaClass)) ? Castee : nullptr;
 }
 IMPLEMENT_VM_FUNCTION( EX_MetaCast, execMetaCast );
 
@@ -1900,7 +1959,7 @@ void UObject::execObjectToInterface( FFrame& Stack, RESULT_DECL )
 	FScriptInterface& InterfaceValue = *(FScriptInterface*)Result;
 
 	// read the interface class off the stack
-	UClass* InterfaceClass = Cast<UClass>(Stack.ReadObject());
+	UClass* InterfaceClass = dynamic_cast<UClass*>(Stack.ReadObject());
 	checkSlow(InterfaceClass != NULL);
 
 	// read the object off the stack
@@ -1926,7 +1985,7 @@ void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
 	FScriptInterface& CastResult = *(FScriptInterface*)Result;
 
 	// read the interface class off the stack
-	UClass* ClassToCastTo = Cast<UClass>(Stack.ReadObject());
+	UClass* ClassToCastTo = dynamic_cast<UClass*>(Stack.ReadObject());
 	checkSlow(ClassToCastTo != NULL);
 	checkSlow(ClassToCastTo->HasAnyClassFlags(CLASS_Interface));
 
@@ -1948,4 +2007,26 @@ void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
  	}
 }
 IMPLEMENT_VM_FUNCTION( EX_CrossInterfaceCast, execInterfaceToInterface );
+
+void UObject::execInterfaceToObject(FFrame& Stack, RESULT_DECL)
+{
+	// read the interface class off the stack
+	UClass* ObjClassToCastTo = dynamic_cast<UClass*>(Stack.ReadObject());
+	checkSlow(ObjClassToCastTo != nullptr);
+
+	// read the input interface-object off the stack
+	FScriptInterface InterfaceInput;
+	Stack.Step(Stack.Object, &InterfaceInput);
+
+	UObject* InputObjWithInterface = InterfaceInput.GetObjectRef();
+	if (InputObjWithInterface->IsA(ObjClassToCastTo))
+	{
+		*(UObject**)Result = InputObjWithInterface;
+	}
+	else
+	{
+		*(UObject**)Result = nullptr;
+	}
+}
+IMPLEMENT_VM_FUNCTION( EX_InterfaceToObjCast, execInterfaceToObject );
 

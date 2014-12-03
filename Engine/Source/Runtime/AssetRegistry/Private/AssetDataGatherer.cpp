@@ -8,10 +8,12 @@
 FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous, bool bInLoadAndSaveCache)
 	: StopTaskCounter( 0 )
 	, bIsSynchronous( bInIsSynchronous )
+	, bIsDiscoveringFiles( false )
 	, SearchStartTime( 0 )
 	, bLoadAndSaveCache( bInLoadAndSaveCache )
 	, bSavedCacheAfterInitialDiscovery( false )
 	, DiskCachedAssetDataBuffer( NULL )
+	, Thread(NULL)
 {
 	const FString AllIllegalCharacters = INVALID_LONGPACKAGE_CHARACTERS;
 	for ( int32 CharIdx = 0; CharIdx < AllIllegalCharacters.Len() ; ++CharIdx )
@@ -265,7 +267,7 @@ void FAssetDataGatherer::EnsureCompletion()
     Thread = NULL;
 }
 
-bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch)
+bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch)
 {
 	FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 
@@ -282,8 +284,9 @@ bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& 
 	SearchTimes.Empty();
 
 	OutNumFilesToSearch = FilesToSearch.Num();
+	OutNumPathsToSearch = PathsToSearch.Num();
 
-	return SearchStartTime > 0;
+	return (SearchStartTime > 0 || bIsDiscoveringFiles);
 }
 
 void FAssetDataGatherer::AddPathToSearch(const FString& Path)
@@ -351,6 +354,7 @@ void FAssetDataGatherer::DiscoverFilesToSearch()
 			// added to the original list on a different thread as we go along, but those new paths won't be processed
 			// during this call of DisoverFilesToSearch().  But we'll get them on the next call!
 			PathsToSearch.Empty();
+			bIsDiscoveringFiles = true;
 		}
 
 		// Iterate over any paths that we have remaining to scan
@@ -386,6 +390,7 @@ void FAssetDataGatherer::DiscoverFilesToSearch()
 			FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 			FilesToSearch.Append(DiscoveredFilesToSearch);
 			DiscoveredPaths.Append(LocalDiscoveredPathsArray);
+			bIsDiscoveringFiles = false;
 		}
 	}
 }

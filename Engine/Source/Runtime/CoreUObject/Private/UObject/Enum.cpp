@@ -161,7 +161,7 @@ int32 UEnum::FindEnumIndex(FName InName) const
 	return EnumIndex;
 }
 
-int32 UEnum::FindEnumRedirects(const UEnum * Enum, FName EnumEntryName) 
+int32 UEnum::FindEnumRedirects(const UEnum* Enum, FName EnumEntryName) 
 {
 	check (Enum);
 

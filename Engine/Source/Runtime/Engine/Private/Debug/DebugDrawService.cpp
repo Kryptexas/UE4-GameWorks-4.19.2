@@ -5,8 +5,8 @@
 TArray<TArray<FDebugDrawDelegate> > UDebugDrawService::Delegates;
 FEngineShowFlags UDebugDrawService::ObservedFlags(ESFIM_Editor);
 
-UDebugDrawService::UDebugDrawService(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDebugDrawService::UDebugDrawService(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Delegates.Reserve(sizeof(FEngineShowFlags)*8);
 }
@@ -32,7 +32,7 @@ void UDebugDrawService::Unregister(const FDebugDrawDelegate& DelegateToRemove)
 {
 	check(IsInGameThread());
 
-	TArray<FDebugDrawDelegate>* DelegatesArray = Delegates.GetTypedData();
+	TArray<FDebugDrawDelegate>* DelegatesArray = Delegates.GetData();
 	for (int32 Flag = 0; Flag < Delegates.Num(); ++Flag, ++DelegatesArray)
 	{
 		check(DelegatesArray); //it shouldn't happen, but to be sure

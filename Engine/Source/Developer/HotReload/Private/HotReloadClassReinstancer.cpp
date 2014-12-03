@@ -74,11 +74,14 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, TArra
 				FName ObjectName = InObj->GetFName();
 				Ar << ClassName;
 				Ar << ObjectName;
-				if (GSerializedProperty && GSerializedProperty->ContainsInstancedObjectProperty() && !VisitedObjects.Contains(InObj))
+				if (!VisitedObjects.Contains(InObj))
 				{
-					// Serialize all DSO properties too
 					VisitedObjects.Add(InObj);
-					FCDOWriter DefaultSubobjectWriter(Bytes, InObj, VisitedObjects);
+					if (Ar.GetSerializedProperty() && Ar.GetSerializedProperty()->ContainsInstancedObjectProperty())
+					{
+						// Serialize all DSO properties too					
+						FCDOWriter DefaultSubobjectWriter(Bytes, InObj, VisitedObjects);
+					}
 				}
 			}
 			else
@@ -105,27 +108,28 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, TArra
 		virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override
 		{
 			FArchive& Ar = *this;
-			UObject* Obj = LazyObjectPtr.Get();
-			Ar << Obj;
+			auto UniqueID = LazyObjectPtr.GetUniqueID();
+			Ar << UniqueID;
 			return *this;
 		}
 		virtual FArchive& operator<<(FAssetPtr& AssetPtr) override
 		{
 			FArchive& Ar = *this;
-			UObject* Obj = AssetPtr.Get();
-			Ar << Obj;
+			auto UniqueID = AssetPtr.GetUniqueID();
+			Ar << UniqueID;
 			return Ar;
 		}
 		virtual FArchive& operator<<(FStringAssetReference& Value) override
 		{
 			FArchive& Ar = *this;
-			Value.Serialize(Ar);
+			Ar << Value.AssetLongPathname;
 			return Ar;
 		}
 		/** Archive name, for debugging */
 		virtual FString GetArchiveName() const override { return TEXT("FCDOWriter"); }
 	};
 	TSet<UObject*> VisitedObjects;
+	VisitedObjects.Add(InObject);
 	FCDOWriter Ar(OutData, InObject, VisitedObjects);
 }
 
@@ -165,7 +169,7 @@ void FHotReloadClassReinstancer::ReconstructClassDefaultObject(UClass* InOldClas
 	new ((void *)OldCDO) UObjectBase(InOldClass, CDOFlags, CDOOuter, CDOName);
 	const bool bShouldInitilizeProperties = false;
 	const bool bCopyTransientsFromClassDefaults = false;
-	(*InOldClass->ClassConstructor)(FPostConstructInitializeProperties(OldCDO, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
+	(*InOldClass->ClassConstructor)(FObjectInitializer(OldCDO, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
 }
 
 void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass* InOldClass)
@@ -191,7 +195,7 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 
 	// We only want to re-instance the old class if its CDO's values have changed or any of its DSOs' property values have changed
 	if (OriginalCDOProperties.Num() != ReconstructedCDOProperties.Num() ||
-		FMemory::Memcmp(OriginalCDOProperties.GetTypedData(), ReconstructedCDOProperties.GetTypedData(), OriginalCDOProperties.Num()))
+		FMemory::Memcmp(OriginalCDOProperties.GetData(), ReconstructedCDOProperties.GetData(), OriginalCDOProperties.Num()))
 	{
 		bNeedsReinstancing = true;
 		SaveClassFieldMapping(InOldClass);

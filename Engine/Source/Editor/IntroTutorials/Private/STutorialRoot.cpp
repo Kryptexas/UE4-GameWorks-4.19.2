@@ -12,6 +12,8 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "STutorialRoot"
 
@@ -84,22 +86,6 @@ void STutorialRoot::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	DrawnWidgets.Empty(DrawnWidgets.Max());
 }
 
-void STutorialRoot::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
-{
-	// Use main frame if non specified
-	if (!InWindow.IsValid())
-	{
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		InWindow = MainFrameModule.GetParentWindow();
-	}
-
-	TWeakPtr<SEditorTutorials>* FoundWidget = TutorialWidgets.Find(InWindow);
-	if(FoundWidget != nullptr && FoundWidget->IsValid())
-	{
-		FoundWidget->Pin()->ShowBrowser(InFilter);
-	}
-}
-
 void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
 {
 	if(InTutorial != nullptr)
@@ -158,6 +144,16 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 				TutorialWidget.Value.Pin()->LaunchTutorial(bIsNavigationWindow, InOnTutorialClosed, InOnTutorialExited);
 			}
 		}
+
+		if (CurrentTutorial != nullptr)
+		{
+			CurrentTutorial->HandleTutorialLaunched();
+		}
+
+		if (CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num())
+		{
+			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		}
 	}
 }
 
@@ -175,15 +171,6 @@ void STutorialRoot::CloseAllTutorialContent()
 void STutorialRoot::HandleNextClicked(TWeakPtr<SWindow> InNavigationWindow)
 {
 	GoToNextStage(InNavigationWindow);
-
-	for(auto& TutorialWidget : TutorialWidgets)
-	{
-		if(TutorialWidget.Value.IsValid())
-		{
-			TSharedPtr<SEditorTutorials> PinnedTutorialWidget = TutorialWidget.Value.Pin();
-			PinnedTutorialWidget->RebuildCurrentContent();
-		}
-	}
 }
 
 void STutorialRoot::HandleBackClicked()
@@ -213,6 +200,7 @@ void STutorialRoot::HandleHomeClicked()
 {
 	if(CurrentTutorial != nullptr)
 	{
+		CurrentTutorial->HandleTutorialClosed();
 		GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
 		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 	}
@@ -301,10 +289,29 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}
 	}
+
+	for(auto& TutorialWidget : TutorialWidgets)
+	{
+		if(TutorialWidget.Value.IsValid())
+		{
+			TSharedPtr<SEditorTutorials> PinnedTutorialWidget = TutorialWidget.Value.Pin();
+			PinnedTutorialWidget->RebuildCurrentContent();
+		}
+	}
 }
 
 void STutorialRoot::HandleCloseClicked()
 {
+	if(CurrentTutorial != nullptr)
+	{
+		CurrentTutorial->HandleTutorialClosed();
+		// Update the current stage when we close
+		bool bHaveSeenTutorial = false;
+		CurrentTutorialStage = GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
+		GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
+		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
+	}
+
 	// submit analytics data
 	if( FEngineAnalytics::IsAvailable() && CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() )
 	{

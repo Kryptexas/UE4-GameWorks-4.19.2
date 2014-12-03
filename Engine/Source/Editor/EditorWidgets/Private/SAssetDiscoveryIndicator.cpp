@@ -2,7 +2,7 @@
 
 #include "EditorWidgetsPrivatePCH.h"
 #include "AssetRegistryModule.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 SAssetDiscoveryIndicator::~SAssetDiscoveryIndicator()
 {

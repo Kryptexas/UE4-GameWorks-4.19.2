@@ -57,10 +57,10 @@ public:
 
 	/**
 	 * Retrieves the blackboard item currently selected by the user.
-	 * 
+	 * @param	bOutIsInherited		Whether the item's index is in the key or parent key array
 	 * @return A pointer to the currently selected entry (nullptr if a category is selected, or nothing at all)
 	 */
-	FBlackboardEntry* GetSelectedEntry() const;
+	FBlackboardEntry* GetSelectedEntry(bool& bOutIsInherited) const;
 
 	/**
 	 * Retrieves the blackboard item index currently selected by the user.

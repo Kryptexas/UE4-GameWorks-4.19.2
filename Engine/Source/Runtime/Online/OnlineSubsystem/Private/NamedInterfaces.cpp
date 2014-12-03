@@ -3,8 +3,8 @@
 #include "OnlineSubsystemPrivatePCH.h"
 #include "NamedInterfaces.h"
 
-UNamedInterfaces::UNamedInterfaces(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UNamedInterfaces::UNamedInterfaces(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 }
 

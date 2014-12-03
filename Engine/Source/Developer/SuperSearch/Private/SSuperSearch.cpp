@@ -6,6 +6,7 @@
 #include "AssetRegistryModule.h"
 #include "IIntroTutorials.h"
 #include "EditorTutorial.h"
+#include "SSearchBox.h"
 
 static TSharedRef<FSearchEntry> OtherCategory(new FSearchEntry());
 static TSharedRef<FSearchEntry> AskQuestionEntry (new FSearchEntry());
@@ -178,7 +179,7 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 	TSharedPtr<SWidget> IconWidget;
 	if (bCategory)
 	{
-		FName * IconResult = CategoryToIconMap.Find(Combined);
+		FName* IconResult = CategoryToIconMap.Find(Combined);
 		SAssignNew(IconWidget, SImage)
 			.Image(FEditorStyle::GetBrush(IconResult ? *IconResult : FName("MainFrame.VisitEpicGamesDotCom") ));
 	}
@@ -230,7 +231,7 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 			const FText QueryURL = FText::Format(FText::FromString("https://www.googleapis.com/customsearch/v1?key=AIzaSyCMGfdDaSfjqv5zYoS0mTJnOT3e9MURWkU&cx=009868829633250020713:y7tfd8hlcgg&fields=items(title,link,labels/name)&q={0}+less:forums"), FText::FromString(UrlEncodedString));
 
 			//save http request into map to ensure correct ordering
-			FText & Query = RequestQueryMap.FindOrAdd(HttpRequest);
+			FText& Query = RequestQueryMap.FindOrAdd(HttpRequest);
 			Query = InText;
 
 			
@@ -309,7 +310,7 @@ void SSuperSearchBox::Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHt
 
 			if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
 			{
-				if (FText * QueryText = RequestQueryMap.Find(HttpRequest))
+				if (FText* QueryText = RequestQueryMap.Find(HttpRequest))
 				{
 					const TArray<TSharedPtr<FJsonValue> > * JsonItems = nullptr;
 					if (JsonObject->TryGetArrayField(TEXT("items"), JsonItems))
@@ -358,13 +359,13 @@ void SSuperSearchBox::Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHt
 }
 
 
-FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
 	if(SuggestionBox->IsOpen() && Suggestions.Num())
 	{
-		if(KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+		if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 		{
-			if(KeyboardEvent.GetKey() == EKeys::Up)
+			if(KeyEvent.GetKey() == EKeys::Up)
 			{
 				//if we're at the top swing around
 				if(SelectedSuggestion == 1)
@@ -385,7 +386,7 @@ FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 				}
 			}
 
-			if(KeyboardEvent.GetKey() == EKeys::Down)
+			if(KeyEvent.GetKey() == EKeys::Down)
 			{
 				if(SelectedSuggestion < Suggestions.Num() - 1)
 				{
@@ -415,7 +416,7 @@ FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 	return FReply::Unhandled();
 }
 
-FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString & InTitle)
+FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString& InTitle)
 {
 	FSearchEntry * SearchEntry = new FSearchEntry();
 	SearchEntry->Title = InTitle;
@@ -424,7 +425,7 @@ FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString & InTitle)
 	return SearchEntry;
 }
 
-void UpdateSuggestionHelper(const FText & CategoryLabel, const TArray<FSearchEntry> & Elements, TArray<TSharedPtr< FSearchEntry > > & OutSuggestions)
+void UpdateSuggestionHelper(const FText& CategoryLabel, const TArray<FSearchEntry> & Elements, TArray<TSharedPtr< FSearchEntry > > & OutSuggestions)
 {
 	if (Elements.Num())
 	{
@@ -439,7 +440,7 @@ void UpdateSuggestionHelper(const FText & CategoryLabel, const TArray<FSearchEnt
 
 void SSuperSearchBox::UpdateSuggestions()
 {
-	const FText & Query = InputText->GetText();
+	const FText& Query = InputText->GetText();
 	FSearchResults * SearchResults = SearchResultsCache.Find(Query.ToString());
 
 	//still waiting on results for current query
@@ -477,10 +478,10 @@ void SSuperSearchBox::UpdateSuggestions()
 	MarkActiveSuggestion();
 
 	// Force the textbox back into focus.
-	FSlateApplication::Get().SetKeyboardFocus(InputText.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(InputText.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
-void SSuperSearchBox::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SSuperSearchBox::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 //	SuggestionBox->SetIsOpen(false);
 }

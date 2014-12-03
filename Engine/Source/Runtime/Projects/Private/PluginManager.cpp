@@ -298,24 +298,40 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			}
 		}
 
-		// Build the list of content folders
 		ContentFolders.Empty();
 		for(const TSharedRef<FPluginInstance>& Plugin: AllPlugins)
 		{
-			if(Plugin->bEnabled && Plugin->Descriptor.bCanContainContent)
+			if (Plugin->bEnabled)
 			{
-				FPluginContentFolder ContentFolder;
-				ContentFolder.Name = Plugin->Name;
-				ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
-				ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
-				ContentFolders.Emplace(ContentFolder);
-
-				if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
+				// Build the list of content folders
+				if (Plugin->Descriptor.bCanContainContent)
 				{
-					if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+					FPluginContentFolder ContentFolder;
+					ContentFolder.Name = Plugin->Name;
+					ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
+					ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
+					ContentFolders.Emplace(ContentFolder);
+
+					if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
 					{
-						CoreSystemSection->AddUnique("Paths", ContentFolder.ContentPath);
+						if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+						{
+							CoreSystemSection->AddUnique("Paths", ContentFolder.ContentPath);
+						}
 					}
+				}
+
+				// Load Default<PluginName>.ini config file if it exists
+				FString PluginConfigDir = FPaths::GetPath(Plugin->FileName) / TEXT("Config/");
+				FConfigFile PluginConfig;
+				FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin->Name, *FPaths::EngineConfigDir(), *PluginConfigDir, true);
+				if (PluginConfig.Num() > 0)
+				{
+					FString PlaformName = FPlatformProperties::PlatformName();
+					FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), *PlaformName, *Plugin->Name);
+					FConfigFile& NewConfigFile = GConfig->Add(PluginConfigFilename, FConfigFile());
+					NewConfigFile.AddMissingProperties(PluginConfig);
+					NewConfigFile.Write(PluginConfigFilename);
 				}
 			}
 		}
@@ -468,6 +484,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.CreatedBy = PluginInfo.CreatedBy;
 		PluginStatus.CreatedByURL = PluginInfo.CreatedByURL;
 		PluginStatus.CategoryPath = PluginInfo.Category;
+		PluginStatus.DocsURL = PluginInfo.DocsURL;
 		PluginStatus.PluginDirectory = FPaths::GetPath(Plugin->FileName);
 		PluginStatus.bIsEnabled = Plugin->bEnabled;
 		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );

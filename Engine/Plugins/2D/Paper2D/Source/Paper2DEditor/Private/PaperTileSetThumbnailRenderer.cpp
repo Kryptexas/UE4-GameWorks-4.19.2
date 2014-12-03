@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileSetThumbnailRenderer
 
-UPaperTileSetThumbnailRenderer::UPaperTileSetThumbnailRenderer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTileSetThumbnailRenderer::UPaperTileSetThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

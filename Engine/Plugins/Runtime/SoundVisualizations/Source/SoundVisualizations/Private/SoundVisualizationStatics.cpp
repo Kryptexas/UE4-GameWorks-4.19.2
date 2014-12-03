@@ -9,8 +9,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSoundVisualization, Log, All);
 
-USoundVisualizationStatics::USoundVisualizationStatics(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundVisualizationStatics::USoundVisualizationStatics(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -70,7 +70,7 @@ void USoundVisualizationStatics::GetAmplitude(USoundWave* SoundWave, const bool 
 		if( SoundWave->RawData.GetBulkDataSize() > 0 )
 		{
 			// Lock raw wave data.
-			uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+			uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 			int32 RawDataSize = SoundWave->RawData.GetBulkDataSize();
 			FWaveModInfo WaveInfo;
 
@@ -246,7 +246,7 @@ void USoundVisualizationStatics::CalculateFrequencySpectrum(USoundWave* SoundWav
 		if( SoundWave->RawData.GetBulkDataSize() > 0 )
 		{
 			// Lock raw wave data.
-			uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+			uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 			int32 RawDataSize = SoundWave->RawData.GetBulkDataSize();
 			FWaveModInfo WaveInfo;
 

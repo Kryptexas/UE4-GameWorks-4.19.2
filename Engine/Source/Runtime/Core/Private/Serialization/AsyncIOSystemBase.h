@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "HAL/IOBase.h"
 
 /**
  * Base implementation of an async IO system allowing most of the code to be shared across platforms.

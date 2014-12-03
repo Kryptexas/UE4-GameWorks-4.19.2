@@ -4,6 +4,8 @@
 #include "../Private/ReferenceInfoUtils.h"
 #include "AssetRegistryModule.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 void ExecuteReferenceInfo(const TArray<FString>& Args, UWorld* InWorld )
 {

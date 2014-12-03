@@ -20,12 +20,14 @@ class AIMODULE_API UPawnAction_Sequence : public UPawnAction
 
 	uint32 CurrentActionIndex;
 
-	static UPawnAction_Sequence* CreateAction(UWorld& World, TArray<UPawnAction*>& ActionSequence);
+	EPawnSubActionTriggeringPolicy::Type SubActionTriggeringPolicy;
+
+	static UPawnAction_Sequence* CreateAction(UWorld& World, TArray<UPawnAction*>& ActionSequence, EPawnSubActionTriggeringPolicy::Type InSubActionTriggeringPolicy = EPawnSubActionTriggeringPolicy::CopyBeforeTriggering);
 
 protected:
 	virtual bool Start() override;
 	virtual bool Resume() override;
-	virtual void OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult) override;
+	virtual void OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult) override;
 
 	bool PushNextActionCopy();
 };

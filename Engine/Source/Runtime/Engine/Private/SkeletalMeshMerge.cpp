@@ -58,7 +58,7 @@ FSkeletalMeshMerge::FSkeletalMeshMerge(USkeletalMesh* InMergeMesh,
 * The MergeMesh is reinitialized 
 * @return true if succeeded
 */
-bool FSkeletalMeshMerge::DoMerge()
+bool FSkeletalMeshMerge::DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides /* = nullptr */)
 {
 	bool Result=true;
 	FSkeletalMeshResource* SkelMeshResource = MergeMesh->GetImportedResource();
@@ -85,6 +85,11 @@ bool FSkeletalMeshMerge::DoMerge()
 		USkeletalMesh* SrcMesh = SrcMeshList[MeshIdx];
 		if( SrcMesh )
 		{
+			if( SrcMesh->bHasVertexColors )
+			{
+				MergeMesh->bHasVertexColors = true;
+			}
+
 			if( bMaxNumLODsInit )
 			{
 				// initialize
@@ -117,15 +122,28 @@ bool FSkeletalMeshMerge::DoMerge()
 						FName ParentBoneName = SrcMesh->RefSkeleton.GetBoneName(ParentBoneIndex);
 						int32 DestParentIndex = NewRefSkeleton.FindBoneIndex(ParentBoneName);
 						check(DestParentIndex != INDEX_NONE); // Shouldn't be any way we are missing the parent - parents are always before children				
-						int32 NewBoneIndex = DestParentIndex+1;
 
 						FMeshBoneInfo NewMeshBoneInfo = SrcMesh->RefSkeleton.GetRefBoneInfo()[i];
 						NewMeshBoneInfo.ParentIndex = DestParentIndex;
+
+						/*
+						// Bone insertion -should- work, but there appears to be a bug with re-mapping the bones.
+						// For now, append new bones to the end until it's fixed so the meshes don't completely break.
+						int32 NewBoneIndex = DestParentIndex+1;
 						NewRefSkeleton.Insert(NewBoneIndex, NewMeshBoneInfo, SrcMesh->RefSkeleton.GetRefBonePose()[i]);
+						*/
+						
+						NewRefSkeleton.Add(NewMeshBoneInfo, SrcMesh->RefSkeleton.GetRefBonePose()[i]);
 					}
 				}
 			}
 		}
+	}
+
+	// Override the reference bone poses with those from a specific USkeletalMesh.
+	if (RefPoseOverrides)
+	{
+		OverrideReferenceSkeletonPose(*RefPoseOverrides, NewRefSkeleton);
 	}
 
 	// Now decrease the number of LODs we are going to make based on StripTopLODs - but make sure there is at least one
@@ -267,7 +285,7 @@ static void BoneMapToNewRefSkel(const TArray<FBoneIndexType>& InBoneMap, const T
 */
 void FSkeletalMeshMerge::GenerateNewSectionArray( TArray<FNewSectionInfo>& NewSectionArray, int32 LODIdx )
 {
-	const int32 MaxGPUSkinBones = GetFeatureLevelMaxNumberOfBones(GRHIFeatureLevel);
+	const int32 MaxGPUSkinBones = GetFeatureLevelMaxNumberOfBones(GMaxRHIFeatureLevel);
 
 	NewSectionArray.Empty();
 	for( int32 MeshIdx=0; MeshIdx < SrcMeshList.Num(); MeshIdx++ )
@@ -388,8 +406,6 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 	// add the new LOD model entry
 	FSkeletalMeshResource* MergeResource = MergeMesh->GetImportedResource();
 	FStaticLODModel& MergeLODModel = *new(MergeResource->LODModels) FStaticLODModel;
-	MergeLODModel.NumVertices = 0;
-	MergeLODModel.Size = 0;
 	// add the new LOD info entry
 	FSkeletalMeshLODInfo& MergeLODInfo = *new(MergeMesh->LODInfo) FSkeletalMeshLODInfo;
 	MergeLODInfo.ScreenSize = MergeLODInfo.LODHysteresis = MAX_FLT;
@@ -402,6 +418,8 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// merged vertex buffer
 	TArray< VertexDataType > MergedVertexBuffer;
+	// merged vertex color buffer
+	TArray< FColor > MergedColorBuffer;
 	// merged index buffer
 	TArray<uint32> MergedIndexBuffer;
 
@@ -509,6 +527,9 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				MergeSectionInfo.Chunk->BaseVertexIndex + NumTotalVertices, 
 				SrcLODModel.VertexBufferGPUSkin.GetNumVertices() 
 				);
+
+			int32 MaxColorIdx = SrcLODModel.ColorVertexBuffer.GetNumVertices();
+
 			// keep track of the current base vertex index before adding any new vertices
 			// this will be needed to remap the index buffer values to the new range
 			int32 CurrentBaseVertexIndex = MergedVertexBuffer.Num();
@@ -524,7 +545,22 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				DestVert.TangentZ = SrcBaseVert->TangentZ;
 				FMemory::Memcpy(DestVert.InfluenceBones,SrcBaseVert->InfluenceBones,sizeof(SrcBaseVert->InfluenceBones));
 				FMemory::Memcpy(DestVert.InfluenceWeights,SrcBaseVert->InfluenceWeights,sizeof(SrcBaseVert->InfluenceWeights));
-				
+
+				// if the mesh uses vertex colors, copy the source color if possible or default to white
+				if( MergeMesh->bHasVertexColors )
+				{
+					if( VertIdx < MaxColorIdx )
+					{
+						const FColor& SrcColor = SrcLODModel.ColorVertexBuffer.VertexColor(VertIdx);
+						MergedColorBuffer.Add(SrcColor);
+					}
+					else
+					{
+						const FColor ColorWhite(255, 255, 255);
+						MergedColorBuffer.Add(ColorWhite);
+					}
+				}
+
 				// Copy all UVs that are available
 				uint32 LODNumTexCoords = SrcLODModel.VertexBufferGPUSkin.GetNumTexCoords();
 				for( uint32 UVIndex = 0; UVIndex < LODNumTexCoords && UVIndex < MAX_TEXCOORDS; ++UVIndex )
@@ -582,7 +618,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 	// copy the new vertices and indices to the vertex buffer for the new model
 	MergeLODModel.VertexBufferGPUSkin.SetUseFullPrecisionUVs(MergeMesh->bUseFullPrecisionUVs);
 	// set CPU skinning on vertex buffer since it affects the type of TResourceArray needed
-	MergeLODModel.VertexBufferGPUSkin.SetNeedsCPUAccess(MergeResource->RequiresCPUSkinning(GRHIFeatureLevel));
+	MergeLODModel.VertexBufferGPUSkin.SetNeedsCPUAccess(MergeResource->RequiresCPUSkinning(GMaxRHIFeatureLevel));
 	MergeLODModel.VertexBufferGPUSkin.SetHasExtraBoneInfluences(MergeResource->HasExtraBoneInfluences());
 	// Set the number of tex coords on this vertex buffer
 	MergeLODModel.VertexBufferGPUSkin.SetNumTexCoords(TotalNumUVs);
@@ -590,6 +626,11 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// copy vertex resource arrays
 	MergeLODModel.VertexBufferGPUSkin = MergedVertexBuffer;
+
+	if( MergeMesh->bHasVertexColors )
+	{
+		MergeLODModel.ColorVertexBuffer = MergedColorBuffer;
+	}
 
 	FMultiSizeIndexContainerData IndexBufferData;
 	IndexBufferData.DataTypeSize = (MaxIndex < MAX_uint16) ? sizeof(uint16) : sizeof(uint32);
@@ -662,7 +703,50 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 	return Result;
 }
 
+void FSkeletalMeshMerge::OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton)
+{
+	for (int32 i = 0, PoseMax = PoseOverrides.Num(); i < PoseMax; ++i)
+	{
+		const FRefPoseOverride& PoseOverride = PoseOverrides[i];
+		const FReferenceSkeleton& SourceSkeleton = PoseOverride.SkeletalMesh->RefSkeleton;
 
+		for (int32 j = 0, BoneMax = PoseOverride.BoneNames.Num(); j < BoneMax; ++j)
+		{
+			const FName& BoneName = PoseOverride.BoneNames[j];
+			int32 SourceBoneIndex = SourceSkeleton.FindBoneIndex(BoneName);
 
+			if (SourceBoneIndex != INDEX_NONE)
+			{
+				OverrideReferenceBonePose(SourceBoneIndex, SourceSkeleton, TargetSkeleton);
 
+				bool bOverrideChildren = PoseOverride.OverrideChildren[j];
 
+				if (bOverrideChildren)
+				{
+					for (int32 ChildBoneIndex = SourceBoneIndex + 1; ChildBoneIndex < SourceSkeleton.GetNum(); ++ChildBoneIndex)
+					{
+						if (SourceSkeleton.BoneIsChildOf(ChildBoneIndex, SourceBoneIndex))
+						{
+							OverrideReferenceBonePose(ChildBoneIndex, SourceSkeleton, TargetSkeleton);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+bool FSkeletalMeshMerge::OverrideReferenceBonePose(int32 SourceBoneIndex, const FReferenceSkeleton& SourceSkeleton, FReferenceSkeleton& TargetSkeleton)
+{
+	FName BoneName = SourceSkeleton.GetBoneName(SourceBoneIndex);
+	int32 TargetBoneIndex = TargetSkeleton.FindBoneIndex(BoneName);
+
+	if (TargetBoneIndex != INDEX_NONE)
+	{
+		const FTransform& SourceBoneTransform = SourceSkeleton.GetRefBonePose()[SourceBoneIndex];
+		TargetSkeleton.UpdateRefPoseTransform(TargetBoneIndex, SourceBoneTransform);
+		return true;
+	}
+
+	return false;
+}

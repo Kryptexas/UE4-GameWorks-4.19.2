@@ -95,7 +95,7 @@ private:
 	FViewport* Viewport;
 	/** Pressed Key */
 	FKey Key;
-	/** Keyboard event */
+	/** Key event */
 	EInputEvent InputEvent;
 };
 
@@ -299,8 +299,8 @@ public:
 
 
 	// this set ups camera for both orbit and non orbit control
-	void SetCameraSetup(const FVector & LocationForOrbiting, const FRotator & InOrbitRotation, const FVector & InOrbitZoom, const FVector & InOrbitLookAt, 
-			const FVector & InViewLocation, const FRotator &InViewRotation );
+	void SetCameraSetup(const FVector& LocationForOrbiting, const FRotator& InOrbitRotation, const FVector& InOrbitZoom, const FVector& InOrbitLookAt, 
+			const FVector& InViewLocation, const FRotator &InViewRotation );
 
 	/** Callback for toggling the camera lock flag. */
 	virtual void SetCameraLock();

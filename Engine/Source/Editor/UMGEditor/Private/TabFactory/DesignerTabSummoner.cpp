@@ -5,7 +5,8 @@
 #include "DesignerTabSummoner.h"
 #include "SDesignerView.h"
 #include "SScissorRectBox.h"
-
+#include "UMGStyle.h"
+#include "WidgetBlueprintEditor.h"
 #define LOCTEXT_NAMESPACE "UMG"
 
 const FName FDesignerTabSummoner::TabID(TEXT("SlatePreview"));
@@ -15,7 +16,7 @@ FDesignerTabSummoner::FDesignerTabSummoner(TSharedPtr<class FWidgetBlueprintEdit
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("DesignerTabLabel", "Designer");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Designer");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Designer.TabIcon");
 
 	bIsSingleton = true;
 

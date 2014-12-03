@@ -15,7 +15,7 @@ public:
 
 	FLatentActionInfo LatentInfo;
 
-	FStreamLevelAction(bool bIsLoading, const FName & InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World);
+	FStreamLevelAction(bool bIsLoading, const FName& InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World);
 
 	/**
 	 * Given a level name, returns level name that will work with Play on Editor or Play on Console
@@ -62,8 +62,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE( FLevelStreamingLoadedStatus );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FLevelStreamingVisibilityStatus );
 
 /**
- * LevelStreaming
- *
  * Abstract base class of container object encapsulating data required for streaming and providing 
  * interface for when a level should be streamed in and out of memory.
  *
@@ -229,7 +227,7 @@ class ULevelStreaming : public UObject
 		{
 		}
 
-		bool Matches( const ULevelStreaming* Candidate ) const
+		bool operator()(const ULevelStreaming* Candidate) const
 		{
 			return Candidate->GetWorldAssetPackageFName() == PackageName;
 		}

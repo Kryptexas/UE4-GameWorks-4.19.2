@@ -12,8 +12,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeWave implementation.
 -----------------------------------------------------------------------------*/
-UDEPRECATED_SoundNodeWave::UDEPRECATED_SoundNodeWave(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_SoundNodeWave::UDEPRECATED_SoundNodeWave(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Volume = 0.75;
 	Pitch = 1.0;

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Landscape/LandscapeProxy.h" // for ELandscapeLayerPaintingRestriction
+#include "LandscapeProxy.h" // for ELandscapeLayerPaintingRestriction
 #include "LandscapeEditorObject.generated.h"
 
 UENUM()

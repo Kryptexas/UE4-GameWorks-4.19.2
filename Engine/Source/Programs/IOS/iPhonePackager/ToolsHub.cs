@@ -11,11 +11,15 @@ using System.Windows.Forms;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace iPhonePackager
 {
 	public partial class ToolsHub : Form
 	{
+		[DllImport("user32.dll")]
+		public static extern int MessageBox(IntPtr hWnd, String Text, String Caption, uint type);
+
 		protected Dictionary<int, Bitmap> CheckStateImages = new Dictionary<int, Bitmap>();
 
 		public static string IpaFilter = "iOS packaged applications (*.ipa)|*.ipa|All Files (*.*)|*.*";
@@ -142,7 +146,7 @@ namespace iPhonePackager
 
 		public static void ShowError(string Message)
 		{
-			MessageBox.Show(Message, Config.AppDisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+			System.Windows.Forms.MessageBox.Show(Message, Config.AppDisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 
 		public static bool IsProfileForDistribution(MobileProvision Provision)
@@ -150,10 +154,9 @@ namespace iPhonePackager
 			return CryptoAdapter.GetCommonNameFromCert(Provision.DeveloperCertificates[0]).IndexOf("iPhone Distribution", StringComparison.InvariantCultureIgnoreCase) >= 0;
 		}
 
-		public static void TryInstallingMobileProvision()
+		public static void TryInstallingMobileProvision(string ProvisionFilename, bool ShowPrompt = true)
 		{
-			string ProvisionFilename;
-			if (ShowOpenFileDialog(MobileProvisionFilter, "Choose a mobile provision to install", "mobileprovision", "", ref ChoosingFilesToInstallDirectory, out ProvisionFilename))
+			if (!String.IsNullOrEmpty(ProvisionFilename) || ShowOpenFileDialog(MobileProvisionFilter, "Choose a mobile provision to install", "mobileprovision", "", ref ChoosingFilesToInstallDirectory, out ProvisionFilename))
 			{
 				try
 				{
@@ -180,7 +183,7 @@ namespace iPhonePackager
 							OldProvision.ProvisionName,
 							Provision.ProvisionName);
 
-						if (MessageBox.Show(MessagePrompt, Config.AppDisplayName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+						if (ShowPrompt && System.Windows.Forms.MessageBox.Show(MessagePrompt, Config.AppDisplayName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
 						{
 							return;
 						}
@@ -200,85 +203,115 @@ namespace iPhonePackager
 
 		private void ImportMobileProvisionButton_Click(object sender, EventArgs e)
 		{
-			TryInstallingMobileProvision();
+			TryInstallingMobileProvision(null);
 			UpdateStatus();
 		}
 
-		public static void TryInstallingCertificate_PromptForKey()
+		static private string CertToolData = "";
+		static public void OutputReceivedCertToolProcessCall(Object Sender, DataReceivedEventArgs Line)
+		{
+			if ((Line != null) && !String.IsNullOrEmpty(Line.Data))
+			{
+				CertToolData += Line.Data + "\n";
+			}
+		}
+
+		public static void TryInstallingCertificate_PromptForKey(string CertificateFilename, bool ShowPrompt = true)
 		{
 			try
 			{
-				string CertificateFilename;
-				if (ShowOpenFileDialog(CertificatesFilter, "Choose a code signing certificate to import", "", "", ref ChoosingFilesToInstallDirectory, out CertificateFilename))
+				if (!String.IsNullOrEmpty(CertificateFilename) || ShowOpenFileDialog(CertificatesFilter, "Choose a code signing certificate to import", "", "", ref ChoosingFilesToInstallDirectory, out CertificateFilename))
 				{
-					// Load the certificate
-					string CertificatePassword = "";
-					X509Certificate2 Cert = null;
-					try
+					if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix)
 					{
-						Cert = new X509Certificate2(CertificateFilename, CertificatePassword, X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet);
+						// run certtool y to get the currently installed certificates
+						CertToolData = "";
+						Process CertTool = new Process();
+						CertTool.StartInfo.FileName = "/usr/bin/security";
+						CertTool.StartInfo.UseShellExecute = false;
+						CertTool.StartInfo.Arguments = "import \"" + CertificateFilename +"\" -k login.keychain";
+						CertTool.StartInfo.RedirectStandardOutput = true;
+						CertTool.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedCertToolProcessCall);
+						CertTool.Start();
+						CertTool.BeginOutputReadLine();
+						CertTool.WaitForExit();
+						if (CertTool.ExitCode != 0)
+						{
+							// todo: provide some feedback that it failed
+						}
+						Console.Write(CertToolData);
 					}
-					catch (System.Security.Cryptography.CryptographicException ex)
+					else
 					{
-						// Try once with a password
-						if (PasswordDialog.RequestPassword(out CertificatePassword))
+						// Load the certificate
+						string CertificatePassword = "";
+						X509Certificate2 Cert = null;
+						try
 						{
 							Cert = new X509Certificate2(CertificateFilename, CertificatePassword, X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet);
 						}
-						else
+						catch (System.Security.Cryptography.CryptographicException ex)
 						{
-							// User cancelled dialog, rethrow
-							throw ex;
-						}
-					}
-
-					// If the certificate doesn't have a private key pair, ask the user to provide one
-					if (!Cert.HasPrivateKey)
-					{
-						string ErrorMsg = "Certificate does not include a private key and cannot be used to code sign";
-
-						// Prompt for a key pair
-						if (MessageBox.Show("Next, please choose the key pair that you made when generating the certificate request.",
-							Config.AppDisplayName,
-							MessageBoxButtons.OK,
-							MessageBoxIcon.Information) == DialogResult.OK)
-						{
-							string KeyFilename;
-							if (ShowOpenFileDialog(KeysFilter, "Choose the key pair that belongs with the signing certificate", "", "", ref ChoosingFilesToInstallDirectory, out KeyFilename))
+							// Try once with a password
+							if (PasswordDialog.RequestPassword(out CertificatePassword))
 							{
-								Cert = CryptoAdapter.CombineKeyAndCert(CertificateFilename, KeyFilename);
-
-								if (Cert.HasPrivateKey)
-								{
-									ErrorMsg = null;
-								}
+								Cert = new X509Certificate2(CertificateFilename, CertificatePassword, X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet);
+							}
+							else
+							{
+								// User cancelled dialog, rethrow
+								throw ex;
 							}
 						}
 
-						if (ErrorMsg != null)
+						// If the certificate doesn't have a private key pair, ask the user to provide one
+						if (!Cert.HasPrivateKey)
 						{
-							throw new Exception(ErrorMsg);
-						}
-					}
+							string ErrorMsg = "Certificate does not include a private key and cannot be used to code sign";
 
-					// Add the certificate to the store
-					X509Store Store = new X509Store();
-					Store.Open(OpenFlags.ReadWrite);
-					Store.Add(Cert);
-					Store.Close();
+							// Prompt for a key pair
+							if (MessageBox(new IntPtr(0), "Next, please choose the key pair that you made when generating the certificate request.",
+								Config.AppDisplayName,
+								0x00000000 | 0x00000040 | 0x00001000 | 0x00010000) == 1)
+							{
+								string KeyFilename;
+								if (ShowOpenFileDialog(KeysFilter, "Choose the key pair that belongs with the signing certificate", "", "", ref ChoosingFilesToInstallDirectory, out KeyFilename))
+								{
+									Cert = CryptoAdapter.CombineKeyAndCert(CertificateFilename, KeyFilename);
+										
+									if (Cert.HasPrivateKey)
+									{
+										ErrorMsg = null;
+									}
+								}
+							}
+
+							if (ErrorMsg != null)
+							{
+								throw new Exception(ErrorMsg);
+							}
+						}
+
+						// Add the certificate to the store
+						X509Store Store = new X509Store();
+						Store.Open(OpenFlags.ReadWrite);
+						Store.Add(Cert);
+						Store.Close();
+					}
 				}
 			}
 			catch (Exception ex)
 			{
 				string ErrorMsg = String.Format("Failed to load or install certificate due to an error: '{0}'", ex.Message);
 				Program.Error(ErrorMsg);
-				MessageBox.Show(ErrorMsg, Config.AppDisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+				System.Threading.Thread.Sleep(500);
+				MessageBox(new IntPtr(0), ErrorMsg, Config.AppDisplayName, 0x00000000 | 0x00000010 | 0x00001000 | 0x00010000);
 			}
 		}
 
 		private void ImportCertificateButton_Click(object sender, EventArgs e)
 		{
-			TryInstallingCertificate_PromptForKey();
+			TryInstallingCertificate_PromptForKey(null);
 			UpdateStatus();
 		}
 

@@ -12,10 +12,9 @@ public class MessagingDebugger : ModuleRules
 				"Core",
 				"CoreUObject",
                 "InputCore",
-                "PropertyEditor",
+				"Serialization",
 				"Slate",
 				"SlateCore",
-                "EditorStyle"
 			}
 		);
 

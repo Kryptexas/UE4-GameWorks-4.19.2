@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SharedPointer.h"
 #include "LatentActionManager.generated.h"
 
 
@@ -47,7 +48,7 @@ struct ENGINE_API FLatentActionManager
 	typedef TMultiMap<int32, class FPendingLatentAction*> FActionList;
 	
 	/** Map to convert from object to FActionList. */
-	typedef TMap< TWeakObjectPtr<UObject>, FActionList > FObjectToActionListMap;
+	typedef TMap< TWeakObjectPtr<UObject>, TSharedPtr<FActionList> > FObjectToActionListMap;
 	FObjectToActionListMap ObjectToActionListMap;
 public:
 	/** 
@@ -71,7 +72,7 @@ public:
 	template<typename ActionType, typename PredicateType>
 	ActionType* FindExistingActionWithPredicate(UObject* InActionObject, int32 UUID, const PredicateType& FilterPredicate)
 	{
-		FActionList* ObjectActionList = ObjectToActionListMap.Find(InActionObject);
+		FActionList* ObjectActionList = GetActionListForObject(InActionObject);
 		if ((ObjectActionList != nullptr) && (ObjectActionList->Num(UUID) > 0))
 		{
 			for (auto It = ObjectActionList->CreateKeyIterator(UUID); It; ++It)
@@ -117,11 +118,7 @@ public:
 	/** 
 	 * Adds a new action to the action list under a given UUID 
 	 */
-	void AddNewAction(UObject* InActionObject, int32 UUID, FPendingLatentAction* NewAction)
-	{
-		FActionList& ObjectActionList = ObjectToActionListMap.FindOrAdd(InActionObject);
-		ObjectActionList.Add(UUID, NewAction);
-	}
+	void AddNewAction(UObject* InActionObject, int32 UUID, FPendingLatentAction* NewAction);
 
 	/** Resets the list of objects we have processed the latent action list for.	 */	
 	void BeginFrame()
@@ -158,8 +155,20 @@ protected:
 	 */	
 	const FActionList* GetActionListForObject(UObject* InObject) const
 	{
-		const FActionList* ObjectActionList = ObjectToActionListMap.Find(InObject);
-		return ObjectActionList;
+		auto ObjectActionListPtr = ObjectToActionListMap.Find(InObject);
+		return ObjectActionListPtr ? ObjectActionListPtr->Get() : NULL;
+	}
+
+	/** 
+	 * Finds the action instance for the supplied object will return NULL if one does not exist.
+	 *
+	 * @param		InOject		ActionListType to check for pending actions.
+	 *
+	 */	
+	FActionList* GetActionListForObject(UObject* InObject)
+	{
+		auto ObjectActionListPtr = ObjectToActionListMap.Find(InObject);
+		return ObjectActionListPtr ? ObjectActionListPtr->Get() : NULL;
 	}
 
 	/** 

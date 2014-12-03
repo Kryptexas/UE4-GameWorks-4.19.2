@@ -1,13 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
+#include "IMediaModule.h"
+#include "ModuleManager.h"
 
 
 /* UMediaPlayer structors
  *****************************************************************************/
 
-UMediaPlayer::UMediaPlayer( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaPlayer::UMediaPlayer( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, AutoPlay(false)
 	, AutoPlayRate(1.0f)
 	, Looping(true)
@@ -19,19 +21,19 @@ UMediaPlayer::UMediaPlayer( const class FPostConstructInitializeProperties& PCIP
 /* UMediaPlayer interface
  *****************************************************************************/
 
-bool UMediaPlayer::CanPause( ) const
+bool UMediaPlayer::CanPause() const
 {
 	return Player.IsValid() && Player->IsPlaying();
 }
 
 
-bool UMediaPlayer::CanPlay( ) const
+bool UMediaPlayer::CanPlay() const
 {
 	return Player.IsValid() && Player->IsReady();
 }
 
 
-FTimespan UMediaPlayer::GetDuration( ) const
+FTimespan UMediaPlayer::GetDuration() const
 {
 	if (Player.IsValid())
 	{
@@ -42,7 +44,7 @@ FTimespan UMediaPlayer::GetDuration( ) const
 }
 
 
-float UMediaPlayer::GetRate( ) const
+float UMediaPlayer::GetRate() const
 {
 	if (Player.IsValid())
 	{
@@ -53,7 +55,7 @@ float UMediaPlayer::GetRate( ) const
 }
 
 
-FTimespan UMediaPlayer::GetTime( ) const
+FTimespan UMediaPlayer::GetTime() const
 {
 	if (Player.IsValid())
 	{
@@ -64,31 +66,31 @@ FTimespan UMediaPlayer::GetTime( ) const
 }
 
 
-const FString& UMediaPlayer::GetUrl( ) const
+const FString& UMediaPlayer::GetUrl() const
 {
 	return CurrentUrl;
 }
 
 
-bool UMediaPlayer::IsLooping( ) const
+bool UMediaPlayer::IsLooping() const
 {
 	return Player.IsValid() && Player->IsLooping();
 }
 
 
-bool UMediaPlayer::IsPaused( ) const
+bool UMediaPlayer::IsPaused() const
 {
 	return Player.IsValid() && Player->IsPaused();
 }
 
 
-bool UMediaPlayer::IsPlaying( ) const
+bool UMediaPlayer::IsPlaying() const
 {
 	return Player.IsValid() && Player->IsPlaying();
 }
 
 
-bool UMediaPlayer::IsStopped( ) const
+bool UMediaPlayer::IsStopped() const
 {
 	return !Player.IsValid() || !Player->IsReady();
 }
@@ -103,19 +105,19 @@ bool UMediaPlayer::OpenUrl( const FString& NewUrl )
 }
 
 
-bool UMediaPlayer::Pause( )
+bool UMediaPlayer::Pause()
 {
 	return SetRate(0.0f);
 }
 
 
-bool UMediaPlayer::Play( )
+bool UMediaPlayer::Play()
 {
 	return SetRate(1.0f);
 }
 
 
-bool UMediaPlayer::Rewind( )
+bool UMediaPlayer::Rewind()
 {
 	return Seek(FTimespan::Zero());
 }
@@ -145,13 +147,13 @@ bool UMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
 }
 
 
-bool UMediaPlayer::SupportsScrubbing( ) const
+bool UMediaPlayer::SupportsScrubbing() const
 {
 	return Player.IsValid() && Player->GetMediaInfo().SupportsScrubbing();
 }
 
 
-bool UMediaPlayer::SupportsSeeking( ) const
+bool UMediaPlayer::SupportsSeeking() const
 {
 	return Player.IsValid() && Player->GetMediaInfo().SupportsSeeking();
 }
@@ -160,7 +162,7 @@ bool UMediaPlayer::SupportsSeeking( ) const
 /* UObject  overrides
  *****************************************************************************/
 
-void UMediaPlayer::BeginDestroy( )
+void UMediaPlayer::BeginDestroy()
 {
 	Super::BeginDestroy();
 
@@ -172,7 +174,7 @@ void UMediaPlayer::BeginDestroy( )
 }
 
 
-FString UMediaPlayer::GetDesc( )
+FString UMediaPlayer::GetDesc()
 {
 	if (Player.IsValid())
 	{
@@ -183,7 +185,7 @@ FString UMediaPlayer::GetDesc( )
 }
 
 
-void UMediaPlayer::PostLoad( )
+void UMediaPlayer::PostLoad()
 {
 	Super::PostLoad();
 
@@ -209,7 +211,7 @@ void UMediaPlayer::PostEditChangeProperty( FPropertyChangedEvent& PropertyChange
 /* UMediaPlayer implementation
  *****************************************************************************/
 
-void UMediaPlayer::InitializePlayer( )
+void UMediaPlayer::InitializePlayer()
 {
 	if (URL != CurrentUrl)
 	{
@@ -230,7 +232,14 @@ void UMediaPlayer::InitializePlayer( )
 		}
 
 		// create new player
-		Player = IMediaModule::Get().CreatePlayer(URL);
+		IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+
+		if (MediaModule == nullptr)
+		{
+			return;
+		}
+
+		Player = MediaModule->CreatePlayer(URL);
 
 		if (!Player.IsValid())
 		{
@@ -241,15 +250,16 @@ void UMediaPlayer::InitializePlayer( )
 		Player->OnOpened().AddUObject(this, &UMediaPlayer::HandleMediaPlayerMediaOpened);
 
 		// open the new media file
+		const FString FullUrl = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(URL) ? FPaths::GameContentDir() / URL : URL);
 		bool OpenedSuccessfully = false;
 
 		if (StreamMode == EMediaPlayerStreamModes::MASM_FromUrl)
 		{
-			OpenedSuccessfully = Player->Open(FPaths::ConvertRelativePathToFull(URL));
+			OpenedSuccessfully = Player->Open(FPaths::ConvertRelativePathToFull(FullUrl));
 		}
-		else if (FPaths::FileExists(URL))
+		else if (FPaths::FileExists(FullUrl))
 		{
-			FArchive* FileReader = IFileManager::Get().CreateFileReader(*URL);
+			FArchive* FileReader = IFileManager::Get().CreateFileReader(*FullUrl);
 		
 			if (FileReader == nullptr)
 			{
@@ -263,7 +273,7 @@ void UMediaPlayer::InitializePlayer( )
 				FileData->AddUninitialized(FileReader->TotalSize());
 				FileReader->Serialize(FileData->GetData(), FileReader->TotalSize());
 
-				OpenedSuccessfully = Player->Open(MakeShareable(FileData), URL);
+				OpenedSuccessfully = Player->Open(MakeShareable(FileData), FullUrl);
 			}
 
 			delete FileReader;
@@ -272,7 +282,7 @@ void UMediaPlayer::InitializePlayer( )
 		// finish initialization
 		if (OpenedSuccessfully)
 		{
-			CurrentUrl = URL;
+			CurrentUrl = FullUrl;
 		}
 	}
 
@@ -294,7 +304,7 @@ void UMediaPlayer::InitializePlayer( )
 /* UMediaPlayer callbacks
  *****************************************************************************/
 
-void UMediaPlayer::HandleMediaPlayerMediaClosed( )
+void UMediaPlayer::HandleMediaPlayerMediaClosed()
 {
 	MediaChangedEvent.Broadcast();
 	OnMediaClosed.Broadcast();

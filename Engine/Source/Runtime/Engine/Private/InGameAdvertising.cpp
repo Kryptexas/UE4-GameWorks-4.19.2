@@ -6,8 +6,8 @@
 
 #include "EnginePrivate.h"
 
-UInGameAdManager::UInGameAdManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInGameAdManager::UInGameAdManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bShouldPauseWhileAdOpen = true;
 }

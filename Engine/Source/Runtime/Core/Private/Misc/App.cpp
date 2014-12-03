@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	App.cpp: Implements the FApp class.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Misc/App.h"
 
 
 /* FApp static initialization
@@ -21,6 +18,9 @@ double FApp::FixedDeltaTime = 1 / 30.0;
 double FApp::CurrentTime = 0.0;
 double FApp::LastTime = 0.0;
 double FApp::DeltaTime = 1 / 30.0;
+float FApp::VolumeMultiplier = 1.0f;
+float FApp::UnfocusedVolumeMultiplier = 0.0f;
+
 
 /* FApp static interface
  *****************************************************************************/
@@ -29,6 +29,7 @@ FString FApp::GetBranchName( )
 {
 	return FString(TEXT(BRANCH_NAME));
 }
+
 
 EBuildConfigurations::Type FApp::GetBuildConfiguration()
 {
@@ -55,6 +56,7 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 	return EBuildConfigurations::Unknown;
 #endif
 }
+
 
 FString FApp::GetBuildDate( )
 {
@@ -102,6 +104,7 @@ void FApp::InitializeSession( )
 	}
 }
 
+
 bool FApp::IsInstalled()
 {
 #if UE_BUILD_SHIPPING && PLATFORM_DESKTOP && !UE_SERVER
@@ -112,11 +115,13 @@ bool FApp::IsInstalled()
 	return bIsInstalled;
 }
 
+
 bool FApp::IsEngineInstalled()
 {
 	static bool bIsInstalledEngine = IsInstalled() || (FRocketSupport::IsRocket() ? !FParse::Param(FCommandLine::Get(), TEXT("EngineNotInstalled")) : FParse::Param(FCommandLine::Get(), TEXT("EngineInstalled")));
 	return bIsInstalledEngine;
 }
+
 
 #if HAVE_RUNTIME_THREADING_SWITCHES
 bool FApp::ShouldUseThreadingForPerformance( )
@@ -124,4 +129,18 @@ bool FApp::ShouldUseThreadingForPerformance( )
 	static bool OnlyOneThread = FParse::Param(FCommandLine::Get(), TEXT("ONETHREAD")) || IsRunningDedicatedServer() || !FPlatformProcess::SupportsMultithreading() || FPlatformMisc::NumberOfCores() < 2;
 	return !OnlyOneThread;
 }
+
+
 #endif // HAVE_RUNTIME_THREADING_SWITCHES
+
+float FApp::GetUnfocusedVolumeMultiplier()
+{
+	static bool bInitialisedFromConfig = false;
+
+	if (!bInitialisedFromConfig)
+	{
+		bInitialisedFromConfig = true;
+		GConfig->GetFloat(TEXT("Audio"), TEXT("UnfocusedVolumeMultiplier"), UnfocusedVolumeMultiplier, GEngineIni);
+	}
+	return UnfocusedVolumeMultiplier;
+}

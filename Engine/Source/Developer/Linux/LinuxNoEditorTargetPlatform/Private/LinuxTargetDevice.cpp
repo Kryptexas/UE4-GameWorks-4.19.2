@@ -38,7 +38,7 @@ bool FLinuxTargetDevice::Run( const FString& ExecutablePath, const FString& Para
 	return false;
 }
 
-bool FLinuxTargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) const
+bool FLinuxTargetDevice::SupportsFeature( ETargetDeviceFeatures Feature ) const
 {
 	return false;
 }
@@ -48,13 +48,13 @@ bool FLinuxTargetDevice::SupportsSdkVersion( const FString& VersionString ) cons
 	return true;
 }
 
-void FLinuxTargetDevice::SetUserCredentials( const FString & InUserName, const FString & InUserPassword )
+void FLinuxTargetDevice::SetUserCredentials( const FString& InUserName, const FString& InUserPassword )
 {
 	UserName = InUserName;
 	UserPassword = InUserPassword;
 }
 
-bool FLinuxTargetDevice::GetUserCredentials( FString & OutUserName, FString & OutUserPassword )
+bool FLinuxTargetDevice::GetUserCredentials( FString& OutUserName, FString& OutUserPassword )
 {
 	OutUserName = UserName;
 	OutUserPassword = UserPassword;

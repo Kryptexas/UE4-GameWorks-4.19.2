@@ -10,7 +10,7 @@
 #endif // SOURCE_CONTROL_WITH_SLATE
 
 #if SOURCE_CONTROL_WITH_SLATE
-	#include "Slate.h"
+	#include "SlateBasics.h"
 	#include "EditorStyle.h"
 #endif // SOURCE_CONTROL_WITH_SLATE
 

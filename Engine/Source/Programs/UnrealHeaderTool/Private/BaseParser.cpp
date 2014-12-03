@@ -93,6 +93,7 @@ namespace
 
 			FMetadataKeyword& NotBlueprintType = Dictionary.Add(TEXT("NotBlueprintType"), EMetadataValueArgument::None);
 			NotBlueprintType.InsertAddAction(TEXT("NotBlueprintType"), TEXT("true"));
+			NotBlueprintType.InsertRemoveAction(TEXT("BlueprintType"));
 
 			FMetadataKeyword& Blueprintable = Dictionary.Add(TEXT("Blueprintable"), EMetadataValueArgument::None);
 			Blueprintable.InsertAddAction(TEXT("IsBlueprintBase"), TEXT("true"));

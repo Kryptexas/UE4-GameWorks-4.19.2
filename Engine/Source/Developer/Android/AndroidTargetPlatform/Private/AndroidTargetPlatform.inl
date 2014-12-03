@@ -139,7 +139,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 
 
 template<class TPlatformProperties>
-inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETargetPlatformFeatures::Type Feature ) const
+inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETargetPlatformFeatures Feature ) const
 {
 	if (Feature == ETargetPlatformFeatures::Packaging)
 	{
@@ -275,7 +275,7 @@ const FTextureLODSettings& FAndroidTargetPlatform<TPlatformProperties>::GetTextu
 
 
 template<class TPlatformProperties>
-FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( class USoundWave* Wave ) const
+FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( const class USoundWave* Wave ) const
 {
 	static bool formatRead = false;
 	static FName NAME_FORMAT;
@@ -384,6 +384,8 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 			Device->SetConnected(true);
 			Device->SetModel(DeviceInfo.Model);
 			Device->SetDeviceName(DeviceInfo.DeviceName);
+			Device->SetAuthorized(!DeviceInfo.bUnauthorizedDevice);
+			Device->SetVersions(DeviceInfo.SDKVersion, DeviceInfo.HumanAndroidVersion);
 
 			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 		}

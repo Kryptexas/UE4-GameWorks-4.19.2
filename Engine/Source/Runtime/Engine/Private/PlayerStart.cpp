@@ -2,13 +2,13 @@
 
 #include "EnginePrivate.h"
 
-APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerStart::APlayerStart(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	CapsuleComponent->InitCapsuleSize(40.0f, 92.0f);
+	GetCapsuleComponent()->InitCapsuleSize(40.0f, 92.0f);
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -31,16 +31,16 @@ APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
 		};
 		static FConstructorStatics ConstructorStatics;
 
-		if (GoodSprite)
+		if (GetGoodSprite())
 		{
-			GoodSprite->Sprite = ConstructorStatics.PlayerStartTextureObject.Get();
-			GoodSprite->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			GoodSprite->SpriteInfo.Category = ConstructorStatics.ID_PlayerStart;
-			GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_PlayerStart;
+			GetGoodSprite()->Sprite = ConstructorStatics.PlayerStartTextureObject.Get();
+			GetGoodSprite()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			GetGoodSprite()->SpriteInfo.Category = ConstructorStatics.ID_PlayerStart;
+			GetGoodSprite()->SpriteInfo.DisplayName = ConstructorStatics.NAME_PlayerStart;
 		}
-		if (BadSprite)
+		if (GetBadSprite())
 		{
-			BadSprite->SetVisibility(false);
+			GetBadSprite()->SetVisibility(false);
 		}
 
 		if (ArrowComponent)
@@ -51,7 +51,7 @@ APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
 			ArrowComponent->bTreatAsASprite = true;
 			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
 			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
-			ArrowComponent->AttachParent = CapsuleComponent;
+			ArrowComponent->AttachParent = GetCapsuleComponent();
 			ArrowComponent->bIsScreenSizeScaled = true;
 		}
 	}
@@ -78,3 +78,7 @@ void APlayerStart::PostUnregisterAllComponents()
 	}
 }
 
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* APlayerStart::GetArrowComponent() const { return ArrowComponent; }
+#endif

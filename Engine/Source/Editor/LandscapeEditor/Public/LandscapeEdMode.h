@@ -13,10 +13,10 @@ class FLandscapeToolSplines;
 struct FHeightmapToolTarget;
 template<typename TargetType> class FLandscapeToolCopyPaste;
 
-#include "Landscape/LandscapeInfo.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeGizmoActiveActor.h"
+#include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeProxy.h"
+#include "LandscapeGizmoActiveActor.h"
 
 // FLandscapeToolMousePosition - Struct to store mouse positions since the last time we applied the brush
 struct FLandscapeToolMousePosition
@@ -400,6 +400,15 @@ namespace ENewLandscapePreviewMode
 	};
 }
 
+enum class ELandscapeEditingState : uint8
+{
+	Unknown,
+	Enabled,
+	BadFeatureLevel,
+	PIEWorld,
+	SIEWorld,
+	NoLandscape,
+};
 
 /**
  * Landscape editor mode
@@ -616,6 +625,13 @@ public:
 	// For collision add visualization
 	FLandscapeAddCollision* LandscapeRenderAddCollision;
 
+	ELandscapeEditingState GetEditingState() const;
+
+	bool IsEditingEnabled() const
+	{
+		return GetEditingState() == ELandscapeEditingState::Enabled;
+	}
+
 private:
 	TArray<TSharedRef<FLandscapeTargetListInfo>> LandscapeTargetList;
 	TArray<FLandscapeListInfo> LandscapeList;
@@ -629,7 +645,7 @@ private:
 namespace LandscapeEditorUtils
 {
 	template<typename T>
-	TArray<T> ExpandData(const TArray<T>& Data,
+	void ExpandData(T* OutData, const T* InData,
 		int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
 		int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
 	{
@@ -640,34 +656,47 @@ namespace LandscapeEditorUtils
 		const int32 OffsetX = NewMinX - OldMinX;
 		const int32 OffsetY = NewMinY - OldMinY;
 
-		TArray<T> Result;
-		Result.Empty(NewWidth * NewHeight);
-		Result.AddUninitialized(NewWidth * NewHeight);
-
 		for (int32 Y = 0; Y < NewHeight; ++Y)
 		{
 			const int32 OldY = FMath::Clamp<int32>(Y + OffsetY, 0, OldHeight - 1);
 
 			// Pad anything to the left
-			const T PadLeft = Data[OldY * OldWidth + 0];
+			const T PadLeft = InData[OldY * OldWidth + 0];
 			for (int32 X = 0; X < -OffsetX; ++X)
 			{
-				Result[Y * NewWidth + X] = PadLeft;
+				OutData[Y * NewWidth + X] = PadLeft;
 			}
 
 			// Copy one row of the old data
 			{
 				const int32 X = FMath::Max(0, -OffsetX);
 				const int32 OldX = FMath::Clamp<int32>(X + OffsetX, 0, OldWidth - 1);
-				FMemory::Memcpy(&Result[Y * NewWidth + X], &Data[OldY * OldWidth + OldX], FMath::Min<int32>(OldWidth, NewWidth) * sizeof(T));
+				FMemory::Memcpy(&OutData[Y * NewWidth + X], &InData[OldY * OldWidth + OldX], FMath::Min<int32>(OldWidth, NewWidth) * sizeof(T));
 			}
 
-			const T PadRight = Data[OldY * OldWidth + OldWidth - 1];
+			const T PadRight = InData[OldY * OldWidth + OldWidth - 1];
 			for (int32 X = -OffsetX + OldWidth; X < NewWidth; ++X)
 			{
-				Result[Y * NewWidth + X] = PadRight;
+				OutData[Y * NewWidth + X] = PadRight;
 			}
 		}
+	}
+
+	template<typename T>
+	TArray<T> ExpandData(const TArray<T>& Data,
+		int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
+		int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
+	{
+		const int32 NewWidth = NewMaxX - NewMinX + 1;
+		const int32 NewHeight = NewMaxY - NewMinY + 1;
+
+		TArray<T> Result;
+		Result.Empty(NewWidth * NewHeight);
+		Result.AddUninitialized(NewWidth * NewHeight);
+
+		ExpandData(Result.GetData(), Data.GetData(),
+			OldMinX, OldMinY, OldMaxX, OldMaxY,
+			NewMinX, NewMinY, NewMaxX, NewMaxY);
 
 		return Result;
 	}

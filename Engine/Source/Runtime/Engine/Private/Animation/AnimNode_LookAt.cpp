@@ -34,7 +34,7 @@ void FAnimNode_LookAt::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -76,7 +76,7 @@ void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 	OutBoneTransforms.Add( FBoneTransform(BoneToModify.BoneIndex, ComponentBoneTransform) );
 }
 
-bool FAnimNode_LookAt::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) 
+bool FAnimNode_LookAt::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
 	return (BoneToModify.IsValid(RequiredBones) && 
@@ -86,13 +86,13 @@ bool FAnimNode_LookAt::IsValidToEvaluate(const USkeleton * Skeleton, const FBone
 		(LookAtBone.BoneName == NAME_None || LookAtBone.BoneIndex != INDEX_NONE) );
 }
 
-void FAnimNode_LookAt::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_LookAt::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	BoneToModify.Initialize(RequiredBones);
 	LookAtBone.Initialize(RequiredBones);
 }
 
-FVector FAnimNode_LookAt::GetAlignVector(FTransform & Transform, EAxisOption::Type AxisOption)
+FVector FAnimNode_LookAt::GetAlignVector(FTransform& Transform, EAxisOption::Type AxisOption)
 {
 	switch (AxisOption)
 	{

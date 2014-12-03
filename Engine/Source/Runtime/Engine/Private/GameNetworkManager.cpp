@@ -10,8 +10,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGameNetworkManager, Log, All);
 
 
-AGameNetworkManager::AGameNetworkManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameNetworkManager::AGameNetworkManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MoveRepSize = 42.0f;
 	MAXPOSITIONERRORSQUARED = 3.0;

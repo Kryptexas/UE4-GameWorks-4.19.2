@@ -5,14 +5,17 @@
 /////////////////////////////////////////////////////
 // UWidget
 
-UWidget::UWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsEnabled = true;
 	bIsVariable = true;
 	bDesignTime = false;
 	Visiblity = ESlateVisibility::Visible;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
+
+	//TODO UMG ToolTipWidget
+	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
 }
 
 void UWidget::SetRenderTransform(FWidgetTransform Transform)
@@ -48,7 +51,7 @@ void UWidget::SetRenderTranslation(FVector2D Translation)
 void UWidget::UpdateRenderTransform()
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		if (!RenderTransform.IsIdentity())
 		{
@@ -67,7 +70,7 @@ void UWidget::SetRenderTransformPivot(FVector2D Pivot)
 	RenderTransformPivot = Pivot;
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		SafeWidget->SetRenderTransformPivot(Pivot);
 	}
@@ -84,16 +87,27 @@ void UWidget::SetIsEnabled(bool bInIsEnabled)
 	bIsEnabled = bInIsEnabled;
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		SafeWidget->SetEnabled(bInIsEnabled);
 	}
 }
 
-TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
+bool UWidget::IsVisible() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->GetVisibility().IsVisible();
+	}
+
+	return false;
+}
+
+TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
 	{
 		return UWidget::ConvertRuntimeToSerializedVisiblity(SafeWidget->GetVisibility());
 	}
@@ -106,7 +120,7 @@ void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
 	Visiblity = InVisibility;
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
 	}
@@ -117,7 +131,7 @@ void UWidget::SetToolTipText(const FText& InToolTipText)
 	ToolTipText = InToolTipText;
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->SetToolTipText(InToolTipText);
 	}
@@ -126,7 +140,7 @@ void UWidget::SetToolTipText(const FText& InToolTipText)
 bool UWidget::IsHovered() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->IsHovered();
 	}
@@ -137,7 +151,7 @@ bool UWidget::IsHovered() const
 bool UWidget::HasKeyboardFocus() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->HasKeyboardFocus();
 	}
@@ -148,7 +162,7 @@ bool UWidget::HasKeyboardFocus() const
 bool UWidget::HasFocusedDescendants() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->HasFocusedDescendants();
 	}
@@ -159,7 +173,7 @@ bool UWidget::HasFocusedDescendants() const
 bool UWidget::HasMouseCapture() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->HasMouseCapture();
 	}
@@ -170,7 +184,7 @@ bool UWidget::HasMouseCapture() const
 void UWidget::SetKeyboardFocus() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		FSlateApplication::Get().SetKeyboardFocus(SafeWidget);
 	}
@@ -179,7 +193,7 @@ void UWidget::SetKeyboardFocus() const
 void UWidget::ForceLayoutPrepass()
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		SafeWidget->SlatePrepass();
 	}
@@ -188,7 +202,7 @@ void UWidget::ForceLayoutPrepass()
 FVector2D UWidget::GetDesiredSize() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->GetDesiredSize();
 	}
@@ -220,12 +234,9 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	TSharedPtr<SWidget> SafeWidget;
 	bool bNewlyCreated = false;
 
+	// If the underlying widget doesn't exist we need to construct and cache the widget for the first run.
 	if ( !MyWidget.IsValid() )
 	{
-		// We lie a bit about this being a const function.  If this is the first call it's not really const
-		// and we need to construct and cache the widget for the first run.  But instead of forcing everyone
-		// downstream to make RebuildWidget const and force every implementation to make things mutable, we
-		// just blow away the const here.
 		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
 
@@ -239,13 +250,15 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
 	if ( IsA(UUserWidget::StaticClass()) )
 	{
+		// If the GC Widget is still valid we still exist in the slate hierarchy, so just return the GC Widget.
 		if ( MyGCWidget.IsValid() )
 		{
 			return MyGCWidget.Pin().ToSharedRef();
 		}
+		// Otherwise we need to recreate the wrapper widget
 		else
 		{
-			TSharedPtr<SWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
+			TSharedPtr<SObjectWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
 				[
 					SafeWidget.ToSharedRef()
 				];
@@ -312,7 +325,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 bool UWidget::IsGeneratedName() const
 {
 	FString Name = GetName();
-	FString BaseName = GetClass()->GetName() + "_";
+	FString BaseName = GetClass()->GetName() + TEXT("_");
 
 	if ( Name.StartsWith(BaseName) )
 	{
@@ -324,14 +337,14 @@ bool UWidget::IsGeneratedName() const
 
 FString UWidget::GetLabelMetadata() const
 {
-	return "";
+	return TEXT("");
 }
 
 FString UWidget::GetLabel() const
 {
 	if ( IsGeneratedName() && !bIsVariable )
 	{
-		return "[" + GetClass()->GetName() + "]" + GetLabelMetadata();
+		return TEXT("[") + GetClass()->GetName() + TEXT("]") + GetLabelMetadata();
 	}
 	else
 	{
@@ -349,12 +362,17 @@ const FSlateBrush* UWidget::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget");
 }
 
+EVisibility UWidget::GetVisibilityInDesigner() const
+{
+	return bHiddenInDesigner ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
 void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if ( SafeWidget.IsValid() )
+	if (SafeWidget.IsValid())
 	{
 		SynchronizeProperties();
 	}
@@ -427,13 +445,15 @@ void UWidget::SynchronizeProperties()
 	// visibility and enabled status are not stomping values setup in the root widget in the User Widget.
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 
+#if WITH_EDITOR
 	// Always use an enabled and visible state in the designer.
 	if ( IsDesignTime() )
 	{
 		SafeWidget->SetEnabled(true);
-		SafeWidget->SetVisibility(EVisibility::Visible);
+		SafeWidget->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UWidget::GetVisibilityInDesigner)));
 	}
 	else
+#endif
 	{
 		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
@@ -445,6 +465,18 @@ void UWidget::SynchronizeProperties()
 	if ( !ToolTipText.IsEmpty() )
 	{
 		SafeWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
+	}
+
+	if (Navigation != nullptr)
+	{
+		TSharedPtr<FNavigationMetaData> MetaData = SafeWidget->GetMetaData<FNavigationMetaData>();
+		if (!MetaData.IsValid())
+		{
+			MetaData = MakeShareable(new FNavigationMetaData());
+			SafeWidget->AddMetadata(MetaData.ToSharedRef());
+		}
+
+		Navigation->UpdateMetaData(MetaData.ToSharedRef());
 	}
 }
 

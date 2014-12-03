@@ -14,7 +14,7 @@
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshEdit"
 
-UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton * Skeleton, UObject * Outer, UFbxAnimSequenceImportData* TemplateImportData, const TCHAR* InFilename, const TCHAR * AnimName, bool bImportMorphTracks )
+UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton* Skeleton, UObject* Outer, UFbxAnimSequenceImportData* TemplateImportData, const TCHAR* InFilename, const TCHAR* AnimName, bool bImportMorphTracks )
 {
 	check(Skeleton);
 
@@ -94,7 +94,7 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton * Skeleton, UObject
 	return NewAnimation;
 }
 
-bool UEditorEngine::ReimportFbxAnimation( USkeleton * Skeleton, UAnimSequence * AnimSequence, UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename)
+bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename)
 {
 	check(Skeleton);
 
@@ -265,7 +265,7 @@ void UnFbx::FFbxImporter::MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 
 	ApplyUnroll(Scene->GetRootNode(), lLayer, &UnrollFilter);
 }
 
-bool UnFbx::FFbxImporter::IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, int32 & ValidTakeCount)
+bool UnFbx::FFbxImporter::IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, int32& ValidTakeCount)
 {
 	// If there are no valid links, then we cannot import the anim set
 	if(SortedLinks.Num() == 0)
@@ -349,7 +349,7 @@ void UnFbx::FFbxImporter::FillAndVerifyBoneNames(USkeleton* Skeleton, TArray<Fbx
 		OutRawBoneNames[BoneIndex] = FName(*FSkeletalMeshImportData::FixupBoneName( (ANSICHAR*)MakeName(SortedLinks[BoneIndex]->GetName()) ));
 	}
 
-	const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 	const USkeleton::FBoneTreeType & BoneTree = Skeleton->GetBoneTree();
 
 	// make sure at least root bone matches
@@ -459,7 +459,7 @@ FbxTimeSpan UnFbx::FFbxImporter::GetAnimationTimeSpan(FbxNode* RootNode, FbxAnim
 /**
 * Add to the animation set, the animations contained within the FBX document, for the given skeleton
 */
-UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton * Skeleton, UObject * Outer, TArray<FbxNode*>& SortedLinks, const FString & Name, UFbxAnimSequenceImportData* TemplateImportData, TArray<FbxNode*>& NodeArray)
+UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObject* Outer, TArray<FbxNode*>& SortedLinks, const FString& Name, UFbxAnimSequenceImportData* TemplateImportData, TArray<FbxNode*>& NodeArray)
 {
 	// we need skeleton to create animsequence
 	if (Skeleton == NULL)
@@ -522,8 +522,8 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton * Skeleton, UObj
 		SequenceName = ObjectTools::SanitizeObjectName(SequenceName);
 
 		FString 	ParentPath = FString::Printf(TEXT("%s/%s"), *FPackageName::GetLongPackagePath(*Outer->GetName()), *SequenceName);
-		UObject * 	ParentPackage = CreatePackage(NULL, *ParentPath);
-		UObject * Object = LoadObject<UObject>(ParentPackage, *SequenceName, NULL, LOAD_None, NULL);
+		UObject* 	ParentPackage = CreatePackage(NULL, *ParentPath);
+		UObject* Object = LoadObject<UObject>(ParentPackage, *SequenceName, NULL, LOAD_None, NULL);
 		UAnimSequence * DestSeq = Cast<UAnimSequence>(Object);
 		// if object with same name exists, warn user
 		if (Object && !DestSeq)
@@ -854,7 +854,7 @@ namespace AnimationTransformDebug
 		}
 	};
 
-	void OutputAnimationTransformDebugData(TArray<AnimationTransformDebug::FAnimationTransformDebugData> &TransformDebugData, int32 TotalNumKeys, const FReferenceSkeleton & RefSkeleton)
+	void OutputAnimationTransformDebugData(TArray<AnimationTransformDebug::FAnimationTransformDebugData> &TransformDebugData, int32 TotalNumKeys, const FReferenceSkeleton& RefSkeleton)
 	{
 		bool bShouldOutputToMessageLog = true;
 
@@ -905,7 +905,7 @@ namespace AnimationTransformDebug
 					}
 					
 					// now print information - it doesn't match well, find out what it is
-					UE_LOG(LogFbx, Warning, TEXT("IMPORT TRASNFORM ERROR : Bone (%s:%d) \r\nSource Global Transform (%s), \r\nConverted Global Trasnform (%s)"),
+					UE_LOG(LogFbx, Warning, TEXT("IMPORT TRANSFORM ERROR : Bone (%s:%d) \r\nSource Global Transform (%s), \r\nConverted Global Transform (%s)"),
 						*Data.BoneName.ToString(), Data.BoneIndex, *Data.SourceGlobalTransform[Key].ToString(), *GlobalTransform.ToString());
 				}
 			}
@@ -938,7 +938,7 @@ bool IsSupportedCurveDataType(EFbxType DatatType)
 	return false;
 }
 
-bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString & CurveName, const FbxAnimCurve * FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale/*=1.f*/) const
+bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString& CurveName, const FbxAnimCurve* FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale/*=1.f*/) const
 {
 	if (TargetSequence && FbxCurve)
 	{
@@ -973,7 +973,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 	return false;
 }
 
-bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * DestSeq, const FString & FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
+bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * DestSeq, const FString& FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
 	FbxTime SequenceLength = AnimTimeSpan.GetDuration();
 	float PreviousSequenceLength = DestSeq->SequenceLength;
@@ -1096,11 +1096,17 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * 
 	FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);
 
 	TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
-	const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
 
 	const bool bPreserveLocalTransform = FbxImporter->GetImportOptions()->bPreserveLocalTransform;
+
+	// Build additional transform matrix
+	UFbxAnimSequenceImportData* TemplateData = Cast<UFbxAnimSequenceImportData>(DestSeq->AssetImportData);
+	FbxAMatrix FbxAddedMatrix;
+	BuildFbxMatrixForImportTransform(FbxAddedMatrix, TemplateData);
+	FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
 
 	int32 TotalNumKeys = 0;
 	for(int32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.Num(); ++SourceTrackIdx)
@@ -1149,8 +1155,10 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * 
 										"Track {0} did not yeild valid transform. Please report this to animation team."), FText::FromName(BoneName))), FFbxErrors::Animation_TransformError);
 					break;
 				}
-				// debug data
-				NewDebugData.SourceGlobalTransform.Add(GlobalTransform);
+
+				// debug data, including import transformation
+				FTransform AddedTransform(AddedMatrix);
+				NewDebugData.SourceGlobalTransform.Add(GlobalTransform * AddedTransform);
 
 				FTransform LocalTransform;
 				if( !bPreserveLocalTransform && LinkParent)
@@ -1168,10 +1176,19 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * 
 					FbxVector4 NewLocalT = LocalMatrix.GetT();
 					FbxVector4 NewLocalS = LocalMatrix.GetS();
 					FbxQuaternion NewLocalQ = LocalMatrix.GetQ();
+
 					LocalTransform.SetTranslation(Converter.ConvertPos(NewLocalT));
 					LocalTransform.SetScale3D(Converter.ConvertScale(NewLocalS));
 					LocalTransform.SetRotation(Converter.ConvertRotToQuat(NewLocalQ));
+
 					NewDebugData.SourceParentGlobalTransform.Add(FTransform::Identity);
+				}
+
+				if(TemplateData && BoneTreeIndex == 0)
+				{
+					// If we found template data earlier, apply the import transform matrix to
+					// the root track.
+					LocalTransform.SetFromMatrix(LocalTransform.ToMatrixWithScale() * AddedMatrix);
 				}
 
 				if (LocalTransform.ContainsNaN())

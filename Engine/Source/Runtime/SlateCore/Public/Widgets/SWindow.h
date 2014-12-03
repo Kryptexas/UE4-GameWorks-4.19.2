@@ -83,6 +83,8 @@ public:
 		, _SupportsMinimize( true )
 		, _CreateTitleBar( true )
 		, _SaneWindowPlacement( true )
+		, _LayoutBorder(FMargin(5, 5, 5, 5))
+		, _UserResizeBorder(FMargin(5, 5, 5, 5))
 	{ }
 
 		/** Style used to draw this window */
@@ -142,6 +144,12 @@ public:
 		/** If the window appears off screen or is too large to safely fit this flag will force realistic 
 		    constraints on the window and bring it back into view. */
 		SLATE_ARGUMENT( bool, SaneWindowPlacement )
+
+		/** The padding around the edges of the window applied to it's content. */
+		SLATE_ARGUMENT(FMargin, LayoutBorder)
+
+		/** The margin around the edges of the window that will be detected as places the user can grab to resize the window. */
+		SLATE_ARGUMENT(FMargin, UserResizeBorder)
 
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 
@@ -257,7 +265,7 @@ public:
 	FSlateRect GetClippingRectangleInWindow() const;
 
 	/** Returns the margins used for the window border. This varies based on whether it's maximized or not. */
-	FMargin GetWindowBorderSize() const;
+	FMargin GetWindowBorderSize( bool bIncTitleBar = false ) const;
 
 	/** Relocate the window to a screenspace position specified by NewPosition */
 	void MoveWindowTo( FVector2D NewPosition );
@@ -574,7 +582,7 @@ public:
 
 	virtual bool SupportsKeyboardFocus() const override;
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent );
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent );
 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -620,6 +628,45 @@ public:
 
 	/** Are any of our child windows active? */
 	bool HasActiveChildren() const;
+
+	/**
+	 * Sets whether or not the viewport size should be driven by the window's size.  If true, the two will be the same.  If false, an independent viewport size can be specified with SetIndependentViewportSize
+	 */
+	inline void SetViewportSizeDrivenByWindow(bool bDrivenByWindow)
+	{
+		if (bDrivenByWindow)
+		{
+			ViewportSize = FVector2D::ZeroVector;
+		}
+		else
+		{
+			ViewportSize = Size;
+		}
+	}
+	
+	/**
+	 * Returns whether or not the viewport and window size should be linked together.  If false, the two can be independent in cases where it is needed (e.g. mirror mode window drawing)
+	 */
+	inline bool IsViewportSizeDrivenByWindow() const
+	{
+		return (ViewportSize.X == 0);
+	}
+
+	/**
+	 * Returns the viewport size, taking into consideration if the window size should drive the viewport size
+	 */
+	inline FVector2D GetViewportSize() const
+	{
+		return (ViewportSize.X) ? ViewportSize : Size;
+	}
+	
+	/**
+	 * Sets the viewport size independently of the window size, if non-zero.
+	 */
+	inline void SetIndependentViewportSize(const FVector2D& VP) 
+	{
+		ViewportSize = VP;
+	}
 
 public:
 
@@ -725,6 +772,9 @@ protected:
 
 	/** Size of the window's content area in screen space */
 	FVector2D Size;
+
+	/** Size of the viewport. If (0,0) then it is equal to Size */
+	FVector2D ViewportSize;
 
 	/** Size of this window's title bar.  Can be zero.  Set at construction and should not be changed afterwards. */
 	float TitleBarSize;
@@ -834,6 +884,12 @@ private:
 
 	// The window title bar.
 	TSharedPtr<IWindowTitleBar> TitleBar;
+
+	// The padding for between the edges of the window and it's content
+	FMargin LayoutBorder;
+
+	// The margin around the edges of the window that will be detected as places the user can grab to resize the window. 
+	FMargin UserResizeBorder;
 
 private:
 	

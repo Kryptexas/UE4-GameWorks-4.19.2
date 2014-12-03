@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UVisual
 
-UVisual::UVisual(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVisual::UVisual(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

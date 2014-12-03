@@ -3,7 +3,79 @@
 #include "SlateCorePrivatePCH.h"
 
 
-FArrangedWidget FWidgetPath::FindArrangedWidget( TSharedRef<const SWidget> WidgetToFind ) const
+FWidgetPath::FWidgetPath()
+: Widgets( EVisibility::Visible )
+, TopLevelWindow()
+, VirtualPointerPositions()
+{
+}
+
+FWidgetPath::FWidgetPath( TSharedPtr<SWindow> InTopLevelWindow, const FArrangedChildren& InWidgetPath )
+: Widgets( InWidgetPath )
+, TopLevelWindow(InTopLevelWindow)
+, VirtualPointerPositions()
+{
+}
+
+FWidgetPath::FWidgetPath( TArray<FWidgetAndPointer> InWidgetsAndPointers )
+: Widgets( FArrangedChildren::Hittest2_FromArray(InWidgetsAndPointers) )
+, TopLevelWindow( InWidgetsAndPointers.Num() > 0 ? StaticCastSharedRef<SWindow>(InWidgetsAndPointers[0].Widget) : TSharedPtr<SWindow>(nullptr) )
+, VirtualPointerPositions( [&InWidgetsAndPointers]()
+	{ 
+		TArray< TSharedPtr<FVirtualPointerPosition> > Pointers;
+		Pointers.Reserve(InWidgetsAndPointers.Num());
+		for ( const FWidgetAndPointer& WidgetAndPointer : InWidgetsAndPointers )
+		{
+			Pointers.Add( WidgetAndPointer.PointerPosition );
+		};
+		return Pointers;
+	}())
+{
+}
+
+FWidgetPath FWidgetPath::GetPathDownTo( TSharedRef<const SWidget> MarkerWidget ) const
+{
+	FArrangedChildren ClippedPath(EVisibility::Visible);
+	bool bCopiedMarker = false;
+	for( int32 WidgetIndex = 0; !bCopiedMarker && WidgetIndex < Widgets.Num(); ++WidgetIndex )
+	{
+		ClippedPath.AddWidget( Widgets[WidgetIndex] );
+		bCopiedMarker = (Widgets[WidgetIndex].Widget == MarkerWidget);
+	}
+		
+	if ( bCopiedMarker )
+	{
+		// We found the MarkerWidget and copied the path down to (and including) it.
+		return FWidgetPath( TopLevelWindow, ClippedPath );
+	}
+	else
+	{
+		// The MarkerWidget was not in the widget path. We failed.
+		return FWidgetPath( nullptr, FArrangedChildren(EVisibility::Visible) );		
+	}	
+}
+
+const TSharedPtr<FVirtualPointerPosition>& FWidgetPath::GetCursorAt( int32 Index ) const
+{
+	return VirtualPointerPositions[Index];
+}
+
+
+bool FWidgetPath::ContainsWidget( TSharedRef<const SWidget> WidgetToFind ) const
+{
+	for(int32 WidgetIndex = 0; WidgetIndex < Widgets.Num(); ++WidgetIndex)
+	{
+		if ( Widgets[WidgetIndex].Widget == WidgetToFind )
+		{
+			return true;
+		}
+	}
+		
+	return false;
+}
+
+
+TOptional<FArrangedWidget> FWidgetPath::FindArrangedWidget( TSharedRef<const SWidget> WidgetToFind ) const
 {
 	for(int32 WidgetIndex = 0; WidgetIndex < Widgets.Num(); ++WidgetIndex)
 	{
@@ -13,7 +85,55 @@ FArrangedWidget FWidgetPath::FindArrangedWidget( TSharedRef<const SWidget> Widge
 		}
 	}
 
-	return FArrangedWidget( SNullWidget::NullWidget, FGeometry() );
+	return TOptional<FArrangedWidget>();
+}
+
+TOptional<FWidgetAndPointer> FWidgetPath::FindArrangedWidgetAndCursor( TSharedRef<const SWidget> WidgetToFind ) const
+{
+	const int32 Index = Widgets.IndexOfByPredicate( [&WidgetToFind]( const FArrangedWidget& SomeWidget )
+	{
+		return SomeWidget.Widget == WidgetToFind;
+	} );
+
+	return (Index != INDEX_NONE)
+		? FWidgetAndPointer( Widgets[Index], VirtualPointerPositions[Index] )
+		: FWidgetAndPointer();
+}
+
+	
+TSharedRef<SWindow> FWidgetPath::GetWindow()
+{
+	check(IsValid());
+
+	TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets[0].Widget);
+	return FirstWidgetWindow;
+}
+
+
+TSharedRef<SWindow> FWidgetPath::GetWindow() const
+{
+	check(IsValid());
+
+	TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets[0].Widget);
+	return FirstWidgetWindow;
+}
+
+
+bool FWidgetPath::IsValid() const
+{
+	return Widgets.Num() > 0;
+}
+
+	
+FString FWidgetPath::ToString() const
+{
+	FString StringBuffer;
+	for( int32 WidgetIndex = Widgets.Num()-1; WidgetIndex >= 0; --WidgetIndex )
+	{
+		StringBuffer += Widgets[WidgetIndex].ToString();
+		StringBuffer += TEXT("\n");
+	}
+	return StringBuffer;
 }
 
 
@@ -35,9 +155,11 @@ struct FFocusableWidgetMatcher
  *
  * @return true if the focus moved successfully, false if we were unable to move focus
  */
-bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirection)
+bool FWidgetPath::MoveFocus(int32 PathLevel, EUINavigation NavigationType)
 {
-	const int32 MoveDirectionAsInt = (MoveDirection == EFocusMoveDirection::Next)
+	check(NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous);
+
+	const int32 MoveDirectionAsInt = (NavigationType == EUINavigation::Next)
 		? +1
 		: -1;
 
@@ -45,7 +167,7 @@ bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirec
 	if ( PathLevel == Widgets.Num()-1 )
 	{
 		// We are the currently focused widget because we are at the very bottom of focus path.
-		if (MoveDirection == EFocusMoveDirection::Next)
+		if (NavigationType == EUINavigation::Next)
 		{
 			// EFocusMoveDirection::Next implies descend, so try to find a focusable descendant.
 			return ExtendPathTo( FFocusableWidgetMatcher() );
@@ -77,7 +199,7 @@ bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirec
 			if ( ArrangedChildren[FocusedChildIndex].Widget->IsEnabled() )
 			{
 				// Look for a focusable descendant.
-				FArrangedChildren PathToFocusableChild = GeneratePathToWidget( FFocusableWidgetMatcher(), ArrangedChildren[FocusedChildIndex], MoveDirection );
+				FArrangedChildren PathToFocusableChild = GeneratePathToWidget(FFocusableWidgetMatcher(), ArrangedChildren[FocusedChildIndex], NavigationType);
 				// Either we found a focusable descendant, or an immediate child that is focusable.
 				const bool bFoundNextFocusable = ( PathToFocusableChild.Num() > 0 ) || ArrangedChildren[FocusedChildIndex].Widget->SupportsKeyboardFocus();
 				if ( bFoundNextFocusable )
@@ -111,18 +233,18 @@ FWeakWidgetPath::FWeakWidgetPath( const FWidgetPath& InWidgetPath )
 }
 
 /** Make a non-weak WidgetPath out of this WeakWidgetPath. Do this by computing all the relevant geometries and converting the weak pointers to TSharedPtr. */	
-FWidgetPath FWeakWidgetPath::ToWidgetPath(EInterruptedPathHandling::Type InterruptedPathHandling) const
+FWidgetPath FWeakWidgetPath::ToWidgetPath(EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent ) const
 {
 	FWidgetPath WidgetPath;
-	ToWidgetPath( WidgetPath, InterruptedPathHandling );
+	ToWidgetPath( WidgetPath, InterruptedPathHandling, PointerEvent );
 	return WidgetPath;
 }
 
-FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling ) const
+FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent ) const
 {
-	FArrangedChildren PathWithGeometries(EVisibility::Visible);
+	TArray<FWidgetAndPointer> PathWithGeometries;
 	TArray< TSharedPtr<SWidget> > WidgetPtrs;
-	
+		
 	// Convert the weak pointers into shared pointers because we are about to do something with this path instead of just observe it.
 	TSharedPtr<SWindow> TopLevelWindowPtr = Window.Pin();
 	for( TArray< TWeakPtr<SWidget> >::TConstIterator SomeWeakWidgetPtr( Widgets ); SomeWeakWidgetPtr; ++SomeWeakWidgetPtr )
@@ -139,10 +261,14 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 		bPathUninterrupted = true;
 
 		FGeometry ParentGeometry = TopLevelWindowPtr->GetWindowGeometryInScreen();
-		PathWithGeometries.AddWidget( FArrangedWidget( TopLevelWindowPtr.ToSharedRef(), ParentGeometry ) );
+		PathWithGeometries.Add( FWidgetAndPointer(
+			FArrangedWidget( TopLevelWindowPtr.ToSharedRef(), ParentGeometry ),
+			// @todo slate: this should be the cursor's virtual position in window space.
+			TSharedPtr<FVirtualPointerPosition>() ) );
 		
-		FArrangedChildren ArrangedChildren(EVisibility::Visible);
+		FArrangedChildren ArrangedChildren(EVisibility::Visible, true);
 		
+		TSharedPtr<FVirtualPointerPosition> VirtualPointerPos;
 		// For every widget in the vertical slice...
 		for( int32 WidgetIndex = 0; bPathUninterrupted && WidgetIndex < WidgetPtrs.Num()-1; ++WidgetIndex )
 		{
@@ -157,12 +283,19 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 				
 				// Find the next widget in the path among the arranged children.
 				for( int32 SearchIndex = 0; !bFoundChild && SearchIndex < ArrangedChildren.Num(); ++SearchIndex )
-				{						
-					if ( ArrangedChildren[SearchIndex].Widget == WidgetPtrs[WidgetIndex+1] )
+				{					
+					FArrangedWidget& ArrangedWidget = ArrangedChildren[SearchIndex];
+
+					if ( ArrangedWidget.Widget == WidgetPtrs[WidgetIndex+1] )
 					{
+						if( PointerEvent && !VirtualPointerPos.IsValid() )
+						{
+							VirtualPointerPos = CurWidget->TranslateMouseCoordinateFor3DChild( ArrangedWidget.Widget, ParentGeometry, PointerEvent->GetScreenSpacePosition(), PointerEvent->GetLastScreenSpacePosition() );
+						}
+
 						bFoundChild = true;
-						// Remember the widget and the associated geometry.
-						PathWithGeometries.AddWidget( ArrangedChildren[SearchIndex] );
+						// Remember the widget, the associated geometry, and the pointer position in a transformed space.
+						PathWithGeometries.Add( FWidgetAndPointer(ArrangedChildren[SearchIndex], VirtualPointerPos) );
 						// The next child in the vertical slice will be arranged with respect to its parent's geometry.
 						ParentGeometry = ArrangedChildren[SearchIndex].Geometry;
 					}
@@ -177,7 +310,7 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 		}			
 	}
 	
-	WidgetPath = FWidgetPath( TopLevelWindowPtr, PathWithGeometries );
+	WidgetPath = FWidgetPath( PathWithGeometries );
 	return bPathUninterrupted ? EPathResolutionResult::Live : EPathResolutionResult::Truncated;
 }
 
@@ -199,8 +332,10 @@ bool FWeakWidgetPath::ContainsWidget( const TSharedRef< const SWidget >& SomeWid
  * 
  * @return The new focus path.
  */
-FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EFocusMoveDirection::Type MoveDirection)
+FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EUINavigation NavigationType)
 {
+	check(NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous);
+
 	// Make a copy of the focus path. We will mutate it until it meets the necessary requirements.
 	FWidgetPath NewFocusPath = this->ToWidgetPath();
 	TSharedPtr<SWidget> CurrentlyFocusedWidget = this->Widgets.Last().Pin();
@@ -209,7 +344,7 @@ FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EFocusMoveDirection::Type MoveDir
 	// Attempt to move the focus starting at the leafmost widget and bubbling up to the root (i.e. the window)
 	for (int32 FocusNodeIndex=NewFocusPath.Widgets.Num()-1; !bMovedFocus && FocusNodeIndex >= 0; --FocusNodeIndex)
 	{
-		bMovedFocus = NewFocusPath.MoveFocus( FocusNodeIndex, MoveDirection );
+		bMovedFocus = NewFocusPath.MoveFocus(FocusNodeIndex, NavigationType);
 	}
 
 	return NewFocusPath;

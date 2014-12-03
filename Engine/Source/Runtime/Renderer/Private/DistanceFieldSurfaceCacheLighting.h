@@ -8,9 +8,7 @@
 
 #include "ScreenRendering.h"
 
-const static int32 GAOMaxSupportedLevel = 4;
-//@todo - derive from worst case
-const static uint32 GMaxIrradianceCacheSamples = 100000;
+const static int32 GAOMaxSupportedLevel = 6;
 /** Number of cone traced directions. */
 const int32 NumConeSampleDirections = 9;
 
@@ -31,16 +29,25 @@ public:
 class FRefinementLevelResources
 {
 public:
+
+	FRefinementLevelResources()
+	{
+		MaxIrradianceCacheSamples = 0;
+	}
+
 	void InitDynamicRHI()
 	{
-		//@todo - handle max exceeded
-		PositionAndRadius.Initialize(sizeof(float) * 4, GMaxIrradianceCacheSamples, PF_A32B32G32R32F, BUF_Static);
-		OccluderRadius.Initialize(sizeof(float), GMaxIrradianceCacheSamples, PF_R32_FLOAT, BUF_Static);
-		Normal.Initialize(sizeof(FFloat16Color), GMaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
-		BentNormal.Initialize(sizeof(FFloat16Color), GMaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
-		ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
-		SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
-		TileCoordinate.Initialize(sizeof(uint16)* 2, GMaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
+		if (MaxIrradianceCacheSamples > 0)
+		{
+			//@todo - handle max exceeded
+			PositionAndRadius.Initialize(sizeof(float) * 4, MaxIrradianceCacheSamples, PF_A32B32G32R32F, BUF_Static);
+			OccluderRadius.Initialize(sizeof(float), MaxIrradianceCacheSamples, PF_R32_FLOAT, BUF_Static);
+			Normal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
+			BentNormal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
+			ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
+			SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
+			TileCoordinate.Initialize(sizeof(uint16)* 2, MaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
+		}
 	}
 
 	void ReleaseDynamicRHI()
@@ -53,6 +60,8 @@ public:
 		SavedStartIndex.Release();
 		TileCoordinate.Release();
 	}
+
+	int32 MaxIrradianceCacheSamples;
 
 	FRWBuffer PositionAndRadius;
 	FRWBuffer OccluderRadius;
@@ -76,6 +85,9 @@ public:
 		}
 
 		TempResources = new FRefinementLevelResources();
+
+		MinLevel = 100;
+		MaxLevel = 0;
 	}
 
 	~FSurfaceCacheResources()
@@ -88,11 +100,55 @@ public:
 		delete TempResources;
 	}
 
+	void AllocateFor(int32 InMinLevel, int32 InMaxLevel, int32 MaxSurfaceCacheSamples)
+	{
+		check(InMaxLevel < ARRAY_COUNT(Level));
+
+		bool bReallocate = false;
+
+		if (MinLevel > InMinLevel)
+		{
+			MinLevel = InMinLevel;
+			bReallocate = true;
+		}
+
+		if (MaxLevel < InMaxLevel)
+		{
+			MaxLevel = InMaxLevel;
+			bReallocate = true;
+		}
+
+		for (int32 LevelIndex = MinLevel; LevelIndex <= MaxLevel; LevelIndex++)
+		{
+			//@todo - would like to allocate each level based on its worst case, but not possible right now due to swapping with TempResources
+			if (Level[LevelIndex]->MaxIrradianceCacheSamples < MaxSurfaceCacheSamples)
+			{
+				Level[LevelIndex]->MaxIrradianceCacheSamples = MaxSurfaceCacheSamples;
+				bReallocate = true;
+			}
+		}
+
+		if (TempResources->MaxIrradianceCacheSamples < MaxSurfaceCacheSamples)
+		{
+			bReallocate = true;
+			TempResources->MaxIrradianceCacheSamples = MaxSurfaceCacheSamples;
+		}
+
+		if (!IsInitialized())
+		{
+			InitResource();
+		}
+		else if (bReallocate)
+		{
+			UpdateRHI();
+		}
+	}
+
 	virtual void InitDynamicRHI() override
 	{
 		DispatchParameters.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 
-		for (int32 i = 0; i < ARRAY_COUNT(Level); i++)
+		for (int32 i = MinLevel; i <= MaxLevel; i++)
 		{
 			Level[i]->InitDynamicRHI();
 		}
@@ -106,7 +162,7 @@ public:
 	{
 		DispatchParameters.Release();
 
-		for (int32 i = 0; i < ARRAY_COUNT(Level); i++)
+		for (int32 i = MinLevel; i <= MaxLevel; i++)
 		{
 			Level[i]->ReleaseDynamicRHI();
 		}
@@ -122,6 +178,11 @@ public:
 	FRefinementLevelResources* TempResources;
 
 	bool bClearedResources;
+
+private:
+
+	int32 MinLevel;
+	int32 MaxLevel;
 };
 
 /**  */
@@ -206,71 +267,3 @@ private:
 	FShaderParameter AOMaxViewDistance;
 };
 
-class FQuadVertexBuffer : public FVertexBuffer
-{
-public:
-
-	virtual void InitRHI() override
-	{
-		// Used as a non-indexed triangle list, so 6 vertices per quad
-		const uint32 Size = 6 * sizeof(FScreenVertex);
-		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
-		void* Buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Size, RLM_WriteOnly);
-		FScreenVertex* DestVertex = (FScreenVertex*)Buffer;
-
-		DestVertex[0].Position = FVector2D(0, 0);
-		DestVertex[0].UV = FVector2D(1, 1);
-		DestVertex[1].Position = FVector2D(0, 0);
-		DestVertex[1].UV = FVector2D(1, 0);
-		DestVertex[2].Position = FVector2D(0, 0);
-		DestVertex[2].UV = FVector2D(0, 1);
-		DestVertex[3].Position = FVector2D(0, 0);
-		DestVertex[3].UV = FVector2D(1, 0);
-		DestVertex[4].Position = FVector2D(0, 0);
-		DestVertex[4].UV = FVector2D(0, 0);
-		DestVertex[5].Position = FVector2D(0, 0);
-		DestVertex[5].UV = FVector2D(0, 1);
-
-		RHIUnlockVertexBuffer(VertexBufferRHI);      
-	}
-};
-
-extern TGlobalResource<FQuadVertexBuffer> GQuadVertexBuffer;
-
-class FCircleVertexBuffer : public FVertexBuffer
-{
-public:
-
-	virtual void InitRHI() override
-	{
-		int32 NumSections = 8;
-
-		// Used as a non-indexed triangle list, so 3 vertices per triangle
-		const uint32 Size = 3 * NumSections * sizeof(FScreenVertex);
-		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
-		void* Buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Size, RLM_WriteOnly);
-		FScreenVertex* DestVertex = (FScreenVertex*)Buffer;
-
-		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
-		{
-			float Fraction = SectionIndex / (float)NumSections;
-			float CurrentAngle = Fraction * 2 * PI;
-			float NextAngle = ((SectionIndex + 1) / (float)NumSections) * 2 * PI;
-			FVector2D CurrentPosition(FMath::Cos(CurrentAngle), FMath::Sin(CurrentAngle));
-			FVector2D NextPosition(FMath::Cos(NextAngle), FMath::Sin(NextAngle));
-
-			DestVertex[SectionIndex * 3 + 0].Position = FVector2D(0, 0);
-			DestVertex[SectionIndex * 3 + 0].UV = CurrentPosition;
-			DestVertex[SectionIndex * 3 + 1].Position = FVector2D(0, 0);
-			DestVertex[SectionIndex * 3 + 1].UV = NextPosition;
-			DestVertex[SectionIndex * 3 + 2].Position = FVector2D(0, 0);
-			DestVertex[SectionIndex * 3 + 2].UV = FVector2D(.5f, .5f);
-		}
-
-		RHIUnlockVertexBuffer(VertexBufferRHI);      
-	}
-};
-
-extern TGlobalResource<FCircleVertexBuffer> GCircleVertexBuffer;

@@ -17,9 +17,6 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Basic; }
 	
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<UParticleSystem>> Objects);
-
 	/** Handler for when Copy Parameters is selected */
 	void ExecuteCopyParameters(TArray<TWeakObjectPtr<UParticleSystem>> Objects);
 

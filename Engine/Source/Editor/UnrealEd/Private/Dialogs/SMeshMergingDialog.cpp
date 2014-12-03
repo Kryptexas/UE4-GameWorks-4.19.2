@@ -8,6 +8,7 @@
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "STextComboBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SMeshMergingDialog"
@@ -70,11 +71,11 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshMergingDialog::GetAtlasLightmapUV)
-					.OnCheckStateChanged(this, &SMeshMergingDialog::SetAtlasLightmapUV)
+					.IsChecked(this, &SMeshMergingDialog::GetGenerateLightmapUV)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetGenerateLightmapUV)
 					.Content()
 					[
-						SNew(STextBlock).Text(LOCTEXT("AtlasLightmapUVLabel", "Generate Atlased Lightmap UVs"))
+						SNew(STextBlock).Text(LOCTEXT("AtlasLightmapUVLabel", "Generate Lightmap UVs"))
 					]
 				]
 					
@@ -110,7 +111,7 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("MaxLightMapResolutionLabel", "Max Resolution:"))
+						.Text(LOCTEXT("TargetLightMapResolutionLabel", "Target Resolution:"))
 					]
 												
 					+SHorizontalBox::Slot()
@@ -121,8 +122,8 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 						SNew(STextComboBox)
 						.IsEnabled( this, &SMeshMergingDialog::IsLightmapChannelEnabled )
 						.OptionsSource(&LightMapResolutionOptions)
-						.InitiallySelectedItem(LightMapResolutionOptions[FMath::FloorLog2(MergingSettings.MaxAltlasedLightMapResolution)])
-						.OnSelectionChanged(this, &SMeshMergingDialog::SetMaxLightMapResolution)
+						.InitiallySelectedItem(LightMapResolutionOptions[FMath::FloorLog2(MergingSettings.TargetLightMapResolution)])
+						.OnSelectionChanged(this, &SMeshMergingDialog::SetTargetLightMapResolution)
 					]
 				]
 			]
@@ -266,19 +267,19 @@ FReply SMeshMergingDialog::OnMergeClicked()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type SMeshMergingDialog::GetAtlasLightmapUV() const
+ESlateCheckBoxState::Type SMeshMergingDialog::GetGenerateLightmapUV() const
 {
-	return (MergingSettings.bGenerateAtlasedLightMapUV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+	return (MergingSettings.bGenerateLightMapUV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
 }
 
-void SMeshMergingDialog::SetAtlasLightmapUV(ESlateCheckBoxState::Type NewValue)
+void SMeshMergingDialog::SetGenerateLightmapUV(ESlateCheckBoxState::Type NewValue)
 {
-	MergingSettings.bGenerateAtlasedLightMapUV = (ESlateCheckBoxState::Checked == NewValue);
+	MergingSettings.bGenerateLightMapUV = (ESlateCheckBoxState::Checked == NewValue);
 }
 
 bool SMeshMergingDialog::IsLightmapChannelEnabled() const
 {
-	return MergingSettings.bGenerateAtlasedLightMapUV;
+	return MergingSettings.bGenerateLightMapUV;
 }
 
 void SMeshMergingDialog::SetTargetLightMapChannel(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
@@ -286,9 +287,9 @@ void SMeshMergingDialog::SetTargetLightMapChannel(TSharedPtr<FString> NewSelecti
 	TTypeFromString<int32>::FromString(MergingSettings.TargetLightMapUVChannel, **NewSelection);
 }
 
-void SMeshMergingDialog::SetMaxLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+void SMeshMergingDialog::SetTargetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	TTypeFromString<int32>::FromString(MergingSettings.MaxAltlasedLightMapResolution, **NewSelection);
+	TTypeFromString<int32>::FromString(MergingSettings.TargetLightMapResolution, **NewSelection);
 }
 
 ESlateCheckBoxState::Type SMeshMergingDialog::GetImportVertexColors() const
@@ -440,7 +441,7 @@ void SMeshMergingDialog::RunMerging()
 			FRotator MergedActorRotation(ForceInit);
 
 			AStaticMeshActor* MergedActor = World->SpawnActor<AStaticMeshActor>(MergedActorLocation, MergedActorRotation, Params);
-			MergedActor->StaticMeshComponent->StaticMesh = Cast<UStaticMesh>(AssetsToSync[0]);
+			MergedActor->GetStaticMeshComponent()->StaticMesh = Cast<UStaticMesh>(AssetsToSync[0]);
 			MergedActor->SetActorLabel(AssetsToSync[0]->GetName());
 
 			// Add source actors as children to merged actor and hide them

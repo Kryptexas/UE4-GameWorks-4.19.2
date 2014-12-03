@@ -54,51 +54,52 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		static private bool bHasPrintedApiLevel = false;
+		static private string CachedSDKLevel = null;
 		private static string GetSdkApiLevel()
 		{
-			// default to looking on disk for latest API level
-			string Target = AndroidPlatform.AndroidSdkApiTarget;
-
-			// if we want to use whatever version the ndk uses, then use that
-			if (Target == "matchndk")
+			if (CachedSDKLevel == null)
 			{
-				Target = AndroidToolChain.GetNdkApiLevel();
-			}
+				// default to looking on disk for latest API level
+				string Target = AndroidPlatform.AndroidSdkApiTarget;
 
-			// run a command and capture output
-			if (Target == "latest")
-			{
-				// we expect there to be one, so use the first one
-				string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
-
-				var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
-				ExeInfo.UseShellExecute = false;
-				ExeInfo.RedirectStandardOutput = true;
-				using (var GameProcess = Process.Start(ExeInfo))
+				// if we want to use whatever version the ndk uses, then use that
+				if (Target == "matchndk")
 				{
-					PossibleApiLevels = new List<string>();
-					GameProcess.BeginOutputReadLine();
-					GameProcess.OutputDataReceived += ParseApiLevel;
-					GameProcess.WaitForExit();
+					Target = AndroidToolChain.GetNdkApiLevel();
 				}
 
-				if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+				// run a command and capture output
+				if (Target == "latest")
 				{
-					Target = AndroidToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+					// we expect there to be one, so use the first one
+					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
+
+					var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
+					ExeInfo.UseShellExecute = false;
+					ExeInfo.RedirectStandardOutput = true;
+					using (var GameProcess = Process.Start(ExeInfo))
+					{
+						PossibleApiLevels = new List<string>();
+						GameProcess.BeginOutputReadLine();
+						GameProcess.OutputDataReceived += ParseApiLevel;
+						GameProcess.WaitForExit();
+					}
+
+					if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+					{
+						Target = AndroidToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+					}
+					else
+					{
+						throw new BuildException("Can't make an APK an API installed (see \"android.bat list targets\")");
+					}
 				}
-				else
-				{
-					throw new BuildException("Can't make an APK an API installed (see \"android.bat list targets\")");
-				}
+
+				Console.WriteLine("Building Java with SDK API '{0}'", Target);
+				CachedSDKLevel = Target;
 			}
 
-			if (!bHasPrintedApiLevel)
-			{
-				Console.WriteLine("Building with SDK API '{0}'", Target);
-				bHasPrintedApiLevel = true;
-			}
-			return Target;
+			return CachedSDKLevel;
 		}
 
 		private static string GetAntPath()
@@ -195,28 +196,52 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		private void DeleteDirectory(string Path)
+		private static void DeleteDirectory(string InPath, string SubDirectoryToKeep="")
 		{
-			Console.WriteLine("\nDeleting: " + Path);
-			if (Directory.Exists(Path))
+			// skip the dir we want to
+			if (String.Compare(Path.GetFileName(InPath), SubDirectoryToKeep, true) == 0)
+			{
+				return;
+			}
+			
+			// delete all files in here
+            string[] Files;
+            try
+            {
+                Files = Directory.GetFiles(InPath);
+            }
+            catch (Exception)
+            {
+                // directory doesn't exist so all is good
+                return;
+            }
+			foreach (string Filename in Files)
 			{
 				try
 				{
-					// first make sure everything it writable
-					string[] Files = Directory.GetFiles(Path, "*.*", SearchOption.AllDirectories);
-					foreach (string Filename in Files)
-					{
-						// remove any read only flags
-						FileInfo FileInfo = new FileInfo(Filename);
-						FileInfo.Attributes = FileInfo.Attributes & ~FileAttributes.ReadOnly;
-					}
-
-					// now deleting will work better
-					Directory.Delete(Path, true);
+					// remove any read only flags
+					FileInfo FileInfo = new FileInfo(Filename);
+					FileInfo.Attributes = FileInfo.Attributes & ~FileAttributes.ReadOnly;
+					FileInfo.Delete();
 				}
 				catch (Exception)
 				{
-					Log.TraceInformation("Failed to delete intermediate cdirectory {0}. Continuing on...", Path);
+					Log.TraceInformation("Failed to delete all files in directory {0}. Continuing on...", InPath);
+				}
+			}
+
+			string[] Dirs = Directory.GetDirectories(InPath, "*.*", SearchOption.TopDirectoryOnly);
+			foreach (string Dir in Dirs)
+			{
+				DeleteDirectory(Dir, SubDirectoryToKeep);
+				// try to delete the directory, but allow it to fail (due to SubDirectoryToKeep still existing)
+				try
+				{
+					Directory.Delete(Dir);
+				}
+				catch (Exception)
+				{
+					// do nothing
 				}
 			}
 		}
@@ -242,24 +267,25 @@ namespace UnrealBuildTool.Android
             string Setting = OBBinAPK ? "AMAZON" : "DEVELOPMENT";
             if (!File.Exists(FileName) || ShouldWriteJavaBuildSettingsFile(FileName, Setting))
             {
-                StringBuilder BuildSettings = new StringBuilder("package com.epicgames.ue4;\npublic class JavaBuildSettings\n{\n");
+				Log.TraceInformation("\n===={0}====WRITING JAVABUILDSETTINGS.JAVA========================================================", DateTime.Now.ToString());
+				StringBuilder BuildSettings = new StringBuilder("package com.epicgames.ue4;\npublic class JavaBuildSettings\n{\n");
                 BuildSettings.Append("\tpublic enum PackageType {AMAZON, GOOGLE, DEVELOPMENT};\n");
                 BuildSettings.Append("\tpublic static final PackageType PACKAGING = PackageType." + Setting + ";\n");
                 BuildSettings.Append("}\n");
                 File.WriteAllText(FileName, BuildSettings.ToString());
-            }
-            else
-            {
-                Console.WriteLine("::Didn't write config file; contains same data as before.");
             }
         }
 
         public bool ShouldWriteJavaBuildSettingsFile(string FileName, string setting)
         {
             var fileContent = File.ReadAllLines(FileName);
+            if (fileContent.Length < 5)
+                return true;
             var packageLine = fileContent[4]; // We know this to be true... because we write it below...
-            int location = packageLine.IndexOf("PACKAGING") + 12 + 12; // + (PACKAGING = ) + ("PackageType.")
-            return String.Compare(setting, packageLine.Substring(location)) != 0;
+            int location = packageLine.IndexOf("PACKAGING") + 12 + 12; // + ("PACKAGING = ") + ("PackageType.")
+            if (location == -1)
+                return true;
+            return String.Compare(setting, packageLine.Substring(location, Math.Min(packageLine.Length - location, setting.Length))) != 0;
         }
 
 		private static string GetNDKArch(string UE4Arch)
@@ -310,28 +336,162 @@ namespace UnrealBuildTool.Android
 //			File.Copy("E:/Dev2/UE4-Clean/Engine/Source/ThirdParty/NVIDIA/TegraGfxDebugger/libTegra_gfx_debugger.so", UE4BuildPath + "/libs/" + Arch + "/libTegra_gfx_debugger.so");
 		}
 
-		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks)
+		private static void RunCommandLineProgramAndThrowOnError(string WorkingDirectory, string Command, string Params, string OverrideDesc=null, bool bUseShellExecute=false)
 		{
-			// cache some tools paths
-			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
-			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build.cmd");
-			string AntBuildPath = GetAntPath();
+			if (OverrideDesc == null)
+			{
+				Log.TraceInformation("\nRunning: " + Command + " " + Params);
+			}
+			else if (OverrideDesc != "")
+			{
+				Log.TraceInformation(OverrideDesc);
+				Log.TraceVerbose("\nRunning: " + Command + " " + Params);
+			}
 
-			// set up some directory info
-			string IntermediateAndroidPath = Path.Combine(ProjectDirectory, "Intermediate/Android/");
-			string UE4BuildPath = IntermediateAndroidPath + "APK";
-			string UE4BuildFilesPath = GetUE4BuildFilePath(EngineDirectory);
-			string GameBuildFilesPath = Path.Combine(ProjectDirectory, "Build/Android");
-	
+			ProcessStartInfo StartInfo = new ProcessStartInfo();
+			StartInfo.WorkingDirectory = WorkingDirectory;
+			StartInfo.FileName = Command;
+			StartInfo.Arguments = Params;
+			StartInfo.UseShellExecute = bUseShellExecute;
+			StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+
+			Process Proc = new Process();
+			Proc.StartInfo = StartInfo;
+			Proc.Start();
+			Proc.WaitForExit();
+
+			// android bat failure
+			if (Proc.ExitCode != 0)
+			{
+				throw new BuildException("{0} failed with args {1}", Command, Params);
+			}
+		}
+
+		private void UpdateProjectProperties(string UE4BuildPath, string ProjectName)
+		{
+			Log.TraceInformation("\n===={0}====UPDATING BUILD CONFIGURATION FILES====================================================", DateTime.Now.ToString());
+
+			// get all of the libs (from engine + project)
+			string JavaLibsDir = Path.Combine(UE4BuildPath, "JavaLibs");
+			string[] LibDirs = Directory.GetDirectories(JavaLibsDir);
+
+			// get existing project.properties lines (if any)
+			string ProjectPropertiesFile = Path.Combine(UE4BuildPath, "project.properties");
+			string[] PropertiesLines = new string[] { };
+			if (File.Exists(ProjectPropertiesFile))
+			{
+				PropertiesLines = File.ReadAllLines(ProjectPropertiesFile);
+			}
+
+			// figure out how many libraries were already listed (if there were more than this listed, then we need to start the file over, because we need to unreference a library)
+			int NumOutstandingAlreadyReferencedLibs = 0;
+			foreach (string Line in PropertiesLines)
+			{
+				if (Line.StartsWith("android.library.reference."))
+				{
+					NumOutstandingAlreadyReferencedLibs++;
+				}
+			}
+
+			// now go through each one and verify they are listed in project properties, and if not, add them
+			List<string> LibsToBeAdded = new List<string>();
+			foreach (string LibDir in LibDirs)
+			{
+				// put it in terms of the subdirectory that would be in the project.properties
+				string RelativePath = "JavaLibs/" + Path.GetFileName(LibDir);
+
+				// now look for this in the existing file
+				bool bWasReferencedAlready = false;
+				foreach (string Line in PropertiesLines)
+				{
+					if (Line.StartsWith("android.library.reference.") && Line.EndsWith(RelativePath))
+					{
+						// this lib was already referenced, don't need to readd
+						bWasReferencedAlready = true;
+						break;
+					}
+				}
+
+				if (bWasReferencedAlready)
+				{
+					// if it was, no further action needed, and count it off
+					NumOutstandingAlreadyReferencedLibs--;
+				}
+				else
+				{
+					// otherwise, we need to add it to the project properties
+					LibsToBeAdded.Add(RelativePath);
+				}
+			}
+
+			// now at this point, if there are any outstanding already referenced libs, we have too many, so we have to start over
+			if (NumOutstandingAlreadyReferencedLibs > 0)
+			{
+				// @todo android: If a user had a project.properties in the game, NEVER do this
+				Log.TraceInformation("There were too many libs already referenced in project.properties, tossing it");
+				File.Delete(ProjectPropertiesFile);
+
+				LibsToBeAdded.Clear();
+				foreach (string LibDir in LibDirs)
+				{
+					// put it in terms of the subdirectory that would be in the project.properties
+					LibsToBeAdded.Add("JavaLibs/" + Path.GetFileName(LibDir));
+				}
+			}
+			
+			// now update the project for each library
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
+			string UpdateCommandLine = "--silent update project --subprojects --name " + ProjectName + " --path . --target " + GetSdkApiLevel();
+			foreach (string Lib in LibsToBeAdded)
+			{
+				UpdateCommandLine += " --library " + Lib;
+
+				// make sure each library has a build.xml - --subprojects doesn't create build.xml files, but it will create project.properties
+				// and later code needs each lib to have a build.xml
+				if (!File.Exists(Path.Combine(Lib, "build.xml")))
+				{
+					RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(), "");
+				}
+			}
+
+			RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, UpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
+		}
+
+
+		private string GetAllBuildSettings(string BuildPath, bool bForDistribution, bool bMakeSeparateApks, bool bOBBinApk)
+		{
+			// make the settings string - this will be char by char compared against last time
+			StringBuilder CurrentSettings = new StringBuilder();
+			CurrentSettings.AppendFormat("NDKROOT={0}{1}", Environment.GetEnvironmentVariable("NDKROOT"), Environment.NewLine);
+			CurrentSettings.AppendFormat("ANDROID_HOME={0}{1}", Environment.GetEnvironmentVariable("ANDROID_HOME"), Environment.NewLine);
+			CurrentSettings.AppendFormat("ANT_HOME={0}{1}", Environment.GetEnvironmentVariable("ANT_HOME"), Environment.NewLine);
+			CurrentSettings.AppendFormat("JAVA_HOME={0}{1}", Environment.GetEnvironmentVariable("JAVA_HOME"), Environment.NewLine);
+			CurrentSettings.AppendFormat("SDKVersion={0}{1}", GetSdkApiLevel(), Environment.NewLine);
+			CurrentSettings.AppendFormat("bForDistribution={0}{1}", bForDistribution, Environment.NewLine);
+			CurrentSettings.AppendFormat("bMakeSeparateApks={0}{1}", bMakeSeparateApks, Environment.NewLine);
+			CurrentSettings.AppendFormat("bOBBinApk={0}{1}", bOBBinApk, Environment.NewLine);
+
+			string[] Arches = AndroidToolChain.GetAllArchitectures();
+			foreach (string Arch in Arches)
+			{
+				CurrentSettings.AppendFormat("Arch={0}{1}", Arch, Environment.NewLine);
+			}
+
+			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			foreach (string GPUArch in GPUArchitectures)
+			{
+				CurrentSettings.AppendFormat("GPUArch={0}{1}", GPUArch, Environment.NewLine);
+			}
+
+			return CurrentSettings.ToString();
+		}
+
+		private bool CheckDependencies(string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, string JavaSettingsFile, string CookFlavor, string OutputPath, string UE4BuildPath, bool bMakeSeparateApks)
+		{
 			string[] Arches = AndroidToolChain.GetAllArchitectures();
 			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
-			int NumArches = Arches.Length * GPUArchitectures.Length;
 
-            // See if we need to create a 'default' Java Build settings file if one doesn't exist (if it does exist we have to assume it has been setup correctly)
-            string UE4JavaBuildSettingsFileName = GetUE4JavaBuildSettingsFileName(EngineDirectory);
-            WriteJavaBuildSettingsFile(UE4JavaBuildSettingsFileName, UEBuildConfiguration.bOBBinAPK);
-
-			// first check if all .so's are up to date
+			// check all input files (.so, java files, .ini files, etc)
 			bool bAllInputsCurrent = true;
 			foreach (string Arch in Arches)
 			{
@@ -341,11 +501,11 @@ namespace UnrealBuildTool.Android
 					// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
 					string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
 					string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
-	
+
 					// if we making multiple Apks, we need to put the architecture into the name
 					if (bMakeSeparateApks)
 					{
-							DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch, GPUArch);
+						DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch, GPUArch);
 					}
 
 					// check to see if it's out of date before trying the slow make apk process (look at .so and all Engine and Project build files to be safe)
@@ -362,24 +522,24 @@ namespace UnrealBuildTool.Android
 					InputFiles.Add(Path.Combine(EngineDirectory, "Config\\BaseEngine.ini"));
 					InputFiles.Add(Path.Combine(ProjectDirectory, "Config\\DefaultEngine.ini"));
 
-                    // make sure changed java settings will rebuild apk
-                    InputFiles.Add(UE4JavaBuildSettingsFileName);
+					// make sure changed java settings will rebuild apk
+					InputFiles.Add(JavaSettingsFile);
 
-                    // rebuild if .pak files exist for OBB in APK case
-                    if (UEBuildConfiguration.bOBBinAPK)
-                    {
-                        string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
-                        if (Directory.Exists(PAKFileLocation))
-                        {
-                            var PakFiles = Directory.EnumerateFiles(PAKFileLocation, "*.pak", SearchOption.TopDirectoryOnly);
-                            foreach (var Name in PakFiles)
-                            {
-                                InputFiles.Add(Name);
-                            }
-                        }
-                    }
+					// rebuild if .pak files exist for OBB in APK case
+					if (UEBuildConfiguration.bOBBinAPK)
+					{
+						string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
+						if (Directory.Exists(PAKFileLocation))
+						{
+							var PakFiles = Directory.EnumerateFiles(PAKFileLocation, "*.pak", SearchOption.TopDirectoryOnly);
+							foreach (var Name in PakFiles)
+							{
+								InputFiles.Add(Name);
+							}
+						}
+					}
 
-                    // look for any newer input file
+					// look for any newer input file
 					DateTime ApkTime = File.GetLastWriteTimeUtc(DestApkName);
 					foreach (var InputFileName in InputFiles)
 					{
@@ -395,17 +555,72 @@ namespace UnrealBuildTool.Android
 							{
 								bAllInputsCurrent = false;
 								Log.TraceInformation("{0} is out of date due to newer input file {1}", DestApkName, InputFileName);
-								break;	
+								break;
 							}
 						}
 					}
 				}
 			}
-			if (bAllInputsCurrent)
+
+			return bAllInputsCurrent;
+		}
+
+		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage)
+		{
+			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
+
+			// cache some tools paths
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
+			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build.cmd");
+
+			// set up some directory info
+			string IntermediateAndroidPath = Path.Combine(ProjectDirectory, "Intermediate/Android/");
+			string UE4BuildPath = Path.Combine(IntermediateAndroidPath, "APK");
+			string UE4BuildFilesPath = GetUE4BuildFilePath(EngineDirectory);
+			string GameBuildFilesPath = Path.Combine(ProjectDirectory, "Build/Android");
+	
+			string[] Arches = AndroidToolChain.GetAllArchitectures();
+			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			int NumArches = Arches.Length * GPUArchitectures.Length;
+
+
+            // See if we need to create a 'default' Java Build settings file if one doesn't exist (if it does exist we have to assume it has been setup correctly)
+            string UE4JavaBuildSettingsFileName = GetUE4JavaBuildSettingsFileName(EngineDirectory);
+            WriteJavaBuildSettingsFile(UE4JavaBuildSettingsFileName, UEBuildConfiguration.bOBBinAPK);
+
+			// check to see if any "meta information" is newer than last time we build
+			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks, UEBuildConfiguration.bOBBinAPK);
+			string BuildSettingsCacheFile = Path.Combine(UE4BuildPath, "UEBuildSettings.txt");
+
+			// do we match previous build settings?
+			bool bBuildSettingsMatch = false;
+			if (File.Exists(BuildSettingsCacheFile))
 			{
-				Log.TraceInformation("Output .apk file(s) are up to date (compared to the .so and .java input files)");
-				return;
+				string PreviousBuildSettings = File.ReadAllText(BuildSettingsCacheFile);
+				if (PreviousBuildSettings == CurrentBuildSettings)
+				{
+					bBuildSettingsMatch = true;
+				}
+				else
+				{
+					Log.TraceInformation("Previous .apk file(s) were made with different build settings, forcing repackage.");
+				}
 			}
+
+			// only check input dependencies if the build settings already match
+			if (bBuildSettingsMatch)
+			{
+				// check if so's are up to date against various inputs
+				bool bAllInputsCurrent = CheckDependencies(ProjectName, ProjectDirectory, UE4BuildFilesPath, GameBuildFilesPath, 
+					EngineDirectory, UE4JavaBuildSettingsFileName, CookFlavor, OutputPath, UE4BuildPath, bMakeSeparateApks);
+
+				if (bAllInputsCurrent)
+				{
+					Log.TraceInformation("Output .apk file(s) are up to date (dependencies and build settings are up to date)");
+					return;
+				}
+			}
+
 
 			// Once for all arches code:
 
@@ -419,268 +634,191 @@ namespace UnrealBuildTool.Android
 				Replacements.Add("android:debuggable=\"true\"", "android:debuggable=\"false\"");
 			}
 
-			// Update the Google Play services lib with the target platform version currently in use.
-			// This appears to be required for the build to work without errors when Play services are referenced by the game.
-			// This will try to modify existing files, like project.properties, so we copy the entire library into
-			// an intermediate directory and work from there.
-			string GooglePlayServicesSourcePath = Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java/google-play-services_lib_rev19/"));
-			string GooglePlayServicesIntermediatePath = Path.GetFullPath(Path.Combine(IntermediateAndroidPath, "google-play-services_lib/"));
-
-			DeleteDirectory(GooglePlayServicesIntermediatePath);
-			CopyFileDirectory(GooglePlayServicesSourcePath, GooglePlayServicesIntermediatePath, new Dictionary<string, string>());
-
-			ProcessStartInfo AndroidBatStartInfoPlayServicesLib = new ProcessStartInfo();
-			AndroidBatStartInfoPlayServicesLib.WorkingDirectory = GooglePlayServicesIntermediatePath;
-			AndroidBatStartInfoPlayServicesLib.FileName = AndroidCommandPath;
-			AndroidBatStartInfoPlayServicesLib.Arguments = "update project " + " --path . --target " + GetSdkApiLevel();
-			AndroidBatStartInfoPlayServicesLib.UseShellExecute = false;
-			Console.WriteLine("\nRunning: " + AndroidBatStartInfoPlayServicesLib.FileName + " " + AndroidBatStartInfoPlayServicesLib.Arguments);
-			Process AndroidBatPlayServicesLib = new Process();
-			AndroidBatPlayServicesLib.StartInfo = AndroidBatStartInfoPlayServicesLib;
-			AndroidBatPlayServicesLib.Start();
-			AndroidBatPlayServicesLib.WaitForExit();
-
-			// android bat failure
-			if (AndroidBatPlayServicesLib.ExitCode != 0)
+			if (!bIncrementalPackage)
 			{
-				throw new BuildException("android.bat failed [{0}]", AndroidBatStartInfoPlayServicesLib.Arguments);
+				// Wipe the Intermediate/Build/APK directory first, except for dexedLibs, because Google Services takes FOREVER to predex, and it almost never changes
+				// so allow the ANT checking to win here - if this grows a bit with extra libs, it's fine, it _should_ only pull in dexedLibs it needs
+				Log.TraceInformation("Performing complete package - wiping {0}, except for predexedLibs", UE4BuildPath);
+				DeleteDirectory(UE4BuildPath, "dexedLibs");
 			}
 
-			//need to create separate run for each lib. Will be added to project.properties in order in which they are added 
-			//the order is important.
-			//as android.library.reference.X=libpath where X = 1 - N
-			//for e.g this one will be added as android.library.reference.1=<EngineDirectory>/Source/ThirdParty/Android/google_play_services_lib
+			// If we are packaging for Amazon then we need to copy the PAK files to the correct location
+			// Currently we'll just support 1 of 'em
+			if (UEBuildConfiguration.bOBBinAPK)
+			{
+				string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
+				Console.WriteLine("Pak location {0}", PAKFileLocation);
+				string PAKFileDestination = UE4BuildPath + "/assets";
+				Console.WriteLine("Pak destination location {0}", PAKFileDestination);
+				if (Directory.Exists(PAKFileLocation))
+				{
+					Directory.CreateDirectory(UE4BuildPath);
+					Directory.CreateDirectory(PAKFileDestination);
+					Console.WriteLine("PAK file exists...");
+					var PakFiles = Directory.EnumerateFiles(PAKFileLocation, "*.pak", SearchOption.TopDirectoryOnly);
+					foreach (var Name in PakFiles)
+					{
+						Console.WriteLine("Found file {0}", Name);
+					}
 
-			// Ant seems to need a relative path to work
-			Uri ServicesBuildUri = new Uri(GooglePlayServicesIntermediatePath);
-			Uri ProjectUri = new Uri(UE4BuildPath + "/");
-			string RelativeServicesUri = ProjectUri.MakeRelativeUri(ServicesBuildUri).ToString();
+					if (PakFiles.Count() > 0)
+					{
+						var DestFileName = Path.Combine(PAKFileDestination, Path.GetFileName(PakFiles.ElementAt(0)) + ".png"); // Need a rename to turn off compression
+						var SrcFileName = PakFiles.ElementAt(0);
+						if (!File.Exists(DestFileName) || File.GetLastWriteTimeUtc(DestFileName) < File.GetLastWriteTimeUtc(SrcFileName))
+						{
+							Console.WriteLine("Copying {0} to {1}", SrcFileName, DestFileName);
+							File.Copy(SrcFileName, DestFileName);
+						}
+					}
+				}
+				// Do we want to kill the OBB here or not???
+			}
 
-			string FinalNdkBuildABICommand = "";
+			//Copy build files to the intermediate folder in this order (later overrides earlier):
+			//	- Shared Engine
+			//  - Shared Engine NoRedist (for Epic secret files)
+			//  - Game
+			//  - Game NoRedist (for Epic secret files)
+			CopyFileDirectory(UE4BuildFilesPath, UE4BuildPath, Replacements);
+			CopyFileDirectory(UE4BuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
+			CopyFileDirectory(UE4BuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
+			CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
+			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
+			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
+
+			// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
+			UpdateProjectProperties(UE4BuildPath, ProjectName);
+
+			// at this point, we can write out the cached build settings to compare for a next build
+			File.WriteAllText(BuildSettingsCacheFile, CurrentBuildSettings);
 
 			// now make the apk(s)
+			string FinalNdkBuildABICommand = "";
 			for (int ArchIndex = 0; ArchIndex < Arches.Length; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
 				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Length; GPUArchIndex++)
 				{
+					Log.TraceInformation("\n===={0}====PREPARING NATIVE CODE=================================================================", DateTime.Now.ToString());
+
 					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
 					string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch, GPUArchitecture);
-				// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
-				string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
-				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
+					// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
+					string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
+					string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
 
-				// if we making multiple Apks, we need to put the architecture into the name
-				if (bMakeSeparateApks)
-				{
-						DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch, GPUArchitecture);
-				}
-
-				// code in here will run once per .apk (or once if merged apk)
-				if (bMakeSeparateApks || ArchIndex == 0)
-				{
-					//Wipe the Intermediate/Build/APK directory first
-					DeleteDirectory(UE4BuildPath);
-
-					// If we are packaging for Amazon then we need to copy the PAK files to the correct location
-					// Currently we'll just support 1 of 'em
-					if (UEBuildConfiguration.bOBBinAPK)
-					{
-						string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
-						Console.WriteLine("Pak location {0}", PAKFileLocation);
-						string PAKFileDestination = UE4BuildPath + "/assets";
-						Console.WriteLine("Pak destination location {0}", PAKFileDestination);
-						if (Directory.Exists(PAKFileLocation))
-						{
-							Directory.CreateDirectory(UE4BuildPath);
-							Directory.CreateDirectory(PAKFileDestination);
-							Console.WriteLine("PAK file exists...");
-							var PakFiles = Directory.EnumerateFiles(PAKFileLocation, "*.pak", SearchOption.TopDirectoryOnly);
-							foreach (var Name in PakFiles)
-							{
-								Console.WriteLine("Found file {0}", Name);
-							}
-
-							if (PakFiles.Count() > 0)
-							{
-								var DestFileName = Path.Combine(PAKFileDestination, Path.GetFileName(PakFiles.ElementAt(0)) + ".png"); // Need a rename to turn off compression
-								var SrcFileName = PakFiles.ElementAt(0);
-								if (!File.Exists(DestFileName) || File.GetLastWriteTimeUtc(DestFileName) < File.GetLastWriteTimeUtc(SrcFileName))
-								{
-									Console.WriteLine("Copying {0} to {1}", SrcFileName, DestFileName);
-									File.Copy(SrcFileName, DestFileName);
-								}
-							}
-						}
-						// Do we want to kill the OBB here or not???
-					}
-
-					//Copy build files to the intermediate folder in this order (later overrides earlier):
-					//	- Shared Engine
-					//  - Shared Engine NoRedist (for Epic secret files)
-					//  - Game
-					//  - Game NoRedist (for Epic secret files)
-					CopyFileDirectory(UE4BuildFilesPath, UE4BuildPath, Replacements);
-					CopyFileDirectory(UE4BuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
-					CopyFileDirectory(UE4BuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
-					CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
-					CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
-					CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
-
-					//Android.bat for game-specific
-					ProcessStartInfo AndroidBatStartInfoGame = new ProcessStartInfo();
-					AndroidBatStartInfoGame.WorkingDirectory = UE4BuildPath;
-					AndroidBatStartInfoGame.FileName = AndroidCommandPath;
-					AndroidBatStartInfoGame.Arguments = "update project --name " + ProjectName + " --path . --target " + GetSdkApiLevel();
-					AndroidBatStartInfoGame.UseShellExecute = false;
-					Console.WriteLine("\nRunning: " + AndroidBatStartInfoGame.FileName + " " + AndroidBatStartInfoGame.Arguments);
-					Process AndroidBatGame = new Process();
-					AndroidBatGame.StartInfo = AndroidBatStartInfoGame;
-					AndroidBatGame.Start();
-					AndroidBatGame.WaitForExit();
-
-					// android bat failure
-					if (AndroidBatGame.ExitCode != 0)
-					{
-						throw new BuildException("android.bat failed [{0}]", AndroidBatStartInfoGame.Arguments);
-					}
-
-					AndroidBatStartInfoGame.Arguments = " update project --name " + ProjectName + " --path .  --target " + GetSdkApiLevel() + " --library " + RelativeServicesUri;
-					Console.WriteLine("\nRunning: " + AndroidBatStartInfoGame.FileName + " " + AndroidBatStartInfoGame.Arguments);
-					AndroidBatGame.Start();
-					AndroidBatGame.WaitForExit();
-
-					if (AndroidBatGame.ExitCode != 0)
-					{
-						throw new BuildException("android.bat failed [{0}]", AndroidBatStartInfoGame.Arguments);
-					}
-				}
-
-				// Copy the generated .so file from the binaries directory to the jni folder
-				if (!File.Exists(SourceSOName))
-				{
-					throw new BuildException("Can't make an APK without the compiled .so [{0}]", SourceSOName);
-				}
-				if (!Directory.Exists(UE4BuildPath + "/jni"))
-				{
-					throw new BuildException("Can't make an APK without the jni directory [{0}/jni]", UE4BuildFilesPath);
-				}
-
-				// Use ndk-build to do stuff and move the .so file to the lib folder (only if NDK is installed)
-				string FinalSOName = "";
-				if (File.Exists(NDKBuildPath))
-				{
-					string LibDir = UE4BuildPath + "/jni/" + GetNDKArch(Arch);
-					Directory.CreateDirectory(LibDir);
-
-					// copy the binary to the standard .so location
-					FinalSOName = LibDir + "/libUE4.so";
-					File.Copy(SourceSOName, FinalSOName, true);
-
-					FinalNdkBuildABICommand += GetNDKArch(Arch) + " ";
-				}
-				else
-				{
-					// if no NDK, we don't need any of the debugger stuff, so we just copy the .so to where it will end up
-					FinalSOName = UE4BuildPath + "/libs/" + GetNDKArch(Arch) + "/libUE4.so";
-					Directory.CreateDirectory(Path.GetDirectoryName(FinalSOName));
-					File.Copy(SourceSOName, FinalSOName);
-				}
-
-				// now do final stuff per apk (or after all .so's for a shared .apk)
-				if (bMakeSeparateApks || ArchIndex == NumArches - 1)
-				{
-					// if we need to run ndk-build, do it now (if making a shared .apk, we need to wait until all .libs exist)
-					if (!string.IsNullOrEmpty(FinalNdkBuildABICommand))
-					{
-						ProcessStartInfo NDKBuildInfo = new ProcessStartInfo();
-						NDKBuildInfo.WorkingDirectory = UE4BuildPath;
-						NDKBuildInfo.FileName = NDKBuildPath;
-						NDKBuildInfo.Arguments = "APP_ABI=\"" + FinalNdkBuildABICommand + "\"";
-						FinalNdkBuildABICommand = "";
-						if (!bForDistribution)
-						{
-							NDKBuildInfo.Arguments += " NDK_DEBUG=1";
-						}
-						NDKBuildInfo.UseShellExecute = true;
-						NDKBuildInfo.WindowStyle = ProcessWindowStyle.Minimized;
-						Console.WriteLine("\nRunning: " + NDKBuildInfo.FileName + " " + NDKBuildInfo.Arguments);
-						Process NDKBuild = new Process();
-						NDKBuild.StartInfo = NDKBuildInfo;
-						NDKBuild.Start();
-						NDKBuild.WaitForExit();
-
-						// ndk build failure
-						if (NDKBuild.ExitCode != 0)
-						{
-							throw new BuildException("ndk-build failed [{0}]", NDKBuildInfo.Arguments);
-						}
-					}
-	
-					// after ndk-build is called, we can now copy in the stl .so (ndk-build deletes old files)
-					// copy libgnustl_shared.so to library (use 4.8 if possible, otherwise 4.6)
+					// if we making multiple Apks, we need to put the architecture into the name
 					if (bMakeSeparateApks)
 					{
-						CopySTL(UE4BuildPath, Arch);
-							CopyGfxDebugger(UE4BuildPath, Arch);
+						DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch, GPUArchitecture);
+					}
+
+					// Copy the generated .so file from the binaries directory to the jni folder
+					if (!File.Exists(SourceSOName))
+					{
+						throw new BuildException("Can't make an APK without the compiled .so [{0}]", SourceSOName);
+					}
+					if (!Directory.Exists(UE4BuildPath + "/jni"))
+					{
+						throw new BuildException("Can't make an APK without the jni directory [{0}/jni]", UE4BuildFilesPath);
+					}
+
+					// Use ndk-build to do stuff and move the .so file to the lib folder (only if NDK is installed)
+					string FinalSOName = "";
+					if (File.Exists(NDKBuildPath))
+					{
+						string LibDir = UE4BuildPath + "/jni/" + GetNDKArch(Arch);
+						Directory.CreateDirectory(LibDir);
+
+						// copy the binary to the standard .so location
+						FinalSOName = LibDir + "/libUE4.so";
+						File.Copy(SourceSOName, FinalSOName, true);
+
+						FinalNdkBuildABICommand += GetNDKArch(Arch) + " ";
 					}
 					else
 					{
-						foreach (string InnerArch in Arches)
+						// if no NDK, we don't need any of the debugger stuff, so we just copy the .so to where it will end up
+						FinalSOName = UE4BuildPath + "/libs/" + GetNDKArch(Arch) + "/libUE4.so";
+						Directory.CreateDirectory(Path.GetDirectoryName(FinalSOName));
+						File.Copy(SourceSOName, FinalSOName);
+					}
+
+					// now do final stuff per apk (or after all .so's for a shared .apk)
+					if (bMakeSeparateApks || ArchIndex == NumArches - 1)
+					{
+						// always delete libs up to this point so fat binaries and incremental builds work together (otherwise we might end up with multiple
+						// so files in an apk that doesn't want them)
+						// note that we don't want to delete all libs, just the ones we copied (
+						foreach (string Lib in Directory.EnumerateFiles(UE4BuildPath + "/libs", "libUE4*.so", SearchOption.AllDirectories))
 						{
-							CopySTL(UE4BuildPath, InnerArch);
-								CopyGfxDebugger(UE4BuildPath, InnerArch);
+							File.Delete(Lib);
 						}
-					}
+
+						// if we need to run ndk-build, do it now (if making a shared .apk, we need to wait until all .libs exist)
+						if (!string.IsNullOrEmpty(FinalNdkBuildABICommand))
+						{
+							string CommandLine = "APP_ABI=\"" + FinalNdkBuildABICommand + "\"";
+							if (!bForDistribution)
+							{
+								CommandLine += " NDK_DEBUG=1";
+							}
+							RunCommandLineProgramAndThrowOnError(UE4BuildPath, NDKBuildPath, CommandLine, "Preparing native code for debugging...", true);
+
+							// next loop we don't want to redo these ABIs
+							FinalNdkBuildABICommand = "";
+						}
+	
+						// after ndk-build is called, we can now copy in the stl .so (ndk-build deletes old files)
+						// copy libgnustl_shared.so to library (use 4.8 if possible, otherwise 4.6)
+						if (bMakeSeparateApks)
+						{
+							CopySTL(UE4BuildPath, Arch);
+							CopyGfxDebugger(UE4BuildPath, Arch);
+						}
+						else
+						{
+							foreach (string InnerArch in Arches)
+							{
+								CopySTL(UE4BuildPath, InnerArch);
+								CopyGfxDebugger(UE4BuildPath, InnerArch);
+							}
+						}
 
 
-					// remove any read only flags
-					FileInfo DestFileInfo = new FileInfo(FinalSOName);
-					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+						// remove any read only flags
+						FileInfo DestFileInfo = new FileInfo(FinalSOName);
+						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 
-					// Use ant debug to build the .apk file
-					ProcessStartInfo CallAntStartInfo = new ProcessStartInfo();
-					CallAntStartInfo.WorkingDirectory = UE4BuildPath;
-					CallAntStartInfo.FileName = "cmd.exe";
-					CallAntStartInfo.Arguments = "/c \"" + AntBuildPath + "\"  " + (bForDistribution ? "release" : "debug");
-					CallAntStartInfo.UseShellExecute = false;
-					Console.WriteLine("\nRunning: " + CallAntStartInfo.Arguments);
-					Process CallAnt = new Process();
-					CallAnt.StartInfo = CallAntStartInfo;
-					CallAnt.Start();
-					CallAnt.WaitForExit();
+						Log.TraceInformation("\n===={0}====PERFORMING FINAL APK PACKAGE OPERATION================================================", DateTime.Now.ToString());
 
-					// ant failure
-					if (CallAnt.ExitCode != 0)
-					{
-						throw new BuildException("ant.bat failed [{0}]", CallAntStartInfo.Arguments);
-					}
+						string AntBuildType = "debug";
+						string AntOutputSuffix = "-debug";
+						if (bForDistribution)
+						{
+							// this will write out ant.properties with info needed to sign a distribution build
+							PrepareToSignApk(UE4BuildPath);
+							AntBuildType = "release";
+							AntOutputSuffix = "-release";
+						}
 
-					// make sure destination exists
-					Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));
+						// Use ant to build the .apk file
+						RunCommandLineProgramAndThrowOnError(UE4BuildPath, "cmd.exe", "/c \"" + GetAntPath() + "\" -quiet " + AntBuildType, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
 
-					// do we need to sign for distro?
-					if (bForDistribution)
-					{
-						// use diffeent source and dest apk's for signed mode
-						string SourceApkName = UE4BuildPath + "/bin/" + ProjectName + "-release-unsigned.apk";
-						SignApk(UE4BuildPath + "/SigningConfig.xml", SourceApkName, DestApkName);
-					}
-					else
-					{
+						// make sure destination exists
+						Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));
+
 						// now copy to the final location
-						File.Copy(UE4BuildPath + "/bin/" + ProjectName + "-debug" + ".apk", DestApkName, true);
+						File.Copy(UE4BuildPath + "/bin/" + ProjectName + AntOutputSuffix + ".apk", DestApkName, true);
 					}
 				}
 			}
 		}
-		}
 
-		private void SignApk(string ConfigFilePath, string SourceApk, string DestApk)
+		private void PrepareToSignApk(string BuildPath)
 		{
-			string JarCommandPath = Environment.ExpandEnvironmentVariables("%JAVA_HOME%/bin/jarsigner.exe");
-			string ZipalignCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/zipalign.exe");
-
+			string ConfigFilePath = Path.Combine(BuildPath, "SigningConfig.xml");
 			if (!File.Exists(ConfigFilePath))
 			{
 				throw new BuildException("Unable to sign for Shipping without signing config file: '{0}", ConfigFilePath);
@@ -728,48 +866,15 @@ namespace UnrealBuildTool.Android
 				}
 			}
 
-			string CommandLine = "-sigalg SHA1withRSA -digestalg SHA1";
-			CommandLine += " -storepass " + KeystorePassword;
 
-			if (KeyPassword != "_sameaskeystore_")
-			{
-				CommandLine += " -keypass " + KeyPassword;
-			}
+			string[] AntPropertiesLines = new string[4];
+			AntPropertiesLines[0] = "key.store=" + Keystore;
+			AntPropertiesLines[1] = "key.alias=" + Alias;
+			AntPropertiesLines[2] = "key.store.password=" + KeystorePassword;
+			AntPropertiesLines[3] = "key.alias.password=" + ((KeyPassword == "_sameaskeystore_") ? KeystorePassword : KeyPassword);
 
-			// put on the keystore
-			CommandLine += " -keystore \"" + Keystore + "\"";
-
-			// finish off the commandline
-			CommandLine += " \"" + SourceApk + "\" " + Alias;
-
-			// sign in-place
-			ProcessStartInfo CallJarStartInfo = new ProcessStartInfo();
-			CallJarStartInfo.WorkingDirectory = Path.GetDirectoryName(ConfigFilePath);
-			CallJarStartInfo.FileName = JarCommandPath;
-			CallJarStartInfo.Arguments = CommandLine;// string.Format("galg SHA1withRSA -digestalg SHA1 -keystore {1} {2} {3}",	 Password, Keystore, SourceApk, Alias);
-			CallJarStartInfo.UseShellExecute = false;
-			Console.WriteLine("\nRunning: {0} {1}", CallJarStartInfo.FileName, CallJarStartInfo.Arguments);
-			Process CallAnt = new Process();
-			CallAnt.StartInfo = CallJarStartInfo;
-			CallAnt.Start();
-			CallAnt.WaitForExit();
-
-			if (File.Exists(DestApk))
-			{
-				File.Delete(DestApk);
-			}
-
-			// now we need to zipalign the apk to the final destination (to 4 bytes, must be 4)
-			ProcessStartInfo CallZipStartInfo = new ProcessStartInfo();
-			CallZipStartInfo.WorkingDirectory = Path.GetDirectoryName(ConfigFilePath);
-			CallZipStartInfo.FileName = ZipalignCommandPath;
-			CallZipStartInfo.Arguments = string.Format("4 \"{0}\" \"{1}\"", SourceApk, DestApk);
-			CallZipStartInfo.UseShellExecute = false;
-			Console.WriteLine("\nRunning: {0} {1}", CallZipStartInfo.FileName, CallZipStartInfo.Arguments);
-			Process CallZip = new Process();
-			CallZip.StartInfo = CallZipStartInfo;
-			CallZip.Start();
-			CallZip.WaitForExit();
+			// now write out the properties
+			File.WriteAllLines(Path.Combine(BuildPath, "ant.properties"), AntPropertiesLines);
 		}
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
@@ -777,7 +882,7 @@ namespace UnrealBuildTool.Android
 			// we need to strip architecture from any of the output paths
 			string BaseSoName = AndroidToolChain.RemoveArchName(InTarget.OutputPaths[0]);
 			// this always makes a merged .apk since for debugging, there's no way to know which one to run
-			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution:false, CookFlavor:"", bMakeSeparateApks:false);
+			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution:false, CookFlavor:"", bMakeSeparateApks:false, bIncrementalPackage:true);
 			return true;
 		}
 
@@ -793,7 +898,7 @@ namespace UnrealBuildTool.Android
 
 		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor)
 		{
-			MakeApk(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution, CookFlavor, ShouldMakeSeparateApks());
+			MakeApk(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution, CookFlavor, ShouldMakeSeparateApks(), bIncrementalPackage:false);
 			return true;
 		}
 

@@ -12,7 +12,7 @@ void FAnimationNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& C
 	B.Initialize(Context);
 }
 
-void FAnimationNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimationNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	A.CacheBones(Context);
 	B.CacheBones(Context);

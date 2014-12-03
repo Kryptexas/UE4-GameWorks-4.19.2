@@ -7,16 +7,16 @@
 /////////////////////////////////////////////////////
 // UEditableText
 
-UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 
 	ColorAndOpacity = FLinearColor::Black;
 
-	// HACK Special font initialization hack since there are no font assets yet for slate.
-	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 	// Grab other defaults from slate arguments.
 	IsReadOnly = Defaults._IsReadOnly.Get();
@@ -38,16 +38,9 @@ void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-	
 	MyEditableText = SNew(SEditableText)
 	.Style(&WidgetStyle)
-	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.Font(Font)
 	.MinDesiredWidth(MinimumDesiredWidth)
 	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)

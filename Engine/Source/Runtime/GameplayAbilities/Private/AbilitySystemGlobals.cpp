@@ -7,10 +7,18 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
+#include "GameplayCueManager.h"
 
-UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+
+UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
+	AbilitySystemGlobalsClassName = FStringClassReference(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
+	GlobalGameplayCueManagerName = FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueManager"));
+
+	// Temp: once system for loading only necessary GameplaycueNotifies, this can go away.
+	GameplayCueNotifyFullyLoad = true;
+
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
@@ -22,6 +30,8 @@ void UAbilitySystemGlobals::InitGlobalData()
 	GetGlobalAttributeMetaDataTable();
 	
 	InitAtributeDefaults();
+
+	GetGameplayCueManager();
 }
 
 UCurveTable * UAbilitySystemGlobals::GetGlobalCurveTable()
@@ -78,10 +88,15 @@ FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo() const
 	return new FGameplayAbilityActorInfo();
 }
 
+FGameplayEffectContext* UAbilitySystemGlobals::AllocGameplayEffectContext() const
+{
+	return new FGameplayEffectContext();
+}
+
 /** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */
 UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 {
-	static UAbilitySystemGlobals * GlobalPtr = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
+	static UAbilitySystemGlobals* GlobalPtr = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
 	check(GlobalPtr == IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals());
 	check(GlobalPtr);
 
@@ -89,23 +104,28 @@ UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 }
 
 /** Helping function to avoid having to manually cast */
-UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor)
+UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor, bool LookForComponent)
 {
 	if (Actor == nullptr)
 	{
 		return nullptr;
 	}
 
-	IAbilitySystemInterface* ASI = InterfaceCast<IAbilitySystemInterface>(Actor);
+	IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(Actor);
 	if (ASI)
 	{
 		return ASI->GetAbilitySystemComponent();
 	}
 
-	/** This is slow and not desirable */
-	ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on Actor that is not IAbilitySystemInterface. This slow!"));
+	if (LookForComponent)
+	{
+		/** This is slow and not desirable */
+		ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on %s that is not IAbilitySystemInterface. This slow!"), *Actor->GetName());
 
-	return Actor->FindComponentByClass<UAbilitySystemComponent>();
+		return Actor->FindComponentByClass<UAbilitySystemComponent>();
+	}
+
+	return nullptr;
 }
 
 // --------------------------------------------------------------------
@@ -171,4 +191,20 @@ void UAbilitySystemGlobals::InitAtributeDefaults()
 		AllocAttributeSetInitter();
 		GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
 	}
+}
+
+// --------------------------------------------------------------------
+
+UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
+{
+	if (GlobalGameplayCueManager == nullptr)
+	{
+		GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(NULL, *GlobalGameplayCueManagerName.ToString(), NULL, LOAD_None, NULL);
+		if (GameplayCueNotifyPaths.Num() > 0)
+		{
+			GlobalGameplayCueManager->LoadObjectLibraryFromPaths( GameplayCueNotifyPaths, GameplayCueNotifyFullyLoad );
+		}
+	}
+
+	return GlobalGameplayCueManager;
 }

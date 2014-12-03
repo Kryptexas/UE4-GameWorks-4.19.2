@@ -40,6 +40,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnTargetDeviceProxyLaunchFailed, const FStr
  */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTargetDeviceProxyLaunchSucceeded, const FString&, uint32)
 
+
 /**
  * Interface for target device proxies.
  */
@@ -252,9 +253,7 @@ public:
 	 * @param Files The files to deploy.
 	 * @param TransactionId The transaction identifier for the deployment.
 	 * @return true if deployment has been started, false otherwise.
-	 * @see Launch
-	 * @see OnDeployCommitted
-	 * @see OnDeployFailed
+	 * @see Launch, OnDeployCommitted, OnDeployFailed
 	 */
 	virtual bool DeployApp(FName InVariant, const TMap<FString, FString>& Files, const FGuid& TransactionId) = 0;
 
@@ -268,8 +267,7 @@ public:
 	 * @param BuildConfiguration The build configuration to launch with.
 	 * @param Params The command line parameters to launch with.
 	 * @return true on success, false otherwise.
-	 * @see Deploy
-	 * @see OnLaunchFailed
+	 * @see Deploy, OnLaunchFailed
 	 */
 	virtual bool LaunchApp(FName InVariant, const FString& AppId, EBuildConfigurations::Type BuildConfiguration, const FString& Params) = 0;
 
@@ -277,24 +275,21 @@ public:
 	 * Powers off the device.
 	 *
 	 * @param Force Whether to force powering off.
-	 * @see PowerOn
-	 * @see Reboot
+	 * @see PowerOn, Reboot
 	 */
 	virtual void PowerOff(bool Force) = 0;
 
 	/**
 	 * Powers on the device.
 	 *
-	 * @see PowerOff
-	 * @see Reboot
+	 * @see PowerOff, Reboot
 	 */
 	virtual void PowerOn() = 0;
 
 	/**
 	 * Reboots the device.
 	 *
-	 * @see PowerOff
-	 * @see PowerOn
+	 * @see PowerOff, PowerOn
 	 */
 	virtual void Reboot() = 0;
 
@@ -335,8 +330,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ITargetDeviceProxy() { }
 };

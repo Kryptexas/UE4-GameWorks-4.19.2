@@ -15,7 +15,7 @@ FAdvertising::~FAdvertising()
 {
 }
 
-IAdvertisingProvider * FAdvertising::GetAdvertisingProvider( const FName & ProviderName )
+IAdvertisingProvider * FAdvertising::GetAdvertisingProvider( const FName& ProviderName )
 {
 	// Check if we can successfully load the module.
 	if ( ProviderName != NAME_None )

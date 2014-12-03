@@ -3,6 +3,9 @@
 #pragma once
 #include "CameraBlockingVolume.generated.h"
 
+/**
+ * A volume which blocks the Camera channel by default.
+ */
 UCLASS()
 class ENGINE_API ACameraBlockingVolume : public AVolume
 {

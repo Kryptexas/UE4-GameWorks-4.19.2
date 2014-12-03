@@ -28,6 +28,11 @@
 #include "Factories.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "UnrealExporter.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
@@ -340,6 +345,9 @@ TSharedRef< SWidget > FDisplayedMeshBoneInfo::CreateBoneTranslationRetargetingMo
 
 		FUIAction ActionRetargetingLengthScale = FUIAction(FExecuteAction::CreateSP(this, &FDisplayedMeshBoneInfo::SetBoneTranslationRetargetingMode, EBoneTranslationRetargetingMode::AnimationScaled));
 		MenuBuilder.AddMenuEntry( FText::FromString( TargetSkeleton->GetRetargetingModeString(EBoneTranslationRetargetingMode::AnimationScaled) ), LOCTEXT( "BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions." ), FSlateIcon(), ActionRetargetingLengthScale);
+
+		FUIAction ActionRetargetingAnimationRelative = FUIAction(FExecuteAction::CreateSP(this, &FDisplayedMeshBoneInfo::SetBoneTranslationRetargetingMode, EBoneTranslationRetargetingMode::AnimationRelative));
+		MenuBuilder.AddMenuEntry(FText::FromString(TargetSkeleton->GetRetargetingModeString(EBoneTranslationRetargetingMode::AnimationRelative)), LOCTEXT("BoneTranslationRetargetingAnimationRelativeToolTip", "Use relative translation from animation similar to an additive animation."), FSlateIcon(), ActionRetargetingAnimationRelative);
 	}
 	MenuBuilder.EndSection();
 
@@ -784,6 +792,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 
 	BoneFilter = EBoneFilter::All;
 	SocketFilter = ESocketFilter::Active;
+	bShowingRetargetingOptions = false;
 
 	PersonaPtr = InArgs._Persona;
 	IsEditable = InArgs._IsEditable;
@@ -802,20 +811,6 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 	// Register and bind all our menu commands
 	FSkeletonTreeCommands::Register();
 	BindCommands();
-
-	TSharedRef<SHeaderRow> TreeHeaderRow = SNew(SHeaderRow)
-		+ SHeaderRow::Column(ColumnID_BoneLabel)
-		.DefaultLabel(LOCTEXT("SkeletonBoneNameLabel", "Name"))
-		.FillWidth(0.75f);
-
-	if (IsInSkeletonMode())
-	{
-		TreeHeaderRow->AddColumn(
-			SHeaderRow::Column(ColumnID_RetargetingLabel)
-			.DefaultLabel(LOCTEXT("SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting"))
-			.FillWidth(0.25f)
-			);
-	}
 
 	this->ChildSlot
 	[
@@ -870,31 +865,33 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 					.Text( this, &SSkeletonTree::GetSocketFilterMenuTitle )
 				]
 			]
+
+			+ SHorizontalBox::Slot()
+			.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &SSkeletonTree::IsShowingRetargetingOptions)
+				.ToolTipText(LOCTEXT("SocketFilterToolTip", "Change which types of sockets are shown"))
+				.OnCheckStateChanged(this, &SSkeletonTree::OnChangeShowingRetargetingOptions)
+				[
+					SNew(STextBlock)
+						.Text(LOCTEXT("ShowRetargetingOptions", "Show Retargeting Options").ToString())
+				]
+			]
 		]
 
 		+ SVerticalBox::Slot()
 		.Padding( FMargin( 0.0f, 4.0f, 0.0f, 0.0f ) )
 		[
-			SAssignNew( SkeletonTreeView, SMeshSkeletonTreeRowType )
-			.TreeItemsSource( &SkeletonRowList )
-			.OnGenerateRow( this, &SSkeletonTree::MakeTreeRowWidget )
-			.OnGetChildren( this, &SSkeletonTree::GetChildrenForInfo )
-			.OnContextMenuOpening( this, &SSkeletonTree::CreateContextMenu )
-			.OnSelectionChanged( this, &SSkeletonTree::OnSelectionChanged )
-			.OnItemScrolledIntoView( this, &SSkeletonTree::OnItemScrolledIntoView )
-			.OnMouseButtonDoubleClick( this, &SSkeletonTree::OnTreeDoubleClick)
-			.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
-			.ItemHeight( 24 )
-			.HeaderRow
-			(
-				TreeHeaderRow
-			)
+			SAssignNew(TreeHolder, SOverlay)
 		]
 	];
 
 	if (PersonaPtr.IsValid())
 	{
-		CreateFromSkeleton(TargetSkeleton->GetBoneTree());
+		CreateTreeColumns();
 	}
 }
 
@@ -1059,6 +1056,44 @@ bool SSkeletonTree::AttachToParent( TSharedRef<FDisplayedTreeRowInfo> ItemToAtta
 	return false;
 }
 
+void SSkeletonTree::CreateTreeColumns()
+{
+	TSharedRef<SHeaderRow> TreeHeaderRow = SNew(SHeaderRow)
+		+ SHeaderRow::Column(ColumnID_BoneLabel)
+		.DefaultLabel(LOCTEXT("SkeletonBoneNameLabel", "Name"))
+		.FillWidth(0.75f);
+
+	if (bShowingRetargetingOptions)
+	{
+		TreeHeaderRow->AddColumn(
+			SHeaderRow::Column(ColumnID_RetargetingLabel)
+			.DefaultLabel(LOCTEXT("SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting"))
+			.FillWidth(0.25f)
+			);
+	}
+
+	TreeHolder->ClearChildren();
+	TreeHolder->AddSlot()
+		[
+			SAssignNew(SkeletonTreeView, SMeshSkeletonTreeRowType)
+			.TreeItemsSource(&SkeletonRowList)
+			.OnGenerateRow(this, &SSkeletonTree::MakeTreeRowWidget)
+			.OnGetChildren(this, &SSkeletonTree::GetChildrenForInfo)
+			.OnContextMenuOpening(this, &SSkeletonTree::CreateContextMenu)
+			.OnSelectionChanged(this, &SSkeletonTree::OnSelectionChanged)
+			.OnItemScrolledIntoView(this, &SSkeletonTree::OnItemScrolledIntoView)
+			.OnMouseButtonDoubleClick(this, &SSkeletonTree::OnTreeDoubleClick)
+			.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
+			.ItemHeight(24)
+			.HeaderRow
+			(
+			TreeHeaderRow
+			)
+		];
+
+	CreateFromSkeleton(TargetSkeleton->GetBoneTree());
+}
+
 void SSkeletonTree::CreateFromSkeleton( const TArray<FBoneNode>& SourceSkeleton, USkeletalMeshSocket* SocketToRename )
 {
 	SkeletonRowList.Empty();
@@ -1067,10 +1102,10 @@ void SSkeletonTree::CreateFromSkeleton( const TArray<FBoneNode>& SourceSkeleton,
 
 	if( BoneFilter != EBoneFilter::None )
 	{
-		const FReferenceSkeleton & RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
 		for (int32 BoneIndex = 0; BoneIndex < SourceSkeleton.Num(); ++BoneIndex)
 		{
-			const FName & BoneName = RefSkeleton.GetBoneName(BoneIndex);
+			const FName& BoneName = RefSkeleton.GetBoneName(BoneIndex);
 			if ( !FilterText.IsEmpty() && !BoneName.ToString().Contains( FilterText.ToString()) )
 			{
 				continue;
@@ -1372,13 +1407,14 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 			MenuBuilder.EndSection();
 
-			if(IsInSkeletonMode())
+			if(bShowingRetargetingOptions)
 			{
 				MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT("BoneTranslationRetargetingHeader", "Bone Translation Retargeting"));
 				{
 					FUIAction RecursiveRetargetingSkeletonAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
 					FUIAction RecursiveRetargetingAnimationAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
 					FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
+					FUIAction RecursiveRetargetingAnimationRelativeAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationRelative));
 
 					MenuBuilder.AddMenuEntry
 						(LOCTEXT("SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton")
@@ -1399,6 +1435,13 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 						, LOCTEXT("BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions.")
 						, FSlateIcon()
 						, RecursiveRetargetingAnimationScaledAction
+						);
+
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingAnimationRelativeChildrenAction", "Recursively Set Translation Retargeting AnimationRelative")
+						, LOCTEXT("BoneTranslationRetargetingAnimationRelativeToolTip", "Use relative translation from animation similar to an additive animation.")
+						, FSlateIcon()
+						, RecursiveRetargetingAnimationRelativeAction
 						);
 				}
 				MenuBuilder.EndSection();
@@ -1467,7 +1510,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 }
 
 /*
-void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton * Skeleton, bool bAdd)
+void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton* Skeleton, bool bAdd)
 {
 	if (bMeshReductionSupported)
 	{
@@ -1579,7 +1622,7 @@ void SSkeletonTree::OnCopyBoneNames()
 		FString BoneNames;
 		for( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
-			FName * BoneName = static_cast<FName*>( (*ItemIt)->GetData() );
+			FName* BoneName = static_cast<FName*>( (*ItemIt)->GetData() );
 
 			BoneNames += BoneName->ToString();
 			BoneNames += "\r\n";
@@ -1756,6 +1799,9 @@ void SSkeletonTree::OnAddSocket()
 		NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( *SocketName );
 
 		TargetSkeleton->Sockets.Add( NewSocket );
+
+		FSelectedSocketInfo SocketInfo(NewSocket, true);
+		PersonaPtr.Pin()->SetSelectedSocket(SocketInfo, false);
 
 		CreateFromSkeleton( TargetSkeleton->GetBoneTree(), NewSocket );
 	}
@@ -2111,7 +2157,7 @@ void SSkeletonTree::OnExternalSelectBone( const FName& BoneName )
 		FDisplayedTreeRowInfoPtr SkeletonRow = *( SkeletonRowIt );
 
 		if ( SkeletonRow->GetType() == ESkeletonTreeRowType::Bone &&
-			*static_cast< FName * >( SkeletonRow->GetData() ) == BoneName )
+			*static_cast< FName* >( SkeletonRow->GetData() ) == BoneName )
 		{
 			SkeletonTreeView->SetSelection( SkeletonRow );
 			SkeletonTreeView->RequestScrollIntoView( SkeletonRow );
@@ -2372,9 +2418,9 @@ bool SSkeletonTree::IsAddingSocketsAllowed() const
 	return false;
 }
 
-FReply SSkeletonTree::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SSkeletonTree::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( UICommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if ( UICommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}
@@ -2499,9 +2545,15 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 	}
 }
 
-bool SSkeletonTree::IsInSkeletonMode() const
+void SSkeletonTree::OnChangeShowingRetargetingOptions(ESlateCheckBoxState::Type NewState)
 {
-	return PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::SkeletonDisplayMode);
+	bShowingRetargetingOptions = NewState == ESlateCheckBoxState::Checked;
+	CreateTreeColumns();
+}
+
+ESlateCheckBoxState::Type SSkeletonTree::IsShowingRetargetingOptions() const
+{
+	return bShowingRetargetingOptions ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 

@@ -8,8 +8,8 @@
 ==================================================================================*/
 
 #pragma once
-
-#include "GenericPlatformProperties.h"
+#include "GenericPlatform/GenericPlatformProperties.h"
+#include "HAL/Platform.h"
 
 struct FWinRTPlatformProperties : public FGenericPlatformProperties
 {

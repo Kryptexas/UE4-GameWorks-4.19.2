@@ -51,6 +51,9 @@ class STutorialsBrowser : public SCompoundWidget
 	/** Reload all tutorials that we know about */
 	void ReloadTutorials();
 
+	/** SWidget implementation */
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+
 protected:
 	/** Handle generating a table row in the browser */
 	TSharedRef<ITableRow> OnGenerateTutorialRow(TSharedPtr<ITutorialListEntry> InItem, const TSharedRef<STableViewBase>& OwnerTable) const;
@@ -63,9 +66,6 @@ protected:
 
 	/** Handle whether the back button can be clicked */
 	bool IsBackButtonEnabled() const;
-
-	/** Handle back button color - used to dim the button when disabled */
-	FSlateColor GetBackButtonColor() const;
 
 	/** Delegate handler fired when a tutorial is selected form the browser */
 	void OnTutorialSelected(UEditorTutorial* InTutorial, bool bRestart);
@@ -96,6 +96,9 @@ protected:
 
 	/** Rebuild the breadcrumb trail according to the current category */
 	void RebuildCrumbs();
+
+	/** Handle an asset being added - rebuild our list if required */
+	void HandleAssetAdded(const FAssetData& InAssetData);
 
 private:
 
@@ -131,4 +134,10 @@ private:
 
 	/** Breadcrumb trail for path display */
 	TSharedPtr<SBreadcrumbTrail<TSharedPtr<ITutorialListEntry>>> BreadcrumbTrail;
+
+	/** Whether we need to refresh the content in the browser */
+	bool bNeedsRefresh;
+
+	/** Prevent us from refreshing too often */
+	float RefreshTimer;
 };

@@ -393,8 +393,8 @@ static UClass* GetCurveClass( ECSVImportType ImportType )
 }
 
 
-UCSVImportFactory::UCSVImportFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCSVImportFactory::UCSVImportFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bCreateNew = false;
@@ -609,8 +609,8 @@ bool UCSVImportFactory::Reimport( UObject* Obj, const FString& Path )
 
 //////////////////////////////////////////////////////////////////////////
 
-UReimportDataTableFactory::UReimportDataTableFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportDataTableFactory::UReimportDataTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -645,8 +645,8 @@ EReimportResult::Type UReimportDataTableFactory::Reimport( UObject* Obj )
 
 ////////////////////////////////////////////////////////////////////////////
 //
-UReimportCurveTableFactory::UReimportCurveTableFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportCurveTableFactory::UReimportCurveTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -681,8 +681,8 @@ EReimportResult::Type UReimportCurveTableFactory::Reimport( UObject* Obj )
 
 ////////////////////////////////////////////////////////////////////////////
 //
-UReimportCurveFactory::UReimportCurveFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportCurveFactory::UReimportCurveFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

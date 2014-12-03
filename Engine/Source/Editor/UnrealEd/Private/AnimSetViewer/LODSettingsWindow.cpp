@@ -1,12 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "LODSettingsWindow.h"
 #include "LODUtilities.h"
 #include "MeshUtilities.h"
 #include "FbxMeshUtils.h"
 #include "SAssetSearchBox.h"
+#include "SExpandableArea.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshSimplification"
 
@@ -1040,7 +1042,7 @@ FSkeletalMeshOptimizationSettings SSkeletalSimplificationOptions::GetLODSettings
 	return Settings;
 }
 
-void SSkeletalSimplificationOptions::AddBonesToRemove(const FString & NewBonesToRemove)
+void SSkeletalSimplificationOptions::AddBonesToRemove(const FString& NewBonesToRemove)
 {
 	if ( NewBonesToRemove.IsEmpty() == false && PossibleSuggestions.Contains(NewBonesToRemove) )
 	{
@@ -1070,7 +1072,7 @@ void SSkeletalSimplificationOptions::RefreshBonesToRemove()
 
 		// filter out only the parent, not all children
 		int32 TotalNumOfBonesToRemove = BonesToRemove.Num();
-		const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 		for (int32 I=0; I<TotalNumOfBonesToRemove; ++I)
 		{
 			bool bNoParent = true;
@@ -1144,7 +1146,7 @@ FReply SSkeletalSimplificationOptions::OnRemoveFromBonesList(const FName Name)
 	return FReply::Handled();
 }
 
-void SSkeletalSimplificationOptions::PopulatePossibleSuggestions(const USkeleton * InSkeleton)
+void SSkeletalSimplificationOptions::PopulatePossibleSuggestions(const USkeleton* InSkeleton)
 {
 	if( InSkeleton )
 	{

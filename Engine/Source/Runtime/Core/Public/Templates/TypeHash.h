@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealTypeHash.h: Unreal type hash functions.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Combines two hash values to get a third.
@@ -28,6 +25,7 @@ inline uint32 HashCombine(uint32 A, uint32 C)
 	return C;
 }
 
+
 inline uint32 PointerHash(const void* Key,uint32 C = 0)
 {
 	// Avoid LHS stalls on PS3 and Xbox 360
@@ -42,6 +40,7 @@ inline uint32 PointerHash(const void* Key,uint32 C = 0)
 	return HashCombine(PtrInt, C);
 }
 
+
 //
 // Hash functions for common types.
 //
@@ -50,38 +49,47 @@ inline uint32 GetTypeHash( const uint8 A )
 {
 	return A;
 }
+
 inline uint32 GetTypeHash( const int8 A )
 {
 	return A;
 }
+
 inline uint32 GetTypeHash( const uint16 A )
 {
 	return A;
 }
+
 inline uint32 GetTypeHash( const int16 A )
 {
 	return A;
 }
+
 inline uint32 GetTypeHash( const int32 A )
 {
 	return A;
 }
+
 inline uint32 GetTypeHash( const uint32 A )
 {
 	return A;
 }
+
 inline uint32 GetTypeHash( const uint64 A )
 {
 	return (uint32)A+((uint32)(A>>32) * 23);
 }
+
 inline uint32 GetTypeHash( const int64 A )
 {
 	return (uint32)A+((uint32)(A>>32) * 23);
 }
+
 inline uint32 GetTypeHash( const float& Value )
 {
 	return *(uint32*)&Value;
 }
+
 inline uint32 GetTypeHash( const TCHAR* S )
 {
 	return FCrc::Strihash_DEPRECATED(S);

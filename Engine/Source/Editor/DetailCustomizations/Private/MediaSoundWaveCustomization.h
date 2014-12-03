@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include "Media.h"
-#include "MediaSoundWave.h"
-
 
 /**
  * Implements a details view customization for the UMediaSoundWave class.
@@ -25,7 +22,7 @@ public:
 	 *
 	 * @return The new instance.
 	 */
-	static TSharedRef<IDetailCustomization> MakeInstance( )
+	static TSharedRef<IDetailCustomization> MakeInstance()
 	{
 		return MakeShareable(new FMediaSoundWaveCustomization());
 	}

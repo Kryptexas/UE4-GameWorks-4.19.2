@@ -3,8 +3,8 @@
 #include "InputCorePrivatePCH.h"
 #include "PropertyTag.h"
 
-UInputCoreTypes::UInputCoreTypes(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInputCoreTypes::UInputCoreTypes(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -127,13 +127,30 @@ const FKey EKeys::Semicolon("Semicolon");
 const FKey EKeys::Equals("Equals");
 const FKey EKeys::Comma("Comma");
 const FKey EKeys::Underscore("Underscore");
+const FKey EKeys::Hyphen("Hyphen");
 const FKey EKeys::Period("Period");
 const FKey EKeys::Slash("Slash");
 const FKey EKeys::Tilde("Tilde");
 const FKey EKeys::LeftBracket("LeftBracket");
+const FKey EKeys::LeftParantheses("LeftParantheses");
 const FKey EKeys::Backslash("Backslash");
 const FKey EKeys::RightBracket("RightBracket");
+const FKey EKeys::RightParantheses("RightParantheses");
+const FKey EKeys::Apostrophe("Apostrophe");
 const FKey EKeys::Quote("Quote");
+
+const FKey EKeys::Asterix("Asterix");
+const FKey EKeys::Ampersand("Ampersand");
+const FKey EKeys::Caret("Caret");
+const FKey EKeys::Dollar("Dollar");
+const FKey EKeys::Exclamation("Exclamation");
+const FKey EKeys::Colon("Colon");
+
+const FKey EKeys::A_AccentGrave("A_AccentGrave");
+const FKey EKeys::E_AccentGrave("E_AccentGrave");
+const FKey EKeys::E_AccentAigu("E_AccentAigu");
+const FKey EKeys::C_Cedille("C_Cedille");
+
 
 // Setup platform specific keys
 #if PLATFORM_MAC
@@ -346,17 +363,34 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::LeftCommand, LOCTEXT("LeftCommand", "Left Cmd"), FKeyDetails::ModifierKey));
 	AddKey(FKeyDetails(EKeys::RightCommand, LOCTEXT("RightCommand", "Right Cmd"), FKeyDetails::ModifierKey));
 
-	AddKey(FKeyDetails(EKeys::Semicolon, LOCTEXT("Semicolon", ";")));
-	AddKey(FKeyDetails(EKeys::Equals, LOCTEXT("Equals", "=")));
-	AddKey(FKeyDetails(EKeys::Comma, LOCTEXT("Comma", ",")));
-	AddKey(FKeyDetails(EKeys::Underscore, LOCTEXT("Underscore", "_")));
-	AddKey(FKeyDetails(EKeys::Period, LOCTEXT("Period", ".")));
-	AddKey(FKeyDetails(EKeys::Slash, LOCTEXT("Slash", "/")));
-	AddKey(FKeyDetails(EKeys::Tilde, LOCTEXT("Backtick", "`"))); // Yes this is not actually a tilde, it is a long, sad, and old story
-	AddKey(FKeyDetails(EKeys::LeftBracket, LOCTEXT("LeftBracket", "[")));
-	AddKey(FKeyDetails(EKeys::Backslash, LOCTEXT("Backslash", "\\")));
-	AddKey(FKeyDetails(EKeys::RightBracket, LOCTEXT("RightBracket", "]")));
-	AddKey(FKeyDetails(EKeys::Quote, LOCTEXT("Quote", "'")));
+	AddKey(FKeyDetails(EKeys::Semicolon, FText::FromString(";")));
+	AddKey(FKeyDetails(EKeys::Equals, FText::FromString("=")));
+	AddKey(FKeyDetails(EKeys::Comma, FText::FromString(",")));
+	AddKey(FKeyDetails(EKeys::Hyphen, FText::FromString("-")));
+	AddKey(FKeyDetails(EKeys::Underscore, FText::FromString("_")));
+	AddKey(FKeyDetails(EKeys::Period, FText::FromString(".")));
+	AddKey(FKeyDetails(EKeys::Slash, FText::FromString("/")));
+	AddKey(FKeyDetails(EKeys::Tilde, FText::FromString("`"))); // Yes this is not actually a tilde, it is a long, sad, and old story
+	AddKey(FKeyDetails(EKeys::LeftBracket, FText::FromString("[")));
+	AddKey(FKeyDetails(EKeys::Backslash, FText::FromString("\\")));
+	AddKey(FKeyDetails(EKeys::RightBracket, FText::FromString("]")));
+	AddKey(FKeyDetails(EKeys::Apostrophe, FText::FromString("'")));
+	AddKey(FKeyDetails(EKeys::Quote, FText::FromString("\"")));
+
+	AddKey(FKeyDetails(EKeys::LeftParantheses, FText::FromString("(")));
+	AddKey(FKeyDetails(EKeys::RightParantheses, FText::FromString(")")));
+	AddKey(FKeyDetails(EKeys::Ampersand, FText::FromString("&")));
+	AddKey(FKeyDetails(EKeys::Asterix, FText::FromString("*")));
+	AddKey(FKeyDetails(EKeys::Caret, FText::FromString("^")));
+	AddKey(FKeyDetails(EKeys::Dollar, FText::FromString("$")));
+	AddKey(FKeyDetails(EKeys::Exclamation, FText::FromString("!")));
+	AddKey(FKeyDetails(EKeys::Colon, FText::FromString(":")));
+
+	AddKey(FKeyDetails(EKeys::A_AccentGrave, FText::FromString(FString::Chr(224))));
+	AddKey(FKeyDetails(EKeys::E_AccentGrave, FText::FromString(FString::Chr(232))));
+	AddKey(FKeyDetails(EKeys::E_AccentAigu, FText::FromString(FString::Chr(233))));
+	AddKey(FKeyDetails(EKeys::C_Cedille, FText::FromString(FString::Chr(231))));
+
 
 	// Setup Gamepad keys
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
@@ -382,22 +416,20 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Right, LOCTEXT("Gamepad_RightStick_Right", "Gamepad Right Stick Right"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Left, LOCTEXT("Gamepad_RightStick_Left", "Gamepad Right Stick Left"), FKeyDetails::GamepadKey));
 
-	FGetKeyDisplayNameSignature GetKeyNameDelegate = FGetKeyDisplayNameSignature::CreateStatic(&EKeys::GetGamepadDisplayName);
+	AddKey(FKeyDetails(EKeys::Gamepad_Special_Left, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_Special_Left)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_Special_Right, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_Special_Right)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Bottom, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_FaceButton_Bottom)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Right, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_FaceButton_Right)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Left, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_FaceButton_Left)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Top, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_FaceButton_Top)), FKeyDetails::GamepadKey));
 
-	AddKey(FKeyDetails(EKeys::Gamepad_Special_Left, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_Special_Right, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Bottom, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Right, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Left, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Top, GetKeyNameDelegate, FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftTriggerAxis, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_LeftTriggerAxis)), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightTriggerAxis, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_RightTriggerAxis)), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftTriggerAxis, GetKeyNameDelegate, FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightTriggerAxis, GetKeyNameDelegate, FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
-
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftShoulder, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightShoulder, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftTrigger, GetKeyNameDelegate, FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightTrigger, GetKeyNameDelegate, FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftShoulder, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_LeftShoulder)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightShoulder, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_RightShoulder)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftTrigger, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_LeftTrigger)), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightTrigger, TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&EKeys::GetGamepadDisplayName, EKeys::Gamepad_RightTrigger)), FKeyDetails::GamepadKey));
 
 	// Vector axes (FVector, not float)
 	AddKey(FKeyDetails(EKeys::Tilt, LOCTEXT("Tilt", "Tilt"), FKeyDetails::VectorAxis));
@@ -686,12 +718,7 @@ bool FKey::IsBindableInBlueprints() const
 
 FText FKeyDetails::GetDisplayName() const
 {
-	if (GetKeyDisplayNameDelegate.IsBound())
-	{
-		return GetKeyDisplayNameDelegate.Execute(Key);
-	}
-
-	return DisplayName;
+	return DisplayName.Get();
 }
 
 FText FKey::GetDisplayName() const

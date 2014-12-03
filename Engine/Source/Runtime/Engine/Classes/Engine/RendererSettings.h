@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "UserInterfaceSettings.h"
+
 #include "RendererSettings.generated.h"
 
 
@@ -77,26 +79,6 @@ namespace EAntiAliasingMethodUI
 		AAM_FXAA UMETA(DisplayName = "FXAA"),
 		AAM_TemporalAA UMETA(DisplayName = "TemporalAA"),
 		AAM_MAX,
-	};
-}
-
-
-/** The Side to use when scaling the UI. */
-UENUM()
-namespace EUIScalingRule
-{
-	enum Type
-	{
-		/** Evaluates the scale curve based on the shortest side of the viewport */
-		ShortestSide,
-		/** Evaluates the scale curve based on the longest side of the viewport */
-		LongestSide,
-		/** Evaluates the scale curve based on the X axis of the viewport */
-		Horizontal,
-		/** Evaluates the scale curve based on the Y axis of the viewport */
-		Vertical,
-		/** Custom - Allows custom rule interpretation */
-		//Custom
 	};
 }
 
@@ -202,6 +184,11 @@ class ENGINE_API URendererSettings
 	uint32 bDefaultFeatureAmbientOcclusion : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.AmbientOcclusionStaticFraction", DisplayName = "Ambient Occlusion Static Fraction (AO for baked lighting)",
+		ToolTip = "Whether the default for AmbientOcclusionStaticFraction is enabled or not (only useful for baked lighting and if AO is on, allows to have SSAO affect baked lighting as well, costs performance, postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+		uint32 bDefaultFeatureAmbientOcclusionStaticFraction : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AutoExposure", DisplayName = "Auto Exposure",
 		ToolTip = "Whether the default for AutoExposure is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureAutoExposure : 1;
@@ -223,13 +210,18 @@ class ENGINE_API URendererSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
 		ConsoleVariable="r.EarlyZPass",DisplayName="Early Z-pass",
-		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass."))
+		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass. Need to reload the level!"))
 	TEnumAsByte<EEarlyZPass::Type> EarlyZPass;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
 		ConsoleVariable="r.EarlyZPassMovable",DisplayName="Movables in early Z-pass",
-		ToolTip="Whether to render movable objects in the early Z pass."))
+		ToolTip="Whether to render movable objects in the early Z pass. Need to reload the level!"))
 	uint32 bEarlyZPassMovable:1;
+
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		ConsoleVariable="r.DBuffer",DisplayName="DBuffer Decals",
+		ToolTip="Experimental decal feature (see r.DBuffer, ideally combined with 'Movables in early Z-pass' and 'Early Z-pass')"))
+	uint32 bDBuffer:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
 		ConsoleVariable="r.ClearSceneMethod",DisplayName="Clear Scene",
@@ -246,27 +238,23 @@ class ENGINE_API URendererSettings
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
 
-	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
-		DisplayName="DPI Scale Rule",
-		ToolTip="The rule used when trying to decide what scale to apply." ))
-	TEnumAsByte<EUIScalingRule::Type> UIScaleRule;
-
-	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
-		DisplayName="DPI Curve",
-		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule" ))
-	FRuntimeFloatCurve UIScaleCurve;
-
 public:
 
 	// Begin UObject interface
 
 	virtual void PostInitProperties() override;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	// End UObject interface
 
-	/** Gets the current scale of the UI based on the size */
-	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
+private:
+	
+	UPROPERTY(config)
+	TEnumAsByte<EUIScalingRule::Type> UIScaleRule_DEPRECATED;
+
+	UPROPERTY(config)
+	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;
 };

@@ -18,6 +18,10 @@ struct ENGINE_API FEditorSupportDelegates
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWindowsMessage, class FViewport*, uint32);
 	/** delegate type for material usage flags change events ( Params: UMaterial* material, int32 FlagThatChanged ) */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMaterialUsageFlagsChanged, class UMaterial*, int32); 
+	/** delegate type for vector parameter default change event */
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnVectorParameterDefaultChanged, class UMaterialExpression*, FName, const FLinearColor&); 
+	/** delegate type for scalar parameter default change event */
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnScalarParameterDefaultChanged, class UMaterialExpression*, FName, float); 
 
 	/** Called when all viewports need to be redrawn */
 	static FSimpleMulticastDelegate RedrawAllViewports;
@@ -40,6 +44,10 @@ struct ENGINE_API FEditorSupportDelegates
 	static FOnWindowsMessage PostWindowsMessage;
 	/** Sent after the usages flags on a material have changed*/
 	static FOnMaterialUsageFlagsChanged MaterialUsageFlagsChanged;
+	/** Sent after vector param default changed */
+	static FOnVectorParameterDefaultChanged VectorParameterDefaultChanged;
+	/** Sent after scalar param default changed */
+	static FOnScalarParameterDefaultChanged ScalarParameterDefaultChanged;
 };
 
 #endif // WITH_EDITOR

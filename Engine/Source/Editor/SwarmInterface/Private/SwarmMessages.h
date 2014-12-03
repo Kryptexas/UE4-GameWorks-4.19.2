@@ -3,8 +3,8 @@
 #pragma once
 
 #include "SwarmDefines.h"
-
 #include "SwarmMessages.generated.h"
+
 
 USTRUCT()
 struct FSwarmPingMessage
@@ -20,6 +20,7 @@ struct TStructOpsTypeTraits<FSwarmPingMessage> : public TStructOpsTypeTraitsBase
 		WithMessageHandling = true
 	};
 };
+
 
 USTRUCT()
 struct FSwarmPongMessage
@@ -50,6 +51,7 @@ struct TStructOpsTypeTraits<FSwarmPongMessage> : public TStructOpsTypeTraitsBase
 	};
 };
 
+
 USTRUCT()
 struct FSwarmInfoMessage
 {
@@ -74,6 +76,7 @@ struct TStructOpsTypeTraits<FSwarmInfoMessage> : public TStructOpsTypeTraitsBase
 		WithMessageHandling = true
 	};
 };
+
 
 USTRUCT()
 struct FSwarmAlertMessage
@@ -117,6 +120,7 @@ struct TStructOpsTypeTraits<FSwarmAlertMessage> : public TStructOpsTypeTraitsBas
 	};
 };
 
+
 USTRUCT()
 struct FSwarmTimingMessage
 {
@@ -147,6 +151,7 @@ struct TStructOpsTypeTraits<FSwarmTimingMessage> : public TStructOpsTypeTraitsBa
 	};
 };
 
+
 USTRUCT()
 struct FSwarmTaskRequestMessage
 {
@@ -163,6 +168,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestMessage> : public TStructOpsTypeTra
 		WithMessageHandling = true
 	};
 };
+
 
 USTRUCT()
 struct FSwarmTaskRequestReleaseMessage
@@ -181,6 +187,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestReleaseMessage> : public TStructOps
 	};
 };
 
+
 USTRUCT()
 struct FSwarmTaskRequestReservationMessage
 {
@@ -197,6 +204,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestReservationMessage> : public TStruc
 		WithMessageHandling = true
 	};
 };
+
 
 USTRUCT()
 struct FSwarmTaskRequestSpecificationMessage
@@ -226,8 +234,7 @@ struct FSwarmTaskRequestSpecificationMessage
 		,	Parameters(InParameters)
 		,	Flags(InFlags)
 		,	Dependencies(InDependencies)
-	{
-	}
+	{ }
 };
 
 template<>
@@ -238,6 +245,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestSpecificationMessage> : public TStr
 		WithMessageHandling = true
 	};
 };
+
 
 USTRUCT()
 struct FSwarmJobStateMessage
@@ -279,6 +287,7 @@ struct TStructOpsTypeTraits<FSwarmJobStateMessage> : public TStructOpsTypeTraits
 	};
 };
 
+
 USTRUCT()
 struct FSwarmTaskStateMessage
 {
@@ -319,6 +328,7 @@ struct TStructOpsTypeTraits<FSwarmTaskStateMessage> : public TStructOpsTypeTrait
 	};
 };
 
+
 USTRUCT()
 struct FSwarmQuitMessage
 {
@@ -334,16 +344,4 @@ struct TStructOpsTypeTraits<FSwarmQuitMessage> : public TStructOpsTypeTraitsBase
 	{
 		WithMessageHandling = true
 	};
-};
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class USwarmMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
 };

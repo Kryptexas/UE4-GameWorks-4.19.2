@@ -36,6 +36,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingControllerComponent : public UActor
 		EnableActiveView(View, IsViewActive(View) ? false : true);
 	}
 
+	const FInputChord& GetActivationKey() const { return ActivationKey; }
 
 	/** periodic update of navmesh data */
 	void UpdateNavMeshTimer();
@@ -76,6 +77,7 @@ protected:
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
 
+	FInputChord ActivationKey;
 	const float KeyPressActivationTime;
 	float ControlKeyPressedTime;
 	float PlayersComponentRequestTime;

@@ -42,6 +42,7 @@ struct FBPTerminal
 		, bIsSavePersistent(false)
 		, bIsStructContext(false)
 		, bPassedByReference(false)
+		, Source(NULL)
 		, Context(NULL)
 		, AssociatedVarProperty(NULL)
 		, ObjectLiteral(NULL)

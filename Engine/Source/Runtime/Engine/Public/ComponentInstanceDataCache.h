@@ -38,11 +38,10 @@ class ENGINE_API FComponentInstanceDataCache
 public:
 	FComponentInstanceDataCache() {}
 
-	/** Constructor that also populatees cache from Actor */
+	/** Constructor that also populates cache from Actor */
 	FComponentInstanceDataCache(const AActor* InActor);
 
-	/** Add some new instance data to the cache */
-	void AddInstanceData(TSharedPtr<FComponentInstanceDataBase> NewData);
+	~FComponentInstanceDataCache();
 
 	/** Util to iterate over components and apply data to each */
 	void ApplyToActor(AActor* Actor) const;
@@ -51,5 +50,5 @@ public:
 
 private:
 	/** Map of data type name to data of that type */
-	TMultiMap< FName, TSharedPtr<FComponentInstanceDataBase> >	TypeToDataMap;
+	TMultiMap< FName, FComponentInstanceDataBase* >	TypeToDataMap;
 };

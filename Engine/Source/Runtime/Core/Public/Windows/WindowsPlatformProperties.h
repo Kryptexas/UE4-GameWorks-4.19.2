@@ -8,11 +8,6 @@
 ==================================================================================*/
 
 #pragma once
-
-//#include "Core.h"
-//#include "AssertionMacros.h"
-//#include "Internationalization.h"
-
 #include "GenericPlatformProperties.h"
 
 

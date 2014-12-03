@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SExpandableArea.h"
 
 
 #define LOCTEXT_NAMESPACE "SExpandableArea"
@@ -124,7 +125,7 @@ FReply SExpandableArea::OnMouseDown( const FGeometry& MyGeometry, const FPointer
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		//we need to capture the mouse for MouseUp events
-		return FReply::Handled().CaptureMouse( HeaderBorder.ToSharedRef() ).SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		return FReply::Handled().CaptureMouse( HeaderBorder.ToSharedRef() ).SetUserFocus( AsShared(), EFocusCause::Mouse );
 	}
 
 	return FReply::Unhandled();

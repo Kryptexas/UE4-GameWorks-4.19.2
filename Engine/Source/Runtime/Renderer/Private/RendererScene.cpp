@@ -12,6 +12,7 @@
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "EngineModule.h"
 #include "PrecomputedLightVolume.h"
+#include "FXSystem.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -30,6 +31,7 @@ SIZE_T FStaticMeshDrawListBase::TotalBytesUsed = 0;
 FSceneViewState::FSceneViewState()
 	: OcclusionQueryPool(RQT_Occlusion)
 {
+	OcclusionFrameCounter = 0;
 	LastRenderTime = -FLT_MAX;
 	LastRenderTimeDelta = 0.0f;
 	MotionBlurTimeScale = 1.0f;
@@ -57,6 +59,7 @@ FSceneViewState::FSceneViewState()
 	TemporalAASampleCount = 1;
 	AOTileIntersectionResources = NULL;
 	bBokehDOFHistory = true;
+	bBokehDOFHistory2 = true;
 
 	LightPropagationVolume = NULL; 
 
@@ -189,7 +192,7 @@ FORCEINLINE static void VerifyProperPIEScene(UPrimitiveComponent* Component, UWo
 #endif
 }
 
-FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, ERHIFeatureLevel::Type InFeatureLevel)
+FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
 :	World(InWorld)
 ,	FXSystem(NULL)
 ,	bStaticDrawListsMobileHDR(false)
@@ -216,6 +219,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	bHasSkyLight(false)
 {
 	check(World);
+	World->Scene = this;
 
 	FeatureLevel = World->FeatureLevel;
 
@@ -226,6 +230,23 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 
 	static auto* EarlyZPassCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
 	StaticDrawListsEarlyZPassMode = EarlyZPassCvar->GetValueOnAnyThread();
+
+	if (World->FXSystem)
+	{
+		FFXSystemInterface::Destroy(World->FXSystem);
+	}
+
+	if (bCreateFXSystem)
+	{
+		World->CreateFXSystem();
+	}
+	else
+	{
+		World->FXSystem = NULL;
+		SetFXSystem(NULL);
+	}
+
+	World->UpdateParameterCollectionInstances(false);
 }
 
 FScene::~FScene()
@@ -362,7 +383,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	
 	// Update the primitive motion blur information.
 	// hack
-	FScene* Scene = (FScene*)PrimitiveSceneProxy->GetScene();
+	FScene* Scene = (FScene*)&PrimitiveSceneProxy->GetScene();
 
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 	
@@ -624,7 +645,7 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		SimpleDirectionalLight = LightSceneInfo;
 
 		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-		bScenesPrimitivesNeedStaticMeshElementUpdate = !ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
+		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());		
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1074,7 +1095,7 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
 			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-			bScenesPrimitivesNeedStaticMeshElementUpdate = !ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
+			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());
 			SimpleDirectionalLight = NULL;
 		}
 
@@ -1322,14 +1343,14 @@ FVector4 FScene::GetDirectionalWindParameters(void) const
 	return NumActiveWindSources > 0 ? AccumulatedDirectionAndSpeed / NumActiveWindSources : FVector4(0,0,1,0);
 }
 
-void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh)
+void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh)
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FAddSpeedTreeWindCommand,
 			FScene*,Scene,this,
-			UStaticMesh*,StaticMesh,StaticMesh,
+			const UStaticMesh*,StaticMesh,StaticMesh,
 			FVertexFactory*,VertexFactory,VertexFactory,
 			{
 				Scene->SpeedTreeVertexFactoryMap.Add(VertexFactory, StaticMesh);
@@ -1350,38 +1371,43 @@ void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* Static
 	}
 }
 
-void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh)
+void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh)
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FRemoveSpeedTreeWindCommand,
 			FScene*,Scene,this,
-			UStaticMesh*, StaticMesh, StaticMesh,
+			const UStaticMesh*, StaticMesh, StaticMesh,
 			FVertexFactory*,VertexFactory,VertexFactory,
 			{
-				FSpeedTreeWindComputation** WindComputationRef = Scene->SpeedTreeWindComputationMap.Find(StaticMesh);
-				if (WindComputationRef != NULL)
-				{
-					FSpeedTreeWindComputation* WindComputation = *WindComputationRef;
-
-					WindComputation->ReferenceCount--;
-					if (WindComputation->ReferenceCount < 1)
-					{
-						for (auto Iter = Scene->SpeedTreeVertexFactoryMap.CreateIterator(); Iter; ++Iter )
-						{
-							if (Iter.Value() == StaticMesh)
-							{
-								Iter.RemoveCurrent();
-							}
-						}
-
-						Scene->SpeedTreeWindComputationMap.Remove(StaticMesh);
-						WindComputation->UniformBuffer.ReleaseResource();
-						delete WindComputation;
-					}
-				}
+				Scene->RemoveSpeedTreeWind_RenderThread(VertexFactory, StaticMesh);
 			});
+	}
+}
+
+void FScene::RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh)
+{
+	FSpeedTreeWindComputation** WindComputationRef = SpeedTreeWindComputationMap.Find(StaticMesh);
+	if (WindComputationRef != NULL)
+	{
+		FSpeedTreeWindComputation* WindComputation = *WindComputationRef;
+
+		WindComputation->ReferenceCount--;
+		if (WindComputation->ReferenceCount < 1)
+		{
+			for (auto Iter = SpeedTreeVertexFactoryMap.CreateIterator(); Iter; ++Iter )
+			{
+				if (Iter.Value() == StaticMesh)
+				{
+					Iter.RemoveCurrent();
+				}
+			}
+
+			SpeedTreeWindComputationMap.Remove(StaticMesh);
+			WindComputation->UniformBuffer.ReleaseResource();
+			delete WindComputation;
+		}
 	}
 }
 
@@ -1396,9 +1422,9 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 		{
 			FVector4 WindInfo = Scene->GetDirectionalWindParameters();
 
-			for (TMap<UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It )
+			for (TMap<const UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It )
 			{
-				UStaticMesh* StaticMesh = It.Key();
+				const UStaticMesh* StaticMesh = It.Key();
 				FSpeedTreeWindComputation* WindComputation = It.Value();
 
 				if( !StaticMesh->RenderData )
@@ -1407,7 +1433,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 					continue;
 				}
 
-				if (StaticMesh->SpeedTreeWind->NeedsReload( ))
+				if (GIsEditor && StaticMesh->SpeedTreeWind->NeedsReload( ))
 				{
 					// reload the wind since it may have changed or been scaled differently during reimport
 					StaticMesh->SpeedTreeWind->SetNeedsReload(false);
@@ -1461,7 +1487,7 @@ FUniformBufferRHIParamRef FScene::GetSpeedTreeUniformBuffer(const FVertexFactory
 {
 	if (VertexFactory != NULL)
 	{
-		UStaticMesh** StaticMesh = SpeedTreeVertexFactoryMap.Find(VertexFactory);
+		const UStaticMesh** StaticMesh = SpeedTreeVertexFactoryMap.Find(VertexFactory);
 		if (StaticMesh != NULL)
 		{
 			FSpeedTreeWindComputation** WindComputation = SpeedTreeWindComputationMap.Find(*StaticMesh);
@@ -2041,9 +2067,22 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 class FNULLSceneInterface : public FSceneInterface
 {
 public:
-	FNULLSceneInterface( UWorld* InWorld )
+	FNULLSceneInterface(UWorld* InWorld, bool bCreateFXSystem )
 		:	World( InWorld )
-	{}
+		,	FXSystem( NULL )
+	{
+		World->Scene = this;
+
+		if (bCreateFXSystem)
+		{
+			World->CreateFXSystem();
+		}
+		else
+		{
+			World->FXSystem = NULL;
+			SetFXSystem(NULL);
+		}
+	}
 
 	virtual void AddPrimitive(UPrimitiveComponent* Primitive){}
 	virtual void RemovePrimitive(UPrimitiveComponent* Primitive){}
@@ -2080,8 +2119,9 @@ public:
 	}
 	virtual FVector4 GetWindParameters(const FVector& Position) const { return FVector4(0,0,1,0); }
 	virtual FVector4 GetDirectionalWindParameters() const { return FVector4(0,0,1,0); }
-	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) {}
-	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) {}
+	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
+	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
+	virtual void RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
 	virtual void UpdateSpeedTreeWind(double CurrentTime) {}
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) { return FUniformBufferRHIParamRef(); }
 
@@ -2139,21 +2179,21 @@ private:
 	class FFXSystemInterface* FXSystem;
 };
 
-FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel)
+FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresHitProxies, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(IsInGameThread());
 
 	// Create a full fledged scene if we have something to render.
 	if( GIsClient && !IsRunningCommandlet() && !GUsingNullRHI )
 	{
-		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), InFeatureLevel);
+		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), bCreateFXSystem, InFeatureLevel);
 		AllocatedScenes.Add(NewScene);
 		return NewScene;
 	}
 	// And fall back to a dummy/ NULL implementation for commandlets and dedicated server.
 	else
 	{
-		return new FNULLSceneInterface( World );
+		return new FNULLSceneInterface(World, bCreateFXSystem);
 	}
 }
 

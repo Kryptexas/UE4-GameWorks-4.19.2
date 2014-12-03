@@ -43,7 +43,7 @@ public:
 	virtual bool Deploy(const FString& SourceFolder, FString& OutAppId) override;
 	virtual void Disconnect() override;
 	virtual int32 GetProcessSnapshot(TArray<FTargetDeviceProcessInfo>& OutProcessInfos) override;
-	virtual ETargetDeviceTypes::Type GetDeviceType() const override;
+	virtual ETargetDeviceTypes GetDeviceType() const override;
 	virtual FTargetDeviceId GetId() const override;
 	virtual FString GetName() const override;
 	virtual FString GetOperatingSystemName() override;
@@ -55,11 +55,11 @@ public:
 	virtual bool PowerOn() override;
 	virtual bool Reboot(bool bReconnect = false) override;
 	virtual bool Run(const FString& ExecutablePath, const FString& Params, uint32* OutProcessId) override;
-	virtual bool SupportsFeature(ETargetDeviceFeatures::Type Feature) const;
+	virtual bool SupportsFeature(ETargetDeviceFeatures Feature) const;
 	virtual bool SupportsSdkVersion(const FString& VersionString) const override;
 	virtual bool TerminateProcess(const int32 ProcessId) override;
-	virtual void SetUserCredentials(const FString & UserName, const FString & UserPassword) override;
-	virtual bool GetUserCredentials(FString & OutUserName, FString & OutUserPassword) override;
+	virtual void SetUserCredentials(const FString& UserName, const FString& UserPassword) override;
+	virtual bool GetUserCredentials(FString& OutUserName, FString& OutUserPassword) override;
 	// End of ITargetDevice interface
 
 public:
@@ -97,11 +97,11 @@ private:
 	/** Name of device */
 	FString DeviceName;
 	/** Type of device */
-	ETargetDeviceTypes::Type DeviceType;
+	ETargetDeviceTypes DeviceType;
 
 public:
 
-	void SetFeature(ETargetDeviceFeatures::Type InFeature, bool bFlag)
+	void SetFeature(ETargetDeviceFeatures InFeature, bool bFlag)
 	{
 		if(InFeature == ETargetDeviceFeatures::Reboot)
 		{

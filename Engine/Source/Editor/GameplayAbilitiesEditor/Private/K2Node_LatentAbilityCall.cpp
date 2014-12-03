@@ -15,8 +15,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_LatentAbilityCall::UK2Node_LatentAbilityCall(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_LatentAbilityCall::UK2Node_LatentAbilityCall(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UAbilityTask, Activate);
 }
@@ -219,6 +219,8 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
+	const UObject* const ClassDefaultObject = InClass->GetDefaultObject(false);
+
 	SpawnParmPins.Empty();
 
 	// Tasks can hide spawn parameters by doing meta = (HideSpawnParms="PropertyA,PropertyB")
@@ -258,10 +260,10 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
 			SpawnParmPins.Add(Pin);
 
-			if (K2Schema->PinDefaultValueIsEditable(*Pin))
+			if (ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
 				FString DefaultValueAsString;
-				const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)InClass->ClassDefaultObject, DefaultValueAsString);
+				const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, reinterpret_cast<const uint8*>(ClassDefaultObject), DefaultValueAsString);
 				check(bDefaultValueSet);
 				K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
 			}
@@ -462,13 +464,16 @@ bool UK2Node_LatentAbilityCall::ConnectSpawnProperties(UClass* ClassToSpawn, con
 					continue;
 				}
 
-				// We don't want to generate an assignment node unless the default value 
-				// differs from the value in the CDO:
-				FString DefaultValueAsString;
-				FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ClassToSpawn->ClassDefaultObject, DefaultValueAsString);
-				if (DefaultValueAsString == SpawnVarPin->DefaultValue)
+				if (ClassToSpawn->ClassDefaultObject != nullptr)
 				{
-					continue;
+					// We don't want to generate an assignment node unless the default value 
+					// differs from the value in the CDO:
+					FString DefaultValueAsString;
+					FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ClassToSpawn->ClassDefaultObject, DefaultValueAsString);
+					if (DefaultValueAsString == SpawnVarPin->DefaultValue)
+					{
+						continue;
+					}
 				}
 			}
 
@@ -564,11 +569,6 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 	}
 
 	UK2Node::ExpandNode(CompilerContext, SourceGraph);
-
-	if (!CompilerContext.bIsFullCompile)
-	{
-		return;
-	}
 
 	if (!validatedActorSpawn && !validatedActorArraySpawn)
 	{

@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeOscillator implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeOscillator::USoundNodeOscillator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeOscillator::USoundNodeOscillator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AmplitudeMin = 0;
 	AmplitudeMax = 0;

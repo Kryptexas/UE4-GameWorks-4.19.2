@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <DbgHelp.h>				
@@ -13,6 +13,7 @@
 
 /*-----------------------------------------------------------------------------
 	Stack walking.
+	@TODO To be removed
 -----------------------------------------------------------------------------*/
 
 /** Whether appInitStackWalking() has been called successfully or not. */
@@ -23,7 +24,7 @@ static bool GNeedToRefreshSymbols = false;
 // If GStackWalkingInitialized is true, traces will work anyway but will be much slower.
 #define USE_FAST_STACKTRACE 1
 
-typedef bool  (WINAPI *TFEnumProcesses)( uint32 * lpidProcess, uint32 cb, uint32 * cbNeeded);
+typedef bool  (WINAPI *TFEnumProcesses)( uint32* lpidProcess, uint32 cb, uint32* cbNeeded);
 typedef bool  (WINAPI *TFEnumProcessModules)(HANDLE hProcess, HMODULE *lphModule, uint32 cb, LPDWORD lpcbNeeded);
 typedef uint32 (WINAPI *TFGetModuleBaseName)(HANDLE hProcess, HMODULE hModule, LPSTR lpBaseName, uint32 nSize);
 typedef uint32 (WINAPI *TFGetModuleFileNameEx)(HANDLE hProcess, HMODULE hModule, LPSTR lpFilename, uint32 nSize);
@@ -359,8 +360,7 @@ static void LoadProcessModules()
 	{
 		// Keep track of the fact that we need to free it again.
 		bNeedToFreeModuleHandlePointer = true;
-		// @TODO yrx 2014-09-05 Calling malloc after a crash is not a good idea, fix it.
-		ModuleHandlePointer = (HMODULE*) FMemory::Malloc( BytesRequired );
+		ModuleHandlePointer = (HMODULE*) GMalloc->Malloc( BytesRequired );
 		FEnumProcessModules( ProcessHandle, ModuleHandlePointer, sizeof(ModuleHandleArray), (::DWORD *)&BytesRequired );
 	}
 
@@ -404,7 +404,7 @@ static void LoadProcessModules()
 	// Free the module handle pointer allocated in case the static array was insufficient.
 	if( bNeedToFreeModuleHandlePointer )
 	{
-		FMemory::Free( ModuleHandlePointer );
+		GMalloc->Free( ModuleHandlePointer );
 	}
 }
 

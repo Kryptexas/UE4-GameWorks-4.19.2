@@ -2,11 +2,42 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintBoundEventNodeSpawner.h"
-#include "ObjectEditorUtils.h"		// for GetCategory()
+#include "ObjectEditorUtils.h"		// for GetCategory()/IsVariableCategoryHiddenFromClass()
 #include "KismetEditorUtilities.h"	// for FindBoundEventForComponent()/FindBoundEventForActor()
 #include "EditorCategoryUtils.h"	// for GetCommonCategory()
+#include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
 
 #define LOCTEXT_NAMESPACE "BlueprintBoundEventNodeSpawner"
+
+/*******************************************************************************
+ * Static UBlueprintBoundEventNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace BlueprintBoundEventNodeSpawnerImpl
+{
+	static FText GetDefaultMenuName(UMulticastDelegateProperty const* Delegate);
+	static FText GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate);
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuName(UMulticastDelegateProperty const* Delegate)
+{
+	bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
+	FText const DelegateName = bShowFriendlyNames ? FText::FromString(UEditorEngine::GetFriendlyName(Delegate)) : FText::FromName(Delegate->GetFName());
+
+	return FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), DelegateName);
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate)
+{
+	FText DelegateCategory = FText::FromString(FObjectEditorUtils::GetCategory(Delegate));
+	if (DelegateCategory.IsEmpty())
+	{
+		DelegateCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
+	}
+	return DelegateCategory;
+}
 
 /*******************************************************************************
  * UBlueprintBoundEventNodeSpawner
@@ -24,12 +55,19 @@ UBlueprintBoundEventNodeSpawner* UBlueprintBoundEventNodeSpawner::Create(TSubcla
 	NodeSpawner->NodeClass     = NodeClass;
 	NodeSpawner->EventDelegate = EventDelegate;
 
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	MenuSignature.MenuName = BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuName(EventDelegate);
+	MenuSignature.Category = BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuCategory(EventDelegate);
+	//MenuSignature.Tooltip,  will be pulled from the node template
+	//MenuSignature.Keywords, will be pulled from the node template
+	MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
+
 	return NodeSpawner;
 }
 
 //------------------------------------------------------------------------------
-UBlueprintBoundEventNodeSpawner::UBlueprintBoundEventNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintBoundEventNodeSpawner::UBlueprintBoundEventNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EventDelegate(nullptr)
 {
 }
@@ -52,29 +90,6 @@ UEdGraphNode* UBlueprintBoundEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBi
 		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph, Bindings, Location));
 	}
 	return EventNode;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
-{
-	if (CachedMenuName.IsOutOfDate())
-	{
-		FText const DelegateName = FText::FromName(EventDelegate->GetFName());
-		// FText::Format() is slow, so we cache this to save on performance
-		CachedMenuName = FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), DelegateName);
-	}
-	return CachedMenuName;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuCategory() const
-{
-	FText DelegateCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
-	if (UMulticastDelegateProperty const* Delegate = GetEventDelegate())
-	{
-		DelegateCategory = FText::FromString(FObjectEditorUtils::GetCategory(Delegate));
-	}
-	return DelegateCategory;
 }
 
 //------------------------------------------------------------------------------
@@ -105,27 +120,22 @@ UK2Node_Event const* UBlueprintBoundEventNodeSpawner::FindPreExistingEvent(UBlue
 //------------------------------------------------------------------------------
 bool UBlueprintBoundEventNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
-	bool bCanBind = false;
-
-	UClass* DelegateOwner = nullptr;
-	if (UMulticastDelegateProperty const* Delegate = GetEventDelegate())
-	{
-		DelegateOwner = Delegate->GetOwnerClass();
-	}
-
+	bool bMatchesNodeType = false;
 	if (NodeClass->IsChildOf<UK2Node_ComponentBoundEvent>())
 	{
 		UObjectProperty const* BindingProperty = Cast<UObjectProperty>(BindingCandidate);
-
-		bCanBind = (BindingProperty != nullptr) && (DelegateOwner != nullptr) &&
-			BindingProperty->PropertyClass->IsChildOf(DelegateOwner);
+		bMatchesNodeType = (BindingProperty != nullptr);
 	}
 	else if (NodeClass->IsChildOf<UK2Node_ActorBoundEvent>())
 	{
-		bCanBind = BindingCandidate->IsA<AActor>() && (DelegateOwner != nullptr) &&
-			BindingCandidate->GetClass()->IsChildOf(DelegateOwner);
+		bMatchesNodeType = BindingCandidate->IsA<AActor>();
 	}
-	return bCanBind;
+
+	const UMulticastDelegateProperty* Delegate = GetEventDelegate();
+	UClass* DelegateOwner = Delegate->GetOwnerClass();
+	UClass* BindingClass  = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate);
+
+	return bMatchesNodeType && BindingClass->IsChildOf(DelegateOwner) && !FObjectEditorUtils::IsVariableCategoryHiddenFromClass(Delegate, BindingClass);
 }
 
 //------------------------------------------------------------------------------

@@ -28,7 +28,7 @@ namespace ConstructorHelpersInternal
 
 		UClass* Class = T::StaticClass();
 		Class->GetDefaultObject(); // force the CDO to be created if it hasn't already
-		T* ObjectPtr = Cast<T>(StaticLoadObject(T::StaticClass(), NULL, *PathName));
+		T* ObjectPtr = LoadObject<T>(NULL, *PathName);
 		return ObjectPtr;
 	}
 

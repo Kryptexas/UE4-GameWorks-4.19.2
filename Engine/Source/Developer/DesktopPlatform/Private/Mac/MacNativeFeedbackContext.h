@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MacNativeFeedbackContext.h: Unreal Mac user interface interaction.
-=============================================================================*/
-
 #pragma once
+
 
 @interface FMacNativeFeedbackContextWindowController : NSObject
 {
@@ -45,12 +42,10 @@ public:
 	virtual bool YesNof(const FText& Text) override;
 
 	virtual bool ReceivedUserCancel() override;
-	virtual void BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bInShowCancelButton=false ) override;
-	virtual void EndSlowTask() override;
 
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& NewStatus ) override;
-	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
-	virtual void UpdateProgress(int32 Numerator, int32 Denominator) override;
+	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false ) override;
+	virtual void FinalizeSlowTask( ) override;
+	virtual void ProgressReported( const float TotalProgressInterp, FText DisplayMessage ) override;
 
 	FContextSupplier* GetContext() const;
 	void SetContext( FContextSupplier* InSupplier );

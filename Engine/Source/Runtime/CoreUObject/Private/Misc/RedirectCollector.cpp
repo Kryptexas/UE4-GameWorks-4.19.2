@@ -11,21 +11,22 @@ static TArray<FString> StringAssetRefFilenameStack;
 
 void FRedirectCollector::OnRedirectorFollowed(const FString& InString, UObject* InObject)
 {
+	check(InObject);
+
 	// the object had better be a redir
-	UObjectRedirector* Redirector = Cast<UObjectRedirector>(InObject);
-	check(Redirector);
+	UObjectRedirector& Redirector = dynamic_cast<UObjectRedirector&>(*InObject);
 
 	// save the info if it matches the parameters we need to match on:
 	// if the string matches the package we were loading
 	// AND
 	// we aren't matching a particular package || the string matches the package
-	if (!FileToFixup.Len() || FileToFixup == FPackageName::FilenameToLongPackageName(Redirector->GetLinker()->Filename))
+	if (!FileToFixup.Len() || FileToFixup == FPackageName::FilenameToLongPackageName(Redirector.GetLinker()->Filename))
 	{
 		FRedirection Redir;
 		Redir.PackageFilename = InString;
-		Redir.RedirectorName = Redirector->GetFullName();
-		Redir.RedirectorPackageFilename = Redirector->GetLinker()->Filename;
-		Redir.DestinationObjectName = Redirector->DestinationObject->GetFullName();
+		Redir.RedirectorName = Redirector.GetFullName();
+		Redir.RedirectorPackageFilename = Redirector.GetLinker()->Filename;
+		Redir.DestinationObjectName = Redirector.DestinationObject->GetFullName();
 		// we only want one of each redirection reported
 		Redirections.AddUnique(Redir);
 
@@ -84,7 +85,7 @@ void FRedirectCollector::ResolveStringAssetReference()
 			UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, LOAD_None, NULL);
 			StringAssetRefFilenameStack.Pop();
 
-			UObjectRedirector* Redirector = Cast<UObjectRedirector>(Loaded);
+			UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Loaded);
 			if (Redirector)
 			{
 				UE_LOG(LogRedirectors, Log, TEXT("    Found redir '%s'"), *Redirector->GetFullName());

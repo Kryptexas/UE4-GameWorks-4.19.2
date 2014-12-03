@@ -43,4 +43,5 @@
 	<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
 	<uses-permission android:name="android.permission.GET_ACCOUNTS" />
 	<uses-permission android:name="android.permission.VIBRATE"/>
+	<uses-permission android:name="com.android.vending.BILLING" />
 </manifest>

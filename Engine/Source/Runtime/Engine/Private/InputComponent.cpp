@@ -6,9 +6,9 @@
 /* FInputChord interface
  *****************************************************************************/
 
-FInputChord::RelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
+FInputChord::ERelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
 {
-	RelationshipType Relationship = None;
+	ERelationshipType Relationship = None;
 
 	if (Key == OtherChord.Key)
 	{
@@ -42,8 +42,8 @@ FInputChord::RelationshipType FInputChord::GetRelationship( const FInputChord& O
 /* UInputComponent interface
  *****************************************************************************/
 
-UInputComponent::UInputComponent( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UInputComponent::UInputComponent( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	bBlockInput = false;
 }

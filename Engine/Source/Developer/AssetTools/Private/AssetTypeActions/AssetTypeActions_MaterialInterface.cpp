@@ -15,7 +15,7 @@ void FAssetTypeActions_MaterialInterface::GetActions( const TArray<UObject*>& In
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("Material_NewMIC", "Create Material Instance"),
 		LOCTEXT("Material_NewMICTooltip", "Creates a parameterized material using this material as a base."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.MaterialInstanceActor"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_MaterialInterface::ExecuteNewMIC, MaterialInterfaces )
 			)

@@ -156,14 +156,10 @@ public:
 	 */
 	void SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY);
 	/**
-	 * Clears the GBuffer render targets to default values.
-	 */
-	void ClearGBufferTargets(FRHICommandListImmediate& RHICmdList, const FLinearColor& ClearColor);
-	/**
 	 * Sets the scene color target and restores its contents if necessary
-	 * @param bGBufferPass - Whether the pass about to be rendered is the GBuffer population pass
 	 */
-	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, bool bGBufferPass = false);
+	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode=ESimpleRenderTargetMode::EUninitializedColorExistingDepth);
+	void BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, const FLinearColor& ClearColor=FLinearColor(0,0,0,1));
 	/**
 	 * Called when finished rendering to the scene color surface
 	 * @param bKeepChanges - if true then the SceneColorSurface is resolved to the SceneColorTexture
@@ -183,10 +179,10 @@ public:
 	/** Resolves the GBuffer targets so that their resolved textures can be sampled. */
 	void ResolveGBufferSurfaces(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-	void BeginRenderingShadowDepth(FRHICommandListImmediate& RHICmdList);
+	void BeginRenderingShadowDepth(FRHICommandList& RHICmdList, bool bClear);
 
 	/** Binds the appropriate shadow depth cube map for rendering. */
-	void BeginRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution);
+	void BeginRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution);
 
 	/**
 	 * Called when finished rendering to the subject shadow depths so the surface can be copied to texture
@@ -194,7 +190,7 @@ public:
 	 */
 	void FinishRenderingShadowDepth(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-	void BeginRenderingReflectiveShadowMap(FRHICommandListImmediate& RHICmdList, class FLightPropagationVolume* Lpv);
+	void BeginRenderingReflectiveShadowMap(FRHICommandList& RHICmdList, class FLightPropagationVolume* Lpv);
 	void FinishRenderingReflectiveShadowMap(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/** Resolves the appropriate shadow depth cube map and restores default state. */
@@ -209,13 +205,13 @@ public:
 	void ResolveSceneDepthTexture(FRHICommandList& RHICmdList);
 	void ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& RHICmdList);
 
-	void BeginRenderingPrePass(FRHICommandListImmediate& RHICmdList);
+	void BeginRenderingPrePass(FRHICommandList& RHICmdList);
 	void FinishRenderingPrePass(FRHICommandListImmediate& RHICmdList);
 
 	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 	void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList);
+	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite=false);
 	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
 
 	/**
@@ -396,6 +392,9 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
 
+	// changes depending at which part of the frame this is called
+	bool IsSceneColorAllocated() const;
+
 	void SetSceneColor(IPooledRenderTarget* In);
 
 	// ---
@@ -417,6 +416,8 @@ public:
 	void AllocGBufferTargets();
 
 	void AllocLightAttenuation();
+
+	void AllocateReflectionTargets();
 
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
@@ -537,13 +538,11 @@ private:
 	/** Allocates render targets for use with the current shading path. */
 	void AllocateRenderTargets();
 
-	void AllocateReflectionTargets();
-
 	/** Allocates common depth render targets that are used by both forward and deferred rendering paths */
 	void AllocateCommonDepthTargets();
 
 	/** Determine the appropriate render target dimensions. */
-	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily & ViewFamily) const;
+	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily) const;
 
 	void AllocSceneColor();
 

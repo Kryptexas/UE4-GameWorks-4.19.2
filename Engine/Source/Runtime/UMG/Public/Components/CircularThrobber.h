@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,11 +6,37 @@
 
 class USlateBrushAsset;
 
-/**  A throbber widget that orients images in a spinning circle. */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * A throbber widget that orients images in a spinning circle.
+ * 
+ * ● No Children
+ * ● Spinner Progress
+ */
+UCLASS()
 class UMG_API UCircularThrobber : public UWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
+
+	/** How many pieces there are */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, meta=( ClampMin = "1", UIMin = "1", UIMax = "8" ))
+	int32 NumberOfPieces;
+
+	/** The amount of time for a full circle (in seconds) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	float Period;
+
+	/** The radius of the circle */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	float Radius;
+
+	/** Image to use for each segment of the throbber */
+	UPROPERTY()
+	USlateBrushAsset* PieceImage_DEPRECATED;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	FSlateBrush Image;
 
 public:
 
@@ -42,27 +68,6 @@ public:
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
-
-protected:
-
-	/** How many pieces there are */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=(ClampMin = "1", UIMin = "1", UIMax = "8"))
-	int32 NumberOfPieces;
-
-	/** The amount of time for a full circle (in seconds) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	float Period;
-
-	/** The radius of the circle */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	float Radius;
-
-	/** Image to use for each segment of the throbber */
-	UPROPERTY()
-	USlateBrushAsset* PieceImage_DEPRECATED;
-
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateBrush Image;
 
 protected:
 	// UWidget interface

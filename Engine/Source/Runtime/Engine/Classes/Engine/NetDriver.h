@@ -99,7 +99,7 @@ class UNetDriver : public UObject, public FExec
 
 protected:
 
-	ENGINE_API void InternalProcessRemoteFunction(class AActor* Actor, class UObject * SubObject, class UNetConnection* Connection, class UFunction* Function, void* Parms, FOutParmRec* OutParms, FFrame* Stack, bool IsServer);
+	ENGINE_API void InternalProcessRemoteFunction(class AActor* Actor, class UObject* SubObject, class UNetConnection* Connection, class UFunction* Function, void* Parms, FOutParmRec* OutParms, FFrame* Stack, bool IsServer);
 
 public:
 
@@ -312,7 +312,7 @@ public:
 #endif
 
 	// Constructors.
-	ENGINE_API UNetDriver(const class FPostConstructInitializeProperties& PCIP);
+	ENGINE_API UNetDriver(const FObjectInitializer& ObjectInitializer);
 
 
 	// Begin UObject interface.
@@ -425,7 +425,7 @@ public:
 	 * @param Stack stack frame the UFunction is called in
 	 * @param SubObject optional: sub object to actually call function on
 	 */
-	ENGINE_API virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject * SubObject = NULL ) PURE_VIRTUAL(UNetDriver::ProcessRemoteFunction,);
+	ENGINE_API virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = NULL ) PURE_VIRTUAL(UNetDriver::ProcessRemoteFunction,);
 
 	/** handle time update */
 	ENGINE_API virtual void TickDispatch( float DeltaTime );

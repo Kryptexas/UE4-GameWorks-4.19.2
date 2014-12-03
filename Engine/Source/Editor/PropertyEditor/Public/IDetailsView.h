@@ -152,6 +152,8 @@ public:
 
 	virtual void SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler ) = 0;
 
+	virtual void SetExtensionHandler(TSharedPtr<class IDetailPropertyExtensionHandler> InExtensionandler) = 0;
+
 	/**
 	 * @return true if property editing is enabled (based on the FIsPropertyEditingEnabled delegate)
 	 */ 
@@ -170,12 +172,32 @@ public:
 	virtual void HideFilterArea(bool bIsVisible) = 0;
 
 	/**
-	 * Creates a box around the property with PropertyName and scrolls the property into view
+	 * Returns a list of all the properties displayed (via full path), order in list corresponds to draw order:
 	 */
-	virtual void HighlightProperty(const UProperty* Property) = 0;
+	virtual TArray< FPropertyPath > GetPropertiesInOrderDisplayed() const = 0;
+
+	/**
+	 * Creates a box around the treenode corresponding to Property and scrolls the treenode into view
+	 */
+	virtual void HighlightProperty(const FPropertyPath& Property) = 0;
+	
+	/**
+	 * Forces all advanced property sections to be in expanded state:
+	 */
+	virtual void ShowAllAdvancedProperties() = 0;
+	
+	/**
+	 * Assigns delegate called when view is filtered, useful for updating external control logic:
+	 */
+	virtual void SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChangedDelegate) = 0;
+
+	/**
+	 * Disables or enables customization of the details view:
+	 */
+	virtual void SetDisableCustomDetailLayouts(bool bInDisableCustomDetailLayouts) = 0;
 
 	/**
 	 * Sets the set of properties that are considered differing, used when filtering out identical properties
 	 */
-	virtual void UpdateDifferingProperties(const TSet<FName> DifferingProperties) = 0;
+	virtual void UpdatePropertiesWhitelist(const TSet<FPropertyPath> InWhitelistedProperties) = 0;
 };

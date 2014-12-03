@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Engine/Blueprint.h"
 #include "UserWidget.h"
 #include "WidgetAnimation.h"
@@ -39,6 +39,8 @@ struct UMGEDITOR_API FDelegateEditorBinding
 		// you're only allowed to bind a property on an object to a single function.
 		return ObjectName == Other.ObjectName && PropertyName == Other.PropertyName;
 	}
+
+	bool IsBindingValid(UClass* Class, class UWidgetBlueprint* Blueprint, FCompilerResultsLog& MessageLog) const;
 
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };
@@ -79,6 +81,14 @@ class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	// Begin UObject interface
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
+	// End UObject interface
+
+public:
+
 	/** A tree of the widget templates to be created */
 	UPROPERTY()
 	class UWidgetTree* WidgetTree;
@@ -92,9 +102,10 @@ public:
 	UPROPERTY()
 	TArray<UWidgetAnimation*> Animations;
 
+public:
+
 	/** UObject interface */
 	virtual void PostLoad() override;
-	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
 	
 	// UBlueprint interface
 	virtual UClass* GetBlueprintClass() const override;

@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/Widget.h"
+#include "Extensions/CanvasSlotExtension.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -133,7 +138,7 @@ EVisibility FCanvasSlotExtension::GetAnchorVisibility(EAnchorWidget::Type Anchor
 	for ( const FWidgetReference& Selection : SelectionCache )
 	{
 		UWidget* PreviewWidget = Selection.GetPreview();
-		if ( PreviewWidget && PreviewWidget->Slot )
+		if ( PreviewWidget && PreviewWidget->Slot && !PreviewWidget->bHiddenInDesigner )
 		{
 			if ( UCanvasPanelSlot* PreviewCanvasSlot = Cast<UCanvasPanelSlot>(PreviewWidget->Slot) )
 			{
@@ -240,9 +245,9 @@ void FCanvasSlotExtension::Tick(const FGeometry& AllottedGeometry, const double 
 
 }
 
-void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
-	PaintCollisionLines(Selection, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	PaintCollisionLines(Selection, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
 }
 
 FReply FCanvasSlotExtension::HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType)
@@ -290,8 +295,8 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 			{
 				UCanvasPanelSlot* PreviewCanvasSlot = Cast<UCanvasPanelSlot>(PreviewWidget->Slot);
 
-				FGeometry Geometry;
-				if ( Canvas->GetGeometryForSlot(PreviewCanvasSlot, Geometry) )
+				FGeometry GeometryForSlot;
+				if ( Canvas->GetGeometryForSlot(PreviewCanvasSlot, GeometryForSlot) )
 				{
 					FGeometry CanvasGeometry = Canvas->GetCanvasWidget()->GetCachedGeometry();
 					FVector2D StartLocalPosition = CanvasGeometry.AbsoluteToLocal(MouseDownPosition);
@@ -416,7 +421,7 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 	return FReply::Unhandled();
 }
 
-void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	for ( const FWidgetReference& WidgetRef : Selection )
 	{
@@ -454,7 +459,7 @@ void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& S
 							for ( int32 SlotIndex = 0; SlotIndex < Canvas->GetChildrenCount(); SlotIndex++ )
 							{
 								// Ignore the slot being dragged.
-								if ( Canvas->Slots[SlotIndex] == CanvasSlot )
+								if ( Canvas->GetSlots()[SlotIndex] == CanvasSlot )
 								{
 									continue;
 								}

@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
 #include "WindowsWindow.h"
 #include "WindowsCursor.h"
@@ -25,6 +25,11 @@
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
 #define WM_MOUSEHWHEEL                  0x020E
+#endif
+
+// This might not be defined by Windows when maintaining backwards-compatibility to pre-Win8 builds
+#ifndef SM_CONVERTIBLESLATEMODE
+#define SM_CONVERTIBLESLATEMODE			0x2003
 #endif
 
 DEFINE_LOG_CATEGORY(LogWindowsDesktop);
@@ -889,6 +894,16 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			}
 			break;
 
+		case WM_SETTINGCHANGE:
+			{
+				// Convertible mode change
+				if ((lParam != NULL) && (wcscmp(TEXT("ConvertibleSlateMode"), (TCHAR *)lParam) == 0))
+				{
+					DeferMessage(CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam);
+				}
+			}
+			break;
+
 		case WM_PAINT:
 			{
 				if( bInModalSizeLoop && IsInGameThread() )
@@ -1447,6 +1462,11 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			MessageHandler->OnApplicationActivationChanged( !!wParam );
 			break;
 
+		case WM_SETTINGCHANGE:
+			MessageHandler->OnConvertibleDeviceModeChanged((GetSystemMetrics(SM_CONVERTIBLESLATEMODE) == 0)
+				? EConvertibleLaptopModes::Tablet
+				: EConvertibleLaptopModes::Laptop);
+			break;
 	
 		case WM_NCACTIVATE:
 			{

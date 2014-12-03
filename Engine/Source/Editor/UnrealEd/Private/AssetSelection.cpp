@@ -18,13 +18,15 @@
 #include "SnappingUtils.h"
 #include "ActorEditorUtils.h"
 #include "LevelEditorViewport.h"
-#include "Landscape/Landscape.h"
+#include "Landscape.h"
 
 #include "Particles/Emitter.h"
 #include "Editor/ActorPositioning.h"
 #include "Animation/SkeletalMeshActor.h"
 
 #include "ObjectEditorUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 namespace AssetSelectionUtils
@@ -229,9 +231,9 @@ namespace AssetSelectionUtils
 					{
 						ActorInfo.bHaveStaticMesh = true;
 						AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>( CurrentActor );
-						if ( StaticMeshActor->StaticMeshComponent )
+						if ( StaticMeshActor->GetStaticMeshComponent() )
 						{
-							UStaticMesh* StaticMesh = StaticMeshActor->StaticMeshComponent->StaticMesh;
+							UStaticMesh* StaticMesh = StaticMeshActor->GetStaticMeshComponent()->StaticMesh;
 
 							ActorInfo.bAllSelectedStaticMeshesHaveCollisionModels &= ( (StaticMesh && StaticMesh->BodySetup) ? true : false );
 						}
@@ -419,11 +421,15 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 
 namespace AssetUtil
 {
-	TArray<FAssetData> ExtractAssetDataFromDrag( const FDragDropEvent &DragDropEvent )
+	TArray<FAssetData> ExtractAssetDataFromDrag(const FDragDropEvent &DragDropEvent)
+	{
+		return ExtractAssetDataFromDrag(DragDropEvent.GetOperation());
+	}
+
+	TArray<FAssetData> ExtractAssetDataFromDrag(const TSharedPtr<FDragDropOperation>& Operation)
 	{
 		TArray<FAssetData> DroppedAssetData;
 
-		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 		if (!Operation.IsValid())
 		{
 			return DroppedAssetData;

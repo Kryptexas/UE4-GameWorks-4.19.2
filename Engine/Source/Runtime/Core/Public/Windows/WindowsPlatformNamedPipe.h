@@ -6,7 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "GenericPlatform/GenericPlatformNamedPipe.h"
+#include "Windows/WindowsSystemIncludes.h"
+
 #if PLATFORM_SUPPORTS_NAMED_PIPES
+
+class FString;
 
 // Windows wrapper for named pipe communications
 class CORE_API FWindowsPlatformNamedPipe : public FGenericPlatformNamedPipe

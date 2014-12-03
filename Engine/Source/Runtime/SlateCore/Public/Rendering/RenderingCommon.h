@@ -232,7 +232,7 @@ public:
 	/**
 	 * Performs any ticking necessary by this handle                   
 	 */
-	virtual void Tick( float DeltaTime )
+	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
 	{
 	}
 
@@ -347,11 +347,11 @@ public:
 	 * Called by Slate when a key is pressed inside the viewport
 	 *
 	 * @param MyGeometry	Information about the location and size of the viewport
-	 * @param MouseEvent	Information about the keyboard event
+	 * @param MouseEvent	Information about the key event
 	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		return FReply::Unhandled();
 	}
@@ -360,17 +360,29 @@ public:
 	 * Called by Slate when a key is released inside the viewport
 	 *
 	 * @param MyGeometry	Information about the location and size of the viewport
-	 * @param MouseEvent	Information about the keyboard event
+	 * @param MouseEvent	Information about the key event
 	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		return FReply::Unhandled();
 	}
 
 	/**
-	 * Called by Slate when a character key is pressed while the viewport has keyboard focus
+	 * Called when an analog value changes on a button that supports analog
+	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event
+	 * @param InAnalogInputEvent Analog input event
+	 * @return Returns whether the event was handled, along with other possible actions
+	 */
+	virtual FReply OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent )
+	{
+		return FReply::Unhandled();
+	}
+
+	/**
+	 * Called by Slate when a character key is pressed while the viewport has focus
 	 *
 	 * @param MyGeometry	Information about the location and size of the viewport
 	 * @param MouseEvent	Information about the character that was pressed
@@ -385,39 +397,9 @@ public:
 	/**
 	 * Called when the viewport gains keyboard focus.  
 	 *
-	 * @param InKeyboardFocusEvent	Information about what caused the viewport to gain focus
+	 * @param InFocusEvent	Information about what caused the viewport to gain focus
 	 */
-	virtual FReply OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKeyboardFocusEvent )
-	{
-		return FReply::Unhandled();
-	}
-
-	/**
-	 * Called when a controller button is pressed
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	virtual FReply OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-	{
-		return FReply::Unhandled();
-	}
-
-	/**
-	 * Called when a controller button is released
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-	{
-		return FReply::Unhandled();
-	}
-
-	/**
-	 * Called when an analog value on a controller changes
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
+	virtual FReply OnFocusReceived( const FFocusEvent& InFocusEvent )
 	{
 		return FReply::Unhandled();
 	}
@@ -464,20 +446,39 @@ public:
 	
 	/**
 	 * Called when motion is detected (controller or device)
+	 * e.g. Someone tilts or shakes their controller.
 	 * 
-	 * @param ControllerEvent	The controller event generated
+	 * @param InMotionEvent	The motion event generated
 	 */
-	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent )
+	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 	{
 		return FReply::Unhandled();
 	}
 
 	/**
+	 * Called after all input for this frame is processed.
+	 */
+	virtual void OnFinishedPointerInput()
+	{
+	}
+
+	/**
+	 * Called when navigation is requested
+	 * e.g. Left Joystick, Direction Pad, Arrow Keys can generate navigation events.
+	 * 
+	 * @param InNavigationEvent	The navigation event generated
+	 */
+	virtual FNavigationReply OnNavigation( const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent )
+	{
+		return FNavigationReply::Stop();
+	}
+
+	/**
 	 * Called when the viewport loses keyboard focus.  
 	 *
-	 * @param InKeyboardFocusEvent	Information about what caused the viewport to lose focus
+	 * @param InFocusEvent	Information about what caused the viewport to lose focus
 	 */
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+	virtual void OnFocusLost( const FFocusEvent& InFocusEvent )
 	{
 	}
 

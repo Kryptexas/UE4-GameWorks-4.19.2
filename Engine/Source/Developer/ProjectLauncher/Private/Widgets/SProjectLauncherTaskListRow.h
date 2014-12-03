@@ -42,71 +42,7 @@ public:
 	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
-	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
-	{
-		if (ColumnName == "Duration")
-		{
-			return SNew(SBox)
-				.Padding(FMargin(4.0, 0.0))
-				.VAlign((VAlign_Center))
-				[
-					SNew(STextBlock)
-						.Text(this, &SProjectLauncherTaskListRow::HandleDurationText)
-				];
-		}
-		else if (ColumnName == "Icon")
-		{
-			return SNew(SOverlay)
-
-			+ SOverlay::Slot()
-				.HAlign(HAlign_Center)
-				.VAlign((VAlign_Center))
-				[
-					SNew(SThrobber)
-						.Animate(SThrobber::VerticalAndOpacity)
-						.NumPieces(1)
-						.Visibility(this, &SProjectLauncherTaskListRow::HandleThrobberVisibility)
-				]
-
-			+ SOverlay::Slot()
-				.HAlign(HAlign_Center)
-				.VAlign((VAlign_Center))
-				[
-					SNew(SImage)
-						.ColorAndOpacity(this, &SProjectLauncherTaskListRow::HandleIconColorAndOpacity)
-						.Image(this, &SProjectLauncherTaskListRow::HandleIconImage)
-				];
-		}
-		else if (ColumnName == "Status")
-		{
-			return SNew(SBox)
-				.Padding(FMargin(4.0, 0.0))
-				.VAlign((VAlign_Center))
-				[
-					SNew(STextBlock)
-						.Text(this, &SProjectLauncherTaskListRow::HandleStatusText)
-				];
-		}
-		else if (ColumnName == "Task")
-		{
-			ILauncherTaskPtr TaskPtr = Task.Pin();
-
-			if (TaskPtr.IsValid())
-			{
-				return SNew(SBox)
-					.Padding(FMargin(4.0, 0.0))
-					.VAlign((VAlign_Center))
-					[
-						SNew(STextBlock)
-							.Text(TaskPtr->GetDesc())
-					];
-			}
-		}
-
-		return SNullWidget::NullWidget;
-	}
-	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 private:
 

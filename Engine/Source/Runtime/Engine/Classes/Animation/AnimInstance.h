@@ -99,16 +99,16 @@ public:
 	}
 
 	/** constructor - needs LocalPoses **/
-	void AllocateLocalPoses(const FBoneContainer & InBoneContainer, const FA2Pose & LocalPose);
+	void AllocateLocalPoses(const FBoneContainer& InBoneContainer, const FA2Pose & LocalPose);
 
 	/** constructor - needs LocalPoses **/
-	void AllocateLocalPoses(const FBoneContainer & InBoneContainer, const FTransformArrayA2 & LocalBones);
+	void AllocateLocalPoses(const FBoneContainer& InBoneContainer, const FTransformArrayA2 & LocalBones);
 
 	/** Returns if this struct is valid */
 	bool IsValid() const;
 
 	/** Get parent bone index for given bone index. */
-	int32 GetParentBoneIndex(const int32 & BoneIndex) const;
+	int32 GetParentBoneIndex(const int32& BoneIndex) const;
 
 	/** Returns local transform for the boneindex **/
 	FTransform GetLocalSpaceTransform(int32 BoneIndex);
@@ -142,7 +142,7 @@ public:
 private:
 	/** Calculate all transform till parent **/
 	void CalculateComponentSpaceTransform(int32 Index);
-	void SetComponentSpaceTransform(int32 Index, const FTransform & NewTransform);
+	void SetComponentSpaceTransform(int32 Index, const FTransform& NewTransform);
 
 	/**
 	 * Convert Bone to Local Space.
@@ -174,7 +174,7 @@ struct FBoneTransform
 		: BoneIndex(INDEX_NONE)
 	{}
 
-	FBoneTransform( int32 InBoneIndex, const FTransform & InTransform) 
+	FBoneTransform( int32 InBoneIndex, const FTransform& InTransform) 
 		: BoneIndex(InBoneIndex)
 		, Transform(InTransform)
 	{}
@@ -267,6 +267,10 @@ class ENGINE_API UAnimInstance : public UObject
 	UPROPERTY(transient)
 	TArray<struct FActiveVertexAnim> VertexAnims;
 
+	// Sets where this blueprint pulls Root Motion from
+	UPROPERTY(Category = RootMotion, EditDefaultsOnly)
+	TEnumAsByte<ERootMotionMode::Type> RootMotionMode;
+
 public:
 
 	// @todo document
@@ -281,7 +285,7 @@ public:
 	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
 	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
 
-	void SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FA2Pose& Pose, const FAnimExtractContext & ExtractionContext);
+	void SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FA2Pose& Pose, const FAnimExtractContext& ExtractionContext);
 
 	void BlendSequences(const struct FA2Pose& Pose1, const struct FA2Pose& Pose2, float Alpha, struct FA2Pose& Blended);
 
@@ -295,7 +299,7 @@ public:
 	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
 
 	// slotnode interfaces
-	void GetSlotWeight(FName const & SlotNodeName, float & out_SlotNodeWeight, float & out_SourceWeight) const;
+	void GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const;
 	void SlotEvaluatePose(FName SlotNodeName, const struct FA2Pose & SourcePose, struct FA2Pose & BlendedPose, float SlotNodeWeight);
 
 	// slot node run-time functions
@@ -304,6 +308,12 @@ public:
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
 	bool IsActiveSlotNode(FName SlotNodeName) const;
+
+	// Allow slot nodes to store off their root motion weight during ticking
+	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
+	// Get the root motion weight for the montage slot
+	float GetSlotRootMotionWeight(FName SlotNodeName) const;
+
 
 	// kismet event functions
 
@@ -462,6 +472,9 @@ protected:
 	/** Stop all montages that are active **/
 	void StopAllMontages(float BlendOut);
 
+	/** Stop all active montages belonging to 'InGroupName' */
+	void StopAllMontagesByGroupName(FName InGroupName, float BlendOutTime);
+
 	/** Update weight of montages  **/
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
 	/** Advance montages **/
@@ -509,7 +522,7 @@ public:
 	 * The range of return will be from [-180, 180], and this can be used to feed blendspace directional value
 	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	float CalculateDirection(const FVector & Velocity, const FRotator & BaseRotation);
+	float CalculateDirection(const FVector& Velocity, const FRotator& BaseRotation);
 
 	//--- AI communication start ---//
 	/** locks indicated AI resources of animated pawn
@@ -564,6 +577,7 @@ public:
 	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
 		call NotifyEnd on the event after a deletion in the editor. After this the event
 		is removed correctly. */
+	UPROPERTY(transient)
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
 	/** Curve Values that are added to trigger in event**/
@@ -576,6 +590,9 @@ public:
 	TArray<FName> MaterialParamatersToClear;
 
 	TMap<FName, float> ActiveSlotWeights;
+
+	// Mapping from slot name to weighting for that root motion
+	TMap<FName, float> ActiveSlotRootMotionWeights;
 
 #if WITH_EDITORONLY_DATA
 	// Maximum playback position ever reached (only used when debugging in Persona)
@@ -624,7 +641,7 @@ protected:
 	 * Add curve float data, using a curve name. External values should all be added using
 	 * The curve UID to the public version of this method
 	 */
-	void AddCurveValue(const FName & CurveName, float Value, int32 CurveTypeFlags);
+	void AddCurveValue(const FName& CurveName, float Value, int32 CurveTypeFlags);
 
 #if WITH_EDITORONLY_DATA
 	// Returns true if a snapshot is being played back and the remainder of Update should be skipped.

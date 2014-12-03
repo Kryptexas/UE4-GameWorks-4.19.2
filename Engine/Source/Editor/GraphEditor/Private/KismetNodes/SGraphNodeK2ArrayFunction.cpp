@@ -76,12 +76,6 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 			[
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( FMargin(5.0f, 1.0f) )
-				[
-					ErrorText->AsShared()
-				]
-				+SVerticalBox::Slot()
 					[
 						// NODE CONTENT AREA
 						SAssignNew(MainNodeContent, SOverlay)
@@ -161,6 +155,12 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 										SAssignNew(RightNodeBox, SVerticalBox)
 									]
 							]
+					]
+				+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding( FMargin(5.0f, 1.0f) )
+					[
+						ErrorText->AsShared()
 					]
 			];
 

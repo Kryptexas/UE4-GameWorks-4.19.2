@@ -101,7 +101,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, E
 UCLASS(abstract, HideCategories=(Mobility), ShowCategories=(PhysicsVolume))
 class ENGINE_API UPrimitiveComponent : public USceneComponent, public INavRelevantInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UPrimitiveComponent(const FObjectInitializer& ObjectInitializer);
 
 	// Rendering
 	
@@ -152,7 +158,7 @@ public:
 	 * If true, this component will generate overlap events when it is overlapping other components (eg Begin Overlap).
 	 * Both components (this and the other) must have this enabled for overlap events to occur.
 	 *
-	 * @see [Overlap Events] https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents
+	 * @see [Overlap Events](https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents)
 	 * @see UpdateOverlaps(), BeginComponentOverlap(), EndComponentOverlap()
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
@@ -206,7 +212,7 @@ public:
 	uint32 bRenderCustomDepth:1;
 
 	/** If true, this component will be rendered in the main pass (z prepass, basepass, transparency) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
 
 	/** Whether to completely hide the primitive in the game; if true, the primitive is not drawn, does not cast a shadow. */
@@ -284,8 +290,14 @@ public:
 	uint32 bCastVolumetricTranslucentShadow:1;
 
 	/** 
+	 * When enabled, the component will only cast a shadow on itself and not other components in the world.  This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow"))
+	uint32 bSelfShadowOnly:1;
+
+	/** 
 	 * Whether this component should create a per-object shadow that gives higher effective shadow resolution. 
-	 * Useful for cinematic character shadowing.
+	 * Useful for cinematic character shadowing. Assumed to be enabled if bSelfShadowOnly is enabled.
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow"))
 	uint32 bCastInsetShadow:1;
@@ -439,7 +451,7 @@ public:
 	/**
 	 * Determine whether a Character can step up onto this component.
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Base)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Collision)
 	TEnumAsByte<enum ECanBeCharacterBase> CanCharacterStepUpOn;
 
 	/**
@@ -485,7 +497,7 @@ public:
 	 * Begin tracking an overlap interaction with the component specified.
 	 * @param OtherComp - The component of the other actor that this component is now overlapping
 	 * @param bDoNotifies - True to dispatch appropriate begin/end overlap notifications when these events occur.
-	 * @see [Overlap Events] https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents
+	 * @see [Overlap Events](https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents)
 	 */
 	void BeginComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies);
 	
@@ -494,7 +506,7 @@ public:
 	 * @param OtherComp - The component of the other actor to stop overlapping
 	 * @param bDoNotifies - True to dispatch appropriate begin/end overlap notifications when these events occur.
 	 * @param bNoNotifySelf	- True to skip end overlap notifications to this component's.  Does not affect notifications to OtherComp's actor.
-	 * @see [Overlap Events] https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents
+	 * @see [Overlap Events](https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents)
 	 */
 	void EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies=true, bool bNoNotifySelf=false);
 
@@ -636,6 +648,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
 
+	/** Sets a new slope override for this component instance. */
+	UFUNCTION(BlueprintCallable, Category="Physics")
+	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
+
 	/** 
 	 *	Sets whether or not a single body should use physics simulation, or should be 'fixed' (kinematic).
 	 *
@@ -648,6 +664,13 @@ public:
 	 * Determines whether or not the simulate physics setting can be edited interactively on this component
 	 */
 	virtual bool CanEditSimulatePhysics();
+
+	/**
+	 * Sets the specified axis as locked, preventing movement along that axis.
+	 * @param LockedAxis	The axis to lock.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (FriendlyName = "Set Locked Axis", Keywords = "set locked axis constraint physics"), Category = Physics)
+	virtual void SetLockedAxis(ELockedAxis::Type LockedAxis);
 
 	/**
 	 *	Add an impulse to a single rigid body. Good for one time instant burst.
@@ -777,6 +800,14 @@ public:
 	FVector GetPhysicsAngularVelocity(FName BoneName = NAME_None);
 
 	/**
+	*	Get the center of mass of a single body. In the case of a welded body this will return the center of mass of the entire welded body (including its parent and children)
+	*   Objects that are not simulated return (0,0,0) as they do not have COM
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to get center of mass of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	FVector GetCenterOfMass(FName BoneName = NAME_None);
+
+	/**
 	 *	'Wake' physics simulation for a single body.
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to wake. 'None' indicates root body.
 	 */
@@ -839,11 +870,15 @@ public:
 
 	/** Perform a line trace against a single component */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(FriendlyName = "Line Trace Component", bTraceComplex="true"))	
-	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName & BoneName);
+	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName);
 
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetRenderCustomDepth(bool bValue);
+
+	/** Sets bRenderInMainPass property and marks the render state dirty. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetRenderInMainPass(bool bValue);
 
 public:
 	static int32 CurrentTag;
@@ -1005,7 +1040,7 @@ public:
 
 	/** Move this component to match the physics rigid body pose. Note, a warning will be generated if you call this function on a component that is attached to something */
 	void SyncComponentToRBPhysics();
-
+	
 	/** 
 	 *	Returns the matrix that should be used to render this component. 
 	 *	Allows component class to perform graphical distortion to the component not supported by an FTransform 
@@ -1039,7 +1074,7 @@ public:
 	 * @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
 	 *				If returns < 0.f, this primitive does not have collsion
 	 */
-	float GetDistanceToCollision(const FVector & Point, FVector& ClosestPointOnCollision) const;
+	float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
 
 	/**
 	 * Creates a proxy to represent the primitive to the scene manager in the rendering thread.
@@ -1134,6 +1169,16 @@ protected:
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
 	virtual void OnActorEnableCollisionChanged() override;
+	/**
+	 * Called to get the Component To World Transform from the Root BodyInstance
+	 * This needs to be virtual since SkeletalMeshComponent Root has to undo its own transform
+	 * Without this, the root LocalToAtom is overriden by physics simulation, causing kinematic velocity to 
+	 * accelerate simulation
+	 *
+	 * @param : UseBI - root body instsance
+	 * @return : New ComponentToWorld to use
+	 */
+	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI);
 public:
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 #if WITH_EDITOR
@@ -1186,7 +1231,7 @@ public:
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
 	virtual ECollisionChannel GetCollisionObjectType() const override;
-	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const override;
+	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const override;
 	virtual FVector GetComponentVelocity() const override;
 	//End USceneComponent Interface
 
@@ -1387,6 +1432,7 @@ public:
 	 * Changes the value of CullDistance.
 	 * @param NewCullDistance - The value to assign to CullDistance.
 	 */
+	UFUNCTION(BlueprintCallable, Category="LOD", meta=(FriendlyName="Set Max Draw Distance"))
 	void SetCullDistance(float NewCullDistance);
 	
 	/**
@@ -1455,7 +1501,7 @@ public:
 	 * @return true if the computation succeeded - assumes that there is an overlap at the specified position/rotation
 	 */
 
-	virtual bool ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot);
+	virtual bool ComputePenetration(FMTDResult & OutMTD, const FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot);
 	
 	/**
 	 * Return true if the given Pawn can step up onto this component.

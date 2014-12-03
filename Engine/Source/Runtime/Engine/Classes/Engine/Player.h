@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// Player: Corresponds to a real player (a local camera or remote net player).
-//=============================================================================
+/**
+ * Player: Corresponds to a real player (a local camera or remote net player).
+ */
 
 #pragma once
 #include "Player.generated.h"

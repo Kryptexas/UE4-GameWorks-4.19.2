@@ -6,8 +6,16 @@
 /* Dependencies
  *****************************************************************************/
 
-#include "ModuleManager.h"
-#include "Media.h"
+#include "Core.h"
+#include "CoreUObject.h"
+
+#include "IMediaInfo.h"
+#include "IMediaPlayer.h"
+#include "IMediaSink.h"
+#include "IMediaTrack.h"
+#include "IMediaTrackAudioDetails.h"
+#include "IMediaTrackCaptionDetails.h"
+#include "IMediaTrackVideoDetails.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <windows.h>

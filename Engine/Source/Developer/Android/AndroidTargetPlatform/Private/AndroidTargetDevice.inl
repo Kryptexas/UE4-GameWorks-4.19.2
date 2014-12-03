@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AndroidTargetDevice.cpp: Implements the AndroidTargetDevice class.
-=============================================================================*/
-
 
 /* ITargetDevice interface
  *****************************************************************************/
@@ -24,6 +20,17 @@ inline bool FAndroidTargetDevice::Deploy( const FString& SourceFolder, FString& 
 	return 0 == ReturnCode;
 }
 
+inline FString FAndroidTargetDevice::GetOperatingSystemName()
+{
+	if (!AndroidVersionString.IsEmpty())
+	{
+		return FString::Printf(TEXT("Android %s, API level %d"), *AndroidVersionString, AndroidSDKVersion);
+	}
+	else
+	{
+		return TEXT("Android");
+	}
+}
 
 inline int32 FAndroidTargetDevice::GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) 
 {
@@ -66,7 +73,7 @@ inline bool FAndroidTargetDevice::Run( const FString& ExecutablePath, const FStr
 }
 
 
-inline bool FAndroidTargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) const
+inline bool FAndroidTargetDevice::SupportsFeature( ETargetDeviceFeatures Feature ) const
 {
 	switch (Feature)
 	{
@@ -97,12 +104,12 @@ inline bool FAndroidTargetDevice::TerminateProcess( const int32 ProcessId )
 }
 
 
-inline void FAndroidTargetDevice::SetUserCredentials( const FString & UserName, const FString & UserPassword )
+inline void FAndroidTargetDevice::SetUserCredentials( const FString& UserName, const FString& UserPassword )
 {
 }
 
 
-inline bool FAndroidTargetDevice::GetUserCredentials( FString & OutUserName, FString & OutUserPassword )
+inline bool FAndroidTargetDevice::GetUserCredentials( FString& OutUserName, FString& OutUserPassword )
 {
 	return false;
 }

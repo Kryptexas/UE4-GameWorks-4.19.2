@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "SDockTab.h"
 
 class SDockTabStack;
 
@@ -69,7 +69,7 @@ public:
 	 * Make this tab active in its tabwell 
 	 * @param	InActivationMethod	How this tab was activated.
 	 */
-	void ActivateInParent(ETabActivationCause::Type InActivationCause);
+	void ActivateInParent(ETabActivationCause InActivationCause);
 
 protected:
 
@@ -77,7 +77,7 @@ protected:
 	FName LayoutIdentifier;
 
 	/** Is this an MajorTab? A tool panel tab? */
-	ETabRole::Type TabRole;
+	ETabRole TabRole;
 
 	/** The width that this tab will overlap with side-by-side tabs. */
 	float OverlapWidth;

@@ -21,13 +21,14 @@ public:
 
 	/** IToolkit interface */
 	virtual FName GetToolkitContextFName() const override;
-	virtual bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const override;
+	virtual bool ProcessCommandBindings( const FKeyEvent& InKeyEvent ) const override;
 	virtual bool IsHosted() const override;
 	virtual const TSharedRef< class IToolkitHost > GetToolkitHost() const override;
 	virtual const TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< SDockableTab > > >& GetToolkitTabsInSpots() const override;
 	virtual void BringToolkitToFront() override;
 	virtual TSharedPtr<class SWidget> GetInlineContent() const override;
 	virtual bool IsBlueprintEditor() const override;
+	virtual TSharedRef<FWorkspaceItem> GetWorkspaceMenuCategory() const override { return WorkspaceMenuCategory.ToSharedRef(); }
 
 	/** @return	Returns true if this is a world-centric asset editor.  That is, the user is editing the asset inline in a Level Editor app. */
 	bool IsWorldCentricAssetEditor() const;	
@@ -71,6 +72,9 @@ protected:
 
 	/** Map of toolkit tab spots to known tabs (these are weak pointers and may be invalid after tabs are closed.) */
 	TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< SDockableTab > > > ToolkitTabsInSpots;
+
+	/** The workspace menu category of this toolkit */
+	TSharedPtr<FWorkspaceItem> WorkspaceMenuCategory;
 };
 
 

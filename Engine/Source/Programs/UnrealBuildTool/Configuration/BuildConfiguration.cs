@@ -170,6 +170,12 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bAllowRemotelyCompiledPCHs;
 
+        /// <summary>
+        /// Whether SN-DBS may be used.
+        /// </summary>
+        [XmlConfig]
+        public static bool bAllowSNDBS;
+
 		/// <summary>
 		/// Whether or not to delete outdated produced items.
 		/// </summary>
@@ -205,6 +211,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static double ProcessorCountMultiplier;
+
+		/// <summary>
+		/// Maximum processor count for local execution. 
+		/// </summary>
+		[XmlConfig]
+		public static int MaxProcessorCount;
 
 		/// <summary>
 		/// The intermediate folder - i.e. Intermediate/Build.
@@ -398,6 +410,7 @@ namespace UnrealBuildTool
 			bAllowLTCG = false;
 			bAllowRemotelyCompiledPCHs = false;
 			bAllowXGE = true;
+            bAllowSNDBS = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.
 			bCheckExternalHeadersForModification = false;
@@ -471,6 +484,8 @@ namespace UnrealBuildTool
 			// When using the local executor (not XGE), run a single action on each CPU core.  Note that you can set this to a larger value
 			// to get slightly faster build times in many cases, but your computer's responsiveness during compiling may be much worse.
 			ProcessorCountMultiplier = 1.0;
+
+			MaxProcessorCount = int.MaxValue;
 
 			bTestIncludeDependencyResolveCache = false;
 			// if we are testing the resolve cache, we require UBT to use it.
@@ -586,6 +601,11 @@ namespace UnrealBuildTool
 			if (!BuildPlatform.CanUseDistcc()) 
 			{
 				bAllowDistcc = false;
+			}
+			
+			if (!BuildPlatform.CanUseSNDBS()) 
+			{
+				bAllowSNDBS = false;
 			}
 		}
 	}

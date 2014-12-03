@@ -9,7 +9,7 @@
 // Pre-compiled header includes
 #include "Core.h"
 #if !CRASH_REPORT_UNATTENDED_ONLY
-	#include "Slate.h"
+	#include "SlateBasics.h"
 	#include "StandaloneRenderer.h"
 #endif // CRASH_REPORT_UNATTENDED_ONLY
 

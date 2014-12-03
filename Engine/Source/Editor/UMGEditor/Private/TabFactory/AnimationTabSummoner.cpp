@@ -7,6 +7,14 @@
 #include "ISequencer.h"
 #include "WidgetAnimation.h"
 #include "MovieScene.h"
+#include "UMGStyle.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "GenericCommands.h"
+#include "ScopedTransaction.h"
+#include "WidgetBlueprint.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Misc/TextFilter.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -17,7 +25,7 @@ FAnimationTabSummoner::FAnimationTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("AnimationsTabLabel", "Animations");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Animations");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Animations.TabIcon");
 
 	bIsSingleton = true;
 
@@ -232,10 +240,10 @@ public:
 		CreateCommandList();
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		FReply Reply = FReply::Unhandled();
-		if( CommandList->ProcessCommandBindings( InKeyboardEvent ) )
+		if( CommandList->ProcessCommandBindings( InKeyEvent ) )
 		{
 			Reply = FReply::Handled();
 		}

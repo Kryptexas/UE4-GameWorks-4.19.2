@@ -1,11 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SFriendsItem.h: Declares the SFriendsItem class.
-	Displays a line in the friends list view 
-=============================================================================*/
-
 #pragma once
+
 
 // Enum to list friend actions
 namespace EFriendsActionType
@@ -22,6 +18,7 @@ namespace EFriendsActionType
 	};
 };
 
+
 class SFriendsItem
 	: public STableRow< TSharedPtr<FFriendStuct> >
 {
@@ -35,8 +32,9 @@ public:
 
 	/**
 	 * Constructs the widget.
-	 * @param InArgs - The Slate argument list.
-	 * @param InOwnerTableView - The owning table.
+	 *
+	 * @param InArgs The Slate argument list.
+	 * @param InOwnerTableView The owning table.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView );
 
@@ -44,31 +42,34 @@ private:
 
 	/**
 	 * Handle a menu option selected.
-	 * @param FriendActionType - the action type.
+	 *
+	 * @param FriendActionType The action type.
 	 */	
 	FReply OnOptionSelected( EFriendsActionType::Type FriendActionType );
 
 	/**
-	* Returns the text representation of an action.
-	* @param FriendActionType - The action type.
-	* @return A text value.
-	*/
+	 * Returns the text representation of an action.
+	 *
+	 * @param FriendActionType The action type.
+	 * @return A text value.
+	 */
 	const FText& GetActionText( EFriendsActionType::Type FriendActionType );
 
 	/**
-	* Generate the menu widget.
-	* @return A menu widget.
-	*/
+	 * Generate the menu widget.
+	 *
+	 * @return A menu widget.
+	 */
 	TSharedRef<SWidget> OnGetMenuContent();
 
 private:
-	// Holds a reference to the FriendItem data that is displayed in this row.
+
+	/** Holds a reference to the FriendItem data that is displayed in this row. */
 	TSharedPtr< FFriendStuct > FriendItem;
 
-	// Holds the style to use when making the widget.
+	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 
-	// Holds the menu button.
+	/** Holds the menu button. */
 	TSharedPtr< SComboButton > MenuButton; 
 };
-

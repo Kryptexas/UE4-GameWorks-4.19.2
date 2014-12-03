@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
@@ -35,7 +36,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 		FEnvQueryContextData* CachedData = ContextCache.Find(ContextClass);
 		if (CachedData == NULL)
 		{
-			UEnvQueryContext* ContextOb = ContextClass->GetDefaultObject<UEnvQueryContext>();
+			UEnvQueryManager* QueryManager = UEnvQueryManager::GetCurrent(World);
+			UEnvQueryContext* ContextOb = QueryManager->PrepareLocalContext(ContextClass);
+
 			ContextOb->ProvideContext(*this, ContextData);
 
 			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, GetContextAllocatedSize());
@@ -55,7 +58,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 		UE_LOG(LogEQS, Log, TEXT("Query [%s] is missing values for context [%s], skipping test %d:%d [%s]"),
 			*QueryName, *UEnvQueryTypes::GetShortTypeName(ContextClass).ToString(),
 			OptionIndex, CurrentTest,
-			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].GetTestObject(CurrentTest)).ToString() : TEXT("Generator")
+			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].Tests[CurrentTest]).ToString() : TEXT("Generator")
 			);
 
 		return false;
@@ -78,7 +81,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FEnvQuerySpatialD
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetTypedData();
+		uint8* RawData = ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -106,7 +109,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FVector>& Data)
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
+		uint8* RawData = (uint8*)ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -133,7 +136,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FRotator>& Data)
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetTypedData();
+		uint8* RawData = ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -160,7 +163,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<AActor*>& Data)
 	{
 		UEnvQueryItemType_ActorBase* DefTypeOb = (UEnvQueryItemType_ActorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetTypedData();
+		uint8* RawData = ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -185,7 +188,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);
 
-	const bool bDoingLastTest = (CurrentTest == OptionItem.TestsToPerform.Num() - 1);
+	const bool bDoingLastTest = (CurrentTest == OptionItem.Tests.Num() - 1);
 	bool bStepDone = true;
 	TimeLimit = InTimeLimit;
 
@@ -206,12 +209,32 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	}
 	else
 	{
-//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].GetTestObject(CurrentTest)).ToString(), nullptr);
+//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].Tests[CurrentTest]).ToString(), nullptr);
 
-		UEnvQueryTest* TestObject = OptionItem.GetTestObject(CurrentTest);
+		UEnvQueryTest* TestObject = OptionItem.Tests[CurrentTest];
 
 		// item generator uses this flag to alter the scoring behavior
 		bPassOnSingleResult = (bDoingLastTest && Mode == EEnvQueryRunMode::SingleResult && TestObject->CanRunAsFinalCondition());
+
+		if (bPassOnSingleResult)
+		{
+			// Since we know we're the last test that is a final condition, if we were scoring previously we should sort the tests now before we test them
+			bool bSortTests = false;
+			for (int32 TestIndex = 0; TestIndex < OptionItem.Tests.Num() - 1; ++TestIndex)
+			{
+				if (OptionItem.Tests[TestIndex]->TestPurpose != EEnvTestPurpose::Filter)
+				{
+					// Found one.  We should sort.
+					bSortTests = true;
+					break;
+				}
+			}
+
+			if (bSortTests)
+			{
+				SortScores();
+			}
+		}
 
 		const int32 ItemsAlreadyProcessed = CurrentTestStartingItem;
 		TestObject->RunTest(*this);
@@ -240,7 +263,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 
 	// sort results or switch to next option when all tests are performed
 	if (Status == EEnvQueryStatus::Processing &&
-		(OptionItem.TestsToPerform.Num() == CurrentTest || NumValidItems <= 0))
+		(OptionItem.Tests.Num() == CurrentTest || NumValidItems <= 0))
 	{
 		if (NumValidItems > 0)
 		{
@@ -347,7 +370,7 @@ void FEnvQueryInstance::NormalizeScores()
 	float MinScore = 0.f;
 	float MaxScore = -BIG_NUMBER;
 
-	FEnvQueryItem* ItemInfo = Items.GetTypedData();
+	FEnvQueryItem* ItemInfo = Items.GetData();
 	for (int32 ItemIndex = 0; ItemIndex < NumValidItems; ItemIndex++, ItemInfo++)
 	{
 		ensure(ItemInfo->IsValid());
@@ -356,7 +379,7 @@ void FEnvQueryInstance::NormalizeScores()
 		MaxScore = FMath::Max(MaxScore, ItemInfo->Score);
 	}
 
-	ItemInfo = Items.GetTypedData();
+	ItemInfo = Items.GetData();
 	if (MinScore == MaxScore)
 	{
 		for (int32 ItemIndex = 0; ItemIndex < NumValidItems; ItemIndex++, ItemInfo++)
@@ -395,9 +418,9 @@ void FEnvQueryInstance::SortScores()
 	struct FSortHelperForDebugData
 	{
 		FEnvQueryItem	Item;
-		struct FEnvQueryItemDetails ItemDetails;
+		FEnvQueryItemDetails ItemDetails;
 
-		FSortHelperForDebugData(const FEnvQueryItem&	InItem, struct FEnvQueryItemDetails& InDebugDetails) : Item(InItem), ItemDetails(InDebugDetails) {}
+		FSortHelperForDebugData(const FEnvQueryItem&	InItem, FEnvQueryItemDetails& InDebugDetails) : Item(InItem), ItemDetails(InDebugDetails) {}
 		bool operator<(const FSortHelperForDebugData& Other) const
 		{
 			return Item < Other.Item;
@@ -528,7 +551,7 @@ void FEnvQueryInstance::FinalizeQuery()
 void FEnvQueryInstance::FinalizeGeneration()
 {
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
-	const int32 NumTests = OptionInstance.TestsToPerform.Num();
+	const int32 NumTests = OptionInstance.Tests.Num();
 
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, ItemDetails.GetAllocatedSize());
 	INC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
@@ -558,13 +581,13 @@ void FEnvQueryInstance::FinalizeGeneration()
 void FEnvQueryInstance::FinalizeTest()
 {
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
-	const int32 NumTests = OptionInstance.TestsToPerform.Num();
+	const int32 NumTests = OptionInstance.Tests.Num();
 
-	UEnvQueryTest* DefTestOb = OptionInstance.GetTestObject(CurrentTest);
+	UEnvQueryTest* TestOb = OptionInstance.Tests[CurrentTest];
 #if USE_EQS_DEBUGGER
 	if (bStoreDebugInfo)
 	{
-		DebugData.PerformedTestNames.Add(UEnvQueryTypes::GetShortTypeName(DefTestOb).ToString());
+		DebugData.PerformedTestNames.Add(UEnvQueryTypes::GetShortTypeName(TestOb).ToString());
 	}
 #endif
 
@@ -572,7 +595,7 @@ void FEnvQueryInstance::FinalizeTest()
 	if (IsInSingleItemFinalSearch() == false)
 	{
 		// do regular normalization
-		DefTestOb->NormalizeItemScores(*this);
+		TestOb->NormalizeItemScores(*this);
 	}
 	else
 	{
@@ -634,7 +657,7 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 
 		for (int32 Index = 0; Index < Items.Num(); ++Index)
 		{		
-			BBox += DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
+			BBox += DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 	}
 

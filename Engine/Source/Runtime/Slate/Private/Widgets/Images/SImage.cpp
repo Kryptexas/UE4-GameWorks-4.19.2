@@ -2,6 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SImage"), STAT_SlateOnPaint_SImage, STATGROUP_Slate );
 
 /**
  * Construct this widget

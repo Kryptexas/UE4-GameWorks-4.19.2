@@ -34,19 +34,38 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 	class UAnimGraphNode_Base* AssociatedAnimAssetPlayerNode;
 
 	UPROPERTY()
-	UObject* AssociatedStateNode;
+	UAnimStateNode* AssociatedStateNode;
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	virtual bool ShowPaletteIconOnNode() const override{ return false; }
+	virtual bool ShowPaletteIconOnNode() const override { return false; }
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	// End of UEdGraphNode interface
+
+	// UK2Node interface
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	// end of UK2Node interface
 
 	// @todo document
 	ANIMGRAPH_API UEdGraphPin* GetOutputPin() const;
 
 	// @todo document
 	ANIMGRAPH_API static FText GetFriendlyName(ETransitionGetter::Type TypeID);
+
+private:
+	/** Helper function for GetStateSpecificMenuActions, finds actions for AnimBlueprint states that can be used in AnimGraphSchema graphs */
+	void GetStateSpecificAnimGraphSchemaMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar, const UAnimBlueprint* AnimBlueprint, UAnimStateNode* StateNode) const;
+
+	/** Helper function for GetStateSpecificMenuActions, finds actions for AnimBlueprint states that can be used in AnimTransitionSchema graphs */
+	void GetStateSpecificAnimTransitionSchemaMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar, const UAnimBlueprint* AnimBlueprint, UAnimStateNode* StateNode) const;
+
+	/** Helper function for GetMenuActions, goes through all states in an AnimBlueprint and finds possible actions */
+	void GetStateSpecificMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar, const UAnimBlueprint* AnimBlueprint) const;
+
+	/** Helper function for GetMenuActions, generates non-state specific actions that use this node */
+	void GetNonStateSpecificMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const;
 };
 

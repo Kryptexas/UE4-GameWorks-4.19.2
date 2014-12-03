@@ -111,7 +111,7 @@ void DrawDebugBox(const UWorld* InWorld, FVector const& Center, FVector const& B
 	}
 }
 
-void DrawDebugBox(const UWorld* InWorld, FVector const& Center, FVector const& Box, const FQuat & Rotation, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+void DrawDebugBox(const UWorld* InWorld, FVector const& Center, FVector const& Box, const FQuat& Rotation, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
 {
 	// no debug line drawing on dedicated server
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
@@ -435,8 +435,8 @@ void DrawDebugCylinder(const UWorld* InWorld, FVector const& Start, FVector cons
 		// Rotate a point around axis to form cylinder segments
 		FVector Segment;
 		FVector P1, P2, P3, P4;
-		const int32 AngleInc = 360.f / Segments;
-		int32 Angle = AngleInc;
+		const float AngleInc = 360.f / Segments;
+		float Angle = AngleInc;
 
 		// Default for Axis is up
 		FVector Axis = (End - Start).SafeNormal();
@@ -449,8 +449,7 @@ void DrawDebugCylinder(const UWorld* InWorld, FVector const& Start, FVector cons
 		FVector Dummy;
 
 		Axis.FindBestAxisVectors(Perpendicular, Dummy);
-
-
+		
 		Segment = Perpendicular.RotateAngleAxis(0, Axis) * Radius;
 		P1 = Segment + Start;
 		P3 = Segment + End;
@@ -459,15 +458,16 @@ void DrawDebugCylinder(const UWorld* InWorld, FVector const& Start, FVector cons
 		ULineBatchComponent* const LineBatcher = GetDebugLineBatcher( InWorld, bPersistentLines, LifeTime, (DepthPriority == SDPG_Foreground) );
 		if(LineBatcher != NULL)
 		{
+			const float LineLifeTime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
 			while( Segments-- )
 			{
 				Segment = Perpendicular.RotateAngleAxis(Angle, Axis) * Radius;
 				P2 = Segment + Start;
 				P4 = Segment + End;
 
-				LineBatcher->DrawLine(P2, P4, Color, DepthPriority);
-				LineBatcher->DrawLine(P1, P2, Color, DepthPriority);
-				LineBatcher->DrawLine(P3, P4, Color, DepthPriority);
+				LineBatcher->DrawLine(P2, P4, Color, DepthPriority, 0.f, LineLifeTime);
+				LineBatcher->DrawLine(P1, P2, Color, DepthPriority, 0.f, LineLifeTime);
+				LineBatcher->DrawLine(P3, P4, Color, DepthPriority, 0.f, LineLifeTime);
 
 				P1 = P2;
 				P3 = P4;
@@ -726,7 +726,7 @@ static void DrawCircle(const UWorld* InWorld, const FVector& Base, const FVector
 	}
 }
 
-void DrawDebugCapsule(const UWorld* InWorld, FVector const& Center, float HalfHeight, float Radius, const FQuat & Rotation, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+void DrawDebugCapsule(const UWorld* InWorld, FVector const& Center, float HalfHeight, float Radius, const FQuat& Rotation, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
 {
 	// no debug line drawing on dedicated server
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)

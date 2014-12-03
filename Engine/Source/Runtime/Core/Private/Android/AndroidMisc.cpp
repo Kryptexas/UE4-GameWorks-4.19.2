@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AndroidApplication.h"
 #include <android/log.h>
 #include <cpu-features.h>
 #include "ModuleManager.h"
 #include <android/keycodes.h>
-
+#include "AndroidPlatformCrashContext.h"
+#include "MallocCrash.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -48,7 +49,37 @@ void FAndroidMisc::LocalPrint(const TCHAR *Message)
 	// Builds for distribution should not have logging in them:
 	// http://developer.android.com/tools/publishing/preparing.html#publishing-configure
 #if !UE_BUILD_SHIPPING
-	__android_log_print(ANDROID_LOG_DEBUG, "UE4", "%s", TCHAR_TO_ANSI(Message));
+	const int MAX_LOG_LENGTH = 4096;
+	// not static since may be called by different threads
+	ANSICHAR MessageBuffer[MAX_LOG_LENGTH];
+
+	const TCHAR* SourcePtr = Message;
+	while (*SourcePtr)
+	{
+		ANSICHAR* WritePtr = MessageBuffer;
+		int32 RemainingSpace = MAX_LOG_LENGTH;
+		while (*SourcePtr && --RemainingSpace > 0)
+		{
+			if (*SourcePtr == TEXT('\r'))
+			{
+				// If next character is newline, skip it
+				if (*(++SourcePtr) == TEXT('\n'))
+					++SourcePtr;
+				break;
+			}
+			else if (*SourcePtr == TEXT('\n'))
+			{
+				++SourcePtr;
+				break;
+			}
+			else {
+				*WritePtr++ = static_cast<ANSICHAR>(*SourcePtr++);
+			}
+		}
+		*WritePtr = '\0';
+		__android_log_write(ANDROID_LOG_DEBUG, "UE4", MessageBuffer);
+	}
+	//	__android_log_print(ANDROID_LOG_DEBUG, "UE4", "%s", TCHAR_TO_ANSI(Message));
 #endif
 }
 
@@ -60,6 +91,7 @@ void FAndroidMisc::LoadPreInitModules()
 
 void FAndroidMisc::PlatformPreInit()
 {
+	FGenericPlatformMisc::PlatformPreInit();
 	FAndroidAppEntry::PlatformInit();
 }
 
@@ -225,7 +257,7 @@ bool FAndroidMisc::SupportsLocalCaching()
 /**
  * Good enough default crash reporter.
  */
-void DefaultCrashHandler(const FAndroidCrashContext & Context)
+void DefaultCrashHandler(const FAndroidCrashContext& Context)
 {
 	static int32 bHasEntered = 0;
 	if (FPlatformAtomics::InterlockedCompareExchange(&bHasEntered, 1, 0) == 0)
@@ -245,11 +277,14 @@ void DefaultCrashHandler(const FAndroidCrashContext & Context)
 }
 
 /** Global pointer to crash handler */
-void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
+void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 
 /** True system-specific crash handler that gets called first */
 void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 {
+	// Switch to malloc crash.
+	//FMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
+
 	fprintf(stderr, "Signal %d caught.\n", Signal);
 
 	FAndroidCrashContext CrashContext;
@@ -266,7 +301,7 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 	}
 }
 
-void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 

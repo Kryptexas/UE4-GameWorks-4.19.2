@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
 

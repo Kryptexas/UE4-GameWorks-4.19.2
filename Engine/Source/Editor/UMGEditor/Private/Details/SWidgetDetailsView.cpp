@@ -8,15 +8,25 @@
 #include "Kismet2NameValidators.h"
 #include "ISequencer.h"
 #include "Animation/UMGDetailKeyframeHandler.h"
+#include "DetailWidgetExtensionHandler.h"
 #include "EditorClassUtils.h"
 
+#include "Customizations/DetailCustomizations.h"
 #include "Customizations/SlateBrushCustomization.h"
+#include "Customizations/SlateFontInfoCustomization.h"
 
+#include "WidgetNavigationCustomization.h"
 #include "CanvasSlotCustomization.h"
 #include "HorizontalAlignmentCustomization.h"
 #include "VerticalAlignmentCustomization.h"
 #include "SlateChildSizeCustomization.h"
 #include "TextJustifyCustomization.h"
+#include "PropertyEditorModule.h"
+#include "WidgetBlueprintEditor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Blueprint/WidgetTree.h"
+#include "WidgetBlueprintEditorUtils.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -39,9 +49,38 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 	TSharedRef<IDetailKeyframeHandler> KeyframeHandler = MakeShareable( new FUMGDetailKeyframeHandler( InBlueprintEditor ) );
 	PropertyView->SetKeyframeHandler( KeyframeHandler );
 
+	// Create a handler for property binding via the details panel
+	TSharedRef<FDetailWidgetExtensionHandler> BindingHandler = MakeShareable( new FDetailWidgetExtensionHandler( InBlueprintEditor ) );
+	PropertyView->SetExtensionHandler(BindingHandler);
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 6)
+		[
+			SNew(SHorizontalBox)
+			.Visibility(this, &SWidgetDetailsView::GetCategoryAreaVisibility)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0, 0, 6, 0)
+			[
+				SNew(SBox)
+				.WidthOverride(200.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SEditableTextBox)
+					.SelectAllTextWhenFocused(true)
+					.ToolTipText(LOCTEXT("CategoryToolTip", "Sets the category of the widget"))
+					.HintText(LOCTEXT("Category", "Category"))
+					.Text(this, &SWidgetDetailsView::GetCategoryText)
+					.OnTextCommitted(this, &SWidgetDetailsView::HandleCategoryTextCommitted)
+				]
+			]
+		]
 
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -124,11 +163,13 @@ SWidgetDetailsView::~SWidgetDetailsView()
 	static FName PropertyEditor("PropertyEditor");
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
 
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("WidgetNavigation"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("PanelSlot"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateBrush"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateFontInfo"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("ETextJustify"), nullptr, PropertyView);
 }
 
@@ -139,11 +180,13 @@ void SWidgetDetailsView::RegisterCustomizations()
 	static FName PropertyEditor("PropertyEditor");
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
 
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("WidgetNavigation"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FWidgetNavigationCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef()), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("PanelSlot"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, BlueprintEditor.Pin()->GetBlueprintObj()), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FHorizontalAlignmentCustomization::MakeInstance), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVerticalAlignmentCustomization::MakeInstance), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateChildSizeCustomization::MakeInstance), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateBrush"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance, false), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateFontInfo"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateFontInfoStructCustomization::MakeInstance), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("ETextJustify"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTextJustifyCustomization::MakeInstance), nullptr, PropertyView);
 }
 
@@ -198,7 +241,7 @@ void SWidgetDetailsView::ClearFocusIfOwned()
 		// if this occurs we need need to immediately clear keyboard focus
 		if ( FSlateApplication::Get().HasFocusedDescendants(AsShared()) )
 		{
-			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 		}
 		bIsReentrant = false;
 	}
@@ -218,6 +261,57 @@ EVisibility SWidgetDetailsView::GetNameAreaVisibility() const
 	return EVisibility::Collapsed;
 }
 
+EVisibility SWidgetDetailsView::GetCategoryAreaVisibility() const
+{
+	if ( SelectedObjects.Num() == 1 )
+	{
+		UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get());
+		if ( Widget && Widget->HasAnyFlags(RF_ClassDefaultObject) )
+		{
+			return EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
+
+void SWidgetDetailsView::HandleCategoryTextCommitted(const FText& Text, ETextCommit::Type CommitType)
+{
+	if ( SelectedObjects.Num() == 1 && !Text.IsEmptyOrWhitespace() )
+	{
+		if ( UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get()) )
+		{
+			UUserWidget* WidgetCDO = Widget->GetClass()->GetDefaultObject<UUserWidget>();
+			WidgetCDO->PaletteCategory = Text;
+
+			// Immediately force a rebuild so that all palettes update to show it in a new category.
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintEditor.Pin()->GetBlueprintObj());
+		}
+	}
+}
+
+FText SWidgetDetailsView::GetCategoryText() const
+{
+	if ( SelectedObjects.Num() == 1 )
+	{
+		if ( UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get()) )
+		{
+			UUserWidget* WidgetCDO = Widget->GetClass()->GetDefaultObject<UUserWidget>();
+			FText Category = WidgetCDO->PaletteCategory;
+			if ( Category.EqualToCaseIgnored(UUserWidget::StaticClass()->GetDefaultObject<UUserWidget>()->PaletteCategory) )
+			{
+				return FText::GetEmpty();
+			}
+			else
+			{
+				return Category;
+			}
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
 const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 {
 	if ( SelectedObjects.Num() == 1 )
@@ -229,7 +323,7 @@ const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FText SWidgetDetailsView::GetNameText() const
@@ -268,7 +362,7 @@ bool SWidgetDetailsView::HandleVerifyNameTextChanged(const FText& InText, FText&
 		FString NewName = InText.ToString();
 
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-		UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(NewName);
+		UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
 
 		bool bIsSameWidget = false;
 		if ( TemplateWidget != NULL )
@@ -345,7 +439,7 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		
-		FWidgetReference WidgetRef = BPEditor->GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Widget->GetName()));
+		FWidgetReference WidgetRef = BPEditor->GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Widget->GetFName()));
 		if ( WidgetRef.IsValid() )
 		{
 			UWidget* Template = WidgetRef.GetTemplate();
@@ -385,6 +479,10 @@ void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyC
 
 		const bool bIsModify = false;
 		Editor->MigrateFromChain(PropertyThatChanged, bIsModify);
+
+		// Any time we migrate a property value we need to mark the blueprint as structurally modified so users don't need 
+		// to recompile it manually before they see it play in game using the latest version.
+		FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintEditor.Pin()->GetBlueprintObj());
 	}
 
 	// If the property that changed is marked as "DesignerRebuild" we invalidate

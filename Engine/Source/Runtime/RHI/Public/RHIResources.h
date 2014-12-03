@@ -619,6 +619,16 @@ public:
 		LoadAction(InLoadAction),
 		StoreAction(InStoreAction)
 	{}
+
+	bool operator==(const FRHIRenderTargetView& Other) const
+	{
+		return 
+			Texture == Other.Texture &&
+			MipIndex == Other.MipIndex &&
+			ArraySliceIndex == Other.ArraySliceIndex &&
+			LoadAction == Other.LoadAction &&
+			StoreAction == Other.StoreAction;
+	}
 };
 
 class FRHIDepthRenderTargetView
@@ -626,32 +636,52 @@ class FRHIDepthRenderTargetView
 public:
 	FTextureRHIParamRef Texture;
 
-	ERenderTargetLoadAction LoadAction;
-	ERenderTargetStoreAction StoreAction;
+	ERenderTargetLoadAction DepthLoadAction;
+	ERenderTargetStoreAction DepthStoreAction;
+	ERenderTargetLoadAction StencilLoadAction;
+	ERenderTargetStoreAction StencilStoreAction;
 
 	FRHIDepthRenderTargetView() :
 		Texture(nullptr),
-		LoadAction(ERenderTargetLoadAction::EClear),
-		StoreAction(ERenderTargetStoreAction::ENoAction)
-	{}
-
-	FRHIDepthRenderTargetView(const FRHIDepthRenderTargetView& Other) :
-		Texture(Other.Texture),
-		LoadAction(Other.LoadAction),
-		StoreAction(Other.StoreAction)
+		DepthLoadAction(ERenderTargetLoadAction::EClear),
+		DepthStoreAction(ERenderTargetStoreAction::ENoAction),
+		StencilLoadAction(ERenderTargetLoadAction::EClear),
+		StencilStoreAction(ERenderTargetStoreAction::ENoAction)
 	{}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture) :
 		Texture(InTexture),
-		LoadAction(ERenderTargetLoadAction::EClear),
-		StoreAction(ERenderTargetStoreAction::ENoAction)
+		DepthLoadAction(ERenderTargetLoadAction::EClear),
+		DepthStoreAction(ERenderTargetStoreAction::ENoAction),
+		StencilLoadAction(ERenderTargetLoadAction::EClear),
+		StencilStoreAction(ERenderTargetStoreAction::ENoAction)
 	{}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
 		Texture(InTexture),
-		LoadAction(InLoadAction),
-		StoreAction(InStoreAction)
+		DepthLoadAction(InLoadAction),
+		DepthStoreAction(InStoreAction),
+		StencilLoadAction(InLoadAction),
+		StencilStoreAction(InStoreAction)
 	{}
+
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction) :
+		Texture(InTexture),
+		DepthLoadAction(InDepthLoadAction),
+		DepthStoreAction(InDepthStoreAction),
+		StencilLoadAction(InStencilLoadAction),
+		StencilStoreAction(InStencilStoreAction)
+	{}
+
+	bool operator==(const FRHIDepthRenderTargetView& Other)
+	{
+		return
+			Texture == Other.Texture &&
+			DepthLoadAction == Other.DepthLoadAction &&
+			DepthStoreAction == Other.DepthStoreAction &&
+			StencilLoadAction == Other.StencilLoadAction &&
+			StencilStoreAction == Other.StencilStoreAction;
+	}
 };
 
 class FRHISetRenderTargetsInfo
@@ -681,21 +711,31 @@ public:
 
 	FRHISetRenderTargetsInfo(int32 InNumColorRenderTargets, const FRHIRenderTargetView* InColorRenderTargets, const FRHIDepthRenderTargetView& InDepthStencilRenderTarget) :
 		NumColorRenderTargets(InNumColorRenderTargets),
-		bClearColor(false),
+		bClearColor(InNumColorRenderTargets > 0 && InColorRenderTargets[0].LoadAction == ERenderTargetLoadAction::EClear),
 		DepthStencilRenderTarget(InDepthStencilRenderTarget),
-		bClearDepth(false),
-		bClearStencil(false)
+		DepthClearValue(0.0f),
+		StencilClearValue(0),
+		bClearDepth(InDepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear),
+		bClearStencil(InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)
 	{
 		check(InNumColorRenderTargets <= 0 || InColorRenderTargets);
 		for (int32 Index = 0; Index < InNumColorRenderTargets; ++Index)
 		{
 			ColorRenderTarget[Index] = InColorRenderTargets[Index];
+			ClearColors[Index] = FLinearColor(0, 0, 0, 1);
 		}
 	}
-
+	// @todo metal mrt: This can go away after all the cleanup is done
 	void SetClearDepthStencil(bool bInClearDepth, float InDepthClear, bool bInClearStencil = false, uint32 InClearStencil = 0)
 	{
-		DepthStencilRenderTarget.LoadAction = ERenderTargetLoadAction::EClear;
+		if (bInClearDepth)
+		{
+			DepthStencilRenderTarget.DepthLoadAction = ERenderTargetLoadAction::EClear;
+		}
+		if (bInClearStencil)
+		{
+			DepthStencilRenderTarget.StencilLoadAction = ERenderTargetLoadAction::EClear;
+		}
 		bClearDepth = bInClearDepth;
 		DepthClearValue = InDepthClear;
 		bClearStencil = bInClearStencil;

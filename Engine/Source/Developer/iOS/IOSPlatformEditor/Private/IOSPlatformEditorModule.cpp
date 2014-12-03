@@ -2,26 +2,35 @@
 
 #include "IOSPlatformEditorPrivatePCH.h"
 #include "IOSTargetSettingsCustomization.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "FIOSPlatformEditorModule"
+
 
 /**
  * Module for iOS as a target platform
  */
-class FIOSPlatformEditorModule : public IModuleInterface
+class FIOSPlatformEditorModule
+	: public IModuleInterface
 {
 	// IModuleInterface interface
+
 	virtual void StartupModule() override
 	{
-		// Register the settings detail panel customization
+		// register settings detail panel customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout(
 			"IOSRuntimeSettings",
-			FOnGetDetailCustomizationInstance::CreateStatic(&FIOSTargetSettingsCustomization::MakeInstance));
+			FOnGetDetailCustomizationInstance::CreateStatic(&FIOSTargetSettingsCustomization::MakeInstance)
+		);
+
 		PropertyModule.NotifyCustomizationModuleChanged();
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		// register settings
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -35,15 +44,15 @@ class FIOSPlatformEditorModule : public IModuleInterface
 
 	virtual void ShutdownModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterSettings("Project", "Platforms", "iOS");
 		}
 	}
-	// End of IModuleInterface interface
 };
+
 
 IMPLEMENT_MODULE(FIOSPlatformEditorModule, IOSPlatformEditor);
 

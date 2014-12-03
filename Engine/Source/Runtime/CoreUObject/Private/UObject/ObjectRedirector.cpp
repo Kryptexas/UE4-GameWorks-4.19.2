@@ -109,7 +109,7 @@ FScopedRedirectorCatcher::FScopedRedirectorCatcher(const FString& InObjectPathNa
 , bWasRedirectorFollowed(false)
 {
 	// register itself on construction to see if the object is a redirector 
-	FCoreDelegates::RedirectorFollowed.AddRaw(this, &FScopedRedirectorCatcher::OnRedirectorFollowed);
+	FCoreUObjectDelegates::RedirectorFollowed.AddRaw(this, &FScopedRedirectorCatcher::OnRedirectorFollowed);
 }
 
 /**
@@ -118,7 +118,7 @@ FScopedRedirectorCatcher::FScopedRedirectorCatcher(const FString& InObjectPathNa
 FScopedRedirectorCatcher::~FScopedRedirectorCatcher()
 {
 	// register itself on construction to see if the object is a redirector 
-	FCoreDelegates::RedirectorFollowed.RemoveAll(this);
+	FCoreUObjectDelegates::RedirectorFollowed.RemoveAll(this);
 }
 
 
@@ -133,7 +133,7 @@ FScopedRedirectorCatcher::~FScopedRedirectorCatcher()
 void FScopedRedirectorCatcher::OnRedirectorFollowed( const FString& InString, UObject* InObject)
 {
 	// this needs to be the redirector
-	check(InObject->IsA(UObjectRedirector::StaticClass()));
+	check(dynamic_cast<UObjectRedirector*>(InObject));
 
 	// if the path of the redirector was the same as the path to the object constant
 	// being compiled, then the script code has a text reference to a redirector, 

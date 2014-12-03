@@ -665,17 +665,16 @@ void FBuildPatchChunkCache::SkipFile( const FString& Filename )
 	// data lists to avoid downloading them and keep track of the next chunks we need to get hold of
 	GLog->Logf( TEXT("FBuildPatchChunkCache::SkipFile %s"), *Filename );
 	// Get the file manifest
-	TSharedPtr< FBuildPatchFileManifest > FileManifest = InstallManifet->GetFileManifest( Filename );
+	const FFileManifestData* FileManifest = InstallManifet->GetFileManifest( Filename );
 	// Go through each chunk part, and remove it from out data lists
 	FScopeLock ScopeLock( &ChunkInfoLock );
-	for( auto ChunkPartIt = FileManifest->FileChunkParts.CreateConstIterator(); ChunkPartIt; ++ChunkPartIt )
+	for (const auto& ChunkPart : FileManifest->FileChunkParts)
 	{
-		const FChunkPart& ChunkPart = *ChunkPartIt;
-		SkipChunkPart( ChunkPart );
+		SkipChunkPart(ChunkPart);
 	}
 }
 
-void FBuildPatchChunkCache::SkipChunkPart( const FChunkPart& ChunkPart )
+void FBuildPatchChunkCache::SkipChunkPart( const FChunkPartData& ChunkPart )
 {
 	check( bDownloadsStarted.GetValue() == 0 );
 	FScopeLock ScopeLock( &ChunkInfoLock );

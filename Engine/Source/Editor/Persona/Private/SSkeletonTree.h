@@ -116,7 +116,7 @@ struct FDisplayedMeshBoneInfo : public FDisplayedTreeRowInfo
 public:
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
 	static TSharedRef<FDisplayedMeshBoneInfo> Make(
-		const FName & BoneName,
+		const FName& BoneName,
 		USkeleton* InTargetSkeleton,
 		TWeakPtr<FPersona> InPersona,
 		TWeakPtr<SSkeletonTree> InSkeletonTree )
@@ -130,7 +130,7 @@ public:
 	}
 
 	// Manual RTTI - not particularly elegant! :-(
-	virtual void * GetData() { return &BoneName; }
+	virtual void* GetData() { return &BoneName; }
 	virtual ESkeletonTreeRowType::Type GetType() const { return ESkeletonTreeRowType::Bone; }
 
 	/** Builds the table row widget to display this info */
@@ -157,7 +157,7 @@ public:
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedMeshBoneInfo(const FName & InSource)
+	FDisplayedMeshBoneInfo(const FName& InSource)
 		: BoneName(InSource)
 	{}
 
@@ -380,6 +380,9 @@ public:
 
 	virtual ~SSkeletonTree();
 
+	/** Creates the tree control and then populates using CreateFromSkeleton */
+	void CreateTreeColumns();
+
 	/** Function to build the skeleton tree widgets from the source skeleton tree */
 	void CreateFromSkeleton( const TArray<FBoneNode>& SourceSkeleton, USkeletalMeshSocket* SocketToRename = NULL );
 
@@ -530,11 +533,17 @@ private:
 	/** We can only add sockets in Active, Skeleton or All mode (otherwise they just disappear) */
 	bool IsAddingSocketsAllowed() const;
 
+	/** Handler for "Show Retargeting Options" check box IsChecked functionality */
+	ESlateCheckBoxState::Type IsShowingRetargetingOptions() const;
+
+	/**  Handler for when we change the "Show Retargeting Options" check box */
+	void OnChangeShowingRetargetingOptions(ESlateCheckBoxState::Type NewState);
+
 	/** This replicates the socket filter to the previewcomponent so that the viewport can use the same settings */
 	void SetPreviewComponentSocketFilter() const;
 
 	/** Override OnKeyDown */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 	/** Function to delete all the selected sockets/assets */
 	void OnDeleteSelectedRows();
@@ -551,9 +560,6 @@ private:
 	/** Deletes a set of attached objects from a FPreviewAssetAttachContainer and notifies Persona*/
 	void DeleteAttachedObjects( FPreviewAssetAttachContainer& AttachedAssets );
 
-	// Is Persona currently in Skeleton Mode
-	bool IsInSkeletonMode() const;
-
 private:
 	/** Pointer back to the kismet 2 tool that owns us */
 	TWeakPtr<FPersona> PersonaPtr;
@@ -562,6 +568,9 @@ private:
 	TSharedPtr<SSearchBox>	NameFilterBox;
 
 	USkeleton* TargetSkeleton;
+
+	/** Widget user to hold the skeleton tree */
+	TSharedPtr<SOverlay> TreeHolder;
 
 	/** Widget used to display the skeleton hierarchy */
 	TSharedPtr<SMeshSkeletonTreeRowType> SkeletonTreeView;
@@ -586,6 +595,8 @@ private:
 
 	/** Current type of sockets to show */
 	ESocketFilter::Type SocketFilter;
+
+	bool bShowingRetargetingOptions;
 
 	/** Points to an item that is being requested to be renamed */
 	TSharedPtr<FDisplayedTreeRowInfo> DeferredRenameRequest;

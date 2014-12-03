@@ -125,9 +125,9 @@ TSharedRef<SWidget> SPropertyComboBox::OnGenerateComboWidget( TSharedPtr<FString
 		.IsEnabled(bEnabled);
 }
 
-FReply SPropertyComboBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SPropertyComboBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	const FKey Key = InKeyboardEvent.GetKey();
+	const FKey Key = InKeyEvent.GetKey();
 
 	if(Key == EKeys::Up)
 	{
@@ -180,7 +180,7 @@ FReply SPropertyComboBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboar
 		return FReply::Handled();
 	}
 
-	return SComboBox< TSharedPtr<FString> >::OnKeyDown( MyGeometry, InKeyboardEvent );
+	return SComboBox< TSharedPtr<FString> >::OnKeyDown( MyGeometry, InKeyEvent );
 }
 
 #undef LOCTEXT_NAMESPACE

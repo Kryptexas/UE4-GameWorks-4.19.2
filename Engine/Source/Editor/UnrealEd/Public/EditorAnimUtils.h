@@ -26,7 +26,7 @@ namespace EditorAnimUtils
 		void DuplicateAssetsToRetarget(UPackage* DestinationPackage);
 
 		/** Retarget the contained assets */
-		void RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton);
+		void RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton);
 	
 	private:
 		/** Lists of assets to retarget. Populated from FAssetData supplied to constructor */
@@ -58,7 +58,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UNREALED_API UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace);
+	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace);
 
 	/**
 	 * Retargets the supplied FAssetDatas (as long as they are an animation asset), optionally duplicating them and retargetting their reference assets too
@@ -69,7 +69,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UNREALED_API UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace);
+	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace);
 
 	/**
 	 * Retargets the supplied FAnimationRetargetContext, optionally duplicating the assets and retargetting the assets reference assets too. Is called by other overloads of RetargetAnimations
@@ -80,7 +80,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget);
+	UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget);
 
 	// Populates the supplied TArrays with any animation assets that this blueprint refers too
 	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimSequences);

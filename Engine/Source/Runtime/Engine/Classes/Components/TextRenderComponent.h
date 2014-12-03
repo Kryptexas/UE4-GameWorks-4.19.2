@@ -144,7 +144,7 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
 	// Begin UObject interface.

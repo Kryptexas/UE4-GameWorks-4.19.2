@@ -5,12 +5,12 @@
 
 static FName InvisibleWall_NAME(TEXT("InvisibleWall"));
 
-ABlockingVolume::ABlockingVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ABlockingVolume::ABlockingVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	BrushComponent->bCanEverAffectNavigation = true;
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
-	BrushComponent->SetCollisionProfileName(InvisibleWall_NAME);
+	GetBrushComponent()->bCanEverAffectNavigation = true;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
+	GetBrushComponent()->SetCollisionProfileName(InvisibleWall_NAME);
 }
 
 #if WITH_EDITOR
@@ -27,11 +27,11 @@ void ABlockingVolume::LoadedFromAnotherClass(const FName& OldClassName)
 
 		if(OldClassName == DynamicBlockingVolume_NAME)
 		{
-			BrushComponent->Mobility = EComponentMobility::Movable;
+			GetBrushComponent()->Mobility = EComponentMobility::Movable;
 
-			if(BrushComponent->GetCollisionProfileName() == InvisibleWall_NAME)
+			if(GetBrushComponent()->GetCollisionProfileName() == InvisibleWall_NAME)
 			{
-				BrushComponent->SetCollisionProfileName(InvisibleWallDynamic_NAME);
+				GetBrushComponent()->SetCollisionProfileName(InvisibleWallDynamic_NAME);
 			}
 		}
 	}
@@ -48,17 +48,17 @@ void ABlockingVolume::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 	{
 		// If the collision profile is one of the 'default' ones for a BlockingVolume, make sure it is the correct one
 		// If user has changed it to something else, don't touch it
-		FName CurrentProfileName = BrushComponent->GetCollisionProfileName();
+		FName CurrentProfileName = GetBrushComponent()->GetCollisionProfileName();
 		if(	CurrentProfileName == InvisibleWall_NAME ||
 			CurrentProfileName == InvisibleWallDynamic_NAME )
 		{
-			if(BrushComponent->Mobility == EComponentMobility::Movable)
+			if(GetBrushComponent()->Mobility == EComponentMobility::Movable)
 			{
-				BrushComponent->SetCollisionProfileName(InvisibleWallDynamic_NAME);
+				GetBrushComponent()->SetCollisionProfileName(InvisibleWallDynamic_NAME);
 			}
 			else
 			{
-				BrushComponent->SetCollisionProfileName(InvisibleWall_NAME);
+				GetBrushComponent()->SetCollisionProfileName(InvisibleWall_NAME);
 			}
 		}
 	}

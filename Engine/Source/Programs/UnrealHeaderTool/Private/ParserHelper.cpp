@@ -248,7 +248,7 @@ FAdvancedDisplayParameterHandler::FAdvancedDisplayParameterHandler(const TMap<FN
 {
 	if(MetaData)
 	{
-		const FString * FoundString = MetaData->Find(FName(TEXT("AdvancedDisplay")));
+		const FString* FoundString = MetaData->Find(FName(TEXT("AdvancedDisplay")));
 		if(FoundString)
 		{
 			FoundString->ParseIntoArray(&ParametersNames, TEXT(","), true);

@@ -41,8 +41,8 @@ static bool ShouldFlipVectors( FVector InNormal, int32 InAxis )
 }
 
 
-UTexAligner::UTexAligner(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexAligner::UTexAligner(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -139,8 +139,8 @@ void UTexAligner::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FBspSurf
 {
 }
 
-UTexAlignerPlanar::UTexAlignerPlanar(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexAlignerPlanar::UTexAlignerPlanar(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -196,8 +196,8 @@ void UTexAlignerPlanar::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FB
 
 }
 
-UTexAlignerDefault::UTexAlignerDefault(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexAlignerDefault::UTexAlignerDefault(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -223,8 +223,8 @@ void UTexAlignerDefault::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, F
 
 }
 
-UTexAlignerBox::UTexAlignerBox(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexAlignerBox::UTexAlignerBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -254,8 +254,8 @@ void UTexAlignerBox::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FBspS
 
 }
 
-UTexAlignerFit::UTexAlignerFit(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexAlignerFit::UTexAlignerFit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

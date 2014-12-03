@@ -10,6 +10,14 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "CanvasItem.h"
 #include "AI/Navigation/NavigationSystem.h"
+
+#include "AITypes.h"
+#include "AISystem.h"
+#include "GenericTeamAgentInterface.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "AIController.h"
+
+
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/Texture2D.h"
 #include "Regex.h"
@@ -20,8 +28,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 
-AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EngineShowFlags(EShowFlagInitMode::ESFIM_Game)
 {
 	World = NULL;
@@ -126,7 +134,20 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 		CategoriesWidth.AddZeroed(Categories.Num());
 		float TotalWidth = 0.0f, MaxHeight = 0.0f;
 
-		FString HeaderDesc(TEXT("Tap [\"] to close, use Numpad to toggle categories"));
+		FString ActivationKeyDisplayName = TEXT("'");
+		FString ActivationKeyName = TEXT("Apostrophe");
+
+		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+		UGameplayDebuggingControllerComponent*  GDC = GetDebuggingReplicator()->FindComponentByClass<UGameplayDebuggingControllerComponent>();
+		if (GDC)
+		{
+			ActivationKeyDisplayName = GDC->GetActivationKey().Key.GetDisplayName().ToString();
+			ActivationKeyName = GDC->GetActivationKey().Key.GetFName().ToString();
+		}
+
+		const FString KeyDesc = ActivationKeyName != ActivationKeyDisplayName ? FString::Printf(TEXT("(%s key)"), *ActivationKeyName) : TEXT("");
+		const FString HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Numpad to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
+
 		float HeaderWidth = 0.0f;
 		CalulateStringSize(DefaultContext, DefaultContext.Font, HeaderDesc, HeaderWidth, MaxHeight);
 
@@ -162,7 +183,7 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 
 	if ((!DebugComponent || !DebugComponent->GetSelectedActor()) && GetWorld()->GetNetMode() == NM_Client)
 	{
-		PrintString(DefaultContext, "\n{red}No Pawn selected - waiting for data to replicate from server. {green}Press and hold \" to select Pawn \n");
+		PrintString(DefaultContext, "\n{red}No Pawn selected - waiting for data to replicate from server. {green}Press and hold ' to select Pawn \n");
 	}
 
 	DefaultContext.CursorX = OldX;
@@ -286,7 +307,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 
 	if (DebugComponent->DebugIcon.Len() > 0 )
 	{
-		UTexture2D* RegularIcon = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DebugComponent->DebugIcon, NULL, LOAD_None, NULL);
+		UTexture2D* RegularIcon = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DebugComponent->DebugIcon, NULL, LOAD_NoWarn | LOAD_Quiet, NULL);
 		if (RegularIcon)
 		{
 			FCanvasIcon Icon = UCanvas::MakeIcon(RegularIcon);
@@ -347,22 +368,22 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 	PrintString(DefaultContext, TEXT("\n{green}EQS {white}[Use + key to switch query]\n"));
 
-	if (DebugComponent->AllEQSName.Num() == 0)
+	if (DebugComponent->EQSLocalData.Num() == 0)
 	{
 		return;
 	}
 
-	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
-	if (!DebugComponent->AllEQSName.IsValidIndex(EQSIndex))
+	const int32 EQSIndex = DebugComponent->EQSLocalData.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->EQSLocalData.Num() - 1) : INDEX_NONE;
+	if (!DebugComponent->EQSLocalData.IsValidIndex(EQSIndex))
 	{
 		return;
 	}
-	const FString SelecterEQSName = DebugComponent->AllEQSName[EQSIndex];
 
+	int32 Index = 0;
 	PrintString(DefaultContext, TEXT("{white}Queries: "));
 	for (auto CurrentQuery : DebugComponent->EQSLocalData)
 	{
-		if (SelecterEQSName == CurrentQuery.Name)
+		if (EQSIndex == Index)
 		{
 			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQuery.Name));
 		}
@@ -370,6 +391,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 		{
 			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQuery.Name));
 		}
+		Index++;
 	}
 	PrintString(DefaultContext, TEXT("\n"));
 
@@ -515,7 +537,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 	const float PosY = DefaultContext.CursorY + 1.0f;
 	float PosX = DefaultContext.CursorX;
 
-	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	const int32 EQSIndex = DebugComponent->EQSLocalData.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->EQSLocalData.Num() - 1) : INDEX_NONE;
 	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
 	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 
@@ -563,6 +585,60 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
+	if (!DebugComponent)
+	{
+		return;
+	}
+
+	//@FIXME: It have to be changed to only draw data collected by Debugging Component, just moved functionality from FN for now
+	APawn* MyPawn = Cast<APawn>(DebugComponent->GetSelectedActor());
+	if (MyPawn)
+	{
+		AAIController* BTAI = Cast<AAIController>(MyPawn->GetController());
+		if (BTAI)
+		{
+			// standalone only
+			if (BTAI->PerceptionComponent && DefaultContext.Canvas != NULL)
+			{
+				BTAI->PerceptionComponent->DrawDebugInfo(DefaultContext.Canvas);
+
+				const FVector AILocation = MyPawn->GetActorLocation();
+				const FVector Facing = MyPawn->GetActorRotation().Vector();
+
+				static const FColor SightColor = FColor::Red;
+				static const FColor LoseSightColor = FColorList::NeonPink;
+				static const FColor HearingColor = FColor::Yellow;
+				static const FColor LoSHearingColor = FColor::Cyan;
+
+				PrintString(DefaultContext, FColor::Green, TEXT("\n PERCEPTION COMPONENT\n"));
+				PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
+				PrintString(DefaultContext, SightColor, FString::Printf(TEXT(" Sight,")));
+				PrintString(DefaultContext, LoseSightColor, FString::Printf(TEXT(" Lose Sight,")));
+				PrintString(DefaultContext, HearingColor, FString::Printf(TEXT(" Hearing,")));
+				PrintString(DefaultContext, LoSHearingColor, FString::Printf(TEXT(" Line-of-Sight Hearing\n")));
+
+				if (PC && PC->GetPawn())
+				{
+					const float DistanceFromPlayer = (MyPawn->GetActorLocation() - PC->GetPawn()->GetActorLocation()).Size();
+					const float DistanceFromSensor = DebugComponent->SensingComponentLocation != FVector::ZeroVector ? (DebugComponent->SensingComponentLocation - PC->GetPawn()->GetActorLocation()).Size() : -1;
+					PrintString(DefaultContext, FString::Printf(TEXT("Distance Sensor-PlayerPawn: %.1f\n"), DistanceFromSensor));
+					PrintString(DefaultContext, FString::Printf(TEXT("Distance Pawn-PlayerPawn: %.1f\n"), DistanceFromPlayer));
+				}
+
+				UWorld* World = GetWorld();
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetSightRadius(), 32, SightColor);
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLoseSightRadius(), 32, LoseSightColor);
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetHearingRange(), 32, HearingColor);
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLOSHearingRange(), 32, LoSHearingColor);
+
+				DrawDebugLine(World, AILocation, AILocation + (Facing * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
+				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
+				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(-BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
+
+				return;
+			}
+		}
+	}
 }
 
 void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)

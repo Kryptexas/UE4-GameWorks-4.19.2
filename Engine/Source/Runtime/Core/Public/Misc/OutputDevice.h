@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OutputDevice.h: FOutputDevice and OutputDebugString type functions
-=============================================================================*/
-
 #pragma once
 
+#include "HAL/Platform.h"
+#include "HAL/PlatformMisc.h"
+#include "Misc/CoreMiscDefines.h"
+
 class FText;
+class FString;
 
 // Globals.
 #define GLog FOutputDeviceRedirector::Get()
@@ -297,7 +298,7 @@ public:
 
 	// static helpers
 	static const TCHAR* VerbosityToString(ELogVerbosity::Type Verbosity);
-	static FString FormatLogLine(ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message = NULL, ELogTimes::Type LogTime = ELogTimes::None);
+	static FString FormatLogLine(ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message = nullptr, ELogTimes::Type LogTime = ELogTimes::None);
 
 
 	// FOutputDevice interface.

@@ -12,5 +12,5 @@ class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_SingleLineTrace : public
 	GENERATED_UCLASS_BODY()
 
 protected:
-	virtual FHitResult PerformTrace(AActor* InSourceActor) const override;
+	virtual FHitResult PerformTrace(AActor* InSourceActor) override;
 };

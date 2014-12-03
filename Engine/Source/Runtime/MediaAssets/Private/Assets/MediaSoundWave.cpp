@@ -1,13 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
+#include "IMediaTrackAudioDetails.h"
+#include "MediaSampleQueue.h"
+#include "MediaSoundWave.h"
 
 
 /* UMediaSoundWave structors
  *****************************************************************************/
 
-UMediaSoundWave::UMediaSoundWave( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaSoundWave::UMediaSoundWave( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, AudioQueue(MakeShareable(new FMediaSampleQueue))
 {
 	bLooping = false;
@@ -16,7 +19,7 @@ UMediaSoundWave::UMediaSoundWave( const class FPostConstructInitializeProperties
 }
 
 
-UMediaSoundWave::~UMediaSoundWave( )
+UMediaSoundWave::~UMediaSoundWave()
 {
 	if (AudioTrack.IsValid())
 	{
@@ -28,7 +31,7 @@ UMediaSoundWave::~UMediaSoundWave( )
 /* UMediaSoundWave interface
  *****************************************************************************/
 
-TSharedPtr<IMediaPlayer> UMediaSoundWave::GetPlayer( ) const
+TSharedPtr<IMediaPlayer> UMediaSoundWave::GetPlayer() const
 {
 	if (MediaPlayer == nullptr)
 	{
@@ -127,7 +130,7 @@ void UMediaSoundWave::Serialize( FArchive& Ar )
 /* UMediaSoundWave implementation
  *****************************************************************************/
 
-void UMediaSoundWave::InitializeTrack( )
+void UMediaSoundWave::InitializeTrack()
 {
 	// assign new media player asset
 	if (CurrentMediaPlayer != MediaPlayer)
@@ -196,7 +199,7 @@ void UMediaSoundWave::InitializeTrack( )
 /* UMediaSoundWave callbacks
  *****************************************************************************/
 
-void UMediaSoundWave::HandleMediaPlayerMediaChanged( )
+void UMediaSoundWave::HandleMediaPlayerMediaChanged()
 {
 	InitializeTrack();
 }

@@ -7,8 +7,8 @@
 //----------------------------------------------------------------------//
 // ANavModifierVolume
 //----------------------------------------------------------------------//
-ANavModifierVolume::ANavModifierVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavModifierVolume::ANavModifierVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -16,7 +16,7 @@ void ANavModifierVolume::GetNavigationData(struct FNavigationRelevantData& Data)
 {
 	if (Brush && AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 	{
-		FAreaNavModifier AreaMod(BrushComponent, AreaClass);
+		FAreaNavModifier AreaMod(GetBrushComponent(), AreaClass);
 		Data.Modifiers.Add(AreaMod);
 	}
 }
@@ -27,6 +27,13 @@ FBox ANavModifierVolume::GetNavigationBounds() const
 }
 
 #if WITH_EDITOR
+
+void ANavModifierVolume::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	UNavigationSystem::UpdateNavOctree(this);
+}
 
 void ANavModifierVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

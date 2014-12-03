@@ -14,7 +14,7 @@ class SBspBuilderListView : public SListView<TSharedPtr<FBspBuilderType>>
 {
 public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		return FReply::Unhandled();
 	}

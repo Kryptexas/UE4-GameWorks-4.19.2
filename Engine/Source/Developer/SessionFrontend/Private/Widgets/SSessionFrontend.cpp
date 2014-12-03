@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
+#include "SDockTab.h"
+#include "WorkspaceMenuStructureModule.h"
 
 
 #define LOCTEXT_NAMESPACE "SSessionFrontend"
@@ -25,9 +27,7 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 
 	// create & initialize tab manager
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
-
-	TSharedRef<FWorkspaceItem> RootMenuGroup = FWorkspaceItem::NewGroup(LOCTEXT("RootMenuGroupName", "Root"));
-	TSharedRef<FWorkspaceItem> AppMenuGroup = RootMenuGroup->AddGroup(LOCTEXT("SessionFrontendMenuGroupName", "Session Frontend"));
+	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("SessionFrontendMenuGroupName", "Session Frontend"));
 	
 	TabManager->RegisterTabSpawner(AutomationTabId, FOnSpawnTab::CreateRaw(this, &SSessionFrontend::HandleTabManagerSpawnTab, AutomationTabId))
 		.SetDisplayName(LOCTEXT("AutomationTabTitle", "Automation"))
@@ -87,7 +87,7 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 	MenuBarBuilder.AddPullDownMenu(
 		LOCTEXT("WindowMenuLabel", "Window"),
 		FText::GetEmpty(),
-		FNewMenuDelegate::CreateStatic(&SSessionFrontend::FillWindowMenu, RootMenuGroup, AppMenuGroup, TabManager),
+		FNewMenuDelegate::CreateStatic(&SSessionFrontend::FillWindowMenu, TabManager),
 		"Window"
 	);
 
@@ -113,7 +113,7 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 /* SSessionFrontend implementation
  *****************************************************************************/
 
-void SSessionFrontend::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup, TSharedRef<FWorkspaceItem> AppMenuGroup, const TSharedPtr<FTabManager> TabManager )
+void SSessionFrontend::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager )
 {
 	if (!TabManager.IsValid())
 	{
@@ -121,22 +121,14 @@ void SSessionFrontend::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWo
 	}
 
 #if !WITH_EDITOR
-	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
-	{
-		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, RootMenuGroup);
-	}
-	MenuBuilder.EndSection();
+	FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, WorkspaceMenu::GetMenuStructure().GetStructureRoot());
 #endif //!WITH_EDITOR
 
-	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("SessionFrontendMenuGroup", "Session Frontend"));
-	{
-		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
-	}
-	MenuBuilder.EndSection();
+	TabManager->PopulateLocalTabSpawnerMenu(MenuBuilder);
 }
 
 
-void SSessionFrontend::InitializeControllers( )
+void SSessionFrontend::InitializeControllers()
 {
 	// load required modules and objects
 	ISessionServicesModule& SessionServicesModule = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices");

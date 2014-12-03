@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
+#include "Slate/UMGDragDropOp.h"
 #include "WidgetBlueprintLibrary.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -9,8 +10,8 @@
 /////////////////////////////////////////////////////
 // UWidgetBlueprintLibrary
 
-UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -54,13 +55,13 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWi
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)//, bool bHideCursorDuringCapture)
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
 {
 	if (Target != nullptr)
 	{
 		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewport(bLockMouseToViewport);
-		//InputMode.SetHideCursorDuringCapture(bHideCursorDuringCapture);
+		InputMode.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 
 		if (InWidgetToFocus != nullptr)
 		{
@@ -81,7 +82,7 @@ void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* Target)
 
 void UWidgetBlueprintLibrary::SetFocusToGameViewport()
 {
-	FSlateApplication::Get().SetFocusToGameViewport();
+	FSlateApplication::Get().SetAllUserFocusToGameViewport();
 }
 
 void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint)
@@ -175,23 +176,41 @@ FEventReply UWidgetBlueprintLibrary::ReleaseMouseCapture(UPARAM(ref) FEventReply
 	return Reply;
 }
 
-FEventReply UWidgetBlueprintLibrary::CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks/* = false*/)
+FEventReply UWidgetBlueprintLibrary::SetUserFocus(UPARAM(ref) FEventReply& Reply, UWidget* FocusWidget, bool bInAllUsers/* = false*/)
 {
-	if ( CapturingWidget )
+	if (FocusWidget)
 	{
-		TSharedPtr<SWidget> CapturingSlateWidget = CapturingWidget->GetCachedWidget();
-		if ( CapturingSlateWidget.IsValid() )
+		TSharedPtr<SWidget> CapturingSlateWidget = FocusWidget->GetCachedWidget();
+		if (CapturingSlateWidget.IsValid())
 		{
-			Reply.NativeReply = Reply.NativeReply.CaptureJoystick(CapturingSlateWidget.ToSharedRef(), bInAllJoysticks);
+			Reply.NativeReply = Reply.NativeReply.SetUserFocus(CapturingSlateWidget.ToSharedRef(), EFocusCause::SetDirectly, bInAllUsers);
 		}
 	}
 
 	return Reply;
 }
 
+FEventReply UWidgetBlueprintLibrary::CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks/* = false*/)
+{
+	return SetUserFocus(Reply, CapturingWidget, bInAllJoysticks);
+}
+
+FEventReply UWidgetBlueprintLibrary::ClearUserFocus(UPARAM(ref) FEventReply& Reply, bool bInAllUsers /*= false*/)
+{
+	Reply.NativeReply = Reply.NativeReply.ClearUserFocus(bInAllUsers);
+
+	return Reply;
+}
+
 FEventReply UWidgetBlueprintLibrary::ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks /*= false*/)
 {
-	Reply.NativeReply = Reply.NativeReply.ReleaseJoystickCapture(bInAllJoysticks);
+	return ClearUserFocus(Reply, bInAllJoysticks);
+}
+
+FEventReply UWidgetBlueprintLibrary::SetMousePosition(UPARAM(ref) FEventReply& Reply, FVector2D NewMousePosition)
+{
+	FIntPoint NewPoint((int32)NewMousePosition.X, (int32)NewMousePosition.Y);
+	Reply.NativeReply = Reply.NativeReply.SetMousePos(NewPoint);
 
 	return Reply;
 }
@@ -226,6 +245,32 @@ FEventReply UWidgetBlueprintLibrary::EndDragDrop(UPARAM(ref) FEventReply& Reply)
 	Reply.NativeReply = Reply.NativeReply.EndDragDrop();
 
 	return Reply;
+}
+
+bool UWidgetBlueprintLibrary::IsDragDropping()
+{
+	if ( FSlateApplication::Get().IsDragDropping() )
+	{
+		TSharedPtr<FDragDropOperation> SlateDragOp = FSlateApplication::Get().GetDragDroppingContent();
+		if ( SlateDragOp.IsValid() && SlateDragOp->IsOfType<FUMGDragDropOp>() )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+UDragDropOperation* UWidgetBlueprintLibrary::GetDragDroppingContent()
+{
+	TSharedPtr<FDragDropOperation> SlateDragOp = FSlateApplication::Get().GetDragDroppingContent();
+	if ( SlateDragOp.IsValid() && SlateDragOp->IsOfType<FUMGDragDropOp>() )
+	{
+		TSharedPtr<FUMGDragDropOp> UMGDragDropOp = StaticCastSharedPtr<FUMGDragDropOp>(SlateDragOp);
+		return UMGDragDropOp->GetOperation();
+	}
+
+	return nullptr;
 }
 
 FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromAsset(USlateBrushAsset* BrushAsset)
@@ -270,6 +315,34 @@ FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromMaterial(UMaterialInterface* M
 FSlateBrush UWidgetBlueprintLibrary::NoResourceBrush()
 {
 	return FSlateNoResource();
+}
+
+UMaterialInstanceDynamic* UWidgetBlueprintLibrary::GetDynamicMaterial(FSlateBrush& Brush)
+{
+	UObject* Resource = Brush.GetResourceObject();
+
+	// If we already have a dynamic material, return it.
+	if ( UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Resource) )
+	{
+		return DynamicMaterial;
+	}
+	// If the resource has a material interface we'll just update the brush to have a dynamic material.
+	else if ( UMaterialInterface* Material = Cast<UMaterialInterface>(Resource) )
+	{
+		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, nullptr);
+		Brush.SetResourceObject(DynamicMaterial);
+
+		return DynamicMaterial;
+	}
+
+	//TODO UMG can we do something for textures?  General purpose dynamic material for them?
+
+	return nullptr;
+}
+
+void UWidgetBlueprintLibrary::DismissAllMenus()
+{
+	FSlateApplication::Get().DismissAllMenus();
 }
 
 #undef LOCTEXT_NAMESPACE

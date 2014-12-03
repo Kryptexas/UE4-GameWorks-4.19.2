@@ -2,6 +2,7 @@
 
 #include "EditorWidgetsPrivatePCH.h"
 #include "SAssetSearchBox.h"
+#include "SSearchBox.h"
 
 void SAssetSearchBox::Construct( const FArguments& InArgs )
 {
@@ -52,9 +53,9 @@ void SAssetSearchBox::SetText(const TAttribute< FText >& InNewText)
 	PreCommittedText = InNewText.Get();
 }
 
-FReply SAssetSearchBox::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetSearchBox::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( SuggestionBox->IsOpen() && InKeyboardEvent.GetKey() == EKeys::Escape )
+	if ( SuggestionBox->IsOpen() && InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		// Clear any selection first to prevent the currently selection being set in the text box
 		SuggestionListView->ClearSelection();
@@ -65,11 +66,11 @@ FReply SAssetSearchBox::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKe
 	return FReply::Unhandled();
 }
 
-FReply SAssetSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( SuggestionBox->IsOpen() && (InKeyboardEvent.GetKey() == EKeys::Up || InKeyboardEvent.GetKey() == EKeys::Down) )
+	if ( SuggestionBox->IsOpen() && (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down) )
 	{
-		const bool bSelectingUp = InKeyboardEvent.GetKey() == EKeys::Up;
+		const bool bSelectingUp = InKeyEvent.GetKey() == EKeys::Up;
 		TSharedPtr<FString> SelectedSuggestion = GetSelectedSuggestion();
 
 		if ( SelectedSuggestion.IsValid() )
@@ -121,10 +122,10 @@ bool SAssetSearchBox::HasKeyboardFocus() const
 	return InputText->HasKeyboardFocus();
 }
 
-FReply SAssetSearchBox::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SAssetSearchBox::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Forward keyboard focus to our editable text widget
-	return FReply::Handled().SetKeyboardFocus( InputText.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+	return FReply::Handled().SetUserFocus(InputText.ToSharedRef(), InFocusEvent.GetCause());
 }
 
 void SAssetSearchBox::HandleTextChanged(const FText& NewText)
@@ -249,7 +250,7 @@ void SAssetSearchBox::FocusEditBox()
 {
 	FWidgetPath WidgetToFocusPath;
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-	FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 }
 
 TSharedPtr<FString> SAssetSearchBox::GetSelectedSuggestion()

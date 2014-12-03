@@ -47,7 +47,6 @@ FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings)
 		float SpecularBoost;
 		Ar << SpecularBoost;
 	}
-	Settings.bUseEmissiveForStaticLighting = false;
 
 	return Ar;
 }
@@ -373,10 +372,10 @@ int32 FPoly::SplitWithPlaneFast
 		// Split.
 		if( FrontPoly )
 		{
-			const FVector *V  = Vertices.GetTypedData();
+			const FVector *V  = Vertices.GetData();
 			const FVector *W  = V + Vertices.Num()-1;
-			FVector *V1       = FrontPoly->Vertices.GetTypedData();
-			FVector *V2       = BackPoly ->Vertices.GetTypedData();
+			FVector *V1       = FrontPoly->Vertices.GetData();
+			FVector *V2       = BackPoly ->Vertices.GetData();
 			StatusPtr         = &VertStatus        [0];
 			PrevStatus        = VertStatus         [Vertices.Num()-1];
 

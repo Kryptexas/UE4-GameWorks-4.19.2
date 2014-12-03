@@ -158,7 +158,7 @@ public:
 	 *
 	 * @return			True if processed, false otherwise
 	 */
-	bool Exec( UWorld * InWorld, const TCHAR * Cmd, FOutputDevice & Ar );
+	bool Exec( UWorld * InWorld, const TCHAR* Cmd, FOutputDevice & Ar );
 
 	bool FORCEINLINE IsTrackingEnabled() const { return bIsTrackingEnabled; }
 };

@@ -357,7 +357,7 @@ public:
 private:
 
 	// Begin SWidget Interface
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	// End SWidget Interface
 
 	/**

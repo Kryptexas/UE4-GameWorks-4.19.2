@@ -1,18 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealTemplate.h: Unreal common template definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "EnableIf.h"
+#include "PointerIsConvertibleFromTo.h"
+#include "TypeWrapper.h"
+#include "HAL/Platform.h"
+#include "Templates/UnrealTypeTraits.h"
+
 
 /*-----------------------------------------------------------------------------
 	Standard templates.
 -----------------------------------------------------------------------------*/
-
-#if PLATFORM_SUPPORTS_CanConvertPointerFromTo
 
 /** 
 * CanConvertPointerFromTo<From, To>::Result is an enum value equal to 1 if From* is automatically convertable to a To* (without regard to const!)
@@ -20,12 +19,10 @@
 template<class From, class To>
 class CanConvertPointerFromTo
 {
-	static uint8 Test(...);
-	static uint16 Test(To const*);
 public:
 	enum Type
 	{
-		Result = sizeof(Test((From*)0)) - 1
+		Result = TPointerIsConvertibleFromTo<From, const To>::Value
 	};
 };
 
@@ -59,8 +56,6 @@ static_assert(!(CanConvertPointerFromTo<void, CanConvertPointerFromTo_TestBase>:
 static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
 static_assert(!(CanConvertPointerFromTo<void, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
 
-#endif
-
 
 
 /**
@@ -87,8 +82,8 @@ template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
 }
 
 /**
- * Chooses between the two parameters based on whether the first is NULL or not.
- * @return If the first parameter provided is non-NULL, it is returned; otherwise the second parameter is returned.
+ * Chooses between the two parameters based on whether the first is nullptr or not.
+ * @return If the first parameter provided is non-nullptr, it is returned; otherwise the second parameter is returned.
  */
 template<typename ReferencedType>
 FORCEINLINE ReferencedType* IfAThenAElseB(ReferencedType* A,ReferencedType* B)
@@ -347,24 +342,6 @@ struct TKeyValuePair
 	ValueType	Value;
 };
 
-/** Tests whether two typenames refer to the same type. */
-template<typename A,typename B>
-struct TAreTypesEqual;
-
-template<typename,typename>
-struct TAreTypesEqual
-{
-	enum { Value = false };
-};
-
-template<typename A>
-struct TAreTypesEqual<A,A>
-{
-	enum { Value = true };
-};
-
-#define ARE_TYPES_EQUAL(A,B) TAreTypesEqual<A,B>::Value
-
 //
 // Macros that can be used to specify multiple template parameters in a macro parameter.
 // This is necessary to prevent the macro parsing from interpreting the template parameter
@@ -373,6 +350,17 @@ struct TAreTypesEqual<A,A>
 
 #define TEMPLATE_PARAMETERS2(X,Y) X,Y
 
+
+/**
+ * Removes one level of pointer from a type, e.g.:
+ *
+ * TRemovePointer<      int32  >::Type == int32
+ * TRemovePointer<      int32* >::Type == int32
+ * TRemovePointer<      int32**>::Type == int32*
+ * TRemovePointer<const int32* >::Type == const int32
+ */
+template <typename T> struct TRemovePointer     { typedef T Type; };
+template <typename T> struct TRemovePointer<T*> { typedef T Type; };
 
 /**
  * TRemoveReference<type> will remove any references from a type.
@@ -433,16 +421,6 @@ FORCEINLINE T StaticCast(ArgType&& Arg)
 }
 
 /**
- * TRemoveCV<type> will remove any const/volatile qualifiers from a type.
- * (based on std::remove_cv<>
- * note: won't remove the const from "const int*", as the pointer is not const
- */
-template <typename T> struct TRemoveCV                   { typedef T Type; };
-template <typename T> struct TRemoveCV<const T>          { typedef T Type; };
-template <typename T> struct TRemoveCV<volatile T>       { typedef T Type; };
-template <typename T> struct TRemoveCV<const volatile T> { typedef T Type; };
-
-/**
  * TRValueToLValueReference converts any rvalue reference type into the equivalent lvalue reference, otherwise returns the same type.
  */
 template <typename T> struct TRValueToLValueReference      { typedef T  Type; };
@@ -453,6 +431,37 @@ template <typename T> struct TRValueToLValueReference<T&&> { typedef T& Type; };
  */
 template <typename T>           struct TIsCPPArray       { enum { Value = false }; };
 template <typename T, uint32 N> struct TIsCPPArray<T[N]> { enum { Value = true  }; };
+
+/**
+ * Removes one dimension of extents from an array type.
+ */
+template <typename T>           struct TRemoveExtent       { typedef T Type; };
+template <typename T>           struct TRemoveExtent<T[]>  { typedef T Type; };
+template <typename T, uint32 N> struct TRemoveExtent<T[N]> { typedef T Type; };
+
+/**
+ * Returns the decayed type of T, meaning it removes all references, qualifiers and
+ * applies array-to-pointer and function-to-pointer conversions.
+ *
+ * http://en.cppreference.com/w/cpp/types/decay
+ */
+template <typename T>
+struct TDecay
+{
+private:
+	typedef typename TRemoveReference<T>::Type NoRefs;
+
+public:
+	typedef typename TChooseClass<
+		TIsCPPArray<NoRefs>::Value,
+		typename TRemoveExtent<NoRefs>::Type*,
+		typename TChooseClass<
+			TIsFunction<NoRefs>::Value,
+			NoRefs*,
+			typename TRemoveCV<NoRefs>::Type
+		>::Result
+	>::Result Type;
+};
 
 /**
  * Reverses the order of the bits of a value.
@@ -504,6 +513,18 @@ template <typename From, typename To> struct TCopyQualifiersFromTo<      volatil
 template <typename From, typename To> struct TCopyQualifiersFromTo<const volatile From, To> { typedef const volatile To Type; };
 
 /**
+ * Tests if qualifiers are lost between one type and another, e.g.:
+ *
+ * TCopyQualifiersFromTo<const    T1,                T2>::Value == true
+ * TCopyQualifiersFromTo<volatile T1, const volatile T2>::Value == false
+ */
+template <typename From, typename To>
+struct TLosesQualifiersFromTo
+{
+	enum { Value = !TAreTypesEqual<typename TCopyQualifiersFromTo<From, To>::Type, To>::Value };
+};
+
+/**
  * Returns the same type passed to it.  This is useful in a few cases, but mainly for inhibiting template argument deduction in function arguments, e.g.:
  *
  * template <typename T>
@@ -516,4 +537,44 @@ template <typename T>
 struct TIdentity
 {
 	typedef T Type;
+};
+
+/**
+ * Does LHS::Value && RHS::Value, but short-circuits if LHS::Value == false.
+ */
+template <bool LHSValue, typename RHS>
+struct TAndValue
+{
+	enum { Value = RHS::Value };
+};
+
+template <typename RHS>
+struct TAndValue<false, RHS>
+{
+	enum { Value = false };
+};
+
+template <typename LHS, typename RHS>
+struct TAnd : TAndValue<LHS::Value, RHS>
+{
+};
+
+/**
+ * Does LHS::Value || RHS::Value, but short-circuits if LHS::Value == true.
+ */
+template <bool LHSValue, typename RHS>
+struct TOrValue
+{
+	enum { Value = RHS::Value };
+};
+
+template <typename RHS>
+struct TOrValue<true, RHS>
+{
+	enum { Value = true };
+};
+
+template <typename LHS, typename RHS>
+struct TOr : TOrValue<LHS::Value, RHS>
+{
 };

@@ -11,6 +11,7 @@
 #include "Model.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "ComponentReregisterContext.h"
 
 //
 //	Static vars
@@ -482,7 +483,9 @@ void UModelComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsag
 	// Stored in texture.
 	const float MIP_FACTOR = 1.33f;
 	ShadowMapMemoryUsage	= FMath::TruncToInt( MIP_FACTOR * LightMapWidth * LightMapHeight ); // G8
-	if( AllowHighQualityLightmaps() )
+
+	auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+	if (AllowHighQualityLightmaps(FeatureLevel))
 	{ 
 		LightMapMemoryUsage = FMath::TruncToInt( NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * LightMapWidth * LightMapHeight ); // DXT5
 	}

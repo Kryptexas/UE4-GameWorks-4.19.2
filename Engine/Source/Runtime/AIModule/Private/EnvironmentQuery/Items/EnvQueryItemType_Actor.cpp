@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Actor.h"
 
-UEnvQueryItemType_Actor::UEnvQueryItemType_Actor(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType_Actor::UEnvQueryItemType_Actor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FWeakObjectPtr);
 }
@@ -37,22 +37,22 @@ AActor* UEnvQueryItemType_Actor::GetActor(const uint8* RawData) const
 	return UEnvQueryItemType_Actor::GetValue(RawData);
 }
 
-void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const AActor* SingleActor)
+void UEnvQueryItemType_Actor::SetContextHelper(FEnvQueryContextData& ContextData, const AActor* SingleActor)
 {
 	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
 	ContextData.NumValues = 1;
 	ContextData.RawData.Init(sizeof(FWeakObjectPtr));
 
-	UEnvQueryItemType_Actor::SetValue(ContextData.RawData.GetTypedData(), SingleActor);
+	UEnvQueryItemType_Actor::SetValue(ContextData.RawData.GetData(), SingleActor);
 }
 
-void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<const AActor*>& MultipleActors)
+void UEnvQueryItemType_Actor::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<const AActor*>& MultipleActors)
 {
 	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
 	ContextData.NumValues = MultipleActors.Num();
 	ContextData.RawData.Init(sizeof(FWeakObjectPtr) * MultipleActors.Num());
 
-	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
+	uint8* RawData = (uint8*)ContextData.RawData.GetData();
 	for (int32 ActorIndex = 0; ActorIndex < MultipleActors.Num(); ActorIndex++)
 	{
 		UEnvQueryItemType_Actor::SetValue(RawData, MultipleActors[ActorIndex]);
@@ -60,13 +60,13 @@ void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& Cont
 	}
 }
 
-void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors)
+void UEnvQueryItemType_Actor::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors)
 {
 	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
 	ContextData.NumValues = MultipleActors.Num();
 	ContextData.RawData.Init(sizeof(FWeakObjectPtr)* MultipleActors.Num());
 
-	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
+	uint8* RawData = (uint8*)ContextData.RawData.GetData();
 	for (int32 ActorIndex = 0; ActorIndex < MultipleActors.Num(); ActorIndex++)
 	{
 		UEnvQueryItemType_Actor::SetValue(RawData, MultipleActors[ActorIndex]);

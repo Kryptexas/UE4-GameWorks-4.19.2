@@ -4,8 +4,8 @@
 #include "OnlineSubsystemUtilsClasses.h"
 
 
-UPartyBeaconState::UPartyBeaconState(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UPartyBeaconState::UPartyBeaconState(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	SessionName(NAME_None),
 	NumConsumedReservations(0),
 	MaxReservations(0)

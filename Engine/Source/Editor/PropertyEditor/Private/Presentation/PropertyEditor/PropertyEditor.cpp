@@ -326,8 +326,7 @@ void FPropertyEditor::SetEditConditionState( bool bShouldEnable )
 		}
 	}
 
-	const bool bTopologyChange = true;
-	FPropertyChangedEvent ChangeEvent(PropertyNode->GetProperty(), bTopologyChange);
+	FPropertyChangedEvent ChangeEvent(PropertyNode->GetProperty());
 	PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
 }
 
@@ -402,9 +401,7 @@ void FPropertyEditor::OnCustomResetToDefault( FSimpleDelegate OnCustomResetToDef
 		OnCustomResetToDefaultDelegate.Execute();
 
 		// Call PostEditchange on all the objects
-		// Assume reset to default, can change topology
-		const bool bTopologyChange = true;
-		FPropertyChangedEvent ChangeEvent( PropertyNode->GetProperty(), bTopologyChange );
+		FPropertyChangedEvent ChangeEvent( PropertyNode->GetProperty() );
 		PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
 	}
 }
@@ -441,8 +438,9 @@ bool FPropertyEditor::IsResetToDefaultAvailable() const
 
 	// Should not be able to reset fixed size arrays
 	const bool bFixedSized = Property && Property->PropertyFlags & CPF_EditFixedSize;
+	const bool bCanResetToDefault = !(Property && Property->PropertyFlags & CPF_Config);
 
-	return Property && !PropertyHandle->IsEditConst() && !bFixedSized && PropertyHandle->DiffersFromDefault();
+	return Property && !PropertyHandle->IsEditConst() && bCanResetToDefault && !bFixedSized && PropertyHandle->DiffersFromDefault();
 }
 
 bool FPropertyEditor::ValueDiffersFromDefault() const

@@ -5,24 +5,26 @@
 //////////////////////////////////////////////////////////////////////////
 // UConnectionCallbackProxy
 
-UConnectionCallbackProxy::UConnectionCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UConnectionCallbackProxy::UConnectionCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, WorldContextObject(nullptr)
 {
 
 	OnLoginCompleteDelegate.BindUObject(this, &ThisClass::OnLoginCompleted);
 
 }
 
-UConnectionCallbackProxy* UConnectionCallbackProxy::ConnectToService(class APlayerController* PlayerController)
+UConnectionCallbackProxy* UConnectionCallbackProxy::ConnectToService(UObject* WorldContextObject, class APlayerController* PlayerController)
 {
 	UConnectionCallbackProxy* Proxy = NewObject<UConnectionCallbackProxy>();
 	Proxy->PlayerControllerWeakPtr = PlayerController;
+	Proxy->WorldContextObject = WorldContextObject;
 	return Proxy;
 }
 
 void UConnectionCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())
@@ -57,7 +59,7 @@ void UConnectionCallbackProxy::Activate()
 
 void UConnectionCallbackProxy::OnLoginCompleted(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "MaterialExpressionIO.h"
+
 #include "MaterialExpression.generated.h"
 
 class FMaterialExpressionKey;
+class UEdGraphNode;
 
 //@warning: FExpressionInput is mirrored in MaterialShared.h and manually "subclassed" in Material.h (FMaterialInput)
 #if !CPP      //noexport struct
@@ -92,7 +95,7 @@ class ENGINE_API UMaterialExpression : public UObject
 	int32 MaterialExpressionEditorY;
 
 	/** Expression's Graph representation */
-	class UEdGraphNode*	GraphNode;
+	UEdGraphNode*	GraphNode;
 
 	/** Text of last error for this expression */
 	FString LastErrorText;

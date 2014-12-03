@@ -83,6 +83,9 @@ class AIMODULE_API UBlackboardKeyType : public UObject
 	/** extract rotation from entry */
 	virtual bool GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const;
 
+	/** sets value to the default */
+	virtual bool Clear(uint8* MemoryBlock) const;
+
 	/** interprets given two memory blocks as "my" type and compares them */
 	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const;
 

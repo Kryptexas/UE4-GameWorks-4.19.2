@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
+#include "ModuleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "FSettingsMenu"
 
@@ -21,7 +27,7 @@ public:
 	 */
 	static void MakeMenu( FMenuBuilder& MenuBuilder, FName SettingsContainerName )
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule == nullptr)
 		{

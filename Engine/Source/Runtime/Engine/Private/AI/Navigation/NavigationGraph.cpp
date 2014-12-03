@@ -18,8 +18,8 @@ FNavGraphNode::FNavGraphNode()
 //----------------------------------------------------------------------//
 // UNavigationGraphNodeComponent
 //----------------------------------------------------------------------//
-UNavigationGraphNodeComponent::UNavigationGraphNodeComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationGraphNodeComponent::UNavigationGraphNodeComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -44,8 +44,8 @@ void UNavigationGraphNodeComponent::BeginDestroy()
 //----------------------------------------------------------------------//
 // ANavigationGraphNode
 //----------------------------------------------------------------------//
-ANavigationGraphNode::ANavigationGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationGraphNode::ANavigationGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -53,9 +53,13 @@ ANavigationGraphNode::ANavigationGraphNode(const class FPostConstructInitializeP
 // ANavigationGraph
 //----------------------------------------------------------------------//
 
-ANavigationGraph::ANavigationGraph(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationGraph::ANavigationGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		NavDataGenerator.Reset(new FNavGraphGenerator(this));
+	}
 }
 
 ANavigationData* ANavigationGraph::CreateNavigationInstances(UNavigationSystem* NavSys)
@@ -70,7 +74,7 @@ ANavigationData* ANavigationGraph::CreateNavigationInstances(UNavigationSystem* 
 	FActorIterator It(NavSys->GetWorld());
 	for(; It; ++It )
 	{
-		if (InterfaceCast<INavNodeInterface>(*It) != NULL)
+		if (Cast<INavNodeInterface>(*It) != NULL)
 		{
 			bCreateNavigation = true;
 			break;
@@ -84,10 +88,3 @@ ANavigationData* ANavigationGraph::CreateNavigationInstances(UNavigationSystem* 
 
 	return NULL;
 }
-
-#if WITH_NAVIGATION_GENERATOR
-FNavDataGenerator* ANavigationGraph::ConstructGenerator(const FNavAgentProperties& AgentProps)
-{
-	return new FNavGraphGenerator(this);
-}
-#endif

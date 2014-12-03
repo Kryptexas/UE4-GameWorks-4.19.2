@@ -5,6 +5,12 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "HAL/Platform.h"
+#include "Misc/Build.h"
+#include "WinRT/WinRTSystemIncludes.h"
+
+class FString;
 
 /**
  * WinRT implementation of the misc OS functions

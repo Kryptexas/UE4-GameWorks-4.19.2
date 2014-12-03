@@ -5,7 +5,7 @@
 #include "InputComponent.generated.h"
 
 
-// Utility delegate class to allow binding to either a C++ function or a blueprint script delegate
+/** Utility delegate class to allow binding to either a C++ function or a blueprint script delegate */
 template<class DelegateType, class DynamicDelegateType>
 struct TInputUnifiedDelegate
 {
@@ -13,11 +13,13 @@ struct TInputUnifiedDelegate
 	TInputUnifiedDelegate(DelegateType const& D) : FuncDelegate(D) {};
 	TInputUnifiedDelegate(DynamicDelegateType const& D) : FuncDynDelegate(D) {};
 
+	/** Returns if either the native or dynamic delegate is bound */
 	inline bool IsBound() const
 	{
 		return ( FuncDelegate.IsBound() || FuncDynDelegate.IsBound() );
 	}
 
+	/** Returns if either the native or dynamic delegate is bound to an object */
 	inline bool IsBoundToObject(void const* Object) const
 	{
 		if (FuncDelegate.IsBound())
@@ -32,6 +34,7 @@ struct TInputUnifiedDelegate
 		return false;
 	}
 
+	/** Binds a native delegate and unbinds any bound dynamic delegate */
 	template< class UserClass >
 	inline void BindDelegate(UserClass* Object, typename DelegateType::template TUObjectMethodDelegate< UserClass >::FMethodPtr Func)
 	{
@@ -39,18 +42,21 @@ struct TInputUnifiedDelegate
 		FuncDelegate.BindUObject(Object, Func);
 	}
 
+	/** Binds a dynamic delegate and unbinds any bound native delegate */
 	inline void BindDelegate(UObject* Object, const FName FuncName)
 	{
 		FuncDelegate.Unbind();
 		FuncDynDelegate.BindUFunction(Object, FuncName);
 	}
 
-	DelegateType & GetDelegateForManualSet()
+	/** Returns a reference to the native delegate and unbinds any bound dynamic delegate */
+	DelegateType& GetDelegateForManualSet()
 	{
 		FuncDynDelegate.Unbind();
 		return FuncDelegate;
 	}
 
+	/** Unbinds any bound delegates */
 	inline void Unbind()
 	{
 		FuncDelegate.Unbind();
@@ -70,28 +76,37 @@ protected:
 };
 
 
-// An Input Chord is a key and the modifier keys that are to be held with it
+/** An Input Chord is a key and the modifier keys that are to be held with it. */
 USTRUCT()
 struct FInputChord
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** The Key is the core of the chord. */
 	UPROPERTY()
 	FKey Key;
 
+	/** Whether the shift key is part of the chord.  */
 	UPROPERTY()
 	uint32 bShift:1;
 
+	/** Whether the control key is part of the chord.  */
 	UPROPERTY()
 	uint32 bCtrl:1;
 
+	/** Whether the alt key is part of the chord.  */
 	UPROPERTY()
 	uint32 bAlt:1;
 
+	/** Whether the command key is part of the chord.  */
 	UPROPERTY()
 	uint32 bCmd:1;
 
-	enum RelationshipType
+	/** 
+	  * The ways two chords can be related to each other. A chord is considered masking 
+	  * when it has all the same modifier keys as another chord plus more.
+	  */
+	enum ERelationshipType
 	{
 		None,
 		Same,
@@ -99,9 +114,8 @@ struct FInputChord
 		Masks
 	};
 
-	// Returns the relationship between this chord and another.  A chord is considered masking
-	// when it has all the same modifier keys as another chord plus more
-	RelationshipType GetRelationship(const FInputChord& OtherChord) const;
+	/** Returns the relationship between this chord and another. */
+	ERelationshipType GetRelationship(const FInputChord& OtherChord) const;
 
 	FInputChord()
 		: bShift(false)
@@ -128,28 +142,7 @@ struct FInputChord
 	}
 };
 
-
-/** Delegate signature for action handlers. */
-DECLARE_DELEGATE( FInputActionHandlerSignature );
-DECLARE_DYNAMIC_DELEGATE( FInputActionHandlerDynamicSignature );
-
-
-struct FInputActionUnifiedDelegate : public TInputUnifiedDelegate<FInputActionHandlerSignature, FInputActionHandlerDynamicSignature>
-{
-	inline void Execute() const
-	{
-		if (FuncDelegate.IsBound())
-		{
-			FuncDelegate.Execute();
-		}
-		else if (FuncDynDelegate.IsBound())
-		{
-			FuncDynDelegate.Execute();
-		}
-	}
-};
-
-
+/** Base class for the different binding types. */
 struct FInputBinding
 {
 	/** Whether the binding should consume the input or allow it to pass to another component */
@@ -164,19 +157,40 @@ struct FInputBinding
 	{}
 };
 
+/** Delegate signature for action events. */
+DECLARE_DELEGATE( FInputActionHandlerSignature );
+DECLARE_DYNAMIC_DELEGATE( FInputActionHandlerDynamicSignature );
 
-/** Binds a game-defined action. */
+/** Unified delegate specialization for Input Actions. */
+struct FInputActionUnifiedDelegate : public TInputUnifiedDelegate<FInputActionHandlerSignature, FInputActionHandlerDynamicSignature>
+{
+	/** Execute function for the action unified delegate. */
+	inline void Execute() const
+	{
+		if (FuncDelegate.IsBound())
+		{
+			FuncDelegate.Execute();
+		}
+		else if (FuncDynDelegate.IsBound())
+		{
+			FuncDynDelegate.Execute();
+		}
+	}
+};
+
+/** Binds a delegate to an action. */
 struct FInputActionBinding : public FInputBinding
 {
 	/** Friendly name of action, e.g "jump" */
 	FName ActionName;
 
-	/** Key event to bind it to, e.g. pressed, released, dblclick */
+	/** Key event to bind it to, e.g. pressed, released, double click */
 	TEnumAsByte<EInputEvent> KeyEvent;
 
 	/** Whether the binding is part of a paired (both pressed and released events bound) action */
 	uint32 bPaired:1;
 
+	/** The delegate bound to the action */
 	FInputActionUnifiedDelegate ActionDelegate;
 
 	FInputActionBinding()
@@ -194,15 +208,16 @@ struct FInputActionBinding : public FInputBinding
 	{ }
 };
 
-
+/** Binds a delegate to a key chord. */
 struct FInputKeyBinding : public FInputBinding
 {
-	/** Raw key to bind to */
+	/** Input Chord to bind to */
 	FInputChord Chord;
 
-	/** Key event to bind it to, e.g. pressed, released, double click */
+	/** Key event to bind it to (e.g. pressed, released, double click) */
 	TEnumAsByte<EInputEvent> KeyEvent;
 
+	/** The delegate bound to the key chord */
 	FInputActionUnifiedDelegate KeyDelegate;
 
 	FInputKeyBinding()
@@ -220,15 +235,16 @@ struct FInputKeyBinding : public FInputBinding
 
 /** 
  * Delegate signature for touch handlers. 
- * @FigerIndex: Which finger touched
+ * @FingerIndex: Which finger touched
  * @Location: The 2D screen location that was touched
  */
 DECLARE_DELEGATE_TwoParams( FInputTouchHandlerSignature, ETouchIndex::Type, FVector );
 DECLARE_DYNAMIC_DELEGATE_TwoParams( FInputTouchHandlerDynamicSignature, ETouchIndex::Type, FingerIndex, FVector, Location );
 
-
+/** Unified delegate specialization for Touch events. */
 struct FInputTouchUnifiedDelegate : public TInputUnifiedDelegate<FInputTouchHandlerSignature, FInputTouchHandlerDynamicSignature>
 {
+	/** Execute function for the touch unified delegate. */
 	inline void Execute(const ETouchIndex::Type FingerIndex, const FVector Location) const
 	{
 		if (FuncDelegate.IsBound())
@@ -242,12 +258,13 @@ struct FInputTouchUnifiedDelegate : public TInputUnifiedDelegate<FInputTouchHand
 	}
 };
 
-
+/** Binds a delegate to touch input. */
 struct FInputTouchBinding : public FInputBinding
 {
-	/** Key event to bind it to, e.g. pressed, released, double click */
+	/** Key event to bind it to (e.g. pressed, released, double click) */
 	TEnumAsByte<EInputEvent> KeyEvent;
 
+	/** The delegate bound to the touch events */
 	FInputTouchUnifiedDelegate TouchDelegate;
 
 	FInputTouchBinding()
@@ -271,9 +288,10 @@ struct FInputTouchBinding : public FInputBinding
 DECLARE_DELEGATE_OneParam( FInputAxisHandlerSignature, float );
 DECLARE_DYNAMIC_DELEGATE_OneParam( FInputAxisHandlerDynamicSignature, float, AxisValue );
 
-
+/** Unified delegate specialization for float axis events. */
 struct FInputAxisUnifiedDelegate : public TInputUnifiedDelegate<FInputAxisHandlerSignature, FInputAxisHandlerDynamicSignature>
 {
+	/** Execute function for the axis unified delegate. */
 	inline void Execute(const float AxisValue) const
 	{
 		if (FuncDelegate.IsBound())
@@ -288,13 +306,23 @@ struct FInputAxisUnifiedDelegate : public TInputUnifiedDelegate<FInputAxisHandle
 };
 
 
-/** Binds a game-defined axis to a function */
+/** Binds a delegate to an axis mapping. */
 struct FInputAxisBinding : public FInputBinding
 {
+	/** The axis mapping being bound to. */
 	FName AxisName;
 
+	/** 
+	 * The delegate bound to the axis. 
+	 * It will be called each frame that the input component is in the input stack 
+	 * regardless of whether the value is non-zero or has changed.
+	 */
 	FInputAxisUnifiedDelegate AxisDelegate;
 
+	/** 
+	 * The value of the axis as calculated during the most recent UPlayerInput::ProcessInputStack
+	 * if the InputComponent was in the stack, otherwise all values should be 0.
+	 */
 	float AxisValue;
 
 	FInputAxisBinding()
@@ -311,13 +339,23 @@ struct FInputAxisBinding : public FInputBinding
 };
 
 
-/** Binds a raw axis to a function */
+/** Binds a delegate to a raw float axis mapping. */
 struct FInputAxisKeyBinding : public FInputBinding
 {
+	/** The axis being bound to. */
 	FKey AxisKey;
 
+	/** 
+	 * The delegate bound to the axis. 
+	 * It will be called each frame that the input component is in the input stack 
+	 * regardless of whether the value is non-zero or has changed.
+	 */
 	FInputAxisUnifiedDelegate AxisDelegate;
 
+	/** 
+	 * The value of the axis as calculated during the most recent UPlayerInput::ProcessInputStack
+	 * if the InputComponent containing the binding was in the stack, otherwise the value will be 0.
+	 */
 	float AxisValue;
 
 	FInputAxisKeyBinding()
@@ -342,9 +380,10 @@ struct FInputAxisKeyBinding : public FInputBinding
 DECLARE_DELEGATE_OneParam(FInputVectorAxisHandlerSignature, FVector);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FInputVectorAxisHandlerDynamicSignature, FVector, AxisValue);
 
-
+/** Unified delegate specialization for vector axis events. */
 struct FInputVectorAxisUnifiedDelegate : public TInputUnifiedDelegate<FInputVectorAxisHandlerSignature, FInputVectorAxisHandlerDynamicSignature>
 {
+	/** Execute function for the axis unified delegate. */
 	inline void Execute(const FVector AxisValue) const
 	{
 		if (FuncDelegate.IsBound())
@@ -358,13 +397,23 @@ struct FInputVectorAxisUnifiedDelegate : public TInputUnifiedDelegate<FInputVect
 	}
 };
 
-
+/** Binds a delegate to a raw vector axis mapping. */
 struct FInputVectorAxisBinding : public FInputBinding
 {
+	/** The axis being bound to. */
 	FKey AxisKey;
 
+	/** 
+	 * The delegate bound to the axis. 
+	 * It will be called each frame that the input component is in the input stack 
+	 * regardless of whether the value is non-zero or has changed.
+	 */
 	FInputVectorAxisUnifiedDelegate AxisDelegate;
 
+	/** 
+	 * The value of the axis as calculated during the most recent UPlayerInput::ProcessInputStack
+	 * if the InputComponent containing the binding was in the stack, otherwise the value will be (0,0,0).
+	 */
 	FVector AxisValue;
 
 	FInputVectorAxisBinding()
@@ -388,9 +437,10 @@ struct FInputVectorAxisBinding : public FInputBinding
 DECLARE_DELEGATE_OneParam( FInputGestureHandlerSignature, float );
 DECLARE_DYNAMIC_DELEGATE_OneParam( FInputGestureHandlerDynamicSignature, float, Value );
 
-
+/** Unified delegate specialization for gestureevents. */
 struct FInputGestureUnifiedDelegate : public TInputUnifiedDelegate<FInputGestureHandlerSignature, FInputGestureHandlerDynamicSignature>
 {
+	/** Execute function for the gesture unified delegate. */
 	inline void Execute(const float Value) const
 	{
 		if (FuncDelegate.IsBound())
@@ -408,8 +458,10 @@ struct FInputGestureUnifiedDelegate : public TInputUnifiedDelegate<FInputGesture
 /** Binds a gesture to a function. */
 struct FInputGestureBinding : public FInputBinding
 {
+	/** The gesture being bound to. */
 	FKey GestureKey;
 
+	/** The delegate bound to the gesture events */
 	FInputGestureUnifiedDelegate GestureDelegate;
 
 	/** Value parameter, meaning is dependent on the gesture. */
@@ -468,9 +520,11 @@ namespace EControllerAnalogStick
 /**
  * Implement an Actor component for input bindings.
  *
- * Input Component is a component that can be added to an Actor that allows the Actor to bind various kinds of input events
- * to delegate functions.  Input components are processed from a stack managed by the PlayerController and each bind can 
- * consume the input event preventing other components on the input stack from processing the input.
+ * An Input Component is a transient component that is to an Actor to bind various forms of input events to delegate functions.  
+ * Input components are processed from a stack managed by the PlayerController and processed by the PlayerInput.
+ * Each binding can consume the input event preventing other components on the input stack from processing the input.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
  */
 UCLASS(transient, config=Input, hidecategories=(Activation, "Components|Activation"))
 class ENGINE_API UInputComponent

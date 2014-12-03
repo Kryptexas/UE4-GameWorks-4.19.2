@@ -22,10 +22,4 @@ public:
 };
 
 
-// Dummy class initialization
-UAutomationWorkerMessages::UAutomationWorkerMessages( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
-{ }
-
-
 IMPLEMENT_MODULE(FAutomationMessagesModule, AutomationMessages);

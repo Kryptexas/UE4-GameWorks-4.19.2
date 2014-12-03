@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-USoundWaveThumbnailRenderer::USoundWaveThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundWaveThumbnailRenderer::USoundWaveThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -21,7 +21,7 @@ void USoundWaveThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32
 			FCanvasLineItem LineItem;
 			LineItem.SetColor( FLinearColor::White );
 			// Lock raw wave data.
-			uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+			uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 			int32 RawDataSize = SoundWave->RawData.GetBulkDataSize();
 			FWaveModInfo WaveInfo;
 

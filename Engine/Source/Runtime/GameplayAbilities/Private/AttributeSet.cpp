@@ -4,13 +4,15 @@
 #include "AttributeSet.h"
 #include "AbilitySystemComponent.h"
 #include "HAL/OutputDevices.h"
+#include "AbilitySystemGlobals.h"
 
 #include "ComponentReregisterContext.h"	
 
 void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
-	void * ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
+	void* ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
+	Dest->PreAttributeChange(*this, NewValue);
 	NumericProperty->SetFloatingPointPropertyValue(ValuePtr, NewValue);
 }
 
@@ -21,10 +23,29 @@ float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 	return NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
 }
 
-UAttributeSet::UAttributeSet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAttributeSet::UAttributeSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
+}
+
+bool UAttributeSet::IsNameStableForNetworking() const
+{
+	/** 
+	 * IsNameStableForNetworking means an attribute set can be referred to its path name (relative to owning AActor*) over the network
+	 *
+	 * Attribute sets are net addressable if:
+	 *	-They are Default Subobjects (created in C++ constructor)
+	 *	-They were loaded directly from a package (placed in map actors)
+	 *	-They were explicitly set to bNetAddressable
+	 */
+
+	return bNetAddressable || Super::IsNameStableForNetworking();
+}
+
+void UAttributeSet::SetNetAddressable()
+{
+	bNetAddressable = true;
 }
 
 void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
@@ -51,34 +72,20 @@ void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 	PrintDebug();
 }
 
-void UAttributeSet::ClampFromMetaDataTable(const UDataTable *DataTable)
+UAbilitySystemComponent* UAttributeSet::GetOwningAbilitySystemComponent() const
 {
-	// Looking up a datatable row everytime a value changes in order to apply clamping pretty much sucks.
-	static const FString Context = FString(TEXT("UAttribute::BindToMetaDataTable"));
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CastChecked<AActor>(GetOuter()));
+}
 
-	UE_LOG(LogActorComponent, Warning, TEXT("UAttribute::ClampFromMetaDataTable. UAttribute %s from UDataTable %s"), *GetName(), *DataTable->GetName());
-
-	for( TFieldIterator<UProperty> It(GetClass(), EFieldIteratorFlags::IncludeSuper) ; It ; ++It )
+FGameplayAbilityActorInfo* UAttributeSet::GetActorInfo() const
+{
+	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	if (ASC)
 	{
-		UProperty *Property = *It;
-		UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property);
-		if (NumericProperty)
-		{
-			FString RowNameStr = FString::Printf(TEXT("%s.%s"), *Property->GetOuter()->GetName(), *Property->GetName());
-			FAttributeMetaData * MetaData = DataTable->FindRow<FAttributeMetaData>(FName(*RowNameStr), Context, false);
-			if (MetaData)
-			{
-				float CurrentValue = NumericProperty->GetFloatingPointPropertyValue(this);
-				CurrentValue = FMath::Clamp(CurrentValue, MetaData->MinValue, MetaData->MaxValue);
-
-				UE_LOG(LogActorComponent, Warning, TEXT("   Found Row for %s. Clamping: %.2f <%.2f, %.2f>"), *RowNameStr, CurrentValue, MetaData->MinValue, MetaData->MaxValue );
-
-				NumericProperty->SetFloatingPointPropertyValue(NumericProperty->ContainerPtrToValuePtr<void>(this), CurrentValue);
-			}
-		}
+		return ASC->AbilityActorInfo.Get();
 	}
 
-	PrintDebug();
+	return nullptr;
 }
 
 void UAttributeSet::PrintDebug()
@@ -124,7 +131,7 @@ void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOve
 	}
 
 	// Look at global defaults
-	const UCurveTable * GlobalTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
+	const UCurveTable* GlobalTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
 	if (GlobalTable)
 	{
 		FinalCurve = GlobalTable->FindCurve(Curve.RowName, ContextString, false);
@@ -248,7 +255,8 @@ void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
 		TSubclassOf<UAttributeSet> Set = FindBestAttributeClass(ClassList, SetName);
 		if (!Set)
 		{
-			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match AttributeSet from %s (row: %s)"), *SetName, *RowName);
+			// This is ok, we may have rows in here that don't correspond directly to attributes
+			ABILITY_LOG(Verbose, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match AttributeSet from %s (row: %s)"), *SetName, *RowName);
 			continue;
 		}
 
@@ -297,7 +305,7 @@ void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
 	}
 }
 
-void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const
+void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitAttributeSetDefaults);
 	
@@ -332,7 +340,11 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 			{
 				check(DataPair.Property);
 
-				DataPair.Property->SetFloatingPointPropertyValue(DataPair.Property->ContainerPtrToValuePtr<void>(const_cast<UAttributeSet*>(Set)), DataPair.Value);
+				if (Set->ShouldInitProperty(bInitialInit, DataPair.Property))
+				{
+					FGameplayAttribute AttributeToModify(DataPair.Property);
+					AbilitySystemComponent->SetNumericAttribute(AttributeToModify, DataPair.Value);
+				}
 			}
 		}		
 	}

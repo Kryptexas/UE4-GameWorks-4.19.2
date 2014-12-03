@@ -563,8 +563,8 @@ bool FContentHelper::QueryAssetsInCollection(FName InCollectionName, ECollection
 /*-----------------------------------------------------------------------------
 ULoadPackageCommandlet
 -----------------------------------------------------------------------------*/
-ULoadPackageCommandlet::ULoadPackageCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULoadPackageCommandlet::ULoadPackageCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -996,58 +996,56 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 		GWarn->Log ( TEXT("Export Map"));
 		GWarn->Log ( TEXT("=========="));
 
-		if ( (InfoFlags&PKGINFO_Compact) == 0 )
+		TArray<FExportInfo> SortedExportMap;
+		SortedExportMap.Empty(Linker->ExportMap.Num());
+		for( int32 i = 0; i < Linker->ExportMap.Num(); ++i )
 		{
-			TArray<FExportInfo> SortedExportMap;
-			SortedExportMap.Empty(Linker->ExportMap.Num());
-			for( int32 i = 0; i < Linker->ExportMap.Num(); ++i )
-			{
-				new(SortedExportMap) FExportInfo(Linker, i);
-			}
+			new(SortedExportMap) FExportInfo(Linker, i);
+		}
 
-			FString SortingParms;
-			if ( FParse::Value(FCommandLine::Get(), TEXT("SORT="), SortingParms) )
-			{
-				TArray<FString> SortValues;
-				SortingParms.ParseIntoArray(&SortValues, TEXT(","), true);
+		FString SortingParms;
+		if ( FParse::Value(FCommandLine::Get(), TEXT("SORT="), SortingParms) )
+		{
+			TArray<FString> SortValues;
+			SortingParms.ParseIntoArray(&SortValues, TEXT(","), true);
 
-				for ( int32 i = 0; i < EXPORTSORT_MAX; i++ )
+			for ( int32 i = 0; i < EXPORTSORT_MAX; i++ )
+			{
+				if ( i < SortValues.Num() )
 				{
-					if ( i < SortValues.Num() )
+					const FString Value = SortValues[i];
+					if ( Value == TEXT("index") )
 					{
-						const FString Value = SortValues[i];
-						if ( Value == TEXT("index") )
-						{
-							FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_ExportIndex;
-						}
-						else if ( Value == TEXT("size") )
-						{
-							FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_ExportSize;
-						}
-						else if ( Value == TEXT("name") )
-						{
-							FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_ObjectPathname;
-						}
-						else if ( Value == TEXT("outer") )
-						{
-							FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_OuterPathname;
-						}
+						FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_ExportIndex;
 					}
-					else
+					else if ( Value == TEXT("size") )
 					{
-						FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_MAX;
+						FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_ExportSize;
+					}
+					else if ( Value == TEXT("name") )
+					{
+						FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_ObjectPathname;
+					}
+					else if ( Value == TEXT("outer") )
+					{
+						FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_OuterPathname;
 					}
 				}
+				else
+				{
+					FObjectExport_Sorter::SortPriority[i] = EXPORTSORT_MAX;
+				}
 			}
+		}
 
-			SortedExportMap.Sort( FObjectExport_Sorter() );
+		SortedExportMap.Sort( FObjectExport_Sorter() );
 
-			for( int32 SortedIndex = 0; SortedIndex < SortedExportMap.Num(); ++SortedIndex )
+		if ( (InfoFlags&PKGINFO_Compact) == 0 )
+		{
+			for( const auto& ExportInfo : SortedExportMap )
 			{
 				GWarn->Log ( TEXT("\t*************************"));
-				FExportInfo& ExportInfo = SortedExportMap[SortedIndex];
-
-				FObjectExport& Export = ExportInfo.Export;
+				const FObjectExport& Export = ExportInfo.Export;
 
 				UE_LOG(LogPackageUtilities, Warning, TEXT("\tExport %d: '%s'"), ExportInfo.ExportIndex, *Export.ObjectName.ToString() );
 
@@ -1147,12 +1145,12 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 		}
 		else
 		{
-			for( int32 ExportIndex=0; ExportIndex<Linker->ExportMap.Num(); ExportIndex++ )
+			for( const auto& ExportInfo : SortedExportMap )
 			{
-				const FObjectExport& Export = Linker->ExportMap[ExportIndex];
-				UE_LOG(LogPackageUtilities, Warning, TEXT("  %8i %10i %32s %s"), ExportIndex, Export.SerialSize, 
-					*(Linker->GetExportClassName(ExportIndex).ToString()), 
-					(InfoFlags&PKGINFO_Paths) != 0 ? *Linker->GetExportPathName(ExportIndex) : *Export.ObjectName.ToString());
+				const FObjectExport& Export = ExportInfo.Export;
+				UE_LOG(LogPackageUtilities, Warning, TEXT("  %8i %10i %32s %s"), ExportInfo.ExportIndex, Export.SerialSize, 
+					*(Linker->GetExportClassName(ExportInfo.ExportIndex).ToString()), 
+					(InfoFlags&PKGINFO_Paths) != 0 ? *Linker->GetExportPathName(ExportInfo.ExportIndex) : *Export.ObjectName.ToString());
 			}
 		}
 	}
@@ -1253,8 +1251,8 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 	}
 }
 
-UPkgInfoCommandlet::UPkgInfoCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPkgInfoCommandlet::UPkgInfoCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -1551,7 +1549,7 @@ struct CompressAnimationsFunctor
 				continue;
 			}
 
-			USkeleton * Skeleton = AnimSeq->GetSkeleton();
+			USkeleton* Skeleton = AnimSeq->GetSkeleton();
 			check (Skeleton);
 
 			if( bAnalyze )
@@ -1597,12 +1595,12 @@ struct CompressAnimationsFunctor
  						// Translation
 						{
 							// Use the CompressedTrackOffsets stream to find the data addresses
- 							const int32* RESTRICT TrackDataForTransKey = AnimSeq->CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
+							const int32* RESTRICT TrackDataForTransKey = AnimSeq->CompressedTrackOffsets.GetData() + (TrackIndex * 2);
 							const int32 TransKeysOffset = TrackDataForTransKey[0];
  							if( TransKeysOffset != INDEX_NONE )
  							{
- 								const uint8* RESTRICT TrackData = AnimSeq->CompressedByteStream.GetTypedData() + TransKeysOffset + 4;
- 								const int32 Header = *((int32*)(AnimSeq->CompressedByteStream.GetTypedData() + TransKeysOffset));
+								const uint8* RESTRICT TrackData = AnimSeq->CompressedByteStream.GetData() + TransKeysOffset + 4;
+								const int32 Header = *((int32*)(AnimSeq->CompressedByteStream.GetData() + TransKeysOffset));
 	 
  								int32 KeyFormat;
  								int32 NumKeys;
@@ -1705,12 +1703,12 @@ struct CompressAnimationsFunctor
 						// Rotation
 						{
 							// Use the CompressedTrackOffsets stream to find the data addresses
-							const int32* RESTRICT TrackDataForRotKey = AnimSeq->CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
+							const int32* RESTRICT TrackDataForRotKey = AnimSeq->CompressedTrackOffsets.GetData() + (TrackIndex * 2);
 							const int32 RotKeysOffset = TrackDataForRotKey[1];
 							if( RotKeysOffset != INDEX_NONE )
 							{
-								const uint8* RESTRICT TrackData = AnimSeq->CompressedByteStream.GetTypedData() + RotKeysOffset + 4;
-								const int32 Header = *((int32*)(AnimSeq->CompressedByteStream.GetTypedData() + RotKeysOffset));
+								const uint8* RESTRICT TrackData = AnimSeq->CompressedByteStream.GetData() + RotKeysOffset + 4;
+								const int32 Header = *((int32*)(AnimSeq->CompressedByteStream.GetData() + RotKeysOffset));
 
 								int32 KeyFormat;
 								int32 NumKeys;
@@ -1769,8 +1767,8 @@ struct CompressAnimationsFunctor
 							const int32 ScaleKeysOffset = AnimSeq->CompressedScaleOffsets.GetOffsetData(TrackIndex, 0);
 							if( ScaleKeysOffset != INDEX_NONE )
 							{
-								const uint8* RESTRICT TrackData = AnimSeq->CompressedByteStream.GetTypedData() + ScaleKeysOffset + 4;
-								const int32 Header = *((int32*)(AnimSeq->CompressedByteStream.GetTypedData() + ScaleKeysOffset));
+								const uint8* RESTRICT TrackData = AnimSeq->CompressedByteStream.GetData() + ScaleKeysOffset + 4;
+								const int32 Header = *((int32*)(AnimSeq->CompressedByteStream.GetData() + ScaleKeysOffset));
 
 								int32 KeyFormat;
 								int32 NumKeys;
@@ -2102,8 +2100,8 @@ struct CompressAnimationsFunctor
 	}
 };
 
-UCompressAnimationsCommandlet::UCompressAnimationsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCompressAnimationsCommandlet::UCompressAnimationsCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -2171,8 +2169,8 @@ int32 UCompressAnimationsCommandlet::Main( const FString& Params )
 //======================================================================
 // UReplaceActorCommandlet
 //======================================================================
-UReplaceActorCommandlet::UReplaceActorCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReplaceActorCommandlet::UReplaceActorCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }

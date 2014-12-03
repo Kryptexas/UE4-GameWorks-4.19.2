@@ -97,6 +97,7 @@ public:
 // SCurveEditor
 
 DECLARE_DELEGATE_TwoParams( FOnSetInputViewRange, float, float )
+DECLARE_DELEGATE_TwoParams( FOnSetOutputViewRange, float, float )
 
 class SCurveEditor : 
 	public SCompoundWidget,
@@ -146,8 +147,8 @@ public:
 		SLATE_ATTRIBUTE( float, ViewMaxInput )
 		SLATE_ATTRIBUTE( TOptional<float>, DataMinInput )
 		SLATE_ATTRIBUTE( TOptional<float>, DataMaxInput )
-		SLATE_ARGUMENT( float, ViewMinOutput )
-		SLATE_ARGUMENT( float, ViewMaxOutput )
+		SLATE_ATTRIBUTE( float, ViewMinOutput )
+		SLATE_ATTRIBUTE( float, ViewMaxOutput )
 		SLATE_ATTRIBUTE( float, InputSnap )
 		SLATE_ATTRIBUTE( float, OutputSnap )
 		SLATE_ARGUMENT( bool, SnappingEnabled )
@@ -161,6 +162,7 @@ public:
 		SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
 		SLATE_ARGUMENT( bool, ShowZoomButtons )
 		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
+		SLATE_EVENT( FOnSetOutputViewRange, OnSetOutputViewRange )
 		SLATE_EVENT( FSimpleDelegate, OnCreateAsset )
 	SLATE_END_ARGS()
 
@@ -373,7 +375,7 @@ private:
 	UNREALED_API virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	UNREALED_API virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	UNREALED_API virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	UNREALED_API virtual void   OnMouseCaptureLost() override;
 
 	/** Attempts to start a drag operation when the mouse moves. */
@@ -466,6 +468,7 @@ protected:
 
 	/** Update view range */
 	UNREALED_API void SetInputMinMax(float NewMin, float NewMax);
+	UNREALED_API void SetOutputMinMax(float NewMin, float NewMax);
 
 private:
 
@@ -506,6 +509,9 @@ private:
 	/** Handler for adjust timeline panning viewing */
 	FOnSetInputViewRange	SetInputViewRangeHandler;
 
+	/** Handler for adjust timeline panning viewing */
+	FOnSetOutputViewRange	SetOutputViewRangeHandler;
+
 	/** Index for the current transaction if any */
 	int32					TransactionIndex;
 
@@ -534,12 +540,12 @@ protected:
 	/** Maximum input of view range  */
 	TAttribute<float>	ViewMaxInput;
 	/** How long the overall timeline is */
-	TAttribute<float>		TimelineLength;
+	TAttribute<float>	TimelineLength;
 
 	/** Max output view range */
-	float				ViewMinOutput;
+	TAttribute<float>	ViewMinOutput;
 	/** Min output view range */
-	float				ViewMaxOutput;
+	TAttribute<float>	ViewMaxOutput;
 
 	/** The snapping value for the input domain. */
 	TAttribute<float> InputSnap;

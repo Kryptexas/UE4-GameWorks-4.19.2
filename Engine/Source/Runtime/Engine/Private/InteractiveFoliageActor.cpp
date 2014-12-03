@@ -5,17 +5,17 @@
 #include "Engine/InteractiveFoliageActor.h"
 #include "Components/InteractiveFoliageComponent.h"
 
-AInteractiveFoliageActor::AInteractiveFoliageActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+AInteractiveFoliageActor::AInteractiveFoliageActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.SetDefaultSubobjectClass<UInteractiveFoliageComponent>("StaticMeshComponent0"))
 {
 
-	UInteractiveFoliageComponent* FoliageMeshComponent = CastChecked<UInteractiveFoliageComponent>(StaticMeshComponent);
+	UInteractiveFoliageComponent* FoliageMeshComponent = CastChecked<UInteractiveFoliageComponent>(GetStaticMeshComponent());
 	FoliageMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	FoliageMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	FoliageMeshComponent->Mobility = EComponentMobility::Static;
 
-	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
+	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
 	CapsuleComponent->InitCapsuleSize(60.0f, 200.0f);
 	CapsuleComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));

@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UTileMapAssetImportData
 
-UTileMapAssetImportData::UTileMapAssetImportData(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTileMapAssetImportData::UTileMapAssetImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

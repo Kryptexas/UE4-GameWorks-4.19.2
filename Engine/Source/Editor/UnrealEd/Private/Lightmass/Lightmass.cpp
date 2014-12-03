@@ -7,8 +7,8 @@
 #include "UnrealEd.h"
 #include "PrecomputedLightVolume.h"
 #include "Runtime/Engine/Public/StaticMeshResources.h"
-#include "Runtime/Engine/Public/Landscape/LandscapeRender.h"
-#include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
+#include "LandscapeRender.h"
+#include "LandscapeLight.h"
 #include "Runtime/Engine/Classes/Matinee/MatineeActor.h"
 #include "Runtime/Engine/Classes/Matinee/InterpGroup.h"
 #include "Runtime/Engine/Classes/Matinee/InterpGroupInst.h"
@@ -54,8 +54,8 @@ void FSwarmDebugOptions::Touch()
 #include "Lightmass.h"
 #include "StaticMeshLight.h"
 #include "ModelLight.h"
-#include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
-#include "Runtime/Engine/Public/Landscape/LandscapeDataAccess.h"
+#include "LandscapeLight.h"
+#include "LandscapeDataAccess.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "Editor/StatsViewer/Classes/LightingBuildInfo.h"
 #include "MessageLog.h"
@@ -67,7 +67,7 @@ void FSwarmDebugOptions::Touch()
 int32 FLightmassProcessor::MaxProcessAvailableCount = 8;
 
 /** We don't want any amortization steps to take longer than this amount every tick */
-static const float AllowedAmortizationTimePerTick = 0.005f; // in seconds
+static const float AllowedAmortizationTimePerTick = 0.01f; // in seconds
 
 volatile int32 FLightmassProcessor::VolumeSampleTaskCompleted = 0;
 volatile int32 FLightmassProcessor::MeshAreaLightDataTaskCompleted = 0;
@@ -622,7 +622,11 @@ bool FLightmassExporter::WriteToMaterialChannel(FLightmassStatistics& Stats)
 			{
 			case BuildMaterials:
 				{
-					if (CurrentAmortizationIndex >= Materials.Num()) {ExportStage = ShaderCompilation; CurrentAmortizationIndex = 0;}
+					if (CurrentAmortizationIndex >= Materials.Num()) 
+					{
+						ExportStage = ShaderCompilation; 
+						CurrentAmortizationIndex = 0;
+					}
 					else
 					{
 						BuildMaterialMap(Materials[CurrentAmortizationIndex]);
@@ -639,7 +643,11 @@ bool FLightmassExporter::WriteToMaterialChannel(FLightmassStatistics& Stats)
 				break;
 			case ExportMaterials:
 				{
-					if (CurrentAmortizationIndex >= Materials.Num()) {ExportStage = CleanupMaterialExport; CurrentAmortizationIndex = 0;}
+					if (CurrentAmortizationIndex >= Materials.Num()) 
+					{
+						ExportStage = CleanupMaterialExport; 
+						CurrentAmortizationIndex = 0;
+					}
 					else
 					{
 						ExportMaterial(Materials[CurrentAmortizationIndex]);
@@ -649,7 +657,11 @@ bool FLightmassExporter::WriteToMaterialChannel(FLightmassStatistics& Stats)
 				break;
 			case CleanupMaterialExport:
 				{
-					if (CurrentAmortizationIndex >= OpenedMaterialExportChannels.Num()) {ExportStage = Complete; CurrentAmortizationIndex = 0;}
+					if (CurrentAmortizationIndex >= OpenedMaterialExportChannels.Num()) 
+					{
+						ExportStage = Complete; 
+						CurrentAmortizationIndex = 0;
+					}
 					else
 					{
 						Swarm.CloseChannel(OpenedMaterialExportChannels[CurrentAmortizationIndex]);
@@ -1441,8 +1453,7 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 						NewElementData.MaterialId = Material->GetLightingGuid();
 						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
 						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						// Mesh area lights currently disabled
-						NewElementData.bUseEmissiveForStaticLighting = false;
+						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;;
 						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
 						NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
 						NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
@@ -1512,7 +1523,7 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 			FLightmassPrimitiveSettings& LMSetting = LandscapeComp->GetLandscapeProxy()->LightmassSettings;
 			NewElementData.bUseTwoSidedLighting = LMSetting.bUseTwoSidedLighting;
 			NewElementData.bShadowIndirectOnly = LMSetting.bShadowIndirectOnly;
-			NewElementData.bUseEmissiveForStaticLighting = false;
+			NewElementData.bUseEmissiveForStaticLighting = LMSetting.bUseEmissiveForStaticLighting;
 			// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
 			NewElementData.EmissiveLightFalloffExponent = LMSetting.EmissiveLightFalloffExponent;
 			NewElementData.EmissiveLightExplicitInfluenceRadius = LMSetting.EmissiveLightExplicitInfluenceRadius;
@@ -1616,7 +1627,7 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 			TempData.MaterialId = Material->GetLightingGuid();
 			TempData.bUseTwoSidedLighting = PrimitiveSettings.bUseTwoSidedLighting;
 			TempData.bShadowIndirectOnly = PrimitiveSettings.bShadowIndirectOnly;
-			TempData.bUseEmissiveForStaticLighting = false;
+			TempData.bUseEmissiveForStaticLighting = PrimitiveSettings.bUseEmissiveForStaticLighting;
 			TempData.EmissiveLightFalloffExponent = PrimitiveSettings.EmissiveLightFalloffExponent;
 			TempData.EmissiveLightExplicitInfluenceRadius = PrimitiveSettings.EmissiveLightExplicitInfluenceRadius;
 			TempData.EmissiveBoost = PrimitiveSettings.EmissiveBoost * LevelSettings.EmissiveBoost;
@@ -2258,8 +2269,8 @@ FLightmassProcessor::FLightmassProcessor(const FStaticLightingSystem& InSystem, 
 	Messages.Add( TEXT("LightmassError_BuildSelectedNothingSelected"), LOCTEXT("LightmassError_BuildSelectedNothingSelected", "Building selected actors and BSP only, but no actors or BSP selected!") );
 	Messages.Add( TEXT("LightmassError_ObjectWrappedUVs"), LOCTEXT("LightmassError_ObjectWrappedUVs", "Object has wrapping UVs.") );
 	Messages.Add( TEXT("LightmassError_ObjectOverlappedUVs"), LOCTEXT("LightmassError_ObjectOverlappedUVs", "Object has overlapping UVs.") );
-	Messages.Add( TEXT("LightmassError_EmissiveMeshHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshHighPolyCount", "Object has bUseEmissiveForStaticLighting=true, but a large number of polygons (more than 3000) and will result in a long lighting build.") );
-	Messages.Add( TEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount", "Object did not create emissive lights even though it had bUseEmissiveForStaticLighting=true due to excessive polycount (more than 5000).") );
+	Messages.Add( TEXT("LightmassError_EmissiveMeshHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshHighPolyCount", "Object has a large number of polygons (more than 3000) and will result in a long lighting build.") );
+	Messages.Add( TEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount", "Object did not create emissive lights due to excessive polycount (more than 5000).") );
 	Messages.Add( TEXT("LightmassError_BadLightMapCoordinateIndex"), LOCTEXT("LightmassError_BadLightMapCoordinateIndex", "StaticMesh has invalid LightMapCoordinateIndex.") );
 	Messages.Add( TEXT("LightmassError_ObjectMultipleDominantLights"), LOCTEXT("LightmassError_ObjectMultipleDominantLights", "Object has multiple dominant lights.") );
 }
@@ -2429,7 +2440,8 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../Win32/UnrealLightmass-SwarmInterface.dll"),
 		TEXT("../Win32/UnrealLightmass-Core.dll"),
 		TEXT("../Win32/UnrealLightmass-CoreUObject.dll"),
-		TEXT("../Win32/UnrealLightmass-Projects.dll")
+		TEXT("../Win32/UnrealLightmass-Projects.dll"),
+		TEXT("../Win32/UnrealLightmass-Json.dll")
 	};
 	const int32 RequiredDependencyPaths32Count = ARRAY_COUNT(RequiredDependencyPaths32);
 
@@ -2443,54 +2455,34 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../Win64/UnrealLightmass-SwarmInterface.dll"),
 		TEXT("../Win64/UnrealLightmass-Core.dll"),
 		TEXT("../Win64/UnrealLightmass-CoreUObject.dll"),
-		TEXT("../Win64/UnrealLightmass-Projects.dll")
+		TEXT("../Win64/UnrealLightmass-Projects.dll"),
+		TEXT("../Win64/UnrealLightmass-Json.dll")
 	};
 #elif PLATFORM_MAC
-#if UE_BUILD_DEBUG
-	const TCHAR* LightmassExecutable64 = TEXT("../Mac/UnrealLightmass-Mac-Debug");
-	const TCHAR* RequiredDependencyPaths64[] =
-	{
-		TEXT("../DotNET/Mac/AgentInterface.dll"),
-		TEXT("../Mac/UnrealLightmass-Core-Mac-Debug.dylib"),
-		TEXT("../Mac/UnrealLightmass-Projects-Mac-Debug.dylib"),
-		TEXT("../Mac/UnrealLightmass-SwarmInterface-Mac-Debug.dylib")
-	};
-#else
 	const TCHAR* LightmassExecutable64 = TEXT("../Mac/UnrealLightmass");
 	const TCHAR* RequiredDependencyPaths64[] =
 	{
 		TEXT("../DotNET/Mac/AgentInterface.dll"),
 		TEXT("../Mac/UnrealLightmass-Core.dylib"),
+		TEXT("../Mac/UnrealLightmass-CoreUObject.dylib"),
+		TEXT("../Mac/UnrealLightmass-Json.dylib"),
 		TEXT("../Mac/UnrealLightmass-Projects.dylib"),
 		TEXT("../Mac/UnrealLightmass-SwarmInterface.dylib")
 	};
-#endif
 #elif PLATFORM_LINUX
-#if UE_BUILD_DEBUG
-	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass-Linux-Debug");
-	const TCHAR* RequiredDependencyPaths64[] =
-	{
-		TEXT("../DotNET/Linux/AgentInterface.dll"),
-		TEXT("../Linux/libUnrealLightmass-Core-Linux-Debug.so"),
-		TEXT("../Linux/libUnrealLightmass-Projects-Linux-Debug.so"),
-		TEXT("../Linux/libUnrealLightmass-SwarmInterface-Linux-Debug.so"),
-		TEXT("../Linux/libUnrealLightmass-Networking-Linux-Debug.so"),
-		TEXT("../Linux/libUnrealLightmass-Messaging-Linux-Debug.so")
-		TEXT("../../Plugins/Messaging/UdpMessaging/Binaries/Linux/libUnrealLightmass-UdpMessaging-Linux-Debug.so")
-	};
-#else
 	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass");
 	const TCHAR* RequiredDependencyPaths64[] =
 	{
 		TEXT("../DotNET/Linux/AgentInterface.dll"),
 		TEXT("../Linux/libUnrealLightmass-Core.so"),
+		TEXT("../Linux/libUnrealLightmass-CoreUObject.so"),
+		TEXT("../Linux/libUnrealLightmass-Json.so"),
 		TEXT("../Linux/libUnrealLightmass-Projects.so"),
 		TEXT("../Linux/libUnrealLightmass-SwarmInterface.so"),
 		TEXT("../Linux/libUnrealLightmass-Networking.so"),
 		TEXT("../Linux/libUnrealLightmass-Messaging.so"),
 		TEXT("../../Plugins/Messaging/UdpMessaging/Binaries/Linux/libUnrealLightmass-UdpMessaging.so")
 	};
-#endif // UE_BUILD_DEBUG
 #else // PLATFORM_LINUX
 #error "Unknown Lightmass platform"
 #endif
@@ -2527,7 +2519,7 @@ bool FLightmassProcessor::BeginRun()
 	FString MapNameStr = System.GetWorld()->GetMapName();
 	const TCHAR* MapName = MapNameStr.GetCharArray().GetData();
 	// Get the game name
-	const TCHAR* GameName = GGameName;
+	const TCHAR* GameName = FApp::GetGameName();
 	// Get the quality level
 	TCHAR QualityLevel[MAX_SPRINTF] = TEXT("");
 	FCString::Sprintf( QualityLevel, TEXT("%d"), ( int32 )Exporter->QualityLevel );
@@ -3331,7 +3323,7 @@ void FLightmassProcessor::ImportMeshAreaLightData()
 					FActorSpawnParameters SpawnInfo;
 					SpawnInfo.Owner = CurrentLevel->Actors[0];
 					AGeneratedMeshAreaLight* NewGeneratedLight = CurrentLevel->OwningWorld->SpawnActor<AGeneratedMeshAreaLight>(Position, Direction.Rotation());
-					USpotLightComponent* SpotComponent = CastChecked<USpotLightComponent>(NewGeneratedLight->LightComponent);
+					USpotLightComponent* SpotComponent = CastChecked<USpotLightComponent>(NewGeneratedLight->GetLightComponent());
 					// Unregister the component before we change its attributes
 					FComponentReregisterContext Reregister(SpotComponent);
 					// Setup spotlight properties to approximate a mesh area light
@@ -3880,7 +3872,7 @@ bool FLightmassProcessor::ImportLightMapData2DData(int32 Channel, FQuantizedLigh
 	// make space for the samples
 	QuantizedData->Data.Empty(SizeX * SizeY);
 	QuantizedData->Data.AddUninitialized(SizeX * SizeY);
-	FLightMapCoefficients* DataBuffer = QuantizedData->Data.GetTypedData();
+	FLightMapCoefficients* DataBuffer = QuantizedData->Data.GetData();
 
 	int32 DataBufferSize = SizeX * SizeY * sizeof(FLightMapCoefficients);
 

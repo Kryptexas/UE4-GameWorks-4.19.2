@@ -2,8 +2,12 @@
 
 #pragma once
 
+// Common libraries
 #include "Kismet/KismetArrayLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+
+// Special libraries
 #include "Kismet/DataTableFunctionLibrary.h"
 
 FORCEINLINE UClass* DynamicMetaCast(const UClass* DesiredClass, UClass* SourceClass)
@@ -19,6 +23,12 @@ struct FCustomThunkTemplates
 	static int32 Array_Add(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& NewItem)
 	{
 		return UKismetArrayLibrary::GenericArray_Add(&TargetArray, ArrayProperty, &NewItem);
+	}
+
+	template<typename T>
+	static int32 Array_AddUnique(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& NewItem)
+	{
+		return UKismetArrayLibrary::GenericArray_AddUnique(&TargetArray, ArrayProperty, &NewItem);
 	}
 
 	template<typename T>

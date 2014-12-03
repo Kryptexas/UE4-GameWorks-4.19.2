@@ -3,6 +3,7 @@
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
 #include "WidgetLayoutLibrary.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -10,8 +11,8 @@
 /////////////////////////////////////////////////////
 // UWidgetLayoutLibrary
 
-UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -24,7 +25,7 @@ float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
 		{
 			FVector2D ViewportSize;
 			ViewportClient->GetViewportSize(ViewportSize);
-			return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+			return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 		}
 	}
 
@@ -57,9 +58,24 @@ UGridSlot* UWidgetLayoutLibrary::SlotAsGridSlot(UWidget* ChildWidget)
 	return Cast<UGridSlot>(ChildWidget->Slot);
 }
 
+UHorizontalBoxSlot* UWidgetLayoutLibrary::SlotAsHorizontalBoxSlot(UWidget* ChildWidget)
+{
+	return Cast<UHorizontalBoxSlot>(ChildWidget->Slot);
+}
+
+UOverlaySlot* UWidgetLayoutLibrary::SlotAsOverlaySlot(UWidget* ChildWidget)
+{
+	return Cast<UOverlaySlot>(ChildWidget->Slot);
+}
+
 UUniformGridSlot* UWidgetLayoutLibrary::SlotAsUniformGridSlot(UWidget* ChildWidget)
 {
 	return Cast<UUniformGridSlot>(ChildWidget->Slot);
+}
+
+UVerticalBoxSlot* UWidgetLayoutLibrary::SlotAsVerticalBoxSlot(UWidget* ChildWidget)
+{
+	return Cast<UVerticalBoxSlot>(ChildWidget->Slot);
 }
 
 #undef LOCTEXT_NAMESPACE

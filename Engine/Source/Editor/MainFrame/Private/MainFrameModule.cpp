@@ -4,6 +4,8 @@
 #include "CompilerResultsLog.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 #include "Developer/HotReload/Public/IHotReload.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -93,8 +95,8 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 		
 #if !PLATFORM_MAC // On OS X we don't want Top-Level windows to have a parent, as we don't really support the notion of child windows on that OS
 		FGlobalTabmanager::Get()->SetRootWindow(RootWindow);
-		FSlateNotificationManager::Get().SetRootWindow(RootWindow);
 #endif
+		FSlateNotificationManager::Get().SetRootWindow(RootWindow);
 
 		TSharedPtr<SWidget> MainFrameContent;
 		bool bLevelEditorIsMainTab = false;

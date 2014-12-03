@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "CocoaThread.h"
 #include "LockFreeList.h"
 
@@ -428,6 +428,7 @@ void GameThreadCall(dispatch_block_t Block, NSArray* SendModes, bool const bWait
 
 void RunGameThread(id Target, SEL Selector)
 {
+	SCOPED_AUTORELEASE_POOL;
 #if MAC_SEPARATE_GAME_THREAD
 	// Register main run loop source
 	FCocoaRunLoopSource::RegisterMainRunLoop(CFRunLoopGetCurrent());
@@ -448,12 +449,12 @@ void RunGameThread(id Target, SEL Selector)
 
 void ProcessGameThreadEvents(void)
 {
+	SCOPED_AUTORELEASE_POOL;
 #if MAC_SEPARATE_GAME_THREAD
 	// Make one pass through the loop, processing all events
 	CFRunLoopRef RunLoop = CFRunLoopGetCurrent();
 	CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, false);
 #else
-	SCOPED_AUTORELEASE_POOL;
 	while( NSEvent *Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: true] )
 	{
 		// Either the windowNumber is 0 or the window must be valid for the event to be processed.

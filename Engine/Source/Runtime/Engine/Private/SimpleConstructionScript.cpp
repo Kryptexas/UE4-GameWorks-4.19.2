@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/SCS_Node.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Kismet2/CompilerResultsLog.h"
@@ -15,8 +16,8 @@
 const FName USimpleConstructionScript::DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
 #endif
 
-USimpleConstructionScript::USimpleConstructionScript(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USimpleConstructionScript::USimpleConstructionScript(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RootNode_DEPRECATED = NULL;
 	DefaultSceneRootNode = NULL;

@@ -620,6 +620,9 @@ public:
 	static bool ToggleFavorite_CanExecute();
 	static bool ToggleFavorite_IsChecked();
 
+	/** Determine whether the level can be saved at this moment */
+	static bool CanSaveWorld();
+
 	/** Save the current level as... */
 	static void SaveAs();
 
@@ -871,7 +874,7 @@ public:
 	/**
 	 * Selects the Matinee InterpGroup
 	 */
-	static void OnSelectMatineeGroup( AActor * Actor );
+	static void OnSelectMatineeGroup( AActor* Actor );
 
 	/**
 	 * Called when selecting all actors that's controlled by currently selected matinee actor

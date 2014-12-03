@@ -24,6 +24,9 @@ public class BuildCookRun : BuildCommand
 
 	public override void ExecuteBuild()
 	{
+		// allow BCR functions to call UBT functions (especially .ini parsing)
+		UnrealBuildTool.UnrealBuildTool.SetupUBTFromUAT(ProjectPath);
+
 		// these need to be done first
 		var bForeign = ParseParam("foreign");
 		var bForeignCode = ParseParam("foreigncode");
@@ -36,9 +39,6 @@ public class BuildCookRun : BuildCommand
 			MakeForeignCodeSample();
 		}
 		var Params = SetupParams();
-
-		// allow BCR functions to call UBT functions (especially .ini parsing)
-		UnrealBuildTool.UnrealBuildTool.SetupUBTFromUAT(ProjectPath);
 
 		DoBuildCookRun(Params);
 	}
@@ -106,15 +106,17 @@ public class BuildCookRun : BuildCommand
 			Params.DirectoriesToCook = new ParamList<string>(DirectoriesToCook.Split('+'));
 		}
 
+        var InternationalizationPreset = ParseParamValue("i18npreset");
+        if (!String.IsNullOrEmpty(InternationalizationPreset))
+        {
+            Params.InternationalizationPreset = InternationalizationPreset;
+        }
+
         var CulturesToCook = ParseParamValue("cookcultures");
         if (!String.IsNullOrEmpty(CulturesToCook))
         {
             Params.CulturesToCook = new ParamList<string>(CulturesToCook.Split('+'));
         }
-		else
-		{
-			Params.CulturesToCook = new ParamList<string>(new string[] { "en" });
-		}
 
 		if (Params.DedicatedServer)
 		{
@@ -130,6 +132,11 @@ public class BuildCookRun : BuildCommand
 				ClientPlatformInstance.PlatformSetupParams(ref Params);
 			}
 		}
+
+        var configCache = new UnrealBuildTool.ConfigCacheIni("Game", Path.GetDirectoryName(ProjectPath));
+        bool obbInAPK = false;
+        configCache.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "UseOBB_InAPK", out obbInAPK);
+        Params.OBBinAPK = obbInAPK;         
 
 		Params.ValidateAndLog();
 		return Params;

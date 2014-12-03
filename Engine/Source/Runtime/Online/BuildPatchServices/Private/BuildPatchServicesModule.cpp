@@ -108,6 +108,16 @@ IBuildManifestPtr FBuildPatchServicesModule::LoadManifestFromFile( const FString
 	}
 }
 
+IBuildManifestPtr FBuildPatchServicesModule::MakeManifestFromData(const TArray<uint8>& ManifestData)
+{
+	FBuildPatchAppManifestRef Manifest = MakeShareable(new FBuildPatchAppManifest());
+	if (Manifest->DeserializeFromData(ManifestData))
+	{
+		return Manifest;
+	}
+	return NULL;
+}
+
 IBuildManifestPtr FBuildPatchServicesModule::MakeManifestFromJSON( const FString& ManifestJSON )
 {
 	FBuildPatchAppManifestRef Manifest = MakeShareable( new FBuildPatchAppManifest() );
@@ -118,9 +128,9 @@ IBuildManifestPtr FBuildPatchServicesModule::MakeManifestFromJSON( const FString
 	return NULL;
 }
 
-bool FBuildPatchServicesModule::SaveManifestToFile( const FString& Filename, IBuildManifestRef Manifest )
+bool FBuildPatchServicesModule::SaveManifestToFile(const FString& Filename, IBuildManifestRef Manifest, bool bUseBinary/* = true*/)
 {
-	return StaticCastSharedRef< FBuildPatchAppManifest >( Manifest )->SaveToFile( Filename );
+	return StaticCastSharedRef< FBuildPatchAppManifest >(Manifest)->SaveToFile(Filename, bUseBinary);
 }
 
 IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate )
@@ -189,9 +199,11 @@ bool FBuildPatchServicesModule::GenerateFilesManifestFromDirectory( const FBuild
 	return FBuildDataGenerator::GenerateFilesManifestFromDirectory( Settings );
 }
 
-bool FBuildPatchServicesModule::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview)
+bool FBuildPatchServicesModule::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const ECompactifyMode::Type Mode)
 {
-	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview);
+	const bool bPreview = Mode == ECompactifyMode::Preview;
+	const bool bTouchOnly = Mode == ECompactifyMode::TouchOnly;
+	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview, bTouchOnly);
 }
 
 #endif //WITH_BUILDPATCHGENERATION

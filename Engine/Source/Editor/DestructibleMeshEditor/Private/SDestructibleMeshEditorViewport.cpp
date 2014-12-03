@@ -10,6 +10,8 @@
 #include "DesktopPlatformModule.h"
 #include "FbxImporter.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/DestructibleMesh.h"
+#include "SDockableTab.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 
@@ -171,6 +173,7 @@ void FDestructibleMeshEditorViewportClient::UpdateChunkSelection( TArray<int32> 
 
 		Proxy->DestructibleMesh = DestructibleMesh;
 		Proxy->ChunkIndex = InSelectedChunkIndices[i];
+		Proxy->DestructibleMeshEditorPtr = DestructibleMeshEditorPtr;
 
 		if (FractureSettings != NULL && FractureSettings->ChunkParameters.Num() > Proxy->ChunkIndex)
 		{

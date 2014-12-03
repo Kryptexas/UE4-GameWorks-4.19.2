@@ -20,8 +20,8 @@ UBlueprintFieldNodeSpawner* UBlueprintFieldNodeSpawner::Create(TSubclassOf<UK2No
 }
 
 //------------------------------------------------------------------------------
-UBlueprintFieldNodeSpawner::UBlueprintFieldNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintFieldNodeSpawner::UBlueprintFieldNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Field(nullptr)
 {
 }
@@ -45,9 +45,7 @@ UEdGraphNode* UBlueprintFieldNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 	};
 
 	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, GetField(), SetNodeFieldDelegate, CustomizeNodeDelegate);
-	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
-
-	return SpawnedNode;
+	return Super::SpawnNode(NodeClass, ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------

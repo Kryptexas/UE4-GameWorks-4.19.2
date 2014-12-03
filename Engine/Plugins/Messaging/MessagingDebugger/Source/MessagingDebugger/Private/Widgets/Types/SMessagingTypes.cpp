@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
+#include "SExpandableArea.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingTypes"
@@ -9,7 +10,7 @@
 /* SMessagingTypes structors
  *****************************************************************************/
 
-SMessagingTypes::~SMessagingTypes( )
+SMessagingTypes::~SMessagingTypes()
 {
 	if (Model.IsValid())
 	{
@@ -57,7 +58,7 @@ void SMessagingTypes::Construct( const FArguments& InArgs, const FMessagingDebug
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// type list
@@ -136,7 +137,7 @@ void SMessagingTypes::AddType( const FMessageTracerTypeInfoRef& TypeInfo )
 }
 
 
-void SMessagingTypes::ReloadTypes( )
+void SMessagingTypes::ReloadTypes()
 {
 	TypeList.Reset();
 	
@@ -157,13 +158,13 @@ void SMessagingTypes::ReloadTypes( )
 /* SMessagingTypes callbacks
  *****************************************************************************/
 
-void SMessagingTypes::HandleFilterChanged( )
+void SMessagingTypes::HandleFilterChanged()
 {
 	ReloadTypes();
 }
 
 
-void SMessagingTypes::HandleModelSelectedMessageChanged( )
+void SMessagingTypes::HandleModelSelectedMessageChanged()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -174,7 +175,7 @@ void SMessagingTypes::HandleModelSelectedMessageChanged( )
 }
 
 
-void SMessagingTypes::HandleTracerMessagesReset( )
+void SMessagingTypes::HandleTracerMessagesReset()
 {
 	ReloadTypes();
 }
@@ -195,7 +196,7 @@ TSharedRef<ITableRow> SMessagingTypes::HandleTypeListGenerateRow( FMessageTracer
 }
 
 
-FText SMessagingTypes::HandleTypeListGetHighlightText( ) const
+FText SMessagingTypes::HandleTypeListGetHighlightText() const
 {
 	return FText::GetEmpty();
 	//return FilterBar->GetFilterText();

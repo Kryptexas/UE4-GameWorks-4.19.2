@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UTileView
 
-UTileView::UTileView(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTileView::UTileView(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
 

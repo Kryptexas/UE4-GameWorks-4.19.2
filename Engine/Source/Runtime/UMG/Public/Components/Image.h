@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,8 +8,10 @@ class USlateBrushAsset;
 
 /**
  * The image widget allows you to display a Slate Brush, or texture or material in the UI.
+ *
+ * ● No Children
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UImage : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -21,7 +23,7 @@ public:
 	USlateBrushAsset* Image_DEPRECATED;
 
 	/** Image to draw */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateBrush Brush;
 
 	/** A bindable delegate for the Image. */
@@ -29,12 +31,14 @@ public:
 	FGetSlateBrush BrushDelegate;
 
 	/** Color and opacity */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor ColorAndOpacity;
 
 	/** A bindable delegate for the ColorAndOpacity. */
 	UPROPERTY()
-	FGetSlateColor ColorAndOpacityDelegate;
+	FGetLinearColor ColorAndOpacityDelegate;
+
+public:
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;

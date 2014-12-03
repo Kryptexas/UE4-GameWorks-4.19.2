@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutoPointer.h: Wrapper to convert various smart pointers into "auto" pointers
-=============================================================================*/
-
 #pragma once
+
 
 template<class T, class TBASE>
 class TAutoPointer : private TBASE
@@ -157,5 +154,5 @@ public:
 
 };
 
-template<class T, class TBASE> struct TIsPODType<TAutoPointer<T, TBASE> > { enum { Value = TIsPODType<TBASE>::Value }; }; // pod-ness is the same as the podness of the base pointer type
 
+template<class T, class TBASE> struct TIsPODType<TAutoPointer<T, TBASE> > { enum { Value = TIsPODType<TBASE>::Value }; }; // pod-ness is the same as the podness of the base pointer type

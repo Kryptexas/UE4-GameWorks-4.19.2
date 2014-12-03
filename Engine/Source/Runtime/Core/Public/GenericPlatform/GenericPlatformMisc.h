@@ -6,10 +6,20 @@
 ==============================================================================================*/
 
 #pragma once
+#include "Containers/ContainersFwd.h"
+#include "HAL/Platform.h"
 
+struct FGenericCrashContext;
+struct FGenericMemoryWarningContext;
+
+class FDefaultAllocator;
+class FOutputDevice;
+class FString;
 class FText;
+class GenericApplication;
+class IPlatformChunkInstall;
+class UWorld;
 
-template<typename KeyType, typename ValueType> class TPair;
 
 namespace EBuildConfigurations
 {
@@ -183,126 +193,6 @@ namespace EAppReturnType
 }
 
 /**
- *	Contains crash's description that is common for all platform and can be obtained in run-time.
- *	Since we can't used dynamic memory allocation everything is defined as simple as possible.
- *	This may change in the future.
- */
-struct CORE_API FGenericCrashDescription
-{
-	/**
-	 * The name of the game that crashed. (AppID)
-	 */
-	TCHAR GameName[64];
-
-	/**
-	 * The mode the game was in e.g. editor.
-	 */
-	TCHAR EngineMode[64];
-
-	/**
-	 * The platform that crashed e.g. Win64.
-	 * Main platform name [detailed information like OS version]
-	 */
-	TCHAR Platform[64];
-
-	/**
-	* Encoded engine version. (AppVersion)
-	* E.g. 4.3.0.0-2215663+UE4-Releases+4.3
-	* BuildVersion-BuiltFromCL-BranchName
-	* @EngineVersion	varchar(64)
-	*/
-	//FEngineVersion EngineVersion;
-
-	//Architecture;
-
-	//NumberOfCores;
-
-	//CrashedModuleName;
-
-	//LoadedModules ? ;
-
-	//static const FPlatformMemoryConstants& GetConstants();
-	//static FPlatformMemoryStats GetStats();
-
-	/**
-	 * The three component version of the app e.g. 4.4.1
-	 */
-	TCHAR BuildVersion[32];
-
-	/**
-	 * Built from changelist.
-	 */
-	uint32 BuiltFromCL;
-
-	/**
-	 * The name of the branch this game was built out of.
-	 */
-	TCHAR BranchName[32];
-
-	/**
-	 * The command line of the application that crashed.
-	 */
-	TCHAR CommandLine[512];
-
-	/**
-	 * The base directory where the app was running.
-	 */
-	TCHAR BaseDir[512];
-
-	/**
-	 * The language ID the application that crashed.
-	 */
-	TCHAR LanguageLCID[64];
-
-	/**
-	 * The name of the user that caused this crash.
-	 */
-	TCHAR UserName[64];
-
-	/**
-	 * The unique ID used to identify the machine the crash occurred on.
-	 */
-	TCHAR MachineId[64];
-
-	/**
-	 * The Epic account ID for the user who last used the Launcher.
-	 */
-	TCHAR EpicAccountId[64];
-
-	/**
-	 * A string representing the callstack of the crash.
-	 */
-	TCHAR CallStack[16384];
-
-	/**
-	 * A string representing the user description of the crash.
-	 */
-	TCHAR UserDescription[512];
-
-	/**
-	 * The error message, can be assertion message, ensure message or message from the fatal error.
-	 */
-	TCHAR ErrorMessage[512];
-
-	/**
-	 * The UTC time the crash occurred.
-	 */
-	//	FDateTime TimeOfCrash;
-
-	/** Lenght of the crash's description, in bytes. */
-	int32 Lenght;
-};
-
-struct CORE_API FGenericCrashContext
-{
-};
-
-struct CORE_API FGenericMemoryWarningContext
-{
-};
-
-
-/**
 * Generic implementation for most platforms
 **/
 struct CORE_API FGenericPlatformMisc
@@ -310,9 +200,7 @@ struct CORE_API FGenericPlatformMisc
 	/**
 	 * Called during appInit() after cmd line setup
 	 */
-	static void PlatformPreInit()
-	{
-	}
+	static void PlatformPreInit();
 	static void PlatformInit()
 	{
 	}
@@ -327,11 +215,11 @@ struct CORE_API FGenericPlatformMisc
 	{
 	}
 
-	static class GenericApplication* CreateApplication();
+	static GenericApplication* CreateApplication();
 
 	static void* GetHardwareWindow()
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	/**
@@ -346,7 +234,7 @@ struct CORE_API FGenericPlatformMisc
 	 * including, but not limited to, crashes.
 	 *
 	 */
-	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 	{
 	}
 
@@ -466,12 +354,12 @@ struct CORE_API FGenericPlatformMisc
 	/**
 	 * Enforces strict memory load/store ordering across the memory barrier call.
 	 */
-	static void MemoryBarrier();
+	FORCENOINLINE static void MemoryBarrier();
 
 	/**
 	 * Handles IO failure by ending gameplay.
 	 *
-	 * @param Filename	If not NULL, name of the file the I/O error occured with
+	 * @param Filename	If not nullptr, name of the file the I/O error occured with
 	 */
 	void static HandleIOFailure( const TCHAR* Filename );
 
@@ -480,7 +368,7 @@ struct CORE_API FGenericPlatformMisc
 	 *
 	 * @param Handler	The handler to call
 	 */
-	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context))
+	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext& Context))
 	{
 	}
 	
@@ -733,18 +621,18 @@ public:
 	static int32 NumberOfWorkerThreadsToSpawn();
 
 	/**
-	 * Return the platform specific async IO system, or NULL if the standard one should be used.
+	 * Return the platform specific async IO system, or nullptr if the standard one should be used.
 	 */
 	static struct FAsyncIOSystemBase* GetPlatformSpecificAsyncIOSystem()
 	{
-		return NULL;
+		return nullptr;
 	}
 
-	/** Return the name of the platform features module. Can be NULL if there are no extra features for this platform */
+	/** Return the name of the platform features module. Can be nullptr if there are no extra features for this platform */
 	static const TCHAR* GetPlatformFeaturesModuleName()
 	{
-		// by deafult, no module
-		return NULL;
+		// by default, no module
+		return nullptr;
 	}
 
 	/** Get the application root directory. */
@@ -785,7 +673,7 @@ public:
 	 *
 	 * @return	Returns the platform specific chunk based install implementation
 	 */
-	static class IPlatformChunkInstall* GetPlatformChunkInstall();
+	static IPlatformChunkInstall* GetPlatformChunkInstall();
 
 	/**
 	 * Has the OS execute a command and path pair (such as launch a browser)
@@ -837,7 +725,7 @@ public:
 	 *
 	 *	@return	bool		true if command was processed, false if not
 	 */
-	static bool Exec(class UWorld* InWorld, const TCHAR* Cmd, class FOutputDevice& Out)
+	static bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out)
 	{
 		return false;
 	}
@@ -896,7 +784,7 @@ public:
 	 * Return an ordered list of target platforms this runtime can support (ie Android_DXT, Android
 	 * would mean that it prefers Android_DXT, but can use Android as well)
 	 */
-	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
+	static void GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames);
 
 	/**
 	 * Returns whether the platform wants to use a touch screen for virtual joysticks.

@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UNativeWidgetHost
 
-UNativeWidgetHost::UNativeWidgetHost(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNativeWidgetHost::UNativeWidgetHost(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 }

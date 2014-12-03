@@ -974,8 +974,8 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 			.AutoWidth()
 			[
 				SNew(SBox)
-				.WidthOverride(18.0f)
-				.HeightOverride(18.0f)
+				.WidthOverride(this, &SSlateBrushStaticPreview::GetScaledImageBrushWidth)
+				.HeightOverride(TargetHeight)
 				[
 					SNew(SImage)
 					.Visibility(this, &SSlateBrushStaticPreview::GetPreviewVisibilityImage)
@@ -1001,6 +1001,21 @@ private:
 		return &TemporaryBrush;
 	}
 
+	FOptionalSize GetScaledImageBrushWidth() const
+	{
+		if (TemporaryBrush.DrawAs == ESlateBrushDrawType::Image)
+		{
+			const FVector2D& Size = TemporaryBrush.ImageSize;
+			if (Size.X > 0 && Size.Y > 0)
+			{
+				return Size.X * TargetHeight / Size.Y;
+			}
+		}
+
+		// Default square
+		return TargetHeight;
+	}
+
 	EVisibility GetPreviewVisibilityBorder() const
 	{
 		return TemporaryBrush.DrawAs == ESlateBrushDrawType::Image ? EVisibility::Collapsed : EVisibility::Visible;
@@ -1020,7 +1035,11 @@ private:
 	FSlateBrush TemporaryBrush;
 
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty;
+
+	static float TargetHeight;
 };
+
+float SSlateBrushStaticPreview::TargetHeight = 18.0f;
 
 // SBrushResourceObjectBox
 ////////////////////////////////////////////////////////////////////////////////
@@ -1039,6 +1058,10 @@ class SBrushResourceObjectBox : public SCompoundWidget
 		FSimpleDelegate OnBrushResourceChangedDelegate = FSimpleDelegate::CreateSP(this, &SBrushResourceObjectBox::OnBrushResourceChanged);
 		ResourceObjectProperty->SetOnPropertyValueChanged(OnBrushResourceChangedDelegate);
 
+		TArray<const UClass*> SupportedClasses;
+		SupportedClasses.Add(UTexture2D::StaticClass());
+		SupportedClasses.Add(UMaterialInterface::StaticClass());
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -1048,6 +1071,7 @@ class SBrushResourceObjectBox : public SCompoundWidget
 				SNew(SObjectPropertyEntryBox)
 				.PropertyHandle(InResourceObjectProperty)
 				.ThumbnailPool(StructCustomizationUtils->GetThumbnailPool())
+				.NewAssetFactories(PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(SupportedClasses))
 				.OnShouldFilterAsset(this, &SBrushResourceObjectBox::OnFilterAssetPicker)
 				.OnObjectChanged(this, &SBrushResourceObjectBox::OnAssetPicked)
 			]
@@ -1197,10 +1221,10 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	];
 
 	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() );
+	StructBuilder.AddChildProperty(TintProperty.ToSharedRef());
 	StructBuilder.AddChildProperty( DrawAsProperty.ToSharedRef() );
 	StructBuilder.AddChildProperty( TilingProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetTilingPropertyVisibility ) ) );
-	StructBuilder.AddChildProperty( TintProperty.ToSharedRef() );
 	StructBuilder.AddChildProperty( MarginProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetMarginPropertyVisibility ) ) );
 
@@ -1230,7 +1254,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 				.HeaderRow()
 				.NameContent()
 				[
-					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview").ToString(), false)
+					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview").ToString(), TEXT( "" ), false)
 				]
 			.ValueContent()
 				.MinDesiredWidth(1)

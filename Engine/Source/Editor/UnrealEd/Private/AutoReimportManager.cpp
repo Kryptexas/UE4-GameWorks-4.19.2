@@ -12,8 +12,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);
 
 
-UAutoReimportManager::UAutoReimportManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAutoReimportManager::UAutoReimportManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ReimportTime = 0.0f;
 }

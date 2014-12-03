@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UVerticalBoxSlot
 
-UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVerticalBoxSlot::UVerticalBoxSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(NULL)
 {
 	HorizontalAlignment = HAlign_Fill;

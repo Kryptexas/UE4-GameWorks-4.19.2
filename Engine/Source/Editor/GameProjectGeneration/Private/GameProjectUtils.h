@@ -4,6 +4,8 @@
 
 #include "HardwareTargetingModule.h"
 
+struct FModuleContextInfo;
+
 struct FProjectInformation
 {
 	FProjectInformation(FString InProjectFilename, bool bInGenerateCode, bool bInCopyStarterContent, FString InTemplateFile = FString())
@@ -28,19 +30,6 @@ struct FProjectInformation
 class GameProjectUtils
 {
 public:
-	/** Context information used when validating that source code is being placed in the correct place for a given module */
-	struct FModuleContextInfo
-	{
-		/** Path to the Source folder of the module */
-		FString ModuleSourcePath;
-
-		/** Name of the module */
-		FString ModuleName;
-
-		/** Type of this module, eg, Runtime, Editor, etc */
-		EHostType::Type ModuleType;
-	};
-
 	/** Where is this class located within the Source folder? */
 	enum class EClassLocation : uint8
 	{
@@ -146,6 +135,19 @@ public:
 		const UClass* BaseClass;
 	};
 
+	/** Used as a function return result when a project is duplicated when upgrading project's version in Convert project dialog - Open a copy */
+	enum class EProjectDuplicateResult : uint8
+	{
+		/** Function has successfully duplicated all project files */
+		Succeeded,
+
+		/** There were errors while duplicating project files */
+		Failed,
+		 
+		/** User has canceled project duplication process */
+		UserCanceled
+	};
+
 	/** Returns true if the project filename is properly formed and does not conflict with another project */
 	static bool IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason);
 
@@ -199,7 +201,7 @@ public:
 	static bool GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason);
 
 	/** Generates a set of resource files for a game module */
-	static bool GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+	static bool GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, const FString& GameRoot, bool bShouldGenerateCode, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
@@ -246,7 +248,7 @@ public:
 	static bool GetClassLocation(const FString& InPath, const FModuleContextInfo& ModuleInfo, EClassLocation& OutClassLocation, FText* const OutFailReason = nullptr);
 
 	/** Creates a copy of a project directory in order to upgrade it. */
-	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
+	static EProjectDuplicateResult DuplicateProjectForUpgrade( const FString& InProjectFile, FString& OutNewProjectFile );
 
 	/**
 	 * Update the list of supported target platforms based upon the parameters provided
@@ -260,6 +262,17 @@ public:
 	/** Clear the list of supported target platforms */
 	static void ClearSupportedTargetPlatforms();
 
+	/** Returns the path to the module's include header */
+	static FString DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo);
+
+	/** Creates the basic source code for a new project. On failure, OutFailReason will be populated. */
+	static bool GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+
+	/** Returns true if the currently loaded project has code files */
+	static bool ProjectHasCodeFiles();
+
+	/** Returns the contents of the specified template file */
+	static bool ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason);
 private:
 
 	static FString GetHardwareConfigString(const FProjectInformation& InProjectInfo);
@@ -307,7 +320,7 @@ private:
 	static bool GenerateConfigFiles(const FProjectInformation& InProjectInfo, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
 	/** Creates the basic source code for a new project. On failure, OutFailReason will be populated. */
-	static bool GenerateBasicSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, TArray<FString>& OutGeneratedStartupModuleNames, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+	static bool GenerateBasicSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, const FString& NewProjectRoot, TArray<FString>& OutGeneratedStartupModuleNames, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
 	/** Creates the game framework source code for a new project (Pawn, GameMode, PlayerControlleR). On failure, OutFailReason will be populated. */
 	static bool GenerateGameFrameworkSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
@@ -317,9 +330,6 @@ private:
 
 	/** Creates the batch file for launching the editor or game */
 	static bool GenerateLaunchBatchFile(const FString& ProjectName, const FString& ProjectFolder, bool bLaunchEditor, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
-
-	/** Returns the contents of the specified template file */
-	static bool ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason);
 
 	/** Writes an output file. OutputFilename includes a path */
 	static bool WriteOutputFile(const FString& OutputFilename, const FString& OutputFileContents, FText& OutFailReason);
@@ -334,7 +344,7 @@ private:
 	static FString MakeIncludeList(const TArray<FString>& InList);
 
 	/** Generates a header file for a UObject class. OutSyncLocation is a string representing the preferred cursor sync location for this file after creation. */
-	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
+	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, bool bDeclareConstructor, FText& OutFailReason);
 
 	/** Generates a cpp file for a UObject class */
 	static bool GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
@@ -344,9 +354,6 @@ private:
 
 	/** Generates a Target.cs file for a game module */
 	static bool GenerateGameModuleTargetFile(const FString& NewTargetFileName, const FString& ModuleName, const TArray<FString>& ExtraModuleNames, FText& OutFailReason);
-
-	/** Generates a resource file for a game module */
-	static bool GenerateGameResourceFile(const FString& NewResourceFolderName, const FString& TemplateFilename, const FString& GameName, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
 	/** Generates a Build.cs file for a Editor module */
 	static bool GenerateEditorModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason);
@@ -390,9 +397,6 @@ private:
 
 	/** Checks the specified game project file out from source control */
 	static bool CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason);
-
-	/** Returns true if the currently loaded project has code files */
-	static bool ProjectHasCodeFiles();
 
 	/** Internal handler for AddCodeToProject*/
 	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);

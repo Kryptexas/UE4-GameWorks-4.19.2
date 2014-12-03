@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "XmlParser.h"
 #include "../Private/PListNode.h"
 #include "../Private/PListNodeArray.h"
@@ -118,7 +118,7 @@ public:
 	
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	// End of SWidget interface
 

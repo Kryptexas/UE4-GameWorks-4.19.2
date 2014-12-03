@@ -1,11 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Spacer.generated.h"
 
-/** A spacer widget; it does not have a visual representation, and just provides padding between other widgets. */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * A spacer widget; it does not have a visual representation, and just provides padding between other widgets.
+ *
+ * ● No Children
+ */
+UCLASS()
 class UMG_API USpacer : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -13,7 +17,7 @@ class UMG_API USpacer : public UWidget
 public:
 
 	/** The size of the spacer */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FVector2D Size;
 
 public:

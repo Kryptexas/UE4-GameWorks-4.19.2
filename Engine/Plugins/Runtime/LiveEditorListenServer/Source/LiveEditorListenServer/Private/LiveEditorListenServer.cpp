@@ -229,8 +229,8 @@ void FLiveEditorListenServer::InstallHooks()
 	TickObject = new nLiveEditorListenServer::FTickObject(this);
 
 	MapLoadObserver = MakeShareable( new nLiveEditorListenServer::FMapLoadObserver(this) );
-	FCoreDelegates::PostLoadMap.AddSP(MapLoadObserver.Get(), &nLiveEditorListenServer::FMapLoadObserver::OnPostLoadMap);
-	FCoreDelegates::PreLoadMap.AddSP(MapLoadObserver.Get(), &nLiveEditorListenServer::FMapLoadObserver::OnPreLoadMap);
+	FCoreUObjectDelegates::PostLoadMap.AddSP(MapLoadObserver.Get(), &nLiveEditorListenServer::FMapLoadObserver::OnPostLoadMap);
+	FCoreUObjectDelegates::PreLoadMap.AddSP(MapLoadObserver.Get(), &nLiveEditorListenServer::FMapLoadObserver::OnPreLoadMap);
 }
 
 void FLiveEditorListenServer::RemoveHooks()
@@ -270,8 +270,8 @@ void FLiveEditorListenServer::RemoveHooks()
 	delete ObjectDeleteListener;
 	ObjectDeleteListener = NULL;
 
-	FCoreDelegates::PostLoadMap.RemoveAll(MapLoadObserver.Get());
-	FCoreDelegates::PreLoadMap.RemoveAll(MapLoadObserver.Get());
+	FCoreUObjectDelegates::PostLoadMap.RemoveAll(MapLoadObserver.Get());
+	FCoreUObjectDelegates::PreLoadMap.RemoveAll(MapLoadObserver.Get());
 	MapLoadObserver = NULL;
 }
 

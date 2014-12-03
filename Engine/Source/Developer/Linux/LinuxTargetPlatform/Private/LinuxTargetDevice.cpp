@@ -107,7 +107,7 @@ bool FLinuxTargetDevice::Run( const FString& ExecutablePath, const FString& Para
 #endif // PLATFORM_LINUX
 }
 
-bool FLinuxTargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) const
+bool FLinuxTargetDevice::SupportsFeature( ETargetDeviceFeatures Feature ) const
 {
 	switch (Feature)
 	{

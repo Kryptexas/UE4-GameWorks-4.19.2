@@ -217,11 +217,12 @@ TSharedPtr< FSlateDynamicImageBrush > SExternalImagePicker::LoadImageAsBrush( co
 	if( FFileHelper::LoadFileToArray( RawFileData, *ImagePath ) )
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrappers[3] =
+		IImageWrapperPtr ImageWrappers[4] =
 		{ 
 			ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG ),
 			ImageWrapperModule.CreateImageWrapper( EImageFormat::BMP ),
 			ImageWrapperModule.CreateImageWrapper( EImageFormat::ICO ),
+			ImageWrapperModule.CreateImageWrapper( EImageFormat::ICNS ),
 		};
 
 		for( auto ImageWrapper : ImageWrappers )

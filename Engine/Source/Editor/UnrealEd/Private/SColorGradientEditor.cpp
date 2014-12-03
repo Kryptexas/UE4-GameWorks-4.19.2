@@ -57,7 +57,7 @@ bool FGradientStopMark::IsValidColorMark( const TArray<FRichCurveEditInfo>& Curv
 
 FLinearColor FGradientStopMark::GetColor( FCurveOwnerInterface& CurveOwner ) const
 {
-	return CastChecked<UCurveLinearColor>( CurveOwner.GetOwner() )->GetLinearColorValue( Time );
+	return CurveOwner.GetLinearColorValue(Time);
 }
 
 void FGradientStopMark::SetColor( const FLinearColor& InColor, FCurveOwnerInterface& CurveOwner )
@@ -139,8 +139,6 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 		// Pixel to value input converter
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, GradientAreaGeometry.Size);
 
-		UCurveLinearColor* LinearColorCurve = CastChecked<UCurveLinearColor>( CurveOwner->GetOwner() );
-
 		// The start and end location in slate units of the area to draw
 		int32 Start = 0;
 		int32 Finish = FMath::TruncToInt( AllottedGeometry.Size.X );
@@ -148,7 +146,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 		TArray<FSlateGradientStop> Stops;
 
 		// If no alpha keys are available, treat the curve as being completely opaque for drawing purposes
-		bool bHasAnyAlphaKeys = LinearColorCurve->HasAnyAlphaKeys(); 
+		bool bHasAnyAlphaKeys = CurveOwner->HasAnyAlphaKeys(); 
 
 		// If any transpareny (A < 1) is found, we'll draw a checkerboard to visualize the color with alpha
 		bool bHasTransparency = false;
@@ -160,7 +158,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			float Time = ScaleInfo.LocalXToInput(CurrentStep);
 
 			// Sample the curve
-			FLinearColor Color = LinearColorCurve->GetLinearColorValue( Time );
+			FLinearColor Color = CurveOwner->GetLinearColorValue( Time );
 			if( !bHasAnyAlphaKeys )
 			{
 				// Only show alpha if there is at least one key.  For some curves, alpha may not be important
@@ -220,7 +218,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			// Dont draw stops which are not visible
 			if( XVal >= 0 && XVal <= ColorMarkAreaGeometry.Size.X )
 			{
-				FLinearColor Color = LinearColorCurve->GetLinearColorValue( Mark.Time );
+				FLinearColor Color = CurveOwner->GetLinearColorValue( Mark.Time );
 				Color.A = 1.0f;
 				DrawGradientStopMark( Mark, ColorMarkAreaGeometry, XVal, Color, OutDrawElements, LayerId, MyClippingRect, DrawEffects, true, InWidgetStyle );
 			}
@@ -237,7 +235,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			// Dont draw stops which are not visible
 			if( XVal >= 0 && XVal <= AlphaMarkAreaGeometry.Size.X )
 			{
-				float Alpha = LinearColorCurve->GetLinearColorValue( Mark.Time ).A;
+				float Alpha = CurveOwner->GetLinearColorValue( Mark.Time ).A;
 				DrawGradientStopMark( Mark, AlphaMarkAreaGeometry, XVal, FLinearColor( Alpha, Alpha, Alpha, 1.0f ), OutDrawElements, LayerId, MyClippingRect, DrawEffects, false, InWidgetStyle );
 			}
 
@@ -428,9 +426,9 @@ FReply SColorGradientEditor::OnMouseButtonUp( const FGeometry& MyGeometry, const
 	return FReply::Unhandled();
 }
 
-FReply SColorGradientEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SColorGradientEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( IsEditingEnabled.Get() == true && InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+	if ( IsEditingEnabled.Get() == true && InKeyEvent.GetKey() == EKeys::Platform_Delete )
 	{
 		DeleteStop( SelectedStop );
 		return FReply::Handled();
@@ -845,9 +843,8 @@ void SColorGradientEditor::DeleteStop( const FGradientStopMark& InMark )
 FGradientStopMark SColorGradientEditor::AddStop( const FVector2D& Position, const FGeometry& MyGeometry, bool bColorStop )
 {
 	FScopedTransaction AddStopTrans( LOCTEXT("AddGradientStop", "Add Gradient Stop") );
-	UCurveLinearColor* ColorCurve = CastChecked<UCurveLinearColor>( CurveOwner->GetOwner() );
 
-	ColorCurve->Modify();
+	CurveOwner->ModifyOwner();
 
 	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.Size);
 

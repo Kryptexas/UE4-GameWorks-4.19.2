@@ -35,16 +35,6 @@ enum ENestAllowFlags
 	ALLOW_TypeDecl			= 16,	// Allow declarations which do not affect memory layout, such as structs, enums, and consts
 };
 
-/** Types access specifiers. */
-enum EAccessSpecifier
-{
-	ACCESS_NotAnAccessSpecifier	= 0,	
-	ACCESS_Public,
-	ACCESS_Private,
-	ACCESS_Protected,
-	ACCESS_Num,
-};
-
 namespace EDelegateSpecifierAction
 {
 	enum Type
@@ -65,6 +55,12 @@ struct FNestInfo
 
 	/** Types of statements to allow at this nesting level. */
 	int32 Allow;
+};
+
+struct FIndexRange
+{
+	int32 StartIndex;
+	int32 Count;
 };
 
 /////////////////////////////////////////////////////
@@ -215,7 +211,7 @@ protected:
 	// Indicates that UCLASS/USTRUCT/UINTERFACE has already been parsed in this .h file..
 	bool bHaveSeenUClass;
 
-	// Indicates that a GENERATED_UCLASS_BODY has been found in the UClass.
+	// Indicates that a GENERATED_UCLASS_BODY or GENERATED_BODY has been found in the UClass.
 	bool bClassHasGeneratedBody;
 
 	// public, private, etc at the current parse spot
@@ -309,6 +305,7 @@ protected:
 	UEnum* CompileEnum(UClass* Owner);
 	UScriptStruct* CompileStructDeclaration(FClasses& AllClasses, FClass* Owner);
 	bool CompileDeclaration(FClasses& AllClasses, FToken& Token);
+
 	/** Skip C++ (noexport) declaration. */
 	bool SkipDeclaration(FToken& Token);
 	/** Similar to MatchSymbol() but will return to the exact location as on entry if the symbol was not found. */
@@ -392,6 +389,7 @@ protected:
 	 * @param   OuterPropertyType         only specified when compiling the inner properties for arrays or maps.  corresponds to the FToken for the outer property declaration.
 	 * @param   PropertyDeclarationStyle  if the variable is defined with a UPROPERTY
 	 * @param   VariableCategory          what kind of variable is being parsed
+	 * @param   ParsedVarIndexRange       The source text [Start, End) index range for the parsed type.
 	 *
 	 * @return  true if the variable type was parsed
 	 */
@@ -404,7 +402,8 @@ protected:
 		const TCHAR*                    Thing,
 		FToken*                         OuterPropertyType,
 		EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
-		EVariableCategory::Type         VariableCategory);
+		EVariableCategory::Type         VariableCategory,
+		FIndexRange*                    ParsedVarIndexRange = nullptr);
 
 	/**
 	 * Parses a variable name declaration and creates a new UProperty object.
@@ -535,6 +534,20 @@ protected:
 	}
 
 	static void ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarProperty, FToken* OuterPropertyType);
+
+private:
+	/**
+	 * Tries to match constructor parameter list. Assumes that constructor
+	 * name is already matched.
+	 *
+	 * If fails it reverts all parsing done.
+	 *
+	 * @param Token Token to start parsing from.
+	 *
+	 * @returns True if matched. False otherwise.
+	 */
+	bool TryToMatchConstructorParameterList(FToken Token);
+	void SkipDeprecatedMacroIfNecessary();
 };
 
 /////////////////////////////////////////////////////

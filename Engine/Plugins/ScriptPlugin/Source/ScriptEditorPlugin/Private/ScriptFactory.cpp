@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 #include "ScriptEditorPluginPrivatePCH.h"
 
-UScriptFactory::UScriptFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super( PCIP )
+UScriptFactory::UScriptFactory(const FObjectInitializer& ObjectInitializer)
+	: Super( ObjectInitializer )
 {
 	SupportedClass = UScriptBlueprint::StaticClass();
 	ParentClass = AActor::StaticClass();
@@ -69,8 +69,8 @@ UObject* UScriptFactory::FactoryCreateText(UClass* InClass, UObject* InParent, F
 
 /** UReimportScriptFactory */
 
-UReimportScriptFactory::UReimportScriptFactory(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UReimportScriptFactory::UReimportScriptFactory(const class FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

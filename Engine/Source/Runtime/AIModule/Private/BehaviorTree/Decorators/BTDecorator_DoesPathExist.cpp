@@ -8,7 +8,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_DoesPathExist.h"
 
-UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Does path exist";
 
@@ -27,7 +27,7 @@ UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FPostConstructIniti
 	PathQueryType = EPathExistanceQueryType::HierarchicalQuery;
 }
 
-void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree* Asset)
+void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
@@ -61,7 +61,7 @@ bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeCompone
 	if (NavSys && bHasPointA && bHasPointB)
 	{
 		const AAIController* AIOwner = OwnerComp->GetAIOwner();
-		const ANavigationData* NavData = AIOwner && AIOwner->NavComponent ? AIOwner->NavComponent->GetNavData() : NULL;
+		const ANavigationData* NavData = AIOwner && AIOwner->GetNavComponent() ? AIOwner->GetNavComponent()->GetNavData() : NULL;
 		TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(NavData, FilterClass);
 
 		if (PathQueryType == EPathExistanceQueryType::NavmeshRaycast2D)

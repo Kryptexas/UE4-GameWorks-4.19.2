@@ -66,6 +66,7 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment)
 
 	FString MachineIDandUserID;
 	// Set global user name ID: will be added to the report
+	extern FCrashDescription& GetCrashDescription();
 	if( FRocketSupport::IsRocket() )
 	{
 		MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId );

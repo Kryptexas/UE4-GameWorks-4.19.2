@@ -44,13 +44,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_SixParams( FParticleDeathSignature, FName, Ev
 	*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_EightParams( FParticleCollisionSignature, FName, EventName, float, EmitterTime, int32, ParticleTime, FVector, Location, FVector, Velocity, FVector, Direction, FVector, Normal, FName, BoneName);
 
-UCLASS(hidecategories=(Activation,"Components|Activation",Input,Collision), showcategories=("Input|MouseInput", "Input|TouchInput"))
+UCLASS(hidecategories=(Activation,"Components|Activation",Input,Collision,"Game|Damage"))
 class ENGINE_API AEmitter : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Emitter, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Particles|Beam,Particles|Parameters,Particles,Effects|Components|ParticleSystem,Rendering,Activation,Components|Activation"))
-	TSubobjectPtr<class UParticleSystemComponent> ParticleSystemComponent;
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ParticleSystemComponent should not be accessed directly, please use GetParticleSystemComponent() function instead. ParticleSystemComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Emitter, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Particles|Beam,Particles|Parameters,Particles,Effects|Components|ParticleSystem,Rendering,Activation,Components|Activation", AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* ParticleSystemComponent;
+public:
 
 	UPROPERTY()
 	uint32 bDestroyOnSystemFinish:1;
@@ -76,11 +79,15 @@ class ENGINE_API AEmitter : public AActor
 
 #if WITH_EDITORONLY_DATA
 
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
 
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+public:
 
 #endif
 
@@ -135,6 +142,16 @@ class ENGINE_API AEmitter : public AActor
 	 *	Intended for use in editor only
 	 */
 	void ResetInLevel();
+#endif
+
+public:
+	/** Returns ParticleSystemComponent subobject **/
+	class UParticleSystemComponent* GetParticleSystemComponent();
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	class UBillboardComponent* GetSpriteComponent() const;
+	/** Returns ArrowComponent subobject **/
+	class UArrowComponent* GetArrowComponent() const;
 #endif
 };
 

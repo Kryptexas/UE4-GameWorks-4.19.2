@@ -14,7 +14,7 @@ FOnlineAchievementsIOS::FOnlineAchievementsIOS(class FOnlineSubsystemIOS* InSubs
 	IOSSubsystem = InSubsystem;
 }
 
-void FOnlineAchievementsIOS::QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
+void FOnlineAchievementsIOS::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
 	// Make a copy of the delegate so it won't be a reference inside the FIOSAsyncTask
 	FOnQueryAchievementsCompleteDelegate CopiedDelegate = Delegate;

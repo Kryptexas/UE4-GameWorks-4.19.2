@@ -7,6 +7,9 @@
 #include "GameplayDebuggingReplicator.h"
 #include "GameplayDebuggingControllerComponent.h"
 #include "AISystem.h"
+#if WITH_EDITOR
+#include "Editor/EditorEngine.h"
+#endif // WITH_EDITOR
 
 uint32 FGameplayDebuggerSettings::ShowFlagIndex = 0;
 
@@ -147,6 +150,14 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 		DestActor->SetLocalPlayerOwner(PlayerController);
 		DestActor->SetReplicates(true);
 		DestActor->SetAsGlobalInWorld(false);
+#if WITH_EDITOR
+		UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
+		if (EEngine && EEngine->bIsSimulatingInEditor)
+		{
+			DestActor->CreateTool();
+			DestActor->EnableTool();
+		}
+#endif
 		AddReplicator(World, DestActor);
 		return true;
 	}
@@ -292,6 +303,7 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 			if (!Replicator)
 			{
 				PC->ConsoleCommand("cheat EnableGDT");
+				bHandled = true;
 			}
 			else if (!Replicator->IsToolCreated())
 			{
@@ -326,6 +338,14 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 				{
 					Replicator->CreateTool();
 					Replicator->EnableTool();
+					bHandled = true;
+				}
+			}
+			else
+			{
+				if (Replicator)
+				{
+					Replicator->bAutoActivate = true;;
 					bHandled = true;
 				}
 			}

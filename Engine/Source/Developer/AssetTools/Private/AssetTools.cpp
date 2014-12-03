@@ -14,6 +14,8 @@
 #include "IAnalyticsProvider.h"
 #include "MessageLog.h"
 #include "UnrealExporter.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AssetTools"
 
@@ -189,9 +191,9 @@ bool FAssetTools::GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuild
 
 struct FRootedOnScope
 {
-	UObject * Obj;
+	UObject* Obj;
 
-	FRootedOnScope(UObject * InObj) : Obj(NULL)
+	FRootedOnScope(UObject* InObj) : Obj(NULL)
 	{
 		if (InObj && !InObj->IsRooted())
 		{
@@ -326,7 +328,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 		if( CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)) )
 		{
 			UFactory* Factory = Cast<UFactory>( CurrentClass->GetDefaultObject() );
-			if( Factory->bEditorImport && Factory->ValidForCurrentGame() )
+			if( Factory->bEditorImport )
 			{
 				Factories.Add( Factory );
 			}
@@ -429,14 +431,21 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	TArray<UObject*> ReturnObjects;
 	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
 
-	GWarn->BeginSlowTask(LOCTEXT("ImportSlowTask", "Importing"), true);
+	FScopedSlowTask SlowTask(Files.Num() + 3, LOCTEXT("ImportSlowTask", "Importing"));
+	SlowTask.MakeDialog();
 
 	// Reset the 'Do you want to overwrite the existing object?' Yes to All / No to All prompt, to make sure the
 	// user gets a chance to select something
 	UFactory::ResetState();
 
+	SlowTask.EnterProgressFrame();
+
 	TArray<TPair<FString, FString>> FilesAndDestinations;
 	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+
+
+
+	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
 
 	if (SpecifiedFactory == NULL)
 	{	
@@ -446,7 +455,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 			if( (*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) )
 			{
 				UFactory* Factory = Cast<UFactory>( (*ClassIt)->GetDefaultObject() );
-				if( Factory->bEditorImport && Factory->ValidForCurrentGame() )
+				if( Factory->bEditorImport )
 				{
 					TArray<FString> FactoryExtensions;
 					Factory->GetSupportedFileExtensions(FactoryExtensions);
@@ -491,7 +500,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	}
 	else
 	{
-		if( SpecifiedFactory->bEditorImport && SpecifiedFactory->ValidForCurrentGame() )
+		if( SpecifiedFactory->bEditorImport )
 		{
 			TArray<FString> FactoryExtensions;
 			SpecifiedFactory->GetSupportedFileExtensions(FactoryExtensions);
@@ -546,6 +555,8 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 		const FString& Filename = FilesAndDestinations[FileIdx].Key;
 		const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
 
+		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("Import_ImportingFile", "Importing \"{0}\"..."), FText::FromString(FPaths::GetBaseFilename(Filename))));
+
 		FString FileExtension = FPaths::GetExtension(Filename);
 
 		const TArray<UFactory*>* FactoriesPtr = ExtensionToFactoriesMap.Find(FileExtension);
@@ -572,6 +583,14 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 		}
 		else
 		{
+			if(FEngineAnalytics::IsAvailable())
+			{
+				TArray<FAnalyticsEventAttribute> Attribs;
+				Attribs.Add(FAnalyticsEventAttribute(TEXT("FileExtension"), FileExtension));
+
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.ImportFailed"), Attribs);
+			}
+
 			const FText Message = FText::Format( LOCTEXT("ImportFailed_UnknownExtension", "Failed to import '{0}'. Unknown extension '{1}'."), FText::FromString( Filename ), FText::FromString( FileExtension ) );
 			FNotificationInfo Info(Message);
 			Info.ExpireDuration = 3.0f;
@@ -758,6 +777,8 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 		}
 	}
 
+	SlowTask.EnterProgressFrame(1);
+
 	// Clean up and remove the factories we created from the root set
 	for ( auto ExtensionIt = ExtensionToFactoriesMap.CreateConstIterator(); ExtensionIt; ++ExtensionIt)
 	{
@@ -767,8 +788,6 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 			(*FactoryIt)->RemoveFromRoot();
 		}
 	}
-
-	GWarn->EndSlowTask();
 
 	// Sync content browser to the newly created assets
 	if ( ReturnObjects.Num() )
@@ -1116,31 +1135,18 @@ bool FAssetTools::CheckForDeletedPackage(const UPackage* Package) const
 			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package, EStateCacheUsage::ForceUpdate);
 			if ( SourceControlState.IsValid() && SourceControlState->IsDeleted() )
 			{
-				// Creating an asset in a package that is marked for delete.
-				// Prompt the user to check in the package.
-				bool bWantCheckin =
-				EAppReturnType::Yes == FMessageDialog::Open(
-				EAppMsgType::YesNo,
-				FText::Format(
-					LOCTEXT("CheckInDeletedPackage", "'{0}' is marked for delete in source control. You must check in the delete request before creating an asset in its place. Do you want to check in the delete?"),
-					FText::FromString( FPackageName::GetLongPackageAssetName(Package->GetName()) )
-					) 
-				);
-
-				if( bWantCheckin )
+				// Creating an asset in a package that is marked for delete - revert the delete and check out the package
+				if (!SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), Package))
 				{
-					TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-					CheckInOperation->SetDescription( LOCTEXT("AutomaticDeleteDesc", "Automatic Delete") );
-					if ( !SourceControlProvider.Execute(CheckInOperation, Package) )
-					{
-						// Failed to check in file
-						FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("DeletedFileCheckinFailed", "Failed to check in deleted package."));
-						return false;
-					}
+					// Failed to revert file which was marked for delete
+					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("RevertDeletedFileFailed", "Failed to revert package which was marked for delete."));
+					return false;
 				}
-				else
+
+				if (!SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), Package))
 				{
-					// User chose not to check in the package that is marked for delete
+					// Failed to check out file
+					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("CheckOutFileFailed", "Failed to check out package"));
 					return false;
 				}
 			}
@@ -1254,11 +1260,13 @@ void FAssetTools::PerformMigratePackages(TArray<FName> PackageNamesToMigrate) co
 	// Form a full list of packages to move by including the dependencies of the supplied packages
 	TSet<FName> AllPackageNamesToMove;
 	{
-		const bool bAllowNewSlowTask = true;
-		FScopedSlowTask SlowTaskGatheringDependenciesMessage( LOCTEXT( "MigratePackages_GatheringDependencies", "Gathering Dependencies..." ) );
+		FScopedSlowTask SlowTask( PackageNamesToMigrate.Num(), LOCTEXT( "MigratePackages_GatheringDependencies", "Gathering Dependencies..." ) );
+		SlowTask.MakeDialog();
 
 		for ( auto PackageIt = PackageNamesToMigrate.CreateConstIterator(); PackageIt; ++PackageIt )
 		{
+			SlowTask.EnterProgressFrame();
+
 			if ( !AllPackageNamesToMove.Contains(*PackageIt) )
 			{
 				AllPackageNamesToMove.Add(*PackageIt);
@@ -1351,79 +1359,88 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 	bool bUserCanceled = false;
 
 	// Copy all specified assets and their dependencies to the destination folder
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "MigratePackages_CopyingFiles", "Copying Files..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTask( 2, LOCTEXT( "MigratePackages_CopyingFiles", "Copying Files..." ) );
+	SlowTask.MakeDialog();
 
 	EAppReturnType::Type LastResponse = EAppReturnType::Yes;
 	TArray<FString> SuccessfullyCopiedFiles;
 	TArray<FString> SuccessfullyCopiedPackages;
 	FString CopyErrors;
-	for ( auto PackageNameIt = ConfirmedPackageNamesToMigrate.CreateConstIterator(); PackageNameIt; ++PackageNameIt )
+
+	SlowTask.EnterProgressFrame();
 	{
-		const FString& PackageName = *PackageNameIt;
-		FString SrcFilename;
-		if ( !FPackageName::DoesPackageExist(PackageName, NULL, &SrcFilename) )
+		FScopedSlowTask LoopProgress(ConfirmedPackageNamesToMigrate.Num());
+		for ( auto PackageNameIt = ConfirmedPackageNamesToMigrate.CreateConstIterator(); PackageNameIt; ++PackageNameIt )
 		{
-			const FText ErrorMessage = FText::Format(LOCTEXT("MigratePackages_PackageMissing", "{0} does not exist on disk."), FText::FromString(PackageName));
-			UE_LOG(LogAssetTools, Warning, TEXT("%s"), *ErrorMessage.ToString());
-			CopyErrors += ErrorMessage.ToString() + LINE_TERMINATOR;
-		}
-		else if (SrcFilename.Contains(FPaths::EngineContentDir()))
-		{
-			const FString LeafName = SrcFilename.Replace(*FPaths::EngineContentDir(), TEXT("Engine/"));
-			CopyErrors += FText::Format(LOCTEXT("MigratePackages_EngineContent", "Unable to migrate Engine asset {0}. Engine assets cannot be migrated."), FText::FromString(LeafName)).ToString() + LINE_TERMINATOR;
-		}
-		else
-		{
-			const FString DestFilename = SrcFilename.Replace(*FPaths::GameContentDir(), *DestinationFolder);
+			LoopProgress.EnterProgressFrame();
 
-			bool bFileOKToCopy = true;
-			if ( IFileManager::Get().FileSize(*DestFilename) > 0 )
+			const FString& PackageName = *PackageNameIt;
+			FString SrcFilename;
+			if ( !FPackageName::DoesPackageExist(PackageName, NULL, &SrcFilename) )
 			{
-				// The destination file already exists! Ask the user what to do.
-				EAppReturnType::Type Response;
-				if ( LastResponse == EAppReturnType::YesAll || LastResponse == EAppReturnType::NoAll )
-				{
-					Response = LastResponse;
-				}
-				else
-				{
-					const FText Message = FText::Format( LOCTEXT("MigratePackages_AlreadyExists", "An asset already exists at location {0} would you like to overwrite it?"), FText::FromString(DestFilename) );
-					Response = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, Message );
-					if ( Response == EAppReturnType::Cancel )
-					{
-						// The user chose to cancel mid-operation. Break out.
-						bUserCanceled = true;
-						break;
-					}
-					LastResponse = Response;
-				}
-
-				const bool bWantOverwrite = Response == EAppReturnType::Yes || Response == EAppReturnType::YesAll;
-				if( !bWantOverwrite )
-				{
-					// User chose not to replace the package
-					bFileOKToCopy = false;
-				}
+				const FText ErrorMessage = FText::Format(LOCTEXT("MigratePackages_PackageMissing", "{0} does not exist on disk."), FText::FromString(PackageName));
+				UE_LOG(LogAssetTools, Warning, TEXT("%s"), *ErrorMessage.ToString());
+				CopyErrors += ErrorMessage.ToString() + LINE_TERMINATOR;
 			}
-
-			if ( bFileOKToCopy )
+			else if (SrcFilename.Contains(FPaths::EngineContentDir()))
 			{
-				if ( IFileManager::Get().Copy(*DestFilename, *SrcFilename) == COPY_OK )
+				const FString LeafName = SrcFilename.Replace(*FPaths::EngineContentDir(), TEXT("Engine/"));
+				CopyErrors += FText::Format(LOCTEXT("MigratePackages_EngineContent", "Unable to migrate Engine asset {0}. Engine assets cannot be migrated."), FText::FromString(LeafName)).ToString() + LINE_TERMINATOR;
+			}
+			else
+			{
+				const FString DestFilename = SrcFilename.Replace(*FPaths::GameContentDir(), *DestinationFolder);
+
+				bool bFileOKToCopy = true;
+				if ( IFileManager::Get().FileSize(*DestFilename) > 0 )
 				{
-					SuccessfullyCopiedPackages.Add(PackageName);
-					SuccessfullyCopiedFiles.Add(DestFilename);
+					// The destination file already exists! Ask the user what to do.
+					EAppReturnType::Type Response;
+					if ( LastResponse == EAppReturnType::YesAll || LastResponse == EAppReturnType::NoAll )
+					{
+						Response = LastResponse;
+					}
+					else
+					{
+						const FText Message = FText::Format( LOCTEXT("MigratePackages_AlreadyExists", "An asset already exists at location {0} would you like to overwrite it?"), FText::FromString(DestFilename) );
+						Response = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, Message );
+						if ( Response == EAppReturnType::Cancel )
+						{
+							// The user chose to cancel mid-operation. Break out.
+							bUserCanceled = true;
+							break;
+						}
+						LastResponse = Response;
+					}
+
+					const bool bWantOverwrite = Response == EAppReturnType::Yes || Response == EAppReturnType::YesAll;
+					if( !bWantOverwrite )
+					{
+						// User chose not to replace the package
+						bFileOKToCopy = false;
+					}
 				}
-				else
+
+				if ( bFileOKToCopy )
 				{
-					UE_LOG(LogAssetTools, Warning, TEXT("Failed to copy %s to %s while migrating assets"), *SrcFilename, *DestFilename);
-					CopyErrors += SrcFilename + LINE_TERMINATOR;
+					if ( IFileManager::Get().Copy(*DestFilename, *SrcFilename) == COPY_OK )
+					{
+						SuccessfullyCopiedPackages.Add(PackageName);
+						SuccessfullyCopiedFiles.Add(DestFilename);
+					}
+					else
+					{
+						UE_LOG(LogAssetTools, Warning, TEXT("Failed to copy %s to %s while migrating assets"), *SrcFilename, *DestFilename);
+						CopyErrors += SrcFilename + LINE_TERMINATOR;
+					}
 				}
 			}
 		}
 	}
 
 	FString SourceControlErrors;
+	SlowTask.EnterProgressFrame();
+
 	if ( !bUserCanceled && SuccessfullyCopiedFiles.Num() > 0 )
 	{
 		// attempt to add files to source control (this can quite easily fail, but if it works it is very useful)
@@ -1434,8 +1451,11 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 				ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 				if(SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), SuccessfullyCopiedFiles) == ECommandResult::Failed)
 				{
+					FScopedSlowTask LoopProgress(SuccessfullyCopiedFiles.Num());
+
 					for(auto FileIt(SuccessfullyCopiedFiles.CreateConstIterator()); FileIt; FileIt++)
 					{
+						LoopProgress.EnterProgressFrame();
 						if(!SourceControlProvider.GetState(*FileIt, EStateCacheUsage::Use)->IsAdded())
 						{
 							SourceControlErrors += FText::Format(LOCTEXT("MigratePackages_SourceControlError", "{0} could not be added to source control"), FText::FromString(*FileIt)).ToString();

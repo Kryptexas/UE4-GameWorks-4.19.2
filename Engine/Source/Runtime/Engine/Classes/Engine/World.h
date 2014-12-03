@@ -171,19 +171,26 @@ public:
 	bool StartTravel(UWorld* InCurrentWorld, const FURL& InURL, const FGuid& InGuid);
 
 	/** @return whether a transition is already in progress */
-	FORCEINLINE bool IsInTransition()
+	FORCEINLINE bool IsInTransition() const
 	{
 		return bTransitionInProgress;
 	}
 	/** @return if current transition has switched to the default map; returns false if no transition is in progress */
-	FORCEINLINE bool HasSwitchedToDefaultMap()
+	FORCEINLINE bool HasSwitchedToDefaultMap() const
 	{
 		return IsInTransition() && bSwitchedToDefaultMap;
 	}
 
-	inline FString GetDestinationMapName()
+	/** @return the destination map that is being travelled to via seamless travel */
+	inline FString GetDestinationMapName() const
 	{
 		return (IsInTransition() ? PendingTravelURL.Map : TEXT(""));
+	}
+
+	/** @return the destination world that has been loaded asynchronously by the seamless travel handler. */
+	inline const UWorld* GetLoadedWorld() const
+	{
+		return LoadedWorld;
 	}
 
 	/** cancels transition in progress */
@@ -254,43 +261,48 @@ private:
 	static TArray<FName> LevelPackageNames;
 };
 
+/** Saved editor viewport state information */
 struct ENGINE_API FLevelViewportInfo
 {
+	/** Where the camera is positioned within the viewport. */
 	FVector CamPosition;
+
+	/** The camera's position within the viewport. */
 	FRotator CamRotation;
+
+	/** The zoom value  for orthographic mode. */
 	float CamOrthoZoom;
+
+	/** Whether camera settings have been systematically changed since the last level viewport update. */
 	bool CamUpdated;
 
 	FLevelViewportInfo()
+		: CamPosition(FVector::ZeroVector)
+		, CamRotation(FRotator::ZeroRotator)
+		, CamOrthoZoom(DEFAULT_ORTHOZOOM)
+		, CamUpdated(false)
 	{
-		CamPosition = FVector::ZeroVector;
-		CamRotation = FRotator::ZeroRotator;
-		CamOrthoZoom = DEFAULT_ORTHOZOOM;
-		CamUpdated = false;
 	}
 
 	FLevelViewportInfo(const FVector& InCamPosition, const FRotator& InCamRotation, float InCamOrthoZoom)
+		: CamPosition(InCamPosition)
+		, CamRotation(InCamRotation)
+		, CamOrthoZoom(InCamOrthoZoom)
+		, CamUpdated(false)
 	{
-		CamPosition = InCamPosition;
-		CamRotation = InCamRotation;
-		CamOrthoZoom = InCamOrthoZoom;
-		CamUpdated = false;
 	}
 
 	friend FArchive& operator<<( FArchive& Ar, FLevelViewportInfo& I )
 	{
-		if ( Ar.IsLoading() )
-		{
-			I.CamUpdated = true;
-		}
-
 		Ar << I.CamPosition;
 		Ar << I.CamRotation;
 		Ar << I.CamOrthoZoom;
 
 		if ( Ar.IsLoading() )
 		{
-			if ( I.CamOrthoZoom == 0 )
+			I.CamUpdated = true;
+
+			if ( I.CamOrthoZoom == 0.f )
 			{
 				I.CamOrthoZoom = DEFAULT_ORTHOZOOM;
 			}
@@ -392,6 +404,7 @@ struct FEndClothSimulationFunction : public FTickFunction
 	virtual FString DiagnosticMessage();
 };
 
+/* Struct of optional parameters passed to SpawnActor function(s). */
 struct ENGINE_API FActorSpawnParameters
 {
 	FActorSpawnParameters()
@@ -443,26 +456,47 @@ struct ENGINE_API FActorSpawnParameters
 	EObjectFlags ObjectFlags;		
 };
 
+/**
+ *  This encapsulate World's async trace functionality. This contains two buffers of trace data buffer and alternates it for each tick. 
+ *  
+ *	You can use async trace using following APIs : AsyncLineTrace, AsyncSweep, AsyncOverlap
+ *	When you use those APIs, it will be saved to AsyncTraceData
+ *	FWorldAsyncTraceState contains two buffers to rotate each frame as you might need the result in the next frame
+ *	However, if you do not get the result by next frame, the result will be discarded. 
+ *	Use Delegate if you would like to get the result right away when available. 
+ */
 struct ENGINE_API FWorldAsyncTraceState
 {
 	FWorldAsyncTraceState();
 
+	/** Get the Buffer for input Frame */
 	FORCEINLINE AsyncTraceData& GetBufferForFrame        (int32 Frame) { return DataBuffer[ Frame             % 2]; }
+	/** Get the Buffer for Current Frame */
 	FORCEINLINE AsyncTraceData& GetBufferForCurrentFrame ()            { return DataBuffer[ CurrentFrame      % 2]; }
+	/** Get the Buffer for Previous Frame */
 	FORCEINLINE AsyncTraceData& GetBufferForPreviousFrame()            { return DataBuffer[(CurrentFrame + 1) % 2]; }
 
-	/** Async Trace Data Buffer **/
+	/** Async Trace Data Buffer Array. For now we only saves 2 frames. **/
 	AsyncTraceData DataBuffer[2];
 
-	/** Used as counter for Buffer swap for DataBuffer
-	 *	Right now it's only 2, but it can change
-	 */
+	/** Used as counter for Buffer swap for DataBuffer. Right now it's only 2, but it can change. */
 	int32 CurrentFrame;
 
 	/** Next available index for each pool - used as ID for each trace query **/
 	int32 NextAvailableTraceIndex;
 	int32 NextAvailableOverlapIndex;
 };
+
+/** 
+ * The World is the top level object representing a map or a sandbox in which Actors and Components will exist and be rendered.  
+ *
+ * A World can be a single Persistent Level with an optional list of streaming levels that are loaded and unloaded via volumes and blueprint functions
+ * or it can be a collection of levels organized with a World Composition.
+ *
+ * In a standalone game, generally only a single World exists except during seamless area transitions when both a destination and current world exists.
+ * In the editor many Worlds exist: The level being edited, each PIE instance, each editor tool which has an interactive rendered viewport, and many more.
+ *
+ */
 
 UCLASS(customConstructor, config=Engine)
 class ENGINE_API UWorld : public UObject, public FNetworkNotify
@@ -491,10 +525,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class ULevel*								PersistentLevel;
 
-	/** Reference to last save game info used for serialization. The only time this is non NULL is during UEngine::SaveGame(..) */
-	UPROPERTY(Transient)
-	class UDEPRECATED_SaveGameSummary*			SaveGameSummary_DEPRECATED;
-
 	/** The NAME_GameNetDriver game connection(s) for client/server communication */
 	UPROPERTY(Transient)
 	class UNetDriver*							NetDriver;
@@ -515,17 +545,25 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class AGameState*							GameState;
 
-	/** @todo document */
+	/** Instance of this world's game-specific networking management */
 	UPROPERTY(Transient)
 	class AGameNetworkManager*					NetworkManager;
 
-	/** Instance of UPhysicsCollisionHandler */
+	/** Instance of this world's game-specific physics collision handler */
 	UPROPERTY(Transient)
 	class UPhysicsCollisionHandler*				PhysicsCollisionHandler;
 
 	/** Array of any additional objects that need to be referenced by this world, to make sure they aren't GC'd */
 	UPROPERTY(Transient)
 	TArray<UObject*>							ExtraReferencedObjects;
+
+	/**
+	 * External modules can have additional data associated with this UWorld.
+	 * This is a list of per module world data objects. These aren't
+	 * loaded/saved by default.
+	 */
+	UPROPERTY(Transient)
+	TArray<UObject*>							PerModuleDataObjects;
 
 	/** Level collection. ULevels are referenced by FName (Package name) to avoid serialized references. Also contains offsets in world units */
 	UPROPERTY(Transient)
@@ -539,6 +577,10 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevelPendingVisibility;
 	
+	/** Fake NetDriver for capturing network traffic to record demos															*/
+	UPROPERTY()
+	class UDemoNetDriver*						DemoNetDriver;
+
 	/** Particle event manager **/
 	UPROPERTY()
 	class AParticleEventManager*				MyParticleEventManager;
@@ -553,13 +595,11 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	/** set for one tick after completely loading and initializing a new world
 	 * (regardless of whether it's LoadMap() or seamless travel)
 	 */
-	UPROPERTY(transient)
 	uint32 bWorldWasLoadedThisTick:1;
 
 	/**
 	 * Triggers a call to PostLoadMap() the next Tick, turns off loading movie if LoadMap() has been called.
 	 */
-	UPROPERTY(transient)
 	uint32 bTriggerPostLoadMap:1;
 
 private:
@@ -633,8 +673,12 @@ public:
 	/** Creates a new FX system for this world */
 	void CreateFXSystem();
 
+#if WITH_EDITOR
+
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
+
+#endif // WITH_EDITOR
 
 private:
 
@@ -665,6 +709,7 @@ private:
 	/**	Objects currently being debugged in Kismet	*/
 	FBlueprintToDebuggedObjectMap BlueprintObjectsBeingDebugged;
 
+	/** Whether the render scene for this World should be created with HitProxies or not */
 	bool bRequiresHitProxies;
 
 	/** a delegate that broadcasts a notification whenever an actor is spawned */
@@ -746,6 +791,7 @@ private:
 	uint32 bBroadcastSelectionChange:1;
 #endif //WITH_EDITORONLY_DATA
 public:
+	/** The URL that was used when loading this World.																			*/
 	FURL										URL;
 
 	/** Interface to the FX system managing particles and related effects for this world.										*/
@@ -783,7 +829,7 @@ public:
 	bool										bPostTickComponentUpdate;
 
 	/** Counter for allocating game- unique controller player numbers															*/
-	int32											PlayerNum;
+	int32										PlayerNum;
 
 	/** Time in seconds (game time so we respect time dilation) since the last time we purged references to pending kill objects */
 	float										TimeSinceLastPendingKillPurge;
@@ -797,11 +843,8 @@ public:
 	/** Whether world object has been initialized via Init()																	*/
 	bool										bIsWorldInitialized;
 	
-	/** Override, forcing level load requests to be allowed. < 0 == not allowed, 0 == have code choose, > 1 == force allow.		 */
-	int32											AllowLevelLoadOverride;
-
 	/** Number of frames to delay Streaming Volume updating, useful if you preload a bunch of levels but the camera hasn't caught up yet (INDEX_NONE for infinite) */
-	int32											StreamingVolumeUpdateDelay;
+	int32										StreamingVolumeUpdateDelay;
 
 	/** Is level streaming currently frozen?																					*/
 	bool										bIsLevelStreamingFrozen;
@@ -835,15 +878,11 @@ public:
 	/** When non-'None', all line traces where the TraceTag match this will be drawn */
 	FName    DebugDrawTraceTag;
 
-	/*****************************************************************************************************/
-	/** Moved from WorldSettings properties - START 														**/
-	/*****************************************************************************************************/
-		
 	/** An array of post processing volumes, sorted in ascending order of priority.					*/
 	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
 
-	/** Linked list of reverb volumes, sorted in descending order of priority.							*/
-	TAutoWeakObjectPtr<class AReverbVolume> HighestPriorityReverbVolume;
+	/** Pointer to the higest priority audio volumes, each volume has a reference to the next lower priority volume creating a linked list of prioritized audio volumes in descending order */
+	TAutoWeakObjectPtr<class AAudioVolume> HighestPriorityAudioVolume;
 
 	/** Time in FPlatformTime::Seconds unbuilt time was last encountered. 0 means not yet.							*/
 	double LastTimeUnbuiltLightingWasEncountered;
@@ -876,14 +915,14 @@ public:
 	UPROPERTY()
 	class UWorldComposition* WorldComposition;
 	
-	/** Whether we currently flushing level streaming state */ 
-	bool bFlushingLevelStreaming;
+	/** Whether we flushing level streaming state */ 
+	EFlushLevelStreamingType FlushLevelStreamingType;
 
 public:
 	/** The type of travel to perform next when doing a server travel */
 	ETravelType			NextTravelType;
 	
-	/** @todo document */
+	/** The URL to be used for the upcoming server travel */
 	FString NextURL;
 
 	/** Amount of time to wait before traveling to next map, gives clients time to receive final RPCs @see ServerTravelPause */
@@ -892,13 +931,15 @@ public:
 	/** array of levels that were loaded into this map via PrepareMapChange() / CommitMapChange() (to inform newly joining clients) */
 	TArray<FName> PreparingLevelNames;
 
-	/** @todo document */
+	/** Name of persistent level if we've loaded levels via CommitMapChange() that aren't normally in the StreamingLevels array (to inform newly joining clients) */
 	FName CommittedPersistentLevelName;
 
-#if WITH_EDITORONLY_DATA
-	/** Map of LandscapeInfos for all loaded levels, valid in the editor only */
-	TMap< FGuid, class ULandscapeInfo* > LandscapeInfoMap;
-#endif // WITH_EDITORONLY_DATA
+	/**
+	 * This is a int on the level which is set when a light that needs to have lighting rebuilt
+	 * is moved.  This is then checked in CheckMap for errors to let you know that this level should
+	 * have lighting rebuilt.
+	 **/
+	uint32 NumLightingUnbuiltObjects;
 
 	/** frame rate is below DesiredFrameRate, so drop high detail actors */
 	uint32 bDropDetail:1;
@@ -921,21 +962,17 @@ public:
 	/** Whether the match has been started */
 	uint32 bMatchStarted:1;
 
-	/**  Only update players. */
+	/**  When ticking the world, only update players. */
 	uint32 bPlayersOnly:1;
 
-	/** Only update players.  Next frame will set bPlayersOnly */
+	/** Indicates that at the end the frame bPlayersOnly will be set to true. */
 	uint32 bPlayersOnlyPending:1;
 
-	/** Starting gameplay. */
+	/** Is the world in its actor initialization phase. */
 	uint32 bStartup:1;
 
-	/**
-	 * This is a int on the level which is set when a light that needs to have lighting rebuilt
-	 * is moved.  This is then checked in CheckMap for errors to let you know that this level should
-	 * have lighting rebuilt.
-	 **/
-	uint32 NumLightingUnbuiltObjects;
+	/** Is the world being torn down */
+	uint32 bIsTearingDown:1;
 
 	/**
 	 * This is a bool that indicates that one or more blueprints in the level (blueprint instances, level script, etc)
@@ -945,9 +982,6 @@ public:
 
 	// Kismet debugging flags - they can be only editor only, but they're uint32, so it doens't make much difference
 	uint32 bDebugPauseExecution:1;
-
-	/** @todo document */
-	uint32 bDebugStepExecution:1;
 
 	/** Indicates this scene always allows audio playback. */
 	uint32 bAllowAudioPlayback:1;
@@ -959,14 +993,10 @@ public:
 	UPROPERTY(transient)
 	uint32 bAreConstraintsDirty:1;
 
-	/*****************************************************************************************************/
-	/** Moved from WorldSettings - END 																		**/
-	/*****************************************************************************************************/
-
 	/**
 	 * UWorld default constructor
 	 */
-	UWorld( const class FPostConstructInitializeProperties& PCIP );
+	UWorld( const FObjectInitializer& ObjectInitializer );
 
 	/**
 	 * UWorld constructor called at game startup and when creating a new world in the Editor.
@@ -974,7 +1004,7 @@ public:
 	 *
 	 * @param	InURL	URL associated with this world.
 	 */
-	UWorld( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL );
+	UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL );
 	
 	// LINE TRACE
 
@@ -1242,7 +1272,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1263,7 +1293,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1287,7 +1317,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace	 
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1310,7 +1340,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1335,7 +1365,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1344,7 +1374,7 @@ public:
 	 *	@param UserData			UserData
 	 *	@param bMultiTrace		true if you'd like to get continuous result from the trace, false if you want single
 	 */ 
-	FTraceHandle	AsyncOverlap(const FVector & Pos, const FQuat & Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
+	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
 
 	/**
 	 * Interface for Async trace
@@ -1358,7 +1388,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1367,7 +1397,7 @@ public:
 	 *	@param UserData			UserData
 	 *	@param bMultiTrace		true if you'd like to get continuous result from the trace, false if you want single
 	 */ 
-	FTraceHandle	AsyncOverlap(const FVector & Pos, const FQuat & Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
+	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
 
 	/**
 	 * Query function 
@@ -1393,7 +1423,7 @@ public:
 	 * return true if it will be evaluated OR it has valid result 
 	 * return false if it already has expired Or not valid 
 	 */
-	bool IsTraceHandleValid(const FTraceHandle & Handle, bool bOverlapTrace);
+	bool IsTraceHandleValid(const FTraceHandle& Handle, bool bOverlapTrace);
 
 	/** NavigationSystem getter */
 	FORCEINLINE UNavigationSystem* GetNavigationSystem() { return NavigationSystem; }
@@ -1440,6 +1470,7 @@ public:
 	/** Get an iterator for the list of CameraActors that auto-activate for PlayerControllers. */
 	FConstCameraActorIterator GetAutoActivateCameraIterator() const;
 	
+	/** Returns a reference to the game viewport displaying this world if one exists. */
 	UGameViewportClient* GetGameViewport() const;
 
 	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
@@ -1490,6 +1521,7 @@ public:
 	/** Creates a new physics scene for this world. */
 	void CreatePhysicsScene();
 
+	/** Returns a pointer to the physics scene for this world. */
 	FPhysScene* GetPhysicsScene() const { return PhysicsScene; }
 
 	/** Set the physics scene to use by this world */
@@ -1587,13 +1619,13 @@ public:
 	 * This list is used to specifically single out actors that are relevant for networking without having to scan the much large list
 	 * @param	Actor	Actor to add
 	 */
-	void AddNetworkActor( AActor * Actor );
+	void AddNetworkActor( AActor* Actor );
 	
 	/**
 	 * Removes the passed in actor to from special network actor list
 	 * @param	Actor	Actor to remove
 	 */
-	void RemoveNetworkActor( AActor * Actor );
+	void RemoveNetworkActor( AActor* Actor );
 
 	/** Add a listener for OnActorSpawned events */
 	void AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler );
@@ -1630,7 +1662,6 @@ public:
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
 #endif
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-
 	// End UObject Interface
 	
 	/**
@@ -1739,10 +1770,10 @@ public:
 	 * on all async operation like updating components.
 	 *
 	 * @param ViewFamily				Optional collection of views to take into account
-	 * @param bOnlyFlushVisibility		Whether to only flush level visibility operations (optional)
+	 * @param FlushType					Whether to only flush level visibility operations (optional)
 	 * @param ExcludeType				Exclude packages of this type from flushing
 	 */
-	void FlushLevelStreaming( FSceneViewFamily* ViewFamily = NULL, bool bOnlyFlushVisibility = false, FName ExcludeType = NAME_None);
+	void FlushLevelStreaming( FSceneViewFamily* ViewFamily = NULL, EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None );
 
 	/**
 	 * Triggers a call to ULevel::BuildStreamingData(this,NULL,NULL) within a few seconds.
@@ -1779,6 +1810,7 @@ public:
 	/** Updates this world's scene with the list of instances, and optionally updates each instance's uniform buffer. */
 	void UpdateParameterCollectionInstances(bool bUpdateInstanceUniformBuffers);
 
+	/** Struct containing a collection of optional parameters for initialization of a World. */
 	struct InitializationValues
 	{
 		InitializationValues()
@@ -1795,17 +1827,35 @@ public:
 		{
 		}
 
+		/** Should the scenes (physics, rendering) be created. */
 		uint32 bInitializeScenes:1;
-		uint32 bAllowAudioPlayback:1;
-		uint32 bRequiresHitProxies:1;
-		uint32 bCreatePhysicsScene:1;
-		uint32 bCreateNavigation:1;
-		uint32 bCreateAISystem:1;
-		uint32 bShouldSimulatePhysics:1;
-		uint32 bEnableTraceCollision:1;
-		uint32 bTransactional:1;
-		uint32 bCreateFXSystem:1;
 
+		/** Are sounds allowed to be generated from this world. */
+		uint32 bAllowAudioPlayback:1;
+
+		/** Should the render scene create hit proxies. */
+		uint32 bRequiresHitProxies:1;
+
+		/** Should the physics scene be created. bInitializeScenes must be true for this to be considered. */
+		uint32 bCreatePhysicsScene:1;
+
+		/** Should the navigation system be created for this world. */
+		uint32 bCreateNavigation:1;
+
+		/** Should the AI system be created for this world. */
+		uint32 bCreateAISystem:1;
+
+		/** Should physics be simulated in this world. */
+		uint32 bShouldSimulatePhysics:1;
+
+		/** Are collision trace calls valid within this world. */
+		uint32 bEnableTraceCollision:1;
+
+		/** Should actions performed to objects in this world be saved to the transaction buffer. */
+		uint32 bTransactional:1;
+
+		/** Should the FX system be created for this world. */
+		uint32 bCreateFXSystem:1;
 
 		InitializationValues& InitializeScenes(const bool bInitialize) { bInitializeScenes = bInitialize; return *this; }
 		InitializationValues& AllowAudioPlayback(const bool bAllow) { bAllowAudioPlayback = bAllow; return *this; }
@@ -1898,7 +1948,7 @@ public:
 	void SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion = NULL);
 
 
-	/** @todo document */
+	/** Do per frame tick behaviors related to the network driver */
 	void TickNetClient( float DeltaSeconds );
 
 	/**
@@ -1960,7 +2010,7 @@ public:
 	 */
 	TArray<class ULevel*>& GetSelectedLevels();
 
-	/** @todo document */
+	/** Shrink level elements to their minimum size. */
 	void ShrinkLevel();
 #endif // WITH_EDITOR
 	
@@ -1999,16 +2049,33 @@ public:
 	 */
 	bool RemoveLevel( ULevel* InLevel );
 
-	/** @todo document */
+	/** Handle Exec/Console Commands related to the World */
 	bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
 
-	/**
-	 * Exec command handlers
-	 */
+private:
+	/** Utility function to handle Exec/Console Commands related to the Trace Tags */
 	bool HandleTraceTagCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+
+	/** Utility function to handle Exec/Console Commands related to persistent debug lines */
 	bool HandleFlushPersistentDebugLinesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+
+	/** Utility function to handle Exec/Console Commands related to logging actor counts */
 	bool HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
-	
+
+	/** Utility function to handle Exec/Console Commands related to demo recording */
+	bool HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
+
+	/** Utility function to handle Exec/Console Commands related to playing a demo recording*/
+	bool HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
+
+	/** Utility function to handle Exec/Console Commands related to stopping demo playback */
+	bool HandleDemoStopCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
+
+public:
+
+	// Destroys the current demo net driver
+	void DestroyDemoNetDriver();
+
 	// Start listening for connections.
 	bool Listen( FURL& InURL );
 
@@ -2018,7 +2085,7 @@ public:
 	/** @return true if this level is a server */
 	bool IsServer();
 
-	/** @todo document */
+	/** @return true if the world is in the paused state */
 	bool IsPaused();
 
 	/**
@@ -2049,37 +2116,40 @@ public:
 	 * @param	bShouldModifyLevel		If true, Modify() the level before removing the actor if in the editor.
 	 */
 	void RemoveActor( AActor* Actor, bool bShouldModifyLevel );
-	
-	
+
 	AActor* SpawnActor( UClass* Class, FVector const* Location=NULL, FRotator const* Rotation=NULL, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() );
 
-	// Templated version of SpawnActor that allows you to specify a class type
+	/** Templated version of SpawnActor that allows you to specify a class type via the template type */
 	template< class T >
 	T* SpawnActor( const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
 		return CastChecked<T>(SpawnActor(T::StaticClass(), NULL, NULL, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+	}
 
-	
+	/** Templated version of SpawnActor that allows you to specify location and rotation in addition to class type via the template type */
 	template< class T >
 	T* SpawnActor( FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
 		return CastChecked<T>(SpawnActor(T::StaticClass(), &Location, &Rotation, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+	}
 	
+	/** Templated version of SpawnActor that allows you to specify the class type via parameter while the return type is a parent class of that type */
 	template< class T >
 	T* SpawnActor( UClass* Class, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
 		return CastChecked<T>(SpawnActor(Class, NULL, NULL, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+	}
 
+	/** 
+	 *  Templated version of SpawnActor that allows you to specify the rotation and location in addition
+	 *  class type via parameter while the return type is a parent class of that type 
+	 */
 	template< class T >
 	T* SpawnActor( UClass* Class, FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
 		return CastChecked<T>(SpawnActor(Class, &Location, &Rotation, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
-
-
+	}
+	
 	/**
 	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
 	* to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
@@ -2105,27 +2175,39 @@ public:
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bDeferConstruction = true;
 		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Location, &Rotation, SpawnInfo )) : NULL;
-	};
+	}
 
-	/** Returns the current GameMode instance, valid only on server. */
+	/** 
+	 *  Returns the current GameMode instance cast to the template type.
+	 *  This can only return a valid pointer on the server. Will always return null on a client
+	 */
 	template< class T >
 	T* GetAuthGameMode() const
 	{
 		return Cast<T>(AuthorityGameMode);
 	}
-	AGameMode* GetAuthGameMode() const { return AuthorityGameMode; };
+
+	/** 
+	 *  Returns the current GameMode instance.
+	 *  This can only return a valid pointer on the server. Will always return null on a client
+	 */
+	AGameMode* GetAuthGameMode() const { return AuthorityGameMode; }
 	
-	/** Returns the current GameState. */
+	/** Returns the current GameState instance cast to the template type. */
 	template< class T >
 	T* GetGameState() const
 	{
 		return Cast<T>(GameState);
 	}
 
+	/** Returns the current GameState instance. */
+	AGameState* GetGameState() const { return GameState; }
+
+	/** Copies GameState properties from the GameMode. */
 	void CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState);
 
 
-	/** @todo document */
+	/** Spawns a Brush Actor in the World */
 	ABrush*	SpawnBrush();
 
 	/** 
@@ -2181,8 +2263,6 @@ public:
 
 	// Begin FNetworkNotify interface
 	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
-
-	/** @todo document */
 	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) override;
 	virtual bool NotifyAcceptingChannel( class UChannel* Channel ) override;
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
@@ -2201,6 +2281,7 @@ public:
 		return NetDriver;
 	}
 
+	/** Returns the net mode this world is running under */
 	ENetMode GetNetMode() const;
 
 	/**
@@ -2211,8 +2292,6 @@ public:
 	{
 		NetDriver = NewDriver;
 	}
-
-	void AssignActorNewNetGUID(AActor* Actor, bool bIsStatic);
 
 	/**
 	 * Sets the number of frames to delay Streaming Volume updating, 
@@ -2253,20 +2332,16 @@ public:
 
 public:
 
-	/*****************************************************************************************************/
-	/** Moved from WorldSettings properties - START 														**/
-	/*****************************************************************************************************/
-
 	/**
-	 * Finds the reverb settings to use for a given view location, taking into account the world's default
-	 * settings and the reverb volumes in the world.
+	 * Finds the audio settings to use for a given view location, taking into account the world's default
+	 * settings and the audio volumes in the world.
 	 *
 	 * @param	ViewLocation			Current view location.
 	 * @param	OutReverbSettings		[out] Upon return, the reverb settings for a camera at ViewLocation.
 	 * @param	OutInteriorSettings		[out] Upon return, the interior settings for a camera at ViewLocation.
-	 * @return							If the settings came from a reverb volume, the reverb volume's object index is returned.
+	 * @return							If the settings came from an audio volume, the audio volume object is returned.
 	 */
-	class AReverbVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
+	class AAudioVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
 
 	/** Return the URL of this level on the local machine. */
 	virtual FString GetLocalURL() const;
@@ -2352,7 +2427,7 @@ public:
 	/** @return the current detail mode, like EDetailMode but can be outside of the range */
 	int32 GetDetailMode();
 
-	/** @todo document */
+	/** Updates the timer between garbage collection such that at the next opportunity garbage collection will be run. */
 	void ForceGarbageCollection( bool bFullPurge = false );
 
 	/** asynchronously loads the given levels in preparation for a streaming map transition.
@@ -2396,10 +2471,12 @@ public:
 		return LatentActionManager;
 	}
 
+	/** Sets the owning game instance for this world */
 	inline void SetGameInstance(UGameInstance* NewGI)
 	{
 		OwningGameInstance = NewGI;
 	}
+	/** Returns the owning game instance for this world */
 	inline UGameInstance* GetGameInstance() const
 	{
 		return OwningGameInstance;
@@ -2426,22 +2503,33 @@ public:
 	/** Gets all LightMaps and ShadowMaps associated with this world. Specify the level or leave null for persistent */
 	void GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
 
-	/** Gets all textures and materials used by all landscape components in the specified level */
-	void GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials);
-
 public:
+	/** Rename this world such that it has the prefix on names for the given PIE Instance ID */
+	void RenameToPIEWorld(int32 PIEInstanceID);
+
+	/** Given a PackageName and a PIE Instance ID return the name of that Package when being run as a PIE world */
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
+
+	/** Given a PackageName and a prefix type, get back to the original package name (i.e. the saved map name) */
 	static FString StripPIEPrefixFromPackageName(const FString& PackageName, const FString& Prefix);
+
+	/** Return the prefix for PIE packages given a PIE Instance ID */
 	static FString BuildPIEPackagePrefix(int32 PIEInstanceID);
+
+	/** Given a loaded editor UWorld, duplicate it for play in editor purposes with OwningWorld as the world with the persistent level. */
 	static UWorld* DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld);
+
+	/** Given a string, return that string with any PIE prefix removed */
 	static FString RemovePIEPrefix(const FString &Source);
+
+	/** Given a package, locate the UWorld contained within if one exists */
 	static UWorld* FindWorldInPackage(UPackage* Package);
 
 	/** If the specified package contains a redirector to a UWorld, that UWorld is returned. Otherwise, nullptr is returned. */
 	static UWorld* FollowWorldRedirectorInPackage(UPackage* Package, UObjectRedirector** OptionalOutRedirector = nullptr);
 };
 
-/** Global UWorld pointer */
+/** Global UWorld pointer. Use of this pointer should be avoided whenever possible. */
 extern ENGINE_API class UWorldProxy GWorld;
 
 /** World delegates */
@@ -2451,14 +2539,21 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldInitializationEvent, UWorld* /*World*/, const UWorld::InitializationValues /*IVS*/);
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldCleanupEvent, UWorld* /*World*/, bool /*bSessionEnded*/, bool /*bCleanupResources*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FWorldEvent, UWorld* /*World*/);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/);
 	// Delegate type for level change events
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLevelChanged, ULevel*, UWorld*);
+
+	// Callback for world creation
+	static FWorldEvent OnPostWorldCreation;
 	
 	// Callback for world initialization (pre)
 	static FWorldInitializationEvent OnPreWorldInitialization;
 	
 	// Callback for world initialization (post)
 	static FWorldInitializationEvent OnPostWorldInitialization;
+
+	// Post duplication event.
+	static FWorldPostDuplicateEvent OnPostDuplicate;
 
 	// Callback for world cleanup
 	static FWorldCleanupEvent OnWorldCleanup;

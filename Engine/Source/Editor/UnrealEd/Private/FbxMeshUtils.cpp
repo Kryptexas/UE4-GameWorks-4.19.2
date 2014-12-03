@@ -17,6 +17,8 @@
 #include "ComponentReregisterContext.h"
 
 #include "FbxErrors.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogExportMeshUtils, Log, All);
 

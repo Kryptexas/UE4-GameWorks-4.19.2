@@ -9,8 +9,8 @@
 /** A mapping of package name to generated script SHA keys */
 TMap<FString, TArray<uint8> > ULinkerSave::PackagesToScriptSHAMap;
 
-ULinkerSave::ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned )
-:	ULinker(PCIP, InParent, InFilename )
+ULinkerSave::ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned )
+:	ULinker(ObjectInitializer, InParent, InFilename )
 ,	Saver( NULL )
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));
@@ -24,13 +24,14 @@ ULinkerSave::ULinkerSave( const class FPostConstructInitializeProperties& PCIP, 
 			UE_LOG(LogLinker, Fatal, TEXT("%s"), *FString::Printf( TEXT("Error opening file '%s'."), InFilename ) );
 		}
 
+		UPackage* Package = dynamic_cast<UPackage*>(LinkerRoot);
+
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
 		Summary.SetFileVersions( (int32)VER_LAST_ENGINE_UE3, GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
 		Summary.EngineVersion =	GEngineVersion;
-		Summary.PackageFlags  = Cast<UPackage>(LinkerRoot) ? Cast<UPackage>(LinkerRoot)->PackageFlags : 0;
+		Summary.PackageFlags  = Package ? Package->PackageFlags : 0;
 
-		UPackage *Package = Cast<UPackage>(LinkerRoot);
 		if (Package)
 		{
 			Summary.FolderName = Package->GetFolderName().ToString();
@@ -44,8 +45,8 @@ ULinkerSave::ULinkerSave( const class FPostConstructInitializeProperties& PCIP, 
 	}
 }
 
-ULinkerSave::ULinkerSave(const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned )
-:	ULinker( PCIP, InParent,TEXT("$$Memory$$") )
+ULinkerSave::ULinkerSave(const FObjectInitializer& ObjectInitializer, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned )
+:	ULinker( ObjectInitializer, InParent,TEXT("$$Memory$$") )
 ,	Saver( NULL )
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));
@@ -56,13 +57,14 @@ ULinkerSave::ULinkerSave(const class FPostConstructInitializeProperties& PCIP, U
 		Saver = new FBufferArchive( false, InParent->FileName );
 		check(Saver);
 
+		UPackage* Package = dynamic_cast<UPackage*>(LinkerRoot);
+
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
 		Summary.SetFileVersions( (int32)VER_LAST_ENGINE_UE3, GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
 		Summary.EngineVersion =	GEngineVersion;
-		Summary.PackageFlags  = Cast<UPackage>(LinkerRoot) ? Cast<UPackage>(LinkerRoot)->PackageFlags : 0;
+		Summary.PackageFlags  = Package ? Package->PackageFlags : 0;
 
-		UPackage *Package = Cast<UPackage>(LinkerRoot);
 		if (Package)
 		{
 			Summary.FolderName = Package->GetFolderName().ToString();

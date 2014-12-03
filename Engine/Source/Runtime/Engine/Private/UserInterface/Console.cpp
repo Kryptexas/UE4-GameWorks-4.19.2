@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
 #include "Engine/LevelScriptActor.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "DefaultValueHelper.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
@@ -42,8 +42,8 @@ public:
 	}
 };
 
-UConsole::UConsole(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UConsole::UConsole(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 //	, HistoryBufferCur(0)
 //	, AutoCompleteCursor(-1)
 {
@@ -1231,12 +1231,16 @@ void UConsole::FakeGotoState(FName NextStateName)
 	if (NextStateName == NAME_Typing)
 	{
 		BeginState_Typing(ConsoleState);
+		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
 		FSlateApplication::Get().ResetToDefaultInputSettings();
+		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
 	}
 	else if (NextStateName == NAME_Open)
 	{
 		BeginState_Open(ConsoleState);
+		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
 		FSlateApplication::Get().ResetToDefaultInputSettings();
+		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
 	}
 	else if( NextStateName == NAME_None )
 	{
@@ -1247,7 +1251,7 @@ void UConsole::FakeGotoState(FName NextStateName)
 		// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
 		// in order to ensure it gets a chance to reapply any custom input settings
 		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
 	}
 

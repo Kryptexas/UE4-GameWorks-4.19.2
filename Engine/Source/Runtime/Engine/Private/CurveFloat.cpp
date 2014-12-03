@@ -35,8 +35,8 @@ const FRichCurve* FRuntimeFloatCurve::GetRichCurveConst() const
 	}
 }
 
-UCurveFloat::UCurveFloat(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveFloat::UCurveFloat(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

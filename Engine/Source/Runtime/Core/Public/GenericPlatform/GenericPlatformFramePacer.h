@@ -7,7 +7,9 @@
 
 
 #pragma once
+#include "HAL/Platform.h"
 
+class FEvent;
 
 /**
  * Generic implementation for most platforms, these tend to be unused and unimplemented
@@ -25,7 +27,7 @@ struct CORE_API FGenericPlatformRHIFramePacer
      * @param InTriggeredEvent - The event we wish to trigger when the frame interval has been triggered by the hardware.
      * @param InFrameInterval - How often should the event be triggered, in Frames.
      */
-	static void InitWithEvent(class FEvent* InTriggeredEvent, uint32 InFrameInterval) {}
+	static void InitWithEvent(FEvent* InTriggeredEvent) {}
     
     /**
      * Teardown the Frame Pacer.

@@ -33,33 +33,31 @@ public:
 
 protected:
 
-	/**
-	 * Refreshes the endpoint's address information.
-	 */
-	void RefreshAddressInfo( );
+	/** Refreshes the endpoint's address information. */
+	void RefreshAddressInfo();
 
 private:
 
-	// Callback for generating a row widget for the address list view.
+	/** Callback for generating a row widget for the address list view. */
 	TSharedRef<ITableRow> HandleAddressListGenerateRow( FMessageTracerAddressInfoPtr AddressInfo, const TSharedRef<STableViewBase>& OwnerTable );
 
-	// Callback for getting the number of received messages.
-	FString HandleEndpointDetailsReceivedMessagesText( ) const;
+	/** Callback for getting the number of received messages. */
+	FString HandleEndpointDetailsReceivedMessagesText() const;
 
-	// Callback for getting the number of sent messages.
-	FString HandleEndpointDetailsSentMessagesText( ) const;
+	/** Callback for getting the number of sent messages. */
+	FString HandleEndpointDetailsSentMessagesText() const;
 
 private:
 
-	// Holds the list of address information.
+	/** Holds the list of address information. */
 	TArray<FMessageTracerAddressInfoPtr> AddressList;
 
-	// Holds the address information list view.
+	/** Holds the address information list view. */
 	TSharedPtr<SListView<FMessageTracerAddressInfoPtr> > AddressListView;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };

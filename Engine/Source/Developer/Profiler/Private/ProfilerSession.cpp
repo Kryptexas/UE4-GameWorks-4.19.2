@@ -584,7 +584,7 @@ void FRawProfilerSession::PrepareLoading()
 			for( int32 PacketIndex = 0; PacketIndex < StatPacketArray.Packets.Num(); PacketIndex++ )
 			{
 				const FStatPacket& StatPacket = *StatPacketArray.Packets[PacketIndex];
-				const TArray<FStatMessage>& Data = StatPacket.StatMessages;
+				const FStatMessagesArray& Data = StatPacket.StatMessages;
 
 				for( int32 Index = 0; Index < Data.Num(); Index++ )
 				{
@@ -919,7 +919,7 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 		Stack.Add( ThreadNode );
 		FProfilerStackNode* Current = Stack.Last();
 
-		const TArray<FStatMessage>& Data = StatPacket.StatMessages;
+		const FStatMessagesArray& Data = StatPacket.StatMessages;
 		for( int32 Index = 0; Index < Data.Num(); Index++ )
 		{
 			const FStatMessage& Item = Data[Index];

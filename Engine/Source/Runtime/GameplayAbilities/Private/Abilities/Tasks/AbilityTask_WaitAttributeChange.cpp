@@ -7,8 +7,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffectExtension.h"
 
-UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -43,8 +43,8 @@ void UAbilityTask_WaitAttributeChange::OnAttributeChange(float NewValue, const F
 	}
 	else
 	{
-		if ((WithTag.IsValid() && !Data->EvaluatedData.Tags.HasTag(WithTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit)) ||
-			(WithoutTag.IsValid() && Data->EvaluatedData.Tags.HasTag(WithoutTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit)))
+		if ((WithTag.IsValid() && !Data->EvaluatedData.SourceTags.HasTag(WithTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit)) ||
+			(WithoutTag.IsValid() && Data->EvaluatedData.SourceTags.HasTag(WithoutTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit)))
 		{
 			// Failed tag check
 			return;

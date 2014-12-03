@@ -1,16 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "GameFramework/MovementComponent.h"
 
-UPhysicsSettings::UPhysicsSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, DefaultGravityZ(-980.f)
 	, DefaultTerminalVelocity(4000.f)
 	, DefaultFluidFriction(0.3f)
 	, bEnableAsyncScene(false)
 	, bEnable2DPhysics(false)
+	, bSimulateSkeletalMeshOnDedicatedServer(true)
 	, MaxPhysicsDeltaTime(1.f / 30.f)
 	, bSubstepping(false)
+	, bSubsteppingAsync(false)
 	, MaxSubstepDeltaTime(1.f / 60.f)
 	, MaxSubsteps(6)
 	, SyncSceneSmoothingFactor(0.0f)
@@ -48,9 +51,13 @@ void UPhysicsSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Prop
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == FName(TEXT("FrictionCombineMode")))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsSettings, FrictionCombineMode))
 	{
 		UPhysicalMaterial::RebuildPhysicalMaterials();
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsSettings, LockedAxis))
+	{
+		UMovementComponent::PhysicsLockedAxisSettingChanged();
 	}
 }
 

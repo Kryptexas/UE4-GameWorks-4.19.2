@@ -1398,7 +1398,7 @@ static dtStatus CollectRegionsChunky(dtTileCacheAlloc* alloc, dtTileCacheLayer& 
 static void MergeAndCompressRegions(dtTileCacheAlloc* alloc, dtTileCacheLayer& layer, dtLayerMonotoneRegion* regs, int nregs)
 {
 	for (int i = 0; i < nregs; ++i)
-		regs[i].regId = (unsigned short)i;
+		regs[i].regId = (unsigned short)(i + 1);
 
 	for (int i = 0; i < nregs; ++i)
 	{
@@ -1442,9 +1442,10 @@ static void MergeAndCompressRegions(dtTileCacheAlloc* alloc, dtTileCacheLayer& l
 		// Find number of unique regions.
 		for (int i = 0; i < nregs; ++i)
 			remap[regs[i].regId] = 1;
-		for (int i = 0; i < 256; ++i)
+		// skip region id 0, it's used for skipping minRegionArea
+		for (int i = 1; i < 256; ++i)
 			if (remap[i])
-				remap[i] = regId++;
+				remap[i] = ++regId;
 		// Remap ids.
 		for (int i = 0; i < nregs; ++i)
 			regs[i].regId = remap[regs[i].regId];
@@ -1456,7 +1457,8 @@ static void MergeAndCompressRegions(dtTileCacheAlloc* alloc, dtTileCacheLayer& l
 
 		for (int i = 0; i < nregs; ++i)
 		{
-			if (!regs[i].remap)
+			// skip region id 0, it's used for skipping minRegionArea
+			if (!regs[i].remap || regs[i].regId == 0)
 				continue;
 			unsigned short oldId = regs[i].regId;
 			unsigned short newId = ++regId;

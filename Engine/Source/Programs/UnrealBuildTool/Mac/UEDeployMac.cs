@@ -35,7 +35,7 @@ namespace UnrealBuildTool.IOS
 			MacToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.Mac) as MacToolChain;
 			
 			string FixDylibDepsScript = Path.Combine(IntermediateDirectory, "FixDylibDependencies.sh");
-			string CreateAppBundleScript = Path.Combine(IntermediateDirectory, "CreateAppBundle.sh");
+			string FinalizeAppBundleScript = Path.Combine(IntermediateDirectory, "FinalizeAppBundle.sh");
 
 			string RemoteWorkingDir = "";
 
@@ -52,9 +52,9 @@ namespace UnrealBuildTool.IOS
 
 					if (!InTarget.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 					{
-						string RemoteCreateAppBundleScript = Toolchain.ConvertPath(Path.GetFullPath(CreateAppBundleScript));
-						RemoteCreateAppBundleScript = RemoteCreateAppBundleScript.Replace("../../../../", "../../");
-						RPCUtilHelper.CopyFile("../../" + CreateAppBundleScript, RemoteCreateAppBundleScript, true);
+						string RemoteFinalizeAppBundleScript = Toolchain.ConvertPath(Path.GetFullPath(FinalizeAppBundleScript));
+						RemoteFinalizeAppBundleScript = RemoteFinalizeAppBundleScript.Replace("../../../../", "../../");
+						RPCUtilHelper.CopyFile("../../" + FinalizeAppBundleScript, RemoteFinalizeAppBundleScript, true);
 					}
 
 
@@ -74,8 +74,8 @@ namespace UnrealBuildTool.IOS
 
 					if (!InTarget.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 					{
-						Log.TraceInformation("Running CreateAppBundle.sh...");
-						Results = RPCUtilHelper.Command(RemoteWorkingDir, "/bin/sh", "CreateAppBundle.sh", null);
+						Log.TraceInformation("Running FinalizeAppBundle.sh...");
+						Results = RPCUtilHelper.Command(RemoteWorkingDir, "/bin/sh", "FinalizeAppBundle.sh", null);
 						if (Results != null)
 						{
 							string Result = (string)Results["CommandOutput"];

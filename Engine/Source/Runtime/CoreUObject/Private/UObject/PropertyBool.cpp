@@ -7,8 +7,8 @@
 	UBoolProperty.
 -----------------------------------------------------------------------------*/
 
-UBoolProperty::UBoolProperty( const class FPostConstructInitializeProperties& PCIP )
-: UProperty( PCIP )
+UBoolProperty::UBoolProperty( const FObjectInitializer& ObjectInitializer )
+: UProperty( ObjectInitializer )
 , FieldSize(0)
 , ByteOffset(0)
 , ByteMask(1)
@@ -17,8 +17,8 @@ UBoolProperty::UBoolProperty( const class FPostConstructInitializeProperties& PC
 	SetBoolSize( 1, false, 1 );
 }
 
-UBoolProperty::UBoolProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool )
-: UProperty( PCIP, EC_CppProperty, InOffset, InFlags )
+UBoolProperty::UBoolProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool )
+: UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 , FieldSize(0)
 , ByteOffset(0)
 , ByteMask(1)

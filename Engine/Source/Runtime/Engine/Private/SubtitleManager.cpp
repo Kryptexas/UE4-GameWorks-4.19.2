@@ -4,6 +4,7 @@
 #include "EnginePrivate.h"
 #include "SubtitleManager.h"
 #include "SoundDefinitions.h"
+#include "Engine/Font.h"
 
 DEFINE_LOG_CATEGORY(LogSubtitle);
 

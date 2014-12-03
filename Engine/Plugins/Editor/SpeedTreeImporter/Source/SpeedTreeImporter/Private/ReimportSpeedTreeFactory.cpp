@@ -10,8 +10,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
 
 
-UReimportSpeedTreeFactory::UReimportSpeedTreeFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportSpeedTreeFactory::UReimportSpeedTreeFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	#if WITH_SPEEDTREE
 		SupportedClass = UStaticMesh::StaticClass();

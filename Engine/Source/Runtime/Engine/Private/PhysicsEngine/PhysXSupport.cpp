@@ -94,7 +94,7 @@ PxPlane U2PPlane(FPlane& Plane)
 	return PxPlane(Plane.X, Plane.Y, Plane.Z, -Plane.W);
 }
 
-UCollision2PGeom::UCollision2PGeom(const FCollisionShape & CollisionShape)
+UCollision2PGeom::UCollision2PGeom(const FCollisionShape& CollisionShape)
 {
 	switch (CollisionShape.ShapeType)
 	{
@@ -211,13 +211,13 @@ PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex)
 #endif	// #if WITH_APEX
 
 
-void AddRadialImpulseToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
+void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
 {
 #if WITH_PHYSX
-	if (!(PRigidDynamic.getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC))
+	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
 	{
-		float Mass = PRigidDynamic.getMass();
-		PxTransform PCOMTransform = PRigidDynamic.getGlobalPose().transform(PRigidDynamic.getCMassLocalPose());
+		float Mass = PRigidBody.getMass();
+		PxTransform PCOMTransform = PRigidBody.getGlobalPose().transform(PRigidBody.getCMassLocalPose());
 		PxVec3 PCOMPos = PCOMTransform.p; // center of mass in world space
 		PxVec3 POrigin = U2PVector(Origin); // origin of radial impulse, in world space
 		PxVec3 PDelta = PCOMPos - POrigin; // vector from origin to COM
@@ -242,18 +242,18 @@ void AddRadialImpulseToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVect
 		PxVec3 PImpulse = PDelta * ImpulseMag;
 
 		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
-		PRigidDynamic.addForce(PImpulse, Mode);
+		PRigidBody.addForce(PImpulse, Mode);
 	}
 #endif // WITH_PHYSX
 }
 
-void AddRadialForceToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector& Origin, float Radius, float Strength, uint8 Falloff)
+void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff)
 {
 #if WITH_PHYSX
-	if (!(PRigidDynamic.getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC))
+	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
 	{
-		float Mass = PRigidDynamic.getMass();
-		PxTransform PCOMTransform = PRigidDynamic.getGlobalPose().transform(PRigidDynamic.getCMassLocalPose());
+		float Mass = PRigidBody.getMass();
+		PxTransform PCOMTransform = PRigidBody.getGlobalPose().transform(PRigidBody.getCMassLocalPose());
 		PxVec3 PCOMPos = PCOMTransform.p; // center of mass in world space
 		PxVec3 POrigin = U2PVector(Origin); // origin of radial impulse, in world space
 		PxVec3 PDelta = PCOMPos - POrigin; // vector from
@@ -277,16 +277,16 @@ void AddRadialForceToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector
 
 		// Apply force
 		PxVec3 PImpulse = PDelta * ForceMag;
-		PRigidDynamic.addForce(PImpulse, PxForceMode::eFORCE);
+		PRigidBody.addForce(PImpulse, PxForceMode::eFORCE);
 	}
 #endif // WITH_PHYSX
 }
 
-bool IsRigidDynamicNonKinematic(PxRigidDynamic* PRigidDynamic)
+bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
 {
-	if(PRigidDynamic != NULL)
+	if (PRigidBody != NULL)
 	{
-		return !(PRigidDynamic->getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC);
+		return !(PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC);
 	}
 
 	return false;
@@ -347,7 +347,7 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	if((filterData0.word2 == filterData1.word2) && (filterData0.word2 != 0))
 	{
 		check(constantBlockSize == sizeof(FPhysSceneShaderInfo));
-		const FPhysSceneShaderInfo * PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;
+		const FPhysSceneShaderInfo* PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;
 		check(PhysSceneShaderInfo);
 		FPhysScene * PhysScene = PhysSceneShaderInfo->PhysScene;
 		check(PhysScene);
@@ -419,19 +419,23 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	const FBodyInstance* BodyInst0 = FPhysxUserData::Get<FBodyInstance>(PActor0->userData);
 	const FBodyInstance* BodyInst1 = FPhysxUserData::Get<FBodyInstance>(PActor1->userData);
 	
+	bool bEitherDestructible = false;
+
 	// check if it's a destructible actor
 	if (BodyInst0 == NULL)
 	{
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor0->userData))
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor0->userData))
 		{
+			bEitherDestructible = true;
 			BodyInst0 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
 		}
 	}
 
 	if (BodyInst1 == NULL)
 	{
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor1->userData))
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor1->userData))
 		{
+			bEitherDestructible = true;
 			BodyInst1 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
 		}
 	}
@@ -441,6 +445,16 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	if(BodyInst0 == NULL || BodyInst1 == NULL || BodyInst0 == BodyInst1)
 	{
 		return;
+	}
+
+	//destruction applies damage when it hits something. Unfortunately it relies on the same flag that generates onContact.
+	//We only want onContact events to happen if the user actually selected bNotifyRigidBodyCollision so we have to check if this is the case
+	if (bEitherDestructible)
+	{
+		if (BodyInst0->bNotifyRigidBodyCollision == false && BodyInst1->bNotifyRigidBodyCollision == false)
+		{
+			return;
+		}
 	}
 
 	// Get the Scene. 
@@ -553,7 +567,7 @@ public:
 
 	FORCEINLINE TStatId GetStatId() const
 	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_TaskGraphTasks);
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_Physics);
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
@@ -566,7 +580,9 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		FPlatformMisc::BeginNamedEvent(FColor::Black, Task.getName());
 		Task.run();
+		FPlatformMisc::EndNamedEvent();
 	}
 };
 

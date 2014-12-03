@@ -13,8 +13,8 @@
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-UGameplayAbilitySet::UGameplayAbilitySet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilitySet::UGameplayAbilitySet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

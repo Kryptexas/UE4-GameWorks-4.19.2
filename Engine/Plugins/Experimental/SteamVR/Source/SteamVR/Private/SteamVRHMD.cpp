@@ -16,6 +16,11 @@ class FSteamVRPlugin : public ISteamVRPlugin
 {
 	/** IHeadMountedDisplayModule implementation */
 	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() override;
+
+	FString GetModulePriorityKeyName() const
+	{
+		return FString(TEXT("SteamVR"));
+	}
 };
 
 IMPLEMENT_MODULE( FSteamVRPlugin, SteamVR )
@@ -60,7 +65,7 @@ EHMDDeviceType::Type FSteamVRHMD::GetHMDDeviceType() const
 	return EHMDDeviceType::DT_OculusRift;		//@todo steamvr: steamvr post
 }
 
-bool FSteamVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc) const
+bool FSteamVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc) 
 {
 	if (IsInitialized())
 	{
@@ -116,7 +121,7 @@ float FSteamVRHMD::GetInterpupillaryDistance() const
 	return 0.064f;
 }
 
-void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, float MotionPredictionInSeconds) const
+void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, float MotionPredictionInSeconds)
 {
 	vr::HmdMatrix34_t Pose;
 	vr::HmdTrackingResult Result;
@@ -171,7 +176,7 @@ namespace
 }
 
 
-void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) const
+void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
 	checkf(IsInGameThread());
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition, MotionPredictionInSecondsGame);
@@ -314,7 +319,46 @@ void FSteamVRHMD::EnableLowPersistenceMode(bool Enable)
 
 void FSteamVRHMD::ResetOrientationAndPosition(float yaw)
 {
-	//@todo steamvr: ResetOrientationAndPosition()
+	ResetOrientation(yaw);
+	ResetPosition();
+}
+
+void FSteamVRHMD::ResetOrientation(float Yaw)
+{
+	//@todo steamvr: ResetOrientation()
+}
+void FSteamVRHMD::ResetPosition()
+{
+	//@todo steamvr: ResetPosition()
+}
+
+void FSteamVRHMD::SetClippingPlanes(float NCP, float FCP)
+{
+}
+
+void FSteamVRHMD::SetBaseRotation(const FRotator& BaseRot)
+{
+}
+FRotator FSteamVRHMD::GetBaseRotation() const
+{
+	return FRotator::ZeroRotator;
+}
+
+void FSteamVRHMD::SetBaseOrientation(const FQuat& BaseOrient)
+{
+}
+FQuat FSteamVRHMD::GetBaseOrientation() const
+{
+	return FQuat::Identity;
+}
+
+void FSteamVRHMD::SetPositionOffset(const FVector& PosOff)
+{
+}
+
+FVector FSteamVRHMD::GetPositionOffset() const
+{
+	return FVector::ZeroVector;
 }
 
 void FSteamVRHMD::UpdateScreenSettings(const FViewport*)
@@ -469,7 +513,7 @@ void FSteamVRHMD::PreRenderView_RenderThread(FSceneView& View)
 //	UpdatePlayerViewPoint(CurrentOrientation, CurrentPosition, View);
 }
 
-void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
+void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily, uint32 InFrameNumber)
 {
 	check(IsInRenderingThread());
 }
@@ -554,7 +598,7 @@ void FSteamVRHMD::Startup()
 		float IdealScreenPercentage = FMath::Max(WidthPercentage, HeightPercentage);
 
 		//@todo steamvr: move out of here
-		IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
 
 		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(IdealScreenPercentage))
 		{

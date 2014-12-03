@@ -4,29 +4,16 @@
 #include "AssetTypeActions/AssetTypeActions_VectorField.h"
 #include "VectorField/VectorFieldStatic.h"
 
-class FAssetTypeActions_VectorFieldStatic : public FAssetTypeActions_VectorField
+class FAssetTypeActions_VectorFieldStatic : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_VectorFieldStatic", "Vector Field"); }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_VectorFieldStatic", "Static Vector Field"); }
+	virtual FColor GetTypeColor() const override { return FColor(200, 128, 128); }
 	virtual UClass* GetSupportedClass() const override { return UVectorFieldStatic::StaticClass(); }
-	virtual bool HasActions ( const TArray<UObject*>& InObjects ) const override { return true; }
-	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) override;
 	virtual bool CanFilter() override { return true; }
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
+	virtual bool IsImportedAsset() const override { return true; }
+	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const override;
 
-private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<UVectorFieldStatic>> Objects);
-
-	/** Handler for when Reimport is selected */
-	void ExecuteReimport(TArray<TWeakObjectPtr<UVectorFieldStatic>> Objects);
-
-	/** Handler for when FindInExplorer is selected */
-	void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UVectorFieldStatic>> Objects);
-
-	/** Handler for when OpenInExternalEditor is selected */
-	void ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<UVectorFieldStatic>> Objects);
-
-	/** Returns true to allow execution of source file commands */
-	bool CanExecuteSourceCommands(TArray<TWeakObjectPtr<UVectorFieldStatic>> Objects) const;
 };

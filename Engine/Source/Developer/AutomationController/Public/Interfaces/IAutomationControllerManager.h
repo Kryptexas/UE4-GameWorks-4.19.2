@@ -1,20 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IAutomationController.h: Declares the IAutomationController interface.
-=============================================================================*/
-
 #pragma once
 
-/**
- * Type definition for shared pointers to instances of IAutomationControllerManager.
- */
+
+/** Type definition for shared pointers to instances of IAutomationControllerManager. */
 typedef TSharedPtr<class IAutomationControllerManager> IAutomationControllerManagerPtr;
 
-/**
- * Type definition for shared references to instances of IAutomationControllerManager.
- */
+/** Type definition for shared references to instances of IAutomationControllerManager. */
 typedef TSharedRef<class IAutomationControllerManager> IAutomationControllerManagerRef;
+
 
 // Enum to indicate the state of the workers in the automation controller
 namespace EAutomationControllerModuleState 
@@ -29,6 +23,7 @@ namespace EAutomationControllerModuleState
 		Disabled
 	};
 };
+
 
 /**
 * Enum used to set which reports to export
@@ -85,6 +80,7 @@ namespace EFileExportType
 	}
 
 };
+
 
 namespace EAutomationDeviceGroupTypes
 {
@@ -156,72 +152,73 @@ DECLARE_DELEGATE(FOnAutomationControllerTestsComplete);
 class IAutomationControllerManager
 {
 public:
-	virtual ~IAutomationControllerManager() { }
 
 	/** 
-	 * Broadcast a request for workers to ping if they are available 
+	 * Broadcast a request for workers to ping if they are available.
 	 * 
-	 * @param InSessionID the session ID to run the test on
+	 * @param InSessionID the session ID to run the test on.
 	 */
 	virtual void RequestAvailableWorkers( const FGuid& InSessionId ) = 0;
 
-	/** Send request for tests that are available to run */
+	/** Send request for tests that are available to run. */
 	virtual void RequestTests() = 0;
 
 	/** 
-	 * Resets all enabled tests to be able to run during Tick by local/remote machines
+	 * Resets all enabled tests to be able to run during Tick by local/remote machines.
 	 *
-	 * @param bIsLocalSeesion - indicate if this is a local session. We do not time out local session automation tests
+	 * @param bIsLocalSeesion Indicate if this is a local session. We do not time out local session automation tests.
 	 */
 	virtual void RunTests( const bool bIsLocalSession = false ) = 0;
 
-	/**
-	 * Stops all running tests.
-	 */
+	/** Stops all running tests. */
 	virtual void StopTests() = 0;
 
-	/** Initializes the automation controller */
+	/** Initializes the automation controller. */
 	virtual void Init() = 0;
 
 	/**
-	 * Request an asset to be loaded in the editor
+	 * Request an asset to be loaded in the editor.
 	 *
-	 * @param InAssetName - the asset name
+	 * @param InAssetName The asset name.
 	 */
 	virtual void RequestLoadAsset( const FString& InAssetName ) = 0;
 
-	/** Tick function that will execute enabled tests for different device clusters */
+	/** Tick function that will execute enabled tests for different device clusters. */
 	virtual void Tick() = 0;
 
 	/**
-	 * Sets the number of test passes
+	 * Sets the number of test passes.
 	 *
-	 * @param InNumPasses - the number of test passes to perform
+	 * @param InNumPasses The number of test passes to perform.
 	 */
 	virtual void SetNumPasses(const int32 InNumPasses) = 0;
 
 	/**
-	 * Get the number of test passes
+	 * Get the number of test passes.
+	 *
+	 * @return Number of passes.
 	 */
 	virtual int32 GetNumPasses() = 0;
 
 	/**
-	 * Returns if we are using full size screen shots
+	 * Returns if we are using full size screen shots.
+	 *
+	 * @return true if using full size screenshots, false otherwise.
 	 */
 	virtual bool IsUsingFullSizeScreenshots() const = 0;
 
 	/**
-	 * Sets if we are using full size screen shots
+	 * Sets if we are using full size screen shots.
 	 */
 	virtual void SetUsingFullSizeScreenshots(const  bool bNewValue ) = 0;
 
 	/**
-	 * Returns if screenshots are allowed
+	 * Returns if screenshots are allowed.
 	 */
 	virtual bool IsScreenshotAllowed() const = 0;
 
 	/**
-	 * Sets if screenshots are enabled
+	 * Sets if screenshots are enabled.
 	 */
 	virtual void SetScreenshotsEnabled( const bool bNewValue ) = 0;
 
@@ -256,10 +253,10 @@ public:
 	virtual FString GetDeviceTypeName(const int32 ClusterIndex) const = 0;
 
 	/**
-	 * Get a game instance name
+	 * Get a game instance name.
 	 *
-	 * @param ClusterIndex The cluster Index
- 	 * @param DeviceIndex The Device Index
+	 * @param ClusterIndex The cluster Index.
+ 	 * @param DeviceIndex The Device Index.
 	 */
 	virtual FString GetGameInstanceName(const int32 ClusterIndex, const int32 DeviceIndex) const = 0;
 
@@ -274,16 +271,16 @@ public:
 	virtual int32 GetEnabledTestsNum() const = 0;
 
 	/**
-	 * Gets the names of all the enabled tests
+	 * Gets the names of all the enabled tests.
 	 *
-	 * @param OutEnabledTestNames The list to populate with enabled test names
+	 * @param OutEnabledTestNames The list to populate with enabled test names.
 	 */
 	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const = 0;
 
 	/**
-	 * Sets any tests that match a name in the enabled tests array
+	 * Sets any tests that match a name in the enabled tests array.
 	 *
-	 * @param EnabledTests An array of test names that will be enabled
+	 * @param EnabledTests An array of test names that will be enabled.
 	 */
 	virtual void SetEnabledTests(const TArray<FString>& EnabledTests) = 0;
 
@@ -317,82 +314,69 @@ public:
 	virtual bool IsVisualCommandletFilterOn(void) const = 0;
 
 	/**
-	 * Check if the automation tests have completed
+	 * Check if the automation tests have completed.
 	 *
-	 * @return true if the tests are available
+	 * @return true if the tests are available.
 	 */
 	virtual const bool CheckTestResultsAvailable() const = 0;
 
 	/**
-	 * Check if the automation tests results have errors
+	 * Check if the automation tests results have errors.
 	 *
-	 * @return true if the tests have errors
+	 * @return true if the tests have errors.
 	 */
 	virtual const bool ReportsHaveErrors() const = 0;
 
 	/**
-	 * Check if the automation tests results have warnings
+	 * Check if the automation tests results have warnings.
 	 *
-	 * @return true if the tests have warnings
+	 * @return true if the tests have warnings.
 	 */
 	virtual const bool ReportsHaveWarnings() const = 0;
 
 	/**
-	 * Check if the automation tests results have logs
+	 * Check if the automation tests results have logs.
 	 *
-	 * @return true if the tests have logs
+	 * @return true if the tests have logs.
 	 */
 	virtual const bool ReportsHaveLogs() const = 0;
 
 	/**
-	 * Remove results from the automation controller module
+	 * Remove results from the automation controller module.
 	 */
 	virtual void ClearAutomationReports() = 0;
 
 	/**
-	 * Generate an automation report
+	 * Generate an automation report.
 	 *
-	 * @param FileExporTypeMask - The types of report to export. Warning errors etc
+	 * @param FileExporTypeMask The types of report to export. Warning errors etc.
 	 */
 	virtual const bool ExportReport( uint32 FileExportTypeMask ) = 0;
 
 	/** 
-	 * Check that the test we are looking to run is runnable
+	 * Check that the test we are looking to run is runnable.
 	 *
-	 * @param InReport - The test we are checking is runnable
-	 *
-	 * @return true if the test can be run, FALSE if not
+	 * @param InReport The test we are checking is runnable.
+	 * @return true if the test can be run, false if not.
 	 */
 	virtual bool IsTestRunnable( IAutomationReportPtr InReport ) const = 0;
 
-	/**
-	 * Removes all callbacks.
-	 */
+	/** Removes all callbacks. */
 	virtual void RemoveCallbacks() = 0;
 
-	/**
-	 * Shuts down the messaging system.
-	 */
+	/** Shuts down the manager. */
 	virtual void Shutdown() = 0;
 
-	/**
-	 * Starts up the messaging system.
-	 */
+	/** Starts up the manager. */
 	virtual void Startup() = 0;
 
-	/**
-	 * Checks if a device group flag is set.
-	 */
+	/** Checks if a device group flag is set. */
 	virtual bool IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const = 0;
 
-	/**
-	 * Toggles a device group flag.
-	 */
+	/** Toggles a device group flag. */
 	virtual void ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup ) = 0;
 
-	/**
-	 * Updates the clusters when the device grouping changes.
-	 */
+	/** Updates the clusters when the device grouping changes. */
 	virtual void UpdateDeviceGroups( ) = 0;
 
 	/**
@@ -401,21 +385,21 @@ public:
 	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) = 0;
 
 	/**
-	 * Dictate whether to save the reports history and the number of history items to track
+	 * Dictate whether to save the reports history and the number of history items to track.
 	 *
-	 * @param bShouldTrack - Flag that determines whether to track history
-	 * @param NumReportsToTrack - The number of history reports to keep
+	 * @param bShouldTrack Flag that determines whether to track history.
+	 * @param NumReportsToTrack The number of history reports to keep.
 	 */
 	virtual void TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack) = 0;
 
 	/**
-	* Returns whether the controller is tracking history of reports.
-	*/
+	 * Returns whether the controller is tracking history of reports.
+	 */
 	virtual const bool IsTrackingHistory() const = 0;
 
 	/**
-	* Returns the number of history items the controller is maintaining.
-	*/
+	 * Returns the number of history items the controller is maintaining.
+	 */
 	virtual const int32 GetNumberHistoryItemsTracking() const = 0;
 
 public:
@@ -440,4 +424,9 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FOnAutomationControllerTestsRefreshed& OnTestsRefreshed( ) = 0;
+
+public:
+
+	/** Virtual destructor.*/
+	virtual ~IAutomationControllerManager() { }
 };

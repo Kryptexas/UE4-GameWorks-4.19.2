@@ -132,7 +132,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	bool GetBoolMetaData(const TCHAR* Key) const
 	{		
-		const FString & BoolString = GetMetaData(Key);
+		const FString& BoolString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		return (BoolString == "true");
 	}
@@ -145,7 +145,7 @@ class COREUOBJECT_API UField : public UObject
 	 */
 	bool GetBoolMetaData(const FName& Key) const
 	{		
-		const FString & BoolString = GetMetaData(Key);
+		const FString& BoolString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		return (BoolString == "true");
 	}
@@ -158,7 +158,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	int32 GetINTMetaData(const TCHAR* Key) const
 	{
-		const FString & INTString = GetMetaData(Key);
+		const FString& INTString = GetMetaData(Key);
 		int32 Value = FCString::Atoi(*INTString);
 		return Value;
 	}
@@ -171,7 +171,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	int32 GetINTMetaData(const FName& Key) const
 	{
-		const FString & INTString = GetMetaData(Key);
+		const FString& INTString = GetMetaData(Key);
 		int32 Value = FCString::Atoi(*INTString);
 		return Value;
 	}
@@ -184,7 +184,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	float GetFLOATMetaData(const TCHAR* Key) const
 	{
-		const FString & FLOATString = GetMetaData(Key);
+		const FString& FLOATString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		float Value = FCString::Atof(*FLOATString);
 		return Value;
@@ -198,7 +198,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	float GetFLOATMetaData(const FName& Key) const
 	{
-		const FString & FLOATString = GetMetaData(Key);
+		const FString& FLOATString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		float Value = FCString::Atof(*FLOATString);
 		return Value;
@@ -256,7 +256,7 @@ public:
 public:
 	// Constructors.
 	UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
-	explicit UStruct(const class FPostConstructInitializeProperties& PCIP, UStruct* InSuperStruct, SIZE_T ParamsSize = 0, SIZE_T Alignment = 0 );
+	explicit UStruct(const FObjectInitializer& ObjectInitializer, UStruct* InSuperStruct, SIZE_T ParamsSize = 0, SIZE_T Alignment = 0 );
 
 	// UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
@@ -266,6 +266,8 @@ public:
 
 	// UField interface.
 	virtual void AddCppProperty(UProperty* Property) override;
+
+	UProperty* FindPropertyByName(FName Name) const;
 
 	/**
 	 * Creates new copies of components
@@ -953,8 +955,8 @@ public:
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UScriptStruct,UStruct,0,CoreUObject,CASTCLASS_UScriptStruct,COREUOBJECT_API)
 
 	COREUOBJECT_API UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
-	COREUOBJECT_API explicit UScriptStruct(const class FPostConstructInitializeProperties& PCIP, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps = NULL, EStructFlags InStructFlags = STRUCT_NoFlags, SIZE_T ExplicitSize = 0, SIZE_T ExplicitAlignment = 0);
-	COREUOBJECT_API explicit UScriptStruct(const class FPostConstructInitializeProperties& PCIP);
+	COREUOBJECT_API explicit UScriptStruct(const FObjectInitializer& ObjectInitializer, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps = NULL, EStructFlags InStructFlags = STRUCT_NoFlags, SIZE_T ExplicitSize = 0, SIZE_T ExplicitAlignment = 0);
+	COREUOBJECT_API explicit UScriptStruct(const FObjectInitializer& ObjectInitializer);
 
 public:
 	EStructFlags StructFlags;
@@ -1195,7 +1197,7 @@ public:
 	void Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL);
 
 	// Constructors.
-	explicit UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
+	explicit UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
 
 	void InitializeDerivedMembers();
 
@@ -1248,7 +1250,7 @@ public:
 	FORCEINLINE static uint64 GetDefaultIgnoredSignatureCompatibilityFlags()
 	{
 		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
-		const uint64 IgnoreFlags = CPF_EditInline | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm;
+		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm;
 		return IgnoreFlags;
 	}
 
@@ -1358,7 +1360,7 @@ public:
 	 * @param InEnumName Enum name.
 	 * @return Full enum name.
 	 */
-	COREUOBJECT_API static FString GenerateFullEnumName(const UEnum * InEnum, const TCHAR* InEnumName)
+	COREUOBJECT_API static FString GenerateFullEnumName(const UEnum* InEnum, const TCHAR* InEnumName)
 	{
 		if (InEnum->GetCppForm() == ECppForm::Regular || IsFullEnumName(InEnumName))
 		{
@@ -1575,7 +1577,7 @@ public:
 	 * @param	EnumEntryName	Name of the entry of the enum
 	 *
 	 */
-	static COREUOBJECT_API int32 FindEnumRedirects(const UEnum * Enum, FName EnumEntryName);
+	static COREUOBJECT_API int32 FindEnumRedirects(const UEnum* Enum, FName EnumEntryName);
 
 
 	/**
@@ -1716,14 +1718,14 @@ public:
 
 	friend class FRestoreClassInfo;
 
-	void(*ClassConstructor)(const class FPostConstructInitializeProperties&);
+	void(*ClassConstructor)(const FObjectInitializer&);
 	/** Pointer to a static AddReferencedObjects method. */
 	void(*ClassAddReferencedObjects)(UObject*, class FReferenceCollector&);
 
 	// Class flags; See EClassFlags for more information
 	uint32 ClassFlags;
 
-	// Cast flags used to accelerate Cast<T> on objects of this type for common T
+	// Cast flags used to accelerate dynamic_cast<T*> on objects of this type for common T
 	EClassCastFlags ClassCastFlags;
 
 	// Class pseudo-unique counter; used to accelerate unique instance name generation
@@ -1817,10 +1819,10 @@ public:
 
 public:
 	// Constructors
-	UClass(const class FPostConstructInitializeProperties& PCIP);
-	explicit UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InSuperClass);
+	UClass(const FObjectInitializer& ObjectInitializer);
+	explicit UClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
-		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const class FPostConstructInitializeProperties&),
+		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const FObjectInitializer&),
 		void(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&));
 
 #if WITH_HOT_RELOAD
@@ -1839,11 +1841,23 @@ public:
 		uint32			InClassFlags,
 		EClassCastFlags	InClassCastFlags,
 		const TCHAR*    InConfigName,
-		void			(*InClassConstructor)(const class FPostConstructInitializeProperties&),
+		void			(*InClassConstructor)(const FObjectInitializer&),
 		void			(*InAddReferencedObjects)(UObject*, class FReferenceCollector&),
 		class UClass* TClass_Super_StaticClass,
 		class UClass* TClass_WithinClass_StaticClass
 		);
+
+
+	/**
+	* Replace a native function in the  internal native function table
+	* @param	InName							name of the function
+	* @param	InPointer						pointer to the function
+	* @param	bAddToFunctionRemapTable		For C++ hot-reloading, UFunctions are patched in a deferred manner and this should be true
+	*											For script hot-reloading, script integrations may have a many to 1 mapping of UFunction to native pointer
+	*											because dispatch is shared, so the C++ remap table does not work in this case, and this should be false
+	* @return	true if the function was found and replaced, false if it was not
+	*/
+	bool ReplaceNativeFunction(FName InName, Native InPointer, bool bAddToFunctionRemapTable);
 #endif
 
 #if WITH_EDITOR
@@ -1940,6 +1954,19 @@ public:
 	* @return The name of the CDO
 	*/
 	FName GetDefaultObjectName();
+
+	virtual uint8* GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const
+	{
+		return NULL;
+	}
+
+	virtual void CreatePersistentUberGraphFrame(UObject* Obj) const
+	{
+	}
+
+	virtual void DestroyPersistentUberGraphFrame(UObject* Obj) const
+	{
+	}
 
 	/**
 	  * Get the default object from the class and cast to a particular type
@@ -2161,11 +2188,12 @@ private:
 		return UObject::FindFunctionChecked(InName);
 	}
 
+protected:
 	/**
 	 * Get the default object from the class, creating it if missing, if requested or under a few other circumstances
 	 * @return		the CDO for this class
 	 **/
-	UObject* CreateDefaultObject();
+	virtual UObject* CreateDefaultObject();
 };
 
 
@@ -2173,9 +2201,9 @@ private:
  * Helper template to call the default constructor for a class
  */
 template<class T>
-void InternalConstructor( const class FPostConstructInitializeProperties& X )
+void InternalConstructor( const FObjectInitializer& X )
 { 
-	new( (EInternal*)X.Obj )T(X); 
+	T::__DefaultConstructor(X);
 }
 
 COREUOBJECT_API void InitializePrivateStaticClass(
@@ -2213,7 +2241,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 				TClass::StaticClassFlags,
 				TClass::StaticClassCastFlags(),
 				TClass::StaticConfigName(),
-				(void(*)(const class FPostConstructInitializeProperties&))InternalConstructor<TClass>,
+				(void(*)(const FObjectInitializer&))InternalConstructor<TClass>,
 				&TClass::AddReferencedObjects,
 				TClass::Super::StaticClass(),
 				TClass::WithinClass::StaticClass()
@@ -2241,7 +2269,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		TClass::StaticClassCastFlags(),
 		TClass::StaticConfigName(),
 		EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
-		(void(*)(const class FPostConstructInitializeProperties&))InternalConstructor<TClass>,
+		(void(*)(const FObjectInitializer&))InternalConstructor<TClass>,
 		&TClass::AddReferencedObjects
 		);
 	check(ReturnClass);
@@ -2539,48 +2567,4 @@ inline T* GetMutableDefault(UClass *Class)
 {
 	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (T*)Class->GetDefaultObject();
-}
-
-template<class TReturnType, class TClassToConstructByDefault>
-inline TReturnType* FPostConstructInitializeProperties::CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, bool bIsRequired, bool bAbstract, bool bIsTransient) const
-{
-	if(SubobjectFName == NAME_None)
-	{
-		UE_LOG(LogClass, Fatal, TEXT("Illegal default subobject name: %s"), *SubobjectFName.ToString());
-	}
-
-	TReturnType* Result = NULL;
-	UClass* OverrideClass = ComponentOverrides.Get<TReturnType, TClassToConstructByDefault>(SubobjectFName, *this);
-	if (!OverrideClass && bIsRequired)
-	{
-		OverrideClass = TClassToConstructByDefault::StaticClass();
-		UE_LOG(LogClass, Warning, TEXT("Ignored DoNotCreateDefaultSubobject for %s as it's marked as required. Creating %s."), *SubobjectFName.ToString(), *OverrideClass->GetName());
-	}
-	if (OverrideClass)
-	{
-		check(OverrideClass->IsChildOf(TReturnType::StaticClass()));
-
-		// Abstract sub-objects are only allowed when explicitly created with CreateAbstractDefaultSubobject.
-		if (!OverrideClass->HasAnyClassFlags(CLASS_Abstract) || !bAbstract)
-		{
-			UObject* Template = OverrideClass->GetDefaultObject(); // force the CDO to be created if it hasn't already
-			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
-			Result = ConstructObject<TReturnType>(OverrideClass, Outer, SubobjectFName, SubobjectFlags);
-			if ( !bIsTransient && !Outer->GetArchetype()->GetClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic) )
-			{
-				// The archetype of the outer is not native, so we need to copy properties to the subobjects after the C++ constructor chain for the outer has run (because those sets properties on the subobjects)
-				UObject* MaybeTemplate = Outer->GetArchetype()->GetClass()->GetDefaultSubobjectByName(SubobjectFName);
-				if (MaybeTemplate && MaybeTemplate->IsA(TReturnType::StaticClass()) && Template != MaybeTemplate)
-				{
-					ComponentInits.Add(Result, MaybeTemplate);
-				}
-			}
-			if (Outer->HasAnyFlags(RF_ClassDefaultObject) && Outer->GetClass()->GetSuperClass())
-			{
-				Outer->GetClass()->AddDefaultSubobject(Result, TReturnType::StaticClass());
-			}
-			Result->SetFlags(RF_DefaultSubObject);
-		}
-	}
-	return Result;
 }

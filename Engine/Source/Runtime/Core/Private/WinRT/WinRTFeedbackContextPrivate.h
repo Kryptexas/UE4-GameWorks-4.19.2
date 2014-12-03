@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Misc/App.h"
 
 /**
  * Feedback context implementation for WinRT.
@@ -15,13 +16,10 @@ class FFeedbackContextWinRT : public FFeedbackContext
 	FContextSupplier*	Context;
 
 public:
-	// Variables.
-	int32 SlowTaskCount;
 
 	// Constructor.
 	FFeedbackContextWinRT()
 		: FFeedbackContext()
-		, SlowTaskCount( 0 )
 		, Context( NULL )
 	{}
 
@@ -92,17 +90,6 @@ public:
 		{
 			return false;
 		}
-	}
-
-	void BeginSlowTask( const TCHAR* Task, bool ShowProgressDialog, bool bShowCancelButton=false )
-	{
-		GIsSlowTask = ++SlowTaskCount>0;
-	}
-
-	void EndSlowTask()
-	{
-		check(SlowTaskCount>0);
-		GIsSlowTask = --SlowTaskCount>0;
 	}
 
 	VARARG_BODY( bool VARARGS, StatusUpdatef, const TCHAR*, VARARG_EXTRA(int32 Numerator) VARARG_EXTRA(int32 Denominator) )

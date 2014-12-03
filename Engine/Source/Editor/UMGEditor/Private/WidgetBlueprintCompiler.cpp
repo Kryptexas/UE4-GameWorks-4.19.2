@@ -8,6 +8,10 @@
 #include "KismetReinstanceUtilities.h"
 #include "MovieScene.h"
 #include "K2Node_FunctionEntry.h"
+#include "Blueprint/WidgetTree.h"
+#include "WidgetBlueprint.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "NamedSlot.h"
 
 FOnWidgetBlueprintCompiled FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled = FOnWidgetBlueprintCompiled();
 
@@ -28,7 +32,7 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 
 	for ( FDelegateEditorBinding& EditorBinding : WidgetBlueprint()->Bindings )
 	{
-		FName PropertyName = EditorBinding.SourceProperty;
+		const FName PropertyName = EditorBinding.SourceProperty;
 
 		UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
 		if ( Property )
@@ -44,13 +48,6 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 
 			Schema->CreateDefaultNodesForGraph(*FunctionGraph);
 
-			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
-			int32 ExtraFunctionFlags = ( FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public );
-			if ( BPTYPE_FunctionLibrary == Blueprint->BlueprintType )
-			{
-				ExtraFunctionFlags |= FUNC_Static;
-			}
-			K2Schema->AddExtraFunctionFlags(FunctionGraph, ExtraFunctionFlags);
 			K2Schema->MarkFunctionEntryAsEditable(FunctionGraph, true);
 
 			// Create a function entry node
@@ -68,8 +65,6 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 			ReturnNode->NodePosY = EntryNode->NodePosY;
 			FunctionReturnCreator.Finalize();
 
-			UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
-
 			FEdGraphPinType PinType;
 			K2Schema->ConvertPropertyToPinType(Property, /*out*/ PinType);
 
@@ -86,6 +81,10 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 			MemberGetCreator.Finalize();
 
 			ReturnPin->MakeLinkTo(VarNode->GetValuePin());
+
+			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
+			int32 ExtraFunctionFlags = ( FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public | FUNC_BlueprintPure );
+			K2Schema->AddExtraFunctionFlags(FunctionGraph, ExtraFunctionFlags);
 
 			//Blueprint->FunctionGraphs.Add(FunctionGraph);
 
@@ -109,10 +108,7 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 		}
 	}
 
-	TArray<UWidget*> Widgets;
-	Blueprint->WidgetTree->GetAllWidgets(Widgets);
-	for ( UWidget* Widget : Widgets )
-	{
+	Blueprint->WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 		if ( ParentBPNameValidator.IsValid() && ParentBPNameValidator->IsValid(Widget->GetName()) != EValidatorResult::Ok )
 		{
 			// TODO Support renaming items, similar to timelines.
@@ -124,7 +120,7 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 			//MessageLog.Warning(*FString::Printf(*LOCTEXT("TimelineConflictWarning", "Found a timeline with a conflicting name (%s) - changed to %s.").ToString(), *TimelineTemplate->GetName(), *NewName.ToString()));
 			//FBlueprintEditorUtils::RenameTimeline(Blueprint, FName(*TimelineName), NewName);
 		}
-	}
+	});
 }
 
 template<typename TOBJ>
@@ -261,11 +257,24 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 	BPGClass->Bindings.Reset();
 
-	// @todo UMG Possibly need duplication here 
+	// Convert all editor time property bindings into a list of bindings
+	// that will be applied at runtime.  Ensure all bindings are still valid.
 	for ( const FDelegateEditorBinding& EditorBinding : Blueprint->Bindings )
 	{
-		BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));
+		if ( EditorBinding.IsBindingValid(Class, Blueprint, MessageLog) )
+		{
+			BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));
+		}
 	}
+
+	// Add all the names of the named slot widgets to the slot names structure.
+	BPGClass->NamedSlots.Reset();
+	BPGClass->WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+		if ( Widget && Widget->IsA<UNamedSlot>() )
+		{
+			BPGClass->NamedSlots.Add(Widget->GetFName());
+		}
+	});
 
 	Super::FinishCompilingClass(Class);
 }

@@ -5,7 +5,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
-UBlackboardComponent::UBlackboardComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardComponent::UBlackboardComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	bWantsInitializeComponent = true;
@@ -17,11 +17,17 @@ void UBlackboardComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	// cache blackboard component if owner has one
-	BrainComp = GetOwner()->FindComponentByClass<UBrainComponent>();
-	if (BrainComp)
+	// note that it's a valid scenario for this component to not have an owner at all (at least in terms of unittesting)
+	AActor* Owner = GetOwner();
+	if (Owner)
 	{
-		BrainComp->CacheBlackboardComponent(this);
+		BrainComp = GetOwner()->FindComponentByClass<UBrainComponent>();
+		if (BrainComp)
+		{
+			BrainComp->CacheBlackboardComponent(this);
+		}
 	}
+
 	InitializeBlackboard(BlackboardAsset);
 }
 
@@ -53,6 +59,15 @@ struct FBlackboardInitializationData
 	};
 };
 
+void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
+{
+	if (NewAsset)
+	{
+		InitializeParentChain(NewAsset->Parent);
+		NewAsset->UpdateKeyIDs();
+	}
+}
+
 void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
@@ -70,6 +85,8 @@ void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 	{
 		if (BlackboardAsset->IsValid())
 		{
+			InitializeParentChain(BlackboardAsset);
+
 			TArray<FBlackboardInitializationData> InitList;
 			const int32 NumKeys = BlackboardAsset->GetNumKeys();
 			InitList.Reserve(NumKeys);
@@ -188,11 +205,16 @@ void UBlackboardComponent::NotifyObservers(FBlackboard::FKey KeyID) const
 	}
 }
 
-bool UBlackboardComponent::IsCompatibleWith(class UBlackboardData* TestAsset) const
+bool UBlackboardComponent::IsCompatibleWith(UBlackboardData* TestAsset) const
 {
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 	{
 		if (It == TestAsset)
+		{
+			return true;
+		}
+
+		if (It->Keys == TestAsset->Keys)
 		{
 			return true;
 		}
@@ -201,10 +223,9 @@ bool UBlackboardComponent::IsCompatibleWith(class UBlackboardData* TestAsset) co
 	return false;
 }
 
-EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const
-{
-	UBlackboardKeyType* KeyCDO = KeyType->GetDefaultObject<UBlackboardKeyType>();
-	return KeyCDO->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
+EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const
+{	
+	return GetDefault<UBlackboardKeyType>()->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
 }
 
 FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mode) const 
@@ -293,9 +314,9 @@ FString UBlackboardComponent::DescribeKeyValue(FBlackboard::FKey KeyID, EBlackbo
 
 #if ENABLE_VISUAL_LOG
 
-void UBlackboardComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UBlackboardComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory Category;
+	FVisualLogStatusCategory Category;
 	Category.Category = FString::Printf(TEXT("Blackboard (asset: %s)"), *GetNameSafe(BlackboardAsset));
 
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
@@ -468,7 +489,7 @@ FVector UBlackboardComponent::GetValueAsVector(const FName& KeyName) const
 FVector UBlackboardComponent::GetValueAsVector(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
-	return RawData ? UBlackboardKeyType_Vector::GetValue(RawData) : FVector::ZeroVector;
+	return RawData ? UBlackboardKeyType_Vector::GetValue(RawData) : FAISystem::InvalidLocation;
 }
 
 
@@ -709,7 +730,7 @@ void UBlackboardComponent::SetValueAsVector(FBlackboard::FKey KeyID, const FVect
 
 void UBlackboardComponent::SetValueAsRotator(const FName& KeyName, FRotator RotatorValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	SetValueAsRotator(KeyID, RotatorValue);
 }
 
@@ -755,9 +776,26 @@ void UBlackboardComponent::ClearValueAsVector(FBlackboard::FKey KeyID)
 	}
 }
 
+bool UBlackboardComponent::IsVectorValueSet(const FName& KeyName) const
+{
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
+	return IsVectorValueSet(KeyID);
+}
+
+bool UBlackboardComponent::IsVectorValueSet(FBlackboard::FKey KeyID) const
+{
+	FVector VectorValue = GetValueAsVector(KeyID);
+	if (VectorValue == FAISystem::InvalidLocation)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void UBlackboardComponent::ClearValueAsRotator(const FName& KeyName)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	ClearValueAsRotator(KeyID);
 }
 
@@ -779,6 +817,29 @@ void UBlackboardComponent::ClearValueAsRotator(uint8 KeyID)
 	}
 }
 
+void UBlackboardComponent::ClearValue(const FName& KeyName)
+{
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
+	ClearValue(KeyID);
+}
+
+void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
+{
+	uint8* RawData = GetKeyRawData(KeyID);
+	if (RawData)
+	{
+		TSubclassOf<UBlackboardKeyType> ValueType = GetKeyType(KeyID);
+		if (ValueType)
+		{
+			// c-cast is ok here since ValueType is of at least UBlackboardKeyType and it's default object has to be UBlackboardKeyType instance
+			const bool bChanged = GetDefault<UBlackboardKeyType>()->Clear(RawData);
+			if (bChanged)
+			{
+				NotifyObservers(KeyID);
+			}
+		}
+	}
+}
 
 bool UBlackboardComponent::GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const
 {
@@ -793,7 +854,7 @@ bool UBlackboardComponent::GetLocationFromEntry(FBlackboard::FKey KeyID, FVector
 		const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
 		if (EntryInfo && EntryInfo->KeyType)
 		{
-			const uint8* ValueData = ValueMemory.GetTypedData() + ValueOffsets[KeyID];
+			const uint8* ValueData = ValueMemory.GetData() + ValueOffsets[KeyID];
 			return EntryInfo->KeyType->GetLocation(ValueData, ResultLocation);
 		}
 	}
@@ -814,7 +875,7 @@ bool UBlackboardComponent::GetRotationFromEntry(FBlackboard::FKey KeyID, FRotato
 		const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
 		if (EntryInfo && EntryInfo->KeyType)
 		{
-			const uint8* ValueData = ValueMemory.GetTypedData() + ValueOffsets[KeyID];
+			const uint8* ValueData = ValueMemory.GetData() + ValueOffsets[KeyID];
 			return EntryInfo->KeyType->GetRotation(ValueData, ResultRotation);
 		}
 	}

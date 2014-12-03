@@ -26,7 +26,7 @@ TArray<FFactoryItem> FindFactoriesInCategory(EAssetTypeCategories::Type AssetTyp
 		if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
 		{
 			UFactory* Factory = Class->GetDefaultObject<UFactory>();
-			if (Factory->ShouldShowInNewMenu() && Factory->ValidForCurrentGame() && ensure(!Factory->GetDisplayName().IsEmpty()))
+			if (Factory->ShouldShowInNewMenu() && ensure(!Factory->GetDisplayName().IsEmpty()))
 			{
 				uint32 FactoryCategories = Factory->GetMenuCategories();
 

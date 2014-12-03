@@ -11,6 +11,8 @@
 #include "ScopedTransaction.h"
 #include "AnimGraphNodeSlotDetails.h"
 #include "Persona.h"
+#include "STextComboBox.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "AnimNodeSlotDetails"
 
@@ -23,16 +25,13 @@ FAnimGraphNodeSlotDetails::FAnimGraphNodeSlotDetails(TWeakPtr<class FPersona> In
 void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder)
 {
 	SlotNodeNamePropertyHandle = DetailBuilder.GetProperty(TEXT("Node.SlotName"));
-	GroupNamePropertyHandle = DetailBuilder.GetProperty(TEXT("Node.GroupName"));
 
 	DetailBuilder.HideProperty(SlotNodeNamePropertyHandle);
-	DetailBuilder.HideProperty(GroupNamePropertyHandle);
 
 	TArray<UObject*> OuterObjects;
 	SlotNodeNamePropertyHandle->GetOuterObjects(OuterObjects);
 
 	check(SlotNodeNamePropertyHandle.IsValid());
-	check(GroupNamePropertyHandle.IsValid());
 
 	Skeleton = NULL;
 
@@ -40,8 +39,8 @@ void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& Det
 	for (auto Object : OuterObjects)
 	{
 		// if not this object, we have problem 
-		const UAnimGraphNode_Base * Node = CastChecked<UAnimGraphNode_Base>(Object);
-		const UAnimBlueprint * AnimBlueprint = Node->GetAnimBlueprint();
+		const UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Object);
+		const UAnimBlueprint* AnimBlueprint = Node->GetAnimBlueprint();
 		if (AnimBlueprint)
 		{
 			// if skeleton is already set and it's not same as target skeleton, we have some problem ,return
@@ -59,16 +58,12 @@ void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& Det
 
 	// this is used for 2 things, to create name, but also for another pop-up box to show off, it's a bit hacky to use this, but I need widget to parent on
 	TSharedRef<SWidget> SlotNodePropertyNameWidget = SlotNodeNamePropertyHandle->CreatePropertyNameWidget();
-	TSharedRef<SWidget> GroupNodePropertyNameWidget = GroupNamePropertyHandle->CreatePropertyNameWidget();
 
-	// get the current slot node name
-	int32 CurrentlySelectedIndex = RefreshSlotNames();
-	TSharedPtr<FString> CurrentlySelectedNode;
+	// fill combo with groups and slots
+	RefreshComboLists();
 
-	if (CurrentlySelectedIndex != INDEX_NONE)
-	{
-		CurrentlySelectedNode = SlotNameComboList[CurrentlySelectedIndex];
-	}
+	int32 FoundIndex = SlotNameList.Find(SlotNameComboSelectedName);
+	TSharedPtr<FString> ComboBoxSelectedItem = SlotNameComboListItems[FoundIndex];
 
 	// create combo box
 	IDetailCategoryBuilder& SlotNameGroup = DetailBuilder.EditCategory(TEXT("Settings"));
@@ -78,39 +73,30 @@ void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& Det
 		SlotNodePropertyNameWidget
 	]
 	.ValueContent()
+	.MinDesiredWidth(125.f * 3.f)
+	.MaxDesiredWidth(125.f * 3.f)
 	[
 		SNew(SHorizontalBox)
 
 		+SHorizontalBox::Slot()
+		.AutoWidth()
 		[
 			SAssignNew(SlotNameComboBox, STextComboBox)
-			.OptionsSource(&SlotNameComboList)
+			.OptionsSource(&SlotNameComboListItems)
 			.OnSelectionChanged(this, &FAnimGraphNodeSlotDetails::OnSlotNameChanged)
-			.InitiallySelectedItem(CurrentlySelectedNode)
+			.OnComboBoxOpening(this, &FAnimGraphNodeSlotDetails::OnSlotListOpening)
+			.InitiallySelectedItem(ComboBoxSelectedItem)
 			.ContentPadding(2)
+			.ToolTipText(FText::FromString(*ComboBoxSelectedItem))
 		]
 
 		+SHorizontalBox::Slot()
 		.AutoWidth()
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("SlotName_AddButtonLabel", "Add"))
-			.ToolTipText(LOCTEXT("SlotName_AddButtonToolTipText", "New Slot Node Names") )
-			.OnClicked(this, &FAnimGraphNodeSlotDetails::OnAddSlotName, SlotNodePropertyNameWidget)
-			.Content()
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.Button_AddToArray"))
-			]
-		]
-
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.Text(LOCTEXT("SlotName_ManageButtonLabel", "Manage"))
-			.ToolTipText(LOCTEXT("SlotName_ManageButtonToolTipText", "Manage Slot Node Names"))
-			.OnClicked(this, &FAnimGraphNodeSlotDetails::OnManageSlotName)
+			.Text(LOCTEXT("AnimSlotNode_DetailPanelManageButtonLabel", "Anim Slot Manager"))
+			.ToolTipText(LOCTEXT("AnimSlotNode_DetailPanelManageButtonToolTipText", "Open Anim Slot Manager to edit Slots and Groups."))
+			.OnClicked(this, &FAnimGraphNodeSlotDetails::OnOpenAnimSlotManager)
 			.Content()
 			[
 				SNew(SImage)
@@ -118,99 +104,59 @@ void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& Det
 			]
 		]
 	];
-
-	// group names
-	CurrentlySelectedIndex = RefreshGroupNames();
-	CurrentlySelectedNode = nullptr;
-
-	if(CurrentlySelectedIndex != INDEX_NONE)
-	{
-		CurrentlySelectedNode = GroupNameComboList[CurrentlySelectedIndex];
-	}
-
-	//IDetailGroup& GroupNameGroup = DetailBuilder.EditCategory(TEXT("GroupName_Group"), LOCTEXT("GroupNameTitleLabel", "Group Name").ToString());
-	SlotNameGroup.AddCustomRow(LOCTEXT("GroupNameTitleLabel", "Group Name").ToString())
-	.NameContent()
-	[
-		GroupNodePropertyNameWidget
-	]
-	.ValueContent()
-	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot()
-		[
-			SAssignNew(GroupNameComboBox, STextComboBox)
-			.OptionsSource(&GroupNameComboList)
-			.OnSelectionChanged(this, &FAnimGraphNodeSlotDetails::OnGroupNameChanged)
-			.InitiallySelectedItem(CurrentlySelectedNode)
-			.ContentPadding(2)
-		]
-
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.Text(LOCTEXT("GroupName_AddButtonLabel", "Add"))
-			.ToolTipText(LOCTEXT("GroupName_AddButtonToolTipText", "New Slot Group Names"))
-			.OnClicked(this, &FAnimGraphNodeSlotDetails::OnAddGroupName, GroupNodePropertyNameWidget)
-			.Content()
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.Button_AddToArray"))
-			]
-		]
-
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.Text(LOCTEXT("GroupName_ManageButtonLabel", "Manage"))
-			.ToolTipText(LOCTEXT("GroupName_ManageButtonToolTipText", "Manage Slot Group Names"))
-			.OnClicked(this, &FAnimGraphNodeSlotDetails::OnManageGroupName)
-			.Content()
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("MeshPaint.FindInCB"))
-			]
-		]
-	];
-
 }
 
-int32 FAnimGraphNodeSlotDetails::RefreshSlotNames()
+void FAnimGraphNodeSlotDetails::RefreshComboLists(bool bOnlyRefreshIfDifferent /*= false*/)
 {
-	SlotNameComboList.Empty();
+	SlotNodeNamePropertyHandle->GetValue(SlotNameComboSelectedName);
 
-	FName CurrentSlotNodeName = NAME_None;
-	SlotNodeNamePropertyHandle->GetValue(CurrentSlotNodeName);
+	// Make sure slot node exists in our skeleton.
+	Skeleton->RegisterSlotNode(SlotNameComboSelectedName);
 
-	// add slot node names
-	int32 CurrentSelectedIndex = INDEX_NONE;
-	const TArray<FName> & SlotNodeNames = Skeleton->GetSlotNodeNames();
-	for(auto SlotName : SlotNodeNames)
+	// Refresh Slot Names
 	{
-		SlotNameComboList.Add(MakeShareable(new FString(SlotName.ToString())));
+		TArray< TSharedPtr< FString > > NewSlotNameComboListItems;
+		TArray< FName > NewSlotNameList;
+		bool bIsSlotNameListDifferent = false;
 
-		if(CurrentSlotNodeName == SlotName)
+		const TArray<FAnimSlotGroup>& SlotGroups = Skeleton->GetSlotGroups();
+		for (auto SlotGroup : SlotGroups)
 		{
-			CurrentSelectedIndex = SlotNameComboList.Num()-1;
+			int32 Index = 0;
+			for (auto SlotName : SlotGroup.SlotNames)
+			{
+				NewSlotNameList.Add(SlotName);
+
+				FString ComboItemString = FString::Printf(TEXT("%s.%s"), *SlotGroup.GroupName.ToString(), *SlotName.ToString());
+				NewSlotNameComboListItems.Add(MakeShareable(new FString(ComboItemString)));
+
+				bIsSlotNameListDifferent = bIsSlotNameListDifferent || (!SlotNameComboListItems.IsValidIndex(Index) || (SlotNameComboListItems[Index] != NewSlotNameComboListItems[Index]));
+				Index++;
+			}
+		}
+
+		// Refresh if needed
+		if (bIsSlotNameListDifferent || !bOnlyRefreshIfDifferent || (NewSlotNameComboListItems.Num() == 0))
+		{
+			SlotNameComboListItems = NewSlotNameComboListItems;
+			SlotNameList = NewSlotNameList;
+
+			if (SlotNameComboBox.IsValid())
+			{
+				if (Skeleton->ContainsSlotName(SlotNameComboSelectedName))
+				{
+					int32 FoundIndex = SlotNameList.Find(SlotNameComboSelectedName);
+					TSharedPtr<FString> ComboItem = SlotNameComboListItems[FoundIndex];
+
+					SlotNameComboBox->SetSelectedItem(ComboItem);
+					SlotNameComboBox->SetToolTipText(FText::FromString(*ComboItem));
+				}
+				SlotNameComboBox->RefreshOptions();
+			}
 		}
 	}
-
-	if (SlotNameComboBox.IsValid())
-	{
-		SlotNameComboBox->RefreshOptions();
-	}
-
-	// if SlotNameComboList is empty, just add a temporary message to avoid a combo box problem which doesn't show the list properly if empty
-	if (SlotNameComboList.Num() == 0)
-	{
-		SlotNameComboList.Add(MakeShareable(new FString("Please Add a slot name using the neighboring + button")));
-	}
-
-	return CurrentSelectedIndex;
 }
+
 ////////////////////////////////////////////////////////////////
 
 void FAnimGraphNodeSlotDetails::OnSlotNameChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
@@ -218,166 +164,39 @@ void FAnimGraphNodeSlotDetails::OnSlotNameChanged(TSharedPtr<FString> NewSelecti
 	// if it's set from code, we did that on purpose
 	if(SelectInfo != ESelectInfo::Direct)
 	{
-		FString NewValue = *NewSelection.Get();
-		const TArray<FName> & SlotNodeNames = Skeleton->GetSlotNodeNames();
-
-		for(auto SlotNodeName : SlotNodeNames )
+		int32 ItemIndex = SlotNameComboListItems.Find(NewSelection);
+		if (ItemIndex != INDEX_NONE)
 		{
-			if(NewValue == SlotNodeName.ToString())
+			SlotNameComboSelectedName = SlotNameList[ItemIndex];
+			if (SlotNameComboBox.IsValid())
 			{
-				// trigget transaction 
+				SlotNameComboBox->SetToolTipText(FText::FromString(*NewSelection));
+			}
+
+			if (Skeleton->ContainsSlotName(SlotNameComboSelectedName))
+			{
+				// trigger transaction 
 				//const FScopedTransaction Transaction(LOCTEXT("ChangeSlotNodeName", "Change Collision Profile"));
 				// set profile set up
-				ensure(SlotNodeNamePropertyHandle->SetValue(NewValue) ==  FPropertyAccess::Result::Success);
-				return;
+				ensure(SlotNodeNamePropertyHandle->SetValue(SlotNameComboSelectedName.ToString()) == FPropertyAccess::Result::Success);
 			}
 		}
 	}
 }
 
-FReply FAnimGraphNodeSlotDetails::OnAddSlotName(TSharedRef<SWidget> Widget)
+void FAnimGraphNodeSlotDetails::OnSlotListOpening()
 {
-	TSharedRef<STextEntryPopup> TextEntry =
-		SNew(STextEntryPopup)
-		.Label(LOCTEXT("NewSlotName_AskSlotName", "New Slot Name"))
-		.OnTextCommitted(this, &FAnimGraphNodeSlotDetails::AddSlotName);
-
-	// Show dialog to enter new track name
-	FSlateApplication::Get().PushMenu(
-		Widget,
-		TextEntry,
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-		);
-
-	TextEntry->FocusDefaultWidget();
-
-	return FReply::Handled();
+	// Refresh Slot Names, in case we used the Anim Slot Manager to make changes.
+	RefreshComboLists(true);
 }
 
-void FAnimGraphNodeSlotDetails::AddSlotName(const FText & SlotNameToAdd, ETextCommit::Type CommitInfo)
-{
-	if(!SlotNameToAdd.IsEmpty())
-	{
-		const FScopedTransaction Transaction(LOCTEXT("NewSlotName_AddSlotName", "Add New Slot Node Name"));
-		// before insert, make sure everything behind is fixed
-		Skeleton->AddSlotNodeName(FName(*SlotNameToAdd.ToString()));
-		Skeleton->Modify(true);
-
-		// refresh combo box
-		int32 SelectedIndex = RefreshSlotNames();
-		if (SelectedIndex != INDEX_NONE)
-		{
-			SlotNameComboBox->SetSelectedItem(SlotNameComboList[SelectedIndex]);
-		}
-
-		// @todo add bunch of notifies
-		FSlateApplication::Get().DismissAllMenus();
-	}
-}
-
-FReply FAnimGraphNodeSlotDetails::OnManageSlotName()
+FReply FAnimGraphNodeSlotDetails::OnOpenAnimSlotManager()
 {
 	if(PersonaEditor.IsValid())
 	{
 		PersonaEditor.Pin()->GetTabManager()->InvokeTab(FPersonaTabs::SkeletonSlotNamesID);
 	}
 	return FReply::Handled();
-}
-
-void FAnimGraphNodeSlotDetails::OnGroupNameChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
-{
-	// if it's set from code, we did that on purpose
-	if(SelectInfo != ESelectInfo::Direct)
-	{
-		FString NewValue = *NewSelection.Get();
-		const TArray<FName> & SlotGroupNames = Skeleton->GetSlotGroupNames();
-
-		for(auto SlotGroupName : SlotGroupNames)
-		{
-			if(NewValue == SlotGroupName.ToString())
-			{
-				// trigget transaction 
-				//const FScopedTransaction Transaction(LOCTEXT("ChangeSlotGroupName", "Change Collision Profile"));
-				// set profile set up
-				ensure(GroupNamePropertyHandle->SetValue(NewValue) ==  FPropertyAccess::Result::Success);
-				return;
-			}
-		}
-	}
-}
-
-FReply FAnimGraphNodeSlotDetails::OnAddGroupName(TSharedRef<SWidget> Widget)
-{
-	TSharedRef<STextEntryPopup> TextEntry =
-		SNew(STextEntryPopup)
-		.Label(LOCTEXT("NewGroupName_AskGroupName", "New Group Name"))
-		.OnTextCommitted(this, &FAnimGraphNodeSlotDetails::AddGroupName);
-
-	// Show dialog to enter new track name
-	FSlateApplication::Get().PushMenu(
-		Widget,
-		TextEntry,
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-		);
-
-	TextEntry->FocusDefaultWidget();
-
-	return FReply::Handled();
-}
-
-void FAnimGraphNodeSlotDetails::AddGroupName(const FText & GroupNameToAdd, ETextCommit::Type CommitInfo)
-{
-	if(!GroupNameToAdd.IsEmpty())
-	{
-		const FScopedTransaction Transaction(LOCTEXT("NewGroupName_AddGroupName", "Add New Slot Node Name"));
-		// before insert, make sure everything behind is fixed
-		Skeleton->AddSlotGroupName(FName(*GroupNameToAdd.ToString()));
-		Skeleton->Modify(true);
-
-		// refresh combo box
-		int32 SelectedIndex = RefreshGroupNames();
-		if(SelectedIndex != INDEX_NONE)
-		{
-			GroupNameComboBox->SetSelectedItem(GroupNameComboList[SelectedIndex]);
-		}
-
-		// @todo add bunch of notifies
-		FSlateApplication::Get().DismissAllMenus();
-	}
-}
-
-FReply FAnimGraphNodeSlotDetails::OnManageGroupName()
-{
-	if(PersonaEditor.IsValid())
-	{
-		PersonaEditor.Pin()->GetTabManager()->InvokeTab(FPersonaTabs::SkeletonSlotGroupNamesID);
-	}
-	return FReply::Handled();
-}
-
-int32 FAnimGraphNodeSlotDetails::RefreshGroupNames()
-{
-	GroupNameComboList.Empty();
-
-	FName CurrentSlotGroupName = NAME_None;
-	GroupNamePropertyHandle->GetValue(CurrentSlotGroupName);
-
-	// add slot node names
-	int32 CurrentSelectedIndex = INDEX_NONE;
-	const TArray<FName> & SlotGroupNames = Skeleton->GetSlotGroupNames();
-	for(auto GroupName : SlotGroupNames)
-	{
-		GroupNameComboList.Add(MakeShareable(new FString(GroupName.ToString())));
-
-		if(CurrentSlotGroupName == GroupName)
-		{
-			CurrentSelectedIndex = GroupNameComboList.Num()-1;
-		}
-	}
-
-	return CurrentSelectedIndex;
 }
 
 #undef LOCTEXT_NAMESPACE

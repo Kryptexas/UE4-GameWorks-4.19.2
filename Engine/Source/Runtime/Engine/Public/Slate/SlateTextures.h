@@ -7,7 +7,7 @@ struct FSlateTextureData;
 /**
  * Encapsulates a Texture2DRHIRef for use by a Slate rendering implementation                   
  */
-class ENGINE_API FSlateTexture2DRHIRef : public TSlateTexture<FTexture2DRHIRef>, public FRenderResource
+class ENGINE_API FSlateTexture2DRHIRef : public TSlateTexture<FTexture2DRHIRef>, public FSlateUpdatableTexture, public FRenderResource
 {
 public:
 	FSlateTexture2DRHIRef( FTexture2DRHIRef InRef, uint32 InWidth, uint32 InHeight );
@@ -62,6 +62,13 @@ public:
 	 * Clears texture data being used.  Can only be accessed on the render thread                   
 	 */
 	void ClearTextureData();
+
+	// FSlateUpdatableTexture interface
+	virtual FSlateShaderResource* GetSlateResource() override {return this;}
+	virtual FRenderResource* GetRenderResource() override {return this;}
+	virtual void ResizeTexture( uint32 Width, uint32 Height ) override;
+	virtual void UpdateTexture(const TArray<uint8>& Bytes) override;
+
 protected:
 	/** Width of this texture */
 	uint32 Width;

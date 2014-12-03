@@ -6,47 +6,31 @@ namespace UnrealBuildTool.Rules
 	{
         public Merge(TargetInfo Target)
 		{
-			PublicIncludePaths.AddRange(
-				new string[] {
-				}
-				);
-
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Developer/Merge/Private",
 				    "Kismet",
 				}
-				);
-
-			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"Core",
-				}
-				);
+			);
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 				    "AssetTools",
+					"Core",
 				    "CoreUObject",
 				    "EditorStyle",
 				    "Engine", // needed so that we can clone blueprints...
 				    "GraphEditor",
 				    "InputCore",
 				    "Kismet",
+					"PropertyEditor",
 				    "Slate",
 				    "SlateCore",
 				    "SourceControl",
 				    "UnrealEd",
 				}
-				);
-
-			DynamicallyLoadedModuleNames.AddRange(
-				new string[]
-				{
-				}
-                );
+			);
 		}
 	}
 }

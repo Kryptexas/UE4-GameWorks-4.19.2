@@ -6,7 +6,7 @@
 
 #include "WorkspaceMenuStructure.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 
 IMPLEMENT_MODULE( FWorkspaceMenuStructureModule, WorkspaceMenuStructure );
@@ -19,11 +19,6 @@ public:
 	virtual TSharedRef<FWorkspaceItem> GetStructureRoot() const override
 	{
 		return MenuRoot.ToSharedRef();
-	}
-
-	virtual TSharedRef<FWorkspaceItem> GetAssetEditorCategory() const override
-	{
-		return AssetEditorCategory.ToSharedRef();
 	}
 
 	virtual TSharedRef<FWorkspaceItem> GetLevelEditorCategory() const override
@@ -51,19 +46,24 @@ public:
 		return ToolsCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsCategory() const override
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsDebugCategory() const override
 	{
-		return DeveloperToolsCategory.ToSharedRef();
+		return DeveloperToolsDebugCategory.ToSharedRef();
+	}
+
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsLogCategory() const override
+	{
+		return DeveloperToolsLogCategory.ToSharedRef();
+	}
+
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsMiscCategory() const override
+	{
+		return DeveloperToolsMiscCategory.ToSharedRef();
 	}
 
 	virtual TSharedRef<FWorkspaceItem> GetEditOptions() const override
 	{
 		return EditOptions.ToSharedRef();
-	}
-
-	void ResetAssetEditorCategory()
-	{
-		AssetEditorCategory->ClearItems();
 	}
 
 	void ResetLevelEditorCategory()
@@ -77,18 +77,23 @@ public:
 	void ResetToolsCategory()
 	{
 		ToolsCategory->ClearItems();
-		DeveloperToolsCategory = ToolsCategory->AddGroup(LOCTEXT( "WorkspaceMenu_DeveloperToolsCategory", "Developer Tools" ), FSlateIcon(FEditorStyle::GetStyleSetName(), "DeveloperTools.MenuIcon"), true);
+
+		// Developer tools sub menu
+		DeveloperToolsCategory = ToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsCategory", "Developer Tools"), FSlateIcon(FEditorStyle::GetStyleSetName(), "DeveloperTools.MenuIcon"));
+
+		// Developer tools sections
+		DeveloperToolsDebugCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsDebugCategory", "Debug"), FSlateIcon(), true);
+		DeveloperToolsLogCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsLogCategory", "Log"), FSlateIcon(), true);
+		DeveloperToolsMiscCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsMiscCategory", "Miscellaneous"), FSlateIcon(), true);
 	}
 
 public:
 	FWorkspaceMenuStructure()
 		: MenuRoot ( FWorkspaceItem::NewGroup(LOCTEXT( "WorkspaceMenu_Root", "Menu Root" )) )
-		, AssetEditorCategory ( MenuRoot->AddGroup(LOCTEXT( "WorkspaceMenu_AssetEditorCategory", "Asset Editor Tabs" )) )
-		, LevelEditorCategory ( MenuRoot->AddGroup(LOCTEXT( "WorkspaceMenu_LevelEditorCategory", "Level Editor Tabs" ), FSlateIcon(), true) )
-		, ToolsCategory ( MenuRoot->AddGroup(LOCTEXT( "WorkspaceMenu_ToolsCategory", "Application Windows" ), FSlateIcon(), true) )
-		, EditOptions ( FWorkspaceItem::NewGroup(LOCTEXT( "WorkspaceEdit_Options", "Edit Options" )) )
+		, LevelEditorCategory ( MenuRoot->AddGroup(LOCTEXT( "WorkspaceMenu_LevelEditorCategory", "Level Editor" ), FSlateIcon(), true) )
+		, ToolsCategory ( MenuRoot->AddGroup(LOCTEXT( "WorkspaceMenu_ToolsCategory", "General" ), FSlateIcon(), true) )
+		, EditOptions( FWorkspaceItem::NewGroup(LOCTEXT( "WorkspaceEdit_Options", "Edit Options" )) )
 	{
-		ResetAssetEditorCategory();
 		ResetLevelEditorCategory();
 		ResetToolsCategory();
 	}
@@ -97,13 +102,18 @@ public:
 
 private:
 	TSharedPtr<FWorkspaceItem> MenuRoot;
-	TSharedPtr<FWorkspaceItem> AssetEditorCategory;
+	
 	TSharedPtr<FWorkspaceItem> LevelEditorCategory;
 	TSharedPtr<FWorkspaceItem> LevelEditorViewportsCategory;
 	TSharedPtr<FWorkspaceItem> LevelEditorDetailsCategory;
 	TSharedPtr<FWorkspaceItem> LevelEditorModesCategory;
+
 	TSharedPtr<FWorkspaceItem> ToolsCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsCategory;
+	TSharedPtr<FWorkspaceItem> DeveloperToolsDebugCategory;
+	TSharedPtr<FWorkspaceItem> DeveloperToolsLogCategory;
+	TSharedPtr<FWorkspaceItem> DeveloperToolsMiscCategory;
+	
 	TSharedPtr<FWorkspaceItem> EditOptions;
 };
 
@@ -121,12 +131,6 @@ const IWorkspaceMenuStructure& FWorkspaceMenuStructureModule::GetWorkspaceMenuSt
 {
 	check(WorkspaceMenuStructure.IsValid());
 	return *WorkspaceMenuStructure;
-}
-
-void FWorkspaceMenuStructureModule::ResetAssetEditorCategory()
-{
-	check(WorkspaceMenuStructure.IsValid());
-	WorkspaceMenuStructure->ResetAssetEditorCategory();
 }
 
 void FWorkspaceMenuStructureModule::ResetLevelEditorCategory()

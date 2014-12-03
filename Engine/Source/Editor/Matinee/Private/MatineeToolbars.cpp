@@ -3,7 +3,8 @@
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeActions.h"
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "STextComboBox.h"
 
 
 FString FMatinee::GetToolbarSnapText()

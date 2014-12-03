@@ -20,7 +20,7 @@ bool FStringClassReference::SerializeFromMismatchedTag(struct FPropertyTag const
 
 UClass *FStringClassReference::ResolveClass() const
 {
-	return Cast<UClass>(ResolveObject());
+	return dynamic_cast<UClass*>(ResolveObject());
 }
 
 FStringClassReference FStringClassReference::GetOrCreateIDForClass(const UClass *InClass)

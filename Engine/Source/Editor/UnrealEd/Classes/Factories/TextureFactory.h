@@ -90,7 +90,7 @@ class UNREALED_API UTextureFactory : public UFactory
 	uint32 bUsingExistingSettings:1;
 
 public:
-	UTextureFactory(const class FPostConstructInitializeProperties& PCIP);
+	UTextureFactory(const FObjectInitializer& ObjectInitializer);
 
 	// Begin UObject Interface
 	virtual void PostInitProperties();

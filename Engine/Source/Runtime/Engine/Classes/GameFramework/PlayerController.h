@@ -338,11 +338,11 @@ public:
 	virtual void LocalTravel(const FString& URL);
 
 	/** Return the client to the main menu gracefully */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	virtual void ClientReturnToMainMenu(const FString& ReturnReason);
 
 	/** Development RPC for testing object reference replication */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	virtual void ClientRepObjRef(UObject* Object);
 
 	/**
@@ -439,11 +439,11 @@ public:
 
 	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(FriendlyName="ConvertMouseLocationToWorldSpace"))
-	bool DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const;
+	bool DeprojectMousePositionToWorld(FVector& WorldLocation, FVector& WorldDirection) const;
 
 	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertScreenLocationToWorldSpace"))
-	bool DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
+	bool DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const;
 
 	/**
 	 * Convert a World Space 3D position into a 2D Screen Space position.
@@ -507,7 +507,7 @@ public:
 	 * Tell the client to enable or disable voice chat (not muting)
 	 * @param bEnable enable or disable voice chat
 	 */
-	UFUNCTION(client, reliable)
+	UFUNCTION(Reliable, Client)
 	virtual void ClientEnableNetworkVoice(bool bEnable);
 
 	/** Enable voice chat transmission	 */
@@ -516,12 +516,15 @@ public:
 	/** Disable voice chat transmission	 */
 	void StopTalking();
 
+	/** Is this player talking? */
+	bool IsTalking();
+
 	/** 
 	 * Toggle voice chat on and off
 	 * @param bSpeaking enable or disable voice chat
 	 */
 	UFUNCTION(exec)
-	virtual void ToggleSpeaking(bool bSpeaking);
+	virtual void ToggleSpeaking(bool bInSpeaking);
 
 	/**
 	 * Tells the client that the server has all the information it needs and that it
@@ -530,7 +533,7 @@ public:
 	 *
 	 * NOTE: This is done as an RPC instead of variable replication because ordering matters
 	 */
-	UFUNCTION(client, reliable)
+	UFUNCTION(Reliable, Client)
 	virtual void ClientVoiceHandshakeComplete();
 
 	/**
@@ -551,14 +554,14 @@ public:
 	 * Tell the client to mute a player for this controller
 	 * @param PlayerId player id to mute
 	 */
-	UFUNCTION(client, reliable)
+	UFUNCTION(Reliable, Client)
 	virtual void ClientMutePlayer(FUniqueNetIdRepl PlayerId);
 
 	/**
 	 * Tell the client to unmute a player for this controller
 	 * @param PlayerId player id to unmute
 	 */
-	UFUNCTION(client, reliable)
+	UFUNCTION(Reliable, Client)
 	virtual void ClientUnmutePlayer(FUniqueNetIdRepl PlayerId);
 
 	/**
@@ -600,15 +603,15 @@ public:
 	void ClientAddTextureStreamingLoc(FVector InLoc, float Duration, bool bOverrideLocation);
 
 	/** Tells client to cancel any pending map change. */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientCancelPendingMapChange();
 
 	/** Set CurrentNetSpeed to the lower of its current value and Cap. */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientCapBandwidth(int32 Cap);
 
 	/** Actually performs the level transition prepared by PrepareMapChange(). */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)	
 	void ClientCommitMapChange();
 
 	/** Tells the client to block until all pending level streaming actions are complete
@@ -619,7 +622,7 @@ public:
 	void ClientFlushLevelStreaming();
 
 	/** Forces GC at the end of the tick on the client */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientForceGarbageCollection();
 
 	/** 
@@ -627,23 +630,27 @@ public:
 	 * @param	EndGameFocus - actor to view with camera
 	 * @param	bIsWinner - true if this controller is on winning team
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientGameEnded(class AActor* EndGameFocus, bool bIsWinner);
 
 	/** 
 	 * Server uses this to force client into NewState .
 	 * @Note ALL STATE NAMES NEED TO BE DEFINED IN name table in UnrealNames.h to be correctly replicated (so they are mapped to the same thing on client and server).
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientGotoState(FName NewState);
 
 	/** calls IgnoreLookInput on client */
-	UFUNCTION(client, reliable)
+	UFUNCTION(Reliable, Client)
 	void ClientIgnoreLookInput(bool bIgnore);
 
 	/** calls IgnoreMoveInput on client */
-	UFUNCTION(client, reliable)
+	UFUNCTION(Reliable, Client)
 	void ClientIgnoreMoveInput(bool bIgnore);
+
+	/** Informs the client of a rejected attempt to confirm an ability. */
+	UFUNCTION(Unreliable, Client)
+	void ClientNotifyRejectedAbilityConfirmation(int32 InputID);
 
 	/**
 	 * Outputs a message to HUD
@@ -651,7 +658,7 @@ public:
 	 * @param Type - @todo document
 	 * @param MsgLifeTime - Optional length of time to display 0 = default time
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientMessage(const FString& S, FName Type = NAME_None, float MsgLifeTime = 0);
 
 	/** Play the indicated CameraAnim on this camera.
@@ -703,7 +710,7 @@ public:
 	 * @param bFirst - whether this is the first item in the list (so clear the list first)
 	 * @param bLast - whether this is the last item in the list (so start preparing the change after receiving it)
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientPrepareMapChange(FName LevelName, bool bFirst, bool bLast);
 
 	/**
@@ -714,22 +721,22 @@ public:
 	 * @param bEnableStreaming	- Whether to start (true) or stop (false) streaming
 	 * @param CinematicTextureGroups	- Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientPrestreamTextures(class AActor* ForcedActor, float ForceDuration, bool bEnableStreaming, int32 CinematicTextureGroups = 0);
 
 	/** Tell client to reset the PlayerController */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientReset();
 
 	/** Tell client to restart the level */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientRestart(class APawn* NewPawn);
 
 	/** 
 	 * Tells the client to block until all pending level streaming actions are complete.
 	 * Happens at the end of the tick primarily used to force update the client ASAP at join time.
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetBlockOnAsyncLoading();
 
 	/** Tell client to fade camera
@@ -739,18 +746,18 @@ public:
 	 * @Param FadeTime - length of time for fade to occur over
 	 * @Param bFadeAudio - true to apply fading of audio alongside the video
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetCameraFade(bool bEnableFading, FColor FadeColor = FColor(ForceInit), FVector2D FadeAlpha = FVector2D(ForceInit), float FadeTime = 0, bool bFadeAudio = false);
 
 	/**
 	 * Replicated function to set camera style on client
 	 * @param	NewCamMode, name defining the new camera mode
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetCameraMode(FName NewCamMode);
 
 	/** Called by the server to synchronize cinematic transitions with the client */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning, bool bAffectsHUD);
 
 	/**
@@ -761,11 +768,11 @@ public:
 	 * @param ForceDuration	- Number of seconds to keep all mip-levels in memory, disregarding the normal priority logic.
 	 * @param CinematicTextureGroups	- Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetForceMipLevelsToBeResident(class UMaterialInterface* Material, float ForceDuration, int32 CinematicTextureGroups = 0);
 
 	/** Set the client's class of HUD */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetHUD(TSubclassOf<class AHUD> NewHUDClass);
 
 	/** Helper to get the size of the HUD canvas for this player controller.  Returns 0 if there is no HUD */
@@ -780,7 +787,7 @@ public:
 	 * @param A - new actor to set as view target
 	 * @param TransitionParams - parameters to use for controlling the transition
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetViewTarget(class AActor* A, struct FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
 
 	/** Spawn a camera lens effect (e.g. blood). */
@@ -792,7 +799,7 @@ public:
 	virtual void ClientClearCameraLensEffects();
 
 	/** Stop camera animation on client. */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientStopCameraAnim(class UCameraAnim* AnimToStop);
 
 	/** Stop camera shake on client.  */
@@ -855,7 +862,7 @@ public:
 	 * @param MapPackageGuid	The GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
 	 * 							so it is only needed for clients
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientTravelInternal(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
 
 	/**
@@ -866,22 +873,22 @@ public:
 	 * @param bNewShouldBlockOnLoad - Whether we want to force a blocking load
 	 * @param LODIndex				- Current LOD index for a streaming level
 	 */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientUpdateLevelStreamingStatus(FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex);
 
 	/** Notify client they were kicked from the server */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientWasKicked(const FText& KickReason);
 
 	/** Assign Pawn to player, but avoid calling ClientRestart if we have already accepted this pawn */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientRetryClientRestart(class APawn* NewPawn);
 
 	/** Call ClientRetryClientRestart, but only if the current pawn is not the currently acknowledged pawn (and throttled to avoid saturating the network). */
 	virtual void SafeRetryClientRestart();
 
 	/** send client localized message id */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientReceiveLocalizedMessage(TSubclassOf<ULocalMessage> Message, int32 Switch = 0, class APlayerState* RelatedPlayerState_1 = NULL, class APlayerState* RelatedPlayerState_2 = NULL, class UObject* OptionalObject = NULL);
 
 	/** acknowledge possession of pawn */
@@ -960,7 +967,7 @@ public:
 	void ServerViewSelf(struct FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
 
 	/** @todo document */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientTeamMessage(class APlayerState* SenderPlayerState, const FString& S, FName Type, float MsgLifeTime = 0);
 
 	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
@@ -1086,6 +1093,9 @@ protected:
 private:
 	/* Whether the PlayerController's input handling is enabled. */
 	uint32 bInputEnabled:1;
+
+	/** Whether the PlayerController's voice chat is enabled. */
+	bool bSpeaking;
 
 protected:
 
@@ -1297,6 +1307,7 @@ public:
 	 * @param	bAffectsMovement	specify true to disable movement in cinematic mode, enable it when leaving
 	 * @param	bAffectsTurning		specify true to disable turning in cinematic mode or enable it when leaving
 	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(bHidePlayer="true", bAffectsHUD="true"))
 	virtual void SetCinematicMode(bool bInCinematicMode, bool bHidePlayer, bool bAffectsHUD, bool bAffectsMovement, bool bAffectsTurning);
 
 	/**
@@ -1405,6 +1416,7 @@ public:
 	 *  If there is a spectator Pawn, returns that Pawn's location.
 	 *  Otherwise, returns the PlayerController's spawn location (usually the last known Pawn location after it has died).
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
 	virtual FVector GetFocalLocation() const;
 
 protected:

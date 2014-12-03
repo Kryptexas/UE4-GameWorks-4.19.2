@@ -7,7 +7,9 @@
 
 #pragma once
 
-#include "Platform.h"
+#include "HAL/Platform.h"
+
+class FString;
 
 #if PLATFORM_HAS_BSD_TIME 
 #include <sys/time.h>

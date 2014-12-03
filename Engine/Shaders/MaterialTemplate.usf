@@ -146,17 +146,17 @@ struct FMaterialPixelParameters
 // @todo compat hack
 FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 {
+	FMaterialPixelParameters MPP;
 #if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || (ES2_PROFILE || ES3_1_PROFILE)
-	return (FMaterialPixelParameters)0;
+	MPP = (FMaterialPixelParameters)0;
 #else
 	// @todo compat hack - put back to the 0 typecast (2 lines up)
-	FMaterialPixelParameters MPP;
-#if NUM_MATERIAL_TEXCOORDS
+	#if NUM_MATERIAL_TEXCOORDS
 	for (int C = 0; C < NUM_MATERIAL_TEXCOORDS; C++)
 	{
 		MPP.TexCoords[C] = 0;
 	}
-#endif
+	#endif
 	MPP.VertexColor = 0;
 	MPP.TangentNormal = 0;
 	MPP.WorldNormal = 0;
@@ -166,7 +166,6 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	MPP.ScreenPosition = 0;
 	MPP.UnMirrored = 0;
 	MPP.TwoSidedSign = 0;
-	MPP.TangentToWorld = 0;
 	MPP.WorldPosition = 0;
 	MPP.WorldPosition_NoOffsets = 0;
 	MPP.WorldPosition_CamRelative = 0;
@@ -179,21 +178,22 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	MPP.Particle.PositionAndSize = 0;
 	MPP.Particle.MacroUV = 0;
 	MPP.Particle.DynamicParameter = 0;
-#if USE_PARTICLE_SUBUVS
+	#if USE_PARTICLE_SUBUVS
 	MPP.Particle.SubUVCoords[0] = 0;
 	MPP.Particle.SubUVCoords[1] = 0;
 	MPP.Particle.SubUVLerp = 0;
-#endif
+	#endif
 	MPP.Particle.Size = 0;
-#if LIGHTMAP_UV_ACCESS
+	#if LIGHTMAP_UV_ACCESS
 	MPP.LightmapUVs = 0;
-#endif
-#if USE_INSTANCING
+	#endif
+	#if USE_INSTANCING
 	MPP.PerInstanceParams = 0;
-#endif
+	#endif
 	MPP.SVPosition = 0;
-	return MPP;
 #endif
+	MPP.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
+	return MPP;
 }
 
 /** 
@@ -586,6 +586,18 @@ MaterialFloat ProcessMaterialLinearGreyscaleTextureLookup(MaterialFloat TextureV
 	return TextureValue;
 }
 
+/** Accesses a shared material sampler or falls back if independent samplers are not supported. */
+SamplerState GetMaterialSharedSampler(SamplerState TextureSampler, SamplerState SharedSampler)
+{
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	return SharedSampler;
+#else
+	// Note: to match behavior on platforms that don't support SUPPORTS_INDEPENDENT_SAMPLERS, 
+	// TextureSampler should have been set to the same sampler.  This is not currently done.
+	return TextureSampler;
+#endif
+}
+
 /** Calculate a reflection vector about the specified world space normal. Optionally normalize this normal **/
 MaterialFloat3 ReflectionAboutCustomWorldNormal(FMaterialPixelParameters Parameters, MaterialFloat3 WorldNormal, bool bNormalizeInputNormal)
 {
@@ -871,7 +883,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
-float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
+float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 {
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV, false);
 
@@ -892,13 +904,13 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 	else if (SceneTextureIndex == 11)	return ScreenSpaceData.GBuffer.Roughness;
 	else if (SceneTextureIndex == 12)	return ScreenSpaceData.GBuffer.GBufferAO;
 	else if (SceneTextureIndex == 13)	return ScreenSpaceData.GBuffer.CustomDepth;
-	else if (SceneTextureIndex == 14)	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-	else if (SceneTextureIndex == 15)	return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
-	else if (SceneTextureIndex == 16)	return Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV);
-	else if (SceneTextureIndex == 17)	return Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, UV);
-	else if (SceneTextureIndex == 18)	return Texture2DSample(PostprocessInput4, PostprocessInput4Sampler, UV);
-	else if (SceneTextureIndex == 19)	return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);
-	else if (SceneTextureIndex == 20)	return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);
+	else if (SceneTextureIndex == 14)	if (bFiltered) { return Texture2DSample(PostprocessInput0, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);} 
+	else if (SceneTextureIndex == 15)	if (bFiltered) { return Texture2DSample(PostprocessInput1, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);} 
+	else if (SceneTextureIndex == 16)	if (bFiltered) { return Texture2DSample(PostprocessInput2, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV);} 
+	else if (SceneTextureIndex == 17)	if (bFiltered) { return Texture2DSample(PostprocessInput3, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, UV);} 
+	else if (SceneTextureIndex == 18)	if (bFiltered) { return Texture2DSample(PostprocessInput4, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput4, PostprocessInput4Sampler, UV);} 
+	else if (SceneTextureIndex == 19)	if (bFiltered) { return Texture2DSample(PostprocessInput5, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);} 
+	else if (SceneTextureIndex == 20)	if (bFiltered) { return Texture2DSample(PostprocessInput6, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);} 
 	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
 	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
@@ -936,19 +948,19 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 		// PPI_CustomDepth
 		case 13: return ScreenSpaceData.GBuffer.CustomDepth;
 		// PPI_PostprocessInput0
-		case 14: return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		case 14: return Texture2DSample(PostprocessInput0, bFiltered ? BilinearTextureSampler0 : PostprocessInput0Sampler, UV);
 		// PPI_PostprocessInput1
-		case 15: return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
+		case 15: return Texture2DSample(PostprocessInput1, bFiltered ? BilinearTextureSampler0 : PostprocessInput1Sampler, UV);
 		// PPI_PostprocessInput2
-		case 16: return Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV);
+		case 16: return Texture2DSample(PostprocessInput2, bFiltered ? BilinearTextureSampler0 : PostprocessInput2Sampler, UV);
 		// PPI_PostprocessInput3
-		case 17: return Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, UV);
+		case 17: return Texture2DSample(PostprocessInput3, bFiltered ? BilinearTextureSampler0 : PostprocessInput3Sampler, UV);
 		// PPI_PostprocessInput4
-		case 18: return Texture2DSample(PostprocessInput4, PostprocessInput4Sampler, UV);
+		case 18: return Texture2DSample(PostprocessInput4, bFiltered ? BilinearTextureSampler0 : PostprocessInput4Sampler, UV);
 		// PPI_PostprocessInput5
-		case 19: return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);
+		case 19: return Texture2DSample(PostprocessInput5, bFiltered ? BilinearTextureSampler0 : PostprocessInput5Sampler, UV);
 		// PPI_PostprocessInput6
-		case 20: return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);
+		case 20: return Texture2DSample(PostprocessInput6, bFiltered ? BilinearTextureSampler0 : PostprocessInput6Sampler, UV);
 		// PPI_DecalMask
 		case 21: return ScreenSpaceData.GBuffer.DecalMask;
 		// PPI_ShadingModel
@@ -999,9 +1011,14 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters)
 	return RetNormal;
 }
 
-half3 GetMaterialEmissive(FMaterialPixelParameters Parameters)
+half3 GetMaterialEmissiveRaw(FMaterialPixelParameters Parameters)
 {
 %s;
+}
+
+half3 GetMaterialEmissive(FMaterialPixelParameters Parameters)
+{
+	return max(GetMaterialEmissiveRaw(Parameters), 0.0f);
 }
 
 half3 GetMaterialEmissiveForCS(FMaterialPixelParameters Parameters)
@@ -1009,29 +1026,34 @@ half3 GetMaterialEmissiveForCS(FMaterialPixelParameters Parameters)
 %s;
 }
 
-half3 GetMaterialDiffuseColor(FMaterialPixelParameters Parameters)
-{
-%s;
-}
-
-half3 GetMaterialSpecularColor(FMaterialPixelParameters Parameters)
+half3 GetMaterialBaseColorRaw(FMaterialPixelParameters Parameters)
 {
 %s;
 }
 
 half3 GetMaterialBaseColor(FMaterialPixelParameters Parameters)
 {
+	return saturate(GetMaterialBaseColorRaw(Parameters));
+}
+
+half GetMaterialMetallicRaw(FMaterialPixelParameters Parameters)
+{
 %s;
 }
 
 half GetMaterialMetallic(FMaterialPixelParameters Parameters)
+{
+	return saturate(GetMaterialMetallicRaw(Parameters));
+}
+
+half GetMaterialSpecularRaw(FMaterialPixelParameters Parameters)
 {
 %s;
 }
 
 half GetMaterialSpecular(FMaterialPixelParameters Parameters)
 {
-%s;
+	return saturate(GetMaterialSpecularRaw(Parameters));
 }
 
 half GetMaterialRoughnessRaw(FMaterialPixelParameters Parameters)
@@ -1053,7 +1075,7 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	// Increase value from 0.09 to 0.12 to fix missing specular lobe problem on device
 	return clamp( GetMaterialRoughnessRaw(Parameters), 0.12, 1.0 );
 #else
-	half Roughness = GetMaterialRoughnessRaw(Parameters);
+	half Roughness = saturate(GetMaterialRoughnessRaw(Parameters));
 
 	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
 	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
@@ -1156,24 +1178,46 @@ half GetMaterialTessellationMultiplier(FMaterialTessellationParameters Parameter
 }
 
 // .rgb:SubsurfaceColor, .a:SSProfileId in 0..1 range
+half4 GetMaterialSubsurfaceDataRaw(FMaterialPixelParameters Parameters)
+{
+%s;
+}
+
 half4 GetMaterialSubsurfaceData(FMaterialPixelParameters Parameters)
+{
+	half4 OutSubsurface = GetMaterialSubsurfaceDataRaw(Parameters);
+	OutSubsurface.rgb = saturate(OutSubsurface.rgb);
+	return OutSubsurface;
+}
+
+half GetMaterialClearCoatRaw(FMaterialPixelParameters Parameters)
 {
 %s;
 }
 
 half GetMaterialClearCoat(FMaterialPixelParameters Parameters)
 {
+	return saturate(GetMaterialClearCoatRaw(Parameters));
+}
+
+half GetMaterialClearCoatRoughnessRaw(FMaterialPixelParameters Parameters)
+{
 %s;
 }
 
 half GetMaterialClearCoatRoughness(FMaterialPixelParameters Parameters)
+{
+	return saturate(GetMaterialClearCoatRoughnessRaw(Parameters));
+}
+
+half GetMaterialAmbientOcclusionRaw(FMaterialPixelParameters Parameters)
 {
 %s;
 }
 
 half GetMaterialAmbientOcclusion(FMaterialPixelParameters Parameters)
 {
-%s;
+	return saturate(GetMaterialAmbientOcclusionRaw(Parameters));
 }
 
 half2 GetMaterialRefraction(FMaterialPixelParameters Parameters)

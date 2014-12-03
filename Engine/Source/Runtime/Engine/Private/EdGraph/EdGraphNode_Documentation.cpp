@@ -4,7 +4,7 @@
 #include "EdGraph/EdGraphNode_Documentation.h"
 
 #if WITH_EDITOR
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 #endif
 
@@ -13,8 +13,8 @@
 /////////////////////////////////////////////////////
 // UEdGraphNode_Documentation
 
-UEdGraphNode_Documentation::UEdGraphNode_Documentation( const class FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UEdGraphNode_Documentation::UEdGraphNode_Documentation( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 #if WITH_EDITORONLY_DATA
 	bCanResizeNode = true;

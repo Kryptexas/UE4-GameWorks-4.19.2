@@ -106,8 +106,6 @@ public:
 
 protected:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ILauncherWorker( ) { }
 };

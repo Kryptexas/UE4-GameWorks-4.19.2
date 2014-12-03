@@ -47,19 +47,19 @@ void FWmfMediaTrack::AddSink( const IMediaSinkRef& Sink )
 }
 
 
-bool FWmfMediaTrack::Disable( )
+bool FWmfMediaTrack::Disable()
 {
 	return ((PresentationDescriptor != NULL) && SUCCEEDED(PresentationDescriptor->DeselectStream(StreamIndex)));
 }
 
 
-bool FWmfMediaTrack::Enable( )
+bool FWmfMediaTrack::Enable()
 {
 	return ((PresentationDescriptor != NULL) && SUCCEEDED(PresentationDescriptor->SelectStream(StreamIndex)));
 }
 
 
-FText FWmfMediaTrack::GetDisplayName( ) const
+FText FWmfMediaTrack::GetDisplayName() const
 {
 	FText DisplayName;
 
@@ -81,25 +81,25 @@ FText FWmfMediaTrack::GetDisplayName( ) const
 }
 
 
-uint32 FWmfMediaTrack::GetIndex( ) const
+uint32 FWmfMediaTrack::GetIndex() const
 {
 	return StreamIndex;
 }
 
 
-FString FWmfMediaTrack::GetLanguage( ) const
+FString FWmfMediaTrack::GetLanguage() const
 {
 	return Language;
 }
 
 
-FString FWmfMediaTrack::GetName( ) const
+FString FWmfMediaTrack::GetName() const
 {
 	return Name;
 }
 
 
-bool FWmfMediaTrack::IsEnabled( ) const
+bool FWmfMediaTrack::IsEnabled() const
 {
 	BOOL Selected = FALSE;
 	PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, NULL);
@@ -114,7 +114,7 @@ bool FWmfMediaTrack::IsMutuallyExclusive( const IMediaTrackRef& Other ) const
 }
 
 
-bool FWmfMediaTrack::IsProtected( ) const
+bool FWmfMediaTrack::IsProtected() const
 {
 	return Protected;
 }

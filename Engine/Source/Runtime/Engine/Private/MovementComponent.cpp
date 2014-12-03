@@ -13,8 +13,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogMovement, Log, All);
 //----------------------------------------------------------------------//
 // UMovementComponent
 //----------------------------------------------------------------------//
-UMovementComponent::UMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -24,11 +24,15 @@ UMovementComponent::UMovementComponent(const class FPostConstructInitializePrope
 	bUpdateOnlyIfRendered = false;
 	bAutoUpdateTickRegistration = true;
 	bAutoRegisterUpdatedComponent = true;
+
+	PlaneConstraintNormal = FVector::ZeroVector;
+	PlaneConstraintAxisSetting = EPlaneConstraintAxisSetting::Custom;
 	bConstrainToPlane = false;
 	bSnapToPlaneAtStart = false;
 
 	bWantsInitializeComponent = true;
 	bAutoActivate = true;
+	bInOnRegister = false;
 	bInInitializeComponent = false;
 }
 
@@ -38,8 +42,11 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	if ( UpdatedComponent && UpdatedComponent!=NewUpdatedComponent )
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = false;
-		UpdatedComponent->SetPhysicsVolume(NULL, true);
-		UpdatedComponent->PhysicsVolumeChangedDelegate.RemoveDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
+		if (!UpdatedComponent->IsPendingKill())
+		{
+			UpdatedComponent->SetPhysicsVolume(NULL, true);
+			UpdatedComponent->PhysicsVolumeChangedDelegate.RemoveDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
+		}
 
 		// remove from tick prerequisite
 		UpdatedComponent->PrimaryComponentTick.RemovePrerequisite(this, PrimaryComponentTick); 
@@ -50,8 +57,13 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	if ( UpdatedComponent != NULL )
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
-		UpdatedComponent->UpdatePhysicsVolume(true);
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
+
+		if (!bInOnRegister && !bInInitializeComponent)
+		{
+			// UpdateOverlaps() in component registration will take care of this.
+			UpdatedComponent->UpdatePhysicsVolume(true);
+		}
 		
 		// force ticks after movement component updates
 		UpdatedComponent->PrimaryComponentTick.AddPrerequisite(this, PrimaryComponentTick); 
@@ -68,7 +80,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 
 void UMovementComponent::InitializeComponent()
 {
-	bInInitializeComponent = true;
+	TGuardValue<bool> InInitializeComponentGuard(bInInitializeComponent, true);
 	Super::InitializeComponent();
 
 	UPrimitiveComponent* NewUpdatedComponent = NULL;
@@ -85,7 +97,7 @@ void UMovementComponent::InitializeComponent()
 			NewUpdatedComponent = Cast<UPrimitiveComponent>(MyActor->GetRootComponent());
 			if (!NewUpdatedComponent)
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("NoRootPrimitiveWarning", "Movement component {0} must update a PrimitiveComponent, but owning actor '{1}' does not have a root PrimitiveComponent. Auto registration failed."), 
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("NoRootPrimitiveWarning", "Movement component {0} must update a PrimitiveComponent, but owning actor '{1}' does not have a root PrimitiveComponent. Auto registration failed."),
 					FText::FromString(GetName()),
 					FText::FromString(MyActor->GetName())
 					));
@@ -93,14 +105,34 @@ void UMovementComponent::InitializeComponent()
 		}
 	}
 
-	PlaneConstraintNormal = PlaneConstraintNormal.SafeNormal();
 	SetUpdatedComponent(NewUpdatedComponent);
-	bInInitializeComponent = false;
+}
+
+
+void UMovementComponent::OnRegister()
+{
+	TGuardValue<bool> InOnRegisterGuard(bInOnRegister, true);
+	Super::OnRegister();
+
+	if (PlaneConstraintAxisSetting != EPlaneConstraintAxisSetting::Custom)
+	{
+		SetPlaneConstraintAxisSetting(PlaneConstraintAxisSetting);
+	}
+
+	PlaneConstraintNormal = PlaneConstraintNormal.SafeNormal();
+
+	if (bSnapToPlaneAtStart)
+	{
+		SnapUpdatedComponentToPlane();
+	}
 }
 
 void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
+
+	// Super may start up the tick function when we don't want to.
+	UpdateTickRegistration();
 
 	// If the owner ticks, make sure we tick first
 	AActor* Owner = GetOwner();
@@ -112,15 +144,59 @@ void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 void UMovementComponent::UpdateTickRegistration()
 {
-	if (!bAutoUpdateTickRegistration)
+	if (bAutoUpdateTickRegistration)
 	{
-		return;
+		const bool bHasUpdatedComponent = (UpdatedComponent != NULL);
+		SetComponentTickEnabled(bHasUpdatedComponent && bAutoActivate);
 	}
-
-	const bool bAllowedToStartTick = (!bInInitializeComponent || bAutoActivate);
-	const bool bHasUpdatedComponent = (UpdatedComponent != NULL);
-	SetComponentTickEnabled(bHasUpdatedComponent && bAllowedToStartTick);
 }
+
+
+void UMovementComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	if (PlaneConstraintAxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
+	{
+		// Make sure to use the most up-to-date project setting in case it has changed.
+		PlaneConstraintNormal = GetPlaneConstraintNormalFromAxisSetting(PlaneConstraintAxisSetting);
+	}
+}
+
+
+#if WITH_EDITOR
+void UMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	if (PropertyThatChanged)
+	{
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UMovementComponent, PlaneConstraintAxisSetting))
+		{
+			PlaneConstraintNormal = GetPlaneConstraintNormalFromAxisSetting(PlaneConstraintAxisSetting);
+		}
+		else if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UMovementComponent, PlaneConstraintNormal))
+		{
+			PlaneConstraintAxisSetting = EPlaneConstraintAxisSetting::Custom;
+		}
+	}
+}
+
+void UMovementComponent::PhysicsLockedAxisSettingChanged()
+{
+	
+	for (TObjectIterator<UMovementComponent> Iter; Iter; ++Iter)
+	{
+		UMovementComponent* MovementComponent = *Iter;
+		if (MovementComponent->PlaneConstraintAxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
+		{
+			MovementComponent->PlaneConstraintNormal = MovementComponent->GetPlaneConstraintNormalFromAxisSetting(MovementComponent->PlaneConstraintAxisSetting);
+		}
+	}
+}
+
+#endif // WITH_EDITOR
 
 
 void UMovementComponent::PhysicsVolumeChanged(APhysicsVolume* NewVolume)
@@ -233,9 +309,46 @@ bool UMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
 	return (Velocity.SizeSquared() > MaxSpeedSquared * OverVelocityPercent);
 }
 
+
+FVector UMovementComponent::GetPlaneConstraintNormalFromAxisSetting(EPlaneConstraintAxisSetting AxisSetting) const
+{
+	if (AxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
+	{
+		ESettingsLockedAxis::Type GlobalSetting = UPhysicsSettings::Get()->LockedAxis;
+		switch (GlobalSetting)
+		{
+		case ESettingsLockedAxis::None:	return FVector::ZeroVector;
+		case ESettingsLockedAxis::X:	return FVector(1.f, 0.f, 0.f);
+		case ESettingsLockedAxis::Y:	return FVector(0.f, 1.f, 0.f);
+		case ESettingsLockedAxis::Z:	return FVector(0.f, 0.f, 1.f);
+		default:
+			checkf(false, TEXT("GetPlaneConstraintNormalFromAxisSetting: Unknown global axis setting %d for %s"), int32(GlobalSetting), *GetNameSafe(GetOwner()));
+			return FVector::ZeroVector;
+		}
+	}
+
+	switch(AxisSetting)
+	{
+	case EPlaneConstraintAxisSetting::Custom:	return PlaneConstraintNormal;
+	case EPlaneConstraintAxisSetting::X:		return FVector(1.f, 0.f, 0.f);
+	case EPlaneConstraintAxisSetting::Y:		return FVector(0.f, 1.f, 0.f);
+	case EPlaneConstraintAxisSetting::Z:		return FVector(0.f, 0.f, 1.f);
+	default:
+		checkf(false, TEXT("GetPlaneConstraintNormalFromAxisSetting: Unknown axis %d for %s"), int32(AxisSetting), *GetNameSafe(GetOwner()));
+		return FVector::ZeroVector;
+	}
+}
+
+void UMovementComponent::SetPlaneConstraintAxisSetting(EPlaneConstraintAxisSetting NewAxisSetting)
+{
+	PlaneConstraintAxisSetting = NewAxisSetting;
+	PlaneConstraintNormal = GetPlaneConstraintNormalFromAxisSetting(PlaneConstraintAxisSetting);
+}
+
 void UMovementComponent::SetPlaneConstraintNormal(FVector PlaneNormal)
 {
 	PlaneConstraintNormal = PlaneNormal.SafeNormal();
+	PlaneConstraintAxisSetting = EPlaneConstraintAxisSetting::Custom;
 }
 
 void UMovementComponent::SetPlaneConstraintFromVectors(FVector Forward, FVector Up)
@@ -262,7 +375,7 @@ FVector UMovementComponent::ConstrainDirectionToPlane(FVector Direction) const
 {
 	if (bConstrainToPlane)
 	{
-		Direction = Direction - (PlaneConstraintNormal * (Direction | PlaneConstraintNormal));
+		Direction = FVector::VectorPlaneProject(Direction, PlaneConstraintNormal);
 	}
 
 	return Direction;
@@ -277,6 +390,17 @@ FVector UMovementComponent::ConstrainLocationToPlane(FVector Location) const
 	}
 
 	return Location;
+}
+
+
+FVector UMovementComponent::ConstrainNormalToPlane(FVector Normal) const
+{
+	if (bConstrainToPlane)
+	{
+		Normal = FVector::VectorPlaneProject(Normal, PlaneConstraintNormal).SafeNormal();
+	}
+
+	return Normal;
 }
 
 
@@ -383,9 +507,24 @@ bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, c
 			TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, EMoveComponentFlags(MoveComponentFlags & (~MOVECOMP_NeverIgnoreBlockingOverlaps)));
 
 			// Try sweeping as far as possible...
-			bool bMoved = MoveUpdatedComponent(Adjustment, NewRotation, true);
+			FHitResult SweepOutHit(1.f);
+			bool bMoved = MoveUpdatedComponent(Adjustment, NewRotation, true, &SweepOutHit);
 			UE_LOG(LogMovement, Verbose, TEXT("ResolvePenetration: sweep %s by %s (success = %d)"), *ActorOwner->GetName(), *Adjustment.ToString(), bMoved);
 			
+			// Still stuck?
+			if (!bMoved && SweepOutHit.bStartPenetrating)
+			{
+				// Combine two MTD results to get a new direction that gets out of multiple surfaces.
+				const FVector SecondMTD = GetPenetrationAdjustment(SweepOutHit);
+				const FVector CombinedMTD = Adjustment + SecondMTD;
+				if (SecondMTD != Adjustment && !CombinedMTD.IsZero())
+				{
+					bMoved = MoveUpdatedComponent(CombinedMTD, NewRotation, true);
+					UE_LOG(LogMovement, Verbose, TEXT("ResolvePenetration: sweep %s by %s (MTD combo success = %d)"), *ActorOwner->GetName(), *CombinedMTD.ToString(), bMoved);
+				}
+			}
+
+			// Still stuck?
 			if (!bMoved)
 			{
 				// Try moving the proposed adjustment plus the attempted move direction. This can sometimes get out of penetrations with multiple objects
@@ -407,7 +546,15 @@ bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, c
 
 FVector UMovementComponent::ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const
 {
-	return (Delta - Normal * (Delta | Normal)) * Time;
+	if (!bConstrainToPlane)
+	{
+		return FVector::VectorPlaneProject(Delta, Normal) * Time;
+	}
+	else
+	{
+		const FVector ProjectedNormal = ConstrainNormalToPlane(Normal);
+		return FVector::VectorPlaneProject(Delta, ProjectedNormal) * Time;
+	}
 }
 
 
@@ -483,7 +630,7 @@ void UMovementComponent::TwoWallAdjust(FVector& OutDelta, const FHitResult& Hit,
 	else //adjust to new wall
 	{
 		const FVector DesiredDir = Delta;
-		Delta = (Delta - HitNormal * (Delta | HitNormal)) * (1.f - Hit.Time);
+		Delta = ComputeSlideVector(Delta, 1.f - Hit.Time, HitNormal, Hit);
 		if ((Delta | DesiredDir) <= 0.f)
 		{
 			Delta = FVector::ZeroVector;
@@ -492,7 +639,7 @@ void UMovementComponent::TwoWallAdjust(FVector& OutDelta, const FHitResult& Hit,
 		{
 			// we hit the same wall again even after adjusting to move along it the first time
 			// nudge away from it (this can happen due to precision issues)
-			Delta += HitNormal * 0.1f;
+			Delta += HitNormal * 0.01f;
 		}
 	}
 
@@ -519,22 +666,9 @@ float UMovementComponent::GetMaxSpeedModifier() const
 float UMovementComponent::K2_GetMaxSpeedModifier() const
 {
 	// Allow calling old deprecated function to maintain old behavior until it is removed.
-#ifdef __clang__
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#else
-	#pragma warning(push)
-	#pragma warning(disable:4995)
-	#pragma warning(disable:4996)
-#endif
-
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return GetMaxSpeedModifier();
-
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#else
-	#pragma warning(pop)
-#endif
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 // TODO: Deprecated, remove.
@@ -547,22 +681,9 @@ float UMovementComponent::GetModifiedMaxSpeed() const
 float UMovementComponent::K2_GetModifiedMaxSpeed() const
 {
 	// Allow calling old deprecated function to maintain old behavior until it is removed.
-#ifdef __clang__
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#else
-	#pragma warning(push)
-	#pragma warning(disable:4995)
-	#pragma warning(disable:4996)
-#endif
-
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return GetModifiedMaxSpeed();
-
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#else
-	#pragma warning(pop)
-#endif
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 #undef LOCTEXT_NAMESPACE

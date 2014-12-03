@@ -9,6 +9,18 @@
 #pragma  once
 
 #if ENABLE_HTTP_FOR_NFS
+
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+#endif
+
+#include "libwebsockets.h"
+
+#if PLATFORM_WINDOWS
+#include "HideWindowsPlatformTypes.h"
+#endif
+
+
 class FNetworkFileServerHttp
 	:	public INetworkFileServer // It is a NetworkFileServer
 	,	private FRunnable // Also spins up a thread but others don't need to know. 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerServiceMessages.h: Declares message types used by Profiler services.
-=============================================================================*/
-
 #pragma once
 
 #include "ProfilerServiceMessages.generated.h"
@@ -567,17 +563,4 @@ struct TStructOpsTypeTraits<FProfilerServiceRequest> : public TStructOpsTypeTrai
 	{
 		WithMessageHandling = true
 	};
-};
-
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UProfilerServiceMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
 };

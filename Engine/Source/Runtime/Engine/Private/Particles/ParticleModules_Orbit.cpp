@@ -11,8 +11,8 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleOrbitBase::UParticleModuleOrbitBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleOrbitBase::UParticleModuleOrbitBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -24,8 +24,8 @@ UParticleModuleOrbitBase::UParticleModuleOrbitBase(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 	UParticleModuleOrbit implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleOrbit::UParticleModuleOrbit(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleOrbit::UParticleModuleOrbit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;

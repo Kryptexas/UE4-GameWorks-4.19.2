@@ -5,12 +5,13 @@
 =============================================================================*/
 
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "LinuxPlatformOutputDevices.h"
 #include "FeedbackContextAnsi.h"
 #include "LinuxApplication.h"
 #include "LinuxPlatformOutputDevicesPrivate.h"
 #include "LinuxPlatformFeedbackContextPrivate.h"
+#include "Misc/App.h"
 
 #define CONSOLE_RED		"\x1b[31m"
 #define CONSOLE_GREEN	"\x1b[32m"
@@ -148,7 +149,9 @@ void FOutputDeviceLinuxError::HandleError()
 
 		GLog->Flush();
 
+#if !UE_SERVER
 		FPlatformMisc::ClipboardCopy(GErrorHist);
+#endif // !UE_SERVER
 		FPlatformMisc::SubmitErrorReport(GErrorHist, EErrorReportMode::Interactive);
 		FCoreDelegates::OnShutdownAfterError.Broadcast();
 #if !PLATFORM_EXCEPTIONS_DISABLED

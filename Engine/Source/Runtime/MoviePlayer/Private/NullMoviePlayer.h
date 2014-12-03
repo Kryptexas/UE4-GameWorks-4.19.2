@@ -21,6 +21,7 @@ public:
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override {}
 	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override {}
 	virtual void Initialize() override {}
+	virtual void Shutdown() override {}
 	virtual void PassLoadingScreenWindowBackToGame() const override {}
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}
 	virtual bool PlayMovie() override { return false;}

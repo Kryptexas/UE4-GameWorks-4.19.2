@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /**
- * Movement component updates position of associated PrimitiveComponent during its tick
+ * Movement component used by SpectatorPawn.
+ * Primarily exists to be able to ignore time dilation during tick.
  */
-
 #pragma once
 #include "GameFramework/FloatingPawnMovement.h"
 #include "SpectatorPawnMovement.generated.h"

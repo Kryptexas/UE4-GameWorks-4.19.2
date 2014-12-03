@@ -218,10 +218,6 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
  */
 void UObjectBase::AddObject(FName InName)
 {
-	if ( !FPackageName::IsShortPackageName(InName) )
-	{
-		UE_LOG(LogLongPackageNames, Verbose, TEXT("Package created with long name %s"), *InName.ToString());
-	}
 #if EXTERNAL_OBJECT_NAMES
 	NameAnnotation.AddAnnotation(InternalIndex,InName);
 #else
@@ -261,7 +257,13 @@ void UObjectBase::SetClass(UClass* NewClass)
 	STAT(StatID = TStatId();) // reset the stat id since this thing now has a different name
 
 	UnhashObject(this);
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+	Class->DestroyPersistentUberGraphFrame((UObject*)this);
+#endif
 	Class = NewClass;
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+	Class->CreatePersistentUberGraphFrame((UObject*)this);
+#endif
 	HashObject(this);
 }
 
@@ -414,17 +416,38 @@ void UObjectForceRegistration(UObjectBase* Object)
 	}
 }
 
-static TArray<class UScriptStruct *(*)()>& GetDeferredCompiledInStructRegistration()
+/**
+ * Struct containing the function pointer and package name of a UStruct to be registered with UObject system
+ */
+struct FPendingStructRegistrant
+{	
+	class UScriptStruct *(*RegisterFn)();
+	const TCHAR* PackageName;
+
+	FPendingStructRegistrant() {}
+	FPendingStructRegistrant(class UScriptStruct *(*Fn)(), const TCHAR* InPackageName)
+		: RegisterFn(Fn)
+		, PackageName(InPackageName)
+	{
+	}
+	FORCEINLINE bool operator==(const FPendingStructRegistrant& Other) const
+	{
+		return RegisterFn == Other.RegisterFn;
+	}
+};
+
+static TArray<FPendingStructRegistrant>& GetDeferredCompiledInStructRegistration()
 {
-	static TArray<class UScriptStruct *(*)()> DeferredCompiledInRegistration;
+	static TArray<FPendingStructRegistrant> DeferredCompiledInRegistration;
 	return DeferredCompiledInRegistration;
 }
 
-void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)())
+void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName)
 {
 	// we do reregister StaticStruct in hot reload
-	checkSlow(!GetDeferredCompiledInStructRegistration().Contains(InRegister));
-	GetDeferredCompiledInStructRegistration().Add(InRegister);
+	FPendingStructRegistrant Registrant(InRegister, PackageName);
+	checkSlow(!GetDeferredCompiledInStructRegistration().Contains(Registrant));
+	GetDeferredCompiledInStructRegistration().Add(Registrant);
 }
 
 #if WITH_HOT_RELOAD
@@ -432,8 +455,13 @@ struct FStructOrEnumCompiledInfo : FFieldCompiledInInfo
 {
 	FStructOrEnumCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
 		: FFieldCompiledInInfo(InClassSize, InCrc)
-	{}
-	virtual UField* Register() const { return NULL; }
+	{
+	}
+
+	virtual UClass* Register() const
+	{
+		return nullptr;
+	}
 };
 
 /** Registered struct info (including size and reflection info) */
@@ -497,18 +525,39 @@ class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRegister)(), UObje
 	return (*InRegister)();
 }
 
-// Same thing as GetDeferredCompiledInStructRegistration but for UEnums declared in header files without UClasses.
-static TArray<class UEnum *(*)()>& GetDeferredCompiledInEnumRegistration()
+/**
+ * Struct containing the function pointer and package name of a UEnum to be registered with UObject system
+ */
+struct FPendingEnumRegistrant
 {
-	static TArray<class UEnum *(*)()> DeferredCompiledInRegistration;
+	class UEnum *(*RegisterFn)();
+	const TCHAR* PackageName;
+
+	FPendingEnumRegistrant() {}
+	FPendingEnumRegistrant(class UEnum *(*Fn)(), const TCHAR* InPackageName)
+		: RegisterFn(Fn)
+		, PackageName(InPackageName)
+	{
+	}
+	FORCEINLINE bool operator==(const FPendingEnumRegistrant& Other) const
+	{
+		return RegisterFn == Other.RegisterFn;
+	}
+};
+
+// Same thing as GetDeferredCompiledInStructRegistration but for UEnums declared in header files without UClasses.
+static TArray<FPendingEnumRegistrant>& GetDeferredCompiledInEnumRegistration()
+{
+	static TArray<FPendingEnumRegistrant> DeferredCompiledInRegistration;
 	return DeferredCompiledInRegistration;
 }
 
-void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)())
+void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName)
 {
 	// we do reregister StaticStruct in hot reload
-	checkSlow(!GetDeferredCompiledInEnumRegistration().Contains(InRegister));
-	GetDeferredCompiledInEnumRegistration().Add(InRegister);
+	FPendingEnumRegistrant Registrant(InRegister, PackageName);
+	checkSlow(!GetDeferredCompiledInEnumRegistration().Contains(Registrant));
+	GetDeferredCompiledInEnumRegistration().Add(Registrant);
 }
 
 class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, const TCHAR* EnumName)
@@ -557,6 +606,19 @@ static TArray<FFieldCompiledInInfo*>& GetHotReloadClasses()
 }
 #endif
 
+/** Removes prefix from the native class name */
+FString RemoveClassPrefix(const TCHAR* ClassName)
+{
+	const TCHAR* DeprecatedPrefix = TEXT("DEPRECATED_");
+	FString NameWithoutPrefix(ClassName);
+	NameWithoutPrefix = NameWithoutPrefix.Mid(1);
+	if (NameWithoutPrefix.StartsWith(DeprecatedPrefix))
+	{
+		NameWithoutPrefix = NameWithoutPrefix.Mid(FCString::Strlen(DeprecatedPrefix));
+	}
+	return NameWithoutPrefix;
+}
+
 void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, SIZE_T ClassSize, uint32 Crc)
 {
 	const FName CPPClassName(Name);
@@ -570,8 +632,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 		check(GIsHotReload);
 
 		// Get the native name
-		FString NameWithoutPrefix(Name);
-		NameWithoutPrefix = NameWithoutPrefix.Mid(1);
+		FString NameWithoutPrefix(RemoveClassPrefix(Name));
 		auto ExistingClass = FindObjectChecked<UClass>(ANY_PACKAGE, *NameWithoutPrefix);
 
 		if (ClassInfo->bHasChanged)
@@ -589,13 +650,13 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 			GetObjectsWithOuter(ExistingClass, ClassSubobjects);
 			for (auto ClassSubobject : ClassSubobjects)
 			{
-				if (auto Enum = Cast<UEnum>(ClassSubobject))
+				if (auto Enum = dynamic_cast<UEnum*>(ClassSubobject))
 				{
 					Enum->RemoveNamesFromMasterList();
 				}
 			}
 		}
-		ClassInfo->OldField = ExistingClass;
+		ClassInfo->OldClass = ExistingClass;
 		GetHotReloadClasses().Add(ClassInfo);
 
 		*ExistingClassInfo = ClassInfo;
@@ -636,17 +697,18 @@ void UClassRegisterAllCompiledInClasses()
 void UClassReplaceHotReloadClasses()
 {
 	if (FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.IsBound())
-	{	
+	{
 		for (auto Class : GetHotReloadClasses())
 		{
+			check(Class->OldClass);
+
+			UClass* RegisteredClass = nullptr;
 			if (Class->bHasChanged)
 			{
-				FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), CastChecked<UClass>(Class->Register()));
+				RegisteredClass = Class->Register();
 			}
-			else
-			{
-				FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), NULL);
-			}
+
+			FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(Class->OldClass, RegisteredClass);
 		}
 	}
 	GetHotReloadClasses().Empty();
@@ -706,12 +768,14 @@ static void UObjectLoadAllCompiledInStructs()
 	const bool bHaveEnumRegistrants = GetDeferredCompiledInEnumRegistration().Num() != 0;
 	if( bHaveEnumRegistrants )
 	{
-		TArray<class UEnum *(*)()> PendingRegistrants;
+		TArray<FPendingEnumRegistrant> PendingRegistrants;
 		PendingRegistrants = GetDeferredCompiledInEnumRegistration();
 		GetDeferredCompiledInEnumRegistration().Empty();
-		for(int32 RegistrantIndex = 0;RegistrantIndex < PendingRegistrants.Num();++RegistrantIndex)
+		for (auto& EnumRegistrant : PendingRegistrants)
 		{
-			PendingRegistrants[RegistrantIndex]();
+			// Make sure the package exists in case it does not contain any UObjects
+			CreatePackage(NULL, EnumRegistrant.PackageName);
+			EnumRegistrant.RegisterFn();
 		}
 	}
 
@@ -719,12 +783,14 @@ static void UObjectLoadAllCompiledInStructs()
 	const bool bHaveRegistrants = GetDeferredCompiledInStructRegistration().Num() != 0;
 	if( bHaveRegistrants )
 	{
-		TArray<class UScriptStruct *(*)()> PendingRegistrants;
+		TArray<FPendingStructRegistrant> PendingRegistrants;
 		PendingRegistrants = GetDeferredCompiledInStructRegistration();
 		GetDeferredCompiledInStructRegistration().Empty();
-		for(int32 RegistrantIndex = 0;RegistrantIndex < PendingRegistrants.Num();++RegistrantIndex)
+		for (auto& StructRegistrant : PendingRegistrants)
 		{
-			PendingRegistrants[RegistrantIndex]();
+			// Make sure the package exists in case it does not contain any UObjects or UEnums
+			CreatePackage(NULL, StructRegistrant.PackageName);
+			StructRegistrant.RegisterFn();
 		}
 	}
 }

@@ -5,7 +5,7 @@
 #include "SoundDefinitions.h"
 #include "Sound/SoundNodeConcatenatorRadio.h"
 
-UDEPRECATED_SoundNodeConcatenatorRadio::UDEPRECATED_SoundNodeConcatenatorRadio(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_SoundNodeConcatenatorRadio::UDEPRECATED_SoundNodeConcatenatorRadio(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

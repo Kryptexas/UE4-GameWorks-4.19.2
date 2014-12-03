@@ -32,6 +32,18 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
+static TAutoConsoleVariable<int32> CVarKeepShaderDebugData(
+	TEXT("r.Shaders.KeepDebugInfo"),
+	0,
+	TEXT("Whether to keep shader reflection and debug data from shader bytecode, default is to strip.  When using graphical debuggers like Nsight it can be useful to enable this on startup."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarOptimizeShaders(
+	TEXT("r.Shaders.Optimize"),
+	1,
+	TEXT("Whether to optimize shaders.  When using graphical debuggers like Nsight it can be useful to disable this on startup."),
+	ECVF_ReadOnly);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
 	TEXT(""),	// default
@@ -1396,6 +1408,11 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 				bShaderMapComplete = ShaderMap->ProcessCompilationResults(ResultArray, CompileResults.FinalizeJobIndex, TimeBudget);
 			}
 
+			for ( auto& Material : MaterialsArray )
+			{
+				Material->RemoveOutstandingCompileId( ShaderMap->CompilingId );
+			}
+
 			if (bShaderMapComplete)
 			{
 				ShaderMap->bCompiledSuccessfully = bSuccess;
@@ -1432,6 +1449,8 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 
 						// Propagate error messages
 						CurrentMaterial.CompileErrors = Errors;
+
+						MaterialsToUpdate.Add( &CurrentMaterial, NULL );
 
 						if (CurrentMaterial.IsDefaultMaterial())
 						{
@@ -1498,7 +1517,6 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			check(!ShaderMap || ShaderMap->IsValidForRendering());
 
 			Material->SetGameThreadShaderMap(It.Value());
-			Material->ClearOutstandingCompileId();
 		}
 
 		const TSet<FSceneInterface*>& AllocatedScenes = GetRendererModule().GetAllocatedScenes();
@@ -1821,24 +1839,19 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	check(!FPlatformProperties::RequiresCookedData());
 	const double StartTime = FPlatformTime::Seconds();
 
-	if (GIsEditor && !IsRunningCommandlet())
+	FText StatusUpdate;
+	if ( MaterialName != NULL )
 	{
-		GWarn->PushStatus();
-
-		FText StatusUpdate;
-		if ( MaterialName != NULL )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("MaterialName"), FText::FromString( MaterialName ) );
-			StatusUpdate = FText::Format( NSLOCTEXT("ShaderCompilingManager", "CompilingShadersForMaterialStatus", "Compiling shaders: {MaterialName}..."), Args );
-		}
-		else
-		{
-			StatusUpdate = NSLOCTEXT("ShaderCompilingManager", "CompilingShadersStatus", "Compiling shaders...");
-		}
-
-		GWarn->StatusUpdate(-1, -1, StatusUpdate);
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("MaterialName"), FText::FromString( MaterialName ) );
+		StatusUpdate = FText::Format( NSLOCTEXT("ShaderCompilingManager", "CompilingShadersForMaterialStatus", "Compiling shaders: {MaterialName}..."), Args );
 	}
+	else
+	{
+		StatusUpdate = NSLOCTEXT("ShaderCompilingManager", "CompilingShadersStatus", "Compiling shaders...");
+	}
+
+	FScopedSlowTask SlowTask(0, StatusUpdate, GIsEditor && !IsRunningCommandlet());
 
 	TMap<int32, FShaderMapFinalizeResults> CompiledShaderMaps;
 	BlockOnShaderMapCompletion(ShaderMapIdsToFinishCompiling, CompiledShaderMaps);
@@ -1852,14 +1865,6 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 
 	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
 	check(CompiledShaderMaps.Num() == 0);
-
-	if (GIsEditor && !IsRunningCommandlet())
-	{
-		// Clear the status so it doesn't look like we're compiling shaders for the entire load, in the case that no other status is specified
-		GWarn->StatusUpdate(-1, -1, FText::GetEmpty());
-		// We called StatusUpdatef earlier, so we want to restore whatever the previous status was now
-		GWarn->PopStatus();
-	}
 
 	const double EndTime = FPlatformTime::Seconds();
 
@@ -1924,9 +1929,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				{
 					const FShaderMapCompileResults& Results = It.Value();
 
-					if (Results.FinishedJobs.Num() == Results.NumJobsQueued 
-						// Shader maps that don't want to be applied can only be processed by a call to FinishCompilation
-						&& Results.bApplyCompletedShaderMapForRendering)
+					if (Results.FinishedJobs.Num() == Results.NumJobsQueued)
 					{
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
@@ -2063,6 +2066,24 @@ void GlobalBeginCompileShader(
 #endif
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
+
+		if (CVar->GetInt() == 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_Debug);
+		}
+	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.KeepDebugInfo"));
+
+		if (CVar->GetInt() != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
+		}
+	}
+
+	{
 		FString ShaderPDBRoot;
 		GConfig->GetString(TEXT("DevOptions.Shaders"), TEXT("ShaderPDBRoot"), ShaderPDBRoot, GEngineIni);
 		if ( !ShaderPDBRoot.IsEmpty() )
@@ -2074,11 +2095,6 @@ void GlobalBeginCompileShader(
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.UseDXT5NormalMaps"));
 		Input.Environment.SetDefine(TEXT("DXT5_NORMALMAPS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
-	}
-
-	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-		Input.Environment.SetDefine(TEXT("DIFFUSE_SPEC_INPUTS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
 	if(bAllowDevelopmentShaderCompile)
@@ -2203,7 +2219,7 @@ public:
 		}
 
 		Payload << MaterialsToLoad;
-		uint32 ShaderPlatform = ( uint32 )GRHIShaderPlatform;
+		uint32 ShaderPlatform = ( uint32 )GMaxRHIShaderPlatform;
 		Payload << ShaderPlatform;
 		// tell the other side the Ids we have so it doesn't send back duplicates
 		// (need to serialize this into a TArray since FShaderResourceId isn't known in the file server)
@@ -2228,7 +2244,7 @@ public:
 		FlushRenderingCommands();
 
 		// reload the global shaders
-		GetGlobalShaderMap(GRHIShaderPlatform, true);
+		GetGlobalShaderMap(GMaxRHIShaderPlatform, true);
 
 		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
 		for(TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList());It;It.Next())
@@ -2245,7 +2261,7 @@ public:
 			// parse the shaders
 			FMemoryReader MemoryReader(MeshMaterialMaps, true);
 			FNameAsStringProxyArchive Ar(MemoryReader);
-			FMaterialShaderMap::LoadForRemoteRecompile(Ar, GRHIShaderPlatform, MaterialsToLoad);
+			FMaterialShaderMap::LoadForRemoteRecompile(Ar, GMaxRHIShaderPlatform, MaterialsToLoad);
 
 			// gather the shader maps to reattach
 			for (TObjectIterator<UMaterial> It; It; ++It)
@@ -2302,8 +2318,11 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				FRecompileShadersTimer TestTimer(TEXT("RecompileShaders Changed"));
 
 				// Kick off global shader recompiles
-				BeginRecompileGlobalShaders(OutdatedShaderTypes);
-				UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
+				UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
+					auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+					BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
+					UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, ShaderPlatform);
+				});
 
 				GWarn->StatusUpdate(0, 1, NSLOCTEXT("ShaderCompilingManager", "CompilingGlobalShaderStatus", "Compiling global shaders..."));
 
@@ -2376,9 +2395,12 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				
 				TArray<const FVertexFactoryType*> FactoryTypes;
 
-				BeginRecompileGlobalShaders(ShaderTypes);
-				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, GRHIShaderPlatform);
-				FinishRecompileGlobalShaders();
+				UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
+					auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+					BeginRecompileGlobalShaders(ShaderTypes, ShaderPlatform);
+					UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, ShaderPlatform);
+					FinishRecompileGlobalShaders();
+				});
 			}
 		}
 

@@ -68,16 +68,16 @@ private:
 			);
 		}
 
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 		{
 			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
-			if( InKeyboardEvent.GetKey() == EKeys::Tilde )
+			if( InKeyEvent.GetKey() == EKeys::Tilde )
 			{
 				return FReply::Unhandled();
 			}
 			else
 			{
-				return SEditableText::OnKeyDown( MyGeometry, InKeyboardEvent );
+				return SEditableText::OnKeyDown( MyGeometry, InKeyEvent );
 			}
 		}
 
@@ -200,7 +200,7 @@ void SConsoleInputBox::SuggestionSelectionChanged(TSharedPtr<FString> NewValue, 
 			// Ideally this would set the focus back to the edit control
 //			FWidgetPath WidgetToFocusPath;
 //			FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-//			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+//			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 			break;
 		}
 	}
@@ -322,7 +322,7 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 				UWorld* OldWorld = NULL;
 
 				// The play world needs to handle these commands if it exists
-				if( GIsEditor && GEditor->PlayWorld )
+				if( GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld )
 				{
 					World = GEditor->PlayWorld;
 					OldWorld = SetPlayInEditorWorld( GEditor->PlayWorld );
@@ -384,13 +384,13 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 	}
 }
 
-FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
 	if(SuggestionBox->IsOpen())
 	{
-		if(KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+		if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 		{
-			if(KeyboardEvent.GetKey() == EKeys::Up)
+			if(KeyEvent.GetKey() == EKeys::Up)
 			{
 				if(SelectedSuggestion < 0)
 				{
@@ -404,7 +404,7 @@ FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 				}
 			}
 
-			if(KeyboardEvent.GetKey() == EKeys::Down)
+			if(KeyEvent.GetKey() == EKeys::Down)
 			{
 				if(SelectedSuggestion < Suggestions.Num() - 1)
 				{
@@ -422,7 +422,7 @@ FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 
 			return FReply::Handled();
 		}
-		else if (KeyboardEvent.GetKey() == EKeys::Tab)
+		else if (KeyEvent.GetKey() == EKeys::Tab)
 		{
 			if (Suggestions.Num())
 			{
@@ -443,7 +443,7 @@ FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 	}
 	else
 	{
-		if(KeyboardEvent.GetKey() == EKeys::Up)
+		if(KeyEvent.GetKey() == EKeys::Up)
 		{
 			TArray<FString> History;
 
@@ -491,11 +491,6 @@ void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, bool bInHistory
 		// Ideally if the selection box is open the output window is not changing it's window title (flickers)
 		SuggestionBox->SetIsOpen(true, false);
 		SuggestionListView->RequestScrollIntoView(Suggestions.Last());
-
-		// Force the textbox back into focus.
-		FWidgetPath WidgetToFocusPath;
-		FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
 	}
 	else
 	{
@@ -503,7 +498,7 @@ void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, bool bInHistory
 	}
 }
 
-void SConsoleInputBox::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SConsoleInputBox::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 //	SuggestionBox->SetIsOpen(false);
 }
@@ -660,9 +655,6 @@ FOutputLogTextLayoutMarshaller::FOutputLogTextLayoutMarshaller(TArray< TSharedPt
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SOutputLog::Construct( const FArguments& InArgs )
 {
-	// Force scroll in the first Tick() once we've been sized and populated correctly
-	bPendingForceScroll = true;
-
 	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(MoveTemp(InArgs._Messages));
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
@@ -697,6 +689,8 @@ void SOutputLog::Construct( const FArguments& InArgs )
 	];
 	
 	GLog->AddOutputDevice(this);
+
+	RequestForceScroll();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -706,16 +700,6 @@ SOutputLog::~SOutputLog()
 	{
 		GLog->RemoveOutputDevice(this);
 	}
-}
-
-void SOutputLog::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	if(bPendingForceScroll && MessagesTextMarshaller->GetNumMessages() > 0)
-	{
-		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
-	}
-
-	bPendingForceScroll = false;
 }
 
 bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, TArray< TSharedPtr<FLogMessage> >& OutMessages )
@@ -778,9 +762,6 @@ void SOutputLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const
 		const float DistanceFromBottom = MessagesTextBox->GetVScrollBar()->DistanceFromBottom();
 		if( DistanceFromBottom <= KINDA_SMALL_NUMBER )
 		{
-			// Force a refresh so that the message has been added before we try and jump to it
-			//MessagesTextBox->Refresh();
-
 			MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
 		}
 	}
@@ -818,4 +799,12 @@ bool SOutputLog::CanClearLog() const
 void SOutputLog::OnConsoleCommandExecuted()
 {
 	RequestForceScroll();
+}
+
+void SOutputLog::RequestForceScroll()
+{
+	if(MessagesTextMarshaller->GetNumMessages() > 0)
+	{
+		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
+	}
 }

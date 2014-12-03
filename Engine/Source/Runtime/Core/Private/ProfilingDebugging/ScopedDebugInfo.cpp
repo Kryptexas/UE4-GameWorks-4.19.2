@@ -4,7 +4,8 @@
 	ScopedDebugInfo.cpp: Scoped debug info implementation.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "ProfilingDebugging/ScopedDebugInfo.h"
 
 /** The TLS index for the debug info stack. */
 static uint32 GThreadDebugInfoTLSID = FPlatformTLS::AllocTlsSlot();

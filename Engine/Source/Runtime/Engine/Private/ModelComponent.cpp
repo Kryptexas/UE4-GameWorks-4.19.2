@@ -51,8 +51,8 @@ FArchive& operator<<(FArchive& Ar,FModelElement& Element)
 	return Ar;
 }
 
-UModelComponent::UModelComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CastShadow = true;
 	bUseAsOccluder = true;
@@ -63,8 +63,8 @@ UModelComponent::UModelComponent(const class FPostConstructInitializeProperties&
 }
 
 #if WITH_EDITOR
-UModelComponent::UModelComponent(const class FPostConstructInitializeProperties& PCIP,UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
-	UPrimitiveComponent(PCIP),
+UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer,UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
+	UPrimitiveComponent(ObjectInitializer),
 	Model(InModel),
 	ComponentIndex(InComponentIndex),
 	Nodes(InNodes)
@@ -243,6 +243,8 @@ void UModelComponent::PostLoad()
 	{
 		ModelBodySetup->bGenerateMirroredCollision = false;
 	}
+
+	ModelBodySetup->bDoubleSidedGeometry = true;	//saved content wants this to be true
 }
 
 #if WITH_EDITOR
@@ -351,7 +353,7 @@ void UModelComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveI
 						SurfaceVertices.Add(WorldVertex);
 					}
 				}
-				const FSphere SurfaceBoundingSphere(SurfaceVertices.GetTypedData(),SurfaceVertices.Num());
+				const FSphere SurfaceBoundingSphere(SurfaceVertices.GetData(),SurfaceVertices.Num());
 
 				// Compute the surface's texture scaling factor.
 				const float BspTexelsPerNormalizedTexel = UModel::GetGlobalBSPTexelScale();
@@ -368,7 +370,7 @@ void UModelComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveI
 				// Enumerate the textures used by the surface's material.
 				TArray<UTexture*> Textures;
 				
-				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GMaxRHIFeatureLevel, true);
 
 				// Add each texture to the output with the appropriate parameters.
 				for(int32 TextureIndex = 0;TextureIndex < Textures.Num();TextureIndex++)
@@ -507,6 +509,7 @@ void UModelComponent::CreateModelBodySetup()
 
 	ModelBodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
 	ModelBodySetup->bGenerateMirroredCollision = false;
+	ModelBodySetup->bDoubleSidedGeometry = true;
 }
 
 #if WITH_EDITOR

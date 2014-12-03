@@ -8,6 +8,7 @@
 #include "SCurveEditor.h"
 #include "SAnimationSequenceBrowser.h"
 #include "SMontageEditor.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "AnimMontageSectionsPanel"
 

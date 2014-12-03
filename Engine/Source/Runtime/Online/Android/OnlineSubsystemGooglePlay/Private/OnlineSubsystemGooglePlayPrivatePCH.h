@@ -10,6 +10,7 @@
 #include "ModuleManager.h"
 
 #include "OnlineAchievementsInterfaceGooglePlay.h"
+#include "OnlineStoreInterfaceGooglePlay.h"
 
 #include "OnlineSubsystemGooglePlay.h"
 #include "OnlineSubsystemGooglePlayModule.h"

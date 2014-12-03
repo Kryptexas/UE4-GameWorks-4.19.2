@@ -3,11 +3,12 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuUtils.h"
 #include "BlueprintActionMenuBuilder.h"
+#include "BlueprintActionMenuItem.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintEditorUtils.h"	// for DoesSupportComponents()
 #include "BlueprintPaletteFavorites.h"
-#include "EdGraphSchema_K2.h"		// for bUseLegacyActionMenus 
+#include "EdGraphSchema_K2.h"		// for PC_Object/PC_Interface 
 #include "K2Node_ActorBoundEvent.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_ComponentBoundEvent.h"
@@ -16,6 +17,7 @@
 #include "K2Node_VariableSet.h"
 #include "KismetEditorUtilities.h"	// for CanPasteNodes()
 #include "K2ActionMenuBuilder.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuUtils"
 
@@ -25,6 +27,12 @@
 
 namespace BlueprintActionMenuUtilsImpl
 {
+	static int32 const FavoritesSectionGroup  = 102;
+	static int32 const LevelActorSectionGroup = 101;
+	static int32 const ComponentsSectionGroup = 100;
+	static int32 const BoundAddComponentGroup = 002;
+	static int32 const MainMenuSectionGroup   = 000;
+
 	/**
 	 * Additional filter rejection test, for menu sections that only contain 
 	 * bound actions. Rejects any action that is not bound.
@@ -46,12 +54,75 @@ namespace BlueprintActionMenuUtilsImpl
 	static bool IsNonFavoritedAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsPureNonConstAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsUnexposedMemberAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsUnexposedNonComponentAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
 	 * Utility function to find a common base class from a set of given classes.
 	 * 
-	 * @param  ClassSet	The set of classes that you want a single base class for.
-	 * @return A common base class for all the specified classes (fallsback to UObject's class).
+	 * @param  ObjectSet	The set of objects that you want a single base class for.
+	 * @return A common base class for all the specified classes (falls back to UObject's class).
 	 */
-	static UClass* FindCommonBaseClass(TArray<UClass*> const& ClassSet);
+	static UClass* FindCommonBaseClass(TArray<UObject*> const& ObjectSet);
+
+	/**
+	 * 
+	 * 
+	 * @param  Pin	
+	 * @return 
+	 */
+	static UClass* GetPinClassType(UEdGraphPin const* Pin);
+
+	/**
+	 * 
+	 * 
+	 * @param  MainMenuFilter	
+	 * @return 
+	 */
+	static FBlueprintActionFilter MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter);
+
+	/**
+	 * 
+	 * 
+	 * @param  ComponentsFilter	
+	 * @param  MenuOut	
+	 * @return 
+	 */
+	static void AddComponentSections(FBlueprintActionFilter const& ComponentsFilter, FBlueprintActionMenuBuilder& MenuOut);
+
+	/**
+	 * 
+	 * 
+	 * @param  LevelActorsFilter	
+	 * @param  MenuOut	
+	 * @return 
+	 */
+	static void AddLevelActorSections(FBlueprintActionFilter const& LevelActorsFilter, FBlueprintActionMenuBuilder& MenuOut);
+
+	static void AddFavoritesSection(FBlueprintActionFilter const& MainMenuFilter, FBlueprintActionMenuBuilder& MenuOut);
 }
 
 //------------------------------------------------------------------------------
@@ -72,14 +143,84 @@ static bool BlueprintActionMenuUtilsImpl::IsNonFavoritedAction(FBlueprintActionF
 }
 
 //------------------------------------------------------------------------------
-static UClass* BlueprintActionMenuUtilsImpl::FindCommonBaseClass(TArray<UClass*> const& ClassSet)
+static bool BlueprintActionMenuUtilsImpl::IsPureNonConstAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFliteredOut = false;
+
+	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
+	{
+		bool const bIsImperative = !Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
+		bool const bIsConstFunc  =  Function->HasAnyFunctionFlags(FUNC_Const);
+		bIsFliteredOut = !bIsImperative && !bIsConstFunc;
+	}
+	return bIsFliteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionMenuUtilsImpl::IsUnexposedMemberAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFliteredOut = false;
+
+	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
+	{
+		TArray<FString> AllExposedCategories;
+		for (TWeakObjectPtr<UObject> Binding : BlueprintAction.GetBindings())
+		{
+			if (UProperty* Property = Cast<UProperty>(Binding.Get()))
+			{
+				FString const ExposedCategoryMetadata = Property->GetMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories);
+				if (ExposedCategoryMetadata.IsEmpty())
+				{
+					continue;
+				}
+
+				TArray<FString> PropertyExposedCategories;
+				ExposedCategoryMetadata.ParseIntoArray(&PropertyExposedCategories, TEXT(","), true);
+				AllExposedCategories.Append(PropertyExposedCategories);
+			}
+		}
+
+		FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
+		bIsFliteredOut = !AllExposedCategories.Contains(FunctionCategory);
+	}
+	return bIsFliteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionMenuUtilsImpl::IsUnexposedNonComponentAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFliteredOut = false;
+
+	for (TWeakObjectPtr<UObject> Binding : BlueprintAction.GetBindings())
+	{
+		if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Binding.Get()))
+		{
+			bool const bIsComponent = ObjectProperty->PropertyClass->IsChildOf<UActorComponent>();
+			// ignoring components for this rejection test
+			if (bIsComponent)
+			{
+				continue;
+			}
+		}
+		// else, it's not a component... let's do this!
+
+		bIsFliteredOut = IsUnexposedMemberAction(Filter, BlueprintAction);
+		break;
+	}
+
+	return bIsFliteredOut;
+}
+
+//------------------------------------------------------------------------------
+static UClass* BlueprintActionMenuUtilsImpl::FindCommonBaseClass(TArray<UObject*> const& ObjectSet)
 {
 	UClass* CommonClass = UObject::StaticClass();
-	if (ClassSet.Num() > 0)
+	if (ObjectSet.Num() > 0)
 	{
-		CommonClass = ClassSet[0];
-		for (UClass const* Class : ClassSet)
+		CommonClass = ObjectSet[0]->GetClass();
+		for (UObject const* Object : ObjectSet)
 		{
+			UClass* Class = Object->GetClass();
 			while (!Class->IsChildOf(CommonClass))
 			{
 				CommonClass = CommonClass->GetSuperClass();
@@ -87,6 +228,139 @@ static UClass* BlueprintActionMenuUtilsImpl::FindCommonBaseClass(TArray<UClass*>
 		}
 	}	
 	return CommonClass;
+}
+
+//------------------------------------------------------------------------------
+static UClass* BlueprintActionMenuUtilsImpl::GetPinClassType(UEdGraphPin const* Pin)
+{
+	UClass* PinObjClass = nullptr;
+
+	FEdGraphPinType const& PinType = Pin->PinType;
+	if ((PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || 
+		(PinType.PinCategory == UEdGraphSchema_K2::PC_Interface))
+	{
+		bool const bIsSelfPin = !PinType.PinSubCategoryObject.IsValid();
+		if (bIsSelfPin)
+		{
+			PinObjClass = CastChecked<UK2Node>(Pin->GetOwningNode())->GetBlueprint()->SkeletonGeneratedClass;
+		}
+		else
+		{
+			PinObjClass = Cast<UClass>(PinType.PinSubCategoryObject.Get());
+		}
+	}
+
+	return PinObjClass;
+}
+
+//------------------------------------------------------------------------------
+static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter)
+{
+	FBlueprintActionFilter CallOnMemberFilter;
+	CallOnMemberFilter.Context = MainMenuFilter.Context;
+	CallOnMemberFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
+	CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
+
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	// instead of looking for "ExposeFunctionCategories" on component properties,
+	// we just expose functions for all components, but we still need to check
+	// for "ExposeFunctionCategories" on any non-component properties... 
+	if (BlueprintSettings->bExposeAllMemberComponentFunctions)
+	{
+		CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnexposedNonComponentAction));
+	}
+	else
+	{
+		CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnexposedMemberAction));
+	}
+
+	for (UClass const* TargetClass : MainMenuFilter.TargetClasses)
+	{
+		for (TFieldIterator<UObjectProperty> PropertyIt(TargetClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			UObjectProperty* ObjectProperty = *PropertyIt;
+
+			if (!ObjectProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) ||
+				!(ObjectProperty->PropertyClass->IsChildOf<UActorComponent>() || ObjectProperty->HasMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories)))
+			{
+				continue;
+			}
+			CallOnMemberFilter.Context.SelectedObjects.Add(ObjectProperty);
+		}
+	}
+
+	return CallOnMemberFilter;
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionMenuUtilsImpl::AddComponentSections(FBlueprintActionFilter const& ComponentsFilter, FBlueprintActionMenuBuilder& MenuOut)
+{
+	FText EventSectionHeading = LOCTEXT("ComponentsEventCategory", "Add Event for Selected Components");
+	FText FuncSectionHeading  = LOCTEXT("ComponentsFuncCategory",  "Call Function on Selected Components");
+
+	if (ComponentsFilter.Context.SelectedObjects.Num() == 1)
+	{
+		FText const ComponentName = FText::FromName(ComponentsFilter.Context.SelectedObjects.Last()->GetFName());
+		FuncSectionHeading  = FText::Format(LOCTEXT("SingleComponentFuncCategory", "Call Function on {0}"), ComponentName);
+		EventSectionHeading = FText::Format(LOCTEXT("SingleComponentFuncCategory", "Add Event for {0}"), ComponentName);
+	}
+
+	FBlueprintActionFilter ComponentFunctionsFilter = ComponentsFilter;
+	ComponentFunctionsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
+	MenuOut.AddMenuSection(ComponentFunctionsFilter, FuncSectionHeading, ComponentsSectionGroup, FBlueprintActionMenuBuilder::ConsolidateBoundActions);
+
+	FBlueprintActionFilter ComponentEventsFilter = ComponentsFilter;
+	ComponentEventsFilter.PermittedNodeTypes.Add(UK2Node_ComponentBoundEvent::StaticClass());
+	MenuOut.AddMenuSection(ComponentEventsFilter, EventSectionHeading, ComponentsSectionGroup, FBlueprintActionMenuBuilder::ConsolidateBoundActions);
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionMenuUtilsImpl::AddLevelActorSections(FBlueprintActionFilter const& LevelActorsFilter, FBlueprintActionMenuBuilder& MenuOut)
+{
+	FText EventSectionHeading = LOCTEXT("ActorsEventCategory", "Add Event for Selected Actors");
+	FText FuncSectionHeading  = LOCTEXT("ActorsFuncCategory",  "Call Function on Selected Actors");
+
+	if (LevelActorsFilter.Context.SelectedObjects.Num() == 1)
+	{
+		FText const ActorName = FText::FromName(LevelActorsFilter.Context.SelectedObjects.Last()->GetFName());
+		FuncSectionHeading  = FText::Format(LOCTEXT("SingleActorFuncCategory", "Call Function on {0}"), ActorName);
+		EventSectionHeading = FText::Format(LOCTEXT("SingleActorFuncCategory", "Add Event for {0}"), ActorName);
+	}
+
+	FBlueprintActionFilter ActorFunctionsFilter = LevelActorsFilter;
+	ActorFunctionsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
+	MenuOut.AddMenuSection(ActorFunctionsFilter, FuncSectionHeading, LevelActorSectionGroup, FBlueprintActionMenuBuilder::ConsolidateBoundActions);
+
+	FBlueprintActionFilter ActorEventsFilter = LevelActorsFilter;
+	ActorEventsFilter.PermittedNodeTypes.Add(UK2Node_ActorBoundEvent::StaticClass());
+	MenuOut.AddMenuSection(ActorEventsFilter, EventSectionHeading, LevelActorSectionGroup, FBlueprintActionMenuBuilder::ConsolidateBoundActions);
+
+	FBlueprintActionFilter ActorReferencesFilter = LevelActorsFilter;
+	ActorReferencesFilter.RejectedNodeTypes.Append(ActorFunctionsFilter.PermittedNodeTypes);
+	ActorReferencesFilter.RejectedNodeTypes.Append(ActorEventsFilter.PermittedNodeTypes);
+	MenuOut.AddMenuSection(ActorReferencesFilter, FText::GetEmpty(), LevelActorSectionGroup, FBlueprintActionMenuBuilder::ConsolidateBoundActions);
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionMenuUtilsImpl::AddFavoritesSection(FBlueprintActionFilter const& MainMenuFilter, FBlueprintActionMenuBuilder& MenuOut)
+{
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	if (BlueprintSettings->bShowContextualFavorites)
+	{
+		FBlueprintActionFilter FavoritesFilter = MainMenuFilter;
+		FavoritesFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsNonFavoritedAction));
+		
+		uint32 SectionFlags = 0x00;
+		FText  SectionHeading = LOCTEXT("ContextMenuFavoritesTitle", "Favorites");
+
+		if (BlueprintSettings->bFlattenFavoritesMenus)
+		{
+			SectionFlags |= FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
+			SectionHeading = FText::GetEmpty();
+		}
+
+		MenuOut.AddMenuSection(FavoritesFilter, SectionHeading, FavoritesSectionGroup, SectionFlags);
+	}
 }
 
 /*******************************************************************************
@@ -132,23 +406,23 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	// Composing Filters
 	//--------------------------------------
 
-	FBlueprintActionFilter MenuFilter;
-	MenuFilter.Context = Context;
-	MenuFilter.Context.SelectedObjects.Empty();
+	FBlueprintActionFilter MainMenuFilter;
+	MainMenuFilter.Context = Context;
+	MainMenuFilter.Context.SelectedObjects.Empty();
 
 	FBlueprintActionFilter ComponentsFilter;
 	ComponentsFilter.Context = Context;
-	ComponentsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
-	ComponentsFilter.PermittedNodeTypes.Add(UK2Node_ComponentBoundEvent::StaticClass());
 	// only want bound actions for this menu section
 	ComponentsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
+	// @TODO: don't know exactly why we can only bind non-pure/const functions;
+	//        this is mirrored after FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors()
+	//        and FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents(),
+	//        where we make the same stipulation
+	ComponentsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsPureNonConstAction));
+	
 
 	FBlueprintActionFilter LevelActorsFilter;
 	LevelActorsFilter.Context = Context;
-	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
-	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_ActorBoundEvent::StaticClass());
-	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_Literal::StaticClass());
-	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_MatineeController::StaticClass());
 	// only want bound actions for this menu section
 	LevelActorsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
 
@@ -157,14 +431,16 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	{
 		if (UObjectProperty* ObjProperty = Cast<UObjectProperty>(Selection))
 		{
-			ComponentsFilter.TargetClasses.Add(ObjProperty->PropertyClass);
 			LevelActorsFilter.Context.SelectedObjects.Remove(Selection);
 		}
 		else if (AActor* LevelActor = Cast<AActor>(Selection))
 		{
 			ComponentsFilter.Context.SelectedObjects.Remove(Selection);
-			// the loop below (over the editor's selected actors) will add to 
-			// LevelActorsFilter's OwnerClasses
+			if (!LevelActor->NeedsLoadForClient() && !LevelActor->NeedsLoadForServer())
+			{
+				// don't want to let the level script operate on actors that won't be loaded in game
+				LevelActorsFilter.Context.SelectedObjects.Remove(Selection);
+			}
 		}
 		else
 		{
@@ -178,11 +454,15 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	for (FSelectionIterator LvlActorIt(*GEditor->GetSelectedActors()); LvlActorIt; ++LvlActorIt)
 	{
 		AActor* LevelActor = Cast<AActor>(*LvlActorIt);
-		LevelActorsFilter.Context.SelectedObjects.AddUnique(LevelActor);
-		LevelActorsFilter.TargetClasses.Add(LevelActor->GetClass());
+		// don't want to let the level script operate on actors that won't be loaded in game
+		if (LevelActor->NeedsLoadForClient() || LevelActor->NeedsLoadForServer())
+		{
+			LevelActorsFilter.Context.SelectedObjects.AddUnique(LevelActor);
+		}
 	}
 
-	bool const bOnlyBlueprintMembers = bIsContextSensitive && (MenuFilter.Context.Pins.Num() == 0);
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	bool const bAddTargetContext  = bIsContextSensitive && BlueprintSettings->bUseTargetContextForNodeMenu;
 	bool bCanOperateOnLevelActors = bIsContextSensitive;
 	bool bCanHaveActorComponents  = bIsContextSensitive;
 	// determine if we can operate on certain object selections (level actors, 
@@ -193,52 +473,104 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		if (BlueprintClass != nullptr)
 		{
 			bCanOperateOnLevelActors &= BlueprintClass->IsChildOf<ALevelScriptActor>();
-			if (bOnlyBlueprintMembers)
+			if (bAddTargetContext)
 			{
-				MenuFilter.TargetClasses.Add(BlueprintClass);
+				MainMenuFilter.TargetClasses.Add(BlueprintClass);
 			}
 		}
 		bCanHaveActorComponents &= FBlueprintEditorUtils::DoesSupportComponents(Blueprint);
 	}
 
+	if (bAddTargetContext)
+	{
+		bool bContextPinIsObj = false;
+
+		// if we're dragging from a pin, we further extend the context to cover
+		// that pin and any other pins it sits beside 
+		for (UEdGraphPin* ContextPin : Context.Pins)
+		{
+			// we only want the pin to be the target class when it is an output
+			// (doesn't make sense to get members to plug into their parent)
+			if (ContextPin->Direction == EGPD_Input)
+			{
+				continue;
+			}
+
+			if (UClass* PinObjClass = GetPinClassType(ContextPin))
+			{
+				if (!bContextPinIsObj)
+				{
+					MainMenuFilter.TargetClasses.Empty();
+				}
+				MainMenuFilter.TargetClasses.Add(PinObjClass);
+				bContextPinIsObj = true;
+			}
+
+			for (UEdGraphPin* NodePin : ContextPin->GetOwningNode()->Pins)
+			{
+				if ((NodePin->Direction == ContextPin->Direction) && !bContextPinIsObj)
+				{
+					if (UClass* PinClass = GetPinClassType(NodePin))
+					{
+						MainMenuFilter.TargetClasses.Add(PinClass);
+					}
+				}
+			}
+		}
+	}
+
+	// should be called AFTER the MainMenuFilter if fully constructed
+	FBlueprintActionFilter CallOnMemberFilter = MakeCallOnMemberFilter(MainMenuFilter);
+
+	FBlueprintActionFilter AddComponentFilter;
+	AddComponentFilter.Context = MainMenuFilter.Context;
+	AddComponentFilter.PermittedNodeTypes.Add(UK2Node_AddComponent::StaticClass());
+	AddComponentFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
+
+	for (FSelectionIterator SelectionIt(*GEditor->GetSelectedObjects()); SelectionIt; ++SelectionIt)
+	{
+		UObject* PerspectiveAsset = *SelectionIt;
+		if (PerspectiveAsset->IsAsset())
+		{
+			AddComponentFilter.Context.SelectedObjects.Add(PerspectiveAsset);
+		}
+	}
+
 	//--------------------------------------
 	// Defining Menu Sections
-	//--------------------------------------
-
-	static int32 const MainMenuSectionGroup   = 000;
-	static int32 const ComponentsSectionGroup = 100;
-	static int32 const LevelActorSectionGroup = 101;
+	//--------------------------------------	
 
 	MenuOut.Empty();
 
 	if (!bIsContextSensitive)
 	{
-		MenuFilter.Context.Pins.Empty();
+		MainMenuFilter.Context.Pins.Empty();
 	}
-	// for backwards compatibility, the main menu section should be added first 
-	// (so if we have to, the legacy menu system can be constructed from it)
-	MenuOut.AddMenuSection(MenuFilter);
+	// for legacy purposes, we have to add the main menu section first (when 
+	// reconstructing the legacy menu, we pull the first menu system)
+	MenuOut.AddMenuSection(MainMenuFilter, FText::GetEmpty(), MainMenuSectionGroup);
 
 	bool const bAddComponentsSection = bIsContextSensitive && bCanHaveActorComponents && (ComponentsFilter.Context.SelectedObjects.Num() > 0);
 	// add the components section to the menu (if we don't have any components
 	// selected, then inform the user through a dummy menu entry)
 	if (bAddComponentsSection)
 	{
-		MenuOut.AddMenuSection(ComponentsFilter, FText::GetEmpty(), ComponentsSectionGroup);
+		AddComponentSections(ComponentsFilter, MenuOut);
 	}
 
 	bool const bAddLevelActorsSection = bIsContextSensitive && bCanOperateOnLevelActors && (LevelActorsFilter.Context.SelectedObjects.Num() > 0);
 	// add the level actor section to the menu
 	if (bAddLevelActorsSection)
 	{
-		// since we're consolidating all the bound actions, then we have to pick 
-		// one common base class to filter by
-		UClass* CommonClass = FindCommonBaseClass(LevelActorsFilter.TargetClasses);
-		LevelActorsFilter.TargetClasses.Empty();
-		LevelActorsFilter.TargetClasses.Add(CommonClass);
-
-		MenuOut.AddMenuSection(LevelActorsFilter, FText::GetEmpty(), LevelActorSectionGroup);
+		AddLevelActorSections(LevelActorsFilter, MenuOut);
 	}
+
+	if (bIsContextSensitive)
+	{
+		AddFavoritesSection(MainMenuFilter, MenuOut);
+		MenuOut.AddMenuSection(CallOnMemberFilter, FText::GetEmpty(), MainMenuSectionGroup);
+		MenuOut.AddMenuSection(AddComponentFilter, FText::GetEmpty(), BoundAddComponentGroup);
+	}	
 
 	//--------------------------------------
 	// Building the Menu
@@ -246,8 +578,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	MenuOut.RebuildActionList();
 
-	UEditorExperimentalSettings const* ExperimentalSettings =  GetDefault<UEditorExperimentalSettings>();
-	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
+	if (!BlueprintSettings->bUseLegacyMenuingSystem)
 	{
 		for (UEdGraph const* Graph : Context.Graphs)
 		{
@@ -283,14 +614,20 @@ void FBlueprintActionMenuUtils::MakeFavoritesMenu(FBlueprintActionContext const&
 {
 	MenuOut.Empty();
 
-	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
-	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	if (!BlueprintSettings->bUseLegacyMenuingSystem)
 	{
 		FBlueprintActionFilter MenuFilter;
 		MenuFilter.Context = Context;
 		MenuFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(BlueprintActionMenuUtilsImpl::IsNonFavoritedAction));
 
-		MenuOut.AddMenuSection(MenuFilter);
+		uint32 SectionFlags = 0x00;
+		if (BlueprintSettings->bFlattenFavoritesMenus)
+		{
+			SectionFlags = FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
+		}
+
+		MenuOut.AddMenuSection(MenuFilter, FText::GetEmpty(), BlueprintActionMenuUtilsImpl::MainMenuSectionGroup, SectionFlags);
 		MenuOut.RebuildActionList();
 	}
 	else
@@ -325,6 +662,44 @@ void FBlueprintActionMenuUtils::MakeFavoritesMenu(FBlueprintActionContext const&
 			}
 		}
 	} 	
+}
+
+//------------------------------------------------------------------------------
+const UK2Node* FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(TSharedPtr<FEdGraphSchemaAction> PaletteAction)
+{
+	UK2Node const* TemplateNode = NULL;
+	if (PaletteAction.IsValid())
+	{
+		FName const ActionId = PaletteAction->GetTypeId();
+		if (ActionId == FBlueprintActionMenuItem::StaticGetTypeId())
+		{
+			FBlueprintActionMenuItem* NewNodeActionMenuItem = (FBlueprintActionMenuItem*)PaletteAction.Get();
+			TemplateNode = Cast<UK2Node>(NewNodeActionMenuItem->GetRawAction()->GetTemplateNode());
+		}
+		// if this action inherits from FEdGraphSchemaAction_K2NewNode
+		else if (ActionId == FEdGraphSchemaAction_K2NewNode::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2AssignDelegate::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2AddTimeline::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2AddCustomEvent::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2AddCallOnActor::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2AddCallOnVariable::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2PasteHere::StaticGetTypeId() ||
+			ActionId == FEdGraphSchemaAction_K2Event::StaticGetTypeId() || 
+			ActionId == FEdGraphSchemaAction_K2AddEvent::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2NewNode* NewNodeAction = (FEdGraphSchemaAction_K2NewNode*)PaletteAction.Get();
+			TemplateNode = NewNodeAction->NodeTemplate;
+		}
+		else if (ActionId == FEdGraphSchemaAction_K2ViewNode::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2ViewNode* FocusNodeAction = (FEdGraphSchemaAction_K2ViewNode*)PaletteAction.Get();
+			TemplateNode = FocusNodeAction->NodePtr;
+		}
+	}
+
+	return TemplateNode;
 }
 
 #undef LOCTEXT_NAMESPACE

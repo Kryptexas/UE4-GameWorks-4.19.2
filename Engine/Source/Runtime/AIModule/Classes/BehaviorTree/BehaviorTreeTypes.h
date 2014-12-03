@@ -354,6 +354,9 @@ struct FBehaviorTreeSearchData
 	/** first node allowed in search */
 	struct FBTNodeIndex SearchStart;
 
+	/** last node allowed in search */
+	struct FBTNodeIndex SearchEnd;
+
 	/** search unique number */
 	int32 SearchId;
 
@@ -410,7 +413,8 @@ protected:
 	// SelectedKeyId type should be FBlackboard::FKey, but typedefs are not supported by UHT
 	static_assert(sizeof(uint8) == sizeof(FBlackboard::FKey), "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey-compatible type.");
 
-	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
+	// Requires BlueprintReadWrite so that blueprint creators (using MakeBlackboardKeySelector) can specify whether or not None is Allowed.
+	UPROPERTY(transient, EditDefaultsOnly, BlueprintReadWrite, Category=Blackboard, Meta=(Tooltip=""))
 	uint32 bNoneIsAllowedValue:1;
 
 public:

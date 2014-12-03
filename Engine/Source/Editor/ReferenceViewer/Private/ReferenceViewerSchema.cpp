@@ -8,8 +8,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UReferenceViewerSchema
 
-UReferenceViewerSchema::UReferenceViewerSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReferenceViewerSchema::UReferenceViewerSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

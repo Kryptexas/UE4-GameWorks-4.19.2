@@ -6,8 +6,8 @@
 /* UNewsFeedSettings structors
  *****************************************************************************/
 
-UNewsFeedSettings::UNewsFeedSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UNewsFeedSettings::UNewsFeedSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, MaxItemsToShow(10)
 	, ShowOnlyUnreadItems(true)
 { }

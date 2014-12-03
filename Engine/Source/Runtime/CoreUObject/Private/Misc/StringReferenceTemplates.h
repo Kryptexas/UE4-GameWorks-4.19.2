@@ -27,9 +27,9 @@ bool SerializeFromMismatchedTagTemplate(FString& Output, const FPropertyTag& Tag
 			Output = FString();
 		}
 #if WITH_EDITOR
-		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
+		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
 		{
-			FCoreDelegates::StringAssetReferenceLoaded.Execute(Output);
+			FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(Output);
 		}
 #endif // WITH_EDITOR
 		return true;
@@ -41,9 +41,9 @@ bool SerializeFromMismatchedTagTemplate(FString& Output, const FPropertyTag& Tag
 
 		Output = String;
 #if WITH_EDITOR
-		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
+		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
 		{
-			FCoreDelegates::StringAssetReferenceLoaded.Execute(Output);
+			FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(Output);
 		}
 #endif // WITH_EDITOR
 		return true;

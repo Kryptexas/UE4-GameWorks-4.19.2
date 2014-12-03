@@ -3,25 +3,45 @@
 
 struct SLATECORE_API FSlateFontKey
 {
-	FSlateFontInfo FontInfo;
-	float Scale;
-
-	FSlateFontKey( const FSlateFontInfo& InInfo, float InScale )
+public:
+	FSlateFontKey( const FSlateFontInfo& InInfo, const float InScale )
 		: FontInfo( InInfo )
 		, Scale( InScale )
+		, KeyHash( 0 )
 	{
-
+		KeyHash = HashCombine(KeyHash, GetTypeHash(FontInfo));
+		KeyHash = HashCombine(KeyHash, GetTypeHash(Scale));
 	}
 
-	bool operator==(const FSlateFontKey& Other ) const
+	FORCEINLINE const FSlateFontInfo& GetFontInfo() const
+	{
+		return FontInfo;
+	}
+
+	FORCEINLINE float GetScale() const
+	{
+		return Scale;
+	}
+
+	FORCEINLINE bool operator==(const FSlateFontKey& Other ) const
 	{
 		return FontInfo == Other.FontInfo && Scale == Other.Scale;
 	}
 
+	FORCEINLINE bool operator!=(const FSlateFontKey& Other ) const
+	{
+		return !(*this == Other);
+	}
+
 	friend inline uint32 GetTypeHash( const FSlateFontKey& Key )
 	{
-		return GetTypeHash(Key.FontInfo) + FCrc::MemCrc32( &Key.Scale, sizeof(float) );
+		return Key.KeyHash;
 	}
+
+private:
+	FSlateFontInfo FontInfo;
+	float Scale;
+	uint32 KeyHash;
 };
 
 /** Measurement details for a specific character */
@@ -58,6 +78,8 @@ struct FCharacterRenderData
 	uint16 MaxHeight;
 	/** The character that was rendered */
 	TCHAR Char;	
+	/** Whether or not the character has kerning */
+	bool HasKerning;
 };
 
 /** 
@@ -70,9 +92,14 @@ public:
 	virtual ~FSlateFontAtlas();
 
 	/**
-	 * Returns the texture resource used by slate
+	 * Returns the texture resource used by Slate
 	 */
-	virtual class FSlateShaderResource* GetTexture() = 0;
+	virtual class FSlateShaderResource* GetSlateTexture() = 0;
+
+	/**
+	 * Returns the texture resource used the Engine
+	 */
+	virtual class FTextureResource* GetEngineTexture() = 0;
 	
 	/**
 	 * Releases rendering resources of this cache

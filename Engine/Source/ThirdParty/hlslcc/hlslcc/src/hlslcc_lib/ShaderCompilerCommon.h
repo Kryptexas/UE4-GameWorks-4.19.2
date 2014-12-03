@@ -14,8 +14,11 @@
 #include <stdlib.h>
 #endif
 
+#ifndef check
 #include <assert.h>
 #define check(x)	assert(x)
+//#define check(x) do{if (!(x)) __debugbreak();}while(0)
+#endif
 
 // We can't use static_assert in .c files as this is a C++(11) feature
 #if __cplusplus && !__clang__
@@ -32,7 +35,8 @@ static inline bool isalpha(char c)
 }
 #endif
 
-
+//@todo-rco: Temp way to find out if we are compiling with or without UE
+#ifndef CPP
 // Wrap std::vector API's definitions
 #include <vector>
 template<typename InElementType>
@@ -88,9 +92,9 @@ public:
 		Vector.reserve(NewSize);
 	}
 
-	void Resize(int NewSize, const ElementType& Element)
+	void AddZeroed(int Count)
 	{
-		Vector.resize(NewSize, Element);
+		Vector.resize(Vector.size() + Count, (ElementType)0);
 	}
 
 //private:
@@ -102,3 +106,10 @@ void Exchange(TArray<T>& A, TArray<T>& B)
 {
 	A.Vector.swap(B.Vector);
 }
+#endif
+
+#ifndef uint32
+#include <stdint.h>
+typedef uint32_t uint32;
+typedef int32_t int32;
+#endif

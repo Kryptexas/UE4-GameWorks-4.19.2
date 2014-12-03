@@ -12,6 +12,7 @@
 #include "BehaviorTreeEditorCommands.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardEditor"
 
@@ -23,19 +24,20 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 	OnIsDebuggerPaused = InArgs._OnIsDebuggerPaused;
 	OnGetDebugTimeStamp = InArgs._OnGetDebugTimeStamp;
 	OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
+	OnIsBlackboardModeActive = InArgs._OnIsBlackboardModeActive;
 
 	TSharedRef<FUICommandList> CommandList = MakeShareable(new FUICommandList);
 
 	CommandList->MapAction(
 		FBTBlackboardCommands::Get().DeleteEntry,
 		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleDeleteEntry),
-		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::CanDeleteEntry)
 		);
 
 	CommandList->MapAction(
 		FGenericCommands::Get().Rename,
 		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleRenameEntry),
-		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::CanRenameEntry)
 		);
 
 	InCommandList->Append(CommandList);
@@ -92,8 +94,9 @@ void SBehaviorTreeBlackboardEditor::HandleDeleteEntry()
 
 	if(!IsDebuggerActive())
 	{
-		FBlackboardEntry* BlackboardEntry = GetSelectedEntry();
-		if(BlackboardEntry != nullptr)
+		bool bIsInherited = false;
+		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
+		if(BlackboardEntry != nullptr && !bIsInherited)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryDeleteTransaction", "Delete Blackboard Entry"));
 			BlackboardData->SetFlags(RF_Transactional);
@@ -128,6 +131,40 @@ void SBehaviorTreeBlackboardEditor::HandleRenameEntry()
 	}
 }
 
+bool SBehaviorTreeBlackboardEditor::CanDeleteEntry() const
+{
+	const bool bModeActive = OnIsBlackboardModeActive.IsBound() && OnIsBlackboardModeActive.Execute();
+
+	if(!IsDebuggerActive() && bModeActive)
+	{
+		bool bIsInherited = false;
+		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
+		if(BlackboardEntry != nullptr)
+		{
+			return !bIsInherited;
+		}
+	}
+
+	return false;
+}
+
+bool SBehaviorTreeBlackboardEditor::CanRenameEntry() const
+{
+	const bool bModeActive = OnIsBlackboardModeActive.IsBound() && OnIsBlackboardModeActive.Execute();
+
+	if(!IsDebuggerActive() && bModeActive)
+	{
+		bool bIsInherited = false;
+		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
+		if(BlackboardEntry != nullptr)
+		{
+			return !bIsInherited;
+		}
+	}
+
+	return false;
+}
+
 class FBlackboardEntryClassFilter : public IClassViewerFilter
 {
 public:
@@ -157,7 +194,13 @@ TSharedRef<SWidget> SBehaviorTreeBlackboardEditor::HandleCreateNewEntryMenu() co
 
 	FOnClassPicked OnPicked( FOnClassPicked::CreateRaw( this, &SBehaviorTreeBlackboardEditor::HandleKeyClassPicked ) );
 
-	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
+	return 
+		SNew(SBox)
+		.HeightOverride(240.0f)
+		.WidthOverride(200.0f)
+		[
+			FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked)
+		];
 }
 
 void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Engine/Light.h"
 #include "DirectionalLight.generated.h"
 
 UCLASS(ClassGroup=(Lights, DirectionalLights), MinimalAPI, meta=(ChildCanTick))
@@ -11,8 +11,10 @@ class ADirectionalLight : public ALight
 
 #if WITH_EDITORONLY_DATA
 	// Reference to editor visualization arrow
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<UArrowComponent> ArrowComponent;
+	UArrowComponent* ArrowComponent;
 #endif
 
 public:
@@ -24,6 +26,12 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End UObject Interface
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	ENGINE_API UArrowComponent* GetArrowComponent() const;
+#endif
 };
 
 

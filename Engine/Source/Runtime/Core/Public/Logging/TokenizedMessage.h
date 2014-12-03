@@ -164,6 +164,22 @@ public:
 	 */
 	CORE_API const TArray< TSharedRef<IMessageToken> >& GetMessageTokens() const;
 
+	/**
+	 * Sets up a token action for the message as a whole (not to be displayed...
+	 * intended to be invoked from a double click).
+	 * 
+	 * @param  InToken	A token for the entire message to link to.
+	 */
+	CORE_API void SetMessageLink(const TSharedRef<IMessageToken>& InToken);
+
+	/**
+	 * Gets the token action associated with this messages as a whole. Should
+	 * link to an associated element.
+	 * 
+	 * @return A token action that was set via SetMessageLink().
+	 */
+	CORE_API TSharedPtr<IMessageToken> GetMessageLink() const;
+
 	/** 
 	 * Helper function for getting a severity as text
 	 *
@@ -191,6 +207,9 @@ protected:
 
 	/** the array of message tokens this message contains */
 	TArray< TSharedRef<IMessageToken> > MessageTokens;
+
+	/** A token associated with the entire message (doesn't display) */
+	TSharedPtr<IMessageToken> MessageLink;
 
 private:
 

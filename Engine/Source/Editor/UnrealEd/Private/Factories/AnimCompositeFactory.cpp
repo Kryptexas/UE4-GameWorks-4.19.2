@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimCompositeFactory"
 
-UAnimCompositeFactory::UAnimCompositeFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompositeFactory::UAnimCompositeFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	SupportedClass = UAnimComposite::StaticClass();
@@ -68,7 +68,7 @@ UObject* UAnimCompositeFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 
 		if(SourceAnimation)
 		{
-			USkeleton * SourceSkeleton = SourceAnimation->GetSkeleton();
+			USkeleton* SourceSkeleton = SourceAnimation->GetSkeleton();
 			//Make sure we haven't asked to create an AnimComposite with mismatching skeletons
 			check(TargetSkeleton == NULL || TargetSkeleton == SourceSkeleton);
 			TargetSkeleton = SourceSkeleton;

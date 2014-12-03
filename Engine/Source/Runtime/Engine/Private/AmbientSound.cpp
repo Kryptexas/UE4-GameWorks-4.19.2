@@ -27,10 +27,10 @@
 -----------------------------------------------------------------------------*/
 bool AAmbientSound::bUE4AudioRefactorMigrationUnderway = false;
 
-AAmbientSound::AAmbientSound(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AAmbientSound::AAmbientSound(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	AudioComponent = PCIP.CreateDefaultSubobject<UAudioComponent>(this, TEXT("AudioComponent0"));
+	AudioComponent = ObjectInitializer.CreateDefaultSubobject<UAudioComponent>(this, TEXT("AudioComponent0"));
 
 	AudioComponent->bAutoActivate = true;
 	AudioComponent->bStopWhenOwnerDestroyed = true;
@@ -50,7 +50,7 @@ void AAmbientSound::CheckForErrors( void )
 {
 	Super::CheckForErrors();
 
-	if( !AudioComponent.IsValid() )
+	if( !AudioComponent )
 	{
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
@@ -324,3 +324,6 @@ void AAmbientSound::Stop()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns AudioComponent subobject **/
+UAudioComponent* AAmbientSound::GetAudioComponent() const { return AudioComponent; }

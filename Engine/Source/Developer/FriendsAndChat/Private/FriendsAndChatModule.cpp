@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendsAndChatModule.cpp: Implements the FFriendsAndChatModule.
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
+
 
 /**
  * Implements the FriendsAndChat module.
@@ -14,7 +11,8 @@ class FFriendsAndChatModule
 {
 public:
 
-	// Begin IFriendsAndChatModule interface
+	// IFriendsAndChatModule interface
+
 	virtual void Init( bool bAllowJoinGame ) override
 	{
 		FFriendsAndChatManager::Get()->Init( FriendsListNotificationDelegate );
@@ -51,25 +49,18 @@ public:
 		FFriendsMessageManager::Get()->ClearGameInvites();
 	}
 
-	virtual int32 GetFriendCount() override
-	{
-		return FFriendsAndChatManager::Get()->GetFriendCount();
-	}
-
 	virtual void Logout() override
 	{
 		FFriendsAndChatManager::Get()->Logout();
 		FFriendsMessageManager::Get()->Logout();
 	}
 
-	// End IFriendsAndChatModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
+
 	virtual void StartupModule() override
 	{
-		// Make sure the singletons are created
  		FFriendsAndChatManager::Get();
 	}
 
@@ -77,11 +68,12 @@ public:
 	{
 		FFriendsAndChatManager::Shutdown();
 	}
-	// End IModuleInterface interface
 
 private:
-	// Holds the Notification delegate
+
+	/** Holds the Notification delegate. */
 	FOnFriendsNotification FriendsListNotificationDelegate;
 };
+
 
 IMPLEMENT_MODULE( FFriendsAndChatModule, FriendsAndChat );

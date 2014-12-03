@@ -26,6 +26,7 @@
 
 #define RECAST_MAX_AREAS			64
 #define RECAST_DEFAULT_AREA			(RECAST_MAX_AREAS - 1)
+#define RECAST_LOW_AREA				(RECAST_MAX_AREAS - 2)
 #define RECAST_NULL_AREA			0
 #define RECAST_STRAIGHTPATH_OFFMESH_CONNECTION 0x04
 #define RECAST_UNWALKABLE_POLY_COST	FLT_MAX
@@ -36,6 +37,7 @@ class FRecastQueryFilter;
 class INavLinkCustomInterface;
 class UNavArea;
 class UNavigationSystem;
+class URecastNavMeshDataChunk;
 struct FAreaNavModifier;
 
 UENUM()
@@ -116,7 +118,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 		}
 
 		float TotalCost = 0.f;
-		const float* Cost = PathCorridorCost.GetTypedData();
+		const float* Cost = PathCorridorCost.GetData();
 		for (int32 PolyIndex = PathPointIndex; PolyIndex < PathCorridorCost.Num(); ++PolyIndex, ++Cost)
 		{
 			TotalCost += *Cost;
@@ -143,7 +145,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const override;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
 	virtual FString GetDescription() const override;
 #endif // ENABLE_VISUAL_LOG
 
@@ -325,22 +327,20 @@ struct FNavMeshTileData
 		FNavData(uint8* InNavData) : RawNavData(InNavData) {}
 		~FNavData();
 	};
-
+	
 	// layer index
-	int32 LayerIndex;
+	int32	LayerIndex;
+	FBox	LayerBBox;
 	// size of allocated data
-	int32 DataSize;
+	int32	DataSize;
 	// actual tile data
-	TSharedPtr<FNavData, ESPMode::ThreadSafe> NavData;
-
+	TSharedPtr<FNavData> NavData;
+	
 	FNavMeshTileData() : LayerIndex(0), DataSize(0) { }
-
-	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0)
-		: LayerIndex(LayerIdx), DataSize(RawDataSize)
-	{
-		NavData = MakeShareable(new FNavData(RawData));
-	}
-
+	~FNavMeshTileData();
+	
+	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(0));
+		
 	FORCEINLINE uint8* GetData()
 	{
 		check(NavData.IsValid());
@@ -357,51 +357,15 @@ struct FNavMeshTileData
 	{
 		return NavData.IsValid() ? NavData->RawNavData : NULL;
 	}
-	
+
 	FORCEINLINE bool operator==(const uint8* RawData) const
 	{
 		return GetData() == RawData;
 	}
 
-	FORCEINLINE bool IsValid() const { return NavData.IsValid() && GetData() != NULL && DataSize > 0; }
-	FORCEINLINE void Release() { NavData.Reset(); DataSize = 0; LayerIndex = 0; }
-};
+	FORCEINLINE bool IsValid() const { return NavData.IsValid() && GetData() != nullptr && DataSize > 0; }
 
-struct FRecastTickHelper : FTickableGameObject
-{
-	class ARecastNavMesh* Owner;
-
-	FRecastTickHelper() : Owner(NULL) {}
-	virtual void Tick(float DeltaTime);
-	virtual bool IsTickable() const { return (Owner != NULL); }
-	virtual bool IsTickableInEditor() const { return true; }
-	virtual TStatId GetStatId() const ;
-};
-
-struct FTileSetItem
-{
-	/** tile coords on grid */
-	int16 X, Y;
-	/** 2D location of tile center */
-	FVector2D TileCenter;
-	/** squared 2D distance to closest generation seed (e.g. player) */
-	float Dist2DSq;
-	/** sort order */
-	int32 SortOrder;
-	/** does it have compressed geometry stored in generator? */
-	uint8 bHasCompressedGeometry : 1;
-	/** does it have generated navmesh? */
- 	uint8 bHasNavmesh : 1;
-
-	FTileSetItem(int32 InitialX = 0, int32 InitialY = 0, int32 InitialOrder = 0)
-		: X(InitialX), Y(InitialY), SortOrder(InitialOrder), bHasCompressedGeometry(false), bHasNavmesh(false)
-	{
-	}
-
-	FTileSetItem(int16 TileX, int16 TileY, const FBox& TileBounds)
-		: X(TileX), Y(TileY), TileCenter(TileBounds.GetCenter()), SortOrder(0), bHasCompressedGeometry(false), bHasNavmesh(false)
-	{
-	}
+	uint8* Release();
 };
 
 DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
@@ -480,6 +444,14 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	// NavMesh generation parameters
 	//----------------------------------------------------------------------//
 
+	/** if true, the NavMesh will allocate fixed size pool for tiles, should be enabled to support streaming */
+	UPROPERTY(EditAnywhere, Category=Generation, config)
+	uint32 bFixedTilePoolSize:1;
+
+	/** maximum number of tiles NavMesh can hold */
+	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(editcondition = "bFixedTilePoolSize"))
+	int32 TilePoolSize;
+
 	/** size of single tile, expressed in uu */
 	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "300.0"))
 	float TileSizeUU;
@@ -535,10 +507,6 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(config)
 	float DefaultMaxHierarchicalSearchNodes;
 
-	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
-	UPROPERTY(config)
-	uint32 bUseVirtualFilters : 1;
-
 	/** partitioning method for creating navmesh polys */
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	TEnumAsByte<ERecastPartitioning::Type> RegionPartitioning;
@@ -555,14 +523,6 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	int32 LayerChunkSplits;
 
-	/** Limit for tile grid size: width */
-	UPROPERTY(config)
-	int32 MaxTileGridWidth;
-
-	/** Limit for tile grid size: height */
-	UPROPERTY(config)
-	int32 MaxTileGridHeight;
-
 	/** Controls whether Navigation Areas will be sorted by cost before application 
 	 *	to navmesh during navmesh generation. This is relevant then there are
 	 *	areas overlapping and we want to have area cost express area relevancy
@@ -573,20 +533,25 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 
 	/** controls whether voxel filterring will be applied (via FRecastTileGenerator::ApplyVoxelFilter). 
 	 *	Results in generated navemesh better fitting navigation bounds, but hits (a bit) generation performance */
-	UPROPERTY(EditAnywhere, Category=Generation, config)
+	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	uint32 bPerformVoxelFiltering:1;
+
+	/** mark areas with insufficient free height above instead of cutting them out  */
+	UPROPERTY(EditAnywhere, Category = Generation, config, AdvancedDisplay)
+	uint32 bMarkLowHeightAreas : 1;
 
 	/** TODO: switch to disable new code from OffsetFromCorners if necessary - remove it later */
 	UPROPERTY(config)
 	uint32 bUseBetterOffsetsFromCorners : 1;
 
+	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
+	UPROPERTY(config)
+	uint32 bUseVirtualFilters : 1;
+
 private:
 	/** Cache rasterized voxels instead of just collision vertices/indices in navigation octree */
 	UPROPERTY(config)
 	uint32 bUseVoxelCache : 1;
-
-	/** internal data to store time for next sort for our set with tiles */
-	float NextTimeToSortTiles;
 
 	/** indicates how often we will sort navigation tiles to mach players position */
 	UPROPERTY(config)
@@ -663,17 +628,11 @@ public:
 #endif // WITH_EDITOR
 	// End UObject Interface
 
-	/** Handles storing and releasing raw navigation tile data */
-	void UpdateNavTileData(uint8* OldTileData, FNavMeshTileData NewTileData);
-
 #if WITH_EDITOR
 	/** RecastNavMesh instances are dynamically spawned and should not be coppied */
 	virtual bool ShouldExport() override { return false; }
 #endif
-
-	/** called by TickHelper, works in game AND in editor */
-	void TickMe(float DeltaTime);
-
+	
 	virtual void CleanUp() override;
 
 	// Begin ANavigationData Interface
@@ -695,17 +654,18 @@ public:
 	/** Called on world origin changes **/
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 
-protected:
-#if WITH_NAVIGATION_GENERATOR
-	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) override;
-	virtual void SortNavigationTiles();
-#endif // WITH_NAVIGATION_GENERATOR
+	virtual void OnStreamingLevelAdded(ULevel* InLevel) override;
+	virtual void OnStreamingLevelRemoved(ULevel* InLevel) override;
 	// End ANavigationData Interface
 
+protected:
 	/** Serialization helper. */
 	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh);
 
 public:
+	/** Whether NavMesh should adjust his tile pool size when NavBounds are changed */
+	bool IsResizable() const;
+
 	/** Returns bounding box for the whole navmesh. */
 	FBox GetNavMeshBounds() const;
 
@@ -713,10 +673,10 @@ public:
 	FBox GetNavMeshTileBounds(int32 TileIndex) const;
 
 	/** Retrieves XY coordinates of tile specified by index */
-	void GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& Layer) const;
+	bool GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& Layer) const;
 
 	/** Retrieves XY coordinates of tile specified by position */
-	void GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const;
+	bool GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const;
 
 	/** Retrieves all tile indices at matching XY coordinates */
 	void GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const;
@@ -733,6 +693,12 @@ public:
 
 	/** Creates a task to be executed on GameThread calling UpdateDrawing */
 	void RequestDrawingUpdate();
+
+	/** Invalidates active paths that go through changed tiles  */
+	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
+
+	/** Event from generator that navmesh build has finished */
+	void OnNavMeshGenerationFinished();
 
 	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
@@ -752,8 +718,6 @@ public:
 	//----------------------------------------------------------------------//
 	/** Debug rendering support. */
 	void GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 TileIndex = INDEX_NONE) const;
-	// @todo docuement
-	void GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, int32& NumTilesY) const;
 
 	// @todo docuement
 	void DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 NumPathPolys, bool bPersistent=true) const;
@@ -885,26 +849,13 @@ public:
 	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
 	
-	/** initialize tiles set with given size */
-	void ReserveTileSet(int32 NewGridWidth, int32 NewGridHeight);
-
-	/** get information about given tile index */
-	FTileSetItem* GetTileSetItemAt(int32 TileX, int32 TileY);
-	
-	const FTileSetItem* GetTileSet() const { return TileSet.GetTypedData(); }
-	FTileSetItem* GetTileSet() { return TileSet.GetTypedData(); }
-	
 	virtual bool NeedsRebuild() const override;
-
-	/** update offset for navmesh in recast library, to current one */
-	/** @param Offset - current offset */
-	void UpdateNavmeshOffset( const FBox& NavBounds );
+	virtual bool SupportsRuntimeGeneration() const override;
+	virtual void ConstructGenerator() override;
 
 protected:
 	// @todo docuement
 	UPrimitiveComponent* ConstructRenderingComponentImpl();
-
-	virtual void DestroyGenerator() override;
 
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);
@@ -919,20 +870,17 @@ private:
 	void UpdateNavVersion();
 	void UpdateNavObject();
 
+	/** @return Navmesh data chunk that belongs to this actor */
+	URecastNavMeshDataChunk* GetNavigationDataChunk(ULevel* InLevel) const;
+
 protected:
 	// retrieves RecastNavMeshImpl
 	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
 	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
 
-	TArray<FTileSetItem> TileSet;
-
 private:
-	int32 GridWidth;
-	int32 GridHeight;
-
 	/** NavMesh versioning. */
 	uint32 NavMeshVersion;
-	FRecastTickHelper TickHelper;
 	
 	/** 
 	 * This is a pimpl-style arrangement used to tightly hide the Recast internals from the rest of the engine.
@@ -941,20 +889,8 @@ private:
 	 *	@TODO since it's no secret we're using recast there's no point in having separate implementation class. FPImplRecastNavMesh should be merged into ARecastNavMesh
 	 */
 	FPImplRecastNavMesh* RecastNavMeshImpl;
-
-	/** array containing tile references of all navmesh tiles recently rebuild. Handled and cleared in Tick function */
-	TArray<uint32> FreshTiles;
-
-	/** Holds shared pointers to navmesh tile data currently used
-	 *	@TODO will no longer be needed if we switch over to support only async pathfinding */	
-	TNavStatArray<FNavMeshTileData> TileNavDataContainer;
-		
-#if RECAST_ASYNC_REBUILDING
-	mutable FCriticalSection* NavDataReadWriteLock;
 	
-	/** this critical section will be used befor navmesh generator creation */
-	FCriticalSection NavDataReadWriteLockDummy;
-
+#if RECAST_ASYNC_REBUILDING
 	/** batch query counter */
 	mutable int32 BatchQueryCounter;
 
@@ -973,4 +909,20 @@ bool ARecastNavMesh::NavMeshRaycast(const ANavigationData* Self, const FVector& 
 	FRaycastResult Result;
 	return NavMeshRaycast(Self, RayStart, RayEnd, HitLocation, QueryFilter, Querier, Result);
 }
+
+
+/** structure to cache owning RecastNavMesh data so that it doesn't have to be polled
+ *	directly from RecastNavMesh while asyncronously generating navmesh */
+struct FRecastNavMeshCachedData
+{
+	ARecastNavMesh::FNavPolyFlags FlagsPerArea[RECAST_MAX_AREAS];
+	ARecastNavMesh::FNavPolyFlags FlagsPerOffMeshLinkArea[RECAST_MAX_AREAS];
+	TMap<const UClass*, int32> AreaClassToIdMap;
+	const ARecastNavMesh* ActorOwner;
+	uint32 bUseSortFunction : 1;
+
+	static FRecastNavMeshCachedData Construct(const ARecastNavMesh* RecastNavMeshActor);
+	void OnAreaAdded(const UClass* AreaClass, int32 AreaID);
+};
+
 #endif // WITH_RECAST

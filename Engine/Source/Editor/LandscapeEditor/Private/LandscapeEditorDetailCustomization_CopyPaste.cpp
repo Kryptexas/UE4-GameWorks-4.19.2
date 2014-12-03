@@ -18,7 +18,8 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 
-#include "Landscape/LandscapeLayerInfoObject.h"
+#include "LandscapeLayerInfoObject.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.CopyPaste"
 
@@ -353,7 +354,7 @@ FReply FLandscapeEditorDetailCustomization_CopyPaste::OnGizmoImportButtonClicked
 				}
 			}
 
-			Gizmo->Import(LandscapeEdMode->UISettings->GizmoImportSize.X, LandscapeEdMode->UISettings->GizmoImportSize.Y, (uint16*)Data.GetTypedData(), LayerInfos, LayerDataPtrs.Num() ? LayerDataPtrs.GetTypedData() : NULL);
+			Gizmo->Import(LandscapeEdMode->UISettings->GizmoImportSize.X, LandscapeEdMode->UISettings->GizmoImportSize.Y, (uint16*)Data.GetData(), LayerInfos, LayerDataPtrs.Num() ? LayerDataPtrs.GetData() : NULL);
 		}
 	}
 

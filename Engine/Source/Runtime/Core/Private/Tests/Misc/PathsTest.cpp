@@ -1,18 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	PathsTest.cpp: Unit test for the FPaths class.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
-
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPathTests, "Core.Misc.Paths", EAutomationTestFlags::ATF_SmokeTest)
 
 
 FString FPaths::GameProjectFilePath;
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPathTests, "Core.Misc.Paths", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FPathTests::RunTest( const FString& Parameters )
 {

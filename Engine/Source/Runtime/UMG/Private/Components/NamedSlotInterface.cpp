@@ -2,8 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
-UNamedSlotInterface::UNamedSlotInterface(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNamedSlotInterface::UNamedSlotInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
-

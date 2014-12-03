@@ -3,6 +3,10 @@
 
 #include "MainFramePrivatePCH.h"
 #include "MessageLog.h"
+#include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
@@ -32,17 +36,17 @@ void FMainFrameCommands::RegisterCommands()
 	if ( !IsRunningCommandlet() )
 	{
 		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
-		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyboardEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
+		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
 	}
 
 	// Make a default can execute action that disables input when in debug mode
 	FCanExecuteAction DefaultExecuteAction = FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::DefaultCanExecuteAction );
 
 	UI_COMMAND( SaveAll, "Save All", "Saves all unsaved levels and assets to disk", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::S ) );
-	ActionList->MapAction( SaveAll, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::SaveAll ), DefaultExecuteAction );
+	ActionList->MapAction( SaveAll, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::SaveAll ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::CanSaveWorld ) );
 
 	UI_COMMAND( ChooseFilesToSave, "Choose Files to Save...", "Opens a dialog with save options for content and levels", EUserInterfaceActionType::Button, FInputGesture() );
-	ActionList->MapAction( ChooseFilesToSave, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ChoosePackagesToSave ), DefaultExecuteAction );
+	ActionList->MapAction( ChooseFilesToSave, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ChoosePackagesToSave ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::CanSaveWorld ) );
 
 	UI_COMMAND( ChooseFilesToCheckIn, "Submit to Source Control...", "Opens a dialog with check in options for content and levels", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( ChooseFilesToCheckIn, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ChoosePackagesToCheckIn ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::CanChoosePackagesToCheckIn ) );
@@ -153,13 +157,13 @@ void FMainFrameCommands::RegisterCommands()
 	FGlobalEditorCommonCommands::MapActions(ActionList);
 }
 
-FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyboardEvent& InKeyboardEvent)
+FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyEvent& InKeyEvent)
 {
-	if ( FMainFrameCommands::ActionList->ProcessCommandBindings( InKeyboardEvent ) )
+	if ( FMainFrameCommands::ActionList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}
-	else if( GEditor->PlayWorld && InKeyboardEvent.GetKey() == EKeys::Escape )
+	else if( GEditor && GEditor->PlayWorld && InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked< FLevelEditorModule >(TEXT("LevelEditor"));
 		if( LevelEditor.GetLevelEditorTab()->IsForeground()  )
@@ -352,7 +356,13 @@ bool FMainFrameActionCallbacks::CanChoosePackagesToCheckIn()
 
 void FMainFrameActionCallbacks::ConnectToSourceControl()
 {
-	ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed(), ELoginWindowMode::Modeless);
+	ELoginWindowMode::Type Mode = !FSlateApplication::Get().GetActiveModalWindow().IsValid() ? ELoginWindowMode::Modeless : ELoginWindowMode::Modal;
+	ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed(), Mode);
+}
+
+bool FMainFrameActionCallbacks::CanSaveWorld()
+{
+	return FSlateApplication::Get().IsNormalExecution() && (!GUnrealEd || !GUnrealEd->GetPackageAutoSaver().IsAutoSaving());
 }
 
 void FMainFrameActionCallbacks::SaveAll()
@@ -505,7 +515,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 {
 	// does the project have any code?
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-	bool bProjectHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+	bool bProjectHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
 
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
 	check(PlatformInfo);
@@ -526,65 +536,59 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		{
 			FString NotInstalledTutorialLink;
 			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-			int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
+			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
 
 			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
 
 			// report to message log
-			FText MessageLogText;
-			FText MessageLogTextDetail;
-
-			switch (Result)
+			if ((Result & ETargetPlatformReadyStatus::SDKNotFound) != 0)
 			{
-				case ETargetPlatformReadyStatus::SDKNotFound:
-					MessageLogText = LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not be found");
-					MessageLogTextDetail = FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName());
-					break;
-
-				case ETargetPlatformReadyStatus::ProvisionNotFound:
-					MessageLogText = LOCTEXT("ProvisionNotFoundMessage", "Provision not found");
-					MessageLogTextDetail = LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.");
-					break;
-
-				case ETargetPlatformReadyStatus::SigningKeyNotFound:
-					MessageLogText = LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found");
-					MessageLogTextDetail = LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.");
-					break;
-
-				default:
-					break;
+				AddMessageLog(
+					LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
+					FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
+					NotInstalledTutorialLink
+				);
 			}
 
-			if (!MessageLogText.IsEmpty())
+			if ((Result & ETargetPlatformReadyStatus::ProvisionNotFound) != 0)
 			{
-				TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
-				Message->AddToken(FTextToken::Create(MessageLogText));
-				Message->AddToken(FTextToken::Create(MessageLogTextDetail));
-				Message->AddToken(FTutorialToken::Create(NotInstalledTutorialLink));
-				Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+				AddMessageLog(
+					LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
+					LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
+					NotInstalledTutorialLink
+				);
+			}
 
-				FMessageLog MessageLog("PackagingResults");
-				MessageLog.AddMessage(Message);
-				MessageLog.Open();
+			if ((Result & ETargetPlatformReadyStatus::SigningKeyNotFound) != 0)
+			{
+				AddMessageLog(
+					LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
+					LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
+					NotInstalledTutorialLink
+				);
 			}
 
 			// report to main frame
-			switch (Result)
-			{
-#if PLATFORM_WINDOWS
-			case ETargetPlatformReadyStatus::CodeUnsupported:
-				// show the message
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
-				return;
+			bool UnrecoverableError = false;
 
-			case ETargetPlatformReadyStatus::PluginsUnsupported:
-				// show the message
+#if PLATFORM_WINDOWS
+			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+				UnrecoverableError = true;
+			}
+
+			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
+			{
 				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
-				return;
+				UnrecoverableError = true;
+			}
 #endif
-			default:
-				break;
+
+			if (UnrecoverableError)
+			{
+				return;
 			}
 		}
 	}
@@ -633,12 +637,12 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	  if (PlatformInfo->TargetPlatformName != FName("HTML5")) 
 	  { 
 		OptionalParams += TEXT(" -pak");
-
-		if (PackagingSettings->UseOBB_InAPK)
-		{
-			OptionalParams += TEXT(" -obbinapk");
-		}
 	  }
+	}
+
+	if (PackagingSettings->IncludePrerequisites)
+	{
+		OptionalParams += TEXT(" -prereqs");
 	}
 
 	if (PackagingSettings->ForDistribution)
@@ -887,7 +891,7 @@ bool FMainFrameActionCallbacks::FullScreen_IsChecked()
 
 bool FMainFrameActionCallbacks::CanSwitchToProject( int32 InProjectIndex )
 {
-	if ( FApp::HasGameName() && ProjectNames[ InProjectIndex ].StartsWith( GGameName ) )
+	if (FApp::HasGameName() && ProjectNames[InProjectIndex].StartsWith(FApp::GetGameName()))
 	{
 		return false;
 	}
@@ -1071,6 +1075,20 @@ void FMainFrameActionCallbacks::OpenWidgetReflector_Execute()
 /* FMainFrameActionCallbacks implementation
  *****************************************************************************/
 
+void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+{
+	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
+	Message->AddToken(FTextToken::Create(Text));
+	Message->AddToken(FTextToken::Create(Detail));
+	Message->AddToken(FTutorialToken::Create(TutorialLink));
+	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+
+	FMessageLog MessageLog("PackagingResults");
+	MessageLog.AddMessage(Message);
+	MessageLog.Open();
+}
+
+
 void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon )
 {
 	// make sure that the UAT batch file is in place
@@ -1087,7 +1105,7 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 
 	FString UatPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles") / RunUATScriptName);
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-	bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+	bool bHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
 
 	if (!FPaths::FileExists(UatPath))
 	{

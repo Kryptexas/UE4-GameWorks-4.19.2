@@ -8,8 +8,8 @@
 #include "BlueprintEditorUtils.h"
 #include "ScopedTransaction.h"
 
-UEditorParentPlayerListObj::UEditorParentPlayerListObj(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorParentPlayerListObj::UEditorParentPlayerListObj(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, AnimBlueprint(NULL)
 {
 

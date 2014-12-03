@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "ActiveSound.h"
+#include "Sound/DialogueWave.h"
 #include "Sound/DialogueSoundWaveProxy.h"
 #include "Sound/SoundWave.h"
 #include "SubtitleManager.h"
@@ -23,8 +24,8 @@ FDialogueContextMapping::FDialogueContextMapping() : SoundWave(NULL), Proxy(NULL
 
 }
 
-UDialogueSoundWaveProxy::UDialogueSoundWaveProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueSoundWaveProxy::UDialogueSoundWaveProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -91,8 +92,8 @@ void UDialogueSoundWaveProxy::Parse( class FAudioDevice* AudioDevice, const UPTR
 	}
 }
 
-UDialogueWave::UDialogueWave(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, LocalizationGUID( FGuid::NewGuid() )
 {
 	ContextMappings.Add( FDialogueContextMapping() );

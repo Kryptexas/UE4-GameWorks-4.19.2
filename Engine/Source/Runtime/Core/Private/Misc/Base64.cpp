@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "Base64.h"
 
 
@@ -38,7 +38,7 @@ uint8 FBase64::DecodingAlphabet[256] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF
  */
 FString FBase64::Encode(const TArray<uint8>& Source)
 {
-	return Encode((uint8*)Source.GetTypedData(), Source.Num());
+	return Encode((uint8*)Source.GetData(), Source.Num());
 }
 
 /**
@@ -61,9 +61,9 @@ bool FBase64::Decode(const FString& Source, TArray<uint8>& Dest)
 	uint32 ExpectedLength = Length / 4 * 3;
 	// Add the number we need for output
 	Dest.AddZeroed(ExpectedLength);
-	uint8* Buffer = Dest.GetTypedData();
+	uint8* Buffer = Dest.GetData();
 	uint32 PadCount = 0;
-	bool bWasSuccessful = Decode(TCHAR_TO_ANSI(*Source), Length, Dest.GetTypedData(), PadCount);
+	bool bWasSuccessful = Decode(TCHAR_TO_ANSI(*Source), Length, Dest.GetData(), PadCount);
 	if (bWasSuccessful)
 	{
 		if (PadCount > 0)
@@ -104,7 +104,7 @@ bool FBase64::Decode(const FString& Source, FString& Dest)
 	uint32 ExpectedLength = Length / 4 * 3;
 	TArray<ANSICHAR> TempDest;
 	TempDest.AddZeroed(ExpectedLength);
-	uint8* Buffer = (uint8*)TempDest.GetTypedData();
+	uint8* Buffer = (uint8*)TempDest.GetData();
 	uint32 PadCount = 0;
 
 	bool bWasSuccessful = Decode(TCHAR_TO_ANSI(*Source), Length, Buffer, PadCount);
@@ -118,7 +118,7 @@ bool FBase64::Decode(const FString& Source, FString& Dest)
 		{
 			TempDest.Add('\0');
 		}
-		Dest = ANSI_TO_TCHAR(TempDest.GetTypedData());
+		Dest = ANSI_TO_TCHAR(TempDest.GetData());
 	}
 	return bWasSuccessful;
 }

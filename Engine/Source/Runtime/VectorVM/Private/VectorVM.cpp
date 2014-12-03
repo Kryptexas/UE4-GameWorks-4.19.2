@@ -1,24 +1,29 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*==============================================================================
-	VectorVM.cpp: Implementation of the vector virtual machine.
-==============================================================================*/
-
 #include "VectorVMPrivate.h"
 #include "ModuleManager.h"
+
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
 
 DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 
-#define SRCOP_RRR 0x00
-#define SRCOP_RRC 0x01
-#define SRCOP_RCR 0x02
-#define SRCOP_RCC 0x03
-#define SRCOP_CRC 0x05
-#define SRCOP_CCR 0x06
-#define SRCOP_CCC 0x07
-
+#define SRCOP_RRRR 0x00
+#define SRCOP_RRRC 0x01
+#define SRCOP_RRCR 0x02
+#define SRCOP_RRCC 0x03
+#define SRCOP_RCRR 0x04
+#define SRCOP_RCRC 0x05
+#define SRCOP_RCCR 0x06
+#define SRCOP_RCCC 0x07
+#define SRCOP_CRRR 0x08
+#define SRCOP_CRRC 0x09
+#define SRCOP_CRCR 0x0a
+#define SRCOP_CRCC 0x0b
+#define SRCOP_CCRR 0x0c
+#define SRCOP_CCRC 0x0d
+#define SRCOP_CCCR 0x0e
+#define SRCOP_CCCC 0x0f
 
 /**
  * Context information passed around during VM execution.
@@ -50,9 +55,9 @@ struct FVectorVMContext
 };
 
 /** Decode the next operation contained in the bytecode. */
-static FORCEINLINE VectorVM::EOp::Type DecodeOp(FVectorVMContext& Context)
+static FORCEINLINE VectorVM::EOp DecodeOp(FVectorVMContext& Context)
 {
-	return static_cast<VectorVM::EOp::Type>(*Context.Code++);
+	return static_cast<VectorVM::EOp>(*Context.Code++);
 }
 
 /** Decode a register from the bytecode. */
@@ -73,7 +78,79 @@ static FORCEINLINE uint8 DecodeSrcOperandTypes(FVectorVMContext& Context)
 	return *Context.Code++;
 }
 
-/** Base class for vector kernels with one dest and one src operand. */
+static FORCEINLINE uint8 DecodeByte(FVectorVMContext& Context)
+{
+	return *Context.Code++;
+}
+
+/** Handles reading of a constant. */
+struct FConstantHandler
+{
+	VectorRegister Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: Constant(DecodeConstant(Context))
+	{}
+	FORCEINLINE const VectorRegister& Get(){ return Constant; }
+};
+
+/** Handles reading of a register, advancing the pointer with each read. */
+struct FRegisterHandler
+{
+	VectorRegister* Register;
+	VectorRegister RegisterValue;
+	FRegisterHandler(FVectorVMContext& Context)
+		: Register(DecodeRegister(Context))
+	{}
+	FORCEINLINE const VectorRegister& Get(){ RegisterValue = *Register++;  return RegisterValue; }
+};
+
+template<typename Kernel, typename Arg0Handler>
+FORCEINLINE void VectorUnaryLoop(FVectorVMContext& Context, VectorRegister* RESTRICT Dst, int32 NumVectors)
+{
+	Arg0Handler Arg0(Context);
+	for (int32 i = 0; i < NumVectors; ++i)
+	{
+		Kernel::DoKernel(Dst++, Arg0.Get());
+	}
+}
+
+template<typename Kernel, typename Arg0Handler, typename Arg1Handler>
+FORCEINLINE void VectorBinaryLoop(FVectorVMContext& Context, VectorRegister* RESTRICT Dst, int32 NumVectors)
+{
+	Arg0Handler Arg0(Context);
+	Arg1Handler Arg1(Context);
+	for (int32 i = 0; i < NumVectors; ++i)
+	{
+		Kernel::DoKernel(Dst++, Arg0.Get(), Arg1.Get());
+	}
+}
+
+template<typename Kernel, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler>
+FORCEINLINE void VectorTrinaryLoop(FVectorVMContext& Context, VectorRegister* RESTRICT Dst, int32 NumVectors)
+{
+	Arg0Handler Arg0(Context);
+	Arg1Handler Arg1(Context);
+	Arg2Handler Arg2(Context);
+	for (int32 i = 0; i < NumVectors; ++i)
+	{
+		Kernel::DoKernel(Dst++, Arg0.Get(), Arg1.Get(), Arg2.Get());
+	}
+}
+
+template<typename Kernel, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler>
+FORCEINLINE void VectorQuinaryLoop(FVectorVMContext& Context, VectorRegister* RESTRICT Dst, int32 NumVectors)
+{
+	Arg0Handler Arg0(Context);
+	Arg1Handler Arg1(Context);
+	Arg2Handler Arg2(Context);
+	Arg3Handler Arg3(Context);
+	for (int32 i = 0; i < NumVectors; ++i)
+	{
+		Kernel::DoKernel(Dst++, Arg0.Get(), Arg1.Get(), Arg2.Get(), Arg3.Get());
+	}
+}
+
+/** Base class of vector kernels with a single operand. */
 template <typename Kernel>
 struct TUnaryVectorKernel
 {
@@ -82,29 +159,16 @@ struct TUnaryVectorKernel
 		VectorRegister* RESTRICT Dst = DecodeRegister(Context);
 		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
 		int32 NumVectors = Context.NumVectors;
-
-		if (SrcOpTypes == SRCOP_RRR)
+		switch (SrcOpTypes)
 		{
-			VectorRegister* Src0 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++,*Src0++);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RRC)
-		{
-			VectorRegister Src0 = DecodeConstant(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, Src0);
-			}
-		}
-
+		case SRCOP_RRRR: 	VectorUnaryLoop<Kernel, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRRC:	VectorUnaryLoop<Kernel, FConstantHandler>(Context, Dst, NumVectors); break;
+		default: check(0); break;
+		};
 	}
 };
 
-
-/** Base class for vector kernels with one dest and two src operands. */
+/** Base class of Vector kernels with 2 operands. */
 template <typename Kernel>
 struct TBinaryVectorKernel
 {
@@ -112,48 +176,19 @@ struct TBinaryVectorKernel
 	{
 		VectorRegister* RESTRICT Dst = DecodeRegister(Context);
 		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
-
 		int32 NumVectors = Context.NumVectors;
-		if (SrcOpTypes == SRCOP_RRR)
+		switch (SrcOpTypes)
 		{
-			VectorRegister* Src0 = DecodeRegister(Context);
-			VectorRegister* Src1 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, *Src0++, *Src1++);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RRC)
-		{
-			VectorRegister Src0 = DecodeConstant(Context);
-			VectorRegister *Src1 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, Src0, *Src1++);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RCR)
-		{
-			VectorRegister *Src0 = DecodeRegister(Context);
-			VectorRegister Src1 = DecodeConstant(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, *Src0++, Src1);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RCC)
-		{
-			VectorRegister Src0 = DecodeConstant(Context);
-			VectorRegister Src1 = DecodeConstant(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, Src0, Src1);
-			}
-		}
+		case SRCOP_RRRR: 	VectorBinaryLoop<Kernel, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRRC:	VectorBinaryLoop<Kernel, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCR: 	VectorBinaryLoop<Kernel, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCC:	VectorBinaryLoop<Kernel, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		default: check(0); break;
+		};
 	}
 };
 
-/** Base class for vector kernels with one dest and three src operands. */
+/** Base class of Vector kernels with 3 operands. */
 template <typename Kernel>
 struct TTrinaryVectorKernel
 {
@@ -161,68 +196,51 @@ struct TTrinaryVectorKernel
 	{
 		VectorRegister* RESTRICT Dst = DecodeRegister(Context);
 		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
-
 		int32 NumVectors = Context.NumVectors;
-		if (SrcOpTypes == SRCOP_RRR)
+		switch (SrcOpTypes)
 		{
-			VectorRegister* Src0 = DecodeRegister(Context);
-			VectorRegister* Src1 = DecodeRegister(Context);
-			VectorRegister* Src2 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, *Src0++, *Src1++, *Src2++);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RRC)
+		case SRCOP_RRRR: 	VectorTrinaryLoop<Kernel, FRegisterHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRRC:	VectorTrinaryLoop<Kernel, FConstantHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCR: 	VectorTrinaryLoop<Kernel, FRegisterHandler, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCC:	VectorTrinaryLoop<Kernel, FConstantHandler, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCRR: 	VectorTrinaryLoop<Kernel, FRegisterHandler, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCRC:	VectorTrinaryLoop<Kernel, FConstantHandler, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCCR: 	VectorTrinaryLoop<Kernel, FRegisterHandler, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCCC:	VectorTrinaryLoop<Kernel, FConstantHandler, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		default: check(0); break;
+		};
+	}
+};
+
+/** Base class of Vector kernels with 4 operands. */
+template <typename Kernel>
+struct TQuinaryVectorKernel
+{
+	static void Exec(FVectorVMContext& Context)
+	{
+		VectorRegister* RESTRICT Dst = DecodeRegister(Context);
+		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
+		int32 NumVectors = Context.NumVectors;
+		switch (SrcOpTypes)
 		{
-			VectorRegister Src0 = DecodeConstant(Context);
-			VectorRegister* Src1 = DecodeRegister(Context);
-			VectorRegister* Src2 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, Src0, *Src1++, *Src2++);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_CCC)
-		{
-			VectorRegister Src0 = DecodeConstant(Context);
-			VectorRegister Src1 = DecodeConstant(Context);
-			VectorRegister Src2 = DecodeConstant(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, Src0, Src1, Src2);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_CCR)
-		{
-			VectorRegister *Src0 = DecodeRegister(Context);
-			VectorRegister Src1 = DecodeConstant(Context);
-			VectorRegister Src2 = DecodeConstant(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, *Src0++, Src1, Src2);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RCC)
-		{
-			VectorRegister Src0 = DecodeConstant(Context);
-			VectorRegister Src1 = DecodeConstant(Context);
-			VectorRegister *Src2 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, Src0, Src1, *Src2++);
-			}
-		}
-		else if (SrcOpTypes == SRCOP_RCR)
-		{
-			VectorRegister *Src0 = DecodeRegister(Context);
-			VectorRegister Src1 = DecodeConstant(Context);
-			VectorRegister *Src2 = DecodeRegister(Context);
-			for (int32 i = 0; i < NumVectors; ++i)
-			{
-				Kernel::DoKernel(Dst++, *Src0++, Src1, *Src2++);
-			}
-		}
+		case SRCOP_RRRR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FRegisterHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRRC:	VectorQuinaryLoop<Kernel, FConstantHandler, FRegisterHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FConstantHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCC:	VectorQuinaryLoop<Kernel, FConstantHandler, FConstantHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCRR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FRegisterHandler, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCRC:	VectorQuinaryLoop<Kernel, FConstantHandler, FRegisterHandler, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCCR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FConstantHandler, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RCCC:	VectorQuinaryLoop<Kernel, FConstantHandler, FConstantHandler, FConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CRRR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FRegisterHandler, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CRRC:	VectorQuinaryLoop<Kernel, FConstantHandler, FRegisterHandler, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CRCR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FConstantHandler, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CRCC:	VectorQuinaryLoop<Kernel, FConstantHandler, FConstantHandler, FRegisterHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CCRR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FRegisterHandler, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CCRC:	VectorQuinaryLoop<Kernel, FConstantHandler, FRegisterHandler, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CCCR: 	VectorQuinaryLoop<Kernel, FRegisterHandler, FConstantHandler, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_CCCC:	VectorQuinaryLoop<Kernel, FConstantHandler, FConstantHandler, FConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
+		default: check(0); break;
+		};
 	}
 };
 
@@ -352,6 +370,29 @@ struct FVectorKernelSin4 : public TUnaryVectorKernel<FVectorKernelSin4>
 	}
 };
 
+struct FVectorKernelLessThan : public TBinaryVectorKernel<FVectorKernelLessThan>
+{
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		const VectorRegister large = MakeVectorRegister(BIG_NUMBER, BIG_NUMBER, BIG_NUMBER, BIG_NUMBER);
+		const VectorRegister one = MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f);
+		const VectorRegister zero = MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f);
+
+		float const* FloatSrc0 = reinterpret_cast<float const*>(&Src0);
+		float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);
+		VectorRegister tmp = VectorSubtract(Src1, Src0);
+		tmp = VectorMultiply(tmp, large);
+		tmp = VectorMin(tmp, one);
+		*Dst = VectorMax(tmp, zero);
+		/*
+		float f1 = FloatSrc0[0] < FloatSrc1[0] ? 1.0f : 0.0f;
+		float f2 = FloatSrc0[1] < FloatSrc1[1] ? 1.0f : 0.0f;
+		float f3 = FloatSrc0[2] < FloatSrc1[2] ? 1.0f : 0.0f;
+		float f4 = FloatSrc0[3] < FloatSrc1[3] ? 1.0f : 0.0f;
+		*Dst = MakeVectorRegister(f1, f2, f3, f4);
+		*/
+	}
+};
 
 struct FVectorKernelDot : public TBinaryVectorKernel<FVectorKernelDot>
 {
@@ -449,7 +490,7 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 			float FX = FloatSrc[0] / 5 / (1<<i);
 			float FY = FloatSrc[1] / 5 / (1<<i);
 			float FZ = FloatSrc[2] / 5 / (1<<i);
-			uint32 X = FMath::Abs((int32)(FX) % 8);
+			uint32 X = FMath::Abs( (int32)(FX) % 8 );
 			uint32 Y = FMath::Abs( (int32)(FY) % 8 );
 			uint32 Z = FMath::Abs( (int32)(FZ) % 8 );
 
@@ -464,7 +505,7 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 				}
 			}
 
-			const uint32 IntCoords[3] = { static_cast<uint32>(FX), static_cast<uint32>(FY), static_cast<uint32>(FZ) };
+			const int32 IntCoords[3] = { static_cast<int32>(FX), static_cast<int32>(FY), static_cast<int32>(FZ) };
 			const float Fractionals[3] = { FX - IntCoords[0], FY - IntCoords[1], FZ - IntCoords[2] };
 			VectorRegister Alpha = MakeVectorRegister(Fractionals[0], Fractionals[0], Fractionals[0], Fractionals[0]);
 
@@ -491,6 +532,37 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 
 VectorRegister FVectorKernelNoise::RandomTable[10][10][10];
 
+template<int32 Component>
+struct FVectorKernelSplat : public TUnaryVectorKernel<FVectorKernelSplat<Component>>
+{
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
+	{
+		*Dst = VectorReplicate(Src0, Component);
+	}
+};
+
+template<int32 Cmp0, int32 Cmp1, int32 Cmp2, int32 Cmp3>
+struct FVectorKernelCompose : public TQuinaryVectorKernel<FVectorKernelCompose<Cmp0, Cmp1, Cmp2, Cmp3>>
+{
+	//Passing as const refs as some compilers cant handle > 3 aligned vectorregister params.
+	//inlined so shouldn't impact perf
+	//Todo: ^^^^ test this
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0, const VectorRegister& Src1, const VectorRegister& Src2, const VectorRegister& Src3)
+	{
+		//TODO - There's probably a faster way to do this.
+		VectorRegister Tmp0 = VectorShuffle(Src0, Src1, Cmp0, Cmp0, Cmp1, Cmp1);
+		VectorRegister Tmp1 = VectorShuffle(Src2, Src3, Cmp2, Cmp2, Cmp3, Cmp3);		
+		*Dst = VectorShuffle(Tmp0, Tmp1, 0, 2, 0, 2);
+	}
+};
+
+struct FVectorKernelOutput : public TUnaryVectorKernel<FVectorKernelOutput>
+{
+	static void FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Src0)
+	{
+		VectorStoreAlignedStreamed(Src0, Dst);
+	}
+};
 
 void VectorVM::Init()
 {
@@ -553,7 +625,7 @@ void VectorVM::Exec(
 		// Setup execution context.
 		int32 VectorsThisChunk = FMath::Min<int32>(NumVectors, VectorsPerChunk);
 		FVectorVMContext Context(Code, RegisterTable, ConstantTable, VectorsThisChunk);
-		EOp::Type Op = EOp::done;
+		EOp Op = EOp::done;
 
 		// Execute VM on all vectors in this chunk.
 		do 
@@ -584,6 +656,16 @@ void VectorVM::Exec(
 			case EOp::normalize: FVectorKernelNormalize::Exec(Context); break;
 			case EOp::random: FVectorKernelRandom::Exec(Context); break;
 			case EOp::noise: FVectorKernelNoise::Exec(Context); break;
+			case EOp::splatx: FVectorKernelSplat<0>::Exec(Context); break;
+			case EOp::splaty: FVectorKernelSplat<1>::Exec(Context); break;
+			case EOp::splatz: FVectorKernelSplat<2>::Exec(Context); break;
+			case EOp::splatw: FVectorKernelSplat<3>::Exec(Context); break;
+			case EOp::compose: FVectorKernelCompose<0,1,2,3>::Exec(Context); break;
+			case EOp::composex: FVectorKernelCompose<0, 0, 0, 0>::Exec(Context); break;
+			case EOp::composey: FVectorKernelCompose<1, 1, 1, 1>::Exec(Context); break;
+			case EOp::composez: FVectorKernelCompose<2, 2, 2, 2>::Exec(Context); break;
+			case EOp::composew: FVectorKernelCompose<3, 3, 3, 3>::Exec(Context); break;
+			case EOp::output: FVectorKernelOutput::Exec(Context); break;
 
 			// Execution always terminates with a "done" opcode.
 			case EOp::done:
@@ -591,8 +673,8 @@ void VectorVM::Exec(
 
 			// Opcode not recognized / implemented.
 			default:
-				UE_LOG(LogVectorVM, Fatal, TEXT("Unknown op code 0x%02x"), (uint32)Op);
-				break;
+				UE_LOG(LogVectorVM, Error, TEXT("Unknown op code 0x%02x"), (uint32)Op);
+				return;//BAIL
 			}
 		} while (Op != EOp::done);
 
@@ -600,109 +682,17 @@ void VectorVM::Exec(
 	}
 }
 
-namespace VectorVM
-{
-	static FVectorVMOpInfo GOpInfo[] =
-	{
-		FVectorVMOpInfo(EOp::done, EOpFlags::None, EOpSrc::Invalid, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("done")),
-
-		FVectorVMOpInfo(EOp::add, EOpFlags::Implemented | EOpFlags::Commutative, EOpSrc::Register, EOpSrc::Register, EOpSrc::Invalid, TEXT("Add")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::sub, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Register, EOpSrc::Invalid, TEXT("Sub")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::mul, EOpFlags::Implemented | EOpFlags::Commutative, EOpSrc::Register, EOpSrc::Register, EOpSrc::Invalid, TEXT("Multiply")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::mad,EOpFlags::Implemented|EOpFlags::Commutative,EOpSrc::Register,EOpSrc::Register,EOpSrc::Register,TEXT("Multply-Add")),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::lerp,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Register,EOpSrc::Register,TEXT("Lerp")),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(), 
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::rcp,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Reciprocal")),
-		FVectorVMOpInfo(EOp::rsq,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Reciprocal Sqrt")),
-		FVectorVMOpInfo(EOp::sqrt,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Sqrt")),
-		FVectorVMOpInfo(EOp::neg,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Negate")),
-		FVectorVMOpInfo(EOp::abs,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Absolute")),
-		FVectorVMOpInfo(EOp::exp,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Exp")),
-		FVectorVMOpInfo(EOp::exp2,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Exp2")),
-		FVectorVMOpInfo(EOp::log,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Log")),
-		FVectorVMOpInfo(EOp::log2,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Log base 2")),
-		FVectorVMOpInfo(EOp::sin,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Sin")),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(EOp::cos, EOpFlags::None, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Cos")),
-		FVectorVMOpInfo(EOp::tan,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Tan")),
-		FVectorVMOpInfo(EOp::asin,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Arcsin")),
-		FVectorVMOpInfo(EOp::acos,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Arccos")),
-		FVectorVMOpInfo(EOp::atan,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Arctan")),
-		FVectorVMOpInfo(EOp::atan2,EOpFlags::None,EOpSrc::Register,EOpSrc::Register,EOpSrc::Invalid,TEXT("Arctan2")),
-		FVectorVMOpInfo(EOp::ceil,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Round up")),
-		FVectorVMOpInfo(EOp::floor,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Round down")),
-		FVectorVMOpInfo(EOp::fmod,EOpFlags::None,EOpSrc::Register,EOpSrc::Register,EOpSrc::Invalid,TEXT("Modulo")),
-		FVectorVMOpInfo(EOp::frac,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Fractional")),
-		FVectorVMOpInfo(EOp::trunc,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Truncate")),
-
-		FVectorVMOpInfo(EOp::clamp,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Register,EOpSrc::Register,TEXT("Clamp")),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::min,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Register,EOpSrc::Invalid,TEXT("Min")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::max,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Register,EOpSrc::Invalid,TEXT("Max")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::pow,EOpFlags::Implemented,EOpSrc::Register,EOpSrc::Register,EOpSrc::Invalid,TEXT("Pow")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::add,EOpFlags::None,EOpSrc::Register,EOpSrc::Invalid,EOpSrc::Invalid,TEXT("Sign")),
-
-		FVectorVMOpInfo(EOp::step,EOpFlags::None,EOpSrc::Register,EOpSrc::Register,EOpSrc::Invalid,TEXT("Step")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::dot, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Register, EOpSrc::Invalid, TEXT("Dot Product")),
-		FVectorVMOpInfo(EOp::cross, EOpFlags::Implemented|EOpFlags::Commutative, EOpSrc::Register, EOpSrc::Register, EOpSrc::Invalid, TEXT("Cross Product")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::normalize, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Normalize")),
-		FVectorVMOpInfo(EOp::random, EOpFlags::Implemented, EOpSrc::Const, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Random")),
-
-		FVectorVMOpInfo(EOp::length, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Vector Length")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(EOp::sin4, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Sin4")),
-		FVectorVMOpInfo(),
-
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(),
-		FVectorVMOpInfo(EOp::noise, EOpFlags::Implemented, EOpSrc::Register, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("Noise")),
-
-		FVectorVMOpInfo(EOp::add, EOpFlags::None, EOpSrc::Invalid, EOpSrc::Invalid, EOpSrc::Invalid, TEXT("invalid"))
-	};
-} // namespace VectorVM
-
-VectorVM::FVectorVMOpInfo const& VectorVM::GetOpCodeInfo(uint8 OpCodeIndex)
-{
-	return GOpInfo[FMath::Clamp<int32>(OpCodeIndex, 0, EOp::NumOpcodes)];
-}
-
-
 uint8 VectorVM::GetNumOpCodes()
 {
-	return EOp::NumOpcodes;
+	return (uint8)EOp::NumOpcodes;
+}
+
+uint8 VectorVM::CreateSrcOperandMask(bool bIsOp0Constant, bool bIsOp1Constant, bool bIsOp2Constant, bool bIsOp3Constant)
+{
+	return	(bIsOp0Constant ? (1 << 0) : 0) |
+			(bIsOp1Constant ? (1 << 1) : 0) |
+			(bIsOp2Constant ? (1 << 2) : 0) |
+			(bIsOp3Constant ? (1 << 3) : 0) ;
 }
 
 /*------------------------------------------------------------------------------
@@ -715,12 +705,12 @@ bool FVectorVMTest::RunTest(const FString& Parameters)
 {
 	uint8 TestCode[] =
 	{
-		VectorVM::EOp::mul, 0x00, SRCOP_RRR, 0x0 + VectorVM::NumTempRegisters, 0x0 + VectorVM::NumTempRegisters,       // mul r0, r8, r8
-		VectorVM::EOp::mad, 0x01, SRCOP_RRR, 0x01 + VectorVM::NumTempRegisters, 0x01 + VectorVM::NumTempRegisters, 0x00, // mad r1, r9, r9, r0
-		VectorVM::EOp::mad, 0x00, SRCOP_RRR, 0x02 + VectorVM::NumTempRegisters, 0x02 + VectorVM::NumTempRegisters, 0x01, // mad r0, r10, r10, r1
-		VectorVM::EOp::add,		0x01, SRCOP_RCR, 0x00, 0x01,       // addi r1, r0, c1
-		VectorVM::EOp::neg,		0x00, SRCOP_RRR, 0x01,             // neg r0, r1
-		VectorVM::EOp::clamp,	VectorVM::FirstOutputRegister, SRCOP_CCR, 0x00, 0x02, 0x03, // clampii r40, r0, c2, c3
+		(uint8)VectorVM::EOp::mul, 0x00, SRCOP_RRRR, 0x0 + VectorVM::NumTempRegisters, 0x0 + VectorVM::NumTempRegisters,       // mul r0, r8, r8
+		(uint8)VectorVM::EOp::mad, 0x01, SRCOP_RRRR, 0x01 + VectorVM::NumTempRegisters, 0x01 + VectorVM::NumTempRegisters, 0x00, // mad r1, r9, r9, r0
+		(uint8)VectorVM::EOp::mad, 0x00, SRCOP_RRRR, 0x02 + VectorVM::NumTempRegisters, 0x02 + VectorVM::NumTempRegisters, 0x01, // mad r0, r10, r10, r1
+		(uint8)VectorVM::EOp::add, 0x01, SRCOP_RRCR, 0x00, 0x01,       // addi r1, r0, c1
+		(uint8)VectorVM::EOp::neg, 0x00, SRCOP_RRRR, 0x01,             // neg r0, r1
+		(uint8)VectorVM::EOp::clamp, VectorVM::FirstOutputRegister, SRCOP_RCCR, 0x00, 0x02, 0x03, // clampii r40, r0, c2, c3
 		0x00 // terminator
 	};
 

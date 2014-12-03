@@ -9,12 +9,13 @@
 
 #include "WidgetBlueprintEditor.h"
 #include "WidgetBlueprintApplicationMode.h"
+#include "WidgetBlueprintApplicationModes.h"
 
 /////////////////////////////////////////////////////
 // FWidgetBlueprintApplicationMode
 
 FWidgetBlueprintApplicationMode::FWidgetBlueprintApplicationMode(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, FName InModeName)
-	: FBlueprintEditorApplicationMode(InWidgetEditor, InModeName, false, false)
+	: FBlueprintEditorApplicationMode(InWidgetEditor, InModeName, FWidgetBlueprintApplicationModes::GetLocalizedMode, false, false)
 	, MyWidgetBlueprintEditor(InWidgetEditor)
 {
 }

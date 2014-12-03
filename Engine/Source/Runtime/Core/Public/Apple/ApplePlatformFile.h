@@ -5,6 +5,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformFile.h"
 
 /**
  * Mac File I/O implementation
@@ -28,6 +29,7 @@ public:
 	virtual void SetTimeStamp(const TCHAR* Filename, const FDateTime DateTime) override;
 
 	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override;
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override;
 
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
 	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override;
@@ -36,5 +38,5 @@ public:
 	virtual bool DeleteDirectory(const TCHAR* Directory) override;
 	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor);
 private:
-	int32 Stat(const TCHAR* Filename, struct stat* OutFileInfo, ANSICHAR* OutFixedPath = NULL, SIZE_T FixedPathSize = 0);
+	int32 Stat(const TCHAR* Filename, struct stat* OutFileInfo, ANSICHAR* OutFixedPath = nullptr, SIZE_T FixedPathSize = 0);
 };

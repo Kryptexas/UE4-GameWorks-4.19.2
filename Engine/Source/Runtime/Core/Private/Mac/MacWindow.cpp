@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MacWindow.h"
 #include "MacApplication.h"
+#include "MacCursor.h"
+#include "MacEvent.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
-
-TArray< FCocoaWindow* > FMacWindow::RunningModalWindows;
 
 FMacWindow::~FMacWindow()
 {
@@ -16,6 +16,7 @@ FMacWindow::~FMacWindow()
 	{
 		NSWindow* Window = WindowHandle;
 		dispatch_async(dispatch_get_main_queue(), ^{
+			SCOPED_AUTORELEASE_POOL;
 			[Window release];
 		});
 		WindowHandle = nil;
@@ -89,6 +90,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	}
 
 	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
 		WindowHandle = [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO];
 		
 		if( WindowHandle != nullptr )
@@ -150,7 +152,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 				// Tell Cocoa that we are opting into drag and drop.
 				// Only makes sense for regular windows (windows that last a while.)
-				[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+				[WindowHandle registerForDraggedTypes:@[NSFilenamesPboardType, NSPasteboardTypeString]];
 
 				if( Definition->HasOSWindowBorder )
 				{
@@ -227,28 +229,40 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 		
 		if(WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)
 		{
-			MainThreadCall(^{
-				BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
-				
-				const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
-				if (Definition->HasOSWindowBorder)
-				{
-					[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:DisplayIfNeeded];
-				}
-				else
-				{
-					[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:DisplayIfNeeded];
-				}
-				
-				// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
-				// have to subvert the OS X or UE fullscreen handling events elsewhere.
-				if(WindowMode != EWindowMode::Windowed)
-				{
-					[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
-				}
-				
-				WindowHandle->bZoomed = [WindowHandle isZoomed];
-			}, UE4ResizeEventMode, true);
+			const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
+			NSRect Rect = NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1));
+			if (Definition->HasOSWindowBorder)
+			{
+				Rect = [WindowHandle frameRectForContentRect: Rect];
+			}
+			
+			if ( !NSEqualRects([WindowHandle frame], Rect) )
+			{
+				MainThreadCall(^{
+					SCOPED_AUTORELEASE_POOL;
+					BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
+					
+					[WindowHandle setFrame: Rect display:DisplayIfNeeded];
+					
+					// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
+					// have to subvert the OS X or UE fullscreen handling events elsewhere.
+					if(WindowMode != EWindowMode::Windowed)
+					{
+						[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
+					}
+					
+					WindowHandle->bZoomed = [WindowHandle isZoomed];
+				}, UE4ResizeEventMode, true);
+			}
+		}
+		else
+		{
+			NSRect NewRect = NSMakeRect(WindowHandle.PreFullScreenRect.origin.x, WindowHandle.PreFullScreenRect.origin.y, (CGFloat)Width, (CGFloat)Height);
+			if ( !NSEqualRects(WindowHandle.PreFullScreenRect, NewRect) )
+			{
+				WindowHandle.PreFullScreenRect = NewRect;
+				FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
+			}
 		}
 		
 		MessageHandler->FinishedReshapingWindow( SharedThis( this ) );
@@ -271,7 +285,7 @@ void FMacWindow::MoveWindowTo( int32 X, int32 Y )
 {
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
-		const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - [WindowHandle frame].size.height + 1;
+		const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - [WindowHandle openGLFrame].size.height + 1;
 		[WindowHandle setFrameOrigin: NSMakePoint(X, InvertedY)];
 	}, UE4ResizeEventMode, true);
 }
@@ -291,14 +305,11 @@ void FMacWindow::Destroy()
 {
 	if( WindowHandle )
 	{
+		SCOPED_AUTORELEASE_POOL;
 		FCocoaWindow* Window = WindowHandle;
-		if(Definition->IsModalWindow)
-		{
-			RemoveModalWindow(Window);
-		}
-		
+
 		bIsClosed = true;
-		
+
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
 			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
@@ -314,6 +325,7 @@ void FMacWindow::Destroy()
 			
 			// Close the window
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				[Window destroy];
 			}, UE4CloseEventMode, true);
 		}
@@ -362,33 +374,14 @@ void FMacWindow::Show()
 	SCOPED_AUTORELEASE_POOL;
 	if (!bIsClosed && !bIsVisible)
 	{
-		if(Definition->IsModalWindow)
-		{
-			AddModalWindow(WindowHandle);
-		}
-		
-		bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
+		const bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
 		
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
 		}, UE4ShowEventMode, true);
 		
-		bIsVisible = [WindowHandle isVisible];
-		static bool bCannotRecurse = false;
-		if(bCannotRecurse)
-		{
-			bCannotRecurse = true;
-			// For the movie code we don't pump the event loop - so this function must do so before it returns
-			// or the window will never become main/key!
-			bool isMainAndKey = false;
-			do
-			{
-				FPlatformMisc::PumpMessages(true);
-				bIsVisible = [WindowHandle isVisible];
-				isMainAndKey = [WindowHandle isKeyWindow];
-			} while(!bIsVisible && isMainAndKey != bMakeMainAndKey);
-			bCannotRecurse = false;
-		}
+		bIsVisible = true;
 	}
 }
 
@@ -398,11 +391,8 @@ void FMacWindow::Hide()
 	{
 		SCOPED_AUTORELEASE_POOL;
 		bIsVisible = false;
-		if(Definition->IsModalWindow)
-		{
-			RemoveModalWindow(WindowHandle);
-		}
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderOut:nil];
 		}, UE4CloseEventMode, false);
 	}
@@ -436,6 +426,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		WindowHandle.TargetWindowMode = NewWindowMode;
 		
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle setCollectionBehavior: Behaviour];
 			[WindowHandle toggleFullScreen:nil];
 		}, UE4FullscreenEventMode, true);
@@ -466,11 +457,13 @@ bool FMacWindow::IsMaximized() const
 
 bool FMacWindow::IsMinimized() const
 {
+	SCOPED_AUTORELEASE_POOL;
 	return [WindowHandle isMiniaturized];
 }
 
 bool FMacWindow::IsVisible() const
 {
+	SCOPED_AUTORELEASE_POOL;
 	return bIsVisible && [NSApp isHidden] == false;
 }
 
@@ -546,7 +539,9 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 		
 		if([WindowHandle isOnActiveSpace])
 		{
-			PointInWindow = (NSPointInRect(NSMakePoint(X, Y), VisibleFrame) == YES);
+			FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+			FVector2D MouseScale = MacCursor ? MacCursor->GetMouseScaling() : FVector2D(1.0f, 1.0f);
+			PointInWindow = (NSPointInRect(NSMakePoint(X / MouseScale.X, Y / MouseScale.Y), VisibleFrame) == YES);
 		}
 	}
 	return PointInWindow;
@@ -565,9 +560,9 @@ bool FMacWindow::IsForegroundWindow() const
 
 void FMacWindow::SetText(const TCHAR* const Text)
 {
-	SCOPED_AUTORELEASE_POOL;
 	CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
 	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle setTitle: (NSString*)CFName];
 		if(IsRegularWindow())
 		{
@@ -592,6 +587,7 @@ void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayCh
 	if(WindowHandle)
 	{
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			if(Flags & kCGDisplayBeginConfigurationFlag)
 			{
 				[WindowHandle setMovable: YES];
@@ -612,6 +608,7 @@ bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
 	if(WindowHandle && [WindowHandle openGLView])
 	{
 		return MainThreadReturn(^{
+			SCOPED_AUTORELEASE_POOL;
 			FCocoaTextView* View = (FCocoaTextView*)[WindowHandle openGLView];
 			return View && [View imkKeyDown:Event];
 		}, UE4IMEEventMode);
@@ -620,27 +617,4 @@ bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
 	{
 		return false;
 	}
-}
-
-void FMacWindow::AddModalWindow(FCocoaWindow* Window)
-{
-	if(!RunningModalWindows.Contains(Window))
-	{
-		RunningModalWindows.Add(Window);
-	}
-}
-
-void FMacWindow::RemoveModalWindow(FCocoaWindow* Window)
-{
-	RunningModalWindows.Remove(Window);
-}
-
-FCocoaWindow* FMacWindow::CurrentModalWindow(void)
-{
-	FCocoaWindow* Window = nil;
-	if(RunningModalWindows.Num() > 0)
-	{
-		Window = RunningModalWindows.Last();
-	}
-	return Window;
 }

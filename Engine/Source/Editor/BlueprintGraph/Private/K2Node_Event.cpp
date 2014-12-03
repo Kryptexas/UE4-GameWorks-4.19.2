@@ -32,8 +32,8 @@ bool UK2Node_Event::IsCosmeticTickEvent() const
 
 #define LOCTEXT_NAMESPACE "K2Node_Event"
 
-UK2Node_Event::UK2Node_Event(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Event::UK2Node_Event(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FunctionFlags = 0;
 }
@@ -57,7 +57,7 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
 		{
-			FunctionName = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
+			FunctionName = UEdGraphSchema_K2::GetFriendlySignatureName(Function);
 		}
 
 		FFormatNamedArguments Args;
@@ -253,7 +253,7 @@ void UK2Node_Event::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>&
 
 	if ( RedirectPinNames.Num() > 0 )
 	{
-		const FString & OldPinName = RedirectPinNames[0];
+		const FString& OldPinName = RedirectPinNames[0];
 
 		// first add functionname.param
 		RedirectPinNames.Add(FString::Printf(TEXT("%s.%s"), *EventSignatureName.ToString(), *OldPinName));
@@ -527,34 +527,26 @@ void UK2Node_Event::ExpandNode(class FKismetCompilerContext& CompilerContext, UE
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	UEdGraphPin* OrgDelegatePin = FindPin(UK2Node_Event::DelegateOutputName);
+	if (OrgDelegatePin && OrgDelegatePin->LinkedTo.Num() > 0)
 	{
-		UEdGraphPin* OrgDelegatePin = FindPin(UK2Node_Event::DelegateOutputName);
-		if (OrgDelegatePin && OrgDelegatePin->LinkedTo.Num() > 0)
+		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+		const FName FunctionName = GetFunctionName();
+		if(FunctionName == NAME_None)
 		{
-			const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
-			const FName FunctionName = GetFunctionName();
-			if(FunctionName == NAME_None)
-			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("EventDelegateName_Error", "Event node @@ has no name of function.").ToString()), this);
-			}
-
-			UK2Node_Self* SelfNode = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this, SourceGraph);
-			SelfNode->AllocateDefaultPins();
-
-			UK2Node_CreateDelegate* CreateDelegateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CreateDelegate>(this, SourceGraph);
-			CreateDelegateNode->AllocateDefaultPins();
-			CompilerContext.MovePinLinksToIntermediate(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin());
-			Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
-			CreateDelegateNode->SetFunction(FunctionName);
-			CreateDelegateNode->HandleAnyChangeWithoutNotifying();
-			if (CreateDelegateNode->GetFunctionName() != FunctionName)
-			{
-				CreateDelegateNode->SetFunction(FunctionName);
-				CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("EventDelegateError", "Invalid delegate connection @@. Try recompile.").ToString()), OrgDelegatePin);
-			}
+			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("EventDelegateName_Error", "Event node @@ has no name of function.").ToString()), this);
 		}
+
+		UK2Node_Self* SelfNode = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this, SourceGraph);
+		SelfNode->AllocateDefaultPins();
+
+		UK2Node_CreateDelegate* CreateDelegateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CreateDelegate>(this, SourceGraph);
+		CreateDelegateNode->AllocateDefaultPins();
+		CompilerContext.MovePinLinksToIntermediate(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin());
+		Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
+		// When called UFunction is defined in the same class, it wasn't created yet (previously the Skeletal class was checked). So no "CreateDelegateNode->HandleAnyChangeWithoutNotifying();" is called.
+		CreateDelegateNode->SetFunction(FunctionName);
 	}
 }
 

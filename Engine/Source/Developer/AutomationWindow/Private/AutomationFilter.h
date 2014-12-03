@@ -1,18 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 
-/*=============================================================================
-	AutomationFilter.h: Declares the AutomationFilter class.
-=============================================================================*/
-
-class FAutomationFilter : public IFilter< const TSharedPtr< class IAutomationReport >&  >
+class FAutomationFilter
+	: public IFilter<const TSharedPtr<class IAutomationReport>&>
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FAutomationFilter()
 		: OnlySmokeTests( false )
 		, ShowErrors( false )
@@ -22,8 +18,10 @@ public:
 public:
 
 	/**
-	 * Set if we should only show warnings
-	 * @param InShowWarnings If we should show warnings or not
+	 * Set if we should only show warnings.
+	 *
+	 * @param InShowWarnings If we should show warnings or not.
+	 * @see SetOnlyShowSmokeTests, SetShowErrors, ShouldShowWarnings
 	 */
 	void SetShowWarnings( const bool InShowWarnings )
 	{
@@ -31,8 +29,10 @@ public:
 	}
 
 	/**
-	 * Should we show warnings
-	 * @return True if we should be showing warnings
+	 * Should we show warnings.
+	 *
+	 * @return True if we should be showing warnings.
+	 * @see SetShowErrors, SetShowWarnings
 	 */
 	const bool ShouldShowWarnings( ) const
 	{
@@ -40,8 +40,10 @@ public:
 	}
 
 	/**
-	 * Set if we should only show errors
-	 * @param InShowErrors If we should show errors
+	 * Set if we should only show errors.
+	 *
+	 * @param InShowErrors If we should show errors.
+	 * @see SetOnlyShowSmokeTests, SetShowWarnings, ShouldShowErrors
 	 */
 	void SetShowErrors( const bool InShowErrors )
 	{
@@ -49,8 +51,10 @@ public:
 	}
 
 	/**
-	 * Should we show errors
-	 * @return True if we should be showing errors
+	 * Should we show errors.
+	 *
+	 * @return True if we should be showing errors.
+	 * @see SetShowErrors, ShouldShowWarnings
 	 */
 	const bool ShouldShowErrors( ) const
 	{
@@ -58,8 +62,9 @@ public:
 	}
 
 	/**
-	 * Set if we should only show smoke tests
-	 * @param InOnlySmokeTests If we should show smoke tests
+	 * Set if we should only show smoke tests.
+	 *
+	 * @param InOnlySmokeTests If we should show smoke tests.
 	 */
 	void SetOnlyShowSmokeTests( const bool InOnlySmokeTests )
 	{
@@ -67,8 +72,10 @@ public:
 	}
 
 	/**
-	 * Should we only show errors
-	 * @return True if we should be showing errors
+	 * Should we only show errors.
+	 *
+	 * @return True if we should be showing errors.
+	 * @see SetOnlyShowSmokeTests, ShouldShowErrors, ShouldShowWarnings
 	 */
 	const bool OnlyShowSmokeTests( ) const
 	{
@@ -109,15 +116,15 @@ public:
 
 private:
 
-	/**	The event that broadcasts whenever a change occurs to the filter */
+	/**	The event that broadcasts whenever a change occurs to the filter. */
 	FChangedEvent ChangedEvent;
 	
-	/** Only smoke tests will pass the test **/
+	/** Only smoke tests will pass the test. */
 	bool OnlySmokeTests;
 
-	/** Only errors will pass the test **/
+	/** Only errors will pass the test. */
 	bool ShowErrors;
 
-	/** Only warnings will pass the test **/
+	/** Only warnings will pass the test. */
 	bool ShowWarnings;
 };

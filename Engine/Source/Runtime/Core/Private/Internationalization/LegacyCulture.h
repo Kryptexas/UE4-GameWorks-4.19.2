@@ -26,21 +26,21 @@ class FCulture::FLegacyCultureImplementation
 
 	int GetLCID() const;
 
+	static FString GetCanonicalName(const FString& Name);
+
 	FString GetName() const;
 
-	static FString GetParentName(const FString& CultureName);
-
 	FString GetNativeName() const;
-
-	FString GetNativeLanguage() const;
-
-	FString GetNativeRegion() const;
 
 	FString GetUnrealLegacyThreeLetterISOLanguageName() const;
 
 	FString GetThreeLetterISOLanguageName() const;
 
 	FString GetTwoLetterISOLanguageName() const;
+
+	FString GetNativeLanguage() const;
+
+	FString GetNativeRegion() const;
 
 	// Full localized culture name
 	const FText DisplayName;

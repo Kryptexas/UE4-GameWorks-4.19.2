@@ -205,7 +205,7 @@ FReply FDragConnection::DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVec
 
 	// Give the context menu focus
 	return (WidgetToFocus.IsValid())
-		? FReply::Handled().SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly )
+		? FReply::Handled().SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly)
 		: FReply::Handled();
 }
 

@@ -4,6 +4,20 @@
 #pragma once
 #include "CurveLinearColor.generated.h"
 
+USTRUCT()
+struct ENGINE_API FRuntimeCurveLinearColor
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY()
+	FRichCurve ColorCurves[4];
+
+	UPROPERTY(EditAnywhere, Category = RuntimeFloatCurve)
+	class UCurveLinearColor* ExternalCurve;
+
+	FLinearColor GetLinearColorValue(float InTime) const;
+};
+
 UCLASS(BlueprintType)
 class ENGINE_API UCurveLinearColor : public UCurveBase
 {
@@ -13,16 +27,16 @@ class ENGINE_API UCurveLinearColor : public UCurveBase
 	UPROPERTY()
 	FRichCurve FloatCurves[4];
 
-	/** Evaluate this float curve at the specified time */
-	UFUNCTION(BlueprintCallable, Category="Math|Curves")
-	virtual FLinearColor GetLinearColorValue(float InTime) const;
-
 	// Begin FCurveOwnerInterface
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
 	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual bool IsLinearColorCurve() const { return true; }
 
-	/** @return True if the curve as any alpha keys */
-	bool HasAnyAlphaKeys() const { return FloatCurves[3].GetNumKeys() > 0; }
+	UFUNCTION(BlueprintCallable, Category="Math|Curves")
+	virtual FLinearColor GetLinearColorValue(float InTime) const override;
+
+	bool HasAnyAlphaKeys() const override { return FloatCurves[3].GetNumKeys() > 0; }
+	// End FCurveOwnerInterface
 
 	/** Determine if Curve is the same */
 	bool operator == (const UCurveLinearColor& Curve) const;

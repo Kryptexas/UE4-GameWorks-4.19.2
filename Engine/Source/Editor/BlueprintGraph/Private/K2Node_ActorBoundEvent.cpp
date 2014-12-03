@@ -33,8 +33,8 @@ public:
 	}
 };
 
-UK2Node_ActorBoundEvent::UK2Node_ActorBoundEvent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ActorBoundEvent::UK2Node_ActorBoundEvent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -24,8 +24,8 @@ Notes:
 #define SLIP_HEADER_SIZE   (UDP_HEADER_SIZE+4)
 #define WINSOCK_MAX_PACKET (512)
 
-UIpConnection::UIpConnection(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UIpConnection::UIpConnection(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	RemoteAddr(NULL),
 	Socket(NULL),
 	ResolveInfo(NULL)

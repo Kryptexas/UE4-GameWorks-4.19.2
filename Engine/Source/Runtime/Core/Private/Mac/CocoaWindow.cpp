@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "CocoaWindow.h"
 #include "MacApplication.h"
 #include "CocoaTextView.h"
 #include "MacEvent.h"
 #include "CocoaThread.h"
-
-TArray< FCocoaWindow* > GRunningModalWindows;
+#include "MacCursor.h"
 
 NSString* NSWindowRedrawContents = @"NSWindowRedrawContents";
 NSString* NSDraggingExited = @"NSDraggingExited";
@@ -33,8 +32,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bDeferOrderFront = false;
 	DeferOpacity = 0.0f;
 	bRenderInitialised = false;
-	bDeferSetFrame = false;
-	bDeferSetOrigin = false;
+	self.bDeferSetFrame = false;
+	self.bDeferSetOrigin = false;
 
 	id NewSelf = [super initWithContentRect:ContentRect styleMask:Style backing:BufferingType defer:Flag];
 	if(NewSelf)
@@ -43,8 +42,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		self.bForwardEvents = true;
 		self.TargetWindowMode = EWindowMode::Windowed;
 		[super setAlphaValue:DeferOpacity];
-		DeferFrame = [super frame];
-		self.PreFullScreenRect = DeferFrame;
+		self.DeferFrame = [super frame];
+		self.PreFullScreenRect = self.DeferFrame;
 	}
 	return NewSelf;
 }
@@ -56,23 +55,25 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (NSRect)openGLFrame
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(self.TargetWindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::Fullscreen)
 	{
-		return self.PreFullScreenRect;
+		return {{0, 0}, self.PreFullScreenRect.size};
 	}
 	else if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
-		return (!bDeferSetFrame ? [self frame] : DeferFrame);
+		return (!self.bDeferSetFrame ? [self frame] : self.DeferFrame);
 	}
 	else
 	{
-		return (!bDeferSetFrame ? [[self contentView] frame] : [self contentRectForFrameRect:DeferFrame]);
+		return (!self.bDeferSetFrame ? [[self contentView] frame] : [self contentRectForFrameRect:self.DeferFrame]);
 	}
 }
 
 
 - (NSView*)openGLView
 {
+	SCOPED_AUTORELEASE_POOL;
 	if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
 		NSView* SuperView = [[self contentView] superview];
@@ -100,7 +101,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	
 	if(bDeferOrderFront)
 	{
-		if(!(bDeferSetFrame || bDeferSetOrigin))
+		SCOPED_AUTORELEASE_POOL;
+		if(!(self.bDeferSetFrame || self.bDeferSetOrigin))
 		{
 			bDeferOrderFront = false;
 			[super setAlphaValue:DeferOpacity];
@@ -114,15 +116,17 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)performDeferredSetFrame
 {
-	if(bRenderInitialised && (bDeferSetFrame || bDeferSetOrigin))
+	if(bRenderInitialised && (self.bDeferSetFrame || self.bDeferSetOrigin))
 	{
+		SCOPED_AUTORELEASE_POOL;
 		dispatch_block_t Block = ^{
-			if(!bDeferSetFrame && bDeferSetOrigin)
+			SCOPED_AUTORELEASE_POOL;
+			if(!self.bDeferSetFrame && self.bDeferSetOrigin)
 			{
-				DeferFrame.size = [self frame].size;
+				self.DeferFrame.size = [self frame].size;
 			}
 			
-			[super setFrame:DeferFrame display:YES];
+			[super setFrame:self.DeferFrame display:YES];
 		};
 		
 		if([NSThread isMainThread])
@@ -134,22 +138,19 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 			dispatch_async(dispatch_get_main_queue(), Block);
 		}
 		
-		bDeferSetFrame = false;
-		bDeferSetOrigin = false;
+		self.bDeferSetFrame = false;
+		self.bDeferSetOrigin = false;
 	}
 }
 
 - (void)orderWindow:(NSWindowOrderingMode)OrderingMode relativeTo:(NSInteger)OtherWindowNumber
 {
-	bool bModal = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask;
-	if(OrderingMode == NSWindowOut || bModal)
+	SCOPED_AUTORELEASE_POOL;
+	if([self alphaValue] > 0.0f)
 	{
-		if([self alphaValue] > 0.0f)
-		{
-			[self performDeferredSetFrame];
-		}
-		[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
+		[self performDeferredSetFrame];
 	}
+	[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
 }
 
 - (bool)roundedCorners
@@ -169,10 +170,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)redrawContents
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(bNeedsRedraw && bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
 		NSNotification* Notification = [NSNotification notificationWithName:NSWindowRedrawContents object:self];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4NilEventMode, UE4ShowEventMode, UE4ResizeEventMode, UE4FullscreenEventMode, UE4CloseEventMode, UE4IMEEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4NilEventMode, UE4ShowEventMode, UE4ResizeEventMode, UE4FullscreenEventMode, UE4CloseEventMode, UE4IMEEventMode ]);
 	}
 	bNeedsRedraw = false;
 }
@@ -194,14 +196,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)orderFrontAndMakeMain:(bool)bMain andKey:(bool)bKey
 {
+	SCOPED_AUTORELEASE_POOL;
 	if ([NSApp isHidden] == NO)
 	{
-		bool bBringToFront = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask;
-		if (bBringToFront)
-		{
-			[self orderFront:nil];
-		}
-		
+		[self orderFront:nil];
+
 		if (bMain && [self canBecomeMainWindow] && self != [NSApp mainWindow])
 		{
 			[self makeMainWindow];
@@ -216,17 +215,19 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 // Following few methods overload NSWindow's methods from Cocoa API, so have to use Cocoa's BOOL (signed char), not bool (unsigned int)
 - (BOOL)canBecomeMainWindow
 {
-	bool bNoModalOrCurrent = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self;
-	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask) && bNoModalOrCurrent;
+	SCOPED_AUTORELEASE_POOL;
+	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask);
 }
 
 - (BOOL)canBecomeKeyWindow
 {
+	SCOPED_AUTORELEASE_POOL;
 	return bAcceptsInput && ![self ignoresMouseEvents];
 }
 
-- (BOOL)validateMenuItem:(NSMenuItem *)MenuItem
+- (BOOL)validateMenuItem:(NSMenuItem*)MenuItem
 {
+	SCOPED_AUTORELEASE_POOL;
 	// Borderless windows we use do not automatically handle first responder's actions, so we force it here
 	return ([MenuItem action] == @selector(performClose:) || [MenuItem action] == @selector(performMiniaturize:) || [MenuItem action] == @selector(performZoom:)) ? YES : [super validateMenuItem:MenuItem];
 }
@@ -240,6 +241,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 	else
 	{
+		SCOPED_AUTORELEASE_POOL;
 		if([self isVisible] && WindowAlpha > 0.0f)
 		{
 			[self performDeferredSetFrame];
@@ -250,6 +252,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)orderOut:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	bDeferOrderFront = false;
 	
 	[super orderOut:Sender];
@@ -267,11 +270,13 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)performMiniaturize:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	[self miniaturize: self];
 }
 
 - (void)performZoom:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	bZoomed = !bZoomed;
 	[self zoom: self];
 }
@@ -285,124 +290,142 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
 {
+	SCOPED_AUTORELEASE_POOL;
 	NSSize Size = [self frame].size;
+	
+	if (TargetWindowMode != EWindowMode::Windowed)
+	{
+		FrameRect.size = [[self screen] frame].size;
+	}
+	
 	NSSize NewSize = FrameRect.size;
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1 || NewSize.width > 1 || NewSize.height > 1)))
 	{
 		[super setFrame:FrameRect display:Flag];
-		bDeferSetFrame = false;
+		self.bDeferSetFrame = false;
 	}
 	else
 	{
-		bDeferSetFrame = true;
-		DeferFrame = FrameRect;
+		self.bDeferSetFrame = true;
+		self.DeferFrame = FrameRect;
 		if(self.bForwardEvents)
 		{
 			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidResizeNotification object:self];
-			FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
+			FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
 		}
 	}
 }
 
 - (void)setFrameOrigin:(NSPoint)Point
 {
+	SCOPED_AUTORELEASE_POOL;
 	NSSize Size = [self frame].size;
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1)))
 	{
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[super setFrameOrigin:Point];
 		});
-		bDeferSetOrigin = false;
+		self.bDeferSetOrigin = false;
 	}
 	else
 	{
-		bDeferSetOrigin = true;
-		DeferFrame.origin = Point;
+		self.bDeferSetOrigin = true;
+		self.DeferFrame = NSMakeRect(Point.x, Point.y, self.DeferFrame.size.width, self.DeferFrame.size.height);
 		NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidMoveNotification object:self];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
 	}
 }
 
-- (void)keyDown:(NSEvent *)Event
+- (void)keyDown:(NSEvent*)Event
 {
 	// @note Deliberately empty - we don't want OS X to handle keyboard input as it will recursively re-add events we aren't handling
 }
 
-- (void)keyUp:(NSEvent *)Event
+- (void)keyUp:(NSEvent*)Event
 {
 	// @note Deliberately empty - we don't want OS X to handle keyboard input as it will recursively re-add events we aren't handling
 }
 
-- (void)windowWillEnterFullScreen:(NSNotification *)notification
+- (void)windowWillEnterFullScreen:(NSNotification*)Notification
 {
 	// Handle clicking on the titlebar fullscreen item
 	if(self.TargetWindowMode == EWindowMode::Windowed)
 	{
-		// @todo: Fix fullscreen mode mouse coordinate handling - for now default to windowed fullscreen
-		self.TargetWindowMode = EWindowMode::WindowedFullscreen;
+		self.TargetWindowMode = EWindowMode::Fullscreen;
 	}
 }
 
-- (void)windowDidEnterFullScreen:(NSNotification *)notification
+- (void)windowDidEnterFullScreen:(NSNotification*)Notification
 {
 	WindowMode = self.TargetWindowMode;
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
+	}
+	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+	if ( MacCursor )
+	{
+		NSSize WindowSize = [self frame].size;
+		NSSize ViewSize = [self openGLFrame].size;
+		float WidthScale = ViewSize.width / WindowSize.width;
+		float HeightScale = ViewSize.height / WindowSize.height;
+		MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
 	}
 }
 
-- (void)windowDidExitFullScreen:(NSNotification *)notification
+- (void)windowDidExitFullScreen:(NSNotification*)Notification
 {
 	WindowMode = EWindowMode::Windowed;
 	self.TargetWindowMode = EWindowMode::Windowed;
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
+	}
+	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+	if ( MacCursor )
+	{
+		MacCursor->SetMouseScaling(FVector2D(1.0f, 1.0f));
 	}
 }
 
-- (void)windowDidBecomeKey:(NSNotification *)Notification
+- (void)windowDidBecomeKey:(NSNotification*)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	if([NSApp isHidden] == NO)
 	{
-		if(FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask)
-		{
-			[self orderFrontAndMakeMain:false andKey:false];
-		}
-		else
-		{
-			[FMacWindow::CurrentModalWindow() orderFrontAndMakeMain:true andKey:true];
-		}
+		[self orderFrontAndMakeMain:false andKey:false];
 	}
-	
+
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
-- (void)windowDidResignKey:(NSNotification *)Notification
+- (void)windowDidResignKey:(NSNotification*)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	[self setMovable: YES];
 	[self setMovableByWindowBackground: NO];
 	
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
-- (void)windowWillMove:(NSNotification *)Notification
+- (void)windowWillMove:(NSNotification*)Notification
 {
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
-- (void)windowDidMove:(NSNotification *)Notification
+- (void)windowDidMove:(NSNotification*)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
 	
 	NSView* OpenGLView = [self openGLView];
@@ -410,18 +433,17 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
-- (void)windowDidChangeScreen:(NSNotification *)notification
+- (void)windowDidChangeScreen:(NSNotification*)Notification
 {
-	// You'd think this would be a good place to handle un/parenting...
-	// However, do that here and your dragged window will disappear when you drag it onto another screen!
 	// The windowdidChangeScreen notification only comes after you finish dragging.
 	// It does however, work fine for handling display arrangement changes that cause a window to go offscreen.
 	if(bDisplayReconfiguring)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSScreen* Screen = [self screen];
 		NSRect Frame = [self frame];
 		NSRect VisibleFrame = [Screen visibleFrame];
@@ -477,30 +499,26 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
-- (void)windowDidResize:(NSNotification *)Notification
+- (void)windowDidResize:(NSNotification*)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 	}
 	bNeedsRedraw = true;
 }
 
-- (void)windowWillClose:(NSNotification *)notification
+- (void)windowWillClose:(NSNotification*)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(self.bForwardEvents && MacApplication)
 	{
-		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4CloseEventMode ]);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4CloseEventMode ]);
 	}
 	self.bForwardEvents = false;
 	[self setDelegate:nil];
-
-	if ([[NSApp windows] count] == 1)
-	{
-		// It's the last window. App will quit, so stop updating menu state cache.
-		GameThreadCall(^{ FPlatformMisc::UpdateCachedMacMenuState = nullptr; }, @[ NSDefaultRunLoopMode ], false);
-	}
 }
 
 - (void)mouseDown:(NSEvent*)Event
@@ -515,6 +533,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	// Really we shouldn't be doing this - on OS X only left-click changes focus,
 	// but for the moment it is easier than changing Slate.
+	SCOPED_AUTORELEASE_POOL;
 	if([self canBecomeKeyWindow])
 	{
 		[self makeKeyWindow];
@@ -567,8 +586,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSDraggingExited object:Sender];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async);
 	}
 }
 
@@ -576,8 +596,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSDraggingUpdated object:Sender];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async);
 	}
 	return NSDragOperationGeneric;
 }
@@ -586,8 +607,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSPrepareForDragOperation object:Sender];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async);
 	}
 	return YES;
 }
@@ -596,14 +618,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSPerformDragOperation object:Sender];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
+		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async);
 	}
 	return YES;
 }
 
 - (BOOL)isMovable
 {
+	SCOPED_AUTORELEASE_POOL;
 	BOOL Movable = [super isMovable];
 	if(Movable && bRenderInitialised && MacApplication)
 	{

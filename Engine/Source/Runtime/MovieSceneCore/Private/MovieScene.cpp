@@ -42,8 +42,8 @@ bool FMovieSceneObjectBinding::RemoveTrack( UMovieSceneTrack& Track )
 	return Tracks.RemoveSingle( &Track ) != 0;
 }
 
-UMovieScene::UMovieScene( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieScene::UMovieScene( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

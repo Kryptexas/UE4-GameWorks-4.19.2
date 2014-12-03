@@ -530,7 +530,7 @@ class FTextureFormatPVR : public ITextureFormat
 			}
 
 			// Copy compressed data
-			FMemory::Memcpy(MipData, PVRData.GetTypedData() + FileOffset, DestNumBytes);
+			FMemory::Memcpy(MipData, PVRData.GetData() + FileOffset, DestNumBytes);
 		}
 
 		// Delete intermediate files

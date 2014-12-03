@@ -507,6 +507,26 @@ bool FTabManager::IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const
 	return !(MainNonCloseableTab.Pin() == InTab);
 }
 
+const TSharedRef<FWorkspaceItem> FTabManager::GetLocalWorkspaceMenuRoot() const
+{
+	return LocalWorkspaceMenuRoot.ToSharedRef();
+}
+
+TSharedRef<FWorkspaceItem> FTabManager::AddLocalWorkspaceMenuCategory( const FText& CategoryTitle )
+{
+	return LocalWorkspaceMenuRoot->AddGroup( CategoryTitle );
+}
+
+void FTabManager::AddLocalWorkspaceMenuItem( const TSharedRef<FWorkspaceItem>& CategoryItem )
+{
+	LocalWorkspaceMenuRoot->AddItem( CategoryItem );
+}
+
+void FTabManager::ClearLocalWorkspaceMenuCategories()
+{
+	LocalWorkspaceMenuRoot->ClearItems();
+}
+
 TSharedPtr<FTabManager::FStack> FTabManager::FLayoutNode::AsStack()
 {
 	return TSharedPtr<FTabManager::FStack>();
@@ -706,19 +726,19 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 		else
 		{
 			// GROUP NODE
-			// If it's not empty, populate it
+			// If it's not empty, create a section and populate it
 			if ( ChildItem->HasChildrenIn(*Args.AllSpawners) )
 			{
 				const FPopulateTabSpawnerMenu_Args Payload( Args.AllSpawners, ChildItem, Args.Level+1 );
 
 				if ( Args.Level % 2 == 0 )
 				{
-					if (!bFirstItemOnLevel)
+					FName SectionName(*ChildItem->GetDisplayName().ToString().Replace(TEXT(" "), TEXT("")));
+					PopulateMe.BeginSection(SectionName, ChildItem->GetDisplayName());
 					{
-						PopulateMe.AddMenuSeparator();
+						PopulateTabSpawnerMenu_Helper(PopulateMe, Payload);
 					}
-						
-					PopulateTabSpawnerMenu_Helper( PopulateMe, Payload );
+					PopulateMe.EndSection();
 				}
 				else
 				{
@@ -740,8 +760,12 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 
 void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedPtr<FTabSpawnerEntry> &SpawnerNode ) 
 {
-	//PopulateMe.BeginSection( "TabSection", SpawnerNode->GetDisplayName() );
-	if ( SpawnerNode->MenuType != ETabSpawnerMenuType::Hide )
+	auto CanExecuteMenuEntry = [](TAttribute<ETabSpawnerMenuType::Type> InMenuType) -> bool
+	{
+		return InMenuType.Get() == ETabSpawnerMenuType::Enabled;
+	};
+
+	if ( SpawnerNode->MenuType.Get() != ETabSpawnerMenuType::Hidden )
 	{
 		PopulateMe.AddMenuEntry(
 			SpawnerNode->GetDisplayName().IsEmpty() ? FText::FromName( SpawnerNode->TabType ) : SpawnerNode->GetDisplayName(),
@@ -749,30 +773,42 @@ void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedP
 			SpawnerNode->GetIcon(),
 			FUIAction(
 			FExecuteAction::CreateSP(SharedThis(this), &FTabManager::InvokeTabForMenu, SpawnerNode->TabType),
-			FCanExecuteAction(),
+			FCanExecuteAction::CreateStatic(CanExecuteMenuEntry, SpawnerNode->MenuType),
 			FIsActionChecked::CreateSP(SpawnerNode.ToSharedRef(), &FTabSpawnerEntry::IsSoleTabInstanceSpawned)
 			),
 			NAME_None,
 			EUserInterfaceActionType::Check
 			);
 	}
-	//PopulateMe.EndSection();
+}
+
+void FTabManager::PopulateLocalTabSpawnerMenu(FMenuBuilder& PopulateMe)
+{
+	PopulateTabSpawnerMenu(PopulateMe, LocalWorkspaceMenuRoot.ToSharedRef());
 }
 
 void FTabManager::PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure )
 {
 	TSharedRef< TArray< TWeakPtr<FTabSpawnerEntry> > > AllSpawners = MakeShareable( new TArray< TWeakPtr<FTabSpawnerEntry> >() );
 	{
+		// Editor-specific tabs
 		for ( FTabSpawner::TIterator SpawnerIterator(TabSpawner); SpawnerIterator; ++SpawnerIterator  )	
 		{
 			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
-			AllSpawners->AddUnique(SpawnerEntry);
+			if (SpawnerEntry->bAutoGenerateMenuEntry)
+			{
+				AllSpawners->AddUnique( SpawnerEntry );
+			}
 		}
 
+		// General Tabs
 		for ( FTabSpawner::TIterator SpawnerIterator(*NomadTabSpawner); SpawnerIterator; ++SpawnerIterator  )	
 		{
 			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
-			AllSpawners->AddUnique(SpawnerEntry);
+			if (SpawnerEntry->bAutoGenerateMenuEntry)
+			{
+				AllSpawners->AddUnique( SpawnerEntry );
+			}
 		}
 	}
 
@@ -992,6 +1028,7 @@ FTabManager::FTabManager( const TSharedPtr<SDockTab>& InOwnerTab, const TSharedR
 , LastDocumentUID( 0 )
 , bIsSavingVisualState( false )
 {
+	LocalWorkspaceMenuRoot = FWorkspaceItem::NewGroup(LOCTEXT("LocalWorkspaceRoot", "Local Workspace Root"));
 }
 
 
@@ -1166,11 +1203,7 @@ TSharedRef<SDockTab> FTabManager::SpawnTab( const FTabId& TabId, const TSharedPt
 		NewTabWidget->SetLayoutIdentifier( TabId );
 		NewTabWidget->ProvideDefaultLabel( Spawner->GetDisplayName().IsEmpty() ? FText::FromName( Spawner->TabType ) : Spawner->GetDisplayName() );
 		NewTabWidget->ProvideDefaultIcon( Spawner->GetIcon().GetIcon() );
-
-		// If this tabs' content was not tagged for tutorials by its creator, we can provide an automated tag based  on the TabId.
-		// NOTE: relying on this is bad because it couples tutorials to the internals of tab management!
-		NewTabWidget->GetContent()->AddMetadataIfMissing<FTagMetaData>( MakeShareable(new FTagMetaData( *TabId.ToString() ) ) );
-
+	
 		// The spawner tracks that last tab it spawned
 		Spawner->SpawnedTabPtr = NewTabWidget;
 	}
@@ -1267,7 +1300,7 @@ bool FTabManager::HasAnyMatchingTabs( const TSharedRef<FTabManager::FLayoutNode>
 
 	if ( AsStack.IsValid() )
 	{
-		return INDEX_NONE != AsStack->Tabs.FindMatch(Matcher);
+		return INDEX_NONE != AsStack->Tabs.IndexOfByPredicate(Matcher);
 	}
 	else
 	{
@@ -1291,7 +1324,7 @@ bool FTabManager::HasOpenTabs( const TSharedRef<FTabManager::FLayoutNode>& SomeN
 	{
 		const FTabManager* TabManager;
 
-		bool Matches( const FTab& Candidate ) const
+		bool operator()(const FTab& Candidate) const
 		{
 			return TabManager->IsValidTabForSpawning(Candidate) && Candidate.TabState == ETabState::OpenedTab;
 		}
@@ -1309,7 +1342,7 @@ bool FTabManager::HasValidTabs( const TSharedRef<FTabManager::FLayoutNode>& Some
 	{
 		const FTabManager* TabManager;
 
-		bool Matches( const FTab& Candidate ) const
+		bool operator()(const FTab& Candidate) const
 		{
 			return TabManager->IsValidTabForSpawning(Candidate);
 		}
@@ -1333,6 +1366,8 @@ void FTabManager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, cons
 	{
 		DockAreas[DockAreaIndex].Pin()->OnTabFoundNewHome( RelocatedTab, NewOwnerWindow.ToSharedRef() );
 	}
+
+	FGlobalTabmanager::Get()->UpdateMainMenu(RelocatedTab, true);
 
 	UpdateStats();
 }
@@ -1407,7 +1442,7 @@ TSharedPtr<FTabManager::FStack> FTabManager::FindTabUnderNode( const FTabMatcher
 
 	if (NodeAsStack.IsValid())
 	{
-		const int32 TabIndex = NodeAsStack->Tabs.FindMatch( Matcher );
+		const int32 TabIndex = NodeAsStack->Tabs.IndexOfByPredicate(Matcher);
 		if (TabIndex != INDEX_NONE)
 		{
 			return NodeAsStack;
@@ -1473,7 +1508,7 @@ void FTabManager::RemoveTabFromCollapsedAreas( const FTabMatcher& Matcher )
 
 			if (StackWithMatchingTab.IsValid())
 			{
-				const int32 TabIndex = StackWithMatchingTab->Tabs.FindMatch( Matcher );
+				const int32 TabIndex = StackWithMatchingTab->Tabs.IndexOfByPredicate(Matcher);
 				if ( ensure(TabIndex != INDEX_NONE) )
 				{
 					StackWithMatchingTab->Tabs.RemoveAt(TabIndex);
@@ -1616,7 +1651,7 @@ bool FGlobalTabmanager::CanCloseManager( const TSet< TSharedRef<SDockTab> >& Tab
 
 void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager )
 {
-	const int32 MajorTabIndex = SubTabManagers.FindMatch( FindByManager(ChildManager) );
+	const int32 MajorTabIndex = SubTabManagers.IndexOfByPredicate(FindByManager(ChildManager));
 	if (MajorTabIndex != INDEX_NONE)
 	{
 		this->DrawAttention( SubTabManagers[MajorTabIndex].MajorTab.Pin().ToSharedRef() );
@@ -1646,7 +1681,7 @@ void FGlobalTabmanager::UpdateMainMenu(const TSharedRef<SDockTab>& ForTab, bool 
 	TSharedPtr<FTabManager> Tabmanager = ForTab->GetTabManager();
 	if(Tabmanager == AsShared())
 	{
-		const int32 TabIndex = SubTabManagers.FindMatch( FindByTab(ForTab) );
+		const int32 TabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(ForTab));
 		if (TabIndex != INDEX_NONE)
 		{
 			Tabmanager = SubTabManagers[TabIndex].TabManager.Pin();
@@ -1703,7 +1738,7 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 	if (NewForegroundTab.IsValid())
 	{
 		// Show any child windows associated with the Major Tab that got foregrounded.
-		const int32 ForegroundedTabIndex = SubTabManagers.FindMatch( FindByTab(NewForegroundTab.ToSharedRef()) );
+		const int32 ForegroundedTabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(NewForegroundTab.ToSharedRef()));
 		if (ForegroundedTabIndex != INDEX_NONE)
 		{
 			TSharedPtr<FTabManager> ForegroundTabManager = SubTabManagers[ForegroundedTabIndex].TabManager.Pin();
@@ -1714,7 +1749,7 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 	if ( BackgroundedTab.IsValid() )
 	{
 		// Hide any child windows associated with the Major Tab that got backgrounded.
-		const int32 BackgroundedTabIndex = SubTabManagers.FindMatch( FindByTab(BackgroundedTab.ToSharedRef()) );
+		const int32 BackgroundedTabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(BackgroundedTab.ToSharedRef()));
 		if (BackgroundedTabIndex != INDEX_NONE)
 		{
 			TSharedPtr<FTabManager> BackgroundedTabManager = SubTabManagers[BackgroundedTabIndex].TabManager.Pin();
@@ -1727,7 +1762,7 @@ void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab
 {
 	if (NewOwnerWindow.IsValid())
 	{
-		const int32 RelocatedManagerIndex = SubTabManagers.FindMatch( FindByTab(RelocatedTab) );
+		const int32 RelocatedManagerIndex = SubTabManagers.IndexOfByPredicate(FindByTab(RelocatedTab));
 		if (RelocatedManagerIndex != INDEX_NONE)
 		{
 			const TSharedRef<FTabManager>& RelocatedManager = SubTabManagers[RelocatedManagerIndex].TabManager.Pin().ToSharedRef();
@@ -1769,7 +1804,7 @@ void FGlobalTabmanager::OnTabClosing( const TSharedRef<SDockTab>& TabBeingClosed
 {
 	// Is this a major tab that contained a Sub TabManager?
 	// If so, need to properly close the sub tab manager
-	const int32 TabManagerBeingClosedIndex = SubTabManagers.FindMatch( FindByTab(TabBeingClosed) );
+	const int32 TabManagerBeingClosedIndex = SubTabManagers.IndexOfByPredicate(FindByTab(TabBeingClosed));
 	if (TabManagerBeingClosedIndex != INDEX_NONE)
 	{
 		const TSharedRef<FTabManager>& TabManagerBeingClosed = SubTabManagers[TabManagerBeingClosedIndex].TabManager.Pin().ToSharedRef();

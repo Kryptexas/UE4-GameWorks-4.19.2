@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
@@ -18,8 +19,8 @@ struct FK2Node_CreateWidgetHelper
 
 FString FK2Node_CreateWidgetHelper::OwningPlayerPinName(TEXT("OwningPlayer"));
 
-UK2Node_CreateWidget::UK2Node_CreateWidget(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CreateWidget::UK2Node_CreateWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new widget");
 }
@@ -89,81 +90,78 @@ void UK2Node_CreateWidget::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if ( CompilerContext.bIsFullCompile )
+	static FName Create_FunctionName = GET_FUNCTION_NAME_CHECKED(UWidgetBlueprintLibrary, Create);
+	static FString WorldContextObject_ParamName = FString(TEXT("WorldContextObject"));
+	static FString WidgetType_ParamName = FString(TEXT("WidgetType"));
+	static FString OwningPlayer_ParamName = FString(TEXT("OwningPlayer"));
+
+	UK2Node_CreateWidget* CreateWidgetNode = this;
+	UEdGraphPin* SpawnNodeExec = CreateWidgetNode->GetExecPin();
+	UEdGraphPin* SpawnWorldContextPin = CreateWidgetNode->GetWorldContextPin();
+	UEdGraphPin* SpawnOwningPlayerPin = CreateWidgetNode->GetOwningPlayerPin();
+	UEdGraphPin* SpawnClassPin = CreateWidgetNode->GetClassPin();
+	UEdGraphPin* SpawnNodeThen = CreateWidgetNode->GetThenPin();
+	UEdGraphPin* SpawnNodeResult = CreateWidgetNode->GetResultPin();
+
+	UClass* SpawnClass = ( SpawnClassPin != NULL ) ? Cast<UClass>(SpawnClassPin->DefaultObject) : NULL;
+	if ( ( 0 == SpawnClassPin->LinkedTo.Num() ) && ( NULL == SpawnClass ) )
 	{
-		static FName Create_FunctionName = GET_FUNCTION_NAME_CHECKED(UWidgetBlueprintLibrary, Create);
-		static FString WorldContextObject_ParamName = FString(TEXT("WorldContextObject"));
-		static FString WidgetType_ParamName = FString(TEXT("WidgetType"));
-		static FString OwningPlayer_ParamName = FString(TEXT("OwningPlayer"));
-
-		UK2Node_CreateWidget* CreateWidgetNode = this;
-		UEdGraphPin* SpawnNodeExec = CreateWidgetNode->GetExecPin();
-		UEdGraphPin* SpawnWorldContextPin = CreateWidgetNode->GetWorldContextPin();
-		UEdGraphPin* SpawnOwningPlayerPin = CreateWidgetNode->GetOwningPlayerPin();
-		UEdGraphPin* SpawnClassPin = CreateWidgetNode->GetClassPin();
-		UEdGraphPin* SpawnNodeThen = CreateWidgetNode->GetThenPin();
-		UEdGraphPin* SpawnNodeResult = CreateWidgetNode->GetResultPin();
-
-		UClass* SpawnClass = ( SpawnClassPin != NULL ) ? Cast<UClass>(SpawnClassPin->DefaultObject) : NULL;
-		if ( ( 0 == SpawnClassPin->LinkedTo.Num() ) && ( NULL == SpawnClass ) )
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("CreateWidgetNodeMissingClass_Error", "Spawn node @@ must have a class specified.").ToString(), CreateWidgetNode);
-			// we break exec links so this is the only error we get, don't want the CreateWidget node being considered and giving 'unexpected node' type warnings
-			CreateWidgetNode->BreakAllNodeLinks();
-			return;
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// create 'UWidgetBlueprintLibrary::Create' call node
-		UK2Node_CallFunction* CallCreateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(CreateWidgetNode, SourceGraph);
-		CallCreateNode->FunctionReference.SetExternalMember(Create_FunctionName, UWidgetBlueprintLibrary::StaticClass());
-		CallCreateNode->AllocateDefaultPins();
-
-		UEdGraphPin* CallCreateExec = CallCreateNode->GetExecPin();
-		UEdGraphPin* CallCreateWorldContextPin = CallCreateNode->FindPinChecked(WorldContextObject_ParamName);
-		UEdGraphPin* CallCreateWidgetTypePin = CallCreateNode->FindPinChecked(WidgetType_ParamName);
-		UEdGraphPin* CallCreateOwningPlayerPin = CallCreateNode->FindPinChecked(OwningPlayer_ParamName);
-		UEdGraphPin* CallCreateResult = CallCreateNode->GetReturnValuePin();
-
-		// Move 'exec' connection from create widget node to 'UWidgetBlueprintLibrary::Create'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeExec, *CallCreateExec);
-
-		if ( SpawnClassPin->LinkedTo.Num() > 0 )
-		{
-			// Copy the 'blueprint' connection from the spawn node to 'UWidgetBlueprintLibrary::Create'
-			CompilerContext.MovePinLinksToIntermediate(*SpawnClassPin, *CallCreateWidgetTypePin);
-		}
-		else
-		{
-			// Copy blueprint literal onto 'UWidgetBlueprintLibrary::Create' call 
-			CallCreateWidgetTypePin->DefaultObject = SpawnClass;
-		}
-
-		// Copy the world context connection from the spawn node to 'UWidgetBlueprintLibrary::Create' if necessary
-		if ( SpawnWorldContextPin )
-		{
-			CompilerContext.MovePinLinksToIntermediate(*SpawnWorldContextPin, *CallCreateWorldContextPin);
-		}
-
-		// Copy the 'Owning Player' connection from the spawn node to 'UWidgetBlueprintLibrary::Create'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnOwningPlayerPin, *CallCreateOwningPlayerPin);
-
-		// Move result connection from spawn node to 'UWidgetBlueprintLibrary::Create'
-		CallCreateResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallCreateResult);
-
-		//////////////////////////////////////////////////////////////////////////
-		// create 'set var' nodes
-
-		// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
-		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, CreateWidgetNode, CallCreateResult, GetClassToSpawn());
-
-		// Move 'then' connection from create widget node to the last 'then'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *LastThen);
-
-		// Break any links to the expanded node
+		CompilerContext.MessageLog.Error(*LOCTEXT("CreateWidgetNodeMissingClass_Error", "Spawn node @@ must have a class specified.").ToString(), CreateWidgetNode);
+		// we break exec links so this is the only error we get, don't want the CreateWidget node being considered and giving 'unexpected node' type warnings
 		CreateWidgetNode->BreakAllNodeLinks();
+		return;
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// create 'UWidgetBlueprintLibrary::Create' call node
+	UK2Node_CallFunction* CallCreateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(CreateWidgetNode, SourceGraph);
+	CallCreateNode->FunctionReference.SetExternalMember(Create_FunctionName, UWidgetBlueprintLibrary::StaticClass());
+	CallCreateNode->AllocateDefaultPins();
+
+	UEdGraphPin* CallCreateExec = CallCreateNode->GetExecPin();
+	UEdGraphPin* CallCreateWorldContextPin = CallCreateNode->FindPinChecked(WorldContextObject_ParamName);
+	UEdGraphPin* CallCreateWidgetTypePin = CallCreateNode->FindPinChecked(WidgetType_ParamName);
+	UEdGraphPin* CallCreateOwningPlayerPin = CallCreateNode->FindPinChecked(OwningPlayer_ParamName);
+	UEdGraphPin* CallCreateResult = CallCreateNode->GetReturnValuePin();
+
+	// Move 'exec' connection from create widget node to 'UWidgetBlueprintLibrary::Create'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeExec, *CallCreateExec);
+
+	if ( SpawnClassPin->LinkedTo.Num() > 0 )
+	{
+		// Copy the 'blueprint' connection from the spawn node to 'UWidgetBlueprintLibrary::Create'
+		CompilerContext.MovePinLinksToIntermediate(*SpawnClassPin, *CallCreateWidgetTypePin);
+	}
+	else
+	{
+		// Copy blueprint literal onto 'UWidgetBlueprintLibrary::Create' call 
+		CallCreateWidgetTypePin->DefaultObject = SpawnClass;
+	}
+
+	// Copy the world context connection from the spawn node to 'UWidgetBlueprintLibrary::Create' if necessary
+	if ( SpawnWorldContextPin )
+	{
+		CompilerContext.MovePinLinksToIntermediate(*SpawnWorldContextPin, *CallCreateWorldContextPin);
+	}
+
+	// Copy the 'Owning Player' connection from the spawn node to 'UWidgetBlueprintLibrary::Create'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnOwningPlayerPin, *CallCreateOwningPlayerPin);
+
+	// Move result connection from spawn node to 'UWidgetBlueprintLibrary::Create'
+	CallCreateResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallCreateResult);
+
+	//////////////////////////////////////////////////////////////////////////
+	// create 'set var' nodes
+
+	// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
+	UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, CreateWidgetNode, CallCreateResult, GetClassToSpawn());
+
+	// Move 'then' connection from create widget node to the last 'then'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *LastThen);
+
+	// Break any links to the expanded node
+	CreateWidgetNode->BreakAllNodeLinks();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -3,6 +3,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 #include "ISourceControlModule.h"

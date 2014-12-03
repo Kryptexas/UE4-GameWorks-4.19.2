@@ -10,14 +10,14 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "DisplayDebugHelpers.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 #define LOCTEXT_NAMESPACE "HUD"
 
-AHUD::AHUD(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AHUD::AHUD(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.TickGroup = TG_DuringPhysics;
 	PrimaryActorTick.bCanEverTick = true;
@@ -74,7 +74,7 @@ void AHUD::NotifyBindPostProcessEffects()
 
 FVector2D AHUD::GetCoordinateOffset() const
 {
-	FVector2D Offset;
+	FVector2D Offset(0.f, 0.f);
 
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(GetOwningPlayerController()->Player);
 
@@ -301,7 +301,7 @@ void AHUD::ShowDebugToggleSubCategory(FName Category)
 }
 
 
-bool AHUD::ShouldDisplayDebug(const FName & DebugType) const
+bool AHUD::ShouldDisplayDebug(const FName& DebugType) const
 {
 	return bShowDebugInfo && DebugDisplay.Contains(DebugType);
 }
@@ -455,10 +455,6 @@ void AHUD::DrawDebugTextList()
 	}
 }
 
-/**
- * Add debug text for a specific actor to be displayed via DrawDebugTextList().  If the debug text is invalid then it will
- * attempt to remove any previous entries via RemoveDebugText().
- */
 void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 AActor* SrcActor,
 										 float Duration,
@@ -473,7 +469,7 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 )
 {
 	// set a default color
-	if (TextColor == FColor::Black)
+	if (TextColor == FLinearColor::Transparent)
 	{
 		TextColor = FColor::White;
 	}
@@ -879,15 +875,15 @@ bool AHUD::AnyCurrentHitBoxHits() const
 	return HitBoxHits.Num() != 0;
 }
 
-bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent)
+bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType)
 {
 	ClickLocation += GetCoordinateOffset();
 
 	const bool bIsClickEvent = (InEventType == IE_Pressed || InEventType == IE_DoubleClick);
 	bool bHit = false;
 
-	// If this is a touch event we likely don't have the hit box in the hit list yet so we need to check all HitBoxes
-	if (bIsTouchEvent && bIsClickEvent)
+	// If this is a click event we may not have the hit box in the hit list yet (particularly for touch events) so we need to check all HitBoxes
+	if (bIsClickEvent)
 	{
 		for (FHUDHitBox& HitBox : HitBoxMap)
 		{
@@ -912,11 +908,7 @@ bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EIn
 			{
 				bHit = true;
 
-				if (bIsClickEvent)
-				{
-					ReceiveHitBoxClick(HitBoxHit->GetName());
-				}
-				else if (InEventType == IE_Released)
+				if (InEventType == IE_Released)
 				{
 					ReceiveHitBoxRelease(HitBoxHit->GetName());
 				}
@@ -969,48 +961,5 @@ bool AHUD::IsCanvasValid_WarnIfNot() const
 	return bIsValid;
 }
 
-/////////////////
-
-FHUDHitBox::FHUDHitBox( FVector2D InCoords, FVector2D InSize, const FName& InName, bool bInConsumesInput, int32 InPriority )
-	: Coords(InCoords)
-	, Size(InSize)
-	, Name(InName)
-	, bConsumesInput(bInConsumesInput)
-	, Priority(InPriority)
-{
-}
-
-bool FHUDHitBox::Contains( FVector2D InCoords ) const
-{
-	bool bResult = false;
-	if( ( InCoords.X >= Coords.X ) && (InCoords.X <= ( Coords.X + Size.X ) ) )
-	{
-		if( ( InCoords.Y >= Coords.Y ) && (InCoords.Y <= ( Coords.Y + Size.Y ) ) )
-		{
-			bResult = true;
-		}
-	}
-	return bResult;
-}
-
-void FHUDHitBox::Draw( FCanvas* InCanvas, const FLinearColor& InColor ) const
-{
-	FCanvasBoxItem	BoxItem( Coords, Size );
-	BoxItem.SetColor( InColor );
-	InCanvas->DrawItem( BoxItem );
-	FCanvasTextItem	TextItem( Coords, FText::FromName( Name ), GEngine->GetSmallFont(), InColor );
-	InCanvas->DrawItem( TextItem );
-}
-
-void FSimpleReticle::Draw( UCanvas* InCanvas, FLinearColor InColor )
-{
-	FVector2D CanvasCenter( InCanvas->OrgX + ((InCanvas->ClipX - InCanvas->OrgX) / 2.0f), InCanvas->OrgX + ((InCanvas->ClipY - InCanvas->OrgY) / 2.0f) );
-	FCanvasLineItem LineItem( CanvasCenter, FVector2D(0.0f, 0.0f) );
-	LineItem.SetColor( InColor );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter - HorizontalOffsetMin, CanvasCenter - HorizontalOffsetMax );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter + HorizontalOffsetMin, CanvasCenter + HorizontalOffsetMax );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter - VerticalOffsetMin, CanvasCenter - VerticalOffsetMax );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter + VerticalOffsetMin, CanvasCenter + VerticalOffsetMax );
-}
 
 #undef LOCTEXT_NAMESPACE

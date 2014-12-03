@@ -22,6 +22,7 @@ public:
 	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const override;
 	virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const override;
 	virtual TSharedRef<SGraphNode> GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void SetOwner( const TSharedRef<SGraphPanel>& OwnerPanel ) override;
 	// End of SGraphNode interface
 
 	/** handle double click */
@@ -106,7 +107,6 @@ protected:
 	FSlateColor GetBackgroundColor() const;
 	FString	GetDescription() const;
 
-	virtual FString GetPreviewCornerText() const;
 	virtual const FSlateBrush* GetNameIcon() const;
 	virtual EVisibility GetBlueprintIconVisibility() const;
 

@@ -90,6 +90,10 @@ public:
 		GetFileInfo(Filename, Info);
 		return Info.AccessTimeStamp;
 	}
+	virtual FString	GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		return Filename;
+	}
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override;
 	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override;
 	virtual bool		DirectoryExists(const TCHAR* Directory) override;

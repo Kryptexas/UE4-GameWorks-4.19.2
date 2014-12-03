@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "GenericWindow.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformWindow, Log, All);
@@ -130,6 +130,12 @@ bool FGenericWindow::IsPointInWindow( int32 X, int32 Y ) const
 }
 	
 int32 FGenericWindow::GetWindowBorderSize() const
+{
+	// empty default functionality
+	return 0;
+}
+
+int32 FGenericWindow::GetWindowTitleBarSize() const
 {
 	// empty default functionality
 	return 0;

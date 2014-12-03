@@ -103,7 +103,7 @@ SDebugConsole::SDebugConsole()
 
 void SDebugConsole::SetFocusToEditableText()
 {
-	FSlateApplication::Get().SetKeyboardFocus( EditableTextBox.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( EditableTextBox.ToSharedRef(), EFocusCause::SetDirectly );
 }
 
 EVisibility SDebugConsole::MakeVisibleIfLogIsShown() const

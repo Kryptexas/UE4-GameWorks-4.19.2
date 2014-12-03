@@ -12,6 +12,7 @@
  */
 class FInternetAddrBSD : public FInternetAddr
 {
+protected:
 	/** The internet ip address structure */
 	sockaddr_in Addr;
 

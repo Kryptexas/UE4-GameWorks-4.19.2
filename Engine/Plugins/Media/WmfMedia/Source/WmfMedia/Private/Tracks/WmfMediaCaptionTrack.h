@@ -32,23 +32,23 @@ public:
 
 	// IMediaTrack interface
 
-	virtual const IMediaTrackAudioDetails& GetAudioDetails( ) const override
+	virtual const IMediaTrackAudioDetails& GetAudioDetails() const override
 	{
 		check(false); // not an audio track
 		return (IMediaTrackAudioDetails&)*this;
 	}
 
-	virtual const IMediaTrackCaptionDetails& GetCaptionDetails( ) const override
+	virtual const IMediaTrackCaptionDetails& GetCaptionDetails() const override
 	{
 		return *this;
 	}
 
-	virtual EMediaTrackTypes GetType( ) const override
+	virtual EMediaTrackTypes GetType() const override
 	{
 		return EMediaTrackTypes::Caption;
 	}
 
-	virtual const IMediaTrackVideoDetails& GetVideoDetails( ) const override
+	virtual const IMediaTrackVideoDetails& GetVideoDetails() const override
 	{
 		check(false); // not a video track
 		return (IMediaTrackVideoDetails&)*this;

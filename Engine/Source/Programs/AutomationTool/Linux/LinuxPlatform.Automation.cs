@@ -27,9 +27,7 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		if (SC.bStageCrashReporter)
 		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient", false, null, null, 
-				// allow CrashReportClient to be missing in 4.5 if not built by the user - the issue should be already solved in the main branch (CL #2305714)
-				true);
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient", false);
 		}
 
 		{
@@ -57,14 +55,9 @@ public abstract class BaseLinuxPlatform : Platform
 		}
 
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
-		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-
 
         if (Params.StageNonMonolithic)
         {
-            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/jemalloc/", SC.PlatformDir, "x86_64-unknown-linux-gnu"), "libjemalloc.so.1", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
-            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/SDL2/", SC.PlatformDir, "x86_64-unknown-linux-gnu"), "libSDL2-2.0.so.1", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
-
             if (SC.DedicatedServer)
             {
                 SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "UE4Server");

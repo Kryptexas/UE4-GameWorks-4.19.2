@@ -1,11 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
 
 /**
  *	A generic filter designed to call a predicate provided on construction to filter
  */
 template< typename ItemType >
-class TDelegateFilter : public IFilter< ItemType >, public TSharedFromThis< TDelegateFilter< ItemType > >
+class TDelegateFilter
+	: public IFilter< ItemType >, public TSharedFromThis< TDelegateFilter< ItemType > >
 {
 public:
 

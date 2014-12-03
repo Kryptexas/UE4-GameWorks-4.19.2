@@ -252,12 +252,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 
 		// The graph setup should be finished before this line ----------------------------------------
 
-		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass, DEC_SCENE_ITEMS);
-
-		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
-
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = GSceneRenderTargets.GetSceneColor()->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
+		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass);
 
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
@@ -311,17 +306,17 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		}
 
 		// The graph setup should be finished before this line ----------------------------------------
-    
-		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting, DEC_SCENE_ITEMS);
+
+		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
 
 		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
 		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
-    
+
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
-    
+
 		CompositeContext.Process(TEXT("CompositionLighting_AfterBasePass"));
 	}
 }
@@ -355,24 +350,34 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
-			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
+			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering && 
+				//@todo-rco: Remove this when we fix the cross-compiler
+				!IsOpenGLPlatform(View.GetShaderPlatform()))
 			{
-				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false));
+				// can be optimized out if we don't do split screen/stereo rendering (should be done after we some post process refactoring)
+				FRenderingCompositePass* PassExtractSpecular = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceExtractSpecular());
+				PassExtractSpecular->SetInput(ePId_Input0, Context.FinalOutput);
+
+				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View));
 				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
-				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius));
-				Pass0->SetInput(ePId_Input1, PassSetup);
+				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0));
+				Pass0->SetInput(ePId_Input0, PassSetup);
 
-				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius));
-				Pass1->SetInput(ePId_Input0, Context.FinalOutput);
-				Pass1->SetInput(ePId_Input1, Pass0);
-				Context.FinalOutput = FRenderingCompositeOutputRef(Pass1);
+				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1));
+				Pass1->SetInput(ePId_Input0, Pass0);
+
+				// full res composite pass, no blurring (Radius=0)
+				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine());
+				RecombinePass->SetInput(ePId_Input0, Pass1);
+				RecombinePass->SetInput(ePId_Input1, PassExtractSpecular);
+				CompositeContext.Root->AddDependency(RecombinePass);
 			}
 		}
 
 		// The graph setup should be finished before this line ----------------------------------------
 
-		SCOPED_DRAW_EVENT(RHICmdList, CompositionLighting, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CompositionLighting);
 
 		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 

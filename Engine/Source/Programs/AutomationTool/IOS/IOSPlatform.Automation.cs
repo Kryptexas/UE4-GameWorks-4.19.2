@@ -306,7 +306,7 @@ public class IOSPlatform : Platform
 		bWasGenerated = false;
 		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
-		if (!Directory.Exists (XcodeProj))
+		//		if (!Directory.Exists (XcodeProj))
 		{
 			// project.xcodeproj doesn't exist, so generate temp project
 			string Arguments = "-project=\"" + RawProjectPath + "\"";
@@ -729,9 +729,6 @@ public class IOSPlatform : Platform
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/IOS/Resources/Movies"), "*", false, null, "", true, false);
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, "", true, false);
 		}
-
-		// stage required icu files
-		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
@@ -778,11 +775,14 @@ public class IOSPlatform : Platform
 				}
 			}
 
+			// Add a commandline for this deploy, if the config allows it.
+			string AdditionalCommandline = (Params.FileServer || Params.CookOnTheFly) ? "" : (" -additionalcommandline " + "\"" + Params.RunCommandline + "\"");
+
 			// deploy the .ipa
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
 
 			// check for it in the stage directory
-			RunAndLog(CmdEnv, IPPExe, "Deploy \"" + Path.GetFullPath(StagedIPA) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)));
+			RunAndLog(CmdEnv, IPPExe, "Deploy \"" + Path.GetFullPath(StagedIPA) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + AdditionalCommandline);
 		}
         PrintRunTime();
     }
@@ -796,11 +796,6 @@ public class IOSPlatform : Platform
 	{
 		return false;
 	}
-
-    public override PakType RequiresPak(ProjectParams Params)
-    {
-        return PakType.Always;
-    }
 
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{

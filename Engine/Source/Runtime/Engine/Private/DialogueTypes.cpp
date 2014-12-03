@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
-
+#include "Sound/DialogueVoice.h"
 bool operator==(const FDialogueContext& LHS, const FDialogueContext& RHS)
 {
 	return	LHS.Speaker == RHS.Speaker &&
@@ -49,7 +49,7 @@ FDialogueWaveParameter::FDialogueWaveParameter() : DialogueWave(NULL)
 
 }
 
-UDialogueTypes::UDialogueTypes(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueTypes::UDialogueTypes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -11,6 +11,7 @@
 #include "SKismetInspector.h"
 #include "SSCSEditorViewport.h"
 #include "SComponentClassCombo.h"
+#include "PropertyPath.h"
 
 #include "AssetSelection.h"
 #include "Editor/SceneOutliner/Private/SSocketChooser.h"
@@ -26,6 +27,8 @@
 #include "Kismet2NameValidators.h"
 #include "UnrealExporter.h"
 #include "TutorialMetaData.h"
+#include "SInlineEditableTextBlock.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -1778,12 +1781,12 @@ FText SSCS_RowWidget::GetTooltipText() const
 	{
 		if(NodePtr->IsInherited())
 		{
-			return LOCTEXT("InheritedDefaultSceneRootToolTip", "This is the default scene root component. It has been inherited from the parent class, so it cannot be renamed, replaced or deleted. New scene components will automatically be attached to it.");
+			return LOCTEXT("InheritedDefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted. It has been inherited from the parent class, so its properties cannot be edited here. New scene components will automatically be attached to it.");
 		}
 		else
 		{
-		return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be renamed or deleted. Adding a new scene component will automatically replace it as the new root.");
-	}
+			return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted. Adding a new scene component will automatically replace it as the new root.");
+		}
 	}
 	else
 	{
@@ -2033,9 +2036,9 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 	}
 }
 
-FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( CommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if ( CommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}
@@ -2490,8 +2493,13 @@ void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 		check( KismetInspectorSPtr.IsValid() );
 		UActorComponent* Component = TreeNode->GetComponentTemplate();
 		UProperty* CurrentProp = FindField<UProperty>(Component->GetClass(), Property);
-		check( CurrentProp );
-		KismetInspectorSPtr->GetPropertyView()->HighlightProperty( CurrentProp );
+		FPropertyPath Path;
+		if( CurrentProp )
+		{
+			FPropertyInfo NewInfo = { CurrentProp, -1 };
+			Path.ExtendPath(NewInfo);
+		}
+		KismetInspectorSPtr->GetPropertyView()->HighlightProperty( Path );
 	}
 }
 
@@ -2755,15 +2763,27 @@ void SSCSEditor::CutSelectedNodes()
 bool SSCSEditor::CanCopyNodes() const
 {
 	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
-	for (int32 i = 0; i < SelectedNodes.Num(); ++i)
+	bool bCanCopy = SelectedNodes.Num() > 0;
+	if(bCanCopy)
 	{
-		if (SelectedNodes[i]->GetComponentTemplate() == NULL || SelectedNodes[i]->IsDefaultSceneRoot())
+		for (int32 i = 0; i < SelectedNodes.Num() && bCanCopy; ++i)
 		{
-			return false;
+			// Check for the default scene root; that cannot be copied/duplicated
+			UActorComponent* ComponentTemplate = SelectedNodes[i]->GetComponentTemplate();
+			bCanCopy = ComponentTemplate != nullptr && !SelectedNodes[i]->IsDefaultSceneRoot();
+			if (bCanCopy)
+			{
+				UClass* ComponentTemplateClass = ComponentTemplate->GetClass();
+				check(ComponentTemplateClass != nullptr);
+
+				// Component class cannot be abstract and must also be tagged as BlueprintSpawnable
+				bCanCopy = !ComponentTemplateClass->HasAnyClassFlags(CLASS_Abstract)
+					&& ComponentTemplateClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent);
+			}
 		}
 	}
 
-	return SelectedNodes.Num() > 0;
+	return bCanCopy;
 }
 
 void SSCSEditor::CopySelectedNodes()

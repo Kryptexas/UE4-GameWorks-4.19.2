@@ -15,23 +15,6 @@ UClass* FAssetTypeActions_MovieScene::GetSupportedClass() const
 	return UMovieScene::StaticClass(); 
 }
 
-
-void FAssetTypeActions_MovieScene::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
-{
-	auto MovieScenes = GetTypedWeakObjectPtrs<UMovieScene>(InObjects);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MovieScene_Edit", "Edit"),
-		LOCTEXT("MovieScene_EditTooltip", "Opens the selected movie scenes in the sequencer for editing."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_MovieScene::ExecuteEdit, MovieScenes ),
-			FCanExecuteAction()
-			)
-		);
-}
-
-
 void FAssetTypeActions_MovieScene::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
@@ -50,21 +33,5 @@ void FAssetTypeActions_MovieScene::OpenAssetEditor( const TArray<UObject*>& InOb
 		}
 	}
 }
-
-
-void FAssetTypeActions_MovieScene::ExecuteEdit(TArray<TWeakObjectPtr<UMovieScene>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
-		}
-	}
-}
-
-
-
 
 #undef LOCTEXT_NAMESPACE

@@ -7,6 +7,7 @@
 #include "CascadePreviewViewportClient.h"
 #include "SCascadePreviewToolbar.h"
 #include "SCascadePreviewViewport.h"
+#include "SDockTab.h"
 
 
 SCascadePreviewViewport::~SCascadePreviewViewport()

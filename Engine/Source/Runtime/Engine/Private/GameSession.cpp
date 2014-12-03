@@ -37,8 +37,8 @@ APlayerController* GetPlayerControllerFromNetId(UWorld* World, const FUniqueNetI
 	return NULL;
 }
 
-AGameSession::AGameSession(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameSession::AGameSession(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

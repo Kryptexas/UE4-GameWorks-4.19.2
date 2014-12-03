@@ -5,19 +5,21 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagsModule.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayAbility.h"
 
 //----------------------------------------------------------------------
 
-void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor, UAbilitySystemComponent* InAbilitySystemComponent)
+void FGameplayAbilityActorInfo::InitFromActor(AActor *InOwnerActor, AActor *InAvatarActor, UAbilitySystemComponent* InAbilitySystemComponent)
 {
-	check(InActor);
+	check(InOwnerActor);
 	check(InAbilitySystemComponent);
 
-	Actor = InActor;
+	OwnerActor = InOwnerActor;
+	AvatarActor = InAvatarActor;
 	AbilitySystemComponent = InAbilitySystemComponent;
 
 	// Look for a player controller or pawn in the owner chain.
-	AActor *TestActor = InActor;
+	AActor *TestActor = InOwnerActor;
 	while (TestActor)
 	{
 		if (APlayerController * CastPC = Cast<APlayerController>(TestActor))
@@ -35,19 +37,33 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor, UAbilitySystemCom
 		TestActor = TestActor->GetOwner();
 	}
 
-	// Grab Components that we care about
-	USkeletalMeshComponent * SkelMeshComponent = InActor->FindComponentByClass<USkeletalMeshComponent>();
-	if (SkelMeshComponent)
+	if (AvatarActor.Get())
 	{
-		this->AnimInstance = SkelMeshComponent->GetAnimInstance();
-	}
+		// Grab Components that we care about
+		USkeletalMeshComponent * SkelMeshComponent = AvatarActor->FindComponentByClass<USkeletalMeshComponent>();
+		if (SkelMeshComponent)
+		{
+			this->AnimInstance = SkelMeshComponent->GetAnimInstance();
+		}
 
-	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
+		MovementComponent = AvatarActor->FindComponentByClass<UMovementComponent>();
+	}
+	else
+	{
+		MovementComponent = NULL;
+		AnimInstance = NULL;
+	}
+}
+
+void FGameplayAbilityActorInfo::SetAvatarActor(AActor *AvatarActor)
+{
+	InitFromActor(OwnerActor.Get(), AvatarActor, AbilitySystemComponent.Get());
 }
 
 void FGameplayAbilityActorInfo::ClearActorInfo()
 {
-	Actor = NULL;
+	OwnerActor = NULL;
+	AvatarActor = NULL;
 	PlayerController = NULL;
 	AnimInstance = NULL;
 	MovementComponent = NULL;
@@ -65,9 +81,9 @@ bool FGameplayAbilityActorInfo::IsLocallyControlled() const
 
 bool FGameplayAbilityActorInfo::IsNetAuthority() const
 {
-	if (Actor.IsValid())
+	if (OwnerActor.IsValid())
 	{
-		return (Actor->Role == ROLE_Authority);
+		return (OwnerActor->Role == ROLE_Authority);
 	}
 
 	// If we encounter issues with this being called before or after the owning actor is destroyed,
@@ -86,9 +102,16 @@ void FGameplayAbilityActivationInfo::GenerateNewPredictionKey() const
 void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 {
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
+	//Remote (server) commands to end the ability that come in after this point are considered for this instance
+	bCanBeEndedByOtherInstance = true;
 }
 
 void FGameplayAbilityActivationInfo::SetPredictionStale()
 {
 	PredictionKey.bIsStale = true;
+}
+
+bool FGameplayAbilitySpec::IsActive() const
+{
+	return ActiveCount > 0;
 }

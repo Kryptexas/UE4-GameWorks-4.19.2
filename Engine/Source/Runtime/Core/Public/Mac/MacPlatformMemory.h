@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMemory.h"
 
 /**
  *	Max implementation of the FGenericPlatformMemoryStats.

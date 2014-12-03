@@ -3,6 +3,7 @@
 
 #include "IFilter.h"
 
+
 /**
  *	A generic filter specialized for text restrictions
  */

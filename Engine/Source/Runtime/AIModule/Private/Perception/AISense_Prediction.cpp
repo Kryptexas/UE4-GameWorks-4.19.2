@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Prediction.h"
 
-UAISense_Prediction::UAISense_Prediction(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Prediction::UAISense_Prediction(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 }
 
@@ -18,7 +18,7 @@ float UAISense_Prediction::Update()
 
 		if (Event.Requestor != NULL && Event.PredictedActor != NULL)
 		{
-			IAIPerceptionListenerInterface* PerceptionListener = InterfaceCast<IAIPerceptionListenerInterface>(Event.Requestor);
+			IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.Requestor);
 			if (PerceptionListener != NULL)
 			{
 				UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();

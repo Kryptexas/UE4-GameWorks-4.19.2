@@ -72,6 +72,8 @@ public:
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
+	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
@@ -155,6 +157,8 @@ public:
 	virtual void SetFromFunction(const UFunction* Function);
 
 	static void CallForEachElementInArrayExpansion(UK2Node* Node, UEdGraphPin* MultiSelf, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
+
+	static UEdGraphPin* InnerHandleAutoCreateRef(UK2Node* Node, UEdGraphPin* Pin, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, bool bForceAssignment);
 
 	/**
 	 * Returns the graph for this function, if available. In cases of calling an event, it will be the ubergraph for the event

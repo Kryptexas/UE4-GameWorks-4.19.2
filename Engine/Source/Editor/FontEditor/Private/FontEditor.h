@@ -24,6 +24,7 @@ public:
 	/** IFontEditor interface */
 	virtual UFont* GetFont() const override;
 	virtual void SetSelectedPage(int32 PageIdx) override;
+	virtual void RefreshPreview() override;
 	
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;
@@ -51,6 +52,12 @@ private:
 	/** FNotifyHook interface */
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
 
+	/** Update the font editor UI based on the type of font being edited */
+	void UpdateLayout();
+
+	/** Get the menu type to use for the given tab spawner */
+	ETabSpawnerMenuType::Type GetTabSpawnerMenuType( FName InTabName ) const;
+
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();
 
@@ -64,9 +71,11 @@ private:
 	void OnUpdate();
 	bool OnUpdateEnabled() const;
 	void OnUpdateAll();
+	bool OnUpdateAllEnabled() const;
 	void OnExport();
 	bool OnExportEnabled() const;
 	void OnExportAll();
+	bool OnExportAllEnabled() const;
 	void OnBackgroundColor();
 	bool OnBackgroundColorEnabled() const;
 	void OnForegroundColor();
@@ -76,8 +85,11 @@ private:
 	/** Common method for replacing a font page with a new texture */
 	bool ImportPage(int32 PageNum, const TCHAR* FileName);
 
-	/**	Spawns the viewport tab */
-	TSharedRef<SDockTab> SpawnTab_Viewport( const FSpawnTabArgs& Args );
+	/**	Spawns the text pages viewport tab */
+	TSharedRef<SDockTab> SpawnTab_TexturePagesViewport( const FSpawnTabArgs& Args );
+
+	/**	Spawns the composite font editor UI */
+	TSharedRef<SDockTab> SpawnTab_CompositeFontEditor( const FSpawnTabArgs& Args );
 
 	/**	Spawns the preview tab */
 	TSharedRef<SDockTab> SpawnTab_Preview( const FSpawnTabArgs& Args );
@@ -94,6 +106,12 @@ private:
 	/** Callback when an object is reimported, handles steps needed to keep the editor up-to-date. */
 	void OnObjectReimported(UObject* InObject);
 
+	/** Recreate the font object so that it's using the given caching method */
+	bool RecreateFontObject(const EFontCacheType NewCacheType);
+
+	/** Check to see if the given property should be visible in the details panel */
+	bool GetIsPropertyVisible(const struct FPropertyAndParent& PropertyAndParent) const;
+
 private:
 	/** The font asset being inspected */
 	UFont* Font;
@@ -103,6 +121,9 @@ private:
 
 	/** Viewport */
 	TSharedPtr<SFontEditorViewport> FontViewport;
+
+	/** Composite font editor UI */
+	TSharedPtr<SCompositeFontEditor> CompositeFontEditor;
 
 	/** Preview tab */
 	TSharedPtr<SVerticalBox> FontPreview;
@@ -128,8 +149,12 @@ private:
 	/** The factory to create updated pages with */
 	UTextureFactory* Factory;
 
+	/** The current font editor layout (if any) */
+	TOptional<EFontCacheType> CurrentEditorLayout;
+
 	/**	The tab ids for the font editor */
-	static const FName ViewportTabId;
+	static const FName TexturePagesViewportTabId;
+	static const FName CompositeFontEditorTabId;
 	static const FName PreviewTabId;
 	static const FName PropertiesTabId;
 	static const FName PagePropertiesTabId;

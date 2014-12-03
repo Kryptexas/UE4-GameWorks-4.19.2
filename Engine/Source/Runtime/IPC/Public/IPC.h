@@ -54,7 +54,7 @@ namespace IPC
 		/**
 		 * Creates a new synchronized interprocess memory object
 		 */
-		static FSynchronizedInterprocessMemory * Create(const TCHAR * Name, SIZE_T Size)
+		static FSynchronizedInterprocessMemory * Create(const TCHAR* Name, SIZE_T Size)
 		{
 			FPlatformMemory::FSharedMemoryRegion * Memory = FPlatformMemory::MapNamedSharedMemoryRegion(Name, true,
 				FPlatformMemory::ESharedMemoryAccess::Read | FPlatformMemory::ESharedMemoryAccess::Write, Size);
@@ -81,7 +81,7 @@ namespace IPC
 		/**
 		 * Opens existing synchronized interprocess memory object
 		 */
-		static FSynchronizedInterprocessMemory * OpenExisting(const TCHAR * Name, SIZE_T Size)
+		static FSynchronizedInterprocessMemory * OpenExisting(const TCHAR* Name, SIZE_T Size)
 		{
 			FPlatformMemory::FSharedMemoryRegion * Memory = FPlatformMemory::MapNamedSharedMemoryRegion(Name, false,
 				FPlatformMemory::ESharedMemoryAccess::Read | FPlatformMemory::ESharedMemoryAccess::Write, Size);
@@ -109,7 +109,7 @@ namespace IPC
 		 *
 		 * @return true if was able to write
 		 */
-		bool Write(const FString & String, uint32 MaxMillisecondsToWait = 0)
+		bool Write(const FString& String, uint32 MaxMillisecondsToWait = 0)
 		{
 			check(Mutex);
 			check(Memory);
@@ -128,7 +128,7 @@ namespace IPC
 			}
 
 			// we have exclusive ownership now!
-			TCHAR * RawMemory = reinterpret_cast< TCHAR * >(Memory->GetAddress() );
+			TCHAR* RawMemory = reinterpret_cast< TCHAR* >(Memory->GetAddress() );
 			FCString::Strcpy(RawMemory, Memory->GetSize(), *String);
 
 			// relinquish
@@ -145,7 +145,7 @@ namespace IPC
 		 *
 		 * @return true if read withing given time
 		 */
-		bool Read(FString & OutString, uint32 MaxMillisecondsToWait = 0)
+		bool Read(FString& OutString, uint32 MaxMillisecondsToWait = 0)
 		{
 			check(Mutex);
 			check(Memory);
@@ -164,7 +164,7 @@ namespace IPC
 			}
 
 			// we have exclusive ownership now!
-			const TCHAR * RawMemory = reinterpret_cast< const TCHAR * >( Memory->GetAddress() );
+			const TCHAR* RawMemory = reinterpret_cast< const TCHAR* >( Memory->GetAddress() );
 			OutString = FString(RawMemory);
 
 			// relinquish

@@ -261,12 +261,6 @@ void FOnlineSubsystemSteam::QueueAsyncOutgoingItem(FOnlineAsyncItem* AsyncItem)
 	OnlineAsyncTaskThreadRunnable->AddToOutQueue(AsyncItem);
 }
 
-void FOnlineSubsystemSteam::QueueAsyncMsg(FOnlineAsyncMsgSteam* AsyncMsg)
-{
-	check(OnlineAsyncTaskThreadRunnable);
-	OnlineAsyncTaskThreadRunnable->AddToInMsgQueue(AsyncMsg);
-}
-
 bool FOnlineSubsystemSteam::Tick(float DeltaTime)
 {
 	if (OnlineAsyncTaskThreadRunnable)

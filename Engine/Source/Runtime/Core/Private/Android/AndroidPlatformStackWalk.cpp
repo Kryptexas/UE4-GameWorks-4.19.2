@@ -4,7 +4,7 @@
 	AndroidPlatformStackWalk.cpp: Android implementations of stack walk functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include <unwind.h>
 #include <dlfcn.h>
 #include <cxxabi.h>

@@ -4,6 +4,12 @@
 
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
+#include "WidgetReference.h"
+#include "Components/Widget.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "WidgetBlueprintEditor.h"
+
+class FWidgetBlueprintEditor;
 
 class FHierarchyModel : public TSharedFromThis < FHierarchyModel >
 {
@@ -15,6 +21,12 @@ public:
 
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const = 0;
+
+	/** @return The tooltip for the tree item image */
+	virtual FText GetImageToolTipText() const { return FText::GetEmpty(); }
+
+	/** @return The tooltip for the tree item label */
+	virtual FText GetLabelToolTipText() const { return FText::GetEmpty(); }
 
 	virtual const FSlateBrush* GetImage() const = 0;
 
@@ -35,14 +47,28 @@ public:
 
 	virtual void OnSelection() = 0;
 
-	virtual bool IsModel(UObject* PossibleModel) const { return false; }
+	virtual void OnMouseEnter() {}
+	virtual void OnMouseLeave() {}
+
+	void RefreshSelection();
+	bool ContainsSelection();
+	bool IsSelected() const;
+
+	virtual bool IsVisible() const { return true; }
+	virtual bool CanControlVisibility() const { return false; }
+	virtual void SetIsVisible(bool IsVisible) { }
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) = 0;
+	virtual void UpdateSelection() = 0;
+
+private:
+	void InitializeChildren();
 
 protected:
 
 	bool bInitialized;
+	bool bIsSelected;
 	TArray< TSharedPtr<FHierarchyModel> > Models;
 };
 
@@ -70,8 +96,43 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+	virtual void UpdateSelection();
 
 private:
+
+	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
+};
+
+class FNamedSlotModel : public FHierarchyModel
+{
+public:
+	FNamedSlotModel(FWidgetReference InItem, FName InSlotName, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor);
+
+	virtual ~FNamedSlotModel() {}
+
+	virtual FName GetUniqueName() const override;
+
+	/* @returns the widget name to use for the tree item */
+	virtual FText GetText() const override;
+
+	virtual const FSlateBrush* GetImage() const override;
+
+	virtual FSlateFontInfo GetFont() const override;
+
+	virtual void OnSelection();
+	
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent) override;
+	virtual FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+protected:
+	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+	virtual void UpdateSelection();
+
+private:
+
+	FWidgetReference Item;
+	FName SlotName;
 
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 };
@@ -87,6 +148,8 @@ public:
 	
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const override;
+	virtual FText GetImageToolTipText() const override;
+	virtual FText GetLabelToolTipText() const override;
 
 	virtual const FSlateBrush* GetImage() const override;
 
@@ -104,13 +167,40 @@ public:
 
 	virtual void OnSelection();
 
-	virtual bool IsModel(UObject* PossibleModel) const override
+	virtual void OnMouseEnter() override;
+	virtual void OnMouseLeave() override;
+
+	virtual bool IsVisible() const override
 	{
-		return Item.GetTemplate() == PossibleModel;
+		if ( UWidget* TemplateWidget = Item.GetTemplate() )
+		{
+			return !TemplateWidget->bHiddenInDesigner;
+		}
+
+		return true;
+	}
+
+	virtual bool CanControlVisibility() const override
+	{
+		return true;
+	}
+
+	virtual void SetIsVisible(bool IsVisible) override
+	{
+		Item.GetTemplate()->bHiddenInDesigner = !IsVisible;
+
+		if ( UWidget* PreviewWidget = Item.GetPreview() )
+		{
+			PreviewWidget->bHiddenInDesigner = !IsVisible;
+		}
+
+		// Mark the blueprint as modified
+		FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintEditor.Pin()->GetBlueprintObj());
 	}
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+	virtual void UpdateSelection();
 
 private:
 	FWidgetReference Item;
@@ -134,6 +224,8 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel);
 
 	// Begin SWidget
+	void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	void OnMouseLeave(const FPointerEvent& MouseEvent);
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	// End SWidget
 
@@ -146,14 +238,20 @@ private:
 	/** Called when text is being committed to check for validity */
 	bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
 
-	/* Called when text is committed on the node */
+	/** Called when text is committed on the node */
 	void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
 
-	/* Gets the font to use for the text item, bold for customized named items */
+	/** Gets the font to use for the text item, bold for customized named items */
 	FSlateFontInfo GetItemFont() const;
 
-	/* @returns the widget name to use for the tree item */
+	/** @returns the widget name to use for the tree item */
 	FText GetItemText() const;
+
+	/** Handles clicking the visibility toggle */
+	FReply OnToggleVisibility();
+
+	/** Returns a brush representing the visibility item of the widget's visibility button */
+	const FSlateBrush* GetVisibilityBrushForWidget() const;
 
 	/* The mode that this tree item represents */
 	TSharedPtr<FHierarchyModel> Model;

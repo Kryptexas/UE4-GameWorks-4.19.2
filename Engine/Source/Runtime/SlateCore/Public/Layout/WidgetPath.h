@@ -4,7 +4,7 @@
 
 
 class SWindow;
-
+struct FPointerEvent;
 
 /** Matches widgets against InWidget */
 struct FWidgetMatcher
@@ -28,111 +28,50 @@ struct FWidgetMatcher
  * The window is needed for its ability to determine its own geometry, from which the geometries of the rest
  * of the widget can be determined.
  */
-class FWidgetPath
+class SLATECORE_API FWidgetPath
 {
 public:
-	/** Constructor */
-	FWidgetPath()
-	: Widgets( EVisibility::Visible )
-	{
-	}
+	FWidgetPath();
 
-	FWidgetPath( TSharedPtr<SWindow> InTopLevelWindow, const FArrangedChildren& InWidgetPath )
-	: Widgets( InWidgetPath )
-	, TopLevelWindow(InTopLevelWindow)
-	{
-	
-	}
+	FWidgetPath( TSharedPtr<SWindow> InTopLevelWindow, const FArrangedChildren& InWidgetPath );
 
-	FWidgetPath( const TArray<FArrangedWidget>& InWidgetPath )
-	: Widgets( FArrangedChildren::Hittest2_FromArray(InWidgetPath) )
-	, TopLevelWindow( InWidgetPath.Num() > 0 ? StaticCastSharedRef<SWindow>(InWidgetPath[0].Widget) : TSharedPtr<SWindow>(nullptr) )
-	{
-	
-	}
+	FWidgetPath( TArray<FWidgetAndPointer> InWidgetsAndPointers );
 
 	/**
 	 * @param MarkerWidget Copy the path up to and including this widget 
 	 *
 	 * @return a copy of the widget path down to and including the MarkerWidget. If the MarkerWidget is not found in the path, return an invalid path.
 	 */
-	FWidgetPath GetPathDownTo( TSharedRef<const SWidget> MarkerWidget ) const
-	{
-		FArrangedChildren ClippedPath(EVisibility::Visible);
-		bool bCopiedMarker = false;
-		for( int32 WidgetIndex = 0; !bCopiedMarker && WidgetIndex < Widgets.Num(); ++WidgetIndex )
-		{
-			ClippedPath.AddWidget( Widgets[WidgetIndex] );
-			bCopiedMarker = (Widgets[WidgetIndex].Widget == MarkerWidget);
-		}
-		
-		if ( bCopiedMarker )
-		{
-			// We found the MarkerWidget and copied the path down to (and including) it.
-			return FWidgetPath( TopLevelWindow, ClippedPath );
-		}
-		else
-		{
-			// The MarkerWidget was not in the widget path. We failed.
-			return FWidgetPath( nullptr, FArrangedChildren(EVisibility::Visible) );		
-		}	
-	}
+	FWidgetPath GetPathDownTo( TSharedRef<const SWidget> MarkerWidget ) const;
 	
+	/** Get the widget and associated virtual cursor at a given index. */
+	const TSharedPtr<FVirtualPointerPosition>& GetCursorAt( int32 Index ) const;
+
 	/** @return true if the WidgetToFind is in this WidgetPath, false otherwise. */
-	bool ContainsWidget( TSharedRef<const SWidget> WidgetToFind ) const
-	{
-		for(int32 WidgetIndex = 0; WidgetIndex < Widgets.Num(); ++WidgetIndex)
-		{
-			if ( Widgets[WidgetIndex].Widget == WidgetToFind )
-			{
-				return true;
-			}
-		}
-		
-		return false;
-	}
+	bool ContainsWidget( TSharedRef<const SWidget> WidgetToFind ) const;
 
-	SLATECORE_API FArrangedWidget FindArrangedWidget( TSharedRef<const SWidget> WidgetToFind ) const;
+	TOptional<FArrangedWidget> FindArrangedWidget( TSharedRef<const SWidget> WidgetToFind ) const;
+
+	TOptional<FWidgetAndPointer> FindArrangedWidgetAndCursor( TSharedRef<const SWidget> WidgetToFind ) const;
 	
 	/**
 	 * Get the first (top-most) widget in this path, which is always a window; assumes path is valid
 	 *
 	 * @return Window at the top of this path
 	 */
-	TSharedRef<SWindow> GetWindow()
-	{
-		check(IsValid());
-
-		TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets[0].Widget);
-		return FirstWidgetWindow;
-	}
+	TSharedRef<SWindow> GetWindow();
 
 	/**
 	 * Get the first (top-most) widget in this path, which is always a window; assumes path is valid
 	 *
 	 * @return Window at the top of this path
 	 */
-	TSharedRef<SWindow> GetWindow() const
-	{
-		check(IsValid());
-
-		TSharedRef<SWindow> FirstWidgetWindow = StaticCastSharedRef<SWindow>(Widgets[0].Widget);
-		return FirstWidgetWindow;
-	}
+	TSharedRef<SWindow> GetWindow() const;
 	
 	/** A valid path has at least one widget in it */
-	bool IsValid() const { return Widgets.Num() > 0; }
+	bool IsValid() const;
 	
-	FString ToString() const
-	{
-		FString StringBuffer;
-		for( int32 WidgetIndex = Widgets.Num()-1; WidgetIndex >= 0; --WidgetIndex )
-		{
-			StringBuffer += Widgets[WidgetIndex].ToString();
-			StringBuffer += TEXT("\n");
-		}
-		return StringBuffer;
-	}
+	FString ToString() const;
 
 	/**
 	 * Extend the current path such that it reaches some widget that qualifies as a Match
@@ -148,7 +87,7 @@ public:
 	{
 		const FArrangedWidget& LastWidget = Widgets.Last();
 		
-		FArrangedChildren Extension = GeneratePathToWidget( Matcher, LastWidget, EFocusMoveDirection::Next, VisibilityFilter );
+		FArrangedChildren Extension = GeneratePathToWidget(Matcher, LastWidget, EUINavigation::Next, VisibilityFilter);
 
 		for( int32 WidgetIndex=0; WidgetIndex < Extension.Num(); ++WidgetIndex )
 		{
@@ -168,11 +107,11 @@ public:
 	 * @return A path from FromWidget to WidgetToFind; will not include FromWidget.
 	 */
 	template<typename MatcherType>
-	FArrangedChildren GeneratePathToWidget( const MatcherType& Matcher, const FArrangedWidget& FromWidget, EFocusMoveDirection::Type Direction = EFocusMoveDirection::Next, EVisibility VisibilityFilter = EVisibility::Visible )
+	FArrangedChildren GeneratePathToWidget(const MatcherType& Matcher, const FArrangedWidget& FromWidget, EUINavigation NavigationType = EUINavigation::Next, EVisibility VisibilityFilter = EVisibility::Visible)
 	{
 		FArrangedChildren PathResult(VisibilityFilter);
 
-		if ( Direction == EFocusMoveDirection::Next )
+		if (NavigationType == EUINavigation::Next)
 		{
 			SearchForWidgetRecursively( Matcher, FromWidget, PathResult, VisibilityFilter );
 		}
@@ -197,11 +136,13 @@ public:
 	 *
 	 * @return true if the focus moved successfully, false if we were unable to move focus
 	 */
-	bool MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirection);
+	bool MoveFocus(int32 PathLevel, EUINavigation NavigationType);
 
 
 	FArrangedChildren Widgets;
 	TSharedPtr< SWindow > TopLevelWindow;
+	TArray< TSharedPtr<FVirtualPointerPosition> > VirtualPointerPositions;
+
 
 private:
 
@@ -232,7 +173,7 @@ class SLATECORE_API FWeakWidgetPath
 {
 public:
 	/** Construct a weak widget path from a widget path. Defaults to an invalid path. */
-	FWeakWidgetPath( const FWidgetPath& InWidgetPath = FWidgetPath( TSharedPtr<SWindow>(nullptr), FArrangedChildren(EVisibility::Visible) ) );
+	FWeakWidgetPath( const FWidgetPath& InWidgetPath = FWidgetPath() );
 
 	/** Should interrupted paths truncate or return an invalid path? */
 	struct EInterruptedPathHandling
@@ -249,7 +190,7 @@ public:
 	 *
 	 * @param InterruptedPathHandling  Should interrupted paths result in a truncated path or an invalid path
 	 */
-	FWidgetPath ToWidgetPath( EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate ) const;
+	FWidgetPath ToWidgetPath( EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr ) const;
 
 	struct EPathResolutionResult
 	{
@@ -266,7 +207,7 @@ public:
 	 * @param InterruptedPathHandling	Should interrupted paths result in a truncated path or an invalid path.
 	 * @return Whether the path is truncated or live - a live path refers to a widget that is currently active and visible, a widget with a truncated path is not.
 	 */
-	EPathResolutionResult::Result ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate ) const;
+	EPathResolutionResult::Result ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr ) const;
 
 	bool ContainsWidget( const TSharedRef< const SWidget >& SomeWidget ) const;
 
@@ -275,7 +216,7 @@ public:
 	 * 
 	 * @return The new focus path.
 	 */
-	FWidgetPath ToNextFocusedPath(EFocusMoveDirection::Type MoveDirection);
+	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType);
 	
 	/** Get the last (leaf-most) widget in this path; assumes path is valid */
 	TWeakPtr< SWidget > GetLastWidget() const

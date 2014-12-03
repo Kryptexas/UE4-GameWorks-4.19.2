@@ -38,7 +38,7 @@ public:
 struct FKinematicTarget
 {
 	FKinematicTarget() : BodyInstance(0) {}
-	FKinematicTarget(FBodyInstance * Body, const FTransform & TM) :
+	FKinematicTarget(FBodyInstance* Body, const FTransform& TM) :
 		BodyInstance(Body),
 		TargetTM(TM),
 		OriginalTM(Body->GetUnrealWorldTransform())
@@ -46,7 +46,7 @@ struct FKinematicTarget
 	}
 
 	/** Kinematic actor we are setting target for*/
-	FBodyInstance * BodyInstance;
+	FBodyInstance* BodyInstance;
 
 	/** Target transform for kinematic actor*/
 	FTransform TargetTM;
@@ -59,8 +59,8 @@ struct FKinematicTarget
 struct FForceTarget
 {
 	FForceTarget(){}
-	FForceTarget(const FVector & GivenForce) : Force(GivenForce), bPosition(false){}
-	FForceTarget(const FVector & GivenForce, const FVector & GivenPosition) : Force(GivenForce), Position(GivenPosition), bPosition(true){}
+	FForceTarget(const FVector& GivenForce) : Force(GivenForce), bPosition(false){}
+	FForceTarget(const FVector& GivenForce, const FVector& GivenPosition) : Force(GivenForce), Position(GivenPosition), bPosition(true){}
 	FVector Force;
 	FVector Position;
 	bool bPosition;
@@ -69,7 +69,7 @@ struct FForceTarget
 struct FTorqueTarget
 {
 	FTorqueTarget(){}
-	FTorqueTarget(const FVector & GivenTorque) : Torque(GivenTorque){}
+	FTorqueTarget(const FVector& GivenTorque) : Torque(GivenTorque){}
 	FVector Torque;
 };
 
@@ -104,14 +104,14 @@ public:
 	FPhysSubstepTask(PxApexScene * GivenScene);
 #endif
 
-	void SetKinematicTarget(FBodyInstance * Body, const FTransform & TM);
-	bool GetKinematicTarget(const FBodyInstance * Body, FTransform & OutTM) const;
-	void AddForce(FBodyInstance * Body, const FVector & Force);
-	void AddForceAtPosition(FBodyInstance * Body, const FVector & Force, const FVector & Position);
-	void AddTorque(FBodyInstance * Body, const FVector & Torque);
+	void SetKinematicTarget(FBodyInstance* Body, const FTransform& TM);
+	bool GetKinematicTarget(const FBodyInstance* Body, FTransform& OutTM) const;
+	void AddForce(FBodyInstance* Body, const FVector& Force);
+	void AddForceAtPosition(FBodyInstance* Body, const FVector& Force, const FVector& Position);
+	void AddTorque(FBodyInstance* Body, const FVector& Torque);
 
 	/** Removes a BodyInstance from doing substep work - should only be called when the FBodyInstance is getting destroyed */
-	void RemoveBodyInstance(FBodyInstance * Body);
+	void RemoveBodyInstance(FBodyInstance* Body);
 
 	
 	void SwapBuffers();
@@ -128,9 +128,9 @@ private:
 
 	/** Applies interpolation and forces on all needed actors*/
 	void SubstepInterpolation(float Scale);
-	void ApplyForces(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance);
-	void ApplyTorques(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance);
-	void InterpolateKinematicActor(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance, float Alpha);
+	void ApplyForces(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
+	void ApplyTorques(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
+	void InterpolateKinematicActor(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float Alpha);
 
 	typedef TMap<FBodyInstance*, FPhysTarget> PhysTargetMap;
 	PhysTargetMap PhysTargetBuffers[2];	//need to double buffer between physics thread and game thread

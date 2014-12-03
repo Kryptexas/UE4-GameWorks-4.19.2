@@ -105,7 +105,7 @@ public:
 	 *
 	 * @param String textual representation of an id
 	 */
-	explicit FUniqueNetIdSteam(const FString & Str) :
+	explicit FUniqueNetIdSteam(const FString& Str) :
 		UniqueNetId(FCString::Atoi64(*Str))
 	{
 	}
@@ -116,7 +116,7 @@ public:
 	 *
 	 * @param InUniqueNetId the id to set ours to (assumed to be FUniqueNetIdSteam in fact)
 	 */
-	explicit FUniqueNetIdSteam(const FUniqueNetId & InUniqueNetId) :
+	explicit FUniqueNetIdSteam(const FUniqueNetId& InUniqueNetId) :
 		UniqueNetId(*(uint64*)InUniqueNetId.GetBytes())
 	{
 	}

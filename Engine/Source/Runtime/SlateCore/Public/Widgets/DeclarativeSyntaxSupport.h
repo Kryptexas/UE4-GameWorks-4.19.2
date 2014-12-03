@@ -112,8 +112,8 @@
 			return this->Me(); \
 		} \
 	\
-		/* Bind attribute with delegate to a global function */ \
-		/* NOTE: We use a template here to avoid 'typename' issues when hosting attributes inside templated classes */ \
+		/* Bind attribute with delegate to a global function
+		 * NOTE: We use a template here to avoid 'typename' issues when hosting attributes inside templated classes */ \
 		template< typename StaticFuncPtr > \
 		WidgetArgsType& AttrName##_Static( StaticFuncPtr InFunc )	\
 		{ \
@@ -142,6 +142,15 @@
 		WidgetArgsType& AttrName##_Static( typename AttrType::FGetter::template TStaticDelegate_FourVars< Var1Type, Var2Type, Var3Type, Var4Type >::FFuncPtr InFunc, Var1Type Var1, Var2Type Var2, Var3Type Var3, Var4Type Var4 )	\
 		{ \
 			Var = AttrType::Create( AttrType::FGetter::CreateStatic( InFunc, Var1, Var2, Var3, Var4 ) ); \
+			return this->Me(); \
+		} \
+	\
+		/* Bind attribute with delegate to a lambda
+		 * technically this works for any functor types, but lambdas are the primary use case */ \
+		template<typename FunctorType> \
+		WidgetArgsType& AttrName##_Lambda(FunctorType&& InFunctor) \
+		{ \
+			Var = AttrType::Create(AttrType::FGetter::CreateLambda(Forward<FunctorType>(InFunctor))); \
 			return this->Me(); \
 		} \
 	\
@@ -281,8 +290,8 @@
  * to be defined in the scope where it is used.
  */
 #define INTERNAL_SLATE_DECL_ATTRIBUTE_PASSTHROUGH_COMMON( TargetAttrType, SourceAttrType, Var, AttrName ) \
-		/* Bind attribute with delegate to a global function */ \
-		/* NOTE: We use a template here to avoid 'typename' issues when hosting attributes inside templated classes */ \
+		/* Bind attribute with delegate to a global function \
+		 * NOTE: We use a template here to avoid 'typename' issues when hosting attributes inside templated classes */ \
 		WidgetArgsType& AttrName##_Static( SourceAttrType::FGetter::FStaticDelegate::FFuncPtr InFunc )	\
 		{ \
 			Var = TargetAttrType::Create( TargetAttrType::FGetter::CreateStatic( &AttrName##_Local::PassThroughDelegate, SourceAttrType::FGetter::CreateStatic( InFunc ) ) ); \
@@ -312,6 +321,10 @@
 			Var = TargetAttrType::Create( TargetAttrType::FGetter::CreateStatic( &AttrName##_Local::PassThroughDelegate, SourceAttrType::FGetter::CreateStatic( InFunc, Var1, Var2, Var3, Var4 ) ) ); \
 			return this->Me(); \
 		} \
+	\
+		/* We don't support binding FString lambdas to FText attributes because we currently have no way to disambiguate them from FText lambdas \
+		template<typename FunctorType> \
+		WidgetArgsType& AttrName##_Lambda(FunctorType&& InFunctor) */ \
 	\
 		/* Bind attribute with delegate to a raw C++ class method */ \
 		template< class UserClass >	\
@@ -744,6 +757,15 @@ struct NamedSlotProperty
 		{ \
 			_##EventName = DelegateName::CreateStatic( InFunc, Var1, Var2, Var3, Var4 ); \
 			return *this; \
+		} \
+		\
+		/* Set event delegate to a lambda
+		 * technically this works for any functor types, but lambdas are the primary use case */ \
+		template<typename FunctorType> \
+		WidgetArgsType& EventName##_Lambda(FunctorType&& InFunctor) \
+		{ \
+			_##EventName = DelegateName::CreateLambda(Forward<FunctorType>(InFunctor)); \
+			return this->Me(); \
 		} \
 		\
 		/* Set event delegate to a raw C++ class method */ \

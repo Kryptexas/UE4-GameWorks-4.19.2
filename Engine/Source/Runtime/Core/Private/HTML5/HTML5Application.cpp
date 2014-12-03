@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "HTML5Application.h"
 #include "HTML5Cursor.h"
 #include "HTML5InputInterface.h"

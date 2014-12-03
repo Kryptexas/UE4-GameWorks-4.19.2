@@ -23,7 +23,7 @@ typedef TUniformBuffer<FLpvWriteUniformBufferParameters> FLpvWriteUniformBuffer;
 struct FRsmInfo;
 
 #if LPV_VOLUME_TEXTURE
-static const TCHAR * LpvVolumeTextureSRVNames[7] = { 
+static const TCHAR* LpvVolumeTextureSRVNames[7] = { 
 	TEXT("gLpv3DTexture0"),
 	TEXT("gLpv3DTexture1"),
 	TEXT("gLpv3DTexture2"),
@@ -32,7 +32,7 @@ static const TCHAR * LpvVolumeTextureSRVNames[7] = {
 	TEXT("gLpv3DTexture5"),
 	TEXT("gLpv3DTexture6") };
 
-static const TCHAR * LpvVolumeTextureUAVNames[7] = { 
+static const TCHAR* LpvVolumeTextureUAVNames[7] = { 
 	TEXT("gLpv3DTextureRW0"),
 	TEXT("gLpv3DTextureRW1"),
 	TEXT("gLpv3DTextureRW2"),
@@ -43,12 +43,12 @@ static const TCHAR * LpvVolumeTextureUAVNames[7] = {
 #endif
 
 #if LPV_GV_VOLUME_TEXTURE
-static const TCHAR * LpvGvVolumeTextureSRVNames[3] = { 
+static const TCHAR* LpvGvVolumeTextureSRVNames[3] = { 
 	TEXT("gGv3DTexture0"),
 	TEXT("gGv3DTexture1"),
 	TEXT("gGv3DTexture2") };
 
-static const TCHAR * LpvGvVolumeTextureUAVNames[3] = { 
+static const TCHAR* LpvGvVolumeTextureUAVNames[3] = { 
 	TEXT("gGv3DTextureRW0"),
 	TEXT("gGv3DTextureRW1"),
 	TEXT("gGv3DTextureRW2") };

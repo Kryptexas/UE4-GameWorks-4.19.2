@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UCheckBox
 
-UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCheckBox::UCheckBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SCheckBox::FArguments SlateDefaults;
 	WidgetStyle = *SlateDefaults._Style;

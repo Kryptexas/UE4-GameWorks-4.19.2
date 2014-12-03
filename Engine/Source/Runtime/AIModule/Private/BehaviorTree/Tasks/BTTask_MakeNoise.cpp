@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "SoundDefinitions.h"
-#include "Sound/ReverbVolume.h"
 #include "BehaviorTree/Tasks/BTTask_MakeNoise.h"
 
-UBTTask_MakeNoise::UBTTask_MakeNoise(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UBTTask_MakeNoise::UBTTask_MakeNoise(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, Loudnes(1.0f)
 {
 	NodeName = "MakeNoise";
@@ -27,7 +25,7 @@ EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent* Owner
 
 	return EBTNodeResult::Failed;
 }
-
+	
 #if WITH_EDITOR
 
 FName UBTTask_MakeNoise::GetNodeIconName() const

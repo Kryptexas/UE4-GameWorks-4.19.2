@@ -4,11 +4,15 @@
 
 #include "ScrollBox.generated.h"
 
-/** An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization. */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization.
+ */
+UCLASS()
 class UMG_API UScrollBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	/** The style */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
@@ -25,8 +29,27 @@ class UMG_API UScrollBox : public UPanelWidget
 	USlateWidgetStyleAsset* BarStyle_DEPRECATED;
 
 	/** The orientation of the scrolling and stacking in the box. */
-	UPROPERTY(EditDefaultsOnly, Category = "Behavior")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
 	TEnumAsByte<EOrientation> Orientation;
+
+	/** Visibility */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
+	TEnumAsByte<ESlateVisibility::Type> ScrollBarVisibility;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
+	FVector2D ScrollbarThickness;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
+	bool AlwaysShowScrollbar;
+	
+	//TODO UMG Add SetOrientation
+	//TODO UMG Add SetScrollBarVisibility
+	//TODO UMG Add SetScrollbarThickness
+	//TODO UMG Add SetAlwaysShowScrollbar
+
+public:
 
 	/** Updates the scroll offset of the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")

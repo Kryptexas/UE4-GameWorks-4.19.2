@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
@@ -165,7 +165,7 @@ void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr )
 	verify(VirtualFree( Ptr, 0, MEM_RELEASE ) != 0);
 }
 
-FPlatformMemory::FSharedMemoryRegion * FWindowsPlatformMemory::MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size)
+FPlatformMemory::FSharedMemoryRegion* FWindowsPlatformMemory::MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size)
 {
 	FString Name(TEXT("Global\\"));
 	Name += InName;
@@ -238,7 +238,7 @@ FPlatformMemory::FSharedMemoryRegion * FWindowsPlatformMemory::MapNamedSharedMem
 		return NULL;
 	}
 
-	void * Ptr = MapViewOfFile(Mapping, OpenMappingAccess, 0, 0, Size);
+	void* Ptr = MapViewOfFile(Mapping, OpenMappingAccess, 0, 0, Size);
 	if (Ptr == NULL)
 	{
 		DWORD ErrNo = GetLastError();

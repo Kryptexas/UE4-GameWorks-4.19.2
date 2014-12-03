@@ -12,8 +12,8 @@
 #define LOCTEXT_NAMESPACE "K2Node_AssignDelegate"
 
 //------------------------------------------------------------------------------
-UK2Node_AssignDelegate::UK2Node_AssignDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_AssignDelegate::UK2Node_AssignDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

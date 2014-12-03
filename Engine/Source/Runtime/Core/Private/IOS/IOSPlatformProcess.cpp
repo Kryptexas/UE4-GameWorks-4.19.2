@@ -4,7 +4,7 @@
 IOSPlatformProcess.cpp: iOS implementations of Process functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ApplePlatformRunnableThread.h"
 #include "IOSAppDelegate.h"
 #include <mach-o/dyld.h>

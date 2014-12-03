@@ -81,6 +81,10 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 
 	Style->Set( "NewLevelBlank", new IMAGE_BRUSH( "Testing/NewLevelBlank", FVector2D(256,256) ) );
 
+	Style->Set("White", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::White));
+	Style->Set("Gray", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::Gray));
+	Style->Set("Black", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor::Black));
+
 	// Testing images in the multi box test
 	{
 		Style->Set( "MultiBoxTest.FirstCommandInfo", new IMAGE_BRUSH( "Testing/BrushWireframe", Icon16x16 ) );
@@ -138,7 +142,8 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 
 		//Tagline
 		{
-			Style->Set( "RichText.Tagline.Background", new BOX_BRUSH( "Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(FColor(0xffdbe4e4)) ) );
+			Style->Set("RichText.Tagline.Background", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(FColor(0xffdbe4e4))));
+			Style->Set("RichText.Tagline.DarkBackground", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(0.55423, 0.60548, 0.60548)));
 			Style->Set( "RichText.Tagline.Text", FTextBlockStyle(NormalText)
 				.SetFont( TTF_FONT("Fonts/Roboto-Bold", 24) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))

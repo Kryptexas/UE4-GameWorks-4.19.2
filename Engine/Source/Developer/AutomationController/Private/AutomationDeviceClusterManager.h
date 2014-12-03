@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationDeviceClusterManager.h: Declares the FAutomationDeviceClusterManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,115 +13,117 @@ public:
 	void Reset();
 
 	/**
-	 * Add a new device from an AutomationWorkerFindWorkersResponse message, creating new clusters as needed
-	 * @param MessageAddress - The network address of an available worker
-	 * @param Message - The message that contains the device info
-	 * @param GroupFlags - Used find out which group to put the new device into
+	 * Add a new device from an AutomationWorkerFindWorkersResponse message, creating new clusters as needed.
+	 *
+	 * @param MessageAddress The network address of an available worker.
+	 * @param Message The message that contains the device info.
+	 * @param GroupFlags Used find out which group to put the new device into.
 	 */
 	void AddDeviceFromMessage(const FMessageAddress& MessageAddress, const FAutomationWorkerFindWorkersResponse& Message, const uint32 GroupFlags);
 
-	/** Remove a device (went offline, etc) */
+	/** Remove a device (went offline, etc). */
 	void Remove(const FMessageAddress& MessageAddress);
 
-	/** Returns number of unique device types */
+	/** Returns number of unique device types. */
 	int32 GetNumClusters() const;
 
-	/** Returns the sum of the device counts per cluster */
+	/** Returns the sum of the device counts per cluster. */
 	int32 GetTotalNumDevices() const;
 
-	/** Returns the number of devices in of a particular device type */
+	/** Returns the number of devices in of a particular device type. */
 	int32 GetNumDevicesInCluster (const int32 ClusterIndex) const;
 
-	/** Returns the number of active devices in of a particular device type */
+	/** Returns the number of active devices in of a particular device type. */
 	int32 GetNumActiveDevicesInCluster(const int32 ClusterIndex) const;
 
-	/** Returns the name of the cluster group */
+	/** Returns the name of the cluster group. */
 	FString GetClusterGroupName(const int32 ClusterIndex) const;
 
-	/** Returns the name of the devices within this cluster */
+	/** Returns the name of the devices within this cluster. */
 	FString GetClusterDeviceType (const int32 ClusterIndex) const;
 
-	/** Returns the name of a device within a cluster */
+	/** Returns the name of a device within a cluster. */
 	FString GetClusterDeviceName(const int32 ClusterIndex, const int32 DeviceIndex) const;
 
 	/** 
-	 * Finds the cluster/device index for a particular Guid
+	 * Finds the cluster/device index for a particular GUID.
 	 *
-	 * @param MessageAddress - Network address of the device
-	 * @param OutClusterIndex - the index of the platform this device was in
-	 * @param OutDeviceIndex - the index of the device within OutClusterIndex
-	 *
-	 * @return - true if the device was found within a cluster
+	 * @param MessageAddress Network address of the device.
+	 * @param OutClusterIndex The index of the platform this device was in.
+	 * @param OutDeviceIndex The index of the device within OutClusterIndex.
+	 * @return true if the device was found within a cluster.
 	 */
 	bool FindDevice(const FMessageAddress& MessageAddress, int32& OutClusterIndex, int32& OutDeviceIndex);
 
 	/** 
-	 * Returns the message address of the device specified 
-	 * @param ClusterIndex	- index of the device cluster
-	 * @param DeviceIndex	- index of the device within the cluster
+	 * Returns the message address of the device specified.
+	 *
+	 * @param ClusterIndex Index of the device cluster.
+	 * @param DeviceIndex Index of the device within the cluster.
 	 *
 	 * @return The message address of this device
 	 */
 	FMessageAddress GetDeviceMessageAddress(const int32 ClusterIndex, const int32 DeviceIndex) const;
 
 	/**
-	 * Returns the devices that have been reserved for a particular test
+	 * Returns the devices that have been reserved for a particular test.
 	 *
-	 * @param ClusterIndex - the device type we are testing
-	 * @param Report - The automation test that we are trying to run (when we have enough participants)
-	 *
-	 * @return - The array of devices that are currently signed up for running this test
+	 * @param ClusterIndex The device type we are testing.
+	 * @param Report The automation test that we are trying to run (when we have enough participants).
+	 * @return The array of devices that are currently signed up for running this test.
 	 */
 	TArray<FMessageAddress> GetDevicesReservedForTest(const int32 ClusterIndex, TSharedPtr <IAutomationReport> Report);
 
 	/**
-	 * Returns the current test this device should be running
-	 * @param ClusterIndex	- index of the device cluster
-	 * @param DeviceIndex	- index of the device within the cluster
-	 * @return - NULL if this device is available or the test structure if it is in-process
+	 * Returns the current test this device should be running.
+	 *
+	 * @param ClusterIndex Index of the device cluster.
+	 * @param DeviceIndex Index of the device within the cluster.
+	 * @return nullptr if this device is available or the test structure if it is in-process.
 	 */
 	TSharedPtr <IAutomationReport> GetTest(const int32 ClusterIndex, const int32 DeviceIndex) const;
 
 	/**
-	 * Sets the current test being run by the particular device
+	 * Sets the current test being run by the particular device.
 	 *
-	 * @param ClusterIndex	- The Cluster which holds the device we intend to run the test on
-	 * @param DeviceIndex	- The devices index in the cluster where we intend to run the test on
-	 * @param NewReport		- The test we are going to run
+	 * @param ClusterIndex The Cluster which holds the device we intend to run the test on.
+	 * @param DeviceIndex The devices index in the cluster where we intend to run the test on.
+	 * @param NewReport The test we are going to run.
 	 */
 	void SetTest(const int32 ClusterIndex, const int32 DeviceIndex, TSharedPtr <IAutomationReport> NewReport);
 
 	/**
-	 * Resets all cases on devices which are running the specified test to NULL
+	 * Resets all cases on devices which are running the specified test to NULL.
 	 *
-	 * @param ClusterIndex	- The Cluster where we want all devices running the test to cease
-	 * @param InTest		- The test we are stopping
+	 * @param ClusterIndex The Cluster where we want all devices running the test to cease.
+	 * @param InTest The test we are stopping.
 	 */
 	void ResetAllDevicesRunningTest( const int32 ClusterIndex, IAutomationReportPtr InTest );
 
 	/**
-	 * Disable a device as it is no longer available - keep around to get the results
-	 * @param ClusterIndex - the index of the platform this device was in
-	 * @param DeviceIndex - the index of the device within OutClusterIndex
+	 * Disable a device as it is no longer available - keep around to get the results.
+	 *
+	 * @param ClusterIndex The index of the platform this device was in.
+	 * @param DeviceIndex The index of the device within OutClusterIndex.
 	 */
 	void DisableDevice( const int32 ClusterIndex, const int32 DeviceIndex );
 
 	/**
-	 * Check if a device is enabled
-	 * @param ClusterIndex - the index of the platform this device was in
-	 * @param DeviceIndex - the index of the device within OutClusterIndex
+	 * Check if a device is enabled.
+	 *
+	 * @param ClusterIndex The index of the platform this device was in.
+	 * @param DeviceIndex The index of the device within OutClusterIndex.
 	 */
 	bool DeviceEnabled( const int32 ClusterIndex, const int32 DeviceIndex );
 
 	/**
-	 * Check if there are any active game instances left
-	 * @return True if there are some game instances
+	 * Check if there are any active game instances left.
+	 *
+	 * @return True if there are some game instances.
 	 */
 	bool HasActiveDevice();
 
-	/**
-	 * Regroups the device clusters based off the current group flags
-	 */
+	/** Regroups the device clusters based off the current group flags. */
 	void ReGroupDevices( const uint32 GroupFlags );
 
 private:
@@ -209,5 +207,3 @@ private:
 	/** Array of all clusters */
 	TArray <FDeviceCluster> Clusters;
 };
-
-

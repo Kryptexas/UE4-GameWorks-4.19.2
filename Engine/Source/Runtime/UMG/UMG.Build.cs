@@ -20,8 +20,19 @@ public class UMG : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
+				"RenderCore",
 				"MovieSceneCore",
+				"RHI",
 			}
 		);
+
+		if (Target.Type != TargetRules.TargetType.Server)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"SlateRHIRenderer",
+				}
+			);
+		};
 	}
 }

@@ -203,6 +203,15 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("GetAccessTimeStamp return %llx [%fms]"), Result.GetTicks(), ThisTime);
 		return Result;
 	}
+	virtual FString	GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		FILE_LOG(LogPlatformFile, Log, TEXT("GetFilenameOnDisk %s"), Filename);
+		double StartTime = FPlatformTime::Seconds();
+		FString Result = LowerLevel->GetFilenameOnDisk(Filename);
+		float ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
+		FILE_LOG(LogPlatformFile, Log, TEXT("GetFilenameOnDisk return %llx [%s]"), *Result, ThisTime);
+		return Result;
+	}
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("OpenRead %s"), Filename);

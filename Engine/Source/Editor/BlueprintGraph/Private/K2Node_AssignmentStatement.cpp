@@ -57,8 +57,8 @@ FString UK2Node_AssignmentStatement::VariablePinName = FString(TEXT("Variable"))
 FString UK2Node_AssignmentStatement::ValuePinName = FString(TEXT("Value"));
 
 
-UK2Node_AssignmentStatement::UK2Node_AssignmentStatement(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_AssignmentStatement::UK2Node_AssignmentStatement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

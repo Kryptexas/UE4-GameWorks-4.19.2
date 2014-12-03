@@ -6,7 +6,7 @@
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintActionFilter.h"  // for FBlueprintActionInfo
 #include "BlueprintDragDropMenuItem.h"
-#include "BlueprintBoundMenuItem.h"
+#include "BlueprintActionMenuUtils.h"
 
 /*******************************************************************************
  * Static UBlueprintPaletteFavorites Helpers
@@ -59,7 +59,7 @@ static FBlueprintNodeSignature BlueprintPaletteFavoritesImpl::ConstructLegacySig
 		SignatureSubObject = DelegateAction->GetDelegatePoperty();
 	}
 	// if we can pull out a node associated with this action
-	else if (UK2Node const* NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(InPaletteAction))
+	else if (UK2Node const* NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(InPaletteAction))
 	{
 		bool bIsSupported = false;
 		// now, if we need more info to help identify the node, let's fill 
@@ -168,15 +168,6 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 			static const FName CollectionSignatureKey(TEXT("ActionCollection"));
 			ActionSignature.AddNamedValue(CollectionSignatureKey, TEXT("true"));
 		}
-		else if (InPaletteAction->GetTypeId() == FBlueprintBoundMenuItem::StaticGetTypeId())
-		{
-			FBlueprintBoundMenuItem* BoundMenuItem = (FBlueprintBoundMenuItem*)InPaletteAction.Get();
-			// this is the bare action with out any bindings, you cannot 
-			// favorite actions with bindings (mainly because the database 
-			// actions are alway unbound, binding is done externally at menu 
-			// build time)
-			ActionSignature = BoundMenuItem->GetBoundAction()->GetSpawnerSignature();
-		}
 		else
 		{
 			ActionSignature = BlueprintPaletteFavoritesImpl::ConstructLegacySignature(InPaletteAction);
@@ -219,8 +210,8 @@ FString const& FFavoritedBlueprintPaletteItem::ToString() const
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintPaletteFavorites::UBlueprintPaletteFavorites(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintPaletteFavorites::UBlueprintPaletteFavorites(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

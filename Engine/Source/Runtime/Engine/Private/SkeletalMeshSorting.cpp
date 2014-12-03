@@ -314,7 +314,7 @@ void SortTriangles_CenterRadialDistance( FVector SortCenter, int32 NumTriangles,
 		}
 		CacheOptimizeSortStrip( &NewIndices[StripStartIndex], Strips[s].Triangles.Num()*3 );
 	}
-	FMemory::Memcpy( Indices, NewIndices.GetTypedData(), NewIndices.Num() * sizeof(uint32) );
+	FMemory::Memcpy( Indices, NewIndices.GetData(), NewIndices.Num() * sizeof(uint32) );
 }
 
 
@@ -337,7 +337,7 @@ void SortTriangles_Random( int32 NumTriangles, const FSoftSkinVertex* Vertices, 
 		NewIndices.Add(Indices[tri*3+2]);	
 	}
 
-	FMemory::Memcpy( Indices, NewIndices.GetTypedData(), NewIndices.Num() * sizeof(uint32) );
+	FMemory::Memcpy( Indices, NewIndices.GetData(), NewIndices.Num() * sizeof(uint32) );
 }
 
 

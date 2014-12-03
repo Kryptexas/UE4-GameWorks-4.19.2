@@ -511,9 +511,9 @@ void SPackagesDialog::OnToggleSelectedCheckBox(ESlateCheckBoxState::Type InNewSt
 	ItemListView->RequestListRefresh();
 }
 
-FReply SPackagesDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SPackagesDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if( InKeyboardEvent.GetKey() == EKeys::Escape )
+	if( InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		for( int32 ButtonIndex = 0; ButtonIndex < Buttons.Num(); ++ButtonIndex )
 		{
@@ -525,7 +525,7 @@ FReply SPackagesDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 		}
 	}
 
-	return SCompoundWidget::OnKeyDown( MyGeometry, InKeyboardEvent );
+	return SCompoundWidget::OnKeyDown( MyGeometry, InKeyEvent );
 }
 
 EVisibility SPackagesDialog::GetConnectToSourceControlVisibility() const
@@ -555,7 +555,10 @@ void SPackagesDialog::PopulateIgnoreForSaveItems( const TSet<FString>& InIgnoreP
 
 		const ESlateCheckBoxState::Type CheckedStatus = (InIgnorePackages.Find(ItemName) != NULL) ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
 
-		(*ItItem)->SetState( CheckedStatus );
+		if (!(*ItItem)->IsDisabled())
+		{
+			(*ItItem)->SetState(CheckedStatus);
+		}
 	}
 }
 

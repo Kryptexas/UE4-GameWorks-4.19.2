@@ -5,15 +5,17 @@
 #include "Sound/SoundMix.h"
 #include "AudioDevice.h"
 #if WITH_EDITOR
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #endif
 
 /*-----------------------------------------------------------------------------
 	USoundMix implementation.
 -----------------------------------------------------------------------------*/
 
-USoundMix::USoundMix(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundMix::USoundMix(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bApplyEQ = false;
 	InitialDelay = 0.0f;

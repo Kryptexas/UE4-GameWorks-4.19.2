@@ -4,7 +4,7 @@
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 
 /** Slate styles for the crash report client app */

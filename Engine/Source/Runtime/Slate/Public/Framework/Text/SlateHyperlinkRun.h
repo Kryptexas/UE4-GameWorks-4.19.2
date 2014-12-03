@@ -77,7 +77,7 @@ public:
 
 	virtual ERunAttributes GetRunAttributes() const override;
 
-private:
+protected:
 
 	FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate );
 																										 
@@ -85,11 +85,11 @@ private:
 
 	FSlateHyperlinkRun( const FSlateHyperlinkRun& Run );
 
-private:
+protected:
 
 	void OnNavigate();
 
-private:
+protected:
 
 	FRunInfo RunInfo;
 	TSharedRef< const FString > Text;

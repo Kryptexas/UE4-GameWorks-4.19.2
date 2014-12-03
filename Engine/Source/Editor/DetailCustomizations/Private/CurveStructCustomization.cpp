@@ -6,6 +6,7 @@
 #include "PackageTools.h"
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
+#include "SCurveEditor.h"
 
 #define LOCTEXT_NAMESPACE "CurveStructCustomization"
 
@@ -29,7 +30,7 @@ FCurveStructCustomization::FCurveStructCustomization()
 {
 }
 
-void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	this->StructPropertyHandle = InStructPropertyHandle;
 
@@ -52,7 +53,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
 			]
 			.ValueContent()
 			.HAlign(HAlign_Fill)
@@ -87,7 +88,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
 			]
 			.ValueContent()
 			[
@@ -101,7 +102,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 	}
 }
 
-void FCurveStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
@@ -141,8 +142,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHan
 							SNew(SButton)
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.ContentPadding(1.f)
-							.ToolTipText(LOCTEXT( "ConvertInternalCurveTooltip", "Convert to Internal Curve"))
-							//.ToolTipText(LOCTEXT( "ConvertInternalCurveTooltip", "Copy the external CurveFloat asset to this curve") )
+							.ToolTipText(LOCTEXT("ConvertInternalCurveTooltip", "Convert to Internal Curve"))
 							.OnClicked(this, &FCurveStructCustomization::OnConvertButtonClicked)
 							.IsEnabled(this, &FCurveStructCustomization::IsConvertButtonEnabled)
 							[
@@ -154,25 +154,12 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHan
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						[
-							SNew(SButton)
-							.HAlign(HAlign_Center)
-							.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ) )
-							.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new CurveFloat asset from this curve") )
-							.OnClicked(this, &FCurveStructCustomization::OnCreateButtonClicked)
-							.IsEnabled(this, &FCurveStructCustomization::IsCreateButtonEnabled)
-						]
-						/*+SHorizontalBox::Slot()
-						[
-							SNew(SButton)
-							.HAlign(HAlign_Center)
-							.Text( LOCTEXT( "ConvertAssetButton", "Convert to Internal Curve" ) )
-							.ToolTipText(LOCTEXT( "CopyExternalCurveTooltip", "Copy the external CurveFloat asset to this curve") )
-							.OnClicked(this, &FCurveStructCustomization::OnConvertButtonClicked)
-							.IsEnabled(this, &FCurveStructCustomization::IsConvertButtonEnabled)
-						]*/
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ) )
+						.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new CurveFloat asset from this curve") )
+						.OnClicked(this, &FCurveStructCustomization::OnCreateButtonClicked)
+						.IsEnabled(this, &FCurveStructCustomization::IsCreateButtonEnabled)
 					]
 				];
 		}
@@ -234,7 +221,7 @@ void FCurveStructCustomization::SetInputViewRange(float InViewMinInput, float In
 	ViewMinInput = InViewMinInput;
 }
 
-void FCurveStructCustomization::OnExternalCurveChanged(TSharedRef<class IPropertyHandle> CurvePropertyHandle)
+void FCurveStructCustomization::OnExternalCurveChanged(TSharedRef<IPropertyHandle> CurvePropertyHandle)
 {
 	if (RuntimeCurve)
 	{
@@ -257,7 +244,7 @@ FReply FCurveStructCustomization::OnCreateButtonClicked()
 	{
 		FString DefaultAsset = FPackageName::GetLongPackagePath(Owner->GetOutermost()->GetName()) + TEXT("/") + Owner->GetName() + TEXT("_ExternalCurve");
 
-		TSharedRef<SDlgPickAssetPath> NewCurveDlg = 
+		TSharedRef<SDlgPickAssetPath> NewCurveDlg =
 			SNew(SDlgPickAssetPath)
 			.Title(LOCTEXT("NewCurveDialogTitle", "Choose Location for External Curve Asset"))
 			.DefaultAssetPath(FText::FromString(DefaultAsset));
@@ -284,7 +271,7 @@ FReply FCurveStructCustomization::OnCreateButtonClicked()
 			{
 				return FReply::Handled();
 			}
-			
+
 			// PromptUserIfExistingObject may have GCed and recreated our outermost package - re-acquire it here.
 			OutermostPkg = Pkg->GetOutermost();
 
@@ -371,7 +358,7 @@ FReply FCurveStructCustomization::OnCurvePreviewDoubleClick( const FGeometry& In
 				.SizingRule( ESizingRule::FixedSize );
 
 			// init the mini curve editor widget
-			TSharedRef<SMiniCurveEditor> MiniCurveEditor = 
+			TSharedRef<SMiniCurveEditor> MiniCurveEditor =
 				SNew(SMiniCurveEditor)
 				.CurveOwner(this)
 				.ParentWindow(Window);

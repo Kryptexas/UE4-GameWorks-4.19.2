@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UGameplayAbilityBlueprint
 
-UGameplayAbilityBlueprint::UGameplayAbilityBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilityBlueprint::UGameplayAbilityBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -16,7 +16,7 @@ UGameplayAbilityBlueprint::UGameplayAbilityBlueprint(const class FPostConstructI
 
 UClass* UGameplayAbilityBlueprint::GetBlueprintClass() const
 {
-	return UGameplayAbilityBlueprint::StaticClass();
+	return UGameplayAbilityBlueprintGeneratedClass::StaticClass();
 }
 
 

@@ -3,7 +3,7 @@
 #include "MacGraphicsSwitchingModule.h"
 #include "MacGraphicsSwitchingSettings.h"
 
-UMacGraphicsSwitchingSettings::UMacGraphicsSwitchingSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMacGraphicsSwitchingSettings::UMacGraphicsSwitchingSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }

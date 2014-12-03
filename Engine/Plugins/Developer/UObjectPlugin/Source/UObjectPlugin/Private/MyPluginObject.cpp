@@ -4,7 +4,7 @@
 #include "MyPluginObject.h"
 
 
-UMyPluginObject::UMyPluginObject( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMyPluginObject::UMyPluginObject( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }

@@ -11,8 +11,8 @@ FMovieSceneBoundObject::FMovieSceneBoundObject( const FGuid& InitPosessableGuid,
 
 
 
-UMovieSceneBindings::UMovieSceneBindings( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneBindings::UMovieSceneBindings( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 
 	RootMovieScene = NULL;

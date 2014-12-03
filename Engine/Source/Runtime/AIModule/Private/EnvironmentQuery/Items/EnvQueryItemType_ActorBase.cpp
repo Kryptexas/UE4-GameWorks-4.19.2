@@ -5,17 +5,17 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 
-UEnvQueryItemType_ActorBase::UEnvQueryItemType_ActorBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType_ActorBase::UEnvQueryItemType_ActorBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 
-void UEnvQueryItemType_ActorBase::AddBlackboardFilters(struct FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const
+void UEnvQueryItemType_ActorBase::AddBlackboardFilters(FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const
 {
 	Super::AddBlackboardFilters(KeySelector, FilterOwner);
 	KeySelector.AddObjectFilter(FilterOwner, AActor::StaticClass());
 }
 
-bool UEnvQueryItemType_ActorBase::StoreInBlackboard(struct FBlackboardKeySelector& KeySelector, class UBlackboardComponent* Blackboard, const uint8* RawData) const
+bool UEnvQueryItemType_ActorBase::StoreInBlackboard(FBlackboardKeySelector& KeySelector, UBlackboardComponent* Blackboard, const uint8* RawData) const
 {
 	bool bStored = Super::StoreInBlackboard(KeySelector, Blackboard, RawData);
 	if (!bStored && KeySelector.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())

@@ -3,6 +3,7 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "FindInMaterial.h"
 #include "MaterialEditor.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "FindInMaterial"
 
@@ -176,7 +177,7 @@ void SFindInMaterial::FocusForUse()
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked(SearchTextField.ToSharedRef(), FilterTextBoxWidgetPath);
 
 	// Set keyboard focus directly
-	FSlateApplication::Get().SetKeyboardFocus(FilterTextBoxWidgetPath, EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(FilterTextBoxWidgetPath, EFocusCause::SetDirectly);
 }
 
 void SFindInMaterial::OnSearchTextChanged(const FText& Text)

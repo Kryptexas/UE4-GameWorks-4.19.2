@@ -175,10 +175,12 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 *
 	 * @param TagName The Name of the tag to search for
 	 * 
+	 * @param ErrorIfNotfound: ensure() that tag exists.
+	 * 
 	 * @return Will return the corresponding FGameplayTag or an empty one if not found.
 	 */
 	UFUNCTION(BlueprintCallable, Category="GameplayTags")
-	FGameplayTag RequestGameplayTag(FName TagName) const;
+	FGameplayTag RequestGameplayTag(FName TagName, bool ErrorIfNotFound=true) const;
 
 	/**
 	 * Adds a tag to the container and removes any direct parents, wont add if child already exists
@@ -200,6 +202,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	FGameplayTagContainer RequestGameplayTagParents(const FGameplayTag& GameplayTag) const;
 
 	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const;
+
+	FGameplayTag RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const;
 
 	/**
 	 * Checks if the tag is allowed to be created

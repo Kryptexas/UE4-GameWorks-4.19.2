@@ -102,6 +102,13 @@ public:
 	 */
 	bool RemoveElement(uint32 ElementBaseX, uint32 ElementBaseY, uint32 ElementSizeX, uint32 ElementSizeY)
 	{
+		if (bAlignByFour)
+		{
+			// Pad to 4 to ensure alignment
+			ElementSizeX = (ElementSizeX + 3) & ~3;
+			ElementSizeY = (ElementSizeY + 3) & ~3;
+		}
+
 		int32 FoundNodeIndex = INDEX_NONE;
 		// Search through nodes to find the element to remove
 		//@todo - traverse the tree instead of iterating through all nodes

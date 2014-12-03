@@ -4,7 +4,7 @@
 
 #include "NodeDependingOnEnumInterface.h"
 
-UNodeDependingOnEnumInterface::UNodeDependingOnEnumInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNodeDependingOnEnumInterface::UNodeDependingOnEnumInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

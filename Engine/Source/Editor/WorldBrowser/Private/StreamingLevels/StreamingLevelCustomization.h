@@ -71,6 +71,12 @@ private:
 	/** Handle for edit level transform button */
 	FReply OnEditLevelClicked();
 
+	/** Generate custom widget for the EditorStreamingVolumes array customization */
+	void OnGenerateElementForEditorStreamingVolume(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder);
+
+	/** Called to determine whether the selected streaming volume can be set or not */
+	bool OnShouldSetEditorStreamingVolume(const FAssetData& AssetData, TSharedRef<IPropertyHandle> ElementProperty) const;
+
 private:
 	TWeakPtr<FStreamingLevelCollectionModel>	WorldModel;
 	TSharedPtr<class IPropertyHandle>			LevelPositionProperty;

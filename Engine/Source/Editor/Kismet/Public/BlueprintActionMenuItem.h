@@ -8,9 +8,10 @@
 #include "BlueprintActionMenuItem.generated.h"
 
 // Forward declarations
-class UBlueprintNodeSpawner;
-class FDragDropOperation;
+class  UBlueprintNodeSpawner;
 struct FSlateBrush;
+struct FBlueprintActionUiSpec;
+struct FBlueprintActionContext;
 
 /**
  * Wrapper around a UBlueprintNodeSpawner, which takes care of specialized
@@ -22,14 +23,12 @@ USTRUCT()
 struct FBlueprintActionMenuItem : public FEdGraphSchemaAction
 {
 	GENERATED_USTRUCT_BODY();
-	
-public:
 	static FName StaticGetTypeId() { static FName const TypeId("FBlueprintActionMenuItem"); return TypeId; }
-	
+
+public:	
 	/** Constructors */
-	FBlueprintActionMenuItem() : IconBrush(nullptr), IconTint(FLinearColor::White), Action(nullptr) {}
-	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTint, int32 MenuGrouping = 0);
-	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, IBlueprintNodeBinder::FBindingSet const& Bindings);
+	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner = nullptr) : Action(NodeSpawner), IconTint(FLinearColor::White), IconBrush(nullptr) {}
+	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiDef, IBlueprintNodeBinder::FBindingSet const& Bindings = IBlueprintNodeBinder::FBindingSet());
 	
 	// FEdGraphSchemaAction interface
 	virtual FName         GetTypeId() const final { return StaticGetTypeId(); }
@@ -37,6 +36,11 @@ public:
 	virtual UEdGraphNode* PerformAction(UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, FVector2D const Location, bool bSelectNewNode = true) final;
 	virtual void          AddReferencedObjects(FReferenceCollector& Collector) final;
 	// End FEdGraphSchemaAction interface
+
+	/** @return */
+	UBlueprintNodeSpawner const* GetRawAction() const;
+
+	void AppendBindings(const FBlueprintActionContext& Context, IBlueprintNodeBinder::FBindingSet const& BindingSet);
 
 	/**
 	 * Retrieves the icon brush for this menu entry (to be displayed alongside
@@ -47,16 +51,15 @@ public:
 	 */
 	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);
 
-	/** @return */
-	UBlueprintNodeSpawner const* GetRawAction() const;
+	
 
 private:
-	/** Brush that should be used for the icon on this menu item. */
-	FSlateBrush const* IconBrush;
-	/** Tint to return along with the icon brush. */
-	FSlateColor IconTint;
 	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
 	UBlueprintNodeSpawner const* Action;
+	/** Tint to return along with the icon brush. */
+	FSlateColor IconTint;
+	/** Brush that should be used for the icon on this menu item. */
+	FSlateBrush const* IconBrush;
 	/** */
 	IBlueprintNodeBinder::FBindingSet Bindings;
 };

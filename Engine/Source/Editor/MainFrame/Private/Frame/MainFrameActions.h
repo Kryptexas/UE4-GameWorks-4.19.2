@@ -77,13 +77,16 @@ class FMainFrameActionCallbacks
 
 public:
 	/** Global handler for unhandled key-down events in the editor. */
-	static FReply OnUnhandledKeyDownEvent(const FKeyboardEvent& InKeyboardEvent);
+	static FReply OnUnhandledKeyDownEvent(const FKeyEvent& InKeyEvent);
 
 	/**
 	 * The default can execute action for all commands unless they override it
 	 * By default commands cannot be executed if the application is in K2 debug mode.
 	 */
 	static bool DefaultCanExecuteAction();
+
+	/** Determine whether we are allowed to save the world at this moment */
+	static bool CanSaveWorld();
 
 	/** Saves all levels and asset packages */
 	static void SaveAll();
@@ -229,8 +232,16 @@ public:
 	// List of projects that the user can switch to.
 	static TArray<FString> ProjectNames;
 
-
 protected:
+
+	/**
+	 * Adds a message to the message log.
+	 *
+	 * @param Text The main message text.
+	 * @param Detail The detailed description.
+	 * @param TutorialLink A link to an associated tutorial.
+	 */
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
 
 	/**
 	 * Creates an asynchronous UAT task.

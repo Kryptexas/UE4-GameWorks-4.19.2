@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "Settings/WidgetDesignerSettings.h"
 
-UWidgetDesignerSettings::UWidgetDesignerSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetDesignerSettings::UWidgetDesignerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	GridSnapEnabled = true;
 	GridSnapSize = 4;

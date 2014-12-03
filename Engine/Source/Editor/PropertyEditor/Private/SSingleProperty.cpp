@@ -303,7 +303,7 @@ void SSingleProperty::SetColorPropertyFromColorPicker(FLinearColor NewColor)
 		//@todo if multiple objects we need to iterate
 		ValueNode->NotifyPreChange(NodeProperty, GetNotifyHook());
 
-		FPropertyChangedEvent ChangeEvent(NodeProperty, false, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet);
 		ValueNode->NotifyPostChange( ChangeEvent, GetNotifyHook() );
 	}
 }

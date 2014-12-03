@@ -11,8 +11,8 @@
 //////////////////////////////////////////////////////////////////////////
 // ALevelScriptActor
 
-ALevelScriptActor::ALevelScriptActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALevelScriptActor::ALevelScriptActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 #if WITH_EDITORONLY_DATA

@@ -1,14 +1,12 @@
 # Aliases without a corresponding xx.xml file (see icu-config.xml & build.xml)
-LANG_SYNTHETIC_ALIAS =en_NH.txt en_RH.txt\
- ja_JP.txt ja_JP_TRADITIONAL.txt\
+LANG_SYNTHETIC_ALIAS = en_NH.txt en_RH.txt\
+ zh_Hans_CN.txt zh_Hant_TW.txt zh_MO.txt zh_SG.txt zh_TW.txt\
  zh_CN.txt zh_HK.txt\
- zh_Hans_CN.txt zh_Hant_TW.txt zh_MO.txt zh_SG.txt zh_TW.txt
-
+ ja_JP.txt ja_JP_TRADITIONAL.txt
+ 
 
 # Ordinary resources
-LANG_SOURCE = de.txt\
- de_CH.txt\
- en.txt en_150.txt\
+LANG_SOURCE = en.txt en_150.txt\
  en_AG.txt en_AI.txt en_AU.txt en_BB.txt en_BE.txt\
  en_BM.txt en_BS.txt en_BW.txt en_BZ.txt en_CC.txt\
  en_CK.txt en_CM.txt en_CX.txt en_DG.txt en_DM.txt\
@@ -25,19 +23,18 @@ LANG_SOURCE = de.txt\
  en_SX.txt en_SZ.txt en_TC.txt en_TK.txt en_TO.txt\
  en_TT.txt en_TV.txt en_TZ.txt en_UG.txt en_VC.txt\
  en_VG.txt en_VU.txt en_WS.txt en_ZA.txt en_ZM.txt\
- en_ZW.txt es.txt es_419.txt es_AR.txt\
+ en_ZW.txt\
+ fr.txt fr_CA.txt\
+ it.txt\
+ de.txt\
+ de_CH.txt\
+ es.txt es_419.txt es_AR.txt\
  es_BO.txt es_CL.txt es_CO.txt es_CR.txt es_CU.txt\
  es_DO.txt es_EC.txt es_GT.txt es_HN.txt es_MX.txt\
  es_NI.txt es_PA.txt es_PE.txt es_PR.txt es_PY.txt\
  es_SV.txt es_US.txt es_UY.txt es_VE.txt\
- fr.txt fr_CA.txt\
- hi.txt\
- it.txt ja.txt\
- ko.txt\
- pl.txt pt.txt\
- pt_AO.txt pt_CV.txt pt_GW.txt pt_MO.txt pt_MZ.txt\
- pt_PT.txt pt_ST.txt pt_TL.txt\
- ru.txt ru_UA.txt\
- sv.txt sv_FI.txt\
  zh.txt zh_Hans.txt zh_Hans_HK.txt zh_Hans_MO.txt zh_Hans_SG.txt\
- zh_Hant.txt zh_Hant_HK.txt zh_Hant_MO.txt leet.txt
+ zh_Hant.txt zh_Hant_HK.txt zh_Hant_MO.txt\
+ ja.txt\
+ ko.txt\
+ leet.txt

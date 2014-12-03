@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "MovieSceneDirectorTrack"
 
-UMovieSceneDirectorTrack::UMovieSceneDirectorTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneDirectorTrack::UMovieSceneDirectorTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

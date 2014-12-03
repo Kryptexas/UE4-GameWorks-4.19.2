@@ -9,11 +9,6 @@
 
 #define NAVSYS_DEBUG (0 && UE_BUILD_DEBUG)
 
-// if we'll be rebuilding navigation at runtime
-#define WITH_RUNTIME_NAVIGATION_BUILDING (1 && WITH_NAVIGATION_GENERATOR)
-
-#define NAVOCTREE_CONTAINS_COLLISION_DATA (1 && WITH_RECAST)
-
 #define NAV_USE_MAIN_NAVIGATION_DATA NULL
 
 class UNavigationPath;
@@ -179,8 +174,8 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 
 	TSet<FNavigationDirtyElement> PendingOctreeUpdates;
 
-	UPROPERTY(transient)
-	TArray<ANavMeshBoundsVolume*> PendingNavVolumeUpdates;
+	// List of pending navigation bounds update requests (add, remove, update size)
+	TArray<FNavigationBoundsUpdateRequest> PendingNavBoundsUpdates;
 
  	UPROPERTY(/*BlueprintAssignable, */Transient)
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
@@ -194,6 +189,9 @@ private:
 
 	/** set to true when navigation processing was blocked due to missing nav bounds */
 	uint32 bNavDataRemovedDueToMissingNavBounds:1;
+
+	/** All areas where we build/have navigation */
+	TSet<FNavigationBounds> RegisteredNavBounds;
 
 public:
 	//----------------------------------------------------------------------//
@@ -396,6 +394,8 @@ public:
 
 	bool IsNavigationRelevant(const AActor* TestActor) const;
 
+	const TSet<FNavigationBounds>& GetNavigationBounds() const;
+
 	/** @return default walkable area class */
 	FORCEINLINE static TSubclassOf<UNavArea> GetDefaultWalkableArea() { return DefaultWalkableArea; }
 
@@ -432,10 +432,11 @@ protected:
 	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
 	void ProcessNavAreaPendingRegistration();
 
-#if WITH_NAVIGATION_GENERATOR
 	/** used to apply updates of nav volumes in navigation system's tick */
-	void PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavVolume);
-#endif // WITH_NAVIGATION_GENERATOR
+	void PerformNavigationBoundsUpdate(const TArray<FNavigationBoundsUpdateRequest>& UpdateRequests);
+	
+	/** Searches for all valid navigation bounds in the world and stores them */
+	void GatherNavigationBounds();
 
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
 	ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
@@ -458,11 +459,11 @@ public:
 	static void UpdateNavOctreeAll(AActor* Actor);
 	/** removes all navoctree entries for actor and its components */
 	static void ClearNavOctreeAll(AActor* Actor);
+	/** updates bounds of all components implementing INavRelevantInterface */
+	static void UpdateNavOctreeBounds(AActor* Actor);
 
-#if WITH_NAVIGATION_GENERATOR
 	void AddDirtyArea(const FBox& NewArea, int32 Flags);
 	void AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags);
-#endif // WITH_NAVIGATION_GENERATOR
 
 	const FNavigationOctree* GetNavOctree() const { return NavOctree; }
 
@@ -524,14 +525,10 @@ public:
 	//----------------------------------------------------------------------//
 	// building
 	//----------------------------------------------------------------------//
-#if WITH_NAVIGATION_GENERATOR
+	
 	/** Triggers navigation building on all eligible navigation data. */
 	virtual void Build();
 
-	// @todo document
-	void OnUpdateStreamingStarted();
-	// @todo document
-	void OnUpdateStreamingFinished();
 	// @todo document
 	void OnPIEStart();
 	// @todo document
@@ -543,10 +540,17 @@ public:
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = Navigation)
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
+	void OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume);
+	void OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume);
 
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
-#endif // WITH_NAVIGATION_GENERATOR
+
+	/** Used to display "navigation building in progress" counter */
+	int32 GetNumRemainingBuildTasks() const;
+
+	/** Number of currently running tasks */
+	int32 GetNumRunningBuildTasks() const;
 
 	/** Sets up SuportedAgents and NavigationDataCreators. Override it to add additional setup, but make sure to call Super implementation */
 	virtual void DoInitialSetup();
@@ -561,6 +565,9 @@ public:
 
 	/** */
 	virtual void OnWorldInitDone(FNavigationSystem::EMode Mode);
+
+	/** adds BSP collisions of currently streamed in levels to octree */
+	void InitializeLevelCollisions();
 
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
@@ -647,11 +654,9 @@ protected:
 	/** List of actors relevant to generation of navigation data */
 	TArray<TWeakObjectPtr<AActor> > GenerationSeeds;
 
-#if WITH_NAVIGATION_GENERATOR
 	/** stores areas marked as dirty throughout the frame, processes them 
 	 *	once a frame in Tick function */
 	TArray<FNavigationDirtyArea> DirtyAreas;
-#endif // WITH_NAVIGATION_GENERATOR	
 
 	// async queries
 	FCriticalSection NavDataRegistrationSection;
@@ -659,6 +664,8 @@ protected:
 	uint32 bNavigationBuildingLocked:1;
 	uint32 bInitialBuildingLockActive:1;
 	uint32 bInitialSetupHasBeenPerformed:1;
+	uint32 bInitialLevelsAdded:1;
+	uint32 bAsyncBuildPaused:1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
@@ -720,8 +727,6 @@ protected:
 
 	void SetCrowdManager(UCrowdManager* NewCrowdManager); 
 
-#if WITH_NAVIGATION_GENERATOR
-
 	/** Add BSP collision data to navigation octree */
 	void AddLevelCollisionToOctree(ULevel* Level);
 	
@@ -736,6 +741,8 @@ private:
 	void NavigationBuildingLock();
 	// @todo document
 	void NavigationBuildingUnlock(bool bForce = false);
+	// adds navigation bounds update request to a pending list
+	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
 
 	void SpawnMissingNavigationData();
 
@@ -751,7 +758,6 @@ private:
 	 
 	/** Handler for FWorldDelegates::LevelRemovedFromWorld event */
 	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
-#endif // WITH_NAVIGATION_GENERATOR
 
 	/** Adds given request to requests queue. Note it's to be called only on game thread only */
 	void AddAsyncQuery(const FAsyncPathFindingQuery& Query);

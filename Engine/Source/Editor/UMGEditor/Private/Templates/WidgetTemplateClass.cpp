@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "Components/Widget.h"
 #include "WidgetTemplateClass.h"
 #include "IDocumentation.h"
+#include "Blueprint/WidgetTree.h"
 
 #define LOCTEXT_NAMESPACE "UMGEditor"
 
@@ -36,7 +37,10 @@ FText FWidgetTemplateClass::GetCategory() const
 
 UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)
 {
-	return Tree->ConstructWidget<UWidget>(WidgetClass.Get());
+	UWidget* NewWidget = Tree->ConstructWidget<UWidget>(WidgetClass.Get());
+	NewWidget->OnCreationFromPalette();
+
+	return NewWidget;
 }
 
 const FSlateBrush* FWidgetTemplateClass::GetIcon() const
@@ -47,7 +51,7 @@ const FSlateBrush* FWidgetTemplateClass::GetIcon() const
 
 TSharedRef<IToolTip> FWidgetTemplateClass::GetToolTip() const
 {
-	return IDocumentation::Get()->CreateToolTip(FText::FromString(WidgetClass->GetDescription()), nullptr, FString(TEXT("Shared/Types/")) + WidgetClass->GetName(), TEXT("Class"));
+	return IDocumentation::Get()->CreateToolTip(WidgetClass->GetToolTipText(), nullptr, FString(TEXT("Shared/Types/")) + WidgetClass->GetName(), TEXT("Class"));
 }
 
 void FWidgetTemplateClass::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)

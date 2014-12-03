@@ -26,7 +26,7 @@ struct FPhysicalSurfaceName
 	FPhysicalSurfaceName()
 		: Type(SurfaceType_Max)
 	{}
-	FPhysicalSurfaceName(EPhysicalSurface InType, const FName & InName)
+	FPhysicalSurfaceName(EPhysicalSurface InType, const FName& InName)
 		: Type(InType)
 		, Name(InName)
 	{}
@@ -107,6 +107,13 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	float MaxDepenetrationVelocity;
 
+	/**
+	*  If true, simulate physics for this component on a dedicated server.
+	*  This should be set if simulating physics and replicating with a dedicated server.
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	bool bSimulateSkeletalMeshOnDedicatedServer;
+
 
 	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
@@ -115,6 +122,10 @@ class ENGINE_API UPhysicsSettings
 	/** Whether to substep the physics simulation. This feature is still experimental. Certain functionality might not work correctly*/
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	bool bSubstepping;
+
+	/** Whether to substep the async physics simulation. This feature is still experimental. Certain functionality might not work correctly*/
+	UPROPERTY(config, EditAnywhere, Category = Framerate)
+	bool bSubsteppingAsync;
 
 	/** Max delta time for an individual substep simulation. */
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0", editcondition = "bSubStepping"), Category=Framerate)

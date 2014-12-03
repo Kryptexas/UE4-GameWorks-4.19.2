@@ -5,6 +5,7 @@ Level.cpp: Level-related functions
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/WorldComposition.h"
@@ -29,39 +30,6 @@ Level.cpp: Level-related functions
 #include "Foliage/InstancedFoliageActor.h"
 
 DEFINE_LOG_CATEGORY(LogLevel);
-
-/*-----------------------------------------------------------------------------
-ULevelBase implementation.
------------------------------------------------------------------------------*/
-
-ULevelBase::ULevelBase( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
-	: UObject(PCIP)
-	, URL( InURL )
-	, Actors( this )
-{
-
-}
-
-void ULevelBase::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{	
-	ULevelBase* This = CastChecked<ULevelBase>(InThis);
-	// Let GC know that we're referencing some AActor objects
-	for (auto& Actor : This->Actors)
-	{
-		Collector.AddReferencedObject(Actor, This);
-	}
-	UObject* ActorsOwner = This->Actors.GetOwner();
-	Collector.AddReferencedObject(ActorsOwner, This);
-	Super::AddReferencedObjects(This, Collector);
-}
-
-void ULevelBase::Serialize( FArchive& Ar )
-{
-	Super::Serialize(Ar);
-	Ar << Actors;
-	Ar << URL;
-}
-
 
 /*-----------------------------------------------------------------------------
 ULevel implementation.
@@ -253,18 +221,21 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 
 TMap<FName, UWorld*> ULevel::StreamedLevelsOwningWorld;
 
-ULevel::ULevel( const class FPostConstructInitializeProperties& PCIP )
-	:	ULevelBase( PCIP )
-	,	OwningWorld(NULL)
-	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
+	:   UObject( ObjectInitializer )
+	,   Actors(this)
+	,   OwningWorld(NULL)
+	,   TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 {
 	PrecomputedLightVolume = new FPrecomputedLightVolume();
 }
 
-ULevel::ULevel( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
-	:	ULevelBase( PCIP, InURL )
-	,	OwningWorld(NULL)
-	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+ULevel::ULevel( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
+	:   UObject( ObjectInitializer )
+	,   URL(InURL)
+	,   Actors(this)
+	,   OwningWorld(NULL)
+	,   TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 {
 	PrecomputedLightVolume = new FPrecomputedLightVolume();
 }
@@ -306,6 +277,14 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( Texture2D, This );
 	}
 
+	// Let GC know that we're referencing some AActor objects
+	for (auto& Actor : This->Actors)
+	{
+		Collector.AddReferencedObject(Actor, This);
+	}
+	UObject* ActorsOwner = This->Actors.GetOwner();
+	Collector.AddReferencedObject(ActorsOwner, This);
+
 	Super::AddReferencedObjects( This, Collector );
 }
 
@@ -338,6 +317,9 @@ struct FLegacyCoverIndexPair
 void ULevel::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
+
+	Ar << Actors;
+	Ar << URL;
 
 	Ar << Model;
 
@@ -771,7 +753,7 @@ static void SortActorsHierarchy(TTransArray<AActor*>& Actors)
 	
 	// Unfortunately TArray.StableSort assumes no null entries in the array
 	// So it forces me to use internal unrestricted version
-	StableSortInternal(Actors.GetTypedData(), Actors.Num(), [&](AActor* L, AActor* R) {
+	StableSortInternal(Actors.GetData(), Actors.Num(), [&](AActor* L, AActor* R) {
 			return CalcAttachDepth(L) < CalcAttachDepth(R);
 	});
 }
@@ -927,7 +909,7 @@ void ULevel::CreateModelComponents()
 			Model->Nodes[Nodes[NodeIndex]].ComponentNodeIndex = NodeIndex;
 		}
 
-		UModelComponent* ModelComponent = new(this) UModelComponent(FPostConstructInitializeProperties(),Model,ModelComponents.Num(),Key.MaskedPolyFlags,Nodes);
+		UModelComponent* ModelComponent = new(this) UModelComponent(FObjectInitializer(),Model,ModelComponents.Num(),Key.MaskedPolyFlags,Nodes);
 		ModelComponents.Add(ModelComponent);
 
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)
@@ -1159,7 +1141,7 @@ void ULevel::PostEditUndo()
 			const int32 NumStreamingLevels = OwningWorld->StreamingLevels.Num();
 			for (int i = 0; i < NumStreamingLevels; ++i)
 			{
-				const ULevelStreaming * StreamedLevel = OwningWorld->StreamingLevels[i];
+				const ULevelStreaming* StreamedLevel = OwningWorld->StreamingLevels[i];
 				if (StreamedLevel && StreamedLevel->GetLoadedLevel() == this)
 				{
 					bIsStreamingLevelVisible = FLevelUtils::IsLevelVisible(StreamedLevel);
@@ -1544,7 +1526,7 @@ ABrush* ULevel::GetDefaultBrush() const
 		// If the second actor is not a brush then it certainly cannot be the builder brush.
 		if (DefaultBrush != nullptr)
 		{
-			checkf(DefaultBrush->BrushComponent, *GetPathName());
+			checkf(DefaultBrush->GetBrushComponent(), *GetPathName());
 			checkf(DefaultBrush->Brush != nullptr, *GetPathName());
 		}
 	}
@@ -1614,11 +1596,14 @@ void ULevel::InitializeRenderingResources()
 	// At the point at which Pre/PostEditChange is called on that transient ULevel, it is not part of any world and therefore should not have its rendering resources initialized
 	if (OwningWorld)
 	{
-		PrecomputedLightVolume->AddToScene(OwningWorld->Scene);
-
-		if (OwningWorld->Scene)
+		if( !PrecomputedLightVolume->IsAddedToScene() )
 		{
-			OwningWorld->Scene->OnLevelAddedToWorld(GetOutermost()->GetFName());
+			PrecomputedLightVolume->AddToScene(OwningWorld->Scene);
+
+			if (OwningWorld->Scene)
+			{
+				OwningWorld->Scene->OnLevelAddedToWorld(GetOutermost()->GetFName());
+			}
 		}
 	}
 }
@@ -1799,7 +1784,7 @@ void ULevel::TickRuntimeMovieScenePlayers( const float DeltaSeconds )
 		check( OwningWorld->IsGameWorld() );
 
 		IRuntimeMovieScenePlayerInterface* RuntimeMovieScenePlayer =
-			InterfaceCast< IRuntimeMovieScenePlayerInterface >( ActiveRuntimeMovieScenePlayers[ CurPlayerIndex ] );
+			Cast< IRuntimeMovieScenePlayerInterface >( ActiveRuntimeMovieScenePlayers[ CurPlayerIndex ] );
 		check( RuntimeMovieScenePlayer != NULL );
 
 		// @todo sequencer runtime: Support expiring instances of RuntimeMovieScenePlayers that have finished playing
@@ -2117,8 +2102,8 @@ private:
 	FPrimitiveViewRelevance ViewRelevance;
 };
 
-ULineBatchComponent::ULineBatchComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	bTickInEditor = true;
@@ -2327,6 +2312,39 @@ void ULineBatchComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 	}
 }
 
+void ULineBatchComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
+{
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
+
+	bool bDirty = false;
+	for (FBatchedLine& Line : BatchedLines)
+	{
+		Line.Start += InOffset;
+		Line.End += InOffset;
+		bDirty = true;
+	}
+
+	for (FBatchedPoint& Point : BatchedPoints)
+	{
+		Point.Position += InOffset;
+		bDirty = true;
+	}
+
+	for (FBatchedMesh& Mesh : BatchedMeshes)
+	{
+		for (FVector& Vert : Mesh.MeshVerts)
+		{
+			Vert += InOffset;
+			bDirty = true;
+		}
+	}
+
+	if (bDirty)
+	{
+		MarkRenderStateDirty();
+	}
+}
+
 /**
 * Creates a new scene proxy for the line batcher component.
 * @return	Pointer to the FLineBatcherSceneProxy
@@ -2336,7 +2354,7 @@ FPrimitiveSceneProxy* ULineBatchComponent::CreateSceneProxy()
 	return new FLineBatcherSceneProxy(this);
 }
 
-FBoxSphereBounds ULineBatchComponent::CalcBounds( const FTransform & LocalToWorld ) const 
+FBoxSphereBounds ULineBatchComponent::CalcBounds( const FTransform& LocalToWorld ) const 
 {
 	const FVector BoxExtent(HALF_WORLD_MAX);
 	return FBoxSphereBounds(FVector::ZeroVector, BoxExtent, BoxExtent.Size());

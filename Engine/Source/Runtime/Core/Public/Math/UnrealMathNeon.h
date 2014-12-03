@@ -110,7 +110,7 @@ FORCEINLINE VectorRegister VectorOne()
  * @param Ptr	Unaligned memory pointer to the 4 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
  */
-FORCEINLINE VectorRegister VectorLoad( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoad( const void* Ptr )
 {
 	return vld1q_f32( (float32_t*)Ptr );
 }
@@ -151,7 +151,7 @@ FORCEINLINE VectorRegister VectorLoad( const void * Ptr )
  * @param Ptr	Aligned memory pointer to the 4 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
  */
-FORCEINLINE VectorRegister VectorLoadAligned( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoadAligned( const void* Ptr )
 {
 	return vld1q_f32( (float32_t*)Ptr );
 }
@@ -203,10 +203,18 @@ FORCEINLINE VectorRegister VectorSet( float X, float Y, float Z, float W )
  * @param Vec	Vector to store
  * @param Ptr	Aligned memory pointer
  */
-FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void* Ptr )
 {
 	vst1q_f32( (float32_t *)Ptr, Vec );
 }
+
+/**
+* Same as VectorStoreAligned for Neon. 
+*
+* @param Vec	Vector to store
+* @param Ptr	Aligned memory pointer
+*/
+#define VectorStoreAlignedStreamed( Vec, Ptr )	VectorStoreAligned( Vec, Ptr )
 
 /**
  * Stores a vector to memory (aligned or unaligned).
@@ -214,7 +222,7 @@ FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void * Ptr )
  * @param Vec	Vector to store
  * @param Ptr	Memory pointer
  */
-FORCEINLINE void VectorStore( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStore( VectorRegister Vec, void* Ptr )
 {
 	vst1q_f32( (float32_t *)Ptr, Vec );
 }
@@ -225,7 +233,7 @@ FORCEINLINE void VectorStore( VectorRegister Vec, void * Ptr )
  * @param Vec	Vector to store XYZ
  * @param Ptr	Unaligned memory pointer
  */
-FORCEINLINE void VectorStoreFloat3( VectorRegister & Vec, void * Ptr )
+FORCEINLINE void VectorStoreFloat3( VectorRegister& Vec, void* Ptr )
 {
 	vst1q_lane_f32( ((float32_t *)Ptr) + 0, Vec, 0 );
 	vst1q_lane_f32( ((float32_t *)Ptr) + 1, Vec, 1 );
@@ -238,7 +246,7 @@ FORCEINLINE void VectorStoreFloat3( VectorRegister & Vec, void * Ptr )
  * @param Vec	Vector to store X
  * @param Ptr	Unaligned memory pointer
  */
-FORCEINLINE void VectorStoreFloat1( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStoreFloat1( VectorRegister Vec, void* Ptr )
 {
 	vst1q_lane_f32( (float32_t *)Ptr, Vec, 0 );
 }
@@ -477,6 +485,19 @@ FORCEINLINE VectorRegister VectorBitwiseXor(const VectorRegister& Vec1, const Ve
  */
 
 #define VectorSwizzle( Vec, X, Y, Z, W ) __builtin_shufflevector(Vec, Vec, X, Y, Z, W)
+
+/**
+* Creates a vector through selecting two components from each vector via a shuffle mask.
+*
+* @param Vec1		Source vector1
+* @param Vec2		Source vector2
+* @param X			Index for which component of Vector1 to use for X (literal 0-3)
+* @param Y			Index for which component to Vector1 to use for Y (literal 0-3)
+* @param Z			Index for which component to Vector2 to use for Z (literal 0-3)
+* @param W			Index for which component to Vector2 to use for W (literal 0-3)
+* @return			The swizzled vector
+*/
+#define VectorShuffle( Vec1, Vec2, X, Y, Z, W )	__builtin_shufflevector(Vec1, Vec2, X, Y, Z, W)
 
 /**
  * Calculates the cross product of two vectors (XYZ components). W is set to 0.
@@ -828,7 +849,7 @@ FORCEINLINE VectorRegister VectorMergeVecXYZ_VecW(const VectorRegister& VecXYZ, 
  * @param Ptr			Unaligned memory pointer to the 4 uint8s.
  * @return				VectorRegister( float(Ptr[0]), float(Ptr[1]), float(Ptr[2]), float(Ptr[3]) )
  */
-FORCEINLINE VectorRegister VectorLoadByte4( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoadByte4( const void* Ptr )
 {
 	// OPTIMIZE ME!
 	const uint8 *P = (const uint8 *)Ptr;
@@ -842,7 +863,7 @@ FORCEINLINE VectorRegister VectorLoadByte4( const void * Ptr )
  * @param Ptr			Unaligned memory pointer to the 4 uint8s.
  * @return				VectorRegister( float(Ptr[3]), float(Ptr[2]), float(Ptr[1]), float(Ptr[0]) )
  */
-FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void* Ptr )
 {
 	// OPTIMIZE ME!
 	const uint8 *P = (const uint8 *)Ptr;
@@ -856,7 +877,7 @@ FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void * Ptr )
  * @param Vec			Vector containing 4 floats
  * @param Ptr			Unaligned memory pointer to store the 4 uint8s.
  */
-FORCEINLINE void VectorStoreByte4( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStoreByte4( VectorRegister Vec, void* Ptr )
 {
 	uint16x8_t u16x8 = (uint16x8_t)vcvtq_u32_f32( VectorMin( Vec, Vec255 ) );
 	uint8x8_t u8x8 = (uint8x8_t)vget_low_u16( vuzpq_u16( u16x8, u16x8 ).val[0] );
@@ -935,11 +956,14 @@ static const VectorRegister QMULTI_SIGN_MASK1 = MakeVectorRegister( 1.f, 1.f, -1
 static const VectorRegister QMULTI_SIGN_MASK2 = MakeVectorRegister( -1.f, 1.f, 1.f, -1.f );
 
 /**
-* Multiplies two quaternions: The order matters.
+* Multiplies two quaternions; the order matters.
 *
-* @param Result	Returns Quat1 * Quat2
-* @param Quat1	First quaternion
-* @param Quat2	Second quaternion
+* Order matters when composing quaternions: C = VectorQuaternionMultiply2(A, B) will yield a quaternion C = A * B
+* that logically first applies B then A to any subsequent transformation (right first, then left).
+*
+* @param Quat1	Pointer to the first quaternion
+* @param Quat2	Pointer to the second quaternion
+* @return Quat1 * Quat2
 */
 FORCEINLINE VectorRegister VectorQuaternionMultiply2( const VectorRegister& Quat1, const VectorRegister& Quat2 )
 {
@@ -952,9 +976,12 @@ FORCEINLINE VectorRegister VectorQuaternionMultiply2( const VectorRegister& Quat
 }
 
 /**
-* Multiplies two quaternions: The order matters
+* Multiplies two quaternions; the order matters.
 *
-* @param Result	Pointer to where the result should be stored
+* When composing quaternions: VectorQuaternionMultiply(C, A, B) will yield a quaternion C = A * B
+* that logically first applies B then A to any subsequent transformation (right first, then left).
+*
+* @param Result	Pointer to where the result Quat1 * Quat2 should be stored
 * @param Quat1	Pointer to the first quaternion (must not be the destination)
 * @param Quat2	Pointer to the second quaternion (must not be the destination)
 */

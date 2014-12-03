@@ -256,20 +256,23 @@ namespace APIDocTool
 				Console.WriteLine();
 				Console.WriteLine("Options:");
 				Console.WriteLine("    -rebuild:                        Clean and build everything");
-				Console.WriteLine("    -rebuild<step>:					Clean and build specific steps");
+				Console.WriteLine("    -rebuild<step>:                  Clean and build specific steps");
 				Console.WriteLine("    -clean:                          Clean all files");
-				Console.WriteLine("    -clean<step>:					Clean specific steps");
-				Console.WriteLine("    -build:						    Build everything");
-				Console.WriteLine("    -build<step>:					Build specific output steps");
-				Console.WriteLine("    -archive:						Archive everything");
-				Console.WriteLine("    -archive<step>:					Archive specific output steps");
-				Console.WriteLine("    -enginedir=<...>:				Specifies the root engine directory");
-				Console.WriteLine("    -intermediatedir=<...>:			Specifies the intermediate directory");
-				Console.WriteLine("    -documentationdir=<...>:			Specifies the documentation directory");
-				Console.WriteLine("    -indexonly:						Just build index pages");
-				Console.WriteLine("    -filter=<...>,<...>:             Filter conversion, eg.");
-				Console.WriteLine("                                       Folders:  -filter=Core/Containers/...");
-				Console.WriteLine("                                       Entities: -filter=Core/TArray");
+				Console.WriteLine("    -clean<step>:                    Clean specific steps");
+				Console.WriteLine("    -build:                          Build everything");
+				Console.WriteLine("    -build<step>:                    Build specific output steps");
+				Console.WriteLine("    -archive:                        Archive everything");
+				Console.WriteLine("    -archive<step>:                  Archive specific output steps");
+				Console.WriteLine("    -enginedir=<...>:                Specifies the root engine directory");
+				Console.WriteLine("    -intermediatedir=<...>:          Specifies the intermediate directory");
+				Console.WriteLine("    -documentationdir=<...>:         Specifies the documentation directory");
+				Console.WriteLine("    -indexonly:                      Just build index pages");
+				Console.WriteLine("    -filter=<...>,<...>:             Filter which things to convert, eg.");
+				Console.WriteLine("                                     Folders:  -filter=Core/Containers/...");
+				Console.WriteLine("                                     Entities: -filter=Core/TArray");
+				Console.WriteLine("Valid steps are:");
+				Console.WriteLine("   code, codetarget, codemeta, codexml, codeudn, codehtml, codechm");
+				Console.WriteLine("   blueprint, blueprintjson, blueprintudn, blueprinthtml, blueprintchm");
 				return 1;
 			}
 
@@ -714,7 +717,10 @@ namespace APIDocTool
 						JsonExportProcess.BeginOutputReadLine();
 						JsonExportProcess.BeginErrorReadLine();
 						JsonExportProcess.WaitForExit();
-						return JsonExportProcess.ExitCode == 0;
+						if(JsonExportProcess.ExitCode != 0)
+						{
+							return false;
+						}
 					}
 					catch (Exception Ex)
 					{
@@ -792,6 +798,10 @@ namespace APIDocTool
 
 				// Build a list of pages to output
 				List<APIPage> OutputPages = new List<APIPage>(Index.GatherPages().OrderBy(x => x.LinkPath));
+
+				// Remove any pages that don't want to be written
+				int NumRemoved = OutputPages.RemoveAll(x => !x.ShouldOutputPage());
+				Console.WriteLine("Removed {0} pages", NumRemoved);
 
 				// Dump the output stats
 				string StatsPath = Path.Combine(SitemapDir, "Stats.txt");
@@ -1113,7 +1123,6 @@ namespace APIDocTool
 				// Find all the HTML files
 				if (bBlueprint)
 				{
-					Utility.FindRelativeContents(BaseHtmlDir, "Include\\Images\\bp_api*", false, FilePaths, DirectoryPaths);
 					Utility.FindRelativeContents(BaseHtmlDir, "INT\\BlueprintAPI\\*.html", true, FilePaths, DirectoryPaths);
 					CreateChm(ChmCompilerPath, ChmFileName, "UE4 Blueprint API Documentation", "INT\\BlueprintAPI\\index.html", ContentsFileName, IndexFileName, BaseHtmlDir, FilePaths);
 				}
@@ -1191,6 +1200,10 @@ namespace APIDocTool
 				Writer.WriteLine("Full-text search=Yes");
 				Writer.WriteLine("Display compile progress=Yes");
 				Writer.WriteLine("Language=0x409 English (United States)");
+				Writer.WriteLine("Default Window=MainWindow");
+				Writer.WriteLine();
+				Writer.WriteLine("[WINDOWS]");
+				Writer.WriteLine("MainWindow=\"{0}\",\"{1}.hhc\",\"{1}.hhk\",\"{2}\",\"{2}\",,,,,0x23520,230,0x304e,[10,10,1260,750],,,,,,,0", Title, ProjectName, DefaultTopicPath);
 				Writer.WriteLine();
 				Writer.WriteLine("[FILES]");
 				foreach (string FileName in FileNames)

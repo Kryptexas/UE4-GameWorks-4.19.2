@@ -12,7 +12,7 @@ public class libcurl : ModuleRules
 		string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/";
 		if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-			PublicIncludePaths.Add(LibCurlPath + "include");
+			PublicIncludePaths.Add(LibCurlPath + "include/Linux/" + Target.Architecture);
 			PublicLibraryPaths.Add(LibCurlPath + "lib/Linux/" + Target.Architecture);
             PublicAdditionalLibraries.Add("curl");
             PublicAdditionalLibraries.Add("crypto");

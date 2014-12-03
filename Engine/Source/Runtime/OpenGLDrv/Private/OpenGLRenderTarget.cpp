@@ -708,7 +708,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRe
 	OutData.Empty();
 	OutData.AddUninitialized(Size);
 
-	FMemory::Memcpy(OutData.GetTypedData(), Temp.GetTypedData(), Size * sizeof(FColor));
+	FMemory::Memcpy(OutData.GetData(), Temp.GetData(), Size * sizeof(FColor));
 }
 
 void FOpenGLDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*& OutData,int32& OutWidth,int32& OutHeight)
@@ -741,7 +741,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 	VERIFY_GL_SCOPE();	
 
 	//reading from arrays only supported on SM5 and up.
-	check(FOpenGL::SupportsFloatReadSurface() && (ArrayIndex == 0 || GRHIFeatureLevel >= ERHIFeatureLevel::SM5));	
+	check(FOpenGL::SupportsFloatReadSurface() && (ArrayIndex == 0 || GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5));	
 	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(TextureRHI);
 	check(TextureRHI->GetFormat() == PF_FloatRGBA);
 
@@ -785,8 +785,8 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 		// 4 float components per texel (RGBA)
 		FloatData.AddUninitialized(SizeX * SizeY);
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatData.GetData());
-		FLinearColor* FloatDataPtr = FloatData.GetTypedData();
-		for (int32 Index = 0; Index < (int32)(SizeX * SizeY); ++Index, ++FloatDataPtr)
+		FLinearColor* FloatDataPtr = FloatData.GetData();
+		for (uint32 Index = 0; Index < SizeX * SizeY; ++Index, ++FloatDataPtr)
 		{
 			OutData[Index] = FFloat16Color(*FloatDataPtr);
 		}
@@ -849,7 +849,7 @@ void FOpenGLDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 
 	// Grab the raw data from the temp texture.
 	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
-	FOpenGL::GetTexImage( GL_TEXTURE_3D, 0, GL_RGBA, GL_HALF_FLOAT, OutData.GetTypedData() );
+	FOpenGL::GetTexImage( GL_TEXTURE_3D, 0, GL_RGBA, GL_HALF_FLOAT, OutData.GetData() );
 	glPixelStorei( GL_PACK_ALIGNMENT, 4 );
 
 	// Clean up

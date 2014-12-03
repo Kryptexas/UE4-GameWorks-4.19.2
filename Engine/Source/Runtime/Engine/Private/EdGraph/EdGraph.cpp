@@ -6,7 +6,7 @@
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 #endif
@@ -78,8 +78,8 @@ UEdGraph* FGraphReference::GetGraph() const
 /////////////////////////////////////////////////////
 // UEdGraph
 
-UEdGraph::UEdGraph(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraph::UEdGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEditable = true;
 	bAllowDeletion = true;
@@ -144,6 +144,22 @@ void UEdGraph::AddNode( UEdGraphNode* NodeToAdd, bool bFromUI/* = false*/, bool 
 	FEdGraphEditAction Action(AddNodeAction, this, NodeToAdd);
 	
 	NotifyGraphChanged( Action );
+}
+
+void UEdGraph::SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFromUI/*= false*/) 
+{
+	FEdGraphEditAction SelectionAction;
+
+	SelectionAction.Action = GRAPHACTION_SelectNode;
+	if (bFromUI)
+	{
+		SelectionAction.Action = (EEdGraphActionType)(((int32)SelectionAction.Action) | GRAPHACTION_UserInitiated);
+	}
+
+	SelectionAction.Graph = this;
+	SelectionAction.Nodes = NodeSelection;
+
+	NotifyGraphChanged(SelectionAction);
 }
 
 bool UEdGraph::RemoveNode( UEdGraphNode* NodeToRemove )
@@ -216,8 +232,11 @@ FVector2D UEdGraph::GetGoodPlaceForNewNode()
 		for(int32 i=1; i<Nodes.Num(); i++)
 		{
 			Node = Nodes[i];
-			BottomLeft.X = FMath::Min<float>(BottomLeft.X, Node->NodePosX);
-			BottomLeft.Y = FMath::Max<float>(BottomLeft.Y, Node->NodePosY);
+			if ( Node )
+			{
+				BottomLeft.X = FMath::Min<float>(BottomLeft.X, Node->NodePosX);
+				BottomLeft.Y = FMath::Max<float>(BottomLeft.Y, Node->NodePosY);
+			}
 		}
 	}
 
@@ -226,12 +245,12 @@ FVector2D UEdGraph::GetGoodPlaceForNewNode()
 
 #if WITH_EDITOR
 
-void UEdGraph::NotifyPreChange( const FString & PropertyName )
+void UEdGraph::NotifyPreChange( const FString& PropertyName )
 {
 	// no notification is hooked up yet
 }
 
-void UEdGraph::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString & PropertyName )
+void UEdGraph::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString& PropertyName )
 {
 #if WITH_EDITORONLY_DATA
 	PropertyChangedNotifiers.Broadcast(PropertyChangedEvent, PropertyName);

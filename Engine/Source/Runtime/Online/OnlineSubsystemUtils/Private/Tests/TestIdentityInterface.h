@@ -16,8 +16,12 @@
 	IOnlineIdentityPtr OnlineIdentity;
 	/** Delegate to use for authenticating new user */
 	FOnLoginCompleteDelegate OnLoginCompleteDelegate;
+	/** Delegate to use for logging out a user */
+	FOnLogoutCompleteDelegate OnLogoutCompleteDelegate;
 	/** true if authentication test should be run */
 	bool bRunLoginTest;
+	/** true if logout test should be run */
+	bool bRunLogoutTest;
 	/** Registered user info */
 	TSharedPtr<FUserOnlineAccount> UserInfo;
 	/** local user to run tests for */
@@ -46,6 +50,7 @@
 	 * See OnlineIdentityInterface
 	 */
 	void OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
+	void OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful);
 
  public:
 	/**
@@ -57,7 +62,9 @@
 		: SubsystemName(InSubsystemName)
 		, OnlineIdentity(NULL)
 		, OnLoginCompleteDelegate(FOnLoginCompleteDelegate::CreateRaw(this, &FTestIdentityInterface::OnLoginComplete))
+		, OnLogoutCompleteDelegate(FOnLogoutCompleteDelegate::CreateRaw(this, &FTestIdentityInterface::OnLogoutComplete))
 		, bRunLoginTest(true)
+		, bRunLogoutTest(false)
 		, LocalUserIdx(0)
 	{
 		
@@ -66,5 +73,5 @@
 	/**
 	 * Kicks off all of the testing process
 	 */
-	void Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials);
+	void Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials, bool bOnlyRunLogoutTest=false);
  };

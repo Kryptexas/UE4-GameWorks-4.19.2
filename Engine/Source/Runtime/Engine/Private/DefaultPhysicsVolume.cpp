@@ -5,8 +5,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogVolume, Log, All);
 
-ADefaultPhysicsVolume::ADefaultPhysicsVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADefaultPhysicsVolume::ADefaultPhysicsVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 #if WITH_EDITORONLY_DATA

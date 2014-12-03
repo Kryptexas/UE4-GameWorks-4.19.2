@@ -9,15 +9,14 @@
 #include <stdarg.h>
 #include <syslog.h>
 #endif
-#include "hlslcc.h"
-#include "glsl/ir_gen_glsl.h"
-#include "Metal/MetalBackend.h"
 #include "ShaderCompilerCommon.h"
+#include "hlslcc.h"
+#include "LanguageSpec.h"
+//#include "glsl/ir_gen_glsl.h"
 
 enum EHlslccBackend
 {
 	HB_Glsl,
-	HB_Metal,
 	HB_Invalid,
 };
 
@@ -61,6 +60,34 @@ static void dprintf(const char* Format, ...)
 #endif
 	fprintf(stdout, "%s", Buf);
 }
+
+struct FGlslCodeBackend : public FCodeBackend
+{
+	FGlslCodeBackend(unsigned int InHlslCompileFlags) : FCodeBackend(InHlslCompileFlags) {}
+
+
+	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) 
+	{
+		return 0;
+	}
+};
+#define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
+#include "ir.h"
+
+struct FGlslLanguageSpec : public ILanguageSpec
+{
+	virtual bool SupportsDeterminantIntrinsic() const {return false;}
+	virtual bool SupportsTransposeIntrinsic() const {return false;}
+	virtual bool SupportsIntegerModulo() const {return false;}
+
+	// half3x3 <-> float3x3
+	virtual bool SupportsMatrixConversions() const {return false;}
+	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)
+	{
+		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+	}
+};
+
 
 char* LoadShaderFromFile(const char* Filename);
 
@@ -146,11 +173,6 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			else if (!strcmp(*argv, "-mac"))
 			{
 				// Ignore...
-			}
-			else if (!strcmp(*argv, "-metal"))
-			{
-				OutOptions.Target = HCT_FeatureLevelES3_1;
-				OutOptions.Backend = HB_Metal;
 			}
 			else if (!strncmp(*argv, "-entry=", 7))
 			{
@@ -305,18 +327,12 @@ int main( int argc, char** argv)
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 
 	FGlslCodeBackend GlslCodeBackend(Flags);
-	FGlslLanguageSpec GlslLanguageSpec(Options.Target == HCT_FeatureLevelES2);
+	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);
 
 	FCodeBackend* CodeBackend = &GlslCodeBackend;
 	ILanguageSpec* LanguageSpec = &GlslLanguageSpec;
-	FMetalCodeBackend MetalCodeBacked(Flags);
-	FMetalLanguageSpec MetalLanguageSpec;
 	switch (Options.Backend)
 	{
-	case HB_Metal:
-		CodeBackend = &MetalCodeBacked;
-		LanguageSpec = &MetalLanguageSpec;
-		break;
 	case HB_Glsl:
 	default:
 		CodeBackend = &GlslCodeBackend;
@@ -324,7 +340,6 @@ int main( int argc, char** argv)
 		Flags |= HLSLCC_DX11ClipSpace;
 		break;
 	}
-
 	int Result = HlslCrossCompile(
 		Options.ShaderFilename,
 		HLSLShaderSource,

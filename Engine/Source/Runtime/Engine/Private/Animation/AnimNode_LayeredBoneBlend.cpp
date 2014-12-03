@@ -29,7 +29,7 @@ void FAnimNode_LayeredBoneBlend::Initialize(const FAnimationInitializeContext& C
 	}
 }
 
-void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton * Skeleton)
+void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
 {
 	const int32 NumBones = RequiredBones.GetNumBones();
 	FAnimationRuntime::CreateMaskWeights(NumBones, DesiredBoneBlendWeights, LayerSetup, RequiredBones, Skeleton);
@@ -38,7 +38,7 @@ void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContain
 	CurrentBoneBlendWeights.AddZeroed(DesiredBoneBlendWeights.Num());
 }
 
-void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	BasePose.CacheBones(Context);
 	for(int32 ChildIndex=0; ChildIndex<BlendPoses.Num(); ChildIndex++)

@@ -4,8 +4,8 @@
 #include "EnginePrivate.h"
 
 
-UCapsuleComponent::UCapsuleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCapsuleComponent::UCapsuleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ShapeColor = FColor(223, 149, 157, 255);
 
@@ -90,7 +90,7 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 }
 
 
-FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FVector BoxPoint = FVector(CapsuleRadius,CapsuleRadius,CapsuleHalfHeight);
 	return FBoxSphereBounds(FVector::ZeroVector, BoxPoint, BoxPoint.Size()).TransformBy(LocalToWorld);
@@ -168,7 +168,7 @@ void UCapsuleComponent::UpdateBodySetup()
 	}
 
 	check(ShapeBodySetup->AggGeom.SphylElems.Num() == 1);
-	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetTypedData();
+	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetData();
 	
 	SE->SetTransform(FTransform::Identity);
 	SE->Radius = CapsuleRadius;

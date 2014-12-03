@@ -6,7 +6,7 @@
 #include "EnvironmentQuery/EnvQueryOption.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 
-UEnvQuery::UEnvQuery(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQuery::UEnvQuery(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

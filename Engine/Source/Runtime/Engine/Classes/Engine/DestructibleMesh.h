@@ -49,6 +49,11 @@ struct FDestructibleDepthParameters
 		: ImpactDamageOverride(IDO_None)
 		{}
 	
+#if WITH_APEX
+	void FillDestructibleActorDesc(NxParameterized::Interface* Params, const char* OverrideName, const char* OverrideValueName) const;
+	void LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params, const char* OverrideName, const char* OverrideValueName);
+#endif
+
 };
 
 /** Flags that apply to a destructible actor. */
@@ -150,6 +155,11 @@ struct FDestructibleParametersFlag
 	{
 	}
 
+#if WITH_APEX
+	void FillDestructibleActorDesc(NxParameterized::Interface* Params) const;
+	void LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params);
+#endif
+
 };
 
 /** Parameters that pertain to chunk damage. */
@@ -159,59 +169,67 @@ struct FDestructibleDamageParameters
 	GENERATED_USTRUCT_BODY()
 
 	/**
-		The damage amount which will cause a chunk to fracture (break free) from the destructible.
-		This is obtained from the damage value passed into the NxDestructibleActor::applyDamage,
-		or NxDestructibleActor::applyRadiusDamage, or via impact (see 'forceToDamage', below).
+		The damage amount which will cause a chunk to fracture (break free).
 	*/
 	UPROPERTY(EditAnywhere, Category=DestructibleDamageParameters)
 	float DamageThreshold;
 
-	/**
-		Controls the distance into the destructible to propagate damage.  The damage applied to the chunk
-		is multiplied by DamageSpread, to get the propagation distance.  All chunks within the radius
-		will have damage applied to them.  The damage applied to each chunk varies with distance to the damage
-		application position.  Full damage is taken at zero distance, and zero damage at the damage radius.
-	*/
+	/** Controls how easily damage spreads. DamageRadius = Damage*DamageSpread. All chunks within DamageRadius will take damage. Full damage is taken at zero distance, and zero damage at the DamageRadius.*/
 	UPROPERTY(EditAnywhere, Category=DestructibleDamageParameters)
 	float DamageSpread;
 
 	/**
-		If a chunk is at a depth which has impact damage set (see DepthParameters),
-		then when a chunk has a collision in the NxScene, it will take damage equal to ImpactDamage mulitplied by
-		the impact force.
-		The default value is zero, which effectively disables impact damage.
+		Whether to apply damage to destructible when colliding with an object.
+		@see ImpactDamage
 	*/
-	UPROPERTY(EditAnywhere, Category=DestructibleDamageParameters)
+	UPROPERTY(EditAnywhere, Category = DestructibleDamageParameters)
+	bool bEnableImpactDamage;
+
+	/**
+		Controls how much damage is applied upon collision. Damage = ImpactDamage * ImpactForce. The default value is zero, which means impact damage is disabled.
+		@see DepthParameters for per level control of ImpactDamage
+	*/
+	UPROPERTY(EditAnywhere, Category=DestructibleDamageParameters, meta = (editcondition = "bEnableImpactDamage") )
 	float ImpactDamage;
 
 	/**
-		When a chunk takes impact damage due to physical contact (see DepthParameters), this parameter
-		is the maximum impulse the contact can generate.  Weak materials such as glass may have this set to a low value, so that
-		heavier objects will pass through them during fracture.
-		N.B.: Setting this parameter to 0 disables the impulse cap; that is, zero is interpreted as infinite.
-		Default value = 0.0f.
+		Max depth level where impact damage is enabled. @see DepthParameters for per level control of ImpactDamage
+		If negative, impact damage is disabled
 	*/
-	UPROPERTY(EditAnywhere, Category=DestructibleDamageParameters)
-	float ImpactResistance;
-
-	/**
-		By default, impact damage will only be taken to this depth.  For a particular depth, this
-		default may be overridden in the DepthParameters.  If negative, impact damage
-		is disabled.
-	*/
-	UPROPERTY(EditAnywhere, Category=DestructibleDamageParameters)
+	UPROPERTY(EditAnywhere, Category = DestructibleDamageParameters, meta = (ClampMin = "0", UIMin = "0", editcondition = "bEnableImpactDamage"))
 	int32 DefaultImpactDamageDepth;
 
+	/**
+		By default, objects that collide with destructibles will bounce back. Custom resistance allows for finer control of how much a destructible "pushes back" against a colliding object.
+		@see ImpactResistance
+	*/
+	UPROPERTY(EditAnywhere, Category = DestructibleDamageParameters)
+	bool bCustomImpactResistance;
+
+	/**
+		Controls how much resistance is applied to colliding objects. Weak materials like glass should set this to a low value so that objects will pass right through them during fracture.
+		@see DepthParameters for per level control of ImpactResistance
+	*/
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.001", UIMin = "0", editcondition = "bCustomImpactResistance"), Category = DestructibleDamageParameters)
+	float ImpactResistance;
 
 
-		FDestructibleDamageParameters()
-		: DamageThreshold(1.0f)
-		, DamageSpread(0.1f)
-		, ImpactDamage(0.0f)
-		, ImpactResistance(0.0f)
-		, DefaultImpactDamageDepth(-1)
-		{
-		}
+	FDestructibleDamageParameters()
+	: DamageThreshold(1.0f)
+	, DamageSpread(0.1f)
+	, bEnableImpactDamage(false)
+	, ImpactDamage(0.0f)
+	, DefaultImpactDamageDepth(-1)
+	, bCustomImpactResistance(false)
+	, ImpactResistance(0.0f)
+	
+	{
+	}
+
+#if WITH_APEX
+	void FillDestructibleActorDesc(NxParameterized::Interface* Params, UPhysicalMaterial* PhysMat) const;
+	void LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params);
+#endif
 	
 };
 
@@ -267,6 +285,11 @@ struct FDestructibleDebrisParameters
 		, ValidBounds(FVector(-500000.0f), FVector(500000.0f))
 		{
 		}
+
+#if WITH_APEX
+	void FillDestructibleActorDesc(NxParameterized::Interface* Params) const;
+	void LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params);
+#endif
 	
 };
 
@@ -315,6 +338,11 @@ struct FDestructibleAdvancedParameters
 	{
 	}
 
+#if WITH_APEX
+	void FillDestructibleActorDesc(NxParameterized::Interface* Params) const;
+	void LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params);
+#endif
+
 };
 
 /** Special hierarchy depths for various behaviors. */
@@ -338,13 +366,17 @@ struct FDestructibleSpecialHierarchyDepths
 	UPROPERTY(EditAnywhere, Category=DestructibleSpecialHierarchyDepths)
 	int32 MinimumFractureDepth;
 
+
+	/** 
+		Enables debris at a specific depth level.
+		@see DebrisDepth */
+	UPROPERTY(EditAnywhere, Category = DestructibleSpecialHierarchyDepths)
+	bool bEnableDebris;
+
 	/**
-		The chunk hierarchy depth at which chunks are considered to be "debris."  Chunks at this depth or
-		below will be considered for various debris settings, such as debrisLifetime.
-		Negative values indicate that no chunk depth is considered debris.
-		Default value is -1.
+		The hierarchy depth at which chunks are considered to be "debris."  
 	*/
-	UPROPERTY(EditAnywhere, Category=DestructibleSpecialHierarchyDepths)
+	UPROPERTY(EditAnywhere, Category = DestructibleSpecialHierarchyDepths, meta = (UIMin = "0", editcondition = "bEnableDebris"))
 	int32 DebrisDepth;
 
 	/**
@@ -358,14 +390,19 @@ struct FDestructibleSpecialHierarchyDepths
 
 
 
-		FDestructibleSpecialHierarchyDepths()
-		: SupportDepth(0)
-		, MinimumFractureDepth(0)
-		, DebrisDepth(-1)
-		, EssentialDepth(0)
-		{
-		}
+	FDestructibleSpecialHierarchyDepths()
+	: SupportDepth(0)
+	, MinimumFractureDepth(0)
+	, bEnableDebris(false)
+	, DebrisDepth(-1)
+	, EssentialDepth(0)
+	{
+	}
 	
+#if WITH_APEX
+	void FillDestructibleActorDesc(NxParameterized::Interface* Params) const;
+	void LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params);
+#endif
 };
 
 /** Parameters that apply to a destructible actor. */
@@ -401,7 +438,6 @@ struct FDestructibleParameters
 	/** A collection of flags defined in DestructibleParametersFlag. */
 	UPROPERTY(EditAnywhere, Category=DestructibleParameters)
 	struct FDestructibleParametersFlag Flags;
-
 };
 
 UCLASS(hidecategories=(Object, Mesh, LevelOfDetail, Mirroring, Physics, Reimport, Clothing), MinimalAPI)
@@ -418,12 +454,8 @@ class UDestructibleMesh : public USkeletalMesh
 	class UPhysicalMaterial* DestructiblePhysicalMaterial_DEPRECATED;
 
 	/** Fracture effects for each fracture level, unless overridden in the component. */
-	UPROPERTY(EditAnywhere, editfixedsize, Category=DestructibleMesh)
+	UPROPERTY(EditAnywhere, editfixedsize, Category=Effects)
 	TArray<struct FFractureEffect> FractureEffects;
-
-	/** Physics data.  Fields from BodySetup which are relevant to the DestructibleMesh will be used. */
-	UPROPERTY(EditAnywhere, Instanced, Category=DestructibleMesh)
-	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA
 	/** Information used to author an NxDestructibleAsset*/
@@ -479,11 +511,6 @@ public:
 
 	/** Fills DefaultDestructibleParameters with parameters from the NxDestructibleAsset. */
 	ENGINE_API void				LoadDefaultDestructibleParametersFromApexAsset();
-
-	/**
-	 * Create BodySetup for this DestructibleMesh if it doesn't have one
-	 */
-	ENGINE_API void				CreateBodySetup();
 
 	/**
 	 * Create DestructibleFractureSettings for this DestructibleMesh if it doesn't have one

@@ -28,23 +28,23 @@ public:
 
 private:
 
-	// Handles generating a row widget for the endpoint list view.
+	/** Handles generating a row widget for the endpoint list view. */
 	TSharedRef<ITableRow> HandleBreakpointListGenerateRow( IMessageTracerBreakpointPtr EndpointInfo, const TSharedRef<STableViewBase>& OwnerTable );
 
-	// Handles the selection of endpoints.
+	/** Handles the selection of endpoints. */
 	void HandleBreakpointListSelectionChanged( IMessageTracerBreakpointPtr InItem, ESelectInfo::Type SelectInfo );
 
 private:
 
-	// Holds the filtered list of historic messages.
+	/** Holds the filtered list of historic messages. */
 	TArray<IMessageTracerBreakpointPtr> BreakpointList;
 
-	// Holds the message list view.
+	/** Holds the message list view. */
 	TSharedPtr<SListView<IMessageTracerBreakpointPtr>> BreakpointListView;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 
-	// Holds a pointer to the message bus tracer.
+	/** Holds a pointer to the message bus tracer. */
 	IMessageTracerPtr Tracer;
 };

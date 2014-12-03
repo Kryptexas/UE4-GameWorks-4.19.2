@@ -3,8 +3,8 @@
 #include "TextureEditorPrivatePCH.h"
 
 
-UTextureEditorSettings::UTextureEditorSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UTextureEditorSettings::UTextureEditorSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, Background(TextureEditorBackground_SolidColor)
 	, BackgroundColor(FColor::Black)
 	, CheckerColorOne(FColor(128, 128, 128))

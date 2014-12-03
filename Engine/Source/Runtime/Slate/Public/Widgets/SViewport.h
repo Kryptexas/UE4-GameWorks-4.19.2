@@ -3,7 +3,8 @@
 #pragma once
 
 
-class SLATE_API SViewport : public SCompoundWidget
+class SLATE_API SViewport
+	: public SCompoundWidget
 {
 public:
 	
@@ -14,8 +15,8 @@ public:
 		, _EnableGammaCorrection(true)
 		, _EnableBlending(false)
 		, _IgnoreTextureAlpha(true)
-		, _ViewportSize(FVector2D(320, 240))
-		{}
+		, _ViewportSize(FVector2D(320.0f, 240.0f))
+	{ }
 
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 
@@ -29,14 +30,10 @@ public:
 		 */
 		SLATE_ARGUMENT( bool, RenderDirectlyToWindow )
 
-		/**
-		 * Whether or not to enable gamma correction.  Doesn't apply when rendering directly to a backbuffer 
-		 */
+		/** Whether or not to enable gamma correction.  Doesn't apply when rendering directly to a backbuffer . */
 		SLATE_ARGUMENT( bool, EnableGammaCorrection )
 
-		/**
-		 * Allow this viewport to blend with its background
-		 */
+		/** Allow this viewport to blend with its background. */
 		SLATE_ARGUMENT( bool, EnableBlending )
 
 		/**
@@ -45,15 +42,16 @@ public:
 		 */
 		SLATE_ARGUMENT( bool, IgnoreTextureAlpha )
 
-		/**
-		 * Size of the viewport widget
-		 */
+		/** The interface to be used by this viewport for rendering and I/O. */
+		SLATE_ARGUMENT(TSharedPtr<ISlateViewport>, ViewportInterface)
+		
+		/** Size of the viewport widget. */
 		SLATE_ATTRIBUTE(FVector2D, ViewportSize);
 
 	SLATE_END_ARGS()
 
 	/** Default constructor. */
-	SViewport( );
+	SViewport();
 
 	/**
 	 * Construct the widget.
@@ -92,13 +90,11 @@ public:
 	 *
 	 * @param InContent	The new content (can be null)
 	 */
-	void SetContent( TSharedPtr<SWidget> InContent )
-	{
-		ChildSlot
-		[
-			InContent.IsValid() ? InContent.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
-		];
-	}
+	void SetContent( TSharedPtr<SWidget> InContent );
+
+	void SetCustomHitTestPath( TSharedPtr<ICustomHitTestPath> CustomHitTestPath );
+
+	TSharedPtr<ICustomHitTestPath> GetCustomHitTestPath();
 
 	const TSharedPtr<SWidget> GetContent() const { return ChildSlot.GetWidget(); }
 
@@ -118,7 +114,7 @@ public:
 	 *
 	 * @param	InWidget	The widget to set focus to when this window is activated
 	 */
-	void SetWidgetToFocusOnActivate( const TSharedPtr< SWidget >& InWidget )
+	void SetWidgetToFocusOnActivate( const TSharedPtr<SWidget>& InWidget )
 	{
 		
 		WidgetToFocusOnActivate = InWidget;
@@ -136,9 +132,9 @@ public:
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent ) override;
-	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent ) override;
-	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent ) override;
+	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -148,15 +144,17 @@ public:
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent ) override;
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
+	virtual FReply OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent ) override;
 	virtual FReply OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& CharacterEvent ) override;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-	virtual FReply OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
-	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
-	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
-	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent ) override;
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
+	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
+	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) override;
+	virtual void OnFinishedPointerInput() override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
+	virtual FNavigationReply OnNavigation( const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent ) override;
 
 private:
 
@@ -167,30 +165,34 @@ private:
 
 protected:
 
-	// Interface to the rendering and I/O implementation of the viewport.
+	/** Interface to the rendering and I/O implementation of the viewport. */
 	TWeakPtr<ISlateViewport> ViewportInterface;
 	
 private:
 
-	// Whether or not to show the disabled effect when this viewport is disabled.
+	/** Whether or not to show the disabled effect when this viewport is disabled. */
 	TAttribute<bool> ShowDisabledEffect;
 
-	// Size of the viewport
+	/** Size of the viewport. */
 	TAttribute<FVector2D> ViewportSize;
 
-	// Whether or not this viewport renders directly to the window back-buffer.
+	/** 
+	 * Widget to transfer keyboard focus to when this window becomes active, if any.
+	 * This is used to restore focus to a widget after a popup has been dismissed.
+	 */
+	TWeakPtr< SWidget > WidgetToFocusOnActivate;
+
+	TSharedPtr<ICustomHitTestPath> CustomHitTestPath;
+
+	/** Whether or not this viewport renders directly to the window back-buffer. */
 	bool bRenderDirectlyToWindow;
 
-	// Whether or not to apply gamma correction on the render target supplied by the ISlateViewport.
+	/** Whether or not to apply gamma correction on the render target supplied by the ISlateViewport. */
 	bool bEnableGammaCorrection;
 
-	// Whether or not to blend this viewport with the background.
+	/** Whether or not to blend this viewport with the background. */
 	bool bEnableBlending;
 
-	// Whether or not to allow texture alpha to be used in blending calculations.
+	/** Whether or not to allow texture alpha to be used in blending calculations. */
 	bool bIgnoreTextureAlpha;
-
-	// Widget to transfer keyboard focus to when this window becomes active, if any.
-	// This is used to restore focus to a widget after a popup has been dismissed.
-	TWeakPtr< SWidget > WidgetToFocusOnActivate;
 };

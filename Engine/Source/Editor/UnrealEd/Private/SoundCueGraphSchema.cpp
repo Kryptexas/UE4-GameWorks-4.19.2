@@ -7,7 +7,7 @@
 #include "UnrealEd.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeDeprecated.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "AssetData.h"
 #include "GraphEditorActions.h"
 #include "SoundDefinitions.h"
@@ -191,8 +191,8 @@ UEdGraphNode* FSoundCueGraphSchemaAction_Paste::PerformAction(class UEdGraph* Pa
 /////////////////////////////////////////////////////
 // USoundCueGraphSchema
 
-USoundCueGraphSchema::USoundCueGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCueGraphSchema::USoundCueGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

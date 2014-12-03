@@ -8,7 +8,7 @@
 /* Private dependencies
  *****************************************************************************/
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateCore.h"
 #include "RenderingCommon.h"
 #include "Runtime/RHI/Public/RHI.h"

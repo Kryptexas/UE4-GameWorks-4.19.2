@@ -25,8 +25,8 @@
 /////////////////////////////////////////////////////
 // UAnimationGraphSchema
 
-UAnimationGraphSchema::UAnimationGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationGraphSchema::UAnimationGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PN_SequenceName = TEXT("Sequence");
 

@@ -30,12 +30,22 @@ bool FOnlineExternalUIGooglePlay::ShowInviteUI(int32 LocalUserNum)
 
 bool FOnlineExternalUIGooglePlay::ShowAchievementsUI(int32 LocalUserNum) 
 {
+	if (Subsystem->GetGameServices() == nullptr)
+	{
+		return false;
+	}
+
 	Subsystem->GetGameServices()->Achievements().ShowAllUI();
 	return true;
 }
 
 bool FOnlineExternalUIGooglePlay::ShowLeaderboardUI(const FString& LeaderboardName)
 {
+	if (Subsystem->GetGameServices() == nullptr)
+	{
+		return false;
+	}
+
 	auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
 
 	for(const auto& Mapping : DefaultSettings->LeaderboardMap)

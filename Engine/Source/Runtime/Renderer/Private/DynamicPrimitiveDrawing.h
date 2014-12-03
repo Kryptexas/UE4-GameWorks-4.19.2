@@ -181,12 +181,10 @@ bool DrawViewElements(
 */
 template<class DrawingPolicyFactoryType>
 void DrawViewElementsParallel(
-	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog,
-	FRHICommandList& ParentCmdList,
-	int32 Width
+	FParallelCommandListSet& ParallelCommandListSet
 	);
 
 /**

@@ -12,14 +12,15 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.TickGroup = TG_PrePhysics;
+	PrimaryActorTick.TickGroup = TG_PostUpdateWork;
 	StaticTargetFunction = false;
 
 	MaxRange = 999999.0f;
+	TraceChannel = ECC_WorldStatic;
 }
 
 void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -32,23 +33,130 @@ void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPl
 	Super::EndPlay(EndPlayReason);
 }
 
+void AGameplayAbilityTargetActor_Trace::LineTraceWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, ECollisionChannel Channel, const FCollisionQueryParams Params) const
+{
+	check(InWorld);
+	FCollisionQueryParams LocalParams = Params;
+	while (true)
+	{
+		InWorld->LineTraceSingle(ReturnHitResult, InTraceStart, InTraceEnd, Channel, LocalParams);
+		if (ReturnHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(ReturnHitResult.Actor))
+		{
+			LocalParams.AddIgnoredActor(ReturnHitResult.Actor.Get());
+			continue;
+		}
+		//Either hit something we're not ignoring, or didn't hit anything.
+		return;
+	};
+}
+
+void AGameplayAbilityTargetActor_Trace::SweepWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, const FQuat& InRotation, ECollisionChannel Channel, const FCollisionShape CollisionShape, const FCollisionQueryParams Params) const
+{
+	check(InWorld);
+	FCollisionQueryParams LocalParams = Params;
+	while (true)
+	{
+		InWorld->SweepSingle(ReturnHitResult, InTraceStart, InTraceEnd, InRotation, Channel, CollisionShape, LocalParams);
+		if (ReturnHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(ReturnHitResult.Actor))
+		{
+			LocalParams.AddIgnoredActor(ReturnHitResult.Actor.Get());
+			continue;
+		}
+		//Either hit something we're not ignoring, or didn't hit anything.
+		return;
+	};
+}
+
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	AActor* StaticSourceActor = ActorInfo->Actor.Get();
-	return MakeTargetData(PerformTrace(StaticSourceActor));
+	check(false);		//This should never actually be called, and if it is, it will require a const version of PerformTrace()
+	AActor* StaticSourceActor = ActorInfo->AvatarActor.Get();
+	//return MakeTargetData(PerformTrace(StaticSourceActor));		//Old way, requires PerformTrace to be a const call
+	return MakeTargetData(FHitResult());
+}
+
+void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(AActor* InSourceActor, FCollisionQueryParams Params, FVector TraceStart, FVector& TraceEnd) const
+{
+	if (OwningAbility)		//Server and launching client only
+	{
+		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
+		check(AimingPC);
+		FVector CamLoc;
+		FRotator CamRot;
+		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
+		FVector CamDir = CamRot.Vector();
+		FVector CamTarget = CamLoc + (CamDir * MaxRange);		//Straight, dumb aiming to a point that's reasonable though not exactly correct
+
+		ClipCameraRayToAbilityRange(CamLoc, CamDir, TraceStart, MaxRange, CamTarget);
+
+		FHitResult TempHitResult;
+		LineTraceWithFilter(TempHitResult, InSourceActor->GetWorld(), Filter, CamLoc, CamTarget, TraceChannel, Params);
+		if (TempHitResult.bBlockingHit && (FVector::DistSquared(TraceStart, TempHitResult.Location) <= (MaxRange * MaxRange)))
+		{
+			//We actually made a hit? Pull back.
+			TraceEnd = TempHitResult.Location;
+		}
+		else
+		{
+			//If we didn't make a hit, use the clipped location.
+			TraceEnd = CamTarget;
+		}
+
+		//Readjust so we have a full-length line going through the predicted target point.
+		FVector AimDirection = (TraceEnd - TraceStart).SafeNormal();
+		if (AimDirection.SizeSquared() > 0.0f)
+		{
+			TraceEnd = TraceStart + (AimDirection * MaxRange);
+		}
+		else
+		{
+			FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);		//Default
+		}
+	}
+}
+
+bool AGameplayAbilityTargetActor_Trace::ClipCameraRayToAbilityRange(FVector CameraLocation, FVector CameraDirection, FVector AbilityCenter, float AbilityRange, FVector& ClippedPosition)
+{
+	FVector CameraToCenter = AbilityCenter - CameraLocation;
+	float DotToCenter = FVector::DotProduct(CameraToCenter, CameraDirection);
+	if (DotToCenter >= 0)		//If this fails, we're pointed away from the center, but we might be inside the sphere and able to find a good exit point.
+	{
+		float DistanceSquared = CameraToCenter.SizeSquared() - (DotToCenter * DotToCenter);
+		float RadiusSquared = (AbilityRange * AbilityRange);
+		if (DistanceSquared <= RadiusSquared)
+		{
+			float DistanceFromCamera = FMath::Sqrt(RadiusSquared - DistanceSquared);
+			float DistanceAlongRay = DotToCenter + DistanceFromCamera;						//Subtracting instead of adding will get the other intersection point
+			ClippedPosition = CameraLocation + (DistanceAlongRay * CameraDirection);		//Cam aim point clipped to range sphere
+			return true;
+		}
+	}
+	return false;
 }
 
 void AGameplayAbilityTargetActor_Trace::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
-	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
-	
-	bDebug = true;
+	SourceActor = InAbility->GetCurrentActorInfo()->AvatarActor.Get();
 
-	ReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle>(ReticleClass, GetActorLocation(), GetActorRotation());
-	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
+	if (ReticleClass)
 	{
-		CachedReticleActor->InitializeReticle(this);
+		AGameplayAbilityWorldReticle* SpawnedReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle>(ReticleClass, GetActorLocation(), GetActorRotation());
+		if (SpawnedReticleActor)
+		{
+			SpawnedReticleActor->InitializeReticle(this, ReticleParams);
+			ReticleActor = SpawnedReticleActor;
+
+			// This is to catch cases of playing on a listen server where we are using a replicated reticle actor.
+			// (In a client controlled player, this would only run on the client and therefor never replicate. If it runs
+			// on a listen server, the reticle actor may replicate. We want consistancy between client/listen server players.
+			// Just saying 'make the reticle actor non replicated' isnt a good answer, since we want to mix and match reticle
+			// actors and there may be other targeting types that want to replicate the same reticle actor class).
+			if (!ShouldProduceTargetDataOnServer)
+			{
+				SpawnedReticleActor->SetReplicates(false);
+			}
+		}
 	}
 }
 
@@ -67,16 +175,6 @@ void AGameplayAbilityTargetActor_Trace::Tick(float DeltaSeconds)
 		}
 
 		SetActorLocationAndRotation(EndPoint, SourceActor->GetActorRotation());
-
-		if (ShouldProduceTargetData() && bAutoFire)
-		{
-			if (TimeUntilAutoFire <= 0.0f)
-			{
-				ConfirmTargeting();
-				bAutoFire = false;
-			}
-			TimeUntilAutoFire -= DeltaSeconds;
-		}
 	}
 }
 
@@ -86,7 +184,6 @@ void AGameplayAbilityTargetActor_Trace::ConfirmTargetingAndContinue()
 	if (SourceActor)
 	{
 		bDebug = false;
-		bAutoFire = false;
 		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformTrace(SourceActor));
 		TargetDataReadyDelegate.Broadcast(Handle);
 	}

@@ -6,6 +6,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniform.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
@@ -21,8 +24,8 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleVelocityBase::UParticleModuleVelocityBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVelocityBase::UParticleModuleVelocityBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -34,8 +37,8 @@ UParticleModuleVelocityBase::UParticleModuleVelocityBase(const class FPostConstr
 	UParticleModuleVelocity implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleVelocity::UParticleModuleVelocity(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVelocity::UParticleModuleVelocity(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 }
@@ -125,8 +128,8 @@ void UParticleModuleVelocity::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 /*-----------------------------------------------------------------------------
 	UParticleModuleVelocityInheritParent implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleVelocity_Seeded::UParticleModuleVelocity_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVelocity_Seeded::UParticleModuleVelocity_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -161,8 +164,8 @@ void UParticleModuleVelocity_Seeded::EmitterLoopingNotify(FParticleEmitterInstan
 /*-----------------------------------------------------------------------------
 	UParticleModuleVelocityInheritParent implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleVelocityInheritParent::UParticleModuleVelocityInheritParent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVelocityInheritParent::UParticleModuleVelocityInheritParent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 }
@@ -231,8 +234,8 @@ void UParticleModuleVelocityInheritParent::Spawn(FParticleEmitterInstance* Owner
 /*-----------------------------------------------------------------------------
 	UParticleModuleVelocityOverLifetime implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleVelocityOverLifetime::UParticleModuleVelocityOverLifetime(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVelocityOverLifetime::UParticleModuleVelocityOverLifetime(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -392,8 +395,8 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 /*-----------------------------------------------------------------------------
 	UParticleModuleVelocityCone implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleVelocityCone::UParticleModuleVelocityCone(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVelocityCone::UParticleModuleVelocityCone(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupported3DDrawMode = true;

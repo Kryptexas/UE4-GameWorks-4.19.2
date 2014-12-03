@@ -147,7 +147,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 
 FPropertyAccess::Result FPropertyValueImpl::GetValueData( void*& OutAddress ) const
 {
-	FPropertyAccess::Result Res = FPropertyAccess::Success;
+	FPropertyAccess::Result Res = FPropertyAccess::Fail;
 	OutAddress = NULL;
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
@@ -159,32 +159,18 @@ FPropertyAccess::Result FPropertyValueImpl::GetValueData( void*& OutAddress ) co
 		if( (ReadAddresses.Num() > 0 && bAllValuesTheSame) || ReadAddresses.Num() == 1 ) 
 		{
 			ValueAddress = ReadAddresses.GetAddress(0);
-
-			if( ValueAddress )
+			const UProperty* Property = PropertyNodePin->GetProperty();
+			if (ValueAddress && Property)
 			{
-				int32 Index = 0;
-				UProperty* Property = PropertyNodePin->GetProperty();
+				const int32 Index = 0;
 				OutAddress = ValueAddress + Index * Property->ElementSize;
-
-				if( OutAddress == NULL )
-				{
-					Res = FPropertyAccess::Fail;
-				}
-			}
-			else
-			{
-				Res = FPropertyAccess::Fail;
+				Res = FPropertyAccess::Success;
 			}
 		}
-		else
+		else if (ReadAddresses.Num() > 1)
 		{
-			Res = ReadAddresses.Num() > 1 ? FPropertyAccess::MultipleValues : FPropertyAccess::Fail;
+			Res = FPropertyAccess::MultipleValues;
 		}
-	}
-	else
-	{
-		// The property node is not valid.  Probably means this value was stored somewhere and selection changed causing the node to be destroyed
-		Res = FPropertyAccess::Fail;
 	}
 
 	return Res;
@@ -433,8 +419,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 		if ( bNotifiedPreChange )
 		{
 			// Call PostEditChange on all objects.
-			const bool bTopologyChange = false;
-			FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive );
+			FPropertyChangedEvent ChangeEvent(NodeProperty, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive );
 			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 
 			InPropertyNode->NotifyPostChange( ChangeEvent, NotifyHook );
@@ -459,8 +444,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 
 		if (PropertyUtilities.IsValid() && !bInteractiveChangeInProgress)
 		{
-			const bool bTopologyChange = false;
-			FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive);
+			FPropertyChangedEvent ChangeEvent(NodeProperty, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive);
 			InPropertyNode->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -701,7 +685,10 @@ FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InV
 		FString PreviousValue;
 		GetValueAsString( PreviousValue );
 
-		if (ParentNode && (ParentNode->GetInstancesNum() == 1 || (Value.Len() && FCString::Strcmp(*PreviousValue, *Value) != 0)))
+		const bool bDidValueChange = Value.Len() && (FCString::Strcmp(*PreviousValue, *Value) != 0);
+		const bool bComingOutOfInteractiveChange = bInteractiveChangeInProgress && ( ( Flags & EPropertyValueSetFlags::InteractiveChange ) != EPropertyValueSetFlags::InteractiveChange );
+
+		if ( ParentNode && ( ParentNode->GetInstancesNum() == 1 || bComingOutOfInteractiveChange || bDidValueChange ) )
 		{
 			ImportText( Value, PropertyNodePin.Get(), Flags );
 		}
@@ -1112,18 +1099,17 @@ void FPropertyValueImpl::AddChild()
 				}
 			}
 
-			const bool bTopologyChange = true;
 			if ( bNotifiedPreChange )
 			{
 				// send the PostEditChange notification; it will be propagated to all selected objects
-				FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, EPropertyChangeType::ArrayAdd);
+				FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayAdd);
 				ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook );
 			}
 
 			if (PropertyUtilities.IsValid())
 			{
-				FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, EPropertyChangeType::ArrayAdd);
+				FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayAdd);
 				PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
 				PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 			}
@@ -1188,16 +1174,15 @@ void FPropertyValueImpl::ClearChildren()
 
 			if ( bNotifiedPreChange )
 			{
-				const bool bTopologyChange = true;
 				// send the PostEditChange notification; it will be propagated to all selected objects
-				FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, EPropertyChangeType::ValueSet);
+				FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet);
 				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook );
 			}
 		}
 
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(NodeProperty, true, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet);
 			PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1265,16 +1250,15 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 			FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[ObjectIndex], ChildNodePtr );
 		}
 
-		const bool bTopologyChange = true;
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ArrayAdd);
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayAdd);
 			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 		}
 
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ArrayAdd);
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayAdd);
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1337,15 +1321,14 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 			}
 		}
 
-		const bool bTopologyChange = true;
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange);
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty());
 			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 		}
 
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange);
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty());
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1429,14 +1412,13 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 		// 		const bool bRecurse = false;
 		// 		ParentNode->SetExpanded(bExpand, bRecurse);
 
-		const bool bTopologyChange = true;
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
 			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 		}
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1536,13 +1518,18 @@ FString FPropertyHandleBase::GeneratePathToProperty() const
 
 }
 
-TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FString& NameOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
+TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FString& NameOverride, const FString& ToolTipOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
 {
 	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
 	{
 		if( NameOverride.Len() > 0 )
 		{
 			Implementation->GetPropertyNode()->SetDisplayNameOverride( NameOverride );
+		}
+
+		if( ToolTipOverride.Len() > 0 )
+		{
+			Implementation->GetPropertyNode()->SetToolTipOverride( ToolTipOverride );
 		}
 
 		TSharedPtr<FPropertyEditor> PropertyEditor = FPropertyEditor::Create( Implementation->GetPropertyNode().ToSharedRef(), Implementation->GetPropertyUtilities().ToSharedRef() );

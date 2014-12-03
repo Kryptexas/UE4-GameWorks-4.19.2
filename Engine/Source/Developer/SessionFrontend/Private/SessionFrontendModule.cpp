@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
+#include "ISessionFrontendModule.h"
+#include "SDockTab.h"
+#include "WorkspaceMenuStructureModule.h"
 
 
 static const FName SessionFrontendTabName("SessionFrontend");
@@ -30,17 +33,23 @@ public:
 
 	// IModuleInterface interface
 	
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
-		FGlobalTabmanager::Get()->RegisterTabSpawner(SessionFrontendTabName, FOnSpawnTab::CreateRaw(this, &FSessionFrontendModule::SpawnSessionFrontendTab))
+		auto& TabSpawnerEntry = FGlobalTabmanager::Get()->RegisterNomadTabSpawner(SessionFrontendTabName, FOnSpawnTab::CreateRaw(this, &FSessionFrontendModule::SpawnSessionFrontendTab))
 			.SetDisplayName(NSLOCTEXT("FSessionFrontendModule", "FrontendTabTitle", "Session Frontend"))
 			.SetTooltipText(NSLOCTEXT("FSessionFrontendModule", "FrontendTooltipText", "Open the Session Frontend tab."))
 			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "SessionFrontEnd.TabIcon"));
+
+#if WITH_EDITOR
+		TabSpawnerEntry.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory());
+#else
+		TabSpawnerEntry.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+#endif
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
-		FGlobalTabmanager::Get()->UnregisterTabSpawner(SessionFrontendTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(SessionFrontendTabName);
 	}
 
 private:
@@ -48,7 +57,7 @@ private:
 	/**
 	 * Creates a new session front-end tab.
 	 *
-	 * @param SpawnTabArgs - The arguments for the tab to spawn.
+	 * @param SpawnTabArgs The arguments for the tab to spawn.
 	 * @return The spawned tab.
 	 */
 	TSharedRef<SDockTab> SpawnSessionFrontendTab( const FSpawnTabArgs& SpawnTabArgs )

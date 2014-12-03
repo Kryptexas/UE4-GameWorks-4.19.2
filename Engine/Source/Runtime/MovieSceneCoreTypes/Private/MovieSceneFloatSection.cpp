@@ -4,8 +4,8 @@
 #include "MovieSceneFloatSection.h"
 
 
-UMovieSceneFloatSection::UMovieSceneFloatSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneFloatSection::UMovieSceneFloatSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

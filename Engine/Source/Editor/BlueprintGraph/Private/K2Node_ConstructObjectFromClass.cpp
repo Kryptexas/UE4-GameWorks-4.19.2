@@ -18,8 +18,8 @@ FString FK2Node_ConstructObjectFromClassHelper::ClassPinName(TEXT("Class"));
 
 #define LOCTEXT_NAMESPACE "K2Node_ConstructObjectFromClass"
 
-UK2Node_ConstructObjectFromClass::UK2Node_ConstructObjectFromClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ConstructObjectFromClass::UK2Node_ConstructObjectFromClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new object");
 }
@@ -165,6 +165,8 @@ void UK2Node_ConstructObjectFromClass::PinDefaultValueChanged(UEdGraphPin* Chang
 				Pins.Remove(OldPin);
 			}
 		}
+
+		CachedNodeTitle.MarkDirty();
 
 		UClass* UseSpawnClass = GetClassToSpawn();
 		if (UseSpawnClass != NULL)

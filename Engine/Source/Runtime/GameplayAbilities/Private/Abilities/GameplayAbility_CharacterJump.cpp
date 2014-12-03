@@ -9,8 +9,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Predictive;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
@@ -26,14 +26,14 @@ void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilitySpecH
 			return;
 		}
 
-		ACharacter * Character = CastChecked<ACharacter>(ActorInfo->Actor.Get());
+		ACharacter * Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());
 		Character->Jump();
 	}
 }
 
 void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (ActorInfo != NULL && ActorInfo->Actor != NULL)
+	if (ActorInfo != NULL && ActorInfo->AvatarActor != NULL)
 	{
 		CancelAbility(Handle, ActorInfo, ActivationInfo);
 	}
@@ -46,7 +46,7 @@ bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySp
 		return false;
 	}
 
-	const ACharacter* Character = CastChecked<ACharacter>(ActorInfo->Actor.Get(), ECastCheckedType::NullAllowed);
+	const ACharacter* Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get(), ECastCheckedType::NullAllowed);
 	return (Character && Character->CanJump());
 }
 
@@ -60,6 +60,6 @@ void UGameplayAbility_CharacterJump::CancelAbility(const FGameplayAbilitySpecHan
 {
 	Super::CancelAbility(Handle, ActorInfo, ActivationInfo);
 	
-	ACharacter * Character = CastChecked<ACharacter>(ActorInfo->Actor.Get());
+	ACharacter * Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());
 	Character->StopJumping();
 }

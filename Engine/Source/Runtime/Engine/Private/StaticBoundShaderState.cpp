@@ -56,7 +56,8 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	// Create the bound shader state if it hasn't been cached yet.
 	if(!IsValidRef(BoundShaderState))
 	{
-		BoundShaderState = CreateBoundShaderState_Internal(
+		BoundShaderState = 
+			RHICreateBoundShaderState(
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(), 
@@ -68,7 +69,8 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	// Only people working on shaders (and therefore have LogShaders unsuppressed) will want to see these errors
 	else if (!GUsingNullRHI && UE_LOG_ACTIVE(LogShaders, Warning))
 	{
-		FBoundShaderStateRHIRef TempBoundShaderState = CreateBoundShaderState_Internal(
+		FBoundShaderStateRHIRef TempBoundShaderState = 
+			RHICreateBoundShaderState(
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(),
@@ -136,11 +138,14 @@ class FSetGlobalBoundShaderStateRenderThreadTask
 {
 	FRHICommandList& RHICmdList;
 	FGlobalBoundShaderState& GlobalBoundShaderState;
+	ERHIFeatureLevel::Type FeatureLevel;
+
 public:
 
-	FSetGlobalBoundShaderStateRenderThreadTask(FRHICommandList* InRHICmdList, FGlobalBoundShaderState* InGlobalBoundShaderState)
-		: RHICmdList(*InRHICmdList)
-		, GlobalBoundShaderState(*InGlobalBoundShaderState)
+	FSetGlobalBoundShaderStateRenderThreadTask(FRHICommandList& InRHICmdList, FGlobalBoundShaderState& InGlobalBoundShaderState, ERHIFeatureLevel::Type InFeatureLevel)
+		: RHICmdList(InRHICmdList)
+		, GlobalBoundShaderState(InGlobalBoundShaderState)
+		, FeatureLevel(InFeatureLevel)
 	{
 	}
 
@@ -158,7 +163,7 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		RHICmdList.SetBoundShaderState(GetGlobalBoundShaderState_Internal(GlobalBoundShaderState, GRHIFeatureLevel));
+		RHICmdList.SetBoundShaderState(GetGlobalBoundShaderState_Internal(GlobalBoundShaderState, FeatureLevel));
 	}
 };
 
@@ -228,7 +233,7 @@ void SetGlobalBoundShaderState(
 	// We need to do this on the render thread
 
 	FRHICommandList* CmdList = new FRHICommandList;
-	FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FSetGlobalBoundShaderStateRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(CmdList, &GlobalBoundShaderState);
+	FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FSetGlobalBoundShaderStateRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, GlobalBoundShaderState, FeatureLevel);
 	RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
 }
 

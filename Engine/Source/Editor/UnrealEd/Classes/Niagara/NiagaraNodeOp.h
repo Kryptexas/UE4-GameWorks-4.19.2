@@ -8,18 +8,22 @@ class UNiagaraNodeOp : public UNiagaraNode
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Index of operation */
+public:
+
+	/** Name of operation */
 	UPROPERTY()
-	uint8 OpIndex;
+	FName OpName;
 
 	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FText GetTooltipText() const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	// End EdGraphNode interface
 
-	/** Names to use for each input pin. */
-	UNREALED_API static const TCHAR* InPinNames[3];
+	// Begin UNiagaraNode interface
+	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs) override;
+	// End UNiagaraNode interface
 };
 
 

@@ -16,8 +16,8 @@ DEFINE_LOG_CATEGORY(LogAIPerception);
 //----------------------------------------------------------------------//
 // UAIPerceptionSystem
 //----------------------------------------------------------------------//
-UAIPerceptionSystem::UAIPerceptionSystem(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, PerceptionAgingRate(0.3f)
 	, NextFreeListenerId(AIPerception::InvalidListenerId + 1)
 	, CurrentTime(0.f)
@@ -75,7 +75,7 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 
 void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
 {
-	UAISense** SenseInstance = Senses.GetTypedData();
+	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 	{
 		if (*SenseInstance != NULL)
@@ -87,7 +87,7 @@ void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
 
 void UAIPerceptionSystem::OnListenerUpdate(const FPerceptionListener& UpdatedListener)
 {
-	UAISense** SenseInstance = Senses.GetTypedData();
+	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 	{
 		if (*SenseInstance != NULL)
@@ -117,7 +117,7 @@ void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
 	}
 
 	{
-		UAISense** SenseInstance = Senses.GetTypedData();
+		UAISense** SenseInstance = Senses.GetData();
 		for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 		{
 			bNeedsUpdate |= *SenseInstance != NULL && (*SenseInstance)->ProgressTime(DeltaSeconds);
@@ -140,7 +140,7 @@ void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
 			}
 		}
 
-		UAISense** SenseInstance = Senses.GetTypedData();
+		UAISense** SenseInstance = Senses.GetData();
 		for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 		{
 			if (*SenseInstance != NULL)
@@ -181,7 +181,7 @@ void UAIPerceptionSystem::AgeStimuli()
 	}
 }
 
-UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(class UObject* WorldContextObject)
+UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = Cast<UWorld>(WorldContextObject);
 
@@ -253,7 +253,7 @@ void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent* Listener)
 
 void UAIPerceptionSystem::OnListenerRemoved(const FPerceptionListener& NewListener)
 {
-	UAISense** SenseInstance = Senses.GetTypedData();
+	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 	{
 		if (*SenseInstance != NULL)

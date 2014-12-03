@@ -164,7 +164,7 @@ private:
 
 		if (OutContents)
 		{
-			*OutContents = CachedContents ? CachedContents->GetTypedData() : NULL;
+			*OutContents = CachedContents ? CachedContents->GetData() : NULL;
 		}
 		if (OutContentSize)
 		{

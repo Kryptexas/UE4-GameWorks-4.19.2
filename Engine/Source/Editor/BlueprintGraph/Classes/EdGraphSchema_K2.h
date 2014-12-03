@@ -141,6 +141,16 @@ public:
 
 	/** Metadata to identify an DataTable Pin. Depending on which DataTable is selected, we display different RowName options */
 	static const FName MD_DataTablePin;
+
+	/** Metadata that flags make/break functions for specific struct types. */
+	static const FName MD_NativeMakeFunction;
+	static const FName MD_NativeBreakFunction;
+
+	/** Metadata that flags function params that govern what type of object the function returns */
+	static const FName MD_DynamicOutputType;
+	/** Metadata that flags the function output param that will be controlled by the "MD_DynamicOutputType" pin */
+	static const FName MD_DynamicOutputParam;
+	
 private:
 	// This class should never be instantiated
 	FBlueprintMetadata() {}
@@ -283,10 +293,6 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 
 	// Somewhat hacky mechanism to prevent tooltips created for pins from including the display name and type when generating BP API documentation
 	static bool bGeneratingDocumentation;
-
-	/** DEPRECATED - Use UEditorExperimentalSettings::bUseRefactoredBlueprintMenuingSystem instead */
-	UPROPERTY(GlobalConfig)
-	bool bUseLegacyActionMenus; 
 
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
@@ -653,8 +659,8 @@ public:
 	/** Can this function be overridden by kismet (either placed as event or new function graph created) */
 	static bool CanKismetOverrideFunction(const UFunction* Function);
 
-	/** returns friendly signiture name if possible or Removes any mangling to get the unmangled signature name of the function */
-	static FString GetFriendlySignitureName(const UFunction* Function);
+	/** returns friendly signature name if possible or Removes any mangling to get the unmangled signature name of the function */
+	static FString GetFriendlySignatureName(const UFunction* Function);
 
 	static bool IsAllowableBlueprintVariableType(const class UEnum* InEnum);
 	static bool IsAllowableBlueprintVariableType(const class UClass* InClass);
@@ -871,6 +877,16 @@ public:
 	/** Create menu for variable get/set nodes which refer to a variable which does not exist. */
 	void GetNonExistentVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* OwnerBlueprint, FMenuBuilder* MenuBuilder) const;
 
+	/**
+	 * Create menu for variable get/set nodes which allows for the replacement of variables
+	 *
+	 * @param InGraphNode					Variable node to replace
+	 * @param InOwnerBlueprint				The owning Blueprint of the variable
+	 * @param InMenuBuilder					MenuBuilder to place the menu items into
+	 * @param bInReplaceExistingVariable	TRUE if replacing an existing variable, will keep the variable from appearing on the list
+	 */
+	void GetReplaceVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* InOwnerBlueprint, FMenuBuilder* InMenuBuilder, bool bInReplaceExistingVariable = false) const;
+
 	// Calculates an average position between the nodes owning the two specified pins
 	static FVector2D CalculateAveragePositionBetweenNodes(UEdGraphPin* InputPin, UEdGraphPin* OutputPin);
 
@@ -899,8 +915,9 @@ public:
 	 * @param	bInShowInherited	Allows for inherited functions
 	 * @param	bInCalledForEach	Call for each element in an array (a node accepts array)
 	 * @param	InTargetInfo		Allows spawning nodes which also create a target variable as well
+	 * @param	OutReason			Allows callers to receive a localized string containing more detail when the function is determined to be invalid (optional)
 	 */
-	bool CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo) const;
+	bool CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason = nullptr) const;
 
 	/**
 	 * Makes connections into/or out of the gateway node, connect directly to the associated networks on the opposite side of the tunnel
@@ -937,11 +954,14 @@ public:
 	/** Create the variable that the broken node refers to */
 	static void OnCreateNonExistentVariable(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint);
 
+	/** Create the local variable that the broken node refers to */
+	static void OnCreateNonExistentLocalVariable(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint);
+
 	/** Replace the variable that a variable node refers to when the variable it refers to does not exist */
-	static void OnReplaceVariableForVariableNode(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName);
+	static void OnReplaceVariableForVariableNode(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName, bool bIsSelfMember);
 
 	/** Create sub menu that shows all possible variables that can be used to replace the existing variable reference */
-	static void GetReplaceNonExistentVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint);
+	static void GetReplaceVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, bool bReplaceExistingVariable = false);
 
 private:
 

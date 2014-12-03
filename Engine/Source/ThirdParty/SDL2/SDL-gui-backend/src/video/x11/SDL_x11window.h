@@ -82,6 +82,7 @@ extern void X11_SetWindowMaximumSize(_THIS, SDL_Window * window);
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
 extern int X11_GetWindowBordersSize(_THIS, SDL_Window * window, SDL_Rect * borders);
+extern int X11_SetWindowOpacity(_THIS, SDL_Window * window, float opacity);
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 extern void X11_SetWindowSize(_THIS, SDL_Window * window);

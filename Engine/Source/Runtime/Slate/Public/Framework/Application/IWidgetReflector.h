@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IWidgetReflector.h: Declares the IWidgetReflector class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,10 +13,11 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*Fi
 class IWidgetReflector
 {
 public:
+	virtual void OnEventProcessed( const FInputEvent& Event, const FReplyBase& InReply ) = 0;
 
-	/**
-	 * Called when the user has picked a widget to observe.
-	 */
+public:
+
+	/** Called when the user has picked a widget to observe. */
 	virtual void OnWidgetPicked( ) = 0;
 
 	/**
@@ -77,8 +74,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IWidgetReflector( ) { }
 };

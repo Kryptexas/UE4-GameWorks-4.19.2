@@ -5,8 +5,8 @@
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 
-ASpectatorPawn::ASpectatorPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+ASpectatorPawn::ASpectatorPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 	.SetDefaultSubobjectClass<USpectatorPawnMovement>(Super::MovementComponentName)
 	.DoNotCreateDefaultSubobject(Super::MeshComponentName)
 	)
@@ -19,7 +19,7 @@ ASpectatorPawn::ASpectatorPawn(const class FPostConstructInitializeProperties& P
 	bCollideWhenPlacing = false;
 
 	static FName CollisionProfileName(TEXT("Spectator"));
-	CollisionComponent->SetCollisionProfileName(CollisionProfileName);
+	GetCollisionComponent()->SetCollisionProfileName(CollisionProfileName);
 }
 
 

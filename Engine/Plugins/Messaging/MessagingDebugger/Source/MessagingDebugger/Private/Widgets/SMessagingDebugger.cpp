@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
+#include "SDockTab.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingDebugger"
@@ -21,10 +22,10 @@ static const FName MessageTypesTabId("MessageTypes");
 static const FName ToolbarTabId("Toolbar");
 
 
-/* SMessagingDebugger structors
+/* SMessagingDebugger constructors
  *****************************************************************************/
 
-SMessagingDebugger::SMessagingDebugger( )
+SMessagingDebugger::SMessagingDebugger()
 	: CommandList(MakeShareable(new FUICommandList))
 	, MessageTracer(NULL)
 	, Model(MakeShareable(new FMessagingDebuggerModel()))
@@ -53,9 +54,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 
 	// create & initialize tab manager
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
-
-	TSharedRef<FWorkspaceItem> RootMenuGroup = FWorkspaceItem::NewGroup(LOCTEXT("RootMenuGroupName", "Root"));
-	TSharedRef<FWorkspaceItem> AppMenuGroup = RootMenuGroup->AddGroup(LOCTEXT("AppMenuGroupName", "Messaging Debugger"));
+	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("MessagingDebuggerGroupName", "Messaging Debugger"));
 
 	TabManager->RegisterTabSpawner(BreakpointsTabId, FOnSpawnTab::CreateRaw(this, &SMessagingDebugger::HandleTabManagerSpawnTab, BreakpointsTabId))
 		.SetDisplayName(LOCTEXT("BreakpointsTabTitle", "Breakpoints"))
@@ -123,7 +122,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 						(
 							FTabManager::NewStack()
 								->AddTab(EndpointsTabId, ETabState::OpenedTab)
-								->SetSizeCoefficient(0.65f)
+								->SetSizeCoefficient(0.5f)
 						)
 						->Split
 						(
@@ -131,7 +130,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 								->AddTab(EndpointDetailsTabId, ETabState::OpenedTab)
 								->AddTab(InterceptorsTabId, ETabState::OpenedTab)
 								->SetForegroundTab(EndpointDetailsTabId)
-								->SetSizeCoefficient(0.35f)
+								->SetSizeCoefficient(0.5f)
 						)
 				)
 				->Split
@@ -157,13 +156,14 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 							FTabManager::NewStack()
 								->AddTab(MessageHistoryTabId, ETabState::OpenedTab)
 								->SetHideTabWell(true)
-								->SetSizeCoefficient(0.75f)
+								->SetSizeCoefficient(0.725f)
 						)
 						->Split
 						(
 							FTabManager::NewStack()
 								->AddTab(BreakpointsTabId, ETabState::OpenedTab)
-								->SetSizeCoefficient(0.25f)
+								->AddTab(MessageDetailsTabId, ETabState::OpenedTab)
+								->SetSizeCoefficient(0.275f)
 						)
 				)
 				->Split
@@ -176,15 +176,14 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 						(
 							FTabManager::NewStack()
 								->AddTab(MessageTypesTabId, ETabState::OpenedTab)
-								->SetSizeCoefficient(0.65f)
+								->SetSizeCoefficient(0.33f)
 						)
 						->Split
 						(
 							FTabManager::NewStack()
-								->AddTab(MessageDetailsTabId, ETabState::OpenedTab)
 								->AddTab(MessageDataTabId, ETabState::OpenedTab)
 								->SetForegroundTab(MessageDetailsTabId)
-								->SetSizeCoefficient(0.35f)
+								->SetSizeCoefficient(0.66f)
 						)
 				)
 		);
@@ -195,7 +194,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 	MenuBarBuilder.AddPullDownMenu(
 		LOCTEXT("WindowMenuLabel", "Window"),
 		FText::GetEmpty(),
-		FNewMenuDelegate::CreateStatic(&SMessagingDebugger::FillWindowMenu, RootMenuGroup, AppMenuGroup, TabManager),
+		FNewMenuDelegate::CreateStatic(&SMessagingDebugger::FillWindowMenu, TabManager),
 		"Window"
 	);
 
@@ -225,8 +224,6 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 
 void SMessagingDebugger::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	MessageTracer->Tick(InDeltaTime);
 }
 
@@ -234,117 +231,105 @@ void SMessagingDebugger::Tick( const FGeometry& AllottedGeometry, const double I
 /* SMessagingDebugger implementation
  *****************************************************************************/
 
-void SMessagingDebugger::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup, TSharedRef<FWorkspaceItem> AppMenuGroup, const TSharedPtr<FTabManager> TabManager )
+void SMessagingDebugger::FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager)
 {
 	if (!TabManager.IsValid())
 	{
 		return;
 	}
 
-	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("MessagingDebuggerMenuGroup", "Messaging Debugger"));
-	{
-		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
-	}
-	MenuBuilder.EndSection();
-
-#if !WITH_EDITOR
-	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
-	{
-		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, RootMenuGroup);
-	}
-	MenuBuilder.EndSection();
-#endif //!WITH_EDITOR
+	TabManager->PopulateLocalTabSpawnerMenu(MenuBuilder);
 }
 
 
 /* SMessagingDebugger callbacks
  *****************************************************************************/
 
-bool SMessagingDebugger::HandleBreakDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleBreakDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsRunning() && !MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleBreakDebuggerCommandExecute( )
+void SMessagingDebugger::HandleBreakDebuggerCommandExecute()
 {
 	MessageTracer->Break();
 }
 
 
-bool SMessagingDebugger::HandleClearHistoryCommandCanExecute( ) const
+bool SMessagingDebugger::HandleClearHistoryCommandCanExecute() const
 {
 	return MessageTracer->HasMessages();
 }
 
 
-void SMessagingDebugger::HandleClearHistoryCommandExecute( )
+void SMessagingDebugger::HandleClearHistoryCommandExecute()
 {
 	MessageTracer->Reset();
 }
 
 
-bool SMessagingDebugger::HandleContinueDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleContinueDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleContinueDebuggerCommandExecute( )
+void SMessagingDebugger::HandleContinueDebuggerCommandExecute()
 {
 	MessageTracer->Continue();
 }
 
 
-bool SMessagingDebugger::HandleContinueDebuggerCommandIsVisible( ) const
+bool SMessagingDebugger::HandleContinueDebuggerCommandIsVisible() const
 {
 	return MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleMajorTabPersistVisualState( )
+void SMessagingDebugger::HandleMajorTabPersistVisualState()
 {
 	// save any settings here
 }
 
 
-bool SMessagingDebugger::HandleStartDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleStartDebuggerCommandCanExecute() const
 {
 	return !MessageTracer->IsRunning();
 }
 
 
-void SMessagingDebugger::HandleStartDebuggerCommandExecute( )
+void SMessagingDebugger::HandleStartDebuggerCommandExecute()
 {
 	MessageTracer->Start();
 }
 
 
-bool SMessagingDebugger::HandleStartDebuggerCommandIsVisible( ) const
+bool SMessagingDebugger::HandleStartDebuggerCommandIsVisible() const
 {
 	return !MessageTracer->IsBreaking();
 }
 
 
-bool SMessagingDebugger::HandleStepDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleStepDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleStepDebuggerCommandExecute( )
+void SMessagingDebugger::HandleStepDebuggerCommandExecute()
 {
 	MessageTracer->Step();
 }
 
 
-bool SMessagingDebugger::HandleStopDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleStopDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsRunning();
 }
 
 
-void SMessagingDebugger::HandleStopDebuggerCommandExecute( )
+void SMessagingDebugger::HandleStopDebuggerCommandExecute()
 {
 	MessageTracer->Stop();
 }

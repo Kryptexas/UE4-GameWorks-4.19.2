@@ -19,8 +19,8 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleCollisionBase::UParticleModuleCollisionBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleCollisionBase::UParticleModuleCollisionBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -36,8 +36,8 @@ DEFINE_STAT(STAT_ParticleCollisionTime);
 /*-----------------------------------------------------------------------------
 	UParticleModuleCollision implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleCollision::UParticleModuleCollision(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleCollision::UParticleModuleCollision(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -576,8 +576,8 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 	GPU particle collision module.
 ------------------------------------------------------------------------------*/
 
-UParticleModuleCollisionGPU::UParticleModuleCollisionGPU(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleCollisionGPU::UParticleModuleCollisionGPU(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Friction(0.0f)
 	, RadiusScale(1.0f)
 	, RadiusBias(0.0f)

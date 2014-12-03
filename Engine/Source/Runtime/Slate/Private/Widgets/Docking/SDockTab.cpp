@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SDockTab.h"
 #include "DockingPrivate.h"
 
 
@@ -182,7 +183,7 @@ bool SDockTab::IsForeground() const
 	return ParentPtr.IsValid() ? (ParentPtr.Pin()->GetForegroundTab() == SharedThis(this)) : true;
 }
 
-ETabRole::Type SDockTab::GetTabRole() const
+ETabRole SDockTab::GetTabRole() const
 {
 	return TabRole;
 }
@@ -308,7 +309,7 @@ SDockTab::SDockTab()
 
 }
 
-void SDockTab::ActivateInParent(ETabActivationCause::Type InActivationCause)
+void SDockTab::ActivateInParent(ETabActivationCause InActivationCause)
 {
 	TSharedPtr<SDockingTabWell> ParentTabWell = ParentPtr.Pin();
 	if (ParentTabWell.IsValid())

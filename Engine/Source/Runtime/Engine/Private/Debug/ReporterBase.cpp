@@ -5,8 +5,8 @@
 
 #define DASH_LINE_SIZE	5.0f
 
-UReporterBase::UReporterBase(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UReporterBase::UReporterBase(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	bVisible = false;
 	

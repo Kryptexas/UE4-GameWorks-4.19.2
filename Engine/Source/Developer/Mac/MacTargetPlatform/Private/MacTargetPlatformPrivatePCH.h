@@ -1,19 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MacTargetPlatformPrivatePCH.h: Pre-compiled header file for the MacTargetPlatform module.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "Settings.h"
+#include "CoreUObject.h"
 #include "Runtime/Core/Public/Mac/MacPlatformProperties.h"
 
 #if WITH_ENGINE
@@ -23,6 +17,7 @@
 
 #include "TargetPlatform.h"
 #include "TargetPlatformBase.h"
+
 
 /* Private includes
  *****************************************************************************/

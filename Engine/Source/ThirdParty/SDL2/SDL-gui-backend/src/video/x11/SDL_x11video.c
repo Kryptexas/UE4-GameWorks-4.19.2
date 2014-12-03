@@ -445,6 +445,7 @@ X11_CreateDevice(int devindex)
     /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     device->GetWindowBordersSize = X11_GetWindowBordersSize;
+    device->SetWindowOpacity = X11_SetWindowOpacity;
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
     device->ShowWindow = X11_ShowWindow;
@@ -612,6 +613,11 @@ X11_VideoInit(_THIS)
     GET_ATOM(_NET_WM_ICON_NAME);
     GET_ATOM(_NET_WM_ICON);
     GET_ATOM(_NET_WM_PING);
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    GET_ATOM(_NET_WM_WINDOW_OPACITY);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
     GET_ATOM(_NET_ACTIVE_WINDOW);
     GET_ATOM(UTF8_STRING);
     GET_ATOM(PRIMARY);

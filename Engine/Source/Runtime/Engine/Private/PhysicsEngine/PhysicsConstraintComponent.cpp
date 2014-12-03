@@ -7,8 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "ConstraintComponent"
 
-UPhysicsConstraintComponent::UPhysicsConstraintComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsConstraintComponent::UPhysicsConstraintComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bWantsInitializeComponent = true;
 }

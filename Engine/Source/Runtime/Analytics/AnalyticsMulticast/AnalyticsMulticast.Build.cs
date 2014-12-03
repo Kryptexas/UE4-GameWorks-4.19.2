@@ -31,6 +31,7 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Analytics",
+					"Json",
                     // ... add private dependencies that you statically link with here ...
 				}
 				);

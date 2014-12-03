@@ -14,7 +14,6 @@ class UMediaPlayerFactory
 {
 	GENERATED_UCLASS_BODY()
 
-
 public:
 
 	// UFactory Interface
@@ -24,13 +23,13 @@ public:
 protected:
 
 	/** Reloads the collection of supported media formats. */
-	void ReloadMediaFormats( );
+	void ReloadMediaFormats();
 
 private:
 
-	// Callback for handling the adding of media player factories.
-	void HandleMediaPlayerFactoryAdded( );
+	/** Callback for handling the adding of media player factories. */
+	void HandleMediaPlayerFactoryAdded();
 
-	// Callback for handling the adding of media player factories.
-	void HandleMediaPlayerFactoryRemoved( );
+	/** Callback for handling the adding of media player factories. */
+	void HandleMediaPlayerFactoryRemoved();
 };

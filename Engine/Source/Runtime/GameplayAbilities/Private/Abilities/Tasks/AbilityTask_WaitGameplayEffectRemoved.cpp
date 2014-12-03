@@ -6,8 +6,8 @@
 
 #include "Abilities/GameplayAbility.h"
 
-UAbilityTask_WaitGameplayEffectRemoved::UAbilityTask_WaitGameplayEffectRemoved(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitGameplayEffectRemoved::UAbilityTask_WaitGameplayEffectRemoved(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Registered = false;
 }

@@ -160,6 +160,8 @@ FString FEditorAnalytics::TranslateErrorCode(int32 ErrorCode)
 		return TEXT("Android build-tools directory not found");
 	case EAnalyticsErrorCodes::NoApkSuitableForArchitecture:
 		return TEXT("No APK suitable for architecture found");
+	case EAnalyticsErrorCodes::FailedToDeleteStagingDirectory :
+		return TEXT("Failed to delete staging directory.  This could be because something is currently using the staging directory (ps4/xbox/etc)");
 	}
 	return TEXT("Unknown Error");
 }

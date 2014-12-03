@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeSwitch"
 
-USoundNodeSwitch::USoundNodeSwitch(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeSwitch::USoundNodeSwitch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

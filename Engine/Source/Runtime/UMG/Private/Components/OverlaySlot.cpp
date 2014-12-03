@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UOverlaySlot
 
-UOverlaySlot::UOverlaySlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOverlaySlot::UOverlaySlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	HorizontalAlignment = HAlign_Left;
 	VerticalAlignment = VAlign_Top;

@@ -315,6 +315,9 @@ public:
 	/** Called when Compile button is clicked */
 	virtual void Compile();
 
+	/** Helper functions used to construct/operate-on the "Save on Compile" command */
+	bool IsSaveOnCompileEnabled() const;
+
 	/** Calls the above function, but returns an FReply::Handled(). Used in SButtons */
 	virtual FReply Compile_OnClickWithReply();
 
@@ -465,6 +468,12 @@ public:
 	/** Closes the merge tool, rather than simply hiding it */
 	void CloseMergeTool();
 
+	/** Opens a native code generation modal window */
+	void OpenNativeCodeGenerationTool();
+
+	/** Can generate native code for current blueprint */
+	bool CanGenerateNativeCode() const;
+
 	/** 
 	 * Check to see if we can customize the SCS editor for the passed-in scene component 
 	 * @param	InComponentToCustomize	The component to check to see if a customization exists
@@ -494,7 +503,7 @@ public:
 
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
-	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
+	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false);
 	
 	// Zooming to fit the entire graph
 	void ZoomToWindow_Clicked();

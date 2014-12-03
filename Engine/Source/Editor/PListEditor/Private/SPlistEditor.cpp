@@ -6,6 +6,9 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 
+#include "SSearchBox.h"
+#include "SExpandableArea.h"
+#include "SNotificationList.h"
 #define LOCTEXT_NAMESPACE "PListEditor"
 
 /** Ticks any internals of the widget as necessary. */
@@ -213,8 +216,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 		]
 	];
 
-	// Default try to load the file GGameName-Info.plist file when widget is opened
-	FString DefaultFile = FString(GGameName) + TEXT("-Info.plist");
+	// Default try to load the file GameName-Info.plist file when widget is opened
+	FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
 	InOutLastPath += DefaultFile;
 	OpenFile(InOutLastPath);
 
@@ -825,7 +828,7 @@ bool SPListEditorPanel::OpenFile(FString FilePath)
 	if( !bLoadResult )
 	{
 		// try Info.plist
-		FilePath = FilePath.Replace(*(FString(GGameName) + TEXT("-")), TEXT(""));
+		FilePath = FilePath.Replace(*(FString(FApp::GetGameName()) + TEXT("-")), TEXT(""));
 		bLoadResult = Doc.LoadFile(FilePath);
 	}
 
@@ -914,7 +917,7 @@ FReply SPListEditorPanel::OnOpenClicked()
 		}
 
 		//FString DefaultPath = FPaths::GameDir() + TEXT("Build/IOS/");
-		//FString DefaultFile = FString(GGameName) + TEXT("-Info.plist");
+		//FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
@@ -2013,11 +2016,11 @@ bool SPListEditorPanel::DetermineAddArrayContext() const
 }
 
 /** Callback for keyboard shortcut commands */
-FReply SPListEditorPanel::OnKeyDown( const FGeometry& /*MyGeometry*/, const FKeyboardEvent& InKeyboardEvent )
+FReply SPListEditorPanel::OnKeyDown( const FGeometry& /*MyGeometry*/, const FKeyEvent& InKeyEvent )
 {
 	// Perform commands if necessary
 	FReply Reply = FReply::Unhandled();
-	if( UICommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if( UICommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		// handle the event if a command was processed
 		Reply = FReply::Handled();

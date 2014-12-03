@@ -299,7 +299,7 @@ void FVoiceCaptureWindows::ProcessData()
 			UncompressedAudioBuffer.Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
 			UncompressedAudioBuffer.AddUninitialized(CaptureLength + CaptureLength2);
 
-			uint8* AudioBuffer = UncompressedAudioBuffer.GetTypedData();
+			uint8* AudioBuffer = UncompressedAudioBuffer.GetData();
 			FMemory::Memcpy(AudioBuffer, CaptureData, CaptureLength);
 
 			if (CaptureData2 && CaptureLength2 > 0)
@@ -348,7 +348,7 @@ EVoiceCaptureState::Type FVoiceCaptureWindows::GetVoiceData(uint8* OutVoiceBuffe
 		OutAvailableVoiceData = UncompressedAudioBuffer.Num();
 		if (InVoiceBufferSize >= OutAvailableVoiceData)
 		{
-			FMemory::Memcpy(OutVoiceBuffer, UncompressedAudioBuffer.GetTypedData(), OutAvailableVoiceData);
+			FMemory::Memcpy(OutVoiceBuffer, UncompressedAudioBuffer.GetData(), OutAvailableVoiceData);
 			VoiceCaptureState = EVoiceCaptureState::NoData;
 		}
 		else

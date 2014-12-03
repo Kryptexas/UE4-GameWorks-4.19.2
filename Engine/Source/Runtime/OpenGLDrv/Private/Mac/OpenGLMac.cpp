@@ -1299,9 +1299,10 @@ void FMacOpenGL::MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint 
 
 bool FMacOpenGL::MustFlushTexStorage(void)
 {
-	// @todo There is a bug in Apple's GL with TexStorage calls, on Nvidia and when using MTGL that can see the texture never be created, which then subsequently causes crashes
+	// @todo There is a bug in Apple's GL with TexStorage calls when using MTGL that can see the texture never be created, which then subsequently causes crashes
+	// @todo This bug also affects Nvidia cards under Mavericks without MTGL.
 	FPlatformOpenGLContext::VerifyCurrentContext();
-	return GMacFlushTexStorage && (IsRHIDeviceNVIDIA() || GMacUseMTGL);
+	return GMacFlushTexStorage && ((FPlatformMisc::IsRunningOnMavericks() && IsRHIDeviceNVIDIA()) || GMacUseMTGL);
 }
 
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
@@ -1310,3 +1311,16 @@ void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
 	TexturesToDelete.Append(Textures, Number);
 }
 
+void FMacOpenGL::BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data)
+{
+	if(GMacUseMTGL)
+	{
+		void* Dest = MapBufferRange(Target, Offset, Size, FOpenGLBase::RLM_WriteOnly);
+		FMemory::Memcpy(Dest, Data, Size);
+		UnmapBuffer(Target);
+	}
+	else
+	{
+		glBufferSubData(Target, Offset, Size, Data);
+	}
+}

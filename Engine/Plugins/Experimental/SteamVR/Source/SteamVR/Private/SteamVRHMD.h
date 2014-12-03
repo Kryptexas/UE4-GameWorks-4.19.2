@@ -33,10 +33,11 @@ class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
-	virtual bool GetHMDMonitorInfo(MonitorInfo&) const override;
+	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
 
 	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
 
@@ -47,7 +48,7 @@ public:
 	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
 	virtual float GetInterpupillaryDistance() const override;
 
-	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) const override;
+	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
 	virtual class ISceneViewExtension* GetViewExtension() override;
 	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) override;
 	virtual void UpdatePlayerCameraRotation(APlayerCameraManager*, struct FMinimalViewInfo& POV) override;
@@ -66,6 +67,19 @@ public:
 	virtual void EnableLowPersistenceMode(bool Enable = true) override;
 
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
+	virtual void ResetOrientation(float Yaw = 0.f) override;
+	virtual void ResetPosition() override;
+
+	virtual void SetClippingPlanes(float NCP, float FCP) override;
+
+	virtual void SetBaseRotation(const FRotator& BaseRot) override;
+	virtual FRotator GetBaseRotation() const override;
+
+	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
+	virtual FQuat GetBaseOrientation() const override;
+
+	virtual void SetPositionOffset(const FVector& PosOff) override;
+	virtual FVector GetPositionOffset() const override;
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) override;
 	virtual void UpdateScreenSettings(const FViewport*) override;
@@ -86,7 +100,7 @@ public:
 	virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) override;
 	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
 	virtual void PreRenderView_RenderThread(FSceneView& InView) override;
-	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) override;
+	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily, uint32 InFrameNumber) override;
 
 public:
 	/** Constructor */
@@ -114,7 +128,7 @@ private:
 	void UnloadSteamModule();
 
 	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, FQuat& OutOrientation, FVector& OutPosition) const;
-	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, float MotionPredictionInSeconds) const;
+	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, float MotionPredictionInSeconds);
 
 
 	FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix34_t& tm) const

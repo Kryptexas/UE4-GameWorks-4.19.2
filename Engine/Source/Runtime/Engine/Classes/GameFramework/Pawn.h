@@ -29,7 +29,13 @@ class UPrimitiveComponent;
 UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+
+	/**
+	 * Default UObject constructor.
+	 */
+	APawn(const FObjectInitializer& ObjectInitializer);
 
 	/** Return our PawnMovementComponent, if we have one. By default, returns the first PawnMovementComponent found. Native classes that create their own movement component should override this method for more efficiency. */
 	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category="Pawn")
@@ -38,7 +44,6 @@ class ENGINE_API APawn : public AActor, public INavAgentInterface
 	/** Return PrimitiveComponent we are based on (standing on, attached to, and moving on). */
 	virtual UPrimitiveComponent* GetMovementBase() const { return NULL; }
 
-public:
 	/** If true, this Pawn's pitch will be updated to match the Controller's ControlRotation pitch, if controlled by a PlayerController. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pawn)
 	uint32 bUseControllerRotationPitch:1;
@@ -156,7 +161,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="Pawn")
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
-	virtual bool IsBasedOnActor(const AActor * Other) const override;
+	virtual bool IsBasedOnActor(const AActor* Other) const override;
 
 	virtual bool ReachedDesiredRotation();
 
@@ -258,7 +263,7 @@ public:
 
 	/** 
 	 * Called when this Pawn is possessed. Only called on the server (or in standalone).
-	 *	@param C is the controller possessing this pawn
+	 *	@param C The controller possessing this pawn
 	 */
 	virtual void PossessedBy(AController* NewController);
 

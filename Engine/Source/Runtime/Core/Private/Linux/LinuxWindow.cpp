@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "LinuxWindow.h"
 #include "LinuxApplication.h"
 
@@ -483,8 +483,7 @@ void FLinuxWindow::SetWindowFocus()
  */
 void FLinuxWindow::SetOpacity( const float InOpacity )
 {
-	//	SDL2 doesn't offer such functionality...
-	//  Could be added to ds_extenstion
+	SDL_SetWindowOpacity(HWnd, InOpacity);
 }
 
 /**

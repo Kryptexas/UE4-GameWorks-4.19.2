@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SColorWheel.h"
 
 
 /* SColorWheel methods
@@ -37,11 +38,7 @@ FReply SColorWheel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPoint
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		FVector2D LocalMouseCoordinate = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition());
-		FVector2D Location = LocalMouseCoordinate / (MyGeometry.Size * 0.5f) - FVector2D(1.0f, 1.0f);
-		float Radius = Location.Size();
-	
-		if (Radius > 1.f)
+		if (!ProcessMouseAction(MyGeometry, MouseEvent, false))
 		{
 			return FReply::Unhandled();
 		}
@@ -79,21 +76,7 @@ FReply SColorWheel::OnMouseMove( const FGeometry& MyGeometry, const FPointerEven
 		return FReply::Unhandled();
 	}
 
-	FVector2D LocalMouseCoordinate = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	FVector2D Location = LocalMouseCoordinate / (MyGeometry.Size * 0.5f) - FVector2D(1.0f, 1.0f);
-	float Angle = FMath::Atan2(Location.Y, Location.X);
-	float Radius = FMath::Min(Location.Size(), 1.0f);
-	
-	if (Angle < 0.0f)
-	{
-		Angle += 2.0f * PI;
-	}
-
-	FLinearColor NewColor = SelectedColor.Get();
-	NewColor.R = Angle * 180.0f * INV_PI;
-	NewColor.G = Radius;
-
-	OnValueChanged.ExecuteIfBound(NewColor);
+	ProcessMouseAction(MyGeometry, MouseEvent, true);
 
 	return FReply::Handled();
 }
@@ -137,4 +120,30 @@ FVector2D SColorWheel::CalcRelativeSelectedPosition( ) const
 	float Radius = Saturation;
 
 	return FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)) * Radius + FVector2D(1.0f, 1.0f);
+}
+
+
+bool SColorWheel::ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bProcessWhenOutsideColorWheel)
+{
+	const FVector2D LocalMouseCoordinate = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const FVector2D Location = LocalMouseCoordinate / (MyGeometry.Size * 0.5f) - FVector2D(1.0f, 1.0f);
+	const float Radius = Location.Size();
+
+	if (Radius <= 1.0f || bProcessWhenOutsideColorWheel)
+	{
+		float Angle = FMath::Atan2(Location.Y, Location.X);
+
+		if (Angle < 0.0f)
+		{
+			Angle += 2.0f * PI;
+		}
+
+		FLinearColor NewColor = SelectedColor.Get();
+		NewColor.R = Angle * 180.0f * INV_PI;
+		NewColor.G = FMath::Min(Radius, 1.0f);
+
+		OnValueChanged.ExecuteIfBound(NewColor);
+	}
+
+	return (Radius <= 1.0f);
 }

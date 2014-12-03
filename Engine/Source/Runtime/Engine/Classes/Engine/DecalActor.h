@@ -18,23 +18,30 @@ class ADecalActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
 	/** The decal component for this decal actor */
-	UPROPERTY(Category=Decal, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Decal,Rendering|Components|Decal"))
-	TSubobjectPtr<class UDecalComponent> Decal;
+	DEPRECATED_FORGAME(4.6, "Decal should not be accessed directly, please use GetDecal() function instead. Decal will soon be private and your code will not compile.")
+	UPROPERTY(Category = Decal, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Decal,Rendering|Components|Decal", AllowPrivateAccess = "true"))
+	class UDecalComponent* Decal;
 
 #if WITH_EDITORONLY_DATA
 	/* Reference to the editor only arrow visualization component */
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
 
 	/* Reference to the billboard component */
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
 
 	/* Reference to the selected visualization box component */
+	DEPRECATED_FORGAME(4.6, "BoxComponent should not be accessed directly, please use GetBoxComponent() function instead. BoxComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<UBoxComponent> BoxComponent;
+	UBoxComponent* BoxComponent;
 #endif
+
+public:
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal", meta=(DeprecatedFunction))
@@ -56,6 +63,18 @@ class ADecalActor : public AActor
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 	// End AActor interface.
 #endif // WITH_EDITOR
+
+public:
+	/** Returns Decal subobject **/
+	ENGINE_API class UDecalComponent* GetDecal() const;
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	ENGINE_API class UArrowComponent* GetArrowComponent() const;
+	/** Returns SpriteComponent subobject **/
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
+	/** Returns BoxComponent subobject **/
+	ENGINE_API UBoxComponent* GetBoxComponent() const;
+#endif
 };
 
 

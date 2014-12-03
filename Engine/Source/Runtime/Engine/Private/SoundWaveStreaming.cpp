@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Sound/SoundWaveStreaming.h"
 
-USoundWaveStreaming::USoundWaveStreaming(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundWaveStreaming::USoundWaveStreaming(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bProcedural = true;
 

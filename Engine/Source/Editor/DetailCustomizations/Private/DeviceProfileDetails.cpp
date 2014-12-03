@@ -4,6 +4,7 @@
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "DeviceProfileDetails.h"
+#include "SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "DeviceProfileDetails"

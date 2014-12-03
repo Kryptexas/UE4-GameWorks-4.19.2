@@ -24,9 +24,6 @@ public:
 	/** Option to show grid */
 	TSharedPtr< FUICommandInfo > ToggleGrid;
 
-	/** Option to highlight the origin */
-	TSharedPtr< FUICommandInfo > HighlightOrigin;
-
 	/** Option to show floor */
 	TSharedPtr< FUICommandInfo > ToggleFloor;
 

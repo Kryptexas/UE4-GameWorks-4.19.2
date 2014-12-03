@@ -5,6 +5,7 @@
 #include "MultiBoxCustomization.h"
 #include "Json.h"
 #include "RemoteConfigIni.h"
+#include "UICommandDragDropOp.h"
 
 void SCustomToolbarPreviewWidget::Construct( const FArguments& InArgs )
 {

@@ -34,6 +34,12 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "SNumericEntryBox.h"
+#include "STextEntryPopup.h"
+#include "GenericCommands.h"
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
@@ -44,25 +50,30 @@ DEFINE_LOG_CATEGORY(LogCascade);
 
 void FCascade::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(NSLOCTEXT("Cascade", "WorkspaceMenu_Cascade", "Cascade"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( Cascade_PreviewViewportTab, FOnSpawnTab::CreateSP( this, &FCascade::SpawnTab, Cascade_PreviewViewportTab ) )
 		.SetDisplayName(NSLOCTEXT("Cascade", "SummonViewport", "Viewport"))
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
 
 	TabManager->RegisterTabSpawner( Cascade_EmmitterCanvasTab, FOnSpawnTab::CreateSP( this, &FCascade::SpawnTab, Cascade_EmmitterCanvasTab ) )
 		.SetDisplayName(NSLOCTEXT("Cascade", "SummonCanvas", "Emitters"))
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.Emitter"));
 
 	TabManager->RegisterTabSpawner( Cascade_PropertiesTab, FOnSpawnTab::CreateSP( this, &FCascade::SpawnTab, Cascade_PropertiesTab ) )
 		.SetDisplayName(NSLOCTEXT("Cascade", "SummonProperties", "Details"))
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
 
 	TabManager->RegisterTabSpawner( Cascade_CurveEditorTab, FOnSpawnTab::CreateSP( this, &FCascade::SpawnTab, Cascade_CurveEditorTab ) )
 		.SetDisplayName(NSLOCTEXT("Cascade", "SummonCurveEditor", "CurveEditor"))
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.CurveBase"));
 }
 
 void FCascade::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -1885,7 +1896,7 @@ void FCascade::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEven
 
 void FCascade::PreEditCurve(TArray<UObject*> CurvesAboutToChange)
 {
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 
 	//Need to keep text in-sync with PostEditCurve
 	BeginTransaction( NSLOCTEXT("UnrealEd", "EditCurve", "Edit Curve") );
@@ -5040,8 +5051,8 @@ void FCascade::CloseEntryPopup()
 /*-----------------------------------------------------------------------------
 	UCascadeParticleSystemComponent
 -----------------------------------------------------------------------------*/
-UCascadeParticleSystemComponent::UCascadeParticleSystemComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCascadeParticleSystemComponent::UCascadeParticleSystemComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5085,8 +5096,8 @@ void UCascadeParticleSystemComponent::UpdateLODInformation()
 	}
 }
 
-UCascadeConfiguration::UCascadeConfiguration(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCascadeConfiguration::UCascadeConfiguration(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5172,3 +5183,4 @@ void UCascadeConfiguration::CacheModuleRejections()
 		}
 	}
 }
+

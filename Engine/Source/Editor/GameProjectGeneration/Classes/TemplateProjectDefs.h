@@ -90,6 +90,12 @@ class UTemplateProjectDefs : public UObject
 	UPROPERTY(config)
 	FName Category;
 
+	UPROPERTY(config)
+	FString ClassTypes;
+
+	UPROPERTY(config)
+	FString AssetTypes;
+
 	/** Fixes up all strings in this definitions object to replace \%TEMPLATENAME\% with the supplied template name and \%PROJECTNAME\% with the supplied project name */
 	void FixupStrings(const FString& TemplateName, const FString& ProjectName);
 

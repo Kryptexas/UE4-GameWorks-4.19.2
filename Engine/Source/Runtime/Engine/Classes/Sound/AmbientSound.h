@@ -12,9 +12,12 @@ class AAmbientSound : public AActor
 	UPROPERTY()
 	uint32 bAutoPlay_DEPRECATED:1;
 
+private_subobject:
 	/** Audio component that handles sound playing */
-	UPROPERTY(Category=Sound, VisibleAnywhere, BlueprintReadOnly,meta=(ExposeFunctionCategories="Sound,Audio,Audio|Components|Audio"))
-	TSubobjectPtr<class UAudioComponent> AudioComponent;
+	DEPRECATED_FORGAME(4.6, "AudioComponent should not be accessed directly, please use GetAudioComponent() function instead. AudioComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Sound, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Sound,Audio,Audio|Components|Audio", AllowPrivateAccess = "true"))
+	class UAudioComponent* AudioComponent;
+public:
 	
 	UPROPERTY(instanced)
 	class UDEPRECATED_SoundNodeAmbient* SoundNodeInstance_DEPRECATED;
@@ -44,6 +47,10 @@ class AAmbientSound : public AActor
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
 	void Stop();
 	// END DEPRECATED
+
+public:
+	/** Returns AudioComponent subobject **/
+	ENGINE_API class UAudioComponent* GetAudioComponent() const;
 };
 
 

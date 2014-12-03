@@ -4,8 +4,8 @@
 #include "MovieSceneMarginSection.h"
 #include "MovieSceneMarginTrack.h"
 
-UMovieSceneMarginSection::UMovieSceneMarginSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneMarginSection::UMovieSceneMarginSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

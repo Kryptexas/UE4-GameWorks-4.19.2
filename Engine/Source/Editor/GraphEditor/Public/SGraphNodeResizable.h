@@ -73,6 +73,9 @@ protected:
 	/** The original size of the node while resizing */
 	FVector2D StoredUserSize;
 
+	/** The resize transaction */
+	TSharedPtr<FScopedTransaction> ResizeTransactionPtr;
+
 	/** Anchor point used to correct node position on resizing the node*/
 	FVector2D NodeAnchorPoint;
 

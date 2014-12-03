@@ -1,15 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*===============================================================================================
-	ManifestTest.cpp: Unit test for the FInternationalizationManifest class
-=================================================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 #include "Internationalization/InternationalizationManifest.h"
 #include "Internationalization/InternationalizationMetadata.h"
-
-
 
 
 // Helper function to count the number of entries in a manifest
@@ -19,6 +13,7 @@ int32 CountManifestEntries( const FInternationalizationManifest& Manifest )
 	for( auto Iter = Manifest.GetEntriesByContextIdIterator(); Iter; ++Iter, ++EntryCounter );
 	return EntryCounter;
 }
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLocContextTest, "Core.Misc.Internationalization Context", EAutomationTestFlags::ATF_SmokeTest)
 
@@ -204,6 +199,7 @@ bool FLocContextTest::RunTest( const FString& Parameters )
 	return true;
 }
 
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLocItemTest, "Core.Misc.Internationalization LocItem", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FLocItemTest::RunTest( const FString& Parameters )
@@ -356,7 +352,6 @@ bool FLocItemTest::RunTest( const FString& Parameters )
 	}
 	return true;
 }
-
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FManifestTest, "Core.Misc.Internationalization Manifest", EAutomationTestFlags::ATF_SmokeTest)
@@ -601,7 +596,6 @@ bool FManifestTest::RunTest( const FString& Parameters )
 
 		}
 
-
 		// Adding entries with Source that is NOT an exact match and different context
 		{
 			// Source mismatched by Source Text.
@@ -787,7 +781,6 @@ bool FManifestTest::RunTest( const FString& Parameters )
 			}
 
 		}
-
 
 		// Adding an entry that only differs in the optional flag 
 		{

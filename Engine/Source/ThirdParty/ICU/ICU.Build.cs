@@ -28,7 +28,6 @@ public class ICU : ModuleRules
             case TargetRules.TargetType.Game:
             case TargetRules.TargetType.Client:
             case TargetRules.TargetType.Server:
-            case TargetRules.TargetType.RocketGame:
                 ICULinkType = EICULinkType.Static;
                 break;
             case TargetRules.TargetType.Editor:
@@ -41,8 +40,14 @@ public class ICU : ModuleRules
         }
 
         string TargetSpecificPath = ICURootPath + PlatformFolderName + "/";
+        if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
+        {
+            TargetSpecificPath = ICURootPath + "Win32/";
+        }
+
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
-			(Target.Platform == UnrealTargetPlatform.Win32))
+			(Target.Platform == UnrealTargetPlatform.Win32) || 
+            (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
 			string VSVersionFolderName = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 			TargetSpecificPath += VSVersionFolderName + "/";
@@ -202,6 +207,27 @@ public class ICU : ModuleRules
                     break;
             }
         }
+        else if (Target.Platform == UnrealTargetPlatform.HTML5)
+        {
+            // we don't bother with debug libraries on HTML5. Mainly because debugging isn't viable on html5 currently
+            string StaticLibraryExtension = "bc";
+
+            string[] LibraryNameStems =
+			{
+				"data", // Data
+				"uc",   // Unicode Common
+				"i18n", // Internationalization
+				"le",   // Layout Engine
+				"lx",   // Layout Extensions
+				"io"	// Input/Output
+			};
+
+            foreach (string Stem in LibraryNameStems)
+            {
+                string LibraryName = "libicu" + Stem + "." + StaticLibraryExtension;
+                PublicAdditionalLibraries.Add(TargetSpecificPath + LibraryName);
+            }
+        }
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			string LibraryNamePrefix = "sicu";
@@ -224,12 +250,6 @@ public class ICU : ModuleRules
 			}
 		}
 
-
-		if (Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			PublicAdditionalLibraries.Add("dl");
-		}
-
 		// common defines
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
             (Target.Platform == UnrealTargetPlatform.Win32) ||
@@ -237,7 +257,8 @@ public class ICU : ModuleRules
             (Target.Platform == UnrealTargetPlatform.Android) ||
             (Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.IOS) ||
-			(Target.Platform == UnrealTargetPlatform.PS4))
+			(Target.Platform == UnrealTargetPlatform.PS4) ||
+            (Target.Platform == UnrealTargetPlatform.HTML5))
 		{
 			// Definitions
 			Definitions.Add("U_USING_ICU_NAMESPACE=0"); // Disables a using declaration for namespace "icu".

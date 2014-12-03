@@ -14,7 +14,7 @@
  */
 
 UCLASS(HideCategories=(Condition))
-class UBTDecorator_ForceSuccess : public UBTDecorator
+class AIMODULE_API UBTDecorator_ForceSuccess : public UBTDecorator
 {
 	GENERATED_UCLASS_BODY()
 

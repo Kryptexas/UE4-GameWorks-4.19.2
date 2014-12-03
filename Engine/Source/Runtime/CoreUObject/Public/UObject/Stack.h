@@ -171,7 +171,7 @@ public:
 inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFrame* InPreviousFrame, UField* InPropertyChainForCompiledIn )
 	: Node(InNode)
 	, Object(InObject)
-	, Code(InNode->Script.GetTypedData())
+	, Code(InNode->Script.GetData())
 	, Locals((uint8*)InLocals)
 	, MostRecentProperty(NULL)
 	, MostRecentPropertyAddress(NULL)
@@ -279,26 +279,17 @@ inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NUL
 
 	if ( Field != NULL )
 	{
-		UProperty* Property = Cast<UProperty>(Field);
-		if ( Property != NULL )
+		if (UProperty* Property = dynamic_cast<UProperty*>(Field))
 		{
 			Result = Property->GetSize();
 		}
-		else
+		else if (UEnum* ExplicitEnumValue = dynamic_cast<UEnum*>(Field))
 		{
-			UEnum* ExplicitEnumValue = Cast<UEnum>(Field);
-			if ( ExplicitEnumValue != NULL )
-			{
-				Result = 1;
-			}
-			else
-			{
-				UFunction* FunctionRef = Cast<UFunction>(Field);
-				if ( FunctionRef != NULL )
-				{
-					Result = sizeof(ScriptPointerType);
-				}
-			}
+			Result = 1;
+		}
+		else if (UFunction* FunctionRef = dynamic_cast<UFunction*>(Field))
+		{
+			Result = sizeof(ScriptPointerType);
 		}
 	}
 	else
@@ -364,7 +355,7 @@ inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NUL
 
 	if ( ExpressionField != NULL )
 	{
-		*ExpressionField = Cast<UField>(Field);
+		*ExpressionField = dynamic_cast<UField*>(Field);
 	}
 
 	return Result;
@@ -397,7 +388,7 @@ FORCEINLINE_DEBUGGABLE void FFrame::StepCompiledIn(void*const Result)
 	}
 	else
 	{
-		checkSlow(Cast<TProperty>(PropertyChainForCompiledIn) && Cast<UProperty>(PropertyChainForCompiledIn));
+		checkSlow(dynamic_cast<TProperty*>(PropertyChainForCompiledIn) && dynamic_cast<UProperty*>(PropertyChainForCompiledIn));
 		TProperty* Property = (TProperty*)PropertyChainForCompiledIn;
 		PropertyChainForCompiledIn = Property->Next;
 		StepExplicitProperty(Result, Property);
@@ -415,7 +406,7 @@ FORCEINLINE_DEBUGGABLE TNativeType& FFrame::StepCompiledInRef(void*const Tempora
 	}
 	else
 	{
-		checkSlow(Cast<TProperty>(PropertyChainForCompiledIn) && Cast<UProperty>(PropertyChainForCompiledIn));
+		checkSlow(dynamic_cast<TProperty*>(PropertyChainForCompiledIn) && dynamic_cast<UProperty*>(PropertyChainForCompiledIn));
 		TProperty* Property = (TProperty*)PropertyChainForCompiledIn;
 		PropertyChainForCompiledIn = Property->Next;
 		StepExplicitProperty(TemporaryBuffer, Property);

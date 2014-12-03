@@ -2,10 +2,10 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
-AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, TimesUpResult(EFunctionalTestResult::Failed)
 	, TimeLimit(DefaultTimeLimit)
 	, TimesUpMessage( NSLOCTEXT("FunctionalTest", "DefaultTimesUpMessage", "Time's up!") )
@@ -16,7 +16,7 @@ AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
-	SpriteComponent = PCIP.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		SpriteComponent->bHiddenInGame = false;
@@ -106,7 +106,7 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 
 	OnTestFinished.Broadcast();
 
-	AActor** ActorToDestroy = AutoDestroyActors.GetTypedData();
+	AActor** ActorToDestroy = AutoDestroyActors.GetData();
 
 	for (int32 ActorIndex = 0; ActorIndex < AutoDestroyActors.Num(); ++ActorIndex, ++ActorToDestroy)
 	{
@@ -255,3 +255,6 @@ void AFunctionalTest::GoToObservationPoint()
 		}
 	}
 }
+
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AFunctionalTest::GetSpriteComponent() { return SpriteComponent; }

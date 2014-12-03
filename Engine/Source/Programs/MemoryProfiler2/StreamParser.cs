@@ -81,7 +81,7 @@ namespace MemoryProfiler2
 			}
 
             // Keep track of the current data file for multi-part recordings
-            int NextDataFile = 1;
+            UInt64 NextDataFile = 1;
 
 			// Initialize shared information across snapshots, namely names, callstacks and addresses.
 			FStreamInfo.GlobalInstance.Initialize( Header );
@@ -90,23 +90,23 @@ namespace MemoryProfiler2
 			long TokenStreamOffset = ParserFileStream.Position;
 
 			// Seek to name table and serialize it.
-			ParserFileStream.Seek(Header.NameTableOffset,SeekOrigin.Begin);
-			for(int NameIndex = 0;NameIndex < Header.NameTableEntries;NameIndex++)
+			ParserFileStream.Seek((Int64)Header.NameTableOffset,SeekOrigin.Begin);
+			for(UInt64 NameIndex = 0;NameIndex < Header.NameTableEntries;NameIndex++)
 			{
 				FStreamInfo.GlobalInstance.NameArray.Add( ReadString( BinaryStream ) );
 			}
 
 			// Seek to callstack address array and serialize it.                
-			ParserFileStream.Seek(Header.CallStackAddressTableOffset,SeekOrigin.Begin);
-			for(int AddressIndex = 0;AddressIndex < Header.CallStackAddressTableEntries;AddressIndex++)
+			ParserFileStream.Seek( (Int64)Header.CallStackAddressTableOffset, SeekOrigin.Begin );
+			for(UInt64 AddressIndex = 0;AddressIndex < Header.CallStackAddressTableEntries;AddressIndex++)
 			{
                 FStreamInfo.GlobalInstance.CallStackAddressArray.Add(new FCallStackAddress(BinaryStream, Header.bShouldSerializeSymbolInfo));
 			}
 
 			// Seek to callstack array and serialize it.
-			ParserFileStream.Seek(Header.CallStackTableOffset,SeekOrigin.Begin);
+			ParserFileStream.Seek( (Int64)Header.CallStackTableOffset, SeekOrigin.Begin );
 
-			for(int CallStackIndex = 0;CallStackIndex < Header.CallStackTableEntries;CallStackIndex++)
+			for(UInt64 CallStackIndex = 0;CallStackIndex < Header.CallStackTableEntries;CallStackIndex++)
 			{
                 FStreamInfo.GlobalInstance.CallStackArray.Add(new FCallStack(BinaryStream));
 			}
@@ -271,12 +271,12 @@ namespace MemoryProfiler2
             int SnapshotIndex = 0;
 
             // Figure out the progress scale
-            long StartOfMetadata = Math.Min(Header.NameTableOffset, Header.CallStackAddressTableOffset);
+            UInt64 StartOfMetadata = Math.Min(Header.NameTableOffset, Header.CallStackAddressTableOffset);
             StartOfMetadata = Math.Min(StartOfMetadata, Header.CallStackTableOffset);
             StartOfMetadata = Math.Min(StartOfMetadata, Header.ModulesOffset);
 
-            long ProgressInterval = (StartOfMetadata - TokenStreamOffset) / 100;
-            double ProgressScaleFactor = 100.0f / (StartOfMetadata - TokenStreamOffset);
+            long ProgressInterval = ((Int64)StartOfMetadata - TokenStreamOffset) / 100;
+			double ProgressScaleFactor = 100.0f / ( (Int64)StartOfMetadata - TokenStreamOffset );
             long NextProgressUpdate = TokenStreamOffset;
 
 			// Parse tokens till we reach the end of the stream.
@@ -490,7 +490,7 @@ namespace MemoryProfiler2
 								{
 									// Switch to the next file in the chain
 									ParserFileStream.Close();
-									BinaryStream = SwitchStreams( NextDataFile, FStreamInfo.GlobalInstance.FileName, bIsBigEndian, out ParserFileStream );
+									BinaryStream = SwitchStreams( (int)NextDataFile, FStreamInfo.GlobalInstance.FileName, bIsBigEndian, out ParserFileStream );
 
 									// Update variables used for reporting progress
 									TokenStreamOffset = 0;
@@ -902,8 +902,8 @@ namespace MemoryProfiler2
                 {
 					if( Header.ModuleEntries > 0 )
 					{
-						BinaryStream.BaseStream.Seek( Header.ModulesOffset, SeekOrigin.Begin );
-						FStreamInfo.GlobalInstance.ConsoleSymbolParser.ReadModuleInfo( BinaryStream, Header.ModuleEntries );
+						BinaryStream.BaseStream.Seek( (Int64)Header.ModulesOffset, SeekOrigin.Begin );
+						FStreamInfo.GlobalInstance.ConsoleSymbolParser.ReadModuleInfo( BinaryStream, (uint)Header.ModuleEntries );
 					}
 
                     string CurrentPath = MainMProfWindow.CurrentFilename.Substring(0, LastPathSeparator);

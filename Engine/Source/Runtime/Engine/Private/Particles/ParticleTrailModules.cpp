@@ -12,8 +12,8 @@
 #include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleTrailBase::UParticleModuleTrailBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTrailBase::UParticleModuleTrailBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = false;
@@ -27,8 +27,8 @@ UParticleModuleTrailBase::UParticleModuleTrailBase(const class FPostConstructIni
 	UParticleModuleTrailSource implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleTrailSource::UParticleModuleTrailSource(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTrailSource::UParticleModuleTrailSource(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -172,8 +172,8 @@ bool UParticleModuleTrailSource::ResolveSourceOffset(int32 InTrailIdx, FParticle
 /*-----------------------------------------------------------------------------
 	UParticleModuleTypeDataRibbon implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleTypeDataRibbon::UParticleModuleTypeDataRibbon(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTypeDataRibbon::UParticleModuleTypeDataRibbon(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxTessellationBetweenParticles = 25;
 	SheetsPerTrail = 1;
@@ -246,8 +246,8 @@ FParticleEmitterInstance* UParticleModuleTypeDataRibbon::CreateInstance(UParticl
 /*-----------------------------------------------------------------------------
 	UParticleModuleTypeDataAnimTrail implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleTypeDataAnimTrail::UParticleModuleTypeDataAnimTrail(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTypeDataAnimTrail::UParticleModuleTypeDataAnimTrail(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bDeadTrailsOnDeactivate = true;
 	bEnablePreviousTangentRecalculation = true;

@@ -12,5 +12,5 @@ class ACableActor : public AActor
 
 	/** Cable component that performs simulation and rendering */
 	UPROPERTY(Category=Cable, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCableComponent> CableComponent;
+	class UCableComponent* CableComponent;
 };

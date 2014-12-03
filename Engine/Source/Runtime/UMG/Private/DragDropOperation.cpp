@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UDragDropOperation
 
-UDragDropOperation::UDragDropOperation(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDragDropOperation::UDragDropOperation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -216,7 +216,7 @@ private:
 		return StaticCastSharedPtr<SWidget>(EditableText)->SupportsKeyboardFocus();
 	}
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
 	{
 		FReply Reply = FReply::Handled();
 
@@ -231,22 +231,22 @@ private:
 			FocusWidget = EditableText;
 		}
 
-		if ( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared )
+		if ( InFocusEvent.GetCause() != EFocusCause::Cleared )
 		{
 			// Forward keyboard focus to our chosen widget
-			Reply.SetKeyboardFocus( FocusWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+			Reply.SetUserFocus(FocusWidget.ToSharedRef(), InFocusEvent.GetCause());
 		}
 
 		return Reply;
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		FKey Key = InKeyboardEvent.GetKey();
+		FKey Key = InKeyEvent.GetKey();
 
 		if( Key == EKeys::Escape && EditableText->HasKeyboardFocus() )
 		{
-			return FReply::Handled().SetKeyboardFocus( SharedThis( this ), EKeyboardFocusCause::Cleared );
+			return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Cleared);
 		}
 
 		return FReply::Unhandled();

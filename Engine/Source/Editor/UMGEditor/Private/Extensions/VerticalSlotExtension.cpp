@@ -1,7 +1,11 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Extensions/VerticalSlotExtension.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -72,12 +76,10 @@ FReply FVerticalSlotExtension::HandleShiftVertical(int32 ShiftAmount)
 
 void FVerticalSlotExtension::ShiftVertical(UWidget* Widget, int32 ShiftAmount)
 {
-	UVerticalBoxSlot* Slot = CastChecked<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBox* Parent = CastChecked<UVerticalBox>(Slot->Parent);
+	UVerticalBox* Parent = CastChecked<UVerticalBox>(Widget->GetParent());
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
-	Parent->Slots.RemoveAt(CurrentIndex);
-	Parent->Slots.Insert(Slot, FMath::Clamp(CurrentIndex + ShiftAmount, 0, Parent->GetChildrenCount()));
+	Parent->ShiftChild(CurrentIndex + ShiftAmount, Widget);
 }
 
 #undef LOCTEXT_NAMESPACE

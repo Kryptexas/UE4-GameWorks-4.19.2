@@ -47,7 +47,7 @@ class UInterpGroupInst : public UObject
 	/**  
 	 * Return whether this group contains this Actor.
 	 */
-	virtual bool HasActor(const AActor * InActor) const
+	virtual bool HasActor(const AActor* InActor) const
 	{
 		return (GetGroupActor() == InActor);
 	};

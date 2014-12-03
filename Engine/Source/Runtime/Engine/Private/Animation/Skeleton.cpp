@@ -27,7 +27,8 @@ const FName USkeleton::RigTag = FName(TEXT("Rig"));
 // Names of smartname containers for skeleton properties
 const FName USkeleton::AnimCurveMappingName = FName(TEXT("AnimationCurves"));
 
-const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
+const FName FAnimSlotGroup::DefaultGroupName = FName(TEXT("DefaultGroup"));
+const FName FAnimSlotGroup::DefaultSlotName = FName(TEXT("DefaultSlot"));
 
 FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 {
@@ -43,17 +44,11 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 	return Ar;
 }
 
-USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeleton::USkeleton(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Make sure we have somewhere for curve names.
 	SmartNames.AddContainer(AnimCurveMappingName);
-
-#if WITH_EDITORONLY_DATA
-	SlotGroupNames.Empty();
-	SlotGroupNames.Add(DefaultSlotGroupName);
-
-#endif
 }
 
 void USkeleton::PostInitProperties()
@@ -77,6 +72,9 @@ void USkeleton::PostLoad()
 		// Convert RefLocalPoses & BoneTree to FReferenceSkeleton
 		ConvertToFReferenceSkeleton();
 	}
+
+	// Build look up table between Slot nodes and their Group.
+	BuildSlotToGroupMap();
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
@@ -175,9 +173,9 @@ void USkeleton::ConvertToFReferenceSkeleton()
 
 	for(int32 BoneIndex=0; BoneIndex<NumRefBones; BoneIndex++)
 	{
-		const FBoneNode & BoneNode = BoneTree[BoneIndex];
+		const FBoneNode& BoneNode = BoneTree[BoneIndex];
 		FMeshBoneInfo BoneInfo(BoneNode.Name_DEPRECATED, BoneNode.Name_DEPRECATED.ToString(), BoneNode.ParentIndex_DEPRECATED);
-		const FTransform & BoneTransform = RefLocalPoses_DEPRECATED[BoneIndex];
+		const FTransform& BoneTransform = RefLocalPoses_DEPRECATED[BoneIndex];
 
 		// All should be good. Parents before children, no duplicate bones?
 		ReferenceSkeleton.Add(BoneInfo, BoneTransform);
@@ -191,8 +189,8 @@ void USkeleton::ConvertToFReferenceSkeleton()
 
 bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, USkeletalMesh * InSkelMesh) const
 {
-	const FReferenceSkeleton & SkeletonRefSkel = ReferenceSkeleton;
-	const FReferenceSkeleton & MeshRefSkel = InSkelMesh->RefSkeleton;
+	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
+	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
 
 	// if start is root bone
 	if ( StartBoneIndex == 0 )
@@ -239,8 +237,8 @@ bool USkeleton::IsCompatibleMesh(USkeletalMesh* InSkelMesh) const
 	// at least % of bone should match 
 	int32 NumOfBoneMatches = 0;
 
-	const FReferenceSkeleton & SkeletonRefSkel = ReferenceSkeleton;
-	const FReferenceSkeleton & MeshRefSkel = InSkelMesh->RefSkeleton;
+	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
+	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
 	const int32 NumBones = MeshRefSkel.GetNum();
 
 	// first ensure the parent exists for each bone
@@ -317,6 +315,10 @@ FString USkeleton::GetRetargetingModeString(const EBoneTranslationRetargetingMod
 		ModeNameText = LOCTEXT( "BoneRetargetingMode", "AnimationScaled" );
 		break;
 
+	case EBoneTranslationRetargetingMode::AnimationRelative:
+		ModeNameText = LOCTEXT("BoneRetargetingModeAnimationRelative", "AnimationRelative");
+		break;
+
 	default:
 		// Unknown mode
 		check( 0 );
@@ -333,7 +335,7 @@ void USkeleton::ClearCacheData()
 }
 
 
-int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh * InSkelMesh)
+int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 {
 	const int32* IndexPtr = SkelMesh2LinkupCache.Find(InSkelMesh);
 	int32 LinkupIndex = INDEX_NONE;
@@ -354,10 +356,10 @@ int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh * InSkelMesh)
 }
 
 
-int32 USkeleton::BuildLinkup(const USkeletalMesh * InSkelMesh)
+int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 {
-	const FReferenceSkeleton & SkeletonRefSkel = ReferenceSkeleton;
-	const FReferenceSkeleton & MeshRefSkel = InSkelMesh->RefSkeleton;
+	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
+	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
 
 	// @todoanim : need to refresh NULL SkeletalMeshes from Cache
 	// since now they're autoweak pointer, they will go away if not used
@@ -395,7 +397,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh * InSkelMesh)
 }
 
 
-void USkeleton::RebuildLinkup(const USkeletalMesh * InSkelMesh)
+void USkeleton::RebuildLinkup(const USkeletalMesh* InSkelMesh)
 {
 	// remove the key
 	SkelMesh2LinkupCache.Remove(InSkelMesh);
@@ -403,7 +405,7 @@ void USkeleton::RebuildLinkup(const USkeletalMesh * InSkelMesh)
 	BuildLinkup(InSkelMesh);
 }
 
-void USkeleton::UpdateReferencePoseFromMesh(const USkeletalMesh * InSkelMesh)
+void USkeleton::UpdateReferencePoseFromMesh(const USkeletalMesh* InSkelMesh)
 {
 	check (InSkelMesh);
 
@@ -457,7 +459,7 @@ bool USkeleton::MergeAllBonesToBoneTree(USkeletalMesh * InSkelMesh)
 	return false;
 }
 
-bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh * InSkeletalMesh, const TArray<int32> & RequiredRefBones)
+bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalMesh, const TArray<int32> & RequiredRefBones)
 {
 	// Filter list, we only want bones that have their parents present in this array.
 	TArray<int32> FilteredRequiredBones; 
@@ -472,7 +474,7 @@ bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh * InSkeletal
 
 		for (int32 Index=0; Index<FilteredRequiredBones.Num(); Index++)
 		{
-			const int32 & BoneIndex = FilteredRequiredBones[Index];
+			const int32& BoneIndex = FilteredRequiredBones[Index];
 
 			FMeshBoneInfo NewMeshBoneInfo = InSkeletalMesh->RefSkeleton.GetRefBoneInfo()[BoneIndex];
 			// Fix up ParentIndex for our new Skeleton.
@@ -517,8 +519,8 @@ bool USkeleton::MergeBonesToBoneTree(USkeletalMesh * InSkeletalMesh, const TArra
 
 			for (int32 Index=0; Index<FilteredRequiredBones.Num(); Index++)
 			{
-				const int32 & MeshBoneIndex = FilteredRequiredBones[Index];
-				const int32 & SkeletonBoneIndex = ReferenceSkeleton.FindBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(MeshBoneIndex));
+				const int32& MeshBoneIndex = FilteredRequiredBones[Index];
+				const int32& SkeletonBoneIndex = ReferenceSkeleton.FindBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(MeshBoneIndex));
 				
 				// Bone doesn't already exist. Add it.
 				if( SkeletonBoneIndex == INDEX_NONE )
@@ -559,7 +561,7 @@ bool USkeleton::MergeBonesToBoneTree(USkeletalMesh * InSkeletalMesh, const TArra
 	return bSuccess;
 }
 
-void USkeleton::SetBoneTranslationRetargetingMode(const int32 & BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo)
+void USkeleton::SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo)
 {
 	BoneTree[BoneIndex].TranslationRetargetingMode = NewRetargetingMode;
 
@@ -577,13 +579,13 @@ void USkeleton::SetBoneTranslationRetargetingMode(const int32 & BoneIndex, EBone
 	}
 }
 
-int32 USkeleton::GetAnimationTrackIndex(const int32 & InSkeletonBoneIndex, const UAnimSequence * InAnimSeq)
+int32 USkeleton::GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq)
 {
 	if( InSkeletonBoneIndex != INDEX_NONE )
 	{
 		for (int32 TrackIndex=0; TrackIndex<InAnimSeq->TrackToSkeletonMapTable.Num(); ++TrackIndex)
 		{
-			const FTrackToSkeletonMap & TrackToSkeleton = InAnimSeq->TrackToSkeletonMapTable[TrackIndex];
+			const FTrackToSkeletonMap& TrackToSkeleton = InAnimSeq->TrackToSkeletonMapTable[TrackIndex];
 			if( TrackToSkeleton.BoneTreeIndex == InSkeletonBoneIndex )
 			{
 				return TrackIndex;
@@ -595,21 +597,21 @@ int32 USkeleton::GetAnimationTrackIndex(const int32 & InSkeletonBoneIndex, const
 }
 
 
-int32 USkeleton::GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh * InSkelMesh, const int32 & MeshBoneIndex)
+int32 USkeleton::GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32& MeshBoneIndex)
 {
 	check(MeshBoneIndex != INDEX_NONE);
 	const int32 LinkupCacheIdx = GetMeshLinkupIndex(InSkelMesh);
-	const FSkeletonToMeshLinkup & LinkupTable = LinkupCache[LinkupCacheIdx];
+	const FSkeletonToMeshLinkup& LinkupTable = LinkupCache[LinkupCacheIdx];
 
 	return LinkupTable.MeshToSkeletonTable[MeshBoneIndex];
 }
 
 
-int32 USkeleton::GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh * InSkelMesh, const int32 & SkeletonBoneIndex)
+int32 USkeleton::GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32& SkeletonBoneIndex)
 {
 	check(SkeletonBoneIndex != INDEX_NONE);
 	const int32 LinkupCacheIdx = GetMeshLinkupIndex(InSkelMesh);
-	const FSkeletonToMeshLinkup & LinkupTable = LinkupCache[LinkupCacheIdx];
+	const FSkeletonToMeshLinkup& LinkupTable = LinkupCache[LinkupCacheIdx];
 
 	return LinkupTable.SkeletonToMeshTable[SkeletonBoneIndex];
 }
@@ -694,10 +696,10 @@ void USkeleton::CollectAnimationNotifies()
 	for (auto Iter = AssetList.CreateConstIterator(); Iter; ++Iter)
 	{
 		const FAssetData& Asset = *Iter;
-		const FString * SkeletonValue = Asset.TagsAndValues.Find(TEXT("Skeleton"));
+		const FString* SkeletonValue = Asset.TagsAndValues.Find(TEXT("Skeleton"));
 		if (SkeletonValue && *SkeletonValue == CurrentSkeletonName)
 		{
-			if (const FString * Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
+			if (const FString* Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
 			{
 				TArray<FString> NotifyList;
 				Value->ParseIntoArray(&NotifyList, &AnimNotifyTagDelimiter, true);
@@ -761,6 +763,24 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 USkeletalMesh* USkeleton::GetPreviewMesh() const
 {
 	return PreviewSkeletalMesh.Get();
+}
+
+USkeletalMesh* USkeleton::GetAssetPreviewMesh(UAnimationAsset* AnimAsset) 
+{
+	USkeletalMesh * PreviewMesh = NULL;
+	// return asset preview asset
+	// if nothing is assigned, return skeleton asset
+	if (AnimAsset)
+	{
+		PreviewMesh = AnimAsset->GetPreviewMesh();
+	}
+
+	if (!PreviewMesh)
+	{
+		PreviewMesh = GetPreviewMesh(false);
+	}
+
+	return PreviewMesh;
 }
 
 void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=true*/)
@@ -881,56 +901,12 @@ void USkeleton::RegisterOnSkeletonHierarchyChanged(const FOnSkeletonHierarchyCha
 	OnSkeletonHierarchyChanged.Add(Delegate);
 }
 
-void USkeleton::UnregisterOnSkeletonHierarchyChanged(void * Unregister)
+void USkeleton::UnregisterOnSkeletonHierarchyChanged(void* Unregister)
 {
 	OnSkeletonHierarchyChanged.RemoveAll(Unregister);
 }
 
 #endif
-
-void USkeleton::AddSlotNodeName(FName SlotNodeName)
-{
-	SlotNodeNames.AddUnique(SlotNodeName);
-}
-
-void USkeleton::RemoveSlotNodeName(FName SlotNodeName)
-{
-	SlotNodeNames.Remove(SlotNodeName);
-}
-
-bool USkeleton::DoesHaveSlotNodeName(FName SlotNodeName) const
-{
-	return SlotNodeNames.Contains(SlotNodeName);
-}
-
-const TArray<FName> & USkeleton::GetSlotNodeNames() const
-{
-	return SlotNodeNames;
-}
-
-void USkeleton::AddSlotGroupName(FName GroupName)
-{
-	SlotGroupNames.AddUnique(GroupName);
-}
-
-void USkeleton::RemoveSlotGroupName(FName GroupName)
-{
-	// we can't delete the deafult one
-	if (GroupName != DefaultSlotGroupName)
-	{
-		SlotGroupNames.Remove(GroupName);
-	}
-}
-
-const TArray<FName> & USkeleton::GetSlotGroupNames() const
-{
-	return SlotGroupNames;
-}
-
-bool USkeleton::DoesHaveSlotGroupName(FName GroupName) const
-{
-	return SlotGroupNames.Contains(GroupName);
-}
 
 bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
 {
@@ -979,6 +955,111 @@ void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping:
 
 #endif // WITH_EDITORONLY_DATA
 
+const TArray<FAnimSlotGroup>& USkeleton::GetSlotGroups() const
+{
+	return SlotGroups;
+}
+
+void USkeleton::BuildSlotToGroupMap()
+{
+	SlotToGroupNameMap.Empty();
+
+	for (auto SlotGroup : SlotGroups)
+	{
+		for (auto SlotName : SlotGroup.SlotNames)
+		{
+			SlotToGroupNameMap.Add(SlotName, SlotGroup.GroupName);
+		}
+	}
+}
+
+FAnimSlotGroup* USkeleton::FindAnimSlotGroup(const FName& InGroupName)
+{
+	for (int32 GroupIndex = 0; GroupIndex < SlotGroups.Num(); GroupIndex++)
+	{
+		FAnimSlotGroup& SlotGroup = SlotGroups[GroupIndex];
+		if (SlotGroup.GroupName == InGroupName)
+		{
+			return &SlotGroup;
+		}
+	}
+	return NULL;
+}
+
+bool USkeleton::ContainsSlotName(const FName& InSlotName) 
+{
+	return SlotToGroupNameMap.Contains(InSlotName);
+}
+
+void USkeleton::RegisterSlotNode(const FName& InSlotName)
+{
+	// verify the slot name exists, if not create it in the default group.
+	if (!ContainsSlotName(InSlotName))
+	{
+		SetSlotGroupName(InSlotName, FAnimSlotGroup::DefaultGroupName);
+	}
+}
+
+void USkeleton::SetSlotGroupName(const FName& InSlotName, const FName& InGroupName)
+{
+// See if Slot already exists and belongs to a group.
+	const FName* FoundGroupNamePtr = SlotToGroupNameMap.Find(InSlotName);
+
+	// If slot exists, but is not in the right group, remove it from there
+	if (FoundGroupNamePtr && ((*FoundGroupNamePtr) != InGroupName))
+	{
+		FAnimSlotGroup* OldSlotGroupPtr = FindAnimSlotGroup(*FoundGroupNamePtr);
+		if (OldSlotGroupPtr)
+		{
+			OldSlotGroupPtr->SlotNames.RemoveSingleSwap(InSlotName);
+		}
+	}
+
+	// Add the slot to the right group if it's not
+	if ((FoundGroupNamePtr == NULL) || (*FoundGroupNamePtr != InGroupName))
+	{
+		// If the SlotGroup does not exist, create it.
+		FAnimSlotGroup* SlotGroupPtr = FindAnimSlotGroup(InGroupName);
+		if (SlotGroupPtr == NULL)
+		{
+			SlotGroups.AddZeroed(1);
+			SlotGroupPtr = &SlotGroups.Last();
+			SlotGroupPtr->GroupName = InGroupName;
+		}
+		// Add Slot to group.
+		SlotGroupPtr->SlotNames.Add(InSlotName);
+		// Keep our TMap up to date.
+		SlotToGroupNameMap.Add(InSlotName, InGroupName);
+	}
+}
+
+bool USkeleton::AddSlotGroupName(const FName& InNewGroupName)
+{
+	FAnimSlotGroup* ExistingSlotGroupPtr = FindAnimSlotGroup(InNewGroupName);
+	if (ExistingSlotGroupPtr == NULL)
+	{
+		// if not found, create a new one.
+		SlotGroups.AddZeroed(1);
+		ExistingSlotGroupPtr = &SlotGroups.Last();
+		ExistingSlotGroupPtr->GroupName = InNewGroupName;
+		return true;
+	}
+
+	return false;
+}
+
+FName USkeleton::GetSlotGroupName(const FName& InSlotName) const
+{
+	const FName* FoundGroupNamePtr = SlotToGroupNameMap.Find(InSlotName);
+	if (FoundGroupNamePtr)
+	{
+		return *FoundGroupNamePtr;
+	}
+
+	// If Group name cannot be found, use DefaultSlotGroupName.
+	return FAnimSlotGroup::DefaultGroupName;
+}
+
 void USkeleton::RegenerateGuid()
 {
 	Guid = FGuid::NewGuid();
@@ -995,7 +1076,7 @@ void USkeleton::SetRigConfig(URig * Rig)
 
 		if (Rig)
 		{
-			const FReferenceSkeleton & RefSkeleton = GetReferenceSkeleton();
+			const FReferenceSkeleton& RefSkeleton = GetReferenceSkeleton();
 			const TArray<FNode> & Nodes = Rig->GetNodes();
 			// now add bone mapping table
 			for (auto Node: Nodes)
@@ -1014,7 +1095,7 @@ void USkeleton::SetRigConfig(URig * Rig)
 	}
 }
 
-int32 USkeleton::FindRigBoneMapping(const FName & NodeName) const
+int32 USkeleton::FindRigBoneMapping(const FName& NodeName) const
 {
 	int32 Index=0;
 	for(const auto & NameMap : RigConfig.BoneMappingTable)
@@ -1030,7 +1111,7 @@ int32 USkeleton::FindRigBoneMapping(const FName & NodeName) const
 	return INDEX_NONE;
 }
 
-FName USkeleton::GetRigBoneMapping(const FName & NodeName) const
+FName USkeleton::GetRigBoneMapping(const FName& NodeName) const
 {
 	int32 Index = FindRigBoneMapping(NodeName);
 
@@ -1042,7 +1123,7 @@ FName USkeleton::GetRigBoneMapping(const FName & NodeName) const
 	return NAME_None;
 }
 
-FName USkeleton::GetRigNodeNameFromBoneName(const FName & BoneName) const
+FName USkeleton::GetRigNodeNameFromBoneName(const FName& BoneName) const
 {
 	for(const auto & NameMap : RigConfig.BoneMappingTable)
 	{
@@ -1070,7 +1151,7 @@ int32 USkeleton::GetMappedValidNodes(TArray<FName> &OutValidNodeNames)
 	return OutValidNodeNames.Num();
 }
 
-bool USkeleton::SetRigBoneMapping(const FName & NodeName, FName BoneName)
+bool USkeleton::SetRigBoneMapping(const FName& NodeName, FName BoneName)
 {
 	// make sure it's valid
 	int32 BoneIndex = ReferenceSkeleton.FindBoneIndex(BoneName);
@@ -1121,7 +1202,7 @@ void USkeleton::RefreshRigConfig()
 				int32 NodeNum = RigConfig.Rig->GetNodeNum();
 				for(int32 NodeId=0; NodeId<NodeNum; ++NodeId)
 				{
-					const auto * Node = RigConfig.Rig->GetNode(NodeId);
+					const auto* Node = RigConfig.Rig->GetNode(NodeId);
 
 					if (FindRigBoneMapping(Node->Name) == INDEX_NONE)
 					{

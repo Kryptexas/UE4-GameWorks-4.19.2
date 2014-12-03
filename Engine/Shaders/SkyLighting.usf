@@ -12,6 +12,7 @@ Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
 float3 ContrastAndNormalizeMulAdd;
+float4 OcclusionTintAndMinOcclusion;
 
 void SkyLightDiffusePS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
@@ -62,17 +63,17 @@ void SkyLightDiffusePS(
 		*/
 
 		float ContrastCurve = 1 / (1 + exp(-ContrastAndNormalizeMulAdd.x * (SkyVisibility * 10 - 5)));
-		SkyVisibility = ContrastCurve * ContrastAndNormalizeMulAdd.y + ContrastAndNormalizeMulAdd.z;
+		SkyVisibility = saturate(ContrastCurve * ContrastAndNormalizeMulAdd.y + ContrastAndNormalizeMulAdd.z);
 		
 #endif
 
 		// Compute the preconvolved incoming lighting with the bent normal direction
 		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
 
-		float ScalarFactors = SkyVisibility * DotProductFactor * InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
+		float ScalarFactors = lerp(SkyVisibility, 1, OcclusionTintAndMinOcclusion.w) * DotProductFactor * InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
 
 		// Apply AO to the sky diffuse and account for darkening due to the geometry term
-		Lighting = ScalarFactors * DiffuseLookup * InGBufferData.DiffuseColor;
+		Lighting = ScalarFactors * DiffuseLookup * InGBufferData.DiffuseColor + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz;
 
 		// For debugging
 		//Lighting = (Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV, 0).xyz);

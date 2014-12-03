@@ -12,12 +12,12 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityTargetActor_SingleLineTrace::AGameplayAbilityTargetActor_SingleLineTrace(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayAbilityTargetActor_SingleLineTrace::AGameplayAbilityTargetActor_SingleLineTrace(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InSourceActor) const
+FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InSourceActor)
 {
 	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_SingleLineTrace"));
 	bool bTraceComplex = false;
@@ -30,32 +30,14 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
-	FVector AimDirection = InSourceActor->GetActorForwardVector();		//Default
-	
-	if (OwningAbility)		//Server and launching client only
-	{
-		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
-		check(AimingPC);
-		FVector CamLoc;
-		FRotator CamRot;
-		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
-		AimDirection = CamRot.Vector();
-	}
-
-	FVector TraceStart = InSourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (AimDirection * MaxRange);
-
-	//If we're using a socket, adjust the starting location and aim direction after the end position has been found. This way we can still aim with the camera, then fire accurately from the socket.
-	if (OwningAbility)		//Server and launching client only
-	{
-		TraceStart = StartLocation.GetTargetingTransform().GetLocation();
-	}
-	AimDirection = (TraceEnd - TraceStart).SafeNormal();
+	FVector TraceStart = StartLocation.GetTargetingTransform().GetLocation();// InSourceActor->GetActorLocation();
+	FVector TraceEnd;
+	AimWithPlayerController(InSourceActor, Params, TraceStart, TraceEnd);		//Effective on server and launching client only
 
 	// ------------------------------------------------------
 
 	FHitResult ReturnHitResult;
-	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params);
+	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceChannel, Params);
 	//Default to end of trace line if we don't hit anything.
 	if (!ReturnHitResult.bBlockingHit)
 	{
@@ -64,6 +46,12 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	if (AActor* LocalReticleActor = ReticleActor.Get())
 	{
 		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
+	}
+
+	if (bDebug)
+	{
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green);
+		DrawDebugSphere(GetWorld(), TraceEnd, 100.0f, 16, FColor::Green);
 	}
 	return ReturnHitResult;
 }

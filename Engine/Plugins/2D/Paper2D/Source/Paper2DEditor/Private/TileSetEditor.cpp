@@ -7,6 +7,7 @@
 #include "PaperEditorViewportClient.h"
 #include "TileMapEditing/EdModeTileMap.h"
 #include "GraphEditor.h"
+#include "SPaperEditorViewport.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 

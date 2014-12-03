@@ -174,6 +174,9 @@ class UAnimGraphNode_Base : public UK2Node
 	virtual UScriptStruct* GetTimePropertyStruct() const { return NULL; }
 	// END Interface to support transition getter
 
+	// can customize details tab 
+	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder){ }
+
 protected:
 	friend class FAnimBlueprintCompiler;
 	friend class FAnimGraphNodeDetails;

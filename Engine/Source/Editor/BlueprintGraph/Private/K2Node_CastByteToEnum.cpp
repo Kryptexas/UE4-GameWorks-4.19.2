@@ -11,8 +11,8 @@
 
 const FString UK2Node_CastByteToEnum::ByteInputPinName = TEXT("Byte");
 
-UK2Node_CastByteToEnum::UK2Node_CastByteToEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CastByteToEnum::UK2Node_CastByteToEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -59,7 +59,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile && bSafe)
+	if (bSafe)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
@@ -120,8 +120,7 @@ public:
 		UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(InPin);
 		if (Context.NetMap.Find(Net) == NULL)
 		{
-			FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 			Context.NetMap.Add(Net, Term);
 		}
 

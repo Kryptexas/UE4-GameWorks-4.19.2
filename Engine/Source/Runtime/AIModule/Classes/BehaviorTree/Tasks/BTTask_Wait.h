@@ -14,7 +14,7 @@ struct FBTWaitTaskMemory
  * Wait for the specified time when executed.
  */
 UCLASS()
-class UBTTask_Wait : public UBTTaskNode
+class AIMODULE_API UBTTask_Wait : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 

@@ -345,7 +345,7 @@ public:
 				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
 
 				// another ForceCast as CompilePropertyAndSetMaterialProperty() can return MCT_Float which we don't want here
-				int32 SubsurfaceColor = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this), MCT_Float3, true);
+				int32 SubsurfaceColor = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this), MCT_Float3, true, true);
 
 				static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 
@@ -359,6 +359,7 @@ public:
 			Chunk[MP_ClearCoatRoughness]			= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoatRoughness    ,this);
 			Chunk[MP_AmbientOcclusion]				= Material->CompilePropertyAndSetMaterialProperty(MP_AmbientOcclusion      ,this);
 
+			if(IsTranslucentBlendMode(Material->GetBlendMode()))
 			{
 				int32 UserRefraction = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_Refraction, this), MCT_Float2);
 				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), Material->GetRefractionDepthBiasValue()), MCT_Float1);
@@ -643,8 +644,6 @@ public:
 			LazyPrintf.PushParam(TEXT("return 0"));
 		}
 
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_DiffuseColor));
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SpecularColor));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_BaseColor));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Metallic));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Specular));
@@ -1140,7 +1139,10 @@ protected:
 	FMaterialUniformExpression* GetParameterUniformExpression(int32 Index) const
 	{
 		check(Index >= 0 && Index < CodeChunks[MaterialProperty][ShaderFrequency].Num());
-		return CodeChunks[MaterialProperty][ShaderFrequency][Index].UniformExpression;
+
+		const FShaderCodeChunk& Chunk = CodeChunks[MaterialProperty][ShaderFrequency][Index];
+
+		return Chunk.UniformExpression;
 	}
 
 	// GetArithmeticResultType
@@ -2094,7 +2096,14 @@ protected:
 				);
 		}
 
-	virtual int32 TextureSample(int32 TextureIndex,int32 CoordinateIndex,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None) override
+	virtual int32 TextureSample(
+		int32 TextureIndex,
+		int32 CoordinateIndex,
+		EMaterialSamplerType SamplerType,
+		int32 MipValueIndex=INDEX_NONE,
+		ETextureMipValueMode MipValueMode=TMVM_None,
+		ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
+		) override
 	{
 		if(TextureIndex == INDEX_NONE || CoordinateIndex == INDEX_NONE)
 		{
@@ -2132,6 +2141,23 @@ protected:
 			MipValueMode = TMVM_MipLevel;
 		}
 
+		FString SamplerStateCode;
+
+		if (SamplerSource == SSM_FromTextureAsset)
+		{
+			SamplerStateCode = TEXT("%sSampler");
+		}
+		else if (SamplerSource == SSM_Wrap_WorldGroupSettings)
+		{
+			// Use the shared sampler to save sampler slots
+			SamplerStateCode = TEXT("GetMaterialSharedSampler(%sSampler,Material.Wrap_WorldGroupSettings)");
+		}
+		else if (SamplerSource == SSM_Clamp_WorldGroupSettings)
+		{
+			// Use the shared sampler to save sampler slots
+			SamplerStateCode = TEXT("GetMaterialSharedSampler(%sSampler,Material.Clamp_WorldGroupSettings)");
+		}
+
 		FString SampleCode = 
 			(TextureType == MCT_TextureCube)
 			? TEXT("TextureCubeSample")
@@ -2139,13 +2165,13 @@ protected:
 	
 		if(MipValueMode == TMVM_None)
 		{
-			SampleCode += TEXT("(%s,%sSampler,%s)");
+			SampleCode += FString(TEXT("(%s,")) + SamplerStateCode + TEXT(",%s)");
 		}
 		else if(MipValueMode == TMVM_MipLevel)
 		{
 			// Mobile: Sampling of a particular level depends on an extension; iOS does have it by default but
 			// there's a driver as of 7.0.2 that will cause a GPU hang if used with an Aniso > 1 sampler, so show an error for now
-			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 			{
 				Errorf(TEXT("Sampling for a specific mip-level is not supported for mobile"));
 				return INDEX_NONE;
@@ -2265,7 +2291,7 @@ protected:
 	}
 	
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override
+	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
@@ -2287,8 +2313,8 @@ protected:
 
 		return AddCodeChunk(
 			MCT_Float4,
-			TEXT("SceneTextureLookup(%s, %d)"),
-			*TexCoordCode, (int)SceneTextureId
+			TEXT("SceneTextureLookup(%s, %d, %s)"),
+			*TexCoordCode, (int)SceneTextureId, bFiltered ? TEXT("true") : TEXT("false")
 			);
 	}
 
@@ -2438,7 +2464,7 @@ protected:
 			);
 	}
 
-	virtual int32 Texture(UTexture* InTexture) override
+	virtual int32 Texture(UTexture* InTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2449,10 +2475,10 @@ protected:
 		EMaterialValueType ShaderType = InTexture->GetMaterialType();
 		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->Texture() without implementing UMaterialExpression::GetReferencedTexture properly"));
-		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex),ShaderType,TEXT(""));
+		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
-	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue) override
+	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2463,7 +2489,7 @@ protected:
 		EMaterialValueType ShaderType = DefaultValue->GetMaterialType();
 		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
-		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName,TextureReferenceIndex),ShaderType,TEXT(""));
+		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
 	virtual int32 StaticBool(bool bValue) override
@@ -2815,6 +2841,23 @@ protected:
 		else
 		{
 			return AddCodeChunk(GetParameterType(X),TEXT("min(max(%s,%s),%s)"),*GetParameterCode(X),*CoerceParameter(A,GetParameterType(X)),*CoerceParameter(B,GetParameterType(X)));
+		}
+	}
+
+	virtual int32 Saturate(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionSaturate(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("saturate(%s)"),*GetParameterCode(X));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("saturate(%s)"),*GetParameterCode(X));
 		}
 	}
 
@@ -3209,7 +3252,7 @@ protected:
 
 	virtual int32 DDX( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3235,7 +3278,7 @@ protected:
 
 	virtual int32 DDY( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3408,24 +3451,38 @@ protected:
 			case MCT_Float:
 			case MCT_Float1:
 				InputParamDecl += TEXT("MaterialFloat ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Float2:
 				InputParamDecl += TEXT("MaterialFloat2 ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Float3:
 				InputParamDecl += TEXT("MaterialFloat3 ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Float4:
 				InputParamDecl += TEXT("MaterialFloat4 ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Texture2D:
-				InputParamDecl += TEXT("sampler2D ");
+				InputParamDecl += TEXT("Texture2D ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT("Sampler ");
+				break;
+			case MCT_TextureCube:
+				InputParamDecl += TEXT("TextureCube ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT("Sampler ");
 				break;
 			default:
 				return Errorf(TEXT("Bad type %s for %s input %s"),DescribeType(GetParameterType(CompiledInputs[i])), *Custom->Description, *Custom->Inputs[i].InputName);
 				break;
 			}
-			InputParamDecl += Custom->Inputs[i].InputName;
 		}
 		int32 CustomExpressionIndex = CustomExpressionImplementations.Num();
 		FString Code = Custom->Code;
@@ -3446,8 +3503,18 @@ protected:
 			{
 				continue;
 			}
+
+			FString ParamCode = GetParameterCode(CompiledInputs[i]);
+			EMaterialValueType ParamType = GetParameterType(CompiledInputs[i]);
+
 			CodeChunk += TEXT(",");
-			CodeChunk += *GetParameterCode(CompiledInputs[i]);
+			CodeChunk += *ParamCode;
+			if (ParamType == MCT_Texture2D || ParamType == MCT_TextureCube)
+			{
+				CodeChunk += TEXT(",");
+				CodeChunk += *ParamCode;
+				CodeChunk += TEXT("Sampler");
+			}
 		}
 		CodeChunk += TEXT(")");
 

@@ -4,13 +4,16 @@
 	HTML5Misc.cpp: HTML5 implementations of misc functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "HTML5Application.h"
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
 #endif 
 
+#include "unicode/locid.h"
+#include "GenericPlatformContext.h"
+#include <SDL.h>
 #include <ctime>
 
 void FHTML5Misc::PlatformInit()
@@ -18,6 +21,7 @@ void FHTML5Misc::PlatformInit()
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName());
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName());
+	UE_LOG(LogInit, Log, TEXT("Current Culture: %s"), *FHTML5Misc::GetDefaultLocale());
 
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle());
@@ -135,6 +139,22 @@ uint32 FHTML5Misc::GetKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMapp
 	return NumMappings;
 }
 
+FString FHTML5Misc::GetDefaultLocale()
+{
+#if PLATFORM_HTML5_BROWSER
+	char AsciiCultureName[512];
+	if (UE_GetCurrentCultureName(AsciiCultureName,sizeof(AsciiCultureName)))
+	{
+		return FString(StringCast<TCHAR>(AsciiCultureName).Get());
+	}
+	else
+#endif
+	{
+		icu::Locale ICUDefaultLocale = icu::Locale::getDefault();
+		return FString(ICUDefaultLocale.getName());
+	}
+}
+
 EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
 
@@ -152,4 +172,27 @@ EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const 
 
 #endif 
 
+}
+
+void (*GHTML5CrashHandler)(const FGenericCrashContext& Context) = nullptr;
+
+extern "C"
+{
+#if PLATFORM_HTML5_BROWSER
+	// callback from javascript. 
+	void on_fatal(const char* msg, const char* error)
+	{
+		// !!JM todo: pass msg & error to a crash context? Must be copied?
+		if (GHTML5CrashHandler)
+		{
+			FGenericCrashContext Ctx;
+			GHTML5CrashHandler(Ctx);
+		}
+	}
+#endif 
+}
+
+void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext& Context))
+{
+	GHTML5CrashHandler = CrashHandler;
 }

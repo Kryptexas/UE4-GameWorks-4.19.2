@@ -597,7 +597,7 @@ namespace UnrealBuildTool
 				bPlatformRequiresMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(InPlatform);
 			}
 
-			if (InRulesObject.ShouldCompileMonolithic(InPlatform, InConfiguration) || bPlatformRequiresMonolithic || (InRulesObject.Type == TargetRules.TargetType.RocketGame))
+			if (InRulesObject.ShouldCompileMonolithic(InPlatform, InConfiguration) || bPlatformRequiresMonolithic)
 			{
 				return InGameName;
 			}
@@ -780,10 +780,9 @@ namespace UnrealBuildTool
 			OnlyModules = InOnlyModules;
 
 			TargetTypeOrNull = (Rules != null) ? Rules.Type : (TargetRules.TargetType?)null;
-			bool bIsRocketGame = (InRulesObject != null) ? (TargetType == TargetRules.TargetType.RocketGame) : false;
 
 			// Construct the output path based on configuration, platform, game if not specified.
-            OutputPaths = MakeBinaryPaths("", AppName, UEBuildBinaryType.Executable, TargetType, bIsRocketGame, null, InAppName, Configuration == UnrealTargetConfiguration.Shipping ? Rules.ForceNameAsForDevelopment() : false, Rules.ExeBinariesSubFolder);
+            OutputPaths = MakeBinaryPaths("", AppName, UEBuildBinaryType.Executable, TargetType, null, InAppName, Configuration == UnrealTargetConfiguration.Shipping ? Rules.ForceNameAsForDevelopment() : false, Rules.ExeBinariesSubFolder);
 			for (int Index = 0; Index < OutputPaths.Length; Index++)
 			{
 				OutputPaths[Index] = Path.GetFullPath(OutputPaths[Index]);
@@ -1334,13 +1333,18 @@ namespace UnrealBuildTool
 			if (ShouldCompileMonolithic())
 			{
 				var ExecutableBinary = AppBinaries[0];
-				bool bIncludeDynamicallyLoaded = true;
-				var AllReferencedModules = ExecutableBinary.GetAllDependencyModules( bIncludeDynamicallyLoaded, bForceCircular:true );
-				foreach (var CurModule in AllReferencedModules)
+
+				// Search through every binary for dependencies. When building plugin binaries that reference optional engine modules, 
+				// we still need to link them into the executable.
+				foreach (UEBuildBinary Binary in AppBinaries)
 				{
-					if ( CurModule.Binary == null || CurModule.Binary == ExecutableBinary )
+					var AllReferencedModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: true);
+					foreach (var CurModule in AllReferencedModules)
 					{
-						ExecutableBinary.AddModule(CurModule.Name);
+						if (CurModule.Binary == null || CurModule.Binary == ExecutableBinary)
+						{
+							ExecutableBinary.AddModule(CurModule.Name);
+						}
 					}
 				}
 
@@ -1388,7 +1392,7 @@ namespace UnrealBuildTool
 						if(Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath) && Module.Binary == ExecutableBinary)
 						{
 							UnrealTargetConfiguration LibraryConfiguration = (Configuration == UnrealTargetConfiguration.DebugGame)? UnrealTargetConfiguration.Development : Configuration;
-							Module.RedistStaticLibraryPaths = MakeBinaryPaths("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, false, null, AppName);
+							Module.RedistStaticLibraryPaths = MakeBinaryPaths("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, null, AppName);
 							Module.bBuildingRedistStaticLibrary = UnrealBuildTool.BuildingRocket();
                             if (Module.bBuildingRedistStaticLibrary)
                             {
@@ -1509,6 +1513,8 @@ namespace UnrealBuildTool
 				CreateLinkerFixupsCPPFile();
 			}
 
+			CreateAutoStartupModuleListGetters();
+
 			// Build the target's binaries.
 			foreach (var Binary in AppBinaries)
 			{
@@ -1614,7 +1620,7 @@ namespace UnrealBuildTool
 			foreach (var Binary in AppBinaries)
 			{
 				// Add binaries for all of our dependent modules
-				var FoundBinaries = Binary.ProcessUnboundModules();
+				var FoundBinaries = Binary.ProcessUnboundModules(AppBinaries[0]);
 				if (FoundBinaries != null)
 				{
 					NewBinaries.AddRange(FoundBinaries);
@@ -1632,9 +1638,9 @@ namespace UnrealBuildTool
 			if (OnlyModules.Count > 0)
 			{
 				AppBinaries = FilterOnlyModules();
-							}
+			}
 			else if (UEBuildConfiguration.bHotReloadFromIDE)
-				{
+			{
 				AppBinaries = FilterGameModules();
 			}
 
@@ -1799,6 +1805,136 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Gets auto-startup module list.
+		/// </summary>
+		/// <param name="Binary">Binary to gather auto-startup list.</param>
+		/// <returns>Auto-startup module name list.</returns>
+		private IEnumerable<string> GetAutoStartupModuleList(UEBuildBinary Binary)
+		{
+			var Output = new List<string>();
+
+			foreach (var DepModule in Binary.GetAllDependencyModules(false, true))
+			{
+				if (DepModule is UEBuildModuleCPP && (DepModule as UEBuildModuleCPP).bIsAutoStartupModule)
+				{
+					Output.Add(DepModule.Name);
+				}
+			}
+
+			return Output;
+		}
+
+		/// <summary>
+		/// Tests if the module provided is a game module.
+		/// </summary>
+		/// <param name="Module">Module to check.</param>
+		/// <returns>True if provided module is a game module. False otherwise.</returns>
+		private static bool IsGameModule(UEBuildModule Module)
+		{
+			return Module.Type == UEBuildModuleType.Game || (Module.Type == UEBuildModuleType.Runtime && Module.Name == "UE4Game");
+		}
+
+		/// <summary>
+		/// Creates getters that passes auto-startup module list to the engine.
+		/// </summary>
+		private void CreateAutoStartupModuleListGetters()
+		{
+			if (TargetType != TargetRules.TargetType.Program && !ShouldCompileMonolithic())
+			{
+				foreach (var Module in ExtraModuleNames.Select(Name => GetModuleByName(Name)).Where(
+						InnerModule => IsGameModule(InnerModule)).Cast<UEBuildModuleCPP>())
+				{
+					UEBuildBinary Binary = null;
+					if (Module.Name == "UE4Game")
+					{
+						Binary = AppBinaries[0];
+					}
+					else
+					{
+						Binary = Module.Binary;
+					}
+
+					Module.AddAdditionalCPPFiles(new FileItem[] { FileItem.GetItemByPath(
+							CreateAutoGeneratedModulesListGetterCPPFile(
+								GetAutoStartupModuleList(Binary),
+								Module.Binary.Config.IntermediateDirectory)
+						)
+					});
+				}
+			}
+			else
+			{
+				var SourceFilename = CreateAutoGeneratedModulesListGetterCPPFile(
+					GetAutoStartupModuleList(AppBinaries[0]),
+					AppBinaries[0].Config.IntermediateDirectory);
+
+				BindArtificialModuleToBinary(
+					CreateArtificialModule(
+						"AutoStartupModulesListGetter", AppBinaries[0].Config.IntermediateDirectory,
+						new FileItem[] { FileItem.GetItemByPath(SourceFilename) }, new string[] { }
+					), AppBinaries[0]);
+			}
+		}
+
+		/// <summary>
+		/// Creates a getter that outputs auto-startup module list.
+		/// </summary>
+		/// <param name="AutoStartupModuleEnumerable">A list of auto-startup modules.</param>
+		/// <param name="DestPath">Destination path for the file.</param>
+		/// <returns>Created source file path.</returns>
+		private string CreateAutoGeneratedModulesListGetterCPPFile(IEnumerable<string> AutoStartupModuleEnumerable, string DestPath)
+		{
+			var BaseFileName = "AutoStartupModuleListGetter";
+
+			var ModuleDir = Path.Combine(DestPath, BaseFileName);
+
+			if (!Directory.Exists(ModuleDir))
+			{
+				Directory.CreateDirectory(ModuleDir);
+			}
+
+			var HeaderName = BaseFileName + ".h";
+			var HeaderPath = Path.Combine(ModuleDir, HeaderName);
+
+			if(!File.Exists(HeaderPath))
+			{
+				File.WriteAllText(HeaderPath, "");
+			}
+
+			string SourceFilename = Path.Combine(ModuleDir, BaseFileName + ".generated.cpp");
+
+			var SourceLines = new List<string>();
+
+			SourceLines.Add(string.Format("#include \"{0}\"", HeaderName));
+			SourceLines.Add("");
+			SourceLines.Add("const char* EnumAutoStartupModuleName(int Index)");
+			SourceLines.Add("{");
+
+			SourceLines.Add("\tconst char* Names[] = {");
+
+			foreach (var AutoStartupModuleName in AutoStartupModuleEnumerable.OrderBy(ModuleName => ModuleName))
+			{
+				SourceLines.Add(string.Format("\t\t\"{0}\",", AutoStartupModuleName));
+			}
+
+			SourceLines.Add("\t\tnullptr");
+			SourceLines.Add("\t};");
+			SourceLines.Add("");
+			SourceLines.Add("\treturn Names[Index];");
+
+			SourceLines.Add("}");
+			SourceLines.Add("");
+
+			string LineEnd = Environment.OSVersion.Platform == PlatformID.Unix ? "\n" : "\r\n";
+			if (!File.Exists(SourceFilename) || File.ReadAllText(SourceFilename).Trim() != string.Join(LineEnd, SourceLines).Trim())
+			{
+				File.WriteAllLines(SourceFilename, SourceLines);
+			}
+
+			return SourceFilename;
+		}
+
+		/// <summary>
 		/// All non-program monolithic binaries implicitly depend on all static plugin libraries so they are always linked appropriately
 		/// In order to do this, we create a new module here with a cpp file we emit that invokes an empty function in each library.
 		/// If we do not do this, there will be no static initialization for libs if no symbols are referenced in them.
@@ -1902,54 +2038,77 @@ namespace UnrealBuildTool
 
 				// Create the CPP module
 				var FakeModuleDirectory = Path.GetDirectoryName( LinkerFixupCPPFilename );
-				UEBuildModuleCPP NewModule = new UEBuildModuleCPP(
-					InTarget: this,
-					InName: LinkerFixupsName,
-					InType: UEBuildModuleType.Game,
-					InModuleDirectory:FakeModuleDirectory,
-					InOutputDirectory: GlobalCompileEnvironment.Config.OutputDirectory,
-					InIsRedistributableOverride: null,
-					InIntelliSenseGatherer: null,
-					InSourceFiles: SourceFiles,
-					InPublicIncludePaths: new List<string>(),
-					InPublicSystemIncludePaths: new List<string>(),
-					InDefinitions: new List<string>(),
-					InPublicIncludePathModuleNames: new List<string>(),
-					InPublicDependencyModuleNames: new List<string>(),
-					InPublicDelayLoadDLLs: new List<string>(),
-					InPublicAdditionalLibraries: new List<string>(),
-					InPublicFrameworks: new List<string>(),
-					InPublicWeakFrameworks: new List<string>(),
-					InPublicAdditionalShadowFiles: new List<string>(),
-					InPublicAdditionalBundleResources: new List<UEBuildBundleResource>(),
-					InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
-					InPrivateIncludePaths: new List<string>(),
-					InPrivateIncludePathModuleNames: new List<string>(),
-					InPrivateDependencyModuleNames: PrivateDependencyModuleNames,
-					InCircularlyReferencedDependentModules: new List<string>(),
-					InDynamicallyLoadedModuleNames: new List<string>(),
-                    InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
-                    InOptimizeCode: ModuleRules.CodeOptimization.Default,
-					InAllowSharedPCH: false,
-					InSharedPCHHeaderFile: "",
-					InUseRTTI: false,
-					InEnableBufferSecurityChecks: true,
-					InFasterWithoutUnity: true,
-					InMinFilesUsingPrecompiledHeaderOverride: 0,
-					InEnableExceptions: false,
-					bInBuildSourceFiles: true
-					);
+				var NewModule = CreateArtificialModule(LinkerFixupsName, FakeModuleDirectory, SourceFiles, PrivateDependencyModuleNames);
 
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
-				NewModule.Binary = ExecutableBinary;
-				NewModule.bIncludedInTarget = true;
-
-				// Process dependencies for this new module
-				NewModule.CachePCHUsageForModuleSourceFiles(NewModule.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
-
-				// Add module to binary
-				ExecutableBinary.AddModule(NewModule.Name);
+				BindArtificialModuleToBinary(NewModule, ExecutableBinary);
 			}
+		}
+
+		/// <summary>
+		/// Binds artificial module to given binary.
+		/// </summary>
+		/// <param name="Module">Module to bind.</param>
+		/// <param name="Binary">Binary to bind.</param>
+		private void BindArtificialModuleToBinary(UEBuildModuleCPP Module, UEBuildBinary Binary)
+		{
+			Module.Binary = Binary;
+			Module.bIncludedInTarget = true;
+
+			// Process dependencies for this new module
+			Module.CachePCHUsageForModuleSourceFiles(Module.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
+
+			// Add module to binary
+			Binary.AddModule(Module.Name);
+		}
+
+		/// <summary>
+		/// Creates artificial module.
+		/// </summary>
+		/// <param name="Name">Name of the module.</param>
+		/// <param name="Directory">Directory of the module.</param>
+		/// <param name="SourceFiles">Source files.</param>
+		/// <param name="PrivateDependencyModuleNames">Private dependency list.</param>
+		/// <returns>Created module.</returns>
+		private UEBuildModuleCPP CreateArtificialModule(string Name, string Directory, IEnumerable<FileItem> SourceFiles, IEnumerable<string> PrivateDependencyModuleNames)
+		{
+			return new UEBuildModuleCPP(
+				InTarget: this,
+				InName: Name,
+				InType: UEBuildModuleType.Game,
+				InModuleDirectory: Directory,
+				InOutputDirectory: GlobalCompileEnvironment.Config.OutputDirectory,
+				InIsRedistributableOverride: null,
+				InIntelliSenseGatherer: null,
+				InSourceFiles: SourceFiles.ToList(),
+				InPublicIncludePaths: new List<string>(),
+				InPublicSystemIncludePaths: new List<string>(),
+				InDefinitions: new List<string>(),
+				InPublicIncludePathModuleNames: new List<string>(),
+				InPublicDependencyModuleNames: new List<string>(),
+				InPublicDelayLoadDLLs: new List<string>(),
+				InPublicAdditionalLibraries: new List<string>(),
+				InPublicFrameworks: new List<string>(),
+				InPublicWeakFrameworks: new List<string>(),
+				InPublicAdditionalShadowFiles: new List<string>(),
+				InPublicAdditionalBundleResources: new List<UEBuildBundleResource>(),
+				InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
+				InPrivateIncludePaths: new List<string>(),
+				InPrivateIncludePathModuleNames: new List<string>(),
+				InPrivateDependencyModuleNames: PrivateDependencyModuleNames.ToList(),
+				InCircularlyReferencedDependentModules: new List<string>(),
+				InDynamicallyLoadedModuleNames: new List<string>(),
+				InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
+				InOptimizeCode: ModuleRules.CodeOptimization.Default,
+				InAllowSharedPCH: false,
+				InSharedPCHHeaderFile: "",
+				InUseRTTI: false,
+				InEnableBufferSecurityChecks: true,
+				InFasterWithoutUnity: true,
+				InIsAutoStartupModule: false,
+				InMinFilesUsingPrecompiledHeaderOverride: 0,
+				InEnableExceptions: false,
+				bInBuildSourceFiles: true);
 		}
 
 
@@ -2074,9 +2233,6 @@ namespace UnrealBuildTool
 		{
             var SpecialRocketLibFilesThatAreBuildProducts = new List<string>();
 
-			// Is this a Rocket module?
-			bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(Module.Name);
-
 			bool bCompileMonolithic = ShouldCompileMonolithic();
 
 			// Get the binary type to build
@@ -2086,7 +2242,7 @@ namespace UnrealBuildTool
 			string[] OutputFilePaths;
 			if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && bCompileMonolithic)
 			{
-				OutputFilePaths = MakeBinaryPaths(Module.Name, Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
+				OutputFilePaths = MakeBinaryPaths(Module.Name, Module.Name, BinaryType, TargetType, Plugin, AppName);
                 if (UnrealBuildTool.BuildingRocket())
                 {
                     SpecialRocketLibFilesThatAreBuildProducts.AddRange(OutputFilePaths);
@@ -2094,7 +2250,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
+				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, Plugin, AppName);
 			}
 
 			// Try to determine if we have the rules file
@@ -2140,31 +2296,36 @@ namespace UnrealBuildTool
 			// Add extra modules that will either link into the main binary (monolithic), or be linked into separate DLL files (modular)
 			foreach (var ModuleName in ExtraModuleNames)
 			{
-				if (ShouldCompileMonolithic())
-				{
-					// Add this module to the executable's list of included modules
-					var ExecutableBinary = AppBinaries[0];
-					ExecutableBinary.AddModule(ModuleName);
-				}
-				else
-				{
-					// Is this a Rocket module?
-					bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(ModuleName);
-
-					// Create a DLL binary for this module
-					string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, bIsRocketModule, null, AppName);
-					UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
-																						InOutputFilePaths: OutputFilePaths,
-																						InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName) ? ProjectIntermediateDirectory : EngineIntermediateDirectory,
-																						bInAllowExports: true,
-																						InModuleNames: new List<string> { ModuleName } );
-
-					// Tell the target about this new binary
-					AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
-				}
+				AddExtraModule(ModuleName);
 			}
 		}
 
+		/// <summary>
+		/// Adds extra module to the target.
+		/// </summary>
+		/// <param name="ModuleName">Name of the module.</param>
+		protected void AddExtraModule(string ModuleName)
+		{
+			if (ShouldCompileMonolithic())
+			{
+				// Add this module to the executable's list of included modules
+				var ExecutableBinary = AppBinaries[0];
+				ExecutableBinary.AddModule(ModuleName);
+			}
+			else
+			{
+				// Create a DLL binary for this module
+				string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, null, AppName);
+				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.DynamicLinkLibrary,
+																					InOutputFilePaths: OutputFilePaths,
+																					InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName) ? ProjectIntermediateDirectory : EngineIntermediateDirectory,
+																					bInAllowExports: true,
+																					InModuleNames: new List<string> { ModuleName });
+
+				// Tell the target about this new binary
+				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
+			}
+		}
 
 		/**
 		 * @return true if debug information is created, false otherwise.
@@ -2192,7 +2353,7 @@ namespace UnrealBuildTool
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../Binaries/Win64/Core-Win64-Debug.lib") */
 		public static string[] MakeBinaryPaths(string ModuleName, string BinaryName, UnrealTargetPlatform Platform, 
-			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
+			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
 		{
 			// Determine the binary extension for the platform and binary type.
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -2276,15 +2437,15 @@ namespace UnrealBuildTool
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../../Binaries/Win64/Core-Win64-Debug.lib") */
-		public string[] MakeBinaryPaths(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
+		public string[] MakeBinaryPaths(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
 		{
 			if (String.IsNullOrEmpty(ModuleName) && Configuration == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic)
 			{
-				return MakeBinaryPaths(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment);
+				return MakeBinaryPaths(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, PluginInfo, AppName, bForceNameAsForDevelopment);
 			}
 			else
 			{
-				return MakeBinaryPaths(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment, ExeBinariesSubFolder);
+				return MakeBinaryPaths(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, PluginInfo, AppName, bForceNameAsForDevelopment, ExeBinariesSubFolder);
 			}
 		}
 
@@ -2329,44 +2490,44 @@ namespace UnrealBuildTool
 		/** Sets up the plugins for this target */
 		protected virtual void SetupPlugins()
 		{
-				// Filter the plugins list by the current project
-				List<PluginInfo> ValidPlugins = new List<PluginInfo>();
-				foreach(PluginInfo Plugin in Plugins.AllPlugins)
+			// Filter the plugins list by the current project
+			List<PluginInfo> ValidPlugins = new List<PluginInfo>();
+			foreach(PluginInfo Plugin in Plugins.AllPlugins)
+			{
+				if(Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if(Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
-					{
-						ValidPlugins.Add(Plugin);
-					}
-				}
-
-				// Build the enabled plugin list
-				if (ShouldCompileMonolithic() || TargetType == TargetRules.TargetType.Program)
-				{
-					var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
-
-					// Add the list of plugins enabled by default
-					if (UEBuildConfiguration.bCompileAgainstEngine)
-					{
-						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
-					}
-
-					// Update the plugin list for game targets
-					if(TargetType != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
-					{
-						// Enable all the game specific plugins by default
-						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
-
-						// Use the project settings to update the plugin list for this target
-						FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
-					}
-
-					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
-				}
-				else
-				{
-					EnabledPlugins.AddRange(ValidPlugins);
+					ValidPlugins.Add(Plugin);
 				}
 			}
+
+			// Build the enabled plugin list
+			if (ShouldCompileMonolithic() || TargetType == TargetRules.TargetType.Program)
+			{
+				var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
+
+				// Add the list of plugins enabled by default
+				if (UEBuildConfiguration.bCompileAgainstEngine)
+				{
+					FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
+				}
+
+				// Update the plugin list for game targets
+				if(TargetType != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
+				{
+					// Enable all the game specific plugins by default
+					FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
+
+					// Use the project settings to update the plugin list for this target
+					FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
+				}
+
+				EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
+			}
+			else
+			{
+				EnabledPlugins.AddRange(ValidPlugins);
+			}
+		}
 
 		/** Sets up the binaries for the target. */
 		protected virtual void SetupBinaries()
@@ -2888,6 +3049,7 @@ namespace UnrealBuildTool
 							InUseRTTI: RulesObject.bUseRTTI,
 							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
+							InIsAutoStartupModule: RulesObject.bIsAutoStartupModule,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
 							bInBuildSourceFiles: bBuildSourceFiles
@@ -2928,6 +3090,7 @@ namespace UnrealBuildTool
 							InUseRTTI: RulesObject.bUseRTTI,
 							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
+							InIsAutoStartupModule: RulesObject.bIsAutoStartupModule,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
 							bInBuildSourceFiles : bBuildSourceFiles

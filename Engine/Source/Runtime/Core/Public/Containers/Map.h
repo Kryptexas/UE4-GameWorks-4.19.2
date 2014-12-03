@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Core.h"
-#include "Array.h"
-#include "Set.h"
+#include "Containers/Array.h"
+#include "Containers/Set.h"
+#include "Containers/UnrealString.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
 
@@ -230,6 +229,12 @@ public:
 	FORCEINLINE void Compact()
 	{
 		Pairs.Compact();
+	}
+
+	/** Preallocates enough memory to contain Number elements */
+	FORCEINLINE void Reserve(int32 Number)
+	{
+		Pairs.Reserve(Number);
 	}
 
 	/** @return The number of elements in the map. */
@@ -1006,7 +1011,7 @@ public:
 			OrderedValues.Empty(OutValues.Num());
 			for(int32 Index = OutValues.Num() - 1;Index >= 0;Index--)
 			{
-				new(OrderedValues) const ValueType*(OutValues(Index));
+				new(OrderedValues) const ValueType*(OutValues[Index]);
 			}
 
 			// Swap the ordered array into the output array.

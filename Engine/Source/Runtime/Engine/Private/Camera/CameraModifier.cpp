@@ -12,8 +12,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogCamera, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // UCameraModifier
 
-UCameraModifier::UCameraModifier(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCameraModifier::UCameraModifier(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Priority = 127;
 }

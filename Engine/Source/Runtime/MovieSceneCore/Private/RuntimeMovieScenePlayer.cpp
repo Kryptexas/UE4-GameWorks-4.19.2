@@ -30,8 +30,8 @@ URuntimeMovieScenePlayer* URuntimeMovieScenePlayer::CreateRuntimeMovieScenePlaye
 }
 
 
-URuntimeMovieScenePlayer::URuntimeMovieScenePlayer( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+URuntimeMovieScenePlayer::URuntimeMovieScenePlayer( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 
 	MovieSceneBindings = NULL;

@@ -2,7 +2,16 @@
 
 
 #pragma once
+#include "HAL/Platform.h"
 
+struct FVector2D;
+
+#if PLATFORM_WINDOWS || PLATFORM_XBOXONE || PLATFORM_WINRT
+struct tagRECT;
+typedef struct tagRECT RECT;
+#else
+struct RECT;
+#endif
 /**
  * Mouse cursor types
  */

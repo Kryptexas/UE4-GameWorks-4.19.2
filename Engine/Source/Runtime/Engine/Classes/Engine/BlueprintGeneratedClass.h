@@ -55,6 +55,34 @@ public:
 	}
 };
 
+USTRUCT()
+struct FPointerToUberGraphFrame
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	uint8* RawPointer;
+
+	FPointerToUberGraphFrame() 
+		: RawPointer(NULL)
+	{}
+
+	~FPointerToUberGraphFrame()
+	{
+		check(!RawPointer);
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithCopy = false,
+	};
+};
+
 //////////////////////////////////////////////////////////////////////////
 // TSimpleRingBuffer
 
@@ -133,11 +161,11 @@ private:
 struct FStructUtils
 {
 private:
-	static bool ArePropertiesTheSame(const UProperty* A, const UProperty* B);
+	static bool ArePropertiesTheSame(const UProperty* A, const UProperty* B, bool bCheckPropertiesNames);
 
 public:
 	// does structures have exactly the same memory layout
-	ENGINE_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB);
+	ENGINE_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames = false);
 };
 
 USTRUCT()
@@ -406,6 +434,12 @@ public:
 	UPROPERTY()
 	class USimpleConstructionScript* SimpleConstructionScript;
 
+	UPROPERTY()
+	UStructProperty* UberGraphFramePointerProperty;
+
+	UPROPERTY()
+	UFunction* UberGraphFunction;
+
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 
 	 *
@@ -432,7 +466,18 @@ public:
 	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) override;
 #endif //WITH_EDITOR
 	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const override;
+	virtual uint8* GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const override;
+	virtual void CreatePersistentUberGraphFrame(UObject* Obj) const override;
+	virtual void DestroyPersistentUberGraphFrame(UObject* Obj) const override;
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
+	virtual void Bind() override;
 	// End UClass interface
+
+	static void AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector);
+
+	static FName GetUberGraphFrameName();
+	static bool UsePersistentUberGraphFrame();
 
 #if WITH_EDITORONLY_DATA
 	FBlueprintDebugData DebugData;

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
-
+#include "Interface.h"
 
 /***********************/
 /******** Names ********/
@@ -110,9 +110,18 @@ FString UObjectBaseUtility::GetFullGroupName( bool bStartWithOuter ) const
  */
 UPackage* UObjectBaseUtility::GetOutermost() const
 {
-	UObject* Top;
-	for( Top = (UObject*)this ; Top && Top->GetOuter() ; Top = Top->GetOuter() );
-	return CastChecked<UPackage>(Top);
+	UObject* Top = (UObject*)this;
+	for (;;)
+	{
+		UObject* Outer = Top->GetOuter();
+		if (!Outer)
+		{
+			UPackage* Result = dynamic_cast<UPackage*>(Top);
+			check(Result);
+			return Result;
+		}
+		Top = Outer;
+	}
 }
 
 /** 

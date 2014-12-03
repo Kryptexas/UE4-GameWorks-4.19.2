@@ -3,7 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemInterface.h"
 
-UAbilitySystemInterface::UAbilitySystemInterface(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAbilitySystemInterface::UAbilitySystemInterface(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }

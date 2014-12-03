@@ -87,7 +87,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 {
 	DECLARE_CLASS_INTRINSIC( UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, CoreUObject );
 
-	virtual bool		WriteObject( FArchive & Ar, UObject * Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
+	virtual bool		WriteObject( FArchive & Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
 
 	// @todo document
 	virtual bool		SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) { return false; }
@@ -95,7 +95,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 	// @todo document
 	virtual bool		SerializeName( FArchive& Ar, FName& Name );
 
-	virtual UObject *	ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName ) { return NULL; }
+	virtual UObject*	ResolvePathAndAssignNetGUID( const FNetworkGUID& NetGUID, const FString& PathName ) { return NULL; }
 
 	virtual bool		SerializeNewActor(FArchive & Ar, class UActorChannel * Channel, class AActor *& Actor) { return false; }
 
@@ -103,31 +103,30 @@ class COREUOBJECT_API UPackageMap : public UObject
 	virtual void		ReceivedAck( const int32 AckPacketId ) { }
 	virtual void		NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
 
-	virtual void		GetNetGUIDStats(int32 & AckCount, int32 & UnAckCount, int32 & PendingCount) { }
+	virtual void		GetNetGUIDStats(int32& AckCount, int32& UnAckCount, int32& PendingCount) { }
 
-	virtual void		NotifyStreamingLevelUnload( UObject * UnloadedLevel ) { }
+	virtual void		NotifyStreamingLevelUnload( UObject* UnloadedLevel ) { }
 
 	virtual bool		PrintExportBatch() { return false; }
 
-	void				SetDebugContextString( const FString & Str ) { DebugContextString = Str; }
+	void				SetDebugContextString( const FString& Str ) { DebugContextString = Str; }
 	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
-	void				ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
-	bool				GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
-	FNetworkGUID		GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
+	void							ResetTrackedUnmappedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
+	const TArray< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
-	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
-	virtual bool		IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const { return false; }
+	virtual UObject*	GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
+	virtual bool		IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const { return false; }
 
 protected:
 
-	bool				bSuppressLogs;
+	bool					bSuppressLogs;
 
-	bool				bLoadedUnmappedObject;
-	FNetworkGUID		LastUnmappedNetGUID;
+	bool					bShouldTrackUnmappedGuids;
+	TArray< FNetworkGUID >	TrackedUnmappedNetGuids;
 
-	FString				DebugContextString;
+	FString					DebugContextString;
 };
 
 /** Represents a range of PacketIDs, inclusive */
@@ -182,6 +181,12 @@ enum ELifetimeCondition
 	COND_Max				= 9,
 };
 
+enum ELifetimeRepNotifyCondition
+{
+	REPNOTIFY_OnChanged		= 0,		// Only call the property's RepNotify function if it changes from the local value
+	REPNOTIFY_Always		= 1,		// Always Call the property's RepNotify function when it is received from the server
+};
+
 /** FLifetimeProperty
  *	This class is used to track a property that is marked to be replicated for the lifetime of the actor channel.
  *  This doesn't mean the property will necessarily always be replicated, it just means:
@@ -193,16 +198,18 @@ class FLifetimeProperty
 public:
 	uint16				RepIndex;
 	ELifetimeCondition	Condition;
+	ELifetimeRepNotifyCondition RepNotifyCondition;
 
-	FLifetimeProperty() : RepIndex( 0 ), Condition( COND_None ) {}
-	FLifetimeProperty( int32 InRepIndex ) : RepIndex( InRepIndex ), Condition( COND_None ) { check( InRepIndex <= 65535 ); }
-	FLifetimeProperty( int32 InRepIndex, ELifetimeCondition InCondition ) : RepIndex( InRepIndex ), Condition( InCondition ) { check( InRepIndex <= 65535 ); }
+	FLifetimeProperty() : RepIndex( 0 ), Condition( COND_None ), RepNotifyCondition(REPNOTIFY_OnChanged) {}
+	FLifetimeProperty( int32 InRepIndex ) : RepIndex( InRepIndex ), Condition( COND_None ), RepNotifyCondition(REPNOTIFY_OnChanged) { check( InRepIndex <= 65535 ); }
+	FLifetimeProperty(int32 InRepIndex, ELifetimeCondition InCondition, ELifetimeRepNotifyCondition InRepNotifyCondition=REPNOTIFY_OnChanged) : RepIndex(InRepIndex), Condition(InCondition), RepNotifyCondition(InRepNotifyCondition) { check(InRepIndex <= 65535); }
 
-	inline bool operator==( const FLifetimeProperty & Other ) const
+	inline bool operator==( const FLifetimeProperty& Other ) const
 	{
 		if ( RepIndex == Other.RepIndex )
 		{
 			check( Condition == Other.Condition );		// Can't have different conditions if the RepIndex matches, doesn't make sense
+			check( RepNotifyCondition == Other.RepNotifyCondition);
 			return true;
 		}
 
@@ -270,7 +277,7 @@ class INetSerializeCB
 public:
 	INetSerializeCB() { }
 
-	virtual void NetSerializeStruct( UStruct * Struct, FArchive & Ar, UPackageMap *	Map, void * Data, bool & bHasUnmapped ) = 0;
+	virtual void NetSerializeStruct( UScriptStruct* Struct, FArchive& Ar, UPackageMap* Map, void* Data, bool& bHasUnmapped ) = 0;
 };
 
 class IRepChangedPropertyTracker
@@ -310,7 +317,7 @@ struct FNetDeltaSerializeInfo
 	TSharedPtr<INetDeltaBaseState> *NewState;		// SharedPtr to new base state created by NetDeltaSerialize.
 	INetDeltaBaseState *  OldState;				// Pointer to the previous base state.
 	UPackageMap *	Map;
-	void * Data;
+	void* Data;
 
 	// Only used for fast TArray replication
 	UStruct *Struct;
@@ -375,5 +382,5 @@ COREUOBJECT_API void SerializeChecksum(FArchive &Ar, uint32 x, bool ErrorOK);
  * Functions to assist in detecting errors during RPC calls
  */
 COREUOBJECT_API void			RPC_ResetLastFailedReason();
-COREUOBJECT_API void			RPC_ValidateFailed( const TCHAR * Reason );
+COREUOBJECT_API void			RPC_ValidateFailed( const TCHAR* Reason );
 COREUOBJECT_API const TCHAR *	RPC_GetLastFailedReason();

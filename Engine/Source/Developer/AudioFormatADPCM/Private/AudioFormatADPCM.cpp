@@ -195,7 +195,7 @@ namespace LPCM
 
 		RiffDataChunks[1].ID = UE_MAKEFOURCC('d','a','t','a');
 		RiffDataChunks[1].DataSize = InputPCMData.Num();
-		RiffDataChunks[1].Data = const_cast<uint8*>(InputPCMData.GetTypedData());
+		RiffDataChunks[1].Data = const_cast<uint8*>(InputPCMData.GetData());
 
 		GenerateWaveFile(RiffDataChunks, CompressedDataStore);
 	}

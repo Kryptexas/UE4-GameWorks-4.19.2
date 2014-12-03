@@ -21,7 +21,8 @@ public class AssetTools : ModuleRules
 				"SourceControl",
 				"TextureEditor",
 				"UnrealEd",
-				"Kismet"
+				"Kismet",
+				"Landscape",
 			}
 		);
 
@@ -40,7 +41,8 @@ public class AssetTools : ModuleRules
 				"FontEditor",
 				"SoundCueEditor",
 				"SoundClassEditor",
-				"SourceControl"
+				"SourceControl",
+				"Landscape",
 			}
 		);
 

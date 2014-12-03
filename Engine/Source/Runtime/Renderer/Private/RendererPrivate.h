@@ -23,7 +23,7 @@ public:
 	virtual bool SupportsDynamicReloading() override { return true; }
 
 	virtual void BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily) override;
-	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel) override;
+	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual void RemoveScene(FSceneInterface* Scene) override;
 	virtual void UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& Materials) override;
 	virtual FSceneViewStateInterface* AllocateViewState() override;
@@ -60,8 +60,14 @@ public:
 		return AllocatedScenes;
 	}
 
+	virtual void RegisterCustomCullingImpl(ICustomCulling* impl) override;
+	virtual void UnregisterCustomCullingImpl(ICustomCulling* impl) override;
+
 private:
 	TSet<FSceneInterface*> AllocatedScenes;
+	ICustomCulling* CustomCullingImpl;
 };
+
+extern ICustomCulling* GCustomCullingImpl;
 
 #endif

@@ -53,6 +53,7 @@ struct FProfiledFileStatsOp : public FProfiledFileStatsBase
 		SetReadOnly,
 		GetTimeStamp,
 		SetTimeStamp,
+		GetFilenameOnDisk,
 		Create,
 		Copy,
 		Iterate,
@@ -353,6 +354,15 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 		return Result;
 	}
+	virtual FString	GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		StatsType* FileStat = CreateStat(Filename);
+		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat(FProfiledFileStatsOp::GetFilenameOnDisk);
+		double StartTime = FPlatformTime::Seconds();
+		FString Result = LowerLevel->GetFilenameOnDisk(Filename);
+		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
+		return Result;
+	}
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
@@ -569,6 +579,10 @@ public:
 	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		return LowerLevel->GetAccessTimeStamp(Filename);
+	}
+	virtual FString	GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		return LowerLevel->GetFilenameOnDisk(Filename);
 	}
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{

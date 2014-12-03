@@ -197,6 +197,8 @@ struct SDL_VideoDevice
     /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     int (*GetWindowBordersSize) (_THIS, SDL_Window * window, SDL_Rect * borders);
+    int (*SetWindowOpacity) (_THIS, SDL_Window * window, float opacity);
+    int (*GetWindowOpacity) (_THIS, SDL_Window * window, float * out_opacity);
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
     void (*ShowWindow) (_THIS, SDL_Window * window);

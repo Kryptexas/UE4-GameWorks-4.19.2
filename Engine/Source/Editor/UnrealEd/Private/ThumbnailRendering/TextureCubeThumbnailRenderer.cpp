@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UTextureCubeThumbnailRenderer::UTextureCubeThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureCubeThumbnailRenderer::UTextureCubeThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

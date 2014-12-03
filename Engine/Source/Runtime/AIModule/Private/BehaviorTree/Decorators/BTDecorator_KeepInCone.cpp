@@ -4,7 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_KeepInCone.h"
 
-UBTDecorator_KeepInCone::UBTDecorator_KeepInCone(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_KeepInCone::UBTDecorator_KeepInCone(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Keep in Cone";
 
@@ -26,7 +26,7 @@ UBTDecorator_KeepInCone::UBTDecorator_KeepInCone(const class FPostConstructIniti
 	ConeHalfAngle = 45.0f;
 }
 
-void UBTDecorator_KeepInCone::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_KeepInCone::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
@@ -105,7 +105,7 @@ FString UBTDecorator_KeepInCone::GetStaticDescription() const
 		*Observed.SelectedKeyName.ToString());
 }
 
-void UBTDecorator_KeepInCone::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_KeepInCone::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
 	FVector CurrentDir(1.0f, 0, 0);

@@ -4,7 +4,7 @@
 	IOSPlatformOutputDevices.mm: iOS implementations of OutputDevices functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "FeedbackContextAnsi.h"
 #include "../Private/IOS/IOSPlatformOutputDevicesPrivate.h"
@@ -17,6 +17,11 @@ class FOutputDeviceError* FIOSPlatformOutputDevices::GetError()
 {
 	static FOutputDeviceIOSError Singleton;
 	return &Singleton;
+}
+class FOutputDevice*	FIOSPlatformOutputDevices::GetLog()
+{
+    static FOutputDeviceFile Singleton(nullptr, true);
+    return &Singleton;
 }
 
 //class FFeedbackContext*				FIOSPlatformOutputDevices::GetWarn()

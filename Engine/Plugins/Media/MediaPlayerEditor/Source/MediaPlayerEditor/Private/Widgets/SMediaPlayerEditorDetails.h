@@ -27,6 +27,6 @@ public:
 
 private:
 
-	// Pointer to the MediaPlayer asset that is being viewed.
+	/** Pointer to the MediaPlayer asset that is being viewed. */
 	UMediaPlayer* MediaPlayer;
 };

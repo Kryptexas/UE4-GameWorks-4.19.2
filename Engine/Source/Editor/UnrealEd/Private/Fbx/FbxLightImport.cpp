@@ -43,7 +43,7 @@ ALight* FFbxImporter::CreateLight(FbxLight* InLight, UWorld* InWorld)
 		UnrealLight = InWorld->SpawnActor<ALight>( LightClass, SpawnInfo );
 		if (UnrealLight)
 		{
-			FillLightComponent(InLight,UnrealLight->LightComponent);	
+			FillLightComponent(InLight,UnrealLight->GetLightComponent());	
 		}
 		else
 		{
@@ -138,7 +138,7 @@ ACameraActor* FFbxImporter::CreateCamera(FbxCamera* InCamera, UWorld* InWorld)
 	UnrealCamera = InWorld->SpawnActor<ACameraActor>( SpawnInfo );
 	if (UnrealCamera)
 	{
-		UnrealCamera->CameraComponent->FieldOfView = InCamera->FieldOfView.Get();
+		UnrealCamera->GetCameraComponent()->FieldOfView = InCamera->FieldOfView.Get();
 	}
 	return UnrealCamera;
 }

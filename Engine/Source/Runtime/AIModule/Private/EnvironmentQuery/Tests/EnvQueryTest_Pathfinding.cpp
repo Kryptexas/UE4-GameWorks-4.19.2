@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Context = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::High;
@@ -186,7 +186,7 @@ FText UEnvQueryTest_Pathfinding::GetDescriptionDetails() const
 }
 
 #if WITH_EDITOR
-void UEnvQueryTest_Pathfinding::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UEnvQueryTest_Pathfinding::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UEnvQueryTest_Pathfinding,TestMode))
@@ -196,6 +196,13 @@ void UEnvQueryTest_Pathfinding::PostEditChangeProperty(struct FPropertyChangedEv
 	}
 }
 #endif
+
+void UEnvQueryTest_Pathfinding::PostLoad()
+{
+	Super::PostLoad();
+	
+	SetWorkOnFloatValues(TestMode != EEnvTestPathfinding::PathExist);
+}
 
 bool UEnvQueryTest_Pathfinding::TestPathFrom(const FVector& ItemPos, const FVector& ContextPos, EPathFindingMode::Type Mode, const ANavigationData* NavData, UNavigationSystem* NavSys, const UObject* PathOwner) const
 {
@@ -235,7 +242,7 @@ float UEnvQueryTest_Pathfinding::FindPathLengthTo(const FVector& ItemPos, const 
 
 ANavigationData* UEnvQueryTest_Pathfinding::FindNavigationData(UNavigationSystem* NavSys, UObject* Owner) const
 {
-	INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(Owner);
+	INavAgentInterface* NavAgent = Cast<INavAgentInterface>(Owner);
 	if (NavAgent)
 	{
 		return NavSys->GetNavDataForProps(*NavAgent->GetNavAgentProperties());

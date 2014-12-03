@@ -10,8 +10,7 @@
  *****************************************************************************/
 
 #include "ModuleManager.h"
-#include "Settings.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 
 

@@ -27,17 +27,17 @@ struct FEdGraphEditAction
 	/** The graph the action occurred on */
 	class UEdGraph* Graph;
 	/** [Optional] The object the action occurred on */
-	class UEdGraphNode* Node;
+	TSet<const class UEdGraphNode*> Nodes;
 
 	FEdGraphEditAction()
 		: Action(GRAPHACTION_Default)
 		, Graph (NULL)
-		, Node(NULL)
 	{}
 
 	explicit FEdGraphEditAction(EEdGraphActionType InAction, class UEdGraph* InGraph, class UEdGraphNode* InNode)
 		: Action(InAction) 
 		, Graph(InGraph)
-		, Node(InNode)
-	{}
+	{
+		Nodes.Add(InNode);
+	}
 };

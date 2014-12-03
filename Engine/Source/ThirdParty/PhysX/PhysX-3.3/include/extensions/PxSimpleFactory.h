@@ -273,7 +273,7 @@ articulation link and the scaleMassProps value is true, the mass properties are 
 center of mass is linearly scaled, the mass is multiplied by the cube of the scale, and the inertia tensor by the fifth power of the scale. 
 
 \param[in] actor a rigid actor
-\param[in] scale the scale by which to multiply the actor
+\param[in] scale the scale by which to multiply the actor. Must be >0.
 \param[in] scaleMassProps whether to scale the mass properties
 */
 

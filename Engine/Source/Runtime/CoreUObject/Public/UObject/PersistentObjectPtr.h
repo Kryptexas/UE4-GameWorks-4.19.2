@@ -34,7 +34,7 @@ public:
 	 * Construct from another lazy pointer
 	 * @param Other lazy pointer to copy from
 	 */
-	FORCEINLINE TPersistentObjectPtr(const TPersistentObjectPtr &Other)
+	FORCEINLINE TPersistentObjectPtr(const TPersistentObjectPtr& Other)
 	{
 		(*this)=Other;
 	}
@@ -43,7 +43,7 @@ public:
 	 * Copy from a unique object identifier
 	 * @param ObjectID object identifier to create a weak pointer to
 	 */
-	FORCEINLINE void operator=(const TObjectID &InObjectID)
+	FORCEINLINE void operator=(const TObjectID& InObjectID)
 	{
 		WeakPtr.Reset();
 		ObjectID = InObjectID;
@@ -54,7 +54,7 @@ public:
 	 * Copy from an object pointer
 	 * @param Object object to create a weak pointer to
 	 */
-	FORCEINLINE void operator=(const class UObject *Object)
+	FORCEINLINE void operator=(const class UObject* Object)
 	{
 		checkSlow(IsInGameThread());
 		if (Object)
@@ -73,7 +73,7 @@ public:
 	 * Copy from an existing weak pointer, reserve IDs if required
 	 * @param Other weak pointer to copy from
 	 */
-	FORCEINLINE void operator=(const FWeakObjectPtr &Other)
+	FORCEINLINE void operator=(const FWeakObjectPtr& Other)
 	{
 		// If object exists need to make sure it gets registered properly in above function, if it doesn't exist just empty it
 		const UObject *Object = Other.Get();
@@ -84,7 +84,7 @@ public:
 	 * Construct from another lazy pointer
 	 * @param Other lazy pointer to copy from
 	 */
-	FORCEINLINE void operator=(const TPersistentObjectPtr<TObjectID> &Other)
+	FORCEINLINE void operator=(const TPersistentObjectPtr<TObjectID>& Other)
 	{
 		WeakPtr = Other.WeakPtr;
 		TagAtLastTest = Other.TagAtLastTest;
@@ -96,7 +96,7 @@ public:
 	 * Gets the unique object identifier associated with this lazy pointer. Valid even if pointer is not currently valid
 	 * @return Unique ID for this object, or an invalid FUniqueObjectGuid if this pointer isn't set to anything
 	 */
-	FORCEINLINE const TObjectID &GetUniqueID() const
+	FORCEINLINE const TObjectID& GetUniqueID() const
 	{
 		return ObjectID;
 	}
@@ -105,7 +105,7 @@ public:
 	 * Dereference the lazy pointer, which may cause it to become valid again. Will not try to load pending outside of game thread
 	 * @return NULL if this object is gone or the lazy pointer was NULL, otherwise a valid UObject pointer
 	 */
-	FORCEINLINE class UObject *Get() const
+	FORCEINLINE class UObject* Get() const
 	{
 		UObject *Object = WeakPtr.Get();
 		if (!Object && TObjectID::GetCurrentTag() != TagAtLastTest && ObjectID.IsValid())
@@ -123,7 +123,7 @@ public:
 	/**  
 	 * Dereference the lazy pointer.
 	 */
-	FORCEINLINE class UObject & operator*() const
+	FORCEINLINE class UObject& operator*() const
 	{
 		return *Get();
 	}
@@ -131,7 +131,7 @@ public:
 	/**  
 	 * Dereference the lazy pointer.
 	 */
-	FORCEINLINE class UObject * operator->() const
+	FORCEINLINE class UObject* operator->() const
 	{
 		return Get();
 	}
@@ -141,7 +141,7 @@ public:
 	 * @param Other lazy pointer to compare to
 	 * Caution: Two lazy pointers might not be equal to each other, but they both might return NULL.
 	**/
-	FORCEINLINE bool operator==(const TPersistentObjectPtr &Other) const
+	FORCEINLINE bool operator==(const TPersistentObjectPtr& Other) const
 	{
 		return ObjectID == Other.ObjectID;
 	}
@@ -151,7 +151,7 @@ public:
 	 * @param Other lazy pointer to compare to
 	 * Caution: Two lazy pointers might not be equal to each other, but they both might return NULL.
 	**/
-	FORCEINLINE bool operator!=(const TPersistentObjectPtr &Other) const
+	FORCEINLINE bool operator!=(const TPersistentObjectPtr& Other) const
 	{
 		return ObjectID != Other.ObjectID;
 	}

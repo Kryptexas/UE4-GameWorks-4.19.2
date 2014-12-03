@@ -20,8 +20,8 @@ static inline TArray<FAnalyticsEventAttribute> ConvertAttrs(const TArray<FAnalyt
 }
 
 
-UAnalyticsBlueprintLibrary::UAnalyticsBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnalyticsBlueprintLibrary::UAnalyticsBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

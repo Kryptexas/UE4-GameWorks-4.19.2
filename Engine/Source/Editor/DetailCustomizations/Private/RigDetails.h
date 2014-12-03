@@ -31,7 +31,7 @@ private:
 	TWeakObjectPtr<UObject> ItemBeingEdited;
 
 	// node display text handler
-	void ValidErrorMessage(const FString & DisplayString, int32 ArrayIndex);
+	void ValidErrorMessage(const FString& DisplayString, int32 ArrayIndex);
 	FText GetDisplayName(TSharedRef<IPropertyHandle> DisplayNameProp) const;
 	void OnDisplayNameChanged(const FText& Text, TSharedRef<IPropertyHandle> DisplayNameProp, int32 ArrayIndex);
 	void OnDisplayNameCommitted(const FText& Text, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> DisplayNameProp, int32 ArrayIndex);

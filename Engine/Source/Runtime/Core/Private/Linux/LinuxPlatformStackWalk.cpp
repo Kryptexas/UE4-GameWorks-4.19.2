@@ -4,7 +4,8 @@
 	LinuxPlatformStackWalk.cpp: Linux implementations of stack walk functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <cxxabi.h>
@@ -232,6 +233,7 @@ void FLinuxPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 M
 
 		if (LinuxContext->BacktraceSymbols == NULL)
 		{
+			// @TODO yrx 2014-09-29 Replace with backtrace_symbols_fd due to malloc()
 			LinuxContext->BacktraceSymbols = backtrace_symbols(reinterpret_cast< void** >( BackTrace ), MaxDepth);
 		}
 	}

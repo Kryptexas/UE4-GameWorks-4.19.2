@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
-#include "SDesignerToolBar.h"
 #include "DesignerCommands.h"
-
+#include "SDesignerToolBar.h"
+#include "Settings/WidgetDesignerSettings.h"
 #include "SViewportToolBarComboMenu.h"
 
 #define LOCTEXT_NAMESPACE "UMG"

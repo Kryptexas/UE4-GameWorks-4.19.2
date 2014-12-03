@@ -9,10 +9,10 @@
 #include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsEngine/DestructibleActor.h"
 
-ADestructibleActor::ADestructibleActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADestructibleActor::ADestructibleActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DestructibleComponent = PCIP.CreateDefaultSubobject<UDestructibleComponent>(this, TEXT("DestructibleComponent0"));
+	DestructibleComponent = ObjectInitializer.CreateDefaultSubobject<UDestructibleComponent>(this, TEXT("DestructibleComponent0"));
 	DestructibleComponent->bCanEverAffectNavigation = bAffectNavigation;
 	RootComponent = DestructibleComponent;
 }
@@ -20,7 +20,7 @@ ADestructibleActor::ADestructibleActor(const class FPostConstructInitializePrope
 #if WITH_EDITOR
 bool ADestructibleActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
-	if (DestructibleComponent.IsValid() && DestructibleComponent->SkeletalMesh)
+	if (DestructibleComponent && DestructibleComponent->SkeletalMesh)
 	{
 		Objects.Add(DestructibleComponent->SkeletalMesh);
 	}
@@ -29,3 +29,6 @@ bool ADestructibleActor::GetReferencedContentObjects( TArray<UObject*>& Objects 
 #endif // WITH_EDITOR
 
 
+
+/** Returns DestructibleComponent subobject **/
+UDestructibleComponent* ADestructibleActor::GetDestructibleComponent() const { return DestructibleComponent; }

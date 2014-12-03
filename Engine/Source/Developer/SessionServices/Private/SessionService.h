@@ -19,10 +19,8 @@ public:
 	 */
 	FSessionService( const IMessageBusRef& InMessageBus );
 
-	/**
-	 * Destructor.
-	 */
-	~FSessionService( );
+	/** Destructor. */
+	~FSessionService();
 
 public:
 
@@ -37,13 +35,13 @@ public:
 
 	// ISessionService interface
 
-	virtual bool IsRunning( ) override
+	virtual bool IsRunning() override
 	{
 		return MessageEndpoint.IsValid();
 	}
 
-	virtual bool Start( ) override;
-	virtual void Stop( ) override;
+	virtual bool Start() override;
+	virtual void Stop() override;
 
 protected:
 
@@ -73,29 +71,29 @@ protected:
 
 private:
 
-	// Handles message bus shutdowns.
-	void HandleMessageEndpointShutdown( );
+	/** Handles message bus shutdowns. */
+	void HandleMessageEndpointShutdown();
 
-	// Handles FSessionServiceLogSubscribe messages.
+	/** Handles FSessionServiceLogSubscribe messages. */
 	void HandleSessionLogSubscribeMessage( const FSessionServiceLogSubscribe& Message, const IMessageContextRef& Context );
 
-	// Handles FSessionServiceLogUnsubscribe messages.
+	/** Handles FSessionServiceLogUnsubscribe messages. */
 	void HandleSessionLogUnsubscribeMessage( const FSessionServiceLogUnsubscribe& Message, const IMessageContextRef& Context );
 
-	// Handles FSessionServicePing messages.
+	/** Handles FSessionServicePing messages. */
 	void HandleSessionPingMessage( const FSessionServicePing& Message, const IMessageContextRef& Context );
 
 private:
 
-	// Holds the list of log subscribers.
+	/** Holds the list of log subscribers. */
 	TArray<FMessageAddress> LogSubscribers;
 
-	// Holds a critical section for the log subscribers array.
+	/** Holds a critical section for the log subscribers array. */
 	FCriticalSection LogSubscribersLock;
 
-	// Holds a weak pointer to the message bus.
+	/** Holds a weak pointer to the message bus. */
 	IMessageBusWeakPtr MessageBusPtr;
 
-	// Holds the message endpoint.
+	/** Holds the message endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
 };

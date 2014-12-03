@@ -493,6 +493,9 @@ namespace UnrealBuildTool
 					// Add DotNETUtilities to the master project
 					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("DotNETCommon/DotNETUtilities", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
+					// Add the Git dependencies project
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("GitDependencies", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
+
 					// Add all of the IOS C# projects
 					AddIOSProjects( ProgramsFolder );
 

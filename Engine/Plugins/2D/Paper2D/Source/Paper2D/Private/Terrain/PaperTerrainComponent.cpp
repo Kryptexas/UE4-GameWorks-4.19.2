@@ -50,7 +50,7 @@ FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* I
 	for (const FPaperTerrainMaterialPair& Batch : DrawingData)
 	{
 		const UMaterialInterface* MaterialInterface = (Batch.Material != nullptr) ? Batch.Material : UMaterial::GetDefaultMaterial(MD_Surface);
-		MaterialRelevance |= MaterialInterface->GetRelevance_Concurrent(GetScene()->GetFeatureLevel());
+		MaterialRelevance |= MaterialInterface->GetRelevance_Concurrent(GetScene().GetFeatureLevel());
 	}
 }
 
@@ -79,8 +79,8 @@ void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* Vi
 //////////////////////////////////////////////////////////////////////////
 // UPaperTerrainComponent
 
-UPaperTerrainComponent::UPaperTerrainComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTerrainComponent::UPaperTerrainComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TerrainColor(FLinearColor::White)
 	, ReparamStepsPerSegment(8)
 	, SpriteCollisionDomain(ESpriteCollisionMode::Use3DPhysics)

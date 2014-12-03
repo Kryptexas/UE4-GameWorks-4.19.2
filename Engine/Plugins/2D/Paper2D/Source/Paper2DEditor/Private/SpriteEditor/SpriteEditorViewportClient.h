@@ -229,6 +229,7 @@ private:
 	// Selection handling
 	void SelectPolygon(const int32 PolygonIndex);
 	void AddPolygonVertexToSelection(const int32 PolygonIndex, const int32 VertexIndex);
+	void AddPolygonEdgeToSelection(const int32 PolygonIndex, const int32 FirstVertexIndex);
 	bool IsPolygonVertexSelected(const int32 PolygonIndex, const int32 VertexIndex) const;
 	void AddPointToGeometry(const FVector2D& TextureSpacePoint, const int32 SelectedPolygonIndex = -1);
 	void ClearSelectionSet();

@@ -9,7 +9,7 @@
 /* SMessagingMessageDetails structors
  *****************************************************************************/
 
-SMessagingMessageDetails::~SMessagingMessageDetails( )
+SMessagingMessageDetails::~SMessagingMessageDetails()
 {
 	if (Model.IsValid())
 	{
@@ -37,37 +37,6 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 				SNew(SGridPanel)
 					.FillColumn(1, 1.0f)
 
-				// Message type
-				+ SGridPanel::Slot(0, 0)
-					.Padding(0.0f, 4.0f)
-					[
-						SNew(STextBlock)
-							.Text(LOCTEXT("MessageTypeLabel", "Message Type:"))
-					]
-
-				+ SGridPanel::Slot(1, 0)
-					.HAlign(HAlign_Right)
-					.Padding(0.0f, 4.0f)
-					[
-						SNew(STextBlock)
-							.Text(this, &SMessagingMessageDetails::HandleMessageTypeText)
-					]
-
-				// Sender
-				+ SGridPanel::Slot(0, 1)
-					.Padding(0.0f, 4.0f)
-					[
-						SNew(STextBlock)
-							.Text(LOCTEXT("SenderLabel", "Sender:"))
-					]
-
-				+ SGridPanel::Slot(1, 1)
-					.HAlign(HAlign_Right)
-					.Padding(0.0f, 4.0f)
-					[
-						SNew(STextBlock)
-							.Text(this, &SMessagingMessageDetails::HandleSenderText)
-					]
 
 				// Sender thread
 				+ SGridPanel::Slot(0, 2)
@@ -85,7 +54,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 						.Text(this, &SMessagingMessageDetails::HandleSenderThreadText)
 					]
 
-				// Time sent
+				// Timestamp
 				+ SGridPanel::Slot(0, 3)
 					.Padding(0.0f, 4.0f)
 					[
@@ -120,10 +89,10 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
-			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// message list
@@ -136,13 +105,13 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 							(
 								SNew(SHeaderRow)
 
-								+ SHeaderRow::Column("Type")
-									.DefaultLabel( FText::FromString(TEXT(" ")))
-									.FixedWidth(20.0f)
-
 								+ SHeaderRow::Column("Recipient")
-									.DefaultLabel(LOCTEXT("DispatchStateListRecipientColumnHeader", "Recipient"))
-									.FillWidth(1.0f)
+									.DefaultLabel(LOCTEXT("DispatchStateListRecipientColumnHeader", "Recipient Endpoint"))
+									.FillWidth(0.75f)
+
+								+ SHeaderRow::Column("DispatchType")
+									.DefaultLabel(LOCTEXT("DispatchStateListDispatchTypeColumnHeader", "Dispatch Type"))
+									.FillWidth(0.25f)
 
 								+ SHeaderRow::Column("DispatchLatency")
 									.DefaultLabel(LOCTEXT("DispatchStateListDispatchedColumnHeader", "Dispatch Latency"))
@@ -167,7 +136,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 /* SMessagingMessageDetails implementation
  *****************************************************************************/
 
-void SMessagingMessageDetails::RefreshDetails( )
+void SMessagingMessageDetails::RefreshDetails()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -195,7 +164,7 @@ TSharedRef<ITableRow> SMessagingMessageDetails::HandleDispatchStateListGenerateR
 }
 
 
-FText SMessagingMessageDetails::HandleExpirationText( ) const
+FText SMessagingMessageDetails::HandleExpirationText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -215,39 +184,13 @@ FText SMessagingMessageDetails::HandleExpirationText( ) const
 }
 
 
-FText SMessagingMessageDetails::HandleMessageTypeText( ) const
-{
-	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
-
-	if (SelectedMessage.IsValid() && SelectedMessage->TypeInfo.IsValid())
-	{
-		return FText::FromName(SelectedMessage->TypeInfo->TypeName);
-	}
-
-	return FText::GetEmpty();
-}
-
-
-void SMessagingMessageDetails::HandleModelSelectedMessageChanged( )
+void SMessagingMessageDetails::HandleModelSelectedMessageChanged()
 {
 	RefreshDetails();	
 }
 
 
-FText SMessagingMessageDetails::HandleSenderText( ) const
-{
-	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
-
-	if (SelectedMessage.IsValid() && SelectedMessage->SenderInfo.IsValid())
-	{
-		return FText::FromName(SelectedMessage->SenderInfo->Name);
-	}
-
-	return FText::GetEmpty();
-}
-
-
-FText SMessagingMessageDetails::HandleSenderThreadText( ) const
+FText SMessagingMessageDetails::HandleSenderThreadText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -278,7 +221,7 @@ FText SMessagingMessageDetails::HandleSenderThreadText( ) const
 }
 
 
-FText SMessagingMessageDetails::HandleTimestampText( ) const
+FText SMessagingMessageDetails::HandleTimestampText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 

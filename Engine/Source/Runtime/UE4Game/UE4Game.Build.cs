@@ -8,6 +8,17 @@ public class UE4Game : ModuleRules
 	{
 		PrivateDependencyModuleNames.Add("Core");
 	
+		DynamicallyLoadedModuleNames.Add("OnlineSubsystemNull");
+
+		if (Target.Platform == UnrealTargetPlatform.Win32 ||
+			Target.Platform == UnrealTargetPlatform.Win64 ||
+			Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			if (UEBuildConfiguration.bCompileSteamOSS == true)
+			{
+				DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+			}
+		}
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "OnlineSubsystem", "OnlineSubsystemUtils" });

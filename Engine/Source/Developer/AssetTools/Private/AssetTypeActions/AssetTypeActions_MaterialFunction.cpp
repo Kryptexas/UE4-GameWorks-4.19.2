@@ -10,19 +10,9 @@ void FAssetTypeActions_MaterialFunction::GetActions( const TArray<UObject*>& InO
 	auto Materials = GetTypedWeakObjectPtrs<UMaterialFunction>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MaterialFunction_Edit", "Edit"),
-		LOCTEXT("MaterialFunction_EditTooltip", "Opens the selected material functions in the material editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_MaterialFunction::ExecuteEdit, Materials ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MaterialFunction_FindMaterials", "Find Materials Using This"),
 		LOCTEXT("MaterialFunction_FindMaterialsTooltip", "Finds the materials that reference this material function in the content browser."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.FindResults"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_MaterialFunction::ExecuteFindMaterials, Materials ),
 			FCanExecuteAction()
@@ -41,18 +31,6 @@ void FAssetTypeActions_MaterialFunction::OpenAssetEditor( const TArray<UObject*>
 		{
 			IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
 			MaterialEditorModule->CreateMaterialEditor(Mode, EditWithinLevelEditor, Function);
-		}
-	}
-}
-
-void FAssetTypeActions_MaterialFunction::ExecuteEdit(TArray<TWeakObjectPtr<UMaterialFunction>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }

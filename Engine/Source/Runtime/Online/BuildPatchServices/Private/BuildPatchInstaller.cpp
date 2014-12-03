@@ -280,7 +280,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	const uint32 NumRequiredChunks = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumRequiredChunks();
 	const uint32 NumChunksToDownload = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumChunksToDownload();
 	const uint32 NumChunksToConstruct = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetStatNumChunksToRecycle();
-	TotalInitialDownloadSize = bIsFileData ? NewBuildManifest->GetFileSize(FilesToConstruct) : FBuildPatchChunkCache::Get().GetStatTotalChunkDownloadSize();
 
 	// Save stats
 	{
@@ -330,6 +329,11 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		TArray< FGuid > RequiredFileData;
 		NewBuildManifest->GetChunksRequiredForFiles(FilesToConstruct, RequiredFileData);
 		FBuildPatchDownloader::Get().AddChunksToDownload(RequiredFileData);
+		TotalInitialDownloadSize = NewBuildManifest->GetDataSize(RequiredFileData);
+	}
+	else
+	{
+		TotalInitialDownloadSize = FBuildPatchChunkCache::Get().GetStatTotalChunkDownloadSize();
 	}
 
 	// Wait for the file constructor to complete
@@ -607,34 +611,27 @@ bool FBuildPatchInstaller::BackupFileIfNecessary(const FString& Filename, bool b
 	{
 		return IFileManager::Get().Move(*BackupFilename, *InstalledFilename, true, true, true);
 	}
-	// There are lots of checks to do in order to figure out whether a file needs backing up.
-	TSharedPtr< FBuildPatchFileManifest > OldFileManifest = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetFileManifest(Filename) : NULL;
-	TSharedPtr< FBuildPatchFileManifest > NewFileManifest = NewBuildManifest->GetFileManifest(Filename);
-	const bool bCurrentlyInstalled = CurrentBuildManifest.IsValid();
-	const bool bPerformingRepair = CurrentBuildManifest == NewBuildManifest;
-	const bool bPerformingPatch = bCurrentlyInstalled && !bPerformingRepair;
-	const bool bFreshInstall = !bCurrentlyInstalled;
-	const bool bFileIsNewAddition = OldFileManifest.IsValid() == false;
-	const bool bFileRemovedByPatch = bPerformingPatch && !NewFileManifest.IsValid();
 	bool bUserEditedFile = bDiscoveredByVerification;
-	const bool bCheckFileChanges = !bDiscoveredByVerification && ((!bPerformingRepair && !bFileIsNewAddition) || bFileRemovedByPatch);
+	const bool bCheckFileChanges = !bDiscoveredByVerification;
 	if (bCheckFileChanges)
 	{
+		const FFileManifestData* OldFileManifest = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetFileManifest(Filename) : nullptr;
+		const FFileManifestData* NewFileManifest = NewBuildManifest->GetFileManifest(Filename);
 		const int64 InstalledFilesize = IFileManager::Get().FileSize(*InstalledFilename);
-		const int64 OriginalFileSize = OldFileManifest.IsValid() ? OldFileManifest->GetFileSize() : INDEX_NONE;
-		const int64 NewFileSize = NewFileManifest.IsValid() ? NewFileManifest->GetFileSize() : INDEX_NONE;
-		const FSHAHash HashZero;
-		const FSHAHash& HashOld = OldFileManifest.IsValid() ? OldFileManifest->FileHash : HashZero;
-		const FSHAHash& HashNew = NewFileManifest.IsValid() ? NewFileManifest->FileHash : HashZero;
+		const int64 OriginalFileSize = OldFileManifest ? OldFileManifest->GetFileSize() : INDEX_NONE;
+		const int64 NewFileSize = NewFileManifest ? NewFileManifest->GetFileSize() : INDEX_NONE;
+		const FSHAHashData HashZero;
+		const FSHAHashData& HashOld = OldFileManifest ? OldFileManifest->FileHash : HashZero;
+		const FSHAHashData& HashNew = NewFileManifest ? NewFileManifest->FileHash : HashZero;
 		const bool bFileSizeDiffers = OriginalFileSize != InstalledFilesize && NewFileSize != InstalledFilesize;
 		bUserEditedFile = bFileSizeDiffers || FBuildPatchUtils::VerifyFile(InstalledFilename, HashOld, HashNew) == 0;
 	}
 	// Finally, use the above logic to determine if we must do the backup
-	const bool bNeedBackup = bFileIsNewAddition || bPerformingRepair || bUserEditedFile;
+	const bool bNeedBackup = bUserEditedFile;
 	bool bBackupSuccess = true;
 	if (bNeedBackup)
 	{
-		GLog->Logf(TEXT("BuildPatchServices: Backing up (%d,%d,%d) %s"), bFileIsNewAddition?1:0, bPerformingRepair?1:0, bUserEditedFile?1:0, *Filename);
+		GLog->Logf(TEXT("BuildPatchServices: Backing up %s"), *Filename);
 		bBackupSuccess = IFileManager::Get().Move(*BackupFilename, *InstalledFilename, true, true, true);
 	}
 	return bBackupSuccess;

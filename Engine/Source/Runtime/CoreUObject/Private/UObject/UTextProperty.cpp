@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
+#include "UObject/UTextProperty.h"
 #include "PropertyHelper.h"
 
 bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const

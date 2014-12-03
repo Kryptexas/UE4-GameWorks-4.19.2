@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
+#include "SExpandableArea.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingEndpoints"
@@ -52,7 +53,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// message list
@@ -128,7 +129,7 @@ void SMessagingEndpoints::Tick( const FGeometry& AllottedGeometry, const double 
 /* SMessagingEndpoints implementation
  *****************************************************************************/
 
-void SMessagingEndpoints::ReloadEndpointList( )
+void SMessagingEndpoints::ReloadEndpointList()
 {
 	EndpointList.Reset();
 
@@ -162,7 +163,7 @@ TSharedRef<ITableRow> SMessagingEndpoints::HandleEndpointListGenerateRow( FMessa
 }
 
 
-FText SMessagingEndpoints::HandleEndpointListGetHighlightText( ) const
+FText SMessagingEndpoints::HandleEndpointListGetHighlightText() const
 {
 	return FText::GetEmpty();
 	//return FilterBar->GetFilterText();
@@ -182,13 +183,13 @@ void SMessagingEndpoints::HandleEndpointListSelectionChanged( FMessageTracerEndp
 }
 
 
-void SMessagingEndpoints::HandleFilterChanged( )
+void SMessagingEndpoints::HandleFilterChanged()
 {
 	ReloadEndpointList();
 }
 
 
-void SMessagingEndpoints::HandleModelSelectedMessageChanged( )
+void SMessagingEndpoints::HandleModelSelectedMessageChanged()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 

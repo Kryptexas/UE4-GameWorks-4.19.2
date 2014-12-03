@@ -132,7 +132,8 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
-	bool bIsTwoSided
+	bool bIsTwoSided,
+	ERHIFeatureLevel::Type InFeatureLevel
 	):
 	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,/*bInTwoSidedOverride=*/ bIsTwoSided)
 {
@@ -154,7 +155,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	HullShader = NULL;	
 	DomainShader = NULL;
 
-	if(RHISupportsTessellation(GRHIShaderPlatform)
+	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& TessellationMode != MTM_NoTessellation)
 	{
@@ -307,6 +308,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
 	const FMaterial* Material = MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
+	const auto FeatureLevel = Scene->GetFeatureLevel();
 
 	if (Material->IsMasked())
 	{
@@ -318,9 +320,10 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 				StaticMesh->VertexFactory,
 				MaterialRenderProxy,
 				*Material,
-				Material->IsTwoSided()
+				Material->IsTwoSided(),
+				FeatureLevel
 				),
-			Scene->GetFeatureLevel()
+			FeatureLevel
 			);
 	}
 	else
@@ -340,7 +343,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 					Material->IsTwoSided(),
 					Material->IsWireframe()
 					),
-				Scene->GetFeatureLevel()
+				FeatureLevel
 				);
 		}
 		else
@@ -359,9 +362,10 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 					StaticMesh->VertexFactory,
 					MaterialRenderProxy,
 					*MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel()),
-					Material->IsTwoSided()
+					Material->IsTwoSided(),
+					FeatureLevel
 					),
-				Scene->GetFeatureLevel()
+				FeatureLevel
 				);
 		}
 	}
@@ -443,7 +447,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 					MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 				}
 
-				FDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided());
+				FDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided(), View.GetFeatureLevel());
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType());
 

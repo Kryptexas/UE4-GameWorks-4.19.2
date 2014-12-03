@@ -1,14 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OutputDevice.cpp: Implementation of OutputDevice
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
+#include "MallocCrash.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);
+
 
 namespace
 {
@@ -164,6 +163,11 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	// For ensure log should be flushed in the engine loop.
 	if( !bIsEnsure )
 	{
+#if	PLATFORM_WINDOWS // @TODO yrx 2014-09-30 Remove later.
+		// Switch to malloc crash.
+		FMallocCrash::Get().SetAsGMalloc(); 
+#endif // PLATFORM_WINDOWS
+
 		GLog->PanicFlushThreadedLogs();
 	}
 

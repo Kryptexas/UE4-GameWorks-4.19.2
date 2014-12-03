@@ -5,8 +5,8 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-UK2Node_SwitchName::UK2Node_SwitchName(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_SwitchName::UK2Node_SwitchName(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FunctionName = TEXT("NotEqual_NameName");
 	FunctionClass = UKismetMathLibrary::StaticClass();

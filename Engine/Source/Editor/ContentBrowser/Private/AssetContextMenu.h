@@ -8,8 +8,14 @@ public:
 	/** Constructor */
 	FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView);
 
+	/** Binds the commands used by the asset view context menu to the content browser command list */
+	void BindCommands(TSharedPtr< FUICommandList >& Commands);
+
 	/** Makes the context menu widget */
 	TSharedRef<SWidget> MakeContextMenu(const TArray<FAssetData>& SelectedAssets, const FSourcesData& InSourcesData, TSharedPtr< FUICommandList > InCommandList);
+
+	/** Updates the list of currently selected assets to those passed in */
+	void SetSelectedAssets(const TArray<FAssetData>& InSelectedAssets);
 
 	/** Delegate for when the context menu requests a rename */
 	void SetOnFindInAssetTreeRequested(const FOnFindInAssetTreeRequested& InOnFindInAssetTreeRequested);
@@ -43,20 +49,57 @@ public:
 	void ExecuteDelete();
 
 private:
+	/** Helper to load selected assets and sort them by UClass */
+	void GetSelectedAssetsByClass(TMap<UClass*, TArray<UObject*> >& OutSelectedAssetsByClass) const;
+
+	/** Helper to collect resolved filepaths for all selected assets */
+	void GetSelectedAssetSourceFilePaths(TArray<FString>& OutFilePaths) const;
+
+	/** Handler to check to see if a imported asset actions should be visible in the menu */
+	bool AreImportedAssetActionsVisible() const;
+
+	/** Handler to check to see if imported asset actions are allowed */
+	bool CanExecuteImportedAssetActions(const TArray<FString> ResolvedFilePaths) const;
+
+	/** Handler for Reimport */
+	void ExecuteReimport();
+
+	/** Handler for FindInExplorer */
+	void ExecuteFindSourceInExplorer(const TArray<FString> ResolvedFilePaths);
+
+	/** Handler for OpenInExternalEditor */
+	void ExecuteOpenInExternalEditor(const TArray<FString> ResolvedFilePaths);
+
+	/** Handler to check to see if a duplicate command is allowed */
+	bool CanExecuteDuplicate() const;
+
+	/** Handler for Duplicate */
+	void ExecuteDuplicate();
+
+private:
+	/** Adds asset type-specific menu options to a menu builder. Returns true if any options were added. */
+	bool AddAssetTypeMenuOptions(FMenuBuilder& MenuBuilder);
+
+	/** Adds asset type-specific menu options to a menu builder. Returns true if any options were added. */
+	bool AddImportedAssetMenuOptions(FMenuBuilder& MenuBuilder);
+	
 	/** Adds common menu options to a menu builder. Returns true if any options were added. */
 	bool AddCommonMenuOptions(FMenuBuilder& MenuBuilder);
+
+	/** Adds Asset Actions sub-menu to a menu builder. */
+	void MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder);
 
 	/** Adds asset reference menu options to a menu builder. Returns true if any options were added. */
 	bool AddReferenceMenuOptions(FMenuBuilder& MenuBuilder);
 
 	/** Adds asset documentation menu options to a menu builder. Returns true if any options were added. */
 	bool AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder);
-
-	/** Adds asset type-specific menu options to a menu builder. Returns true if any options were added. */
-	bool AddAssetTypeMenuOptions(FMenuBuilder& MenuBuilder);
-
-	/** Adds source control menu options to a menu builder. Returns true if any options were added. */
+	
+	/** Adds source control menu options to a menu builder. */
 	bool AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder);
+
+	/** Fills the source control sub-menu */
+	void FillSourceControlSubMenu(FMenuBuilder& MenuBuilder);
 
 	/** Adds menu options related to working with collections */
 	bool AddCollectionMenuOptions(FMenuBuilder& MenuBuilder);
@@ -76,20 +119,17 @@ private:
 	/** Handler for when "Find in World" is selected */
 	void ExecuteFindAssetInWorld();
 
-	/** Handler for when "Properties" is selected */
-	void ExecuteProperties();
-
 	/** Handler for when "Property Matrix..." is selected */
 	void ExecutePropertyMatrix();
+
+	/** Handler for when "Edit Asset" is selected */
+	void ExecuteEditAsset();
 
 	/** Handler for when "Save Asset" is selected */
 	void ExecuteSaveAsset();
 
 	/** Handler for when "Diff Selected" is selected */
 	void ExecuteDiffSelected() const;
-
-	/** Handler for Duplicate */
-	void ExecuteDuplicate();
 
 	/** Handler for confirmation of folder deletion */
 	FReply ExecuteDeleteFolderConfirmed();
@@ -132,6 +172,9 @@ private:
 
 	/** Handler for when "Refresh source control" is selected */
 	void ExecuteSCCRefresh();
+
+	/** Handler for when "Merge" is selected */
+	void ExecuteSCCMerge();
 
 	/** Handler for when "Checkout from source control" is selected */
 	void ExecuteSCCCheckOut();
@@ -184,14 +227,14 @@ private:
 	/** Handler to check to see if a property matrix command is allowed */
 	bool CanExecutePropertyMatrix() const;
 
-	/** Handler to check to see if a duplicate command is allowed */
-	bool CanExecuteDuplicate() const;
-
 	/** Handler to check to see if a "Remove from collection" command is allowed */
 	bool CanExecuteRemoveFromCollection() const;
 
 	/** Handler to check to see if "Refresh source control" can be executed */
 	bool CanExecuteSCCRefresh() const;
+
+	/** Handler to check to see if "Merge" can be executed */
+	bool CanExecuteSCCMerge() const;
 
 	/** Handler to check to see if "Checkout from source control" can be executed */
 	bool CanExecuteSCCCheckOut() const;
@@ -274,6 +317,7 @@ private:
 
 	/** Cached CanExecute vars */
 	bool bAtLeastOneNonRedirectorSelected;
+	bool bCanExecuteSCCMerge;
 	bool bCanExecuteSCCCheckOut;
 	bool bCanExecuteSCCOpenForAdd;
 	bool bCanExecuteSCCCheckIn;

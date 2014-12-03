@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
@@ -51,6 +51,7 @@ namespace
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])
 				{
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
@@ -66,6 +67,7 @@ namespace
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])
 				{
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
@@ -81,6 +83,7 @@ namespace
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])
 				{
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
@@ -96,6 +99,7 @@ namespace
 		{
 			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])
 				{
 					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
@@ -133,6 +137,7 @@ TSharedPtr<ITextInputMethodChangeNotifier> FMacTextInputMethodSystem::RegisterCo
 
 void FMacTextInputMethodSystem::UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context)
 {
+	SCOPED_AUTORELEASE_POOL;
 	TWeakPtr<ITextInputMethodChangeNotifier>& NotifierRef = ContextMap[Context];
 	if(!NotifierRef.IsValid())
 	{
@@ -153,6 +158,7 @@ void FMacTextInputMethodSystem::UnregisterContext(const TSharedRef<ITextInputMet
 
 void FMacTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputMethodContext>& Context)
 {
+	SCOPED_AUTORELEASE_POOL;
 	TWeakPtr<ITextInputMethodChangeNotifier>& NotifierRef = ContextMap[Context];
 	if(!NotifierRef.IsValid())
 	{
@@ -191,6 +197,7 @@ void FMacTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputMetho
 
 void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context)
 {
+	SCOPED_AUTORELEASE_POOL;
 	TWeakPtr<ITextInputMethodChangeNotifier>& NotifierRef = ContextMap[Context];
 	if(!NotifierRef.IsValid())
 	{
@@ -228,6 +235,7 @@ void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMet
 
 bool FMacTextInputMethodSystem::IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const
 {
+	SCOPED_AUTORELEASE_POOL;
 	const TWeakPtr<ITextInputMethodChangeNotifier>& NotifierRef = ContextMap[Context];
 	if(!NotifierRef.IsValid())
 	{

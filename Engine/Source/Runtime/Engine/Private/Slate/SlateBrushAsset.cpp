@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Slate/SlateBrushAsset.h"
 
-USlateBrushAsset::USlateBrushAsset( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+USlateBrushAsset::USlateBrushAsset( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

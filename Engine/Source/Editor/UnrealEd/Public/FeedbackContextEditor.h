@@ -7,59 +7,14 @@
 
 #pragma once
 
-
-
 /**
  * A FFeedbackContext implementation for use in UnrealEd.
  */
 class FFeedbackContextEditor : public FFeedbackContext
 {
-	/** minimum time between progress updates displayed - more frequent updates are ignored */
-	static const float UIUpdateGatingTime;
-
-	/** the number of times a caller requested the progress dialog be shown */
-	int32				DialogRequestCount;
-	/** keeps track of the order in which calls were made requesting the progress dialog */
-	TArray<bool>	DialogRequestStack;
-
 	/** Slate slow task widget */
 	TWeakPtr<class SWindow> SlowTaskWindow;
 	TSharedPtr<class SSlowTaskWidget> SlowTaskWidget;
-
-	/**
-	 * StatusMessageStackItem
-	 */
-	struct StatusMessageStackItem
-	{
-		/** Status message text */
-		FText StatusText;
-
-		/** Progress numerator */
-		int32 ProgressNumerator;
-
-		/** Progress denominator */
-		int32 ProgressDenominator;
-
-		/** Cached numerator so we can update less frequently */
-		int32 SavedNumerator;
-		
-		/** Cached denominator so we can update less frequently */
-		int32 SavedDenominator;
-
-		/** The list time we updated the progress, so we can make sure to update at least once a second */
-		double LastUpdateTime;
-
-		StatusMessageStackItem()
-		: ProgressNumerator(0), ProgressDenominator(0), SavedNumerator(0), SavedDenominator(0), LastUpdateTime(0.0)
-		{
-		}
-	};
-
-	/** Current status message and progress */
-	StatusMessageStackItem StatusMessage;
-
-	/** Stack of status messages and progress values */
-	TArray< StatusMessageStackItem > StatusMessageStack;
 
 	/** Special Windows/Widget popup for building */
 	TWeakPtr<class SWindow> BuildProgressWindow;
@@ -67,43 +22,20 @@ class FFeedbackContextEditor : public FFeedbackContext
 
 	bool HasTaskBeenCancelled;
 
-
-	/**
-	 *  Updates text and value for various progress meters.
-	 *
-	 *	@param StatusText				New status text
-	 *	@param ProgressNumerator		Numerator for the progress meter (its current value).
-	 *	@param ProgressDenominitator	Denominiator for the progress meter (its range).
-	 */
-	void StatusUpdateProgress( const FText& StatusText, int32 ProgressNumerator, int32 ProgressDenominator, bool bUpdateBuildDialog =true );
-
-
-	/** 
-	 *  Update dialog window text and progress value
-	 *	@param StatusText				New status text
-	 *	@param ProgressNumerator		Numerator for the progress meter (its current value).
-	 *	@param ProgressDenominitator	Denominator for the progress meter (its range).
-	 *
-	 *	@return true by default and false if status update can't be done. 
-	 */
-	bool ApplyStatusUpdate( const FText& StatusText, int32 ProgressNumerator, int32 ProgressDenominator );
-
 public:
-	int32 SlowTaskCount;
 
 	UNREALED_API FFeedbackContextEditor();
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	void BeginSlowTask( const FText& Task, bool bShouldShowProgressDialog, bool bShowCancelButton=false );
-	void EndSlowTask();
-	void SetContext( FContextSupplier* InSupplier );
+	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false ) override;
+	virtual void FinalizeSlowTask( ) override;
+	virtual void ProgressReported( const float TotalProgressInterp, FText DisplayMessage ) override;
+
+	void SetContext( FContextSupplier* InSupplier ) {}
 
 	/** Whether or not the user has canceled out of this dialog */
-	bool ReceivedUserCancel();
-
-	/** Enable/Disable the ability to cancel the current task */
-	void EnableUserCancel(bool bUserCancel) override;
+	virtual bool ReceivedUserCancel() override;
 
 	void OnUserCancel();
 
@@ -111,40 +43,6 @@ public:
 	{
 		return EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, Question );
 	}
-
-	/** 
-	 * Slow task update status
-	 * @param Numerator		New progress numerator
-	 * @param Denominator	New progress denominator
-	 * @param StatusText	New status message
-	 * 
-	 * @return true by default and false if status update is not possible
-	 */
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
-
-	/** Force updating feedback status
-	 *
-	 * @param Numerator		New progress numerator
-	 * @param Denominator	New progress denominator
-	 * @param StatusText	New status message
-	 * @return true by default and false if status update is not possible
-	 *
-	 */
-	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
-
-	/**
-	 * Updates the progress amount without changing the status message text
-	 *
-	 * @param Numerator		New progress numerator
-	 * @param Denominator	New progress denominator
-	 */
-	virtual void UpdateProgress( int32 Numerator, int32 Denominator );
-
-	/** Pushes the current status message/progress onto the stack so it can be restored later */
-	virtual void PushStatus();
-
-	/** Restores the previously pushed status message/progress */
-	virtual void PopStatus();
 
 	/** 
 	 * Show the Build Progress Window 

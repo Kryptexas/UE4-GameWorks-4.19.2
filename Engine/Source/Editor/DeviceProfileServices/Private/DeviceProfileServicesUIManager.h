@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FDeviceProfileServicesUIManager.h: Declares the FDeviceProfileServicesUIManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,16 +11,15 @@ class FDeviceProfileServicesUIManager
 {
 public:
 
-	/**
-	 * Default constructor
-	 */
+	/** Default constructor. */
 	FDeviceProfileServicesUIManager( );
 
-	virtual ~FDeviceProfileServicesUIManager() {}
+	/** Destructor. */
+	virtual ~FDeviceProfileServicesUIManager() { }
 
 public:
 
-	// Begin IDeviceProfileServicesUIManager Interface
+	// IDeviceProfileServicesUIManager Interface
 
 	virtual const FName GetDeviceIconName( const FString& DeviceName ) const override;
 	virtual const TArray<TSharedPtr<FString> > GetPlatformList( ) override;
@@ -32,31 +27,25 @@ public:
 	virtual const FName GetPlatformIconName( const FString& DeviceName ) const override;
 	virtual void SetProfile( const FString& DeviceProfileName ) override;
 
-	// End IDeviceProfileServicesUIManager Interface
-
 protected:
 
-	/**
-	 * Generates the UI icon list.
-	 */
+	/** Generates the UI icon list. */
 	void CreatePlatformMap();
 
-	/**
-	 * Refresh the UI list - rebuild lists.
-	 */
+	/** Refresh the UI list - rebuild lists. */
 	void HandleRefreshUIData();
 
 private:
 
-	// Map of profiles to platform types
+	/** Map of profiles to platform types. */
 	TMap<const UClass*, FString> PickerTypeMap;
 
-	// Map of profiles to platform types
+	/** Map of profiles to platform types. */
 	TMap<const FString, FString> DeviceToPlatformMap;
 
-	// Map of profiles to platform types
+	/** Map of profiles to platform types. */
 	TMap<const FString, FName> DeviceTypeToIconMap;
 
-	// Holds the list of known platforms.
+	/** Holds the list of known platforms. */
 	TArray<TSharedPtr<FString> > PlatformList;
 };

@@ -656,6 +656,11 @@ namespace UnrealBuildTool
 		{
 			var VisitedModules = new Dictionary<UEBuildModule, bool>();
 
+			if (this.Type == UEBuildModuleType.Game)
+			{
+				Definitions.Add("DEPRECATED_FORGAME=DEPRECATED");
+			}
+
 			// Add this module's private include paths and definitions.
 			AddIncludePathsWithChecks(IncludePaths, PrivateIncludePaths);
 
@@ -931,6 +936,16 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/**
+		 * Adds additional source cpp files for this module.
+		 *
+		 * @param Files Files to add.
+		 */
+		public void AddAdditionalCPPFiles(IEnumerable<FileItem> Files)
+		{
+			SourceFilesToBuild.CPPFiles.AddRange(Files);
+		}
+
 		/** A list of the absolute paths of source files to be built in this module. */
 		public readonly SourceFilesClass SourceFilesToBuild = new SourceFilesClass();
 
@@ -962,6 +977,9 @@ namespace UnrealBuildTool
 
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
+
+		/** If true then the engine will call it's StartupModule at engine initialization automatically. */
+		public bool bIsAutoStartupModule = false;
 
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
@@ -1054,6 +1072,7 @@ namespace UnrealBuildTool
 			bool InUseRTTI,
 			bool InEnableBufferSecurityChecks,
 			bool InFasterWithoutUnity,
+			bool InIsAutoStartupModule,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
@@ -1104,6 +1123,7 @@ namespace UnrealBuildTool
 			bUseRTTI                               = InUseRTTI;
 			bEnableBufferSecurityChecks 		   = InEnableBufferSecurityChecks;
 			bFasterWithoutUnity                    = InFasterWithoutUnity;
+			bIsAutoStartupModule                   = InIsAutoStartupModule;
 			MinFilesUsingPrecompiledHeaderOverride = InMinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InEnableExceptions;
 		}
@@ -1759,6 +1779,7 @@ namespace UnrealBuildTool
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
 			Result.Config.MinFilesUsingPrecompiledHeaderOverride = MinFilesUsingPrecompiledHeaderOverride;
 			Result.Config.bEnableExceptions                      = bEnableExceptions;
+			Result.Config.bUseStaticCRT							 = (Target.Rules != null && Target.Rules.bUseStaticCRT);
 			Result.Config.OutputDirectory                        = Path.Combine(Binary.Config.IntermediateDirectory, Name);
 
 			// Switch the optimization flag if we're building a game module. Also pass the definition for building in DebugGame along (see ModuleManager.h for notes).
@@ -1960,13 +1981,10 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								// Is this a Rocket module?
-								bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(DependencyName);
-
 								// Is this a plugin module?
 								var PluginInfo = Plugins.GetPluginInfoForModule( DependencyName );
 
-								string[] OutputFilePaths = Target.MakeBinaryPaths(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, bIsRocketModule, PluginInfo, "");
+								string[] OutputFilePaths = Target.MakeBinaryPaths(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, PluginInfo, "");
 
 								// If it's an engine module, output intermediates to the engine intermediates directory. 
 								string IntermediateDirectory = Binary.Config.IntermediateDirectory;
@@ -2135,6 +2153,7 @@ namespace UnrealBuildTool
 			bool InUseRTTI,
 			bool InEnableBufferSecurityChecks,
 			bool InFasterWithoutUnity,
+			bool InIsAutoStartupModule,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
@@ -2144,7 +2163,7 @@ namespace UnrealBuildTool
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
-			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
+			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InIsAutoStartupModule, InMinFilesUsingPrecompiledHeaderOverride,
 			InEnableExceptions, bInBuildSourceFiles)
 		{
 			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);

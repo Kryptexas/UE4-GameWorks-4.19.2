@@ -84,7 +84,7 @@ FReply FParticleSystemComponentDetails::OnResetEmitter()
 			{
 				if (AEmitter* Emitter = Cast<AEmitter>(SelectedObjects[Idx].Get()))
 				{
-					PSC = Emitter->ParticleSystemComponent;
+					PSC = Emitter->GetParticleSystemComponent();
 				}
 			}
 

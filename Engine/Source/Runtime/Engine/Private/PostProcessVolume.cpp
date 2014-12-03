@@ -3,14 +3,14 @@
 #include "EnginePrivate.h"
 #include "Engine/PostProcessVolume.h"
 
-APostProcessVolume::APostProcessVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APostProcessVolume::APostProcessVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	// post process volume needs physics data for trace
-	BrushComponent->bAlwaysCreatePhysicsState = true;
-	BrushComponent->Mobility = EComponentMobility::Movable;
+	GetBrushComponent()->bAlwaysCreatePhysicsState = true;
+	GetBrushComponent()->Mobility = EComponentMobility::Movable;
 	
 	bEnabled = true;
 	BlendRadius = 100.0f;
@@ -38,7 +38,7 @@ void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 			{
 				UObject* Obj = Settings.Blendables[i];
 
-				if(!InterfaceCast<IBlendableInterface>(Obj))
+				if(!Cast<IBlendableInterface>(Obj))
 				{
 					Settings.Blendables[i] = 0;
 				}

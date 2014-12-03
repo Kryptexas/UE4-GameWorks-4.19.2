@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	PlatformTest.cpp: Platform automation test code
-==================================================================================*/
-#include "Core.h"
+#include "CorePrivatePCH.h"
+
 
 float TheCompilerDoesntKnowThisIsAlwaysZero = 0.0f;
 
@@ -18,6 +16,7 @@ struct TestA
 	uint8 Space[64];
 };
 
+
 struct TestB
 {
 	virtual ~TestB() {}
@@ -28,11 +27,11 @@ struct TestB
 	uint8 Space[96];
 };
 
+
 struct TestC : public TestA, TestB
 {
 	int i;
 };
-
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlatformVerificationTest, "Core.HAL.Platform Verification", EAutomationTestFlags::ATF_SmokeTest)

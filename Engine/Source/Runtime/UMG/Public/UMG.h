@@ -10,7 +10,7 @@
 #include "CoreUObject.h"
 #include "Engine.h"
 #include "InputCore.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateCore.h"
 
 #include "Anchors.h"
@@ -30,12 +30,14 @@
 
 #include "PanelSlot.h"
 
+#include "WidgetNavigation.h"
 #include "Widget.h"
-
-#include "NamedSlotInterface.h"
 
 #include "PanelWidget.h"
 #include "ContentWidget.h"
+
+#include "NamedSlot.h"
+#include "NamedSlotInterface.h"
 
 #include "CanvasPanelSlot.h"
 #include "CanvasPanel.h"
@@ -45,6 +47,9 @@
 
 #include "VerticalBoxSlot.h"
 #include "VerticalBox.h"
+
+#include "WrapBoxSlot.h"
+#include "WrapBox.h"
 
 #include "UniformGridSlot.h"
 #include "UniformGridPanel.h"

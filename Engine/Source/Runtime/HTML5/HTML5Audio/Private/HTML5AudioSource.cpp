@@ -81,7 +81,7 @@ void FALSoundSource::Update( void )
 		// Emulate the bleed to rear speakers followed by stereo fold down
 		Volume *= 1.25f;
 	}
-	Volume *= GVolumeMultiplier;
+	Volume *= FApp::GetVolumeMultiplier();
 
  			Volume	= 	FMath::Clamp(Volume, 0.0f, MAX_VOLUME ); 
 	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH ); 
@@ -118,8 +118,8 @@ void FALSoundSource::Update( void )
 	alSourcef( SourceId, AL_GAIN, Volume );	
 	alSourcef( SourceId, AL_PITCH, Pitch );		
 
-	alSourcefv( SourceId, AL_POSITION, ( ALfloat * )&Location );
-	alSourcefv( SourceId, AL_VELOCITY, ( ALfloat * )&Velocity );
+	alSourcefv( SourceId, AL_POSITION, ( ALfloat* )&Location );
+	alSourcefv( SourceId, AL_VELOCITY, ( ALfloat* )&Velocity );
 
 	// Platform dependent call to update the sound output with new parameters
 	// @todo openal: Is this no longer needed?

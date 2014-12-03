@@ -14,6 +14,7 @@
 #include "GameFramework/PainCausingVolume.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/Light.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

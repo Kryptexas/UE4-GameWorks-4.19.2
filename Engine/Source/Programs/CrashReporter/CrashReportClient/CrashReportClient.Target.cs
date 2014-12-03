@@ -76,11 +76,17 @@ public class CrashReportClientTarget : TargetRules
 
 		// CrashReportClient doesn't ever compile with the engine linked in
 		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 		UEBuildConfiguration.bUseLoggingInShipping = true;
 		UEBuildConfiguration.bCompileSteamOSS = false;
 
 		UEBuildConfiguration.bIncludeADO = (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32);
+		
+		// Do not include ICU for Linux (this is a temporary workaround, separate headless CrashReportClient target should be created, see UECORE-14 for details).
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			UEBuildConfiguration.bCompileICU = false;
+		}
 
 		// CrashReportClient.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.

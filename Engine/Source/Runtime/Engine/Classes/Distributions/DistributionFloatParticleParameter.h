@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions/DistributionFloatParameterBase.h"
 #include "DistributionFloatParticleParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)

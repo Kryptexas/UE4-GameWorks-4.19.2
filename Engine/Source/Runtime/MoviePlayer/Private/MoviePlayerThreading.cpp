@@ -3,7 +3,7 @@
 #include "MoviePlayer.h"
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SpinLock.h"
 #include "MoviePlayerThreading.h"
 #include "DefaultGameMoviePlayer.h"

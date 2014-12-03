@@ -2,17 +2,13 @@
 
 #include "SlateCorePrivatePCH.h"
 
+// this define is the first step to complete removal of the below hack
+#define PLATFORM_SPECIFIC_HACK 	0
 
 namespace SWindowDefs
 {
 	/** Height of a Slate window title bar, in pixels */
 	static const float DefaultTitleBarSize = 24.0f;
-
-	/** Size of the hit result border for the window borders */
-	static const FSlateRect HitResultBorderSize(10,10,10,10);
-
-	/** Actual size of the window borders */
-	static const FMargin WindowBorderSize(5,5,5,5);
 
 	/** Size of the corner rounding radius.  Used for regular, non-maximized windows only (not tool-tips or decorators.) */
 	static const int32 CornerRadius = 6;
@@ -202,6 +198,8 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bHasMinimizeButton = InArgs._SupportsMinimize;
 	this->bHasMaximizeButton = InArgs._SupportsMaximize;
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
+	this->LayoutBorder = InArgs._LayoutBorder;
+	this->UserResizeBorder = InArgs._UserResizeBorder;
 	
 	// calculate window size from client size
 	const bool bCreateTitleBar = InArgs._CreateTitleBar && !bIsPopupWindow && !bIsCursorDecoratorWindow && !bHasOSWindowBorder;
@@ -365,7 +363,7 @@ FVector2D SWindow::ComputeWindowSizeForContent( FVector2D ContentSize )
 	// @todo mainframe: This code should be updated to handle the case where we're spawning a window that doesn't have 
 	//                  a traditional title bar, such as a window that contains a primary SDockingArea.  Currently, the
 	//                  size reported here will be too large!
-	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize) + SWindowDefs::WindowBorderSize.GetDesiredSize();
+	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize);
 }
 
 void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
@@ -458,7 +456,7 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 
 					+ SVerticalBox::Slot()
 					
-						.Padding(TAttribute<FMargin>( this, &SWindow::GetWindowBorderSize ))
+						.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SWindow::GetWindowBorderSize, false)))
 						[
 							MainWindowArea
 						]
@@ -602,6 +600,7 @@ FGeometry SWindow::GetWindowGeometryInWindow() const
 	// FGeometry expects Size in Local space, but our size is stored in screen space (same as window space + screen offset).
 	// So we need to transform Size into the window's local space for FGeometry.
 	FSlateLayoutTransform LocalToWindow = GetLocalToWindowTransform();
+	FVector2D Size = GetViewportSize();
 	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToWindow), Size), LocalToWindow );
 }
 
@@ -667,25 +666,31 @@ FVector2D SWindow::GetClientSizeInScreen() const
 
 FSlateRect SWindow::GetClippingRectangleInWindow() const
 {
+	FVector2D Size = GetViewportSize();
 	return FSlateRect( 0, 0, Size.X, Size.Y );
 }
 
 
-FMargin SWindow::GetWindowBorderSize() const
+FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 {
 // Mac didn't want a window border, and consoles don't either, so only do this in Windows
 
 // @TODO This is not working for Linux. The window is not yet valid when this gets
 // called from SWindow::Construct which is causing a default border to be retured even when the
 // window is borderless. This causes problems for menu positioning.
-#if PLATFORM_WINDOWS // || PLATFORM_LINUX
 	if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 	{
-		int32 OSWindowBorderSize = NativeWindow->GetWindowBorderSize();
-		return FMargin(OSWindowBorderSize);
-	}
+		FMargin BorderSize(NativeWindow->GetWindowBorderSize());
+		if(bIncTitleBar)
+		{
+			// Add title bar size (whether it's visible or not)
+			BorderSize.Top += NativeWindow->GetWindowTitleBarSize();
+		}
 
-	return SWindowDefs::WindowBorderSize;
+		return BorderSize;
+	}
+#if PLATFORM_WINDOWS // || PLATFORM_LINUX
+	return LayoutBorder;
 #else
 	return FMargin();
 #endif
@@ -1312,9 +1317,9 @@ bool SWindow::SupportsKeyboardFocus() const
 	return !bIsToolTipWindow && !bIsCursorDecoratorWindow;
 }
 
-FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SWindow::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
-	if( InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::WindowActivate  || FSlateApplicationBase::Get().IsExternalUIOpened() )
+	if (InFocusEvent.GetCause() == EFocusCause::WindowActivate || FSlateApplicationBase::Get().IsExternalUIOpened())
 	{
 		TArray< TSharedRef<SWindow> > JustThisWindow;
 		{
@@ -1330,7 +1335,7 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 			FWidgetPath WidgetToFocusPath;
 			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
 			{
-				FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+				FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 			}
 		}
 		else
@@ -1339,7 +1344,7 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, AsShared(), WindowWidgetPath ) )
 			{
 				FWeakWidgetPath WeakWindowPath(WindowWidgetPath);
-				FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EFocusMoveDirection::Next), EKeyboardFocusCause::SetDirectly );
+				FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EUINavigation::Next), EFocusCause::SetDirectly );
 			}
 		}
 	}
@@ -1349,7 +1354,7 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 
 FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-#if PLATFORM_LINUX
+#if PLATFORM_SPECIFIC_HACK && PLATFORM_LINUX
 	if (bHasSizingFrame && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		if ((WindowZone == EWindowZone::TopLeftBorder || WindowZone == EWindowZone::BottomRightBorder ||
@@ -1378,7 +1383,7 @@ FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 
 FReply SWindow::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-#if PLATFORM_LINUX
+#if PLATFORM_SPECIFIC_HACK && PLATFORM_LINUX
 	if (MoveResizeZone != EWindowZone::Unspecified && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		MoveResizeZone =  EWindowZone::Unspecified;
@@ -1397,7 +1402,7 @@ FReply SWindow::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SWindow::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-#if PLATFORM_LINUX
+#if PLATFORM_SPECIFIC_HACK && PLATFORM_LINUX
 	if (MoveResizeZone == EWindowZone::TopLeftBorder)
 	{
 		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
@@ -1610,29 +1615,30 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 		int32 Col = 1;
 		if (SizingRule == ESizingRule::UserSized)
 		{
-			if (LocalMousePosition.X < SWindowDefs::HitResultBorderSize.Left)
+			if (LocalMousePosition.X < (UserResizeBorder.Left + 5))
 			{
 				Col = 0;
 			}
-			else if (LocalMousePosition.X >= Size.X - SWindowDefs::HitResultBorderSize.Right)
+			else if (LocalMousePosition.X >= Size.X - (UserResizeBorder.Right + 5))
 			{
 				Col = 2;
 			}
-			if (LocalMousePosition.Y < SWindowDefs::HitResultBorderSize.Top)
+
+			if (LocalMousePosition.Y < (UserResizeBorder.Top + 5))
 			{
 				Row = 0;
 			}
-			else if (LocalMousePosition.Y >= Size.Y - SWindowDefs::HitResultBorderSize.Bottom)
+			else if (LocalMousePosition.Y >= Size.Y - (UserResizeBorder.Bottom + 5))
 			{
 				Row = 2;
 			}
 
 			// The actual border is smaller than the hit result zones
 			// This grants larger corner areas to grab onto
-			bool bInBorder =	LocalMousePosition.X < SWindowDefs::WindowBorderSize.Left ||
-								LocalMousePosition.X >= Size.X - SWindowDefs::WindowBorderSize.Right ||
-								LocalMousePosition.Y < SWindowDefs::WindowBorderSize.Top ||
-								LocalMousePosition.Y >= Size.Y - SWindowDefs::WindowBorderSize.Bottom;
+			bool bInBorder =	LocalMousePosition.X < UserResizeBorder.Left ||
+								LocalMousePosition.X >= Size.X - UserResizeBorder.Right ||
+								LocalMousePosition.Y < UserResizeBorder.Top ||
+								LocalMousePosition.Y >= Size.Y - UserResizeBorder.Bottom;
 
 			if (!bInBorder)
 			{
@@ -1669,7 +1675,7 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 				else if( HitTestResults.Widgets.Last().Widget == AsShared() )
 				{
 					// The window itself was hit, so check for a traditional title bar
-					if( (LocalMousePosition.Y - SWindowDefs::WindowBorderSize.Top) < TitleBarSize )
+					if ((LocalMousePosition.Y - UserResizeBorder.Top) < TitleBarSize)
 					{
 						InZone = EWindowZone::TitleBar;
 					}
@@ -1712,6 +1718,7 @@ SWindow::SWindow()
 	, ScreenPosition( FVector2D::ZeroVector )
 	, PreFullscreenPosition( FVector2D::ZeroVector )
 	, Size( FVector2D::ZeroVector )
+	, ViewportSize( FVector2D::ZeroVector )
 	, TitleBarSize( SWindowDefs::DefaultTitleBarSize )
 	, ContentSlot(nullptr)
 	, Style( &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window") )
@@ -1778,7 +1785,8 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 		NativeWindow->SetWindowMode( NewWindowMode );
 	
-		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState( SharedThis(this), Size.X, Size.Y );
+		FVector2D vp = GetViewportSize();
+		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(SharedThis(this), vp.X, vp.Y);
 
 		if( TitleArea.IsValid() )
 		{

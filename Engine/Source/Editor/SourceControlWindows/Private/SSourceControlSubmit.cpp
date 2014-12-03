@@ -3,6 +3,8 @@
 #include "SourceControlWindowsPCH.h"
 #include "AssetToolsModule.h"
 #include "MessageLog.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, SourceControlWindows );

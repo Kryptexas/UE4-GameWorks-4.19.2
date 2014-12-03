@@ -4,6 +4,7 @@
 
 #include "ContentWidget.generated.h"
 
+/**  */
 UCLASS(Abstract)
 class UMG_API UContentWidget : public UPanelWidget
 {

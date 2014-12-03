@@ -6,7 +6,7 @@
 #include "WidgetAnimation.generated.h"
 
 class UMovieScene;
-
+class UWidgetTree;
 
 /** A single object bound to a umg sequence */
 USTRUCT()

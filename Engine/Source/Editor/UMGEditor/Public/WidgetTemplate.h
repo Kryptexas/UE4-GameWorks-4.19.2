@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+struct FSlateBrush;
+class UWidget;
 
 /**
  * The widget template represents a widget or a set of widgets to create and spawn into the widget tree.
@@ -27,6 +29,9 @@ public:
 
 	/** Gets tooltip widget for this palette item. */
 	virtual TSharedRef<IToolTip> GetToolTip() const = 0;
+
+	/** The the action to perform when the template item is double clicked */
+	virtual FReply OnDoubleClicked() { return FReply::Unhandled(); }
 
 public:
 	/** The name of the widget template. */

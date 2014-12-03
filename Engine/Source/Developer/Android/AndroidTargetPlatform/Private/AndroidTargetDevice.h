@@ -21,8 +21,7 @@ typedef TSharedRef<class FAndroidTargetDevice, ESPMode::ThreadSafe> FAndroidTarg
 /**
  * Implements a Android target device.
  */
-class FAndroidTargetDevice
-	: public ITargetDevice
+class FAndroidTargetDevice : public ITargetDevice
 {
 public:
 
@@ -33,9 +32,11 @@ public:
 	 * @param InSerialNumber - The ADB serial number of the target device.
 	 * @param InAndroidVariant - The variant of the Android platform, i.e. ATC, DXT or PVRTC.
 	 */
-	FAndroidTargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InSerialNumber, const FString& InAndroidVariant )
+	FAndroidTargetDevice(const ITargetPlatform& InTargetPlatform, const FString& InSerialNumber, const FString& InAndroidVariant)
 		: AndroidVariant(InAndroidVariant)
-		, Connected(false)
+		, bConnected(false)
+		, bIsDeviceAuthorized(false)
+		, AndroidSDKVersion(INDEX_NONE)
 		, DeviceName(InSerialNumber)
 		, Model(InSerialNumber)
 		, SerialNumber(InSerialNumber)
@@ -47,11 +48,33 @@ public:
 	/**
 	 * Sets the device's connection state.
 	 *
-	 * @param InConnected - Whether the device is connected.
+	 * @param bInConnected - Whether the device is connected.
 	 */
-	void SetConnected( bool InConnected )
+	void SetConnected(bool bInConnected)
 	{
-		Connected = InConnected;
+		bConnected = bInConnected;
+	}
+
+	/**
+	 * Sets the device's authorization state.
+	 *
+	 * @param bInConnected - Whether the device is authorized for USB communications.
+	 */
+	void SetAuthorized(bool bInIsAuthorized)
+	{
+		bIsDeviceAuthorized = bInIsAuthorized;
+	}
+
+	/**
+	 * Sets the device's OS/SDK versions.
+	 *
+	 * @param InSDKVersion - Android SDK version of the device.
+	 * @param InReleaseVersion - Android Release (human-readable) version of the device.
+	 */
+	void SetVersions(int32 InSDKVersion, const FString& InReleaseVersion)
+	{
+		AndroidSDKVersion = InSDKVersion;
+		AndroidVersionString = InReleaseVersion;
 	}
 
 	/**
@@ -59,7 +82,7 @@ public:
 	 *
 	 * @param InDeviceName - The device name to set.
 	 */
-	void SetDeviceName( const FString& InDeviceName )
+	void SetDeviceName(const FString& InDeviceName)
 	{
 		DeviceName = InDeviceName;
 	}
@@ -69,7 +92,7 @@ public:
 	 *
 	 * @param InDeviceName - The device name to set.
 	 */
-	void SetModel( const FString& InNodel )
+	void SetModel(const FString& InNodel)
 	{
 		Model = InNodel;
 	}
@@ -77,28 +100,29 @@ public:
 public:
 
 	// Begin ITargetDevice interface
-
-	virtual bool Connect( ) override
+	virtual bool Connect() override
 	{
 		return true;
 	}
 
-	virtual bool Deploy( const FString& SourceFolder, FString& OutAppId ) override;
+	virtual bool Deploy(const FString& SourceFolder, FString& OutAppId) override;
 
-	virtual void Disconnect( ) override
-	{ }
-
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
+	virtual void Disconnect() override
 	{
+	}
+
+	virtual ETargetDeviceTypes GetDeviceType() const override
+	{
+		//@TODO: How to distinguish between a Tablet and a Phone (or a TV microconsole, etc...), and is it important?
 		return ETargetDeviceTypes::Tablet;
 	}
 
-	virtual FTargetDeviceId GetId( ) const override
+	virtual FTargetDeviceId GetId() const override
 	{
 		return FTargetDeviceId(TargetPlatform.PlatformName(), SerialNumber);
 	}
 
-	virtual FString GetName( ) const override
+	virtual FString GetName() const override
 	{
 		if (AndroidVariant.IsEmpty())
 		{
@@ -110,10 +134,7 @@ public:
 		return FString::Printf(TEXT("%s (%s)"), *Model, *AndroidVariant);
 	}
 
-	virtual FString GetOperatingSystemName( ) override
-	{
-		return TEXT("Android");
-	}
+	virtual FString GetOperatingSystemName() override;
 
 	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) override;
 
@@ -122,39 +143,31 @@ public:
 		return TargetPlatform;
 	}
 
-	virtual bool IsConnected( ) override
+	virtual bool IsConnected() override
 	{
-		return Connected;
+		return bConnected;
 	}
 
-	virtual bool IsDefault( ) const override
-	{
-		return true;
-	}
-
-	virtual bool PowerOff( bool Force ) override;
-
-	virtual bool PowerOn( ) override
+	virtual bool IsDefault() const override
 	{
 		return true;
 	}
 
-	virtual bool Launch( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId );
+	virtual bool PowerOff(bool Force) override;
 
-	virtual bool Reboot( bool bReconnect = false ) override;
+	virtual bool PowerOn() override
+	{
+		return true;
+	}
 
-	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) override;
-
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override;
-
-	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
-
-	virtual bool TerminateProcess( const int32 ProcessId ) override;
-
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override;
-
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override;
-
+	virtual bool Launch(const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId);
+	virtual bool Reboot(bool bReconnect = false) override;
+	virtual bool Run(const FString& ExecutablePath, const FString& Params, uint32* OutProcessId) override;
+	virtual bool SupportsFeature(ETargetDeviceFeatures Feature) const override;
+	virtual bool SupportsSdkVersion(const FString& VersionString) const override;
+	virtual bool TerminateProcess(const int32 ProcessId) override;
+	virtual void SetUserCredentials(const FString& UserName, const FString& UserPassword) override;
+	virtual bool GetUserCredentials(FString& OutUserName, FString& OutUserPassword) override;
 	// End ITargetDevice interface
 
 protected:
@@ -176,7 +189,16 @@ private:
 	FString AndroidVariant;
 
 	// Holds a flag indicating whether the device is currently connected.
-	bool Connected;
+	bool bConnected;
+
+	// Holds a flag indicating whether the device is USB comms authorized (if not, most other values aren't valid but we still want to show the device as detected but unready)
+	bool bIsDeviceAuthorized;
+
+	// Holds the Android SDK version
+	int32 AndroidSDKVersion;
+
+	// Holds the Android Release version string (e.g., "2.3" or "4.2.2")
+	FString AndroidVersionString;
 
 	// Holds the device name.
 	FString DeviceName;

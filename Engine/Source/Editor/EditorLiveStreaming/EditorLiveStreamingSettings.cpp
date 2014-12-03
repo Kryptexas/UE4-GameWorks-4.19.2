@@ -3,8 +3,8 @@
 #include "EditorLiveStreamingSettings.h"
 
 
-UEditorLiveStreamingSettings::UEditorLiveStreamingSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UEditorLiveStreamingSettings::UEditorLiveStreamingSettings( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

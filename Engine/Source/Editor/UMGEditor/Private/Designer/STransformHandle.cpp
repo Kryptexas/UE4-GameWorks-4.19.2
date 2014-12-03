@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "IUMGDesigner.h"
 #include "ObjectEditorUtils.h"
 #include "STransformHandle.h"
+#include "WidgetReference.h"
+#include "Widget.h"
+#include "Components/PanelSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -37,22 +40,29 @@ EVisibility STransformHandle::GetHandleVisibility() const
 {
 	ETransformMode::Type TransformMode = Designer->GetTransformMode();
 
-	switch ( TransformMode )
+	// Only show the handles for visible elements in the designer.
+	FWidgetReference SelectedWidget = Designer->GetSelectedWidget();
+	if ( SelectedWidget.IsValid() )
 	{
-	case ETransformMode::Layout:
-	{
-		FWidgetReference SelectedWidget = Designer->GetSelectedWidget();
-		if ( UPanelSlot* TemplateSlot = SelectedWidget.GetTemplate()->Slot )
+		if ( !SelectedWidget.GetTemplate()->bHiddenInDesigner )
 		{
-			if ( TemplateSlot->CanResize(DragDirection) )
+			switch ( TransformMode )
 			{
+			case ETransformMode::Layout:
+			{
+				if ( UPanelSlot* TemplateSlot = SelectedWidget.GetTemplate()->Slot )
+				{
+					if ( TemplateSlot->CanResize(DragDirection) )
+					{
+						return EVisibility::Visible;
+					}
+				}
+				break;
+			}
+			case ETransformMode::Render:
 				return EVisibility::Visible;
 			}
 		}
-		break;
-	}
-	case ETransformMode::Render:
-		return EVisibility::Visible;
 	}
 
 	return EVisibility::Collapsed;
@@ -74,6 +84,9 @@ FReply STransformHandle::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoi
 {
 	if ( HasMouseCapture() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
+		const bool bRequiresRecompile = false;
+		Designer->MarkDesignModifed(bRequiresRecompile);
+
 		Action = ETransformAction::None;
 		return FReply::Handled().ReleaseMouseCapture();
 	}

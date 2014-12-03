@@ -8,13 +8,14 @@ public class NiagaraEditor : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"Engine", 
 				"Core", 
 				"CoreUObject", 
-				"Engine", 
                 "InputCore",
 				"RenderCore",
 				"Slate", 
 				"SlateCore",
+				"Kismet",
                 "EditorStyle",
 				"UnrealEd", 
 				"GraphEditor", 
@@ -22,7 +23,19 @@ public class NiagaraEditor : ModuleRules
 			}
 		);
 
-		PublicIncludePathModuleNames.Add("LevelEditor");
+        PublicDependencyModuleNames.AddRange(
+            new string[] {
+				"Engine"
+            }
+        );
+
+        PublicIncludePathModuleNames.AddRange(
+            new string[] {
+				"Engine", 
+				"Messaging", 
+				"GraphEditor", 
+				"LevelEditor"}
+                );
 
 		DynamicallyLoadedModuleNames.Add("WorkspaceMenuStructure");
 	}

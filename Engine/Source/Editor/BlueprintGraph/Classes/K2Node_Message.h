@@ -14,6 +14,7 @@ class UK2Node_Message : public UK2Node_CallFunction
 
 	// Begin UEdGraphNode interface.
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AllocateDefaultPins() override;
 	// End UEdGraphNode interface.
 
 	// Begin K2Node interface.
@@ -21,6 +22,7 @@ class UK2Node_Message : public UK2Node_CallFunction
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual FName GetCornerIcon() const override;
+	virtual bool IsNodePure() const override { return false; }
 	// End K2Node interface.
 
 	// Begin K2Node_CallFunction Interface.

@@ -8,6 +8,7 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "EnvironmentQuerySchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
@@ -117,8 +118,8 @@ void FEnvironmentQuerySchemaAction_NewSubNode::AddReferencedObjects( FReferenceC
 
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_EnvironmentQuery::UEdGraphSchema_EnvironmentQuery(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema_EnvironmentQuery::UEdGraphSchema_EnvironmentQuery(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

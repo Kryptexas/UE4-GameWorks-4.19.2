@@ -106,7 +106,7 @@ bool FAmbientSoundDetails::IsEditSoundCueEnabled() const
 	if (AmbientSound.IsValid())
 	{
 		// Only sound cues are editable
-		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound.Get()->AudioComponent->Sound);
+		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound.Get()->GetAudioComponent()->Sound);
 		return (SoundCue != NULL);
 	}
 	return false;
@@ -116,7 +116,7 @@ FReply FAmbientSoundDetails::OnEditSoundCueClicked()
 {
 	if( AmbientSound.IsValid() )
 	{
-		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound.Get()->AudioComponent->Sound);
+		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound.Get()->GetAudioComponent()->Sound);
 		if (SoundCue)
 		{
 			FAssetEditorManager::Get().OpenEditorForAsset(SoundCue);
@@ -155,7 +155,7 @@ void FAmbientSoundDetails::CreateNewSoundCue( ESoundCueLayouts Layout )
 		AAmbientSound* AS = CastChecked<AAmbientSound>(AmbientSound.Get());
 
 		// First if the existing SoundCue is a child of the AmbientSound rename it off to oblivion so we can have a good name
-		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound->AudioComponent->Sound);
+		USoundCue* SoundCue = Cast<USoundCue>(AmbientSound->GetAudioComponent()->Sound);
 		if (SoundCue && SoundCue->GetOuter() == AS)
 		{
 			SoundCue->Rename(*MakeUniqueObjectName( GetTransientPackage(), USoundCue::StaticClass() ).ToString(), GetTransientPackage(), REN_DontCreateRedirectors);
@@ -165,8 +165,8 @@ void FAmbientSoundDetails::CreateNewSoundCue( ESoundCueLayouts Layout )
 		USoundNode* PrevNode = NULL;
 
 		SoundCue = ConstructObject<USoundCue>(USoundCue::StaticClass(), AS, FName(*AS->GetInternalSoundCueName()));
-		AS->AudioComponent->Sound = SoundCue;
-		AS->AudioComponent->PostEditChange();
+		AS->GetAudioComponent()->Sound = SoundCue;
+		AS->GetAudioComponent()->PostEditChange();
 
 		if (Layout == SOUNDCUE_LAYOUT_RANDOM_LOOP || Layout == SOUNDCUE_LAYOUT_RANDOM_LOOP_WITH_DELAY)
 		{
@@ -264,7 +264,7 @@ FReply FAmbientSoundDetails::OnPlaySoundClicked()
 {
 	if( AmbientSound.IsValid() )
 	{
-		USoundBase* Sound = Cast<USoundBase>(AmbientSound.Get()->AudioComponent->Sound);
+		USoundBase* Sound = Cast<USoundBase>(AmbientSound.Get()->GetAudioComponent()->Sound);
 		if (Sound)
 		{
 			GEditor->PlayPreviewSound(Sound);

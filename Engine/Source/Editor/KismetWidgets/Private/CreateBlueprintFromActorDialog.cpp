@@ -5,6 +5,8 @@
 #include "SCreateAssetFromActor.h"
 #include "UnrealEd.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "CreateBlueprintFromActorDialog"
 

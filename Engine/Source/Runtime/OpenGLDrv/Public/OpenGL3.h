@@ -128,8 +128,8 @@ struct FOpenGL3 : public FOpenGLBase
 				Access = GL_MAP_READ_BIT;
 				break;
 			case RLM_WriteOnly:
-				Access = (GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_WRITE_BIT );
-#if 1
+				Access = (GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_WRITE_BIT);
+#if !PLATFORM_MAC // On OS X using the UNSYNCHRONIZED_BIT here is unsafe & out-of-spec. which will lead to corrupt rendering when using MTGL.
 				// Temp workaround for synchrnoization when a UBO is discarded while being referenced
 				Access |= GL_MAP_UNSYNCHRONIZED_BIT;
 #endif
@@ -373,7 +373,7 @@ struct FOpenGL3 : public FOpenGLBase
 		glCompressedTexImage3D(Target, Level, InternalFormat, Width, Height, Depth, Border, ImageSize, PixelData);
 	}
 
-	static FORCEINLINE void CompressedTexSubImage2D(GLenum Target, GLint Level, GLsizei Width, GLsizei Height, GLenum Format, GLsizei ImageSize, const GLvoid * PixelData)
+	static FORCEINLINE void CompressedTexSubImage2D(GLenum Target, GLint Level, GLsizei Width, GLsizei Height, GLenum Format, GLsizei ImageSize, const GLvoid* PixelData)
 	{
 		glCompressedTexSubImage2D(Target, Level, 0, 0, Width, Height, Format, ImageSize, PixelData);
 	}

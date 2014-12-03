@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AssertionMacros.h: Macros for assertions and other compile-time control
-=============================================================================*/
-
 #pragma once
+
+#include "HAL/Platform.h"
+#include "Misc/Build.h"
 
 
 /*----------------------------------------------------------------------------

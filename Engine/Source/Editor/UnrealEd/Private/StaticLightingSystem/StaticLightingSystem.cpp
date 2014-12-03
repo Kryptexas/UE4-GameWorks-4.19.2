@@ -32,6 +32,8 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "../Lightmass/Lightmass.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "MessageLog.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 
@@ -938,7 +940,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 					if (!Options.bOnlyBuildVisibility)
 					{
 						for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-							{
+						{
 							Components[ComponentIndex]->bStaticLightingBuildEnqueued = true;
 						}
 					}
@@ -1012,11 +1014,13 @@ void FStaticLightingSystem::EncodeTextures(bool bLightingSuccessful)
 {
 	FLightmassStatistics::FScopedGather EncodeStatScope(LightmassStatistics.EncodingTime);
 
+	FScopedSlowTask SlowTask(2);
+
 	// Flush pending shadow-map and light-map encoding.
-	GWarn->StatusUpdate( -1, -1, LOCTEXT("EncodingImportedStaticLightMapsStatusMessage", "Encoding imported static light maps.") );
+	SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticLightMapsStatusMessage", "Encoding imported static light maps.") );
 	FLightMap2D::EncodeTextures(World, bLightingSuccessful, true);
 
-	GWarn->StatusUpdate( -1, -1, LOCTEXT("EncodingImportedStaticShadowMapsStatusMessage", "Encoding imported static shadow maps.") );
+	SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticShadowMapsStatusMessage", "Encoding imported static shadow maps.") );
 	FShadowMap2D::EncodeTextures(World, bLightingSuccessful);
 }
 
@@ -1886,70 +1890,82 @@ bool FStaticLightingSystem::FinishLightmassProcess()
 
 	double TimeWaitingOnUserToAccept = FPlatformTime::Seconds() - WaitForUserAcceptStartTime;
 	
-	GWarn->BeginSlowTask( LOCTEXT("InvalidatingPreviousLightingStatus", "Invalidating previous lighting."), true );
+	{
+		FScopedSlowTask SlowTask(7);
+		SlowTask.MakeDialog();
 
-	InvalidateStaticLighting();
+		SlowTask.EnterProgressFrame(1, LOCTEXT("InvalidatingPreviousLightingStatus", "Invalidating previous lighting"));
+		InvalidateStaticLighting();
 	
-	GWarn->StatusUpdate( -1, -1, LOCTEXT("ImportingBuiltStaticLightingStatus", "Importing built static lighting.") );
 
-	bSuccessful = LightmassProcessor->CompleteRun();
+		SlowTask.EnterProgressFrame(1, LOCTEXT("ImportingBuiltStaticLightingStatus", "Importing built static lighting"));
+		bSuccessful = LightmassProcessor->CompleteRun();
 
-	if (bSuccessful)
-	{
-		CompleteDeterministicMappings(LightmassProcessor);
-		
-		if (!Options.bOnlyBuildVisibility)
-		{
-			FLightmassStatistics::FScopedGather FinishStatScope(LightmassStatistics.FinishingTime);
-			ULightComponent::ReassignStationaryLightChannels(GWorld, true);
-		}
-	}
-	
-	EncodeTextures(bSuccessful);
 
-	{
-		FLightmassStatistics::FScopedGather CloseJobStatScope(LightmassProcessStatistics.SwarmJobCloseTime);
-		bSuccessful = LightmassProcessor->CloseJob() && bSuccessful;
-	}
-
-	{
-		FLightmassStatistics::FScopedGather FinishStatScope(LightmassStatistics.FinishingTime);
-		// Add in the time measurements from the LightmassProcessor
-		LightmassStatistics += LightmassProcessor->GetStatistics();
-
-		// A final update on the lighting build warnings and errors dialog, now that everything is finished
-		FMessageLog("LightingResults").Open();
-
-		// Check the for build cancellation.
-		bBuildCanceled = bBuildCanceled || GEditor->GetMapBuildCancelled();
-		bSuccessful = bSuccessful && !bBuildCanceled;
-
-		FStatsViewerModule& StatsViewerModule = FModuleManager::Get().LoadModuleChecked<FStatsViewerModule>(TEXT("StatsViewer"));
+		SlowTask.EnterProgressFrame();
 		if (bSuccessful)
 		{
-			StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Refresh();
-		}
+			CompleteDeterministicMappings(LightmassProcessor);
 		
-		bool bShowLightingBuildInfo = false;
-		GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorUserSettingsIni );
-		if( bShowLightingBuildInfo )
-		{
-			StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Show();
+			if (!Options.bOnlyBuildVisibility)
+			{
+				FLightmassStatistics::FScopedGather FinishStatScope(LightmassStatistics.FinishingTime);
+				ULightComponent::ReassignStationaryLightChannels(GWorld, true);
+			}
 		}
+	
+
+		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingTexturesStaticLightingStatis", "Encoding textures"));
+		EncodeTextures(bSuccessful);
+
+
+		SlowTask.EnterProgressFrame();
+		{
+			FLightmassStatistics::FScopedGather CloseJobStatScope(LightmassProcessStatistics.SwarmJobCloseTime);
+			bSuccessful = LightmassProcessor->CloseJob() && bSuccessful;
+		}
+
+		{
+			FLightmassStatistics::FScopedGather FinishStatScope(LightmassStatistics.FinishingTime);
+			// Add in the time measurements from the LightmassProcessor
+			LightmassStatistics += LightmassProcessor->GetStatistics();
+
+			// A final update on the lighting build warnings and errors dialog, now that everything is finished
+			FMessageLog("LightingResults").Open();
+
+			// Check the for build cancellation.
+			bBuildCanceled = bBuildCanceled || GEditor->GetMapBuildCancelled();
+			bSuccessful = bSuccessful && !bBuildCanceled;
+
+			FStatsViewerModule& StatsViewerModule = FModuleManager::Get().LoadModuleChecked<FStatsViewerModule>(TEXT("StatsViewer"));
+			if (bSuccessful)
+			{
+				StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Refresh();
+			}
+		
+			bool bShowLightingBuildInfo = false;
+			GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorUserSettingsIni );
+			if( bShowLightingBuildInfo )
+			{
+				StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Show();
+			}
+		}
+
+
+		SlowTask.EnterProgressFrame();
+		ApplyNewLightingData(bSuccessful);
+
+
+		SlowTask.EnterProgressFrame();
+		PostInvalidateStaticLighting();
+
+		// Finish up timing statistics
+		LightmassStatistics += LightmassProcessStatistics;
+		LightmassStatistics.TotalTime += FPlatformTime::Seconds() - StartTime - TimeWaitingOnUserToAccept;
+
+		GetRendererModule().UpdateMapNeedsLightingFullyRebuiltState(World);
+		GEngine->DeferredCommands.AddUnique(TEXT("MAP CHECK NOTIFYRESULTS"));
 	}
-
-	ApplyNewLightingData(bSuccessful);
-
-	PostInvalidateStaticLighting();
-
-	// Finish up timing statistics
-	LightmassStatistics += LightmassProcessStatistics;
-	LightmassStatistics.TotalTime += FPlatformTime::Seconds() - StartTime - TimeWaitingOnUserToAccept;
-
-	GetRendererModule().UpdateMapNeedsLightingFullyRebuiltState(World);
-	GEngine->DeferredCommands.AddUnique(TEXT("MAP CHECK NOTIFYRESULTS"));
-
-	GWarn->EndSlowTask();
 
 	ReportStatistics();
 	

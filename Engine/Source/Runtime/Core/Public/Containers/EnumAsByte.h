@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "Templates/UnrealTypeTraits.h"
+
 
 /**
- * Template to store enums as BYTEs with type safety
-**/
+ * Template to store enumeration values as bytes in a type-safe way.
+ */
 template<class TEnum>
 class TEnumAsByte
 {
@@ -15,7 +17,7 @@ public:
 	/**
 	 * Default Constructor (no initialization).
 	 */
-	FORCEINLINE TEnumAsByte( ) { }
+	FORCEINLINE TEnumAsByte() { }
 
 	/**
 	 * Copy constructor.
@@ -32,7 +34,7 @@ public:
 	 * @param InValue value to construct with.
 	 */
 	FORCEINLINE TEnumAsByte( TEnum InValue )
-		: Value(InValue)
+		: Value(static_cast<uint8>(InValue))
 	{ }
 
 	/**
@@ -41,7 +43,7 @@ public:
 	 * @param InValue value to construct with.
 	 */
 	explicit FORCEINLINE TEnumAsByte( int32 InValue )
-		: Value(InValue)
+		: Value(static_cast<uint8>(InValue))
 	{ }
 
 	/**
@@ -59,6 +61,7 @@ public:
 	 * Assignment operator.
 	 *
 	 * @param InValue value to set.
+	 * @return This instance.
 	 */
 	FORCEINLINE TEnumAsByte& operator=( TEnumAsByte InValue )
 	{
@@ -69,54 +72,57 @@ public:
 	 * Assignment operator.
 	 *
 	 * @param InValue value to set.
+	 * @return This instance.
 	 */
 	FORCEINLINE TEnumAsByte& operator=( TEnum InValue )
 	{
-		Value = InValue;
+		Value = static_cast<uint8>(InValue);
 		return *this;
 	}
 
 	/**
 	 * Compares two enumeration values for equality.
 	 *
+	 * @param InValue The value to compare with.
 	 * @return true if the two values are equal, false otherwise.
 	 */
 	bool operator==( TEnum InValue ) const
 	{
-		return (Value == InValue);
+		return static_cast<TEnum>(Value) == InValue;
 	}
 
 	/**
 	 * Compares two enumeration values for equality.
 	 *
+	 * @param InValue The value to compare with.
 	 * @return true if the two values are equal, false otherwise.
 	 */
 	bool operator==(TEnumAsByte InValue) const
 	{
-		return (Value == InValue.Value);
+		return Value == InValue.Value;
 	}
 
-	/**
-	 * Implicit conversion to TEnum.
-	 */
-	operator TEnum( ) const
+	/** Implicit conversion to TEnum. */
+	operator TEnum() const
 	{
-		return TEnum(Value);
+		return (TEnum)Value;
 	}
 
 public:
 
 	/**
-	 * Gets the value.
+	 * Gets the enumeration value.
+	 *
+	 * @return The enumeration value.
 	 */
-	TEnum GetValue( ) const
+	TEnum GetValue() const
 	{
-		return TEnum(Value);
+		return (TEnum)Value;
 	}
 
 private:
 
-	/** Holds the actual value **/
+	/** Holds the value as a byte. **/
 	uint8 Value;
 };
 

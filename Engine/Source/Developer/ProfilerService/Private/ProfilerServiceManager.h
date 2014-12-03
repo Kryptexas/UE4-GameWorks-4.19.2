@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerServiceManager.h: Declares the FProfilerServiceManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,6 +23,7 @@ struct FClientData
 	int32 MetadataSize;
 #endif
 };
+
 
 /**
  * Implements the Profile Service Manager

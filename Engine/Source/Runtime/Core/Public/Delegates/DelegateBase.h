@@ -20,8 +20,6 @@ public:
 		: DelegateInstance(InDelegateInstance)
 	{ }
 
-public:
-
 	/**
 	 * If this is a UFunction or UObject delegate, return the UObject.
 	 *
@@ -72,8 +70,6 @@ public:
 			DelegateInstance = nullptr;
 		}
 	}
-
-protected:
 
 	/**
 	 * Gets the delegate instance.

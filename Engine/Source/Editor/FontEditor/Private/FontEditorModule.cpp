@@ -5,6 +5,7 @@
 #include "ModuleManager.h"
 #include "Factories.h"
 #include "SFontEditorViewport.h"
+#include "SCompositeFontEditor.h"
 #include "FontEditor.h"
 
 const FName FontEditorAppIdentifier = FName(TEXT("FontEditorApp"));

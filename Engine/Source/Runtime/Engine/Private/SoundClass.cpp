@@ -7,15 +7,17 @@
 #include "UnrealEd.h"
 #endif
 #if WITH_EDITOR
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #endif
 
 /*-----------------------------------------------------------------------------
 	USoundClass implementation.
 -----------------------------------------------------------------------------*/
 
-USoundClass::USoundClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundClass::USoundClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 	, SoundClassGraph(NULL)
 #endif

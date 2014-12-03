@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UListView
 
-UListView::UListView(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UListView::UListView(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
 

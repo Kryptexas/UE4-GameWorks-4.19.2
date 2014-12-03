@@ -34,8 +34,6 @@ public:
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
-	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
-	virtual FText GetDefaultMenuCategory() const override;
 	// End UBlueprintNodeSpawner interface
 
 	// UBlueprintEventNodeSpawner interface
@@ -47,11 +45,7 @@ public:
 	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override;
 	// End IBlueprintNodeBinder interface
 
-	/**
-	 * 
-	 *
-	 * @return 
-	 */
+	/** @return  */
 	UMulticastDelegateProperty const* GetEventDelegate() const;
 
 private:

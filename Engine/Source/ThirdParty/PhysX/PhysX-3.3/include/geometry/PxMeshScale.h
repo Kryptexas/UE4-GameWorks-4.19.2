@@ -37,6 +37,14 @@
 #include "common/PxPhysXCommonConfig.h"
 #include "foundation/PxMat33.h"
 
+/** \brief Minimum allowed absolute magnitude for each of mesh scale's components (x,y,z).
+	\note Only positive scale values are allowed for convex meshes. */
+#define PX_MIN_ABS_MESH_SCALE 1e-6f
+
+/** \brief Maximum allowed absolute magnitude for each of mesh scale's components (x,y,z).
+	\note Only positive scale values are allowed for convex meshes. */
+#define PX_MAX_ABS_MESH_SCALE 1e6f
+
 #ifndef PX_DOXYGEN
 namespace physx
 {
@@ -47,7 +55,12 @@ namespace physx
 
 The scaling is along arbitrary axes that are specified by PxMeshScale::rotation.
 
-\note Currently only positive scale values are supported.
+\note	Negative scale values are supported for PxTriangleMeshGeometry
+		with absolute values for each component within [PX_MIN_ABS_MESH_SCALE, PX_MAX_ABS_MESH_SCALE] range.
+		Negative scale causes a reflection around the specified axis, in addition PhysX will flip the normals
+		for mesh triangles when scale.x*scale.y*scale.z < 0.
+\note	Only positive scale values are supported for PxConvexMeshGeometry
+		with values for each component within [PX_MIN_ABS_MESH_SCALE, PX_MAX_ABS_MESH_SCALE] range).
 
 @see PxConvexMeshGeometry PxTriangleMeshGeometry
 */
@@ -66,6 +79,15 @@ public:
 	*/
 	explicit PX_CUDA_CALLABLE PX_FORCE_INLINE PxMeshScale(PxReal r): scale(r), rotation(PxIdentity) 
 	{
+	}
+
+	/**
+	\brief Constructor to initialize to arbitrary scale and identity scale rotation.
+	*/
+	PX_CUDA_CALLABLE PX_FORCE_INLINE PxMeshScale(const PxVec3& s)
+	{
+		scale = s;
+		rotation = PxQuat(PxIdentity);
 	}
 
 	/**
@@ -117,10 +139,28 @@ public:
 		return trans * rot;
 	}
 
+	/**
+	\brief Returns true if combination of negative scale components will cause the triangle normal to flip. The SDK will flip the normals internally.
+	*/
+	PX_CUDA_CALLABLE PX_FORCE_INLINE bool flipsNormal() const
+	{
+		return (scale.x * scale.y * scale.z < 0.0f);
+	}
 
 	PxVec3		transform(const PxVec3& v) const
 	{
 		return rotation.rotateInv(scale.multiply(rotation.rotate(v)));
+	}
+
+	bool		isValidForMesh() const
+	{
+		PxVec3 absXYZ = scale.abs();
+		return (absXYZ.maxElement() <= PX_MAX_ABS_MESH_SCALE) && (absXYZ.minElement() >= PX_MIN_ABS_MESH_SCALE);
+	}
+
+	bool		isValidForConvex() const
+	{
+		return (scale.maxElement() <= PX_MAX_ABS_MESH_SCALE) && (scale.minElement() >= PX_MIN_ABS_MESH_SCALE);
 	}
 
 	PxVec3		scale;		//!< A nonuniform scaling

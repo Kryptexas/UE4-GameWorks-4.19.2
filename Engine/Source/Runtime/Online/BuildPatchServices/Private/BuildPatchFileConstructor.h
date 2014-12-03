@@ -175,7 +175,7 @@ private:
 	 * @param HashState			An FSHA1 hash state to update with the data going into the destination file.
 	 * @return	true if no file errors occurred
 	 */
-	bool InsertFileData( const FChunkPart& ChunkPart, FArchive& DestinationFile, FSHA1& HashState );
+	bool InsertFileData(const FChunkPartData& ChunkPart, FArchive& DestinationFile, FSHA1& HashState);
 
 	/**
 	 * Inserts the data data from a chunk into the destination file according to the chunk part info
@@ -184,5 +184,5 @@ private:
 	 * @param HashState			An FSHA1 hash state to update with the data going into the destination file.
 	 * @return true if no errors were detected
 	 */
-	bool InsertChunkData( const FChunkPart& ChunkPart, FArchive& DestinationFile, FSHA1& HashState );
+	bool InsertChunkData(const FChunkPartData& ChunkPart, FArchive& DestinationFile, FSHA1& HashState);
 };

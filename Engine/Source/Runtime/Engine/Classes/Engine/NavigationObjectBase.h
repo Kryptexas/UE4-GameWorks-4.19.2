@@ -9,16 +9,21 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 {
 	GENERATED_UCLASS_BODY()
 
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	class UCapsuleComponent* CapsuleComponent;
 
 	/** Normal editor sprite. */
+	DEPRECATED_FORGAME(4.6, "GoodSprite should not be accessed directly, please use GetGoodSprite() function instead. GoodSprite will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> GoodSprite;
+	class UBillboardComponent* GoodSprite;
 
 	/** Used to draw bad collision intersection in editor. */
+	DEPRECATED_FORGAME(4.6, "BadSprite should not be accessed directly, please use GetBadSprite() function instead. BadSprite will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> BadSprite;
+	class UBillboardComponent* BadSprite;
+public:
 
 	/** True if this nav point was spawned to be a PIE player start. */
 	UPROPERTY()
@@ -53,6 +58,14 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 	virtual FVector GetNavAgentLocation() const { return GetActorLocation(); }
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const;
 	// INavAgentInterface end
+
+public:
+	/** Returns CapsuleComponent subobject **/
+	class UCapsuleComponent* GetCapsuleComponent() const;
+	/** Returns GoodSprite subobject **/
+	class UBillboardComponent* GetGoodSprite() const;
+	/** Returns BadSprite subobject **/
+	class UBillboardComponent* GetBadSprite() const;
 };
 
 

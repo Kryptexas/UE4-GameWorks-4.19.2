@@ -10,6 +10,8 @@
 #include "Editor/Documentation/Public/IDocumentation.h"
 #include "EditorClassUtils.h"
 #include "SWizard.h"
+#include "SHyperlink.h"
+#include "TutorialMetaData.h"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
@@ -27,7 +29,7 @@ struct FParentClassItem
 class FNativeClassParentFilter : public IClassViewerFilter
 {
 public:
-	FNativeClassParentFilter(const TSharedPtr<GameProjectUtils::FModuleContextInfo>* InSelectedModuleInfoPtr)
+	FNativeClassParentFilter(const TSharedPtr<FModuleContextInfo>* InSelectedModuleInfoPtr)
 		: SelectedModuleInfoPtr(InSelectedModuleInfoPtr)
 	{
 	}
@@ -42,7 +44,7 @@ public:
 
 		// Is this class in the same module as our current module?
 		const FString ClassModuleName = InClass->GetOutermost()->GetName().RightChop( FString(TEXT("/Script/")).Len() );
-		const TSharedPtr<GameProjectUtils::FModuleContextInfo>& ModuleInfo = *SelectedModuleInfoPtr;
+		const TSharedPtr<FModuleContextInfo>& ModuleInfo = *SelectedModuleInfoPtr;
 		const bool bIsInDestinationModule = (ModuleInfo.IsValid() && ModuleInfo->ModuleName == ClassModuleName);
 
 		// You need API if you are either not UObject itself and you are not in the destination module
@@ -65,20 +67,20 @@ public:
 
 private:
 	/** Pointer to the currently selected module in the new class dialog */
-	const TSharedPtr<GameProjectUtils::FModuleContextInfo>* SelectedModuleInfoPtr;
+	const TSharedPtr<FModuleContextInfo>* SelectedModuleInfoPtr;
 };
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewClassDialog::Construct( const FArguments& InArgs )
 {
 	{
-		TArray<GameProjectUtils::FModuleContextInfo> CurrentModules = GameProjectUtils::GetCurrentProjectModules();
+		TArray<FModuleContextInfo> CurrentModules = GameProjectUtils::GetCurrentProjectModules();
 		check(CurrentModules.Num()); // this should never happen since GetCurrentProjectModules is supposed to add a dummy runtime module if the project currently has no modules
 
 		AvailableModules.Reserve(CurrentModules.Num());
-		for(const GameProjectUtils::FModuleContextInfo& ModuleInfo : CurrentModules)
+		for(const FModuleContextInfo& ModuleInfo : CurrentModules)
 		{
-			AvailableModules.Emplace(MakeShareable(new GameProjectUtils::FModuleContextInfo(ModuleInfo)));
+			AvailableModules.Emplace(MakeShareable(new FModuleContextInfo(ModuleInfo)));
 		}
 	}
 
@@ -150,6 +152,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 		.BorderImage( FEditorStyle::GetBrush("Docking.Tab.ContentAreaBrush") )
 		[
 			SNew(SVerticalBox)
+			.AddMetaData<FTutorialMetaData>(TEXT("AddCodeMajorAnchor"))
 
 			+SVerticalBox::Slot()
 			[
@@ -222,6 +225,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 					.Padding(0, 10)
 					[
 						SNew(SBorder)
+						.AddMetaData<FTutorialMetaData>(TEXT("AddCodeOptions"))
 						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 						[
 							SNew(SVerticalBox)
@@ -257,7 +261,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 					.AutoHeight()
 					[
 						SNew(SHorizontalBox)
-
+						
 						// Class label
 						+SHorizontalBox::Slot()
 						.AutoWidth()
@@ -430,6 +434,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 									[
 										SNew(SBox)
 										.HeightOverride(EditableTextHeight)
+										.AddMetaData<FTutorialMetaData>(TEXT("ClassName"))
 										[
 											SNew(SHorizontalBox)
 
@@ -445,7 +450,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 											.AutoWidth()
 											.Padding(6.0f, 0.0f, 0.0f, 0.0f)
 											[
-												SAssignNew(AvailableModulesCombo, SComboBox<TSharedPtr<GameProjectUtils::FModuleContextInfo>>)
+												SAssignNew(AvailableModulesCombo, SComboBox<TSharedPtr<FModuleContextInfo>>)
 												.ToolTipText( LOCTEXT("ModuleComboToolTip", "Choose the target module for your new class") )
 												.OptionsSource( &AvailableModules )
 												.InitiallySelectedItem( SelectedModuleInfo )
@@ -527,6 +532,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 									[
 										SNew(SBox)
 										.HeightOverride(EditableTextHeight)
+										.AddMetaData<FTutorialMetaData>(TEXT("Path"))
 										[
 											SNew(SHorizontalBox)
 
@@ -888,7 +894,7 @@ void SNewClassDialog::OnNamePageEntered()
 	UpdateInputValidity();
 
 	// Steal keyboard focus to accelerate name entering
-	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EFocusCause::SetDirectly);
 }
 
 FString SNewClassDialog::GetNameClassTitle() const
@@ -1058,7 +1064,7 @@ FText SNewClassDialog::GetSelectedModuleComboText() const
 	return FText::Format(LOCTEXT("ModuleComboEntry", "{ModuleName} ({ModuleType})"), Args);
 }
 
-void SNewClassDialog::SelectedModuleComboBoxSelectionChanged(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value, ESelectInfo::Type SelectInfo)
+void SNewClassDialog::SelectedModuleComboBoxSelectionChanged(TSharedPtr<FModuleContextInfo> Value, ESelectInfo::Type SelectInfo)
 {
 	const FString& OldModulePath = SelectedModuleInfo->ModuleSourcePath;
 	const FString& NewModulePath = Value->ModuleSourcePath;
@@ -1075,7 +1081,7 @@ void SNewClassDialog::SelectedModuleComboBoxSelectionChanged(TSharedPtr<GameProj
 	UpdateInputValidity();
 }
 
-TSharedRef<SWidget> SNewClassDialog::MakeWidgetForSelectedModuleCombo(TSharedPtr<GameProjectUtils::FModuleContextInfo> Value)
+TSharedRef<SWidget> SNewClassDialog::MakeWidgetForSelectedModuleCombo(TSharedPtr<FModuleContextInfo> Value)
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ModuleName"), FText::FromString(Value->ModuleName));

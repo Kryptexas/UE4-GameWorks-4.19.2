@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
+#include "SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingHistory"
@@ -9,7 +10,7 @@
 /* SMessagingHistory structors
  *****************************************************************************/
 
-SMessagingHistory::~SMessagingHistory( )
+SMessagingHistory::~SMessagingHistory()
 {
 	if (Model.IsValid())
 	{
@@ -44,7 +45,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 			.AutoHeight()
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// filter bar
@@ -57,7 +58,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// message list
@@ -138,7 +139,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(4.0f)
 					[
 						// status bar
@@ -154,6 +155,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 						+ SHorizontalBox::Slot()
 							.FillWidth(1.0f)
 							.HAlign(HAlign_Left)
+							.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 							[
 								SNew(SHyperlink)
 									.OnNavigate(this, &SMessagingHistory::HandleShowHiddenHyperlinkNavigate)
@@ -197,7 +199,7 @@ void SMessagingHistory::AddMessage( const FMessageTracerMessageInfoRef& MessageI
 }
 
 
-void SMessagingHistory::ReloadMessages( )
+void SMessagingHistory::ReloadMessages()
 {
 	MessageList.Reset();
 	TotalMessages = 0;
@@ -219,7 +221,7 @@ void SMessagingHistory::ReloadMessages( )
 /* SMessagingHistory callbacks
  *****************************************************************************/
 
-void SMessagingHistory::HandleFilterChanged( )
+void SMessagingHistory::HandleFilterChanged()
 {
 	ReloadMessages();
 }
@@ -234,7 +236,7 @@ TSharedRef<ITableRow> SMessagingHistory::HandleMessageListGenerateRow( FMessageT
 }
 
 
-FText SMessagingHistory::HandleMessageListGetHighlightText( ) const
+FText SMessagingHistory::HandleMessageListGetHighlightText() const
 {
 	return FText::GetEmpty();
 	//return FilterBar->GetFilterText();
@@ -266,19 +268,19 @@ void SMessagingHistory::HandleMessageListSelectionChanged( FMessageTracerMessage
 }
 
 
-void SMessagingHistory::HandleModelMessageVisibilityChanged( )
+void SMessagingHistory::HandleModelMessageVisibilityChanged()
 {
 	ReloadMessages();
 }
 
 
-void SMessagingHistory::HandleShowHiddenHyperlinkNavigate( )
+void SMessagingHistory::HandleShowHiddenHyperlinkNavigate()
 {
 	Model->ClearVisibilities();
 }
 
 
-EVisibility SMessagingHistory::HandleShowHiddenHyperlinkVisibility( ) const
+EVisibility SMessagingHistory::HandleShowHiddenHyperlinkVisibility() const
 {
 	if (TotalMessages > MessageList.Num())
 	{
@@ -341,7 +343,7 @@ void SMessagingHistory::HandleTracerMessageAdded( FMessageTracerMessageInfoRef M
 }
 
 
-void SMessagingHistory::HandleTracerMessagesReset( )
+void SMessagingHistory::HandleTracerMessagesReset()
 {
 	ReloadMessages();
 }

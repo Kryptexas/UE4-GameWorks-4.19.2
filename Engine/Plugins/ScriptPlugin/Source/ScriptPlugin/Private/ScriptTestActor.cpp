@@ -3,8 +3,8 @@
 
 //////////////////////////////////////////////////////////////////////////
 
-AScriptTestActor::AScriptTestActor(const FPostConstructInitializeProperties& PCIP)
-	: Super( PCIP )
+AScriptTestActor::AScriptTestActor(const FObjectInitializer& ObjectInitializer)
+	: Super( ObjectInitializer )
 {
 }
 

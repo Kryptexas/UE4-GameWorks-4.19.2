@@ -29,7 +29,7 @@ public:
 	
 	virtual bool ValidateHeap() override;
 	
-	virtual const TCHAR * GetDescriptiveName() override;
+	virtual const TCHAR* GetDescriptiveName() override;
 	
 protected:
 	malloc_zone_t* MemoryZone;
@@ -56,7 +56,7 @@ public:
 	
 	virtual bool GetAllocationSize( void *Original, SIZE_T &SizeOut ) override;
 	
-	virtual const TCHAR * GetDescriptiveName() override;
+	virtual const TCHAR* GetDescriptiveName() override;
 
 private:	
 	bool IsOnCrashedThread(void);

@@ -2,6 +2,7 @@
 
 #include "GameMenuBuilderPrivatePCH.h"
 #include "Engine/Console.h"
+#include "SDPIScaler.h"
 
 
 FMenuPanel::FMenuPanel()
@@ -633,7 +634,7 @@ void SGameMenuPageWidget::Tick(const FGeometry& AllottedGeometry, const double I
 		if (!bConsoleVisible)
 		{
 			bConsoleVisible = true;
-			FSlateApplication::Get().SetFocusToGameViewport();
+			FSlateApplication::Get().SetAllUserFocusToGameViewport();
 		}
 	}
 	else
@@ -877,7 +878,7 @@ FReply SGameMenuPageWidget::SelectionChanged(int32 SelectionIndex)
 		ConfirmMenuItem();
 	}
 
-	return FReply::Handled().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
+	return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::SetDirectly);
 }
 
 void SGameMenuPageWidget::FadeIn()
@@ -900,7 +901,7 @@ FReply SGameMenuPageWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const
 
 	//Set the keyboard focus 
 	return FReply::Handled()
-	.SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
+		.SetUserFocus(SharedThis(this), EFocusCause::SetDirectly);
 }
 
 void SGameMenuPageWidget::ChangeOption(int32 InMoveBy)
@@ -927,40 +928,50 @@ void SGameMenuPageWidget::ChangeOption(int32 InMoveBy)
 	}
 }
 
-FReply SGameMenuPageWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SGameMenuPageWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	FReply Result = FReply::Unhandled();
 	
-	if ( (CurrentMenu.IsValid() == true ) && ( !bControlsLocked) )
+	if ((CurrentMenu.IsValid() == true) && (!bControlsLocked))
 	{
 		bool bNavigationLocked = bControlsLocked | PendingMainMenu.IsValid() | PendingSubMenu.IsValid();
-		const FKey Key = InKeyboardEvent.GetKey();
-	
-		if (bNavigationLocked == false )
-		{
-			if (Key == EKeys::Up || Key == EKeys::Down)
-			{
-				int32 MoveBy = Key == EKeys::Up ? -1 : 1;
+		const FKey Key = InKeyEvent.GetKey();
 
-				if (SelectedIndex + MoveBy > -1 && SelectedIndex + MoveBy < CurrentMenu->NumItems())
+		if (bNavigationLocked == false)
+		{
+			if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up)
+			{
+				if (SelectedIndex > 0)
 				{
-					SelectionChanged(SelectedIndex + MoveBy);
+					SelectionChanged(SelectedIndex - 1);
 				}
 				Result = FReply::Handled();
 			}
-			else if (Key == EKeys::Left || Key == EKeys::Right)
+			else if (Key == EKeys::Down || Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down)
 			{
-				int32 MoveBy = Key == EKeys::Left ? -1 : 1;
-				ChangeOption(MoveBy);
+				if (SelectedIndex + 1 < CurrentMenu->NumItems())
+				{
+					SelectionChanged(SelectedIndex + 1);
+				}
+				Result = FReply::Handled();
+			}
+			else if (Key == EKeys::Left || Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left)
+			{
+				ChangeOption(-1);
+				Result = FReply::Handled();
+			}
+			else if (Key == EKeys::Right || Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right)
+			{
+				ChangeOption(1);
 				Result = FReply::Handled();
 			}
 		}
-		if (Key == EKeys::Enter)
+		if (Key == EKeys::Enter || Key == EKeys::Gamepad_FaceButton_Bottom)
 		{
 			ConfirmMenuItem();
 			Result = FReply::Handled();
 		} 
-		else if (Key == EKeys::Escape )
+		else if (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Gamepad_Special_Left)
 		{
 			MenuGoBack(true);
 			Result = FReply::Handled();
@@ -969,63 +980,7 @@ FReply SGameMenuPageWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyboa
 	return Result;
 }
 
-FReply SGameMenuPageWidget::OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	FReply Result = FReply::Unhandled();
-	if ((CurrentMenu.IsValid() == true) && (!bControlsLocked))
-	{
-		bool bNavigationLocked = bControlsLocked | PendingMainMenu.IsValid() | PendingSubMenu.IsValid();
-		const FKey Key = ControllerEvent.GetEffectingButton();
-		if (bNavigationLocked == false)
-		{
-			if (Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up)
-			{
-				if (SelectedIndex > 0)
-				{
-					SelectionChanged(SelectedIndex - 1);
-				}
-				Result = FReply::Handled();
-			}
-			else if (Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down)
-			{
-				if (SelectedIndex + 1 < CurrentMenu->NumItems())
-				{
-					SelectionChanged(SelectedIndex + 1);
-				}
-				Result = FReply::Handled();
-			}
-			else if (Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left)
-			{
-				ChangeOption(-1);
-				Result = FReply::Handled();
-			}
-			else if (Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right)
-			{
-				ChangeOption(1);
-				Result = FReply::Handled();
-			}
-		}
-		if (Key == EKeys::Gamepad_FaceButton_Bottom)
-		{
-			ConfirmMenuItem();
-			Result = FReply::Handled();
-		} 
-		else if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Gamepad_Special_Left)
-		{
-			// Treat the right facepad button as CANCEL, but the menu button as simply back.
-			MenuGoBack(Key == EKeys::Gamepad_FaceButton_Right);
-			Result = FReply::Handled();
-		} 
-// 		else if (Key == ControllerHideMenuKey)
-// 		{
-// 			OnToggleMenu.ExecuteIfBound();
-// 			Result = FReply::Handled();
-// 		}
-	}
-	return Result;
-}
-
-FReply SGameMenuPageWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
+FReply SGameMenuPageWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	if (CurrentMenu.IsValid() == false)
 	{
@@ -1035,10 +990,10 @@ FReply SGameMenuPageWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry,
 	//Focus the custom widget
 	if (CurrentMenu.IsValid() && CurrentMenu->NumItems() == 1 && CurrentMenu->GetItem(0)->MenuItemType == EGameMenuItemType::CustomWidget)
 	{
-		return FReply::Handled().ReleaseJoystickCapture().SetKeyboardFocus(CurrentMenu->GetItem(0)->CustomWidget.ToSharedRef(),EKeyboardFocusCause::SetDirectly);
+		return FReply::Handled().SetUserFocus(CurrentMenu->GetItem(0)->CustomWidget.ToSharedRef(),EFocusCause::SetDirectly);
 	}
 
-	return FReply::Handled().ReleaseMouseCapture().CaptureJoystick(SharedThis( this ));
+	return FReply::Handled().ReleaseMouseCapture().SetUserFocus(SharedThis(this));
 }
 
 void SGameMenuPageWidget::SetTitleAnimation(bool bShowTitle)

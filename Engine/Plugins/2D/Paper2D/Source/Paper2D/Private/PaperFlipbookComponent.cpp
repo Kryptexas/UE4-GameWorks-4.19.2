@@ -15,8 +15,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookComponent
 
-UPaperFlipbookComponent::UPaperFlipbookComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperFlipbookComponent::UPaperFlipbookComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -92,7 +92,7 @@ FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 	return NewProxy;
 }
 
-FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if (SourceFlipbook != nullptr)
 	{

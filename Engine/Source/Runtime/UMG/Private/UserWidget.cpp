@@ -14,16 +14,22 @@
 /////////////////////////////////////////////////////
 // UUserWidget
 
-UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
 	Visiblity = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
-	CachedWorld = NULL;
-
 	bSupportsKeyboardFocus = true;
+	ColorAndOpacity = FLinearColor::White;
+	ForegroundColor = FSlateColor::UseForeground();
+
+#if WITH_EDITORONLY_DATA
+	bUseDesignTimeSize = false;
+	DesignTimeSize = FVector2D(100, 100);
+	PaletteCategory = LOCTEXT("UserCreated", "User Created");
+#endif
 }
 
 void UUserWidget::Initialize()
@@ -35,10 +41,25 @@ void UUserWidget::Initialize()
 
 		// Only do this if this widget is of a blueprint class
 		UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-		if ( BGClass != NULL )
+		if ( BGClass != nullptr )
 		{
 			BGClass->InitializeWidget(this);
 		}
+
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
+			{
+				for ( FNamedSlotBinding& Binding : NamedSlotBindings )
+				{
+					if ( Binding.Content && Binding.Name == NamedWidet->GetFName() )
+					{
+						NamedWidet->ClearChildren();
+						NamedWidet->AddChild(Binding.Content);
+						continue;
+					}
+				}
+			}
+		});
 	}
 }
 
@@ -56,19 +77,53 @@ void UUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
-	UWidget* RootWidget = GetRootWidgetComponent();
+	UWidget* RootWidget = GetRootWidget();
 	if ( RootWidget )
 	{
 		RootWidget->ReleaseSlateResources(bReleaseChildren);
 	}
 }
 
+void UUserWidget::SynchronizeProperties()
+{
+	Super::SynchronizeProperties();
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		TAttribute<FLinearColor> ColorBinding = OPTIONAL_BINDING(FLinearColor, ColorAndOpacity);
+		TAttribute<FSlateColor> ForegroundColorBinding = OPTIONAL_BINDING(FSlateColor, ForegroundColor);
+
+		SafeGCWidget->SetColorAndOpacity(ColorBinding);
+		SafeGCWidget->SetForegroundColor(ForegroundColorBinding);
+	}
+}
+
+void UUserWidget::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+{
+	ColorAndOpacity = InColorAndOpacity;
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->SetColorAndOpacity(ColorAndOpacity);
+	}
+}
+
+void UUserWidget::SetForegroundColor(FSlateColor InForegroundColor)
+{
+	ForegroundColor = InForegroundColor;
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->SetForegroundColor(ForegroundColor);
+	}
+}
+
 void UUserWidget::PostInitProperties()
 {
 	Super::PostInitProperties();
-
-	Components.Reset();
-	//TODO UMG For non-BP versions how do we generate the Components list?
 }
 
 UWorld* UUserWidget::GetWorld() const
@@ -98,10 +153,9 @@ void UUserWidget::SetIsDesignTime(bool bInDesignTime)
 {
 	Super::SetIsDesignTime(bInDesignTime);
 
-	for ( UWidget* Widget : Components )
-	{
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 		Widget->SetIsDesignTime(bInDesignTime);
-	}
+	});
 }
 
 void UUserWidget::Construct_Implementation()
@@ -119,9 +173,19 @@ void UUserWidget::OnPaint_Implementation(FPaintContext& Context) const
 
 }
 
+FEventReply UUserWidget::OnFocusReceived_Implementation(FGeometry MyGeometry, FFocusEvent InFocusEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
 FEventReply UUserWidget::OnKeyboardFocusReceived_Implementation(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnFocusLost_Implementation(FFocusEvent InFocusEvent)
+{
+
 }
 
 void UUserWidget::OnKeyboardFocusLost_Implementation(FKeyboardFocusEvent InKeyboardFocusEvent)
@@ -134,17 +198,22 @@ FEventReply UUserWidget::OnKeyChar_Implementation(FGeometry MyGeometry, FCharact
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnAnalogValueChanged_Implementation(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
 }
@@ -303,6 +372,16 @@ void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 	StoppedSequencePlayers.Add( &Player );
 }
 
+void UUserWidget::PlaySound(USoundBase* SoundToPlay)
+{
+	if (SoundToPlay)
+	{
+		FSlateSound NewSound;
+		NewSound.SetResourceObject(SoundToPlay);
+		FSlateApplication::Get().PlaySound(NewSound);
+	}
+}
+
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
 	return WidgetTree->FindWidget(InWidget);
@@ -318,30 +397,19 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 		Initialize();
 	}
 
-	TSharedPtr<SWidget> UserRootWidget;
-
-	//setup the player context on sub user widgets, if we have a valid context
+	// Setup the player context on sub user widgets, if we have a valid context
 	if (PlayerContext.IsValid())
 	{
-		for (UWidget* Widget : Components)
-		{
-			UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
-			if (UserWidget)
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+			if ( UUserWidget* UserWidget = Cast<UUserWidget>(Widget) )
 			{
 				UserWidget->SetPlayerContext(PlayerContext);
 			}
-		}
+		});
 	}
 
 	// Add the first component to the root of the widget surface.
-	if ( Components.Num() > 0 && Components[0] != NULL )
-	{
-		UserRootWidget = Components[0]->TakeWidget();
-	}
-	else
-	{
-		UserRootWidget = SNew(SSpacer);
-	}
+	TSharedRef<SWidget> UserRootWidget = WidgetTree->RootWidget ? WidgetTree->RootWidget->TakeWidget() : TSharedRef<SWidget>(SNew(SSpacer));
 
 	if ( !IsDesignTime() )
 	{
@@ -349,10 +417,10 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 		Construct();
 	}
 
-	return UserRootWidget.ToSharedRef();
+	return UserRootWidget;
 }
 
-TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
+TSharedPtr<SWidget> UUserWidget::GetSlateWidgetFromName(const FName& Name) const
 {
 	UWidget* WidgetObject = WidgetTree->FindWidget(Name);
 	if ( WidgetObject )
@@ -363,17 +431,80 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 	return TSharedPtr<SWidget>();
 }
 
-UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
+UWidget* UUserWidget::GetWidgetFromName(const FName& Name) const
 {
-	for ( UWidget* Widget : Components )
+	return WidgetTree->FindWidget(Name);
+}
+
+void UUserWidget::GetSlotNames(TArray<FName>& SlotNames) const
+{
+	// Only do this if this widget is of a blueprint class
+	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if ( BGClass != nullptr )
 	{
-		if ( Widget->GetName().Equals(Name, ESearchCase::IgnoreCase) )
+		SlotNames.Append(BGClass->NamedSlots);
+	}
+
+	// Also add any existing bindings uniquely, templates don't have any components
+	// yet because they're never initialized because of their CDO status.
+	for ( const FNamedSlotBinding& Binding : NamedSlotBindings )
+	{
+		SlotNames.AddUnique( Binding.Name );
+	}
+}
+
+UWidget* UUserWidget::GetContentForSlot(FName SlotName) const
+{
+	for ( const FNamedSlotBinding& Binding : NamedSlotBindings )
+	{
+		if ( Binding.Name == SlotName )
 		{
-			return Widget;
+			return Binding.Content;
 		}
 	}
 
 	return nullptr;
+}
+
+void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
+{
+	// Find the binding in the existing set and replace the content for that binding.
+	for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++)
+	{
+		FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
+
+		if ( Binding.Name == SlotName )
+		{
+			if ( Content )
+			{
+				Binding.Content = Content;
+			}
+			else
+			{
+				NamedSlotBindings.RemoveAt(BindingIndex);
+			}
+
+			return;
+		}
+	}
+
+	if ( Content )
+	{
+		// Add the new binding to the list of bindings.
+		FNamedSlotBinding NewBinding;
+		NewBinding.Name = SlotName;
+		NewBinding.Content = Content;
+
+		NamedSlotBindings.Add(NewBinding);
+	}
+
+	// Dynamically insert the new widget into the hierarchy if it exists.
+	if ( WidgetTree )
+	{
+		UNamedSlot* NamedSlot = Cast<UNamedSlot>(WidgetTree->FindWidget(SlotName));
+		NamedSlot->ClearChildren();
+		NamedSlot->AddChild(Content);
+	}
 }
 
 void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
@@ -416,20 +547,19 @@ TSharedRef<SWidget> UUserWidget::MakeViewportWidget(TSharedPtr<SWidget>& UserSla
 		.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
 		.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
 		.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
-		.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
 		[
 			UserSlateWidget.ToSharedRef()
 		];
 }
 
-UWidget* UUserWidget::GetRootWidgetComponent()
+UWidget* UUserWidget::GetRootWidget() const
 {
-	if ( Components.Num() > 0 )
+	if ( WidgetTree )
 	{
-		return Components[0];
+		return WidgetTree->RootWidget;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UUserWidget::AddToViewport()
@@ -455,6 +585,11 @@ void UUserWidget::AddToViewport()
 
 void UUserWidget::RemoveFromViewport()
 {
+	RemoveFromParent();
+}
+
+void UUserWidget::RemoveFromParent()
+{
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> WidgetHost = FullScreenWidget.Pin();
@@ -469,6 +604,10 @@ void UUserWidget::RemoveFromViewport()
 			}
 		}
 	}
+	else
+	{
+		Super::RemoveFromParent();
+	}
 }
 
 bool UUserWidget::GetIsVisible() const
@@ -476,16 +615,9 @@ bool UUserWidget::GetIsVisible() const
 	return FullScreenWidget.IsValid();
 }
 
-TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity() const
+bool UUserWidget::IsInViewport() const
 {
-	if ( FullScreenWidget.IsValid() )
-	{
-		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
-
-		return UWidget::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
-	}
-
-	return ESlateVisibility::Collapsed;
+	return FullScreenWidget.IsValid();
 }
 
 void UUserWidget::SetPlayerContext(FLocalPlayerContext InPlayerContext)
@@ -547,11 +679,6 @@ void UUserWidget::SetAlignmentInViewport(FVector2D Alignment)
 	ViewportAlignment = Alignment;
 }
 
-void UUserWidget::SetZOrderInViewport(int32 ZOrder)
-{
-	ViewportZOrder = ZOrder;
-}
-
 FMargin UUserWidget::GetFullScreenOffset() const
 {
 	// If the size is zero, and we're not stretched, then use the desired size.
@@ -578,11 +705,6 @@ FVector2D UUserWidget::GetFullScreenAlignment() const
 	return ViewportAlignment;
 }
 
-int32 UUserWidget::GetFullScreenZOrder() const
-{
-	return ViewportZOrder;
-}
-
 #if WITH_EDITOR
 
 const FSlateBrush* UUserWidget::GetEditorIcon()
@@ -592,7 +714,7 @@ const FSlateBrush* UUserWidget::GetEditorIcon()
 
 const FText UUserWidget::GetPaletteCategory()
 {
-	return LOCTEXT("UserCreated", "User Created");
+	return PaletteCategory;
 }
 
 #endif

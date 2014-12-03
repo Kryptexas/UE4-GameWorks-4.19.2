@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include "Media.h"
-#include "MediaTexture.h"
-
 
 /**
  * Implements a details view customization for the UMediaTexture class.
@@ -25,21 +22,21 @@ public:
 	 *
 	 * @return The new instance.
 	 */
-	static TSharedRef<IDetailCustomization> MakeInstance( )
+	static TSharedRef<IDetailCustomization> MakeInstance()
 	{
 		return MakeShareable(new FMediaTextureCustomization());
 	}
 
 private:
 
-	// Callback for generating the menu content of the VideoTrack combo box.
-	TSharedRef<SWidget> HandleVideoTrackComboButtonMenuContent( ) const;
+	/** Callback for generating the menu content of the VideoTrack combo box. */
+	TSharedRef<SWidget> HandleVideoTrackComboButtonMenuContent() const;
 
-	// Callback for selecting a track in the VideoTrack combo box.
+	/** Callback for selecting a track in the VideoTrack combo box. */
 	void HandleVideoTrackComboButtonMenuEntryExecute( uint32 TrackIndex );
 
-	// Callback for getting the text of the VideoTrack combo box.
-	FText HandleVideoTrackComboButtonText( ) const;
+	/** Callback for getting the text of the VideoTrack combo box. */
+	FText HandleVideoTrackComboButtonText() const;
 
 private:
 

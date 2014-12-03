@@ -671,120 +671,43 @@ void FDynamicSpriteEmitterDataBase::RenderDebug(const FParticleSystemSceneProxy*
 	}
 }
 
-/**
- *	Set up an buffer for async filling
- *
- *	@param	Proxy					The primitive scene proxy for the emitter.
- *	@param	InBufferIndex			Index of this buffer
- *	@param	InView					View for this buffer
- *	@param	InVertexCount			Count of verts for this buffer
- *	@param	InVertexSize			Stride of these verts, only used for verification
- *	@param	InDynamicParameterVertexStride	Stride of the dynamic parameter
- */
-void FDynamicSpriteEmitterDataBase::BuildViewFillData(FParticleSystemSceneProxy* Proxy, int32 InBufferIndex,const FSceneView *InView,int32 InVertexCount,int32 InVertexSize,int32 InDynamicParameterVertexStride)
+void FDynamicSpriteEmitterDataBase::BuildViewFillData(
+	const FParticleSystemSceneProxy* Proxy, 
+	const FSceneView* InView, 
+	int32 InVertexCount, 
+	int32 InVertexSize, 
+	int32 InDynamicParameterVertexStride, 
+	FGlobalDynamicVertexBuffer::FAllocation& DynamicVertexAllocation,
+	FGlobalDynamicIndexBuffer::FAllocation& DynamicIndexAllocation,
+	FGlobalDynamicVertexBuffer::FAllocation* DynamicParameterAllocation,
+	FAsyncBufferFillData& Data) const
 {
-	bool bSuccess = true;
-
-	FAsyncBufferFillData Data;
-
 	Data.LocalToWorld = Proxy->GetLocalToWorld();
 	Data.WorldToLocal = Proxy->GetWorldToLocal();
 	Data.View = InView;
 	check(Data.VertexSize == 0 || Data.VertexSize == InVertexSize);
 
-	check(InBufferIndex == InstanceDataAllocations.Num())
-	FGlobalDynamicVertexBuffer::FAllocation* DynamicVertexAllocation = new(InstanceDataAllocations) FGlobalDynamicVertexBuffer::FAllocation();
-	*DynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InVertexSize );
-	Data.VertexData = DynamicVertexAllocation->Buffer;
+	DynamicVertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InVertexSize );
+	Data.VertexData = DynamicVertexAllocation.Buffer;
 	Data.VertexCount = InVertexCount;
 	Data.VertexSize = InVertexSize;
-
-	bSuccess &= DynamicVertexAllocation->IsValid();
 
 	int32 NumIndices, IndexStride;
 	GetIndexAllocInfo(NumIndices, IndexStride);
 	check((uint32)NumIndices <= 65535);
 	check(IndexStride > 0);
 
-	FGlobalDynamicIndexBuffer::FAllocation* DynamicIndexAllocation = new(IndexDataAllocations) FGlobalDynamicIndexBuffer::FAllocation();
-	*DynamicIndexAllocation = FGlobalDynamicIndexBuffer::Get().Allocate( NumIndices, IndexStride );
-	Data.IndexData = DynamicIndexAllocation->Buffer;
+	DynamicIndexAllocation = FGlobalDynamicIndexBuffer::Get().Allocate( NumIndices, IndexStride );
+	Data.IndexData = DynamicIndexAllocation.Buffer;
 	Data.IndexCount = NumIndices;
 
-	bSuccess &= DynamicIndexAllocation->IsValid();
-
 	Data.DynamicParameterData = NULL;
+
 	if( bUsesDynamicParameter )
 	{
 		check( InDynamicParameterVertexStride > 0 );
-		check(InBufferIndex == DynamicParameterDataAllocations.Num())
-		FGlobalDynamicVertexBuffer::FAllocation* DynamicParameterAllocation = new(DynamicParameterDataAllocations) FGlobalDynamicVertexBuffer::FAllocation();
 		*DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( InVertexCount * InDynamicParameterVertexStride );
 		Data.DynamicParameterData = DynamicParameterAllocation->Buffer;
-
-		bSuccess &= DynamicParameterAllocation->IsValid();
-	}
-
-	//Create the data but only fill it if all the allocations succeeded.
-	if (InBufferIndex >= AsyncBufferFillTasks.Num())
-	{
-		new (AsyncBufferFillTasks) FAsyncBufferFillData();
-	}
-	check(InBufferIndex < AsyncBufferFillTasks.Num()); // please add the views in order
-
-	if( bSuccess )
-	{
-		AsyncBufferFillTasks[InBufferIndex] = Data;
-	}
-}
-
-/**
- *	Set up all buffers for async filling
- *
- *	@param	Proxy							The primitive scene proxy for the emitter.
- *	@param	ViewFamily						View family to process
- *	@param	VisibilityMap					Visibility map for the sub-views
- *	@param	bOnlyOneView					If true, then we don't need per-view buffers
- *	@param	InVertexCount					Count of verts for this buffer
- *	@param	InVertexSize					Stride of these verts, only used for verification
- *  @param  InDynamicParameterVertexSize	Stride of the dynamic parameter
- */
-void FDynamicSpriteEmitterDataBase::BuildViewFillDataAndSubmit(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily,const uint32 VisibilityMap,bool bOnlyOneView,int32 InVertexCount,int32 InVertexSize,int32 InDynamicParameterVertexSize)
-{
-	EnsureAsyncTaskComplete();
-	int32 NumUsedViews = 0;
-	InstanceDataAllocations.Empty();
-	IndexDataAllocations.Empty();
-	DynamicParameterDataAllocations.Empty();
-	for (int32 ViewIndex = 0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
-	{
-		if (VisibilityMap & (1<<ViewIndex))
-		{
-			const FSceneView* View = ViewFamily->Views[ViewIndex];
-			BuildViewFillData(Proxy,NumUsedViews++,View,InVertexCount,InVertexSize, InDynamicParameterVertexSize);
-			if (bOnlyOneView)
-			{
-				break;
-			}
-		}
-	}
-	if (AsyncBufferFillTasks.Num() > NumUsedViews)
-	{
-		AsyncBufferFillTasks.RemoveAt(NumUsedViews,AsyncBufferFillTasks.Num() - NumUsedViews);
-	}
-	if (NumUsedViews)
-	{
-#if 0 // async particle fill is broken in UE4
-		if (!GIsEditor)
-		{
-			check(!AsyncTask.GetReference()); // this should not be still outstanding
-			AsyncTask = TGraphTask<FAsyncParticleFill>::CreateTask(NULL, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(this);
-		}
-		else
-#endif
-		{
-			DoBufferFill();
-		}
 	}
 }
 
@@ -1640,7 +1563,7 @@ int32 FDynamicSpriteEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy,
 
 FParticleVertexFactoryBase* FDynamicSpriteEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene()->GetFeatureLevel());
+	return GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene().GetFeatureLevel());
 }
 
 void FDynamicSpriteEmitterData::UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
@@ -1853,7 +1776,7 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 
 FParticleVertexFactoryBase* FDynamicMeshEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	FParticleVertexFactoryBase* VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene()->GetFeatureLevel());
+	FParticleVertexFactoryBase* VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene().GetFeatureLevel());
 	SetupVertexFactory((FMeshParticleVertexFactory*)VertexFactory, StaticMesh->RenderData->LODResources[0]);
 	return VertexFactory;
 }
@@ -1914,7 +1837,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshRenderingTime);
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	const bool bInstanced = View->GetFeatureLevel() >= ERHIFeatureLevel::SM4;
 
 	if (bValid)
 	{
@@ -1976,7 +1899,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				}
 
 				// Fill instance buffer.
-				GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetTypedData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetTypedData(), Proxy, View);
+				GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
 			}
 
 			Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
@@ -2048,8 +1971,8 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					if (!bInstanced)
 					{
 						FMeshParticleVertexFactory::FBatchParametersCPU& BatchParameters = Collector.AllocateOneFrameResource<FMeshParticleVertexFactory::FBatchParametersCPU>();
-						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetTypedData();
-						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetTypedData();
+						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData();
+						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData();
 						BatchElement.UserData = &BatchParameters;
 						BatchElement.UserIndex = 0;
 
@@ -2215,7 +2138,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 			DynamicParameterDataAllocationsCPU.AddUninitialized(ParticleCount);
 
 			// Fill instance buffer.
-			GetInstanceData((void*) InstanceDataAllocationsCPU.GetTypedData(), (void*) DynamicParameterDataAllocationsCPU.GetTypedData(), Proxy, ViewFamily->Views[ViewIndex]);
+			GetInstanceData((void*) InstanceDataAllocationsCPU.GetData(), (void*) DynamicParameterDataAllocationsCPU.GetData(), Proxy, ViewFamily->Views[ViewIndex]);
 		}
 
 		// Instance data is not calculated per-view when the emitter is unsorted.
@@ -2308,6 +2231,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					{
 						Mesh.Type = PT_TriangleList;
 						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						Mesh.bWireframe = false;
 						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
 						BatchElement.FirstIndex = Section.FirstIndex;
 						BatchElement.NumPrimitives = Section.NumTriangles;
@@ -2316,8 +2240,8 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					if(!bInstanced)
 					{
 						FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = new(MeshBatchParameters) FMeshParticleVertexFactory::FBatchParametersCPU();
-						BatchParameters->InstanceBuffer = InstanceDataAllocationsCPU.GetTypedData();
-						BatchParameters->DynamicParameterBuffer = DynamicParameterDataAllocationsCPU.GetTypedData();
+						BatchParameters->InstanceBuffer = InstanceDataAllocationsCPU.GetData();
+						BatchParameters->DynamicParameterBuffer = DynamicParameterDataAllocationsCPU.GetData();
 						BatchElement.UserData = BatchParameters;
 						BatchElement.UserIndex = 0;
 
@@ -2611,9 +2535,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 		}
 		else
 		{
-			FRotator OtherRot = FRotator::MakeFromEuler(PayloadData->InitRotation+PayloadData->CurContinuousRotation);
-			FRotationMatrix RotMat(OtherRot);
-			OutTransformMat = (OrientMat*kScaleMat) * RotMat * kTransMat;
+			OutTransformMat = (OrientMat*kScaleMat) * kRotMat * kTransMat;
 		}
 	}
 	else if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
@@ -2954,7 +2876,7 @@ void FDynamicBeam2EmitterData::Init( bool bInSelected )
 
 FParticleVertexFactoryBase* FDynamicBeam2EmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
+	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene().GetFeatureLevel()));
 }
 
 /** Perform the actual work of filling the buffer, often called from another thread 
@@ -3040,8 +2962,8 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 	FGlobalDynamicVertexBuffer::FAllocation DynamicParameterAllocation;
 	FAsyncBufferFillData Data;
 
-	//BuildViewFillData(Proxy, View, Source.VertexCount, sizeof(FParticleBeamTrailVertex), 0, DynamicVertexAllocation, DynamicIndexAllocation, &DynamicParameterAllocation, Data);
-	//DoBufferFill(Data);
+	BuildViewFillData(Proxy, View, Source.VertexCount, sizeof(FParticleBeamTrailVertex), 0, DynamicVertexAllocation, DynamicIndexAllocation, &DynamicParameterAllocation, Data);
+	DoBufferFill(Data);
 
 	if (Source.bUseLocalSpace == false)
 	{
@@ -3265,9 +3187,25 @@ void FDynamicBeam2EmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, c
 	// Only need to do this once per-view
 	if (LastFramePreRendered < FrameNumber)
 	{
-		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None) && !GEngine->IsStereoscopic3D()) ? true : false);
+		InstanceDataAllocations.Empty();
+		IndexDataAllocations.Empty();
+		DynamicParameterDataAllocations.Empty();
 
-		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,Source.VertexCount,sizeof(FParticleBeamTrailVertex),0);
+		for (int32 ViewIndex = 0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = ViewFamily->Views[ViewIndex];
+
+				FGlobalDynamicVertexBuffer::FAllocation* DynamicVertexAllocation = new(InstanceDataAllocations) FGlobalDynamicVertexBuffer::FAllocation();
+				FGlobalDynamicIndexBuffer::FAllocation* DynamicIndexAllocation = new(IndexDataAllocations) FGlobalDynamicIndexBuffer::FAllocation();
+				FGlobalDynamicVertexBuffer::FAllocation* DynamicParameterAllocation = bUsesDynamicParameter ? new(DynamicParameterDataAllocations) FGlobalDynamicVertexBuffer::FAllocation() : NULL;
+				FAsyncBufferFillData* Data = new (AsyncBufferFillTasks) FAsyncBufferFillData();
+
+				BuildViewFillData(Proxy, View, Source.VertexCount, sizeof(FParticleBeamTrailVertex), 0, *DynamicVertexAllocation, *DynamicIndexAllocation, DynamicParameterAllocation, *Data);
+				DoBufferFill(*Data);
+			}
+		}
 
 		// Set the frame tracker
 		LastFramePreRendered = FrameNumber;
@@ -5881,7 +5819,7 @@ void FDynamicTrailsEmitterData::Init(bool bInSelected)
 
 FParticleVertexFactoryBase* FDynamicTrailsEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
+	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene().GetFeatureLevel()));
 }
 
 void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const
@@ -5907,8 +5845,8 @@ void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 	const int32 VertexStride = GetDynamicVertexStride(ViewFamily.GetFeatureLevel());
 	const int32 DynamicParameterVertexStride = bUsesDynamicParameter ? GetDynamicParameterVertexStride() : 0;
 
-	//BuildViewFillData(Proxy, View, SourcePointer->VertexCount, VertexStride, DynamicParameterVertexStride, DynamicVertexAllocation, DynamicIndexAllocation, &DynamicParameterAllocation, Data);
-	//DoBufferFill(Data);
+	BuildViewFillData(Proxy, View, SourcePointer->VertexCount, VertexStride, DynamicParameterVertexStride, DynamicVertexAllocation, DynamicIndexAllocation, &DynamicParameterAllocation, Data);
+	DoBufferFill(Data);
 
 	if (SourcePointer->bUseLocalSpace == false)
 	{
@@ -6160,15 +6098,25 @@ void FDynamicTrailsEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 			DynamicParameterVertexStride = GetDynamicParameterVertexStride();
 		}
 
-		bool bOnlyOneView = ShouldUsePrerenderView() || ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
+		InstanceDataAllocations.Empty();
+		IndexDataAllocations.Empty();
+		DynamicParameterDataAllocations.Empty();
 
-		// Render both views when in stereo
-		if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+		for (int32 ViewIndex = 0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
 		{
-			bOnlyOneView = false;
-		}
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = ViewFamily->Views[ViewIndex];
 
-		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,SourcePointer->VertexCount,VertexStride, DynamicParameterVertexStride);
+				FGlobalDynamicVertexBuffer::FAllocation* DynamicVertexAllocation = new(InstanceDataAllocations) FGlobalDynamicVertexBuffer::FAllocation();
+				FGlobalDynamicIndexBuffer::FAllocation* DynamicIndexAllocation = new(IndexDataAllocations) FGlobalDynamicIndexBuffer::FAllocation();
+				FGlobalDynamicVertexBuffer::FAllocation* DynamicParameterAllocation = bUsesDynamicParameter ? new(DynamicParameterDataAllocations) FGlobalDynamicVertexBuffer::FAllocation() : NULL;
+				FAsyncBufferFillData* Data = new (AsyncBufferFillTasks) FAsyncBufferFillData();
+
+				BuildViewFillData(Proxy, View, SourcePointer->VertexCount, VertexStride, DynamicParameterVertexStride, *DynamicVertexAllocation, *DynamicIndexAllocation, DynamicParameterAllocation, *Data);
+				DoBufferFill(*Data);
+			}
+		}
 
 		// Set the frame tracker
 		LastFramePreRendered = FrameNumber;

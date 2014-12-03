@@ -62,6 +62,9 @@ public:
 	/** Delegate to handle Add looping interpolation context menu option */
 	void OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets);
 
+	/** Delegate to handle set current preview mesh context menu option */
+	void OnSetCurrentPreviewMesh(TArray<FAssetData> SelectedAssets);
+
 	/** Delegate to handle reimport selected animations */
 	void OnReimportAnimation(TArray<FAssetData> SelectedAssets);
 
@@ -139,6 +142,11 @@ protected:
 	 * Cleaup a component from the preview scene along with any attached children
 	 */
 	void CleanupPreviewSceneComponent(USceneComponent* Component);
+
+	/**
+	 * Has the animation asset preview tool tip been visualized
+	 */
+	bool IsToolTipPreviewVisible();
 
 	/**
 	 * The actual viewport widget

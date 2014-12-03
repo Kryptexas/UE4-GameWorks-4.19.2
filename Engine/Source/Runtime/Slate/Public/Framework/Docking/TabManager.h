@@ -107,8 +107,9 @@ namespace ETabSpawnerMenuType
 {
 	enum Type
 	{
-		Display,		// Display this spawner in menus
-		Hide			// Do not display this spawner in menus, it will be invoked manually
+		Enabled,		// Display this spawner in menus
+		Disabled,		// Display this spawner in menus, but make it disabled
+		Hidden,			// Do not display this spawner in menus, it will be invoked manually
 	};
 }
 
@@ -119,9 +120,9 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		, TabType( InTabType )
 		, OnSpawnTab( InSpawnTabMethod )
 		, OnFindTabToReuse()
-		, MenuType(ETabSpawnerMenuType::Display)
+		, MenuType(ETabSpawnerMenuType::Enabled)
+		, bAutoGenerateMenuEntry(true)
 		, SpawnedTabPtr()
-
 	{
 	}
 
@@ -155,9 +156,15 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		return *this;
 	}
 
-	FTabSpawnerEntry& SetMenuType( ETabSpawnerMenuType::Type InMenuType )
+	FTabSpawnerEntry& SetMenuType( const TAttribute<ETabSpawnerMenuType::Type>& InMenuType )
 	{
 		MenuType = InMenuType;
+		return *this;
+	}
+
+	FTabSpawnerEntry& SetAutoGenerateMenuEntry( bool bInAutoGenerateMenuEntry )
+	{
+		bAutoGenerateMenuEntry = bInAutoGenerateMenuEntry;
 		return *this;
 	}
 
@@ -171,7 +178,10 @@ private:
 	FOnSpawnTab OnSpawnTab;
 	/** When this method is not provided, we assume that the tab should only allow 0 or 1 instances */
 	FOnFindTabToReuse OnFindTabToReuse;
-	ETabSpawnerMenuType::Type MenuType;
+	/** Whether this menu item should be enabled, disabled, or hidden */
+	TAttribute<ETabSpawnerMenuType::Type> MenuType;
+	/** Whether to automatically generate a menu entry for this tab spawner */
+	bool bAutoGenerateMenuEntry;
 
 	TWeakPtr<SDockTab> SpawnedTabPtr;
 
@@ -550,6 +560,8 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		TSharedPtr<SWidget> RestoreFrom( const TSharedRef<FLayout>& Layout, const TSharedPtr<SWindow>& ParentWindow, const bool bEmbedTitleAreaContent = false );
 
+		void PopulateLocalTabSpawnerMenu( FMenuBuilder& PopulateMe );
+
 		void PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure );
 
 		void PopulateTabSpawnerMenu( FMenuBuilder &PopulateMe, const FName& TabType );
@@ -603,6 +615,18 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		/** @return if the provided tab can be closed. */
 		bool IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const;
+
+		/** @return The local workspace menu root */
+		const TSharedRef<FWorkspaceItem> GetLocalWorkspaceMenuRoot() const;
+
+		/** Adds a category to the local workspace menu by name */
+		TSharedRef<FWorkspaceItem> AddLocalWorkspaceMenuCategory( const FText& CategoryTitle );
+
+		/** Adds an existing workspace item to the local workspace menu */
+		void AddLocalWorkspaceMenuItem( const TSharedRef<FWorkspaceItem>& CategoryItem );
+
+		/** Clears all categories in the local workspace menu */
+		void ClearLocalWorkspaceMenuCategories();
 
 	protected:
 		void InvokeTabForMenu( FName TabId );
@@ -677,6 +701,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		TArray< TWeakPtr<SDockingArea> > DockAreas;
 		TArray< TSharedRef<FTabManager::FArea> > CollapsedDockAreas;
+
+		/** The root for the local editor's tab spawner workspace menu */
+		TSharedPtr<FWorkspaceItem> LocalWorkspaceMenuRoot;
 
 		/** A Major tab that contains this TabManager's widgets. */
 		TWeakPtr<SDockTab> OwnerTabPtr;
@@ -820,7 +847,7 @@ private:
 		{
 		}
 
-		bool Matches( const FGlobalTabmanager::FSubTabManager& TabManagerPair ) const
+		bool operator()(const FGlobalTabmanager::FSubTabManager& TabManagerPair) const
 		{
 			return TabManagerPair.TabManager.IsValid() && TabManagerPair.MajorTab.IsValid() && TabManagerPair.MajorTab.Pin() == TabToFind;
 		}
@@ -835,7 +862,7 @@ private:
 		{
 		}
 
-		bool Matches( const FGlobalTabmanager::FSubTabManager& TabManagerPair ) const
+		bool operator()(const FGlobalTabmanager::FSubTabManager& TabManagerPair) const
 		{
 			return TabManagerPair.TabManager.IsValid() && TabManagerPair.MajorTab.IsValid() && TabManagerPair.TabManager.Pin() == ManagerToFind;
 		}

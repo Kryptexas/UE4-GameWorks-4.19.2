@@ -5,6 +5,6 @@
 
 DEFINE_LOG_CATEGORY(LogBehaviorTree);
 
-UBehaviorTree::UBehaviorTree(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTree::UBehaviorTree(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }

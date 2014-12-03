@@ -12,6 +12,9 @@
 #include "AssetNotifications.h"
 #include "Animation/Rig.h"
 #include "BoneSelectionWidget.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "SRigPicker.h"
 
 #define LOCTEXT_NAMESPACE "SRigWindow"
 
@@ -227,18 +230,20 @@ void SRigWindow::Construct(const FArguments& InArgs)
 
 			+SHorizontalBox::Slot()
 			[
-				// rig asset picker
-				//ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-				SNew(SContentReference)
-				//.WidthOverride(80.f)
-				.AllowClearingReference(true)
-				.AllowSelectingNewAsset(true)
-				.AssetReference(this, &SRigWindow::GetRigObject)
-				.AllowedClass(URig::StaticClass())
-				.OnShouldFilterAsset(this, &SRigWindow::ShouldFilterAssetBased)
-				.OnSetReference(this, &SRigWindow::OnAssetSelected)
-				.AssetPickerSizeOverride(FVector2D(250, 700))
-				.InitialAssetViewType(EAssetViewType::List)
+				SAssignNew( AssetComboButton, SComboButton )
+				//.ToolTipText( this, &SPropertyEditorAsset::OnGetToolTip )
+				.ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
+				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.OnGetMenuContent( this, &SRigWindow::MakeRigPickerWithMenu )
+				.ContentPadding(2.0f)
+				.ButtonContent()
+				[
+					// Show the name of the asset or actor
+					SNew(STextBlock)
+					.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+					.Font( FEditorStyle::GetFontStyle( "PropertyWindow.NormalFont" ) )
+					.Text(this,&SRigWindow::GetAssetName)
+				]
 			]
 
 			+SHorizontalBox::Slot()
@@ -324,7 +329,7 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 {
 	BoneMappingList.Empty();
 
-	const URig * Rig = Skeleton->GetRig();
+	const URig* Rig = Skeleton->GetRig();
 
 	if ( Rig )
 	{
@@ -333,9 +338,9 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 
 		for ( const auto Node : Nodes )
 		{
-			const FName & Name = Node.Name;
-			const FString & DisplayName = Node.DisplayName;
-			const FName & BoneName = Skeleton->GetRigBoneMapping(Name);
+			const FName& Name = Node.Name;
+			const FString& DisplayName = Node.DisplayName;
+			const FName& BoneName = Skeleton->GetRigBoneMapping(Name);
 
 			if (Node.bAdvanced == bDisplayAdvanced)
 			{
@@ -370,6 +375,8 @@ void SRigWindow::OnAssetSelected(UObject* Object)
 {
 	if (Skeleton)
 	{
+		AssetComboButton->SetIsOpen(false);
+
 		const FScopedTransaction Transaction(LOCTEXT("RigAssetChanged", "Select Rig"));
 		Skeleton->Modify();
 		Skeleton->SetRigConfig(Cast<URig>(Object));
@@ -380,7 +387,7 @@ void SRigWindow::OnAssetSelected(UObject* Object)
 }
 
 /** Returns true if the asset shouldn't show  */
-bool SRigWindow::ShouldFilterAssetBased(const class FAssetData& AssetData)
+bool SRigWindow::ShouldFilterAsset(const class FAssetData& AssetData)
 {
 	return (AssetData.GetAsset() == GetRigObject());
 }
@@ -434,5 +441,33 @@ FString SRigWindow::GetAdvancedButtonText() const
 
 	return TEXT("Show Advanced");
 }
+
+TSharedRef<SWidget> SRigWindow::MakeRigPickerWithMenu()
+{
+	// rig asset picker
+	return	
+		SNew(SRigPicker)
+		.InitialObject(Skeleton->GetRig())
+		.OnShouldFilterAsset(this, &SRigWindow::ShouldFilterAsset)
+		.OnSetReference(this, &SRigWindow::OnAssetSelected)
+		.OnClose(this, &SRigWindow::CloseComboButton );
+}
+
+void SRigWindow::CloseComboButton()
+{
+	AssetComboButton->SetIsOpen(false);
+}
+
+FString SRigWindow::GetAssetName() const
+{
+	UObject* Rig = GetRigObject();
+	if (Rig)
+	{
+		return Rig->GetName();
+	}
+
+	return TEXT("None");
+}
+
 #undef LOCTEXT_NAMESPACE
 

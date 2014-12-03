@@ -606,6 +606,10 @@ private:
  * A list of the most recently used bound shader states.
  * This is used to keep bound shader states that have been used recently from being freed, as they're likely to be used again soon.
  */
+#if !defined(HAS_THREADSAFE_CreateBoundShaderState)
+#error "HAS_THREADSAFE_CreateBoundShaderState must be defined"
+#endif
+
 template<uint32 Size>
 class TBoundShaderStateHistory : public FRenderResource
 {
@@ -619,12 +623,16 @@ public:
 	/** Adds a bound shader state to the history. */
 	void Add(FBoundShaderStateRHIParamRef BoundShaderState)
 	{
+#if HAS_THREADSAFE_CreateBoundShaderState
+		FScopeLock Lock(&BoundShaderStateHistoryLock);
+#endif
 		BoundShaderStates[NextBoundShaderStateIndex] = BoundShaderState;
 		NextBoundShaderStateIndex = (NextBoundShaderStateIndex + 1) % Size;
 	}
 
 	FBoundShaderStateRHIParamRef GetLast()
 	{
+		check(!HAS_THREADSAFE_CreateBoundShaderState);
 		// % doesn't work as we want on negative numbers, so handle the wraparound manually
 		uint32 LastIndex = NextBoundShaderStateIndex == 0 ? Size - 1 : NextBoundShaderStateIndex - 1;
 		return BoundShaderStates[LastIndex];
@@ -643,4 +651,7 @@ private:
 
 	FBoundShaderStateRHIRef BoundShaderStates[Size];
 	uint32 NextBoundShaderStateIndex;
+#if HAS_THREADSAFE_CreateBoundShaderState
+	FCriticalSection BoundShaderStateHistoryLock;
+#endif
 };

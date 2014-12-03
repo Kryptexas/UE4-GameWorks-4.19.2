@@ -4,8 +4,8 @@
 #include "BehaviorTree/Services/BTService_DefaultFocus.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 
-UBTService_DefaultFocus::UBTService_DefaultFocus(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UBTService_DefaultFocus::UBTService_DefaultFocus(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 	NodeName = "Set default focus";
 

@@ -7,14 +7,14 @@
 
 class SMergeGraphView : public SCompoundWidget
 						, public IDiffControl
+						, public IMergeControl
 {
 public:
 	SLATE_BEGIN_ARGS(SMergeGraphView)
 	{}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
-
+	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData );
 private:
 	/** Implementation of IDiffControl: */
 	void NextDiff() override;
@@ -22,7 +22,14 @@ private:
 	bool HasNextDifference() const override;
 	bool HasPrevDifference() const override;
 
+	/** Implementation of IMergeControl */
+	void HighlightNextConflict() override;
+	void HighlightPrevConflict() override;
+	bool HasNextConflict() const override;
+	bool HasPrevConflict() const override;
+
 	/** Helper functions and event handlers: */
+	void HighlightConflict(const struct FGraphMergeConflict& Conflict);
 	bool HasNoDifferences() const;
 	void OnGraphListSelectionChanged(TSharedPtr<struct FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType);
 	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
@@ -38,9 +45,15 @@ private:
 	FBlueprintMergeData Data;
 
 	TArray< TSharedPtr< struct FMergeGraphRowEntry> > DifferencesFromBase;
-	TSharedPtr<class SBorder> DiffResultsWidget;
 
-	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > DiffResultList;
+	TSharedPtr<class SBox> RemoteDiffResultsWidget;
+	TSharedPtr<class SBox> LocalDiffResultsWidget;
+
+	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > RemoteDiffResultList;
+	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > LocalDiffResultList;
+
+	TArray< TSharedPtr<struct FGraphMergeConflict> > MergeConflicts;
+	int CurrentMergeConflict;
 
 	/** 
 	 * Unfortunately this innocuous member requires some explanation:
@@ -56,7 +69,8 @@ private:
 	 * 
 	 * 	I have chosen option 1.
 	 */
-	TArray< TSharedPtr< struct FDiffSingleResult> > const* DiffResultsListData;
+	TArray< TSharedPtr< struct FDiffSingleResult> > const* RemoteDiffResultsListData;
+	TArray< TSharedPtr< struct FDiffSingleResult> > const* LocalDiffResultsListData;
 
 	bool bViewsAreLocked;
 };

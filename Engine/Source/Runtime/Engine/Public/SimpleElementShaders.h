@@ -71,6 +71,18 @@ private:
 };
 
 /**
+ * Simple pixel shader that just reads from an alpha-only texture
+ */
+class FSimpleElementAlphaOnlyPS : public FSimpleElementPS
+{
+	DECLARE_SHADER_TYPE(FSimpleElementAlphaOnlyPS, Global);
+public:
+
+	FSimpleElementAlphaOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
+	FSimpleElementAlphaOnlyPS() {}
+};
+
+/**
  * A pixel shader for rendering a texture on a simple element.
  */
 class FSimpleElementGammaBasePS : public FSimpleElementPS
@@ -104,6 +116,20 @@ public:
 	{
 		OutEnvironment.SetDefine(TEXT("SRGB_INPUT_TEXTURE"), bSRGBTexture ? TEXT("1") : TEXT("0"));
 	}
+};
+
+/**
+ * Simple pixel shader that just reads from an alpha-only texture and gamma corrects the output
+ */
+class FSimpleElementGammaAlphaOnlyPS : public FSimpleElementGammaBasePS
+{
+	DECLARE_SHADER_TYPE(FSimpleElementGammaAlphaOnlyPS, Global);
+public:
+
+	FSimpleElementGammaAlphaOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementGammaBasePS(Initializer) {}
+	FSimpleElementGammaAlphaOnlyPS() {}
+
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
 };
 
 /**

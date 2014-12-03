@@ -825,8 +825,7 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 			{
 				if (!bCtrlDown)
 				{
-					StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
-					StaticMeshEditorPtr.Pin()->AddSelectedPrim(CollisionProxy->PrimData);
+					StaticMeshEditorPtr.Pin()->AddSelectedPrim(CollisionProxy->PrimData, true);
 				}
 				else
 				{
@@ -835,11 +834,7 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 			}
 			else
 			{
-				if (!bCtrlDown)
-				{
-					StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
-				}
-				StaticMeshEditorPtr.Pin()->AddSelectedPrim(CollisionProxy->PrimData);
+				StaticMeshEditorPtr.Pin()->AddSelectedPrim(CollisionProxy->PrimData, !bCtrlDown);
 			}
 
 			// Force the widget to translate, if not already set

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -78,6 +79,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			[
 				SNew( SComboButton )
 				.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+				.ForegroundColor(FLinearColor::White)
 				.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
 				.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
 				.HasDownArrow( true )
@@ -234,27 +236,27 @@ void SAssetPicker::Tick(const FGeometry& AllottedGeometry, const double InCurren
 	{
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 		bPendingFocusNextFrame = false;
 	}
 
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	// Up and down move thru the filtered list
 	int32 SelectionDelta = 0;
 
-	if (InKeyboardEvent.GetKey() == EKeys::Up)
+	if (InKeyEvent.GetKey() == EKeys::Up)
 	{
 		SelectionDelta = -1;
 	}
-	else if (InKeyboardEvent.GetKey() == EKeys::Down)
+	else if (InKeyEvent.GetKey() == EKeys::Down)
 	{
 		SelectionDelta = +1;
 	}
-	else if (InKeyboardEvent.GetKey() == EKeys::Enter)
+	else if (InKeyEvent.GetKey() == EKeys::Enter)
 	{
 		TArray<FAssetData> SelectionSet = AssetViewPtr->GetSelectedAssets();
 		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::Opened);
@@ -269,7 +271,7 @@ FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent
 		return FReply::Handled();
 	}
 
-	if (Commands->ProcessCommandBindings(InKeyboardEvent))
+	if (Commands->ProcessCommandBindings(InKeyEvent))
 	{
 		return FReply::Handled();
 	}

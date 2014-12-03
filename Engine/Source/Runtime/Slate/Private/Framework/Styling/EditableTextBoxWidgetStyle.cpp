@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UEditableTextBoxWidgetStyle::UEditableTextBoxWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UEditableTextBoxWidgetStyle::UEditableTextBoxWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Containers/StringConv.h"
+#include "Containers/UnrealString.h"
+#include "HAL/Platform.h"
+#include "HAL/PlatformProcess.h"
+#include "UObject/UnrealNames.h"
 
 /*----------------------------------------------------------------------------
 	Definitions.
@@ -282,7 +287,7 @@ class TStaticIndirectArrayThreadSafeRead
 			ElementType*** Chunk = &Chunks[ChunkIndex];
 			ElementType** NewChunk = (ElementType**)FMemory::Malloc(sizeof(ElementType*) * ElementsPerChunk);
 			FMemory::Memzero(NewChunk, sizeof(ElementType*) * ElementsPerChunk);
-			if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)Chunk, NewChunk, NULL))
+			if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)Chunk, NewChunk, nullptr))
 			{
 				// someone else beat us to the add, we don't support multiple concurrent adds
 				check(0)
@@ -339,7 +344,7 @@ public:
 	 * Return a reference to an element
 	 * @param	Index	Index to return
 	 * @return	a reference to the pointer to the element
-	 * Thread safe, if it is valid now, it is valid forever. This might return NULL, but by then, some other thread might have made it non-NULL.
+	 * Thread safe, if it is valid now, it is valid forever. This might return nullptr, but by then, some other thread might have made it non-nullptr.
 	**/
 	ElementType const* const& operator[](int32 Index) const
 	{
@@ -557,8 +562,8 @@ public:
 	FORCEINLINE bool IsValid() const
 	{
 		TNameEntryArray& Names = GetNames();
-		return GetComparisonIndexFast()>=0 && GetComparisonIndexFast()<Names.Num() && Names[GetComparisonIndexFast()]!=NULL
-			&& GetDisplayIndexFast()>=0 && GetDisplayIndexFast()<Names.Num() && Names[GetDisplayIndexFast()]!=NULL;
+		return GetComparisonIndexFast() >= 0 && GetComparisonIndexFast() < Names.Num() && Names[GetComparisonIndexFast()] != nullptr
+			&& GetDisplayIndexFast() >= 0 && GetDisplayIndexFast() < Names.Num() && Names[GetDisplayIndexFast()] != nullptr;
 	}
 
 	/**
@@ -578,7 +583,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( FString InvalidChars=INVALID_NAME_CHARACTERS, class FText* Reason=NULL ) const;
+	bool IsValidXName( FString InvalidChars=INVALID_NAME_CHARACTERS, class FText* Reason = nullptr ) const;
 
 	/**
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires.
@@ -763,12 +768,60 @@ public:
 	explicit FName( EName HardcodedIndex, const TCHAR* Name );
 
 	/**
-	 * Comparison operator.
+	 * Equality operator.
 	 *
 	 * @param	Other	String to compare this name to
 	 * @return true if name matches the string, false otherwise
 	 */
-	bool operator==( const TCHAR * Other ) const;
+	template <typename CharType>
+	bool operator==(const CharType* Other) const
+	{
+		// Find name entry associated with this FName.
+		check(Other);
+		const FNameEntry* const Entry = GetComparisonNameEntry();
+
+		// Temporary buffer to hold split name in case passed in name is of Name_Number format.
+		WIDECHAR TempBuffer[NAME_SIZE];
+		int32 InNumber = NAME_NO_NUMBER_INTERNAL;
+		int32 TempNumber = NAME_NO_NUMBER_INTERNAL;
+
+		// Check whether we need to split the passed in string into name and number portion.
+		auto WideOther = StringCast<WIDECHAR>(Other);
+		const WIDECHAR* WideOtherPtr = WideOther.Get();
+		if (SplitNameWithCheck(WideOtherPtr, TempBuffer, ARRAY_COUNT(TempBuffer), TempNumber))
+		{
+			WideOtherPtr = TempBuffer;
+			InNumber = NAME_EXTERNAL_TO_INTERNAL(TempNumber);
+		}
+
+		// Report a match if both the number and string portion match.
+		bool bAreNamesMatching = false;
+		if (InNumber == GetNumber())
+		{
+			if (Entry->IsWide())
+			{
+				bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetWideName());
+			}
+			else
+			{
+				bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetAnsiName());
+			}
+		}
+
+		return bAreNamesMatching;
+	}
+
+	/**
+	 * Inequality operator.
+	 *
+	 * @param	Other	String to compare this name to
+	 * @return true if name matches the string, false otherwise
+	 */
+	template <typename CharType>
+	bool operator!=(const CharType* Other) const
+	{
+		return !operator==(Other);
+	}
 
 	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );
@@ -967,15 +1020,29 @@ FORCEINLINE FName ScriptNameToName(const FScriptName& InName)
 
 
 /**
- * Comparison operator with TCHAR* on left hand side and FName on right hand side
+ * Equality operator with CharType* on left hand side and FName on right hand side
  * 
- * @param	LHS		TCHAR to compare to FName
- * @param	RHS		FName to compare to TCHAR
- * @return true if strings match, false otherwise
+ * @param	LHS		CharType to compare to FName
+ * @param	RHS		FName to compare to CharType
+ * @return True if strings match, false otherwise.
  */
-inline bool operator==( const TCHAR *LHS, const FName &RHS )
+template <typename CharType>
+inline bool operator==(const CharType *LHS, const FName &RHS)
 {
 	return RHS == LHS;
+}
+
+/**
+ * Inequality operator with CharType* on left hand side and FName on right hand side
+ *
+ * @param	LHS		CharType to compare to FName
+ * @param	RHS		FName to compare to CharType
+ * @return True if strings don't match, false otherwise.
+ */
+template <typename CharType>
+inline bool operator!=(const CharType *LHS, const FName &RHS)
+{
+	return RHS != LHS;
 }
 
 /** FNames act like PODs. */

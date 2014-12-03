@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FDeviceProfileServicesUIManager.h: Implements the FDeviceProfileServicesUIManager class.
-=============================================================================*/
-
 #include "DeviceProfileServicesPCH.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "DeviceProfiles/DeviceProfile.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogDeviceProfileServices, Log, All);
 

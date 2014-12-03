@@ -60,7 +60,7 @@ namespace MarkdownSharp.Preprocessor
                 var text = FileHelper.SafeReadAllText(path);
 
                 document = new EMDocument(path, cache.TransformationData);
-                document.Parse(text, true);
+                document.Parse(text,true,false);
             }
 
             private void FailWhenDisposed()

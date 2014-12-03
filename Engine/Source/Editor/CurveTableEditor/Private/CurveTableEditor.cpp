@@ -5,6 +5,7 @@
 #include "CurveTableEditor.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
  
 #define LOCTEXT_NAMESPACE "CurveTableEditor"
 
@@ -12,11 +13,11 @@ const FName FCurveTableEditor::CurveTableTabId( TEXT( "CurveTableEditor_CurveTab
 
 void FCurveTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_CurveTableEditor", "Curve Table Editor"));
 
 	TabManager->RegisterTabSpawner( CurveTableTabId, FOnSpawnTab::CreateSP(this, &FCurveTableEditor::SpawnTab_CurveTable) )
 		.SetDisplayName( LOCTEXT("CurveTableTab", "Curve Table") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategory.ToSharedRef() );
 }
 
 void FCurveTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

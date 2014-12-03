@@ -63,6 +63,10 @@
 #include "FbxMeshUtils.h"
 #include "AnimationEditorUtils.h"
 #include "SAnimationSequenceBrowser.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
 
@@ -182,12 +186,16 @@ FPersona::FPersona()
 	, PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 {
 	// Register to be notified when properties are edited
-	OnPropertyChangedHandle = FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPersona::OnPropertyChanged);
-	FCoreDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPersona::OnPropertyChanged);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+
+	GEditor->OnBlueprintPreCompile().AddRaw(this, &FPersona::OnBlueprintPreCompile);
 }
 
 FPersona::~FPersona()
 {
+	GEditor->OnBlueprintPreCompile().RemoveAll(this);
+
 	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
@@ -202,7 +210,7 @@ FPersona::~FPersona()
 		Viewport.Pin()->CleanupPersonaReferences();
 	}
 
-	FCoreDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
 
 	if(PreviewComponent)
 	{
@@ -456,14 +464,13 @@ void FPersona::ExtendMenu()
 		static void AddPersonaFileMenu(FMenuBuilder& MenuBuilder)
 		{
 			// View
-			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaEditorMenu", "Animation"));
+			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaEditorMenu_File", "Blueprint"));
 			{
-
 			}
 			MenuBuilder.EndSection();
 		}
 
-		static void AddPersonaAssetMenu(FMenuBuilder& MenuBuilder)
+		static void AddPersonaAssetMenu(FMenuBuilder& MenuBuilder, FPersona* PersonaPtr)
 		{
 			// View
 			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaAssetMenuMenu_Skeleton", "Skeleton"));
@@ -479,8 +486,15 @@ void FPersona::ExtendMenu()
 			{
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ApplyCompression);
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ExportToFBX);
-				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().RecordAnimation);
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().AddLoopingInterpolation);
+			}
+			MenuBuilder.EndSection();
+
+			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaAssetMenuMenu_Record", "Record"));
+			{
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().RecordAnimation, 
+					NAME_None, 
+					TAttribute<FText>(PersonaPtr, &FPersona::GetRecordMenuLabel));
 			}
 			MenuBuilder.EndSection();
 		}
@@ -497,11 +511,11 @@ void FPersona::ExtendMenu()
 	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
 	if(AnimBlueprint)
 	{
-		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
-		FKismet2Menu::SetupBlueprintEditorMenu(MenuExtender, *this);
-		AddMenuExtender(MenuExtender);
+		TSharedPtr<FExtender> AnimBPMenuExtender = MakeShareable(new FExtender);
+		FKismet2Menu::SetupBlueprintEditorMenu(AnimBPMenuExtender, *this);
+		AddMenuExtender(AnimBPMenuExtender);
 
-		MenuExtender->AddMenuExtension(
+		AnimBPMenuExtender->AddMenuExtension(
 			"FileLoadAndSave",
 			EExtensionHook::After,
 			GetToolkitCommands(),
@@ -518,7 +532,7 @@ void FPersona::ExtendMenu()
 			"AssetEditorActions",
 			EExtensionHook::After,
 			GetToolkitCommands(),
-			FMenuExtensionDelegate::CreateStatic(&Local::AddPersonaAssetMenu)
+			FMenuExtensionDelegate::CreateStatic(&Local::AddPersonaAssetMenu, this)
 			);
 
 	AddMenuExtender(MenuExtender);
@@ -638,17 +652,30 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// preview worlds (in UWorld::CleanupWorld), but we want this to stick around while Persona exists
 	PreviewComponent->AddToRoot();
 
+	bool bSetMesh = false;
+
 	// Set the mesh
 	if (InitMesh != NULL)
 	{
 		SetPreviewMesh(InitMesh);
+		bSetMesh = true;
 
 		if(!TargetSkeleton->GetPreviewMesh())
 		{
-			TargetSkeleton->SetPreviewMesh(InitMesh);
+			TargetSkeleton->SetPreviewMesh(InitMesh, false);
 		}
 	}
-	else if (TargetSkeleton)
+	else if (InitAnimationAsset != NULL)
+	{
+		USkeletalMesh * AssetMesh = InitAnimationAsset->GetPreviewMesh();
+		if (AssetMesh)
+		{
+			SetPreviewMesh(AssetMesh);
+			bSetMesh = true;
+		}
+	}
+
+	if (!bSetMesh && TargetSkeleton)
 	{
 		//If no preview mesh set, just find the first mesh that uses this skeleton
 		USkeletalMesh * PreviewMesh = TargetSkeleton->GetPreviewMesh(true);
@@ -700,6 +727,8 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	// Register post import callback to catch animation imports when we have the asset open (we need to reinit)
 	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FPersona::OnPostImport);
+
+	
 }
 	
 TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) const
@@ -711,11 +740,7 @@ TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) c
 	
 	Skeletons.Add(Skeleton);
 	
-	MenuBuilder.BeginSection(NAME_None, LOCTEXT("Persona_CreateAsset", "Create Asset"));
-	{
-		AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FPersona::OnAssetCreated), false);
-	}
-	MenuBuilder.EndSection();
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FPersona::OnAssetCreated), false);
 
 	return MenuBuilder.MakeWidget();
 }
@@ -745,7 +770,7 @@ void FPersona::ExtendDefaultPersonaToolbar()
 	// extend extra menu/toolbars
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, USkeleton * Skeleton, FPersona* PersonaPtr)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, USkeleton* Skeleton, FPersona* PersonaPtr)
 		{
 			ToolbarBuilder.BeginSection("Skeleton");
 			{
@@ -759,6 +784,13 @@ void FPersona::ExtendDefaultPersonaToolbar()
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportAnimation, NAME_None, LOCTEXT("Toolbar_ImportAnimation", "Import"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ReimportAnimation, NAME_None, LOCTEXT("Toolbar_ReimportAnimation", "Reimport"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ExportToFBX, NAME_None, LOCTEXT("Toolbar_ExportToFBX", "Export"));
+
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RecordAnimation, 
+											NAME_None,
+											 TAttribute<FText>(PersonaPtr, &FPersona::GetRecordStatusLabel),
+											 TAttribute<FText>(PersonaPtr, &FPersona::GetRecordStatusTooltip),
+											 TAttribute<FSlateIcon>(PersonaPtr, &FPersona::GetRecordStatusImage),
+											 NAME_None);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -917,14 +949,41 @@ void FPersona::OnPostImport(UFactory* InFactory, UObject* InObject)
 
 void FPersona::ConditionalRefreshEditor(UObject* InObject)
 {
+	bool bInterestingAsset = true;
 	// Ignore if this is regarding a different object
 	if(InObject != TargetSkeleton && InObject != TargetSkeleton->GetPreviewMesh() && InObject != GetAnimationAssetBeingEdited())
 	{
-		return;
+		bInterestingAsset = false;
 	}
 
-	RefreshViewport();
-	ReinitMode();
+	// Check that we aren't a montage that uses an incoming animation
+	if(UAnimMontage* Montage = Cast<UAnimMontage>(GetAnimationAssetBeingEdited()))
+	{
+		for(FSlotAnimationTrack& Slot : Montage->SlotAnimTracks)
+		{
+			if(bInterestingAsset)
+			{
+				break;
+			}
+
+			for(FAnimSegment& Segment : Slot.AnimTrack.AnimSegments)
+			{
+				if(Segment.AnimReference == InObject)
+				{
+					bInterestingAsset = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if(bInterestingAsset)
+	{
+		RefreshViewport();
+		ReinitMode();
+		
+		OnPersonaRefresh.Broadcast();
+	}
 }
 
 /** Called when graph editor focus is changed */
@@ -961,7 +1020,7 @@ void FPersona::CreateDefaultCommands()
 	// record animation
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RecordAnimation,
 		FExecuteAction::CreateSP( this, &FPersona::RecordAnimation ),
-		FCanExecuteAction::CreateSP( this, &FPersona::CanRecordAnimation ),
+		FCanExecuteAction(),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP( this, &FPersona::IsRecordAvailable )
 		);
@@ -1440,6 +1499,9 @@ void FPersona::Compile()
 	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
 	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->AnimScriptInstance == CurrentDebugObject);
 
+	// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
+	FAssetEditorManager::Get().CloseOtherEditors(PreviewComponent->AnimScriptInstance, nullptr);
+	
 	// Compile the blueprint
 	FBlueprintEditor::Compile();
 
@@ -2285,66 +2347,61 @@ void FPersona::RedoAction()
 	GEditor->RedoTransaction();
 }
 
-
-// get record configuration
-bool GetRecordConfig( FString & AssetPath, FString & AssetName, float & Duration )
+FSlateIcon FPersona::GetRecordStatusImage() const
 {
-	TSharedRef<SCreateAnimationDlg> NewAnimDlg = 
-		SNew(SCreateAnimationDlg);
-
-	if (NewAnimDlg->ShowModal() != EAppReturnType::Cancel)
+	if (Recorder.InRecording())
 	{
-		AssetPath = NewAnimDlg->GetFullAssetPath();
-		AssetName = NewAnimDlg->GetAssetName();
-		Duration = NewAnimDlg->GetDuration();
-		return true;
+		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StopRecordAnimation");
 	}
 
-	return false;
+	return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StartRecordAnimation");
+}
+
+FText FPersona::GetRecordMenuLabel() const
+{
+	if(Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimationLabel", "Start Record Animation");
+}
+
+FText FPersona::GetRecordStatusLabel() const
+{
+	if (Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimationLabel", "Stop");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimationLabel", "Record");
+}
+
+FText FPersona::GetRecordStatusTooltip() const
+{
+	if (Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimation", "Stop Record Animation");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimation", "Start Record Animation");
 }
 
 void FPersona::RecordAnimation()
 {
-	// options
-	// - whether restart anim tree?
-	// - sample rate for now is 30
-
 	if (!PreviewComponent || !PreviewComponent->SkeletalMesh)
 	{
 		// error
 		return;
 	}
 
-	// ask for path
-	FString AssetPath;
-	FString AssetName;
-	float Duration = 0.f;
-
-	if ( GetRecordConfig(AssetPath, AssetName, Duration) )
+	if (Recorder.InRecording())
 	{
-		// create the asset
-		UObject * 	Parent = CreatePackage(NULL, *AssetPath);
-		UObject * Object = LoadObject<UObject>(Parent, *AssetName, NULL, LOAD_None, NULL);
-		// if object with same name exists, warn user
-		if (Object)
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_AssetExist", "Asset with same name exists. Can't overwrite another asset") ) ;
-			return; // Move on to next sequence...
-		}
-
-		// If not, create new one now.
-		UAnimSequence * NewSeq = ConstructObject<UAnimSequence>( UAnimSequence::StaticClass(), Parent, *AssetName, RF_Public|RF_Standalone );
-		if (NewSeq)
-		{
-			// restart anim tree
-			//PreviewComponent->InitAnim(true);
-
-			// set skeleton
-			NewSeq->SetSkeleton ((PreviewComponent->SkeletalMesh)? PreviewComponent->SkeletalMesh->Skeleton : TargetSkeleton);
-			// Notify the asset registry
-			FAssetRegistryModule::AssetCreated(NewSeq);
-			Recorder.StartRecord(PreviewComponent, NewSeq, Duration);
-		}
+		Recorder.StopRecord(true);
+	}
+	else
+	{
+		Recorder.TriggerRecordAnimation(PreviewComponent);
 	}
 }
 
@@ -2671,11 +2728,6 @@ void FPersona::RemoveUnusedBones()
 	}
 }
 
-bool FPersona::IsAnimationBeingRecorded() const
-{
-	return (Recorder.GetAnimationObject()!=NULL);
-}
-
 void FPersona::Tick(float DeltaTime)
 {
 	FBlueprintEditor::Tick(DeltaTime);
@@ -2685,42 +2737,11 @@ void FPersona::Tick(float DeltaTime)
 		Viewport.Pin()->RefreshViewport();
 	}
 
-	if (IsAnimationBeingRecorded())
+	if (Recorder.InRecording())
 	{
 		// make sure you don't allow switch previewcomponent
-		if (Recorder.UpdateRecord(PreviewComponent, DeltaTime) == false)
-		{
-			// before stop record, save the animation, it will get cleared after stop recording
-			const UAnimSequence * NewAnim = Recorder.GetAnimationObject();
-			Recorder.StopRecord();
-
-			// notify to user
-			if (NewAnim)
-			{
-				const FText NotificationText = FText::Format( LOCTEXT("RecordAnimation", "'{0}' has been successfully recorded" ), FText::FromString( NewAnim->GetName() ) );
-
-				//This is not showing well in the Persona, so opening dialog first. 
-				//right now it will crash if you don't wait until end of the record, so it is important for users to know
-				//this is done
-/*				
-				FNotificationInfo Info(NotificationText);
-				Info.ExpireDuration = 3.0f;
-				Info.bUseLargeFont = false;
-				TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-				if ( Notification.IsValid() )
-				{
-					Notification->SetCompletionState( SNotificationItem::CS_Success );
-				}*/
-
-				FMessageDialog::Open(EAppMsgType::Ok, NotificationText);
-			}
-		}
+		Recorder.UpdateRecord(PreviewComponent, DeltaTime);
 	}
-}
-
-bool FPersona::CanRecordAnimation() const
-{
-	return (!IsAnimationBeingRecorded());
 }
 
 bool FPersona::CanChangeSkeletonPreviewMesh() const
@@ -2735,7 +2756,8 @@ bool FPersona::CanRemoveBones() const
 
 bool FPersona::IsRecordAvailable() const
 {
-	return (GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode || GetCurrentMode() == FPersonaModes::AnimationEditMode );
+	// make sure mesh exists
+	return (PreviewComponent && PreviewComponent->SkeletalMesh);
 }
 
 bool FPersona::IsEditable(UEdGraph* InGraph) const
@@ -2829,10 +2851,10 @@ void FPersona::OnImportAsset(enum EFBXImportType DefaultImportType)
 void FPersona::OnReimportMesh()
 {
 	// Reimport the asset
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewMeshComponent();
-	if(PreviewComponent && PreviewComponent->SkeletalMesh)
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetPreviewMeshComponent();
+	if(PreviewMeshComponent && PreviewMeshComponent->SkeletalMesh)
 	{
-		FReimportManager::Instance()->Reimport(PreviewComponent->SkeletalMesh, true);
+		FReimportManager::Instance()->Reimport(PreviewMeshComponent->SkeletalMesh, true);
 	}
 }
 
@@ -2843,6 +2865,33 @@ void FPersona::OnReimportAnimation()
 	if (AnimSequence)
 	{
 		FReimportManager::Instance()->Reimport(AnimSequence, true);
+	}
+}
+
+TStatId FPersona::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FPersona, STATGROUP_Tickables);
+}
+
+void FPersona::OnBlueprintPreCompile(UBlueprint* BlueprintToCompile)
+{
+	if(PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		// If we are compiling an anim notify state the class will soon be sanitized and 
+		// if an anim instance is running a state when that happens it will likely
+		// crash, so we end any states that are about to compile.
+		UAnimPreviewInstance* Instance = PreviewComponent->PreviewInstance;
+		USkeletalMeshComponent* SkelMeshComp = Instance->GetSkelMeshComponent();
+
+		for(int32 Idx = Instance->ActiveAnimNotifyState.Num() - 1 ; Idx >= 0 ; --Idx)
+		{
+			FAnimNotifyEvent& Event = Instance->ActiveAnimNotifyState[Idx];
+			if(Event.NotifyStateClass->GetClass() == BlueprintToCompile->GeneratedClass)
+			{
+				Event.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(Event.NotifyStateClass->GetOuter()));
+				Instance->ActiveAnimNotifyState.RemoveAt(Idx);
+			}
+		}
 	}
 }
 

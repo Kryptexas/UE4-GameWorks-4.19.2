@@ -10,8 +10,8 @@
 /////////////////////////////////////////////////////
 // UWidgetBlueprintGeneratedClass
 
-UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -52,7 +52,6 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>( WidgetTree, UserWidget );
-	//check(ClonedTree);
 
 	if ( ClonedTree )
 	{
@@ -62,37 +61,32 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 		UClass* WidgetBlueprintClass = UserWidget->GetClass();
 
-		TArray<UWidget*> ClonedWidgets;
-		ClonedTree->GetAllWidgets(ClonedWidgets);
-
 		for(UWidgetAnimation* Animation : Animations)
 		{
-			if( Animation->MovieScene )
+			UWidgetAnimation* Anim = DuplicateObject<UWidgetAnimation>( Animation, UserWidget );
+
+			if( Anim->MovieScene )
 			{
 				// Find property with the same name as the template and assign the new widget to it.
-				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, Animation->MovieScene->GetFName());
+				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, Anim->MovieScene->GetFName());
 				if(Prop)
 				{
-					Prop->SetObjectPropertyValue_InContainer(UserWidget, Animation);
+					Prop->SetObjectPropertyValue_InContainer(UserWidget, Anim);
 				}
 			}
-
 		}
 
-		UserWidget->Components.Reset();
-
-		for ( UWidget* Widget : ClonedWidgets )
-		{
+		ClonedTree->ForEachWidget([&] (UWidget* Widget) {
 			// Not fatal if NULL, but shouldn't happen
-			if ( !ensure(Widget != NULL) )
+			if ( !ensure(Widget != nullptr) )
 			{
-				continue;
+				return;
 			}
 
+			// TODO UMG Make this an FName
 			FString VariableName = Widget->GetName();
 
 			Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-			UserWidget->Components.Add(Widget); // Add to array so it gets saved
 
 			// Find property with the same name as the template and assign the new widget to it.
 			UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, *VariableName);
@@ -106,45 +100,21 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 			// Perform binding
 			for ( const FDelegateRuntimeBinding& Binding : Bindings )
 			{
-				//TODO UMG Terrible performance, improve with Maps.
+				//TODO UMG Make this faster.
 				if ( Binding.ObjectName == VariableName )
 				{
-					FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
-
-					for ( TFieldIterator<UProperty> It(Widget->GetClass()); It; ++It )
+					UDelegateProperty* DelegateProperty = FindField<UDelegateProperty>(Widget->GetClass(), FName(*( Binding.PropertyName.ToString() + TEXT("Delegate") )));
+					if ( !DelegateProperty )
 					{
-						if ( UDelegateProperty* DelegateProp = Cast<UDelegateProperty>(*It) )
+						DelegateProperty = FindField<UDelegateProperty>(Widget->GetClass(), Binding.PropertyName);
+					}
+
+					if ( DelegateProperty )
+					{
+						FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Widget);
+						if ( ScriptDelegate )
 						{
-							if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
-							{
-								FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
-
-								if ( Binding.Kind == EBindingKind::Function )
-								{
-									ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
-								}
-								else if ( Binding.Kind == EBindingKind::Property )
-								{
-									//FString FunctionNameStr = FString(TEXT("__Get")) + Binding.FunctionName.ToString();// +TEXT("_0");
-									//FName FunctionName = FName(*FunctionNameStr, 1);
-									UFunction* Fun = UserWidget->FindFunction(Binding.FunctionName);
-
-									TArray<FName> names;
-									for ( TFieldIterator<UFunction> It(WidgetBlueprintClass); It; ++It )
-									{
-										FName FunName = It->GetFName();
-										names.Add(FunName);
-									}
-
-									ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
-								}
-								else
-								{
-									check(false);
-								}
-								
-								break;
-							}
+							ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
 						}
 					}
 				}
@@ -153,12 +123,12 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 	#if WITH_EDITOR
 			Widget->ConnectEditorData();
 	#endif
-		}
+		});
 
 		// Bind any delegates on widgets
 		BindDynamicDelegates(UserWidget);
 
-		//TODO Add OnWidgetInitialized
+		//TODO UMG Add OnWidgetInitialized?
 	}
 }
 

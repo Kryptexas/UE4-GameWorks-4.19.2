@@ -2,12 +2,38 @@
 
 #include "SlateCorePrivatePCH.h"
 
+#define USE_MEASURE_CACHING 1
 
 namespace FontMeasureConstants
 {
 	/** Number of possible elements in each measurement cache */
 	const uint32 MeasureCacheSize = 500;
 }
+
+struct FSlateFontMeasureCache
+{
+	FSlateFontMeasureCache( const FCompositeFont* const InCompositeFont )
+		: MeasureCache( FontMeasureConstants::MeasureCacheSize )
+		, CompositeFontHistoryRevision( 0 )
+	{
+		if( InCompositeFont )
+		{
+			CompositeFontHistoryRevision = InCompositeFont->HistoryRevision;
+		}
+	}
+
+	/** Check to see if our cached measure data is potentially stale for the given font */
+	bool IsStale( const FCompositeFont* const InCompositeFont ) const
+	{
+		return !InCompositeFont || CompositeFontHistoryRevision != InCompositeFont->HistoryRevision;
+	}
+
+	/** Internal measure cache */
+	FMeasureCache MeasureCache;
+
+	/** The history revision of the cached composite font */
+	int32 CompositeFontHistoryRevision;
+};
 
 TSharedRef< FSlateFontMeasure > FSlateFontMeasure::Create( const TSharedRef<class FSlateFontCache>& FontCache )
 {
@@ -115,28 +141,20 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 		return FVector2D( 0, MaxHeight );
 	}
 
-#define USE_MEASURE_CACHING 1
 #if USE_MEASURE_CACHING
-	TSharedPtr< FMeasureCache > CurrentMeasureCache = nullptr;
+	FMeasureCache* CurrentMeasureCache = nullptr;
 	// Do not cache strings which have small sizes or which have complicated measure requirements
 	if( DoesStartAtBeginning && DoesFinishAtEnd && !IncludeKerningWithPrecedingChar && TextRangeLength > 5 && StopAfterHorizontalOffset == INDEX_NONE )
 	{
-		FSlateFontKey FontKey(InFontInfo,FontScale);
-		TSharedPtr< FMeasureCache > FoundMeasureCache = FontToMeasureCache.FindRef( FontKey );
+		CurrentMeasureCache = FindOrAddMeasureCache(InFontInfo, FontScale);
 
-		if ( FoundMeasureCache.IsValid() )
+		if ( CurrentMeasureCache )
 		{
-			CurrentMeasureCache = FoundMeasureCache;
 			const FVector2D* CachedMeasurement = CurrentMeasureCache->AccessItem( Text );
 			if( CachedMeasurement )
 			{
 				return *CachedMeasurement;
 			}
-		}
-		else
-		{
-			CurrentMeasureCache = MakeShareable( new FMeasureCache( FontMeasureConstants::MeasureCacheSize ) );
-			FontToMeasureCache.Add( FontKey, CurrentMeasureCache );
 		}
 	}
 #endif
@@ -150,12 +168,12 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 	// Accumulated height of this block of text
 	int32 StringSizeY = MaxHeight;
 	// The previous char (for kerning)
-	TCHAR PreviousChar = 0;
+	const FCharacterEntry* PreviousCharEntry = nullptr;
 
 	//If we are measuring a range then we should take into account the kerning with the character before the start of the range
 	if ( !DoesStartAtBeginning && IncludeKerningWithPrecedingChar )
 	{
-		PreviousChar = Text[ StartIndex - 1 ];
+		PreviousCharEntry = &CharacterList[ Text[ StartIndex - 1 ] ];
 	}
 
 	int32 FinalPosX = 0;
@@ -182,16 +200,16 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 			const FCharacterEntry& Entry = CharacterList[CurrentChar];
 
 			int32 Kerning = 0;
-			if( CharIndex > 0 )
+			if( PreviousCharEntry )
 			{
-				Kerning = CharacterList.GetKerning( PreviousChar, CurrentChar );
+				Kerning = CharacterList.GetKerning( *PreviousCharEntry, Entry );
 			}
 
 			const int32 TotalCharSpacing = 
 				Kerning + Entry.HorizontalOffset +		// Width is any kerning plus how much to advance the position when drawing a new character
 				Entry.XAdvance;	// How far we advance 
 
-			PreviousChar = CurrentChar;
+			PreviousCharEntry = &Entry;
 
 			CurrentX += Kerning + Entry.XAdvance;
 
@@ -244,12 +262,41 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 	OutLastCharacterIndex = CharIndex;
 
 #if USE_MEASURE_CACHING
-	if( StopAfterHorizontalOffset == INDEX_NONE && CurrentMeasureCache.IsValid() )
+	if( StopAfterHorizontalOffset == INDEX_NONE && CurrentMeasureCache )
 	{
 		CurrentMeasureCache->Add( Text, Size );
 	}
 #endif
 	return Size;
+}
+
+FMeasureCache* FSlateFontMeasure::FindOrAddMeasureCache( const FSlateFontInfo& InFontInfo, const float InFontScale ) const
+{
+#if USE_MEASURE_CACHING
+	FSlateFontKey FontKey(InFontInfo, InFontScale);
+	const FCompositeFont* const CompositeFont = InFontInfo.GetCompositeFont();
+
+	TSharedPtr< FSlateFontMeasureCache > FoundMeasureCache = FontToMeasureCache.FindRef( FontKey );
+	if( FoundMeasureCache.IsValid() )
+	{
+		// Clear out this entry if it's stale so that we make a new one
+		if( FoundMeasureCache->IsStale( CompositeFont ) )
+		{
+			FoundMeasureCache.Reset();
+			FontToMeasureCache.Remove( FontKey );
+		}
+		else
+		{
+			return &FoundMeasureCache->MeasureCache;
+		}
+	}
+	
+	FoundMeasureCache = MakeShareable( new FSlateFontMeasureCache( CompositeFont ) );
+	FontToMeasureCache.Add( FontKey, FoundMeasureCache );
+	return &FoundMeasureCache->MeasureCache;
+#endif
+
+	return nullptr;
 }
 
 uint16 FSlateFontMeasure::GetMaxCharacterHeight( const FSlateFontInfo& InFontInfo, float FontScale ) const
@@ -266,12 +313,10 @@ int8 FSlateFontMeasure::GetKerning(const FSlateFontInfo& InFontInfo, float FontS
 	return CharacterList.GetKerning( PreviousCharacter, CurrentCharacter );
 }
 
-uint16 FSlateFontMeasure::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const
+int16 FSlateFontMeasure::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const
 {
 	FCharacterList& CharacterList = FontCache->GetCharacterList( InFontInfo, FontScale );
-
-	const uint16 Baseline = CharacterList.GetBaseline();
-	return Baseline;
+	return CharacterList.GetBaseline();
 }
 
 void FSlateFontMeasure::FlushCache()

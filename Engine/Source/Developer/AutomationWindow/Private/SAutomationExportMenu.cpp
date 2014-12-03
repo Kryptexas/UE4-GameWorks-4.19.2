@@ -1,8 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWindowPrivatePCH.h"
+#include "SNotificationList.h"
+
 
 #define LOCTEXT_NAMESPACE "AutomationExportMenu"
+
 
 SAutomationExportMenu::SAutomationExportMenu()
 {
@@ -281,5 +284,6 @@ FReply SAutomationExportMenu::SpawnNotification()
 	NotificationListPtr->AddNotification( FNotificationInfo( LOCTEXT("ReportGeneratedSuccessfullyNotification", "Report Generated Successfully!" )) );
 	return FReply::Handled();
 }
+
 
 #undef LOCTEXT_NAMESPACE

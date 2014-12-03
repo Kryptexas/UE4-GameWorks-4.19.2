@@ -15,7 +15,7 @@ class AInteractiveFoliageActor : public AStaticMeshActor
 private:
 	/** Collision cylinder */
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	class UCapsuleComponent* CapsuleComponent;
 
 	/**
 	 * Position of the last actor to enter the collision cylinder.
@@ -85,7 +85,7 @@ protected:
 
 	/** Called when capsule is touched */
 	UFUNCTION()
-	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & OverlapInfo);
+	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& OverlapInfo);
 public:
 	// Begin AActor interface
 	virtual void Tick(float DeltaSeconds) override;

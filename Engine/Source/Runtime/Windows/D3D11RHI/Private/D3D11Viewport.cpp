@@ -80,6 +80,15 @@ namespace RHIConsoleVariables
 		TEXT("Number of consecutive 'fast' frames before vsync is enabled."),
 		ECVF_RenderThreadSafe
 		);
+
+	int32 MaximumFrameLatency = 3;
+	static FAutoConsoleVariableRef CVarMaximumFrameLatency(
+		TEXT("RHI.MaximumFrameLatency"),
+		MaximumFrameLatency,
+		TEXT("Number of frames that can be queued for render."),
+		ECVF_RenderThreadSafe
+		);
+
 };
 
 extern void D3D11TextureAllocated2D( FD3D11Texture2D& Texture );
@@ -185,12 +194,9 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 	{
 		check(BackBuffer->GetRefCount() == 1);
 
-		// IUnknown is GONE from Mono Drivers, and is replaced with IGraphicsUnknown, making this incompatible (no COM)
-#ifndef PLATFORM_XBOXONE
 		checkComRefCount(BackBuffer->GetResource(),1);
 		checkComRefCount(BackBuffer->GetRenderTargetView(0, -1),1);
 		checkComRefCount(BackBuffer->GetShaderResourceView(),1);
-#endif
 	}
 	BackBuffer.SafeRelease();
 
@@ -421,6 +427,13 @@ bool FD3D11Viewport::Present(bool bLockToVsync)
 		}
 	}
 
+	if (MaximumFrameLatency != RHIConsoleVariables::MaximumFrameLatency)
+	{
+		MaximumFrameLatency = RHIConsoleVariables::MaximumFrameLatency;	
+		TRefCountPtr<IDXGIDevice1> DXGIDevice;
+		VERIFYD3D11RESULT(D3DRHI->GetDevice()->QueryInterface(IID_IDXGIDevice, (void**)DXGIDevice.GetInitReference()));
+		DXGIDevice->SetMaximumFrameLatency(MaximumFrameLatency);
+	}
 
 	// When desktop composition is enabled, locking to vsync via the Present
 	// call is unreliable. Instead, communicate with the desktop window manager

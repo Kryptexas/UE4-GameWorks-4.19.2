@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of FSessionConsoleVerbosityFilter. */
-typedef TSharedPtr<class FSessionConsoleVerbosityFilter> FSessionConsoleVerbosityFilterPtr;
-
-/** Type definition for shared references to instances of FSessionConsoleVerbosityFilter. */
-typedef TSharedRef<class FSessionConsoleVerbosityFilter> FSessionConsoleVerbosityFilterRef;
-
-
 /**
  * Delegate type for verbosity filter state changes.
  *
@@ -63,7 +56,7 @@ public:
 	 *
 	 * @return Checked if the filter is enabled, Unchecked otherwise.
 	 */
-	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled( ) const
+	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled() const
 	{
 		return (Enabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
 	}
@@ -73,7 +66,7 @@ public:
 	 *
 	 * @return Filter icon image.
 	 */
-	const FSlateBrush* GetIcon( ) const
+	const FSlateBrush* GetIcon() const
 	{
 		return Icon;
 	}
@@ -83,7 +76,7 @@ public:
 	 *
 	 * @return The name string.
 	 */
-	const FString& GetName( ) const
+	const FString& GetName() const
 	{
 		return Name;
 	}
@@ -93,7 +86,7 @@ public:
 	 *
 	 * @return Verbosity level.
 	 */
-	ELogVerbosity::Type GetVerbosity( ) const
+	ELogVerbosity::Type GetVerbosity() const
 	{
 		return Verbosity;
 	}
@@ -101,29 +94,36 @@ public:
 	/**
 	 * Checks whether this filter is enabled.
 	 *
-	 * @param true if the filter is enabled, false otherwise.
+	 * @return true if the filter is enabled, false otherwise.
 	 */
-	bool IsEnabled( ) const
+	bool IsEnabled() const
 	{
 		return Enabled;
 	}
 
 private:
 
-	// Holds a flag indicating whether this filter is enabled.
+	/** Holds a flag indicating whether this filter is enabled. */
 	bool Enabled;
 
-	// Holds the icon image.
+	/** Holds the icon image. */
 	const FSlateBrush* Icon;
 
-	// Holds the filter's name.
+	/** Holds the filter's name. */
 	FString Name;
 
-	// Holds the filter's verbosity level.
+	/** Holds the filter's verbosity level. */
 	ELogVerbosity::Type Verbosity;
 
 private:
 
-	// Holds a delegate that is executed when the filter's enabled state changed.
+	/** Holds a delegate that is executed when the filter's enabled state changed. */
 	FOnSessionConsoleVerbosityFilterStateChanged OnStateChanged;
 };
+
+
+/** Type definition for shared pointers to instances of FSessionConsoleVerbosityFilter. */
+typedef TSharedPtr<FSessionConsoleVerbosityFilter> FSessionConsoleVerbosityFilterPtr;
+
+/** Type definition for shared references to instances of FSessionConsoleVerbosityFilter. */
+typedef TSharedRef<FSessionConsoleVerbosityFilter> FSessionConsoleVerbosityFilterRef;

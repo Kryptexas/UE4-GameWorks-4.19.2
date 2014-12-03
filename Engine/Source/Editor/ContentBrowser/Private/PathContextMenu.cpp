@@ -10,6 +10,7 @@
 #include "AssetToolsModule.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
 #include "SColorPicker.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -81,9 +82,11 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 		{
 			// New Asset (submenu)
 			MenuBuilder.AddSubMenu(
-				LOCTEXT("NewAsset", "New Asset"),
-				LOCTEXT("NewAssetTooltip", "Create an asset."),
-				FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeNewAssetSubMenu )
+				LOCTEXT( "CreateNewAsset", "Create Asset" ),
+				LOCTEXT( "CreateNewAssetTooltip", "Create a new asset." ),
+				FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeNewAssetSubMenu ),
+				false,
+				FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.PathActions.NewAsset" )
 				);
 
 			// Explore
@@ -106,7 +109,9 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				MenuBuilder.AddSubMenu(
 					LOCTEXT("SetColor", "Set Color"),
 					LOCTEXT("SetColorTooltip", "Sets the color this folder should appear as."),
-					FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeSetColorSubMenu )
+					FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeSetColorSubMenu ),
+					false,
+					FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.PathActions.SetColor" )
 					);
 			}
 			else
@@ -115,7 +120,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				MenuBuilder.AddMenuEntry(
 					LOCTEXT("SetColor", "Set Color"),
 					LOCTEXT("SetColorTooltip", "Sets the color this folder should appear as."),
-					FSlateIcon(),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.PathActions.SetColor"),
 					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecutePickColor ) )
 					);
 			}			
@@ -127,16 +132,17 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 		{
 		    // Save
 		    MenuBuilder.AddMenuEntry(
-			    LOCTEXT("SaveFolder", "Save"),
+			    LOCTEXT("SaveFolder", "Save All"),
 			    LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder."),
-			    FSlateIcon(),
+			    FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.SaveAll"),
 			    FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSaveFolder ) )
 			    );
     
 		    // Delete
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 			    LOCTEXT("DeleteFolder", "Delete"),
-			    LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains.")
+			    LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains."),
+				FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete" )
 			    );
 
 			// Reference Viewer

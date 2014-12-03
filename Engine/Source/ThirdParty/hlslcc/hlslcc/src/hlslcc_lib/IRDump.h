@@ -61,7 +61,7 @@ private:
    typedef std::set<ir_variable*> TVarSet;
    TVarSet UniqueVars;
 
-   bool bIsGlobalScope;
+   bool bIRVarEOL;
    int Indentation;
    int ID;
    bool bDumpBuiltInFunctions;

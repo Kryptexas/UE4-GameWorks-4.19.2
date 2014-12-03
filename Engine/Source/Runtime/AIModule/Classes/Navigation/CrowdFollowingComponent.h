@@ -53,7 +53,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual void ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink);
 
 	/** master switch for crowd steering & avoidance */
-	void SuspendCrowdSteering(bool bSuspend);
+	virtual void SuspendCrowdSteering(bool bSuspend);
 
 	/** switch between crowd simulation and parent implementation (following path segments) */
 	virtual void SetCrowdSimulation(bool bEnable);
@@ -90,7 +90,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 
 	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const;
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
 protected:

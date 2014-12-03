@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 // UPSE_SplitEdgeTool
 
-UPSE_SplitEdgeTool::UPSE_SplitEdgeTool(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPSE_SplitEdgeTool::UPSE_SplitEdgeTool(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -22,8 +22,8 @@ class UVoiceChannel : public UChannel
 	/**
 	 * Default constructor
 	 */
-	UVoiceChannel(const class FPostConstructInitializeProperties& PCIP)
-		: UChannel(PCIP)
+	UVoiceChannel(const FObjectInitializer& ObjectInitializer)
+		: UChannel(ObjectInitializer)
 	{
 		// Register with the network channel system
 		ChannelClasses[CHTYPE_Voice] = GetClass();
@@ -36,7 +36,7 @@ protected:
 	/** 
 	 * Cleans up any voice data remaining in the queue 
 	 */
-	virtual void CleanUp();
+	virtual bool CleanUp( const bool bForDestroy ) override;
 
 	/**
 	 * Processes the in bound bunch to extract the voice data

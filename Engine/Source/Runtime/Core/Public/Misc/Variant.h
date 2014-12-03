@@ -1,61 +1,56 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Variant.h: Declares the FVariant class.
-=============================================================================*/
-
 #pragma once
+#include "Math/RandomStream.h"
+#include "Misc/NetworkGuid.h"
 
-
+/**
+ * Enumerates the built-in types that can be stored in instances of FVariant.
+ */
 namespace EVariantTypes
 {
-	/**
-	 * Enumerates the built-in types that can be stored in instances of FVariant.
-	 */
-	enum Type
-	{
-		Empty,
-		Ansichar,
-		Bool,
-		Box,
-		BoxSphereBounds,
-		ByteArray,
-		Color,
-		DateTime,
-		Double,
-		Enum,
-		Float,
-		Guid,
-		Int8,
-		Int16,
-		Int32,
-		Int64,
-		IntRect,
-		LinearColor,
-		Matrix,
-		Name,
-		Plane,
-		Quat,
-		RandomStream,
-		Rotator,
-		String,
-		Widechar,
-		Timespan,
-		Transform,
-		TwoVectors,
-		UInt8,
-		UInt16,
-		UInt32,
-		UInt64,
-		Vector,
-		Vector2d,
-		Vector4,
-		IntPoint,
-		IntVector,
-		NetworkGUID,
-		Custom = 0x40
-	};
-}
+	const int32 Empty = 0;
+	const int32 Ansichar = 1;
+	const int32 Bool = 2;
+	const int32 Box = 3;
+	const int32 BoxSphereBounds = 4;
+	const int32 ByteArray = 5;
+	const int32 Color = 6;
+	const int32 DateTime = 7;
+	const int32 Double = 8;
+	const int32 Enum = 9;
+	const int32 Float = 10;
+	const int32 Guid = 11;
+	const int32 Int8 = 12;
+	const int32 Int16 = 13;
+	const int32 Int32 = 14;
+	const int32 Int64 = 15;
+	const int32 IntRect = 16;
+	const int32 LinearColor = 17;
+	const int32 Matrix = 18;
+	const int32 Name = 19;
+	const int32 Plane = 20;
+	const int32 Quat = 21;
+	const int32 RandomStream = 22;
+	const int32 Rotator = 23;
+	const int32 String = 24;
+	const int32 Widechar = 25;
+	const int32 Timespan = 26;
+	const int32 Transform = 27;
+	const int32 TwoVectors = 28;
+	const int32 UInt8 = 29;
+	const int32 UInt16 = 30;
+	const int32 UInt32 = 31;
+	const int32 UInt64 = 32;
+	const int32 Vector = 33;
+	const int32 Vector2d = 34;
+	const int32 Vector4 = 35;
+	const int32 IntPoint = 36;
+	const int32 IntVector = 37;
+	const int32 NetworkGUID = 38;
+
+	const int32 Custom = 0x40;
+};
 
 
 /**
@@ -69,11 +64,11 @@ namespace EVariantTypes
  * and then assigned to a variant. Note that you will be responsible for ensuring
  * correct byte ordering when serializing those types.
  *
- * @param T - The type to be used in FVariant.
+ * @param T The type to be used in FVariant.
  */
 template<typename T> struct TVariantTraits
 {
-	static int32 GetType( )
+	static int32 GetType()
 	{
 		static_assert(!sizeof(T), "Variant trait must be specialized for this type.");
 	}
@@ -91,16 +86,12 @@ class FVariant
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FVariant( )
+	/** Default constructor. */
+	FVariant()
 		: Type(EVariantTypes::Empty)
 	{ }
 
-	/**
-	 * Copy constructor.
-	 */
+	/** Copy constructor. */
 	FVariant( const FVariant& Other )
 		: Type(Other.Type)
 		, Value(Other.Value)
@@ -109,7 +100,7 @@ public:
 	/**
 	 * Creates and initializes a new instance with the specified value.
 	 *
-	 * @param InValue - The initial value.
+	 * @param InValue The initial value.
 	 */
 	template<typename T>
 	FVariant( T InValue )
@@ -220,7 +211,7 @@ public:
 	 * @return The value converted to the specified type.
 	 */
 	template<typename T>
-	operator T( ) const
+	operator T() const
 	{
 		return GetValue<T>();
 	}
@@ -256,7 +247,7 @@ public:
 	 *
 	 * @see IsEmpty
 	 */
-	void Empty( )
+	void Empty()
 	{
 		Type = EVariantTypes::Empty;
 
@@ -270,7 +261,7 @@ public:
 	 *
 	 * @see Empty
 	 */
-	bool IsEmpty( ) const
+	bool IsEmpty() const
 	{
 		return (Type == EVariantTypes::Empty);
 	}
@@ -285,7 +276,7 @@ public:
 	 * @return Byte array.
 	 * @see GetValue
 	 */
-	const TArray<uint8>& GetBytes( ) const
+	const TArray<uint8>& GetBytes() const
 	{
 		return Value;
 	}
@@ -296,7 +287,7 @@ public:
 	 * @return Size of the value.
 	 * @see GetType, GetValue
 	 */
-	int32 GetSize( ) const
+	int32 GetSize() const
 	{
 		return Value.Num();
 	}
@@ -307,7 +298,7 @@ public:
 	 * @return Type of the value.
 	 * @see GetSize, GetValue
 	 */
-	int32 GetType( ) const
+	int32 GetType() const
 	{
 		return Type;
 	}
@@ -322,7 +313,7 @@ public:
 	 * @see GetSize, GetType
 	 */
 	template<typename T>
-	T GetValue( ) const
+	T GetValue() const
 	{
 		check((Type == TVariantTraits<T>::GetType()) || ((TVariantTraits<T>::GetType() == EVariantTypes::UInt8) && (Type == EVariantTypes::Enum)));
 
@@ -350,10 +341,10 @@ public:
 
 private:
 
-	// Holds the type of the variant.
+	/** Holds the type of the variant. */
 	int32 Type;
 
-	// Holds the serialized value.
+	/** Holds the serialized value. */
 	TArray<uint8> Value;
 };
 
@@ -371,7 +362,7 @@ private:
  * @see GetBytes
  */
 template<>
-FORCEINLINE TArray<uint8> FVariant::GetValue<TArray<uint8> >( ) const
+FORCEINLINE TArray<uint8> FVariant::GetValue<TArray<uint8> >() const
 {
 	check(Type == EVariantTypes::ByteArray);
 
@@ -382,343 +373,267 @@ FORCEINLINE TArray<uint8> FVariant::GetValue<TArray<uint8> >( ) const
 /* Default FVariant traits for built-in types
  *****************************************************************************/
 
-/**
- * Implements variant type traits for the built-in ANSICHAR type.
- */
+/** Implements variant type traits for the built-in ANSICHAR type. */
 template<> struct TVariantTraits<ANSICHAR>
 {
-	static int32 GetType( ) { return EVariantTypes::Ansichar; }
+	static int32 GetType() { return EVariantTypes::Ansichar; }
 };
 
 
-/**
- * Implements variant type traits for the built-in bool type.
- */
+/** Implements variant type traits for the built-in bool type. */
 template<> struct TVariantTraits<bool>
 {
-	static int32 GetType( ) { return EVariantTypes::Bool; }
+	static int32 GetType() { return EVariantTypes::Bool; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FBox type.
- */
+/** Implements variant type traits for the built-in FBox type. */
 template<> struct TVariantTraits<FBox>
 {
-	static int32 GetType( ) { return EVariantTypes::Box; }
+	static int32 GetType() { return EVariantTypes::Box; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FBoxSphereBounds type.
- */
+/** Implements variant type traits for the built-in FBoxSphereBounds type. */
 template<> struct TVariantTraits<FBoxSphereBounds>
 {
-	static int32 GetType( ) { return EVariantTypes::BoxSphereBounds; }
+	static int32 GetType() { return EVariantTypes::BoxSphereBounds; }
 };
 
 
-/**
- * Implements variant type traits for byte arrays.
- */
+/** Implements variant type traits for byte arrays. */
 template<> struct TVariantTraits<TArray<uint8> >
 {
-	static int32 GetType( ) { return EVariantTypes::ByteArray; }
+	static int32 GetType() { return EVariantTypes::ByteArray; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FColor type.
- */
+/** Implements variant type traits for the built-in FColor type. */
 template<> struct TVariantTraits<FColor>
 {
-	static int32 GetType( ) { return EVariantTypes::Color; }
+	static int32 GetType() { return EVariantTypes::Color; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FDateTime type.
- */
+/** Implements variant type traits for the built-in FDateTime type. */
 template<> struct TVariantTraits<FDateTime>
 {
-	static int32 GetType( ) { return EVariantTypes::DateTime; }
+	static int32 GetType() { return EVariantTypes::DateTime; }
 };
 
 
-/**
- * Implements variant type traits for the built-in double type.
- */
+/** Implements variant type traits for the built-in double type. */
 template<> struct TVariantTraits<double>
 {
-	static int32 GetType( ) { return EVariantTypes::Double; }
+	static int32 GetType() { return EVariantTypes::Double; }
 };
 
 
-/**
- * Implements variant type traits for enumeration types.
- */
+/** Implements variant type traits for enumeration types. */
 template<typename EnumType> struct TVariantTraits<TEnumAsByte<EnumType> >
 {
-	static int32 GetType( ) { return EVariantTypes::Enum; }
+	static int32 GetType() { return EVariantTypes::Enum; }
 };
 
 
-/**
- * Implements variant type traits for the built-in float type.
- */
+/** Implements variant type traits for the built-in float type. */
 template<> struct TVariantTraits<float>
 {
-	static int32 GetType( ) { return EVariantTypes::Float; }
+	static int32 GetType() { return EVariantTypes::Float; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FGuid type.
- */
+/** Implements variant type traits for the built-in FGuid type. */
 template<> struct TVariantTraits<FGuid>
 {
-	static int32 GetType( ) { return EVariantTypes::Guid; }
+	static int32 GetType() { return EVariantTypes::Guid; }
 };
 
 
-/**
- * Implements variant type traits for the built-in int8 type.
- */
+/** Implements variant type traits for the built-in int8 type. */
 template<> struct TVariantTraits<int8>
 {
-	static int32 GetType( ) { return EVariantTypes::Int8; }
+	static int32 GetType() { return EVariantTypes::Int8; }
 };
 
 
-/**
- * Implements variant type traits for the built-in int16 type.
- */
+/** Implements variant type traits for the built-in int16 type. */
 template<> struct TVariantTraits<int16>
 {
-	static int32 GetType( ) { return EVariantTypes::Int16; }
+	static int32 GetType() { return EVariantTypes::Int16; }
 };
 
 
-/**
- * Implements variant type traits for the built-in int32 type.
- */
+/** Implements variant type traits for the built-in int32 type. */
 template<> struct TVariantTraits<int32>
 {
-	static int32 GetType( ) { return EVariantTypes::Int32; }
+	static int32 GetType() { return EVariantTypes::Int32; }
 };
 
 
-/**
- * Implements variant type traits for the built-in int64 type.
- */
+/** Implements variant type traits for the built-in int64 type. */
 template<> struct TVariantTraits<int64>
 {
-	static int32 GetType( ) { return EVariantTypes::Int64; }
+	static int32 GetType() { return EVariantTypes::Int64; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FIntPoint type.
- */
+/** Implements variant type traits for the built-in FIntPoint type. */
 template<> struct TVariantTraits<FIntPoint>
 {
-	static int32 GetType( ) { return EVariantTypes::IntPoint; }
+	static int32 GetType() { return EVariantTypes::IntPoint; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FIntVector type.
- */
+/** Implements variant type traits for the built-in FIntVector type. */
 template<> struct TVariantTraits<FIntVector>
 {
-	static int32 GetType( ) { return EVariantTypes::IntVector; }
+	static int32 GetType() { return EVariantTypes::IntVector; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FIntRect type.
- */
+/** Implements variant type traits for the built-in FIntRect type. */
 template<> struct TVariantTraits<FIntRect>
 {
-	static int32 GetType( ) { return EVariantTypes::IntRect; }
+	static int32 GetType() { return EVariantTypes::IntRect; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FLinearColor type.
- */
+/** Implements variant type traits for the built-in FLinearColor type. */
 template<> struct TVariantTraits<FLinearColor>
 {
-	static int32 GetType( ) { return EVariantTypes::LinearColor; }
+	static int32 GetType() { return EVariantTypes::LinearColor; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FMatrix type.
- */
+/** Implements variant type traits for the built-in FMatrix type. */
 template<> struct TVariantTraits<FMatrix>
 {
-	static int32 GetType( ) { return EVariantTypes::Matrix; }
+	static int32 GetType() { return EVariantTypes::Matrix; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FPlane type.
- */
+/** Implements variant type traits for the built-in FPlane type. */
 template<> struct TVariantTraits<FPlane>
 {
-	static int32 GetType( ) { return EVariantTypes::Plane; }
+	static int32 GetType() { return EVariantTypes::Plane; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FQuat type.
- */
+/** Implements variant type traits for the built-in FQuat type. */
 template<> struct TVariantTraits<FQuat>
 {
-	static int32 GetType( ) { return EVariantTypes::Quat; }
+	static int32 GetType() { return EVariantTypes::Quat; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FName type.
- */
+/** Implements variant type traits for the built-in FName type. */
 template<> struct TVariantTraits<FName>
 {
-	static int32 GetType( ) { return EVariantTypes::Name; }
+	static int32 GetType() { return EVariantTypes::Name; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FRandomStream type.
- */
+/** Implements variant type traits for the built-in FRandomStream type. */
 template<> struct TVariantTraits<FRandomStream>
 {
-	static int32 GetType( ) { return EVariantTypes::RandomStream; }
+	static int32 GetType() { return EVariantTypes::RandomStream; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FRotator type.
- */
+/** Implements variant type traits for the built-in FRotator type. */
 template<> struct TVariantTraits<FRotator>
 {
-	static int32 GetType( ) { return EVariantTypes::Rotator; }
+	static int32 GetType() { return EVariantTypes::Rotator; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FString type.
- */
+/** Implements variant type traits for the built-in FString type. */
 template<> struct TVariantTraits<FString>
 {
-	static int32 GetType( ) { return EVariantTypes::String; }
+	static int32 GetType() { return EVariantTypes::String; }
 };
 
 
-/**
- * Implements variant type traits for the built-in WIDECHAR type.
- */
+/** Implements variant type traits for the built-in WIDECHAR type. */
 template<> struct TVariantTraits<WIDECHAR>
 {
-	static int32 GetType( ) { return EVariantTypes::Widechar; }
+	static int32 GetType() { return EVariantTypes::Widechar; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FTimespan type.
- */
+/** Implements variant type traits for the built-in FTimespan type. */
 template<> struct TVariantTraits<FTimespan>
 {
-	static int32 GetType( ) { return EVariantTypes::Timespan; }
+	static int32 GetType() { return EVariantTypes::Timespan; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FTransform type.
- */
+/** Implements variant type traits for the built-in FTransform type. */
 template<> struct TVariantTraits<FTransform>
 {
-	static int32 GetType( ) { return EVariantTypes::Transform; }
+	static int32 GetType() { return EVariantTypes::Transform; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FTwoVectors type.
- */
+/** Implements variant type traits for the built-in FTwoVectors type. */
 template<> struct TVariantTraits<FTwoVectors>
 {
-	static int32 GetType( ) { return EVariantTypes::TwoVectors; }
+	static int32 GetType() { return EVariantTypes::TwoVectors; }
 };
 
 
-/**
- * Implements variant type traits for the built-in uint8 type.
- */
+/** Implements variant type traits for the built-in uint8 type. */
 template<> struct TVariantTraits<uint8>
 {
-	static int32 GetType( ) { return EVariantTypes::UInt8; }
+	static int32 GetType() { return EVariantTypes::UInt8; }
 };
 
 
-/**
- * Implements variant type traits for the built-in uint16 type.
- */
+/** Implements variant type traits for the built-in uint16 type. */
 template<> struct TVariantTraits<uint16>
 {
-	static int32 GetType( ) { return EVariantTypes::UInt16; }
+	static int32 GetType() { return EVariantTypes::UInt16; }
 };
 
 
-/**
- * Implements variant type traits for the built-in uint32 type.
- */
+/** Implements variant type traits for the built-in uint32 type. */
 template<> struct TVariantTraits<uint32>
 {
-	static int32 GetType( ) { return EVariantTypes::UInt32; }
+	static int32 GetType() { return EVariantTypes::UInt32; }
 };
 
 
-/**
- * Implements variant type traits for the built-in uint64 type.
- */
+/** Implements variant type traits for the built-in uint64 type. */
 template<> struct TVariantTraits<uint64>
 {
-	static int32 GetType( ) { return EVariantTypes::UInt64; }
+	static int32 GetType() { return EVariantTypes::UInt64; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FVector type.
- */
+/** Implements variant type traits for the built-in FVector type. */
 template<> struct TVariantTraits<FVector>
 {
-	static int32 GetType( ) { return EVariantTypes::Vector; }
+	static int32 GetType() { return EVariantTypes::Vector; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FVector2D type.
- */
+/** Implements variant type traits for the built-in FVector2D type. */
 template<> struct TVariantTraits<FVector2D>
 {
-	static int32 GetType( ) { return EVariantTypes::Vector2d; }
+	static int32 GetType() { return EVariantTypes::Vector2d; }
 };
 
 
-/**
- * Implements variant type traits for the built-in FVector4 type.
- */
+/** Implements variant type traits for the built-in FVector4 type. */
 template<> struct TVariantTraits<FVector4>
 {
-	static int32 GetType( ) { return EVariantTypes::Vector4; }
+	static int32 GetType() { return EVariantTypes::Vector4; }
 };
 
 
-/**
- * Implements variant type traits for the built-in NetworkGUID type.
- */
+/** Implements variant type traits for the built-in NetworkGUID type. */
 template<> struct TVariantTraits<FNetworkGUID>
 {
-	static int32 GetType( ) { return EVariantTypes::NetworkGUID; }
+	static int32 GetType() { return EVariantTypes::NetworkGUID; }
 };

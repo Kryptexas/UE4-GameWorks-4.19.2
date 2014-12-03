@@ -2,6 +2,29 @@
 
 #pragma once
 
+#include "IMediaInfo.h"
+#include "IMediaPlayer.h"
+
+
+/**
+ * Cocoa class that can help us with reading player item information.
+ */
+@interface FMediaHelper : NSObject
+{
+};
+/** We should only initiate a helper with a media player */
+-(FMediaHelper*) initWithMediaPlayer:(AVPlayer*)InPlayer;
+/** Destructor */
+-(void)dealloc;
+
+/** Reference to the media player which will be responsible for this media session */
+@property(retain) AVPlayer* MediaPlayer;
+
+/** Flag to dictate whether the media players current item is ready to play */
+@property bool bIsPlayerItemReady;
+
+@end
+
 
 /**
  * Implements a media player using the Windows Media Foundation framework.
@@ -13,15 +36,11 @@ class FAvfMediaPlayer
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FAvfMediaPlayer( );
+	/** Default constructor. */
+	FAvfMediaPlayer();
 
-	/**
-	 * Destructor.
-	 */
-	~FAvfMediaPlayer();
+	/** Destructor. */
+	~FAvfMediaPlayer() { }
 
 public:
 
@@ -67,39 +86,53 @@ public:
 
 public:
 
-    // FTickerObjectBase
-    virtual bool Tick(float DeltaTime) override;
+    // FTickerObjectBase interface
+
+    virtual bool Tick( float DeltaTime ) override;
+
+protected:
+
+    /**
+	 * Whether the media player should advance to the next frame.
+	 *
+	 * @return true if the player should advance, false otherwise.
+	 */
+    bool ShouldAdvanceFrames() const;
 
 private:
-    // The AVFoundation media player
+
+    /** The AVFoundation media player */
     AVPlayer* MediaPlayer;
 
-    // The player item which the media player uses to progress.
+    /** The player item which the media player uses to progress. */
     AVPlayerItem* PlayerItem;
 
-    // The available media tracks.
+    /** The available media tracks. */
     TArray<IMediaTrackRef> Tracks;
 
 private:
-    // Media Info
 
-    // The duration of the media.
+    /** The duration of the media. */
     FTimespan Duration;
 
-    // The current time of the playthrough.
+    /** The current time of the playback. */
     FTimespan CurrentTime;
 
-    // The URL of the currently opened media.
+    /** The URL of the currently opened media. */
     FString MediaUrl;
 
-    // The current playback rate.
+    /** The current playback rate. */
     float CurrentRate;
 
 private:
 
-	// Holds an event delegate that is invoked when media is being unloaded.
+	/** Holds an event delegate that is invoked when media is being unloaded. */
 	FOnMediaClosed ClosedEvent;
 
-	// Holds an event delegate that is invoked when media has been loaded.
+	/** Holds an event delegate that is invoked when media has been loaded. */
 	FOnMediaOpened OpenedEvent;
+	
+private:
+	/** Cocoa helper object we can use to keep track of ns property changes in our media items */
+	FMediaHelper* MediaHelper;
 };

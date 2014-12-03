@@ -2,8 +2,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 
-UAbilityTask_WaitDelay::UAbilityTask_WaitDelay(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitDelay::UAbilityTask_WaitDelay(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Time = 0.f;
 	TimeStarted = 0.f;

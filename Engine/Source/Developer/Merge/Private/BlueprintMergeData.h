@@ -53,3 +53,12 @@ namespace EMergeParticipant
 		MERGE_PARTICIPANT_LOCAL,
 	};
 }
+
+class IMergeControl
+{
+public:
+	virtual void HighlightNextConflict() = 0;
+	virtual void HighlightPrevConflict() = 0;
+	virtual bool HasNextConflict() const = 0;
+	virtual bool HasPrevConflict() const = 0;
+};

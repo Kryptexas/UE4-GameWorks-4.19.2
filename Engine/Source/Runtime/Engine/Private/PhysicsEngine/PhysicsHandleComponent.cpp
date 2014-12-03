@@ -1,13 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "PhysicsPublic.h"
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
 
-UPhysicsHandleComponent::UPhysicsHandleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsHandleComponent::UPhysicsHandleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -65,7 +66,7 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 
 #if WITH_PHYSX
 	// Get the PxRigidDynamic that we want to grab.
-	FBodyInstance * BodyInstance = InComponent->GetBodyInstance(InBoneName);
+	FBodyInstance* BodyInstance = InComponent->GetBodyInstance(InBoneName);
 	if (!BodyInstance)
 	{
 		return;
@@ -90,6 +91,7 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 	// If we don't already have a handle - make one now.
 	if (!HandleData)
 	{
+		SCOPED_SCENE_WRITE_LOCK(Scene);
 		// Create kinematic actor we are going to create joint with. This will be moved around with calls to SetLocation/SetRotation.
 		PxRigidDynamic* KinActor = Scene->getPhysics().createRigidDynamic(KinPose);
 		KinActor->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
@@ -175,6 +177,7 @@ void UPhysicsHandleComponent::ReleaseComponent()
 			PxScene* PScene = GetPhysXSceneFromIndex( SceneIndex );
 			if(PScene)
 			{
+				SCOPED_SCENE_WRITE_LOCK(PScene);
 				// Destroy joint.
 				HandleData->release();
 				

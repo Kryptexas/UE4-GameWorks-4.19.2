@@ -8,16 +8,37 @@
 #pragma once
 
 #include "PhysxUserData.h"
+#include "DynamicMeshBuilder.h"
 #include "LocalVertexFactory.h"
 /**
  * Physics stats
  */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Total Physics Time"),STAT_TotalPhysicsTime,STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time"),STAT_TotalPhysicsTime,STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Start Physics Time"),STAT_PhysicsKickOffDynamicsTime,STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Fetch Results Time"),STAT_PhysicsFetchDynamicsTime,STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys Events Time"),STAT_PhysicsEventTime,STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SetBodyTransform"),STAT_SetBodyTransform,STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart,STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("SyncComponentsToBodies"), STAT_SyncComponentsToBodies, STATGROUP_Physics, );
 
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Constraints"), STAT_NumActiveConstraints, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Simulated Bodies"), STAT_NumActiveSimulatedBodies, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Kinematic Bodies"), STAT_NumActiveKinematicBodies, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Mobile Bodies"), STAT_NumMobileBodies, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Static Bodies"), STAT_NumStaticBodies, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Shapes"), STAT_NumShapes, STATGROUP_Physics, );
+
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Broadphase Adds"), STAT_NumBroadphaseAddsAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Broadphase Removes"), STAT_NumBroadphaseRemovesAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Constraints"), STAT_NumActiveConstraintsAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Simulated Bodies"), STAT_NumActiveSimulatedBodiesAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Kinematic Bodies"), STAT_NumActiveKinematicBodiesAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Mobile Bodies"), STAT_NumMobileBodiesAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Static Bodies"), STAT_NumStaticBodiesAsync, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROUP_Physics, );
 
 #if WITH_PHYSX
 
@@ -35,6 +56,7 @@ namespace physx
 	class PxSimulationEventCallback;
 	struct PxActiveTransform;
 	class PxActor;
+	class PxRigidActor;
 	
 #if WITH_APEX
 	namespace apex
@@ -211,7 +233,7 @@ private:
 	void ExecuteCommands();
 
 	/** Enqueue a command to the double buffer */
-	void EnqueueCommand(const FPhysPendingCommand & Command);
+	void EnqueueCommand(const FPhysPendingCommand& Command);
 
 	/** Array of commands waiting to execute once simulation is done */
 	TArray<FPhysPendingCommand> PendingCommands;
@@ -227,6 +249,9 @@ public:
 
 	/** Indicates whether the scene is using substepping */
 	bool							bSubstepping;
+
+	/** Indicates whether the scene is using substepping */
+	bool							bSubsteppingAsync;
 
 	/** Stores the number of valid scenes we are working with. This will be PST_MAX or PST_Async, 
 		depending on whether the async scene is enabled or not*/
@@ -286,7 +311,7 @@ public:
 
 #if WITH_PHYSX
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	physx::PxScene*					GetPhysXScene(uint32 SceneType);
+	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
 
 #if WITH_VEHICLE
 	/** Get the vehicle manager */
@@ -347,10 +372,12 @@ public:
 	static bool SupportsOriginShifting() { return true; }
 
 	/** @return Whether physics scene is using substepping */
-	bool IsSubstepping() const
+	bool IsSubstepping(uint32 SceneType) const
 	{
 #if WITH_SUBSTEPPING
-		return bSubstepping;
+		if (SceneType == PST_Sync) return bSubstepping;
+		if (SceneType == PST_Async) return bSubsteppingAsync;
+		return false;
 #else
 		return false;
 #endif
@@ -363,23 +390,23 @@ public:
 	ENGINE_API bool HasAsyncScene() const { return bAsyncSceneEnabled; }
 
 	/** Lets the scene update anything related to this BodyInstance as it's now being terminated */
-	void TermBody(FBodyInstance * BodyInstance);
+	void TermBody(FBodyInstance* BodyInstance);
 
 	/** Adds a force to a body - We need to go through scene to support substepping */
-	void AddForce(FBodyInstance * BodyInstance, const FVector & Force, bool bAllowSubstepping);
+	void AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping);
 
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
-	void AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position, bool bAllowSubstepping);
+	void AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping);
 
 	/** Adds torque to a body - We need to go through scene to support substepping */
-	void AddTorque(FBodyInstance * BodyInstance, const FVector & Torque, bool bAllowSubstepping);
+	void AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping);
 
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
-	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM, bool bAllowSubstepping);
+	void SetKinematicTarget(FBodyInstance* BodyInstance, const FTransform& TargetTM, bool bAllowSubstepping);
 
 	/** Gets a Kinematic actor's target position - We need to do this here to support substepping
 	  * Returns true if kinematic target has been set. If false the OutTM is invalid */
-	bool GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const;
+	bool GetKinematicTarget(const FBodyInstance* BodyInstance, FTransform& OutTM) const;
 
 	/** Gets the collision disable table */
 	const TMap<uint32, TMap<struct FRigidBodyIndexPair, bool> *> & GetCollisionDisableTableLookup()
@@ -422,14 +449,14 @@ private:
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
 
-	/** Cache of active transforms */ //TODO: this solution is not great
-	TArray<const PxActiveTransform*> ActiveTransforms[PST_MAX];
+	/** Cache of active transforms sorted into types */ //TODO: this solution is not great
+	TArray<struct FBodyInstance*> ActiveBodyInstances[PST_MAX];	//body instances that have moved
+	TArray<const physx::PxRigidActor*> ActiveDestructibleActors[PST_MAX];	//destructible actors that have moved
 
-	/** Updates our cache of active transforms */
+	/** Fetch results from simulation and get the active transforms. Make sure to lock before calling this function as the fetch and data you use must be treated as an atomic operation */
 	void UpdateActiveTransforms(uint32 SceneType);
+	void RemoveActiveBody(FBodyInstance* BodyInstance, uint32 SceneType);
 
-	/** When actors are destroyed they must be removed from active transforms */
-	void RemoveBodyFromActiveTransforms(PxActor * PActor, uint32 SceneType);
 #endif
 
 #if WITH_SUBSTEPPING

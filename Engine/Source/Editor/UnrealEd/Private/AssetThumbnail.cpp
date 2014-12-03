@@ -706,8 +706,8 @@ FAssetThumbnailPool::FAssetThumbnailPool( uint32 InNumInPool, const TAttribute<b
 	, MaxRealTimeThumbnailsPerFrame( InMaxRealTimeThumbnailsPerFrame )
 	, MaxFrameTimeAllowance( InMaxFrameTimeAllowance )
 {
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged);
-	FCoreDelegates::OnAssetLoaded.AddRaw(this, &FAssetThumbnailPool::OnAssetLoaded);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged);
+	FCoreUObjectDelegates::OnAssetLoaded.AddRaw(this, &FAssetThumbnailPool::OnAssetLoaded);
 	if ( GEditor )
 	{
 		GEditor->OnActorMoved().AddRaw( this, &FAssetThumbnailPool::OnActorPostEditMove );
@@ -716,8 +716,8 @@ FAssetThumbnailPool::FAssetThumbnailPool( uint32 InNumInPool, const TAttribute<b
 
 FAssetThumbnailPool::~FAssetThumbnailPool()
 {
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
-	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 	if ( GEditor )
 	{
 		GEditor->OnActorMoved().RemoveAll(this);

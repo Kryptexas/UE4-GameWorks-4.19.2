@@ -7,6 +7,10 @@
 #include "LevelEditor.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "EngineVersion.h"
+#include "ShaderCompiler.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "Engine/DestructibleMesh.h"
+#include "FileManagerGeneric.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
@@ -171,7 +175,7 @@ namespace AutomationEditorCommonUtils
 			if ((*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)))
 			{
 				UFactory* Factory = Cast<UFactory>((*ClassIt)->GetDefaultObject());
-				if (Factory->bEditorImport && Factory->ValidForCurrentGame())
+				if (Factory->bEditorImport)
 				{
 					TArray<FString> FactoryExtensions;
 					Factory->GetSupportedFileExtensions(FactoryExtensions);
@@ -277,100 +281,118 @@ namespace AutomationEditorCommonUtils
 			InFactory->ConfigureProperties();
 		}
 	}
-}
 
-/**
-* Writes a number to a text file.
-* @param FolderNameForTest is the folder that has the same name as the test. (For Example: "Performance").
-* @param FolderNameForBeingTested is the name for the thing that is being tested. (For Example: "MapName").
-* @param FileName is the name of the file with an extension (no need to add the .txt)
-* @param NumberToWriteToFile is the float number that is expected to be written to the file.
-* @param Delimiter is the delimiter to be used. TEXT(",")
-*/
-void WriteToTextFile(const FString& FolderNameForTest ,const FString& FolderNameForBeingTested, const FString& FileName, const float& NumberToWriteToFile, const FString& Delimiter)
-{
-	//Performance file locations and setups.
-	FString FileSaveLocation = FPaths::AutomationLogDir() + FolderNameForTest + TEXT("/") + FolderNameForBeingTested + TEXT("/") + FileName + TEXT(".txt");
-
-	//Variables that hold the content from the text files
-	FString ReadFromTextFile;
-
-	//Log out to a text file the Duration.
-	FString CurrentNumberToWrite = FString::Printf(TEXT("%f"), NumberToWriteToFile);
-	FFileHelper::LoadFileToString(ReadFromTextFile, *FileSaveLocation);
-	FString FileSetup = ReadFromTextFile + CurrentNumberToWrite + Delimiter;
-	FFileHelper::SaveStringToFile(FileSetup, *FileSaveLocation);
-
-}
-
-/**
-* Returns the sum of the numbers available in a FString array.
-* @param NumberArray is the name of the array intended to be used.
-* @param bAverageOnly will return the average of the available numbers instead of the sum.
-*/
-float ValueFromStringArrayofNumbers(const TArray<FString>& NumberArray, bool bAverageInstead)
-{
-	//Total Value holds the sum of all the numbers available in the array.
-	float TotalValue = 0;
-	int32 NumberCounter = 0;
-
-	//Loop through the array.
-	for (int32 I = 0; I < NumberArray.Num(); ++I)
+	/**
+	* Writes a number to a text file.
+	* @param InTestName is the folder that has the same name as the test. (For Example: "Performance").
+	* @param InItemBeingTested is the name for the thing that is being tested. (For Example: "MapName").
+	* @param InFileName is the name of the file with an extension
+	* @param InNumberToBeWritten is the float number that is expected to be written to the file.
+	* @param Delimiter is the delimiter to be used. TEXT(",")
+	*/
+	void WriteToTextFile(const FString& InTestName, const FString& InTestItem, const FString& InFileName, const float& InEntry, const FString& Delimiter)
 	{
-		//If the character in the array is a number then we'll want to add it to our total.
-		if (NumberArray[I].IsNumeric())
+		//Performance file locations and setups.
+		FString FileSaveLocation = FPaths::Combine(*FPaths::AutomationLogDir(), *InTestName, *InTestItem, *InFileName);
+
+		if (FPaths::FileExists(FileSaveLocation))
 		{
-			NumberCounter++;
-			TotalValue += FCString::Atof(NumberArray[I].GetCharArray().GetData());
+			//The text files existing content.
+			FString TextFileContents;
+
+			//Write to the text file the combined contents from the text file with the number to write.
+			FFileHelper::LoadFileToString(TextFileContents, *FileSaveLocation);
+			FString FileSetup = TextFileContents + Delimiter + FString::SanitizeFloat(InEntry);
+			FFileHelper::SaveStringToFile(FileSetup, *FileSaveLocation);
+			return;
 		}
-	}	
 
-	//If bAverageInstead equals true then only the average is returned.
-	//Otherwise return the total value.
-	if (bAverageInstead)
-	{
-		UE_LOG(LogEditorAutomationTests, Log, TEXT("Average value of the Array is %f"), (TotalValue / NumberCounter));
-		return (TotalValue / NumberCounter);
+		FFileHelper::SaveStringToFile(FString::SanitizeFloat(InEntry), *FileSaveLocation);
 	}
-	
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Total Value of the Array is %f"), TotalValue);
-	return TotalValue;
 
-}
-
-float LargestValueFromStringArrayofNumbers(const TArray<FString>& NumberArray)
-{
-	//Total Value holds the sum of all the numbers available in the array.
-	float LargestValue = FCString::Atof(NumberArray[0].GetCharArray().GetData());
-
-	//Loop through the array.
-	for (int32 I = 0; I < NumberArray.Num(); ++I)
+	/**
+	* Returns the sum of the numbers available in an array of float.
+	* @param InFloatArray is the name of the array intended to be used.
+	* @param bisAveragedInstead will return the average of the available numbers instead of the sum.
+	*/
+	float TotalFromFloatArray(const TArray<float>& InFloatArray, bool bIsAveragedInstead)
 	{
-		//If the character in the array is a number then we'll want to add it to our total.
-		if (NumberArray[I].IsNumeric())
+		//Total Value holds the sum of all the numbers available in the array.
+		float TotalValue = 0;
+
+		//Get the sum of the array.
+		for (int32 I = 0; I < InFloatArray.Num(); ++I)
 		{
-			float CurrentValue = FCString::Atof(NumberArray[I].GetCharArray().GetData());
-			if ( LargestValue < CurrentValue)
+			TotalValue += InFloatArray[I];
+		}
+
+		//If bAverageInstead equals true then only the average is returned.
+		if (bIsAveragedInstead)
+		{
+			UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Average value of the Array is %f"), (TotalValue / InFloatArray.Num()));
+			return (TotalValue / InFloatArray.Num());
+		}
+
+		UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Total Value of the Array is %f"), TotalValue);
+		return TotalValue;
+	}
+
+	/**
+	* Returns the largest value from an array of float numbers.
+	* @param InFloatArray is the name of the array intended to be used.
+	*/
+	float LargestValueInFloatArray(const TArray<float>& InFloatArray)
+	{
+		//Total Value holds the sum of all the numbers available in the array.
+		float LargestValue = 0;
+
+		//Find the largest value
+		for (int32 I = 0; I < InFloatArray.Num(); ++I)
+		{
+			if (LargestValue < InFloatArray[I])
 			{
-				LargestValue = CurrentValue;
+				LargestValue = InFloatArray[I];
 			}
 		}
+		UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("The Largest value of the array is %f"), LargestValue);
+		return LargestValue;
 	}
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("The Largest value of the array is %f"), LargestValue);
-	return LargestValue;
-}
 
-TArray<FString> CreateArrayFromFile(const FString& FullFileLocation)
-{
+	/**
+	* Returns the contents of a text file as an array of FString.
+	* @param InFileLocation -  is the location of the file.
+	* @param OutArray - The name of the array where the 
+	*/
+	void CreateArrayFromFile(const FString& InFileLocation, TArray<FString>& OutArray)
+	{
+		FString RawData;
 
-	FString RawData;
-	TArray<FString> DataArray;
+		if (FPaths::FileExists(*InFileLocation))
+		{
+			UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Loading and parsing the data from '%s' into an array."), *InFileLocation);
+			FFileHelper::LoadFileToString(RawData, *InFileLocation);
+			RawData.ParseIntoArray(&OutArray, TEXT(","), false);
+		}
 
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Loading and parsing the data from '%s' into an array."), *FullFileLocation);
-	FFileHelper::LoadFileToString(RawData, *FullFileLocation);
-	RawData.ParseIntoArray(&DataArray, TEXT(","), false);
-	
-	return DataArray;
+		UE_LOG(LogEditorAutomationTests, Warning, TEXT("Unable to create an array.  '%s' does not exist."), *InFileLocation);
+		RawData = TEXT("0");
+		OutArray.Add(RawData);
+	}
+
+	/**
+	* Returns true if the archive/file can be written to otherwise false..
+	* @param InFilePath - is the location of the file.
+	* @param InArchiveName - is the name of the archive to be used.
+	*/
+	bool IsArchiveWriteable(const FString& InFilePath, const FArchive* InArchiveName)
+	{
+		if (!InArchiveName)
+		{
+			UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to write to the csv file: %s"), *FPaths::ConvertRelativePathToFull(InFilePath));
+			return false;
+		}
+		return true;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -459,268 +481,21 @@ bool FEndPlayMapCommand::Update()
 }
 
 /**
-* This command grabs the FPS and Memory for the current editor session.
-*/
-bool FEditorPerformanceCommand::Update()
-{
-	//Gets the main frame module to get the name of our current level.
-	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >("MainFrame");
-	FString ShortMapName = MainFrameModule.GetLoadedLevelName();
-	
-	//Variables that hold the content from the text files
-	FString SavedAverageFPS;
-	FString SavedMemory;
-	FString SavedDuration;
-	static SIZE_T StaticLastTotalAllocated = 0;
-	static SIZE_T AvailablePhysicalMemory = 0;
-	static SIZE_T AvailableVirtualMemory = 0;
-	static SIZE_T UsedVirtualMemory = 0;
-	static SIZE_T UsedPeakPhysical = 0;
-	static SIZE_T UsedPeakVirtual = 0;
-
-	//Grab the FPS and working memory number.
-	float CurrentTime = FPlatformTime::Seconds();
-	if ((CurrentTime - StartTime) <= Duration)
-	{
-		//Find the Average FPS
-		//Clamp to avoid huge averages at startup or after hitches
-		const float CurrentFPS = 1.0f / FSlateApplication::Get().GetAverageDeltaTime();
-		const float ClampedFPS = (CurrentFPS < 0.0f || CurrentFPS > 4000.0f) ? 0.0f : CurrentFPS;
-		
-		//Find the Frame Time in ms.
-		//Clamp to avoid huge averages at startup or after hitches
-		const float AverageMS = FSlateApplication::Get().GetAverageDeltaTime() * 1000.0f;
-		const float ClampedMS = (AverageMS < 0.0f || AverageMS > 4000.0f) ? 0.0f : AverageMS;
-
-		//Query OS for process memory used.
-		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-		StaticLastTotalAllocated = MemoryStats.UsedPhysical;
-
-		//Query OS for available physical memory
-		AvailablePhysicalMemory = MemoryStats.AvailablePhysical;
-
-		//Query OS for available virtual memory
-		AvailableVirtualMemory = MemoryStats.AvailableVirtual;
-
-		//Query OS for used virtual memory
-		UsedVirtualMemory = MemoryStats.UsedVirtual;
-
-		//Query OS for used Peak Used physical memory
-		UsedPeakPhysical = MemoryStats.PeakUsedPhysical;
-
-		//Query OS for used Peak Used virtual memory
-		UsedPeakVirtual = MemoryStats.PeakUsedVirtual;
-
-		//Log out to a text file the Duration.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWDuration"), CurrentTime, TEXT(","));
-		//Log out to a text file the AverageFPS
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWAverageFPS"), ClampedFPS, TEXT(","));
-		//Log out to a text file the AverageFrameTime
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWFrameTime"), ClampedMS, TEXT(","));
-		//Log out to a text file the Used Physical Memory in kilobytes.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWMemoryUsedPhysical"), (float)StaticLastTotalAllocated / 1024, TEXT(","));
-		//Log out to a text file the Used Peaked Memory in kilobytes.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWMemoryUsedPeak"), (float)UsedPeakPhysical / 1024, TEXT(","));
-		//Log out to a text file the Used Peaked virtual Memory in kilobytes.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWMemoryUsedPeakVirtual"), (float)UsedPeakVirtual / 1024, TEXT(","));
-		//Log out to a text file the Available Physical Memory in kilobytes.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWMemoryAvailablePhysical"), (float)AvailablePhysicalMemory / 1024, TEXT(","));
-		//Log out to a text file the Available Virtual Memory in kilobytes.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWMemoryAvailableVirtual"), (float)AvailableVirtualMemory / 1024, TEXT(","));
-		//Log out to a text file the Used Virtual Memory in kilobytes.
-		WriteToTextFile(TEXT("Performance"), ShortMapName, TEXT("RAWMemoryUsedVirtual"), (float)UsedVirtualMemory / 1024, TEXT(","));
-
-
-		return false;
-	}
-	
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Raw performance data has been captured and saved to the '//Game/Saved/Automation/Log/Performance/%s' folder location."), *ShortMapName);
-	
-	return true;
-}
-
-bool FGenerateEditorPerformanceCharts::Update()
-{
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Begin generating the editor performance charts."));
-	//Get the current changelist number
-	FString Changelist = GEngineVersion.ToString(EVersionComponent::Changelist);
-
-	//Gets the main frame module to get the name of our current level.
-	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >("MainFrame");
-	FString LoadedMapName = MainFrameModule.GetLoadedLevelName();
-
-	//The locations of the raw data.
-	FString FileLocation = FPaths::AutomationLogDir() + TEXT("Performance/") + LoadedMapName + TEXT("/");
-	FString FPSFileLocation = FileLocation + TEXT("RAWAverageFPS.txt");
-	FString FrameTimeLocation = FileLocation + TEXT("RAWFrameTime.txt");
-	FString MemoryFileLocation = FileLocation + TEXT("RAWMemoryUsedPhysical.txt");
-	FString MemoryAvailPhysFileLocation = FileLocation + TEXT("RAWMemoryAvailablePhysical.txt");
-	FString MemoryAvailVirtualFileLocation = FileLocation + TEXT("RAWMemoryAvailableVirtual.txt");
-	FString MemoryUsedVirtualFileLocation = FileLocation + TEXT("RAWMemoryUsedVirtual.txt");
-	FString MapLoadTimeFileLocation = FileLocation + TEXT("RAWMapLoadTime.txt");
-	FString DurationFileLocation = FileLocation + TEXT("RAWDuration.txt");
-	FString MemoryUsedPeakFileLocation = FileLocation + TEXT("RAWMemoryUsedPeak.txt");
-	FString MemoryUsedPeakVirtualFileLocation = FileLocation + TEXT("RAWMemoryUsedPeakVirtual.txt");
-	//Get the data from the raw files and put them into an array.
-	TArray<FString> FPSRawArray = CreateArrayFromFile(FPSFileLocation);
-	TArray<FString> FrameTimeRawArray = CreateArrayFromFile(FrameTimeLocation);
-	TArray<FString> MemoryRawArray = CreateArrayFromFile(MemoryFileLocation);
-	TArray<FString> MemoryAvailPhysRawArray = CreateArrayFromFile(MemoryAvailPhysFileLocation);
-	TArray<FString> MemoryAvailVirtualRawArray = CreateArrayFromFile(MemoryAvailVirtualFileLocation);
-	TArray<FString> MemoryUsedVirtualRawArray = CreateArrayFromFile(MemoryUsedVirtualFileLocation);
-	TArray<FString> MapLoadTimeRawArray = CreateArrayFromFile(MapLoadTimeFileLocation);
-	TArray<FString> TestRunTimeRawArray = CreateArrayFromFile(DurationFileLocation);
-	TArray<FString> MemoryUsedPeakArray = CreateArrayFromFile(MemoryUsedPeakFileLocation);
-	TArray<FString> MemoryUsedPeakVirtualArray = CreateArrayFromFile(MemoryUsedPeakVirtualFileLocation);
-
-	//Variable that will hold the old performance csv file data.
-	FString OldPerformanceCSVFile;
-
-	//The CSV files.
-	//RAW csv holds all of the information from the text files
-	//Final csv only holds the averaged information.
-	FString FinalCSVFilename = FString::Printf(TEXT("%s%s_Performance.csv"), *FileLocation, *LoadedMapName);
-	FString RAWCSVFilename = FString::Printf(TEXT("%sRAW_%s_%s.csv"), *FileLocation, *LoadedMapName, *FDateTime::Now().ToString());
-
-	//Create the .csv file that will hold the raw data from the text files.
-	FArchive* RAWCSVFile = IFileManager::Get().CreateFileWriter(*RAWCSVFilename);
-	if (!RAWCSVFile)
-	{
-		UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to create the csv file: %s"), *RAWCSVFilename);
-		return true;
-	}
-
-	//Add the top title row to the raw csv file
-	FString RAWCSVLine = (TEXT("Map Name, Changelist, Test Run Time, Map Load Time, Average FPS, Frame Time, Used Physical Memory, Used Virtual Memory, Used Peak Physical, Used Peak Virtual, Available Physical Memory, Available Virtual Memory\n"));
-	RAWCSVFile->Serialize(TCHAR_TO_ANSI(*RAWCSVLine), RAWCSVLine.Len());
-	
-	//Loop through the text files and add them to the raw csv file.
-	for (int32 I = 0; I < FPSRawArray.Num(); I++)
-	{
-		//If the raw file isn't available to write to then we'll fail back this test.
-		if (!RAWCSVFile)
-		{
-			UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to write to the csv file: '%s'.  \nIt may have been opened or deleted."), *RAWCSVFilename);
-			return true;
-		}
-
-		//Create the line that will be written and then write it to the csv file.
-		RAWCSVLine = LoadedMapName + TEXT(",") + Changelist + TEXT(",") + TestRunTimeRawArray[I] + TEXT(",") + MapLoadTimeRawArray[0] + TEXT(",") + FPSRawArray[I] + TEXT(",") + FrameTimeRawArray[I] + TEXT(",") + MemoryRawArray[I] + TEXT(",") + MemoryUsedVirtualRawArray[I] + TEXT(",") + MemoryUsedPeakArray[I] + TEXT(",") + MemoryUsedPeakVirtualArray[I] + TEXT(",") + MemoryAvailPhysRawArray[I] + TEXT(",") + MemoryAvailVirtualRawArray[I] + LINE_TERMINATOR;
-		RAWCSVFile->Serialize(TCHAR_TO_ANSI(*RAWCSVLine), RAWCSVLine.Len());
-	}
-	
-	//Close the raw csv file.
-	RAWCSVFile->Close();
-	
-	//Get the final data for the Performance csv file.
-	//This gets the averaged numbers using the raw data arrays.
-	float FPSAvg = ValueFromStringArrayofNumbers(FPSRawArray, true);
-	float FrameTimeAvg = ValueFromStringArrayofNumbers(FrameTimeRawArray, true);
-	float MemoryAvg = ValueFromStringArrayofNumbers(MemoryRawArray, true);
-	float MemoryAvailPhysAvg = ValueFromStringArrayofNumbers(MemoryAvailPhysRawArray, true);
-	float MemoryAvailVirtualAvg = ValueFromStringArrayofNumbers(MemoryAvailVirtualRawArray, true);
-	float MemoryUsedVirtualAvg = ValueFromStringArrayofNumbers(MemoryUsedVirtualRawArray, true);
-	
-	//Find the largest value in the array.
-	float MemoryUsedPeak = LargestValueFromStringArrayofNumbers(MemoryUsedPeakArray);
-	float MemoryUsedPeakVirtual = LargestValueFromStringArrayofNumbers(MemoryUsedPeakVirtualArray);
-	
-	//This gets the actual test run time by subtracting the last test run entry against the first test run entry.
-	FString TestRunStartTime = TestRunTimeRawArray[0];
-	FString TestRunEndTime;
-	for (int32 i = (TestRunTimeRawArray.Num() - 1); i >= 0 ; --i)
-	{
-		if (!TestRunTimeRawArray[i].IsEmpty())
-		{
-			TestRunEndTime = TestRunTimeRawArray[i];
-			break;
-		}
-	}
-	float TestRunTime = FCString::Atof(TestRunEndTime.GetCharArray().GetData()) - FCString::Atof(TestRunStartTime.GetCharArray().GetData());
-	//Get the map load time.
-	FString MapLoadTime = MapLoadTimeRawArray[0];
-	
-	//If the Performance csv file does not have a size then it must be new.
-	//This adds the title row to the performance csv file.
-	if (IFileManager::Get().FileSize(FinalCSVFilename.GetCharArray().GetData()) <= 0)
-	{
-		FArchive* FinalCSVFile = IFileManager::Get().CreateFileWriter(*FinalCSVFilename);
-		//If the csv file can't be created or written to then we'll fail back this test.
-		if (!FinalCSVFile)
-		{
-			UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to create the performance csv file: '%s'."), *FPaths::ConvertRelativePathToFull(FinalCSVFilename));
-			return true;
-		}
-		
-		//Create the .csv file that will hold the raw data from the text files.
-		FString FinalCSVLine = (TEXT("Date, Map Name, Changelist, Test Run Time , Map Load Time, Average FPS, Average MS, Used Physical KB, Used Virtual KB, Used Peak Physcial KB, Used Peak Virtual KB, Available Physical KB, Available Virtual KB\n"));
-		FinalCSVFile->Serialize(TCHAR_TO_ANSI(*FinalCSVLine), FinalCSVLine.Len());
-		FinalCSVFile->Close();
-	}
-
-	//Load the currently existing performance csv data.
-	FFileHelper::LoadFileToString(OldPerformanceCSVFile, *FinalCSVFilename);
-	FArchive* FinalCSVFile = IFileManager::Get().CreateFileWriter(*FinalCSVFilename);
-	//If the performance file isn't available to write to then we'll fail back this test.
-	if (!FinalCSVFile)
-	{
-		UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to write to the Performance csv file: '%s'.  \nIt may have been opened or deleted while in use. \nData Text files will not be deleted at this time."), *FPaths::ConvertRelativePathToFull(FinalCSVFilename));
-		return true;
-	}
-	
-	//Write the old performance csv file data to the new csv file.
-	FinalCSVFile->Serialize(TCHAR_TO_ANSI(*OldPerformanceCSVFile), OldPerformanceCSVFile.Len());
-
-	//Write the averaged numbers to the Performance CSV file.
-	FString FinalCSVLine = FString::Printf(TEXT("%s,%s,%s,%.0f,%s,%.3f,%.3f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f%s"), *FDateTime::Today().ToString(), *LoadedMapName, *Changelist, TestRunTime, *MapLoadTime, FPSAvg, FrameTimeAvg, MemoryAvg, MemoryUsedVirtualAvg, MemoryUsedPeak, MemoryUsedPeakVirtual, MemoryAvailPhysAvg, MemoryAvailVirtualAvg, LINE_TERMINATOR);
-	FinalCSVFile->Serialize(TCHAR_TO_ANSI(*FinalCSVLine), FinalCSVLine.Len());
-
-	//Close the csv files so we can use them while the editor is still open.
-	FinalCSVFile->Close();
-
-	//Display the averaged numbers.
-	UE_LOG(LogEditorAutomationTests, Display, TEXT("AVG FPS: '%.1f'"), FPSAvg);
-	UE_LOG(LogEditorAutomationTests, Display, TEXT("AVG Frame Time: '%.1f' ms"), FrameTimeAvg);
-	UE_LOG(LogEditorAutomationTests, Display, TEXT("AVG Used Physical Memory: '%.0f' kb"), MemoryAvg);
-	UE_LOG(LogEditorAutomationTests, Display, TEXT("AVG Used Virtual Memory: '%.0f' kb"), MemoryUsedVirtualAvg);
-	UE_LOG(LogEditorAutomationTests, Display, TEXT("Performance csv file is located here: %s"), *FPaths::ConvertRelativePathToFull(FinalCSVFilename));
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Performance csv file is located here: %s"), *FPaths::ConvertRelativePathToFull(FinalCSVFilename));
-
-	//Delete the text files.
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Deleting temporary data text files."));
-	IFileManager::Get().Delete(*FPSFileLocation);
-	IFileManager::Get().Delete(*FrameTimeLocation);
-	IFileManager::Get().Delete(*MemoryFileLocation);
-	IFileManager::Get().Delete(*MemoryAvailPhysFileLocation);
-	IFileManager::Get().Delete(*MapLoadTimeFileLocation);
-	IFileManager::Get().Delete(*DurationFileLocation);
-	IFileManager::Get().Delete(*MemoryAvailVirtualFileLocation);
-	IFileManager::Get().Delete(*MemoryUsedVirtualFileLocation);
-	IFileManager::Get().Delete(*MemoryUsedPeakFileLocation);
-	IFileManager::Get().Delete(*MemoryUsedPeakVirtualFileLocation);
-
-	return true;
-}
-
-/**
 * This this command loads a map into the editor.
 */
 bool FEditorLoadMap::Update()
 {
 	//Get the base filename for the map that will be used.
 	FString ShortMapName = FPaths::GetBaseFilename(MapName);
-	
-	double MapLoadStartTime = 0.0f;
-	double MapLoadTime = 0.0f;
 
-	//Get the current number of seconds.  This will be used to track how long it took to load the map.
-	MapLoadStartTime = FPlatformTime::Seconds();
+	//Get the current number of seconds before loading the map.
+	double MapLoadStartTime = FPlatformTime::Seconds();
 
 	//Load the map
 	FEditorAutomationTestUtilities::LoadMap(MapName);
 
 	//This is the time it took to load the map in the editor.
-	MapLoadTime = FPlatformTime::Seconds() - MapLoadStartTime;
+	double MapLoadTime = FPlatformTime::Seconds() - MapLoadStartTime;
 
 	//Gets the main frame module to get the name of our current level.
 	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >("MainFrame");
@@ -729,13 +504,52 @@ bool FEditorLoadMap::Update()
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("%s has been loaded."), *ShortMapName);
 
 	//Log out to a text file the time it takes to load the map.
-	WriteToTextFile(TEXT("Performance"), LoadedMapName, TEXT("RAWMapLoadTime"), MapLoadTime, TEXT(","));
+	AutomationEditorCommonUtils::WriteToTextFile(TEXT("Performance"), LoadedMapName, TEXT("RAWMapLoadTime.txt"), MapLoadTime, TEXT(","));
 	
 	UE_LOG(LogEditorAutomationTests, Display, TEXT("%s took %.3f to load."), *LoadedMapName, MapLoadTime);
 	
 	return true;
 }
 
+/**
+* This will cause the test to wait for the shaders to finish compiling before moving on.
+*/
+bool FWaitForShadersToFinishCompiling::Update()
+{
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
+	GShaderCompilingManager->FinishAllCompilation();
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
+	return true;
+}
+
+/**
+* Latent command that changes the editor viewport to the first available bookmarked view.
+*/
+bool FChangeViewportToFirstAvailableBookmarkCommand::Update()
+{
+	FEditorModeTools EditorModeTools;
+	FLevelEditorViewportClient* ViewportClient;
+	uint32 ViewportIndex = 0;
+
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Attempting to change the editor viewports view to the first set bookmark."));
+
+	//Move the perspective viewport view to show the test.
+	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++)
+	{
+		ViewportClient = GEditor->LevelViewportClients[i];
+
+		for (ViewportIndex = 0; ViewportIndex <= AWorldSettings::MAX_BOOKMARK_NUMBER; ViewportIndex++)
+		{
+			if (EditorModeTools.CheckBookmark(ViewportIndex, ViewportClient))
+			{
+				UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Changing a viewport view to the set bookmark %i"), ViewportIndex);
+				EditorModeTools.JumpToBookmark(ViewportIndex, true, ViewportClient);
+				break;
+			}
+		}
+	}
+	return true;
+}
 //////////////////////////////////////////////////////////////////////
 //Find Asset Commands
 
@@ -757,7 +571,7 @@ void FEditorAutomationTestUtilities::CollectTestsByClass(UClass * Class, TArray<
 
 	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 	{
-		const FAssetData & Asset = *ObjIter;
+		const FAssetData& Asset = *ObjIter;
 		FString Filename = Asset.ObjectPath.ToString();
 		//convert to full paths
 		Filename = FPackageName::LongPackageNameToFilename(Filename);
@@ -795,7 +609,7 @@ void FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UClass * Cla
 	//Loop through the list of assets, make their path full and a string, then add them to the test.
 	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 	{
-		const FAssetData & Asset = *ObjIter;
+		const FAssetData& Asset = *ObjIter;
 		FString Filename = Asset.ObjectPath.ToString();
 		//convert to full paths
 		Filename = FPackageName::LongPackageNameToFilename(Filename);
@@ -821,41 +635,45 @@ void FEditorAutomationTestUtilities::CollectMiscGameContentTestsByClass(TArray<F
 
 	//This is a list of classes that we don't want to be in the misc category.
 	TArray<FName> ExcludeClassesList;
-	ExcludeClassesList.Add(UTexture::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTexture2D::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTextureRenderTarget::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTextureRenderTarget2D::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTextureCube::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAimOffsetBlendSpace::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAimOffsetBlendSpace1D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UAnimBlueprint::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAnimMontage::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAnimSequence::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UBehaviorTree::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UBlendSpace::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UBlendSpace1D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UBlueprint::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UDestructibleMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UDialogueVoice::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UDialogueWave::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UFont::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterial::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterialFunction::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterialInstanceConstant::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterialParameterCollection::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UParticleSystem::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UPhysicalMaterial::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UPhysicsAsset::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UReverbEffect::StaticClass()->GetFName());
-	ExcludeClassesList.Add(USlateWidgetStyleAsset::StaticClass()->GetFName());
-	ExcludeClassesList.Add(USlateBrushAsset::StaticClass()->GetFName());
-	ExcludeClassesList.Add(USoundAttenuation::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UStaticMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USkeletalMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USkeleton::StaticClass()->GetFName());
+	ExcludeClassesList.Add(USlateBrushAsset::StaticClass()->GetFName());
+	ExcludeClassesList.Add(USlateWidgetStyleAsset::StaticClass()->GetFName());
+	ExcludeClassesList.Add(USoundAttenuation::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundClass::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundCue::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundMix::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundWave::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UStaticMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USubsurfaceProfile::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UFont::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UBlueprint::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UAnimBlueprint::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTexture::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTexture2D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTextureCube::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTextureRenderTarget::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTextureRenderTarget2D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UUserDefinedEnum::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UWorld::StaticClass()->GetFName());
 
 	//Generating the list of assets.
 	//This list isn't expected to have anything that may be obtained with another function.
@@ -870,7 +688,7 @@ void FEditorAutomationTestUtilities::CollectMiscGameContentTestsByClass(TArray<F
 		//Loop through the list of assets, make their path full and a string, then add them to the test.
 		for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 		{
-			const FAssetData & Asset = *ObjIter;
+			const FAssetData& Asset = *ObjIter;
 			//First we check if the class is valid.  If not then we move onto the next object.
 			if (Asset.GetClass() != NULL)
 			{

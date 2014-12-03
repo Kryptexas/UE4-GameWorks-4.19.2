@@ -22,6 +22,8 @@ public class TranslationEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "InputCore",
+				"Internationalization",
+				"Json",
                 "PropertyEditor",
 				"Slate",
 				"SlateCore",
@@ -30,6 +32,7 @@ public class TranslationEditor : ModuleRules
                 "GraphEditor",
 				"SourceControl",
                 "MessageLog",
+                "Documentation",
 			}
 		);
 

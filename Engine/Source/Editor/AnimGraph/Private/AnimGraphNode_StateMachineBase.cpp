@@ -42,8 +42,8 @@ public:
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_StateMachineBase::UAnimGraphNode_StateMachineBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_StateMachineBase::UAnimGraphNode_StateMachineBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -59,7 +59,7 @@ FText UAnimGraphNode_StateMachineBase::GetTooltipText() const
 
 FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if ((TitleType == ENodeTitleType::ListView) && (EditorStateMachineGraph == nullptr))
+	if ((TitleType == ENodeTitleType::MenuTitle || TitleType == ENodeTitleType::ListView) && (EditorStateMachineGraph == nullptr))
 	{
 		return LOCTEXT("AddNewStateMachine", "Add New State Machine...");
 	}

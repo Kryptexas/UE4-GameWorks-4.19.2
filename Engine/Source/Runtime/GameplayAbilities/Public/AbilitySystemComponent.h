@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "GameplayAbility.h"
 #include "GameplayEffect.h"
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -19,7 +20,7 @@
  *	
  *	GameplayAbilities:
  *		-Provides a way to give/assign abilities that can be used (by a player or AI for example)
- *		-Provides managment of instanced abilities (something must hold onto them)
+ *		-Provides management of instanced abilities (something must hold onto them)
  *		-Provides replication functionality
  *			-Ability state must always be replicated on the UGameplayAbility itself, but UAbilitySystemComponent can provide RPC replication
  *			for non-instanced gameplay abilities. (Explained more in GameplayAbility.h).
@@ -32,7 +33,7 @@
  *		
  *	GameplayAttributes
  *		-Provides methods for allocating and initializing attribute sets
- *		-Provides methods for getting ATtributeSets
+ *		-Provides methods for getting AttributeSets
  *  
  * 
  */
@@ -46,6 +47,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Used to register callbacks to ability-key input */
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAbilityAbilityKey, /*UGameplayAbility*, Ability, */int32, InputID);
+
 	/** Used to register callbacks to confirm/cancel input */
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
@@ -55,7 +59,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	virtual ~UAbilitySystemComponent();
 
 	virtual void InitializeComponent() override;
+	virtual void UninitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+
+	/** Checks to see if we should be active (ticking). Called after something changes that would cause us to tick or not tick. */
+	void UpdateShouldTick();
 
 	/** Finds existing AttributeSet */
 	template <class T >
@@ -79,12 +87,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	/** Adds a new AttributeSet that is a DSO (created by called in their CStor) */
 	template <class T>
-	const T*	AddDefaultSubobjectSet(TSubobjectPtr<T> Subobject)
+	const T*	AddDefaultSubobjectSet(T* Subobject)
 	{
-		const T* Set = Subobject.Get();
-		SpawnedAttributes.Add(Set);
-		return Set;
+		SpawnedAttributes.Add(Subobject);
+		return Subobject;
 	}
+
+	bool HasAttributeSetForAttribute(FGameplayAttribute Attribute) const;
 
 	const UAttributeSet* InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
 
@@ -96,7 +105,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	TArray<FAttributeDefaults>	DefaultStartingData;
 
 	UPROPERTY(Replicated)
-	TArray<const UAttributeSet*>	SpawnedAttributes;
+	TArray<UAttributeSet*>	SpawnedAttributes;
 
 	void SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue);
 	float GetNumericAttribute(const FGameplayAttribute &Attribute);
@@ -107,38 +116,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) override;
 
-	/**
-	 *	Prediction Keys
-	 *		PredictionKey is a simple system to allow clients to locally predict interactions within the AbilityComponent while having
-	 *		a mechanism for merging results from the server.
-	 *		
-	 *		There are two main cases:
-	 *			-Client predicts something and is wrong. (Mispredictions). He must cleanup stuff that he created or changed.
-	 *			-Client predicts something and is right. 
-	 *			
-	 *			The Client predicts something and asks the server. "Can I do X? PredictionKey=Y".
-	 *			Server can reply immediately and directly with yes or no, and include the PredictionKey with that answer.
-	 *			
-	 *			If No, the client can just immediately cleanup whatever he predicted. This is straightforward.
-	 *			
-	 *			If Yes, there is a small window where the Yes RPC is received but the actor/component properties have not been updated.
-	 *			The client's cannot immediately cleanup his prediction work: he needs to wait for property replication.
-	 *			
-	 *			This is where ReplicatedPredictionKey comes in. 
-	 *			
-	 *			When the server allows a predicted action, he sets ReplicatedPredictionKey to this value. The client then looks
-	 *			at this replicated value. In OnRep_PredictionKey, the client goes through and cleans up all stuff that was predicted
-	 *			and is no longer needed.
-	 *			
-	 *			-Client calls GetNextPredictionKey() at the start of a predicted action. This gives him a key to use for this 'run'.
-	 *			-Client can predict whatever he wants as long as he registers an 'undo' function with GetPredictionKeyDelegate().
-	 *			-This delegate is invoked if the client is denied his prediction, or if he is right and property replication catches up.
-	 *			
-	 *	 
-	 */
-
+	/** PredictionKeys, see more info in GameplayPrediction.h */
 	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
 	FPredictionKey	ReplicatedPredictionKey;
+
+	FPredictionKey	ScopedPedictionKey;
 
 	UFUNCTION()
 	void OnRep_PredictionKey();
@@ -190,8 +172,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// --------------------------------------------
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec& GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FPredictionKey PredictionKey=FPredictionKey());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec& GameplayEffect, FPredictionKey PredictionKey = FPredictionKey());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
@@ -200,9 +182,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect, float Level) const;
 
-	/** Create an InstigatorContext for the owner of this AbilitySystemComponent */
+	/** Create an EffectContext for the owner of this AbilitySystemComponent */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	FGameplayEffectInstigatorContext GetInstigatorContext() const;
+	FGameplayEffectContextHandle GetEffectContext() const;
 
 	/** This only exists so it can be hooked up to a multicast delegate */
 	void RemoveActiveGameplayEffect_NoReturn(FActiveGameplayEffectHandle Handle)
@@ -220,10 +202,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	float GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const;
-
-	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
+
+
+	// New Stuff ---------------------------------- (Remove this comment!)
+
+
+	/**
+	 * Populate the specified capture spec with the data necessary to capture an attribute from the component
+	 * 
+	 * @param OutCaptureSpec	[OUT] Capture spec to populate with captured data
+	 */
+	void CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec);
+
+	// Delegates (these need to be at the UObject level so we can safetly bind, rather than binding to raw at the ActiveGameplayEffect/Container level which is unsafe if the AbilitySystemComponent were killed).
+
+	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
+
+	void OnOngoingTagRequirementChange(FActiveGameplayEffectHandle ActiveHandle);
 
 	// --------------------------------------------
 	// Tags
@@ -236,8 +232,27 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
 
+	/** 	 
+	 *  Allows GameCode to add loose gameplaytags which are not backed by a GameplayEffect. 
+	 *
+	 *	Tags added this way are not replicated! 
+	 *	
+	 *	It is up to the calling GameCode to make sure these tags are added on a;; clients/server where necessary
+	 */
+
+	void AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count=1);
+
+	void AddLooseGameplayTags(const FGameplayTagContainer& GameplayTag, int32 Count = 1);
+
+	void RemoveLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count = 1);
+
+	void RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTag, int32 Count = 1);
+
 	/** Allow events to be registered for specific gameplay tags being added or removed */
 	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);
+
+	/** Returns multicast delegate that is invoked whenever a tag is added or removed (but not if just count is increased. Only for 'new' and 'removed' events) */
+	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayTagEvent();
 
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
 
@@ -247,19 +262,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	
 	FOnActiveGameplayEffectRemoved* OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle);
 
-	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = UGameplayEffect::INVALID_LEVEL, FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(), FPredictionKey PredictionKey = FPredictionKey());
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
-	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, FGameplayEffectContextHandle EffectContext);
 	
-	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier = FModifierQualifier() );
+	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext, FPredictionKey PredictionKey = FPredictionKey());
 
 	int32 GetNumActiveGameplayEffect() const;
 
-	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
+	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute);
 
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
-	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 
 	// Generic 'Get expected magnitude (list) if I was to apply this outgoing or incoming'
 
@@ -269,23 +284,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
-	void OnRestackGameplayEffects();
+	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 
-	// --------------------------------------------
-	// Temp / Debug
-	// --------------------------------------------
+	/** Removes all active effects that match given query */
+	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query);
 
-	void TEMP_ApplyActiveGameplayEffects();
+	void OnRestackGameplayEffects();	
 	
 	void PrintAllGameplayEffects() const;
-
-	void PushGlobalCurveOveride(UCurveTable *OverrideTable)
-	{
-		if (OverrideTable)
-		{
-			GlobalCurveDataOverride.Overrides.Push(OverrideTable);
-		}
-	}
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -301,24 +307,26 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);
 
-	// GameplayCues can also come on their own. For now these will have no additional parameters (just a tag) though that it something we could
-	// support down the road if we wanted.
+	// GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc
 
-	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 
-	void AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 	
 	void RemoveGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
-	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType);
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueRemoved(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
-	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue hanlding to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
+	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
+
+	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue handling to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
 	UFUNCTION(BlueprintCallable, Category="GameplayCue", meta=(GameplayTagFilter="GameplayCue"))
 	bool IsGameplayCueActive(const FGameplayTag GameplayCueTag) const;
 
@@ -344,22 +352,28 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
 
 	/** Attempts to activate the given ability */
-	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey=FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr);
+	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey = FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr);
 
 	void TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle AbilityToTrigger, FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload, UAbilitySystemComponent& Component);
 
 	/** Wipes all 'given' abilities. */
 	void ClearAllAbilities();
 
+	/** Removes the specified ability */
+	void ClearAbility(const FGameplayAbilitySpecHandle& Handle);
+
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
 	void OnGiveAbility(const FGameplayAbilitySpec AbilitySpec);
 
 	UGameplayAbility* CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, UGameplayAbility* Ability);
 
-	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
+	void CancelAbilities(const FGameplayTagContainer* WithTags=nullptr, const FGameplayTagContainer* WithoutTags=nullptr, UGameplayAbility* Ignore=nullptr);
 
 	void BlockAbilitiesWithTags(const FGameplayTagContainer Tags);
 	void UnBlockAbilitiesWithTags(const FGameplayTagContainer Tags);
+
+	void BlockAbilityByInputID(int32 InputID);
+	void UnBlockAbilityByInputID(int32 InputID);
 	
 	/** FUll list of all instance-per-execution gameplay abilities associated with this component */
 	UPROPERTY()
@@ -388,7 +402,16 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void	OnRep_ActivateAbilities();
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
+	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, bool InputPressed, FPredictionKey PredictionKey);
+
+	/** Called by ServerEndAbility and ClientEndAbility; avoids code duplication. */
+	void EndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
+
+	UFUNCTION(Client, reliable)
+	void	ClientEndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
@@ -424,11 +447,17 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void AbilityInputReleased(int32 InputID);
 
-	void AbilitySpectInputReleased(FGameplayAbilitySpec& Spec);
+	void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec);
 
-	/** Sent by abilities when they *need* to tell server when activation input is released. (Not sent by defauly only sent when using AbilityTask_WaitInputRelease) */
+	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
+
+	/** Sent by abilities to tell server when activation input is pressed. (Sent by default in order not to short-circuit WaitInputPress/WaitInputRelease tasks) */
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerInputRelease(FGameplayAbilitySpecHandle AbilityToActivate);
+	void ServerInputPress(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey ScopedPedictionKey);
+
+	/** Sent by abilities to tell server when activation input is released. (Sent by default in order not to short-circuit WaitInputPress/WaitInputRelease tasks) */
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerInputRelease(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey ScopedPedictionKey);
 
 	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputConfirm();
@@ -436,6 +465,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputCancel();
 
+	FAbilityAbilityKey	AbilityKeyPressCallbacks;
+	FAbilityAbilityKey	AbilityKeyReleaseCallbacks;
 	FAbilityConfirmOrCancel	ConfirmCallbacks;
 	FAbilityConfirmOrCancel	CancelCallbacks;
 
@@ -464,23 +495,92 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// ----------------------------------------------------------------------------------------------------------------
 
 	/** Adds a UAbilityTask task to the list of tasks to be ticked */
-	void TickingTaskStarted(UAbilityTask* NewTask);
+	void TaskStarted(UAbilityTask* NewTask);
 
 	/** Removes a UAbilityTask task from the list of tasks to be ticked */
-	void TickingTaskEnded(UAbilityTask* Task);
+	void TaskEnded(UAbilityTask* Task);
 
-	/** There needs to be a concept of an animating ability. Only one may exist at a time. New requests can be queued up, overridden, or ignored. */
+	// ----------------------------------------------------------------------------------------------------------------
+	//	AnimMontage Support
+	//	
+	//	TODO:
+	//	-Continously update RepAnimMontageInfo on server for join in progress clients.
+	//	-Some missing functionality may still be needed (GetCurrentSectionTime, SetPlayRate, etc)	
+	// ----------------------------------------------------------------------------------------------------------------	
+
+	/** Plays a montage and handles replication and prediction based on passed in ability/activation info */
+	float PlayMontage(UGameplayAbility* AnimatingAbility, FGameplayAbilityActivationInfo ActivationInfo, UAnimMontage* Montage, float InPlayRate, FName StartSectionName = NAME_None);
+
+	/** Plays a montage without updating replication/prediction structures. Used by simulated proxies when replication tells them to play a montage. */
+	float PlayMontageSimulated(UAnimMontage* Montage, float InPlayRate, FName StartSectionName = NAME_None);
+
+	/** Stops whatever montage is currently playing. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageStop();
+
+	/** Jumps current montage to given section. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageJumpToSection(FName SectionName);
+
+	/** Sets current montages next section name. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName);
+
+	/** Returns true if the passed in ability is the current animating ability */
+	bool IsAnimatingAbility(UGameplayAbility* Ability) const;
+
+	/** Returns the current animating ability */
+	UGameplayAbility* GetAnimatingAbility();
+
+	/** Returns montage that is currently playing */
+	UAnimMontage* GetCurrentMontage() const;
+
+	/** Get SectionID of currently playing AnimMontage */
+	int32 GetCurrentMontageSectionID() const;
+
+	/** Get SectionName of currently playing AnimMontage */
+	FName GetCurrentMontageSectionName() const;
+
+	/** Get length in time of current section */
+	float GetCurrentMontageSectionLength() const;
+
+	/** Returns amount of time left in current section */
+	float GetCurrentMontageSectionTimeLeft() const;
+
+protected:
+
+	/** Called when a prediction key that played a montage is rejected */
+	void OnPredictiveMontageRejected(UAnimMontage* PredictiveMontage);
+
+	/** Copy LocalAnimMontageInfo into RepAnimMontageInfo */
+	void AnimMontage_UpdateReplicatedData();
+
+	/** Data structure for replicating montage info to simulated clients */
+	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedAnimMontage)
+	FGameplayAbilityRepAnimMontage RepAnimMontageInfo;
+
+	/** Data structure for montages that were instigated locally (everything if server, predictive if client. replicated if simulated proxy) */
 	UPROPERTY()
-	UGameplayAbility*	AnimatingAbility;
+	FGameplayAbilityLocalAnimMontage LocalAnimMontageInfo;
 
-	void MontageBranchPoint_AbilityDecisionStop();
+	UFUNCTION()
+	void OnRep_ReplicatedAnimMontage();
 
-	void MontageBranchPoint_AbilityDecisionStart();
+	/** RPC function called from CurrentMontageSetNextSectopnName, replicates to other clients */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerCurrentMontageSetNextSectionName(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName);
+
+	/** RPC function called from CurrentMontageJumpToSection, replicates to other clients */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerCurrentMontageJumpToSectionName(UAnimMontage* ClientAnimMontage, FName SectionName);
 
 	// -----------------------------------------------------------------------------
+public:
 
-	UPROPERTY(ReplicatedUsing=OnRep_OwningActor)
-	AActor* AbilityActor;
+	/** The actor that owns this component logically */
+	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)
+	AActor* OwnerActor;
+
+	/** The actor that is the physical representation used for abilities. Can be NULL */
+	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)
+	AActor* AvatarActor;
 	
 	UFUNCTION()
 	void OnRep_OwningActor();
@@ -488,12 +588,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Cached off data about the owning actor that abilities will need to frequently access (movement component, mesh component, anim instance, etc) */
 	TSharedPtr<FGameplayAbilityActorInfo>	AbilityActorInfo;
 
-
 	/**
 	 *	Initialized the Abilities' ActorInfo - the structure that holds information about who we are acting on and who controls us.
-	 *		AvatarActor is what physical actor in the world we are acting on. Usually a Pawn but it could be a Tower, Building, Turret, etc.
+	 *      OwnerActor is the actor that logically owns this component.
+	 *		AvatarActor is what physical actor in the world we are acting on. Usually a Pawn but it could be a Tower, Building, Turret, etc, may be the same as Owner
 	 */
-	void InitAbilityActorInfo(AActor* AvatarActor);
+	void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor);
+
+	/** Changes the avatar actor, leaves the owner actor the same */
+	void SetAvatarActor(AActor* InAvatarActor);
 
 	/**
 	* This is called when the actor that is initialized to this system dies, this will clear that actor from this system and FGameplayAbilityActorInfo
@@ -509,23 +612,26 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// -----------------------------------------------------------------------------
 
 	/**
-	 *	While these appear to be state, this is actually synchronization events w/ some payload data
+	 *	While these appear to be state, these are actually synchronization events w/ some payload data
 	 */
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerSetReplicatedConfirm(bool Confirmed);
+	void ServerSetReplicatedAbilityKeyState(int32 InputID, bool Pressed, FPredictionKey PredictionKey);
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerSetReplicatedTargetData(FGameplayAbilityTargetDataHandle ReplicatedTargetData);
+	void ServerSetReplicatedConfirm(bool Confirmed, FPredictionKey PredictionKey);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerSetReplicatedTargetData(FGameplayAbilityTargetDataHandle ReplicatedTargetData, FPredictionKey PredictionKey);
 
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedTargetDataCancelled();
-	
 
 	void ConsumeAbilityConfirmCancel();
 
 	void ConsumeAbilityTargetData();
 
+	//Note: Ability key state is stored on the ability spec, not here on the ASC with confirm/cancel.
 	bool ReplicatedConfirmAbility;
 	bool ReplicatedCancelAbility;
 
@@ -537,30 +643,26 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** ReplicatedTargetData was 'cancelled' for this activation */
 	FAbilityConfirmOrCancel	ReplicatedTargetDataCancelledDelegate;
 
+	/** Tasks that run on simulated proxies */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTasks)
+	TArray<UAbilityTask*> SimulatedTasks;
+
+	UFUNCTION()
+	void OnRep_SimulatedTasks();
+
 private:
 
-	bool HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const;
+	bool HasNetworkAuthorityToApplyGameplayEffect(FPredictionKey PredictionKey) const;
 
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 
-	void ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	void ExecuteGameplayEffect(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey);
 
 	void CheckDurationExpired(FActiveGameplayEffectHandle Handle);
-
-	bool AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const;
 
 	bool IsOwnerActorAuthoritative() const;
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
-
-	const FGlobalCurveDataOverride * GetCurveDataOverride() const
-	{
-		// only return data if we have overrides. NULL if we don't.
-		return (GlobalCurveDataOverride.Overrides.Num() > 0 ? &GlobalCurveDataOverride : NULL);
-	}
-
-	FGlobalCurveDataOverride	GlobalCurveDataOverride;
-	
 
 	// --------------------------------------------
 	
@@ -570,20 +672,32 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
 	FActiveGameplayCueContainer	ActiveGameplayCues;
 
+	/** Abilities with these tags are not able to be activated */
 	FGameplayTagCountContainer BlockedAbilityTags;
+
+	/** Tracks abilities that are blocked based on input binding. An ability is blocked if BlockedAbilityBindings[InputID] > 0 */
+	UPROPERTY(Transient, Replicated)
+	TArray<uint8> BlockedAbilityBindings;
 
 	UFUNCTION()
 	void OnRep_GameplayEffects();
 
 	// ---------------------------------------------
 	
+	// Acceleration map for all gameplay tags (OwnedGameplayTags from GEs and explicit GameplayCueTags)
+	FGameplayTagCountContainer GameplayTagCountContainer;
+
+	void UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta);
 	
+	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
+
+	// Version for delegate callback.
+	FGameplayTagContainer GetOwnedGameplayTagsDel() const;
 	
 	// ---------------------------------------------
 
 	/** Array of currently active UAbilityTasks that require ticking */
-	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;
-	
+	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;	
 
 protected:
 
@@ -591,8 +705,10 @@ protected:
 
 	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
-	const UAttributeSet*	GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass);
+	const UAttributeSet*	GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass);
 
 	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayEffect;
+	friend struct FActiveGameplayCue;
+	friend struct FActiveGameplayCueContainer;
 };

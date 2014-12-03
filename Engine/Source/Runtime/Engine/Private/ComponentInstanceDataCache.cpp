@@ -79,14 +79,22 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 		{
 			if(Component->bCreatedByConstructionScript) // Only cache data from 'created by construction script' components
 			{
-				TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData = Component->GetComponentInstanceData();
-				if (ComponentInstanceData.IsValid())
+				FComponentInstanceDataBase* ComponentInstanceData = Component->GetComponentInstanceData();
+				if (ComponentInstanceData)
 				{
 					check(!Component->GetComponentInstanceDataType().IsNone());
 					TypeToDataMap.Add(Component->GetComponentInstanceDataType(), ComponentInstanceData);
 				}
 			}
 		}
+	}
+}
+
+FComponentInstanceDataCache::~FComponentInstanceDataCache()
+{
+	for (auto InstanceDataPair : TypeToDataMap)
+	{
+		delete InstanceDataPair.Value;
 	}
 }
 
@@ -106,12 +114,12 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 
 				if (!ComponentInstanceDataType.IsNone())
 				{
-					TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
+					TArray< FComponentInstanceDataBase* > CachedData;
 					TypeToDataMap.MultiFind(ComponentInstanceDataType, CachedData);
 
-					for (TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData : CachedData)
+					for (FComponentInstanceDataBase* ComponentInstanceData : CachedData)
 					{
-						if (ComponentInstanceData.IsValid() && ComponentInstanceData->MatchesComponent(Component))
+						if (ComponentInstanceData && ComponentInstanceData->MatchesComponent(Component))
 						{
 							Component->ApplyComponentInstanceData(ComponentInstanceData);
 							break;

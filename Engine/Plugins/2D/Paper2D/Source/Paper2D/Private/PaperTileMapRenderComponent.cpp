@@ -10,8 +10,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileMapRenderComponent
 
-UPaperTileMapRenderComponent::UPaperTileMapRenderComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTileMapRenderComponent::UPaperTileMapRenderComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 

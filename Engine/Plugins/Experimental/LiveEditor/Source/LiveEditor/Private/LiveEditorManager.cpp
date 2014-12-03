@@ -19,7 +19,7 @@ DEFINE_LOG_CATEGORY_STATIC(LiveEditorManagerLog, Log, All);
 
 namespace nPieObjectCache
 {
-	FORCEINLINE bool IsPiePartner( const class UObject &EditorObject, const class UObject &TestObject )
+	FORCEINLINE bool IsPiePartner( const class UObject& EditorObject, const class UObject& TestObject )
 	{
 		if ( EditorObject.HasAnyFlags(RF_ArchetypeObject|RF_ClassDefaultObject) )
 		{
@@ -39,7 +39,7 @@ namespace nPieObjectCache
  *
  **/
 
-ILiveEditListener::ILiveEditListener(FName _Name, const FLiveEditBinding &_Binding, class UObject *_Target)
+ILiveEditListener::ILiveEditListener(FName _Name, const FLiveEditBinding& _Binding, class UObject* _Target)
 :	Name(_Name),
 	Binding(_Binding),
 	Target(_Target)
@@ -421,7 +421,7 @@ void FLiveEditorManager::RegisterEventListener( UObject *Target, FName EventName
 		BlueprintName = BlueprintName.LeftChop( BlueprintName.Len() - chopIndex );
 	}
 
-	const FLiveEditBinding * Binding = LiveEditorUserData->GetBinding( BlueprintName, EventName.ToString() );
+	const FLiveEditBinding* Binding = LiveEditorUserData->GetBinding( BlueprintName, EventName.ToString() );
 	if ( Binding != NULL )
 	{
 		ILiveEditListener *Listener = new ILiveEditListener(EventName, *Binding, Target);
@@ -606,7 +606,7 @@ void FLiveEditorManager::InjectNewBlueprintEditor( const TWeakPtr<FBlueprintEdit
 
 void FLiveEditorManager::CreateLiveEditorWorld()
 {
-	LiveEditorWorld = new UWorld(FPostConstructInitializeProperties(),FURL(NULL));
+	LiveEditorWorld = new UWorld(FObjectInitializer(),FURL(NULL));
 	LiveEditorWorld->WorldType = EWorldType::Preview;
 	
 	bool bTransactional = false;

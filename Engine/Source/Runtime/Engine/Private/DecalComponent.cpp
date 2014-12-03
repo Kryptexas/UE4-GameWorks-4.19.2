@@ -34,8 +34,8 @@ void FDeferredDecalProxy::SetTransform(const FTransform& InComponentToWorld)
 	ComponentTrans = InComponentToWorld;
 }
 
-UDecalComponent::UDecalComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDecalComponent::UDecalComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -84,7 +84,7 @@ FDeferredDecalProxy* UDecalComponent::CreateSceneProxy()
 	return new FDeferredDecalProxy(this);
 }
 
-FBoxSphereBounds UDecalComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDecalComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds();
 }

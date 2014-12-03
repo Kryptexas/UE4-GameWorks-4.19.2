@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "FindInBT.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "FindInBT"
 
@@ -149,7 +150,7 @@ void SFindInBT::FocusForUse()
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked(SearchTextField.ToSharedRef(), FilterTextBoxWidgetPath);
 
 	// Set keyboard focus directly
-	FSlateApplication::Get().SetKeyboardFocus(FilterTextBoxWidgetPath, EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(FilterTextBoxWidgetPath, EFocusCause::SetDirectly);
 }
 
 void SFindInBT::OnSearchTextChanged(const FText& Text)

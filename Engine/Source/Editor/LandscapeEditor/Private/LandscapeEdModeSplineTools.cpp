@@ -4,19 +4,19 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape/LandscapeEdit.h"
-#include "Landscape/LandscapeRender.h"
-#include "Landscape/LandscapeDataAccess.h"
-#include "Landscape/LandscapeSplineProxies.h"
+#include "LandscapeEdit.h"
+#include "LandscapeRender.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeSplineProxies.h"
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
 #include "Components/SplineMeshComponent.h"
 #include "LandscapeSplineImportExport.h"
-#include "Landscape/LandscapeSplinesComponent.h"
-#include "Landscape/LandscapeSplineControlPoint.h"
-#include "Landscape/LandscapeSplineSegment.h"
-#include "Landscape/ControlPointMeshComponent.h"
+#include "LandscapeSplinesComponent.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplineSegment.h"
+#include "ControlPointMeshComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -62,6 +62,7 @@ public:
 
 	void CreateSplineComponent(ALandscapeProxy* Landscape, FVector Scale3D)
 	{
+		Landscape->Modify();
 		Landscape->SplineComponent = ConstructObject<ULandscapeSplinesComponent>(ULandscapeSplinesComponent::StaticClass(), Landscape, NAME_None, RF_Transactional);
 		Landscape->SplineComponent->RelativeScale3D = Scale3D;
 		Landscape->SplineComponent->AttachTo(Landscape->GetRootComponent());
@@ -1563,6 +1564,7 @@ public:
 		{
 			CreateSplineComponent(Landscape, FVector(1.f) / Landscape->GetRootComponent()->RelativeScale3D);
 		}
+		Landscape->SplineComponent->Modify();
 
 		const TCHAR* Data = NULL;
 		FString PasteString;
@@ -1658,7 +1660,7 @@ void FEdModeLandscape::SelectAllConnectedSplineSegments()
 
 void FEdModeLandscape::SplineMoveToCurrentLevel()
 {
-	FScopedTransaction Transaction(LOCTEXT("LandscapeSpline_AddControlPoint", "Add Landscape Spline Control Point"));
+	FScopedTransaction Transaction(LOCTEXT("LandscapeSpline_MoveToCurrentLevel", "Move Landscape Spline to current level"));
 
 	if (SplinesTool /*&& SplinesTool == CurrentTool*/)
 	{
@@ -1695,11 +1697,11 @@ void FEdModeLandscape::SplineMoveToCurrentLevel()
 					{
 						SplinesTool->CreateSplineComponent(Landscape, FromProxy->SplineComponent->RelativeScale3D);
 					}
+					Landscape->SplineComponent->Modify();
 
 					const FTransform OldToNewTransform =
-						Landscape->SplineComponent->ComponentToWorld.GetRelativeTransform(FromProxy->SplineComponent->ComponentToWorld);
+						FromProxy->SplineComponent->ComponentToWorld.GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
 
-					Landscape->SplineComponent->Modify();
 					if (FromProxies.Find(FromProxy) == NULL)
 					{
 						FromProxies.Add(FromProxy);
@@ -1756,8 +1758,8 @@ void FEdModeLandscape::SplineMoveToCurrentLevel()
 					{
 						SplinesTool->CreateSplineComponent(Landscape, FromProxy->SplineComponent->RelativeScale3D);
 					}
-
 					Landscape->SplineComponent->Modify();
+
 					if (FromProxies.Find(FromProxy) == NULL)
 					{
 						FromProxies.Add(FromProxy);

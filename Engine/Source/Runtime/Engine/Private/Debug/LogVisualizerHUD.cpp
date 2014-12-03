@@ -3,15 +3,15 @@
 #include "EnginePrivate.h"
 #include "Debug/LogVisualizerHUD.h"
 #include "Debug/LogVisualizerCameraController.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 #define LOCTEXT_NAMESPACE "ALogVisualizerHUD"
 
 //----------------------------------------------------------------------//
 // ALogVisualizerHUD
 //----------------------------------------------------------------------//
-ALogVisualizerHUD::ALogVisualizerHUD(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALogVisualizerHUD::ALogVisualizerHUD(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHidden = false;
 
@@ -47,7 +47,7 @@ void ALogVisualizerHUD::PostRender()
 			bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
 			if( bHit )
 			{
-				TextItem.Text = FText::FromString(FString::Printf(TEXT("Under cursor: '%s'"), TEXT_NAME(Hit.GetActor())));
+				TextItem.Text = FText::FromString(FString::Printf(TEXT("Under cursor: '%s'"), *Hit.GetActor()->GetName()));
 				Canvas->DrawItem( TextItem, X, Y );
 				
 				DrawDebugLine( GetWorld(), Hit.Location, Hit.Location+Hit.Normal*30.f, FColor::White );

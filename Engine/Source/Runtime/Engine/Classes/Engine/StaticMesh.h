@@ -478,7 +478,7 @@ public:
 	/**
 	 * Default constructor
 	 */
-	ENGINE_API UStaticMesh(const class FPostConstructInitializeProperties& PCIP);
+	ENGINE_API UStaticMesh(const FObjectInitializer& ObjectInitializer);
 
 	// Begin UObject interface.
 #if WITH_EDITOR

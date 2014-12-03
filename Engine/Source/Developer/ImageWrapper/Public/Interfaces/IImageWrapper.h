@@ -27,6 +27,9 @@ namespace EImageFormat
 
 		/** OpenEXR (HDR) image file format */
 		EXR,
+
+		/** Mac icon */
+		ICNS
 	};
 };
 

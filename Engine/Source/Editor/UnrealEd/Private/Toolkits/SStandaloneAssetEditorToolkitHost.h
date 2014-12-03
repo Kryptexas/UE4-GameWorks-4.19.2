@@ -56,7 +56,7 @@ public:
 	{
 		return true;
 	}
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Fills in the content by loading the associated layout or using the defaults provided.  Must be called after
 	  * the widget is constructed.*/

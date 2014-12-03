@@ -10,14 +10,15 @@
 #include "GraphEditorActions.h"
 #include "SoundCueGraphEditorCommands.h"
 #include "ScopedTransaction.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode"
 
 /////////////////////////////////////////////////////
 // USoundCueGraphNode
 
-USoundCueGraphNode::USoundCueGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCueGraphNode::USoundCueGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

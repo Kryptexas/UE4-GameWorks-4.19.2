@@ -59,6 +59,7 @@ extern void DrawTransformedRectangle(
     );
 
 extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+extern TGlobalResource<FEmptyVertexDeclaration> GEmptyVertexDeclaration;
 
 
 

@@ -18,7 +18,7 @@ public:
 	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override
 	{
 		// This net is an anonymous temporary variable
-		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* Term = Context.CreateLocalTerminal(Context.IsEventGraph() ? ETerminalSpecification::TS_ForcedShared : ETerminalSpecification::TS_Unspecified);
 
 		FString NetName = Context.NetNameMap->MakeValidName(Net);
 
@@ -31,8 +31,8 @@ public:
 	}
 };
 
-UK2Node_TemporaryVariable::UK2Node_TemporaryVariable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_TemporaryVariable::UK2Node_TemporaryVariable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bIsPersistent(false)
 {
 }
@@ -143,7 +143,7 @@ void UK2Node_TemporaryVariable::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		return;
 	}
 
-	auto MakeTempVarNodeSpawner = [](FEdGraphPinType const& VarType, bool bIsPersistent) -> UBlueprintNodeSpawner*
+	auto MakeTempVarNodeSpawner = [](FEdGraphPinType const& VarType, bool bIsPersistent)
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_TemporaryVariable::StaticClass());
 		check(NodeSpawner != nullptr);

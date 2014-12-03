@@ -16,6 +16,6 @@ class UPaperBatchComponent : public UPrimitiveComponent
 
 	// UPrimitiveComponent interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End of UPrimitiveComponent interface
 };

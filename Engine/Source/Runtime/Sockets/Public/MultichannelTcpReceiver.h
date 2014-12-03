@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MultichannelTcpReceiver.h: Declares the FMultichannelTcpReceiver class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,8 +24,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSocket - The socket to receive from.
-	 * @param InReceiveDelegate - Delete to handle data as it becomes available, called from the receive thread.
+	 * @param InSocket The socket to receive from.
+	 * @param InReceiveDelegate Delete to handle data as it becomes available, called from the receive thread.
 	 */
 	FMultichannelTcpReceiver( FSocket* InSocket, const FOnMultichannelTcpReceive& InReceiveDelegate )
 		: Socket(InSocket)
@@ -38,9 +34,7 @@ public:
 		Thread = FRunnableThread::Create(this, TEXT("FMultichannelTCPReceiver"), 8 * 1024, TPri_AboveNormal);
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMultichannelTcpReceiver()
 	{
 		if (Thread)
@@ -49,7 +43,6 @@ public:
 			delete Thread;
 		}
 	}
-
 
 public:
 
@@ -61,10 +54,9 @@ public:
 		return BytesReceived;
 	}
 
-
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
 	virtual bool Init( )
 	{
@@ -111,26 +103,21 @@ public:
 	}
 
 	virtual void Stop( ) { }
-
 	virtual void Exit( ) { }
 
-	// End FRunnable interface
-
-
 private:
 
-	// Holds the number of bytes received so far.
+	/** Holds the number of bytes received so far. */
 	int32 BytesReceived;
 
-	// Holds the socket to use for communication.
+	/** Holds the socket to use for communication. */
 	FSocket* Socket;
 
-	// Holds the thread we are running on.
+	/** Holds the thread we are running on. */
 	FRunnableThread* Thread;
-
 
 private:
 
-	// Holds a delegate to be invoked when data has been received.
+	/** Holds a delegate to be invoked when data has been received. */
 	FOnMultichannelTcpReceive ReceiveDelegate;
 };

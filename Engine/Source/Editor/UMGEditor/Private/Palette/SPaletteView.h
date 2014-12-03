@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Misc/TextFilter.h"
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
 #include "TreeFilterHandler.h"
 
-#include "WidgetTemplate.h"
+class FWidgetTemplate;
+class UWidgetBlueprint;
 
 /** View model for the items in the widget template list */
 class FWidgetViewModel : public TSharedFromThis<FWidgetViewModel>

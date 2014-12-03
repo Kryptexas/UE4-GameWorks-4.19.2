@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EdGraphSchema_K2.cpp
-=============================================================================*/
-
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "GraphEditorActions.h"
@@ -13,7 +9,9 @@
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 
+
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
+
 
 namespace 
 {
@@ -25,42 +23,6 @@ namespace
 
 	// The height of a literal reference node
 	const float NodeLiteralHeight = 48.0f;
-}
-
-/////////////////////////////////////////////////////
-// FK2SchemaActionUtils
-
-//------------------------------------------------------------------------------
-UK2Node const* FK2SchemaActionUtils::ExtractNodeTemplateFromAction(TSharedPtr<FEdGraphSchemaAction> PaletteAction)
-{
-	UK2Node const* TemplateNode = NULL;
-	if (PaletteAction.IsValid())
-	{
-		FName const ActionId = PaletteAction->GetTypeId();
-		// if this action inherits from FEdGraphSchemaAction_K2NewNode
-		if (ActionId == FEdGraphSchemaAction_K2NewNode::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AssignDelegate::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddTimeline::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddCustomEvent::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddCallOnActor::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddCallOnVariable::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2PasteHere::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2Event::StaticGetTypeId() || 
-			ActionId == FEdGraphSchemaAction_K2AddEvent::StaticGetTypeId())
-		{
-			FEdGraphSchemaAction_K2NewNode* NewNodeAction = (FEdGraphSchemaAction_K2NewNode*)PaletteAction.Get();
-			TemplateNode = NewNodeAction->NodeTemplate;
-		}
-		else if (ActionId == FEdGraphSchemaAction_K2ViewNode::StaticGetTypeId())
-		{
-			FEdGraphSchemaAction_K2ViewNode* FocusNodeAction = (FEdGraphSchemaAction_K2ViewNode*)PaletteAction.Get();
-			TemplateNode = FocusNodeAction->NodePtr;
-		}
-	}
-
-	return TemplateNode;
 }
 
 /////////////////////////////////////////////////////

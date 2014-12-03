@@ -203,7 +203,7 @@ static void GetTextureDerivedDataKeySuffix(
 	SerializeForKey(Ar, BuildSettings);
 
 	// Now convert the raw bytes to a string.
-	const uint8* SettingsAsBytes = TempBytes.GetTypedData();
+	const uint8* SettingsAsBytes = TempBytes.GetData();
 	OutKeySuffix.Reserve(OutKeySuffix.Len() + TempBytes.Num());
 	for (int32 ByteIndex = 0; ByteIndex < TempBytes.Num(); ++ByteIndex)
 	{
@@ -468,7 +468,7 @@ class FTextureStatusMessageContext : public FScopedSlowTask
 {
 public:
 	explicit FTextureStatusMessageContext(const FText& InMessage)
-		: FScopedSlowTask(InMessage)
+		: FScopedSlowTask(0, InMessage, IsInGameThread())
 	{
 		UE_LOG(LogTexture,Display,TEXT("%s"),*InMessage.ToString());
 	}
@@ -607,7 +607,7 @@ static float ComputePSNR(const FImage& SrcImage, const FCompressedImage2D& Compr
 {
 	double SquaredError = 0.0;
 	int32 NumErrors = 0;
-	const uint8* CompressedData = CompressedImage.RawData.GetTypedData();
+	const uint8* CompressedData = CompressedImage.RawData.GetData();
 
 	if (SrcImage.Format == ERawImageFormat::BGRA8 && (CompressedImage.PixelFormat == PF_DXT1 || CompressedImage.PixelFormat == PF_DXT5))
 	{
@@ -769,7 +769,7 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 					NewMip->BulkData.Lock(LOCK_READ_WRITE);
 					check(CompressedImage.RawData.GetTypeSize() == 1);
 					void* NewMipData = NewMip->BulkData.Realloc(CompressedImage.RawData.Num());
-					FMemory::Memcpy(NewMipData, CompressedImage.RawData.GetTypedData(), CompressedImage.RawData.Num());
+					FMemory::Memcpy(NewMipData, CompressedImage.RawData.GetData(), CompressedImage.RawData.Num());
 					NewMip->BulkData.Unlock();
 
 					if (MipIndex == 0)
@@ -1454,7 +1454,7 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 		for (int32 SettingsIndex = 0; SettingsIndex < BuildSettingsToCache.Num(); ++SettingsIndex)
 		{
 			FString DerivedDataKey;
-			GetTextureDerivedDataKeySuffix(*this, BuildSettingsToCache[SettingsIndex], DerivedDataKey);
+			GetTextureDerivedDataKey(*this, BuildSettingsToCache[SettingsIndex], DerivedDataKey);
 
 			FTexturePlatformData *PlatformData = CookedPlatformData.FindRef( DerivedDataKey );
 
@@ -1473,6 +1473,37 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 	}
 }
 
+bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) 
+{ 
+	const TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+	if ( CookedPlatformDataPtr == NULL )
+		return true; // we should always have cookedplatformDataPtr in the case of WITH_EDITOR
+
+	FTextureBuildSettings BuildSettings;
+	TArray<FName> PlatformFormats;
+	TArray<FTexturePlatformData*> PlatformDataToSerialize;
+
+	GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), BuildSettings);
+	TargetPlatform->GetTextureFormats(this, PlatformFormats);
+
+	for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
+	{
+		FString DerivedDataKey;
+		BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
+		GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
+
+		FTexturePlatformData *PlatformData= (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
+
+		if (PlatformData)
+		{
+			if ( (PlatformData->AsyncTask != NULL) && ( PlatformData->AsyncTask->IsWorkDone() == false ) )
+				return false;
+		}
+	}
+	// if we get here all our stuff is cached :)
+	return true;
+}
+
 bool UTexture::IsAsyncCacheComplete()
 {
 	bool bComplete = true;
@@ -1485,8 +1516,6 @@ bool UTexture::IsAsyncCacheComplete()
 			bComplete &= (RunningPlatformData->AsyncTask == NULL) || RunningPlatformData->AsyncTask->IsWorkDone();
 		}
 	}
-
-	
 
 	TMap<FString,FTexturePlatformData*>* CookedPlatformDataPtr = GetCookedPlatformData();
 	if (CookedPlatformDataPtr)

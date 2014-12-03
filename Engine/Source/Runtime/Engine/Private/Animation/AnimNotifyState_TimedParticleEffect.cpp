@@ -4,8 +4,8 @@
 #include "Animation/AnimNotifies/AnimNotifyState_TimedParticleEffect.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UAnimNotifyState_TimedParticleEffect::UAnimNotifyState_TimedParticleEffect(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAnimNotifyState_TimedParticleEffect::UAnimNotifyState_TimedParticleEffect(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	PSTemplate = nullptr;
 	LocationOffset.Set(0.0f, 0.0f, 0.0f);

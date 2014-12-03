@@ -5,6 +5,12 @@
 #include "WidgetBlueprintEditor.h"
 #include "ISequencer.h"
 #include "MovieScene.h"
+#include "WidgetBlueprintEditor.h"
+#include "Components/PanelSlot.h"
+#include "Components/Visual.h"
+#include "Blueprint/WidgetTree.h"
+#include "Animation/WidgetAnimation.h"
+#include "WidgetBlueprint.h"
 
 FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation )
 	: WidgetAnimation( &InAnimation )

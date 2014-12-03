@@ -1,46 +1,40 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SharedPointerInternals.h: Smart pointer library internal implementation
-=============================================================================*/
-
 #pragma once
+
 
 /** Default behavior. */
 #define	FORCE_THREADSAFE_SHAREDPTRS 0
 
+
 /**
- * ESPMode is used select between either 'fast' or 'thread safe' shared pointer types.  This is
- * only used by templates at compile time to generate one code path or another.
+ * ESPMode is used select between either 'fast' or 'thread safe' shared pointer types.
+ * This is only used by templates at compile time to generate one code path or another.
  */
-namespace ESPMode
+enum class ESPMode
 {
-	enum Type
-	{
-		/** Forced to be not thread-safe. */
-		NotThreadSafe = 0,
+	/** Forced to be not thread-safe. */
+	NotThreadSafe = 0,
 
-		/**
-		 *	Fast, doesn't ever use atomic interlocks.
-		 *	Some code requires that all shared pointers are thread-safe.
-		 *	It's better to change it here, instead of replacing ESPMode::Fast to ESPMode::ThreadSafe throughout the code.
-		 */
-		Fast = FORCE_THREADSAFE_SHAREDPTRS ? 1 : 0,
+	/**
+		*	Fast, doesn't ever use atomic interlocks.
+		*	Some code requires that all shared pointers are thread-safe.
+		*	It's better to change it here, instead of replacing ESPMode::Fast to ESPMode::ThreadSafe throughout the code.
+		*/
+	Fast = FORCE_THREADSAFE_SHAREDPTRS ? 1 : 0,
 
-		/** Conditionally thread-safe, never spin locks, but slower */
-		ThreadSafe = 1
-	};
-}
+	/** Conditionally thread-safe, never spin locks, but slower */
+	ThreadSafe = 1
+};
 
 
 // Forward declarations.  Note that in the interest of fast performance, thread safety
 // features are mostly turned off (Mode = ESPMode::Fast).  If you need to access your
 // object on multiple threads, you should use ESPMode::ThreadSafe!
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TSharedRef;
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TSharedPtr;
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TWeakPtr;
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TSharedFromThis;
-
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TSharedRef;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TSharedPtr;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TWeakPtr;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TSharedFromThis;
 
 
 /**
@@ -51,9 +45,9 @@ namespace SharedPointerInternals
 {
 
 	// Forward declarations
-	template< ESPMode::Type Mode > class FWeakReferencer;
+	template< ESPMode Mode > class FWeakReferencer;
 
-	/** Dummy structs used internally as template arguments for typecasts */
+	/** Dummy structures used internally as template arguments for typecasts */
 	struct FStaticCastTag {};
 	struct FConstCastTag {};
 
@@ -61,7 +55,6 @@ namespace SharedPointerInternals
 	struct FNullTag {};
 
 	
-
 	/** Proxy structure for implicitly converting raw pointers to shared/weak pointers */
 	// NOTE: The following is an Unreal extension to standard shared_ptr behavior
 	template< class ObjectType >
@@ -77,16 +70,16 @@ namespace SharedPointerInternals
 		}
 	};
 
+
 	struct FReferenceControllerState
 	{
 		/** Constructor */
 		FORCEINLINE FReferenceControllerState(void* InObject, void (*InDestroyObject)(void*))
-			: SharedReferenceCount(1),
-			  WeakReferenceCount  (1),
-			  Object              (InObject),
-			  DestroyObject       (InDestroyObject)
-		{
-		}
+			: SharedReferenceCount(1)
+			, WeakReferenceCount(1)
+			, Object(InObject)
+			, DestroyObject(InDestroyObject)
+		{ }
 
 		// NOTE: The primary reason these reference counters are 32-bit values (and not 16-bit to save
 		//       memory), is that atomic operations require at least 32-bit objects.
@@ -106,9 +99,11 @@ namespace SharedPointerInternals
 		void (*DestroyObject)(void*);
 
 	private:
+
 		FReferenceControllerState( FReferenceControllerState const& );
 		FReferenceControllerState& operator=( FReferenceControllerState const& );
 	};
+
 
 	/**
 	 * FReferenceController is a standalone heap-allocated object that tracks the number of references
@@ -116,7 +111,7 @@ namespace SharedPointerInternals
 	 *
 	 * It is specialized for different threading modes.
 	 */
-	template< ESPMode::Type Mode >
+	template< ESPMode Mode >
 	struct FReferenceControllerOps;
 
 	template<>
@@ -166,7 +161,6 @@ namespace SharedPointerInternals
 			}
 		}
 
-
 		/** Releases a shared reference to this counter */
 		static FORCEINLINE void ReleaseSharedReference(FReferenceControllerState* State)
 		{
@@ -203,6 +197,7 @@ namespace SharedPointerInternals
 		}
 	};
 
+
 	template<>
 	struct FReferenceControllerOps<ESPMode::NotThreadSafe>
 	{
@@ -235,7 +230,6 @@ namespace SharedPointerInternals
 			return true;
 		}
 
-
 		/** Releases a shared reference to this counter */
 		static FORCEINLINE void ReleaseSharedReference(FReferenceControllerState* State)
 		{
@@ -251,7 +245,6 @@ namespace SharedPointerInternals
 				ReleaseWeakReference(State);
 			}
 		}
-
 
 		/** Adds a weak reference to this counter */
 		static FORCEINLINE void AddWeakReference(FReferenceControllerState* State)
@@ -272,6 +265,7 @@ namespace SharedPointerInternals
 		}
 	};
 
+
 	/** Type-erasing function deleting objects of a given type via a common pointer type (void*) */
 	template <typename Type>
 	void DestroyObject(void* Object)
@@ -279,11 +273,12 @@ namespace SharedPointerInternals
 		delete (Type*)Object;
 	}
 
+
 	/**
 	 * FSharedReferencer is a wrapper around a pointer to a reference controller that is used by either a
 	 * TSharedRef or a TSharedPtr to keep track of a referenced object's lifetime
 	 */
-	template< ESPMode::Type Mode >
+	template< ESPMode Mode >
 	class FSharedReferencer
 	{
 		typedef FReferenceControllerOps<Mode> TOps;
@@ -292,18 +287,14 @@ namespace SharedPointerInternals
 
 		/** Constructor for an empty shared referencer object */
 		FORCEINLINE FSharedReferencer()
-			: ReferenceController( NULL )
-		{
-		}
-
+			: ReferenceController( nullptr )
+		{ }
 		
 		/** Constructor that counts a single reference to the specified object */
 		template< class OtherType > 
 		inline explicit FSharedReferencer( OtherType* InObject )
 			: ReferenceController( new FReferenceControllerState( InObject, &DestroyObject<OtherType> ) )
-		{
-		}
-
+		{ }
 		
 		/** Copy constructor creates a new reference to the existing object */
 		FORCEINLINE FSharedReferencer( FSharedReferencer const& InSharedReference )
@@ -311,7 +302,7 @@ namespace SharedPointerInternals
 		{
 			// If the incoming reference had an object associated with it, then go ahead and increment the
 			// shared reference count
-			if( ReferenceController != NULL )
+			if( ReferenceController != nullptr )
 			{
 				TOps::AddSharedReference(ReferenceController);
 			}
@@ -321,9 +312,8 @@ namespace SharedPointerInternals
 		FORCEINLINE FSharedReferencer( FSharedReferencer&& InSharedReference )
 			: ReferenceController( InSharedReference.ReferenceController )
 		{
-			InSharedReference.ReferenceController = NULL;
+			InSharedReference.ReferenceController = nullptr;
 		}
-
 
 		/** Creates a shared referencer object from a weak referencer object.  This will only result
 		    in a valid object reference if the object already has at least one other shared referencer. */
@@ -332,23 +322,22 @@ namespace SharedPointerInternals
 		{
 			// If the incoming reference had an object associated with it, then go ahead and increment the
 			// shared reference count
-			if( ReferenceController != NULL )
+			if( ReferenceController != nullptr )
 			{
 				// Attempt to elevate a weak reference to a shared one.  For this to work, the object this
 				// weak counter is associated with must already have at least one shared reference.  We'll
 				// never revive a pointer that has already expired!
 				if( !TOps::ConditionallyAddSharedReference(ReferenceController) )
 				{
-					ReferenceController = NULL;
+					ReferenceController = nullptr;
 				}
 			}
 		}
 
-
-		/** Destructor */
+		/** Destructor. */
 		FORCEINLINE ~FSharedReferencer()
 		{
-			if( ReferenceController != NULL )
+			if( ReferenceController != nullptr )
 			{
 				// Tell the reference counter object that we're no longer referencing the object with
 				// this shared pointer
@@ -365,13 +354,13 @@ namespace SharedPointerInternals
 			if( NewReferenceController != ReferenceController )
 			{
 				// First, add a shared reference to the new object
-				if( NewReferenceController != NULL )
+				if( NewReferenceController != nullptr )
 				{
 					TOps::AddSharedReference(NewReferenceController);
 				}
 
 				// Release shared reference to the old object
-				if( ReferenceController != NULL )
+				if( ReferenceController != nullptr )
 				{
 					TOps::ReleaseSharedReference(ReferenceController);
 				}
@@ -393,11 +382,11 @@ namespace SharedPointerInternals
 			if( NewReferenceController != OldReferenceController )
 			{
 				// Assume ownership of the assigned reference counter
-				InSharedReference.ReferenceController = NULL;
+				InSharedReference.ReferenceController = nullptr;
 				ReferenceController                   = NewReferenceController;
 
 				// Release shared reference to the old object
-				if( OldReferenceController != NULL )
+				if( OldReferenceController != nullptr )
 				{
 					TOps::ReleaseSharedReference(OldReferenceController);
 				}
@@ -406,7 +395,6 @@ namespace SharedPointerInternals
 			return *this;
 		}
 
-
 		/**
 		 * Tests to see whether or not this shared counter contains a valid reference
 		 *
@@ -414,9 +402,8 @@ namespace SharedPointerInternals
 		 */
 		FORCEINLINE const bool IsValid() const
 		{
-			return ReferenceController != NULL;
+			return ReferenceController != nullptr;
 		}
-
 
 		/**
 		 * Returns the number of shared references to this object (including this reference.)
@@ -425,9 +412,8 @@ namespace SharedPointerInternals
 		 */
 		FORCEINLINE const int32 GetSharedReferenceCount() const
 		{
-			return ReferenceController != NULL ? TOps::GetSharedReferenceCount(ReferenceController) : 0;
+			return ReferenceController != nullptr ? TOps::GetSharedReferenceCount(ReferenceController) : 0;
 		}
-
 
 		/**
 		 * Returns true if this is the only shared reference to this object.  Note that there may be
@@ -440,12 +426,10 @@ namespace SharedPointerInternals
 			return GetSharedReferenceCount() == 1;
 		}
 
-
 	private:
 
  		// Expose access to ReferenceController to FWeakReferencer
-		template< ESPMode::Type OtherMode > friend class FWeakReferencer;
-
+		template< ESPMode OtherMode > friend class FWeakReferencer;
 
 	private:
 
@@ -454,12 +438,11 @@ namespace SharedPointerInternals
 	};
 
 
-
 	/**
 	 * FWeakReferencer is a wrapper around a pointer to a reference controller that is used
 	 * by a TWeakPtr to keep track of a referenced object's lifetime.
 	 */
-	template< ESPMode::Type Mode >
+	template< ESPMode Mode >
 	class FWeakReferencer
 	{
 		typedef FReferenceControllerOps<Mode> TOps;
@@ -468,54 +451,48 @@ namespace SharedPointerInternals
 
 		/** Default constructor with empty counter */
 		FORCEINLINE FWeakReferencer()
-			: ReferenceController( NULL )
-		{
-		}
-
+			: ReferenceController( nullptr )
+		{ }
 
 		/** Construct a weak referencer object from another weak referencer */
 		FORCEINLINE FWeakReferencer( FWeakReferencer const& InWeakRefCountPointer )
 			: ReferenceController( InWeakRefCountPointer.ReferenceController )
 		{
 			// If the weak referencer has a valid controller, then go ahead and add a weak reference to it!
-			if( ReferenceController != NULL )
+			if( ReferenceController != nullptr )
 			{
 				TOps::AddWeakReference(ReferenceController);
 			}
 		}
 
-
 		/** Construct a weak referencer object from an rvalue weak referencer */
 		FORCEINLINE FWeakReferencer( FWeakReferencer&& InWeakRefCountPointer )
 			: ReferenceController( InWeakRefCountPointer.ReferenceController )
 		{
-			InWeakRefCountPointer.ReferenceController = NULL;
+			InWeakRefCountPointer.ReferenceController = nullptr;
 		}
-
 
 		/** Construct a weak referencer object from a shared referencer object */
 		FORCEINLINE FWeakReferencer( FSharedReferencer< Mode > const& InSharedRefCountPointer )
 			: ReferenceController( InSharedRefCountPointer.ReferenceController )
 		{
 			// If the shared referencer had a valid controller, then go ahead and add a weak reference to it!
-			if( ReferenceController != NULL )
+			if( ReferenceController != nullptr )
 			{
 				TOps::AddWeakReference(ReferenceController);
 			}
 		}
 
-
-		/** Destructor */
+		/** Destructor. */
 		FORCEINLINE ~FWeakReferencer()
 		{
-			if( ReferenceController != NULL )
+			if( ReferenceController != nullptr )
 			{
 				// Tell the reference counter object that we're no longer referencing the object with
 				// this weak pointer
 				TOps::ReleaseWeakReference(ReferenceController);
 			}
 		}
-
 		
 		/** Assignment operator from a weak referencer object.  If this counter was previously referencing an
 		    object, that reference will be released. */
@@ -526,22 +503,20 @@ namespace SharedPointerInternals
 			return *this;
 		}
 
-
 		/** Assignment operator from an rvalue weak referencer object.  If this counter was previously referencing an
 		    object, that reference will be released. */
 		FORCEINLINE FWeakReferencer& operator=( FWeakReferencer&& InWeakReference )
 		{
 			auto OldReferenceController         = ReferenceController;
 			ReferenceController                 = InWeakReference.ReferenceController;
-			InWeakReference.ReferenceController = NULL;
-			if( OldReferenceController != NULL )
+			InWeakReference.ReferenceController = nullptr;
+			if( OldReferenceController != nullptr )
 			{
 				TOps::ReleaseWeakReference(OldReferenceController);
 			}
 
 			return *this;
 		}
-
 
 		/** Assignment operator from a shared reference counter.  If this counter was previously referencing an
 		   object, that reference will be released. */
@@ -552,7 +527,6 @@ namespace SharedPointerInternals
 			return *this;
 		}
 
-
 		/**
 		 * Tests to see whether or not this weak counter contains a valid reference
 		 *
@@ -560,9 +534,8 @@ namespace SharedPointerInternals
 		 */
 		FORCEINLINE const bool IsValid() const
 		{
-			return ReferenceController != NULL && TOps::GetSharedReferenceCount(ReferenceController) > 0;
+			return ReferenceController != nullptr && TOps::GetSharedReferenceCount(ReferenceController) > 0;
 		}
-
 
 	private:
 
@@ -574,13 +547,13 @@ namespace SharedPointerInternals
 			if( NewReferenceController != ReferenceController )
 			{
 				// First, add a weak reference to the new object
-				if( NewReferenceController != NULL )
+				if( NewReferenceController != nullptr )
 				{
 					TOps::AddWeakReference(NewReferenceController);
 				}
 
 				// Release weak reference to the old object
-				if( ReferenceController != NULL )
+				if( ReferenceController != nullptr )
 				{
 					TOps::ReleaseWeakReference(ReferenceController);
 				}
@@ -590,12 +563,10 @@ namespace SharedPointerInternals
 			}
 		}
 
-
 	private:
 
- 		// Expose access to ReferenceController to FSharedReferencer
-		template< ESPMode::Type OtherMode > friend class FSharedReferencer;
-
+ 		/** Expose access to ReferenceController to FSharedReferencer. */
+		template< ESPMode OtherMode > friend class FSharedReferencer;
 
 	private:
 
@@ -605,10 +576,10 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function (const) that creates a shared pointer from an object instance */
-	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedPtr< SharedPtrType, Mode > const* InSharedPtr, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
-		if( InShareable != NULL )
+		if( InShareable != nullptr )
 		{
 			InShareable->UpdateWeakReferenceInternal( InSharedPtr, const_cast< ObjectType* >( InObject ) );
 		}
@@ -616,10 +587,10 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function that creates a shared pointer from an object instance */
-	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedPtr< SharedPtrType, Mode >* InSharedPtr, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
-		if( InShareable != NULL )
+		if( InShareable != nullptr )
 		{
 			InShareable->UpdateWeakReferenceInternal( InSharedPtr, const_cast< ObjectType* >( InObject ) );
 		}
@@ -627,10 +598,10 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function (const) that creates a shared reference from an object instance */
-	template< class SharedRefType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedRefType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedRef< SharedRefType, Mode > const* InSharedRef, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
-		if( InShareable != NULL )
+		if( InShareable != nullptr )
 		{
 			InShareable->UpdateWeakReferenceInternal( InSharedRef, const_cast< ObjectType* >( InObject ) );
 		}
@@ -638,10 +609,10 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function that creates a shared reference from an object instance */
-	template< class SharedRefType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedRefType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedRef< SharedRefType, Mode >* InSharedRef, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
-		if( InShareable != NULL )
+		if( InShareable != nullptr )
 		{
 			InShareable->UpdateWeakReferenceInternal( InSharedRef, const_cast< ObjectType* >( InObject ) );
 		}
@@ -649,12 +620,5 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper catch-all function, accomplice to the above helper functions */
-	FORCEINLINE void EnableSharedFromThis( ... )
-	{
-	}
-
-
-}	// namespace SharedPointerInternals
-
-
-
+	FORCEINLINE void EnableSharedFromThis( ... ) { }
+}

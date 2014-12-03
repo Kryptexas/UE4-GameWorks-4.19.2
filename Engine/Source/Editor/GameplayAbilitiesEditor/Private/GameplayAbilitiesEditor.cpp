@@ -53,10 +53,11 @@ void FGameplayAbilitiesEditor::EnsureGameplayAbilityBlueprintIsUpToDate(UBluepri
 #endif
 }
 
-FName FGameplayAbilitiesEditor::GetToolkitContextFName() const
-{
-	return GetToolkitFName();
-}
+// FRED_TODO: don't merge this back
+// FName FGameplayAbilitiesEditor::GetToolkitContextFName() const
+// {
+// 	return GetToolkitFName();
+// }
 
 FName FGameplayAbilitiesEditor::GetToolkitFName() const
 {

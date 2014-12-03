@@ -2,7 +2,13 @@
 
 #pragma once
 
-#include "SCurveEditor.h"
+class UObject;
+class SCurveEditor;
+class IPropertyHandle;
+class FDetailWidgetRow;
+class IDetailChildrenBuilder;
+
+struct FRuntimeFloatCurve;
 
 /**
  * Customizes a RuntimeFloatCurve struct to display a Curve Editor
@@ -18,8 +24,8 @@ public:
 	virtual ~FCurveStructCustomization();
 
 	/** IPropertyTypeCustomization interface */
-	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 	/** FCurveOwnerInterface interface */
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
@@ -34,7 +40,7 @@ private:
 	 * Constructor
 	 */
 	FCurveStructCustomization();
-	
+
 	/**
 	 * Get View Min Input for the Curve Editor
 	 */
@@ -58,7 +64,7 @@ private:
 	/**
 	 * Called when RuntimeFloatCurve's External Curve is changed
 	 */
-	void OnExternalCurveChanged(TSharedRef<class IPropertyHandle> CurvePropertyHandle);
+	void OnExternalCurveChanged(TSharedRef<IPropertyHandle> CurvePropertyHandle);
 
 	/**
 	 * Called when button clicked to create an External Curve
@@ -103,16 +109,16 @@ private:
 	TSharedPtr<IPropertyHandle> ExternalCurveHandle;
 
 	/** Small preview Curve Editor */
-	TSharedPtr<class SCurveEditor> CurveWidget;
+	TSharedPtr<SCurveEditor> CurveWidget;
 
 	/** Window for pop out Curve Editor */
 	TWeakPtr<SWindow> CurveEditorWindow;
 
 	/** Cached pointer to the actual RuntimeFloatCurve struct */
-	struct FRuntimeFloatCurve* RuntimeCurve;
+	FRuntimeFloatCurve* RuntimeCurve;
 
 	/** Object that owns the RuntimeFloatCurve */
-	class UObject* Owner;
+	UObject* Owner;
 
 	/** View Min Input for the Curve Editor */
 	float ViewMinInput;

@@ -37,7 +37,7 @@ typedef TMultiMap< FString, TSharedRef< FArchiveEntry >, FDefaultSetAllocator, F
 class CORE_API FInternationalizationArchive 
 {
 	friend class IInternationalizationArchiveSerializer;
-	friend class FInternationalizationArchiveJsonSerializer;
+
 public:
 	enum EFormatVersion
 	{
@@ -49,10 +49,8 @@ public:
 	};
 
 	FInternationalizationArchive()
-		: FormatVersion(static_cast<int32>(EFormatVersion::Latest))
-	{
-
-	}
+		: FormatVersion(EFormatVersion::Latest)
+	{ }
 
 	TArchiveEntryContainer::TConstIterator GetEntryIterator() const;
 
@@ -72,7 +70,7 @@ public:
 
 	void SetFormatVersion(const EFormatVersion Version)
 	{
-		FormatVersion = static_cast<int>(Version);
+		FormatVersion = Version;
 	}
 
 	EFormatVersion GetFormatVersion() const
@@ -81,6 +79,7 @@ public:
 	}
 
 private:
-	int32 FormatVersion;
+
+	EFormatVersion FormatVersion;
 	TArchiveEntryContainer EntriesBySourceText;
 };

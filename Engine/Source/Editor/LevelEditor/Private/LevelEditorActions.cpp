@@ -50,6 +50,8 @@
 #include "EngineBuildSettings.h"
 #include "HotReloadInterface.h"
 #include "ISourceControlModule.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -323,6 +325,11 @@ bool FLevelEditorActionCallbacks::ToggleFavorite_IsChecked()
 }
 
 
+bool FLevelEditorActionCallbacks::CanSaveWorld()
+{
+	return FSlateApplication::Get().IsNormalExecution() && (!GUnrealEd || !GUnrealEd->GetPackageAutoSaver().IsAutoSaving());
+}
+
 void FLevelEditorActionCallbacks::Save()
 {
 	FEditorFileUtils::SaveCurrentLevel();
@@ -442,7 +449,7 @@ void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel
 
 	//Ensure the material quality cvar is also set.
 	static IConsoleVariable* MaterialQualityLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
-	MaterialQualityLevelVar->Set(NewQualityLevel);
+	MaterialQualityLevelVar->Set(NewQualityLevel, ECVF_SetByConsole);
 
 	GUnrealEd->RedrawAllViewports();
 }
@@ -457,6 +464,18 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
 	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel);
+
+	// Update any currently running PIE sessions.
+	for (TObjectIterator<UWorld> It; It; ++It)
+	{
+		UWorld* ItWorld = *It;
+		if (ItWorld->WorldType == EWorldType::PIE)
+		{
+			ItWorld->ChangeFeatureLevel(InPreviewFeatureLevel);
+		}
+	}
+
+	GUnrealEd->RedrawAllViewports();
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
@@ -1358,7 +1377,7 @@ void FLevelEditorActionCallbacks::OnSelectMatineeActor( AMatineeActor * ActorToS
 	GEditor->NoteSelectionChange();
 }
 
-void FLevelEditorActionCallbacks::OnSelectMatineeGroup( AActor * Actor )
+void FLevelEditorActionCallbacks::OnSelectMatineeGroup( AActor* Actor )
 {
 	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
@@ -1892,7 +1911,7 @@ void FLevelEditorActionCallbacks::OnToggleFreezeParticleSimulation()
 	IConsoleVariable* CVar = ConsoleManager.FindConsoleVariable(TEXT("FX.FreezeParticleSimulation"));
 	if (CVar)
 	{
-		CVar->Set(CVar->GetInt() == 0 ? 1 : 0);
+		CVar->Set(CVar->GetInt() == 0 ? 1 : 0, ECVF_SetByConsole);
 	}
 }
 
@@ -1902,7 +1921,7 @@ bool FLevelEditorActionCallbacks::OnIsParticleSimulationFrozen()
 	static const auto* CVar = ConsoleManager.FindTConsoleVariableDataInt(TEXT("FX.FreezeParticleSimulation"));
 	if (CVar)
 	{
-		return CVar->GetValueOnGameThread() == 0 ? false : true;
+		return CVar->GetValueOnGameThread() != 0;
 	}
 	return false;
 }
@@ -2278,7 +2297,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 		UStaticMeshComponent* FoundStaticMeshComponent = NULL;
 		if( Actor->IsA(AStaticMeshActor::StaticClass()) )
 		{
-			FoundStaticMeshComponent = CastChecked<AStaticMeshActor>(Actor)->StaticMeshComponent;
+			FoundStaticMeshComponent = CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent();
 		}
 
 		UStaticMesh* FoundMesh = FoundStaticMeshComponent ? FoundStaticMeshComponent->StaticMesh : NULL;
@@ -2329,7 +2348,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 
 		// Copy the current builder brush into a temp model.
 		// We keep no reference to this, so it will be GC'd at some point.
-		UModel* TempModel = new UModel(FPostConstructInitializeProperties(), NULL, 1);
+		UModel* TempModel = new UModel(FObjectInitializer(), NULL, 1);
 		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
 
 		// Now transform each poly into local space for the selected static mesh.

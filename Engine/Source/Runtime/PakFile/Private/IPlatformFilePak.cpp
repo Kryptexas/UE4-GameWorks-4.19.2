@@ -256,6 +256,13 @@ FPakFile::FPakFile(IPlatformFile* LowerLevel, const TCHAR* Filename, bool bIsSig
 	}
 }
 
+FPakFile::FPakFile(FArchive* Archive)
+	: bSigned(false)
+	, bIsValid(false)
+{
+	Initialize(Archive);
+}
+
 FPakFile::~FPakFile()
 {
 }

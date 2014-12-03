@@ -867,7 +867,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	UStaticMesh*	StaticMesh = NULL;
 
 	UStaticMesh* ExistingMesh = NULL;
-	UObject * ExistingObject = NULL;
+	UObject* ExistingObject = NULL;
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;
@@ -936,7 +936,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	}
 	else
 	{
-		StaticMesh = new(Package,FName(*MeshName),Flags|RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+		StaticMesh = new(Package,FName(*MeshName),Flags|RF_Public) UStaticMesh(FObjectInitializer());
 	}
 
 	if (StaticMesh->SourceModels.Num() < LODIndex+1)

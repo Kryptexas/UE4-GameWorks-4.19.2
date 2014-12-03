@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationGraphicalResultBox.cpp: Implements the SAutomationGraphicalResultBox class.
-=============================================================================*/
-
 #include "AutomationWindowPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "SAutomationGraphicalResultBox"
+
 
 /* SAutomationGraphicalResultBox interface
  *****************************************************************************/
@@ -33,12 +31,14 @@ void SAutomationGraphicalResultBox::Construct( const FArguments& InArgs, const I
 	AutomationController->SetTestsCompleteCallback(FOnAutomationControllerTestsComplete::CreateRaw(this, &SAutomationGraphicalResultBox::OnFillResults));
 }
 
+
 void SAutomationGraphicalResultBox::ClearResults()
 {
 	TotalTestDuration = 0.f;
 	ClusterResults.Empty();
 	RootBox->ClearChildren();
 }
+
 
 void SAutomationGraphicalResultBox::GetEnabledReports(TSharedPtr<IAutomationReport> InReport, TArray< TSharedPtr< IAutomationReport > >& outReports)
 {
@@ -56,6 +56,7 @@ void SAutomationGraphicalResultBox::GetEnabledReports(TSharedPtr<IAutomationRepo
 		outReports.Add(InReport);
 	}
 }
+
 
 void SAutomationGraphicalResultBox::PopulateData()
 {
@@ -119,17 +120,14 @@ void SAutomationGraphicalResultBox::PopulateData()
 	}
 }
 
+
 void SAutomationGraphicalResultBox::OnFillResults()
 {
-	//Clear the old results
 	ClearResults();
-
-	//Get the data out of the automation reports
 	PopulateData();
-
-	//Create widgets for the results
 	CreateWidgets();
 }
+
 
 void SAutomationGraphicalResultBox::CreateWidgets()
 {
@@ -271,6 +269,7 @@ void SAutomationGraphicalResultBox::CreateWidgets()
 		];
 }
 
+
 FSlateColor SAutomationGraphicalResultBox::GetColorForTestState(const EAutomationState::Type TestState, const bool bHasWarnings) const
 {
 	switch(TestState)
@@ -293,6 +292,7 @@ FSlateColor SAutomationGraphicalResultBox::GetColorForTestState(const EAutomatio
 	return FSlateColor( FLinearColor( 0.5f, 0.0f, 0.0f ) );
 }
 
+
 FText SAutomationGraphicalResultBox::GetTestDisplayText(const FString TestName, const float TestTime) const
 {
 	if(DisplayType == EAutomationGrapicalDisplayType::DisplayName)
@@ -307,19 +307,23 @@ FText SAutomationGraphicalResultBox::GetTestDisplayText(const FString TestName, 
 	}
 }
 
+
 EAutomationGrapicalDisplayType::Type SAutomationGraphicalResultBox::GetDisplayType() const
 {
 	return DisplayType;
 }
+
 
 void SAutomationGraphicalResultBox::SetDisplayType(EAutomationGrapicalDisplayType::Type NewDisplayType)
 {
 	DisplayType = NewDisplayType;
 }
 
+
 bool SAutomationGraphicalResultBox::HasResults() const
 {
 	return ClusterResults.Num() > 0;
 }
+
 
 #undef LOCTEXT_NAMESPACE

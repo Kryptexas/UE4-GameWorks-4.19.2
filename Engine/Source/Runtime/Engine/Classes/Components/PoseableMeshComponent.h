@@ -4,20 +4,6 @@
 #include "Animation/AnimationAsset.h"
 #include "PoseableMeshComponent.generated.h"
 
-UENUM()
-namespace EBoneSpaces
-{
-	enum Type
-	{
-		/** Set absolute position of bone in world space */
-		WorldSpace		UMETA( DisplayName = "World Space" ),
-		/** Set position of bone in components reference frame */
-		ComponentSpace	UMETA( DisplayName = "Component Space" ),
-		/** Set position of bone relative to parent bone */
-		//LocalSpace		UMETA( DisplayName = "Parent Bone Space" ),
-	};
-}
-
 /**
  *	UPoseableMeshComponent that allows bone transforms to be driven by blueprint.
  */

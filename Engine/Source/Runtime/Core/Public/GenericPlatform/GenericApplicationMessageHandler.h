@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "HAL/Platform.h"
+#include "Templates/SharedPointer.h"
+
+class FGenericWindow;
 
 namespace EMouseButtons
 {
@@ -151,6 +155,20 @@ namespace EGestureEvent
 	};
 }
 
+
+/**
+ * Enumerates the modes a convertible laptop can be in.
+ */
+enum class EConvertibleLaptopModes
+{
+	/** Laptop arranged as a tablet. */
+	Tablet,
+
+	/** Laptop arranged as a laptop. */
+	Laptop
+};
+
+
 class FGenericApplicationMessageHandler
 {
 public:
@@ -296,6 +314,11 @@ public:
 	}
 
 	virtual bool OnApplicationActivationChanged( const bool IsActive )
+	{
+		return false;
+	}
+
+	virtual bool OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode)
 	{
 		return false;
 	}

@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Interface.h"
 #include "NamedSlotInterface.generated.h"
+
+class UWidget;
 
 /**  */
 UINTERFACE(MinimalAPI, meta=( CannotImplementInterfaceInBlueprint ))
@@ -17,4 +19,10 @@ class UMG_API INamedSlotInterface
 
 	/**  */
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const = 0;
+
+	/**  */
+	virtual UWidget* GetContentForSlot(FName SlotName) const = 0;
+
+	/**  */
+	virtual void SetContentForSlot(FName SlotName, UWidget* Content) = 0;
 };

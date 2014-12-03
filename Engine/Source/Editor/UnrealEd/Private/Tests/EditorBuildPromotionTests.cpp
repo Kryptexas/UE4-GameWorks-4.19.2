@@ -355,11 +355,11 @@ namespace EditorBuildPromotionTestUtils
 		TSharedPtr<SWidget> FocusWidget = FindFirstWidgetByClass(EditorWindow, WidgetTypeToFocus);
 		if (FocusWidget.IsValid())
 		{
-			FSlateApplication::Get().SetKeyboardFocus(FocusWidget.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(FocusWidget.ToSharedRef(), EFocusCause::SetDirectly);
 
 			//Send the command
 			FModifierKeysState ModifierKeys(InGesture.bShift, false, InGesture.bCtrl, false, InGesture.bAlt, false, InGesture.bCmd, false, false);
-			FKeyboardEvent KeyEvent(InGesture.Key, ModifierKeys, false, 0);
+			FKeyEvent KeyEvent(InGesture.Key, ModifierKeys, 0/*UserIndex*/, false, 0, 0);
 			FSlateApplication::Get().ProcessKeyDownEvent(KeyEvent);
 			FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
 		}
@@ -946,7 +946,7 @@ namespace EditorBuildPromotionTestUtils
 
 			TargetObject->PreEditChange(FoundProperty);
 			FoundProperty->ImportText(*NewValueString, FoundProperty->ContainerPtrToValuePtr<uint8>(TargetObject), 0, TargetObject);
-			FPropertyChangedEvent PropertyChangedEvent(FoundProperty, false, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent PropertyChangedEvent(FoundProperty, EPropertyChangeType::ValueSet);
 			TargetObject->PostEditChangeProperty(PropertyChangedEvent);
 		}
 	}
@@ -1078,7 +1078,7 @@ namespace EditorBuildPromotionTestUtils
 				AStaticMeshActor* PlacedMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(DefaultMesh));
 				PlacedMesh->SetActorLocation(Location);
 
-				PlacedMesh->StaticMeshComponent->SetMaterial(0, Material);
+				PlacedMesh->GetStaticMeshComponent()->SetMaterial(0, Material);
 
 				return PlacedMesh;
 			}
@@ -4176,7 +4176,6 @@ namespace BuildPromotionTestHelper
 			GUnrealEd->Exec(World, TEXT("MAP REBUILD ALLVISIBLE"));
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Rebuilt the map"));
 
-#if WITH_NAVIGATION_GENERATOR
 			if (World->GetWorldSettings()->bEnableNavigationSystem &&
 				World->GetNavigationSystem())
 			{
@@ -4184,7 +4183,6 @@ namespace BuildPromotionTestHelper
 				World->GetNavigationSystem()->Build();
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Built navigation"));
 			}
-#endif
 
 			//Force AutoApplyLighting on
 			ULevelEditorMiscSettings* LevelEdSettings = GetMutableDefault<ULevelEditorMiscSettings>();
@@ -4255,12 +4253,12 @@ bool FSettingsCheckForPIECommand::Update()
 	if (GEditor->PlayWorld != NULL)
 	{
 		//Success
-		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("PlayInEditor keyboard shotcut success"));
+		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("PlayInEditor keyboard shortcut success"));
 		EditorBuildPromotionTestUtils::EndPIE();
 	}
 	else
 	{
-		UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("PlayInEditor keyboard shotcut failed"));
+		UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("PlayInEditor keyboard shortcut failed"));
 	}
 	return true;
 }
@@ -4370,7 +4368,7 @@ bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
 	FSlateApplication::Get().ProcessWindowActivatedEvent(FWindowActivateEvent(FWindowActivateEvent::EA_Activate, AllWindows[0]));
 
 	//Send the PIE event
-	FKeyboardEvent PIEKeyEvent(EKeys::L, FModifierKeysState(false, false, true, false, false, false, false, false, false), false, 0x4C);
+	FKeyEvent PIEKeyEvent(EKeys::L, FModifierKeysState(false, false, true, false, false, false, false, false, false), false, 0/*UserIndex*/, 0x4C, 0x4C);
 	FSlateApplication::Get().ProcessKeyDownEvent(PIEKeyEvent);
 	FSlateApplication::Get().ProcessKeyUpEvent(PIEKeyEvent);
 

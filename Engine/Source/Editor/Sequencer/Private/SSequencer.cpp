@@ -22,6 +22,7 @@
 #include "K2Node_PlayMovieScene.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
+#include "SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "Sequencer"
@@ -516,10 +517,10 @@ FReply SSequencer::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 	return bWasDropHandled ? FReply::Handled() : FReply::Unhandled();
 }
 
-FReply SSequencer::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) 
+FReply SSequencer::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
 {
 	// A toolkit tab is active, so direct all command processing to it
-	if( Sequencer.Pin()->GetCommandBindings().ProcessCommandBindings( InKeyboardEvent ) )
+	if( Sequencer.Pin()->GetCommandBindings().ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

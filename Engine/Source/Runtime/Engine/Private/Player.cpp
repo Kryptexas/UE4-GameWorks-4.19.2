@@ -13,13 +13,13 @@
 
 #include "RenderCore.h"
 #include "ColorList.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer
 
-UPlayer::UPlayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPlayer::UPlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

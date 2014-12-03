@@ -42,8 +42,8 @@ TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FS
 /* Class constructors
  *****************************************************************************/
 
-USceneOutlinerSettings::USceneOutlinerSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+USceneOutlinerSettings::USceneOutlinerSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LaunchEngineLoop.cpp: Implements the main engine loop.
-=============================================================================*/
-
 #include "LaunchPrivatePCH.h"
 #include "Internationalization/Internationalization.h"
 #include "Ticker.h"
@@ -16,6 +12,8 @@
 #include "Projects.h"
 #include "UProjectInfo.h"
 #include "EngineVersion.h"
+
+#include "ModuleManager.h"
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
@@ -51,6 +49,7 @@
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
 	#include "ISlateRHIRendererModule.h"
+	#include "EngineFontServices.h"
 #endif
 
 	#include "MoviePlayer.h"
@@ -87,6 +86,10 @@
 	#include "AllowWindowsPlatformTypes.h"
 	#include <ObjBase.h>
 	#include "HideWindowsPlatformTypes.h"
+#endif
+
+#if ENABLE_VISUAL_LOG
+#	include "VisualLogger/VisualLogger.h"
 #endif
 
 // Pipe output to std output
@@ -219,8 +222,8 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 {
 	if (GIsGameAgnosticExe)
 	{
-		// Initialize GGameName to an empty string. Populate it below.
-		GGameName[0] = 0;
+		// Initialize GameName to an empty string. Populate it below.
+		FApp::SetGameName(TEXT(""));
 
 		FString ProjFilePath;
 		FString LocalGameName;
@@ -229,7 +232,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			// Only set the game name if this is NOT a program...
 			if (FPlatformProperties::IsProgram() == false)
 			{
-				FCString::Strncpy(GGameName, *LocalGameName, ARRAY_COUNT(GGameName));
+				FApp::SetGameName(*LocalGameName);
 			}
 			FPaths::SetProjectFilePath(ProjFilePath);
 		}
@@ -238,7 +241,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 		{
 			// Try to use the executable name as the game name.
 			LocalGameName = FPlatformProcess::ExecutableName();
-			FCString::Strncpy(GGameName, *LocalGameName, ARRAY_COUNT(GGameName));
+			FApp::SetGameName(*LocalGameName);
 
 			// Check it's not UE4Game, otherwise assume a uproject file relative to the game project directory
 			if (LocalGameName != TEXT("UE4Game"))
@@ -255,7 +258,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			bPrinted = true;
 			if (FApp::HasGameName())
 			{
-				UE_LOG(LogInit, Display, TEXT("Running engine for game: %s"), GGameName);
+				UE_LOG(LogInit, Display, TEXT("Running engine for game: %s"), FApp::GetGameName());
 			}
 			else
 			{
@@ -278,8 +281,8 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 		{
 			if (FPlatformProperties::RequiresCookedData())
 			{
-				// Non-agnostic exes that require cooked data cannot load projects, so make sure that the LocalGameName is the GGameName
-				if (LocalGameName != GGameName)
+				// Non-agnostic exes that require cooked data cannot load projects, so make sure that the LocalGameName is the GameName
+				if (LocalGameName != FApp::GetGameName())
 				{
 					UE_LOG(LogInit, Fatal, TEXT("Non-agnostic games cannot load projects on cooked platforms - try running UE4Game."));
 				}
@@ -287,7 +290,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			// Only set the game name if this is NOT a program...
 			if (FPlatformProperties::IsProgram() == false)
 			{
-				FCString::Strncpy(GGameName, *LocalGameName, ARRAY_COUNT(GGameName));
+				FApp::SetGameName(*LocalGameName);
 			}
 			FPaths::SetProjectFilePath(ProjFilePath);
 		}
@@ -302,6 +305,46 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 	return true;
 }
 
+void LaunchFixGameNameCase()
+{
+#if PLATFORM_DESKTOP && !IS_PROGRAM
+	// This is to make sure this function is not misused and is only called when the game name is set
+	check(FApp::HasGameName());
+
+	// correct the case of the game name, if possible (unless we're running a program and the game name is already set)	
+	if (FPaths::IsProjectFilePathSet())
+	{
+		const FString GameName(FPaths::GetBaseFilename(IFileManager::Get().GetFilenameOnDisk(*FPaths::GetProjectFilePath())));
+
+		const bool bGameNameMatchesProjectCaseSensitive = (FCString::Strcmp(*GameName, FApp::GetGameName()) == 0);
+		if (!bGameNameMatchesProjectCaseSensitive && (FApp::IsGameNameEmpty() || GIsGameAgnosticExe || (GameName.Len() > 0 && GIsGameAgnosticExe)))
+		{
+			if (GameName == FApp::GetGameName()) // case insensitive compare
+			{
+				FApp::SetGameName(*GameName);
+			}
+			else
+			{
+				const FText Message = FText::Format(
+					NSLOCTEXT("Core", "MismatchedGameNames", "The name of the .uproject file ('{0}') must match the GameName key in the [URL] section of Config/DefaultEngine.ini (currently '{1}').  Please either change the ini or rename the .uproject to match each other (case-insensitive match)."),
+					FText::FromString(FApp::GetGameName()),
+					FText::FromString(GameName));
+				if (!GIsBuildMachine)
+				{
+					UE_LOG(LogInit, Warning, TEXT("%s"), *Message.ToString());
+					FMessageDialog::Open(EAppMsgType::Ok, Message);
+				}
+				FApp::SetGameName(TEXT("")); // this disables part of the crash reporter to avoid writing log files to a bogus directory
+				if (!GIsBuildMachine)
+				{
+					exit(1);
+				}
+				UE_LOG(LogInit, Fatal, TEXT("%s"), *Message.ToString());
+			}
+		}
+	}
+#endif	//PLATFORM_DESKTOP
+}
 
 static IPlatformFile* ConditionallyCreateFileWrapper(const TCHAR* Name, IPlatformFile* CurrentPlatformFile, const TCHAR* CommandLine, bool* OutFailedToInitialize = NULL)
 {
@@ -477,7 +520,7 @@ bool LaunchHasIncompleteGameName()
 	{
 		// Verify this is a legitimate game name
 		// Launched with a game name. See if the <GameName> folder exists. If it doesn't, it could instead be <GameName>Game
-		const FString NonSuffixedGameFolder = FPaths::RootDir() / GGameName;
+		const FString NonSuffixedGameFolder = FPaths::RootDir() / FApp::GetGameName();
 		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*NonSuffixedGameFolder) == false)
 		{
 			const FString SuffixedGameFolder = NonSuffixedGameFolder + TEXT("Game");
@@ -511,7 +554,7 @@ void LaunchUpdateMostRecentProjectFile()
 			else if ( FPlatformFileManager::Get().GetPlatformFile().FileExists(*RecentProjectFileContents) )
 			{
 				// The previously loaded project file was found. Change the game name here and update the project file path
-				FCString::Strncpy(GGameName, *FPaths::GetBaseFilename(RecentProjectFileContents), ARRAY_COUNT(GGameName));
+				FApp::SetGameName(*FPaths::GetBaseFilename(RecentProjectFileContents));
 				FPaths::SetProjectFilePath(RecentProjectFileContents);
 				UE_LOG(LogInit, Display, TEXT("Loading recent project file: %s"), *RecentProjectFileContents);
 
@@ -632,7 +675,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return -1;
 	}
 
-	// Set GGameName, based on the command line
+	// Set GameName, based on the command line
 	if (LaunchSetGameName(CmdLine) == false)
 	{
 		// If it failed, do not continue
@@ -682,7 +725,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs
-				FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
+				FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(FApp::GetGameName(), FPlatformProcess::BaseDir());
 				if (GameProjectFile.IsEmpty() == false)
 				{
 					UE_LOG(LogInit, Display, TEXT("\tFound project file %s."), *GameProjectFile);
@@ -710,7 +753,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 			// We did not find a non-suffixed folder and we DID find the suffixed one.
 			// The engine MUST be launched with <GameName>Game.
-			const FText GameNameText = FText::FromString( GGameName );
+			const FText GameNameText = FText::FromString(FApp::GetGameName());
 			FMessageDialog::Open(EAppMsgType::Ok, FText::Format( LOCTEXT("RequiresGamePrefix", "Error: UE4Editor does not append 'Game' to the passed in game name.\nYou must use the full name.\nYou specified '{0}', use '{0}Game'."), GameNameText ) );
 			return 1;
 		}
@@ -769,7 +812,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FString NormalizedToken = Token;
 	FPaths::NormalizeFilename(NormalizedToken);
 
-	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
+	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == FApp::GetGameName());
 	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && NormalizedToken == FPaths::GetProjectFilePath());
 	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
@@ -928,6 +971,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Tell the module manager what the game binaries folder is
 		const FString GameBinariesDirectory = FPaths::Combine( FPlatformMisc::GameDir(), TEXT( "Binaries" ), FPlatformProcess::GetBinariesSubdirectory() );
 		FModuleManager::Get().SetGameBinariesDirectory(*GameBinariesDirectory);
+
+		LaunchFixGameNameCase();
 	}
 #endif
 
@@ -989,7 +1034,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	GSystemSettings.Initialize( bHasEditorToken );
 
 	// Apply renderer settings from console variables stored in the INI.
-	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni, ECVF_SetByProjectSetting);
 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -1127,6 +1172,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
 
+	InitializeSharedSamplerStates();
+
 	if (!FPlatformProperties::RequiresCookedData())
 	{
 		check(!GShaderCompilingManager);
@@ -1200,6 +1247,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FCoreStyle::ResetToDefault();
 	}
 
+#if !UE_SERVER
+	FEngineFontServices::Create();
+#endif
+	
+	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
+
+	SlowTask.EnterProgressFrame(10);
+
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Initial UObject load"), STAT_InitialUObjectLoad, STATGROUP_LoadTime);
 
@@ -1228,6 +1283,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
 
+	SlowTask.EnterProgressFrame(10);
+
 	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
@@ -1244,6 +1301,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GUObjectArray.DisableDisregardForGC();
 	}
 	
+	SlowTask.EnterProgressFrame(10);
+
 	if ( !LoadStartupCoreModules() )
 	{
 		// At least one startup module failed to load, return 1 to indicate an error
@@ -1263,6 +1322,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+	SlowTask.EnterProgressFrame(10);
+	
 	// Load up all modules that need to hook into the loading screen
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen))
 	{
@@ -1290,10 +1351,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
         // do any post appInit processing, before the render thread is started.
         FPlatformMisc::PlatformPostInit(true);
     }
+	SlowTask.EnterProgressFrame(10);
+
 	if (GUseThreadedRendering)
 	{
 #if PLATFORM_SUPPORTS_RHI_THREAD
-		const bool DefaultUseRHIThread = false;
+		const bool DefaultUseRHIThread = true;
 		GUseRHIThread = DefaultUseRHIThread;
 		if (FParse::Param(FCommandLine::Get(),TEXT("rhithread")))
 		{
@@ -1316,9 +1379,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	MarkObjectsToDisregardForGC(); 
 	GUObjectArray.CloseDisregardForGC();
 
-#if WITH_ENGINE
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
-#endif
+
+	SlowTask.EnterProgressFrame(50);
 
 #if WITH_EDITOR
 	if (!bHasEditorToken)
@@ -1427,6 +1490,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			// Execute the commandlet.
 			double CommandletExecutionStartTime = FPlatformTime::Seconds();
+
+			FModuleManager::Get().InitializeAutoStartupModules();
 
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
@@ -1594,6 +1659,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 
 #else // WITH_ENGINE
+	FModuleManager::Get().InitializeAutoStartupModules();
 	EndInitTextLocalization();
 	FPlatformMisc::PlatformPostInit();
 #endif // WITH_ENGINE
@@ -1631,11 +1697,13 @@ void FEngineLoop::LoadPreInitModules()
 		FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
 	}
 #endif
-	
+
+	FModuleManager::Get().LoadModule(TEXT("Landscape"));
+
 	// Initialize ShaderCore before loading or compiling any shaders,
 	// But after Renderer and any other modules which implement shader types.
 	FModuleManager::Get().LoadModule(TEXT("ShaderCore"));
-
+	
 #if WITH_EDITORONLY_DATA
 	// Load the texture compressor module before any textures load. They may
 	// compress asynchronously and that can lead to a race condition.
@@ -1698,18 +1766,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 	// HACK: load BT editor as early as possible for statically initialized assets (non cooked BT assets needs it)
 	// cooking needs this module too
-	bool bBehaviorTreeEditorEnabled=false;
-	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeEditorEnabled"), bBehaviorTreeEditorEnabled, GEngineIni);
-
-	//we can override config settings from EpicLabs
-	bool bBehaviorTreeEditorEnabledFromUserSettings=false;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.EditorExperimentalSettings"), TEXT("bBehaviorTreeEditor"), bBehaviorTreeEditorEnabledFromUserSettings, GEditorUserSettingsIni);
-
-	if (bBehaviorTreeEditorEnabled || bBehaviorTreeEditorEnabledFromUserSettings)
-	{
-		//let's load BT editor even for Rocket users (ShooterGame needs it but other projects should have it disabled in config file). 
-		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
-	}
+	FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 
 	// -----------------------------------------------------
 
@@ -1728,7 +1785,11 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// cooking needs this module too
 	bool bEnvironmentQueryEditor = false;
 	GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnvironmentQueryEditor, GEngineIni);
-	if (bEnvironmentQueryEditor)
+	if (bEnvironmentQueryEditor 
+#if WITH_EDITOR
+		|| GetDefault<UEditorExperimentalSettings>()->bEQSEditor
+#endif // WITH_EDITOR
+		)
 	{
 		FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 	}
@@ -1740,7 +1801,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 
 	return bSuccess;
 }
-
 
 bool FEngineLoop::LoadStartupModules()
 {
@@ -1761,6 +1821,8 @@ bool FEngineLoop::LoadStartupModules()
 	{
 		return false;
 	}
+
+	FModuleManager::Get().InitializeAutoStartupModules();
 
 	return true;
 }
@@ -1820,6 +1882,9 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
+	FScopedSlowTask SlowTask(100);
+	SlowTask.EnterProgressFrame(10);
+
 	// Figure out which UEngine variant to use.
 	UClass* EngineClass = NULL;
 	if( !GIsEditor )
@@ -1847,7 +1912,11 @@ int32 FEngineLoop::Init()
 
 	InitTime();
 
+	SlowTask.EnterProgressFrame(60);
+
 	GEngine->Init(this);
+
+	SlowTask.EnterProgressFrame(30);
 
 	// Load all the post-engine init modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit))
@@ -1855,7 +1924,7 @@ int32 FEngineLoop::Init()
 		GIsRequestingExit = true;
 		return 1;
 	}
-
+	
 	GetMoviePlayer()->WaitForMovieToFinish();
 
 	// initialize automation worker
@@ -1893,6 +1962,13 @@ void FEngineLoop::Exit()
 	GIsRunning	= 0;
 	GLogConsole	= NULL;
 
+	// shutdown visual logger and flush all data
+#if ENABLE_VISUAL_LOG
+	FVisualLogger::Get().Shutdown();
+#endif
+
+	GetMoviePlayer()->Shutdown();
+
 	// Make sure we're not in the middle of loading something.
 	FlushAsyncLoading();
 
@@ -1928,14 +2004,20 @@ void FEngineLoop::Exit()
 		GEngine->ShutdownAudioDevice();
 	}
 
-	// close all windows
-	FSlateApplication::Shutdown();
-
-
 	if ( GEngine != NULL )
 	{
 		GEngine->PreExit();
 	}
+
+#if !UE_SERVER
+	if ( FEngineFontServices::IsInitialized() )
+	{
+		FEngineFontServices::Destroy();
+	}
+#endif
+
+	// close all windows
+	FSlateApplication::Shutdown();
 
 	AppPreExit();
 
@@ -2121,7 +2203,10 @@ void FEngineLoop::Tick()
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
-			FSlateApplication::Get().PollGameDeviceState();
+			FSlateApplication& SlateApp = FSlateApplication::Get();
+			SlateApp.PollGameDeviceState();
+			// Gives widgets a chance to process any accumulated input
+			SlateApp.FinishedInputThisFrame();
 		}
 
 		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
@@ -2390,7 +2475,7 @@ bool FEngineLoop::AppInit( )
 			}
 
 			// Ask whether to compile before continuing
-			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, *FString::Printf(TEXT("Missing %s Modules"), GGameName)) == EAppReturnType::No)
+			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, *FString::Printf(TEXT("Missing %s Modules"), FApp::GetGameName())) == EAppReturnType::No)
 			{
 				return false;
 			}
@@ -2409,7 +2494,7 @@ bool FEngineLoop::AppInit( )
 				{
 					UE_LOG(LogInit, Warning, TEXT("Still incompatible or missing module: %s"), *StillIncompatibleFiles[Idx]);
 				}
-				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FString::Printf(TEXT("%s could not be compiled. Try rebuilding from source manually."), GGameName), TEXT("Error"));
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FString::Printf(TEXT("%s could not be compiled. Try rebuilding from source manually."), FApp::GetGameName()), TEXT("Error"));
 				return false;
 			}
 		}

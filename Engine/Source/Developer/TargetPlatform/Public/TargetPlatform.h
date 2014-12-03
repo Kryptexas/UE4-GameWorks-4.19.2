@@ -1,19 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetPlatform.h: TargetPlatform module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public dependencies
  *****************************************************************************/
 
 #include "ModuleManager.h"
 
 
-/* Interfaces
+/* Public interfaces
  *****************************************************************************/
 
 #include "TargetDeviceId.h"

@@ -60,9 +60,10 @@ static UObject const* BlueprintActionDatabaseRegistrarImpl::ResolveActionKey(UOb
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionDatabaseRegistrar::FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey)
+FBlueprintActionDatabaseRegistrar::FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FUnloadedActionRegistry& UnloadedDatabase, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey)
 	: GeneratingClass(DefaultKey)
 	, ActionDatabase(Database)
+	, UnloadedActionDatabase(UnloadedDatabase)
 	, ActionKeyFilter(nullptr)
 	, ActionPrimingQueue(PrimingQueue)
 {
@@ -140,6 +141,29 @@ bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UObject const* AssetO
 }
 
 //------------------------------------------------------------------------------
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(FAssetData const& AssetDataOwner, UBlueprintNodeSpawner* NodeSpawner)
+{
+	bool bReturnResult = false;
+
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+	if(AssetDataOwner.IsAssetLoaded())
+	{
+		bReturnResult = AddBlueprintAction(AssetDataOwner.GetAsset(), NodeSpawner);
+	}
+	else
+	{
+		bReturnResult = AddBlueprintAction(NodeSpawner->NodeClass, NodeSpawner);
+		if(bReturnResult)
+		{
+			TArray<UBlueprintNodeSpawner*>& ActionList = UnloadedActionDatabase.FindOrAdd(AssetDataOwner.ObjectPath);
+			ActionList.Add(NodeSpawner);
+		}
+	}
+	return bReturnResult;
+}
+
+//------------------------------------------------------------------------------
 bool FBlueprintActionDatabaseRegistrar::IsOpenForRegistration(UObject const* OwnerKey)
 {
 	UObject const* ActionKey = BlueprintActionDatabaseRegistrarImpl::ResolveActionKey(OwnerKey);
@@ -148,6 +172,17 @@ bool FBlueprintActionDatabaseRegistrar::IsOpenForRegistration(UObject const* Own
 		ActionKey = GeneratingClass;
 	}
 	return (ActionKey != nullptr) && ((ActionKeyFilter == nullptr) || (ActionKeyFilter == ActionKey));
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintActionDatabaseRegistrar::IsOpenForRegistration(FAssetData const& AssetKey)
+{
+	UObject const* OwnerKey = GeneratingClass;
+	if (AssetKey.IsAssetLoaded())
+	{
+		OwnerKey = AssetKey.GetAsset();
+	}
+	return IsOpenForRegistration(OwnerKey);
 }
 
 //------------------------------------------------------------------------------

@@ -2,11 +2,6 @@
 
 #pragma once
 
-#include "Core.h"
-#include "Messaging.h"
-#include "Slate.h"
-#include "StandaloneRenderer.h"
-
 
 /**
  * The application's main function.

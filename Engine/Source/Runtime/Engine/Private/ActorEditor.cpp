@@ -8,8 +8,6 @@
 #include "LevelUtils.h"
 #include "MapErrors.h"
 #include "Foliage/InstancedFoliageActor.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
-#include "Landscape/LandscapeComponent.h"
 #include "Engine/LevelBounds.h"
 
 #if WITH_EDITOR
@@ -127,6 +125,7 @@ void AActor::PostEditMove(bool bFinished)
 	{
 		// update actor and all its components in navigation system after finishing move
 		// USceneComponent::UpdateNavigationData works only in game world
+		UNavigationSystem::UpdateNavOctreeBounds(this);
 		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
@@ -377,14 +376,16 @@ void AActor::EditorApplyScale( const FVector& DeltaScale, const FVector* PivotLo
 {
 	if( RootComponent != NULL )
 	{
+		const FVector CurrentScale = GetRootComponent()->RelativeScale3D;
+
 		// @todo: Remove this hack once we have decided on the scaling method to use.
 		if( AActor::bUsePercentageBasedScaling )
 		{
-			GetRootComponent()->SetRelativeScale3D( GetRootComponent()->RelativeScale3D + DeltaScale * GetRootComponent()->RelativeScale3D );
+			GetRootComponent()->SetRelativeScale3D(CurrentScale + DeltaScale * CurrentScale);
 		}
 		else
 		{
-			GetRootComponent()->SetRelativeScale3D( GetRootComponent()->RelativeScale3D + DeltaScale );
+			GetRootComponent()->SetRelativeScale3D(CurrentScale + DeltaScale * CurrentScale.GetSignVector());
 		}
 
 		if( PivotLocation )

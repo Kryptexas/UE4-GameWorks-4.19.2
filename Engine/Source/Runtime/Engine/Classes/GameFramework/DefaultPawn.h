@@ -84,29 +84,42 @@ private:
 	virtual void Turn(float Val);
 
 public:
-	/** Name of the MovementComponent.  Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
+	/** Name of the MovementComponent.  Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName MovementComponentName;
 
+private:
 	/** DefaultPawn movement component */
-	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<UFloatingPawnMovement> MovementComponent;
+	UPROPERTY(Category = Pawn, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UFloatingPawnMovement* MovementComponent;
 
+public:
 	/** Name of the CollisionComponent. */
 	static FName CollisionComponentName;
 
+private_subobject:
 	/** DefaultPawn collision component */
-	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<USphereComponent> CollisionComponent;
+	DEPRECATED_FORGAME(4.6, "CollisionComponent should not be accessed directly, please use GetCollisionComponent() function instead. CollisionComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Pawn, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	USphereComponent* CollisionComponent;
+public:
 
-	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
+	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
+private_subobject:
 	/** The mesh associated with this Pawn. */
-	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<UStaticMeshComponent> MeshComponent;
+	DEPRECATED_FORGAME(4.6, "MeshComponent should not be accessed directly, please use GetMeshComponent() function instead. MeshComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = Pawn, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* MeshComponent;
+public:
 
 	/** If true, adds default input bindings for movement and camera look. */
 	UPROPERTY(Category=Pawn, EditAnywhere, BlueprintReadOnly)
 	uint32 bAddDefaultMovementBindings:1;
+
+	/** Returns CollisionComponent subobject **/
+	USphereComponent* GetCollisionComponent() const;
+	/** Returns MeshComponent subobject **/
+	UStaticMeshComponent* GetMeshComponent() const;
 };
 

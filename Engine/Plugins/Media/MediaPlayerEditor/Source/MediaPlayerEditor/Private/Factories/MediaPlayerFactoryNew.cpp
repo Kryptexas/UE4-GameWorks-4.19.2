@@ -6,8 +6,8 @@
 /* UMediaPlayerFactoryNew structors
  *****************************************************************************/
 
-UMediaPlayerFactoryNew::UMediaPlayerFactoryNew( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaPlayerFactoryNew::UMediaPlayerFactoryNew( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UMediaPlayer::StaticClass();
 	bCreateNew = true;
@@ -24,7 +24,7 @@ UObject* UMediaPlayerFactoryNew::FactoryCreateNew( UClass* InClass, UObject* InP
 }
 
 
-bool UMediaPlayerFactoryNew::ShouldShowInNewMenu( ) const
+bool UMediaPlayerFactoryNew::ShouldShowInNewMenu() const
 {
 	return true;
 }

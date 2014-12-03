@@ -60,6 +60,9 @@ private:
 	/** Whether we have dismissed the tutorial for this content */
 	bool bTutorialDismissed;
 
+	/** Flag to force alerts to appear in internal builds (caches command line -TestTutorialAlerts) */
+	bool bTestAlerts;
+
 	/** Context that this widget was created for (i.e. what part of the editor) */
 	FName Context;
 

@@ -3,8 +3,8 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/BTDecorator.h"
 
-UBehaviorTreeGraphNode_Decorator::UBehaviorTreeGraphNode_Decorator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBehaviorTreeGraphNode_Decorator::UBehaviorTreeGraphNode_Decorator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

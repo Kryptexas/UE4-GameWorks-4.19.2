@@ -256,12 +256,6 @@ private:
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();
 
-	/** Function to show/hide the origin highlight */
-	void OnHighlightOrigin();
-
-	/** Function to query whether the origin highlighting is being displayed */
-	bool IsHighlightingOrigin() const;
-
 	/** Function to show/hide floor in the viewport */
 	void OnShowFloor();
 
@@ -442,7 +436,11 @@ private:
 	/** Function to replace root translation */
 	void UpdateMeshRootTranslation(const FText& NewText, ETextCommit::Type CommitInfo, int32 Dimension);
 
+	EVisibility GetViewportCornerImageVisibility() const;
+	const FSlateBrush * GetViewportCornerImage() const;
+
 	EVisibility GetViewportCornerTextVisibility() const;
 	FText GetViewportCornerText() const;
+	FText GetViewportCornerTooltip() const;
 	FReply ClickedOnViewportCornerText();
 };

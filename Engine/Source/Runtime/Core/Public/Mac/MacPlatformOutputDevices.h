@@ -5,13 +5,14 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformOutputDevices.h"
 
 struct CORE_API FMacPlatformOutputDevices : public FGenericPlatformOutputDevices
 {
-	static class FOutputDevice*			GetEventLog();
-	static class FOutputDeviceConsole*	GetLogConsole();
-	static class FOutputDeviceError*	GetError();
-	static class FFeedbackContext*		GetWarn();
+	static FOutputDevice*			GetEventLog();
+	static FOutputDeviceConsole*	GetLogConsole();
+	static FOutputDeviceError*		GetError();
+	static FFeedbackContext*		GetWarn();
 };
 
 typedef FMacPlatformOutputDevices FPlatformOutputDevices;

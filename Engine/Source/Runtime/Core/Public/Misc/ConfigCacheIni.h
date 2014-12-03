@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ConfigCacheIni.h: Unreal config file reading/writing.
-=============================================================================*/
-
 /*-----------------------------------------------------------------------------
 	Config cache.
 -----------------------------------------------------------------------------*/
@@ -80,7 +76,7 @@ public:
 	bool operator!=( const FConfigFile& Other ) const;
 
 	CORE_API bool Combine( const FString& Filename);
-	CORE_API void CombineFromBuffer(const FString& Filename,const FString& Buffer);
+	CORE_API void CombineFromBuffer(const FString& Buffer);
 	CORE_API void Read( const FString& Filename );
 	CORE_API bool Write( const FString& Filename, bool bDoRemoteWrite=true, const FString& InitialText=FString() );
 	CORE_API void Dump(FOutputDevice& Ar);
@@ -99,11 +95,11 @@ public:
 	 * @param Filename Name of the .ini file the contents came from
 	 * @param Contents Contents of the .ini file
 	 */
-	void ProcessInputFileContents(const FString& Filename, FString& Contents);
+	CORE_API void ProcessInputFileContents(const FString& Contents);
 
 
 	/** Adds any properties that exist in InSourceFile that this config file is missing */
-	void AddMissingProperties( const FConfigFile& InSourceFile );
+	CORE_API void AddMissingProperties(const FConfigFile& InSourceFile);
 
 	/**
 	 * Saves only the sections in this FConfigFile its source files. All other sections in the file are left alone. The sections in this
@@ -505,8 +501,8 @@ public:
 	 * @param ConfigFile The output object to fill
 	 * @param IniName Either a Base ini name (Engine) or a full ini name (WrangleContent). NO PATH OR EXTENSION SHOULD BE USED!
 	 * @param bIsBaseIniName true if IniName is a Base name, which can be overridden on commandline, etc.
-	 * @param Platform The platform to use for Base ini names
-	 * @param GameName The game to use for Base ini names
+	 * @param Platform The platform to use for Base ini names, NULL means to use the current platform
+	 * @param GameName The game to use for Base ini names, NULL means to use the current
 	 */
 	static void LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, bool bIsBaseIniName, const TCHAR* Platform=NULL, const TCHAR* GameName=NULL);
 
@@ -545,12 +541,14 @@ private:
  * @param InSectionBaseName - The base name of the section to apply cvars from (i.e. the bit before the @)
  * @param InGroupNumber - The group number required
  * @param InIniFilename - The ini filename
+ * @param SetBy anything in ECVF_LastSetMask e.g. ECVF_SetByScalability
  */
-CORE_API void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename);
+CORE_API void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename, uint32 SetBy);
 
 /**
  * Helper function to read the contents of an ini file and a specified group of cvar parameters, where sections in the ini file are marked [InName]
  * @param InSectionBaseName - The base name of the section to apply cvars from
  * @param InIniFilename - The ini filename
+ * @param SetBy anything in ECVF_LastSetMask e.g. ECVF_SetByScalability
  */
-CORE_API void ApplyCVarSettingsFromIni(const TCHAR* InSectionBaseName, const TCHAR* InIniFilename);
+CORE_API void ApplyCVarSettingsFromIni(const TCHAR* InSectionBaseName, const TCHAR* InIniFilename, uint32 SetBy);

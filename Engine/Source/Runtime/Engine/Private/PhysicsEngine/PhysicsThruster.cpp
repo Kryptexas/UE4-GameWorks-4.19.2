@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsEngine/PhysicsThrusterComponent.h"
 #include "PhysXSupport.h"
+#include "PhysicsEngine/PhysicsThruster.h"
 
 
-UPhysicsThrusterComponent::UPhysicsThrusterComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsThrusterComponent::UPhysicsThrusterComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -41,15 +43,15 @@ void UPhysicsThrusterComponent::PostLoad()
 
 //////////////////////////////////////////////////////////////////////////
 
-APhysicsThruster::APhysicsThruster(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APhysicsThruster::APhysicsThruster(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	ThrusterComponent = PCIP.CreateDefaultSubobject<UPhysicsThrusterComponent>(this, TEXT("Thruster0"));
+	ThrusterComponent = ObjectInitializer.CreateDefaultSubobject<UPhysicsThrusterComponent>(this, TEXT("Thruster0"));
 	RootComponent = ThrusterComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -92,3 +94,12 @@ APhysicsThruster::APhysicsThruster(const class FPostConstructInitializePropertie
 	}
 #endif // WITH_EDITORONLY_DATA
 }
+
+/** Returns ThrusterComponent subobject **/
+UPhysicsThrusterComponent* APhysicsThruster::GetThrusterComponent() const { return ThrusterComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* APhysicsThruster::GetArrowComponent() const { return ArrowComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* APhysicsThruster::GetSpriteComponent() const { return SpriteComponent; }
+#endif

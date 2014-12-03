@@ -5,6 +5,7 @@
 #include "SMatineeRecorder.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "IMatinee.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "SMatineeRecorder"
 
@@ -128,7 +129,7 @@ void SMatineeRecorder::Construct(const FArguments& InArgs)
 
 	LevelViewportClient->SetRealtime( true );
 	LevelViewportClient->SetAllowMatineePreview( true );
-	LevelViewportClient->Viewport->CaptureJoystickInput(true);
+	LevelViewportClient->Viewport->SetUserFocus(true);
 	LevelViewportClient->SetMatineeRecordingWindow( ParentMatineeWindow.Pin().Get() );
 
 	LevelViewportClient->VisibilityDelegate.BindSP( this, &SMatineeRecorder::IsVisible );

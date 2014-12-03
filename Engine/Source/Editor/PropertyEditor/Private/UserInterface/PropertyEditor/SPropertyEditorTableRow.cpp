@@ -215,7 +215,7 @@ FReply SPropertyEditorTableRow::OnNameDoubleClicked()
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( ValueEditorWidget.ToSharedRef(), EditableWidgetPath );
 
 		// Set keyboard focus directly
-		FSlateApplication::Get().SetKeyboardFocus( EditableWidgetPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( EditableWidgetPath, EFocusCause::SetDirectly );
 		Reply = FReply::Handled();
 	}
 	else if ( DoesItemHaveChildren() )

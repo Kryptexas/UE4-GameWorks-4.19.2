@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Sorting.h"
 
 extern FText GetErrorMessageForSequence(UBlendSpaceBase* BlendSpace, UAnimSequence* AnimSequence, FVector SampleValue, int32 OriginalIndex);
@@ -14,6 +14,7 @@ DECLARE_DELEGATE(FOnSamplesUpdated);
 // delegate to refresh sample list
 DECLARE_DELEGATE( FOnRefreshSamples )
 
+struct FNotificationInfo;
 // delegate to show user notifications
 DECLARE_DELEGATE_OneParam( FOnNotifyUser, FNotificationInfo& )
 
@@ -98,7 +99,7 @@ struct FDrawLines
 
 		for (auto Iter=DrawLines.CreateConstIterator(); Iter; ++Iter)
 		{
-			const FLine & ExistingLine = (*Iter);
+			const FLine& ExistingLine = (*Iter);
 
 			LinePoints[0] = ExistingLine.LinePoints[0];
 			LinePoints[1] = ExistingLine.LinePoints[1];
@@ -269,7 +270,7 @@ public:
 	/** 
 	 * Mapping function between WidgetPos and GridPos
 	 */
-	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const PURE_VIRTUAL(SBlendSpaceWidget::GetWidgetPosFromEditorPos, return TOptional<FVector2D>(););
+	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const PURE_VIRTUAL(SBlendSpaceWidget::GetWidgetPosFromEditorPos, return TOptional<FVector2D>(););
 	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const PURE_VIRTUAL(SBlendSpaceWidget::GetEditorPosFromWidgetPos, return TOptional<FVector>(););
 
 	/**
@@ -285,9 +286,9 @@ protected:
 	void DrawText( const FVector2D & Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
 	
 	/** Utility functions */
-	FText GetToolTipText(const FVector & GridPos, const TArray<UAnimSequence*> AnimSeqs, const TArray<float> BlendWeights) const;
-	virtual FText GetInputText(const FVector & GridPos) const PURE_VIRTUAL(SBlendSpaceWidget::GetInputText, return FText::GetEmpty(); );
-	int32 GetHighlightedSample(const FSlateRect & WindowRect) const;
+	FText GetToolTipText(const FVector& GridPos, const TArray<UAnimSequence*> AnimSeqs, const TArray<float> BlendWeights) const;
+	virtual FText GetInputText(const FVector& GridPos) const PURE_VIRTUAL(SBlendSpaceWidget::GetInputText, return FText::GetEmpty(); );
+	int32 GetHighlightedSample(const FSlateRect& WindowRect) const;
 
 	/** Update internal data based on mouse position */
 	virtual FReply UpdateLastMousePosition( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition, bool bClampToWindowRect = false, bool bSnapToGrid = false  ) PURE_VIRTUAL(SBlendSpaceWidget::UpdateLastMousePosition, return FReply::Handled(););

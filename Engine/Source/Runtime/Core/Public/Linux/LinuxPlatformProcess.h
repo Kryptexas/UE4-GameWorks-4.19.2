@@ -6,6 +6,9 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "HAL/Platform.h"
+#include "Linux/LinuxSystemIncludes.h"
 
 /** Wrapper around Linux pid_t. */
 struct FProcHandle : public TProcHandle<pid_t, -1>
@@ -31,7 +34,7 @@ struct FProcHandle : public TProcHandle<pid_t, -1>
 	}
 
 	/** Copy constructor. */
-	FORCEINLINE FProcHandle( const FProcHandle & Other )
+	FORCEINLINE FProcHandle( const FProcHandle& Other )
 		:	TProcHandle( Other )
 		,	bIsRunning( Other.bIsRunning )	// assume it is
 		,	bHasBeenWaitedFor( Other.bHasBeenWaitedFor )

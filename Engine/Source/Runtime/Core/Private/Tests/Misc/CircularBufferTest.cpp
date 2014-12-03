@@ -1,15 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CircularBufferTest.cpp: Unit test for the TCircularBuffer template class.
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCircularBufferTest, "Core.Misc.CircularBuffer", EAutomationTestFlags::ATF_SmokeTest)
-
 
 bool FCircularBufferTest::RunTest( const FString& Parameters )
 {

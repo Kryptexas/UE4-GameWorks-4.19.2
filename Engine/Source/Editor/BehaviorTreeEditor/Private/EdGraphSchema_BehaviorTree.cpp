@@ -13,6 +13,7 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeSchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
@@ -220,7 +221,7 @@ void FBehaviorTreeSchemaAction_NewSubNode::AddReferencedObjects( FReferenceColle
 }
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_BehaviorTree::UEdGraphSchema_BehaviorTree(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEdGraphSchema_BehaviorTree::UEdGraphSchema_BehaviorTree(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 
@@ -481,10 +482,30 @@ void UEdGraphSchema_BehaviorTree::GetBreakLinkToSubMenuActions( class FMenuBuild
 		++Count;
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
-			FExecuteAction::CreateUObject((USoundClassGraphSchema*const)this, &USoundClassGraphSchema::BreakSinglePinLink, const_cast< UEdGraphPin* >(InGraphPin), *Links) ) );
+			FExecuteAction::CreateUObject(this, &UEdGraphSchema_BehaviorTree::BreakSinglePinLink, const_cast< UEdGraphPin* >(InGraphPin), *Links) ) );
 	}
 }
 
+void UEdGraphSchema_BehaviorTree::BreakNodeLinks(UEdGraphNode& TargetNode) const
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakNodeLinks", "Break Node Links") );
+
+	Super::BreakNodeLinks(TargetNode);
+}
+
+void UEdGraphSchema_BehaviorTree::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotification) const
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakPinLinks", "Break Pin Links") );
+
+	Super::BreakPinLinks(TargetPin, bSendsNodeNotification);
+}
+
+void UEdGraphSchema_BehaviorTree::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link") );
+
+	Super::BreakSinglePinLink(SourcePin, TargetPin);
+}
 
 const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const
 {
@@ -593,13 +614,24 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(co
 
 	const bool bPinASingleLink = bPinAIsSingleComposite || bPinAIsSingleTask || bPinAIsSingleNode;
 	const bool bPinBSingleLink = bPinBIsSingleComposite || bPinBIsSingleTask || bPinBIsSingleNode;
-	if ((bPinASingleLink && PinA->LinkedTo.Num() > 0) ||
-		(bPinBSingleLink && PinB->LinkedTo.Num() > 0))
-	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinErrorSingleConnection", "Can't connect to multiple nodes"));
-	}
 
 	if (PinB->LinkedTo.Num() > 0)
+	{
+		if(bPinASingleLink)
+		{
+			return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_AB, LOCTEXT("PinConnectReplace", "Replace connection"));
+		}
+		else
+		{
+			return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_B, LOCTEXT("PinConnectReplace", "Replace connection"));
+		}
+	}
+
+	if (bPinASingleLink && PinA->LinkedTo.Num() > 0)
+	{
+		return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_A, LOCTEXT("PinConnectReplace", "Replace connection"));
+	}
+	else if(bPinBSingleLink && PinB->LinkedTo.Num() > 0)
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_B, LOCTEXT("PinConnectReplace", "Replace connection"));
 	}

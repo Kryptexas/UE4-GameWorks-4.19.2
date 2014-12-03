@@ -22,12 +22,13 @@
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
-#include "Landscape/LandscapeProxy.h"
+#include "LandscapeProxy.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "Animation/AnimSet.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -55,6 +56,8 @@
 #include "ComponentReregisterContext.h"
 #include "Engine/DocumentationActor.h"
 #include "ShaderCompiler.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -560,7 +563,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			WorldBrush->SetActorLocation(SnapLocation - PrePivot, false);
 			WorldBrush->SetPrePivot( FVector::ZeroVector );
 			WorldBrush->Brush->Polys->Element.Empty();
-			UPolysFactory* It = new UPolysFactory(FPostConstructInitializeProperties());
+			UPolysFactory* It = new UPolysFactory(FObjectInitializer());
 			It->FactoryCreateText( UPolys::StaticClass(), WorldBrush->Brush->Polys->GetOuter(), *WorldBrush->Brush->Polys->GetName(), RF_NoFlags, WorldBrush->Brush->Polys, TEXT("t3d"), GStream, GStream+FCString::Strlen(GStream), GWarn );
 			// Do NOT merge faces.
 			FBSPOps::bspValidateBrush( WorldBrush->Brush, 0, 1 );
@@ -1079,7 +1082,7 @@ UTransactor* UEditorEngine::CreateTrans()
 		UndoBufferSize = 16;
 	}
 
-	UTransBuffer* TransBuffer = new UTransBuffer(FPostConstructInitializeProperties(), UndoBufferSize * 1024 * 1024);
+	UTransBuffer* TransBuffer = new UTransBuffer(FObjectInitializer(), UndoBufferSize * 1024 * 1024);
 	TransBuffer->OnBeforeRedoUndo().AddUObject(this, &UEditorEngine::HandleTransactorBeforeRedoUndo);
 	TransBuffer->OnRedo().AddUObject(this, &UEditorEngine::HandleTransactorRedo);
 	TransBuffer->OnUndo().AddUObject(this, &UEditorEngine::HandleTransactorUndo);
@@ -1313,6 +1316,8 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 		UE_LOG(LogEditorServer, Log, TEXT("Rebuildmap Clear paths rebuilt"));
 	}
 
+	TArray<ULevel*> UpdatedLevels;
+
 	switch (RebuildType)
 	{
 		case EMapRebuildType::MRT_AllVisible:
@@ -1328,6 +1333,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 				csgRebuild( InWorld );
 				InWorld->InvalidateModelGeometry( Level );
 				Level->bGeometryDirtyForLighting = false;
+				UpdatedLevels.AddUnique( Level );
 			}
 
 			// Build CSG for all visible streaming levels
@@ -1343,6 +1349,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 						csgRebuild( InWorld );
 						InWorld->InvalidateModelGeometry( Level );
 						InWorld->GetCurrentLevel()->bGeometryDirtyForLighting = false;
+						UpdatedLevels.AddUnique( Level );
 					}
 				}
 			}
@@ -1364,6 +1371,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 					csgRebuild( InWorld );
 					InWorld->InvalidateModelGeometry( Level );
 					Level->bGeometryDirtyForLighting = false;
+					UpdatedLevels.AddUnique( Level );
 				}
 
 				// Build CSG for each streaming level that is out of date
@@ -1379,6 +1387,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 							csgRebuild( InWorld );
 							InWorld->InvalidateModelGeometry( Level );
 							Level->bGeometryDirtyForLighting = false;
+							UpdatedLevels.AddUnique( Level );
 						}
 					}
 				}
@@ -1394,10 +1403,21 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 			csgRebuild( InWorld );
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 			InWorld->GetCurrentLevel()->bGeometryDirtyForLighting = false;
+			UpdatedLevels.AddUnique( InWorld->GetCurrentLevel() );
 		}
 		break;
 	}
 
+	// See if there is any foliage that also needs to be updated
+	for (ULevel* Level : UpdatedLevels)
+	{
+		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+		if (IFA)
+		{
+			IFA->MapRebuild();
+		}
+	}
+	
 	GWarn->StatusUpdate( -1, -1, NSLOCTEXT("UnrealEd", "CleaningUpE", "Cleaning up...") );
 
 	RedrawLevelEditingViewports();
@@ -1440,6 +1460,13 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	Level.UpdateModelComponents();
 
 	RebuildStaticNavigableGeometry(&Level);
+
+	// See if there is any foliage that also needs to be updated
+	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(&Level);
+	if (IFA)
+	{
+		IFA->MapRebuild();
+	}
 }
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
@@ -1554,7 +1581,6 @@ void UEditorEngine::RebuildAlteredBSP()
 
 	}
 
-	int32 NumLevelsTouched = 0;
 	// Rebuild the levels
 	for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
 	{
@@ -1562,17 +1588,9 @@ void UEditorEngine::RebuildAlteredBSP()
 		if ( LevelToRebuild.IsValid() )
 		{
 			RebuildLevel(*LevelToRebuild.Get());
-			NumLevelsTouched++;
 		}
 	}
 
-	// Broadcast MapChange event in case we actually build something 
-	// will mark all loaded levels as dirty during components re-registration
-	if (NumLevelsTouched > 0)
-	{
-		FEditorDelegates::MapChange.Broadcast( MapChangeEventFlags::MapRebuild );
-	}
-	
 	RedrawLevelEditingViewports();
 
 	ABrush::OnRebuildDone();
@@ -2038,7 +2056,27 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				// Should we display progress while loading?
 				int32 bShowProgress = 1;
 				FParse::Value(Str, TEXT("SHOWPROGRESS="), bShowProgress);
-			
+
+				FString MapFileName = FPaths::GetCleanFilename(TempFname);
+
+				// Detect whether the map we are loading is a template map and alter the undo
+				// readout accordingly.
+				FText LocalizedLoadingMap;
+				if (!bIsLoadingMapTemplate)
+				{
+					LocalizedLoadingMap = FText::Format( NSLOCTEXT("UnrealEd", "LoadingMap_F", "Loading map: {0}..."), FText::FromString( MapFileName ) );
+				}
+				else
+				{
+					LocalizedLoadingMap = NSLOCTEXT("UnrealEd", "LoadingMap_Template", "New Map");
+				}
+				
+				// Don't show progress dialogs when loading one of our startup maps. They should load rather quickly.
+				FScopedSlowTask SlowTask(100, FText::Format( NSLOCTEXT("UnrealEd", "LoadingMapStatus_Loading", "Loading {0}"), LocalizedLoadingMap ), bShowProgress != 0);
+				SlowTask.MakeDialog();
+
+				SlowTask.EnterProgressFrame(10, FText::Format( NSLOCTEXT("UnrealEd", "LoadingMapStatus_CleaningUp", "{0} (Clearing existing world)"), LocalizedLoadingMap ));
+
 				UObject* OldOuter = NULL;
 
 				{
@@ -2052,25 +2090,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					OldOuter = Context.World()->GetOuter();
 
-					FString MapFileName = FPaths::GetCleanFilename(TempFname);
-
-					// Detect whether the map we are loading is a template map and alter the undo
-					// readout accordingly.
-					FText LocalizedLoadingMap;
-					if (!bIsLoadingMapTemplate)
-					{
-						LocalizedLoadingMap = FText::Format( NSLOCTEXT("UnrealEd", "LoadingMap_F", "Loading map: {0}..."), FText::FromString( MapFileName ) );
-					}
-					else
-					{
-						LocalizedLoadingMap = NSLOCTEXT("UnrealEd", "LoadingMap_Template", "New Map");
-					}
-					
 					ResetTransaction( LocalizedLoadingMap );
-
-					// Don't show progress dialogs when loading one of our startup maps.  They should load rather quickly.
-					const bool bShowProgressDialog = (bShowProgress != 0);
-					GWarn->BeginSlowTask( FText::Format( NSLOCTEXT("UnrealEd", "LoadingMapStatus_CleaningUp", "{0} (Clearing existing world)"), LocalizedLoadingMap ), bShowProgressDialog );
 
 					// Don't clear errors if we are loading a startup map so we can see all startup load errors
 					if (!FEditorFileUtils::IsLoadingStartupMap())
@@ -2100,7 +2120,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						ExistingWorld = NULL;
 					}
 
-					GWarn->StatusUpdate( -1, -1, LocalizedLoadingMap );
+					SlowTask.EnterProgressFrame( 70, LocalizedLoadingMap );
 				}
 
 				// Record the name of this file to make sure we load objects in this package on top of in-memory objects in this package.
@@ -2125,13 +2145,19 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					}
 				}
 
-			
+				
 				UPackage* WorldPackage;
 				// Load startup maps and templates into new outermost packages so that the Save function in the editor won't overwrite the original
 				if (bIsLoadingMapTemplate)
 				{
+					FScopedSlowTask LoadScope(2);
+
+					LoadScope.EnterProgressFrame();
+
 					//create a package with the proper name
 					WorldPackage = CreatePackage(NULL, *(MakeUniqueObjectName(NULL, UPackage::StaticClass()).ToString()));
+
+					LoadScope.EnterProgressFrame();
 
 					//now load the map into the package created above
 					const FName WorldPackageFName = WorldPackage->GetFName();
@@ -2159,7 +2185,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				{
 					FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "MapPackageLoadFailed", "Failed to open map file. This is most likely because the map was saved with a newer version of the engine."));
 					GIsEditorLoadingPackage = false;
-					GWarn->EndSlowTask();
 					return false;
 				}
 
@@ -2204,11 +2229,13 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					World->InitWorld( GetEditorWorldInitializationValues() );
 				}
 
+				SlowTask.EnterProgressFrame(20, FText::Format( LOCTEXT( "LoadingMapStatus_Initializing", "Loading map: {0}... (Initializing world)" ), FText::FromString(MapFileName) ));
 				{
 					FBSPOps::bspValidateBrush(Context.World()->GetDefaultBrush()->Brush, 0, 1);
 
-					FString MapFileName = FPaths::GetCleanFilename(TempFname);
-					GWarn->StatusUpdate( -1, -1, FText::Format( LOCTEXT( "LoadingMapStatus_Initializing", "Loading map: {0}... (Initializing world)" ), FText::FromString(MapFileName) ) );
+					// This is a relatively long process, so break it up a bit
+					FScopedSlowTask InitializingFeedback(5);
+					InitializingFeedback.EnterProgressFrame();
 
 					Context.World()->AddToRoot();
 
@@ -2226,6 +2253,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					// Update any actors that can be affected by CullDistanceVolumes
 					Context.World()->UpdateCullDistanceVolumes();
 
+					InitializingFeedback.EnterProgressFrame();
+
 					// A new level was loaded into the editor, so we need to let other systems know about the new
 					// actors in the scene
 					FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::NewMap );
@@ -2240,7 +2269,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					NoteSelectionChange();
 
-					GWarn->EndSlowTask();
+					InitializingFeedback.EnterProgressFrame();
+
 					// Look for 'orphan' actors - that is, actors which are in the Package of the level we just loaded, but not in the Actors array.
 					// If we find any, set IsPendingKill() to 'true', so that PendingKill will return 'true' for them. We can NOT use FActorIterator here
 					// as it just traverses the Actors list.
@@ -2266,6 +2296,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						AActor* Actor = *It;
 						Actor->SetFlags( RF_Transactional );
 					}
+
+					InitializingFeedback.EnterProgressFrame();
 
 					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
 					Context.World()->CreateAISystem();
@@ -2313,6 +2345,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						const bool bIsVisible = false;
 						GEditor->Layers->SetLayersVisibility( LayersToHide, bIsVisible );
 					}
+
+					InitializingFeedback.EnterProgressFrame();
 
 					FEditorDelegates::DisplayLoadErrors.Broadcast();
 
@@ -2714,11 +2748,11 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 
 ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 {
-	ULevel* BufferLevel = new(GetTransientPackage(), TEXT("TransLevelMoveBuffer")) ULevel(FPostConstructInitializeProperties(),FURL(NULL));
+	ULevel* BufferLevel = new(GetTransientPackage(), TEXT("TransLevelMoveBuffer")) ULevel(FObjectInitializer(),FURL(NULL));
 	check( BufferLevel );
 	BufferLevel->AddToRoot();
 	BufferLevel->OwningWorld = InWorld;
-	BufferLevel->Model = new( BufferLevel ) UModel( FPostConstructInitializeProperties(), NULL, true );
+	BufferLevel->Model = new( BufferLevel ) UModel( FObjectInitializer(), NULL, true );
 		
 	BufferLevel->SetFlags( RF_Transactional );
 	BufferLevel->Model->SetFlags( RF_Transactional );
@@ -2732,13 +2766,13 @@ ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 	// Spawn builder brush for the buffer level.
 	ABrush* BufferDefaultBrush = InWorld->SpawnActor<ABrush>( SpawnInfo );
 
-	check( BufferDefaultBrush->BrushComponent );
+	check( BufferDefaultBrush->GetBrushComponent() );
 	BufferDefaultBrush->Brush = CastChecked<UModel>(StaticFindObject(UModel::StaticClass(), BufferLevel->OwningWorld->GetOuter(), TEXT("Brush"), true), ECastCheckedType::NullAllowed);
 	if (!BufferDefaultBrush->Brush)
 	{
-		BufferDefaultBrush->Brush = new( InWorld, TEXT("Brush") )UModel( FPostConstructInitializeProperties(), BufferDefaultBrush, 1 );
+		BufferDefaultBrush->Brush = new( InWorld, TEXT("Brush") )UModel( FObjectInitializer(), BufferDefaultBrush, 1 );
 	}
-	BufferDefaultBrush->BrushComponent->Brush = BufferDefaultBrush->Brush;
+	BufferDefaultBrush->GetBrushComponent()->Brush = BufferDefaultBrush->Brush;
 	BufferDefaultBrush->SetNotForClientOrServer();
 	BufferDefaultBrush->SetFlags( RF_Transactional );
 	BufferDefaultBrush->Brush->SetFlags( RF_Transactional );
@@ -3381,17 +3415,17 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			UMeshComponent*		MeshComponent		= NULL;
 			if( StaticMeshActor )
 			{
-				MeshComponent = StaticMeshActor->StaticMeshComponent;
+				MeshComponent = StaticMeshActor->GetStaticMeshComponent();
 			}
 			else if( SkeletalMeshActor )
 			{
-				MeshComponent = SkeletalMeshActor->SkeletalMeshComponent;
+				MeshComponent = SkeletalMeshActor->GetSkeletalMeshComponent();
 			}
 
 			// See whether there are lights that ended up with the same component. This was possible in earlier versions of the engine.
 			if( LightActor )
 			{
-				ULightComponent* LightComponent = LightActor->LightComponent;
+				ULightComponent* LightComponent = LightActor->GetLightComponent();
 				AActor* ExistingLightActor = LightGuidToActorMap.FindRef( LightComponent->LightGuid );
 				if( ExistingLightActor )
 				{
@@ -4028,18 +4062,12 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 			FParse::Bool( Str, TEXT( "KEEPDIRTY=" ), bKeepDirty );
 
 			// Save the package.
-			if( !bSilent )
-			{
-				const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(Pkg);
-				const bool bIsMapPackage = AssociatedWorld != nullptr;
+			const bool bIsMapPackage = UWorld::FindWorldInPackage(Pkg) != nullptr;
+			const FText SavingPackageText = (bIsMapPackage) 
+				? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Pkg->GetName()))
+				: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Pkg->GetName()));
 
-				const FText SavingPackageText = (bIsMapPackage) 
-					? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Pkg->GetName()))
-					: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Pkg->GetName()));
-
-				GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackage", "Saving package" ), true );
-				GWarn->StatusUpdate( 1, 1, SavingPackageText );
-			}
+			FScopedSlowTask SlowTask(100, SavingPackageText, !bSilent);
 
 			uint32 SaveFlags = bAutosaving ? SAVE_FromAutosave : SAVE_None;
 			if ( bKeepDirty )
@@ -4049,10 +4077,6 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 
 			const bool bWarnOfLongFilename = !bAutosaving;
 			bWasSuccessful = this->SavePackage( Pkg, NULL, RF_Standalone, TempFname, &Ar, NULL, false, bWarnOfLongFilename, SaveFlags );
-			if( !bSilent )
-			{
-				GWarn->EndSlowTask();
-			}
 		}
 		else
 		{
@@ -4192,34 +4216,6 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 				const FBox DefaultSizeBox(Actor->GetActorLocation() - DefaultExtent, Actor->GetActorLocation() + DefaultExtent);
 				BoundingBox += DefaultSizeBox;
 			}
-			else if( Actor->IsA<ABrush>() && GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
-			{
-				FEdModeGeometry* GeometryMode = GLevelEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
-
-				TArray<FGeomVertex*> SelectedVertices;
-				GeometryMode->GetSelectedVertices( SelectedVertices );
-				for( FGeomVertex* Vertex : SelectedVertices )
-				{
-					BoundingBox += Vertex->GetWidgetLocation();
-				}
-				
-				TArray<FGeomPoly*> SelectedPolys;
-				GeometryMode->GetSelectedPolygons( SelectedPolys );
-				for( FGeomPoly* Poly : SelectedPolys )
-				{
-					BoundingBox += Poly->GetWidgetLocation();
-				}
-
-				TArray<FGeomEdge*> SelectedEdges;
-				GeometryMode->GetSelectedEdges( SelectedEdges );
-				for( FGeomEdge* Edge : SelectedEdges )
-				{
-					BoundingBox += Edge->GetWidgetLocation();
-				}
-
-				// Zoom out a little bit so you can see the selection
-				BoundingBox = BoundingBox.ExpandBy( 25 );
-			}
 			else
 			{
 				TArray<UPrimitiveComponent*> Components;
@@ -4237,21 +4233,57 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 								: ComponentToMatch( InComponentToMatch )
 							{}
 
-							bool Matches( const UClass* ComponentClass ) const
+							bool operator()(const UClass* ComponentClass) const
 							{
-								return ComponentToMatch->IsA( ComponentClass );
+								return ComponentToMatch->IsA(ComponentClass);
 							}
 
 							UPrimitiveComponent* ComponentToMatch;
 						};
 
 						// Some components can have huge bounds but are not visible.  Ignore these components unless it is the only component on the actor 
-						const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.FindMatch( ComponentTypeMatcher( PrimitiveComponent ) ) != INDEX_NONE;
+						const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.IndexOfByPredicate(ComponentTypeMatcher(PrimitiveComponent)) != INDEX_NONE;
 
 						if( !bIgnore )
 						{
 							BoundingBox += PrimitiveComponent->Bounds.GetBox();
 						}
+					}
+				}
+
+				if (Actor->IsA<ABrush>() && GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry))
+				{
+					FEdModeGeometry* GeometryMode = GLevelEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
+
+					TArray<FGeomVertex*> SelectedVertices;
+					TArray<FGeomPoly*> SelectedPolys;
+					TArray<FGeomEdge*> SelectedEdges;
+
+					GeometryMode->GetSelectedVertices(SelectedVertices);
+					GeometryMode->GetSelectedPolygons(SelectedPolys);
+					GeometryMode->GetSelectedEdges(SelectedEdges);
+
+					if (SelectedVertices.Num() + SelectedPolys.Num() + SelectedEdges.Num() > 0)
+					{
+						BoundingBox.Init();
+
+						for (FGeomVertex* Vertex : SelectedVertices)
+						{
+							BoundingBox += Vertex->GetWidgetLocation();
+						}
+
+						for (FGeomPoly* Poly : SelectedPolys)
+						{
+							BoundingBox += Poly->GetWidgetLocation();
+						}
+
+						for (FGeomEdge* Edge : SelectedEdges)
+						{
+							BoundingBox += Edge->GetWidgetLocation();
+						}
+
+						// Zoom out a little bit so you can see the selection
+						BoundingBox = BoundingBox.ExpandBy(25);
 					}
 				}
 			}
@@ -6184,10 +6216,10 @@ bool UEditorEngine::HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice
 	{
 		AVolume* Volume = *It;
 
-		if(!Volume->IsTemplate() && Volume->BrushComponent.IsValid())
+		if(!Volume->IsTemplate() && Volume->GetBrushComponent())
 		{
 			UE_LOG(LogEditorServer, Log, TEXT("BSBC: %s"), *Volume->GetPathName() );
-			Volume->BrushComponent->BuildSimpleBrushCollision();
+			Volume->GetBrushComponent()->BuildSimpleBrushCollision();
 		}
 	}
 	return true;

@@ -6,8 +6,13 @@
 #include "BehaviorTreeEditorTabFactories.h"
 #include "BehaviorTreeEditorToolbar.h"
 
+/////////////////////////////////////////////////////
+// FBehaviorTreeEditorApplicationMode
+
+#define LOCTEXT_NAMESPACE "BehaviorTreeApplicationMode"
+
 FBehaviorTreeEditorApplicationMode::FBehaviorTreeEditorApplicationMode(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditor)
-	: FApplicationMode(FBehaviorTreeEditor::BehaviorTreeMode)
+	: FApplicationMode(FBehaviorTreeEditor::BehaviorTreeMode, FBehaviorTreeEditor::GetLocalizedMode)
 {
 	BehaviorTreeEditor = InBehaviorTreeEditor;
 
@@ -94,8 +99,15 @@ void FBehaviorTreeEditorApplicationMode::PostActivateMode()
 	FApplicationMode::PostActivateMode();
 }
 
+#undef  LOCTEXT_NAMESPACE
+
+/////////////////////////////////////////////////////
+// FBlackboardEditorApplicationMode
+
+#define LOCTEXT_NAMESPACE "BlackboardApplicationMode"
+
 FBlackboardEditorApplicationMode::FBlackboardEditorApplicationMode(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditor)
-	: FApplicationMode(FBehaviorTreeEditor::BlackboardMode)
+	: FApplicationMode(FBehaviorTreeEditor::BlackboardMode, FBehaviorTreeEditor::GetLocalizedMode)
 {
 	BehaviorTreeEditor = InBehaviorTreeEditor;
 	
@@ -154,3 +166,5 @@ void FBlackboardEditorApplicationMode::PostActivateMode()
 
 	FApplicationMode::PostActivateMode();
 }
+
+#undef LOCTEXT_NAMESPACE

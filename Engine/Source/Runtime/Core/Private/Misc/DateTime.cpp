@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 
 /* FDateTime constants
@@ -15,13 +15,7 @@ const int32 FDateTime::DaysToMonth[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243,
 
 FDateTime::FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond )
 {
-	check((Year >= 1) && (Year <= 9999));
-	check((Month >= 1) && (Month <= 12));
-	check((Day >= 1) && (Day <= DaysInMonth(Year, Month)));
-	check((Hour >= 0) && (Hour <= 23));
-	check((Minute >= 0) && (Minute <= 59));
-	check((Second >= 0) && (Second <= 59));
-	check((Millisecond >= 0) && (Millisecond <= 999));
+	check(Validate(Year, Month, Day, Hour, Minute, Second, Millisecond));
 
 	int32 TotalDays = 0;
 
@@ -84,7 +78,7 @@ void FDateTime::GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const
 }
 
 
-int32 FDateTime::GetDay( ) const
+int32 FDateTime::GetDay() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -93,14 +87,14 @@ int32 FDateTime::GetDay( ) const
 }
 
 
-EDayOfWeek::Type FDateTime::GetDayOfWeek( ) const
+EDayOfWeek FDateTime::GetDayOfWeek() const
 {
 	// January 1, 0001 was a Monday
-	return static_cast<EDayOfWeek::Type>((Ticks / ETimespan::TicksPerDay) % 7);
+	return static_cast<EDayOfWeek>((Ticks / ETimespan::TicksPerDay) % 7);
 }
 
 
-int32 FDateTime::GetDayOfYear( ) const
+int32 FDateTime::GetDayOfYear() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -114,7 +108,7 @@ int32 FDateTime::GetDayOfYear( ) const
 }
 
 
-int32 FDateTime::GetHour12( ) const
+int32 FDateTime::GetHour12() const
 {
 	int32 Hour = GetHour();
 
@@ -132,7 +126,7 @@ int32 FDateTime::GetHour12( ) const
 }
 
 
-int32 FDateTime::GetMonth( ) const
+int32 FDateTime::GetMonth() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -141,7 +135,7 @@ int32 FDateTime::GetMonth( ) const
 }
 
 
-int32 FDateTime::GetYear( ) const
+int32 FDateTime::GetYear() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -176,13 +170,13 @@ bool FDateTime::Serialize( FArchive& Ar )
 }
 
 
-FString FDateTime::ToIso8601( ) const
+FString FDateTime::ToIso8601() const
 {
 	return ToString(TEXT("%Y-%m-%dT%H:%M:%S.%sZ"));
 }
 
 
-FString FDateTime::ToString( ) const
+FString FDateTime::ToString() const
 {
 	return ToString(TEXT("%Y.%m.%d-%H.%M.%S"));
 }
@@ -236,7 +230,7 @@ int32 FDateTime::DaysInMonth( int32 Year, int32 Month )
 {
 	check((Month >= 1) && (Month <= 12));
 
-	if ((Month == EMonthOfYear::February) && IsLeapYear(Year))
+	if ((Month == 2) && IsLeapYear(Year))
 	{
 		return 29;
 	}
@@ -267,7 +261,7 @@ bool FDateTime::IsLeapYear( int32 Year )
 }
 
 
-FDateTime FDateTime::Now( )
+FDateTime FDateTime::Now()
 {
 	int32 Year, Month, Day, DayOfWeek;
 	int32 Hour, Minute, Second, Millisecond;
@@ -297,18 +291,22 @@ bool FDateTime::Parse( const FString& DateTimeString, FDateTime& OutDateTime )
 		return false;
 	}
 
-	// convert the tokens to numbers
-	OutDateTime.Ticks = FDateTime(
-		FCString::Atoi(*Tokens[0]), // year
-		FCString::Atoi(*Tokens[1]), // month
-		FCString::Atoi(*Tokens[2]), // day
-		FCString::Atoi(*Tokens[3]), // hour
-		FCString::Atoi(*Tokens[4]), // minute
-		FCString::Atoi(*Tokens[5]), // second
-		Tokens.Num() > 6 ? FCString::Atoi(*Tokens[6]) : 0 // millisecond
-	).GetTicks();
+	const int32 Year = FCString::Atoi(*Tokens[0]);
+	const int32 Month = FCString::Atoi(*Tokens[1]);
+	const int32 Day = FCString::Atoi(*Tokens[2]);
+	const int32 Hour = FCString::Atoi(*Tokens[3]);
+	const int32 Minute = FCString::Atoi(*Tokens[4]);
+	const int32 Second = FCString::Atoi(*Tokens[5]);
+	const int32 Millisecond = Tokens.Num() > 6 ? FCString::Atoi(*Tokens[6]) : 0;
 
-	// @todo gmp: need some better validation here
+	if (!Validate(Year, Month, Day, Hour, Minute, Second, Millisecond))
+	{
+		return false;
+	}
+
+	// convert the tokens to numbers
+	OutDateTime.Ticks = FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond).Ticks;
+
 	return true;
 }
 
@@ -349,7 +347,7 @@ bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTim
 		return false;
 	}
 
-	// see if this is date+time
+	// check whether this is date and time
 	if (*Next == TCHAR('T'))
 	{
 		Ptr = Next + 1;
@@ -428,6 +426,11 @@ bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTim
 		return false;
 	}
 
+	if (!Validate(Year, Month, Day, Hour, Minute, Second, Millisecond))
+	{
+		return false;
+	}
+
 	FDateTime Final(Year, Month, Day, Hour, Minute, Second, Millisecond);
 
 	// adjust for the timezone (bringing the DateTime into UTC)
@@ -439,7 +442,7 @@ bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTim
 }
 
 
-FDateTime FDateTime::UtcNow( )
+FDateTime FDateTime::UtcNow()
 {
 	int32 Year, Month, Day, DayOfWeek;
 	int32 Hour, Minute, Second, Millisecond;
@@ -447,6 +450,18 @@ FDateTime FDateTime::UtcNow( )
 	FPlatformTime::UtcTime(Year, Month, DayOfWeek, Day, Hour, Minute, Second, Millisecond);
 
 	return FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
+}
+
+
+bool FDateTime::Validate( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond )
+{
+	return (Year >= 1) && (Year <= 9999) &&
+		(Month >= 1) && (Month <= 12) &&
+		(Day >= 1) && (Day <= DaysInMonth(Year, Month)) &&
+		(Hour >= 0) && (Hour <= 23) &&
+		(Minute >= 0) && (Minute <= 59) &&
+		(Second >= 0) && (Second <= 59) &&
+		(Millisecond >= 0) && (Millisecond <= 999);
 }
 
 

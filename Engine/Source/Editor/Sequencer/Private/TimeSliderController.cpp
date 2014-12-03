@@ -354,7 +354,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 			if (!bPanning)
 			{
 				DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
-				if ( DistanceDragged > SlateDragStartDistance )
+				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistnace() )
 				{
 					bPanning = true;
 				}
@@ -401,7 +401,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 			if ( !bDraggingScrubber )
 			{
 				DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
-				if ( DistanceDragged > SlateDragStartDistance )
+				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistnace() )
 				{
 					bDraggingScrubber = true;
 					TimeSliderArgs.OnBeginScrubberMovement.ExecuteIfBound();

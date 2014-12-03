@@ -2,14 +2,14 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
 
-UAbilityTask_WaitOverlap::UAbilityTask_WaitOverlap(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitOverlap::UAbilityTask_WaitOverlap(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
 
 
-void UAbilityTask_WaitOverlap::OnOverlapCallback(AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void UAbilityTask_WaitOverlap::OnOverlapCallback(AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor && bFromSweep)
 	{	
@@ -72,7 +72,7 @@ UPrimitiveComponent* UAbilityTask_WaitOverlap::GetComponent()
 {
 	// TEMP - we are just using root component's collision. A real system will need more data to specify which component to use
 	UPrimitiveComponent * PrimComponent = nullptr;
-	AActor* ActorOwner = GetActor();
+	AActor* ActorOwner = GetAvatarActor();
 	if (ActorOwner)
 	{
 		PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());

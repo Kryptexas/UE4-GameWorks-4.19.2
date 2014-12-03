@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MallocAnsi.h"
 #include "GenericApplication.h"
 #include "GenericPlatformChunkInstall.h"
@@ -11,6 +11,7 @@
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
 #include "../../Launch/Resources/Version.h"
+#include "GenericPlatformContext.h"
 
 #include "UProjectInfo.h"
 
@@ -380,11 +381,15 @@ void FGenericPlatformMisc:: ClipboardPaste(class FString& Dest)
 
 void FGenericPlatformMisc::CreateGuid(FGuid& Guid)
 {
-	int32 Year=0, Month=0, DayOfWeek=0, Day=0, Hour=0, Min=0, Sec=0, MSec=0;
+	static uint16 IncrementCounter = 0; 
+
+	int32 Year = 0, Month = 0, DayOfWeek = 0, Day = 0, Hour = 0, Min = 0, Sec = 0, MSec = 0; // Use real time for baseline uniqueness
+	uint32 SequentialBits = static_cast<uint32>(IncrementCounter++); // Add sequential bits to ensure sequentially generated guids are unique even if Cycles is wrong
+	uint32 RandBits = FMath::Rand() & 0xFFFF; // Add randomness to improve uniqueness across machines
 
 	FPlatformTime::SystemTime(Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec);
 
-	Guid = FGuid(Day | (Hour << 16), Month | (Sec << 16), MSec | (Min << 16), Year ^ FPlatformTime::Cycles());
+	Guid = FGuid(RandBits | (SequentialBits << 16), Day | (Hour << 8) | (Month << 16) | (Sec << 24), MSec | (Min << 16), Year ^ FPlatformTime::Cycles());
 }
 
 EAppReturnType::Type FGenericPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
@@ -441,7 +446,7 @@ const TCHAR* FGenericPlatformMisc::RootDir()
 
 			// keep going until we've removed Binaries
 #if IS_MONOLITHIC && !IS_PROGRAM
-			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), GGameName));
+			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetGameName()));
 #else
 			int32 pos = Path.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase);
 #endif
@@ -533,7 +538,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 {
 	static FString GameDir = TEXT("");
 
-	// track if last time we called this function the .ini was ready and had fixed the GGameName case
+	// track if last time we called this function the .ini was ready and had fixed the GameName case
 	static bool bWasIniReady = false;
 	bool bIsIniReady = GConfig && GConfig->IsReadyForUse();
 	if (bWasIniReady != bIsIniReady)
@@ -553,7 +558,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 		if (FPlatformProperties::IsProgram())
 		{
 			// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
-			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), GGameName);
+			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), FApp::GetGameName());
 		}
 		else
 		{
@@ -566,7 +571,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 				if (FPlatformProperties::IsMonolithicBuild() == false)
 				{
 					// No game project file, but has a game name, use the game folder next to the working directory
-					GameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
+					GameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
 					FString GameBinariesDir = GameDir / TEXT("Binaries/");
 					if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*GameBinariesDir) == false)
 					{
@@ -575,7 +580,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find game directory: %s\n"), *GameDir);
 
 						// Use the uprojectdirs
-						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
+						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(FApp::GetGameName(), FPlatformProcess::BaseDir());
 						if (GameProjectFile.IsEmpty() == false)
 						{
 							// We found a project folder for the game
@@ -591,7 +596,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 				else
 				{
 #if !PLATFORM_DESKTOP
-					GameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
+					GameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
 #else
 					// This assumes the game executable is in <GAME>/Binaries/<PLATFORM>
 					GameDir = TEXT("../../");
@@ -719,15 +724,31 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint16* KeyCodes, FStrin
 	ADDKEYMAP( ';', TEXT("Semicolon") );
 	ADDKEYMAP( '=', TEXT("Equals") );
 	ADDKEYMAP( ',', TEXT("Comma") );
-	ADDKEYMAP( '-', TEXT("Underscore") );
+	ADDKEYMAP( '-', TEXT("Hyphen") );
 	ADDKEYMAP( '.', TEXT("Period") );
 	ADDKEYMAP( '/', TEXT("Slash") );
 	ADDKEYMAP( '`', TEXT("Tilde") );
 	ADDKEYMAP( '[', TEXT("LeftBracket") );
 	ADDKEYMAP( '\\', TEXT("Backslash") );
 	ADDKEYMAP( ']', TEXT("RightBracket") );
-	ADDKEYMAP( '\'', TEXT("Quote") );
+	ADDKEYMAP( '\'', TEXT("Apostrophe") );
 	ADDKEYMAP( ' ', TEXT("SpaceBar") );
+
+	// AZERTY Keys
+	ADDKEYMAP( '&', TEXT("Ampersand") );
+	ADDKEYMAP( '*', TEXT("Asterix") );
+	ADDKEYMAP( '^', TEXT("Caret") );
+	ADDKEYMAP( ':', TEXT("Colon") );
+	ADDKEYMAP( '$', TEXT("Dollar") );
+	ADDKEYMAP( '!', TEXT("Exclamation") );
+	ADDKEYMAP( '(', TEXT("LeftParantheses") );
+	ADDKEYMAP( ')', TEXT("RightParantheses") );
+	ADDKEYMAP( '"', TEXT("Quote") );
+	ADDKEYMAP( '_', TEXT("Underscore") );
+	ADDKEYMAP( 224, TEXT("A_AccentGrave") );
+	ADDKEYMAP( 231, TEXT("C_Cedille") );
+	ADDKEYMAP( 233, TEXT("E_AccentAigu") );
+	ADDKEYMAP( 232, TEXT("E_AccentGrave") );
 
 	return NumMappings;
 }
@@ -801,17 +822,17 @@ bool FGenericPlatformMisc::IsRunningOnBattery()
 
 FGuid FGenericPlatformMisc::GetMachineId()
 {
-	FGuid MachineId;
+	static FGuid MachineId;
 	FString MachineIdStr;
 
 	// Check to see if we already have a valid machine ID to use
-	if( !GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) || !FGuid::Parse( MachineIdStr, MachineId ) )
+	if( !MachineId.IsValid() && (!FPlatformMisc::GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) || !FGuid::Parse( MachineIdStr, MachineId )) )
 	{
 		// No valid machine ID, generate and save a new one
 		MachineId = FGuid::NewGuid();
 		MachineIdStr = MachineId.ToString( EGuidFormats::Digits );
 
-		if( !SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) )
+		if( !FPlatformMisc::SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) )
 		{
 			// Failed to persist the machine ID - reset it to zero to avoid returning a transient value
 			MachineId = FGuid();
@@ -823,14 +844,14 @@ FGuid FGenericPlatformMisc::GetMachineId()
 
 FString FGenericPlatformMisc::GetEpicAccountId()
 {
-	FString AccountId;
-	GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
-	return AccountId;
+	FString EpicAccountId;
+	FPlatformMisc::GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), EpicAccountId );
+	return EpicAccountId;
 }
 
 void FGenericPlatformMisc::SetEpicAccountId( const FString& AccountId )
 {
-	SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
+	FPlatformMisc::SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
 }
 
 const TCHAR* FGenericPlatformMisc::GetEngineMode()
@@ -840,4 +861,9 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 		GIsEditor ? TEXT( "Editor" ) :
 		IsRunningDedicatedServer() ? TEXT( "Server" ) :
 		TEXT( "Game" );
+}
+
+void FGenericPlatformMisc::PlatformPreInit()
+{
+	FGenericCrashContext::Initialize();
 }

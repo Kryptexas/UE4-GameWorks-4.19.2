@@ -14,8 +14,8 @@ FString UExporter::CurrentFilename(TEXT(""));
 
 TSet< TWeakObjectPtr<UExporter> > UExporter::RegisteredExporters;
 
-UExporter::UExporter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UExporter::UExporter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	if ( HasAnyFlags(RF_ClassDefaultObject) )
 	{

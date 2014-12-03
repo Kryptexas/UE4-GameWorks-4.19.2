@@ -223,20 +223,10 @@ void RHIPrivateBeginFrame()
 // The current shader platform.
 //
 
-RHI_API EShaderPlatform GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
+RHI_API EShaderPlatform GMaxRHIShaderPlatform = SP_PCD3D_SM5;
 
 /** The maximum feature level supported on this machine */
-RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
-
-RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel()
-{
-	return GMaxRHIFeatureLevelValue;
-}
-
-RHI_API EShaderPlatform GetMaxRHIShaderPlatform()
-{
-	return GMaxRHIShaderPlatformValue;
-}
+RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
 FName FeatureLevelNames[] = 
 {
@@ -288,6 +278,7 @@ static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
+static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
@@ -320,6 +311,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_OPENGL_ES2_IOS;
 	case SP_METAL:
 		return NAME_SF_METAL;
+	case SP_METAL_MRT:
+		return NAME_SF_METAL_MRT;
 	case SP_OPENGL_ES31_EXT:
 		return NAME_GLSL_310_ES_EXT;
 
@@ -344,6 +337,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_OPENGL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
 	if (ShaderFormat == NAME_OPENGL_ES2_IOS)	return SP_OPENGL_ES2_IOS;
 	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
+	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
 	return SP_NumPlatforms;
 }

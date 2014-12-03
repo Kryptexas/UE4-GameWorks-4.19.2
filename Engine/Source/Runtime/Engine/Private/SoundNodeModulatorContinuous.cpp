@@ -5,6 +5,7 @@
 #include "SoundDefinitions.h"
 #include "DistributionHelpers.h"
 #include "Sound/SoundNodeModulatorContinuous.h"
+#include "Distributions/DistributionFloatSoundParameter.h"
 
 float FModulatorContinuousParams::GetValue(const FActiveSound& ActiveSound) const
 {
@@ -42,8 +43,8 @@ float FModulatorContinuousParams::GetValue(const FActiveSound& ActiveSound) cons
 /*-----------------------------------------------------------------------------
 	USoundNodeModulatorContinuous implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeModulatorContinuous::USoundNodeModulatorContinuous(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeModulatorContinuous::USoundNodeModulatorContinuous(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -16,16 +16,16 @@ FStringAssetReference::FStringAssetReference(const UObject* InObject)
 bool FStringAssetReference::Serialize(FArchive& Ar)
 {
 #if WITH_EDITOR
-	if (Ar.IsSaving() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceSaving.IsBound())
+	if (Ar.IsSaving() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceSaving.IsBound())
 	{
-		AssetLongPathname = FCoreDelegates::StringAssetReferenceSaving.Execute(AssetLongPathname);
+		AssetLongPathname = FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
 	Ar << *this;
 #if WITH_EDITOR
-	if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
+	if (Ar.IsLoading() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
 	{
-		FCoreDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
+		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
 
@@ -115,7 +115,7 @@ UObject *FStringAssetReference::ResolveObject() const
 	FString FullPath = ToString();
 	FoundObject = StaticFindObject( UObject::StaticClass(), NULL, *FullPath);
 
-	UObjectRedirector* Redir = Cast<UObjectRedirector>(FoundObject);
+	UObjectRedirector* Redir = dynamic_cast<UObjectRedirector*>(FoundObject);
 	if (Redir)
 	{
 		// If we found a redirector, follow it

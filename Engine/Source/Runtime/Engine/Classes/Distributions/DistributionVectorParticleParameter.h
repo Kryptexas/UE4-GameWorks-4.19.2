@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions/DistributionVectorParameterBase.h"
 #include "DistributionVectorParticleParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)

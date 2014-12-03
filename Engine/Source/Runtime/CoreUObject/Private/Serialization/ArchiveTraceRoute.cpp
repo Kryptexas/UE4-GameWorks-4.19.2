@@ -311,21 +311,21 @@ FArchive& FArchiveTraceRoute::operator<<( class UObject*& Obj )
 			// now record the references between this object and the one referencing it
 			if ( !Record )
 			{
-				ReferencerNode->ReferencedObjects.Add(Obj, FTraceRouteRecord(CurrentObjectNode));
+				ReferencerNode->ReferencedObjects.Add(Obj, FTraceRouteRecord(CurrentObjectNode, GetSerializedProperty()));
 			}
 			else
 			{
-				Record->Add();
+				Record->Add(GetSerializedProperty());
 			}
 
 			Record = CurrentObjectNode->ReferencerRecords.Find(CurrentReferencer);
 			if ( !Record )
 			{
-				CurrentObjectNode->ReferencerRecords.Add(CurrentReferencer, FTraceRouteRecord(ReferencerNode));
+				CurrentObjectNode->ReferencerRecords.Add(CurrentReferencer, FTraceRouteRecord(ReferencerNode, GetSerializedProperty()));
 			}
 			else
 			{
-				Record->Add();
+				Record->Add(GetSerializedProperty());
 			}
 		}
 

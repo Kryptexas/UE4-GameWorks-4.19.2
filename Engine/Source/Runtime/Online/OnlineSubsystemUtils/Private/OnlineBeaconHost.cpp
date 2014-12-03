@@ -4,8 +4,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/DataChannel.h"
 
-AOnlineBeaconHost::AOnlineBeaconHost(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+AOnlineBeaconHost::AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));
 }
@@ -344,8 +344,8 @@ AOnlineBeaconHost::FOnBeaconConnected& AOnlineBeaconHost::OnBeaconConnected(cons
 }
 
 
-AOnlineBeaconHostObject::AOnlineBeaconHostObject(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+AOnlineBeaconHostObject::AOnlineBeaconHostObject(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	BeaconTypeName(TEXT("UNDEFINED"))
 {
 	PrimaryActorTick.bCanEverTick = true;

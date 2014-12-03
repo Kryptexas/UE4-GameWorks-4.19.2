@@ -154,7 +154,7 @@ void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContex
 
 void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, Downsample, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, Downsample);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -212,7 +212,8 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 
 	// check if we have to clear the whole surface.
 	// Otherwise perform the clear when the dest rectangle has been computed.
-	if (Context.View.GetFeatureLevel() == ERHIFeatureLevel::ES2)
+	auto FeatureLevel = Context.View.GetFeatureLevel();
+	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
 	{
 		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bHasCleared = true;

@@ -72,6 +72,8 @@ static TGlobalResource<FScreenRectangleIndexBuffer> GScreenRectangleIndexBuffer;
 
 /** Vertex declaration for the 2D screen rectangle. */
 TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+/** Vertex declaration for vertex shaders that don't require any inputs (eg. generated via vertex ID). */
+TGlobalResource<FEmptyVertexDeclaration> GEmptyVertexDeclaration;
 
 /** Uniform buffer for computing the vertex positional and UV adjustments in the vertex shader. */
 BEGIN_UNIFORM_BUFFER_STRUCT( FDrawRectangleParameters,)

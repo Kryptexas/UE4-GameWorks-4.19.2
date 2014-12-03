@@ -442,6 +442,10 @@ public:
 
 	/** Checks if given graph contains a delegate signature */
 	static bool IsDelegateSignatureGraph(const UEdGraph* Graph);
+
+	/** Checks if given graph is owned by a Math Expression node */
+	static bool IsMathExpressionGraph(const UEdGraph* InGraph);
+
 	/**
 	 * Gets a list of pins that should hidden for a given function
 	 *
@@ -486,6 +490,14 @@ public:
 	 * @param [in,out]	VisibleVariables			The visible variables will be appened to this array.
 	 */
 	static void GetNewVariablesOfType( const UBlueprint* Blueprint, const FEdGraphPinType& Type, TArray<FName>& OutVars);
+
+	/**
+	 * Gets local variables of specified type
+	 *
+	 * @param 			FEdGraphPinType	 			Type of variables to look for
+	 * @param [in,out]	VisibleVariables			The visible variables will be appened to this array.
+	 */
+	static void GetLocalVariablesOfType( const UEdGraph* Graph, const FEdGraphPinType& Type, TArray<FName>& OutVars);
 
 	/**
 	 * Adds a member variable to the blueprint.  It cannot mask a variable in any superclass.
@@ -562,6 +574,17 @@ public:
 	static UEdGraph* FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope);
 
 	/**
+	 * Adds a local variable to the function graph.  It cannot mask a member variable or a variable in any superclass.
+	 *
+	 * @param	NewVarName	Name of the new variable.
+	 * @param	NewVarType	Type of the new variable.
+	 * @param	DefaultValue	Default value stored as string
+	 *
+	 * @return	true if it succeeds, false if it fails.
+	 */
+	static bool AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName& InNewVarName, const FEdGraphPinType& InNewVarType);
+
+	/**
 	 * Removes a member variable if it was declared in this blueprint and not in a base class.
 	 *
 	 * @param	InBlueprint			The Blueprint the local variable can be found in
@@ -578,6 +601,17 @@ public:
 	 * @return					The local variable description
 	 */
 	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName);
+
+	/**
+	 * Returns a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InScopeGraph		Local variable's graph
+	 * @param InVariableName	Name of the variable to search for
+	 * @param OutFunctionEntry	Optional output parameter. If not null, the found function entry is returned.
+	 * @return					The local variable description
+	 */
+	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
 
 	/**
 	 * Returns a local variable
@@ -609,6 +643,16 @@ public:
 	 * @return					The Guid associated with the local variable
 	 */
 	static FGuid FindLocalVariableGuidByName(UBlueprint* InBlueprint, const UStruct* InScope, const FName InVariableName);
+
+	/**
+	 * Finds a local variable Guid using the variable's name
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InScopeGraph		Local variable's graph
+	 * @param InVariableGuid	Local variable's name to search for
+	 * @return					The Guid associated with the local variable
+	 */
+	static FGuid FindLocalVariableGuidByName(UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName InVariableName);
 
 	/**
 	 * Rename a local variable

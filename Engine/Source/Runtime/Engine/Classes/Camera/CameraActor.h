@@ -7,8 +7,8 @@
 /** 
  * A camera that can be placed in a level.
  */
-UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, Blueprintable)
-class ACameraActor : public AActor
+UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), showcategories=("Input|MouseInput", "Input|TouchInput"), Blueprintable)
+class ENGINE_API ACameraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -18,17 +18,21 @@ private:
 	UPROPERTY(Category="AutoPlayerActivation", EditAnywhere)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoActivateForPlayer;
 
-public:
+private_subobject:
+
 	/** The camera component for this camera */
-	UPROPERTY(Category=CameraActor, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCameraComponent> CameraComponent;
+	DEPRECATED_FORGAME(4.6, "CameraComponent should not be accessed directly, please use GetCameraComponent() function instead. CameraComponent will soon be private and your code will not compile.")
+	UPROPERTY(Category = CameraActor, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* CameraComponent;
+
+public:
 
 	/** If this CameraActor is being used to preview a CameraAnim in the editor, this is the anim being previewed. */
 	TWeakObjectPtr<class UCameraAnim> PreviewedCameraAnim;
 
 	/** Returns index of the player for whom we auto-activate, or INDEX_NONE (-1) if disabled. */
 	UFUNCTION(BlueprintCallable, Category="AutoPlayerActivation")
-	ENGINE_API int32 GetAutoActivatePlayerIndex() const;
+	int32 GetAutoActivatePlayerIndex() const;
 
 private:
 
@@ -50,14 +54,17 @@ private:
 public:
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	ENGINE_API virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
 
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End UObject interface
 	
 	// Begin AActor interface
-	ENGINE_API virtual void BeginPlay() override;
+	virtual void BeginPlay() override;
 	// End AActor interface
+
+	/** Returns CameraComponent subobject **/
+	class UCameraComponent* GetCameraComponent() const;
 };

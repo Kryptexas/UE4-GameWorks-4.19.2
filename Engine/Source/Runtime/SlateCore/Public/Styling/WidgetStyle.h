@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "HAL/Platform.h"
+#include "Math/Color.h"
 
+template< typename ObjectType > class TAttribute;
+struct FSlateColor;
 
 /**
  * Contains info about those aspects of widget appearance that should be propagated hierarchically.
@@ -57,7 +61,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see GetForegroundColor
 	 */
-	FWidgetStyle& SetForegroundColor( const TAttribute<struct FSlateColor>& InForeground );
+	FWidgetStyle& SetForegroundColor( const TAttribute<FSlateColor>& InForeground );
 
 public:
 

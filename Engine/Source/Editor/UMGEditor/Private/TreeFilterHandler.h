@@ -22,15 +22,15 @@ public:
 	}
 
 	/** Sets the TreeView to be filtered. */
-	void SetTreeView(STreeView<ItemType>* TreeView)
+	void SetTreeView(STreeView<ItemType>* InTreeView)
 	{
-		this->TreeView = TreeView;
+		TreeView = InTreeView;
 	}
 
 	/** Sets the filter which will be used to filter the items in the TreeView. */
-	void SetFilter(IFilter<ItemType>* Filter)
+	void SetFilter(IFilter<ItemType>* InFilter)
 	{
-		this->Filter = Filter;
+		Filter = InFilter;
 	}
 
 	/** 
@@ -38,19 +38,19 @@ public:
 	 * @param RootItems		An array of source root items to be displayed by the tree.
 	 * @param TreeRootItems	The array of root items which are set as the ItemsSource of the tree. This array will be modified to reflect any filtering.
 	 */
-	void SetRootItems(TArray<ItemType>* RootItems, TArray<ItemType>* TreeRootItems)
+	void SetRootItems(TArray<ItemType>* InRootItems, TArray<ItemType>* InTreeRootItems)
 	{
-		this->RootItems = RootItems;
-		this->TreeRootItems = TreeRootItems;
+		RootItems = InRootItems;
+		TreeRootItems = InTreeRootItems;
 	}
 
 	/**
 	 * Sets the delegate which should be used for traversing the children of the nodes in
 	 * the tree.
 	 */
-	void SetGetChildrenDelegate(FOnGetChildren GetChildrenDelegate)
+	void SetGetChildrenDelegate(FOnGetChildren InGetChildrenDelegate)
 	{
-		this->GetChildrenDelegate = GetChildrenDelegate;
+		GetChildrenDelegate = InGetChildrenDelegate;
 	}
 
 	/** Gets whether or not filtering is enabled for the TreeView. */
@@ -63,9 +63,9 @@ public:
 	 * Sets whether or not filtering the tree is enabled. Calling this DOES NOT refresh the tree,
 	 * this must be done by calling RefreshAndFilterTree.
 	 */
-	void SetIsEnabled(bool bIsEnabled)
+	void SetIsEnabled(bool bInIsEnabled)
 	{
-		this->bIsEnabled = bIsEnabled;
+		bIsEnabled = bInIsEnabled;
 	}
 
 	/** Removes any cached references to an item. */

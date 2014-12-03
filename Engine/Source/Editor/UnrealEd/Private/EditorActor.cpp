@@ -85,8 +85,8 @@ public:
 	}
 };
 
-UUnrealEdEngine::UUnrealEdEngine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdEngine::UUnrealEdEngine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -234,6 +234,8 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 	// Create a location offset.
 	const FVector LocationOffset = CreateLocationOffset( bDuplicate, bOffsetLocations );
 
+	FCachedActorLabels ActorLabels(InWorld);
+
 	// Transact the current selection set.
 	USelection* SelectedActors = GetSelectedActors();
 	SelectedActors->Modify();
@@ -251,7 +253,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 	const TCHAR* Paste = *PasteString;
 
 	// Import the actors.
-	ULevelFactory* Factory = new ULevelFactory(FPostConstructInitializeProperties());
+	ULevelFactory* Factory = new ULevelFactory(FObjectInitializer());
 	Factory->FactoryCreateText( ULevel::StaticClass(), InWorld->GetCurrentLevel(), InWorld->GetCurrentLevel()->GetFName(), RF_Transactional, NULL, bDuplicate ? TEXT("move") : TEXT("paste"), Paste, Paste+FCString::Strlen(Paste), GWarn );
 
 	// Fire ULevel::LevelDirtiedEvent when falling out of scope.
@@ -273,8 +275,9 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 		Actor->TeleportTo(Actor->GetActorLocation() + ActorLocationOffset, Actor->GetActorRotation(), false, true);
 
 		// Re-label duplicated actors so that labels become unique
-		GEditor->SetActorLabelUnique(Actor, Actor->GetActorLabel());
-		
+		GEditor->SetActorLabelUnique(Actor, Actor->GetActorLabel(), &ActorLabels);
+		ActorLabels.Add(Actor->GetActorLabel());
+
 		GEditor->Layers->InitializeNewActorLayers( Actor );
 
 			// Ensure any layers this actor belongs to are visible
@@ -1678,9 +1681,9 @@ public:
 
 		if( OutStaticMeshActor.IsStaticMeshActor() )
 		{
-			if ( OutStaticMeshActor.StaticMeshActor->StaticMeshComponent )
+			if ( OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent() )
 			{
-				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->StaticMeshComponent->StaticMesh;
+				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent()->StaticMesh;
 			}
 		}
 		return OutStaticMeshActor.HasStaticMesh();
@@ -1773,10 +1776,10 @@ void UUnrealEdEngine::edactSelectMatchingSkeletalMesh(bool bAllClasses)
 
 		// Look for SkelMeshActor
 		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
-		if(SkelMeshActor && SkelMeshActor->SkeletalMeshComponent)
+		if(SkelMeshActor && SkelMeshActor->GetSkeletalMeshComponent())
 		{
 			bSelectSkelMeshActors = true;
-			SelectedMeshes.AddUnique(SkelMeshActor->SkeletalMeshComponent->SkeletalMesh);
+			SelectedMeshes.AddUnique(SkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh);
 			WorldList.AddUnique(Actor->GetWorld());			
 		}
 
@@ -1823,8 +1826,8 @@ void UUnrealEdEngine::edactSelectMatchingSkeletalMesh(bool bAllClasses)
 			{
 				ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
 				if( SkelMeshActor && 
-					SkelMeshActor->SkeletalMeshComponent && 
-					SelectedMeshes.Contains(SkelMeshActor->SkeletalMeshComponent->SkeletalMesh) )
+					SkelMeshActor->GetSkeletalMeshComponent() && 
+					SelectedMeshes.Contains(SkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh) )
 				{
 					bSelectActor = true;
 				}
@@ -1950,9 +1953,9 @@ void UUnrealEdEngine::edactSelectMatchingEmitter()
 
 		AEmitter* Emitter = Cast<AEmitter>( Actor );
 		
-		if ( Emitter && Emitter->ParticleSystemComponent && Emitter->ParticleSystemComponent->Template )
+		if ( Emitter && Emitter->GetParticleSystemComponent() && Emitter->GetParticleSystemComponent()->Template )
 		{
-			SelectedParticleSystemTemplates.AddUnique( Emitter->ParticleSystemComponent->Template );
+			SelectedParticleSystemTemplates.AddUnique( Emitter->GetParticleSystemComponent()->Template );
 			WorldList.AddUnique( Actor->GetWorld() );
 		}
 	}
@@ -1974,7 +1977,7 @@ void UUnrealEdEngine::edactSelectMatchingEmitter()
 		AEmitter* ActorAsEmitter = *ActorIterator;
 		if ( !ActorAsEmitter->IsHiddenEd() )
 		{
-			if ( ActorAsEmitter->ParticleSystemComponent && SelectedParticleSystemTemplates.Contains( ActorAsEmitter->ParticleSystemComponent->Template ) )
+			if ( ActorAsEmitter->GetParticleSystemComponent() && SelectedParticleSystemTemplates.Contains( ActorAsEmitter->GetParticleSystemComponent()->Template ) )
 			{
 				SelectActor( ActorAsEmitter, true, false );
 			}

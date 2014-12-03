@@ -62,8 +62,8 @@ protected:
 /////////////////////////////////////////////////////
 // UAnimStateTransitionNode
 
-UAnimStateTransitionNode::UAnimStateTransitionNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimStateTransitionNode::UAnimStateTransitionNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	CrossfadeDuration = 0.2f;

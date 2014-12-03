@@ -35,7 +35,39 @@ struct FAnalyticsEventAttribute
 	template <typename T>
 	FAnalyticsEventAttribute(const FString& InName, T InValue)
 		:AttrName(InName)
-		,AttrValue(TTypeToString<T>::ToString(InValue))
+		, AttrValue(TTypeToString<T>::ToString(InValue))
 	{
+	}
+
+	// Allow arrays to be used as values formatted as comma delimited lists
+	template <typename T>
+	FAnalyticsEventAttribute(const FString& InName, const TArray<T>& InValueArray)
+		:AttrName(InName)
+		,AttrValue(FString())
+	{
+		// Serialize the array into "value1,value2,..." format
+		for (T& Value : InValueArray)
+		{
+			AttrValue += TTypeToString<T>::ToString(Value) + ",";
+		}
+
+		// Remove the trailing comma
+		AttrValue = AttrValue.LeftChop(1);
+	}
+
+	// Allow maps to be used as values formatted as comma delimited key-value pairs
+	template <typename T>
+	FAnalyticsEventAttribute(const FString& InName, const TMap<FString, T>& InValueMap)
+		:AttrName(InName)
+		,AttrValue(FString())
+	{
+		// Serialize the map into "key:value,..." format
+		for (auto& KVP : InValueMap)
+		{
+			AttrValue += KVP.Key + ":" + TTypeToString<T>::ToString(KVP.Value) + ",";
+		}
+
+		// Remove the trailing comma
+		AttrValue = AttrValue.LeftChop(1);
 	}
 };

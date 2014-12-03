@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformOutputDevices.h"
 
 // generic version
 typedef FGenericPlatformOutputDevices FPlatformOutputDevices;

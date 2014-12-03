@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 
-UNavRelevantComponent::UNavRelevantComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavRelevantComponent::UNavRelevantComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bNavigationRelevant = true;
 }
@@ -32,6 +32,11 @@ FBox UNavRelevantComponent::GetNavigationBounds() const
 bool UNavRelevantComponent::IsNavigationRelevant() const
 {
 	return bNavigationRelevant;
+}
+
+void UNavRelevantComponent::UpdateNavigationBounds()
+{
+	CalcBounds();
 }
 
 void UNavRelevantComponent::CalcBounds()

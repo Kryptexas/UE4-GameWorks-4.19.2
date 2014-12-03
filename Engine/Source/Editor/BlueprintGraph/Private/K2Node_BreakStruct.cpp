@@ -5,6 +5,7 @@
 #include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 
 #define LOCTEXT_NAMESPACE "K2Node_BreakStruct"
 
@@ -59,8 +60,7 @@ public:
 			// standard register net
 			else
 			{
-				Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-				Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+				Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 			}
 			Context.NetMap.Add(Net, Term);
 		}
@@ -79,8 +79,7 @@ public:
 
 		if (BoundProperty != NULL)
 		{
-			FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			Term->CopyFromPin(Net, Net->PinName);
+			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName);
 			Term->AssociatedVarProperty = BoundProperty;
 			Context.NetMap.Add(Net, Term);
 			Term->Context = ContextTerm;
@@ -121,7 +120,7 @@ public:
 };
 
 
-UK2Node_BreakStruct::UK2Node_BreakStruct(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UK2Node_BreakStruct::UK2Node_BreakStruct(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 
@@ -323,6 +322,19 @@ void UK2Node_BreakStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 		BreakNode->StructType = NonConstStructPtr.Get();
 	};
 
+	auto CategoryOverrideLambda = [](FBlueprintActionContext const& Context, IBlueprintNodeBinder::FBindingSet const& /*Bindings*/, FBlueprintActionUiSpec* UiSpecOut, TWeakObjectPtr<UScriptStruct> StructPtr)
+	{
+		for (UEdGraphPin* Pin : Context.Pins)
+		{
+			UScriptStruct* PinStruct = Cast<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
+			if ((PinStruct != nullptr) && (StructPtr.Get() == PinStruct) && (Pin->Direction == EGPD_Output))
+			{
+				UiSpecOut->Category = LOCTEXT("EmptyCategory", "|"); 
+				break;
+			}
+		}
+	};
+
 	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
 	{
 		UScriptStruct const* Struct = (*StructIt);
@@ -344,6 +356,7 @@ void UK2Node_BreakStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 		check(NodeSpawner != nullptr);
 		TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
 		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeStructLambda, NonConstStructPtr);
+		NodeSpawner->DynamicUiSignatureGetter = UBlueprintFieldNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(CategoryOverrideLambda, NonConstStructPtr);
 
 		// this struct could belong to a class, or is a user defined struct 
 		// (asset), that's why we want to make sure to register it along with 

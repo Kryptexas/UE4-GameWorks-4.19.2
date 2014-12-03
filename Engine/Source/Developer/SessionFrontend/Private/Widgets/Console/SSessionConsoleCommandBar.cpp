@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
+#include "SSuggestionTextBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SSessionConsoleCommandBar"
@@ -126,7 +127,7 @@ void SSessionConsoleCommandBar::HandleInputTextShowingSuggestions( const FString
 }
 
 
-FReply SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked( )
+FReply SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked()
 {
 	if (OnPromoteToShortcutClicked.IsBound())
 	{
@@ -139,7 +140,7 @@ FReply SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked( )
 }
 
 
-FReply SSessionConsoleCommandBar::HandleSendButtonClicked( )
+FReply SSessionConsoleCommandBar::HandleSendButtonClicked()
 {
 	SubmitCommand(InputTextBox->GetText().ToString());
 

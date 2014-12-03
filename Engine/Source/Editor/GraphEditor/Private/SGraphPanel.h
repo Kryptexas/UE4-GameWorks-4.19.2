@@ -98,7 +98,7 @@ public:
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	// End of SWidget interface
@@ -240,8 +240,11 @@ protected:
 	TAttribute<bool> ShowGraphStateOverlay;
 
 private:
-	/** Map of recently added nodes for the panel */
-	TMap<class UEdGraphNode*, FEdGraphEditAction> UserAddedNodes;
+	/** Ordered list of user actions, as they came in */
+	TArray<FEdGraphEditAction> UserActions;
+
+	/** Map of recently added nodes for the panel (maps from added nodes to UserActions indices) */
+	TMap<const class UEdGraphNode*, int32> UserAddedNodes;
 
 	FOnGraphChanged::FDelegate MyRegisteredGraphChangedDelegate;
 private:

@@ -1,5 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorUniform.h"
 
 /**
  * Helper class for restoring default values on UDistribution objects in particle modules.

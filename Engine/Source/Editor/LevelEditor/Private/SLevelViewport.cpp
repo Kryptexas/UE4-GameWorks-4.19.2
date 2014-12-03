@@ -25,12 +25,16 @@
 #include "LevelUtils.h"
 #include "HighresScreenshotUI.h"
 #include "SCaptureRegionWidget.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "SceneOutlinerTreeItems.h"
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SScissorRectBox.h"
+#include "SDPIScaler.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -123,6 +127,7 @@ void SLevelViewport::Construct(const FArguments& InArgs)
 
 	ParentLayout = InArgs._ParentLayout;
 	ParentLevelEditor = InArgs._ParentLevelEditor;
+	ConfigKey = InArgs._ConfigKey;
 
 	// Store border brushes for differentiating between active and inactive viewports
 	ActiveBorder = FEditorStyle::GetBrush( "LevelViewport.ActiveViewportBorder" );
@@ -280,7 +285,6 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	FEngineShowFlags GameShowFlags(ESFIM_Game);
 		
 	// Use config key if it exists to set up the level viewport client
-	FString ConfigKey = InArgs._ConfigKey;
 	if(!ConfigKey.IsEmpty())
 	{
 		const FLevelEditorViewportInstanceSettings* const ViewportInstanceSettingsPtr = GetDefault<ULevelEditorViewportSettings>()->GetViewportInstanceSettings(ConfigKey);
@@ -371,20 +375,20 @@ float SLevelViewport::GetGameViewportDPIScale() const
 {
 	if ( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
 	{
-		return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( ActiveViewport->GetSize() );
+		return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(ActiveViewport->GetSize());
 	}
 
 	return 1.0f;
 }
 
-FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
 	if( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
 	{
 		// Only process commands for pie when a play world is active
-		FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings( InKeyboardEvent );
+		FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings( InKeyEvent );
 
 		// Always handle commands in pie so they arent bubbled to editor only widgets
 		Reply = FReply::Handled();
@@ -392,7 +396,7 @@ FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 	
 	if( !IsPlayInEditorViewportActive() )
 	{
-		Reply = SEditorViewport::OnKeyDown(MyGeometry,InKeyboardEvent);
+		Reply = SEditorViewport::OnKeyDown(MyGeometry,InKeyEvent);
 
 
 		// If we are in immersive mode and the event was not handled, we will check to see if the the 
@@ -404,7 +408,7 @@ FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 			TSharedPtr<SLevelEditor> ParentLevelEditorSharedPtr = ParentLevelEditor.Pin();
 			if( ParentLevelEditorSharedPtr.IsValid() )
 			{
-				Reply = ParentLevelEditorSharedPtr->OnKeyDownInViewport( MyGeometry, InKeyboardEvent );
+				Reply = ParentLevelEditorSharedPtr->OnKeyDownInViewport( MyGeometry, InKeyEvent );
 			}
 		}
 	}
@@ -807,7 +811,7 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 	// viewport with Slate widgets that are part of the game, don't throttle.
 	if ( bPIEContainsFocus != bContainsFocus )
 	{
-		IConsoleVariable* AllowThrottling = IConsoleManager::Get().FindConsoleVariable(TEXT("Slate.bAllowThrottling"));
+		static IConsoleVariable* AllowThrottling = IConsoleManager::Get().FindConsoleVariable(TEXT("Slate.bAllowThrottling"));
 		check(AllowThrottling);
 
 		if ( bContainsFocus )
@@ -1265,7 +1269,7 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 {
 	CommandList.MapAction( 
 		FLevelViewportCommands::Get().UseDefaultShowFlags,
-		FExecuteAction::CreateSP( this, &SLevelViewport::OnUseDefaultShowFlags ) );
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnUseDefaultShowFlags, false ) );
 
 	const TArray<FShowFlagData>& ShowFlagData = GetShowFlagMenuItems();
 
@@ -1831,7 +1835,7 @@ bool SLevelViewport::IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const
 	return LevelViewportClient->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
 }
 
-void SLevelViewport::OnUseDefaultShowFlags()
+void SLevelViewport::OnUseDefaultShowFlags(bool bUseSavedDefaults)
 {
 	// cache off the current viewmode as it gets trashed when applying FEngineShowFlags()
 	const EViewModeIndex CachedViewMode = LevelViewportClient->GetViewMode();
@@ -1839,11 +1843,35 @@ void SLevelViewport::OnUseDefaultShowFlags()
 	// Setting show flags to the defaults should not stomp on the current viewmode settings.
 	LevelViewportClient->SetGameView(false);
 
+	// Get default save flags
+	FEngineShowFlags EditorShowFlags(ESFIM_Editor);
+	FEngineShowFlags GameShowFlags(ESFIM_Game);
+
+	if (bUseSavedDefaults && !ConfigKey.IsEmpty())
+	{
+		FLevelEditorViewportInstanceSettings ViewportInstanceSettings;
+		ViewportInstanceSettings.ViewportType = LevelViewportClient->ViewportType;
+
+		// Get saved defaults if specified
+		const FLevelEditorViewportInstanceSettings* const ViewportInstanceSettingsPtr = GetDefault<ULevelEditorViewportSettings>()->GetViewportInstanceSettings(ConfigKey);
+		ViewportInstanceSettings = ViewportInstanceSettingsPtr ? *ViewportInstanceSettingsPtr : LoadLegacyConfigFromIni(ConfigKey, ViewportInstanceSettings);
+
+		if (!ViewportInstanceSettings.EditorShowFlagsString.IsEmpty())
+		{
+			EditorShowFlags.SetFromString(*ViewportInstanceSettings.EditorShowFlagsString);
+		}
+
+		if (!ViewportInstanceSettings.GameShowFlagsString.IsEmpty())
+		{
+			GameShowFlags.SetFromString(*ViewportInstanceSettings.GameShowFlagsString);
+		}
+	}
+
 	// this trashes the current viewmode!
-	LevelViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Editor);
+	LevelViewportClient->EngineShowFlags = EditorShowFlags;
 	// Restore the state of SelectionOutline based on user settings
 	LevelViewportClient->EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
-	LevelViewportClient->LastEngineShowFlags = FEngineShowFlags(ESFIM_Game);
+	LevelViewportClient->LastEngineShowFlags = GameShowFlags;
 
 	// re-apply the cached viewmode, as it was trashed with FEngineShowFlags()
 	ApplyViewMode(CachedViewMode, LevelViewportClient->IsPerspective(), LevelViewportClient->EngineShowFlags);
@@ -1851,7 +1879,6 @@ void SLevelViewport::OnUseDefaultShowFlags()
 
 	LevelViewportClient->Invalidate();
 }
-
 
 
 void SLevelViewport::SetKeyboardFocusToThisViewport()
@@ -3197,7 +3224,7 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, 
 
 	// Remove keyboard focus to send a focus lost message to the widget to clean up any saved state from the viewport interface thats about to be swapped out
 	// Focus will be set when the game viewport is registered
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
 
 	ActiveViewport = MakeShareable( new FSceneViewport( PlayClient, ViewportWidget ) );
 	ActiveViewport->SetPlayInEditorViewport( true );
@@ -3387,7 +3414,8 @@ void SLevelViewport::ResetNewLevelViewFlags()
 	const bool bIsPerspective = LevelViewportClient->IsPerspective();
 	LevelViewportClient->SetViewMode(bIsPerspective ? FEditorViewportClient::DefaultPerspectiveViewMode : FEditorViewportClient::DefaultOrthoViewMode);
 
-	OnUseDefaultShowFlags();
+	const bool bUseSavedDefaults = true;
+	OnUseDefaultShowFlags(bUseSavedDefaults);
 }
 
 void SLevelViewport::EndPlayInEditorSession()

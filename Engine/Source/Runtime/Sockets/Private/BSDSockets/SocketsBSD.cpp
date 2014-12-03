@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SocketsBSD.cpp: Implements the FSocketBSD class.
-=============================================================================*/
-
 #include "SocketsPrivatePCH.h"
 
 #if PLATFORM_HAS_BSD_SOCKETS
@@ -202,8 +198,10 @@ bool FSocketBSD::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInte
 	SOCKLEN Size = sizeof(sockaddr_in);
 	sockaddr& Addr = *(FInternetAddrBSD&)Source;
 
+	const int TranslatedFlags = TranslateFlags(Flags);
+
 	// Read into the buffer and set the source address
-	BytesRead = recvfrom(Socket, (char*)Data, BufferSize, Flags, &Addr, &Size);
+	BytesRead = recvfrom(Socket, (char*)Data, BufferSize, TranslatedFlags, &Addr, &Size);
 //	NETWORK_PROFILER(FSocket::RecvFrom(Data,BufferSize,BytesRead,Source));
 
 	bool Result = BytesRead >= 0;
@@ -218,7 +216,8 @@ bool FSocketBSD::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInte
 
 bool FSocketBSD::Recv(uint8* Data, int32 BufferSize, int32& BytesRead, ESocketReceiveFlags::Type Flags)
 {
-	BytesRead = recv(Socket, (char*)Data, BufferSize, Flags);
+	const int TranslatedFlags = TranslateFlags(Flags);
+	BytesRead = recv(Socket, (char*)Data, BufferSize, TranslatedFlags);
 
 //	NETWORK_PROFILER(FSocket::Recv(Data,BufferSize,BytesRead));
 

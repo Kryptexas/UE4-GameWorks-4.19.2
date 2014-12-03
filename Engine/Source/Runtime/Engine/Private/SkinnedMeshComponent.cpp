@@ -12,6 +12,7 @@
 #include "AnimationUtils.h"
 #include "AnimTree.h"
 #include "Animation/VertexAnim/MorphTarget.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 
@@ -61,11 +62,11 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || (GIsEditor && ShouldCPUSkin());
 			if(bIsCPUSkinned)
 			{
-				MeshObject = ::new FSkeletalMeshObjectCPUSkin(this,SkelMeshResource);
+				MeshObject = ::new FSkeletalMeshObjectCPUSkin(this, SkelMeshResource, SceneFeatureLevel);
 			}
 			else
 			{
-				MeshObject = ::new FSkeletalMeshObjectGPUSkin(this,SkelMeshResource);
+				MeshObject = ::new FSkeletalMeshObjectGPUSkin(this, SkelMeshResource, SceneFeatureLevel);
 			}
 
 			//Allow the editor a chance to manipulate it before its added to the scene
@@ -162,7 +163,7 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		{
 			// for invisible bones, I'll still need to update the transform, so that rendering can use it for skinning
 			uint8 const * BoneVisibilityState = BoneVisibilityStates.GetData();
-			FTransform * SpaceBase = SpaceBases.GetData();
+			FTransform* SpaceBase = SpaceBases.GetData();
 			for (int32 BoneIndex=0; BoneIndex<BoneVisibilityStates.Num(); ++BoneIndex, ++BoneVisibilityState, ++SpaceBase)
 			{
 				if (*BoneVisibilityState!=BVS_Visible)
@@ -333,7 +334,16 @@ void USkinnedMeshComponent::UpdateSlaveComponent()
 
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
-	return SkeletalMesh ? SkeletalMesh->Materials.Num() : 0;
+	if (Materials.Num() > 0)
+	{
+		return Materials.Num();
+	}
+	else if (SkeletalMesh)
+	{
+		return SkeletalMesh->Materials.Num();
+	}
+
+	return 0;
 }
 
 UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) const
@@ -370,7 +380,8 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrim
 			{
 				TArray<UTexture*> Textures;
 				
-				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+				auto World = GetWorld();
+				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, World ? World->FeatureLevel : GMaxRHIFeatureLevel, false);
 				for(int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++ )
 				{
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
@@ -425,7 +436,7 @@ void USkinnedMeshComponent::RebuildVisibilityArray()
 	}
 }
 
-FBoxSphereBounds USkinnedMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USkinnedMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return CalcMeshBound( FVector::ZeroVector, false, LocalToWorld );
 }
@@ -446,7 +457,7 @@ class UPhysicsAsset* USkinnedMeshComponent::GetPhysicsAsset() const
 	return NULL;
 }
 
-FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset, bool UsePhysicsAsset, const FTransform & LocalToWorld) const
+FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset, bool UsePhysicsAsset, const FTransform& LocalToWorld) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateSkelMeshBounds);
 
@@ -483,6 +494,11 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
+	// Use MasterPoseComponent's PhysicsAsset if told to
+	else if (MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bUseBoundsFromMasterPoseComponent)
+	{
+		NewBounds = MasterPoseComponent->Bounds;
+	}
 #if WITH_EDITOR
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
 	else if(SkeletalMesh && bHasPhysBodies && bCanUsePhysicsAsset)
@@ -498,10 +514,6 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset
 		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
 	}
 	// Use MasterPoseComponent's PhysicsAsset, if we don't have one and it does
-	else if( MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bUseBoundsFromMasterPoseComponent )
-	{
-		NewBounds = MasterPoseComponent->Bounds;
-	}
 	else if(MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bMasterHasPhysBodies)
 	{
 		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld		
@@ -736,6 +748,7 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 		FComponentReregisterContext ReregisterContext(this);
 		check(MeshObject == NULL);
 		SkeletalMesh = InSkelMesh;
+		InvalidateCachedBounds();
 	}
 	
 	// TODO: (LH) find better way to call this 
@@ -1040,7 +1053,7 @@ FName USkinnedMeshComponent::GetSocketBoneName(FName InSocketName)
 }
 
 
-FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) const
+FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, EBoneSpaces::Type Space) const
 {
 	int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -1051,7 +1064,7 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) cons
 	}
 
 	FTransform BoneTransform;
-	if( Space == 1 )
+	if( Space == EBoneSpaces::ComponentSpace )
 	{
 		if(MasterPoseComponent.IsValid())
 		{
@@ -1089,7 +1102,7 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) cons
 }
 
 
-FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) const
+FVector USkinnedMeshComponent::GetBoneLocation(FName BoneName, EBoneSpaces::Type Space) const
 {
 	int32 BoneIndex = GetBoneIndex(BoneName);
 	if( BoneIndex == INDEX_NONE )
@@ -1098,8 +1111,7 @@ FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) co
 		return FVector::ZeroVector;
 	}
 
-	// If space == Local
-	if( Space == 1 )
+	if( Space == EBoneSpaces::ComponentSpace )
 	{
 		if(MasterPoseComponent.IsValid())
 		{
@@ -1122,10 +1134,15 @@ FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) co
 			return SpaceBases[BoneIndex].GetLocation();
 		}
 	}
-	else
+	else if (Space == EBoneSpaces::WorldSpace)
 	{
 		// To support non-uniform scale (via LocalToWorld), use GetBoneMatrix
 		return GetBoneMatrix(BoneIndex).GetOrigin();
+	}
+	else
+	{
+		check(false); // Unknown BoneSpace
+		return FVector::ZeroVector;
 	}
 }
 
@@ -1374,7 +1391,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 			{
 				if (bCachedMatrices)
 				{
-					const FMatrix & RefToLocal = RefToLocals[BoneIndex];
+					const FMatrix& RefToLocal = RefToLocals[BoneIndex];
 					SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
 				}
 				else
@@ -1399,7 +1416,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 
 		if (bCachedMatrices)
 		{
-			const FMatrix & RefToLocal = RefToLocals[BoneIndex];
+			const FMatrix& RefToLocal = RefToLocals[BoneIndex];
 			SkinnedPos = RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcRigidVertex));
 		}
 		else
@@ -1471,7 +1488,7 @@ void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositio
 	//update positions
 	for (int32 ChunkIdx = 0; ChunkIdx < Model.Chunks.Num(); ++ChunkIdx)
 	{
-		const FSkelMeshChunk & Chunk = Model.Chunks[ChunkIdx];
+		const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIdx];
 		const uint32 NumChunkVerts = Chunk.GetNumVertices();
 		bool bHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
 		{
@@ -1698,8 +1715,8 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
-		const FName & CurveName	= (CurveIter).Key();
-		const float & Weight	= (CurveIter).Value();
+		const FName& CurveName	= (CurveIter).Key();
+		const float& Weight	= (CurveIter).Value();
 
 		// If it has a valid weight
 		if(Weight > MinVertexAnimBlendWeight)
@@ -1769,7 +1786,7 @@ void USkinnedMeshComponent::AnimUpdateRateTick()
 	AnimUpdateRateSetParams(bRecentlyRendered, MaxDistanceFactor, bPlayingRootMotion);
 }
 
-void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion)
+void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion)
 {
 	// default rules for setting update rates
 
@@ -1815,7 +1832,7 @@ void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRender
 	}
 }
 
-void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames)
+void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames)
 {
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.

@@ -55,7 +55,7 @@ struct HPersonaBoneProxy : public HHitProxy
 
 	FName BoneName;
 
-	explicit HPersonaBoneProxy(const FName & InBoneName)
+	explicit HPersonaBoneProxy(const FName& InBoneName)
 		:	BoneName( InBoneName )
 	{}
 };
@@ -222,7 +222,7 @@ FSceneView* FAnimationViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily
 	return SceneView;
 }
 
-void FAnimationViewportClient::SetSelectedBackgroundColor(const FLinearColor & RGBColor, bool bSave/*=true*/)
+void FAnimationViewportClient::SetSelectedBackgroundColor(const FLinearColor& RGBColor, bool bSave/*=true*/)
 {
 	SelectedHSVColor = RGBColor.LinearRGBToHSV(); 
 
@@ -277,18 +277,6 @@ void FAnimationViewportClient::OnToggleShowGrid()
 bool FAnimationViewportClient::IsShowingGrid() const
 {
 	return FEditorViewportClient::IsSetShowGridChecked();
-}
-
-void FAnimationViewportClient::OnToggleHighlightOrigin()
-{
-	DrawHelper.AxesLineThickness = 1.0f - DrawHelper.AxesLineThickness;
-
-	ConfigOption->SetHighlightOrigin( DrawHelper.AxesLineThickness != 0.0f );
-}
-
-bool FAnimationViewportClient::IsHighlightingOrigin() const
-{
-	return ( DrawHelper.AxesLineThickness != 0.0f );
 }
 
 void FAnimationViewportClient::OnToggleShowFloor()
@@ -1116,8 +1104,9 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 				//Calculate the new delta rotation
 				FQuat DeltaQuat( BoneSpaceAxis, RotAngle );
+				DeltaQuat.Normalize();
 
-				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat ) ).Rotator();
+				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat )).Rotator();
 
 				if ( SelectedSocket )
 				{
@@ -1314,9 +1303,9 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 		{
 			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest.Last();
 
-			FMatrix BoneMatrix = PreviewSkelMeshComp->GetBoneMatrix(BoneIndex);
+			FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
 
-			return BoneMatrix.RemoveTranslation();
+			return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
 		}
 		else if( PreviewSkelMeshComp->SocketsOfInterest.Num() > 0 )
 		{
@@ -1515,7 +1504,7 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 	}
 }
 
-void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent * MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness/*=0.f*/) const
+void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness/*=0.f*/) const
 {
 	check ( MeshComponent && MeshComponent->SkeletalMesh );
 
@@ -1568,7 +1557,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent * MeshComp
 	}
 }
 
-void FAnimationViewportClient::RenderGizmo(const FTransform & Transform, FPrimitiveDrawInterface* PDI) const
+void FAnimationViewportClient::RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI) const
 {
 	// Display colored coordinate system axes for this joint.
 	const float AxisLength = 3.75f;
@@ -1591,7 +1580,7 @@ void FAnimationViewportClient::RenderGizmo(const FTransform & Transform, FPrimit
 	PDI->DrawLine( Origin, Origin + ZAxis * AxisLength, FColor( 80, 80, 255),SDPG_Foreground, LineThickness); 
 }
 
-void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent * MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const
+void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent* MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const
 {
 	// this BonesOfInterest has to be in MeshComponent base, not Skeleton 
 	if ( MeshComponent && MeshComponent->SkeletalMesh && BonesOfInterest.Num() > 0 )
@@ -1604,7 +1593,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent 
 
 		TArray<FBoneIndexType> RequiredBones;
 
-		const FReferenceSkeleton & RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
+		const FReferenceSkeleton& RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
 		const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
 		const FLinearColor LinearSelectionColor( SelectionColor.IsColorSpecified() ? SelectionColor.GetSpecifiedColor() : FLinearColor::White );
 
@@ -1849,7 +1838,7 @@ TWeakObjectPtr<AWindDirectionalSource> FAnimationViewportClient::CreateWindActor
 
 	check(Wind.IsValid());
 	//initial wind strength value 
-	Wind->Component->Strength = PrevWindStrength;
+	Wind->GetComponent()->Strength = PrevWindStrength;
 	return Wind;
 }
 
@@ -1869,7 +1858,7 @@ void FAnimationViewportClient::EnableWindActor(bool bEnableWind)
 	{
 		PrevWindLocation = WindSourceActor->GetActorLocation();
 		PrevWindRotation = WindSourceActor->GetActorRotation();
-		PrevWindStrength = WindSourceActor->Component->Strength;
+		PrevWindStrength = WindSourceActor->GetComponent()->Strength;
 
 		if(World->DestroyActor(WindSourceActor.Get()))
 		{
@@ -1884,7 +1873,7 @@ void FAnimationViewportClient::SetWindStrength( float SliderPos )
 	if(WindSourceActor.IsValid())
 	{
 		//Clamp grid size slider value between 0 - 1
-		WindSourceActor->Component->Strength = FMath::Clamp<float>(SliderPos, 0.0f, 1.0f);
+		WindSourceActor->GetComponent()->Strength = FMath::Clamp<float>(SliderPos, 0.0f, 1.0f);
 		//to apply this new wind strength
 		WindSourceActor->UpdateComponentTransforms();
 	}
@@ -1894,7 +1883,7 @@ float FAnimationViewportClient::GetWindStrengthSliderValue() const
 {
 	if(WindSourceActor.IsValid())
 	{
-		return WindSourceActor->Component->Strength;
+		return WindSourceActor->GetComponent()->Strength;
 	}
 
 	return 0;

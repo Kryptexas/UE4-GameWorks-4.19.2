@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "UK2Node_InputKey"
 
-UK2Node_InputKey::UK2Node_InputKey(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_InputKey::UK2Node_InputKey(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;
@@ -364,11 +364,8 @@ void UK2Node_InputKey::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGr
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
-	{
-		CreateInputKeyEvent(CompilerContext, SourceGraph, GetPressedPin(), IE_Pressed);
-		CreateInputKeyEvent(CompilerContext, SourceGraph, GetReleasedPin(), IE_Released);
-	}
+	CreateInputKeyEvent(CompilerContext, SourceGraph, GetPressedPin(), IE_Pressed);
+	CreateInputKeyEvent(CompilerContext, SourceGraph, GetReleasedPin(), IE_Released);
 }
 
 void UK2Node_InputKey::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
 USoundNodeEnveloper implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeEnveloper::USoundNodeEnveloper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeEnveloper::USoundNodeEnveloper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PitchMin = 1.0f;
 	PitchMax = 1.0f;

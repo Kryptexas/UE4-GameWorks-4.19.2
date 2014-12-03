@@ -2,10 +2,15 @@
 
 #pragma once
 
-#include "MediaSampleBuffer.h"
+#include "Engine/Texture.h"
 #include "MediaTexture.generated.h"
 
 
+// forward declarations
+class IMediaPlayer;
+class IMediaTrack;
+enum EPixelFormat;
+enum TextureAddress;
 class UMediaPlayer;
 
 
@@ -20,11 +25,11 @@ class MEDIAASSETS_API UMediaTexture
 
 	/** The addressing mode to use for the X axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)
-	TEnumAsByte<enum TextureAddress> AddressX;
+	TEnumAsByte<TextureAddress> AddressX;
 
 	/** The addressing mode to use for the Y axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)
-	TEnumAsByte<enum TextureAddress> AddressY;
+	TEnumAsByte<TextureAddress> AddressY;
 
 	/** The color used to clear the texture if no video data is drawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture)
@@ -37,7 +42,7 @@ class MEDIAASSETS_API UMediaTexture
 public:
 
 	/** Destructor. */
-	~UMediaTexture( );
+	~UMediaTexture();
 
 public:
 
@@ -46,7 +51,7 @@ public:
 	 *
 	 * @return Texture dimensions.
 	 */
-	FIntPoint GetDimensions( ) const
+	FIntPoint GetDimensions() const
 	{
 		return CachedDimensions;
 	}
@@ -56,7 +61,7 @@ public:
 	 *
 	 * @return Pixel format (always PF_B8G8R8A8 for all movie textures).
 	 */
-	TEnumAsByte<enum EPixelFormat> GetFormat( ) const
+	TEnumAsByte<EPixelFormat> GetFormat() const
 	{
 		return PF_B8G8R8A8;
 	}
@@ -66,14 +71,14 @@ public:
 	 *
 	 * @return The player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetPlayer( ) const;
+	TSharedPtr<IMediaPlayer> GetPlayer() const;
 
 	/**
 	 * Gets the currently selected video track, if any.
 	 *
 	 * @return The selected video track, or nullptr if none is selected.
 	 */
-	TSharedPtr<class IMediaTrack, ESPMode::ThreadSafe> GetVideoTrack( ) const
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetVideoTrack() const
 	{
 		return VideoTrack;
 	}
@@ -90,21 +95,21 @@ public:
 
 	// UTexture overrides.
 
-	virtual FTextureResource* CreateResource( ) override;
-	virtual EMaterialValueType GetMaterialType( ) override;
-	virtual float GetSurfaceWidth( ) const override;
-	virtual float GetSurfaceHeight( ) const override;
+	virtual FTextureResource* CreateResource() override;
+	virtual EMaterialValueType GetMaterialType() override;
+	virtual float GetSurfaceWidth() const override;
+	virtual float GetSurfaceHeight() const override;
 
 public:
 
 	// UObject overrides.
 
-	virtual void BeginDestroy( ) override;
-	virtual void FinishDestroy( ) override;
-	virtual FString GetDesc( ) override;
+	virtual void BeginDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual FString GetDesc() override;
 	virtual SIZE_T GetResourceSize( EResourceSizeMode::Type Mode ) override;
-	virtual bool IsReadyForFinishDestroy( ) override;
-	virtual void PostLoad( ) override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void PreEditChange( UProperty* PropertyAboutToChange ) override;
@@ -120,14 +125,14 @@ protected:
 protected:
 
 	/** Initializes the video track. */
-	void InitializeTrack( );
+	void InitializeTrack();
 
-	void PickDefaultTrack( );
+	void PickDefaultTrack();
 
 private:
 
 	/** Callback for when the UMediaPlayer asset changed its media. */
-	void HandleMediaPlayerMediaChanged( );
+	void HandleMediaPlayerMediaChanged();
 
 private:
 
@@ -141,8 +146,8 @@ private:
 	FRenderCommandFence* ReleasePlayerFence;
 
 	/** The video sample buffer. */
-	FMediaSampleBufferRef VideoBuffer;
+	TSharedRef<FMediaSampleBuffer, ESPMode::ThreadSafe> VideoBuffer;
 
 	/** Holds the selected video track. */
-	IMediaTrackPtr VideoTrack;
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> VideoTrack;
 };

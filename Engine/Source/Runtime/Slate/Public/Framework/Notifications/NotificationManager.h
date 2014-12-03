@@ -4,6 +4,9 @@
 
 #include "LockFreeList.h"
 
+class SNotificationItem;
+struct FNotificationInfo;
+
 /**
  * A class which manages a group of notification windows                 
  */

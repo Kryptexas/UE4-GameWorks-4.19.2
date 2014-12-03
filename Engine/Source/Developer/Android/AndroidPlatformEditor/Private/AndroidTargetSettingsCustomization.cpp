@@ -13,6 +13,8 @@
 #include "PlatformIconInfo.h"
 #include "SourceControlHelpers.h"
 #include "ManifestUpdateHelper.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AndroidRuntimeSettings"
 
@@ -25,7 +27,8 @@ TSharedRef<IDetailCustomization> FAndroidTargetSettingsCustomization::MakeInstan
 }
 
 FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
-	: EngineAndroidPath(FPaths::EngineDir() + TEXT("Build/Android/Java"))
+	: AndroidRelativePath(TEXT(""))
+	, EngineAndroidPath(FPaths::EngineDir() + TEXT("Build/Android/Java"))
 	, GameAndroidPath(FPaths::GameDir() + TEXT("Build/Android"))
 	, EngineManifestPath(EngineAndroidPath / TEXT("AndroidManifest.xml"))
 	, GameManifestPath(GameAndroidPath / TEXT("AndroidManifest.xml"))

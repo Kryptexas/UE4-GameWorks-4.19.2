@@ -2,8 +2,58 @@
 
 #pragma once
 
-#include "Sound/ReverbVolume.h"
+#include "Sound/AudioVolume.h"
 #include "Sound/SoundAttenuation.h"
+
+/**
+ *	Struct used for gathering the final parameters to apply to a wave instance
+ */
+struct FSoundParseParameters
+{
+	// A collection of 
+	FNotifyBufferFinishedHooks NotifyBufferFinishedHooks;
+
+	// The Sound Class to use the settings of
+	class USoundClass* SoundClass;
+	
+	// The transform of the sound (scale is not used)
+	FTransform Transform;
+
+	// The speed that the sound is moving relative to the listener
+	FVector Velocity;
+	
+	float Volume;
+	float VolumeMultiplier;
+
+	float Pitch;
+	float HighFrequencyGain;
+
+	// How far in to the sound the
+	float StartTime;
+
+	// At what distance from the source of the sound should spatialization begin
+	float OmniRadius;
+
+	// Whether the sound should be spatialized
+	uint32 bUseSpatialization:1;
+
+	// Whether the sound should be seamlessly looped
+	uint32 bLooping:1;
+
+	FSoundParseParameters()
+		: SoundClass(NULL)
+		, Velocity(ForceInit)
+		, Volume(1.f)
+		, VolumeMultiplier(1.f)
+		, Pitch(1.f)
+		, HighFrequencyGain(1.f)
+		, StartTime(-1.f)
+		, OmniRadius(0.0f)
+		, bUseSpatialization(false)
+		, bLooping(false)
+	{
+	}
+};
 
 struct ENGINE_API FActiveSound
 {
@@ -109,7 +159,7 @@ public:
 	/** cache what volume settings we had last time so we don't have to search again if we didn't move */
 	FInteriorSettings LastInteriorSettings;
 
-	class AReverbVolume* LastReverbVolume;
+	class AAudioVolume* LastAudioVolume;
 
 	// To remember where the volumes are interpolating to and from
 	double LastUpdateTime; 

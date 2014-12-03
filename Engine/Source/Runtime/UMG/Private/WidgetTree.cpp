@@ -5,54 +5,43 @@
 /////////////////////////////////////////////////////
 // UWidgetTree
 
-UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetTree::UWidgetTree(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UWidget* UWidgetTree::FindWidget(const FString& Name) const
+UWidget* UWidgetTree::FindWidget(const FName& Name) const
 {
-	FString ExistingName;
+	UWidget* FoundWidget = nullptr;
 
-	// TODO UMG Hacky, remove this find widget function, or make it faster.
-	TArray<UWidget*> Widgets;
-	GetAllWidgets(Widgets);
-
-	for ( UWidget* Widget : Widgets )
-	{
-		Widget->GetName(ExistingName);
-		if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
+	ForEachWidget([&] (UWidget* Widget) {
+		if ( Widget->GetFName() == Name )
 		{
-			return Widget;
+			FoundWidget = Widget;
 		}
-	}
+	});
 
-	return NULL;
+	return FoundWidget;
 }
 
 UWidget* UWidgetTree::FindWidget(TSharedRef<SWidget> InWidget) const
 {
-	FString ExistingName;
+	UWidget* FoundWidget = nullptr;
 
-	// TODO UMG Hacky, remove this find widget function, or make it faster.
-	TArray<UWidget*> Widgets;
-	GetAllWidgets(Widgets);
-
-	for ( UWidget* Widget : Widgets )
-	{
+	ForEachWidget([&] (UWidget* Widget) {
 		if ( Widget->GetCachedWidget() == InWidget )
 		{
-			return Widget;
+			FoundWidget = Widget;
 		}
-	}
+	});
 
-	return NULL;
+	return FoundWidget;
 }
 
 UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
 	UPanelWidget* Parent = Widget->GetParent();
-	if ( Parent != NULL )
+	if ( Parent != nullptr )
 	{
 		OutChildIndex = Parent->GetChildIndex(Widget);
 	}
@@ -88,25 +77,10 @@ bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 
 void UWidgetTree::GetAllWidgets(TArray<UWidget*>& Widgets) const
 {
-	if ( RootWidget )
-	{
-		Widgets.Add(RootWidget);
-		GetChildWidgets(RootWidget, Widgets);
-	}
+	ForEachWidget([&] (UWidget* Widget) { Widgets.Add(Widget); });
 }
 
 void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const
 {
-	if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Parent) )
-	{
-		for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
-		{
-			if ( UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex) )
-			{
-				Widgets.Add(ChildWidget);
-
-				GetChildWidgets(ChildWidget, Widgets);
-			}
-		}
-	}
+	ForWidgetAndChildren(Parent, [&] (UWidget* Widget) { Widgets.Add(Widget); });
 }

@@ -49,6 +49,8 @@ namespace EBoneTranslationRetargetingMode
 		Skeleton,
 		/** Use Translation from animation, but scale length by Skeleton's proportions. */
 		AnimationScaled,
+		/** Use Translation from animation, but also play the difference from retargeting pose as an additive. */
+		AnimationRelative,
 	};
 }
 
@@ -184,6 +186,33 @@ struct FRigConfiguration
 	UPROPERTY()
 	TArray<FNameMapping> BoneMappingTable;
 };
+
+USTRUCT()
+struct FAnimSlotGroup
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	static ENGINE_API const FName DefaultGroupName;
+	static ENGINE_API const FName DefaultSlotName;
+
+	UPROPERTY()
+	FName GroupName;
+
+	UPROPERTY()
+	TArray<FName> SlotNames;
+
+	FAnimSlotGroup()
+		: GroupName(DefaultGroupName)
+	{
+	}
+
+	FAnimSlotGroup(FName InGroupName)
+		: GroupName(InGroupName)
+	{
+	}
+};
+
 /**
  *	USkeleton : that links between mesh and animation
  *		- Bone hierarchy for animations
@@ -216,7 +245,7 @@ private:
 
 public:
 	/** Accessor to Reference Skeleton to make data read only */
-	const FReferenceSkeleton & GetReferenceSkeleton() const
+	const FReferenceSkeleton& GetReferenceSkeleton() const
 	{
 		return ReferenceSkeleton;
 	}
@@ -245,19 +274,34 @@ public:
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
 
+	/************************************************************************/
+	/* Slot Groups */
+	/************************************************************************/
+private:
+	// serialized slot groups and slot names.
+	UPROPERTY()
+	TArray<FAnimSlotGroup> SlotGroups;
+
+	/** SlotName to GroupName TMap, only at runtime, not serialized. **/
+	TMap<FName, FName> SlotToGroupNameMap;
+
+	void BuildSlotToGroupMap();
+
+public:
+	ENGINE_API FAnimSlotGroup* FindAnimSlotGroup(const FName& InGroupName);
+	ENGINE_API const TArray<FAnimSlotGroup>& GetSlotGroups() const;
+	ENGINE_API bool ContainsSlotName(const FName& InSlotName);
+	ENGINE_API void RegisterSlotNode(const FName& InSlotName);
+	ENGINE_API void SetSlotGroupName(const FName& InSlotName, const FName& InGroupName);
+	/** Returns true if Group is added, false if it already exists */
+	ENGINE_API bool AddSlotGroupName(const FName& InNewGroupName);
+	ENGINE_API FName GetSlotGroupName(const FName& InSlotName) const;
+
 #if WITH_EDITORONLY_DATA
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
-
-	/** @todo collection of slotnode names available for this skeleton */
-	UPROPERTY()
-	TArray<FName> SlotNodeNames;
-
-	/** @todo collection of graoup names for slot node available for this skeleton */
-	UPROPERTY()
-	TArray<FName> SlotGroupNames;
 
 	UPROPERTY()
 	FRigConfiguration RigConfig;
@@ -332,20 +376,10 @@ public:
 	// @todo document
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);
 
-	// @todo document
-	ENGINE_API void AddSlotNodeName(FName SlotNodeName);
-	ENGINE_API void RemoveSlotNodeName(FName SlotNodeName);
-	ENGINE_API bool DoesHaveSlotNodeName(FName SlotNodeName) const;
-	ENGINE_API const TArray<FName> & GetSlotNodeNames() const;
-
-	ENGINE_API void AddSlotGroupName(FName GroupName);
-	ENGINE_API void RemoveSlotGroupName(FName GroupName);
-	ENGINE_API bool DoesHaveSlotGroupName(FName GroupName) const;
-	ENGINE_API const TArray<FName> & GetSlotGroupNames() const;
-
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
 	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
+	ENGINE_API USkeletalMesh* GetAssetPreviewMesh(class UAnimationAsset* AnimAsset);
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
@@ -481,7 +515,7 @@ public:
 	{
 		if ( RetargetSource != NAME_None ) 
 		{
-			const FReferencePose * FoundRetargetSource = AnimRetargetSources.Find(RetargetSource);
+			const FReferencePose* FoundRetargetSource = AnimRetargetSources.Find(RetargetSource);
 			if (FoundRetargetSource)
 			{
 				return FoundRetargetSource->ReferencePose;
@@ -506,7 +540,7 @@ public:
 	 *
 	 * @return	Index of Track of Animation Sequence
 	 */
-	ENGINE_API int32 GetAnimationTrackIndex(const int32 & InSkeletonBoneIndex, const UAnimSequence * InAnimSeq);
+	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq);
 
 	/** 
 	 * Get Bone Tree Index from Reference Bone Index
@@ -514,7 +548,7 @@ public:
 	 * @param	InRefBoneIdx	Reference Bone Index to look for - index of USkeletalMesh.RefSkeleton
 	 * @return	Index of BoneTree Index
 	 */
-	ENGINE_API int32 GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh * InSkelMesh, const int32 & MeshBoneIndex);
+	ENGINE_API int32 GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32& MeshBoneIndex);
 
 	/** 
 	 * Get Reference Bone Index from Bone Tree Index
@@ -522,9 +556,9 @@ public:
 	 * @param	InBoneTreeIdx	Bone Tree Index to look for - index of USkeleton.BoneTree
 	 * @return	Index of BoneTree Index
 	 */
-	ENGINE_API int32 GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh * InSkelMesh, const int32 & SkeletonBoneIndex);
+	ENGINE_API int32 GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32& SkeletonBoneIndex);
 
-	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32 & BoneTreeIdx) const
+	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32& BoneTreeIdx) const
 	{
 		return BoneTree[BoneTreeIdx].TranslationRetargetingMode;
 	}
@@ -538,7 +572,7 @@ public:
 	 */
 	void RebuildLinkup(const USkeletalMesh* InSkelMesh);
 
-	ENGINE_API void SetBoneTranslationRetargetingMode(const int32 & BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
+	ENGINE_API void SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
 
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -554,7 +588,7 @@ public:
 	 *
 	 * @return true if successful. false if skeletalmesh wasn't compatible with the bone hierarchy
 	 */
-	ENGINE_API void UpdateReferencePoseFromMesh(const USkeletalMesh * InSkelMesh);
+	ENGINE_API void UpdateReferencePoseFromMesh(const USkeletalMesh* InSkelMesh);
 
 #if WITH_EDITORONLY_DATA
 	/**
@@ -600,7 +634,7 @@ protected:
 	 *
 	 * @return true if successful
 	 */
-	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh * InSkeletalMesh, const TArray<int32> & RequiredRefBones);
+	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalMesh, const TArray<int32> & RequiredRefBones);
 
 #if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE( FOnSkeletonHierarchyChangedMulticaster );
@@ -614,7 +648,7 @@ public:
 
 	/** Registers a delegate to be called after notification has changed*/
 	ENGINE_API void RegisterOnSkeletonHierarchyChanged(const FOnSkeletonHierarchyChanged& Delegate);
-	ENGINE_API void UnregisterOnSkeletonHierarchyChanged(void * Unregister);
+	ENGINE_API void UnregisterOnSkeletonHierarchyChanged(void* Unregister);
 
 	/** Removes the supplied bones from the skeleton */
 	ENGINE_API void RemoveBonesFromSkeleton(const TArray<FName>& BonesToRemove, bool bRemoveChildBones);
@@ -630,20 +664,17 @@ public:
 	// rig Configs
 	ENGINE_API static const FName RigTag;
 	ENGINE_API void SetRigConfig(URig * Rig);
-	ENGINE_API FName GetRigBoneMapping(const FName & NodeName) const;
-	ENGINE_API bool SetRigBoneMapping(const FName & NodeName, FName BoneName);
-	ENGINE_API FName GetRigNodeNameFromBoneName(const FName & BoneName) const;
+	ENGINE_API FName GetRigBoneMapping(const FName& NodeName) const;
+	ENGINE_API bool SetRigBoneMapping(const FName& NodeName, FName BoneName);
+	ENGINE_API FName GetRigNodeNameFromBoneName(const FName& BoneName) const;
 	// this make sure it stays within the valid range
 	ENGINE_API int32 GetMappedValidNodes(TArray<FName> &OutValidNodeNames);
 	// verify if it has all latest data
 	ENGINE_API void RefreshRigConfig();
-	int32 FindRigBoneMapping(const FName & NodeName) const;
+	int32 FindRigBoneMapping(const FName& NodeName) const;
 	ENGINE_API URig * GetRig() const;
 #endif
 
-public:
-	// this should be outside of editor because slot node is initialize to it
-	ENGINE_API static const FName DefaultSlotGroupName;
 private:
 	void RegenerateGuid();
 };

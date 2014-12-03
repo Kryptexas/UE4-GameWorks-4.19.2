@@ -32,8 +32,10 @@
 #include "ObjectEditorUtils.h"
 #include "DlgPickAssetPath.h"
 #include "ComponentAssetBroker.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
+
 //////////////////////////////////////////////////////////////////////////
 // FArchiveInvalidateTransientRefs
 
@@ -336,6 +338,14 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
 {
+	// Broadcast pre-compile
+#if WITH_EDITOR
+	if(GEditor && GIsEditor)
+	{
+		GEditor->BroadcastBlueprintPreCompile(BlueprintObj);
+	}
+#endif
+
 	// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
 	BlueprintObj->bDisplayCompilePIEWarning = true;
 
@@ -345,10 +355,10 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
 #if WITH_EDITOR
 	// Do not want to run this code without the editor present nor when running commandlets.
-	if(GEditor && GIsEditor && !IsRunningCommandlet())
+	if (GEditor && GIsEditor && !IsRunningCommandlet())
 	{
 		// We do not want to regenerate a search Guid during loads, nothing has changed in the Blueprint and it is cached elsewhere
-		if(!bIsRegeneratingOnLoad)
+		if (!bIsRegeneratingOnLoad)
 		{
 			BlueprintObj->SearchGuid = FGuid::NewGuid();
 			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(BlueprintObj);
@@ -368,6 +378,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	// Compile
 	FCompilerResultsLog LocalResults;
 	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
+
+	BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Blueprint"));
 
 	FBlueprintCompileReinstancer ReinstanceHelper(OldClass);
 
@@ -405,10 +417,13 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		}
 
 		// Replace instances of this class
-		ReinstanceHelper.ReinstanceObjects();
+		static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
+		ReinstanceHelper.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 
 		if (!bSkipGarbageCollection)
 		{
+			BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Garbage Collection"));
+
 			// Garbage collect to make sure the old class and actors are disposed of
 			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
@@ -417,12 +432,16 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		// ReinstanceHelper.VerifyReplacement();
 	}
 
-	// Blueprint has changed, broadcast notify
-	BlueprintObj->BroadcastChanged();
+	{ 
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Notify Blueprint Changed"));
 
-	if(GEditor)
-	{
-		GEditor->BroadcastBlueprintCompiled();	
+		// Blueprint has changed, broadcast notify
+		BlueprintObj->BroadcastChanged();
+
+		if(GEditor)
+		{
+			GEditor->BroadcastBlueprintCompiled();	
+		}
 	}
 
 	// Default Values are now set in CDO. And these copies could be soon obsolete, so better to reset them.
@@ -431,36 +450,61 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	TArray<UBlueprint*> DependentBPs;
-	FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+	{ 
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Refresh Dependent Blueprints"));
 
-	// refresh each dependent blueprint
-	for (UBlueprint* Dependent : DependentBPs)
-	{
-		// for interface changes, auto-refresh nodes on any dependent blueprints
-		// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
-		if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
+		TArray<UBlueprint*> DependentBPs;
+		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+
+		// refresh each dependent blueprint
+		for (UBlueprint* Dependent : DependentBPs)
 		{
-			bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
-			Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
-			FBlueprintEditorUtils::RefreshAllNodes(Dependent);
-			Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
-		}
-		else if(!BlueprintObj->bIsRegeneratingOnLoad)
-		{
-			// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
-			Dependent->BroadcastChanged();
+			// for interface changes, auto-refresh nodes on any dependent blueprints
+			// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
+			if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
+			{
+				bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
+				Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
+				FBlueprintEditorUtils::RefreshAllNodes(Dependent);
+				Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
+			}
+			else if(!BlueprintObj->bIsRegeneratingOnLoad)
+			{
+				// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
+				Dependent->BroadcastChanged();
+			}
 		}
 	}
 
 	if(!bIsRegeneratingOnLoad && BlueprintObj->GeneratedClass)
 	{
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Validate Generated Class"));
 		UBlueprint::ValidateGeneratedClass(BlueprintObj->GeneratedClass);
 	}
 
 	if (BlueprintPackage != NULL)
 	{
 		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
+
+		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+		const bool bShouldSaveOnCompile = ( Settings->SaveOnCompile == SoC_Always ) || ( ( Settings->SaveOnCompile == SoC_SuccessOnly ) && ( BlueprintObj->Status == BS_UpToDate ) );
+
+		// Only try to save on compile if we aren't running a commandlet (i.e. cooking a blueprint shouldn't try to save it)
+		if ( !IsRunningCommandlet() && bShouldSaveOnCompile )
+		{
+			bool const bIsLevelPackage = (UWorld::FindWorldInPackage(BlueprintPackage) != nullptr);
+			// we don't want to save the entire level (especially if this 
+			// compile was already kicked off as a result of a level save, as it
+			// could cause a recursive save)... let the "SaveOnCompile" setting 
+			// only save blueprint assets
+			if (!bIsLevelPackage)
+			{
+				TArray<UPackage*> PackagesToSave;
+				PackagesToSave.Add(BlueprintPackage);
+
+				FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+			}			
+		}
 	}	
 }
 
@@ -497,6 +541,9 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	check(BlueprintObj);
 	checkf(BlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *BlueprintObj->GetName());
 
+	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
+
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
@@ -509,6 +556,41 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 
 	ReinstanceHelper.UpdateBytecodeReferences();
+
+	if (BlueprintPackage != NULL)
+	{
+		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
+	}
+}
+
+/** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
+void FKismetEditorUtilities::GenerateCppCode(UBlueprint* InBlueprintObj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource)
+{
+	check(InBlueprintObj);
+	check(InBlueprintObj->GetOutermost() != GetTransientPackage());
+	checkf(InBlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *InBlueprintObj->GetName());
+	check(OutHeaderSource.IsValid());
+	check(OutCppSource.IsValid());
+
+	//TGuardValue<bool> DuplicatingReadOnly(InBlueprintObj->bDuplicatingReadOnly, true);
+	{
+		auto BlueprintObj = DuplicateObject<UBlueprint>(InBlueprintObj, GetTransientPackage(), *InBlueprintObj->GetName());
+		{
+			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
+
+			TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
+			FCompilerResultsLog Results;
+
+			FKismetCompilerOptions CompileOptions;
+			CompileOptions.CompileType = EKismetCompileType::Cpp;
+			CompileOptions.OutCppSourceCode = OutCppSource;
+			CompileOptions.OutHeaderSourceCode = OutHeaderSource;
+			Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
+		}
+		BlueprintObj->RemoveGeneratedClasses();
+		BlueprintObj->ClearFlags(RF_Standalone);
+		BlueprintObj->MarkPendingKill();
+	}
 }
 
 /** Tries to make sure that a blueprint is conformed to its native parent, in case any native class flags have changed */
@@ -840,6 +922,14 @@ protected:
 			{
 				Property->CopyCompleteValue_InContainer(Destination, Source);
 			}
+		}
+
+		if (UStaticMeshComponent* TemplateMeshComponent = Cast<UStaticMeshComponent>(Destination))
+		{
+			UStaticMeshComponent* SourceMeshComponent = CastChecked<UStaticMeshComponent>(Source);
+			// vert coloring data lives in the mesh component's LODData member,
+			// which is transient, so it wouldn't be copied in the above loop
+			TemplateMeshComponent->CopyInstanceVertexColorsIfCompatible(SourceMeshComponent);
 		}
 	}
 

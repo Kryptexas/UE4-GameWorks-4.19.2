@@ -10,7 +10,7 @@
 
 struct FGameplayEffectStackingCallbackData
 {
-	FGameplayEffectStackingCallbackData(const FGameplayEffectSpec & InEffectSpec, const FModifierSpec & InModifierSpec, FGameplayModifierEvaluatedData & InEvaluatedData, UAbilitySystemComponent & InTarget)
+	FGameplayEffectStackingCallbackData(const FGameplayEffectSpec& InEffectSpec, const FModifierSpec& InModifierSpec, FGameplayModifierEvaluatedData & InEvaluatedData, UAbilitySystemComponent & InTarget)
 		: EffectSpec(InEffectSpec)
 		, ModifierSpec(InModifierSpec)
 		, EvaluatedData(InEvaluatedData)

@@ -80,14 +80,14 @@ protected:
 	void PopulateFilteredProjectCategories();
 	
 	/**
-	 * Called after a key is pressed when this widget has keyboard focus (this event bubbles if not handled)
+	 * Called after a key is pressed when this widget has focus (this event bubbles if not handled)
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 private:
 

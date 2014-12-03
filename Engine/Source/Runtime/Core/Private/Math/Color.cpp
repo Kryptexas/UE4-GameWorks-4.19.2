@@ -4,7 +4,7 @@
 	Color.cpp: Unreal color implementation.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 // Common colors.
 const FLinearColor FLinearColor::White(1.f,1.f,1.f);
@@ -135,7 +135,7 @@ float FLinearColor::ComputeLuminance() const
 
 FColor FColor::FromHex( const FString& HexString )
 {
-	int32 StartIndex = (HexString[0] == TCHAR('#')) ? 1 : 0;
+	int32 StartIndex = (!HexString.IsEmpty() && HexString[0] == TCHAR('#')) ? 1 : 0;
 
 	if (HexString.Len() == 3 + StartIndex)
 	{

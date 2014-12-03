@@ -4,10 +4,10 @@
 
 struct FMargin;
 struct FSlateColor;
+struct FSlateDynamicImageBrush;
 struct FSlateFontInfo;
 struct FSlateSound;
 struct FSlateWidgetStyle;
-
 /**
  * 
  */

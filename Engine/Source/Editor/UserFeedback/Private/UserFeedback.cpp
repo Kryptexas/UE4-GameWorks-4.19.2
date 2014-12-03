@@ -1,13 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "IUserFeedbackModule.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 #include "ModuleManager.h"
 
 #include "IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 #include "UnrealEd.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "UserFeedback"
 
@@ -181,13 +183,13 @@ public:
 	}
 
 	/** Called when a key is pressed on the widget */
-	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::Escape)
+		if (InKeyEvent.GetKey() == EKeys::Escape)
 		{
 			return OnCloseButtonClicked();
 		}
-		else if (InKeyboardEvent.GetKey() == EKeys::Enter)
+		else if (InKeyEvent.GetKey() == EKeys::Enter)
 		{
 			return OnFeedbackSubmitted();
 		}
@@ -213,6 +215,7 @@ private:
 		ContextDisplayNames.Add(LOCTEXT("PlayInEditor", "Play In Editor"));
 		ContextDisplayNames.Add(LOCTEXT("AssetCreation", "Asset Creation"));
 		ContextDisplayNames.Add(LOCTEXT("DetailsPanel", "Details Panel"));
+		ContextDisplayNames.Add(LOCTEXT("Tutorials", "Tutorials"));
 		ContextDisplayNames.Add(LOCTEXT("Other", "Other"));
 
 		ContextMarkers.FirstEditor = ContextDisplayNames.Num();

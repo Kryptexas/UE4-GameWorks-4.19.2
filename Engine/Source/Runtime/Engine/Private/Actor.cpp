@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/InputDelegateBinding.h"
+#include "Engine/LevelStreamingPersistent.h"
 #include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
 #include "Sound/SoundCue.h"
@@ -14,8 +15,9 @@
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "Animation/AnimInstance.h"
+#include "Engine/DemoNetDriver.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);
@@ -36,8 +38,8 @@ FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
 
-AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AActor::AActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
@@ -70,6 +72,7 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 	bBlockInput = false;
 	bCanBeDamaged = true;
+	bPendingKillPending = false;
 	bFindCameraComponentWhenViewTarget = true;
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	AnimUpdateRateShiftTag = 0;
@@ -186,6 +189,7 @@ void AActor::ResetOwnedComponents()
 {
 	TArray<UObject*> Children;
 	OwnedComponents.Empty();
+	ReplicatedComponents.Empty();
 	GetObjectsWithOuter(this, Children, true, RF_PendingKill);
 
 	for (UObject* Child : Children)
@@ -194,6 +198,11 @@ void AActor::ResetOwnedComponents()
 		if (Component)
 		{
 			OwnedComponents.Add(Component);
+
+			if (Component->GetIsReplicated())
+			{
+				ReplicatedComponents.Add(Component);
+			}
 		}
 	}
 }
@@ -809,7 +818,7 @@ bool AActor::IsRootComponentCollisionRegistered() const
 	return RootComponent != NULL && RootComponent->IsRegistered() && RootComponent->IsCollisionEnabled();
 }
 
-bool AActor::IsAttachedTo(const AActor * Other) const
+bool AActor::IsAttachedTo(const AActor* Other) const
 {
 	return (RootComponent && Other && Other->RootComponent) ? RootComponent->IsAttachedTo(Other->RootComponent) : false;
 }
@@ -1207,15 +1216,15 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 		GetComponents(Components);
 
 		for (int32 Index = 0; Index < Components.Num(); ++Index)
-			{
+		{
 			USceneComponent* SceneComp = Components[Index];
-				if (SceneComp->GetAttachParent() == InParentComponent)
-				{
-					SceneComp->DetachFromParent(bMaintainWorldPosition);
-				}
+			if (SceneComp->GetAttachParent() == InParentComponent)
+			{
+				SceneComp->DetachFromParent(bMaintainWorldPosition);
 			}
 		}
 	}
+}
 
 AActor* AActor::GetAttachParentActor() const
 {
@@ -1959,7 +1968,13 @@ enum ECollisionResponse AActor::GetComponentsCollisionResponseToChannel(enum ECo
 
 void AActor::AddOwnedComponent(UActorComponent* Component)
 {
+	check(Component->GetOwner() == this);
 	OwnedComponents.AddUnique(Component);
+
+	if (Component->GetIsReplicated())
+	{
+		ReplicatedComponents.AddUnique(Component);
+	}
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
@@ -1970,6 +1985,8 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 		// property system so take the time to pull them out now
 		OwnedComponents.RemoveSwap(NULL);
 	}
+
+	ReplicatedComponents.RemoveSwap(Component);
 }
 
 #if DO_CHECK
@@ -1978,6 +1995,24 @@ bool AActor::OwnsComponent(UActorComponent* Component) const
 	return OwnedComponents.Contains(Component);
 }
 #endif
+
+const TArray<UActorComponent*>& AActor::GetReplicatedComponents() const
+{
+	return ReplicatedComponents;
+}
+
+void AActor::UpdateReplicatedComponent(UActorComponent* Component)
+{
+	check(Component->GetOwner() == this);
+	if (Component->GetIsReplicated())
+	{
+		ReplicatedComponents.AddUnique(Component);
+	}
+	else
+	{
+		ReplicatedComponents.RemoveSwap(Component);
+	}
+}
 
 UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
@@ -2351,20 +2386,19 @@ FVector AActor::GetInputVectorAxisValue(const FKey InputAxisKey) const
 	return Value;
 }
 
-bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep)
+bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent( Delta, GetActorRotation(), bSweep );
+		return RootComponent->MoveComponent( Delta, GetActorRotation(), bSweep, OutSweepHitResult );
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 
 	return false;
-}
-
-bool AActor::K2_SetActorLocation(FVector NewLocation, bool bSweep)
-{
-	return SetActorLocation(NewLocation, bSweep);
 }
 
 bool AActor::SetActorRotation(FRotator NewRotation)
@@ -2377,12 +2411,16 @@ bool AActor::SetActorRotation(FRotator NewRotation)
 	return false;
 }
 
-bool AActor::SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep)
+bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent( Delta, NewRotation, bSweep );
+		return RootComponent->MoveComponent( Delta, NewRotation, bSweep, OutSweepHitResult );
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 
 	return false;
@@ -2406,33 +2444,44 @@ FVector AActor::GetActorScale3D() const
 	return FVector(1,1,1);
 }
 
-void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep)
+void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldOffset(DeltaLocation, bSweep);
+		RootComponent->AddWorldOffset(DeltaLocation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep)
+void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldRotation(DeltaRotation, bSweep);
-	}	
+		RootComponent->AddWorldRotation(DeltaRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
 }
 
-void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep)
+void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
-		RootComponent->AddWorldTransform(DeltaTransform, bSweep);
-	}	
+		RootComponent->AddWorldTransform(DeltaTransform, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
 }
 
 
-
-bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
+bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
 	// happens, and if so, something else is giving NAN as output
@@ -2440,63 +2489,95 @@ bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 	{
 		if (ensure(!NewTransform.ContainsNaN()))
 		{
-			RootComponent->SetWorldTransform(NewTransform, bSweep);
+			RootComponent->SetWorldTransform(NewTransform, bSweep, OutSweepHitResult);
 		}
 		else
 		{
 			UE_LOG(LogScript, Warning, TEXT("SetActorTransform: Get NAN Transform data for %s: %s"), *GetNameSafe(this), *NewTransform.ToString());
+			if (OutSweepHitResult)
+			{
+				*OutSweepHitResult = FHitResult();
+			}
 		}
 		return true;
 	}
 
+	if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
 	return false;
 }
 
-void AActor::AddActorLocalOffset(FVector DeltaLocation, bool bSweep)
+void AActor::AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if(RootComponent)
 	{
-		RootComponent->AddLocalOffset(DeltaLocation, bSweep);
+		RootComponent->AddLocalOffset(DeltaLocation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void AActor::AddActorLocalRotation(FRotator DeltaRotation, bool bSweep)
+void AActor::AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if(RootComponent)
 	{
-		RootComponent->AddLocalRotation(DeltaRotation, bSweep);
+		RootComponent->AddLocalRotation(DeltaRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void AActor::AddActorLocalTransform(const FTransform& NewTransform, bool bSweep)
+void AActor::AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if(RootComponent)
 	{
-		RootComponent->AddLocalTransform(NewTransform, bSweep);
+		RootComponent->AddLocalTransform(NewTransform, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void AActor::SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep/*=false*/)
+void AActor::SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeLocation(NewRelativeLocation, bSweep);
+		RootComponent->SetRelativeLocation(NewRelativeLocation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void AActor::SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep/*=false*/)
+void AActor::SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep);
+		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void AActor::SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep/*=false*/)
+void AActor::SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
-		RootComponent->SetRelativeTransform(NewRelativeTransform);
+		RootComponent->SetRelativeTransform(NewRelativeTransform, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
@@ -2661,7 +2742,18 @@ void AActor::PlaySoundAtLocation(USoundCue* InSoundCue, FVector SoundLocation, f
 ENetMode AActor::GetNetMode() const
 {
 	UNetDriver *NetDriver = GetNetDriver();
-	return NetDriver ? NetDriver->GetNetMode() : NM_Standalone;
+
+	if ( NetDriver != NULL )
+	{
+		return NetDriver->GetNetMode();
+	}
+
+	if ( GetWorld() != NULL && GetWorld()->DemoNetDriver != NULL )
+	{
+		return GetWorld()->DemoNetDriver->GetNetMode();
+	}
+
+	return NM_Standalone;
 }
 
 UNetDriver* AActor::GetNetDriver() const
@@ -3264,7 +3356,7 @@ void AActor::SetLifeSpan( float InLifespan )
 	// Store the new value
 	InitialLifeSpan = InLifespan;
 	// Initialize a timer for the actors lifespan if there is one. Otherwise clear any existing timer
-	if( Role==ROLE_Authority || bTearOff )
+	if ((Role == ROLE_Authority || bTearOff) && !IsPendingKill())
 	{
 		if( InLifespan > 0.0f)
 		{
@@ -3385,5 +3477,72 @@ const int32 AActor::GetNumUncachedStaticLightingInteractions() const
 	return 0;
 }
 #endif // WITH_EDITOR
+
+
+// K2 versions of various transform changing operations.
+// Note: we pass null for the hit result if not sweeping, for better perf.
+// This assumes this K2 function is only used by blueprints, which initializes the param for each function call.
+
+bool AActor::K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	return SetActorLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+bool AActor::K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	return SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddActorWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddActorWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddActorWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+bool AActor::K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	return SetActorTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddActorLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddActorLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddActorLocalTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetActorRelativeLocation(NewRelativeLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetActorRelativeRotation(NewRelativeRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void AActor::K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetActorRelativeTransform(NewRelativeTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+
 
 #undef LOCTEXT_NAMESPACE

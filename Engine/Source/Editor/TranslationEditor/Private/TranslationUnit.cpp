@@ -2,8 +2,8 @@
 #include "TranslationEditorPrivatePCH.h"
 #include "TranslationUnit.h"
 
-UTranslationUnit::UTranslationUnit( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UTranslationUnit::UTranslationUnit( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 }

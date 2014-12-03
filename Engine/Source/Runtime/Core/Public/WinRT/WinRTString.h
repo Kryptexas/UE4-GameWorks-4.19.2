@@ -5,8 +5,8 @@
 ==============================================================================================*/
 
 #pragma once
-
-#include "MicrosoftPlatformString.h"
+#include "GenericPlatform/MicrosoftPlatformString.h"
+#include "HAL/Platform.h"
 
 /**
  * WinRT string implementation

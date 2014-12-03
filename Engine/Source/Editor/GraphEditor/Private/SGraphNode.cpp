@@ -10,6 +10,8 @@
 #include "SLevelOfDetailBranchNode.h"
 #include "IDocumentation.h"
 #include "TutorialMetaData.h"
+#include "SGraphPanel.h"
+#include "SInlineEditableTextBlock.h"
 
 /////////////////////////////////////////////////////
 // SNodeTitle
@@ -131,6 +133,17 @@ bool SGraphNode::CanAllowInteractionUsingDragDropOp( const UEdGraphNode* GraphNo
 void SGraphNode::SetIsEditable(TAttribute<bool> InIsEditable)
 {
 	IsEditable = InIsEditable;
+
+	int32 i;
+	for(i = 0; i < InputPins.Num(); ++i)
+	{
+		InputPins[i]->SetIsEditable(IsEditable);
+	}
+
+	for(i = 0; i < OutputPins.Num(); ++i)
+	{
+		OutputPins[i]->SetIsEditable(IsEditable);
+	}
 }
 
 bool SGraphNode::IsNodeEditable() const
@@ -405,7 +418,7 @@ bool SGraphNode::IsSelectedExclusively() const
 {
 	TSharedPtr<SGraphPanel> OwnerPanel = OwnerGraphPanelPtr.Pin();
 
-	if(!OwnerPanel->HasKeyboardFocus() || OwnerPanel->SelectionManager.GetSelectedNodes().Num() > 1)
+	if (!OwnerPanel->HasKeyboardFocus() || OwnerPanel->SelectionManager.GetSelectedNodes().Num() > 1)
 	{
 		return false;
 	}

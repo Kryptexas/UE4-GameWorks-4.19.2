@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "IPlatformFileSandboxWrapper.h"
 #include "CookOnTheFlyServer.generated.h"
 
 
@@ -20,11 +21,20 @@ enum class ECookInitializationFlags
 	Unversioned = 0x8,				// save the cooked packages without a version number
 	AutoTick = 0x10,				// enable ticking (only works in the editor)
 	AsyncSave = 0x20,				// save packages async
-	LeakTest = 0x40,				// test for uobject leaks after each level load
 	IncludeServerMaps = 0x80,		// should we include the server maps when cooking
 	GenerateStreamingInstallManifest = 0x100,  // should we generate streaming install manifest
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
+
+enum class ECookByTheBookOptions
+{
+	None = 0x0,					// no flags
+	CookAll = 0x1,				// cook all maps and content in the content directory
+	MapsOnly = 0x2,				// cook only maps
+	NoDevContent = 0x4,			// don't include dev content
+	LeakTest = 0x8,				// test for uobject leaks after each level load
+};
+ENUM_CLASS_FLAGS(ECookByTheBookOptions);
 
 UENUM()
 namespace ECookMode
@@ -38,48 +48,9 @@ namespace ECookMode
 }
 
 UCLASS()
-class UCookOnTheFlyServer : public UObject, public FTickableEditorObject
+class UNREALED_API UCookOnTheFlyServer : public UObject, public FTickableEditorObject
 {
 	GENERATED_UCLASS_BODY()
-
-private:
-	/** Current cook mode the cook on the fly server is running in */
-	ECookMode::Type CurrentCookMode;
-	
-	//////////////////////////////////////////////////////////////////////////
-	// Cook by the book options
-	struct FCookByTheBookOptions
-	{
-	public:
-		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
-			bRunning(false),
-			CookTime( 0.0f )
-		{ }
-
-		/** Should we generate streaming install manifests (only valid option in cook by the book) */
-		bool bGenerateStreamingInstallManifests;
-		/** Is cook by the book currently running */
-		bool bRunning;
-		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
-		TSet<FWeakObjectPtr> LastGCItems;
-		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
-		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
-		double CookTime;
-	};
-	FCookByTheBookOptions* CookByTheBookOptions;
-	
-
-	//////////////////////////////////////////////////////////////////////////
-	// Cook on the fly options
-	/** Cook on the fly server uses the NetworkFileServer */
-	TArray<class INetworkFileServer*> NetworkFileServers;
-
-	//////////////////////////////////////////////////////////////////////////
-	// General cook options
-	ECookInitializationFlags CookFlags;
-	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
-	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
-
 private:
 
 	/** Array which has been made thread safe :) */
@@ -141,6 +112,12 @@ private:
 			ScopeLockType ScopeLock( &SynchronizationObject );
 			return Items.Num();
 		}
+
+		void Empty()
+		{
+			ScopeLockType ScopeLock( &SynchronizationObject );
+			Items.Empty();
+		}
 	};
 
 
@@ -169,7 +146,7 @@ public:
 		 * Add functions / functionality to the FUnsynchronizedQueue
 		 */
 	};
-
+	
 	template<typename Type>
 	struct FQueue : public FUnsynchronizedQueue<Type, FDummyCriticalSection, FDummyScopeLock>
 	{
@@ -179,7 +156,8 @@ public:
 		 */
 	};
 
-	template<typename Type>
+	// pending delete: don't think I need this anymore
+	/*template<typename Type>
 	struct FLookupQueue
 	{
 	private:
@@ -232,7 +210,7 @@ public:
 			return Queue.Num();
 		}
 
-	};
+	};*/
 
 public:
 	/** cooked file requests which includes platform which file is requested for */
@@ -402,6 +380,30 @@ private:
 			return true;
 			// return FilesProcessed.Contains(Filename);
 		}
+		// two versions of this function so I don't have to create temporary FFIleplatformRequest in some cases to call the exists function
+		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames )
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+
+			const FFilePlatformRequest* OurRequest = FilesProcessed.Find( Filename );
+
+			if (!OurRequest)
+			{
+				return false;
+			}
+
+			// make sure all the platforms are completed
+			for ( const auto& Platform : PlatformNames )
+			{
+				if ( !OurRequest->GetPlatformnames().Contains( Platform ) )
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		bool GetCookedPlatforms( const FName& Filename, TArray<FName>& PlatformList )
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -418,6 +420,11 @@ private:
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return FilesProcessed.Remove( Filename );
+		}
+		void Empty(int32 ExpectedNumElements = 0)
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			FilesProcessed.Empty(ExpectedNumElements);
 		}
 	};
 
@@ -450,13 +457,14 @@ private:
 			if ( ForceEnqueFront )
 			{
 				int32 Index = Queue.Find(Request.GetFilename());
+				check( Index != INDEX_NONE );
 				if ( Index != 0 )
 				{
 					Queue.Swap(0, Index);
 				}
 			}
 		}
-		
+
 		bool Dequeue(FFilePlatformRequest* Result)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -471,6 +479,34 @@ private:
 			}
 			return false;
 		}
+
+		void DequeueAllRequests( TArray<FFilePlatformRequest>& RequestArray )
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			if ( Queue.Num() )
+			{
+				for ( const auto& Request : PlatformList )
+				{
+					RequestArray.Add( FFilePlatformRequest( Request.Key, Request.Value ) );
+				}
+				PlatformList.Empty();
+				Queue.Empty();
+			}
+		}
+
+		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames ) const 
+		{
+			const TArray<FName>* Platforms = PlatformList.Find( Filename );
+			if ( Platforms == NULL )
+				return false;
+
+			for ( const auto& PlatformName : PlatformNames )
+			{
+				if ( !Platforms->Contains( PlatformName ) )
+					return false;
+			}
+			return true;
+		}
 		
 		bool HasItems() const
 		{
@@ -482,6 +518,14 @@ private:
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return Queue.Num();
+		}
+
+
+		void Empty()  
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			Queue.Empty();
+			PlatformList.Empty();
 		}
 	};
 
@@ -516,7 +560,58 @@ private:
 				}
 			}
 		}
+		void Empty()
+		{
+			FScopeLock S( &SyncObject );
+			CookedPackages.Empty();
+		}
 	};
+private:
+	/** Current cook mode the cook on the fly server is running in */
+	ECookMode::Type CurrentCookMode;
+	
+	//////////////////////////////////////////////////////////////////////////
+	// Cook by the book options
+	struct FCookByTheBookOptions
+	{
+	public:
+		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
+			bRunning(false),
+			CookTime( 0.0 ),
+			CookStartTime( 0.0 )
+		{ }
+
+		/** Should we test for UObject leaks */
+		bool bLeakTest;
+		/** Should we generate streaming install manifests (only valid option in cook by the book) */
+		bool bGenerateStreamingInstallManifests;
+		/** Is cook by the book currently running */
+		bool bRunning;
+		/** Cancel has been queued will be processed next tick */
+		bool bCancel;
+		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
+		TSet<FWeakObjectPtr> LastGCItems;
+		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
+		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
+		/** If a cook is cancelled next cook will need to resume cooking */ 
+		TArray<FFilePlatformRequest> PreviousCookRequests; 
+		double CookTime;
+		double CookStartTime;
+	};
+	FCookByTheBookOptions* CookByTheBookOptions;
+	
+
+	//////////////////////////////////////////////////////////////////////////
+	// Cook on the fly options
+	/** Cook on the fly server uses the NetworkFileServer */
+	TArray<class INetworkFileServer*> NetworkFileServers;
+
+	//////////////////////////////////////////////////////////////////////////
+	// General cook options
+	ECookInitializationFlags CookFlags;
+	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
+
 
 	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
 	FFilenameQueue CookRequests; // list of requested files
@@ -525,6 +620,7 @@ private:
 
 public:
 
+	void WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames);
 
 	
 
@@ -575,7 +671,20 @@ public:
 	 * Start a cook by the book session
 	 * Cook on the fly can't run at the same time as cook by the book
 	 */
-	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections );
+	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, 
+		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, 
+		const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections, 
+		ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None );
+
+	/**
+	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
+	 */
+	void QueueCancelCookByTheBook();
+
+	/**
+	 * Cancel the currently running cook by the book (needs to be called from the game thread)
+	 */
+	void CancelCookByTheBook();
 
 	bool IsCookByTheBookRunning() const;
 
@@ -588,9 +697,14 @@ public:
 	 */
 	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
 	
+	/**
+	 * Force stop whatever pending cook requests are going on and clear all the cooked data
+	 * Note cook on the side / cook on the fly clients may not be able to recover from this if they are waiting on a cook request to complete
+	 */
+	void StopAndClearCookedData();
+
 	/** 
 	 * Process any shader recompile requests
-	 *
 	 */
 	void TickRecompileShaderRequests();
 
@@ -602,7 +716,13 @@ public:
 	uint32 NumConnections() const;
 
 	
-
+	/**
+	 * Is this cooker running in real time mode (where it needs to respect the timeslice) 
+	 * 
+	 * @return returns true if this cooker is running in realtime mode like in the editor
+	 */
+	bool IsRealtimeMode();
+	
 
 	virtual void BeginDestroy() override;
 	
@@ -635,6 +755,12 @@ private:
 	void CollectFilesToCook(TArray<FString>& FilesInPath, 
 		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, 
 		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev);
+
+	/**
+	 * AddFileToCook add file to cook list 
+	 */
+	void AddFileToCook( TArray<FString>& InOutFilesToCook, const FString &InFilename ) const;
+
 	/**
 	 * Call back from the TickCookOnTheSide when a cook by the book finishes (when started form StartCookByTheBook)
 	 */
@@ -650,20 +776,6 @@ private:
 		return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookByTheBook; 
 	}
 
-	/**
-	 * GetDependencies
-	 * 
-	 * @param Packages List of packages to use as the root set for dependency checking
-	 * @param Found return value, all objects which package is dependent on
-	 */
-	void GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found);
-	/**
-	 * GenerateManifestInfo
-	 * generate the manifest information for a given package
-	 *
-	 * @param Package package to generate manifest information for
-	 */
-	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
 
 	//////////////////////////////////////////////////////////////////////////
 	// cook on the fly specific functions
@@ -697,7 +809,59 @@ private:
 	 */
 	bool ShouldCook(const FString& InFileName, const FName& InPlatformName);
 
+	/**
+	 * GetDependencies
+	 * 
+	 * @param Packages List of packages to use as the root set for dependency checking
+	 * @param Found return value, all objects which package is dependent on
+	 */
+	void GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found);
+	/**
+	 * GenerateManifestInfo
+	 * generate the manifest information for a given package
+	 *
+	 * @param Package package to generate manifest information for
+	 */
+	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
 
+	/**
+	 * GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook
+	 * 
+	 * @param IniVersionStrings return list of the important current ini version strings
+	 * @return false if function fails (should assume all platforms are out of date)
+	 */
+	bool GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString> &IniVersionStrings ) const;
+
+	/**
+	 * GetCookedIniVersionStrings gets the ini version strings used in previous cook for specified target platform
+	 * 
+	 * @param IniVersionStrings return list of the previous cooks ini version strings
+	 * @return false if function fails to find the ini version strings
+	 */
+	bool GetCookedIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings ) const;
+
+	/**
+	 * Checks if important ini settings have changed since last cook for each target platform 
+	 * 
+	 * @param TargetPlatforms to check if out of date
+	 * @param OutOfDateTargetPlatforms return list of out of date target platforms which should be cleaned
+	 */
+	bool IniSettingsOutOfDate( const TArray<ITargetPlatform*>& TargetPlatforms, TArray<ITargetPlatform*>& OutOfDateTargetPlatforms ) const;
+
+	/**
+	 * SaveIniVersionStrings save out the ini version strings for all platforms so next cook can use them
+	 * -iterate uses this to figure out if content needs to be recooked
+	 * 
+	 * @param TargetPlatforms the target platforms to generate ini version info for
+	 */
+	void SaveIniVersionStrings( const TArray<ITargetPlatform*>& TargetPlatforms ) const;
+
+	/**
+	 * IsCookFlagSet
+	 * 
+	 * @param InCookFlag used to check against the current cook flags
+	 * @return true if the cook flag is set false otherwise
+	 */
 	bool IsCookFlagSet( const ECookInitializationFlags& InCookFlags ) const 
 	{
 		return (CookFlags & InCookFlags) != ECookInitializationFlags::None;

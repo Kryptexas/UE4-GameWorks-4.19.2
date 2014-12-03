@@ -89,6 +89,17 @@ enum EBlendMode
 };
 
 UENUM()
+enum ESamplerSourceMode
+{
+	/** Get the sampler from the texture.  Every unique texture will consume a sampler slot, which are limited in number. */
+	SSM_FromTextureAsset UMETA(DisplayName="From texture asset"),
+	/** Shared sampler source that does not consume a sampler slot.  Uses wrap addressing and gets filter mode from the world texture group. */
+	SSM_Wrap_WorldGroupSettings UMETA(DisplayName="Shared: Wrap"),
+	/** Shared sampler source that does not consume a sampler slot.  Uses clamp addressing and gets filter mode from the world texture group. */
+	SSM_Clamp_WorldGroupSettings UMETA(DisplayName="Shared: Clamp")
+};
+
+UENUM()
 enum ETranslucencyLightingMode
 {
 	/** 
@@ -460,6 +471,13 @@ namespace EWorldType
 		Inactive	// An editor world that was loaded but not currently being edited in the level editor
 	};
 }
+
+enum class EFlushLevelStreamingType
+{
+	None,			
+	Full,			// Allow multiple load requests
+	Visibility,		// Flush visibility only, do not allow load requests, flushes async loading as well
+};
 
 USTRUCT()
 struct FResponseChannel
@@ -1069,15 +1087,15 @@ struct FLightmassPrimitiveSettings
 	GENERATED_USTRUCT_BODY()
 
 	/** If true, this object will be lit as if it receives light from both sides of its polygons. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bUseTwoSidedLighting:1;
 
 	/** If true, this object will only shadow indirect lighting.  					*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bShadowIndirectOnly:1;
 
 	/** If true, allow using the emissive for static lighting.						*/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bUseEmissiveForStaticLighting:1;
 
 	/** Direct lighting falloff exponent for mesh area lights created from emissive areas on this primitive. */
@@ -1433,6 +1451,7 @@ struct ENGINE_API FHitResult
 	FHitResult()
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
+		Time = 1.f;
 	}
 	
 	explicit FHitResult(float InTime)
@@ -1444,6 +1463,7 @@ struct ENGINE_API FHitResult
 	explicit FHitResult(EForceInit Init)
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
+		Time = 1.f;
 	}
 
 	/** Ctor for easily creating "fake" hits from limited data. */
@@ -1467,6 +1487,9 @@ struct ENGINE_API FHitResult
 
 	/** Utility to return the Component that was hit. */
 	UPrimitiveComponent* GetComponent() const;
+
+	/** Optimized serialize function */
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 	/** Return true if there was a blocking hit that was not caused by starting in penetration. */
 	FORCEINLINE bool IsValidBlockingHit() const
@@ -1506,6 +1529,15 @@ struct ENGINE_API FHitResult
 	{
 		return (InHits.Num() - GetNumBlockingHits(InHits));
 	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
 };
 
 /** Structure containing information about one hit of an overlap test */
@@ -1646,7 +1678,7 @@ public:
 	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
 	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
 	 */
-	void Set(class AActor& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames);
+	void Set(class AActor& Owner, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames);
 
 	/* Getter for UpdateRate */
 	int32 GetUpdateRate() const
@@ -2338,7 +2370,7 @@ struct FRepAttachment
 UENUM(BlueprintType)
 enum EWalkableSlopeBehavior
 {
-	/** Don't affect the walkable slope. */
+	/** Don't affect the walkable slope. Walkable slope angle will be ignored. */
 	WalkableSlope_Default		UMETA(DisplayName="Unchanged"),
 
 	/**
@@ -2384,6 +2416,12 @@ struct FWalkableSlopeOverride
 	FWalkableSlopeOverride()
 	: WalkableSlopeBehavior(WalkableSlope_Default)
 	, WalkableSlopeAngle(0.f)
+	{
+	}
+
+	FWalkableSlopeOverride(EWalkableSlopeBehavior NewSlopeBehavior, float NewSlopeAngle)
+	: WalkableSlopeBehavior(NewSlopeBehavior)
+	, WalkableSlopeAngle(NewSlopeAngle)
 	{
 	}
 

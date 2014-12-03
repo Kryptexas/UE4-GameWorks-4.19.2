@@ -6,10 +6,10 @@
 //////////////////////////////////////////////////////////////////////////
 // APaperFlipbookActor
 
-APaperFlipbookActor::APaperFlipbookActor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APaperFlipbookActor::APaperFlipbookActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	RenderComponent = PCIP.CreateDefaultSubobject<UPaperFlipbookComponent>(this, TEXT("RenderComponent"));
+	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperFlipbookComponent>(this, TEXT("RenderComponent"));
 
 	RootComponent = RenderComponent;
 }

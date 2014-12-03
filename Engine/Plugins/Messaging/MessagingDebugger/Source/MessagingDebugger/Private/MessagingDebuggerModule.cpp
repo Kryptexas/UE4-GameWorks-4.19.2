@@ -2,6 +2,7 @@
 
 #include "MessagingDebuggerPrivatePCH.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "SDockTab.h"
 
 
 #define LOCTEXT_NAMESPACE "FMessagingDebuggerModule"
@@ -21,23 +22,23 @@ public:
 
 	// IModuleInterface interface
 	
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		Style = MakeShareable(new FMessagingDebuggerStyle());
 
 		FMessagingDebuggerCommands::Register();
 
 		IModularFeatures::Get().RegisterModularFeature("MessagingDebugger", this);
-
-		FGlobalTabmanager::Get()->RegisterTabSpawner(MessagingDebuggerTabName, FOnSpawnTab::CreateRaw(this, &FMessagingDebuggerModule::SpawnMessagingDebuggerTab))
-			.SetDisplayName(NSLOCTEXT("FMessagingDebuggerModule", "DebuggerTabTitle", "Messaging Debugger"))
-			.SetTooltipText(NSLOCTEXT("FMessagingDebuggerModule", "DebuggerTooltipText", "Open the Messaging Debugger tab."))
-			.SetIcon(FSlateIcon(Style->GetStyleSetName(), "MessagingDebuggerTabIcon"));
+		
+		// This is still experimental in the editor, so it'll be invoked specifically in FMainMenu if the experimental settings flag is set.
+		// When no longer experimental, switch to the nomad spawner registration below
+		FGlobalTabmanager::Get()->RegisterTabSpawner(MessagingDebuggerTabName, FOnSpawnTab::CreateRaw(this, &FMessagingDebuggerModule::SpawnMessagingDebuggerTab));
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(MessagingDebuggerTabName);
+
 		IModularFeatures::Get().UnregisterModularFeature("MessagingDebugger", this);
 		FMessagingDebuggerCommands::Unregister();
 	}
@@ -47,8 +48,7 @@ private:
 	/**
 	 * Creates a new messaging debugger tab.
 	 *
-	 * @param SpawnTabArgs - The arguments for the tab to spawn.
-	 *
+	 * @param SpawnTabArgs The arguments for the tab to spawn.
 	 * @return The spawned tab.
 	 */
 	TSharedRef<SDockTab> SpawnMessagingDebuggerTab( const FSpawnTabArgs& SpawnTabArgs )
@@ -76,7 +76,7 @@ private:
 
 private:
 
-	// Holds the plug-ins style set.
+	/** Holds the plug-ins style set. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

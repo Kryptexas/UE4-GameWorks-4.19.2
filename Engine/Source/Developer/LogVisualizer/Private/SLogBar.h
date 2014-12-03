@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 struct FLogEntryBarProxy
 {
-	FLogEntryBarProxy(const FVisLogEntry* LogEntry)
+	FLogEntryBarProxy(const FVisualLogEntry* LogEntry)
 	{
 
 	}
@@ -24,7 +24,7 @@ public:
 
 	/** Delegate used allotted geometry changes */
 	DECLARE_DELEGATE_OneParam(FOnGeometryChanged, FGeometry);
-	DECLARE_DELEGATE_OneParam(FOnSelectionChanged, TSharedPtr<FVisLogEntry>);
+	DECLARE_DELEGATE_OneParam(FOnSelectionChanged, TSharedPtr<FVisualLogEntry>);
 	DECLARE_DELEGATE_RetVal(bool, FShouldDrawSelection);
 	DECLARE_DELEGATE_RetVal(float, FCurrentDisplayedTime);
 	DECLARE_DELEGATE_RetVal(int32, FCurrentEntryIndex);
@@ -66,7 +66,7 @@ public:
 	 *
 	 * @param InEvent	Events to draw
 	 */
-	void SetEntries(const TArray<TSharedPtr<FVisLogEntry> >& InEntries, float InStartTime, float InTotalTime);
+	void SetEntries(const TArray<TSharedPtr<FVisualLogEntry> >& InEntries, float InStartTime, float InTotalTime);
 	
 	void SelectEntry(const FGeometry& MyGeometry, const float ClickX);
 
@@ -119,7 +119,7 @@ private:
 
 	void SelectEntryAtIndex(const int32 Index);
 
-	FORCEINLINE_DEBUGGABLE bool CalculateEntryGeometry(const FVisLogEntry* LogEntry, const FGeometry& InGeometry, float& OutStartX, float& OutEndX) const
+	FORCEINLINE_DEBUGGABLE bool CalculateEntryGeometry(const FVisualLogEntry* LogEntry, const FGeometry& InGeometry, float& OutStartX, float& OutEndX) const
 	{
 		const float EventStart = (LogEntry->TimeStamp - StartTime) / TotalTime;
 		const float EventDuration = TimeUnit / TotalTime;
@@ -149,7 +149,7 @@ private:
 	const FSlateBrush* TimeMarkImage;
 
 	/** List of all events to draw */
-	TArray<TSharedPtr<FVisLogEntry> > Entries;
+	TArray<TSharedPtr<FVisualLogEntry> > Entries;
 
 	/** Start time (0.0 - 1.0) */
 	float StartTime;

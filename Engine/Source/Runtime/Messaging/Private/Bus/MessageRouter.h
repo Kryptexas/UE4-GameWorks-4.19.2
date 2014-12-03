@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "IMessageContext.h"
+#include "IMessageInterceptor.h"
+#include "IMessageSubscription.h"
+#include "IMessageTracer.h"
+#include "IReceiveMessages.h"
+#include "ISendMessages.h"
+
 
 /**
  * Implements a topic-based message router.
@@ -9,13 +16,15 @@
 class FMessageRouter
 	: public FRunnable
 {
+	DECLARE_DELEGATE(CommandDelegate)
+
 public:
 
 	/** Default constructor. */
-	FMessageRouter( );
+	FMessageRouter();
 
 	/** Destructor. */
-	~FMessageRouter( );
+	~FMessageRouter();
 
 public:
 
@@ -25,7 +34,7 @@ public:
 	 * @param Interceptor The interceptor to add.
 	 * @param MessageType The type of messages to intercept.
 	 */
-	FORCEINLINE void AddInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	FORCEINLINE void AddInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		EnqueueCommand(FSimpleDelegate::CreateRaw(this, &FMessageRouter::HandleAddInterceptor, Interceptor, MessageType));
 	}
@@ -56,7 +65,7 @@ public:
 	 *
 	 * @return Weak pointer to the message tracer.
 	 */
-	FORCEINLINE IMessageTracerRef GetTracer( )
+	FORCEINLINE IMessageTracerRef GetTracer()
 	{
 		return Tracer;
 	}
@@ -67,7 +76,7 @@ public:
 	 * @param Interceptor The interceptor to remove.
 	 * @param MessageType The type of messages to stop intercepting.
 	 */
-	FORCEINLINE void RemoveInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	FORCEINLINE void RemoveInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		EnqueueCommand(FSimpleDelegate::CreateRaw(this, &FMessageRouter::HandleRemoveInterceptor, Interceptor, MessageType));
 	}
@@ -108,10 +117,10 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override;
-	virtual uint32 Run( ) override;
-	virtual void Stop( ) override;
-	virtual void Exit( ) override;
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override;
 
 protected:
 
@@ -120,7 +129,7 @@ protected:
 	 *
 	 * @return Wait time.
 	 */
-	FTimespan CalculateWaitTime( );
+	FTimespan CalculateWaitTime();
 
 	/**
 	 * Queues up a router command.
@@ -128,7 +137,7 @@ protected:
 	 * @param Command The command to queue up.
 	 * @return true if the command was enqueued, false otherwise.
 	 */
-	FORCEINLINE bool EnqueueCommand( TBaseDelegate_NoParams<void> Command )
+	FORCEINLINE bool EnqueueCommand( CommandDelegate Command )
 	{
 		if (!Commands.Enqueue(Command))
 		{
@@ -158,7 +167,7 @@ protected:
 	void DispatchMessage( const IMessageContextRef& Message );
 
 	/** Processes all delayed messages. */
-	void ProcessDelayedMessages( );
+	void ProcessDelayedMessages();
 
 private:
 
@@ -173,7 +182,7 @@ private:
 
 
 		// Default constructor.
-		FDelayedMessage( ) { }
+		FDelayedMessage() { }
 
 		// Creates and initializes a new instance.
 		FDelayedMessage( const IMessageContextRef& InContext, int64 InSequence )
@@ -198,7 +207,7 @@ private:
 private:
 
 	/** Handles adding message interceptors. */
-	void HandleAddInterceptor( IInterceptMessagesRef Interceptor, FName MessageType );
+	void HandleAddInterceptor( IMessageInterceptorRef Interceptor, FName MessageType );
 
 	/** Handles adding message recipients. */
 	void HandleAddRecipient( FMessageAddress Address, IReceiveMessagesWeakPtr RecipientPtr );
@@ -207,7 +216,7 @@ private:
 	void HandleAddSubscriber( IMessageSubscriptionRef Subscription );
 
 	/** Handles the removal of message interceptors. */
-	void HandleRemoveInterceptor( IInterceptMessagesRef Interceptor, FName MessageType );
+	void HandleRemoveInterceptor( IMessageInterceptorRef Interceptor, FName MessageType );
 
 	/** Handles the removal of message recipients. */
 	void HandleRemoveRecipient( FMessageAddress Address );
@@ -221,7 +230,7 @@ private:
 private:
 
 	/** Maps message types to interceptors. */
-	TMap<FName, TArray<IInterceptMessagesPtr>> ActiveInterceptors;
+	TMap<FName, TArray<IMessageInterceptorPtr>> ActiveInterceptors;
 
 	/** Maps message addresses to recipients. */
 	TMap<FMessageAddress, IReceiveMessagesWeakPtr> ActiveRecipients;
@@ -230,7 +239,7 @@ private:
 	TMap<FName, TArray<IMessageSubscriptionPtr>> ActiveSubscriptions;
 
 	/** Holds the router command queue. */
-	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Commands;
+	TQueue<CommandDelegate, EQueueMode::Mpsc> Commands;
 
 	/** Holds the current time. */
 	FDateTime CurrentTime;

@@ -10,6 +10,8 @@
 
 class FColorVertexBuffer;
 class UStaticMesh;
+class FStaticMeshStaticLightingMesh;
+class ULightComponent;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -108,6 +110,7 @@ struct TStructOpsTypeTraits<FStaticMeshComponentLODInfo> : public TStructOpsType
 
 /**
  * StaticMeshComponent is used to create an instance of a UStaticMesh.
+ * A static mesh is a piece of geometry that consists of a static set of polygons.
  *
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
  * @see UStaticMesh
@@ -204,7 +207,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	 * Get Local bounds
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
-	void GetLocalBounds(FVector & Min, FVector & Max) const;
+	void GetLocalBounds(FVector& Min, FVector& Max) const;
 
 public:
 
@@ -226,7 +229,7 @@ public:
 	// End UObject interface.
 
 	// Begin USceneComponent Interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool HasAnySockets() const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
@@ -250,9 +253,9 @@ public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
+	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 	// End UActorComponent interface.
 
 
@@ -398,7 +401,7 @@ public:
 	void ReleaseResources();
 
 	/** Allocates an implementation of FStaticLightingMesh that will handle static lighting for this component */
-	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
+	virtual FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
 
 	/** Add or remove elements to have the size in the specified range. Reconstructs elements if MaxSize<MinSize */
 	void SetLODDataCount( const uint32 MinSize, const uint32 MaxSize );

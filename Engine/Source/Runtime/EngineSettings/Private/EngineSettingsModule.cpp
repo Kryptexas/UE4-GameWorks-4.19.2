@@ -26,41 +26,41 @@ public:
 /* Class constructors
  *****************************************************************************/
 
-UConsoleSettings::UConsoleSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UConsoleSettings::UConsoleSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
-UGameMapsSettings::UGameMapsSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGameMapsSettings::UGameMapsSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, bUseSplitscreen(true)
 	, TwoPlayerSplitscreenLayout(ETwoPlayerSplitScreenType::Horizontal)
 	, ThreePlayerSplitscreenLayout(EThreePlayerSplitScreenType::FavorTop)
 { }
 
 
-UGameNetworkManagerSettings::UGameNetworkManagerSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGameNetworkManagerSettings::UGameNetworkManagerSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
-UGameSessionSettings::UGameSessionSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGameSessionSettings::UGameSessionSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
-UGeneralEngineSettings::UGeneralEngineSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGeneralEngineSettings::UGeneralEngineSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
-UGeneralProjectSettings::UGeneralProjectSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGeneralProjectSettings::UGeneralProjectSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
-UHudSettings::UHudSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UHudSettings::UHudSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 

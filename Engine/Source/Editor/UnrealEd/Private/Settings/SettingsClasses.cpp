@@ -1,17 +1,15 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
-#include "EdGraphSchema_K2.h" // for bUseLegacyActionMenus
-
 
 /* UContentBrowserSettings interface
  *****************************************************************************/
 
 UContentBrowserSettings::FSettingChangedEvent UContentBrowserSettings::SettingChangedEvent;
 
-UContentBrowserSettings::UContentBrowserSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UContentBrowserSettings::UContentBrowserSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
@@ -35,8 +33,8 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 /* UDestructableMeshEditorSettings interface
  *****************************************************************************/
 
-UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	AnimPreviewLightingDirection = FRotator(-45.0f, 45.0f, 0);
 	AnimPreviewSkyColor = FColor(0, 0, 255);
@@ -50,16 +48,16 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FP
 /* UEditorExperimentalSettings interface
  *****************************************************************************/
 
-UEditorExperimentalSettings::UEditorExperimentalSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { 
-	// setting was originally loaded from .ini into UEdGraphSchema_K2
-	bUseRefactoredBlueprintMenuingSystem = !GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus;
 }
 
 
 void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {
+	static const FName NAME_EQS = GET_MEMBER_NAME_CHECKED(UEditorExperimentalSettings, bEQSEditor);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -67,6 +65,13 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 	if (Name == FName(TEXT("ConsoleForGamepadLabels")))
 	{
 		EKeys::SetConsoleForGamepadLabels(ConsoleForGamepadLabels);
+	}
+	else if (Name == NAME_EQS)
+	{
+		if (bEQSEditor)
+		{
+			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
+		}
 	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
@@ -81,8 +86,8 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 /* UEditorLoadingSavingSettings interface
  *****************************************************************************/
 
-UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
 }
@@ -119,16 +124,16 @@ void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChang
 /* UEditorMiscSettings interface
  *****************************************************************************/
 
-UEditorMiscSettings::UEditorMiscSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UEditorMiscSettings::UEditorMiscSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 
 /* ULevelEditorMiscSettings interface
  *****************************************************************************/
 
-ULevelEditorMiscSettings::ULevelEditorMiscSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+ULevelEditorMiscSettings::ULevelEditorMiscSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	bAutoApplyLightingEnable = true;
 }
@@ -158,8 +163,8 @@ void ULevelEditorMiscSettings::PostEditChangeProperty( struct FPropertyChangedEv
 /* ULevelEditorPlaySettings interface
  *****************************************************************************/
 
-ULevelEditorPlaySettings::ULevelEditorPlaySettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	ClientWindowWidth = 640;
 	ClientWindowHeight = 480;
@@ -173,13 +178,13 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const class FPostConstructIn
 /* ULevelEditorViewportSettings interface
  *****************************************************************************/
 
-ULevelEditorViewportSettings::ULevelEditorViewportSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+ULevelEditorViewportSettings::ULevelEditorViewportSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	bLevelStreamingVolumePrevis = false;
 	BillboardScale = 1.0f;
-
 	TransformWidgetSizeAdjustment = 0.0f;
+	MeasuringToolUnits = MeasureUnits_Centimeters;
 
 	// Set a default preview mesh
 	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
@@ -274,14 +279,9 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 /* UProjectPackagingSettings interface
  *****************************************************************************/
 
-UProjectPackagingSettings::UProjectPackagingSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UProjectPackagingSettings::UProjectPackagingSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
-	BuildConfiguration = PPBC_Development;
-	FullRebuild = true;
-	UsePakFile = true;
-	UseOBB_InAPK = false;
-	CulturesToStage.Add("en");
 }
 
 

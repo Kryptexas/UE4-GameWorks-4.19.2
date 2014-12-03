@@ -5,12 +5,27 @@
 #include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorUserSettings.h"
 
-UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	// Style Settings
+	, bDrawMidpointArrowsInBlueprints(false)
+	// UX Settings
+	, bShowGraphInstructionText(true)
+	, bUseTargetContextForNodeMenu(true)
+	, bExposeAllMemberComponentFunctions(true)
+	, bShowContextualFavorites(false)
+	, bFlattenFavoritesMenus(true)
+	, bUseLegacyMenuingSystem(false)
+	// Compiler Settings
+	, SaveOnCompile(SoC_Never)
+	, bJumpToNodeErrors(false)
+	// Developer Settings
+	, bShowActionMenuItemSignatures(false)
+	// Perf Settings
+	, bShowDetailedCompileResults(false)
+	, CompileEventDisplayThresholdMs(5)
+	, NodeTemplateCacheCapMB(20.f)
 {
-	bShowGraphInstructionText = true;
-	NodeTemplateCacheCapMB    = 20.f;
-
 	// settings that were moved out of experimental...
 	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
 	bDrawMidpointArrowsInBlueprints = ExperimentalSettings->bDrawMidpointArrowsInBlueprints;
@@ -18,4 +33,13 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructIni
 	// settings that were moved out of editor-user settings...
 	UEditorUserSettings const* UserSettings = GetDefault<UEditorUserSettings>();
 	bShowActionMenuItemSignatures = UserSettings->bDisplayActionListItemRefIds;
+
+	FString const ClassConfigKey = GetClass()->GetPathName();
+
+	bool bOldSaveOnCompileVal = false;
+	// backwards compatibility: handle the case where users have already switched this on
+	if (GConfig->GetBool(*ClassConfigKey, TEXT("bSaveOnCompile"), bOldSaveOnCompileVal, GEditorUserSettingsIni) && bOldSaveOnCompileVal)
+	{
+		SaveOnCompile = SoC_SuccessOnly;
+	}
 }

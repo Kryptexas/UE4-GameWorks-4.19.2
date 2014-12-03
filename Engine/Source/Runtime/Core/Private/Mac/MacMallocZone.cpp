@@ -1,8 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MacMallocZone.h"
 #include "MacPlatformMisc.h"
+#include "MacPlatformCrashContext.h"
 #include <malloc/malloc.h>
 
 FMacMallocZone::FMacMallocZone( uint64 const InitialSize )
@@ -55,7 +56,7 @@ bool FMacMallocZone::ValidateHeap()
 	return malloc_zone_check( MemoryZone ) ;
 }
 
-const TCHAR * FMacMallocZone::GetDescriptiveName()
+const TCHAR* FMacMallocZone::GetDescriptiveName()
 {
 	return TEXT("MallocZone");
 }
@@ -163,7 +164,7 @@ bool FMacMallocCrashHandler::GetAllocationSize( void *Original, SIZE_T &SizeOut 
 	return SizeOut > 0;
 }
 
-const TCHAR * FMacMallocCrashHandler::GetDescriptiveName()
+const TCHAR* FMacMallocCrashHandler::GetDescriptiveName()
 {
 	return TEXT("MallocCrashHandler");
 }

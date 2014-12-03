@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Math/Vector2D.h"
 #include "Types/SlateEnums.h"
 #include "Margin.generated.h"
 

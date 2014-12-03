@@ -95,42 +95,73 @@ void FHighResScreenshotConfig::SetHDRCapture(bool bCaptureHDRIN)
 	bCaptureHDR = bCaptureHDRIN;
 }
 
-template<typename TPixelType>
-FString FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, EPixelFormat SourceFormat) const
+template<typename> struct FPixelTypeTraits {};
+
+template<> struct FPixelTypeTraits<FColor>
 {
+	static const ERGBFormat::Type SourceChannelLayout = ERGBFormat::BGRA;
+
+	static FORCEINLINE bool IsWritingHDRImage(const bool)
+	{
+		return false;
+	}
+};
+
+template<> struct FPixelTypeTraits<FFloat16Color>
+{
+	static const ERGBFormat::Type SourceChannelLayout = ERGBFormat::RGBA;
+
+	static FORCEINLINE bool IsWritingHDRImage(const bool bCaptureHDR)
+	{
+		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+		return bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread();
+	}
+};
+
+template<typename TPixelType>
+bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const
+{
+	typedef FPixelTypeTraits<TPixelType> Traits;
+
 	static_assert(ARE_TYPES_EQUAL(TPixelType, FFloat16Color) || ARE_TYPES_EQUAL(TPixelType, FColor), "Source format must be either FColor or FFloat16Color");
-	check(SourceFormat == PF_FloatRGBA || SourceFormat == PF_B8G8R8A8 || SourceFormat == PF_R8G8B8A8);
 	const int32 x = BitmapSize.X;
 	const int32 y = BitmapSize.Y;
 	check(Bitmap.Num() == x * y);
 
-	static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
-	bool bIsWritingHDRImage = (bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread()) && SourceFormat == PF_FloatRGBA;
+	const bool bIsWritingHDRImage = Traits::IsWritingHDRImage(bCaptureHDR);
 
 	IFileManager* FileManager = &IFileManager::Get();
 	const size_t BitsPerPixel = (sizeof(TPixelType) / 4) * 8;
-	const ERGBFormat::Type SourceChannelLayout = SourceFormat == PF_B8G8R8A8 ? ERGBFormat::BGRA : ERGBFormat::RGBA;
 
 	TSharedPtr<class IImageWrapper> ImageCompressor = bIsWritingHDRImage ? ImageCompressorHDR : ImageCompressorLDR;
-	FString Filename = File + (bIsWritingHDRImage ? TEXT(".exr") : TEXT(".png"));
 
-	if (ImageCompressor.IsValid() && ImageCompressor->SetRaw((void*)&Bitmap[0], sizeof(TPixelType)* x * y, x, y, SourceChannelLayout, BitsPerPixel))
+	// here we require the input file name to have an extension
+	FString NewExtension = bIsWritingHDRImage ? TEXT(".exr") : TEXT(".png");
+	FString Filename = FPaths::GetBaseFilename(File, false) + NewExtension;
+
+	if (OutFilename != nullptr)
+	{
+		*OutFilename = Filename;
+	}
+
+	if (ImageCompressor.IsValid() && ImageCompressor->SetRaw((void*)&Bitmap[0], sizeof(TPixelType)* x * y, x, y, Traits::SourceChannelLayout, BitsPerPixel))
 	{
 		FArchive* Ar = FileManager->CreateFileWriter(Filename.GetCharArray().GetData());
 		if (Ar != nullptr)
 		{
 			const TArray<uint8>& CompressedData = ImageCompressor->GetCompressed();
 			int32 CompressedSize = CompressedData.Num();
-			Ar->Serialize((void*)CompressedData.GetTypedData(), CompressedSize);
+			Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
 			delete Ar;
 		}
 		else
 		{
-			Filename = FString("Failed to open for writing: ") + Filename;
+			return false;
 		}
 	}
-	return Filename;
+
+	return true;
 }
 
-template ENGINE_API FString FHighResScreenshotConfig::SaveImage<FColor>(const FString& File, const TArray<FColor>& Bitmap, const FIntPoint& BitmapSize, EPixelFormat SourceFormat) const;
-template ENGINE_API FString FHighResScreenshotConfig::SaveImage<FFloat16Color>(const FString& File, const TArray<FFloat16Color>& Bitmap, const FIntPoint& BitmapSize, EPixelFormat SourceFormat) const;
+template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FColor>(const FString& File, const TArray<FColor>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
+template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FFloat16Color>(const FString& File, const TArray<FFloat16Color>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;

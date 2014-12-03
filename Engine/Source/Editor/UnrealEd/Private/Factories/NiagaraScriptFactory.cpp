@@ -3,12 +3,11 @@
 #include "UnrealEd.h"
 #include "Engine/NiagaraScript.h"
 #include "NiagaraEditorModule.h"
-#include "VectorVM.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptFactory"
 
-UNiagaraScriptFactoryNew::UNiagaraScriptFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraScriptFactoryNew::UNiagaraScriptFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UNiagaraScript::StaticClass();
@@ -41,12 +40,12 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class,UObject* InPar
 			UNiagaraNodeOutputUpdate* OutputNode = OutputNodeCreator.CreateNode();
 			OutputNodeCreator.Finalize();
 
-			FGraphNodeCreator<UNiagaraNodeGetAttr> TimeNodeCreator(*CreatedGraph);
-			UNiagaraNodeGetAttr* DeltaTimeNode = TimeNodeCreator.CreateNode();
-			DeltaTimeNode->AttrName = FName(TEXT("DeltaTime"));
-			TimeNodeCreator.Finalize();
-
-			UEdGraphPin* DeltaTimePin = DeltaTimeNode->FindPinChecked(DeltaTimeNode->AttrName.ToString());
+// 			FGraphNodeCreator<UNiagaraNodeGetAttr> TimeNodeCreator(*CreatedGraph);
+// 			UNiagaraNodeGetAttr* DeltaTimeNode = TimeNodeCreator.CreateNode();
+// 			DeltaTimeNode->AttrName = FName(TEXT("DeltaTime"));
+// 			DeltaTimeNode->bIsEmitterAttribute = true;
+// 			TimeNodeCreator.Finalize();
+			//UEdGraphPin* DeltaTimePin = DeltaTimeNode->FindPinChecked(DeltaTimeNode->AttrName.ToString());
 
 			TArray<FName> OutputNames;
 			Source->GetParticleAttributes(OutputNames);

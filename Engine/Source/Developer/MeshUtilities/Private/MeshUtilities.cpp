@@ -3,14 +3,14 @@
 #include "MeshUtilitiesPrivate.h"
 #include "StaticMeshResources.h"
 #include "SkeletalMeshTypes.h"
-#include "Landscape/LandscapeRender.h"
+#include "LandscapeRender.h"
 #include "MeshBuild.h"
 #include "TessellationRendering.h"
 #include "NvTriStrip.h"
 #include "forsythtriangleorderoptimizer.h"
 #include "ThirdParty/nvtesslib/inc/nvtess.h"
 #include "SkeletalMeshTools.h"
-#include "Landscape/LandscapeDataAccess.h"
+#include "LandscapeDataAccess.h"
 #include "ImageUtils.h"
 #include "MaterialExportUtils.h"
 #include "Textures/TextureAtlas.h"
@@ -102,6 +102,8 @@ private:
 		const TArray<uint32>& Indices,
 		TArray<uint32>& OutPnAenIndices
 		) override;
+
+	virtual void RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk) override;
 
 	virtual void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) override;
 
@@ -581,14 +583,14 @@ namespace NvTriStrip
 		SetListsOnly(true);
 		SetCacheSize(CACHESIZE_GEFORCE3);
 
-		GenerateStrips((uint8*)Indices.GetTypedData(),Is32Bit,Indices.Num(),&PrimitiveGroups,&NumPrimitiveGroups);
+		GenerateStrips((uint8*)Indices.GetData(),Is32Bit,Indices.Num(),&PrimitiveGroups,&NumPrimitiveGroups);
 
 		Indices.Empty();
 		Indices.AddUninitialized(PrimitiveGroups->numIndices);
 	
 		if( Is32Bit )
 		{
-			FMemory::Memcpy(Indices.GetTypedData(),PrimitiveGroups->indices,Indices.Num() * sizeof(IndexDataType));
+			FMemory::Memcpy(Indices.GetData(),PrimitiveGroups->indices,Indices.Num() * sizeof(IndexDataType));
 		}
 		else
 		{
@@ -666,7 +668,7 @@ namespace Forsyth
 
 		if( Is32Bit )
 		{
-			FMemory::Memcpy(Indices.GetTypedData(),OptimizedIndices.GetTypedData(),Indices.Num() * sizeof(IndexDataType));
+			FMemory::Memcpy(Indices.GetData(),OptimizedIndices.GetData(),Indices.Num() * sizeof(IndexDataType));
 		}
 		else
 		{
@@ -722,7 +724,7 @@ public:
 		, VertexBuffer( InVertexBuffer )
 	{
 		check( PositionVertexBuffer.GetNumVertices() == VertexBuffer.GetNumVertices() );
-		mIb = new nv::IndexBuffer( (void*)Indices.GetTypedData(), nv::IBT_U32, Indices.Num(), false );
+		mIb = new nv::IndexBuffer( (void*)Indices.GetData(), nv::IBT_U32, Indices.Num(), false );
 	}
 
 	/** Retrieve the position and first texture coordinate of the specified index. */
@@ -780,7 +782,7 @@ public:
 		: VertexBuffer( InVertexBuffer )
 		, TexCoordCount( InTexCoordCount )
 	{
-		mIb = new nv::IndexBuffer( (void*)Indices.GetTypedData(), nv::IBT_U32, Indices.Num(), false );
+		mIb = new nv::IndexBuffer( (void*)Indices.GetData(), nv::IBT_U32, Indices.Num(), false );
 	}
 
 	/** Retrieve the position and first texture coordinate of the specified index. */
@@ -872,6 +874,61 @@ void FMeshUtilities::BuildSkeletalAdjacencyIndexBuffer(
 	{
 		OutPnAenIndices.Empty();
 	}
+}
+
+void FMeshUtilities::RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk)
+{
+#if WITH_EDITORONLY_DATA
+	TIndirectArray<FStaticLODModel> DestModels;
+	TIndirectArray<FSkinnedModelData> ModelData;
+	FReferenceSkeleton RefSkeleton = SrcMesh->RefSkeleton;
+	uint32 VertexBufferBuildFlags = SrcMesh->GetVertexBufferFlags();
+	FSkeletalMeshResource* SrcMeshResource = SrcMesh->GetImportedResource();
+	FVector TriangleSortCenter;
+	bool bHaveTriangleSortCenter = SrcMesh->GetSortCenterPoint(TriangleSortCenter);
+
+	for (int32 ModelIndex = 0; ModelIndex < SrcMeshResource->LODModels.Num(); ++ModelIndex)
+	{
+		FSkinnedModelData& TmpModelData = *new(ModelData) FSkinnedModelData();
+		SkeletalMeshTools::CopySkinnedModelData(TmpModelData,SrcMeshResource->LODModels[ModelIndex]);
+	}
+
+	for (int32 ModelIndex = 0; ModelIndex < ModelData.Num(); ++ModelIndex)
+	{
+		TArray<FSkinnedMeshChunk*> Chunks;
+		TArray<int32> PointToOriginalMap;
+		TArray<ETriangleSortOption> SectionSortOptions;
+
+		const FSkinnedModelData& SrcModel = ModelData[ModelIndex];
+		FStaticLODModel& DestModel = *new(DestModels) FStaticLODModel();
+
+		SkeletalMeshTools::UnchunkSkeletalModel(Chunks,PointToOriginalMap,SrcModel);
+		SkeletalMeshTools::ChunkSkinnedVertices(Chunks,MaxBonesPerChunk);
+
+		for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
+		{
+			int32 SectionIndex = Chunks[ChunkIndex]->OriginalSectionIndex;
+			SectionSortOptions.Add(SrcModel.Sections[SectionIndex].TriangleSorting);
+		}
+		check(SectionSortOptions.Num() == Chunks.Num());
+
+		BuildSkeletalModelFromChunks(DestModel,RefSkeleton,Chunks,PointToOriginalMap);
+		check(DestModel.Sections.Num() == DestModel.Chunks.Num());
+		check(DestModel.Sections.Num() == SectionSortOptions.Num());
+
+		DestModel.NumTexCoords = SrcModel.NumTexCoords;
+		DestModel.BuildVertexBuffers(VertexBufferBuildFlags);
+		for (int32 SectionIndex = 0; SectionIndex < DestModel.Sections.Num(); ++SectionIndex)
+		{
+			DestModel.SortTriangles(TriangleSortCenter,bHaveTriangleSortCenter,SectionIndex,SectionSortOptions[SectionIndex]);
+		}
+	}
+
+	//@todo-rco: Swap() doesn't seem to work
+	Exchange(SrcMeshResource->LODModels, DestModels);
+
+	// TODO: Also need to patch bEnableShadowCasting in the LODInfo struct.
+#endif // #if WITH_EDITORONLY_DATA
 }
 
 void FMeshUtilities::CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant)
@@ -1767,7 +1824,6 @@ static void ComputeTangents(
 			}
 			while (NewConnections > 0);
 		}
-        
 
 		// Vertex normal construction.
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
@@ -2287,6 +2343,11 @@ bool FMeshUtilities::BuildStaticMesh(
 			// Generate lightmap UVs
 			if( SrcModel.BuildSettings.bGenerateLightmapUVs )
 			{
+				if( RawMesh.WedgeTexCoords[ SrcModel.BuildSettings.SrcLightmapIndex ].Num() == 0 )
+				{
+					SrcModel.BuildSettings.SrcLightmapIndex = 0;
+				}
+
 				FLayoutUV Packer( &RawMesh, SrcModel.BuildSettings.SrcLightmapIndex, SrcModel.BuildSettings.DstLightmapIndex, SrcModel.BuildSettings.MinLightmapResolution );
 
 				Packer.FindCharts( OverlappingCorners );
@@ -2425,7 +2486,7 @@ bool FMeshUtilities::BuildStaticMesh(
 
 				CombinedIndices.AddUninitialized(SectionIndices.Num());
 				uint32* DestPtr = &CombinedIndices[Section.FirstIndex];
-				uint32 const* SrcPtr = SectionIndices.GetTypedData();
+				uint32 const* SrcPtr = SectionIndices.GetData();
 
 				Section.MinVertexIndex = *SrcPtr;
 				Section.MaxVertexIndex = *SrcPtr;
@@ -2620,7 +2681,7 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 		}
 	}
 
- 	check(Wedges.Num() == WedgeInfluenceIndices.Num());
+	check(Wedges.Num() == WedgeInfluenceIndices.Num());
 
 	// Calculate smooth wedge tangent vectors.
 
@@ -3164,7 +3225,7 @@ void FMeshUtilities::CreateProxyMesh(
 		MeshPackage->Modify();
 	}
 
-	UStaticMesh* StaticMesh = new(MeshPackage, FName(*(TEXT("SM_") + AssetBaseName)), RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+	UStaticMesh* StaticMesh = new(MeshPackage, FName(*(TEXT("SM_") + AssetBaseName)), RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 	StaticMesh->InitResources();
 	{
 		FString OutputPath = StaticMesh->GetPathName();
@@ -3332,106 +3393,6 @@ bool FMeshUtilities::ConstructRawMesh(
 /*------------------------------------------------------------------------------
 	Mesh merging 
 ------------------------------------------------------------------------------*/
-
-//
-// Helper class for generating square atlas for square lightmaps
-//
-class FLightmapPacker
-{
-public:
-	/**
-	 * @return lightmap rect in a generated atlas, invalid Rect otherwise
-	 */
-	FIntRect GetPackedLightmapRect(int32 Idx) const
-	{
-		if (PackedLigthmapSlots.IsValidIndex(Idx))
-		{
-			uint32 X0 = PackedLigthmapSlots[Idx]->X;
-			uint32 Y0 = PackedLigthmapSlots[Idx]->Y;
-			uint32 X1 = X0 + PackedLigthmapSlots[Idx]->Width;
-			uint32 Y1 = Y0 + PackedLigthmapSlots[Idx]->Height;
-			return FIntRect(X0, Y0, X1, Y1);
-		}
-		return FIntRect();
-	}
-
-	/**
-	 * @return Atlas resolution, 0 - in case atlas was not created
-	 */
-	uint32 GetAtlasResolution() const
-	{
-		return PackedLightmapAtlas ? PackedLightmapAtlas->GetWidth() : 0;
-	}
-
-	/**
-	 *  Attempts to pack provided square lightmaps into single atlas                                                                   
-	 */ 
-	bool Pack(const TArray<uint32>& LigthmapsList)
-	{
-		// Calculate total lightmaps area and sort lightmaps list by resolution
-		TArray<TPair<int32, uint32>> SortedLightmaps;
-		float TotalArea = 0;
-
-		for (int32 i = 0; i < LigthmapsList.Num(); ++i)
-		{
-			uint32 LightmapRes = LigthmapsList[i];
-			TotalArea+= FMath::Square(LightmapRes);
-			SortedLightmaps.Add(TPairInitializer<int32, uint32>(i, LightmapRes));
-		}
-		//
-		SortedLightmaps.Sort([](TPair<int32, uint32> L, TPair<int32, uint32> R) { return R.Value < L.Value; });
-		
-		// Try to pack, increasing atlas resolution with each step
-		uint32 PackedSize = FMath::RoundUpToPowerOfTwo(FMath::RoundToInt(FMath::Sqrt(TotalArea)));
-		for (int32 i = 0; i < 10; ++i) // 2 iterations should be enough >.<
-		{
-			PackedLightmapAtlas = new FLightmapAtlas(PackedSize);
-			PackedLigthmapSlots.SetNum(LigthmapsList.Num());
-
-			for (TPair<int32, uint32> SortedLightmap : SortedLightmaps)
-			{
-				const FAtlasedTextureSlot* Slot = PackedLightmapAtlas->AddLightmap(SortedLightmap.Value);
-				if (Slot == nullptr)
-				{
-					PackedLigthmapSlots.Empty();
-					PackedLightmapAtlas.Reset();
-					break;
-				}
-			
-				PackedLigthmapSlots[SortedLightmap.Key] = Slot;
-			}
-
-			if (PackedLigthmapSlots.Num() == LigthmapsList.Num())
-			{
-				return true;
-			}
-
-			PackedSize = FMath::RoundUpToPowerOfTwo(PackedSize + 1);
-		}
-		
-		return false;
-	}
-
-private:
-	struct FLightmapAtlas : public FSlateTextureAtlas
-	{
-		FLightmapAtlas(uint32 InWidth)
-			: FSlateTextureAtlas(InWidth, InWidth, 0, ESlateTextureAtlasPaddingStyle::NoPadding)
-		{}
-
-		const FAtlasedTextureSlot* AddLightmap(uint32 InWidth)
-		{
-			return FindSlotForTexture(InWidth, InWidth);
-		}
-
-		virtual void ConditionalUpdateTexture() override {};
-	};
-
-private:
-	TScopedPointer<FLightmapAtlas>			PackedLightmapAtlas;
-	TArray<const FAtlasedTextureSlot*>		PackedLigthmapSlots;
-};
-
 bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh)
 {
 	UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
@@ -3501,13 +3462,9 @@ void FMeshUtilities::MergeActors(
 	struct FRawMeshExt
 	{
 		FRawMeshExt() 
-			: LightMapCoordinateIndex(0)
-			, LightMapRes(32)
 		{}
 		
 		FRawMesh	Mesh;
-		int32		LightMapCoordinateIndex;
-		int32		LightMapRes;
 		FString		AssetPackageName;
 		FVector		Pivot;	
 	};
@@ -3530,12 +3487,7 @@ void FMeshUtilities::MergeActors(
 		{
 			MaterialMap.Add(MeshId, MeshMaterialMap);
 
-			// Store mesh lightmap info
-			FIntPoint ActorLightMapRes; 
-			MeshComponent->GetLightMapResolution(ActorLightMapRes.X, ActorLightMapRes.Y);
-			SourceMeshes[MeshId].LightMapRes = ActorLightMapRes.X;
-			SourceMeshes[MeshId].LightMapCoordinateIndex = MeshComponent->StaticMesh->LightMapCoordinateIndex;
-			
+
 			// Store component location
 			SourceMeshes[MeshId].Pivot = MeshComponent->ComponentToWorld.GetLocation();
 			
@@ -3581,38 +3533,6 @@ void FMeshUtilities::MergeActors(
 	}
 
 	FRawMeshExt MergedMesh;
-
-	// Attempt to pack lightmaps
-	float MergedLightMapScale = 1.f;
-	bool bCreateLightMapChannel = false;
-	FLightmapPacker LightMapPacker;	
-						
-	if (InSettings.bGenerateAtlasedLightMapUV)
-	{
-		// Set target channel for lightmap UV
-		MergedMesh.LightMapCoordinateIndex = InSettings.TargetLightMapUVChannel;
-		
-		// Collect lightmap sizes from all meshes
-		TArray<uint32> LightMapResList;
-		for (const FRawMeshExt& SourceMesh : SourceMeshes)
-		{
-			LightMapResList.Add(SourceMesh.LightMapRes);
-		}
-		
-		// Pack them into one atlas
-		LightMapPacker.Pack(LightMapResList);
-		MergedMesh.LightMapRes = LightMapPacker.GetAtlasResolution();
-
-		// Whether we need to scale down lightUV coordiantes
-		if (MergedMesh.LightMapRes > InSettings.MaxAltlasedLightMapResolution)
-		{
-			MergedLightMapScale = InSettings.MaxAltlasedLightMapResolution/(float)MergedMesh.LightMapRes;
-			MergedMesh.LightMapRes = InSettings.MaxAltlasedLightMapResolution;
-		}
-
-		// Create lightmap channel in a merged mesh only if we succeed to generate atlas for it
-		bCreateLightMapChannel = (MergedMesh.LightMapRes > 0);
-	}
 
 	// Use first mesh for naming and pivot
 	MergedMesh.AssetPackageName = SourceMeshes[0].AssetPackageName;
@@ -3662,35 +3582,9 @@ void FMeshUtilities::MergeActors(
 			}
 		}
 		
-		// Write atlased UVs into user specified TargetLightmapChannel 
-		if (bCreateLightMapChannel)
-		{
-			FVector2D	UVOffset = FVector2D::ZeroVector;
-			FIntRect	PackedLightMapRect = LightMapPacker.GetPackedLightmapRect(SourceMeshIdx);
-			if (PackedLightMapRect.Area() != 0)
-			{
-				UVOffset = FVector2D(PackedLightMapRect.Min) * MergedLightMapScale / MergedMesh.LightMapRes;
-			}
-			
-			const TArray<FVector2D>& SourceWedgeTexCoords = SourceRawMesh.WedgeTexCoords[SourceMeshes[SourceMeshIdx].LightMapCoordinateIndex];
-			
-			for (FVector2D LightMapUV : SourceWedgeTexCoords)
-			{
-				const float SourceMeshLightMapRes = SourceMeshes[SourceMeshIdx].LightMapRes;
-				const float UVScale = (SourceMeshLightMapRes * MergedLightMapScale) / MergedMesh.LightMapRes;
-				TargetRawMesh.WedgeTexCoords[MergedMesh.LightMapCoordinateIndex].Add(LightMapUV * UVScale + UVOffset);
-			}
-		}
-		
 		// Merge all other UV channels 
 		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 		{
-			// Skip Lightmap channel if any
-			if (bCreateLightMapChannel && ChannelIdx == MergedMesh.LightMapCoordinateIndex)
-			{
-				continue;
-			}
-			
 			// Whether this channel has data
 			if (bOcuppiedUVChannels[ChannelIdx])
 			{
@@ -3737,7 +3631,7 @@ void FMeshUtilities::MergeActors(
 		Package->FullyLoad();
 		Package->Modify();
 
-		UStaticMesh* StaticMesh = new(Package, *AssetName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+		UStaticMesh* StaticMesh = new(Package, *AssetName, RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 		StaticMesh->InitResources();
 		
 		FString OutputPath = StaticMesh->GetPathName();
@@ -3745,12 +3639,6 @@ void FMeshUtilities::MergeActors(
 		// make sure it has a new lighting guid
 		StaticMesh->LightingGuid = FGuid::NewGuid();
 
-		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-		if (bCreateLightMapChannel)
-		{
-			StaticMesh->LightMapResolution = MergedMesh.LightMapRes;
-			StaticMesh->LightMapCoordinateIndex = MergedMesh.LightMapCoordinateIndex;	
-		}
 
 		FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
 		/*Don't allow the engine to recalculate normals*/
@@ -3758,11 +3646,21 @@ void FMeshUtilities::MergeActors(
 		SrcModel->BuildSettings.bRecomputeTangents = false;
 		SrcModel->BuildSettings.bRemoveDegenerates = false;
 		SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
+		SrcModel->BuildSettings.bGenerateLightmapUVs = InSettings.bGenerateLightMapUV;
+		SrcModel->BuildSettings.MinLightmapResolution = InSettings.TargetLightMapResolution;
+		SrcModel->BuildSettings.SrcLightmapIndex = 0;
+		SrcModel->BuildSettings.DstLightmapIndex = InSettings.TargetLightMapUVChannel;
+
 		SrcModel->RawMeshBulkData->SaveRawMesh(MergedMesh.Mesh);
 
 		// Assign materials
 		for (UMaterialInterface* Material : UniqueMaterials)
 		{
+			if (Material && !Material->IsAsset())
+			{
+				Material = nullptr; // do not save non-asset materials
+			}
+
 			StaticMesh->Materials.Add(Material);
 		}
 		

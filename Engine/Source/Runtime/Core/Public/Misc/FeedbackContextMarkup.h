@@ -1,11 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	FeedbackContextMarkup.h: Functions to parse markup from external processes and control
-	a feedback context.
-==============================================================================================*/
-
 #pragma once
+
 
 /**
  * A text-based markup language can be used to allow external processes to control the state 
@@ -23,13 +19,15 @@
 class CORE_API FFeedbackContextMarkup
 {
 public:
-	// Markup stack manipulation
+
+	/** Markup stack manipulation. */
 	static bool ParseCommand(const FString& Line, FFeedbackContext* Warn);
 
-	// Utility functions for dealing with external processes
+	/** Utility functions for dealing with external processes. */
 	static bool PipeProcessOutput(const FText& Description, const FString& URL, const FString& Params, FFeedbackContext* Warn, int32* OutExitCode);
 
 private:
+
 	/** Try to read a single exact-match token from the input stream. Must be followed by whitespace or EOL. */
 	static bool ReadToken(const TCHAR *&Text, const TCHAR *Token);
 

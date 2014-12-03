@@ -5,6 +5,7 @@
 #include "ObjectEditorUtils.h"
 #endif
 #include "AI/Navigation/NavigationTestingActor.h"
+#include "AI/Navigation/NavTestRenderingComponent.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)
 {
@@ -21,10 +22,10 @@ TStatId FNavTestTickHelper::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FNavTestTickHelper, STATGROUP_Tickables);
 }
 
-ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+ANavigationTestingActor::ANavigationTestingActor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	EdRenderComp = PCIP.CreateDefaultSubobject<UNavTestRenderingComponent>(this, TEXT("EdRenderComp"));
+	EdRenderComp = ObjectInitializer.CreateDefaultSubobject<UNavTestRenderingComponent>(this, TEXT("EdRenderComp"));
 	EdRenderComp->PostPhysicsComponentTick.bCanEverTick = false;
 
 #if WITH_RECAST
@@ -48,7 +49,7 @@ ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructIniti
 	// collision profile name set up - found in baseengine.ini
 	static FName CollisionProfileName(TEXT("Pawn"));
 
-	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
+	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
 	CapsuleComponent->InitCapsuleSize(NavAgentProps.AgentRadius, NavAgentProps.AgentHeight / 2);
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
@@ -56,6 +57,8 @@ ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructIniti
 	CapsuleComponent->bCanEverAffectNavigation = false;
 
 	RootComponent = CapsuleComponent;
+
+	PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &ANavigationTestingActor::OnPathEvent);
 }
 
 ANavigationTestingActor::~ANavigationTestingActor()
@@ -212,11 +215,7 @@ void ANavigationTestingActor::PostLoad()
 void ANavigationTestingActor::TickMe()
 {
 	UNavigationSystem* NavSys = GetWorld() ? GetWorld()->GetNavigationSystem() : NULL;
-	if (NavSys
-#if WITH_NAVIGATION_GENERATOR
-		&& !NavSys->IsNavigationBuildInProgress()
-#endif
-		)
+	if (NavSys && !NavSys->IsNavigationBuildInProgress())
 	{
 #if WITH_RECAST && WITH_EDITORONLY_DATA
 		delete TickHelper;
@@ -347,6 +346,7 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 	bPathSearchOutOfNodes = bPathExist ? Result.Path->DidSearchReachedLimit() : false;
 	LastPath = Result.Path;
 	PathCost = bPathExist ? Result.Path->GetCost() : 0.0f;
+	LastPath->AddObserver(PathObserver);
 
 	if (OffsetFromCornersDistance > 0.0f)
 	{
@@ -365,9 +365,40 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 #endif
 }
 
+void ANavigationTestingActor::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event)
+{
+	if (InvalidatedPath == NULL || InvalidatedPath != LastPath.Get())
+    {
+		return;
+    }
+
+	switch (Event)
+	{
+		case ENavPathEvent::Invalidated:
+		{
+			UpdatePathfinding();
+			break;
+		}
+		case ENavPathEvent::RePathFailed:
+			break;
+		case ENavPathEvent::UpdatedDueToGoalMoved:
+		case ENavPathEvent::UpdatedDueToNavigationChanged:
+		{
+		}
+		break;
+	}
+}
+
 FPathFindingQuery ANavigationTestingActor::BuildPathFindingQuery(const ANavigationTestingActor* Goal) const
 {
 	check(Goal);
 	return FPathFindingQuery(this, MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(MyNavData, FilterClass));
 }
 
+
+/** Returns CapsuleComponent subobject **/
+UCapsuleComponent* ANavigationTestingActor::GetCapsuleComponent() const { return CapsuleComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns EdRenderComp subobject **/
+UNavTestRenderingComponent* ANavigationTestingActor::GetEdRenderComp() const { return EdRenderComp; }
+#endif

@@ -2,6 +2,7 @@
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
+#include "LinuxPlatformCrashContext.h"
 
 #if WITH_EDITOR
 #include "Editor/MainFrame/Private/Frame/MainFrameActions.h"
@@ -15,13 +16,13 @@ extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
 // FIXME: handle expose it someplace else?
-extern int32 ReportCrash(const FLinuxCrashContext & Context);
-extern void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context);
+extern int32 ReportCrash(const FLinuxCrashContext& Context);
+extern void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context);
 
 /**
  * Game-specific crash reporter
  */
-void EngineCrashHandler(const FGenericCrashContext & GenericContext)
+void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
 

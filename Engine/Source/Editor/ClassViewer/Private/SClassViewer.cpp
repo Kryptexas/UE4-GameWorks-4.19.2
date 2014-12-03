@@ -31,6 +31,7 @@
 
 #include "SourceCodeNavigation.h"
 #include "HotReloadInterface.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 
@@ -1977,6 +1978,9 @@ void FClassHierarchy::PopulateClassHierarchy()
 	Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
 	Filter.ClassNames.Add(UAnimBlueprint::StaticClass()->GetFName());
 	Filter.ClassNames.Add(UBlueprintGeneratedClass::StaticClass()->GetFName());
+
+	// Include any Blueprint based objects as well, this includes things like Blutilities, UMG, and GameplayAbility objects
+	Filter.bRecursiveClasses = true;
 	AssetRegistryModule.Get().GetAssets(Filter, BlueprintList);
 
 	TMultiMap<FName,FAssetData> BlueprintPackageToAssetDataMap;
@@ -2880,14 +2884,14 @@ void SClassViewer::Populate()
 	}
 }
 
-FReply SClassViewer::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SClassViewer::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	// Forward key down to class tree
-	return ClassTree->OnKeyDown(MyGeometry,InKeyboardEvent);
+	return ClassTree->OnKeyDown(MyGeometry,InKeyEvent);
 }
 
 
-FReply SClassViewer::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SClassViewer::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	if (RootTreeItems.Num() > 0)
 	{
@@ -2896,7 +2900,7 @@ FReply SClassViewer::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const
 		OnClassViewerSelectionChanged(RootTreeItems[0],ESelectInfo::OnMouseClick);
 	}
 
-	FSlateApplication::Get().SetKeyboardFocus(SearchBox.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(SearchBox.ToSharedRef(), EFocusCause::SetDirectly);
 	
 	return FReply::Unhandled();
 }
@@ -2933,7 +2937,7 @@ void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 	{
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBox.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 		bPendingFocusNextFrame = false;
 	}
 

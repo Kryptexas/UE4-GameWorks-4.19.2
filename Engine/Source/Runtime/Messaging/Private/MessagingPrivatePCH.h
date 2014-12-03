@@ -2,15 +2,12 @@
 
 #pragma once
 
-#include "Messaging.h"
-
 
 /* Private dependencies
  *****************************************************************************/
 
-#include "Json.h"
-#include "Sockets.h"
-#include "SocketSubsystem.h"
+#include "CoreUObject.h"
+#include "TaskGraphInterfaces.h"
 
 
 /* Private includes
@@ -22,14 +19,5 @@
 #include "MessageDispatchTask.h"
 #include "MessageRouter.h"
 #include "MessageBus.h"
-
-#include "BsonMessageSerializer.h"
-#include "JsonMessageSerializer.h"
-#include "XmlMessageSerializer.h"
-
 #include "MessageAddressBook.h"
-#include "MessageData.h"
-#include "MessageDeserializeTask.h"
-#include "MessageForwardTask.h"
-#include "MessageSerializeTask.h"
 #include "MessageBridge.h"

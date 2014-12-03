@@ -15,6 +15,7 @@
 #include "SPropertyEditorAsset.h"
 #include "SPropertyEditorClass.h"
 #include "SPropertyEditorInteractiveActorPicker.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "PropertyCustomizationHelpers"
 
@@ -164,7 +165,7 @@ namespace PropertyCustomizationHelpers
 			.IsFocusable( false );
 	}
 
-	TSharedRef<SWidget> MakeInsertDeleteDuplicateButton( FExecuteAction OnInsertClicked, FExecuteAction OnDeleteClicked, FExecuteAction OnDuplicateClicked )
+	TSharedRef<SWidget> MakeInsertDeleteDuplicateButton(FExecuteAction OnInsertClicked, FExecuteAction OnDeleteClicked, FExecuteAction OnDuplicateClicked)
 	{	
 		FMenuBuilder MenuContentBuilder( true, NULL );
 		{
@@ -203,13 +204,14 @@ namespace PropertyCustomizationHelpers
 			.OnAssetSelected( OnAssetSelectedFromPicker );
 	}
 
-	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose )
+	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose)
 	{
-		return 
-			SNew( SPropertyMenuAssetPicker )
+		return
+			SNew(SPropertyMenuAssetPicker)
 			.InitialObject(InitialObject)
 			.AllowClear(AllowClear)
 			.AllowedClasses(AllowedClasses)
+			.NewAssetFactories(NewAssetFactories)
 			.OnShouldFilterAsset(OnShouldFilterAsset)
 			.OnSet(OnSet)
 			.OnClose(OnClose);
@@ -273,12 +275,36 @@ namespace PropertyCustomizationHelpers
 
 		return EditConditionProperty;
 	}
+
+	TArray<UFactory*> GetNewAssetFactoriesForClasses(const TArray<const UClass*>& Classes)
+	{
+		TArray<UFactory*> Factories;
+		for (TObjectIterator<UClass> It; It; ++It)
+		{
+			UClass* Class = *It;
+			if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
+			{
+				UFactory* Factory = Class->GetDefaultObject<UFactory>();
+				if (Factory->ShouldShowInNewMenu() && ensure(!Factory->GetDisplayName().IsEmpty()))
+				{
+					UClass* SupportedClass = Factory->GetSupportedClass();
+					if (SupportedClass != nullptr && Classes.ContainsByPredicate([=](const UClass* InClass) { return SupportedClass->IsChildOf(InClass); }))
+					{
+						Factories.Add(Factory);
+					}
+				}
+			}
+		}
+
+		return Factories;
+	}
 }
 
 void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 {
 	ObjectPath = InArgs._ObjectPath;
 	OnObjectChanged = InArgs._OnObjectChanged;
+	OnShouldSetAsset = InArgs._OnShouldSetAsset;
 
 	bool bDisplayThumbnail = false;
 	FIntPoint ThumbnailSize(64, 64);
@@ -324,11 +350,14 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 			SAssignNew(PropertyEditorAsset, SPropertyEditorAsset)
 				.ObjectPath( this, &SObjectPropertyEntryBox::OnGetObjectPath )
 				.Class( InArgs._AllowedClass )
+				.NewAssetFactories( InArgs._NewAssetFactories )
 				.OnSetObject(this, &SObjectPropertyEntryBox::OnSetObject)
 				.ThumbnailPool(InArgs._ThumbnailPool)
 				.DisplayThumbnail(bDisplayThumbnail)
 				.OnShouldFilterAsset(InArgs._OnShouldFilterAsset)
 				.AllowClear(InArgs._AllowClear)
+				.DisplayUseSelected(InArgs._DisplayUseSelected)
+				.DisplayBrowse(InArgs._DisplayBrowse)
 				.PropertyHandle(PropertyHandle)
 				.ThumbnailSize(ThumbnailSize)
 		]
@@ -354,15 +383,17 @@ void SObjectPropertyEntryBox::OnSetObject(const FAssetData& AssetData)
 {
 	if( PropertyHandle.IsValid() && PropertyHandle->IsValidHandle() )
 	{
-		FString ObjectPathName = TEXT("None");
-		if(AssetData.IsValid())
+		if (!OnShouldSetAsset.IsBound() || OnShouldSetAsset.Execute(AssetData))
 		{
-			ObjectPathName = AssetData.ObjectPath.ToString();
+			FString ObjectPathName = TEXT("None");
+			if (AssetData.IsValid())
+			{
+				ObjectPathName = AssetData.ObjectPath.ToString();
+			}
+
+			PropertyHandle->SetValueFromFormattedString(ObjectPathName);
 		}
-
-		PropertyHandle->SetValueFromFormattedString(ObjectPathName);
 	}
-
 	OnObjectChanged.ExecuteIfBound(AssetData);
 }
 
@@ -372,7 +403,6 @@ void SClassPropertyEntryBox::Construct(const FArguments& InArgs)
 	[	
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
-		.AutoWidth()
 		.VAlign(VAlign_Center)
 		[
 			SAssignNew(PropertyEditorClass, SPropertyEditorClass)
@@ -744,7 +774,7 @@ private:
 			UMaterialInterface* Material = MaterialItem.Material.Get();
 
 			TArray< UTexture* > Textures;
-			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, ERHIFeatureLevel::Num, true);
 
 			// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
 			for( int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex )

@@ -1,11 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LocalTimestampDirectoryVisitor.cpp: Implements the FLocalTimestampDirectoryVisitor class.
-=============================================================================*/
-
-#include "Core.h"
-
+#include "CorePrivatePCH.h"
+#include "Misc/LocalTimestampDirectoryVisitor.h"
 
 /* FLocalTimestampVisitor structors
  *****************************************************************************/

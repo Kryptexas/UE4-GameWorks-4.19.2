@@ -80,29 +80,36 @@ bool FGameProjectGenerationModule::UpdateGameProject(const FString& ProjectFile,
 
 bool FGameProjectGenerationModule::UpdateCodeProject(FText& OutFailReason)
 {
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "UpdatingCodeProject", "Updating code project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTask(0, LOCTEXT( "UpdatingCodeProject", "Updating code project..." ) );
+	SlowTask.MakeDialog();
 
 	return GameProjectUtils::GenerateCodeProjectFiles(FPaths::GetProjectFilePath(), OutFailReason);
 }
 
-
-int32 FGameProjectGenerationModule::GetProjectCodeFileCount()
+bool FGameProjectGenerationModule::GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
 {
-	return GameProjectUtils::GetProjectCodeFileCount();
+	return GameProjectUtils::GenerateBasicSourceCode(OutCreatedFiles, OutFailReason);
+}
+
+bool FGameProjectGenerationModule::ProjectHasCodeFiles()
+{
+	return GameProjectUtils::ProjectHasCodeFiles();
+}
+
+FString FGameProjectGenerationModule::DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo)
+{
+	return GameProjectUtils::DetermineModuleIncludePath(ModuleInfo, FileRelativeTo);
+}
+
+TArray<FModuleContextInfo> FGameProjectGenerationModule::GetCurrentProjectModules()
+{
+	return GameProjectUtils::GetCurrentProjectModules();
 }
 
 void FGameProjectGenerationModule::GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize)
 {
 	GameProjectUtils::GetProjectSourceDirectoryInfo(OutNumFiles, OutDirectorySize);
 }
-
-bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
-{
-	const FString GameModuleSourcePath = FPaths::GetPath(FPaths::GetProjectFilePath()) / TEXT("Source") / FApp::GetGameName();
-	return GameProjectUtils::GenerateGameResourceFiles(GameModuleSourcePath, FApp::GetGameName(), OutCreatedFiles, OutFailReason);
-}
-
 
 void FGameProjectGenerationModule::CheckAndWarnProjectFilenameValid()
 {

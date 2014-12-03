@@ -1,23 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ScriptDelegate.h: UObject Delegate Implementation
-=============================================================================*/
-
 #pragma once
 
 #include "WeakObjectPtrTemplates.h"
 
 
 /**
- * Script delegate base class
+ * Script delegate base class.
  */
 template <typename TWeakPtr = FWeakObjectPtr>
 class TScriptDelegate
 {
 public:
 
-	/** Constructor */
+	/** Default constructor. */
 	TScriptDelegate() 
 		: Object( nullptr ),
 		  FunctionName( NAME_None )

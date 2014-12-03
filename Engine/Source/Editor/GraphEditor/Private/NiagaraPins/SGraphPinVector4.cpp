@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphPinVector4.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "VectorTextBox"
@@ -117,14 +118,14 @@ public:
 								[
 									SNew(STextBlock)
 									.Font(FEditorStyle::GetFontStyle("Graph.VectorEditableTextBox"))
-									.Text(LOCTEXT("VectorNodeZAxisValueLabel", "W"))
+									.Text(LOCTEXT("VectorNodeWAxisValueLabel", "W"))
 									.ColorAndOpacity(LabelClr)
 								]
 								.Value(this, &SVector4TextBox::GetTypeInValue_3)
 									.OnValueCommitted(InArgs._OnFloatCommitted_Box_3)
 									.Font(FEditorStyle::GetFontStyle("Graph.VectorEditableTextBox"))
 									.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
-									.ToolTipText(LOCTEXT("VectorNodeZAxisValueLabel_ToolTip", "W value"))
+									.ToolTipText(LOCTEXT("VectorNodeWAxisValueLabel_ToolTip", "W value"))
 									.EditableTextBoxStyle(&FEditorStyle::GetWidgetStyle<FEditableTextBoxStyle>("Graph.VectorEditableTextBox"))
 									.BorderForegroundColor(FLinearColor::White)
 									.BorderBackgroundColor(FLinearColor::White)
@@ -270,7 +271,7 @@ void SGraphPinVector4::OnChangedValueTextBox_2(float NewValue, ETextCommit::Type
 
 	FString DefaultValue;
 	//Update Z value
-	DefaultValue = GetValue(TextBox_0) + FString(TEXT(",")) + GetValue(TextBox_1) + FString(TEXT(",")) + ValueStr + FString(TEXT(",")) + GetValue(TextBox_2);
+	DefaultValue = GetValue(TextBox_0) + FString(TEXT(",")) + GetValue(TextBox_1) + FString(TEXT(",")) + ValueStr + FString(TEXT(",")) + GetValue(TextBox_3);
 	//Set new default value
 	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, DefaultValue);
 }

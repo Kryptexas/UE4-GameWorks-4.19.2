@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "GameFramework/SpringArmComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USpringArmComponent
@@ -10,8 +11,8 @@ const FName USpringArmComponent::SocketName(TEXT("SpringEndpoint"));
 
 extern float GAverageMS;
 
-USpringArmComponent::USpringArmComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
@@ -194,22 +195,7 @@ void USpringArmComponent::QuerySupportedSockets(TArray<FComponentSocketDescripti
 
 void SetDeprecatedControllerViewRotation(USpringArmComponent& Component, bool bValue)
 {
-	// BEGIN_IGNORE_DEPRECATION_WARNINGS
-	#ifdef __clang__
-		#pragma clang diagnostic push
-		#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-	#else
-		#pragma warning(push)
-		#pragma warning(disable:4995)
-		#pragma warning(disable:4996)
-	#endif
-
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	Component.bUseControllerViewRotation = bValue;
-
-	// END_IGNORE_DEPRECATION_WARNINGS
-	#ifdef __clang__
-		#pragma clang diagnostic pop
-	#else
-		#pragma warning(pop)
-	#endif
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }

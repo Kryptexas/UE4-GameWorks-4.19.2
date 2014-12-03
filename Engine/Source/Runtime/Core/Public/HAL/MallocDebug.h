@@ -212,6 +212,6 @@ public:
 		return false;
 	}
 
-	virtual const TCHAR * GetDescriptiveName() override { return TEXT("debug"); }
+	virtual const TCHAR* GetDescriptiveName() override { return TEXT("debug"); }
 
 };

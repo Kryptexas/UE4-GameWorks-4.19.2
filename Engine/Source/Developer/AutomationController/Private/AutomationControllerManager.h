@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationControllerModule.h: Declares the FAutomationControllerModule class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,20 +11,16 @@ class FAutomationControllerManager
 {
 public:
 
-	// Begin IAutomationController Interface
+public:
+
+	// IAutomationController Interface
 
 	virtual void RequestAvailableWorkers( const FGuid& InSessionId ) override;
-
 	virtual void RequestTests() override;
-
 	virtual void RunTests( const bool bIsLocalSession) override;
-
 	virtual void StopTests() override;
-
 	virtual void Init() override;
-
 	virtual void RequestLoadAsset( const FString& InAssetName ) override;
-
 	virtual void Tick() override;
 
 	virtual void SetNumPasses(const int32 InNumPasses) override
@@ -167,13 +159,9 @@ public:
 	}
 
 	virtual const bool ExportReport(uint32 FileExportTypeMask) override;
-
 	virtual bool IsTestRunnable( IAutomationReportPtr InReport ) const override;
-
 	virtual void RemoveCallbacks() override;
-
 	virtual void Shutdown() override;
-
 	virtual void Startup() override;
 
 	virtual FOnAutomationControllerManagerShutdown& OnShutdown( ) override
@@ -191,11 +179,9 @@ public:
 		return TestsRefreshedDelegate;
 	}
 
-	virtual bool IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const;
-
-	virtual void ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup );
-
-	void UpdateDeviceGroups();
+	virtual bool IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const override;
+	virtual void ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup ) override;
+	virtual void UpdateDeviceGroups() override;
 
 	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) override
 	{
@@ -203,102 +189,86 @@ public:
 	}
 
 	virtual void TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack) override;
-
 	virtual const bool IsTrackingHistory() const override;
-
 	virtual const int32 GetNumberHistoryItemsTracking() const override;
-	// End IAutomationController Interface
-
 
 protected:
 
 	/**
 	 * Adds a ping result from a running test.
 	 *
-	 * @param ResponderAddress - The address of the message endpoint that responded to a ping.
+	 * @param ResponderAddress The address of the message endpoint that responded to a ping.
 	 */
 	void AddPingResult( const FMessageAddress& ResponderAddress );
 
 	/**
 	 * Checks the child result.
 	 *
-	 * @param InReport - The child result to check.
+	 * @param InReport The child result to check.
 	 */
 	void CheckChildResult( TSharedPtr< IAutomationReport > InReport );
 
 	/**
-	 * Execute the next task thats available
+	 * Execute the next task thats available.
 	 *
-	 * @param ClusterIndex			The Cluster index of the device type we intend to use
-	 * @param bAllTestsCompleted	Whether all tests have been completed
+	 * @param ClusterIndex The Cluster index of the device type we intend to use.
+	 * @param bAllTestsCompleted Whether all tests have been completed.
 	 */
 	void ExecuteNextTask( int32 ClusterIndex, OUT bool& bAllTestsCompleted );
 
-	/**
-	 * Distributes any tests that are pending and deal with tests finishing.
-	 */
+	/** Distributes any tests that are pending and deal with tests finishing. */
 	void ProcessAvailableTasks();
 
-	/**
-	 * Processes the results after tests are complete.
-	 */
+	/** Processes the results after tests are complete. */
 	void ProcessResults();
 
 	/**
 	 * Removes the test info.
 	 *
-	 * @param TestToRemove - The test to remove.
+	 * @param TestToRemove The test to remove.
 	 */
 	void RemoveTestRunning( const FMessageAddress& TestToRemove );
 
-	/**
-	 * Resets the data holders which have been used to generate the tests available from a worker.
-	 */
+	/** Resets the data holders which have been used to generate the tests available from a worker. */
 	void ResetIntermediateTestData()
 	{
 		TestInfo.Empty();
 	}
 
-	/**
-	 * Changes the controller state.
-	 */
+	/** Changes the controller state. */
 	void SetControllerStatus( EAutomationControllerModuleState::Type AutomationTestState );
 
-	/**
-	 * stores the tests that are valid for a particular device classification.
-	 */
+	/** stores the tests that are valid for a particular device classification. */
 	void SetTestNames(const FMessageAddress& AutomationWorkerAddress);
 
-	/**
-	 * Updates the tests to ensure they are all still running.
-	 */
+	/** Updates the tests to ensure they are all still running. */
 	void UpdateTests();
 
 private:
 
-	// Handles FAutomationWorkerFindWorkersResponse messages.
+	/** Handles FAutomationWorkerFindWorkersResponse messages. */
 	void HandleFindWorkersResponseMessage( const FAutomationWorkerFindWorkersResponse& Message, const IMessageContextRef& Context );
 
-	// Handles FAutomationWorkerPong messages.
+	/** Handles FAutomationWorkerPong messages. */
 	void HandlePongMessage( const FAutomationWorkerPong& Message, const IMessageContextRef& Context );
 
-	// Handles FAutomationWorkerScreenImage messages..
+	/** Handles FAutomationWorkerScreenImage messages. */
 	void HandleReceivedScreenShot( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context );
 
-	// Handles FAutomationWorkerRequestNextNetworkCommand messages.
+	/** Handles FAutomationWorkerRequestNextNetworkCommand messages. */
 	void HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context );
 
-	// Handles FAutomationWorkerRequestTestsReply messages.
+	/** Handles FAutomationWorkerRequestTestsReply messages. */
 	void HandleRequestTestsReplyMessage( const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context );
 
-	// Handles FAutomationWorkerRunTestsReply messages.
+	/** Handles FAutomationWorkerRunTestsReply messages. */
 	void HandleRunTestsReplyMessage( const FAutomationWorkerRunTestsReply& Message, const IMessageContextRef& Context );
 
-	// Handles FAutomationWorkerWorkerOffline messages.
+	/** Handles FAutomationWorkerWorkerOffline messages. */
 	void HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const IMessageContextRef& Context );
 
-
 private:
+
 	/** Session this controller is currently communicating with */
 	FGuid ActiveSessionId;
 
@@ -350,16 +320,16 @@ private:
 	/** Counter for number of workers we have received responses from for Refreshing the Test List */
 	uint32 RefreshTestResponses;
 
-	/**available stats/status for all tests*/
+	/** Available stats/status for all tests. */
 	FAutomationReportManager ReportManager;
 
-	// The number we are expecting to receive from a worker
+	/** The number we are expecting to receive from a worker */
 	int32 NumOfTestsToReceive;
 
-	// The collection of test data we are to send to a controller
+	/** The collection of test data we are to send to a controller. */
 	TArray< FAutomationTestInfo > TestInfo;
 
-	/** A data holder to keep track of how long tests have been running */
+	/** A data holder to keep track of how long tests have been running. */
 	struct FTestRunningInfo
 	{
 		FTestRunningInfo( FMessageAddress InMessageAddress ):
@@ -373,38 +343,38 @@ private:
 		float LastPingTime;
 	};
 
-	/** A array of running tests */
+	/** A array of running tests. */
 	TArray< FTestRunningInfo > TestRunningArray;
 
-	/** The number of test passes to perform */
+	/** The number of test passes to perform. */
 	int32 NumTestPasses;
 
-	/** The current test pass we are on */
+	/** The current test pass we are on. */
 	int32 CurrentTestPass;
 
-	/** If screenshots are enabled */
+	/** If screenshots are enabled. */
 	bool bScreenshotsEnabled;
 
-	/** If we should request full screen screen shots */
+	/** If we should request full screen screen shots. */
 	bool bRequestFullScreenScreenshots;
 
-	/** If we should track any test history for the next run */
+	/** If we should track any test history for the next run. */
 	bool bTrackHistory;
 
-	/** The number of history items we wish to track */
+	/** The number of history items we wish to track. */
 	int32 NumberOfHistoryItemsTracked;
 
 private:
 
-	// Holds a delegate that is invoked when the controller shuts down.
+	/** Holds a delegate that is invoked when the controller shuts down. */
 	FOnAutomationControllerManagerShutdown ShutdownDelegate;
 
-	// Holds a delegate that is invoked when the controller has tests available.
+	/** Holds a delegate that is invoked when the controller has tests available. */
 	FOnAutomationControllerManagerTestsAvailable TestsAvailableDelegate;
 
-	// Holds a delegate that is invoked when the controller's tests are being refreshed.
+	/** Holds a delegate that is invoked when the controller's tests are being refreshed. */
 	FOnAutomationControllerTestsRefreshed TestsRefreshedDelegate;
 
-	// Holds a delegate that is invoked when the tests have completed
+	/** Holds a delegate that is invoked when the tests have completed. */
 	FOnAutomationControllerTestsComplete TestsCompleteDelegate;
 };

@@ -96,25 +96,6 @@ protected:
 	/** Cached reference to the main online subsystem */
 	class FOnlineSubsystemSteam* SteamSubsystem;
 
-#if WITH_STEAMGC
-	/** RPC requests to the Steam backend are queued up here for processing on the online thread */
-	TMap<int64, class FOnlineAsyncMsgSteam*> InMsgQueue;
-	/** Critical section for thread safe operation of the message queue */
-	FCriticalSection InMsgQueueLock;
-	/** Steam messaging */
-	GCClientWrapper SteamCoordinator;
-#endif
-
-	/**
-	 * Message polling when communicating with the Steam secure backend
-	 */
-	void MessagePump();
-
-	/**
-	 * Destroy any messages left in the queue
-	 */
-	void FreeMsgQueue();
-
 public:
 
 	FOnlineAsyncTaskManagerSteam(class FOnlineSubsystemSteam* InOnlineSubsystem) :
@@ -144,19 +125,12 @@ public:
 
 	~FOnlineAsyncTaskManagerSteam() 
 	{
-		FreeMsgQueue();
 	}
 
 	// FOnlineAsyncTaskManager
 	virtual void OnlineTick() override;
 
 	// FOnlineAsyncTaskManagerSteam
-
-	/**
-	 * Add online messages sent to the secure backend that are waiting for a response onto the incoming queue
-	 * @param NewMsg - some request of the online services
-	 */
-	virtual void AddToInMsgQueue(class FOnlineAsyncMsgSteam* NewTask);
 };
 
 

@@ -16,16 +16,32 @@
 
 FOnSelectionChanged AGameplayDebuggingReplicator::OnSelectionChangedDelegate;
 
-AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, MaxEQSQueries(5)
 	, bIsGlobalInWorld(true)
 	, LastDrawAtFrame(0)
 	, PlayerControllersUpdateDelay(0)
 {
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		ConstructorHelpers::FObjectFinderOptional<UTexture2D> RedIcon;
+		ConstructorHelpers::FObjectFinderOptional<UTexture2D> GreenIcon;
+
+		// both icons are needed to debug AI with Behavior Trees in Fortnite
+		FConstructorStatics()
+			: RedIcon(TEXT("/Engine/EngineResources/AICON-Red.AICON-Red"))
+			, GreenIcon(TEXT("/Engine/EngineResources/AICON-Green.AICON-Green"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
+	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITOR
@@ -229,7 +245,16 @@ void AGameplayDebuggingReplicator::BeginPlay()
 			}
 		}
 	}
+}
 
+void AGameplayDebuggingReplicator::OnRep_AutoActivate()
+{
+	// we are already replicated so let's activate tool
+	if (GetWorld() && GetNetMode() == ENetMode::NM_Client && !IsToolCreated() && !IsGlobalInWorld())
+	{
+		CreateTool();
+		EnableTool();
+	}
 }
 
 UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()

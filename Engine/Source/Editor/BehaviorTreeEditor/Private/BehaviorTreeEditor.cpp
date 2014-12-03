@@ -33,6 +33,8 @@
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
@@ -248,7 +250,8 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 				.OnIsDebuggerPaused(this, &FBehaviorTreeEditor::IsDebuggerPaused)
 				.OnGetDebugTimeStamp(this, &FBehaviorTreeEditor::HandleGetDebugTimeStamp)
 				.OnGetDisplayCurrentState(this, &FBehaviorTreeEditor::HandleGetDisplayCurrentState)
-				.OnBlackboardKeyChanged(this, &FBehaviorTreeEditor::HandleBlackboardKeyChanged);
+				.OnBlackboardKeyChanged(this, &FBehaviorTreeEditor::HandleBlackboardKeyChanged)
+				.OnIsBlackboardModeActive(this, &FBehaviorTreeEditor::HandleIsBlackboardModeActive);
 	}
 	else
 	{
@@ -395,6 +398,11 @@ void FBehaviorTreeEditor::HandleBlackboardKeyChanged(UBlackboardData* InBlackboa
 		// re-set object in blackboard view to keep it up to date
 		BlackboardView->SetObject(InBlackboardData);
 	}
+}
+
+bool FBehaviorTreeEditor::HandleIsBlackboardModeActive() const
+{
+	return GetCurrentMode() == BlackboardMode;
 }
 
 void FBehaviorTreeEditor::GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const
@@ -1415,6 +1423,7 @@ void FBehaviorTreeEditor::PasteNodesHere(const FVector2D& Location)
 	//Average position of nodes so we can move them while still maintaining relative distances to each other
 	FVector2D AvgNodePosition(0.0f,0.0f);
 
+	float NumTopLevelNodes = 0.0f;
 	for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
 	{
 		UBehaviorTreeGraphNode* BTNode = Cast<UBehaviorTreeGraphNode>(*It);
@@ -1422,12 +1431,13 @@ void FBehaviorTreeEditor::PasteNodesHere(const FVector2D& Location)
 		{
 			AvgNodePosition.X += BTNode->NodePosX;
 			AvgNodePosition.Y += BTNode->NodePosY;
+			NumTopLevelNodes += 1.0f;
 		}
 	}
 
-	if (PastedNodes.Num() > 0)
+	if (NumTopLevelNodes > 0.0f)
 	{
-		float InvNumNodes = 1.0f/float(PastedNodes.Num());
+		float InvNumNodes = 1.0f/NumTopLevelNodes;
 		AvgNodePosition.X *= InvNumNodes;
 		AvgNodePosition.Y *= InvNumNodes;
 	}
@@ -1526,7 +1536,7 @@ void FBehaviorTreeEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 	if (MyNode && MyNode->bInjectedNode)
 	{
 		UBTTask_RunBehavior* SubtreeTask = MyNode->ParentNode ? Cast<UBTTask_RunBehavior>(MyNode->ParentNode->NodeInstance) : NULL;
-		if (SubtreeTask)
+		if (SubtreeTask && SubtreeTask->GetSubtreeAsset())
 		{
 			FAssetEditorManager::Get().OpenEditorForAsset(SubtreeTask->GetSubtreeAsset());
 
@@ -1600,8 +1610,10 @@ void FBehaviorTreeEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 		UPackage* Pkg = NodeClass->GetOuterUPackage();
 		FString ClassName = NodeClass->GetName().LeftChop(2);
 		UBlueprint* BlueprintOb = FindObject<UBlueprint>(Pkg, *ClassName);
-
-		FAssetEditorManager::Get().OpenEditorForAsset(BlueprintOb);
+		if(BlueprintOb)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(BlueprintOb);
+		}
 	}
 }
 

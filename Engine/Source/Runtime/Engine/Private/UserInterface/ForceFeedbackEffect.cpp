@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "IForceFeedbackSystem.h"
 
-UForceFeedbackEffect::UForceFeedbackEffect(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UForceFeedbackEffect::UForceFeedbackEffect(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Make sure that by default the force feedback effect has an entry
 	FForceFeedbackChannelDetails ChannelDetail;

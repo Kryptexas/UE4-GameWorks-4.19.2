@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationTestItem.cpp: Implements the SAutomationTestItem class.
-=============================================================================*/
-
 #include "AutomationWindowPrivatePCH.h"
 
 
@@ -26,29 +22,29 @@ public:
 	/**
 	* Constructs the widget.
 	*
-	* @param InArgs			- The construction arguments.
-	* @param InHistoryItem	- The history item we are providing the cell for
+	* @param InArgs The construction arguments.
+	* @param InHistoryItem The history item we are providing the cell for.
 	*/
 	void Construct(const FArguments& InArgs, TSharedPtr<IAutomationReport> InHistoryItem);
 
-	/**
-	 * Rebuild the content of the history cell into our Content Area
-	 */
+	/** Rebuild the content of the history cell into our Content Area. */
 	void RebuildContentArea();
 
-	// Begin SWidget Interface
+public:
+
+	// SWidget Interface
+
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	// End SWidget Interface
 
 private:
 
-	// A copy of the history items for us to note differences between this and the controller.
+	/** A copy of the history items for us to note differences between this and the controller. */
 	TArray<TSharedPtr<FAutomationHistoryItem>> HistoryCopy;
 
-	// The automation reports history information
+	/** The automation reports history information. */
 	TSharedPtr<IAutomationReport> HistoryItem;
 
-	// The widget which holds the content for the History Cell
+	/** The widget which holds the content for the History Cell. */
 	TSharedPtr<SHorizontalBox> ContentArea;
 };
 
@@ -313,7 +309,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
  *****************************************************************************/
 const FSlateBrush* SAutomationTestItem::GetSmokeTestImage() const
 {
-	const FSlateBrush* ImageToUse = NULL;
+	const FSlateBrush* ImageToUse = nullptr;
 	if ( TestStatus->GetTestType() & EAutomationTestType::ATT_SmokeTest )
 	{
 		if ( TestStatus->IsParent() )

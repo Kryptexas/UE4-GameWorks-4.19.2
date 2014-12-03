@@ -7,8 +7,8 @@
 #include "Engine/InputVectorAxisDelegateBinding.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-UK2Node_GetInputVectorAxisValue::UK2Node_GetInputVectorAxisValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_GetInputVectorAxisValue::UK2Node_GetInputVectorAxisValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bConsumeInput = true;
 }
@@ -97,6 +97,7 @@ void UK2Node_GetInputVectorAxisValue::GetMenuActions(FBlueprintActionDatabaseReg
 
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
+		NodeSpawner->DefaultMenuSignature.MenuName = FText::Format(NSLOCTEXT("K2Node_GetInputVectorAxisValue", "MenuName", "Get {0}"), Key.GetDisplayName());
 
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
 		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);

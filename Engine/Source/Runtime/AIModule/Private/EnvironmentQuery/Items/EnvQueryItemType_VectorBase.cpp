@@ -5,16 +5,16 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
 
-UEnvQueryItemType_VectorBase::UEnvQueryItemType_VectorBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType_VectorBase::UEnvQueryItemType_VectorBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 
-void UEnvQueryItemType_VectorBase::AddBlackboardFilters(struct FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const
+void UEnvQueryItemType_VectorBase::AddBlackboardFilters(FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const
 {
 	KeySelector.AddVectorFilter(FilterOwner);
 }
 
-bool UEnvQueryItemType_VectorBase::StoreInBlackboard(struct FBlackboardKeySelector& KeySelector, class UBlackboardComponent* Blackboard, const uint8* RawData) const
+bool UEnvQueryItemType_VectorBase::StoreInBlackboard(FBlackboardKeySelector& KeySelector, UBlackboardComponent* Blackboard, const uint8* RawData) const
 {
 	bool bStored = false;
 	if (KeySelector.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())

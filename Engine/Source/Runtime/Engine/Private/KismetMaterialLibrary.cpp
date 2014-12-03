@@ -11,8 +11,8 @@
 #define LOCTEXT_NAMESPACE "KismetMaterialLibrary"
 
 
-UKismetMaterialLibrary::UKismetMaterialLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetMaterialLibrary::UKismetMaterialLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

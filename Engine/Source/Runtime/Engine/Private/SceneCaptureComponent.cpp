@@ -6,11 +6,16 @@
 
 #include "EnginePrivate.h"
 #include "../../Renderer/Private/ScenePrivate.h"
+#include "Engine/SceneCapture.h"
+#include "Engine/SceneCapture2D.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/SceneCaptureCube.h"
+#include "Components/SceneCaptureComponentCube.h"
 
-ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	MeshComp = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("CamMesh0"));
+	MeshComp = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("CamMesh0"));
 	MeshComp->BodyInstance.bEnableCollision_DEPRECATED = false;
 
 	MeshComp->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -22,16 +27,16 @@ ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCI
 }
 // -----------------------------------------------
 
-ASceneCapture2D::ASceneCapture2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASceneCapture2D::ASceneCapture2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DrawFrustum = PCIP.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
+	DrawFrustum = ObjectInitializer.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
-	DrawFrustum->AttachParent = MeshComp;
+	DrawFrustum->AttachParent = GetMeshComp();
 
-	CaptureComponent2D = PCIP.CreateDefaultSubobject<USceneCaptureComponent2D>(this, TEXT("NewSceneCaptureComponent2D"));
-	CaptureComponent2D->AttachParent = MeshComp;
+	CaptureComponent2D = ObjectInitializer.CreateDefaultSubobject<USceneCaptureComponent2D>(this, TEXT("NewSceneCaptureComponent2D"));
+	CaptureComponent2D->AttachParent = GetMeshComp();
 }
 
 void ASceneCapture2D::OnInterpToggle(bool bEnable)
@@ -60,14 +65,14 @@ void ASceneCapture2D::PostActorCreated()
 
 	// no need load the editor mesh when there is no editor
 #if WITH_EDITOR
-	if(MeshComp)
+	if(GetMeshComp())
 	{
 		if (!IsRunningCommandlet())
 		{
-			if( !MeshComp->StaticMesh)
+			if( !GetMeshComp()->StaticMesh)
 			{
 				UStaticMesh* CamMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/MatineeCam_SM.MatineeCam_SM"), NULL, LOAD_None, NULL);
-				MeshComp->SetStaticMesh(CamMesh);
+				GetMeshComp()->SetStaticMesh(CamMesh);
 			}
 		}
 	}
@@ -78,16 +83,16 @@ void ASceneCapture2D::PostActorCreated()
 }
 // -----------------------------------------------
 
-ASceneCaptureCube::ASceneCaptureCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASceneCaptureCube::ASceneCaptureCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DrawFrustum = PCIP.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
+	DrawFrustum = ObjectInitializer.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
-	DrawFrustum->AttachParent = MeshComp;
+	DrawFrustum->AttachParent = GetMeshComp();
 
-	CaptureComponentCube = PCIP.CreateDefaultSubobject<USceneCaptureComponentCube>(this, TEXT("NewSceneCaptureComponentCube"));
-	CaptureComponentCube->AttachParent = MeshComp;
+	CaptureComponentCube = ObjectInitializer.CreateDefaultSubobject<USceneCaptureComponentCube>(this, TEXT("NewSceneCaptureComponentCube"));
+	CaptureComponentCube->AttachParent = GetMeshComp();
 }
 
 void ASceneCaptureCube::OnInterpToggle(bool bEnable)
@@ -115,14 +120,14 @@ void ASceneCaptureCube::PostActorCreated()
 
 	// no need load the editor mesh when there is no editor
 #if WITH_EDITOR
-	if(MeshComp)
+	if(GetMeshComp())
 	{
 		if (!IsRunningCommandlet())
 		{
-			if( !MeshComp->StaticMesh)
+			if( !GetMeshComp()->StaticMesh)
 			{
 				UStaticMesh* CamMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/MatineeCam_SM.MatineeCam_SM"), NULL, LOAD_None, NULL);
-				MeshComp->SetStaticMesh(CamMesh);
+				GetMeshComp()->SetStaticMesh(CamMesh);
 			}
 		}
 	}
@@ -143,13 +148,39 @@ void ASceneCaptureCube::PostEditMove(bool bFinished)
 }
 #endif
 // -----------------------------------------------
-USceneCaptureComponent::USceneCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), ShowFlags(FEngineShowFlags(ESFIM_Game))
 {
 	bCaptureEveryFrame = true;
 	MaxViewDistanceOverride = -1;
+
+	// Disable features that are not desired when capturing the scene
+	ShowFlags.MotionBlur = 0; // motion blur doesn't work correctly with scene captures.
+	ShowFlags.SeparateTranslucency = 0;
+	ShowFlags.HMDDistortion = 0;
 }
 
+void USceneCaptureComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// Make sure any loaded saved flag settings are reflected in our FEngineShowFlags
+	UpdateShowFlags();
+}
+
+void USceneCaptureComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	USceneCaptureComponent* This = CastChecked<USceneCaptureComponent>(InThis);
+
+	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
+
+	if (Ref)
+	{
+		Ref->AddReferencedObjects(Collector);
+	}
+
+	Super::AddReferencedObjects(This, Collector);
+}
 
 void USceneCaptureComponent::HideComponent(UPrimitiveComponent* InComponent)
 {
@@ -172,11 +203,70 @@ void USceneCaptureComponent::HideActorComponents(AActor* InActor)
 	}
 }
 
+FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
+{
+	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
+	if (bCaptureEveryFrame && ViewStateInterface == NULL)
+	{
+		ViewState.Allocate();
+		ViewStateInterface = ViewState.GetReference();
+	}
+	else if (!bCaptureEveryFrame && ViewStateInterface)
+	{
+		ViewState.Destroy();
+		ViewStateInterface = NULL;
+	}
+	return ViewStateInterface;
+}
+
+void USceneCaptureComponent::UpdateShowFlags()
+{
+	for (FEngineShowFlagsSetting ShowFlagSetting : ShowFlagSettings)
+	{
+		int32 SettingIndex = ShowFlags.FindIndexByName(*(ShowFlagSetting.ShowFlagName));
+		if (SettingIndex != INDEX_NONE)
+		{ 
+			ShowFlags.SetSingleFlag(SettingIndex, ShowFlagSetting.Enabled);
+		}
+	}
+}
+
+#if WITH_EDITOR
+void USceneCaptureComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+
+	// If our ShowFlagSetting UStruct changed, (or if PostEditChange was called without specifying a property) update the actual show flags
+	if (MemberPropertyName.IsEqual("ShowFlagSettings") || MemberPropertyName.IsNone())
+	{
+		UpdateShowFlags();
+	}
+}
+#endif
+
+bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut)
+{
+	bool HasSetting = false;
+	for (int32 ShowFlagSettingsIndex = 0; ShowFlagSettingsIndex < ShowFlagSettings.Num(); ++ShowFlagSettingsIndex)
+	{
+		if (ShowFlagSettings[ShowFlagSettingsIndex].ShowFlagName.Equals(FlagName))
+		{
+			HasSetting = true;
+			*ShowFlagSettingOut = &(ShowFlagSettings[ShowFlagSettingsIndex]);
+			break;
+		}
+	}	
+	return HasSetting;
+}
+
 // -----------------------------------------------
 
 
-USceneCaptureComponent2D::USceneCaptureComponent2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FOVAngle = 90.0f;
 	bAutoActivate = true;
@@ -239,8 +329,8 @@ void USceneCaptureComponent2D::PostEditChangeProperty(FPropertyChangedEvent& Pro
 // -----------------------------------------------
 
 
-USceneCaptureComponentCube::USceneCaptureComponentCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneCaptureComponentCube::USceneCaptureComponentCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -293,3 +383,14 @@ void USceneCaptureComponentCube::PostEditChangeProperty(FPropertyChangedEvent& P
 	UpdateContent();
 }
 #endif // WITH_EDITOR
+
+/** Returns MeshComp subobject **/
+UStaticMeshComponent* ASceneCapture::GetMeshComp() const { return MeshComp; }
+/** Returns CaptureComponent2D subobject **/
+USceneCaptureComponent2D* ASceneCapture2D::GetCaptureComponent2D() const { return CaptureComponent2D; }
+/** Returns DrawFrustum subobject **/
+UDrawFrustumComponent* ASceneCapture2D::GetDrawFrustum() const { return DrawFrustum; }
+/** Returns CaptureComponentCube subobject **/
+USceneCaptureComponentCube* ASceneCaptureCube::GetCaptureComponentCube() const { return CaptureComponentCube; }
+/** Returns DrawFrustum subobject **/
+UDrawFrustumComponent* ASceneCaptureCube::GetDrawFrustum() const { return DrawFrustum; }

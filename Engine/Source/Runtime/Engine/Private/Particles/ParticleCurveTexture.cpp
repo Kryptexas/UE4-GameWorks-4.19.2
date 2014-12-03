@@ -184,7 +184,7 @@ static void InjectCurves(
 
 	check( IsInRenderingThread() );
 
-	SCOPED_DRAW_EVENT(RHICmdList, InjectParticleCurves, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, InjectParticleCurves);
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
@@ -544,7 +544,7 @@ FTexelAllocation FParticleCurveTexture::AddCurve( const TArray<FColor>& CurveSam
 			FCurveSamples* PendingCurve = new(PendingCurves) FCurveSamples;
 			PendingCurve->TexelAllocation = TexelAllocation;
 			PendingCurve->Samples = (FColor*)FMemory::Malloc( TexelAllocation.Size * sizeof(FColor) );
-			FMemory::Memcpy( PendingCurve->Samples, CurveSamples.GetTypedData(), TexelAllocation.Size * sizeof(FColor) );
+			FMemory::Memcpy( PendingCurve->Samples, CurveSamples.GetData(), TexelAllocation.Size * sizeof(FColor) );
 			return TexelAllocation;
 		}
 		UE_LOG(LogParticles, Warning, TEXT("FParticleCurveTexture: Failed to allocate %d texels for a curve."), CurveSamples.Num() );

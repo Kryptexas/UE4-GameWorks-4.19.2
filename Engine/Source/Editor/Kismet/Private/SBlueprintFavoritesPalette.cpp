@@ -8,6 +8,7 @@
 #include "BlueprintActionMenuUtils.h"
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionFilter.h" // for FBlueprintActionContext
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintFavoritesPalette"
 

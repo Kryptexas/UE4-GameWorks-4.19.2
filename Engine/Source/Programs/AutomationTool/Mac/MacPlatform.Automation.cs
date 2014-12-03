@@ -36,20 +36,26 @@ public class MacPlatform : Platform
 		List<string> Exes = GetExecutableNames(SC);
 		foreach (var Exe in Exes)
 		{
+			string AppBundlePath = "";
 			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
 			{
-				StageAppBundle(SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"));
+				AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+				StageAppBundle(SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), AppBundlePath);
 			}
 			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
 			{
-				StageAppBundle(SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"));
+				AppBundlePath = CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+				StageAppBundle(SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app"), AppBundlePath);
+			}
+
+			if (!string.IsNullOrEmpty(AppBundlePath))
+			{
+				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, CombinePaths(AppBundlePath, "Contents/Resources"), true);
 			}
 		}
 
 		// Copy the splash screen, Mac specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
-
-		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
@@ -99,7 +105,7 @@ public class MacPlatform : Platform
 			}
 		}
 
-		// Update executable name and entry in Info.plist
+		// Update executable name, icon and entry in Info.plist
 		string UE4GamePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "MacOS", ExeName);
 		if (ExeName != SC.ShortProjectName && File.Exists(UE4GamePath))
 		{
@@ -107,9 +113,23 @@ public class MacPlatform : Platform
 			File.Delete(GameExePath);
 			File.Move(UE4GamePath, GameExePath);
 
+			string DefaultIconPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Resources", "UE4.icns");
+			string CustomIconSrcPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Resources", "Application.icns");
+			string CustomIconDestPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Resources", SC.ShortProjectName + ".icns");
+			if (File.Exists(CustomIconSrcPath))
+			{
+				File.Delete(DefaultIconPath);
+				File.Move(CustomIconSrcPath, CustomIconDestPath);
+			}
+			else
+			{
+				File.Move(DefaultIconPath, CustomIconDestPath);
+			}
+
 			string InfoPlistPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Info.plist");
 			string InfoPlistContents = File.ReadAllText(InfoPlistPath);
 			InfoPlistContents = InfoPlistContents.Replace(ExeName, SC.ShortProjectName);
+			InfoPlistContents = InfoPlistContents.Replace("<string>UE4</string>", "<string>" + SC.ShortProjectName + "</string>");
 			File.Delete(InfoPlistPath);
 			File.WriteAllText(InfoPlistPath, InfoPlistContents);
 		}

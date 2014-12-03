@@ -1147,7 +1147,7 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
  */
 static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const TArray<uint32>& Tiles )
 {
-	BuildTileVertexBuffer( TileOffsetsRef, Tiles.GetTypedData(), Tiles.Num() );
+	BuildTileVertexBuffer( TileOffsetsRef, Tiles.GetData(), Tiles.Num() );
 }
 
 /**
@@ -1279,7 +1279,7 @@ void ExecuteSimulationCommands(
  */
 void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<uint32>& Tiles)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
 
 	const int32 MaxTilesPerDrawCallUnaligned = GParticleScratchVertexBufferSize / sizeof(FVector2D);
 	const int32 MaxTilesPerDrawCall = MaxTilesPerDrawCallUnaligned & (~(TILES_PER_INSTANCE-1));
@@ -1313,7 +1313,7 @@ void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel
 	{
 		// Copy new particles in to the vertex buffer.
 		const int32 TilesThisDrawCall = FMath::Min<int32>( TileCount, MaxTilesPerDrawCall );
-		const uint32* TilesPtr = Tiles.GetTypedData() + FirstTile;
+		const uint32* TilesPtr = Tiles.GetData() + FirstTile;
 		BuildTileVertexBuffer( BufferParam, TilesPtr, TilesThisDrawCall );
 		
 		VertexShader->SetParameters(RHICmdList, ShaderParam);
@@ -1531,7 +1531,7 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 	{
 		// Copy new particles in to the vertex buffer.
 		const int32 ParticlesThisDrawCall = FMath::Min<int32>( ParticleCount, MaxParticlesPerDrawCall );
-		const void* Src = NewParticles.GetTypedData() + FirstParticle;
+		const void* Src = NewParticles.GetData() + FirstParticle;
 #if PLATFORM_SUPPORTS_RHI_THREAD
 		if (GRHIThread)
 		{
@@ -1755,7 +1755,7 @@ static void VisualizeGPUSimulation(
 	)
 {
 	check(IsInRenderingThread());
-	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimDebugDraw, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimDebugDraw);
 
 	// Some constants for laying out the debug view.
 	const float DisplaySizeX = 256.0f;
@@ -1848,21 +1848,14 @@ static void BuildParticleVertexBuffer( FVertexBufferRHIParamRef VertexBufferRHI,
 			{
 				const float IndexX = TileOffset.X + ((float)ParticleX / (float)GParticleSimulationTextureSizeX) + (0.5f / (float)GParticleSimulationTextureSizeX);
 				const float IndexY = TileOffset.Y + ((float)ParticleY / (float)GParticleSimulationTextureSizeY) + (0.5f / (float)GParticleSimulationTextureSizeY);
-
-				// on some platforms, union and/or bitfield writes to Locked memory are really slow, so use a forced int write instead
-				// and in fact one 32-bit write is faster than two uint16 writes (i.e. using .Encoded)
-				FParticleIndex Temp;
-				// We use the unsafe version of FP32 -> FP16 conversion because we know all values are in [0,1].
-				Temp.X.SetWithoutBoundsChecks(IndexX);
-				Temp.Y.SetWithoutBoundsChecks(IndexY);
-				*(uint32*)ParticleIndices = *(uint32*)&Temp;
+				ParticleIndices->X.SetWithoutBoundsChecks(IndexX);
+				ParticleIndices->Y.SetWithoutBoundsChecks(IndexY);					
 
 				// move to next particle
 				ParticleIndices += Stride;
 			}
 		}
 	}
-
 	RHIUnlockVertexBuffer( VertexBufferRHI );
 }
 
@@ -2022,10 +2015,7 @@ static FBox ComputeParticleBounds(
 	FParticleBoundsParameters Parameters;
 	FParticleBoundsUniformBufferRef UniformBuffer;
 
-	// MOBILEPREVIEWTODO: Proper value for this
-	const auto FeatureLevel = GRHIFeatureLevel;
-
-	if (ParticleCount > 0 && FeatureLevel == ERHIFeatureLevel::SM5)
+	if (ParticleCount > 0 && GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5)
 	{
 		// Determine how to break the work up over individual work groups.
 		const uint32 MaxGroupCount = 128;
@@ -2051,7 +2041,7 @@ static FBox ComputeParticleBounds(
 			PF_A32B32G32R32F );
 
 		// Grab the shader.
-		TShaderMapRef<FParticleBoundsCS> ParticleBoundsCS(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef<FParticleBoundsCS> ParticleBoundsCS(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 		RHICmdList.SetComputeShader(ParticleBoundsCS->GetComputeShader());
 
 		// Dispatch shader to compute bounds.
@@ -2909,6 +2899,10 @@ class FGPUSpriteParticleEmitterInstance : public FParticleEmitterInstance
 	TArray<uint32> TilesToClear;
 	/** The list of new particles generated this time step. */
 	TArray<FNewParticle> NewParticles;
+	/** The list of force spawned particles from events */
+	TArray<FNewParticle> ForceSpawnedParticles;
+	/** The list of force spawned particles from events using Bursts */
+	TArray<FNewParticle> ForceBurstSpawnedParticles;
 	/** The rotation to apply to the local vector field. */
 	FRotator LocalVectorFieldRotation;
 	/** The strength of the point attractor. */
@@ -3253,17 +3247,25 @@ public:
 			{
 				float BurstDeltaTime = DeltaSeconds;
 				GetCurrentBurstRateOffset(BurstDeltaTime, BurstInfo.Count);
+
+				BurstInfo.Count += ForceBurstSpawnedParticles.Num();
+
 				if (BurstInfo.Count > FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame)
 				{
 					LeftoverBurst = BurstInfo.Count - FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame;
 					BurstInfo.Count = FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame;
 				}
 			}
+
+
+
 			int32 FirstBurstParticleIndex = NewParticles.Num();
 			BurstInfo.Count = AllocateTilesForParticles(NewParticles, BurstInfo.Count, ActiveTileCount);
 
 			// Determine spawn count based on rate.
 			FSpawnInfo SpawnInfo = GetNumParticlesToSpawn(DeltaSeconds);
+			SpawnInfo.Count += ForceSpawnedParticles.Num();
+
 			int32 FirstSpawnParticleIndex = NewParticles.Num();
 			SpawnInfo.Count = AllocateTilesForParticles(NewParticles, SpawnInfo.Count, ActiveTileCount);
 			SpawnFraction += LeftoverBurst;
@@ -3271,14 +3273,17 @@ public:
 			if (BurstInfo.Count > 0)
 			{
 				// Spawn burst particles.
-				BuildNewParticles(NewParticles.GetTypedData() + FirstBurstParticleIndex, BurstInfo);
+				BuildNewParticles(NewParticles.GetData() + FirstBurstParticleIndex, BurstInfo, ForceBurstSpawnedParticles);
 			}
 
 			if (SpawnInfo.Count > 0)
 			{
 				// Spawn normal particles.
-				BuildNewParticles(NewParticles.GetTypedData() + FirstSpawnParticleIndex, SpawnInfo);
+				BuildNewParticles(NewParticles.GetData() + FirstSpawnParticleIndex, SpawnInfo, ForceSpawnedParticles);
 			}
+
+			ForceBurstSpawnedParticles.Empty();
+			ForceSpawnedParticles.Empty();
 
 			int32 NewParticleCount = BurstInfo.Count + SpawnInfo.Count;
 			INC_DWORD_STAT_BY(STAT_GPUSpritesSpawned, NewParticleCount);
@@ -3298,7 +3303,7 @@ public:
 			if (Component && Component->bWarmingUp)
 			{
 				SimulateWarmupParticles(
-					NewParticles.GetTypedData() + (NewParticles.Num() - NewParticleCount),
+					NewParticles.GetData() + (NewParticles.Num() - NewParticleCount),
 					NewParticleCount,
 					Component->WarmupTime - SecondsSinceCreation );
 			}
@@ -3651,7 +3656,7 @@ private:
 
 		// Determine spawn rate.
 		check(SpawnModule && RequiredModule);
-		const float RateScale = CurrentLODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
+		const float RateScale = CurrentLODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * CurrentLODLevel->SpawnModule->GetGlobalRateScale();
 		float SpawnRate = CurrentLODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * RateScale;
 		SpawnRate = FMath::Max<float>(0.0f, SpawnRate);
 
@@ -3710,7 +3715,7 @@ private:
 	 * @param SpawnTime - The time at which to begin spawning particles.
 	 * @param Increment - The amount by which to increment time for each particle spawned.
 	 */
-	void BuildNewParticles(FNewParticle* InNewParticles, FSpawnInfo SpawnInfo)
+	void BuildNewParticles(FNewParticle* InNewParticles, FSpawnInfo SpawnInfo, TArray<FNewParticle> &ForceSpawned)
 	{
 		const float OneOverTwoPi = 1.0f / (2.0f * PI);
 		UParticleModuleRequired* RequiredModule = EmitterInfo.RequiredModule;
@@ -3740,6 +3745,15 @@ private:
 
 			// Set the particle's location and invoke each spawn module on the particle.
 			TempParticle->Location = EmitterToSimulation.GetOrigin();
+
+			int32 ForceSpawnedOffset = SpawnInfo.Count - ForceSpawned.Num();
+			if (ForceSpawned.Num() && i > ForceSpawnedOffset)
+			{
+				TempParticle->Location = ForceSpawned[i - ForceSpawnedOffset - 1].Position;
+				TempParticle->RelativeTime = ForceSpawned[i - ForceSpawnedOffset - 1].RelativeTime;
+				TempParticle->Velocity += ForceSpawned[i - ForceSpawnedOffset - 1].Velocity;
+			}
+
 			for (int32 ModuleIndex = 0; ModuleIndex < EmitterInfo.SpawnModules.Num(); ModuleIndex++)
 			{
 				UParticleModule* SpawnModule = EmitterInfo.SpawnModules[ModuleIndex];
@@ -3888,6 +3902,28 @@ private:
 
 	virtual void ForceSpawn(float DeltaTime, int32 InSpawnCount, int32 InBurstCount, FVector& InLocation, FVector& InVelocity)
 	{
+		const bool bUseLocalSpace = GetCurrentLODLevelChecked()->RequiredModule->bUseLocalSpace;
+		FVector SpawnLocation = bUseLocalSpace ? FVector::ZeroVector : InLocation;
+
+		float Increment = DeltaTime / InSpawnCount;
+		for (int32 i = 0; i < InSpawnCount; i++)
+		{
+
+			FNewParticle Particle;
+			Particle.Position = SpawnLocation;
+			Particle.Velocity = InVelocity;
+			Particle.RelativeTime = Increment*i;
+			ForceSpawnedParticles.Add(Particle);
+		}
+
+		for (int32 i = 0; i < InBurstCount; i++)
+		{
+			FNewParticle Particle;
+			Particle.Position = SpawnLocation;
+			Particle.Velocity = InVelocity;
+			Particle.RelativeTime = 0.0f;
+			ForceBurstSpawnedParticles.Add(Particle);
+		}
 	}
 
 	virtual void PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity)
@@ -4077,7 +4113,8 @@ void FFXSystem::SortGPUParticles(FRHICommandListImmediate& RHICmdList)
 			RHICmdList,
 			GParticleSortBuffers,
 			ParticleSimulationResources->GetCurrentStateTextures().PositionTextureRHI,
-			ParticleSimulationResources->SimulationsToSort
+			ParticleSimulationResources->SimulationsToSort,
+			GetFeatureLevel()
 			);
 		ParticleSimulationResources->SortedVertexBuffer.VertexBufferRHI =
 			GParticleSortBuffers.GetSortedVertexBufferRHI(BufferIndex);
@@ -4275,7 +4312,7 @@ void FFXSystem::SimulateGPUParticles(
 	// Simulate particles in all active tiles.
 	if ( SimulationCommands.Num() )
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation, DEC_PARTICLE);
+		SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
 
 		if (Phase == EParticleSimulatePhase::Collision && CollisionView)
 		{
@@ -4318,7 +4355,7 @@ void FFXSystem::SimulateGPUParticles(
 	// Inject any new particles that have spawned into the simulation.
 	if (NewParticles.Num())
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection, DEC_PARTICLE);
+		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[4] =
 		{

@@ -13,7 +13,7 @@
  * Base class for level viewport layout configurations
  * Handles maximizing and restoring well as visibility of specific viewports.
  */
-class FLevelViewportLayout : public TSharedFromThis<FLevelViewportLayout>
+class FLevelViewportLayout : public TSharedFromThis<FLevelViewportLayout>, FTickableEditorObject
 {
 public:
 	/**
@@ -95,8 +95,12 @@ public:
 
 	virtual const FName& GetLayoutTypeName() const = 0;
 
-	/** Ticks this level viewport layout object */
-	virtual void Tick();
+
+	/** FTickableEditorObject interface */
+	virtual void Tick( float DeltaTime ) override;
+	virtual bool IsTickable() const override;
+	virtual TStatId GetStatId() const override { return TStatId(); }
+
 
 	/** Tells this layout whether it was the intial layout or replaced an existing one when the user switched layouts */
 	void SetIsReplacement(bool bInIsReplacement) { bIsReplacement = bInIsReplacement; }

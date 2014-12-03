@@ -272,7 +272,7 @@ void FPhATSharedData::Mirror()
 	TArray<FMirrorInfo> MirrorInfos;
 	if (EditingMode == PEM_BodyEdit)	//grab all selected bodies
 	{
-		for (const FSelection & Selection : SelectedBodies)
+		for (const FSelection& Selection : SelectedBodies)
 		{
 			MirrorInfos.AddUninitialized();
 			FMirrorInfo & MirrorInfo = MirrorInfos[MirrorInfos.Num() - 1];
@@ -283,7 +283,7 @@ void FPhATSharedData::Mirror()
 	}
 	else if (EditingMode == PEM_ConstraintEdit)	//grab all selected constraints
 	{
-		for (const FSelection & Selection : SelectedConstraints)
+		for (const FSelection& Selection : SelectedConstraints)
 		{
 			MirrorInfos.AddUninitialized();
 			FMirrorInfo & MirrorInfo = MirrorInfos[MirrorInfos.Num() - 1];
@@ -384,7 +384,7 @@ void FPhATSharedData::HitConstraint(int32 ConstraintIndex, bool bGroupSelect)
 	}
 }
 
-void FPhATSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset * InPhysAsset)
+void FPhATSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset)
 {
 	if (InPhysAsset)
 	{
@@ -460,7 +460,7 @@ void FPhATSharedData::SetSelectedBodyAnyPrim(int32 BodyIndex, bool bGroupSelect 
 	}
 }
 
-void FPhATSharedData::SetSelectedBody(const FSelection * Body, bool bGroupSelect /*= false*/, bool bGroupSelectRemove /* = true */)
+void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect /*= false*/, bool bGroupSelectRemove /* = true */)
 {
 	if(bInsideSelChange)
 	{
@@ -756,8 +756,8 @@ bool FPhATSharedData::WeldSelectedBodies(bool bWeld /* = true */)
 		return false;
 	}
 
-	const FSelection & Body0 = SelectedBodies[BodyIndex0];
-	const FSelection & Body1 = SelectedBodies[BodyIndex1];
+	const FSelection& Body0 = SelectedBodies[BodyIndex0];
+	const FSelection& Body1 = SelectedBodies[BodyIndex1];
 
 	FName Bone0Name = PhysicsAsset->BodySetup[Body0.Index]->BoneName;
 	int32 Bone0Index = EditorSkelMesh->RefSkeleton.FindBoneIndex(Bone0Name);
@@ -1233,7 +1233,7 @@ void FPhATSharedData::DeleteCurrentPrim()
 
 		for (int32 i = 0; i < SelectedPrimitives.Num(); ++i)
 		{
-			const FSelection & SelectedBody = SelectedPrimitives[i];
+			const FSelection& SelectedBody = SelectedPrimitives[i];
 			int32 BodyIndex = PhysicsAsset->FindBodyIndex(BodySetup->BoneName);
 
 			BodySetup->Modify();
@@ -1278,7 +1278,7 @@ void FPhATSharedData::DeleteCurrentPrim()
 	SetSelectedBodyAnyPrim(INDEX_NONE); // Will call UpdateViewport
 	RefreshPhysicsAssetChange(PhysicsAsset);
 }
-FTransform FPhATSharedData::GetConstraintBodyTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame) const
+FTransform FPhATSharedData::GetConstraintBodyTM(const UPhysicsConstraintTemplate* ConstraintSetup, EConstraintFrame::Type Frame) const
 {
 	if (ConstraintSetup == NULL)
 	{
@@ -1309,7 +1309,7 @@ FTransform FPhATSharedData::GetConstraintBodyTM(const UPhysicsConstraintTemplate
 	}
 }
 
-FTransform FPhATSharedData::GetConstraintWorldTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame, float Scale) const
+FTransform FPhATSharedData::GetConstraintWorldTM(const UPhysicsConstraintTemplate* ConstraintSetup, EConstraintFrame::Type Frame, float Scale) const
 {
 	if (ConstraintSetup == NULL)
 	{
@@ -1352,7 +1352,7 @@ FTransform FPhATSharedData::GetConstraintMatrix(int32 ConstraintIndex, EConstrai
 }
 
 
-FTransform FPhATSharedData::GetConstraintWorldTM(const FSelection * Constraint, EConstraintFrame::Type Frame) const
+FTransform FPhATSharedData::GetConstraintWorldTM(const FSelection* Constraint, EConstraintFrame::Type Frame) const
 {
 	int32 ConstraintIndex = Constraint ? Constraint->Index : INDEX_NONE;
 	if (ConstraintIndex == INDEX_NONE)
@@ -1540,7 +1540,7 @@ void FPhATSharedData::PostUndo()
 
 	for (int32 BodyIndex = 0; BodyIndex < SelectedBodies.Num() && bInvalidSelection == false; ++BodyIndex)
 	{
-		const FSelection & Selection = SelectedBodies[BodyIndex];
+		const FSelection& Selection = SelectedBodies[BodyIndex];
 		if (PhysicsAsset->BodySetup.Num() <= Selection.Index)
 		{
 			bInvalidSelection = true;
@@ -1568,7 +1568,7 @@ void FPhATSharedData::PostUndo()
 
 	for (int32 ConstraintIndex = 0; ConstraintIndex < SelectedConstraints.Num() && bInvalidSelection == false; ++ConstraintIndex)
 	{
-		const FSelection & Selection = SelectedConstraints[ConstraintIndex];
+		const FSelection& Selection = SelectedConstraints[ConstraintIndex];
 		if (PhysicsAsset->ConstraintSetup.Num() <= Selection.Index)
 		{
 			bInvalidSelection = true;

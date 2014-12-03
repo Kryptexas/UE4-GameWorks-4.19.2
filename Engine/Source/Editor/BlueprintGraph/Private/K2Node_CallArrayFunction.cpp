@@ -2,8 +2,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-UK2Node_CallArrayFunction::UK2Node_CallArrayFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallArrayFunction::UK2Node_CallArrayFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -222,6 +222,11 @@ void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* Source
 				CurrentPin->PinType.PinCategory = SourcePin->PinType.PinCategory;
 				CurrentPin->PinType.PinSubCategory = SourcePin->PinType.PinSubCategory;
 				CurrentPin->PinType.PinSubCategoryObject = SourcePin->PinType.PinSubCategoryObject;
+
+				// Reset default values
+				CurrentPin->DefaultValue = FString();
+				CurrentPin->DefaultTextValue = FText();
+				CurrentPin->DefaultObject = NULL;
 
 				// Verify that all previous connections to this pin are still valid with the new type
 				for (TArray<UEdGraphPin*>::TIterator ConnectionIt(CurrentPin->LinkedTo); ConnectionIt; ++ConnectionIt)

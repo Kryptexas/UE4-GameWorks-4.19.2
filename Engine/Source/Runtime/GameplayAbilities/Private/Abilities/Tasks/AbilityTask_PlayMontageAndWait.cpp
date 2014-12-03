@@ -1,11 +1,13 @@
 
 #include "AbilitySystemPrivatePCH.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "AbilitySystemComponent.h"
 
-UAbilityTask_PlayMontageAndWait::UAbilityTask_PlayMontageAndWait(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_PlayMontageAndWait::UAbilityTask_PlayMontageAndWait(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-
+	Rate = 1.f;
 }
 
 void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -22,23 +24,23 @@ void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool
 	EndTask();
 }
 
-UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay)
+UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay, float Rate)
 {
 	UAbilityTask_PlayMontageAndWait* MyObj = NewTask<UAbilityTask_PlayMontageAndWait>(WorldContextObject);
 	MyObj->MontageToPlay = MontageToPlay;
+	MyObj->Rate = Rate;
 
 	return MyObj;
 }
 
 void UAbilityTask_PlayMontageAndWait::Activate()
 {
-	if (Ability.IsValid())
+	if (AbilitySystemComponent.IsValid() && Ability.IsValid())
 	{
 		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
 		if (ActorInfo->AnimInstance.IsValid())
 		{
-			ActorInfo->AnimInstance->Montage_Play(MontageToPlay, 1.f);
-			if (MontageToPlay)
+			if (AbilitySystemComponent->PlayMontage(Ability.Get(), Ability->GetCurrentActivationInfo(), MontageToPlay, Rate	) > 0.f)
 			{
 				FOnMontageEnded EndDelegate;
 				EndDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);

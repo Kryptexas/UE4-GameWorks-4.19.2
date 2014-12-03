@@ -57,8 +57,8 @@ bool FTransformKey::GetVectorComponentIfDifferent( EAxis::Type Axis, const FVect
 	return bShouldAddKey;
 }
 
-UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

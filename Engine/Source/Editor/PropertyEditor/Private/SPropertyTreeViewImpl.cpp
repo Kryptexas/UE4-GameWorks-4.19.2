@@ -19,6 +19,7 @@
 #include "ScopedTransaction.h"
 #include "PropertyEditorHelpers.h"
 #include "SColorPicker.h"
+#include "SSearchBox.h"
 
 
 class FPropertyUtilitiesTreeView : public IPropertyUtilities
@@ -1255,7 +1256,7 @@ void SPropertyTreeViewImpl::SetColor(FLinearColor NewColor)
 
 		ColorPropertyNode->NotifyPreChange(NodeProperty, GetNotifyHook());
 
-		FPropertyChangedEvent ChangeEvent(NodeProperty, false, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet);
 		ColorPropertyNode->NotifyPostChange( ChangeEvent, GetNotifyHook() );
 	}
 }

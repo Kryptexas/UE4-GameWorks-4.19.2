@@ -66,6 +66,7 @@ public:
 	TSharedPtr< FUICommandInfo > RecompileKismetCompiler;
 	TSharedPtr< FUICommandInfo > RecompileBlueprintEditor;
 	TSharedPtr< FUICommandInfo > RecompilePersona;
+	TSharedPtr< FUICommandInfo > GenerateNativeCode;
 
 	// SSC commands
 	TSharedPtr< FUICommandInfo > BeginBlueprintMerge;
@@ -93,7 +94,7 @@ public:
 	 * @param InPaletteBuilder	The Blueprint palette to create the graph action for, used for validation purposes and to link any important node data to the blueprint
 	 * @param InDestGraph		The graph to create the graph action for, used for validation purposes and to link any important node data to the graph
 	 */
-	TSharedPtr< FEdGraphSchemaAction > GetGraphActionByGesture(FInputGesture& InGesture, struct FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) const;
+	void GetGraphActionByGesture(FInputGesture& InGesture, struct FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) const;
 
 private:
 	/** An array of all the possible commands for spawning nodes */

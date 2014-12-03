@@ -6,6 +6,7 @@
 #include "EdGraphUtilities.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeDiff"
 
@@ -186,7 +187,7 @@ TSharedRef<SWidget> SBehaviorTreeDiff::GenerateDiffListWidget()
 				return A->Result.Diff < B->Result.Diff;
 			}
 		};
-		Sort(DiffListSource.GetTypedData(),DiffListSource.Num(), FSortDiff());
+		Sort(DiffListSource.GetData(),DiffListSource.Num(), FSortDiff());
 
 		// Map commands through UI
 		const FDiffListCommands& Commands = FDiffListCommands::Get();

@@ -1,7 +1,7 @@
 
 #include "LiveEditorPrivatePCH.h"
 
-ULiveEditorBroadcaster::ULiveEditorBroadcaster(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULiveEditorBroadcaster::ULiveEditorBroadcaster(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -33,11 +33,13 @@ struct FPakInputPair
 {
 	FString Source;
 	FString Dest;
+	uint64 SuggestedOrder; 
 	bool bNeedsCompression;
 	bool bNeedEncryption;
 
 	FPakInputPair()
-		: bNeedsCompression(false)
+		: SuggestedOrder(MAX_uint64)
+		, bNeedsCompression(false)
 		, bNeedEncryption(false)
 	{}
 
@@ -406,55 +408,78 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 
 	if (FParse::Value(FCommandLine::Get(), TEXT("-create="), ResponseFile))
 	{
-		FString Text;
-		UE_LOG(LogPakFile, Display, TEXT("Loading response file %s"), *ResponseFile);
-		if (FFileHelper::LoadFileToString(Text, *ResponseFile))
+		bool bCompress = false;
+		bool bEncrypt = false;
+		TArray<FString> Lines;
+
+		if (FParse::Param(FCommandLine::Get(), TEXT("compress")))
 		{
-			// Remove all carriage return characters.
-			Text.ReplaceInline(TEXT("\r"), TEXT(""));
-			// Read all lines
-			TArray<FString> Lines;
-			Text.ParseIntoArray(&Lines, TEXT("\n"), true);
-			for (int32 EntryIndex = 0; EntryIndex < Lines.Num(); EntryIndex++)
-			{
-				TArray<FString> SourceAndDest;
-				TArray<FString> Switches;
-				CommandLineParseHelper(*Lines[EntryIndex], SourceAndDest, Switches);
-				FPakInputPair Input;
-				Input.Source = SourceAndDest[0];
-				FPaths::NormalizeFilename(Input.Source);
-				if (SourceAndDest.Num() > 1)
-				{
-					Input.Dest = FPaths::GetPath(SourceAndDest[1]);
-				}
-				else
-				{
-					Input.Dest = FPaths::GetPath(Input.Source);
-				}
-				FPaths::NormalizeFilename(Input.Dest);
-				FPakFile::MakeDirectoryFromPath(Input.Dest);
+			bCompress = true;
+		}
+		if (FParse::Param(FCommandLine::Get(), TEXT("encrypt")))
+		{
+			bEncrypt = true;
+		}
 
-				//check for compression switches
-				for (int32 Index = 0; Index < Switches.Num(); ++Index)
-				{
-					if (Switches[Index] == TEXT("compress"))
-					{
-						Input.bNeedsCompression = true;
-					}
-					if(Switches[Index] == TEXT("encrypt"))
-					{
-						Input.bNeedEncryption = true;
-					}
-				}
-
-				UE_LOG(LogPakFile, Display, TEXT("Added file Source: %s Dest: %s"), *Input.Source, *Input.Dest);
-				Entries.Add(Input);
-			}			
+		if (IFileManager::Get().DirectoryExists(*ResponseFile))
+		{
+			IFileManager::Get().FindFilesRecursive(Lines, *ResponseFile, TEXT("*"), true, false);
 		}
 		else
 		{
-			UE_LOG(LogPakFile, Error, TEXT("Failed to load %s"), *ResponseFile);
+			FString Text;
+			UE_LOG(LogPakFile, Display, TEXT("Loading response file %s"), *ResponseFile);
+			if (FFileHelper::LoadFileToString(Text, *ResponseFile))
+			{
+				// Remove all carriage return characters.
+				Text.ReplaceInline(TEXT("\r"), TEXT(""));
+				// Read all lines
+				Text.ParseIntoArray(&Lines, TEXT("\n"), true);
+			}
+			else
+			{
+				UE_LOG(LogPakFile, Error, TEXT("Failed to load %s"), *ResponseFile);
+			}
 		}
+
+		for (int32 EntryIndex = 0; EntryIndex < Lines.Num(); EntryIndex++)
+		{
+			TArray<FString> SourceAndDest;
+			TArray<FString> Switches;
+			CommandLineParseHelper(*Lines[EntryIndex], SourceAndDest, Switches);
+			FPakInputPair Input;
+
+			Input.Source = SourceAndDest[0];
+			FPaths::NormalizeFilename(Input.Source);
+			if (SourceAndDest.Num() > 1)
+			{
+				Input.Dest = FPaths::GetPath(SourceAndDest[1]);
+			}
+			else
+			{
+				Input.Dest = FPaths::GetPath(Input.Source);
+			}
+			FPaths::NormalizeFilename(Input.Dest);
+			FPakFile::MakeDirectoryFromPath(Input.Dest);
+
+			//check for compression switches
+			for (int32 Index = 0; Index < Switches.Num(); ++Index)
+			{
+				if (Switches[Index] == TEXT("compress"))
+				{
+					Input.bNeedsCompression = true;
+				}
+				if (Switches[Index] == TEXT("encrypt"))
+				{
+					Input.bNeedEncryption = true;
+				}
+			}
+			Input.bNeedsCompression |= bCompress;
+			Input.bNeedEncryption |= bEncrypt;
+
+			UE_LOG(LogPakFile, Display, TEXT("Added file Source: %s Dest: %s"), *Input.Source, *Input.Dest);
+			Entries.Add(Input);
+		}			
 	}
 	else
 	{
@@ -529,6 +554,11 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 				FileInput.Source = FoundFiles[FileIndex];
 				FPaths::MakeStandardFilename(FileInput.Source);
 				FileInput.Dest = FileInput.Source.Replace(*Directory, *Input.Dest, ESearchCase::IgnoreCase);
+				const uint64* FoundOrder = OrderMap.Find(FileInput.Dest);
+				if(FoundOrder)
+				{
+					FileInput.SuggestedOrder = *FoundOrder;
+				}
 				FileInput.bNeedsCompression = bCompression;
 				FileInput.bNeedEncryption = bEncryption;
 				if (!AddedFiles.Contains(FileInput.Source))
@@ -552,6 +582,11 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 			FileInput.Source = Input.Source;
 			FPaths::MakeStandardFilename(FileInput.Source);
 			FileInput.Dest = FileInput.Source.Replace(*Directory, *Input.Dest, ESearchCase::IgnoreCase);
+			const uint64* FoundOrder = OrderMap.Find(FileInput.Dest);
+			if (FoundOrder)
+			{
+				FileInput.SuggestedOrder = *FoundOrder;
+			}
 			FileInput.bNeedEncryption = bEncryption;
 			FileInput.bNeedsCompression = bCompression;
 
@@ -569,26 +604,15 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 		}
 	}
 
-	// Sort alphabetically
+	// Sort by suggested order then alphabetically
 	struct FInputPairSort
 	{
-		const TMap<FString, uint64>& OrderMap;
-
-		FInputPairSort(const TMap<FString, uint64>& InOrderMap) : OrderMap(InOrderMap) {}
-		
 		FORCEINLINE bool operator()(const FPakInputPair& A, const FPakInputPair& B) const
 		{
-			uint64 AOrder = MAX_uint64;
-			uint64 BOrder = MAX_uint64;
-			const uint64* FoundOrder;
-			FoundOrder = OrderMap.Find(A.Dest);
-			if (FoundOrder) AOrder = *FoundOrder;
-			FoundOrder = OrderMap.Find(B.Dest);
-			if (FoundOrder) BOrder = *FoundOrder;
-			return AOrder == BOrder ? A.Dest < B.Dest : AOrder < BOrder;
+			return A.SuggestedOrder == B.SuggestedOrder ? A.Dest < B.Dest : A.SuggestedOrder < B.SuggestedOrder;
 		}
 	};
-	OutFilesToAdd.Sort(FInputPairSort(OrderMap));
+	OutFilesToAdd.Sort(FInputPairSort());
 	UE_LOG(LogPakFile, Display, TEXT("Collected %d files in %.2lfs."), OutFilesToAdd.Num(), FPlatformTime::Seconds() - StartTime);
 }
 

@@ -127,17 +127,16 @@ public:
 		OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();
 		OutInitializer.Scales = FVector(1.0f,InvTanOuterCone,InvTanOuterCone);
 		OutInitializer.FaceDirection = FVector(1,0,0);
-		//@todo - these half radius bounds are not correct, but quite a few things depend on it at this point
 		OutInitializer.SubjectBounds = FBoxSphereBounds(
-			GetLightToWorld().RemoveTranslation().TransformPosition(FVector(Radius / 2.0f,0,0)),
-			FVector(Radius/2.0f,Radius/2.0f,Radius/2.0f),
-			Radius / 2.0f
+			GetLightToWorld().RemoveTranslation().TransformPosition(FVector(Radius, 0, 0)),
+			FVector(Radius, Radius, Radius),
+			Radius
 			);
 		OutInitializer.WAxis = FVector4(0,0,1,0);
 		OutInitializer.MinLightW = 0.1f;
 		OutInitializer.MaxDistanceToCastInLightW = Radius;
 		OutInitializer.SplitIndex = INDEX_NONE;
-		OutInitializer.bRayTracedDistanceFieldShadow = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform);
+		OutInitializer.bRayTracedDistanceFieldShadow = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(ViewFamily.GetShaderPlatform());
 		return true;
 	}
 
@@ -153,8 +152,8 @@ public:
 	}
 };
 
-USpotLightComponent::USpotLightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpotLightComponent::USpotLightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())

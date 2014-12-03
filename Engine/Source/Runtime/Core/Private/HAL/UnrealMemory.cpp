@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #if USE_MALLOC_PROFILER && WITH_ENGINE && IS_MONOLITHIC
 	#include "Runtime/Engine/Public/MallocProfilerEx.h"
@@ -13,12 +13,16 @@
 #include "MallocDebug.h"
 #include "MallocProfiler.h"
 #include "MallocThreadSafeProxy.h"
+#include "MallocCrash.h"
 
 
 /** Helper function called on first allocation to create and initialize GMalloc */
 void GCreateMalloc()
 {
 	GMalloc = FPlatformMemory::BaseAllocator();
+	// Setup malloc crash as soon as possible.
+	FMallocCrash::Get( GMalloc );
+
 // so now check to see if we are using a Mem Profiler which wraps the GMalloc
 #if USE_MALLOC_PROFILER
 	#if WITH_ENGINE && IS_MONOLITHIC

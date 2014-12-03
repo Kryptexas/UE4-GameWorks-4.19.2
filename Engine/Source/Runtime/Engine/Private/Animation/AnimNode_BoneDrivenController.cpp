@@ -25,7 +25,7 @@ void FAnimNode_BoneDrivenController::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 	
@@ -115,12 +115,12 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 
 }
 
-bool FAnimNode_BoneDrivenController::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones)
+bool FAnimNode_BoneDrivenController::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
 	return SourceBone.IsValid(RequiredBones) && TargetBone.IsValid(RequiredBones);
 }
 
-void FAnimNode_BoneDrivenController::InitializeBoneReferences(const FBoneContainer & RequiredBones)
+void FAnimNode_BoneDrivenController::InitializeBoneReferences(const FBoneContainer& RequiredBones)
 {
 	SourceBone.Initialize(RequiredBones);
 	TargetBone.Initialize(RequiredBones);

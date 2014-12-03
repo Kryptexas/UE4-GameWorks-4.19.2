@@ -199,6 +199,7 @@ FConnectionDrawingPolicy::FConnectionDrawingPolicy(int32 InBackLayerID, int32 In
 	ArrowRadius = ArrowImage->ImageSize * ZoomFactor * 0.5f;
 	MidpointImage = NULL;
 	MidpointRadius = FVector2D::ZeroVector;
+	HoverDeemphasisDarkFraction = 0.8f;
 
 	BubbleImage = FEditorStyle::GetBrush( TEXT("Graph.ExecutionBubble") );
 }
@@ -479,20 +480,31 @@ void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& 
 
 				DetermineLinkGeometry(PinGeometries, ArrangedNodes, SomePinWidget, ThePin, TargetPin, /*out*/ LinkStartWidgetGeometry, /*out*/ LinkEndWidgetGeometry);
 
-				if ((LinkEndWidgetGeometry != NULL) && (LinkStartWidgetGeometry != NULL))
+				if(( LinkEndWidgetGeometry && LinkStartWidgetGeometry ) && !IsConnectionCulled( *LinkStartWidgetGeometry, *LinkEndWidgetGeometry ))
 				{
+
 					float Thickness = 1.0f;
 					FLinearColor WireColor = FLinearColor::White;
 					bool bDrawBubbles = false;
 					bool bBidirectional = false;
 
 					DetermineWiringStyle(ThePin, TargetPin, /*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, /*inout*/ bBidirectional);
-
 					DrawSplineWithArrow(LinkStartWidgetGeometry->Geometry, LinkEndWidgetGeometry->Geometry, WireColor, Thickness, bDrawBubbles, bBidirectional);
 				}
 			}
 		}
 	}
+}
+
+bool FConnectionDrawingPolicy::IsConnectionCulled( const FArrangedWidget& StartLink, const FArrangedWidget& EndLink ) const
+{
+	const float Top		= FMath::Min( StartLink.Geometry.AbsolutePosition.Y, EndLink.Geometry.AbsolutePosition.Y );
+	const float Left	= FMath::Min( StartLink.Geometry.AbsolutePosition.X, EndLink.Geometry.AbsolutePosition.X );
+	const float Bottom	= FMath::Max( StartLink.Geometry.AbsolutePosition.Y, EndLink.Geometry.AbsolutePosition.Y );
+	const float Right	= FMath::Max( StartLink.Geometry.AbsolutePosition.X, EndLink.Geometry.AbsolutePosition.X ); 
+
+	return	Left > ClippingRect.Right || Right < ClippingRect.Left || 
+			Bottom < ClippingRect.Top || Top > ClippingRect.Bottom;
 }
 
 void FConnectionDrawingPolicy::SetIncompatiblePinDrawState(const TSharedPtr<SGraphPin>& StartPin, const TSet< TSharedRef<SWidget> >& VisiblePins)
@@ -509,7 +521,6 @@ void FConnectionDrawingPolicy::ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdG
 	const float FadeInPeriod = 0.6f; // Time in seconds after the bias before the fade is fully complete
 	const float TimeFraction = FMath::SmoothStep(0.0f, FadeInPeriod, (float)(FSlateApplication::Get().GetCurrentTime() - LastHoverTimeEvent - FadeInBias));
 
-	const float DarkFraction = 0.8f;
 	const float LightFraction = 0.25f;
 	const FLinearColor DarkenedColor(0.0f, 0.0f, 0.0f, 0.5f);
 	const FLinearColor LightenedColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -524,7 +535,7 @@ void FConnectionDrawingPolicy::ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdG
 	}
 	else
 	{
-		WireColor = FMath::Lerp<FLinearColor>(WireColor, DarkenedColor, DarkFraction * TimeFraction);
+		WireColor = FMath::Lerp<FLinearColor>(WireColor, DarkenedColor, HoverDeemphasisDarkFraction * TimeFraction);
 	}
 }
 
@@ -1394,6 +1405,9 @@ FMaterialGraphConnectionDrawingPolicy::FMaterialGraphConnectionDrawingPolicy(int
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
 	ArrowRadius = FVector2D::ZeroVector;
+
+	// Still need to be able to perceive the graph while dragging connectors, esp over comment boxes
+	HoverDeemphasisDarkFraction = 0.4f;
 }
 
 void FMaterialGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor, /*inout*/bool& bDrawBubbles, /*inout*/ bool& bBidirectional)

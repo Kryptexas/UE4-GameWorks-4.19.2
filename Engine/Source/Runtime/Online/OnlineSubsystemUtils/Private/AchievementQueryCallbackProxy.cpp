@@ -5,20 +5,22 @@
 //////////////////////////////////////////////////////////////////////////
 // UAchievementQueryCallbackProxy
 
-UAchievementQueryCallbackProxy::UAchievementQueryCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAchievementQueryCallbackProxy::UAchievementQueryCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, WorldContextObject(nullptr)
 {
 }
 
-UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievements(class APlayerController* PlayerController)
+UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievements(UObject* WorldContextObject, class APlayerController* PlayerController)
 {
 	UAchievementQueryCallbackProxy* Proxy = NewObject<UAchievementQueryCallbackProxy>();
 	Proxy->PlayerControllerWeakPtr = PlayerController;
 	Proxy->bFetchDescriptions = false;
+	Proxy->WorldContextObject = WorldContextObject;
 	return Proxy;
 }
 
-UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievementDescriptions(class APlayerController* PlayerController)
+UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievementDescriptions(UObject* WorldContextObject, class APlayerController* PlayerController)
 {
 	UAchievementQueryCallbackProxy* Proxy = NewObject<UAchievementQueryCallbackProxy>();
 	Proxy->PlayerControllerWeakPtr = PlayerController;
@@ -28,7 +30,7 @@ UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievement
 
 void UAchievementQueryCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("CacheAchievements or CacheAchievementDescriptions"));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("CacheAchievements or CacheAchievementDescriptions"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

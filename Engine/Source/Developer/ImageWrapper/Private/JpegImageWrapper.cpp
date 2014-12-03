@@ -115,7 +115,7 @@ void FJpegImageWrapper::Compress( int32 Quality )
 		jpge::params Parameters;
 		Parameters.m_quality = Quality;
 		bool bSuccess = jpge::compress_image_to_jpeg_file_in_memory(
-			CompressedData.GetTypedData(), OutBufferSize, Width, Height, NumComponents, RawData.GetTypedData(), Parameters);
+			CompressedData.GetData(), OutBufferSize, Width, Height, NumComponents, RawData.GetData(), Parameters);
 		
 		check(bSuccess);
 
@@ -153,13 +153,13 @@ void FJpegImageWrapper::Uncompress( const ERGBFormat::Type InFormat, int32 InBit
 
 	int32 NumColors;
 	uint8* OutData = jpgd::decompress_jpeg_image_from_memory(
-		CompressedData.GetTypedData(), CompressedData.Num(), &Width, &Height, &NumColors, Channels );
+		CompressedData.GetData(), CompressedData.Num(), &Width, &Height, &NumColors, Channels);
 
 	RawData.Empty();
 	RawData.AddUninitialized( Width * Height * Channels );
 	if (OutData)
 	{
-		FMemory::Memcpy( RawData.GetTypedData(), OutData, RawData.Num() );
+		FMemory::Memcpy(RawData.GetData(), OutData, RawData.Num());
 		FMemory::Free(OutData);
 	}
 }

@@ -33,6 +33,7 @@ public:
 	bool AddBlueprintAction(UEnum const* EnumOwner, UBlueprintNodeSpawner* NodeSpawner);
 	bool AddBlueprintAction(UScriptStruct const* StructOwner, UBlueprintNodeSpawner* NodeSpawner);
 	bool AddBlueprintAction(UField const* FieldOwner, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(FAssetData const& AssetDataOwner, UBlueprintNodeSpawner* NodeSpawner);
 
 	/**
 	 * Special case for asset bound actions (we want to clean-up/refresh these 
@@ -54,14 +55,22 @@ public:
 	 * @return True if the OwnerKey would is allowed to register actions, false if it would be blocked. 
 	 */
 	bool IsOpenForRegistration(UObject const* OwnerKey);
+	bool IsOpenForRegistration(FAssetData const& AssetDataOwner);
+
+	/** Returns the current key the registrar is being filtered using */
+	UObject const* GetActionKeyFilter() const
+	{
+		return ActionKeyFilter;
+	}
 
 private:
-	typedef FBlueprintActionDatabase::FActionRegistry FActionRegistry;
-	typedef FBlueprintActionDatabase::FPrimingQueue   FPrimingQueue;
+	typedef FBlueprintActionDatabase::FActionRegistry			FActionRegistry;
+	typedef FBlueprintActionDatabase::FUnloadedActionRegistry	FUnloadedActionRegistry;
+	typedef FBlueprintActionDatabase::FPrimingQueue				FPrimingQueue;
 
 	/** Only FBlueprintActionDatabase can spawn and distribute this. */
 	friend class FBlueprintActionDatabase;
-	FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey = nullptr);
+	FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FUnloadedActionRegistry& UnloadedDatabase, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey = nullptr);
 
 	/**
 	 * Internal method that actually adds the action to the database.
@@ -77,6 +86,9 @@ private:
 
 	/** A reference to FBlueprintActionDatabase's internal map */
 	FActionRegistry& ActionDatabase;
+
+	/** A reference to FBlueprintActionDatabase's internal map */
+	FUnloadedActionRegistry& UnloadedActionDatabase;
 
 	/** 
 	 * When an asset is added/updated we want to poll nodes again for 

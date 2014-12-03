@@ -41,8 +41,8 @@ struct FBTParallelMemory : public FBTCompositeMemory
  * Simple Parallel composite node.
  * Allows for running two children: one which must be a single task node (with optional decorators), and the other of which can be a complete subtree.
  */
-UCLASS(MinimalAPI)
-class UBTComposite_SimpleParallel : public UBTCompositeNode
+UCLASS()
+class AIMODULE_API UBTComposite_SimpleParallel : public UBTCompositeNode
 {
 	GENERATED_UCLASS_BODY()
 

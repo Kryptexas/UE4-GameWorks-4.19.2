@@ -55,7 +55,7 @@
 #endif //WITH_APEX_CLOTHING
 
 #ifndef ENABLE_VISUAL_LOG
-	#define ENABLE_VISUAL_LOG (1 && !NO_LOGGING && !USING_CODE_ANALYSIS && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+#	define ENABLE_VISUAL_LOG (1 && !NO_LOGGING && !USING_CODE_ANALYSIS && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 #endif
 
 #ifndef WITH_FIXED_AREA_ENTERING_COST
@@ -72,7 +72,7 @@
 	Size of the world.
 -----------------------------------------------------------------------------*/
 
-#define WORLD_MAX					524288.0				/* Maximum size of the world */
+#define WORLD_MAX					2097152.0				/* Maximum size of the world */
 #define HALF_WORLD_MAX				(WORLD_MAX * 0.5)		/* Half the maximum size of the world */
 #define HALF_WORLD_MAX1				(HALF_WORLD_MAX - 1.0)	/* Half the maximum size of the world minus one */
 

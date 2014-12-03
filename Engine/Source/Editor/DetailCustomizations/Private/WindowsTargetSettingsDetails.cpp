@@ -97,7 +97,15 @@ static FString GetIconFilename(EImageScope::Type Scope)
 	}
 	else
 	{
-		FString Filename = FPaths::GameSourceDir() / FString(FApp::GetGameName()) / FString(TEXT("Resources")) / PlatformName / FString(FApp::GetGameName()) + TEXT(".ico");
+		FString Filename = FPaths::GameDir() / TEXT("Build/Windows/Application.ico");
+		if(!FPaths::FileExists(Filename))
+		{
+			FString LegacyFilename = FPaths::GameSourceDir() / FString(FApp::GetGameName()) / FString(TEXT("Resources")) / PlatformName / FString(FApp::GetGameName()) + TEXT(".ico");
+			if(FPaths::FileExists(LegacyFilename))
+			{
+				Filename = LegacyFilename;
+			}
+		}
 		return FPaths::ConvertRelativePathToFull(Filename);
 	}
 }
@@ -216,21 +224,7 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 
 bool FWindowsTargetSettingsDetails::HandlePreExternalIconCopy(const FString& InChosenImage)
 {
-	bool bSucceeded = true;
-
-	// generate resource files if we dont have any yet
-	FText FailReason;
-	TArray<FString> CreatedFiles;
-	bSucceeded = FGameProjectGenerationModule::Get().UpdateCodeResourceFiles(CreatedFiles, FailReason);
-	if(!bSucceeded)
-	{
-		FNotificationInfo Info(FailReason);
-		Info.ExpireDuration = 5.0f;
-		Info.bUseLargeFont = false;
-		FSlateNotificationManager::Get().AddNotification(Info);
-	}
-
-	return bSucceeded;
+	return true;
 }
 
 

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AndroidPlatformOutputDevicesPrivate.h"
 
 class FOutputDeviceError* FAndroidOutputDevices::GetError()

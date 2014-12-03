@@ -16,14 +16,15 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("AllocateObject"),STAT_AllocateObject,STATGROUP_O
 DECLARE_CYCLE_STAT_EXTERN(TEXT("PostConstructInitializeProperties"),STAT_PostConstructInitializeProperties,STATGROUP_Object, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("LoadConfig"),STAT_LoadConfig,STATGROUP_Object, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("LoadObject"),STAT_LoadObject,STATGROUP_Object, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("FindObject"),STAT_FindObject,STATGROUP_Object, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("FindObjectFast"),STAT_FindObjectFast,STATGROUP_Object, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("InitProperties"),STAT_InitProperties,STATGROUP_Object, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("NameTable Entries"),STAT_NameTableEntries,STATGROUP_Object, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("NameTable ANSI Entries"),STAT_NameTableAnsiEntries,STATGROUP_Object, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("NameTable Wide Entries"),STAT_NameTableWideEntries,STATGROUP_Object, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("NameTable Memory Size"),STAT_NameTableMemorySize,STATGROUP_Object, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("~UObject"),STAT_DestroyObject,STATGROUP_Object, );
+
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("FindObject"),STAT_FindObject,STATGROUP_ObjectVerbose, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("FindObjectFast"),STAT_FindObjectFast,STATGROUP_ObjectVerbose, );
 
 /**
  * Network stats counters
@@ -400,7 +401,7 @@ namespace EAsyncPackageState
  */
 COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
 COREUOBJECT_API void BeginLoad();
-COREUOBJECT_API void EndLoad(const TCHAR* LoadContext = NULL);
+COREUOBJECT_API void EndLoad();
 
 /**
  * Find an existing package by name
@@ -419,15 +420,7 @@ COREUOBJECT_API UPackage* FindPackage(UObject* InOuter, const TCHAR* PackageName
  */
 COREUOBJECT_API UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName );
 
-void StaticShutdownAfterError();
 void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, bool bNotifyObjectOfChange );
-
-/**
- * Call back into the async loading code to inform of the creation of a new object
- * @param Object		Object created
- */
-void NotifyConstructedDuringAsyncLoading(UObject* Object);
-
 
 /**
  * Save a copy of this object into the transaction buffer if we are currently recording into
@@ -536,81 +529,31 @@ template<> struct TIsZeroConstructType<FSubobjectPtr> { enum { Value = true }; }
 template<> struct TIsWeakPointerType<FSubobjectPtr> { enum { Value = false }; };
 
 /**
- * TSubobjectPtrConstructor - internal private class to disallow the use of 
- * TSubobjectPtr's assignment operator as well as to disable easy access to
- * TSubobjectPtr::Get() when creating a subobject with PCIP.CreateDefaultSubobject().Get() <- No public 'Get'
+ * TSubobjectPtr - Sub-object smart pointer, soon to be deprecated and should no longer be used.
  */
 template <class SubobjectType>
-class TSubobjectPtrConstructor
+class TSubobjectPtrDeprecated : public FSubobjectPtr
 {
-	/** Only FPostConstructInitializeProperties can construct this class. */
-	friend class FPostConstructInitializeProperties;
-	/** TSubobjectPtr needs to have access to the subobject pointer. */
-	template <class AnySubobjectType> friend class TSubobjectPtr;
-	/** Subobject pointer. */
-	UObject* Object;	
-	/** Constructor used by PCIP. */
-	TSubobjectPtrConstructor(SubobjectType* InObject)
-		: Object(InObject)
-	{}
-	/** Private constructors. */
-	TSubobjectPtrConstructor() {}
-	TSubobjectPtrConstructor(const TSubobjectPtrConstructor&) {}
-	/** Private assignment operator. */
-	TSubobjectPtrConstructor& operator=(const TSubobjectPtrConstructor&) { return *this; }
-};
-
-/**
- * TSubobjectPtr - Sub-object smart pointer, owns a reference to instanced objects (sub-objects / components).
- * Prevents anything in C++ from overwriting the sub-object pointer.
- * Can (and should) be declared as a UPROPERTY():
- *
- *   UPROPERTY()
- *   TSubobjectPtr<UActorComponent> MyComponent;
- *
- * It can only be assigned to with PCIP.CreateDefaultSubobject (via TSubobjectPtrConstructor) in the owning object's constructor.
- *
- *   MyComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
- *
- * Initialized with InvalidPtrValue by default because it always needs to be initialized (either with NULL or a pointer to sub-object in the constructor
- * of the owner object).
- * Usually used with Actor components to specify that the actor-derived class is the owner of the component and prevent other derived classes from
- * overwriting it in any other way than through PCIP object.
- *
- * Implements a structure dereference operator for convenience
- *
- *   MyComponent->AttachTo(Owner);
- *
- * Can be reset to NULL, although this functionality is mostly for internal use:
- *
- *   MyComponent.Reset();
- */
-template <class SubobjectType>
-class TSubobjectPtr : public FSubobjectPtr
-{
+public:
 	/** Internal constructors. */
-	TSubobjectPtr(SubobjectType* InObject)
+	TSubobjectPtrDeprecated(SubobjectType* InObject)
 		: FSubobjectPtr(InObject)
 	{}
-	TSubobjectPtr& operator=(const TSubobjectPtr& Other) { return *this; }
+	TSubobjectPtrDeprecated& operator=(const TSubobjectPtrDeprecated& Other)
+	{ 
+		Set(Other.Object);
+		return *this; 
+	}
 
-public:
 	/** Default constructor. */
-	TSubobjectPtr()
+	TSubobjectPtrDeprecated()
 		: FSubobjectPtr((UObject*)FSubobjectPtr::InvalidPtrValue)
 	{
-		static_assert(sizeof(TSubobjectPtr) == sizeof(UObject*), "TSuobjectPtr should equal pointer size.");
+		static_assert(sizeof(TSubobjectPtrDeprecated) == sizeof(UObject*), "TSuobjectPtr should equal pointer size.");
 	}
 	/** Copy constructor */
 	template <class DerivedSubobjectType>
-	TSubobjectPtr(TSubobjectPtr<DerivedSubobjectType>& Other)
-		: FSubobjectPtr(Other.Object)
-	{
-		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
-	}
-	/** Initialization constructor. Can only be used with PCIP.CreateDefaultSubobject(). */
-	template <class DerivedSubobjectType>
-	TSubobjectPtr(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
+	TSubobjectPtrDeprecated(TSubobjectPtrDeprecated<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
 	{
 		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
@@ -619,14 +562,6 @@ public:
 	FORCEINLINE SubobjectType* Get() const
 	{
 		return (SubobjectType*)Object;
-	}
-	/** Assignment operator - can only be used with PCIP.CreateDefaultSubobject(). */
-	template <class DerivedSubobjectType>
-	FORCEINLINE TSubobjectPtr& operator=(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
-	{
-		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
-		Set(Other.Object);
-		return *this;
 	}
 	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* operator->() const
@@ -640,20 +575,25 @@ public:
 	}
 };
 
-template<class T> struct TIsPODType< TSubobjectPtr<T> > { enum { Value = true }; };
-template<class T> struct TIsZeroConstructType< TSubobjectPtr<T> > { enum { Value = true }; };
-template<class T> struct TIsWeakPointerType< TSubobjectPtr<T> > { enum { Value = false }; };
+template<class T> struct TIsPODType< TSubobjectPtrDeprecated<T> > { enum { Value = true }; };
+template<class T> struct TIsZeroConstructType< TSubobjectPtrDeprecated<T> > { enum { Value = true }; };
+template<class T> struct TIsWeakPointerType< TSubobjectPtrDeprecated<T> > { enum { Value = false }; };
+
+#define TSubobjectPtr \
+	EMIT_DEPRECATED_WARNING_MESSAGE("TSubobjectPtr is deprecated and should no longer be used. Please use pointers instead.") \
+	TSubobjectPtrDeprecated
+	
 
 /**
  * Internal class to finalize UObject creation (initialize properties) after the real C++ constructor is called.
  **/
-class COREUOBJECT_API FPostConstructInitializeProperties
+class COREUOBJECT_API FObjectInitializer
 {
 public:
 	/**
 	 * Default Constructor, used when you are using the C++ "new" syntax. UObject::UObject will set the object pointer
 	 **/
-	FPostConstructInitializeProperties();
+	FObjectInitializer();
 
 	/**
 	 * Constructor
@@ -663,9 +603,9 @@ public:
 	 * @param	bInShouldIntializeProps false is a special case for changing base classes in UCCMake
 	 * @param	InInstanceGraph passed instance graph
 	 */
-	FPostConstructInitializeProperties(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph=NULL);
+	FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph = NULL);
 
-	~FPostConstructInitializeProperties();
+	~FObjectInitializer();
 
 	/** 
 	 * Return the archetype that this object will copy properties from later
@@ -678,7 +618,7 @@ public:
 	/**
 	* Return the object that is being constructed
 	**/
-	FORCEINLINE UObject* GetObject() const
+	FORCEINLINE UObject* GetObj() const
 	{
 		return Obj;
 	}
@@ -696,9 +636,10 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
 	}
 
 	/**
@@ -710,9 +651,10 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateOptionalDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateOptionalDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
 	}
 
 	/**
@@ -724,9 +666,10 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateAbstractDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateAbstractDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
 	}
 
 	/** 
@@ -738,9 +681,9 @@ public:
 	* @param bTransient		true if the component is being assigned to a transient property
 	*/ 
 	template<class TReturnType, class TClassToConstructByDefault> 
-	TSubobjectPtrConstructor<TReturnType> CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const 
+	TReturnType* CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const 
 	{ 
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TClassToConstructByDefault>(Outer, SubobjectName, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, TReturnType::StaticClass(), TClassToConstructByDefault::StaticClass(), /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
 	}
 
 	/**
@@ -751,18 +694,19 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
 #if WITH_EDITOR
 		if (GIsEditor)
 		{
-			TReturnType* EditorSubobject = CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient);
+			UClass* ReturnType = TReturnType::StaticClass();
+			TReturnType* EditorSubobject = static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
 			if (EditorSubobject)
 			{
 				EditorSubobject->AlwaysLoadOnClient = false;
 				EditorSubobject->AlwaysLoadOnServer = false;
 			}
-			return TSubobjectPtrConstructor<TReturnType>(EditorSubobject);	
+			return EditorSubobject;	
 		}
 #endif
 		return NULL;
@@ -777,15 +721,14 @@ public:
 	 * @param bIsRequired			true if the component is required and will always be created even if DoNotCreateDefaultSubobject was sepcified.
 	 * @param bIsTransient		true if the component is being assigned to a transient property
 	 */
-	template<class TReturnType, class TClassToConstructByDefault>
-	TReturnType* CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bIsRequired, bool bIsAbstract, bool bIsTransient) const;
+	UObject* CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient) const;
 
 	/**
 	 * Sets the class of a subobject for a base class
 	 * @param	SubobjectName	name of the new component or subobject
 	 */
 	template<class T>
-	FPostConstructInitializeProperties const& SetDefaultSubobjectClass(FName SubobjectName) const
+	FObjectInitializer const& SetDefaultSubobjectClass(FName SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
@@ -796,7 +739,7 @@ public:
 	 * @param	SubobjectName	name of the new component or subobject
 	 */
 	template<class T>
-	FORCEINLINE FPostConstructInitializeProperties const& SetDefaultSubobjectClass(TCHAR const*SubobjectName) const
+	FORCEINLINE FObjectInitializer const& SetDefaultSubobjectClass(TCHAR const*SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
@@ -807,7 +750,7 @@ public:
 	 * Indicates that a base class should not create a component
 	 * @param	SubobjectName	name of the new component or subobject to not create
 	 */
-	FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(FName SubobjectName) const
+	FObjectInitializer const& DoNotCreateDefaultSubobject(FName SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
@@ -818,7 +761,7 @@ public:
 	 * Indicates that a base class should not create a component
 	 * @param	ComponentName	name of the new component or subobject to not create
 	 */
-	FORCEINLINE FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(TCHAR const*SubobjectName) const
+	FORCEINLINE FObjectInitializer const& DoNotCreateDefaultSubobject(TCHAR const*SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
@@ -843,9 +786,10 @@ public:
 private:
 
 	friend class UObject; 
+	friend class FScriptIntegrationObjectHelper;
 
 	template<class T>
-	friend void InternalConstructor( const class FPostConstructInitializeProperties& X );
+	friend void InternalConstructor(const class FObjectInitializer& X);
 
 	/**
 	 * Binary initialize object properties to zero or defaults.
@@ -856,6 +800,23 @@ private:
 	 * @param	bCopyTransientsFromClassDefaults if true, copy the transients from the DefaultsClass defaults, otherwise copy the transients from DefaultData
 	 */
 	static void InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults);
+
+	bool IsInstancingAllowed() const;
+
+	/**
+	 * Calls InitProperties for any default subobjects created through this ObjectInitializer.
+	 * @param bAllowInstancing	Indicates whether the object's components may be copied from their templates.
+	 * @return true if there are any subobjects which require instancing.
+	*/
+	bool InitSubobjectProperties(bool bAllowInstancing) const;
+
+	/**
+	 * Create copies of the object's components from their templates.
+	 * @param Class						Class of the object we are initializing
+	 * @param bNeedInstancing			Indicates whether the object's components need to be instanced
+	 * @param bNeedSubobjectInstancing	Indicates whether subobjects of the object's components need to be instanced
+	 */
+	void InstanceSubobjects(UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing) const;
 
 	/** 
 	 * Initializes a non-native property, according to the initialization rules. If the property is non-native
@@ -871,7 +832,7 @@ private:
 	struct FOverrides
 	{
 		/**  Add an override, make sure it is legal **/
-		void Add(FName InComponentName, UClass *InComponentClass, FPostConstructInitializeProperties const& PCIP)
+		void Add(FName InComponentName, UClass *InComponentClass, FObjectInitializer const& ObjectInitializer)
 		{
 			int32 Index = Find(InComponentName);
 			if (Index == INDEX_NONE)
@@ -880,22 +841,21 @@ private:
 			}
 			else if (InComponentClass && Overrides[Index].ComponentClass)
 			{
-				PCIP.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, InComponentClass); // if a base class is asking for an override, the existing override (which we are going to use) had better be derived
+				ObjectInitializer.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, InComponentClass); // if a base class is asking for an override, the existing override (which we are going to use) had better be derived
 			}
 		}
 		/**  Retrieve an override, or TClassToConstructByDefault::StaticClass or NULL if this was removed by a derived class **/
-		template<class TReturnType, class TClassToConstructByDefault>
-		UClass* Get(FName InComponentName, FPostConstructInitializeProperties const& PCIP)
+		UClass* Get(FName InComponentName, UClass* ReturnType, UClass* ClassToConstructByDefault, FObjectInitializer const& ObjectInitializer)
 		{
 			int32 Index = Find(InComponentName);
-			UClass *BaseComponentClass = TClassToConstructByDefault::StaticClass();
+			UClass *BaseComponentClass = ClassToConstructByDefault;
 			if (Index == INDEX_NONE)
 			{
 				return BaseComponentClass; // no override so just do what the base class wanted
 			}
 			else if (Overrides[Index].ComponentClass)
 			{
-				if (PCIP.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, TReturnType::StaticClass())) // if THE base class is asking for a T, the existing override (which we are going to use) had better be derived
+				if (ObjectInitializer.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, ReturnType)) // if THE base class is asking for a T, the existing override (which we are going to use) had better be derived
 				{
 					return Overrides[Index].ComponentClass; // the override is of an acceptable class, so use it
 				}
@@ -968,7 +928,7 @@ private:
 	bool bCopyTransientsFromClassDefaults;
 	/**  If true, intialize the properties **/
 	bool bShouldIntializePropsFromArchetype;
-	/**  Only true until PCIP has not reached the base UObject class */
+	/**  Only true until ObjectInitializer has not reached the base UObject class */
 	bool bSubobjectClassInitializationAllowed;
 	/**  Instance graph **/
 	struct FObjectInstancingGraph* InstanceGraph;
@@ -978,6 +938,52 @@ private:
 	mutable FSubobjectsToInit ComponentInits;
 	/**  Previously constructed object in the callstack */
 	UObject* LastConstructedObject;
+};
+
+#define FPostConstructInitializeProperties \
+	FObjectInitializer \
+	EMIT_DEPRECATED_WARNING_MESSAGE("FPostConstructInitializeProperties is deprecated and was renamed to FObjectInitializer. Please use that type instead.")
+
+/**
+* Helper class for script integrations to access some UObject innards. Needed for script-generated UObject classes
+*/
+class FScriptIntegrationObjectHelper
+{
+public:
+	/**
+	* Binary initialize object properties to zero or defaults.
+	*
+	* @param	ObjectInitializer	FObjectInitializer helper
+	* @param	Obj					object to initialize data for
+	* @param	DefaultsClass		the class to use for initializing the data
+	* @param	DefaultData			the buffer containing the source data for the initialization
+	*/
+	inline static void InitProperties(const FObjectInitializer& ObjectInitializer, UObject* Obj, UClass* DefaultsClass, UObject* DefaultData)
+	{
+		FObjectInitializer::InitProperties(Obj, DefaultsClass, DefaultData, ObjectInitializer.bCopyTransientsFromClassDefaults);
+	}
+
+	/**
+	* Calls InitProperties for any default subobjects created through this ObjectInitializer.
+	* @param bAllowInstancing	Indicates whether the object's components may be copied from their templates.
+	* @return true if there are any subobjects which require instancing.
+	*/
+	inline static bool InitSubobjectProperties(const FObjectInitializer& ObjectInitializer)
+	{
+		return ObjectInitializer.InitSubobjectProperties(ObjectInitializer.IsInstancingAllowed());
+	}
+
+	/**
+	* Create copies of the object's components from their templates.
+	* @param ObjectInitializer			FObjectInitializer helper
+	* @param Class						Class of the object we are initializing
+	* @param bNeedInstancing			Indicates whether the object's components need to be instanced
+	* @param bNeedSubobjectInstancing	Indicates whether subobjects of the object's components need to be instanced
+	*/
+	inline static void InstanceSubobjects(const FObjectInitializer& ObjectInitializer, UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing)
+	{
+		ObjectInitializer.InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
+	}
 };
 
 /**
@@ -1012,7 +1018,7 @@ T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage
 template< class T >
 T* NewObject(UObject* Outer=(UObject*)GetTransientPackage(),UClass* Class=T::StaticClass() )
 {
-	FPostConstructInitializeProperties::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use PCIP.CreateDefaultSuobject<> instead."));
+	FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
 	return ConstructObject<T>(Class,Outer);
 }
 
@@ -1446,10 +1452,17 @@ public:
 	 */
 	virtual bool IsIgnoringTransient() const = 0;
 	/**
-	 * Allows reference limination by this collector.
+	 * Allows reference elimination by this collector.
 	 */
 	virtual void AllowEliminatingReferences(bool bAllow) {}
-
+	/**
+	* Sets the property that is currently being serialized
+	*/
+	virtual void SetSerializedProperty(class UProperty* Inproperty) {}
+	/**
+	* Gets the property that is currently being serialized
+	*/
+	virtual class UProperty* GetSerializedProperty() const { return nullptr; }
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.
@@ -1487,14 +1500,23 @@ public:
 	 * Finds all objects referenced by Object.
 	 *
 	 * @param Object Object which references are to be found.
+	 * @param ReferencingObject object that's referencing the current object.
+	 * @param ReferencingProperty property the current object is being referenced through.
 	 */
-	virtual void FindReferences(UObject* Object);	
+	virtual void FindReferences(UObject* Object, UObject* ReferencingObject = nullptr, UObject* ReferencingProperty = nullptr);	
 
 	// FReferenceCollector interface.
-	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) override;
+	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* InReferencingProperty) override;
 	virtual bool IsIgnoringArchetypeRef() const override { return bShouldIgnoreArchetype; }
 	virtual bool IsIgnoringTransient() const override { return bShouldIgnoreTransient; }
-
+	virtual void SetSerializedProperty(class UProperty* Inproperty) override
+	{
+		SerializedProperty = Inproperty;
+	}
+	virtual class UProperty* GetSerializedProperty() const override
+	{
+		return SerializedProperty;
+	}
 protected:
 
 	/** Stored reference to array of objects we add object references to. */
@@ -1503,6 +1525,8 @@ protected:
 	TSet<const UObject*>	SerializedObjects;
 	/** Only objects within this outer will be considered, NULL value indicates that outers are disregarded. */
 	UObject*		LimitOuter;
+	/** Property that is referencing the current object */
+	class UProperty* SerializedProperty;
 	/** Determines whether nested objects contained within LimitOuter are considered. */
 	bool			bRequireDirectOuter;
 	/** Determines whether archetype references are considered. */
@@ -1523,8 +1547,47 @@ DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* 
  */
 struct COREUOBJECT_API FCoreUObjectDelegates
 {
+	// Callback for object property modifications
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnObjectPropertyChanged, UObject*, struct FPropertyChangedEvent&);
+
+	// Called when a property is changed
+	static FOnObjectPropertyChanged OnObjectPropertyChanged;
+
+	// Callback for PreEditChange
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreObjectPropertyChanged, UObject*, const class FEditPropertyChain&);
+
+	// Called before a property is changed
+	static FOnPreObjectPropertyChanged OnPreObjectPropertyChanged;
+
 	/** Delegate type for making auto backup of package */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
+
+#if WITH_EDITOR
+	// Callback for all object modifications
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
+
+	// Called when any object is modified at all 
+	static FOnObjectModified OnObjectModified;
+
+	// Callback for when an asset is loaded (Editor)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
+
+	// Called when an asset is loaded
+	static FOnAssetLoaded OnAssetLoaded;
+
+	// Callback for when an asset is saved (Editor)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSaved, UObject*);
+
+	// Called when an asset is saved
+	static FOnObjectSaved OnObjectSaved;
+
+#endif	//WITH_EDITOR
+
+	// Delegate type for redirector followed events ( Params: const FString& PackageName, UObject* Redirector )
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
+
+	// Sent when a UObjectRedirector was followed to find the destination object
+	static FOnRedirectorFollowed RedirectorFollowed;
 
 	/** Delegate used by SavePackage() to create the package backup */
 	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
@@ -1538,6 +1601,39 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Delegate for replacing hot-reloaded classes that changed after hot-reload */
 	DECLARE_DELEGATE_TwoParams(FReplaceHotReloadClassDelegate, UClass*, UClass*);
 	static FReplaceHotReloadClassDelegate ReplaceHotReloadClassDelegate;
+
+	// Sent at the very beginning of LoadMap
+	static FSimpleMulticastDelegate PreLoadMap;
+
+	// Sent at the _successful_ end of LoadMap
+	static FSimpleMulticastDelegate PostLoadMap;
+
+	// Sent at the _successful_ end of LoadMap
+	static FSimpleMulticastDelegate PostDemoPlay;
+
+	// Called before garbage collection
+	static FSimpleMulticastDelegate PreGarbageCollect;
+
+	// Called after garbage collection
+	static FSimpleMulticastDelegate PostGarbageCollect;
+
+	/** delegate type for querying whether a loaded object should replace an already existing one */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);
+
+	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
+	static FOnLoadObjectsOnTop ShouldLoadOnTop;
+
+	/** called when loading a string asset reference */
+	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, FString const& /*LoadedAssetLongPathname*/);
+	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
+
+	/** called when path to world root is changed */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
+	static FPackageCreatedForLoad PackageCreatedForLoad;
+
+	/** called when saving a string asset reference, can replace the value with something else */
+	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
+	static FStringAssetReferenceSaving StringAssetReferenceSaving;
 };
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */
@@ -1547,4 +1643,3 @@ extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;
 COREUOBJECT_API UScriptStruct* GetFallbackStruct();
 
 #endif	// __UNOBJGLOBALS_H__
-

@@ -4,7 +4,7 @@
 #include "SubMovieSceneSection.h"
 #include "IMovieScenePlayer.h"
 
-USubMovieSceneSection::USubMovieSceneSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+USubMovieSceneSection::USubMovieSceneSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }

@@ -168,7 +168,7 @@ struct FTextStyleAndName
 struct FTutorialText
 {
 public:
-	static void GetRichTextDecorators(TArray<TSharedRef<class ITextDecorator>>& OutDecorators);
+	static void GetRichTextDecorators(bool bForEditing, TArray<TSharedRef<class ITextDecorator>>& OutDecorators);
 
 	static const TArray<TSharedPtr<FHyperlinkTypeDesc>>& GetHyperLinkDescs();
 

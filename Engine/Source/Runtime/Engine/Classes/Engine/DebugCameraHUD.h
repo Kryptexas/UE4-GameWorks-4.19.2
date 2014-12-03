@@ -4,6 +4,9 @@
 #include "GameFramework/HUD.h"
 #include "DebugCameraHUD.generated.h"
 
+/**
+ * HUD that displays info for the DebugCameraController view.
+ */
 UCLASS(config=Game)
 class ENGINE_API ADebugCameraHUD : public AHUD
 {

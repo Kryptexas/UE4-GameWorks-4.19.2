@@ -12,7 +12,7 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
-UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeInstance = NULL;
 	bHighlightInAbortRange0 = false;
@@ -50,12 +50,15 @@ void UBehaviorTreeGraphNode::PostPlacedNewNode()
 	if (NodeClass)
 	{
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
-		NodeInstance = ConstructObject<UBTNode>(NodeClass, BT);
+		if (BT)
+		{
+			NodeInstance = ConstructObject<UBTNode>(NodeClass, BT);
 
-		UBTNode* BTNode = (UBTNode*)NodeInstance;
-		BTNode->SetFlags(RF_Transactional);
-		BTNode->InitializeFromAsset(BT);
-		BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
+			UBTNode* BTNode = (UBTNode*)NodeInstance;
+			BTNode->SetFlags(RF_Transactional);
+			BTNode->InitializeFromAsset(*BT);
+			BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
+		}
 	}
 }
 
@@ -86,9 +89,12 @@ void UBehaviorTreeGraphNode::PostEditImport()
 	if (NodeInstance)
 	{
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
-		UBTNode* BTNode = (UBTNode*)NodeInstance;
-		BTNode->InitializeFromAsset(BT);
-		BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
+		if (BT)
+		{
+			UBTNode* BTNode = (UBTNode*)NodeInstance;
+			BTNode->InitializeFromAsset(*BT);
+			BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
+		}
 	}
 }
 

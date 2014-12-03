@@ -6,7 +6,7 @@
 
 UBlackboardData::FKeyUpdate UBlackboardData::OnUpdateKeys;
 
-static void UpdatePersistentKeys(class UBlackboardData* Asset)
+static void UpdatePersistentKeys(UBlackboardData* Asset)
 {
 	UBlackboardKeyType_Object* SelfKeyType = Asset->UpdatePersistentKey<UBlackboardKeyType_Object>(FBlackboard::KeySelf);
 	if (SelfKeyType)
@@ -15,7 +15,13 @@ static void UpdatePersistentKeys(class UBlackboardData* Asset)
 	}
 }
 
-UBlackboardData::UBlackboardData(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+bool FBlackboardEntry::operator==(const FBlackboardEntry& Other) const
+{
+	return (EntryName == Other.EntryName) &&
+		((KeyType && Other.KeyType && KeyType->GetClass() == Other.KeyType->GetClass()) || (KeyType == NULL && Other.KeyType == NULL));
+}
+
+UBlackboardData::UBlackboardData(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -104,7 +110,7 @@ void UBlackboardData::PostLoad()
 
 #if WITH_EDITOR
 
-void UBlackboardData::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UBlackboardData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -179,6 +185,11 @@ void UBlackboardData::UpdateParentKeys()
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	FirstKeyID = Parent ? Parent->GetNumKeys() : 0;
+	UpdateKeyIDs();
 	OnUpdateKeys.Broadcast(this);
+}
+
+void UBlackboardData::UpdateKeyIDs()
+{
+	FirstKeyID = Parent ? Parent->GetNumKeys() : 0;
 }

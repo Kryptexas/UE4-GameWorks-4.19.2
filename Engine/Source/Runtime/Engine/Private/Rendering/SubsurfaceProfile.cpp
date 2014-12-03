@@ -102,8 +102,11 @@ void FSubsurfaceProfileTexture::UpdateProfile(int32 AllocationId, const FSubsurf
 
 const IPooledRenderTarget* FSubsurfaceProfileTexture::GetTexture(FRHICommandListImmediate& RHICmdList)
 {
-	// call SetRendererModule() is missing
-	check(RendererModule);
+	if(!RendererModule)
+	{
+		// call SetRendererModule() is missing, thiscan be if no SubsurfaceProfile was used yet but VisualizeSubsurface requests the texture
+		return 0;
+	}
 
 	if (!GSSProfiles)
 	{
@@ -180,7 +183,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 			FVector4 C = kernel[Pos] * FLinearColor(1.0f / TableMaxRGB, 1.0f / TableMaxRGB, 1.0f / TableMaxRGB, 1.0f / TableMaxA);
 
 			// requires 16bit (could be made with 8 bit e.g. using sample0.w as 8bit scale applied to all samples (more multiplications in the shader))
-			C.W *= Data.ScatterRadius / 1000.0f;
+			C.W *= Data.ScatterRadius / 1024.0f;
 
 			if (b16Bit)
 			{
@@ -289,8 +292,8 @@ ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandL
 
 // ------------------------------------------------------
 
-USubsurfaceProfile::USubsurfaceProfile(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USubsurfaceProfile::USubsurfaceProfile(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

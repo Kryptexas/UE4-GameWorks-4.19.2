@@ -4,7 +4,7 @@
 	AndroidString.cpp: Android implementations of string functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 int vswprintf( TCHAR *buf, int max, const TCHAR *fmt, va_list args )
 {

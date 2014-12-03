@@ -2,7 +2,7 @@
 
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"
 #include "DebugCanvas.h"
@@ -31,6 +31,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bIsResizing( false )
 	, bPlayInEditorGetsMouseControl( true )
 	, bPlayInEditorIsSimulate( false )
+	, bCursorHiddenDueToCapture( false )
 {
 	bIsSlateViewport = true;
 }
@@ -104,18 +105,18 @@ void FSceneViewport::ShowCursor( bool bVisible )
 	}
 }
 
-bool FSceneViewport::CaptureJoystickInput(bool Capture)
+bool FSceneViewport::SetUserFocus(bool bFocus)
 {
-	if( Capture )
+	if (bFocus)
 	{
-		CurrentReplyState.CaptureJoystick( ViewportWidget.Pin().ToSharedRef(), true );
+		CurrentReplyState.SetUserFocus(ViewportWidget.Pin().ToSharedRef(), EFocusCause::SetDirectly, true);
 	}
 	else
 	{
-		CurrentReplyState.ReleaseJoystickCapture(true);
+		CurrentReplyState.ClearUserFocus(true);
 	}
 
-	return Capture;
+	return bFocus;
 }
 
 bool FSceneViewport::KeyState( FKey Key ) const
@@ -159,6 +160,11 @@ void FSceneViewport::SetMouse( int32 X, int32 Y )
 	FVector2D AbsolutePos = CachedGeometry.LocalToAbsolute(FVector2D(X, Y));
 	FSlateApplication::Get().SetCursorPos( AbsolutePos );
 	CachedMousePos = FIntPoint(X, Y);
+}
+
+void FSceneViewport::ProcessInput( float DeltaTime )
+{
+	// Required 
 }
 
 void FSceneViewport::UpdateCachedMousePos( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
@@ -215,7 +221,7 @@ void FSceneViewport::ApplyModifierKeys( const FModifierKeysState& InKeysState )
 	}
 }
 
-void FSceneViewport::ProcessInput( float DeltaTime )
+void FSceneViewport::ProcessAccumulatedPointerInput()
 {
 	if( !ViewportClient )
 	{
@@ -229,6 +235,7 @@ void FSceneViewport::ProcessInput( float DeltaTime )
 
 	if (NumMouseSamplesX > 0 || NumMouseSamplesY > 0)
 	{
+		const float DeltaTime = FApp::GetDeltaTime();
 		ViewportClient->InputAxis( this, 0, EKeys::MouseX, MouseDelta.X, DeltaTime, NumMouseSamplesX );
 		ViewportClient->InputAxis( this, 0, EKeys::MouseY, MouseDelta.Y, DeltaTime, NumMouseSamplesY );
 	}
@@ -270,7 +277,10 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef() );
 
 		check(Window.IsValid());
-		ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+		if (Window->IsViewportSizeDrivenByWindow())
+		{
+			ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+		}
 	}	
 	
 	// Cannot pass negative canvas positions
@@ -308,6 +318,11 @@ bool FSceneViewport::IsForegroundWindow() const
 
 FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent )
 {
+	if (bCursorHiddenDueToCapture)
+	{
+		return FCursorReply::Cursor(EMouseCursor::None);
+	}
+
 	EMouseCursor::Type MouseCursorToUse = EMouseCursor::Default;
 
 	// If the cursor should be hidden, use EMouseCursor::None,
@@ -320,8 +335,6 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 	// Use the default cursor if there is no viewport client or we dont have focus
 	return FCursorReply::Cursor(MouseCursorToUse);
 }
-
-
 
 FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -347,7 +360,7 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		}
 
 		// Process the mouse event
-		if( !ViewportClient->InputKey( this, 0, InMouseEvent.GetEffectingButton(), IE_Pressed ) )
+		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
@@ -356,15 +369,21 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		{
 			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
 
-			// Mouse down should focus viewport for keyboard input
-			CurrentReplyState.SetKeyboardFocus(ViewportWidgetRef, EKeyboardFocusCause::Mouse);
+			// Mouse down should focus viewport for user input
+			CurrentReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
 			
 			UWorld* World = ViewportClient->GetWorld();
 			if (World && World->IsGameWorld() && World->GetFirstPlayerController())
 			{
 				CurrentReplyState.CaptureMouse(ViewportWidgetRef);
 				CurrentReplyState.LockMouseToWidget(ViewportWidgetRef);
-				if (!World->GetFirstPlayerController()->ShouldShowMouseCursor())
+
+				bool bShouldShowMouseCursor = World->GetFirstPlayerController()->ShouldShowMouseCursor();
+				if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
+				{
+					bCursorHiddenDueToCapture = true;
+				}
+				if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
 				{
 					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 				}
@@ -398,7 +417,7 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 	bool bReleaseMouse = true;
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
 	{
-		if( !ViewportClient->InputKey(this,0,InMouseEvent.GetEffectingButton(), IE_Released ) )
+		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Released))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
@@ -411,6 +430,8 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 		// as long as the left or right mouse buttons are not still down
 		if( !InMouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ) && !InMouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
 		{
+			bCursorHiddenDueToCapture = false;
+
 			CurrentReplyState.ReleaseMouseCapture();
 			if (bIsCursorVisible)
 			{
@@ -495,8 +516,8 @@ FReply FSceneViewport::OnMouseWheel( const FGeometry& InGeometry, const FPointer
 		FKey const ViewportClientKey = InMouseEvent.GetWheelDelta() < 0 ? EKeys::MouseScrollDown : EKeys::MouseScrollUp;
 
 		// Pressed and released should be sent
-		ViewportClient->InputKey( this, 0, ViewportClientKey, IE_Pressed );
-		ViewportClient->InputKey( this, 0, ViewportClientKey, IE_Released );
+		ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), ViewportClientKey, IE_Pressed);
+		ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), ViewportClientKey, IE_Released);
 	}
 	return CurrentReplyState;
 }
@@ -520,72 +541,11 @@ FReply FSceneViewport::OnMouseButtonDoubleClick( const FGeometry& InGeometry, co
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey( this, 0, InMouseEvent.GetEffectingButton(), IE_DoubleClick ) )
+		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_DoubleClick))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
 	}
-	return CurrentReplyState;
-}
-
-FReply FSceneViewport::OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	// Start a new reply state
-	CurrentReplyState = FReply::Handled(); 
-
-	KeyStateMap.Add( ControllerEvent.GetEffectingButton(), true );
-
-	if( ViewportClient )
-	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-
-		if( !ViewportClient->InputKey( this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.IsRepeat() ? IE_Repeat : IE_Pressed, 1.0f, true ) )
-		{
-			CurrentReplyState = FReply::Unhandled(); 
-		}
-	}
-	return CurrentReplyState;
-}
-
-FReply FSceneViewport::OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	// Start a new reply state
-	CurrentReplyState = FReply::Handled(); 
-
-	KeyStateMap.Add( ControllerEvent.GetEffectingButton(), false );
-
-	if( ViewportClient )
-	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-
-		if( !ViewportClient->InputKey( this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), IE_Released, 1.0f, true ) )
-		{
-			CurrentReplyState = FReply::Unhandled(); 
-		}
-	}
-	return CurrentReplyState;
-}
-
-FReply FSceneViewport::OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	// Start a new reply state
-	CurrentReplyState = FReply::Handled(); 
-
-	KeyStateMap.Add( ControllerEvent.GetEffectingButton(), true );
-
-	if( ViewportClient )
-	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-
-		if (!ViewportClient->InputAxis(this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.GetEffectingButton() == EKeys::Gamepad_RightY ? -ControllerEvent.GetAnalogValue() : ControllerEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
-		{
-			CurrentReplyState = FReply::Unhandled(); 
-		}
-	}
-
 	return CurrentReplyState;
 }
 
@@ -704,12 +664,17 @@ FReply FSceneViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMot
 	return CurrentReplyState;
 }
 
-FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+void FSceneViewport::OnFinishedPointerInput()
+{
+	ProcessAccumulatedPointerInput();
+}
+
+FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	FKey Key = InKeyboardEvent.GetKey();
+	FKey Key = InKeyEvent.GetKey();
 	KeyStateMap.Add( Key, true );
 
 	//@todo Slate Viewports: FWindowsViewport checks for Alt+Enter or F11 and toggles fullscreen.  Unknown if fullscreen via this method will be needed for slate viewports. 
@@ -718,7 +683,7 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey( this, 0, Key, InKeyboardEvent.IsRepeat() ? IE_Repeat : IE_Pressed ) )
+		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -726,12 +691,12 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 	return CurrentReplyState;
 }
 
-FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	FKey Key = InKeyboardEvent.GetKey();
+	FKey Key = InKeyEvent.GetKey();
 	KeyStateMap.Add( Key, false );
 	
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
@@ -739,7 +704,28 @@ FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyboardEven
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey(this, 0, Key, IE_Released) )
+		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, IE_Released))
+		{
+			CurrentReplyState = FReply::Unhandled();
+		}
+	}
+
+	return CurrentReplyState;
+}
+
+FReply FSceneViewport::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	// Start a new reply state
+	CurrentReplyState = FReply::Handled();
+
+	KeyStateMap.Add(InAnalogInputEvent.GetKey(), true);
+
+	if (ViewportClient)
+	{
+		// Switch to the viewport clients world before processing input
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+		if (!ViewportClient->InputAxis(this, InAnalogInputEvent.GetUserIndex(), InAnalogInputEvent.GetKey(), InAnalogInputEvent.GetKey() == EKeys::Gamepad_RightY ? -InAnalogInputEvent.GetAnalogValue() : InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -766,23 +752,26 @@ FReply FSceneViewport::OnKeyChar( const FGeometry& InGeometry, const FCharacterE
 	return CurrentReplyState;
 }
 
-FReply FSceneViewport::OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 {
 	CurrentReplyState = FReply::Handled(); 
 
-	if( ViewportClient )
+	if (ViewportClient != nullptr)
 	{
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-		ViewportClient->ReceivedFocus( this );
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+		ViewportClient->ReceivedFocus(this);
 
-		if( ( FApp::IsGame() && !GIsEditor ) || bIsPlayInEditorViewport )
+		if ((FApp::IsGame() && !GIsEditor) || bIsPlayInEditorViewport)
 		{
-			if( IsForegroundWindow() )
+			if (IsForegroundWindow())
 			{
-				const bool bIsCursorForcedVisible =
-					( ViewportClient != NULL && ViewportClient->GetCursor( this, GetMouseX(), GetMouseY() ) != EMouseCursor::None );
+				bool bIsCursorForcedVisible = false;
+				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetFirstPlayerController())
+				{
+					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetFirstPlayerController()->GetMouseCursor() != EMouseCursor::None;
+				}
 
-				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
+				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
 
 				// capturing the mouse interferes with slate UI (like the virtual joysticks)
 				if (FPlatformProperties::SupportsWindowedMode() && bPlayInEditorCapture && !bIsCursorForcedVisible && !FSlateApplication::Get().IsFakingTouchEvents())
@@ -790,18 +779,13 @@ FReply FSceneViewport::OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKey
 					// Only require the user to click in the window the first time - after that return focus to the game so long as it was the last focused widget.
 					// Means that tabbing in/out will return the mouse control to where it was & the in-game console won't leave the mouse under editor control.
 					bPlayInEditorGetsMouseControl = true;
-					CurrentReplyState.UseHighPrecisionMouseMovement( ViewportWidget.Pin().ToSharedRef() );
-					CurrentReplyState.LockMouseToWidget( ViewportWidget.Pin().ToSharedRef() );
-				}
-				else if(!bPlayInEditorCapture)
-				{
-					FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
-					FSlateApplication::Get().ResetToDefaultInputSettings();
+					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidget.Pin().ToSharedRef());
+					CurrentReplyState.LockMouseToWidget(ViewportWidget.Pin().ToSharedRef());
 				}
 			}
 			else
 			{
-				FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::Cleared );
+				CurrentReplyState.ClearUserFocus(true);
 			}
 		}
 	}
@@ -809,10 +793,10 @@ FReply FSceneViewport::OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKey
 	return CurrentReplyState;
 }
 
-void FSceneViewport::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	KeyStateMap.Empty();
-	if( ViewportClient )
+	if (ViewportClient != nullptr)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->LostFocus( this );
@@ -820,11 +804,11 @@ void FSceneViewport::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardF
 		TSharedPtr<SWidget> ViewportWidgetPin = ViewportWidget.Pin();
 		if( ViewportWidgetPin.IsValid() )
 		{
-			for( int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex )
+			for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
 			{
-				if( FSlateApplication::Get().GetJoystickCaptor(UserIndex) == ViewportWidgetPin )
+				if (FSlateApplication::Get().GetUserFocusedWidget(UserIndex) == ViewportWidgetPin)
 				{
-					FSlateApplication::Get().ReleaseJoystickCapture( UserIndex );
+					FSlateApplication::Get().ClearUserFocus(UserIndex);
 				}
 			}
 		}
@@ -855,15 +839,59 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 
 		if( WindowToResize.IsValid() )
 		{
-			int32 CVarValue = GetBoundFullScreenModeCVar();
 			EWindowMode::Type DesiredWindowMode = GetWindowModeType(NewWindowMode);
-			
+
+			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
+			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
+			// scaling so we actual render to the resolution we've been asked for.
+			if (DesiredWindowMode == EWindowMode::WindowedFullscreen)
+			{
+				FSlateRect Rect = WindowToResize->GetFullScreenInfo();
+				if (Rect.IsValid())
+				{
+					NewSizeX = Rect.GetSize().X;
+					NewSizeY = Rect.GetSize().Y;
+				}
+			}
+			uint32 ViewportSizeX = NewSizeX;
+			uint32 ViewportSizeY = NewSizeY;
+
+			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+			{
+				WindowToResize->SetViewportSizeDrivenByWindow(true);
+				// Resize & move only if moving to a fullscreen mode
+				if (NewWindowMode != EWindowMode::Windowed)
+				{
+					IHeadMountedDisplay::MonitorInfo MonitorInfo;
+					if (GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
+					{
+						ViewportSizeX = MonitorInfo.ResolutionX;
+						ViewportSizeY = MonitorInfo.ResolutionY;
+						if (GEngine->HMDDevice->IsFullscreenAllowed())
+						{
+							NewSizeX = MonitorInfo.ResolutionX;
+							NewSizeY = MonitorInfo.ResolutionY;
+						}
+						else
+						{
+							if (MonitorInfo.WindowSizeX != 0 && MonitorInfo.WindowSizeY != 0)
+							{
+								NewSizeX = MonitorInfo.WindowSizeX;
+								NewSizeY = MonitorInfo.WindowSizeY;
+							}
+							NewWindowMode = DesiredWindowMode = EWindowMode::WindowedMirror;
+							WindowToResize->SetIndependentViewportSize(FVector2D(ViewportSizeX, ViewportSizeY));
+						}
+					}
+				}
+			}
+
 			// Avoid resizing if nothing changes.
-			bool bNeedsResize = SizeX != NewSizeX || SizeY != NewSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
+			bool bNeedsResize = SizeX != ViewportSizeX || SizeY != ViewportSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
 
 			if (bNeedsResize)
 			{
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 				{
 					// Resize & move only if moving to a fullscreen mode
 					if (NewWindowMode != EWindowMode::Windowed)
@@ -873,16 +901,9 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 						IHeadMountedDisplay::MonitorInfo MonitorInfo;
 						if (GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
 						{
-							NewSizeX = MonitorInfo.ResolutionX;
-							NewSizeY = MonitorInfo.ResolutionY;
-							if (GEngine->HMDDevice->IsFullScreenAllowed())
+							if (GEngine->HMDDevice->IsFullscreenAllowed())
 							{
 								WindowToResize->ReshapeWindow(FVector2D(MonitorInfo.DesktopX, MonitorInfo.DesktopY), FVector2D(MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
-							}
-							else
-							{
-								WindowToResize->Resize(FVector2D(MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
-								DesiredWindowMode = EWindowMode::WindowedMirror;
 							}
 						}
 
@@ -893,18 +914,21 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 				// Toggle fullscreen and resize
 				WindowToResize->SetWindowMode(DesiredWindowMode);
 
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 				{
 					if (NewWindowMode == EWindowMode::Windowed)
 					{
 						FSlateRect PreFullScreenRect;
 						GEngine->HMDDevice->PopPreFullScreenRect(PreFullScreenRect);
-						if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && GEngine->HMDDevice->IsFullScreenAllowed())
+						if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && GEngine->HMDDevice->IsFullscreenAllowed())
 						{
 							NewSizeX = PreFullScreenRect.GetSize().X;
 							NewSizeY = PreFullScreenRect.GetSize().Y;
-							WindowToResize->MoveWindowTo (FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
+							WindowToResize->MoveWindowTo(FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
 						}
+						ViewportSizeX = NewSizeX;
+						ViewportSizeY = NewSizeY;
+						WindowToResize->SetViewportSizeDrivenByWindow(true);
 					}
 
 					if (NewWindowMode != WindowMode)
@@ -916,16 +940,30 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 
 				LockMouseToViewport(!CurrentReplyState.ShouldReleaseMouseLock());
 
-				int32 NewWindowSizeX = NewSizeX;
-				int32 NewWindowSizeY = NewSizeY;
+				WindowToResize->Resize(FVector2D(NewSizeX, NewSizeY));
 
-				WindowToResize->Resize( FVector2D(NewWindowSizeX, NewWindowSizeY) );
-
-				ResizeViewport(NewWindowSizeX, NewWindowSizeY, NewWindowMode, InPosX, InPosY);
+				ResizeViewport(ViewportSizeX, ViewportSizeY, NewWindowMode, InPosX, InPosY);
 			}
 			UCanvas::UpdateAllCanvasSafeZoneData();
 		}		
 	}
+}
+
+void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewportSizeY)
+{
+	TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
+	if (Window.IsValid())
+	{
+		Window->SetIndependentViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
+		const FVector2D vp = Window->GetViewportSize();
+		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
+		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);
+	}
+}
+
+TSharedPtr<SWindow> FSceneViewport::FindWindow()
+{
+	return FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
 }
 
 void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
@@ -1034,7 +1072,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	check( IsInGameThread() );
 
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
-	if (GEngine->StereoRenderingDevice.IsValid())
+	if (!GIsEditor && GEngine->StereoRenderingDevice.IsValid())
 	{
 		bool bNewUseSepRenTarget = GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget();
 		if (bNewUseSepRenTarget != bUseSeparateRenderTarget ||
@@ -1069,7 +1107,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 
 	if (GEngine->StereoRenderingDevice.IsValid())
 	{
-		GEngine->StereoRenderingDevice->UpdateViewport(bUseSeparateRenderTarget, *this);	
+		GEngine->StereoRenderingDevice->UpdateViewport(bUseSeparateRenderTarget, *this, ViewportWidget.Pin().Get());	
 	}
 }
 
@@ -1097,11 +1135,6 @@ void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool b
 	check( IsInRenderingThread() );
 	if (bUseSeparateRenderTarget)
 	{
-		// @todo-mobile
-		if (GRHIShaderPlatform == SP_OPENGL_ES2)
-		{
-			check(0);
-		}
 		if (SlateRenderTargetHandle)
 		{
 			RHICmdList.CopyToResolveTarget( RenderTargetTextureRHI, SlateRenderTargetHandle->GetRHIRef(), false, FResolveParams() );
@@ -1116,7 +1149,7 @@ void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool b
 	}
 }
 
-void FSceneViewport::Tick( float DeltaTime )
+void FSceneViewport::Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
 {
 	ProcessInput( DeltaTime );
 }

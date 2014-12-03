@@ -608,20 +608,20 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 
 	// HKCU\SOFTWARE\Classes\.uproject
 	FRegistryRootedKey *UserRootExtensionKey = new FRegistryRootedKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Classes\\.uproject"));
-	RootedKeys.AddRawItem(UserRootExtensionKey);
+	RootedKeys.Add(UserRootExtensionKey);
 
 	// HKLM\SOFTWARE\Classes\.uproject
 	FRegistryRootedKey *RootExtensionKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\.uproject"));
 	RootExtensionKey->Key = new FRegistryKey();
 	RootExtensionKey->Key->SetValue(TEXT(""), TEXT("Unreal.ProjectFile"));
-	RootedKeys.AddRawItem(RootExtensionKey);
+	RootedKeys.Add(RootExtensionKey);
 
 	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile
 	FRegistryRootedKey *RootFileTypeKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\Unreal.ProjectFile"));
 	RootFileTypeKey->Key = new FRegistryKey();
 	RootFileTypeKey->Key->SetValue(TEXT(""), TEXT("Unreal Engine Project File"));
 	RootFileTypeKey->Key->FindOrAddKey(L"DefaultIcon")->SetValue(TEXT(""), QuotedExecutableFileName);
-	RootedKeys.AddRawItem(RootFileTypeKey);
+	RootedKeys.Add(RootFileTypeKey);
 
 	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell
 	FRegistryKey *ShellKey = RootFileTypeKey->Key->FindOrAddKey(TEXT("shell"));
@@ -668,7 +668,7 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 	}
 	if(bDeleteUserChoiceKey)
 	{
-		RootedKeys.AddRawItem(new FRegistryRootedKey(HKEY_CURRENT_USER, UserChoicePath));
+		RootedKeys.Add(new FRegistryRootedKey(HKEY_CURRENT_USER, UserChoicePath));
 	}
 }
 

@@ -13,12 +13,12 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshActor"
 
-AStaticMeshActor::AStaticMeshActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AStaticMeshActor::AStaticMeshActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanBeDamaged = false;
 
-	StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
+	StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	StaticMeshComponent->Mobility = EComponentMobility::Static;
 	StaticMeshComponent->bGenerateOverlapEvents = false;
@@ -124,7 +124,7 @@ void AStaticMeshActor::CheckForErrors()
 
 	FMessageLog MapCheck("MapCheck");
 
-	if( !StaticMeshComponent.IsValid() )
+	if( !StaticMeshComponent )
 	{
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
@@ -151,7 +151,7 @@ void AStaticMeshActor::CheckForErrors()
 			if( CurTouchingActor != NULL )
 			{
 				AStaticMeshActor *A = Cast<AStaticMeshActor>( CurTouchingActor );
-				if ( A && (A != this) && (A->GetActorLocation() - GetActorLocation()).IsNearlyZero() && A->StaticMeshComponent.IsValid()
+				if ( A && (A != this) && (A->GetActorLocation() - GetActorLocation()).IsNearlyZero() && A->StaticMeshComponent
 					&& (A->StaticMeshComponent->StaticMesh == StaticMeshComponent->StaticMesh) && (A->GetActorRotation() == GetActorRotation()) 
 					&&  (A->StaticMeshComponent->RelativeScale3D == StaticMeshComponent->RelativeScale3D) )
 				{
@@ -204,3 +204,6 @@ void AStaticMeshActor::CheckForErrors()
 #endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns StaticMeshComponent subobject **/
+UStaticMeshComponent* AStaticMeshActor::GetStaticMeshComponent() const { return StaticMeshComponent; }

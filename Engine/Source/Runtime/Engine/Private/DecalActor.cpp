@@ -15,10 +15,10 @@ namespace DecalEditorConstants
 }
 #endif
 
-ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
-	Decal = PCIP.CreateDefaultSubobject<UDecalComponent>(this, TEXT("NewDecalComponent"));
+	Decal = ObjectInitializer.CreateDefaultSubobject<UDecalComponent>(this, TEXT("NewDecalComponent"));
 	Decal->RelativeScale3D = FVector(128.0f, 256.0f, 256.0f);
 
 	Decal->RelativeRotation = FRotator(-90, 0, 0);
@@ -26,7 +26,7 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 	RootComponent = Decal;
 
 #if WITH_EDITORONLY_DATA
-	BoxComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	BoxComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
 	if (BoxComponent != nullptr)
 	{
 		BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -39,8 +39,8 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 		BoxComponent->AttachParent = Decal;
 	}
 
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -91,7 +91,7 @@ void ADecalActor::PostEditMove(bool bFinished)
 {
 	Super::PostEditMove(bFinished);
 
-	if (Decal.IsValid())
+	if (Decal)
 	{
 		Decal->RecreateRenderState_Concurrent();
 	}
@@ -102,7 +102,7 @@ void ADecalActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	// AActor::PostEditChange will ForceUpdateComponents()
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (Decal.IsValid())
+	if (Decal)
 	{
 		Decal->RecreateRenderState_Concurrent();
 	}
@@ -118,7 +118,7 @@ void ADecalActor::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 
 void ADecalActor::SetDecalMaterial(class UMaterialInterface* NewDecalMaterial)
 {
-	if (Decal.IsValid())
+	if (Decal)
 	{
 		Decal->SetDecalMaterial(NewDecalMaterial);
 	}
@@ -126,10 +126,21 @@ void ADecalActor::SetDecalMaterial(class UMaterialInterface* NewDecalMaterial)
 
 class UMaterialInterface* ADecalActor::GetDecalMaterial() const
 {
-	return Decal.IsValid() ? Decal->GetDecalMaterial() : NULL;
+	return Decal ? Decal->GetDecalMaterial() : NULL;
 }
 
 class UMaterialInstanceDynamic* ADecalActor::CreateDynamicMaterialInstance()
 {
-	return Decal.IsValid() ? Decal->CreateDynamicMaterialInstance() : NULL;
+	return Decal ? Decal->CreateDynamicMaterialInstance() : NULL;
 }
+
+/** Returns Decal subobject **/
+UDecalComponent* ADecalActor::GetDecal() const { return Decal; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ADecalActor::GetArrowComponent() const { return ArrowComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ADecalActor::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns BoxComponent subobject **/
+UBoxComponent* ADecalActor::GetBoxComponent() const { return BoxComponent; }
+#endif

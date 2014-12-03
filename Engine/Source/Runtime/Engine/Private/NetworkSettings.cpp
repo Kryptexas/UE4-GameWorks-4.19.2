@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/NetworkSettings.h"
 
-UNetworkSettings::UNetworkSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNetworkSettings::UNetworkSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -59,19 +60,19 @@ void UNetworkSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 				UByteProperty* ByteProperty = Cast<UByteProperty>(PropertyChangedEvent.Property);
 				if (ByteProperty != NULL && ByteProperty->Enum != NULL)
 				{
-					CVar->Set(ByteProperty->GetPropertyValue_InContainer(this));
+					CVar->Set(ByteProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 				else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropertyChangedEvent.Property))
 				{
-					CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this));
+					CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 				else if (UIntProperty* IntProperty = Cast<UIntProperty>(PropertyChangedEvent.Property))
 				{
-					CVar->Set(IntProperty->GetPropertyValue_InContainer(this));
+					CVar->Set(IntProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 				else if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(PropertyChangedEvent.Property))
 				{
-					CVar->Set(FloatProperty->GetPropertyValue_InContainer(this));
+					CVar->Set(FloatProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 			}
 		}

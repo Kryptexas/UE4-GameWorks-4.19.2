@@ -365,99 +365,21 @@ int32 USkeletalMesh::GetClothAssetIndex(int32 LODIndex, int32 SectionIndex)
 
 void USkeletalMeshComponent::CreateBodySetup()
 {
-	if (BodySetup == NULL)
+	if (BodySetup == NULL && SkeletalMesh)
 	{
 		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
-		BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
-	}
-}
-
-bool USkeletalMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
-{
-#if WITH_EDITORONLY_DATA
-
-	// Fail if no mesh or not per poly collision
-	if (!SkeletalMesh || !MeshObject || !bEnablePerPolyCollision)
-	{
-		return false;
 	}
 
-	const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
-
-	{
-		// Copy all verts into collision vertex buffer.
-		CollisionData->Vertices.Empty();
-		CollisionData->Vertices.AddUninitialized(Model.NumVertices);
-		const uint32 NumChunks = Model.Chunks.Num();
-
-		for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
-		{
-			const FSkelMeshChunk & Chunk = Model.Chunks[ChunkIdx];
-			{
-				//rigid
-				const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
-				const uint32 NumRigidVerts = Chunk.GetNumRigidVertices();
-				for (uint32 RigidIdx = 0; RigidIdx < NumRigidVerts; ++RigidIdx)
-				{
-					CollisionData->Vertices[RigidIdx + RigidOffset] = Chunk.RigidVertices[RigidIdx].Position;
-				}
-			}
-			{
-				//soft
-				const uint32 SoftOffset = Chunk.GetSoftVertexBufferIndex();
-				const uint32 NumSoftVerts = Chunk.GetNumSoftVertices();
-				for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
-				{
-					CollisionData->Vertices[SoftIdx + SoftOffset] = Chunk.SoftVertices[SoftIdx].Position;
-				}
-			}
-			
-		}
-	}
+	UBodySetup* OriginalBodySetup = SkeletalMesh->GetBodySetup();
 	
-	{
-		// Copy indices into collision index buffer
-		const FMultiSizeIndexContainer & IndexBufferContainer = Model.MultiSizeIndexContainer;
+	BodySetup->CopyBodyPropertiesFrom(OriginalBodySetup);
+	BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
 
-		TArray<uint32> Indices;
-		IndexBufferContainer.GetIndexBuffer(Indices);
+	BodySetup->CookedFormatDataOverride = &OriginalBodySetup->CookedFormatData;
 
-		const uint32 NumTris = Indices.Num() / 3;
-		CollisionData->Indices.Empty();
-		CollisionData->Indices.Reserve(NumTris);
-
-		FTriIndices TriIndex;
-		for (int32 SectionIndex = 0; SectionIndex < Model.Sections.Num(); ++SectionIndex)
-		{
-			const FSkelMeshSection& Section = Model.Sections[SectionIndex];
-
-			const uint32 OnePastLastIndex = Section.BaseIndex + Section.NumTriangles * 3;
-
-			for (uint32 i = Section.BaseIndex; i < OnePastLastIndex; i += 3)
-			{
-				TriIndex.v0 = Indices[i];
-				TriIndex.v1 = Indices[i + 1];
-				TriIndex.v2 = Indices[i + 2];
-
-				CollisionData->Indices.Add(TriIndex);
-				CollisionData->MaterialIndices.Add(Section.MaterialIndex);
-			}
-		}
-	}
-
-	CollisionData->bFlipNormals = true;
-
-	// We only have a valid TriMesh if the CollisionData has vertices AND indices. For meshes with disabled section collision, it
-	// can happen that the indices will be empty, in which case we do not want to consider that as valid trimesh data
-	return CollisionData->Vertices.Num() > 0 && CollisionData->Indices.Num() > 0;
-#else // #if WITH_EDITORONLY_DATA
-	return false;
-#endif // #if WITH_EDITORONLY_DATA
-}
-
-bool USkeletalMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
-{
-	return bEnablePerPolyCollision;
+	//need to recreate meshes
+	BodySetup->ClearPhysicsMeshes();
+	BodySetup->CreatePhysicsMeshes();
 }
 
 //
@@ -516,7 +438,7 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 	{
 		for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 		{
-			if (FBodyInstance * BodyInstance = Bodies[BodyIdx])
+			if (FBodyInstance* BodyInstance = Bodies[BodyIdx])
 			{
 				if (UBodySetup * BodySetup = PhysAsset->BodySetup[BodyIdx])
 				{
@@ -626,10 +548,10 @@ void USkeletalMeshComponent::SetAllPhysicsLinearVelocity(FVector NewVel, bool bA
 
 void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngVel, bool bAddToCurrent)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// Find the root actor. We use its location as the center of the rotation.
-		FBodyInstance* RootBodyInst = Bodies[ RootBodyIndex ];
+		FBodyInstance* RootBodyInst = Bodies[ RootBodyData.BodyIndex ];
 		check(RootBodyInst);
 		FTransform RootTM = RootBodyInst->GetUnrealWorldTransform();
 
@@ -648,10 +570,10 @@ void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngV
 
 void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewPos
-		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		FBodyInstance* RootBI = Bodies[RootBodyData.BodyIndex];
 		check(RootBI);
 		if(RootBI->IsValidBodyInstance())
 		{
@@ -669,7 +591,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				if (i != RootBodyIndex)
+				if (i != RootBodyData.BodyIndex)
 				{
 					FBodyInstance* BI = Bodies[i];
 					check(BI);
@@ -688,10 +610,10 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewRot
-		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		FBodyInstance* RootBI = Bodies[RootBodyData.BodyIndex];
 		check(RootBI);
 		if(RootBI->IsValidBodyInstance())
 		{
@@ -705,7 +627,7 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				if (i != RootBodyIndex)
+				if (i != RootBodyData.BodyIndex)
 				{
 					FBodyInstance* BI = Bodies[i];
 					check(BI);
@@ -724,10 +646,10 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 
 void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewRot
-		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		FBodyInstance* RootBI = Bodies[RootBodyData.BodyIndex];
 		check(RootBI);
 		if(RootBI->IsValidBodyInstance())
 		{
@@ -740,7 +662,7 @@ void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& Del
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				if (i != RootBodyIndex)
+				if (i != RootBodyData.BodyIndex)
 				{
 					FBodyInstance* BI = Bodies[i];
 					check(BI);
@@ -790,7 +712,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	float Scale = Scale3D.X;
 
 	// Find root physics body
-	RootBodyIndex = INDEX_NONE;
+	int32 RootBodyIndex = INDEX_NONE;
 	for(int32 i=0; i<SkeletalMesh->RefSkeleton.GetNum(); i++)
 	{
 		int32 BodyInstIndex = PhysicsAsset->FindBodyIndex( SkeletalMesh->RefSkeleton.GetBoneName(i) );
@@ -848,6 +770,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			{
 				BodyInst->LockedAxisMode = BodyInstance.LockedAxisMode;
 				BodyInst->CustomLockedAxis = BodyInstance.CustomLockedAxis;
+
+				BodyInst->COMNudge = BodyInstance.COMNudge;
 			}
 			else
 			{
@@ -861,6 +785,9 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 #endif //WITH_PHYSX
 		}
 	}
+
+	// now update root body index because body has BodySetup now
+	SetRootBodyIndex(RootBodyIndex);
 
 #if WITH_PHYSX
 	// add Aggregate into the scene
@@ -898,7 +825,6 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	// Update Flag
 	ResetAllBodiesSimulatePhysics();
-
 #if WITH_APEX_CLOTHING
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
 	// pre-compute cloth teleport thresholds for performance
@@ -935,6 +861,11 @@ void USkeletalMeshComponent::TermArticulated()
 	{
 		check( Bodies[i] );
 		Bodies[i]->TermBody();
+	}
+	
+	for(int32 i=0; i<Bodies.Num(); i++)
+	{
+		check( Bodies[i] );
 		delete Bodies[i];
 	}
 
@@ -1370,6 +1301,7 @@ void USkeletalMeshComponent::CreatePhysicsState()
 	else
 	{
 		CreateBodySetup();
+		BodySetup->CreatePhysicsMeshes();
 		Super::CreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
 	}
 
@@ -1499,9 +1431,9 @@ FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName, bool) con
 		// A name of NAME_None indicates 'root body'
 		if(BoneName == NAME_None)
 		{
-			if(Bodies.IsValidIndex(RootBodyIndex))
+			if(Bodies.IsValidIndex(RootBodyData.BodyIndex))
 			{
-				BodyInst = Bodies[RootBodyIndex];
+				BodyInst = Bodies[RootBodyData.BodyIndex];
 			}
 		}
 		// otherwise, look for the body
@@ -1525,7 +1457,7 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 
 	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 	{
-		FBodyInstance * BI = Bodies[BodyIdx];
+		FBodyInstance* BI = Bodies[BodyIdx];
 		if (BI && BI->bWelded)
 		{
 			OutWeldedBodies.Add(&BodyInstance);
@@ -1561,7 +1493,7 @@ void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocatio
 {
 	// you can enable/disable the instanced weights by calling
 	int32 ConstraintIndex = FindConstraintIndex(InBoneName);
-	if( ConstraintIndex == INDEX_NONE )
+	if( ConstraintIndex == INDEX_NONE || ConstraintIndex >= Constraints.Num() )
 	{
 		return;
 	}
@@ -1647,7 +1579,7 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 	// First clear out old data
 	bHasValidBodies = false;
 
-	const UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+	const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 
 	// If we have a physics asset..
 	if(PhysicsAsset != NULL)
@@ -1912,7 +1844,7 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 {
 	OutOverlaps.Reset();
 
-	if (!Bodies.IsValidIndex(RootBodyIndex))
+	if (!Bodies.IsValidIndex(RootBodyData.BodyIndex))
 	{
 		return false;
 	}
@@ -2117,7 +2049,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 		}
 		NxParameterized::Handle md(*ActorDesc, "morphDisplacements");
 		md.resizeArray(PxBlendedData.Num());
-		md.setParamVec3Array(PxBlendedData.GetTypedData(), PxBlendedData.Num());
+		md.setParamVec3Array(PxBlendedData.GetData(), PxBlendedData.Num());
 	}
 
 	FPhysScene* PhysScene = NULL;
@@ -2739,7 +2671,7 @@ void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothColl
 						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
 					}
 
-					NxClothingConvex* Convex = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
+					NxClothingConvex* Convex = Actor->createCollisionConvex(ClothingPlanes.GetData(), ClothingPlanes.Num());
 
 					OutCollisions.Add(Convex);
 				}
@@ -2926,7 +2858,7 @@ FApexClothCollisionInfo* USkeletalMeshComponent::CreateNewClothingCollsions(UPri
 						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
 					}
 
-					ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
+					ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetData(), ClothingPlanes.Num());
 
 					if(ClothCol)
 					{
@@ -3244,7 +3176,7 @@ void USkeletalMeshComponent::ChangeClothMorphTargetMapping(FClothMorphTargetData
 
 			NxClothingAsset* ClothingAsset = Asset.ApexClothingAsset->GetAsset();
 			float Epsilon = 0.0f;
-			uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray.GetTypedData(), NumOriginPos, Epsilon);
+			uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray.GetData(), NumOriginPos, Epsilon);
 
 			if ((int32)NumMapped < NumOriginPos)
 			{
@@ -3353,7 +3285,7 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 				{
 					NxClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetAsset();
 					float Epsilon = 0.0f;
-					uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray[AssetIdx].GetTypedData(), ClothOriginalPosArray[AssetIdx].Num(), Epsilon);
+					uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray[AssetIdx].GetData(), ClothOriginalPosArray[AssetIdx].Num(), Epsilon);
 
 					int32 NumOriginPos = ClothOriginalPosArray[AssetIdx].Num();
 					if ((int32)NumMapped < NumOriginPos)
@@ -3571,7 +3503,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 		// if bUseInternalboneOrder is set, "NumUsedBones" works, otherwise have to use "getNumBones" 
 		ClothingActor->updateState(
 			PxGlobalPose, 
-			BoneMatrices.GetTypedData(), 
+			BoneMatrices.GetData(), 
 			sizeof(physx::PxMat44), 
 			NumUsedBones,
 			CurTeleportMode);
@@ -4946,5 +4878,16 @@ void USkeletalMeshComponent::ForceClothNextUpdateTeleportAndReset()
 #endif// #if WITH_APEX_CLOTHING
 }
 
+FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyInstance* UseBI)
+{
+	// undo root transform so that it only moves according to what actor itself suppose to move
+	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
+	if (RootBodyData.BoneIndex != INDEX_NONE)
+	{
+		FTransform RootTransform(SpaceBases[RootBodyData.BoneIndex]);
+		return RootTransform.GetRelativeTransformReverse(BodyTransform);
+	}
 
+	return BodyTransform;
+}
 #undef LOCTEXT_NAMESPACE

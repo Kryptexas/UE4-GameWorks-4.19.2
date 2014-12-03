@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UPanelSlot
 
-UPanelSlot::UPanelSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPanelSlot::UPanelSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

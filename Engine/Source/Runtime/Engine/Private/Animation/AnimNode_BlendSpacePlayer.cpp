@@ -40,7 +40,7 @@ void FAnimNode_BlendSpacePlayer::Initialize(const FAnimationInitializeContext& C
 	}
 }
 
-void FAnimNode_BlendSpacePlayer::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_BlendSpacePlayer::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 }
 

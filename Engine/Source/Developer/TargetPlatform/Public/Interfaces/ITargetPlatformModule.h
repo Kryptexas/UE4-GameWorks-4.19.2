@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetPlatformModule.h: Declares the ITargetPlatformModule interface.
-=============================================================================*/
-
 #pragma once
+
+#include "ModuleInterface.h"
 
 
 /**
@@ -16,14 +14,14 @@ class ITargetPlatformModule
 public:
 
 	/**
-	 * Gets the target platform for this module.
+	 * Gets the module's target platform.
+	 *
+	 * @return The target platform.
 	 */
-	virtual ITargetPlatform* GetTargetPlatform( ) = 0;
+	virtual ITargetPlatform* GetTargetPlatform() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	~ITargetPlatformModule( ) { }
+	/** Virtual destructor. */
+	virtual ~ITargetPlatformModule() { }
 };

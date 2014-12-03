@@ -4,7 +4,7 @@
 
 #include "DetailsTabSummoner.h"
 #include "SWidgetDetailsView.h"
-
+#include "WidgetBlueprintEditor.h"
 #define LOCTEXT_NAMESPACE "UMG"
 
 const FName FDetailsTabSummoner::TabID(TEXT("WidgetDetails"));
@@ -14,7 +14,7 @@ FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FWidgetBlueprintEditor
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("WidgetDetails_TabLabel", "Details");
-	TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details");
 
 	bIsSingleton = true;
 

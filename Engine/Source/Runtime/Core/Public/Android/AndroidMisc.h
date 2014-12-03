@@ -6,45 +6,9 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "Android/AndroidSystemIncludes.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
 //@todo android: this entire file
-
-struct CORE_API FAndroidCrashContext : public FGenericCrashContext
-{
-	/** Signal number */
-	int32 Signal;
-	
-	/** Additional signal info */
-	siginfo* Info;
-	
-	/** Thread context */
-	void* Context;
-
-	FAndroidCrashContext()
-		:	Signal(0)
-		,	Info(NULL)
-		,	Context(NULL)
-	{
-	}
-
-	~FAndroidCrashContext()
-	{
-	}
-
-	/**
-	 * Inits the crash context from data provided by a signal handler.
-	 *
-	 * @param InSignal number (SIGSEGV, etc)
-	 * @param InInfo additional info (e.g. address we tried to read, etc)
-	 * @param InContext thread context
-	 */
-	void InitFromSignal(int32 InSignal, siginfo* InInfo, void* InContext)
-	{
-		Signal = InSignal;
-		Info = InInfo;
-		Context = InContext;
-	}
-};
 
 /**
  * Android implementation of the misc OS functions
@@ -72,7 +36,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void LoadPreInitModules();
 	static void BeforeRenderThreadStarts();
 	static bool SupportsLocalCaching();
-	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
+	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 	// NOTE: THIS FUNCTION IS DEFINED IN ANDROIDOPENGL.CPP
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool GetUseVirtualJoysticks();

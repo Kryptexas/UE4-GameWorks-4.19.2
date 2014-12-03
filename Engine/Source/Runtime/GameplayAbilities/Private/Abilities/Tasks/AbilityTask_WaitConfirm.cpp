@@ -2,8 +2,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitConfirm.h"
 
-UAbilityTask_WaitConfirm::UAbilityTask_WaitConfirm(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitConfirm::UAbilityTask_WaitConfirm(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RegisteredCallback = false;
 }

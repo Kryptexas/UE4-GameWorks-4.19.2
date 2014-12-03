@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileLayer
 
-UPaperTileLayer::UPaperTileLayer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTileLayer::UPaperTileLayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LayerWidth = 4;
 	LayerHeight = 4;

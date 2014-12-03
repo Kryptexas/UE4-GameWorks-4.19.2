@@ -22,7 +22,7 @@ public:
 	 *
 	 * @return true if the service is running, false otherwise.
 	 */
-	virtual bool IsRunning( ) = 0;
+	virtual bool IsRunning() = 0;
 
 	/**
 	 * Starts the service.
@@ -30,18 +30,16 @@ public:
 	 * @return true if the service was started, false otherwise.
 	 * @see Stop
 	 */
-	virtual bool Start( ) = 0;
+	virtual bool Start() = 0;
 
 	/**
 	 * Stops the service.
 	 * @see Start
 	 */
-	virtual void Stop( ) = 0;
+	virtual void Stop() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISessionService( ) { }
+	/** Virtual destructor. */
+	virtual ~ISessionService() { }
 };

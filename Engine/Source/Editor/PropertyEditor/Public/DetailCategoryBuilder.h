@@ -102,8 +102,9 @@ public:
 	 * @param GroupName	The name of the group 
 	 * @param LocalizedDisplayName	The display name of the group
 	 * @param true if the group should appear in the advanced section of the category
+	 * @param true if the group should start expanded
 	 */
-	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false ) = 0;
+	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) = 0;
 
 	/**
 	 * Gets the default propeties of this category

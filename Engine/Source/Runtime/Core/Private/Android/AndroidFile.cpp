@@ -4,8 +4,8 @@
 	AndroidFile.cpp: Android platform implementations of File functions
 =============================================================================*/
 
-#include "Core.h"
-
+#include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include <dirent.h>
 #include <jni.h>
 #include <Android/asset_manager.h>
@@ -454,6 +454,11 @@ public:
 		return AndroidEpoch + TimeSinceEpoch;
 	}
 
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		return Filename;
+	}
+
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		FString NormalizedFilename = NormalizeFilename(Filename);
@@ -674,7 +679,7 @@ public:
 			Result.ReplaceInline(TEXT(".."), TEXT(""));
 			Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
 
-			static FString BasePath = GFilePathBase + FString("/") + GGameName + FString("/");
+			static FString BasePath = GFilePathBase + FString("/") + FApp::GetGameName() + FString("/");
 			Result = BasePath + Result;
 		}
 		return Result;

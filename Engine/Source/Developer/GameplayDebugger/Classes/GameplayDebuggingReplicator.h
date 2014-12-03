@@ -23,6 +23,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UPROPERTY(config)
 	FString DebugComponentHUDClassName;
 
+	UPROPERTY(config)
+	int32 MaxEQSQueries;
+
 	UPROPERTY(Replicated, Transient)
 	UGameplayDebuggingComponent* DebugComponent;
 
@@ -34,6 +37,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	UPROPERTY(Replicated, Transient)
 	bool bIsGlobalInWorld;
+
+	UPROPERTY(ReplicatedUsing = OnRep_AutoActivate, Transient)
+	bool bAutoActivate;
 
 	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
 	bool OverHead;
@@ -83,6 +89,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 #if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+	UFUNCTION()
+	virtual void OnRep_AutoActivate();
 
 	virtual class UNetConnection* GetNetConnection() override;
 

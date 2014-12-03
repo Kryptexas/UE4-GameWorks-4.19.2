@@ -205,5 +205,9 @@ public:
 };
 
 
-/** Notification for when a keyboard event occurs */
-DECLARE_DELEGATE_RetVal_OneParam( FReply, FOnKeyboardEvent, const FKeyboardEvent& )
+/** Notification for when a key event occurs */
+DECLARE_DELEGATE_RetVal_OneParam( FReply, FOnKeyEvent, const FKeyEvent& )
+
+/** A Delegate for passing along a string of a source code location to access */
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*FileName*/, int32 /*InLineNumber*/, int32 /*InColumnNumber*/);
+

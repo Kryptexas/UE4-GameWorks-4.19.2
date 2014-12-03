@@ -14,7 +14,7 @@
 #if WITH_EDITOR
 #include "Engine/Brush.h"
 #include "Editor/EditorEngine.h"
-extern UNREALED_API class UEditorEngine* GEditor;
+extern UNREALED_API UEditorEngine* GEditor;
 #endif // WITH_EDITOR
 
 #include "Engine/Selection.h"
@@ -24,8 +24,8 @@ extern UNREALED_API class UEditorEngine* GEditor;
 //----------------------------------------------------------------------//
 // AEQSTestingPawn
 //----------------------------------------------------------------------//
-AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TimeLimitPerStep(-1)
 	, StepToDebugDraw(0)
 	, bDrawLabels(true)
@@ -34,10 +34,10 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	, QueryingMode(EEnvQueryRunMode::AllMatching)
 {
 	static FName CollisionProfileName(TEXT("NoCollision"));
-	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
+	GetCapsuleComponent()->SetCollisionProfileName(CollisionProfileName);
 
 #if WITH_EDITORONLY_DATA
-	EdRenderComp = PCIP.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));
+	EdRenderComp = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		UArrowComponent* ArrowComponent = FindComponentByClass<UArrowComponent>();
@@ -47,7 +47,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 			ArrowComponent->bIsScreenSizeScaled = true;
 		}
 
-		TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+		UBillboardComponent* SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 		if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 		{
 			struct FConstructorStatics
@@ -231,7 +231,7 @@ const FEnvQueryInstance* AEQSTestingPawn::GetQueryInstance() const
 
 #if WITH_EDITOR
 
-void AEQSTestingPawn::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
+void AEQSTestingPawn::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_QueryTemplate = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, QueryTemplate);
 	static const FName NAME_StepToDebugDraw = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, StepToDebugDraw);
@@ -289,3 +289,8 @@ void AEQSTestingPawn::PostEditMove(bool bFinished)
 }
 
 #endif // WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
+/** Returns EdRenderComp subobject **/
+UEQSRenderingComponent* AEQSTestingPawn::GetEdRenderComp() { return EdRenderComp; }
+#endif

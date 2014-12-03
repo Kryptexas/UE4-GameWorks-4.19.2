@@ -10,6 +10,11 @@ FGameplayTagContainer::FGameplayTagContainer(FGameplayTagContainer const& Other)
 	*this = Other;
 }
 
+FGameplayTagContainer::FGameplayTagContainer(const FGameplayTag& Tag)
+{
+	AddTag(Tag);
+}
+
 FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer const& Other)
 {
 	// Guard against self-assignment
@@ -285,4 +290,9 @@ FGameplayTag::FGameplayTag(FName Name)
 	: TagName(Name)
 {
 	check(IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(Name));
+}
+
+FGameplayTag FGameplayTag::RequestDirectParent() const
+{
+	return IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagDirectParent(*this);
 }

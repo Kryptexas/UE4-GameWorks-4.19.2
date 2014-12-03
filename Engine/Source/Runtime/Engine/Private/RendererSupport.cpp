@@ -9,10 +9,11 @@
 #include "FXSystem.h"
 #include "RenderCore.h"
 #include "GlobalShader.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"
+#include "ComponentReregisterContext.h"
 
 /** Clears and optionally backs up all references to renderer module classes in other modules, particularly engine. */
 void ClearReferencesToRendererModuleClasses(
@@ -49,8 +50,8 @@ void ClearReferencesToRendererModuleClasses(
 	}
 
 	// Save off shaders by serializing them into memory, and remove all shader map references to FShaders
-	GlobalShaderData = TScopedPointer<TArray<uint8> >(BackupGlobalShaderMap(GRHIShaderPlatform));
-	UMaterial::BackupMaterialShadersToMemory(GRHIShaderPlatform, ShaderMapToSerializedShaderData);
+	GlobalShaderData = TScopedPointer<TArray<uint8> >(BackupGlobalShaderMap(GRHIShaderPlatform_DEPRECATED));
+	UMaterial::BackupMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 
 	// Verify no FShaders still in memory
 	for(TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())
@@ -133,13 +134,7 @@ void RestoreReferencesToRendererModuleClasses(
 	{
 		UWorld* World = It.Key();
 
-		World->Scene = RendererModule.AllocateScene(World, World->RequiresHitProxies(), World->FeatureLevel);
-
-		if (It.Value())
-		{
-			World->FXSystem = FFXSystemInterface::Create(World->FeatureLevel);
-			World->Scene->SetFXSystem( World->FXSystem );
-		}
+		RendererModule.AllocateScene(World, World->RequiresHitProxies(), It.Value(), World->FeatureLevel);
 
 		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
 		{
@@ -150,17 +145,21 @@ void RestoreReferencesToRendererModuleClasses(
 
 	// Restore FShaders from the serialized memory blobs
 	// Shader maps may still not be complete after this due to code changes picked up in the recompile
-	RestoreGlobalShaderMap(GRHIShaderPlatform, *GlobalShaderData);
-	UMaterial::RestoreMaterialShadersFromMemory(GRHIShaderPlatform, ShaderMapToSerializedShaderData);
-	FMaterialShaderMap::FixupShaderTypes(GRHIShaderPlatform, ShaderTypeNames, VertexFactoryTypeNames);
+	RestoreGlobalShaderMap(GRHIShaderPlatform_DEPRECATED, *GlobalShaderData);
+	UMaterial::RestoreMaterialShadersFromMemory(GRHIShaderPlatform_DEPRECATED, ShaderMapToSerializedShaderData);
+	FMaterialShaderMap::FixupShaderTypes(GRHIShaderPlatform_DEPRECATED, ShaderTypeNames, VertexFactoryTypeNames);
 
 	TArray<FShaderType*> OutdatedShaderTypes;
 	TArray<const FVertexFactoryType*> OutdatedFactoryTypes;
 	FShaderType::GetOutdatedTypes(OutdatedShaderTypes, OutdatedFactoryTypes);
 
 	// Recompile any missing shaders
-	BeginRecompileGlobalShaders(OutdatedShaderTypes);
-	UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel) 
+	{
+		auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+		BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
+		UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, ShaderPlatform);
+	});
 
 	// Block on global shader jobs
 	FinishRecompileGlobalShaders();

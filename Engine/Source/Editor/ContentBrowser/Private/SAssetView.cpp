@@ -41,8 +41,8 @@ SAssetView::~SAssetView()
 	}
 
 	// Unregister listener for asset loading and object property changes
-	FCoreDelegates::OnAssetLoaded.RemoveAll( this );
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll( this );
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 
 	// Remove the listener for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().RemoveAll(this);
@@ -85,8 +85,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SAssetView::OnCollectionRenamed );
 
 	// Listen for when assets are loaded or changed to update item data
-	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
-	FCoreDelegates::OnObjectPropertyChanged.AddSP(this, &SAssetView::OnObjectPropertyChanged);
+	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SAssetView::OnObjectPropertyChanged);
 
 	// Listen for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SAssetView::HandleSettingChanged);
@@ -1164,13 +1164,13 @@ FReply SAssetView::OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent&
 	return FReply::Unhandled();
 }
 
-FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	{
 		// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
 		// eg) Pressing "W" without this would set the viewport to "translate" mode
 		const bool bTestOnly = true;
-		if(HandleQuickJumpKeyDown(InKeyboardEvent.GetCharacter(), InKeyboardEvent.IsControlDown(), InKeyboardEvent.IsAltDown(), bTestOnly).IsEventHandled())
+		if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), bTestOnly).IsEventHandled())
 		{
 			return FReply::Handled();
 		}
@@ -1193,7 +1193,7 @@ FReply SAssetView::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 	return FReply::Unhandled();
 }
 
-void SAssetView::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
+void SAssetView::OnFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
 {
 	ResetQuickJump();
 }
@@ -2492,9 +2492,9 @@ void SAssetView::FocusList() const
 {
 	switch ( GetCurrentViewType() )
 	{
-		case EAssetViewType::List: FSlateApplication::Get().SetKeyboardFocus(ListView, EKeyboardFocusCause::SetDirectly); break;
-		case EAssetViewType::Tile: FSlateApplication::Get().SetKeyboardFocus(TileView, EKeyboardFocusCause::SetDirectly); break;
-		case EAssetViewType::Column: FSlateApplication::Get().SetKeyboardFocus(ColumnView, EKeyboardFocusCause::SetDirectly); break;
+		case EAssetViewType::List: FSlateApplication::Get().SetKeyboardFocus(ListView, EFocusCause::SetDirectly); break;
+		case EAssetViewType::Tile: FSlateApplication::Get().SetKeyboardFocus(TileView, EFocusCause::SetDirectly); break;
+		case EAssetViewType::Column: FSlateApplication::Get().SetKeyboardFocus(ColumnView, EFocusCause::SetDirectly); break;
 	}
 }
 

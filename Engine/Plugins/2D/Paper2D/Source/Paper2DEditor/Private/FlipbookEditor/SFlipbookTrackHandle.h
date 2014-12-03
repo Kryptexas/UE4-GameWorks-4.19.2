@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 //////////////////////////////////////////////////////////////////////////
 // SFlipbookTrackHandle
 
@@ -95,7 +97,7 @@ public:
 
 				if (!bDragging)
 				{
-					if (FMath::Abs(DistanceDragged) > SlateDragStartDistance)
+					if (FMath::Abs(DistanceDragged) > FSlateApplication::Get().GetDragTriggerDistnace())
 					{
 						const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->GetKeyFrameChecked(KeyFrameIdx);
 						StartingFrameRun = KeyFrame.FrameRun;

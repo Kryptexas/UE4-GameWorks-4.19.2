@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // ULeaderboardBlueprintLibrary
 
-ULeaderboardBlueprintLibrary::ULeaderboardBlueprintLibrary(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULeaderboardBlueprintLibrary::ULeaderboardBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

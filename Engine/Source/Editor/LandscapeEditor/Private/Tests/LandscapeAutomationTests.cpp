@@ -8,7 +8,7 @@
 #include "LandscapeEdMode.h"
 #include "../LandscapeEditorDetailCustomization_NewLandscape.h"
 #include "ScopedTransaction.h"
-#include "Landscape/Landscape.h"
+#include "Landscape.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 

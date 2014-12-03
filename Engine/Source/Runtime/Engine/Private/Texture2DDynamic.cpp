@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "Engine/Texture2DDynamic.h"
 
 /*-----------------------------------------------------------------------------
 	FTexture2DDynamicResource
@@ -80,8 +80,8 @@ FTexture2DRHIRef FTexture2DDynamicResource::GetTexture2DRHI()
 /*-----------------------------------------------------------------------------
 	UTexture2DDynamic
 -----------------------------------------------------------------------------*/
-UTexture2DDynamic::UTexture2DDynamic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexture2DDynamic::UTexture2DDynamic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NeverStream = true;
 	Format = PF_B8G8R8A8;
@@ -120,7 +120,8 @@ UTexture2DDynamic* UTexture2DDynamic::Create(int32 InSizeX, int32 InSizeY, EPixe
 	EPixelFormat DesiredFormat = EPixelFormat(InFormat);
 	if (InSizeX > 0 && InSizeY > 0 )
 	{
-		UTexture2DDynamic* NewTexture = Cast<UTexture2DDynamic>(StaticConstructObject(GetClass(), GetTransientPackage(), NAME_None, RF_Transient));
+		
+		UTexture2DDynamic* NewTexture = Cast<UTexture2DDynamic>(StaticConstructObject(UTexture2DDynamic::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient));
 		if (NewTexture != NULL)
 		{
 			// Disable compression

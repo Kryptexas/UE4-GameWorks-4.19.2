@@ -5,6 +5,7 @@
 #include "EditorSupportDelegates.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
+#include "Engine/DemoNetDriver.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
@@ -173,7 +174,7 @@ void LineCheckTracker::ToggleLineChecks()
 }
 
 /** Captures a single stack trace for a line check */
-void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Extent, const FFrame* ScriptStackFrame, const UObject * Object)
+void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Extent, const FFrame* ScriptStackFrame, const UObject* Object)
 {
 	if (LineCheckStackTracker == NULL || LineCheckScriptStackTracker == NULL)
 	{
@@ -260,6 +261,11 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	else if (bIsRunningConstructionScript && !SpawnParameters.bAllowDuringConstructionScript)
 	{
 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because we are running a ConstructionScript (%s)"), *Class->GetName() );
+		return NULL;
+	}
+	else if (bIsTearingDown)
+	{
+		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because we are in the process of tearing down the world"));
 		return NULL;
 	}
 
@@ -535,6 +541,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 		NetDriver->NotifyActorDestroyed( ThisActor );
 	}
 
+	if ( DemoNetDriver )
+	{
+		DemoNetDriver->NotifyActorDestroyed( ThisActor );
+	}
+
 	// Remove the actor from the actor list.
 	RemoveActor( ThisActor, bShouldModifyLevel );
 	
@@ -708,7 +719,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 			{
 				// must be registered
 				FComponentQueryParams Params(NAME_EncroachingBlockingGeometry, TestActor);
-				bFoundBlockingHit = ComponentOverlapMulti(Overlaps, PrimComp, TestLocation, TestActor->GetActorRotation(), Params);
+				bFoundBlockingHit = ComponentOverlapMulti(Overlaps, PrimComp, TestLocation, TestActor->GetActorRotation(), BlockingChannel, Params);
 			}
 			else
 			{
@@ -716,14 +727,6 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 			}
 		}
 
-		for( int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++ )
-		{
-			if ( Overlaps[HitIdx].Component.IsValid() && (Overlaps[HitIdx].Component.Get()->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block) )
-			{
-				bFoundBlockingHit = true;
-				break;
-			}
-		}
 		if ( !bFoundBlockingHit )
 		{
 			return false;
@@ -774,10 +777,10 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 	{
 		for( int32 LevelIndex=0; LevelIndex<StreamingLevels.Num(); LevelIndex++ )
 		{
-			bool bLoadedLevelPackage = false;
 			ULevelStreaming* const StreamingLevel = StreamingLevels[LevelIndex];
 			if( StreamingLevel )
 			{
+				bool bAlreadyCooked = false;
 				// If we are cooking don't cook sub levels multiple times if they've already been cooked
 				FString PackageFilename;
 				const FString StreamingLevelWorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
@@ -786,10 +789,22 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 					if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &PackageFilename))
 					{
 						PackageFilename = FPaths::ConvertRelativePathToFull(PackageFilename);
+						bAlreadyCooked |= CookedPackages->Contains( PackageFilename );
 					}
 				}
-				if (CookedPackages == NULL || !CookedPackages->Contains(PackageFilename))
+
+
+				bool bAlreadyLoaded = false;
+				UPackage* const LevelPackage = FindObject<UPackage>(NULL, *StreamingLevelWorldAssetPackageName,true);
+				// don't need to do any extra work if the level is already loaded
+				if ( LevelPackage && LevelPackage->IsFullyLoaded() ) 
 				{
+					bAlreadyLoaded = true;
+				}
+
+				if ( !bAlreadyCooked && !bAlreadyLoaded )
+				{
+					bool bLoadedLevelPackage = false;
 					const FName StreamingLevelWorldAssetPackageFName = StreamingLevel->GetWorldAssetPackageFName();
 					// Load the package and find the world object.
 					if( FPackageName::IsShortPackageName(StreamingLevelWorldAssetPackageFName) == false )
@@ -797,7 +812,7 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 						ULevel::StreamedLevelsOwningWorld.Add(StreamingLevelWorldAssetPackageFName, this);
 						UPackage* const LevelPackage = LoadPackage( NULL, *StreamingLevelWorldAssetPackageName, LOAD_None );
 						ULevel::StreamedLevelsOwningWorld.Remove(StreamingLevelWorldAssetPackageFName);
-					
+
 						if( LevelPackage )
 						{
 							bLoadedLevelPackage = true;
@@ -817,14 +832,14 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 								check( LoadedWorld->GetLinker() );
 								LoadedWorld->GetLinker()->Preload( LoadedWorld );
 							}
-							
+
 
 							// Keep reference to prevent garbage collection.
 							check( LoadedWorld->PersistentLevel );
-						
+
 							ULevel* NewLoadedLevel = LoadedWorld->PersistentLevel;
 							NewLoadedLevel->OwningWorld = this;
-					
+
 							StreamingLevel->SetLoadedLevel(NewLoadedLevel);
 						}
 					}
@@ -904,21 +919,12 @@ void UWorld::RefreshStreamingLevels()
 #endif // WITH_EDITOR
 
 
-/**
- * Finds the reverb settings to use for a given view location, taking into account the world's default
- * settings and the reverb volumes in the world.
- *
- * @param	ViewLocation			Current view location.
- * @param	OutReverbSettings		[out] Upon return, the reverb settings for a camera at ViewLocation.
- * @param	OutInteriorSettings		[out] Upon return, the interior settings for a camera at ViewLocation.
- * @return							If the settings came from a reverb volume, the reverb volume's object index is returned.
- */
-AReverbVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* OutReverbSettings, FInteriorSettings* OutInteriorSettings )
+AAudioVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* OutReverbSettings, FInteriorSettings* OutInteriorSettings )
 {
 	// Find the highest priority volume encompassing the current view location. This is made easier by the linked
 	// list being sorted by priority. @todo: it remains to be seen whether we should trade off sorting for constant
 	// time insertion/ removal time via e.g. TLinkedList.
-	AReverbVolume* Volume = HighestPriorityReverbVolume;
+	AAudioVolume* Volume = HighestPriorityAudioVolume;
 	while( Volume )
 	{
 		// Volume encompasses, break out of loop.

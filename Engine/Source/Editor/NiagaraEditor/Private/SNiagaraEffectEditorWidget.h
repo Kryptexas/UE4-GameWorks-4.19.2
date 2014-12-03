@@ -1,13 +1,180 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #include "Visibility.h"
-#include "Slate.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "SlateBasics.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "WorkflowOrientedApp/SContentReference.h"
+#include "SCheckBox.h"
+#include "SNameComboBox.h"
+#include "AssetThumbnail.h"
+#include "SNiagaraEffectEditorViewport.h"
+#include "Components/NiagaraComponent.h"
+#include "Engine/NiagaraEffect.h"
+#include "Engine/NiagaraSimulation.h"
+#include "Engine/NiagaraEffectRenderer.h"
+#include "ComponentReregisterContext.h"
+
+#define NGED_SECTION_BORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
 
 
-FString NiagaraEffectText(TEXT("Niagara Effect"));
-FString ReadOnlyText(TEXT("Read Only"));
+class SEmitterWidget : public SCompoundWidget, public FNotifyHook
+{
+private:
+	TSharedPtr<FNiagaraSimulation> Emitter;
+	UNiagaraEffect *Effect;
+	TSharedPtr<STextBlock> UpdateComboText, SpawnComboText;
+	TSharedPtr<SComboButton> UpdateCombo, SpawnCombo;
+	TSharedPtr<SContentReference> UpdateScriptSelector, SpawnScriptSelector;
+	TSharedPtr<SWidget> ThumbnailWidget;
+	TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+	TSharedPtr<FAssetThumbnail> MaterialThumbnail;
+	UNiagaraScript *CurUpdateScript, *CurSpawnScript;
+	UMaterial *CurMaterial;
+
+	TArray<TSharedPtr<FString> > RenderModuleList;
+
+public:
+	SLATE_BEGIN_ARGS(SEmitterWidget) :
+		_Emitter(nullptr)
+	{
+	}
+	SLATE_ARGUMENT(TSharedPtr<FNiagaraSimulation>, Emitter)
+	SLATE_ARGUMENT(UNiagaraEffect*, Effect)
+	SLATE_END_ARGS()
+
+	void OnUpdateScriptSelectedFromPicker(UObject *Asset)
+	{
+		// Close the asset picker
+		//AssetPickerAnchor->SetIsOpen(false);
+
+		// Set the object found from the asset picker
+		CurUpdateScript = Cast<UNiagaraScript>(Asset);
+		Emitter->GetProperties()->UpdateScript = CurUpdateScript;
+	}
+
+	void OnSpawnScriptSelectedFromPicker(UObject *Asset)
+	{
+		// Close the asset picker
+		//AssetPickerAnchor->SetIsOpen(false);
+
+		// Set the object found from the asset picker
+		CurSpawnScript = Cast<UNiagaraScript>(Asset);
+		Emitter->GetProperties()->SpawnScript = CurSpawnScript;
+	}
+
+	void OnMaterialSelected(UObject *Asset)
+	{
+		MaterialThumbnail->SetAsset(Asset);
+		MaterialThumbnail->RefreshThumbnail();
+		MaterialThumbnail->GetViewportRenderTargetTexture(); // Access the texture once to trigger it to render
+		ThumbnailPool->Tick(0);
+		CurMaterial = Cast<UMaterial>(Asset);
+		Emitter->GetEffectRenderer()->SetMaterial(CurMaterial, ERHIFeatureLevel::SM5);
+		Emitter->GetProperties()->Material = CurMaterial;
+	}
+
+	UObject *GetMaterial() const
+	{
+		return Emitter->GetProperties()->Material;
+	}
+
+	UObject *GetUpdateScript() const
+	{
+		return Emitter->GetProperties()->UpdateScript;
+	}
+
+	UObject *GetSpawnScript() const
+	{
+		return Emitter->GetProperties()->SpawnScript;
+	}
+
+	void OnEmitterEnabledChanged(ESlateCheckBoxState::Type NewCheckedState)
+	{
+		const bool bNewEnabledState = (NewCheckedState == ESlateCheckBoxState::Checked);
+		Emitter->GetProperties()->bIsEnabled = bNewEnabledState;
+	}
+
+	ESlateCheckBoxState::Type IsEmitterEnabled() const
+	{
+		return Emitter->IsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnRenderModuleChanged(TSharedPtr<FString> ModName, ESelectInfo::Type SelectInfo)
+	{
+		EEmitterRenderModuleType Type = RMT_Sprites;
+		for (int32 i = 0; i < RenderModuleList.Num(); i++)
+		{
+			if (*RenderModuleList[i] == *ModName)
+			{
+				Type = (EEmitterRenderModuleType)(i+1);
+				break;
+			}
+		}
+
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			FChangeNiagaraRenderModule,
+			UNiagaraEffect*, InEffect, this->Effect,
+			TSharedPtr<FNiagaraSimulation>, InEmitter, this->Emitter,
+			EEmitterRenderModuleType, InType, Type,
+		{
+			InEmitter->SetRenderModuleType(InType, InEffect->GetComponent()->GetWorld()->FeatureLevel);
+			InEmitter->GetProperties()->RenderModuleType = InType;
+			InEffect->RenderModuleupdate();
+		});
+		TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
+	}
+
+	void OnSpawnRateChanged(const FText &InText)
+	{
+		float Rate = FCString::Atof(*InText.ToString());
+		Emitter->GetProperties()->SpawnRate = Rate;
+	}
+
+	FText GetSpawnRateText() const
+	{
+		TCHAR Txt[32];
+		//FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetSpawnRate() );
+		FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetProperties()->SpawnRate );
+
+		return FText::FromString(Txt);
+	}
+
+	FString GetRenderModuleText() const
+	{
+		if (Emitter->GetProperties()->RenderModuleType == RMT_None)
+		{
+			return FString("None");
+		}
+
+		return *RenderModuleList[Emitter->GetProperties()->RenderModuleType-1];
+	}
+
+	TSharedRef<SWidget>GenerateRenderModuleComboWidget(TSharedPtr<FString> WidgetString )
+	{
+		FString Txt = *WidgetString;
+		return SNew(STextBlock).Text(Txt);
+	}
+
+
+	FString GetStatsText() const
+	{
+		TCHAR Txt[128];
+		FCString::Snprintf(Txt, 128, TEXT("%i Particles"), Emitter->GetNumParticles());
+		return FString(Txt);
+	}
+
+	void Construct(const FArguments& InArgs);
+
+
+
+
+};
+
+
+
 
 class SNiagaraEffectEditorWidget : public SCompoundWidget, public FNotifyHook
 {
@@ -16,16 +183,20 @@ private:
 
 	/** Notification list to pass messages to editor users  */
 	TSharedPtr<SNotificationList> NotificationListPtr;
-	TSharedPtr<class IDetailsView> EmitterDetails;
 	SOverlay::FOverlaySlot* DetailsViewSlot;
+	TSharedPtr<SNiagaraEffectEditorViewport>	Viewport;
+	
+	TSharedPtr< SListView<TSharedPtr<FNiagaraSimulation> > > ListView;
 
 public:
 	SLATE_BEGIN_ARGS(SNiagaraEffectEditorWidget)
 		: _EffectObj(nullptr)
-	{}
-		SLATE_ARGUMENT(UNiagaraEffect*, EffectObj)
+	{
+	}
+	SLATE_ARGUMENT(UNiagaraEffect*, EffectObj)
 		SLATE_ARGUMENT(TSharedPtr<SWidget>, TitleBar)
 	SLATE_END_ARGS()
+
 
 	/** Function to check whether we should show read-only text in the panel */
 	EVisibility ReadOnlyVisibility() const
@@ -33,152 +204,30 @@ public:
 		return EVisibility::Hidden;
 	}
 
-	void Construct(const FArguments& InArgs)
+	void UpdateList()
 	{
-		/*
-		Commands = MakeShareable(new FUICommandList());
-		IsEditable = InArgs._IsEditable;
-		Appearance = InArgs._Appearance;
-		TitleBarEnabledOnly = InArgs._TitleBarEnabledOnly;
-		TitleBar = InArgs._TitleBar;
-		bAutoExpandActionMenu = InArgs._AutoExpandActionMenu;
-		ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
-		OnNavigateHistoryBack = InArgs._OnNavigateHistoryBack;
-		OnNavigateHistoryForward = InArgs._OnNavigateHistoryForward;
-		OnNodeSpawnedByKeymap = InArgs._GraphEvents.OnNodeSpawnedByKeymap;
-		*/
-
-		/*
-		// Make sure that the editor knows about what kinds
-		// of commands GraphEditor can do.
-		FGraphEditorCommands::Register();
-
-		// Tell GraphEditor how to handle all the known commands
-		{
-		Commands->MapAction(FGraphEditorCommands::Get().ReconstructNodes,
-		FExecuteAction::CreateSP(this, &SGraphEditorImpl::ReconstructNodes),
-		FCanExecuteAction::CreateSP(this, &SGraphEditorImpl::CanReconstructNodes)
-		);
-
-		Commands->MapAction(FGraphEditorCommands::Get().BreakNodeLinks,
-		FExecuteAction::CreateSP(this, &SGraphEditorImpl::BreakNodeLinks),
-		FCanExecuteAction::CreateSP(this, &SGraphEditorImpl::CanBreakNodeLinks)
-		);
-
-		Commands->MapAction(FGraphEditorCommands::Get().BreakPinLinks,
-		FExecuteAction::CreateSP(this, &SGraphEditorImpl::BreakPinLinks, true),
-		FCanExecuteAction::CreateSP(this, &SGraphEditorImpl::CanBreakPinLinks)
-		);
-
-		// Append any additional commands that a consumer of GraphEditor wants us to be aware of.
-		const TSharedPtr<FUICommandList>& AdditionalCommands = InArgs._AdditionalCommands;
-		if (AdditionalCommands.IsValid())
-		{
-		Commands->Append(AdditionalCommands.ToSharedRef());
-		}
-
-		}
-		*/
-
-		EffectObj = InArgs._EffectObj;
-		//bNeedsRefresh = false;
-
-
-		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		const FDetailsViewArgs DetailsViewArgs(false, false, true, false, true, this);
-		EmitterDetails = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-		//FOnGetDetailCustomizationInstance LayoutMICDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialInstanceParameterDetails::MakeInstance, MaterialEditorInstance, FGetShowHiddenParameters::CreateSP(this, &FMaterialInstanceEditor::GetShowHiddenParameters));
-		//EmitterDetails->RegisterInstancedCustomPropertyLayout(UMaterialEditorInstanceConstant::StaticClass(), LayoutMICDetails);
-
-		//EmitterDetails->SetObjects(EmitterObj, true);
-
-
-		TSharedPtr<SOverlay> OverlayWidget;
-		this->ChildSlot
-			[
-				SAssignNew(OverlayWidget, SOverlay)
-
-				// details view on the left
-				+ SOverlay::Slot()
-				.Expose(DetailsViewSlot)
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Top)
-				[
-					SNew(SBorder)
-					.Padding(4)
-					[
-						EmitterDetails.ToSharedRef()
-					]
-				]
-
-				/*
-				// The graph panel
-				+ SOverlay::Slot()
-				.Expose(GraphPanelSlot)
-				[
-					SAssignNew(GraphPanel, SGraphPanel)
-					.EffectObj(EffectObj)
-					.GraphObjToDiff(InArgs._GraphToDiff)
-					//					.OnGetContextMenuFor(this, &SGraphEditorImpl::GraphEd_OnGetContextMenuFor)
-					.OnSelectionChanged(InArgs._GraphEvents.OnSelectionChanged)
-					.OnNodeDoubleClicked(InArgs._GraphEvents.OnNodeDoubleClicked)
-					//					.IsEditable(this, &SGraphEditorImpl::IsGraphEditable)
-					.OnDropActor(InArgs._GraphEvents.OnDropActor)
-					.OnDropStreamingLevel(InArgs._GraphEvents.OnDropStreamingLevel)
-					//					.IsEnabled(this, &SGraphEditorImpl::GraphEd_OnGetGraphEnabled)
-					.OnVerifyTextCommit(InArgs._GraphEvents.OnVerifyTextCommit)
-					.OnTextCommitted(InArgs._GraphEvents.OnTextCommitted)
-					.OnSpawnNodeByShortcut(InArgs._GraphEvents.OnSpawnNodeByShortcut)
-					//					.OnUpdateGraphPanel(this, &SGraphEditorImpl::GraphEd_OnPanelUpdated)
-					.OnDisallowedPinConnection(InArgs._GraphEvents.OnDisallowedPinConnection)
-					.ShowGraphStateOverlay(InArgs._ShowGraphStateOverlay)
-				]*/
-
-				// Title bar - optional
-				+ SOverlay::Slot()
-					.VAlign(VAlign_Top)
-					[
-						InArgs._TitleBar.IsValid() ? InArgs._TitleBar.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
-					]
-
-				// Bottom-right corner text indicating the type of tool
-				+ SOverlay::Slot()
-					.Padding(10)
-					.VAlign(VAlign_Bottom)
-					.HAlign(HAlign_Right)
-					[
-						SNew(STextBlock)
-						.Visibility(EVisibility::HitTestInvisible)
-						.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
-						.Text( NiagaraEffectText )
-					]
-
-				// Top-right corner text indicating read only when not simulating
-				+ SOverlay::Slot()
-					.Padding(20)
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Right)
-					[
-						SNew(STextBlock)
-						.Visibility(this, &SNiagaraEffectEditorWidget::ReadOnlyVisibility)
-						.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
-						.Text(ReadOnlyText)
-					]
-
-				// Bottom-right corner text for notification list position
-				+ SOverlay::Slot()
-					.Padding(15.f)
-					.VAlign(VAlign_Bottom)
-					.HAlign(HAlign_Right)
-					[
-						SAssignNew(NotificationListPtr, SNotificationList)
-						.Visibility(EVisibility::HitTestInvisible)
-					]
-			];
-
-		//GraphPanel->RestoreViewSettings(FVector2D::ZeroVector, -1);
-
-		//NotifyGraphChanged();
+		ListView->RequestListRefresh();
 	}
+
+	TSharedPtr<SNiagaraEffectEditorViewport> GetViewport()	{ return Viewport; }
+
+	TSharedRef<ITableRow> OnGenerateWidgetForList(TSharedPtr<FNiagaraSimulation> InItem, const TSharedRef< STableViewBase >& OwnerTable)
+	{
+		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+			.Content()
+			[
+				SNew(SBorder)
+				//.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(2.0f)
+				[
+					SNew(SEmitterWidget).Emitter(InItem).Effect(EffectObj)
+				]
+			];
+	}
+
+
+
+	void Construct(const FArguments& InArgs);
+
 };
 

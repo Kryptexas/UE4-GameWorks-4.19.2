@@ -4,8 +4,6 @@
 #include "ModuleManager.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 
-#define LOCTEXT_NAMESPACE "LayerBrowser"
-
 typedef TTextFilter< const TSharedPtr< FLayerViewModel >& > LayerTextFilter;
 
 namespace ELayerBrowserMode
@@ -44,155 +42,15 @@ public:
 	 * @param	InArgs				Declaration used by the SNew() macro to construct this widget
 	 * @param	InViewModel			The UI logic not specific to slate
 	 */
-	void Construct( const FArguments& InArgs )
-	{
-		//@todo Create a proper ViewModel [7/27/2012 Justin.Sargent]
-		Mode = ELayerBrowserMode::Layers;
-
-		LayerCollectionViewModel = FLayerCollectionViewModel::Create( GEditor->Layers.ToSharedRef(), GEditor );
-		SelectedLayersFilter = MakeShareable( new FActorsAssignedToSpecificLayersFilter() );
-		SelectedLayerViewModel = FLayerViewModel::Create( NULL, GEditor->Layers.ToSharedRef(), GEditor ); //We'll set the datasource for this viewmodel later
-		
-		SearchBoxLayerFilter = MakeShareable( new LayerTextFilter( LayerTextFilter::FItemToStringArray::CreateSP( this, &SLayerBrowser::TransformLayerToString ) ) );
-		
-		LayerCollectionViewModel->AddFilter( SearchBoxLayerFilter.ToSharedRef() );
-		LayerCollectionViewModel->OnLayersChanged().AddSP( this, &SLayerBrowser::OnLayersChanged );
-		LayerCollectionViewModel->OnSelectionChanged().AddSP( this, &SLayerBrowser::UpdateSelectedLayer );
-		LayerCollectionViewModel->OnRenameRequested().AddSP( this, &SLayerBrowser::OnRenameRequested );
-
-		//////////////////////////////////////////////////////////////////////////
-		//	Layers View Section
-		SAssignNew( LayersSection, SBorder )
-		.Padding( 5 )
-		.BorderImage( FEditorStyle::GetBrush( "NoBrush" ) )
-		.Content()
-		[
-			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew( SSearchBox )
-				.ToolTipText( LOCTEXT("FilterSearchToolTip", "Type here to search layers") )
-				.HintText( LOCTEXT( "FilterSearchHint", "Search Layers" ) )
-				.OnTextChanged( SearchBoxLayerFilter.Get(), &LayerTextFilter::SetRawFilterText )
-			]
-
-			+SVerticalBox::Slot()
-			.FillHeight( 1.0f )
-			[
-				SAssignNew( LayersView, SLayersView, LayerCollectionViewModel.ToSharedRef() )
-				.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-				.ConstructContextMenu( FOnContextMenuOpening::CreateSP( this, &SLayerBrowser::ConstructLayerContextMenu ) )
-				.HighlightText( SearchBoxLayerFilter.Get(), &LayerTextFilter::GetRawFilterText )
-			]
-		];
-
-		//////////////////////////////////////////////////////////////////////////
-		//	Layer Contents Header
-		SAssignNew( LayerContentsHeader, SBorder )
-		.BorderImage( FEditorStyle::GetBrush("LayerBrowser.LayerContentsQuickbarBackground") )
-		.Visibility( TAttribute< EVisibility >( this, &SLayerBrowser::GetLayerContentsHeaderVisibility ) )
-		.Content()
-		[
-			SNew( SHorizontalBox )
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( FMargin( 0, 0, 2, 0 ))
-			[
-				SAssignNew( ToggleModeButton, SButton )
-				.ContentPadding( FMargin( 2, 0, 2, 0 ) ) 
-				.ButtonStyle( FEditorStyle::Get(), "LayerBrowserButton" )
-				.OnClicked( this, &SLayerBrowser::ToggleLayerContents )
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.VAlign( VAlign_Center )
-				.HAlign( HAlign_Center )
-				.Content()
-				[
-					SNew( SHorizontalBox )
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign( HAlign_Center )
-					.VAlign( VAlign_Center )
-					.Padding(0, 1, 3, 1 )
-					[
-						SNew(SImage)
-						.Image( this, &SLayerBrowser::GetToggleModeButtonImageBrush )
-						.ColorAndOpacity( this, &SLayerBrowser::GetInvertedForegroundIfHovered )
-					]
-
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign( HAlign_Center )
-					.VAlign( VAlign_Center )
-					[
-						SNew( STextBlock )
-						.Text( LOCTEXT("ContentsLabel", "See Contents") )
-						.Visibility( this, &SLayerBrowser::IsVisibleIfModeIs, ELayerBrowserMode::Layers )
-						.ColorAndOpacity( this, &SLayerBrowser::GetInvertedForegroundIfHovered )
-					]
-				]
-			]
-
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign( VAlign_Center )
-			[
-				SNew( STextBlock )
-				.Text( this, &SLayerBrowser::GetLayerContentsHeaderText )
-				.Visibility( this, &SLayerBrowser::IsVisibleIfModeIs, ELayerBrowserMode::LayerContents )
-			]
-
-			+SHorizontalBox::Slot()
-			.HAlign( HAlign_Right )
-			.FillWidth( 1.0f )
-			[
-				SNew( SLayerStats, SelectedLayerViewModel.ToSharedRef() )
-			]
-		];
-
-
-		//////////////////////////////////////////////////////////////////////////
-		//	Layer Contents Section
-		FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked< FSceneOutlinerModule >( "SceneOutliner" );
-		FSceneOutlinerInitializationOptions InitOptions;
-		{
-			InitOptions.Mode = ESceneOutlinerMode::ActorBrowsing;
-
-			// We hide the header row to keep the UI compact.
-			InitOptions.bShowHeaderRow = false;
-			InitOptions.bShowParentTree = false;
-			InitOptions.CustomDelete = FCustomSceneOutlinerDeleteDelegate::CreateSP( this, &SLayerBrowser::RemoveActorsFromSelectedLayer );
-			InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP( this, &SLayerBrowser::CreateCustomLayerColumn );
-
-			InitOptions.Filters->Add( SelectedLayersFilter );
-		}
-
-		SAssignNew( LayerContentsSection, SBorder )
-		.Padding( 5 )
-		.BorderImage( FEditorStyle::GetBrush( "NoBrush" ) )
-		.Content()
-		[
-			SceneOutlinerModule.CreateSceneOutliner( InitOptions, FOnActorPicked() )
-		];
-
-
-		//////////////////////////////////////////////////////////////////////////
-		//	Layer Browser
-		ChildSlot
-		[
-			SAssignNew( ContentAreaBox, SVerticalBox )
-		];
-
-		SetupLayersMode();
-	}
+	void Construct( const FArguments& InArgs );
 
 
 protected:
 
 	/** Overridden from SWidget: Called when a key is pressed down */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
-		if( InKeyboardEvent.GetKey() == EKeys::Escape && Mode == ELayerBrowserMode::LayerContents )
+		if( InKeyEvent.GetKey() == EKeys::Escape && Mode == ELayerBrowserMode::LayerContents )
 		{
 			SetupLayersMode();			
 			return FReply::Handled();
@@ -333,10 +191,7 @@ private:
 		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( "LayerBrowser.ExploreLayerContents" ) : FEditorStyle::GetBrush( "LayerBrowser.ReturnToLayersList" );
 	}
 
-	FText GetLayerContentsHeaderText() const
-	{
-		return FText::Format( LOCTEXT("SelectedContentsLabel", "{0} Contents"), FText::FromString(SelectedLayerViewModel->GetName()));
-	}
+	FText GetLayerContentsHeaderText() const;
 
 	/**	Returns the visibility of the See Contents label */
 	EVisibility IsVisibleIfModeIs( ELayerBrowserMode::Type DesiredMode ) const
@@ -507,5 +362,3 @@ private:
 	/** The layer view widget, displays all the layers in the level */
 	TSharedPtr< SLayersView > LayersView;
 };
-
-#undef LOCTEXT_NAMESPACE

@@ -59,7 +59,7 @@
 #include "Perception/AISense.h"
 #include "Perception/AIPerceptionComponent.h"
 
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAINavigation, Warning, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);

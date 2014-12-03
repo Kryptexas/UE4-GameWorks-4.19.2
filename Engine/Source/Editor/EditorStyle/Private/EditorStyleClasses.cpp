@@ -6,8 +6,8 @@
 /* UEditorStyleSettings interface
  *****************************************************************************/
 
-UEditorStyleSettings::UEditorStyleSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	SelectionColor = FLinearColor(0.828f, 0.364f, 0.003f);
 	InactiveSelectionColor = FLinearColor(0.25f, 0.25f, 0.25f);

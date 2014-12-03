@@ -8,8 +8,8 @@
 //////////////////////////////////////////////////////////////////////////
 // NiagaraGraph
 
-UNiagaraGraph::UNiagaraGraph(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraGraph::UNiagaraGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	Schema = UEdGraphSchema_Niagara::StaticClass();
@@ -24,8 +24,8 @@ class UNiagaraScriptSource* UNiagaraGraph::GetSource() const
 //////////////////////////////////////////////////////////////////////////
 // UNiagraScriptSource
 
-UNiagaraScriptSource::UNiagaraScriptSource(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraScriptSource::UNiagaraScriptSource(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -53,11 +53,14 @@ void UNiagaraScriptSource::GetParticleAttributes(TArray<FName>& VectorOutputs)
 	VectorOutputs.Add(FName(TEXT("Particle Age")));
 }
 
-void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs)
+void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs)
 {
 	for (uint32 i=0; i < NiagaraConstants::NumBuiltinConstants; i++)
 	{
 		VectorInputs.Add(NiagaraConstants::ConstantNames[i]);
 	}
+
+	MatrixInputs.Empty();
+	MatrixInputs.Add(FName(TEXT("Emitter Transform")));
 }
 

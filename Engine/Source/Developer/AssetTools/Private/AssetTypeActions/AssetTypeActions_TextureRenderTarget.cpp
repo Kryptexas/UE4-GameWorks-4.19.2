@@ -14,7 +14,7 @@ void FAssetTypeActions_TextureRenderTarget::GetActions( const TArray<UObject*>& 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("TextureRenderTarget_CreateStatic", "Create Static Texture"),
 		LOCTEXT("TextureRenderTarget_CreateStaticTooltip", "Creates a static texture from the selected render targets."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.Texture2D"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_TextureRenderTarget::ExecuteCreateStatic, RenderTargets ),
 			FCanExecuteAction()

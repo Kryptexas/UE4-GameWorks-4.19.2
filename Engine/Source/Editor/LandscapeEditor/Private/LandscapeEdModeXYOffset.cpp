@@ -4,14 +4,14 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape/LandscapeEdit.h"
-#include "Landscape/LandscapeRender.h"
-#include "Landscape/LandscapeDataAccess.h"
-#include "Landscape/LandscapeSplineProxies.h"
+#include "LandscapeEdit.h"
+#include "LandscapeRender.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeSplineProxies.h"
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
-#include "Landscape/Landscape.h"
+#include "Landscape.h"
 
 namespace
 {

@@ -23,11 +23,11 @@ struct FUserDefinedStructureCompilerInner
 				const FString ReinstancedName = FString::Printf(TEXT("STRUCT_REINST_%s"), *StructureToReinstance->GetName());
 				const FName UniqueName = MakeUniqueObjectName(GetTransientPackage(), UUserDefinedStruct::StaticClass(), FName(*ReinstancedName));
 
-				const bool OldIsDuplicatingClassForReinstancing = GIsDuplicatingClassForReinstancing;
-				GIsDuplicatingClassForReinstancing = true;
+				TGuardValue<bool> IsDuplicatingClassForReinstancing(GIsDuplicatingClassForReinstancing, true);
 				DuplicatedStruct = (UUserDefinedStruct*)StaticDuplicateObject(StructureToReinstance, GetTransientPackage(), *UniqueName.ToString(), ~RF_Transactional); 
-				GIsDuplicatingClassForReinstancing = OldIsDuplicatingClassForReinstancing;
 			}
+			DuplicatedStruct->Bind();
+			DuplicatedStruct->StaticLink(true);
 			DuplicatedStruct->PrimaryStruct = StructureToReinstance;
 			DuplicatedStruct->Status = EUserDefinedStructureStatus::UDSS_Duplicate;
 			DuplicatedStruct->SetFlags(RF_Transient);
@@ -137,6 +137,7 @@ struct FUserDefinedStructureCompilerInner
 			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Struct, VarDesc.VarName, VarType, NULL, 0, Schema, MessageLog);
 			if (NewProperty != NULL)
 			{
+				NewProperty->SetFlags(RF_LoadCompleted);
 				FKismetCompilerUtilities::LinkAddedProperty(Struct, NewProperty);
 			}
 			else

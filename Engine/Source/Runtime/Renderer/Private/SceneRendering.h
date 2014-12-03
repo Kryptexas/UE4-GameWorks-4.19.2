@@ -306,6 +306,33 @@ private:
 	uint32 ValidFrameNumber;
 };
 
+class FParallelCommandListSet
+{
+public:
+	const FViewInfo& View;
+	int32 Width;
+	FRHICommandList& ParentCmdList;
+private:
+	bool OutDirtyIfIgnored;
+public:
+	bool& OutDirty;
+	TArray<FRHICommandList*,SceneRenderingAllocator> CommandLists;
+	TArray<FGraphEventRef,SceneRenderingAllocator> Events;
+protected:
+	FRHICommandList* AllocCommandList();
+	bool bParallelExecute;
+public:
+	FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute);
+	~FParallelCommandListSet();
+	FRHICommandList* NewParallelCommandList();
+	void AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent);
+
+	virtual void SetStateOnCommandList(FRHICommandList& CmdList)
+	{
+
+	}
+};
+
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
 {
@@ -441,6 +468,9 @@ public:
 	bool bLightShaftUse;
 
 	TShaderMap<FGlobalShaderType>* ShaderMap;
+
+	/** Custom visibility query for view */
+	ICustomVisibilityQuery* CustomVisibilityQuery;
 
 	/** 
 	 * Initialization constructor. Passes all parameters to FSceneView constructor
@@ -611,6 +641,9 @@ protected:
 
 	/** Calculates projected shadow visibility. */
 	void InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList);	
+
+	/** Gathers dynamic mesh elements for all shadows. */
+	void GatherShadowDynamicMeshElements();
 
 	/** Performs once per frame setup prior to visibility determination. */
 	void PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList);

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SVirtualKeyboardEntry.h"
 #include "TextEditHelper.h"
 
 /** Constructor */
@@ -31,11 +32,21 @@ void SVirtualKeyboardEntry::Construct( const FArguments& InArgs )
 	KeyboardType = InArgs._KeyboardType;
 }
 
-/**
- * Sets the text string currently being edited 
- *
- * @param  InNewText  The new text string
- */
+void SVirtualKeyboardEntry::SetText(const TAttribute< FText >& InNewText)
+{
+	EditedText = InNewText.Get();
+
+	// Don't set text if the text attribute has a 'getter' binding on it, otherwise we'd blow away
+	// that binding.  If there is a getter binding, then we'll assume it will provide us with
+	// updated text after we've fired our 'text changed' callbacks
+	if (!Text.IsBound())
+	{
+		Text.Set(EditedText);
+	}
+
+	bNeedsUpdate = true;
+}
+
 void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard( const FText& InNewText )
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
@@ -237,7 +248,7 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 	return LayerId + TextLayer;
 }
 
-FReply SVirtualKeyboardEntry::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SVirtualKeyboardEntry::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// The user wants to edit text. Make a copy of the observed text for the user to edit.
 	EditedText = Text.Get();
@@ -252,20 +263,20 @@ FReply SVirtualKeyboardEntry::OnKeyboardFocusReceived( const FGeometry& MyGeomet
 /**
  * Called when this widget loses the keyboard focus.  This event does not bubble.
  *
- * @param  InKeyboardFocusEvent  KeyboardFocusEvent
+ * @param  InFocusEvent  FocusEvent
  */
-void SVirtualKeyboardEntry::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SVirtualKeyboardEntry::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// See if user explicitly tabbed away or moved focus
 	ETextCommit::Type TextAction;
-	switch ( InKeyboardFocusEvent.GetCause() )
+	switch ( InFocusEvent.GetCause() )
 	{
-		case EKeyboardFocusCause::Keyboard:
-		case EKeyboardFocusCause::Mouse:
+		case EFocusCause::Navigation:
+		case EFocusCause::Mouse:
 			TextAction = ETextCommit::OnUserMovedFocus;
 			break;
 
-		case EKeyboardFocusCause::Cleared:
+		case EFocusCause::Cleared:
 			TextAction = ETextCommit::OnCleared;
 			break;
 

@@ -11,6 +11,6 @@
 /* UAndroidTargetSettings structors
  *****************************************************************************/
 
-ULinuxTargetSettings::ULinuxTargetSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+ULinuxTargetSettings::ULinuxTargetSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }

@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimSet
 
-UAnimSet::UAnimSet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSet::UAnimSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

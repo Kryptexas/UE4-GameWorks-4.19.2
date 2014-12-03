@@ -21,6 +21,7 @@
 #include "EdGraphUtilities.h"
 #include "AssetData.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimationStateMachineSchema"
 
@@ -108,8 +109,8 @@ UEdGraphNode* FEdGraphSchemaAction_NewStateComment::PerformAction(class UEdGraph
 /////////////////////////////////////////////////////
 // UAnimationStateMachineSchema
 
-UAnimationStateMachineSchema::UAnimationStateMachineSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationStateMachineSchema::UAnimationStateMachineSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PC_Exec = TEXT("exec");
 }

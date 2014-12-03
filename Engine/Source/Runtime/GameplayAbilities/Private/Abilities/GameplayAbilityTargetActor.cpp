@@ -4,6 +4,7 @@
 #include "GameplayAbilityTargetActor.h"
 #include "AbilitySystemComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GameplayAbility.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -11,8 +12,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	StaticTargetFunction = false;
 	ShouldProduceTargetDataOnServer = false;
@@ -34,18 +35,51 @@ void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 	OwningAbility = Ability;
 }
 
+bool AGameplayAbilityTargetActor::IsConfirmTargetingAllowed()
+{
+	return true;
+}
+
 void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 {
 	check(ShouldProduceTargetData());
-	TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+	if (IsConfirmTargetingAllowed())
+	{
+		TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+	}
+	else
+	{
+		NotifyPlayerControllerOfRejectedConfirmation();
+	}
 }
 
 void AGameplayAbilityTargetActor::ConfirmTargeting()
 {
-	ConfirmTargetingAndContinue();
-	if (bDestroyOnConfirmation)
+	if (IsConfirmTargetingAllowed())
 	{
-		Destroy();
+		ConfirmTargetingAndContinue();
+		if (bDestroyOnConfirmation)
+		{
+			Destroy();
+		}
+	}
+	else
+	{
+		NotifyPlayerControllerOfRejectedConfirmation();
+	}
+}
+
+void AGameplayAbilityTargetActor::NotifyPlayerControllerOfRejectedConfirmation()
+{
+	if (OwningAbility && OwningAbility->IsInstantiated())
+	{
+		if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
+		{
+			if (FGameplayAbilitySpec* AbilitySpec = OwningAbility->GetCurrentAbilitySpec())
+			{
+				PC->ClientNotifyRejectedAbilityConfirmation(AbilitySpec->InputID);
+			}
+		}
 	}
 }
 
@@ -62,6 +96,14 @@ bool AGameplayAbilityTargetActor::IsNetRelevantFor(class APlayerController* Real
 	if (RealViewer == MasterPC)
 	{
 		return false;
+	}
+
+	const FGameplayAbilityActorInfo* ActorInfo = (OwningAbility ? OwningAbility->GetCurrentActorInfo() : NULL);
+	AActor* Avatar = (ActorInfo ? ActorInfo->AvatarActor.Get() : NULL);
+
+	if (Avatar)
+	{
+		return Avatar->IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
 	}
 
 	return Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);

@@ -9,20 +9,19 @@
 /* IMediaTrack interface
  *****************************************************************************/
 
-
-bool FAvfMediaTrack::Disable( )
+bool FAvfMediaTrack::Disable()
 {
     return false;
 }
 
 
-bool FAvfMediaTrack::Enable( )
+bool FAvfMediaTrack::Enable()
 {
     return false;
 }
 
 
-FText FAvfMediaTrack::GetDisplayName( ) const
+FText FAvfMediaTrack::GetDisplayName() const
 {
 	FText DisplayName;
 
@@ -44,25 +43,25 @@ FText FAvfMediaTrack::GetDisplayName( ) const
 }
 
 
-uint32 FAvfMediaTrack::GetIndex( ) const
+uint32 FAvfMediaTrack::GetIndex() const
 {
 	return StreamIndex;
 }
 
 
-FString FAvfMediaTrack::GetLanguage( ) const
+FString FAvfMediaTrack::GetLanguage() const
 {
 	return Language;
 }
 
 
-FString FAvfMediaTrack::GetName( ) const
+FString FAvfMediaTrack::GetName() const
 {
 	return Name;
 }
 
 
-bool FAvfMediaTrack::IsEnabled( ) const
+bool FAvfMediaTrack::IsEnabled() const
 {
 	bool bSelected = true;
 	return bSelected;
@@ -75,7 +74,7 @@ bool FAvfMediaTrack::IsMutuallyExclusive( const IMediaTrackRef& Other ) const
 }
 
 
-bool FAvfMediaTrack::IsProtected( ) const
+bool FAvfMediaTrack::IsProtected() const
 {
 	return Protected;
 }

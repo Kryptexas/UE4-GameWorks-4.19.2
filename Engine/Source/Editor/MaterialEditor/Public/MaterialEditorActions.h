@@ -107,6 +107,9 @@ public:
 	TSharedPtr< FUICommandInfo > ConvertToTextureObjects;
 	TSharedPtr< FUICommandInfo > ConvertToTextureSamples;
 	
+	/** Converts selected objects to constants */
+	TSharedPtr< FUICommandInfo > ConvertToConstant;
+
 	/** Stops a node from being previewed in the viewport */
 	TSharedPtr< FUICommandInfo > StopPreviewNode;
 	

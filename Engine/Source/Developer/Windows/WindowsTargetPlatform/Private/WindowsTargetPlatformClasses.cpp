@@ -6,6 +6,6 @@
 /* UWindowsTargetSettings structors
  *****************************************************************************/
 
-UWindowsTargetSettings::UWindowsTargetSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UWindowsTargetSettings::UWindowsTargetSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }

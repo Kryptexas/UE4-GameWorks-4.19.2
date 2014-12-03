@@ -9,6 +9,8 @@
 #include "ContentBrowserCommands.h"
 #include "CollectionManagerModule.h"
 #include "AssetRegistryModule.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -127,7 +129,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								[
 									SNew( STextBlock )
 									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
-									.Text( LOCTEXT( "NewButton", "New" ) )
+									.Text( LOCTEXT( "NewButton", "Create" ) )
 								]
 							]
 						]
@@ -184,8 +186,27 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnClicked( this, &SContentBrowser::OnSaveClicked )
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSaveDirtyPackages")))
 							[
-								SNew( SImage )
-								.Image( FEditorStyle::GetBrush( "ContentBrowser.SaveDirtyPackages" ) )
+								SNew( SHorizontalBox )
+
+								// Save All Icon
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign( VAlign_Center )
+								[
+									SNew( SImage )
+									.Image( FEditorStyle::GetBrush( "ContentBrowser.SaveDirtyPackages" ) )
+								]
+
+								// Save All Text
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								.Padding(0,0,2,0)
+								[
+									SNew( STextBlock )
+									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
+									.Text( LOCTEXT( "SaveAll", "Save All" ) )
+								]
 							]
 						]
 					]
@@ -530,6 +551,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	];
 
 	AssetContextMenu = MakeShareable(new FAssetContextMenu(AssetViewPtr));
+	AssetContextMenu->BindCommands(Commands);
 	AssetContextMenu->SetOnFindInAssetTreeRequested( FOnFindInAssetTreeRequested::CreateSP(this, &SContentBrowser::OnFindInAssetTreeRequested) );
 	AssetContextMenu->SetOnRenameRequested( FAssetContextMenu::FOnRenameRequested::CreateSP(this, &SContentBrowser::OnRenameRequested) );
 	AssetContextMenu->SetOnRenameFolderRequested( FAssetContextMenu::FOnRenameFolderRequested::CreateSP(this, &SContentBrowser::OnRenameFolderRequested) );
@@ -783,12 +805,12 @@ bool SContentBrowser::IsLocked() const
 void SContentBrowser::SetKeyboardFocusOnSearch() const
 {
 	// Focus on the search box
-	FSlateApplication::Get().SetKeyboardFocus( SearchBoxPtr, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( SearchBoxPtr, EFocusCause::SetDirectly );
 }
 
-FReply SContentBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SContentBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if( Commands->ProcessCommandBindings( InKeyboardEvent ) )
+	if( Commands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}
@@ -847,7 +869,7 @@ void SContentBrowser::OnContainingTabClosed(TSharedRef<SDockTab> DockTab)
 	FContentBrowserSingleton::Get().ContentBrowserClosed( SharedThis(this) );
 }
 
-void SContentBrowser::OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause::Type InActivationCause)
+void SContentBrowser::OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause InActivationCause)
 {
 	if(InActivationCause == ETabActivationCause::UserClickedOnTab)
 	{
@@ -1317,9 +1339,11 @@ void SContentBrowser::OnAssetSelectionChanged(const FAssetData& SelectedAsset)
 	// Notify 'asset selection changed' delegate
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
 	FContentBrowserModule::FOnAssetSelectionChanged& AssetSelectionChangedDelegate = ContentBrowserModule.GetOnAssetSelectionChanged();
+	
+	const TArray<FAssetData>& SelectedAssets = AssetViewPtr->GetSelectedAssets();
+	AssetContextMenu->SetSelectedAssets(SelectedAssets);
 	if(AssetSelectionChangedDelegate.IsBound())
 	{
-		const TArray<FAssetData>& SelectedAssets = AssetViewPtr->GetSelectedAssets();
 		AssetSelectionChangedDelegate.Broadcast(SelectedAssets, bIsPrimaryBrowser);
 	}
 }
@@ -1329,17 +1353,23 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	TMap< TSharedRef<IAssetTypeActions>, TArray<UObject*> > TypeActionsToObjects;
 	TArray<UObject*> ObjectsWithoutTypeActions;
 
+	const FText LoadingTemplate = LOCTEXT("LoadingAssetName", "Loading {0}...");
+	const FText DefaultText = ActivatedAssets.Num() == 1 ? FText::Format(LoadingTemplate, FText::FromName(ActivatedAssets[0].AssetName)) : LOCTEXT("LoadingObjects", "Loading Objects...");
+	FScopedSlowTask SlowTask(100, DefaultText);
+
 	// Iterate over all activated assets to map them to AssetTypeActions.
 	// This way individual asset type actions will get a batched list of assets to operate on
 	for ( auto AssetIt = ActivatedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 	{
 		const FAssetData& AssetData = *AssetIt;
-		const bool bShowProgressDialog = (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()));
-		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
+		if (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()))
+		{
+			SlowTask.MakeDialog();
+		}
+
+		SlowTask.EnterProgressFrame(75.f/ActivatedAssets.Num(), FText::Format(LoadingTemplate, FText::FromName(AssetData.AssetName)));
 
 		UObject* Asset = (*AssetIt).GetAsset();
-
-		GWarn->EndSlowTask();
 
 		if ( Asset != NULL )
 		{
@@ -1361,6 +1391,8 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	// Now that we have created our map, activate all the lists of objects for each asset type action.
 	for ( auto TypeActionsIt = TypeActionsToObjects.CreateConstIterator(); TypeActionsIt; ++TypeActionsIt )
 	{
+		SlowTask.EnterProgressFrame(25.f/TypeActionsToObjects.Num());
+
 		const TSharedRef<IAssetTypeActions>& TypeActions = TypeActionsIt.Key();
 		const TArray<UObject*>& ObjList = TypeActionsIt.Value();
 

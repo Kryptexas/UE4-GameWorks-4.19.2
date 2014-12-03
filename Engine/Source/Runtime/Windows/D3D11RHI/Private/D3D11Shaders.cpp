@@ -15,7 +15,7 @@ FVertexShaderRHIRef FD3D11DynamicRHI::RHICreateVertexShader(const TArray<uint8>&
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateVertexShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
@@ -39,7 +39,7 @@ FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShader(const TArray<uin
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateGeometryShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
@@ -59,7 +59,7 @@ FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	uint32 D3DRasterizedStream = RasterizedStream;
@@ -107,7 +107,7 @@ FHullShaderRHIRef FD3D11DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateHullShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
@@ -127,7 +127,7 @@ FDomainShaderRHIRef FD3D11DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateDomainShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
@@ -147,7 +147,7 @@ FPixelShaderRHIRef FD3D11DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreatePixelShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
@@ -167,7 +167,7 @@ FComputeShaderRHIRef FD3D11DynamicRHI::RHICreateComputeShader(const TArray<uint8
 	FMemoryReader Ar( Code, true );
 	Ar << Shader->ShaderResourceTable;
 	int32 Offset = Ar.Tell();
-	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateComputeShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
@@ -215,7 +215,7 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 	FMemory::Memzero(&NullInputElement,sizeof(D3D11_INPUT_ELEMENT_DESC));
 
 	VERIFYD3D11RESULT(Direct3DDevice->CreateInputLayout(
-		InVertexDeclaration ? InVertexDeclaration->VertexElements.GetTypedData() : &NullInputElement,
+		InVertexDeclaration ? InVertexDeclaration->VertexElements.GetData() : &NullInputElement,
 		InVertexDeclaration ? InVertexDeclaration->VertexElements.Num() : 0,
 		&InVertexShader->Code[ InVertexShader->Offset ],			// TEMP ugly
 		InVertexShader->Code.Num() - 1 - InVertexShader->Offset,

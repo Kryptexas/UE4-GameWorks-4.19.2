@@ -7,6 +7,9 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "SDockTab.h"
+
+#include "Engine/DestructibleMesh.h"
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 
@@ -40,25 +43,27 @@ FDestructibleMeshEditor::~FDestructibleMeshEditor()
 
 void FDestructibleMeshEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_DestructibleMeshEditor", "Destructible Mesh Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( ViewportTabId, FOnSpawnTab::CreateSP(this, &FDestructibleMeshEditor::SpawnTab_Viewport) )
 		.SetDisplayName( LOCTEXT("ViewportTab", "Viewport") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+
 	TabManager->RegisterTabSpawner( PropertiesTabId, FOnSpawnTab::CreateSP(this, &FDestructibleMeshEditor::SpawnTab_Properties) )
 		.SetDisplayName( LOCTEXT("PropertiesTab", "Destructible Settings") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
+		.SetGroup(WorkspaceMenuCategoryRef);
+
 	TabManager->RegisterTabSpawner( FractureSettingsTabId, FOnSpawnTab::CreateSP(this, &FDestructibleMeshEditor::SpawnTab_FractureSettings) )
 		.SetDisplayName( LOCTEXT("FractureSettingsTab", "Fracture Settings") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
+		.SetGroup(WorkspaceMenuCategoryRef);
+
 	TabManager->RegisterTabSpawner( ChunkParametersTabId, FOnSpawnTab::CreateSP(this, &FDestructibleMeshEditor::SpawnTab_ChunkParameters) )
 		.SetDisplayName( LOCTEXT("ChunkParametersTab", "Chunk Parameters") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup(WorkspaceMenuCategoryRef);
 }
 
 void FDestructibleMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)

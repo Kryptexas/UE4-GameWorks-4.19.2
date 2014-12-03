@@ -2,6 +2,7 @@
 
 #pragma once
 #include "RenderUtils.h"
+#include "TextureRenderTarget.h"
 #include "TextureRenderTarget2D.generated.h"
 
 /**

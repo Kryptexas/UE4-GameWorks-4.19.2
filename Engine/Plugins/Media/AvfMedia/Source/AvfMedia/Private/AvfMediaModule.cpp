@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AVFMediaPrivatePCH.h"
+#include "IMediaModule.h"
+#include "IMediaPlayerFactory.h"
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
 
 
 DEFINE_LOG_CATEGORY(LogAvfMedia);
@@ -17,10 +21,8 @@ class FAvfMediaModule
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FAvfMediaModule( )
+	/** Default constructor. */
+	FAvfMediaModule()
 		: Initialized(false)
 	{ }
 
@@ -28,7 +30,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		// load required libraries
 		IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
@@ -52,7 +54,7 @@ public:
 		Initialized = true;
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		if (!Initialized)
 		{
@@ -75,7 +77,7 @@ public:
 
 	// IMediaPlayerFactory interface
 
-	virtual TSharedPtr<IMediaPlayer> CreatePlayer( ) override
+	virtual TSharedPtr<IMediaPlayer> CreatePlayer() override
 	{
 		if (Initialized)
 		{
@@ -85,7 +87,7 @@ public:
 		return nullptr;
 	}
 
-	virtual const FMediaFormats& GetSupportedFormats( ) const override
+	virtual const FMediaFormats& GetSupportedFormats() const override
 	{
 		return SupportedFormats;
 	}
@@ -97,17 +99,17 @@ protected:
 	 *
 	 * @return true on success, false otherwise.
 	 */
-	bool LoadRequiredLibraries( )
+	bool LoadRequiredLibraries()
     {
 		return true;
 	}
 
 private:
 
-	// Whether the module has been initialized.
+	/** Whether the module has been initialized. */
 	bool Initialized;
 
-	// The collection of supported media formats.
+	/** The collection of supported media formats. */
 	FMediaFormats SupportedFormats;
 };
 

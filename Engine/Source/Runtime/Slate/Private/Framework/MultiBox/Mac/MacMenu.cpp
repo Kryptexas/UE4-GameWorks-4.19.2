@@ -74,7 +74,7 @@ static TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>> GCachedMenuState;
 	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
 	
 	GameThreadCall(^{
-		FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::WindowActivate );
+		FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::WindowActivate );
 	}, @[ NSDefaultRunLoopMode ], false);
 
 }

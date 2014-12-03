@@ -32,6 +32,8 @@
 #include "MovieSceneInstance.h"
 #include "IKeyArea.h"
 #include "SnappingUtils.h"
+#include "STextEntryPopup.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

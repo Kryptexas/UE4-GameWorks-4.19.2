@@ -148,18 +148,23 @@ protected:
 	
 	// Used during transitions to make sure we don't double tick a state if it appears multiple times
 	TArray<int32> StatesUpdated;
-	
+
+private:
+	// true if it is the first update.
+	bool bFirstUpdate;
+
 public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
 		, PRIVATE_MachineDescription(NULL)
 		, CurrentState(INDEX_NONE)
+		, bFirstUpdate(true)
 	{
 	}
 
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context) override;
+	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;

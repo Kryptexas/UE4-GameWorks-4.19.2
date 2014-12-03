@@ -138,26 +138,9 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 #endif //USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
 
 #if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
-
-#define UE_VLOG_EQS(Query, CategoryName, Verbosity) \
-{ \
-	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
-	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
-	{ \
-		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Query->Owner.Get()); \
-		ensure(OwnerActor != NULL); \
-		if (OwnerActor) \
-		{  \
-			UEnvQueryDebugHelpers::LogQuery(OwnerActor, Query, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, \
-				FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query->QueryName, Query->QueryID, Query->OptionIndex, Query->ItemDetails.Num(), Query->NumValidItems)); \
-		} \
-	} \
-}
-
+#	define UE_VLOG_EQS(Query, Category, Verbosity)  UEnvQueryDebugHelpers::LogQuery(Query, Category, ELogVerbosity::Verbosity);
 #else
-#define UE_VLOG_EQS(Query, CategoryName, Verbosity)
-
+#	define UE_VLOG_EQS(Query, CategoryName, Verbosity)
 #endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 
 UCLASS(Abstract, CustomConstructor)
@@ -165,11 +148,32 @@ class AIMODULE_API UEnvQueryDebugHelpers : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UEnvQueryDebugHelpers(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
+	UEnvQueryDebugHelpers(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 #if USE_EQS_DEBUGGER
-	static void QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData);
-	static void QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
+	static void QueryToDebugData(struct FEnvQueryInstance& Query, EQSDebug::FQueryData& EQSLocalData);
+	static void QueryToBlobArray(struct FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
 	static void BlobArrayToDebugData(const TArray<uint8>& BlobArray, EQSDebug::FQueryData& EQSLocalData, bool bUseCompression = false);
-	static void LogQuery(const class AActor* LogOwnerActor, struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type, const FString& AdditionalLogInfo);
+#endif
+
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
+	static void LogQuery(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity);
+
+private:
+	static void LogQueryInternal(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry);
 #endif
 };
+
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
+FORCEINLINE void UEnvQueryDebugHelpers::LogQuery(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity)
+{
+	UWorld *World = NULL;
+	FVisualLogEntry *CurrentEntry = NULL;
+	if (CheckVisualLogInputInternal(Query.Owner.Get(), Category, Verbosity, &World, &CurrentEntry) == false)
+	{
+		return;
+	}
+
+	LogQueryInternal(Query, Category, Verbosity, World->TimeSeconds, CurrentEntry);
+}
+#endif
+

@@ -1,10 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SharedPointer.h: Smart pointer library
-=============================================================================*/
-
 #pragma once
+
+#include "Containers/ContainersFwd.h"
+#include "Containers/Map.h"
+#include "Templates/UnrealTemplate.h"
 
 
 /**
@@ -110,11 +110,11 @@
 
 
 /**
- * Casts a shared reference of one type to another type. (static_cast)  Useful for downcasting.
+ * Casts a shared reference of one type to another type. (static_cast)  Useful for down-casting.
  *
  * @param  InSharedRef  The shared reference to cast
  */
-template< class CastToType, class CastFromType, ESPMode::Type Mode >
+template< class CastToType, class CastFromType, ESPMode Mode >
 FORCEINLINE TSharedRef< CastToType, Mode > StaticCastSharedRef( TSharedRef< CastFromType, Mode > const& InSharedRef )
 {
 	return TSharedRef< CastToType, Mode >( InSharedRef, SharedPointerInternals::FStaticCastTag() );
@@ -129,7 +129,7 @@ class UObjectBase;
  * This shared reference will be conditionally thread-safe when the optional Mode template argument is set to ThreadSafe.
  */
 // NOTE: TSharedRef is an Unreal extension to standard smart pointer feature set
-template< class ObjectType, ESPMode::Type Mode >
+template< class ObjectType, ESPMode Mode >
 class TSharedRef
 {
 	// TSharedRefs with UObjects are illegal.
@@ -400,11 +400,11 @@ private:
 	}
 
 	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
-    template< class OtherType, ESPMode::Type OtherMode > friend class TSharedRef;
+    template< class OtherType, ESPMode OtherMode > friend class TSharedRef;
 
 	// Declare other smart pointer types as friends as needed
-    template< class OtherType, ESPMode::Type OtherMode > friend class TSharedPtr;
-    template< class OtherType, ESPMode::Type OtherMode > friend class TWeakPtr;
+    template< class OtherType, ESPMode OtherMode > friend class TSharedPtr;
+    template< class OtherType, ESPMode OtherMode > friend class TWeakPtr;
 
 private:
 
@@ -421,7 +421,7 @@ private:
  * TSharedPtr is a non-intrusive reference-counted authoritative object pointer.  This shared pointer
  * will be conditionally thread-safe when the optional Mode template argument is set to ThreadSafe.
  */
-template< class ObjectType, ESPMode::Type Mode >
+template< class ObjectType, ESPMode Mode >
 class TSharedPtr
 {
 	// TSharedPtrs with UObjects are illegal.
@@ -728,12 +728,12 @@ private:
 	}
 
 	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
-    template< class OtherType, ESPMode::Type OtherMode > friend class TSharedPtr;
+    template< class OtherType, ESPMode OtherMode > friend class TSharedPtr;
 
 	// Declare other smart pointer types as friends as needed
-    template< class OtherType, ESPMode::Type OtherMode > friend class TSharedRef;
-    template< class OtherType, ESPMode::Type OtherMode > friend class TWeakPtr;
-    template< class OtherType, ESPMode::Type OtherMode > friend class TSharedFromThis;
+    template< class OtherType, ESPMode OtherMode > friend class TSharedRef;
+    template< class OtherType, ESPMode OtherMode > friend class TWeakPtr;
+    template< class OtherType, ESPMode OtherMode > friend class TSharedFromThis;
 
 private:
 
@@ -747,14 +747,14 @@ private:
 };
 
 
-template<class ObjectType, ESPMode::Type Mode> struct TIsZeroConstructType<TSharedPtr<ObjectType, Mode>> { enum { Value = true }; };
+template<class ObjectType, ESPMode Mode> struct TIsZeroConstructType<TSharedPtr<ObjectType, Mode>> { enum { Value = true }; };
 
 
 /**
  * TWeakPtr is a non-intrusive reference-counted weak object pointer.  This weak pointer will be
  * conditionally thread-safe when the optional Mode template argument is set to ThreadSafe.
  */
-template< class ObjectType, ESPMode::Type Mode >
+template< class ObjectType, ESPMode Mode >
 class TWeakPtr
 {
 public:
@@ -959,10 +959,10 @@ private:
 	}
 
 	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
-    template< class OtherType, ESPMode::Type OtherMode > friend class TWeakPtr;
+    template< class OtherType, ESPMode OtherMode > friend class TWeakPtr;
 
 	// Declare ourselves as a friend of TSharedPtr so we can access members as needed
-    template< class OtherType, ESPMode::Type OtherMode > friend class TSharedPtr;
+    template< class OtherType, ESPMode OtherMode > friend class TSharedPtr;
 
 private:
 
@@ -976,15 +976,15 @@ private:
 };
 
 
-template<class T, ESPMode::Type Mode> struct TIsWeakPointerType<TWeakPtr<T, Mode> > { enum { Value = true }; };
-template<class T, ESPMode::Type Mode> struct TIsZeroConstructType<TWeakPtr<T, Mode> > { enum { Value = true }; };
+template<class T, ESPMode Mode> struct TIsWeakPointerType<TWeakPtr<T, Mode> > { enum { Value = true }; };
+template<class T, ESPMode Mode> struct TIsZeroConstructType<TWeakPtr<T, Mode> > { enum { Value = true }; };
 
 
 /**
  * Derive your class from TSharedFromThis to enable access to a TSharedRef directly from an object
  * instance that's already been allocated.  Use the optional Mode template argument for thread-safety.
  */
-template< class ObjectType, ESPMode::Type Mode >
+template< class ObjectType, ESPMode Mode >
 class TSharedFromThis
 {
 public:
@@ -1142,7 +1142,7 @@ private:
  *
  * @return  True if the two shared references are equal
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator==( TSharedRef< ObjectTypeA, Mode > const& InSharedRefA, TSharedRef< ObjectTypeB, Mode > const& InSharedRefB )
 {
 	return &( InSharedRefA.Get() ) == &( InSharedRefB.Get() );
@@ -1154,7 +1154,7 @@ FORCEINLINE bool operator==( TSharedRef< ObjectTypeA, Mode > const& InSharedRefA
  *
  * @return  True if the two shared references are not equal
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator!=( TSharedRef< ObjectTypeA, Mode > const& InSharedRefA, TSharedRef< ObjectTypeB, Mode > const& InSharedRefB )
 {
 	return &( InSharedRefA.Get() ) != &( InSharedRefB.Get() );
@@ -1166,7 +1166,7 @@ FORCEINLINE bool operator!=( TSharedRef< ObjectTypeA, Mode > const& InSharedRefA
  *
  * @return  True if the two shared pointers are equal
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator==( TSharedPtr< ObjectTypeA, Mode > const& InSharedPtrA, TSharedPtr< ObjectTypeB, Mode > const& InSharedPtrB )
 {
 	return InSharedPtrA.Get() == InSharedPtrB.Get();
@@ -1178,7 +1178,7 @@ FORCEINLINE bool operator==( TSharedPtr< ObjectTypeA, Mode > const& InSharedPtrA
  *
  * @return  True if the two shared pointers are not equal
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator!=( TSharedPtr< ObjectTypeA, Mode > const& InSharedPtrA, TSharedPtr< ObjectTypeB, Mode > const& InSharedPtrB )
 {
 	return InSharedPtrA.Get() != InSharedPtrB.Get();
@@ -1190,7 +1190,7 @@ FORCEINLINE bool operator!=( TSharedPtr< ObjectTypeA, Mode > const& InSharedPtrA
  *
  * @return  True if the shared reference and shared pointer are "equal"
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator==( TSharedRef< ObjectTypeA, Mode > const& InSharedRef, TSharedPtr< ObjectTypeB, Mode > const& InSharedPtr )
 {
 	return InSharedPtr.IsValid() && InSharedPtr.Get() == &( InSharedRef.Get() );
@@ -1202,7 +1202,7 @@ FORCEINLINE bool operator==( TSharedRef< ObjectTypeA, Mode > const& InSharedRef,
  *
  * @return  True if the shared reference and shared pointer are not "equal"
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator!=( TSharedRef< ObjectTypeA, Mode > const& InSharedRef, TSharedPtr< ObjectTypeB, Mode > const& InSharedPtr )
 {
 	return !InSharedPtr.IsValid() || ( InSharedPtr.Get() != &( InSharedRef.Get() ) );
@@ -1214,7 +1214,7 @@ FORCEINLINE bool operator!=( TSharedRef< ObjectTypeA, Mode > const& InSharedRef,
  *
  * @return  True if the shared reference and shared pointer are "equal"
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator==( TSharedPtr< ObjectTypeB, Mode > const& InSharedPtr, TSharedRef< ObjectTypeA, Mode > const& InSharedRef )
 {
 	return InSharedRef == InSharedPtr;
@@ -1226,7 +1226,7 @@ FORCEINLINE bool operator==( TSharedPtr< ObjectTypeB, Mode > const& InSharedPtr,
  *
  * @return  True if the shared reference and shared pointer are not "equal"
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator!=( TSharedPtr< ObjectTypeB, Mode > const& InSharedPtr, TSharedRef< ObjectTypeA, Mode > const& InSharedRef )
 {
 	return InSharedRef != InSharedPtr;
@@ -1238,7 +1238,7 @@ FORCEINLINE bool operator!=( TSharedPtr< ObjectTypeB, Mode > const& InSharedPtr,
  *
  * @return  True if the two weak pointers are equal
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator==( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
 {
 	return InWeakPtrA.Pin().Get() == InWeakPtrB.Pin().Get();
@@ -1250,7 +1250,7 @@ FORCEINLINE bool operator==( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, TW
  *
  * @return  True if the weak pointer is null
  */
-template< class ObjectTypeA, ESPMode::Type Mode >
+template< class ObjectTypeA, ESPMode Mode >
 FORCEINLINE bool operator==( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, decltype(nullptr) )
 {
 	return !InWeakPtrA.IsValid();
@@ -1262,7 +1262,7 @@ FORCEINLINE bool operator==( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, de
  *
  * @return  True if the weak pointer is null
  */
-template< class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator==( decltype(nullptr), TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
 {
 	return !InWeakPtrB.IsValid();
@@ -1274,7 +1274,7 @@ FORCEINLINE bool operator==( decltype(nullptr), TWeakPtr< ObjectTypeB, Mode > co
  *
  * @return  True if the two weak pointers are not equal
  */
-template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeA, class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator!=( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
 {
 	return InWeakPtrA.Pin().Get() != InWeakPtrB.Pin().Get();
@@ -1286,7 +1286,7 @@ FORCEINLINE bool operator!=( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, TW
  *
  * @return  True if the weak pointer is not null
  */
-template< class ObjectTypeA, ESPMode::Type Mode >
+template< class ObjectTypeA, ESPMode Mode >
 FORCEINLINE bool operator!=( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, decltype(nullptr) )
 {
 	return InWeakPtrA.IsValid();
@@ -1298,7 +1298,7 @@ FORCEINLINE bool operator!=( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, de
  *
  * @return  True if the weak pointer is not null
  */
-template< class ObjectTypeB, ESPMode::Type Mode >
+template< class ObjectTypeB, ESPMode Mode >
 FORCEINLINE bool operator!=( decltype(nullptr), TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
 {
 	return InWeakPtrB.IsValid();
@@ -1306,11 +1306,11 @@ FORCEINLINE bool operator!=( decltype(nullptr), TWeakPtr< ObjectTypeB, Mode > co
 
 
 /**
- * Casts a shared pointer of one type to another type. (static_cast)  Useful for downcasting.
+ * Casts a shared pointer of one type to another type. (static_cast)  Useful for down-casting.
  *
  * @param  InSharedPtr  The shared pointer to cast
  */
-template< class CastToType, class CastFromType, ESPMode::Type Mode >
+template< class CastToType, class CastFromType, ESPMode Mode >
 FORCEINLINE TSharedPtr< CastToType, Mode > StaticCastSharedPtr( TSharedPtr< CastFromType, Mode > const& InSharedPtr )
 {
 	return TSharedPtr< CastToType, Mode >( InSharedPtr, SharedPointerInternals::FStaticCastTag() );
@@ -1322,7 +1322,7 @@ FORCEINLINE TSharedPtr< CastToType, Mode > StaticCastSharedPtr( TSharedPtr< Cast
  *
  * @param  InSharedRef  The shared reference to cast
  */
-template< class CastToType, class CastFromType, ESPMode::Type Mode >
+template< class CastToType, class CastFromType, ESPMode Mode >
 FORCEINLINE TSharedRef< CastToType, Mode > ConstCastSharedRef( TSharedRef< CastFromType, Mode > const& InSharedRef )
 {
 	return TSharedRef< CastToType, Mode >( InSharedRef, SharedPointerInternals::FConstCastTag() );
@@ -1334,7 +1334,7 @@ FORCEINLINE TSharedRef< CastToType, Mode > ConstCastSharedRef( TSharedRef< CastF
  *
  * @param  InSharedPtr  The shared pointer to cast
  */
-template< class CastToType, class CastFromType, ESPMode::Type Mode >
+template< class CastToType, class CastFromType, ESPMode Mode >
 FORCEINLINE TSharedPtr< CastToType, Mode > ConstCastSharedPtr( TSharedPtr< CastFromType, Mode > const& InSharedPtr )
 {
 	return TSharedPtr< CastToType, Mode >( InSharedPtr, SharedPointerInternals::FConstCastTag() );

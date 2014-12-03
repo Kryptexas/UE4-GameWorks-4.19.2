@@ -5,6 +5,13 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTLS.h"
+#include "HAL/Platform.h"
+#if PLATFORM_MAC
+#include "Mac/MacSystemIncludes.h"
+#elif PLATFORM_IOS
+#include "IOS/IOSSystemIncludes.h"
+#endif
 
 /**
 * Apple implementation of the TLS OS functions

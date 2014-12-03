@@ -273,7 +273,7 @@ private:
 	// Callback for clicking the 'Accept' button.
 	FReply HandleAcceptButtonClicked( )
 	{
-		return FReply::Handled().SetKeyboardFocus(ComboBox->AsShared(), EKeyboardFocusCause::Mouse);
+		return FReply::Handled().SetUserFocus(ComboBox->AsShared(), EFocusCause::Mouse);
 	}
 
 	// Callback for getting the visibility of the edit mode box.
@@ -304,7 +304,7 @@ private:
 			TextBox->SetText( FText::FromString( OnGetEditableText.Execute() ));
 		}
 
-		return FReply::Handled().SetKeyboardFocus(TextBox->AsShared(), EKeyboardFocusCause::Mouse);
+		return FReply::Handled().SetUserFocus(TextBox->AsShared(), EFocusCause::Mouse);
 	}
 
 	// Callback for committing the text in the text box.

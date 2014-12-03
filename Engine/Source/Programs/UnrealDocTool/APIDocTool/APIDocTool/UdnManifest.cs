@@ -122,7 +122,12 @@ namespace APIDocTool
 			{
 				foreach (KeyValuePair<string, APIPage> Entry in Entries.OrderBy(x => x.Key))
 				{
-					Writer.WriteLine("{0}, {1}", Entry.Key, Entry.Value.LinkPath);
+					APIPage TargetPage = Entry.Value;
+					while(!TargetPage.ShouldOutputPage())
+					{
+						TargetPage = TargetPage.Parent;
+					}
+					Writer.WriteLine("{0}, {1}", Entry.Key, TargetPage.LinkPath);
 				}
 			}
 		}

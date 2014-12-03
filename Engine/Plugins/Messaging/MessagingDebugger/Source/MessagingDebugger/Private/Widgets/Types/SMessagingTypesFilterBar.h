@@ -3,9 +3,6 @@
 #pragma once
 
 
-#define LOCTEXT_NAMESPACE "SMessagingTypesFilterBar"
-
-
 /**
  * Implements the message type list filter bar widget.
  */
@@ -24,43 +21,16 @@ public:
 public:
 
 	/**
-	 * Default constructor.
-	 */
-	SMessagingTypesFilterBar( )
-		: Filter(NULL)
-	{ }
-
-public:
-
-	/**
 	 * Construct this widget
 	 *
 	 * @param InArgs The declaration data for this widget.
 	 * @param InFilter The filter model.
 	 */
-	void Construct( const FArguments& InArgs, FMessagingDebuggerTypeFilterRef InFilter )
-	{
-		Filter = InFilter;
-
-		ChildSlot
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.VAlign(VAlign_Top)
-				[
-					// search box
-					SNew(SSearchBox)
-						.HintText(LOCTEXT("SearchBoxHint", "Search message types"))
-						.OnTextChanged(this, &SMessagingTypesFilterBar::HandleFilterStringTextChanged)
-				]
-		];
-	}
+	void Construct( const FArguments& InArgs, FMessagingDebuggerTypeFilterRef InFilter );
 
 private:
 
-	// Handles changing the filter string text box text.
+	/** Handles changing the filter string text box text. */
 	void HandleFilterStringTextChanged( const FText& NewText )
 	{
 		Filter->SetFilterString(NewText.ToString());
@@ -68,9 +38,6 @@ private:
 
 private:
 
-	// Holds the filter model.
+	/** Holds the filter model. */
 	FMessagingDebuggerTypeFilterPtr Filter;
 };
-
-
-#undef LOCTEXT_NAMESPACE

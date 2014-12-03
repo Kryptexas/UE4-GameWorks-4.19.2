@@ -3,6 +3,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "WorkflowTabFactory.h"
 #include "WorkflowTabManager.h"
+#include "SDockTab.h"
 
 /////////////////////////////////////////////////////
 // FTabInfo
@@ -142,7 +143,7 @@ void FTabInfo::JumpToNearestValidHistoryData()
 			History[CurrentHistoryIndex]->RestoreHistory();
 			History[CurrentHistoryIndex]->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 			FGlobalTabmanager::Get()->SetActiveTab(nullptr);
-			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
 		}
 	}
 }
@@ -256,17 +257,18 @@ TSharedRef< SWidget > FTabInfo::CreateHistoryNavigationWidget()
 {
 	if(!HistoryNavigationWidget.IsValid())
 	{
-		TWeakPtr< SMenuAnchor > MenuAnchorPtr;
+		TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
+		TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;
 		HistoryNavigationWidget = 
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, BackMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(BackMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &FTabInfo::CreateHistoryMenu, true )
 					[
@@ -287,10 +289,10 @@ TSharedRef< SWidget > FTabInfo::CreateHistoryNavigationWidget()
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, FwdMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(FwdMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &FTabInfo::CreateHistoryMenu, false )
 					[

@@ -3,10 +3,10 @@
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape/LandscapeEdit.h"
-#include "Landscape/LandscapeRender.h"
-#include "Landscape/LandscapeDataAccess.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeEdit.h"
+#include "LandscapeRender.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "Raster.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -238,7 +238,7 @@ public:
 				int32 ValidMinY = MinY;
 				int32 ValidMaxX = MaxX;
 				int32 ValidMaxY = MaxY;
-				LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetTypedData(), 0);
+				LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetData(), 0);
 
 				if (ValidMaxX - ValidMinX != 1 && ValidMaxY - ValidMinY != 1)
 				{
@@ -450,10 +450,11 @@ public:
 	{
 		FScopedTransaction Transaction(LOCTEXT("Ramp_Apply", "Landscape Editing: Add ramp"));
 
-		const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+		const ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
+		const ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
 		const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
 
-		const FVector2D Side = FVector2D(FVector::CrossProduct(Points[1] - Points[0], FVector(0, 0, 1))).SafeNormal();
+		const FVector2D Side = FVector2D(FVector::CrossProduct(Points[1] - Points[0], FVector(0,0,1))).SafeNormal();
 		const FVector2D InnerSide = Side * (EdMode->UISettings->RampWidth * 0.5f * (1 - EdMode->UISettings->RampSideFalloff)) / LandscapeToWorld.GetScale3D().X;
 		const FVector2D OuterSide = Side * (EdMode->UISettings->RampWidth * 0.5f) / LandscapeToWorld.GetScale3D().X;
 
@@ -478,6 +479,24 @@ public:
 		int32 MaxX = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].X, OuterVerts[0][1].X), FMath::Max(OuterVerts[1][0].X, OuterVerts[1][1].X))) + 1;
 		int32 MaxY = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].Y, OuterVerts[0][1].Y), FMath::Max(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) + 1;
 
+		// I'd dearly love to use FIntRect in this code, but Landscape works with "Inclusive Max" and FIntRect is "Exclusive Max"
+		int32 LandscapeMinX, LandscapeMinY, LandscapeMaxX, LandscapeMaxY;
+		if (!LandscapeInfo->GetLandscapeExtent(LandscapeMinX, LandscapeMinY, LandscapeMaxX, LandscapeMaxY))
+		{
+			return;
+		}
+
+		MinX = FMath::Max(MinX, LandscapeMinX);
+		MinY = FMath::Max(MinY, LandscapeMinY);
+		MaxX = FMath::Min(MaxX, LandscapeMaxX);
+		MaxY = FMath::Min(MaxY, LandscapeMaxY);
+
+		if (MinX > MaxX || MinY > MaxY)
+		{
+			// The bounds don't intersect any data, so we skip applying the ramp entirely
+			return;
+		}
+
 		FLandscapeEditDataInterface LandscapeEdit(EdMode->CurrentToolTarget.LandscapeInfo.Get());
 
 		// Heights raster
@@ -492,15 +511,15 @@ public:
 			int32 ValidMinY = MinY;
 			int32 ValidMaxX = MaxX;
 			int32 ValidMaxY = MaxY;
-			LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetTypedData(), 0);
+			LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetData(), 0);
 
 			if (ValidMinX > ValidMaxX || ValidMinY > ValidMaxY)
 			{
-				// The bounds don't intersect any data, so we skip it entirely
+				// The bounds don't intersect any data, so we skip applying the ramp entirely
 				return;
 			}
 
-			//ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
+			FLandscapeEditDataInterface::ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
 
 			MinX = ValidMinX;
 			MinY = ValidMinY;
@@ -522,7 +541,7 @@ public:
 			Rasterizer.DrawTriangle(FVector2D(1, Heights[0]), FVector2D(0, Heights[0]), FVector2D(1, Heights[1]), InnerVerts[0][1], OuterVerts[0][1], InnerVerts[1][1], false);
 			Rasterizer.DrawTriangle(FVector2D(0, Heights[0]), FVector2D(1, Heights[1]), FVector2D(0, Heights[1]), OuterVerts[0][1], InnerVerts[1][1], OuterVerts[1][1], false);
 
-			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetTypedData(), 0, true);
+			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetData(), 0, true);
 			LandscapeEdit.Flush();
 
 			TSet<ULandscapeComponent*> Components;

@@ -15,8 +15,11 @@ class ASpotLight : public ALight
 
 #if WITH_EDITORONLY_DATA
 	// Reference to editor arrow component visualization 
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+public:
 #endif
 
 	// BEGIN DEPRECATED (use component functions now in level script)
@@ -44,6 +47,12 @@ class ASpotLight : public ALight
 #endif
 	// End UObject Interface
 
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	ENGINE_API class UArrowComponent* GetArrowComponent() const;
+#endif
 };
 
 

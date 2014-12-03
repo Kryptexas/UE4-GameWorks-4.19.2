@@ -501,7 +501,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		Style->Set( "ProgressBar", FProgressBarStyle()
 			.SetBackgroundImage( BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) )
-			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f) ) )
+			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f), FLinearColor( 1.0f, 0.22f, 0.0f )  ) )
 			.SetMarqueeImage( IMAGE_BRUSH( "Common/ProgressBar_Marquee", FVector2D(20,12), FLinearColor::White, ESlateBrushTileType::Horizontal ) )
 			);
 	}
@@ -1019,29 +1019,58 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// SWindow defaults...
 	{
 #if PLATFORM_MAC
-		const FButtonStyle MinimizeButtonStyle = FButtonStyle(Button)
-			.SetNormal(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20.0f, 20.0f)))
-			.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20.0f, 20.0f)))
-			.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20.0f, 20.0f)))
-			.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)));
+		const bool RunningOnMavericks = FPlatformMisc::IsRunningOnMavericks();
+		const FButtonStyle MinimizeButtonStyle = RunningOnMavericks ?
+			FButtonStyle(Button)
+				.SetNormal(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Minimize_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
+		:
+			FButtonStyle(Button)
+				.SetNormal(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Minimize_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Minimize_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Minimize_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
 
-		const FButtonStyle MaximizeButtonStyle = FButtonStyle(Button)
-			.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20.0f, 20.0f)))
-			.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
-			.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
-			.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)));
+		const FButtonStyle MaximizeButtonStyle = RunningOnMavericks ?
+			FButtonStyle(Button)
+				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
+		:
+			FButtonStyle(Button)
+				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
 
-		const FButtonStyle RestoreButtonStyle = FButtonStyle(Button)
-			.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20.0f, 20.0f)))
-			.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
-			.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
-			.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)));
+		const FButtonStyle RestoreButtonStyle = RunningOnMavericks ?
+			FButtonStyle(Button)
+				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
+		:
+			FButtonStyle(Button)
+				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Maximize_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
 
-		const FButtonStyle CloseButtonStyle = FButtonStyle(Button)
-			.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Normal", FVector2D(20.0f, 20.0f)))
-			.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Hovered", FVector2D(20.0f, 20.0f)))
-			.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Pressed", FVector2D(20.0f, 20.0f)))
-			.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)));
+		const FButtonStyle CloseButtonStyle = RunningOnMavericks ?
+			FButtonStyle(Button)
+				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Close_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Disabled", FVector2D(20.0f, 20.0f)))
+		:
+			FButtonStyle(Button)
+				.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Close_Normal", FVector2D(20.0f, 20.0f)))
+				.SetHovered(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Close_Hovered", FVector2D(20.0f, 20.0f)))
+				.SetPressed(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Close_Pressed", FVector2D(20.0f, 20.0f)))
+				.SetDisabled(IMAGE_BRUSH("Common/Window/WindowButton_Mac_Yosemite_Disabled", FVector2D(20.0f, 20.0f)));
 #else
 		const FButtonStyle MinimizeButtonStyle = FButtonStyle(Button)
 			.SetNormal (IMAGE_BRUSH("Common/Window/WindowButton_Minimize_Normal", FVector2D(27.0f, 18.0f)))

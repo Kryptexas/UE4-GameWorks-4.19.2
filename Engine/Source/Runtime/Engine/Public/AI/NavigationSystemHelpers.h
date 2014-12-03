@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavigationTypes.h"
 
 #if WITH_PHYSX
 namespace physx

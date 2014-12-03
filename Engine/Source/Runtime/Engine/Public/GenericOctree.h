@@ -296,7 +296,7 @@ public:
 	/** Construct a child context given the child ref. Optimized to remove all LHS. */
 	FORCEINLINE void GetChildContext(FOctreeChildNodeRef ChildRef, FOctreeNodeContext * RESTRICT ChildContext) const
 	{
-		const FOctreeNodeContext * RESTRICT ParentContext = this;
+		const FOctreeNodeContext* RESTRICT ParentContext = this;
 		ChildContext->Bounds.Center.X = ParentContext->Bounds.Center.X + ParentContext->ChildCenterOffset * GNegativeOneOneTable[ChildRef.X];
 		ChildContext->Bounds.Center.Y = ParentContext->Bounds.Center.Y + ParentContext->ChildCenterOffset * GNegativeOneOneTable[ChildRef.Y];
 		ChildContext->Bounds.Center.Z = ParentContext->Bounds.Center.Z + ParentContext->ChildCenterOffset * GNegativeOneOneTable[ChildRef.Z];

@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_Slot::UAnimGraphNode_Slot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_Slot::UAnimGraphNode_Slot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -28,7 +28,7 @@ FText UAnimGraphNode_Slot::GetTooltipText() const
 
 FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (Node.SlotName != NAME_None)
+	if (Node.SlotName == NAME_None)
 	{
 		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
@@ -43,8 +43,12 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	//        choose to mark this dirty when that happens for this to properly work
 	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
+		UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
+		FName GroupName = (AnimBlueprint->TargetSkeleton) ? AnimBlueprint->TargetSkeleton->GetSlotGroupName(Node.SlotName) : FAnimSlotGroup::DefaultGroupName;
+
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("SlotName"), FText::FromName(Node.SlotName));
+		Args.Add(TEXT("GroupName"), FText::FromName(GroupName));
 
 		// FText::Format() is slow, so we cache this to save on performance
 		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
@@ -53,7 +57,7 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		}
 		else
 		{
-			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeTitle", "{SlotName}\nSlot"), Args));
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeTitle", "Slot '{SlotName}'\nGroup '{GroupName}'"), Args));
 		}
 	}
 	return CachedNodeTitles[TitleType];
@@ -69,8 +73,7 @@ void UAnimGraphNode_Slot::BakeDataDuringCompilation(class FCompilerResultsLog& M
 	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
 	if (AnimBlueprint->TargetSkeleton)
 	{
-		AnimBlueprint->TargetSkeleton->AddSlotNodeName(Node.SlotName);
-		AnimBlueprint->TargetSkeleton->AddSlotGroupName(Node.GroupName);
+		AnimBlueprint->TargetSkeleton->RegisterSlotNode(Node.SlotName);
 	}
 }
 

@@ -14,19 +14,17 @@ class FSessionServicesModule
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FSessionServicesModule( )
-		: SessionManager(NULL)
-		, SessionService(NULL)
+	/** Default constructor. */
+	FSessionServicesModule()
+		: SessionManager(nullptr)
+		, SessionService(nullptr)
 	{ }
 
 public:
 
 	// ISessionServicesModule interface
 
-	virtual ISessionManagerRef GetSessionManager( ) override
+	virtual ISessionManagerRef GetSessionManager() override
 	{
 		if (!SessionManager.IsValid())
 		{
@@ -36,7 +34,7 @@ public:
 		return SessionManager.ToSharedRef();
 	}
 
-	virtual ISessionServiceRef GetSessionService( ) override
+	virtual ISessionServiceRef GetSessionService() override
 	{
 		if (!SessionService.IsValid())
 		{
@@ -50,13 +48,13 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		MessageBusPtr = IMessagingModule::Get().GetDefaultBus();
 		check(MessageBusPtr.IsValid());
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		SessionManager.Reset();
 		SessionService.Reset();
@@ -64,13 +62,13 @@ public:
 
 private:
 	
-	// Holds a weak pointer to the message bus.
+	/** Holds a weak pointer to the message bus. */
 	IMessageBusWeakPtr MessageBusPtr;
 
-	// Holds the session manager singleton.
+	/** Holds the session manager singleton. */
 	ISessionManagerPtr SessionManager;
 
-	// Holds the session service singleton.
+	/** Holds the session service singleton. */
 	ISessionServicePtr SessionService;
 };
 

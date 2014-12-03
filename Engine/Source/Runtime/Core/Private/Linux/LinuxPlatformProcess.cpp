@@ -1,12 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LinuxPlatformProcess.cpp: Linux implementations of Process functions
-=============================================================================*/
-
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "LinuxPlatformRunnableThread.h"
-#include "../../Public/Modules/ModuleVersion.h"
+#include "Public/Modules/ModuleVersion.h"
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
@@ -41,7 +37,7 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return ENGINE_VERSION;
+	return MODULE_API_VERSION;
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()

@@ -103,7 +103,7 @@ public:
 		  ResourceType( EMeshPaintResource::VertexColors ),
 		  PaintMode( EMeshPaintMode::PaintColors ),
 		  PaintColor( 1.0f, 1.0f, 1.0f, 1.0f ),
-		  EraseColor( 0.0f, 0.0f, 0.0f, 1.0f ),
+		  EraseColor( 0.0f, 0.0f, 0.0f, 0.0f ),
 		  bWriteRed( true ),
 		  bWriteGreen( true ),
 		  bWriteBlue( true ),
@@ -846,7 +846,7 @@ public:
 	 * @param Tex Texture info.
 	 * @param ColorMask Mask for filtering which colors to use.
 	 */
-	void PickVertexColorFromTex(FColor & NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8 & ColorMask);
+	void PickVertexColorFromTex(FColor& NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8& ColorMask);
 	
 	/**
 	 * Imports Vertex Color data from texture scanning thought uv vertex coordinates for selected actors.  
@@ -857,5 +857,5 @@ public:
 	 * @param Tex Texture info.
 	 * @param ColorMask Mask for filtering which colors to use.
 	 */
-	void ImportVertexColors(const FString & Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
+	void ImportVertexColors(const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
 };

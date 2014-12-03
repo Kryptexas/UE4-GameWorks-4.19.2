@@ -339,6 +339,18 @@ namespace UnrealBuildTool
 					bUsedXGE = true;
 				}
 
+                if (!bUsedXGE && BuildConfiguration.bAllowSNDBS)
+                {
+                    SNDBS.ExecutionResult SNDBSResult = SNDBS.ExecuteActions(ActionsToExecute);
+                    if( SNDBSResult != SNDBS.ExecutionResult.Unavailable )
+                    {
+                        ExecutorName = "SNDBS";
+                        Result = (SNDBSResult == SNDBS.ExecutionResult.TasksSucceeded);
+                        // don't do local compilation
+                        bUsedXGE = true;
+                     }
+                }
+
 				// If XGE is disallowed or unavailable, execute the commands locally.
 				if (!bUsedXGE)
 				{
@@ -717,7 +729,7 @@ namespace UnrealBuildTool
 						string OldProducingCommandLine = "";
 						string NewProducingCommandLine = RootAction.CommandPath + " " + RootAction.CommandArguments;
 						if (!ActionHistory.GetProducingCommandLine(ProducedItem, out OldProducingCommandLine)
-						|| OldProducingCommandLine != NewProducingCommandLine)
+						|| !String.Equals(OldProducingCommandLine, NewProducingCommandLine, StringComparison.InvariantCultureIgnoreCase))
 						{
 							Log.TraceVerbose(
 								"{0}: Produced item \"{1}\" was produced by outdated command-line.\nOld command-line: {2}\nNew command-line: {3}",

@@ -71,6 +71,11 @@ public:
 	virtual bool IsEmpty( ) const override;
 	virtual bool IsInteractive( ) const override;
 
+	virtual const FText& GetTextTooltip() const
+	{
+		return TextContent.Get();
+	}
+
 public:
 
 	static float GetToolTipWrapWidth();

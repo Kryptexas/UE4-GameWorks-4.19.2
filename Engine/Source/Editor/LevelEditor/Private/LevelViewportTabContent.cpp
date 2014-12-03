@@ -8,6 +8,7 @@
 #include "LevelViewportLayoutThreePanes.h"
 #include "LevelViewportLayoutFourPanes.h"
 #include "SLevelViewport.h"
+#include "SDockTab.h"
 
 
 // FLevelViewportTabContent ///////////////////////////
@@ -71,14 +72,6 @@ const TArray< TSharedPtr< SLevelViewport > >* FLevelViewportTabContent::GetViewp
 		return &ActiveLevelViewportLayout->GetViewports();
 	}
 	return NULL;
-}
-
-void FLevelViewportTabContent::Tick()
-{
-	if (ActiveLevelViewportLayout.IsValid())
-	{
-		ActiveLevelViewportLayout->Tick();
-	}
 }
 
 void FLevelViewportTabContent::SetViewportConfiguration(const FName& ConfigurationName)

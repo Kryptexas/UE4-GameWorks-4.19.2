@@ -36,6 +36,8 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 ///// UTILS
 
@@ -171,9 +173,9 @@ void  FMatinee::UpdateCameraRecording (void)
 
 						const FTransform Transform(LevelVC->GetViewRotation(), LevelVC->GetViewLocation());
 						ACameraActor* NewCam = Cast<ACameraActor>(GEditor->AddActor( LevelVC->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), Transform ));
-						NewCam->CameraComponent->bConstrainAspectRatio = LevelVC->IsAspectRatioConstrained();
-						NewCam->CameraComponent->AspectRatio = LevelVC->AspectRatio;
-						NewCam->CameraComponent->FieldOfView = LevelVC->ViewFOV;
+						NewCam->GetCameraComponent()->bConstrainAspectRatio = LevelVC->IsAspectRatioConstrained();
+						NewCam->GetCameraComponent()->AspectRatio = LevelVC->AspectRatio;
+						NewCam->GetCameraComponent()->FieldOfView = LevelVC->ViewFOV;
 
 						//make new group for the camera
 						UInterpGroup* NewGroup = ConstructObject<UInterpGroup>( UInterpGroup::StaticClass(), IData, NAME_None, RF_Transactional );
@@ -1050,7 +1052,7 @@ void FMatinee::AddKeyToSelection(UInterpGroup* InGroup, UInterpTrack* InTrack, i
 		UInterpGroupInst* GrInst = MatineeActor->FindFirstGroupInst(InGroup);
 		if(GrInst)
 		{
-			AActor * GrActor = GrInst->GetGroupActor();
+			AActor* GrActor = GrInst->GetGroupActor();
 			if (GrActor)
 			{
 				GEditor->SetPivot( GrActor->GetActorLocation(), false, true );
@@ -3788,7 +3790,7 @@ void FMatinee::UpdateCamColours()
 		if(ACameraActor* Cam = Cast<ACameraActor>(Inst->GetGroupActor()))
 		{
 			const FColor OverrideColor = (Inst->GetGroupActor() == ViewedActor) ? ActiveCamColor : Inst->Group->GroupColor;
-			Cam->CameraComponent->OverrideFrustumColor(OverrideColor);
+			Cam->GetCameraComponent()->OverrideFrustumColor(OverrideColor);
 		}
 	}
 }
@@ -3864,8 +3866,8 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 		ACameraActor* CameraActor = Cast<ACameraActor>(InActor);
 		if (CameraActor)
 		{
-			CameraActor->CameraComponent->FieldOfView = InViewportClient->ViewFOV;
-			CameraActor->CameraComponent->AspectRatio = InViewportClient->AspectRatio;
+			CameraActor->GetCameraComponent()->FieldOfView = InViewportClient->ViewFOV;
+			CameraActor->GetCameraComponent()->AspectRatio = InViewportClient->AspectRatio;
 			CameraActor->SetActorLocation(InViewportClient->GetViewLocation(), false);
 			CameraActor->SetActorRotation(InViewportClient->GetViewRotation() );
 		}
@@ -3915,20 +3917,20 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 	{
 		// If the Camera's aspect ratio is zero, put a more reasonable default here - this at least stops it from crashing
 		// nb. the AspectRatio will be reported as a Map Check Warning
-		if( Cam->CameraComponent->AspectRatio == 0 )
+		if( Cam->GetCameraComponent()->AspectRatio == 0 )
 		{
 			InViewportClient->AspectRatio = 1.7f;
 		}
 		else
 		{
-			InViewportClient->AspectRatio = Cam->CameraComponent->AspectRatio;
+			InViewportClient->AspectRatio = Cam->GetCameraComponent()->AspectRatio;
 		}
 
 		//if this isn't the recording viewport OR (it is the recording viewport and it's playing or we're scrubbing the timeline
 		if ((InViewportClient != GetRecordingViewport()) || (MatineeActor && ( MatineeActor->bIsPlaying || (TrackWindow.IsValid() && TrackWindow->InterpEdVC->bGrabbingHandle ) ) ))
 		{
 			//don't stop the camera from zooming when not playing back
-			InViewportClient->ViewFOV = Cam->CameraComponent->FieldOfView;
+			InViewportClient->ViewFOV = Cam->GetCameraComponent()->FieldOfView;
 
 			// If there are selected actors, invalidate the viewports hit proxies, otherwise they won't be selectable afterwards
 			if ( InViewportClient->Viewport && GEditor->GetSelectedActorCount() > 0 )

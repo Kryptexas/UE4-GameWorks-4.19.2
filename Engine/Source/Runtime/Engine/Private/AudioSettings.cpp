@@ -8,7 +8,7 @@
 #include "Sound/AudioSettings.h"
 
 
-UAudioSettings::UAudioSettings(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAudioSettings::UAudioSettings(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }

@@ -14,7 +14,7 @@
 // Forward declarations
 //
 class FCanvas;
-
+class UInterpGroup;
 
 /** Required condition for this track to be enabled */
 UENUM()

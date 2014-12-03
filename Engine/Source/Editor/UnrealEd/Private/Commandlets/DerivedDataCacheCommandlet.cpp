@@ -14,8 +14,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
-UDerivedDataCacheCommandlet::UDerivedDataCacheCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDerivedDataCacheCommandlet::UDerivedDataCacheCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -49,7 +49,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 
 	if (!bStartupOnly && bFillCache)
 	{
-		FCoreDelegates::PackageCreatedForLoad.AddUObject(this, &UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded);
+		FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded);
 
 		TArray<FString> FilesInPath;
 

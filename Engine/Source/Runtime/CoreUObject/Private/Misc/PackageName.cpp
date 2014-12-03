@@ -198,7 +198,7 @@ private:
 		GameScriptPath         = FPaths::GameDir() / TEXT("Script/");
 		GameSavedPath          = FPaths::GameSavedDir();
 
-		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
+		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
 
         GameContentPathRebased = RebasedGameDir / TEXT("Content/");
         GameScriptPathRebased  = RebasedGameDir / TEXT("Script/");

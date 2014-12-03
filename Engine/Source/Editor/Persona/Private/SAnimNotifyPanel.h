@@ -191,20 +191,22 @@ public:
 	void OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float ClickTime, ENotifyPasteMode::Type PasteMode, ENotifyPasteMultipleMode::Type MultiplePasteType);
 
 	/** Handler for properties changing on objects */
-	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 	void OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent);
 
 	/** SWidget Interface */
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent);	
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);	
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual void OnKeyboardFocusLost(const FKeyboardFocusEvent& InKeyboardFocusEvent);
+	virtual void OnFocusLost(const FFocusEvent& InFocusEvent);
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	/** End SWidget Interface */
 
 	void RefreshMarqueeSelectedNodes(const FGeometry& PanelGeo);
+
+	void OnNotifyObjectChanged(UObject* EditorBaseObj, bool bRebuild);
 
 private:
 	TSharedPtr<SBorder> PanelArea;

@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 		/// Android settings.
 		/// </summary>
 		[XmlConfig]
-		public static string AndroidNdkApiTarget = "latest";
+		public static string AndroidNdkApiTarget = "android-19";
 		[XmlConfig]
 		public static string AndroidSdkApiTarget = "latest";
 
@@ -73,8 +73,10 @@ namespace UnrealBuildTool
 
             NDKPath = NDKPath.Replace("\"", "");
 
-            // can't find llvm-3.3 or llvm-3.1 in the toolchains
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) && !Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
+            // need a supported llvm
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")) && 
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
             {
                 return false;
             }
@@ -241,10 +243,6 @@ namespace UnrealBuildTool
 							// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
 							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                         }
-					}
-					else if (InModule.ToString() == "UnrealEd")
-					{
-						InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidPlatformEditor");
 					}
 					else if (InModule.ToString() == "TargetPlatform")
 					{

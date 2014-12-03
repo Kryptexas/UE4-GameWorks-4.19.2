@@ -20,6 +20,7 @@
 #include "FbxMeshUtils.h"
 
 #include "AnimGraphNodeDetails.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
@@ -667,7 +668,7 @@ void FPersonaMeshDetails::RefreshBonesToRemove(TArray<FBoneReference>& InOutBone
 
 		// filter out only the parent, not all children
 		int32 TotalNumOfBonesToRemove = BonesToRemove.Num();
-		const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 		for (int32 Index = 0; Index < TotalNumOfBonesToRemove; ++Index)
 		{
 			bool bNoParent = true;
@@ -1676,7 +1677,7 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 					FClothingAssetData& AssetData = SkelMesh->ClothingAssets[AssetIndex];
 					int32 NumLODs = ApexClothingUtils::GetNumLODs(AssetData.ApexClothingAsset->GetAsset());
 
-					uint32 MaxClothVertices = ApexClothingUtils::GetMaxClothSimulVertices(GRHIFeatureLevel);
+					uint32 MaxClothVertices = ApexClothingUtils::GetMaxClothSimulVertices(GMaxRHIFeatureLevel);
 
 					// check whether there are sub-meshes which have over MaxClothVertices or not
 					// this checking will be removed after changing implementation way for supporting over MaxClothVertices

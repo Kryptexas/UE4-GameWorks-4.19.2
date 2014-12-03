@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AutomationTest.h"
+#include "Misc/AutomationTest.h"
+#include "Tests/TextPropertyTestObject.h"
 
 #define LOCTEXT_NAMESPACE "TextPropertyTest"
 
-UTextPropertyTestObject::UTextPropertyTestObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP), DefaultedText( LOCTEXT("DefaultedText", "DefaultValue") )
+UTextPropertyTestObject::UTextPropertyTestObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), DefaultedText( LOCTEXT("DefaultedText", "DefaultValue") )
 {
 }
 

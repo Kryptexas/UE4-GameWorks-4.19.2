@@ -7,8 +7,8 @@
 #include "EnginePrivate.h"
 #include "Runtime/Engine/Classes/Engine/IntSerialization.h"
 
-UIntSerialization::UIntSerialization(const class FPostConstructInitializeProperties& PCIP)
-	: UObject(PCIP)
+UIntSerialization::UIntSerialization(const FObjectInitializer& ObjectInitializer)
+	: UObject(ObjectInitializer)
 {
 }
 

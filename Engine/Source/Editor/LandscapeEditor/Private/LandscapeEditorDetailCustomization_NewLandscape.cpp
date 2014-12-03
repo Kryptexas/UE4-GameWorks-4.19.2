@@ -27,9 +27,10 @@
 #include "AssetRegistryModule.h"
 #include "ImageWrapper.h"
 
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
+#include "Landscape.h"
+#include "LandscapeLayerInfoObject.h"
 #include "TutorialMetaData.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 
@@ -226,9 +227,8 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		.Roll_Static(&GetOptionalPropertyValue<float>, PropertyHandle_Rotation_Roll)
 		.Pitch_Static(&GetOptionalPropertyValue<float>, PropertyHandle_Rotation_Pitch)
 		.Yaw_Static(&GetOptionalPropertyValue<float>, PropertyHandle_Rotation_Yaw)
-		//.OnRollCommitted _Static(&SetPropertyValue<float>, PropertyHandle_Rotation_Roll) // not allowed to roll or pitch landscape
-		//.OnPitchCommitted_Static(&SetPropertyValue<float>, PropertyHandle_Rotation_Pitch) // not allowed to roll or pitch landscape
-		.OnYawCommitted_Static(&SetPropertyValue<float>, PropertyHandle_Rotation_Yaw)
+		.OnYawCommitted_Static(&SetPropertyValue<float>, PropertyHandle_Rotation_Yaw) // not allowed to roll or pitch landscape
+		.OnYawChanged_Lambda([=](float NewValue){ ensure(PropertyHandle_Rotation_Yaw->SetValue(NewValue, EPropertyValueSetFlags::InteractiveChange) == FPropertyAccess::Success); })
 	];
 
 	TSharedRef<IPropertyHandle> PropertyHandle_Scale = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_Scale));
@@ -352,6 +352,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	];
 
 	NewLandscapeCategory.AddCustomRow("Overall Resolution")
+	.RowTag("LandscapeEditor.OverallResolution")
 	.NameContent()
 	[
 		SNew(SBox)
@@ -410,6 +411,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	];
 
 	NewLandscapeCategory.AddCustomRow("Total Components")
+	.RowTag("LandscapeEditor.TotalComponents")
 	.NameContent()
 	[
 		SNew(SBox)
@@ -527,7 +529,7 @@ TSharedRef<SWidget> FLandscapeEditorDetailCustomization_NewLandscape::GetSection
 
 	for (int32 i = 0; i < ARRAY_COUNT(SectionSizes); i++)
 	{
-		MenuBuilder.AddMenuEntry(FText::Format(LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber(SectionSizes[i])), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionSize, PropertyHandle, SectionSizes[i]));
+		MenuBuilder.AddMenuEntry(FText::Format(LOCTEXT("NxNQuads", "{0}\u00D7{0} Quads"), FText::AsNumber(SectionSizes[i])), FText::GetEmpty(), FSlateIcon(), FExecuteAction::CreateStatic(&OnChangeSectionSize, PropertyHandle, SectionSizes[i]));
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -549,7 +551,7 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetSectionSize(TSharedRe
 		return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
 	}
 
-	return FText::Format(LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber(QuadsPerSection));
+	return FText::Format(LOCTEXT("NxNQuads", "{0}\u00D7{0} Quads"), FText::AsNumber(QuadsPerSection));
 }
 
 TSharedRef<SWidget> FLandscapeEditorDetailCustomization_NewLandscape::GetSectionsPerComponentMenu(TSharedRef<IPropertyHandle> PropertyHandle)
@@ -1082,7 +1084,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnImportHeightmapFilename
 							LandscapeEdMode->UISettings->ImportLandscape_HeightmapError = ELandscapeImportHeightmapError::ColorPng;
 							FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("Import_HeightmapFileColorPng", "The Heightmap file appears to be a color png, grayscale is expected. The import *can* continue, but the result may not be what you expect..."));
 						}
-						if (ImageWrapper->GetBitDepth() != 16)
+						else if (ImageWrapper->GetBitDepth() != 16)
 						{
 							LandscapeEdMode->UISettings->ImportLandscape_HeightmapError = ELandscapeImportHeightmapError::LowBitDepth;
 							FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("Import_HeightmapFileLowBitDepth", "The Heightmap file appears to be an 8-bit png, 16-bit is preferred. The import *can* continue, but the result may be lower quality than desired."));

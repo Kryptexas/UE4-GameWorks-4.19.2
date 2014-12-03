@@ -8,7 +8,7 @@
  * A task node that calls MakeNoise() on this Pawn when executed.
  */
 UCLASS()
-class UBTTask_MakeNoise : public UBTTaskNode
+class AIMODULE_API UBTTask_MakeNoise : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 

@@ -8,6 +8,7 @@
 #include "ObjectEditorUtils.h"		// for GetCategory()
 #include "EdGraphSchema_K2.h"		// for ConvertPropertyToPinType()
 #include "EditorCategoryUtils.h"	// for BuildCategoryString()
+#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 
 #define LOCTEXT_NAMESPACE "BlueprintVariableNodeSpawner"
 
@@ -24,9 +25,44 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 		Outer = GetTransientPackage();
 	}
 
+	//--------------------------------------
+	// Constructing the Spawner
+	//--------------------------------------
+
 	UBlueprintVariableNodeSpawner* NodeSpawner = NewObject<UBlueprintVariableNodeSpawner>(Outer);
 	NodeSpawner->NodeClass = NodeClass;
 	NodeSpawner->Field     = VarProperty;
+
+	//--------------------------------------
+	// Default UI Signature
+	//--------------------------------------
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	FString const VarSubCategory = FObjectEditorUtils::GetCategory(VarProperty);
+	MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, FText::FromString(VarSubCategory));
+
+	FText const VarName = NodeSpawner->GetVariableName();
+	// @TODO: NodeClass could be modified post Create()
+	if (NodeClass->IsChildOf(UK2Node_VariableGet::StaticClass()))
+	{
+		MenuSignature.MenuName = FText::Format(LOCTEXT("GetterMenuName", "Get {0}"), VarName);
+		MenuSignature.Tooltip  = UK2Node_VariableGet::GetPropertyTooltip(VarProperty);
+	}
+	else if (NodeClass->IsChildOf(UK2Node_VariableSet::StaticClass()))
+	{
+		MenuSignature.MenuName = FText::Format(LOCTEXT("SetterMenuName", "Set {0}"), VarName);
+		MenuSignature.Tooltip  = UK2Node_VariableSet::GetPropertyTooltip(VarProperty);
+	}
+	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+	// attempt to query the template node
+	//
+	// @TODO: maybe UPROPERTY() fields should have keyword metadata like functions
+	MenuSignature.Keywords = TEXT(" ");
+	MenuSignature.IconName = UK2Node_Variable::GetVarIconFromPinType(NodeSpawner->GetVarType(), MenuSignature.IconTint);
+
+	//--------------------------------------
+	// Post-Spawn Setup
+	//--------------------------------------
 
 	auto MemberVarSetupLambda = [](UEdGraphNode* NewNode, UField const* Field)
 	{
@@ -34,7 +70,13 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 		{
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(NewNode);
 			UClass* OwnerClass = Property->GetOwnerClass();
-			bool const bIsSelfContext = Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
+
+			// We need to use a generated class instead of a skeleton class for IsChildOf, so if the OwnerClass has a Blueprint, grab the GeneratedClass
+			if(OwnerClass)
+			{
+				OwnerClass = OwnerClass->GetAuthoritativeClass();
+			}
+			bool const bIsSelfContext = Blueprint->SkeletonGeneratedClass->GetAuthoritativeClass() == OwnerClass || Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
 
 			UK2Node_Variable* VarNode = CastChecked<UK2Node_Variable>(NewNode);
 			VarNode->SetFromProperty(Property, bIsSelfContext);
@@ -54,6 +96,10 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 		Outer = GetTransientPackage();
 	}
 
+	//--------------------------------------
+	// Constructing the Spawner
+	//--------------------------------------
+
 	// @TODO: consider splitting out local variable spawners (since they don't 
 	//        conform to UBlueprintFieldNodeSpawner
 	UBlueprintVariableNodeSpawner* NodeSpawner = NewObject<UBlueprintVariableNodeSpawner>(Outer);
@@ -61,12 +107,36 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 	NodeSpawner->LocalVarOuter = VarContext;
 	NodeSpawner->LocalVarDesc  = VarDesc;
 
+	//--------------------------------------
+	// Default UI Signature
+	//--------------------------------------
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, FText::FromName(VarDesc.Category));
+
+	FText const VarName = NodeSpawner->GetVariableName();
+	// @TODO: NodeClass could be modified post Create()
+	if (NodeClass->IsChildOf(UK2Node_VariableGet::StaticClass()))
+	{
+		MenuSignature.MenuName = FText::Format(LOCTEXT("LocalGetterMenuName", "Get {0}"), VarName);
+		MenuSignature.Tooltip  = UK2Node_VariableGet::GetBlueprintVarTooltip(VarDesc);
+	}
+	else if (NodeClass->IsChildOf(UK2Node_VariableSet::StaticClass()))
+	{
+		MenuSignature.MenuName = FText::Format(LOCTEXT("LocalSetterMenuName", "Set {0}"), VarName);
+		MenuSignature.Tooltip  = UK2Node_VariableSet::GetBlueprintVarTooltip(VarDesc);
+	}
+	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+	// attempt to query the template node
+	MenuSignature.Keywords = TEXT(" ");
+	MenuSignature.IconName = UK2Node_Variable::GetVarIconFromPinType(NodeSpawner->GetVarType(), MenuSignature.IconTint);
+
 	return NodeSpawner;
 }
 
 //------------------------------------------------------------------------------
-UBlueprintVariableNodeSpawner::UBlueprintVariableNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintVariableNodeSpawner::UBlueprintVariableNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -75,13 +145,6 @@ void UBlueprintVariableNodeSpawner::Prime()
 {
 	// we expect that you don't need a node template to construct menu entries
 	// from this, so we choose not to pre-cache one here
-
-	// all of these perform expensive FText::Format() operations and cache the 
-	// results...
-	FBindingSet EmptyContext;
-	GetDefaultMenuName(EmptyContext);
-	GetDefaultMenuCategory();
-	GetDefaultMenuTooltip();
 }
 
 //------------------------------------------------------------------------------
@@ -96,6 +159,39 @@ FBlueprintNodeSignature UBlueprintVariableNodeSpawner::GetSpawnerSignature() con
 	}
 	
 	return SpawnerSignature;
+}
+
+//------------------------------------------------------------------------------
+FBlueprintActionUiSpec UBlueprintVariableNodeSpawner::GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const
+{
+	UEdGraph* TargetGraph = (Context.Graphs.Num() > 0) ? Context.Graphs[0] : nullptr;
+	FBlueprintActionUiSpec MenuSignature = PrimeDefaultUiSpec(TargetGraph);
+
+	if (UProperty const* WrappedVariable = GetVarProperty())
+	{
+		checkSlow(Context.Blueprints.Num() > 0);
+		UBlueprint const* TargetBlueprint = Context.Blueprints[0];
+
+		// @TODO: this is duplicated in a couple places, move it to some shared resource
+		UClass const* TargetClass = (TargetBlueprint->GeneratedClass != nullptr) ? TargetBlueprint->GeneratedClass : TargetBlueprint->ParentClass;
+		for (UEdGraphPin* Pin : Context.Pins)
+		{
+			if ((Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) && 
+				 Pin->PinType.PinSubCategoryObject.IsValid())
+			{
+				TargetClass = CastChecked<UClass>(Pin->PinType.PinSubCategoryObject.Get());
+			}
+		}
+
+		UClass const* VariableClass = WrappedVariable->GetOwnerClass()->GetAuthoritativeClass();
+		if (!TargetClass->IsChildOf(VariableClass))
+		{
+			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Class,
+				FText::FromString(VariableClass->GetDisplayNameText().ToString()));
+		}
+	}
+	DynamicUiSignatureGetter.ExecuteIfBound(Context, Bindings, &MenuSignature);
+	return MenuSignature;
 }
 
 //------------------------------------------------------------------------------
@@ -119,7 +215,7 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 			PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(LocalVarSetupLambda, LocalVarDesc.VarName, LocalVarOuter, LocalVarDesc.VarGuid, CustomizeNodeDelegate);
 		}
 
-		NewNode = UBlueprintNodeSpawner::Invoke(ParentGraph, Bindings, Location, PostSpawnDelegate);
+		NewNode = UBlueprintNodeSpawner::SpawnNode(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate);
 	}
 	else
 	{
@@ -127,93 +223,6 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 	}
 
 	return NewNode;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintVariableNodeSpawner::GetDefaultMenuName(const FBindingSet& Bindings) const
-{	
-	if (CachedMenuName.IsOutOfDate())
-	{
-		FText VarName = GetVariableName();
-		check(NodeClass != nullptr);
-
-		// FText::Format() is slow, so we cache this to save on performance
-		if (NodeClass->IsChildOf<UK2Node_VariableGet>())
-		{
-			CachedMenuName = FText::Format(LOCTEXT("GetterMenuName", "Get {0}"), VarName);
-		}
-		else if (NodeClass->IsChildOf<UK2Node_VariableSet>())
-		{
-			CachedMenuName = FText::Format(LOCTEXT("SetterMenuName", "Set {0}"), VarName);
-		}
-	}
-	return CachedMenuName;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintVariableNodeSpawner::GetDefaultMenuCategory() const
-{
-	if (CachedCategory.IsOutOfDate())
-	{
-		FText VarSubCategory;
-		if (IsLocalVariable())
-		{
-			VarSubCategory = FText::FromName(LocalVarDesc.Category);
-		}
-		else if (UProperty const* MemberVariable = GetVarProperty())
-		{
-			VarSubCategory = FText::FromString(FObjectEditorUtils::GetCategory(MemberVariable));
-		}
-		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, VarSubCategory);
-	}
-	return CachedCategory;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintVariableNodeSpawner::GetDefaultMenuTooltip() const
-{
-	if (CachedTooltip.IsOutOfDate())
-	{
-		if (NodeClass->IsChildOf<UK2Node_VariableSet>())
-		{
-			if (IsLocalVariable())
-			{
-				CachedTooltip = UK2Node_VariableSet::GetBlueprintVarTooltip(LocalVarDesc);
-			}
-			else if (UProperty const* MemberVariable = GetVarProperty())
-			{
-				CachedTooltip = UK2Node_VariableSet::GetPropertyTooltip(MemberVariable);
-			}
-		}
-		else if (NodeClass->IsChildOf<UK2Node_VariableGet>())
-		{
-			if (IsLocalVariable())
-			{
-				CachedTooltip = UK2Node_VariableGet::GetBlueprintVarTooltip(LocalVarDesc);
-			}
-			else if (UProperty const* MemberVariable = GetVarProperty())
-			{
-				CachedTooltip = UK2Node_VariableGet::GetPropertyTooltip(MemberVariable);
-			}
-		}
-	}	
-	return CachedTooltip;
-}
-
-//------------------------------------------------------------------------------
-FString UBlueprintVariableNodeSpawner::GetDefaultSearchKeywords() const
-{
-	// @TODO: maybe UPROPERTY() fields should have keyword metadata like functions
-	// 
-	// add at least one character, so that the menu item doesn't attempt to
-	// ping a node template 	
-	return TEXT(" ");
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintVariableNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	return UK2Node_Variable::GetVarIconFromPinType(GetVarType(), ColorOut);
 }
 
 //------------------------------------------------------------------------------

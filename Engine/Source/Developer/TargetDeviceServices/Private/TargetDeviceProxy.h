@@ -18,9 +18,7 @@ class FTargetDeviceProxy
 {
 public:
 
-	/**
-	 * Default constructor
-	 */
+	/** Default constructor. */
 	FTargetDeviceProxy() { }
 
 	/**
@@ -89,25 +87,12 @@ public:
 	}
 
 	virtual int32 GetNumVariants() const override;
-
 	virtual int32 GetVariants(TArray<FName>& OutVariants) const override;
-
-	virtual bool HasVariant(FName InVariant) const override;
-
 	virtual FName GetTargetDeviceVariant(const FString& InDeviceId) const override;
-
-	virtual bool HasDeviceId(const FString& InDeviceId) const override;
-
 	virtual const FString& GetTargetDeviceId(FName InVariant) const override;
-
-	virtual bool HasTargetPlatform(FName InTargetPlatformId) const override;
-
 	virtual FString GetTargetPlatformName(FName InVariant) const override;
-
 	virtual FName GetTargetPlatformId(FName InVariant) const override;
-
 	virtual FName GetVanillaPlatformId(FName InVariant) const override;
-
 	virtual FText GetPlatformDisplayName(FName InVariant) const override;
 
 	virtual const FString& GetHostName() const override
@@ -150,6 +135,10 @@ public:
 		return Type;
 	}
 
+	virtual bool HasDeviceId(const FString& InDeviceId) const override;
+	virtual bool HasVariant(FName InVariant) const override;
+	virtual bool HasTargetPlatform(FName InTargetPlatformId) const override;
+
 	virtual bool IsConnected() const override
 	{
 		return Connected;
@@ -161,7 +150,6 @@ public:
 	}
 
 	virtual bool DeployApp(FName InVariant, const TMap<FString, FString>& Files, const FGuid& TransactionId) override;
-
 	virtual bool LaunchApp(FName InVariant, const FString& AppId, EBuildConfigurations::Type BuildConfiguration, const FString& Params) override;
 
 	virtual FOnTargetDeviceProxyDeployCommitted& OnDeployCommitted() override
@@ -180,119 +168,115 @@ public:
 	}
 
 	virtual void PowerOff(bool Force) override;
-
 	virtual void PowerOn() override;
-
 	virtual void Reboot() override;
-
 	virtual void Run(FName InVariant, const FString& ExecutablePath, const FString& Params) override;
-
 
 protected:
 
-	/**
-	 * Initializes the message endpoint.
-	 */
+	/** Initializes the message endpoint. */
 	void InitializeMessaging();
 
 private:
 
-	// Handles FTargetDeviceServiceDeployFinishedMessage messages.
+	/** Handles FTargetDeviceServiceDeployFinishedMessage messages. */
 	void HandleDeployFinishedMessage(const FTargetDeviceServiceDeployFinished& Message, const IMessageContextRef& Context);
 
-	// Handles FTargetDeviceServiceLaunchFinishedMessage messages.
+	/** Handles FTargetDeviceServiceLaunchFinishedMessage messages. */
 	void HandleLaunchFinishedMessage(const FTargetDeviceServiceLaunchFinished& Message, const IMessageContextRef& Context);
 
 private:
 
-	// Holds a flag indicating whether the device is connected.
+	/** Holds a flag indicating whether the device is connected. */
 	bool Connected;
 
-	// Holds the name of the computer that hosts the device.
+	/** Holds the name of the computer that hosts the device. */
 	FString HostName;
 
-	// Holds the name of the user that owns the device.
+	/** Holds the name of the user that owns the device. */
 	FString HostUser;
 
-	// Holds the time at which the last ping reply was received.
+	/** Holds the time at which the last ping reply was received. */
 	FDateTime LastUpdateTime;
 
-	// Holds the device make.
+	/** Holds the device make. */
 	FString Make;
 
-	// Holds the remote device's message bus address.
+	/** Holds the remote device's message bus address. */
 	FMessageAddress MessageAddress;
 
-	// Holds the local message bus endpoint.
+	/** Holds the local message bus endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
 
-	// Holds the remote device's model.
+	/** Holds the remote device's model. */
 	FString Model;
 
-	// Holds the name of the device.
+	/** Holds the name of the device. */
 	FString Name;
 
-	// Holds device user
+	/** Holds device user. */
 	FString DeviceUser;
 
-	// Holds device user password
+	/** Holds device user password. */
 	FString DeviceUserPassword;
 
-	// Holds a flag indicating whether the device is being shared with other users.
+	/** Holds a flag indicating whether the device is being shared with other users. */
 	bool Shared;
 
-	// Holds a flag indicating whether the device supports multi-launch.
+	/** Holds a flag indicating whether the device supports multi-launch. */
 	bool SupportsMultiLaunch;
 
-	// Holds a flag indicating whether the device can power off.
+	/** Holds a flag indicating whether the device can power off. */
 	bool SupportsPowerOff;
 
-	// Holds a flag indicating whether the device can be power on.
+	/** Holds a flag indicating whether the device can be power on. */
 	bool SupportsPowerOn;
 
-	// Holds a flag indicating whether the device can reboot.
+	/** Holds a flag indicating whether the device can reboot. */
 	bool SupportsReboot;
 
-	// Holds a flag indicating whether the device's target platform supports variants.
+	/** Holds a flag indicating whether the device's target platform supports variants. */
 	bool SupportsVariants;
 
-	// Holds the device type.
+	/** Holds the device type. */
 	FString Type;
 
-	// Holds default variant name.
+	/** Holds default variant name. */
 	FName DefaultVariant;
 
-	// Holds data about a device proxy variant
+
+	/** Holds data about a device proxy variant. */
 	class FTargetDeviceProxyVariant
 	{
 	public:
-		// Holds a string version of the variants device id.
+
+		/** Holds a string version of the variants device id. */
 		FString DeviceID;
 
-		// Holds the variant name, this is the the map key as well
+		/** Holds the variant name, this is the the map key as well. */
 		FName VariantName;
 
-		// Platform information
+		/** Platform information. */
 		FString TargetPlatformName;
 		FName TargetPlatformId;
 		FName VanillaPlatformId;
 		FText PlatformDisplayName;
 	};
 
-	// Map of all the Variants for this Device
+	/** Map of all the Variants for this Device. */
 	TMap<FName, FTargetDeviceProxyVariant> TargetDeviceVariants;
 
 private:
 
-	// Holds a delegate to be invoked when a build has been deployed to the target device.
+	/** Holds a delegate to be invoked when a build has been deployed to the target device. */
 	FOnTargetDeviceProxyDeployCommitted DeployCommittedDelegate;
 
-	// Holds a delegate to be invoked when a build has failed to deploy to the target device.
+	/** Holds a delegate to be invoked when a build has failed to deploy to the target device. */
 	FOnTargetDeviceProxyDeployFailed DeployFailedDelegate;
 
-	// Holds a delegate to be invoked when a build has failed to launch on the target device.
+	/** Holds a delegate to be invoked when a build has failed to launch on the target device. */
 	FOnTargetDeviceProxyLaunchFailed LaunchFailedDelegate;
 
-	// Holds a delegate to be invoked when a build has succeeded to launch on the target device.
+	/** Holds a delegate to be invoked when a build has succeeded to launch on the target device. */
 	FOnTargetDeviceProxyLaunchSucceeded LaunchSucceededDelegate;
 };

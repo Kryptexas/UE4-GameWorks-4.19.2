@@ -2,9 +2,26 @@
 
 #pragma once
 
+#include "IMessageBridge.h"
+#include "IMessageContext.h"
+#include "IMessageTransport.h"
+#include "IReceiveMessages.h"
+#include "ISendMessages.h"
+
 
 /**
  * Implements a message bridge.
+ *
+ * A message bridge is a special message endpoint that connects multiple message buses
+ * running in different processes or on different devices. This allows messages that are
+ * available in one system to also be available on other systems.
+ *
+ * Message bridges use an underlying transport layer to channel the messages between two
+ * or more systems. Such layers may utilize system specific technologies, such as network
+ * sockets or shared memory to communicate with remote bridges. The bridge acts as a map
+ * from message addresses to remote nodes and vice versa.
+ *
+ * @see IMessageBus, IMessageTransport
  */
 class FMessageBridge
 	: public TSharedFromThis<FMessageBridge, ESPMode::ThreadSafe>
@@ -17,24 +34,23 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InAddress The address for this bridge.
+	 * @param InAddress The message address for this bridge.
 	 * @param InBus The message bus that this node is connected to.
-	 * @param InSerializer The message serializer to use.
 	 * @param InTransport The transport mechanism to use.
 	 */
-	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport );
+	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const IMessageTransportRef& InTransport );
 
 	/** Destructor. */
-	~FMessageBridge( );
+	~FMessageBridge();
 
 public:
 
 	// IMessageBridge interface
 
-	virtual void Disable( ) override;
-	virtual void Enable( ) override;
+	virtual void Disable() override;
+	virtual void Enable() override;
 
-	virtual bool IsEnabled( ) const override
+	virtual bool IsEnabled() const override
 	{
 		return Enabled;
 	}
@@ -43,22 +59,22 @@ public:
 
 	// IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const override
+	virtual FName GetDebugName() const override
 	{
 		return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
 	}
 
-	virtual const FGuid& GetRecipientId( ) const override
+	virtual const FGuid& GetRecipientId() const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const override
+	virtual ENamedThreads::Type GetRecipientThread() const override
 	{
 		return ENamedThreads::AnyThread;
 	}
 
-	virtual bool IsLocal( ) const override
+	virtual bool IsLocal() const override
 	{
 		return false;
 	}
@@ -69,7 +85,7 @@ public:
 
 	// ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) override
+	virtual FMessageAddress GetSenderAddress() override
 	{
 		return Address;
 	}
@@ -78,20 +94,18 @@ public:
 
 protected:
 
-	/**
-	 * Shuts down the bridge.
-	 */
-	void Shutdown( );
+	/** Shuts down the bridge. */
+	void Shutdown();
 
 private:
 
-	// Callback for message bus shut downs
-	void HandleMessageBusShutdown( );
+	/** Callback for message bus shutdowns. */
+	void HandleMessageBusShutdown();
 
-	// Callback for received transport messages.
-	void HandleTransportMessageReceived( FArchive& MessageData, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId );
+	/** Callback for messages received from the transport layer. */
+	void HandleTransportMessageReceived( const IMessageContextRef& Envelope, const FGuid& NodeId );
 
-	// Callback for lost transport endpoints.
+	/** Callback for lost remote nodes. */
 	void HandleTransportNodeLost( const FGuid& LostNodeId );
 
 private:
@@ -114,9 +128,6 @@ private:
 	/** Holds the message subscription for outbound messages. */
 	IMessageSubscriptionPtr MessageSubscription;
 
-	/** Holds the message serializer. */
-	ISerializeMessagesPtr Serializer;
-
 	/** Holds the message transport object. */
-	ITransportMessagesPtr Transport;
+	IMessageTransportPtr Transport;
 };

@@ -253,7 +253,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 		for (TObjectIterator<UK2Node> It(RF_Transient); It; ++It)
 		{
 			UK2Node* Node = *It;
-			INodeDependingOnEnumInterface* NodeDependingOnEnum = InterfaceCast<INodeDependingOnEnumInterface>(Node);
+			INodeDependingOnEnumInterface* NodeDependingOnEnum = Cast<INodeDependingOnEnumInterface>(Node);
 			if (FNodeValidatorHelper::IsValid(Node) && NodeDependingOnEnum && (Enum == NodeDependingOnEnum->GetEnum()))
 			{
 				if (UBlueprint* Blueprint = Node->GetBlueprint())

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetPlatform.h: Declares the ITargetPlatform interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,112 +10,82 @@ namespace PlatformInfo
 }
 
 
-namespace ETargetPlatformBuildArtifacts
+/**
+ * Enumerates features that may be supported by target platforms.
+ */
+enum class ETargetPlatformFeatures
 {
-	/**
-	 * Enumerates build artifact types.
-	 */
-	enum Type
-	{
-		/** Include content files. */
-		Content = 0x1,
+	/** Audio Streaming */
+	AudioStreaming,
 
-		/**
-		 * Include debug symbol files, i.e PDB.
-		 *
-		 * Requires 'Engine' artifact type.
-		 */
-		DebugSymbols = 0x2,
+	/** Distance field shadows. */
+	DistanceFieldShadows,
 
-		/** Include Engine binaries and DLLs. */
-		Engine = 0x4,
+	/** Gray scale SRGB texture formats support. */
+	GrayscaleSRGB,
 
-		/** Include tools. */
-		Tools = 0x8,
-	};
-}
+	/** High quality light maps. */
+	HighQualityLightmaps,
 
+	/** Low quality light maps. */
+	LowQualityLightmaps,
 
-namespace ETargetPlatformFeatures
-{
-	/**
-	 * Enumerates features that may be supported by target platforms.
-	 */
-	enum Type
-	{
-		/** Audio Streaming */
-		AudioStreaming,
+	/** Run multiple game instances on a single device. */
+	MultipleGameInstances,
 
-		/** Distance field shadows. */
-		DistanceFieldShadows,
+	/** Builds can be packaged for this platform. */
+	Packaging,
 
-		/** Gray scale SRGB texture formats support. */
-		GrayscaleSRGB,
+	/** Connect and disconnect devices through the SDK. */
+	SdkConnectDisconnect,
 
-		/** High quality light maps. */
-		HighQualityLightmaps,
+	/** GPU tesselation. */
+	Tessellation,
 
-		/** Low quality light maps. */
-		LowQualityLightmaps,
+	/** Texture streaming. */
+	TextureStreaming,
 
-		/** Run multiple game instances on a single device. */
-		MultipleGameInstances,
+	/** User credentials are required to use the device. */
+	UserCredentials,
 
-		/** Builds can be packaged for this platform. */
-		Packaging,
-
-		/** Connect and disconnect devices through the SDK. */
-		SdkConnectDisconnect,
-
-		/** GPU tesselation. */
-		Tessellation,
-
-		/** Texture streaming. */
-		TextureStreaming,
-
-		/** User credentials are required to use the device. */
-		UserCredentials,
-
-		/** Vertex Shader Texture Sampling. */
-		VertexShaderTextureSampling,
-	};
-};
-
-
-namespace ETargetPlatformReadyStatus
-{
-	/**
-	 * Flags specifiying what is needed to be able to complete and deploy a build
-	 */
-	enum Type
-	{
-		/** Ready */
-		Ready = 0,
-
-		/** SDK Not Found*/
-		SDKNotFound = 1,
-
-		/** Code Build Not Supported */
-		CodeUnsupported = 2,
-
-		/** Plugins Not Supported */
-		PluginsUnsupported = 4,
-
-		/** Signing Key Not Found */
-		SigningKeyNotFound = 8,
-
-		/** Provision Not Found */
-		ProvisionNotFound = 16,
-
-		/** Manifest Not Found */
-		ManifestNotFound = 32,
-	};
+	/** Vertex Shader Texture Sampling. */
+	VertexShaderTextureSampling,
 };
 
 
 /**
- * ITargetPlatform, abstraction for cooking platforms and enumerating actual target devices
-**/
+ * Flags specifying what is needed to be able to complete and deploy a build.
+ */
+namespace ETargetPlatformReadyStatus
+{
+	/** Ready */
+	const int32 Ready = 0;
+
+	/** SDK Not Found*/
+	const int32 SDKNotFound = 1;
+
+	/** Code Build Not Supported */
+	const int32 CodeUnsupported = 2;
+
+	/** Plugins Not Supported */
+	const int32 PluginsUnsupported = 4;
+
+	/** Signing Key Not Found */
+	const int32 SigningKeyNotFound = 8;
+
+	/** Provision Not Found */
+	const int32 ProvisionNotFound = 16;
+
+	/** Manifest Not Found */
+	const int32 ManifestNotFound = 32;
+};
+
+
+/**
+ * Interface for target platforms.
+ *
+ * This interface provides an abstraction for cooking platforms and enumerating actual target devices.
+ */
 class ITargetPlatform
 {
 public:
@@ -146,19 +112,29 @@ public:
 	 *
 	 * @see PlatformName
 	 */
-	virtual FText DisplayName( ) const = 0;
+	virtual FText DisplayName() const = 0;
+
+	/**
+	 * Checks whether the platform's build requirements are met so that we can do things like package for the platform.
+	 *
+	 * @param ProjectPath Path to the project.
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked.
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem.
+	 * @return A mask of ETargetPlatformReadyStatus flags to indicate missing requirements, or 0 if all requirements are met.
+	 */
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
 	 * Returns the information about this platform
 	 */
-	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const = 0;
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo() const = 0;
 
 	/**
-	 * Gets the platform's ini name (so an offline tool can load the ini for the given target platform)
+	 * Gets the platform's INI name (so an offline tool can load the INI for the given target platform).
 	 *
 	 * @see PlatformName
 	 */
-	virtual FString IniPlatformName( ) const = 0;
+	virtual FString IniPlatformName() const = 0;
 
 	/**
 	 * Enables/Disable the device check
@@ -177,14 +153,14 @@ public:
 	 *
 	 * @return Compression method.
 	 */
-	virtual ECompressionFlags GetBaseCompressionMethod( ) const = 0;
+	virtual ECompressionFlags GetBaseCompressionMethod() const = 0;
 
 	/** 
 	 * Generates a platform specific asset manifest given an array of FAssetData.
 	 *
-	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets
-	 * @param ChunkIDsInUse A set of all ChunkIDs used by this set of assets
-	 * @return true if the manifest was successfully generated, or if the platform doesn't need a manifest 
+	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets.
+	 * @param ChunkIDsInUse A set of all ChunkIDs used by this set of assets.
+	 * @return true if the manifest was successfully generated, or if the platform doesn't need a manifest .
 	 */
 	virtual bool GenerateStreamingInstallManifest( const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse ) const = 0;
 
@@ -195,7 +171,7 @@ public:
 	 *
 	 * @return Default device.
 	 */
-	virtual ITargetDevicePtr GetDefaultDevice( ) const = 0;
+	virtual ITargetDevicePtr GetDefaultDevice() const = 0;
 
 	/** 
 	 * Gets an interface to the specified device.
@@ -210,14 +186,21 @@ public:
 	 *
 	 * @return true if this platform has editor only data, false otherwise.
 	 */
-	virtual bool HasEditorOnlyData( ) const = 0;
+	virtual bool HasEditorOnlyData() const = 0;
+
+	/**
+	 * Checks whether this platform is only a client (and must connect to a server to run).
+	 *
+	 * @return true if this platform must connect to a server.
+	 */
+	virtual bool IsClientOnly() const = 0;
 
 	/**
 	 * Checks whether this platform is little endian.
 	 *
 	 * @return true if this platform is little-endian, false otherwise.
 	 */
-	virtual bool IsLittleEndian( ) const = 0;
+	virtual bool IsLittleEndian() const = 0;
 
 	/**
 	 * Checks whether this platform is the platform that's currently running.
@@ -227,64 +210,14 @@ public:
 	 *
 	 * @return true if this platform is running, false otherwise.
 	 */
-	virtual bool IsRunningPlatform( ) const = 0;
+	virtual bool IsRunningPlatform() const = 0;
 
 	/**
 	 * Checks whether this platform is only a server.
 	 *
 	 * @return true if this platform has no graphics or audio, etc, false otherwise.
 	 */
-	virtual bool IsServerOnly( ) const = 0;
-
-	/**
-	 * Checks whether this platform is only a client (and must connect to a server to run).
-	 *
-	 * @return true if this platform must connect to a server.
-	 */
-	virtual bool IsClientOnly( ) const = 0;
-
-	/**
-	 * Returns the maximum bones the platform supports.
-	 *
-	 * @return the maximum bones the platform supports.
-	 */
-	virtual uint32 MaxGpuSkinBones( ) const = 0;
-
-	/**
-	 * Checks whether this platform requires cooked data (typically console platforms).
-	 *
-	 * @return true if this platform requires cooked data, false otherwise.
-	 */
-	virtual bool RequiresCookedData( ) const = 0;
-
-	/**
-	 * Checks whether this platform requires user credentials (typically server platforms).
-	 *
-	 * @return true if this platform requires user credentials, false otherwise.
-	 */
-	virtual bool RequiresUserCredentials() const = 0;
-
-	/**
-	 * Checks whether this platform supports the specified build target, i.e. Game or Editor.
-	 *
-	 * @param BuildTarget - The build target to check.
-	 * @return true if the build target is supported, false otherwise.
-	 */
-	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
-
-	/**
-	 * Returns true if the platform supports the AutoSDK system
-	 */
-	virtual bool SupportsAutoSDK() const = 0;
-
-	/**
-	 * Checks whether the target platform supports the specified feature.
-	 *
-	 * @param Feature - The feature to check.
-	 * @return true if the feature is supported, false otherwise.
-	 */
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const = 0;
-
+	virtual bool IsServerOnly() const = 0;
 
 	/**
 	 * Checks whether the platform's SDK requirements are met so that we can do things like
@@ -296,17 +229,47 @@ public:
 	 */
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
+	/**
+	 * Returns the maximum bones the platform supports.
+	 *
+	 * @return the maximum bones the platform supports.
+	 */
+	virtual uint32 MaxGpuSkinBones() const = 0;
 
 	/**
-	 * Checks whether the platform's build requirements are met so that we can do things like
-	 * package for the platform
+	 * Checks whether this platform requires cooked data (typically console platforms).
 	 *
-	 * @param ProjectPath Path to the project
-	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
-	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
-	 * @return Readiness status
+	 * @return true if this platform requires cooked data, false otherwise.
 	 */
-	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+	virtual bool RequiresCookedData() const = 0;
+
+	/**
+	 * Checks whether this platform requires user credentials (typically server platforms).
+	 *
+	 * @return true if this platform requires user credentials, false otherwise.
+	 */
+	virtual bool RequiresUserCredentials() const = 0;
+
+	/**
+	 * Returns true if the platform supports the AutoSDK system
+	 */
+	virtual bool SupportsAutoSDK() const = 0;
+
+	/**
+	 * Checks whether this platform supports the specified build target, i.e. Game or Editor.
+	 *
+	 * @param BuildTarget The build target to check.
+	 * @return true if the build target is supported, false otherwise.
+	 */
+	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
+
+	/**
+	 * Checks whether the target platform supports the specified feature.
+	 *
+	 * @param Feature The feature to check.
+	 * @return true if the feature is supported, false otherwise.
+	 */
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const = 0;
 
 #if WITH_ENGINE
 	/**
@@ -351,14 +314,14 @@ public:
 	 * @param Wave The sound node wave to get the format for.
 	 * @return Name of the wave format.
 	 */
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const = 0;
+	virtual FName GetWaveFormat( const class USoundWave* Wave ) const = 0;
 
 	/**
 	 * Gets the texture LOD settings used by this platform.
 	 *
 	 * @return A texture LOD settings structure.
 	 */
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const = 0;
+	virtual const struct FTextureLODSettings& GetTextureLODSettings() const = 0;
 
 	/**
 	 * Gets the static mesh LOD settings used by this platform.
@@ -420,8 +383,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ITargetPlatform() { }
 };

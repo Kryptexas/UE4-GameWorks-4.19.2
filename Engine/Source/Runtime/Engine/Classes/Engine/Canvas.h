@@ -11,6 +11,7 @@
 class FSceneView;
 class FCanvas;
 class FCanvasItem;
+class UFont;
 
 /**
  * Holds texture information with UV coordinates as well.
@@ -80,7 +81,7 @@ struct FTextSizingParameters
 
 	/** the font to use for sizing/wrapping the string */
 	UPROPERTY()
-	class UFont* DrawFont;
+	const UFont* DrawFont;
 
 	/** Horizontal spacing adjustment between characters and vertical spacing adjustment between wrapped lines */
 	UPROPERTY()
@@ -98,13 +99,13 @@ struct FTextSizingParameters
 	}
 
 
-		FTextSizingParameters( float inDrawX, float inDrawY, float inDrawXL, float inDrawYL, UFont* inFont=NULL )
+		FTextSizingParameters( float inDrawX, float inDrawY, float inDrawXL, float inDrawYL, const UFont* inFont=NULL )
 		: DrawX(inDrawX), DrawY(inDrawY), DrawXL(inDrawXL), DrawYL(inDrawYL)
 		, Scaling(1.f,1.f), DrawFont(inFont)
 		, SpacingAdjust( 0.0f, 0.0f )
 		{
 		}
-		FTextSizingParameters( UFont* inFont, float ScaleX, float ScaleY)
+		FTextSizingParameters( const UFont* inFont, float ScaleX, float ScaleY)
 		: DrawX(0.f), DrawY(0.f), DrawXL(0.f), DrawYL(0.f)
 		, Scaling(ScaleX,ScaleY), DrawFont(inFont)
 		, SpacingAdjust( 0.0f, 0.0f )
@@ -256,18 +257,18 @@ public:
 	 * @param YL out - vertical length of string
 	 * @param Text - string to calculate for
 	 */
-	static void ClippedStrLen(UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text);
+	static void ClippedStrLen(const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text);
 
 	/**	
 	 * Calculate the size of a string built from a font, word wrapped
 	 * to a specified region.
 	 */
-	void VARARGS WrappedStrLenf(UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ...);
+	void VARARGS WrappedStrLenf(const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ...);
 		
 	/**
 	 * Compute size and optionally print text with word wrap.
 	 */
-	int32 WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) ;
+	int32 WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, const UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) ;
 	
 	/** Draws a string of text to the screen 
 	 * @param InFont - font to draw with
@@ -280,9 +281,9 @@ public:
 	 *
 	 * returns the Y extent of the rendered text
 	 */
-	float DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
+	float DrawText(const UFont* InFont, const FString& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
 
-	float DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
+	float DrawText(const UFont* InFont, const FText& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
 
 	enum ELastCharacterIndexFormat
 	{
@@ -365,7 +366,7 @@ public:
 	 * @param XL out - horizontal length of string
 	 * @param YL out - vertical length of string
 	 */
-	void StrLen(UFont* InFont, const FString& InText, float& XL, float& YL);
+	void StrLen(const UFont* InFont, const FString& InText, float& XL, float& YL);
 
 	/** 
 	 * Calculates the horizontal and vertical size of a given string. This is used for clipped text as it does not take wrapping into account.
@@ -376,7 +377,7 @@ public:
 	 * @param ScaleX - scale that the string is expected to draw at horizontally
 	 * @param ScaleY - scale that the string is expected to draw at vertically
 	 */
-	void TextSize( UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX=1.f, float ScaleY=1.f);
+	void TextSize( const UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX=1.f, float ScaleY=1.f);
 	
 	/** Set DrawColor with a FLinearColor and optional opacity override */
 	void SetLinearDrawColor(FLinearColor InColor, float OpacityOverride=-1.f);

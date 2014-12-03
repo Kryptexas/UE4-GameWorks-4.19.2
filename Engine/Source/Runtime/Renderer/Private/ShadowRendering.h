@@ -310,13 +310,14 @@ public:
 		bool bInDirectionalLight,
 		bool bInOnePassPointLightShadow,
 		bool bInPreShadow,
+		ERHIFeatureLevel::Type InFeatureLevel,
 		const FVertexFactory* InVertexFactory = 0,
 		const FMaterialRenderProxy* InMaterialRenderProxy = 0,
 		bool bInCastShadowAsTwoSided = false,
 		bool bReverseCulling = false
 		);
 
-	void UpdateElementState(FShadowStaticMeshElement& State);
+	void UpdateElementState(FShadowStaticMeshElement& State, ERHIFeatureLevel::Type FeatureLevel);
 
 	FShadowDepthDrawingPolicy& operator = (const FShadowDepthDrawingPolicy& Other)
 	{ 
@@ -330,6 +331,7 @@ public:
 		bOnePassPointLightShadow = Other.bOnePassPointLightShadow;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		bPreShadow = Other.bPreShadow;
+		FeatureLevel = Other.FeatureLevel;
 		(FMeshDrawingPolicy&)*this = (const FMeshDrawingPolicy&)Other;
 		return *this; 
 	}
@@ -347,7 +349,8 @@ public:
 			&& bReverseCulling == Other.bReverseCulling
 			&& bOnePassPointLightShadow == Other.bOnePassPointLightShadow
 			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
-			&& bPreShadow == Other.bPreShadow;
+			&& bPreShadow == Other.bPreShadow
+			&& FeatureLevel == Other.FeatureLevel;
 	}
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
@@ -384,6 +387,7 @@ private:
 	TShadowDepthBasePS<bRenderingReflectiveShadowMaps>* PixelShader;
 	class FBaseHS* HullShader;
 	class FShadowDepthDS* DomainShader;
+	ERHIFeatureLevel::Type FeatureLevel;
 
 public:
 
@@ -509,7 +513,7 @@ public:
 	/** Parent primitive of the shadow group that created this shadow, if not a bWholeSceneShadow. */
 	const FPrimitiveSceneInfo* const ParentSceneInfo;
 
-	/** The view this shadow must be rendered in, or NULL for a view independent shadow. */
+	/** The main view this shadow must be rendered in, or NULL for a view independent shadow. */
 	FViewInfo* DependentView;
 
 	/** Index of the shadow into FVisibleLightInfo::AllProjectedShadows. */
@@ -604,6 +608,9 @@ public:
 	/** Whether the shadow is a preshadow or not.  A preshadow is a per object shadow that handles the static environment casting on a dynamic receiver. */
 	uint32 bPreShadow : 1;
 
+	/** To not cast a shadow on the ground outside the object and having higher quality (useful for first person weapon). */
+	uint32 bSelfShadowOnly : 1;
+
 	/** Whether the shadow is a directional light cascade that should be computed by ray tracing mesh distance fields. */
 	uint32 bRayTracedDistanceFieldShadow : 1;
 
@@ -624,12 +631,18 @@ private:
 	PrimitiveArrayType SubjectPrimitives;
 	/** For preshadows, this contains the receiver primitives to mask the projection to. */
 	PrimitiveArrayType ReceiverPrimitives;
+	/** Subject primitives with translucent relevance. */
+	PrimitiveArrayType SubjectTranslucentPrimitives;
 
 	/** Static shadow casting elements. */
 	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
 
-	/** Subject primitives with translucent relevance. */
-	PrimitiveArrayType SubjectTranslucentPrimitives;
+	/** Dynamic mesh elements for subject primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectMeshElements;
+	/** Dynamic mesh elements for receiver primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicReceiverMeshElements;
+	/** Dynamic mesh elements for translucent subject primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectTranslucentMeshElements;
 
 	/**
 	 * Bias during in shadowmap rendering, stored redundantly for better performance 
@@ -639,7 +652,10 @@ private:
 
 public:
 
-	/** Initialization constructor for a per-object shadow. e.g. translucent particle system */
+	/**
+	 * Initialization constructor for a per-object shadow. e.g. translucent particle system
+	 * @param InParentSceneInfo must not be 0
+	 */
 	FProjectedShadowInfo(
 		FLightSceneInfo* InLightSceneInfo,
 		const FPrimitiveSceneInfo* InParentSceneInfo,
@@ -667,7 +683,10 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets);
+
+	/** Set state for depth rendering */
+	void SetStateForDepth(FRHICommandList& RHICmdList);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
@@ -704,6 +723,9 @@ public:
 	 * Adds a primitive to the shadow's receiver list.
 	 */
 	void AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo);
+
+	/** Gathers dynamic mesh elements for all the shadow's primitives arrays. */
+	void GatherDynamicMeshElements(FSceneRenderer& Renderer, class FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray);
 
 	/** 
 	 * @param View view to check visibility in
@@ -752,7 +774,7 @@ private:
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets);
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view
@@ -766,6 +788,14 @@ private:
 
 	/** Updates object buffers needed by ray traced distance field shadows. */
 	int32 UpdateShadowCastingObjectBuffers() const;
+
+	/** Gathers dynamic mesh elements for the given primitive array. */
+	void GatherDynamicMeshElementsArray(
+		FViewInfo* FoundView,
+		FSceneRenderer& Renderer, 
+		PrimitiveArrayType& PrimitiveArray, 
+		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
+		TArray<const FSceneView*>& ReusedViewsArray);
 };
 
 /** Shader parameters for rendering the depth of a mesh for shadowing. */

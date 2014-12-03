@@ -9,6 +9,7 @@
 #include "SourceCodeNavigation.h"
 #include "TargetPlatform.h"
 #include "PlatformInfo.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -349,6 +350,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 		.ListItemsSource(&Category->FilteredProjectItemsSource)
 		.SelectionMode(ESelectionMode::Single)
 		.ClearSelectionOnClick(false)
+		.AllowOverscroll(EAllowOverscroll::No)
 		.OnGenerateTile(this, &SProjectBrowser::MakeProjectViewWidget)
 		.OnContextMenuOpening(this, &SProjectBrowser::OnGetContextMenuContent)
 		.OnMouseButtonDoubleClick(this, &SProjectBrowser::HandleProjectItemDoubleClick)
@@ -942,9 +944,9 @@ void SProjectBrowser::PopulateFilteredProjectCategories()
 	}
 }
 
-FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.GetKey() == EKeys::F5)
+	if (InKeyEvent.GetKey() == EKeys::F5)
 	{
 		return FindProjects();
 	}
@@ -999,11 +1001,18 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 		if(Selection == OpenCopyButton)
 		{
 			FString NewProjectFile;
-			if(!GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile))
+			GameProjectUtils::EProjectDuplicateResult DuplicateResult = GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile);
+
+			if (DuplicateResult == GameProjectUtils::EProjectDuplicateResult::UserCanceled)
+			{
+				return false;
+			}
+			else if (DuplicateResult == GameProjectUtils::EProjectDuplicateResult::Failed)
 			{
 				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCopyFailed", "Couldn't copy project. Check you have sufficient hard drive space and write access to the project folder.") );
 				return false;
 			}
+
 			ProjectFile = NewProjectFile;
 		}
 		if(Selection == OpenExistingButton)

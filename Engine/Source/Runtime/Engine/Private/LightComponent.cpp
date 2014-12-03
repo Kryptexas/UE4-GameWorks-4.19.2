@@ -12,10 +12,11 @@
 #include "UObjectToken.h"
 #include "ComponentInstanceDataCache.h"
 #include "TargetPlatform.h"
+#include "ComponentReregisterContext.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {
-	if (ShadowMapSizeX > 0 && ShadowMapSizeY > 0 && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (ShadowMapSizeX > 0 && ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(ShadowMapSizeX, ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);
@@ -62,6 +63,16 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
 	}
 
 	return Ar;
+}
+
+void ULightComponentBase::SetCastShadows(bool bNewValue)
+{
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& CastShadows != bNewValue)
+	{
+		CastShadows = bNewValue;
+		MarkRenderStateDirty();
+	}
 }
 
 void ULightComponentBase::Serialize(FArchive& Ar)
@@ -274,8 +285,8 @@ void FLightSceneProxy::ApplyWorldOffset(FVector InOffset)
 	SetTransform(NewLightToWorld, NewPosition);
 }
 
-ULightComponentBase::ULightComponentBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Brightness_DEPRECATED = 3.1415926535897932f;
 	Intensity = 3.1415926535897932f;
@@ -290,8 +301,8 @@ ULightComponentBase::ULightComponentBase(const class FPostConstructInitializePro
 /**
  * Updates/ resets light GUIDs.
  */
-ULightComponent::ULightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ShadowMapChannel = INDEX_NONE;
 	PreviewShadowMapChannel = INDEX_NONE;
@@ -720,16 +731,6 @@ void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDis
 	}
 }
 
-void ULightComponent::SetCastShadows(bool bNewValue)
-{
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
-		&& CastShadows != bNewValue)
-	{
-		CastShadows = bNewValue;
-		MarkRenderStateDirty();
-	}
-}
-
 void ULightComponent::SetAffectDynamicIndirectLighting(bool bNewValue)
 {
 	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
@@ -900,16 +901,16 @@ FName ULightComponent::GetComponentInstanceDataType() const
 	return PrecomputedLightInstanceDataTypeName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> ULightComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* ULightComponent::GetComponentInstanceData() const
 {
 	// Allocate new struct for holding light map data
-	return MakeShareable(new FPrecomputedLightInstanceData(this));
+	return new FPrecomputedLightInstanceData(this);
 }
 
-void ULightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void ULightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
-	TSharedPtr<FPrecomputedLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedLightInstanceData>(ComponentInstanceData);
+	check(ComponentInstanceData);
+	FPrecomputedLightInstanceData* LightMapData  = static_cast<FPrecomputedLightInstanceData*>(ComponentInstanceData);
 
 	LightGuid = LightMapData->LightGuid;
 	ShadowMapChannel = LightMapData->ShadowMapChannel;

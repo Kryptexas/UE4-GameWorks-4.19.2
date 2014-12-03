@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 
 /* FTimespan interface
@@ -29,7 +29,7 @@ bool FTimespan::Serialize( FArchive& Ar )
 }
 
 
-FString FTimespan::ToString( ) const
+FString FTimespan::ToString() const
 {
 	if (GetDays() == 0)
 	{
@@ -113,7 +113,7 @@ FTimespan FTimespan::FromMinutes( double Minutes )
 
 FTimespan FTimespan::FromSeconds( double Seconds )
 {
-	check((Seconds >= MinValue().GetTotalMinutes()) && (Seconds <= MaxValue().GetTotalMinutes()));
+	check((Seconds >= MinValue().GetTotalSeconds()) && (Seconds <= MaxValue().GetTotalSeconds()));
 
 	return FTimespan(Seconds * ETimespan::TicksPerSecond);
 }

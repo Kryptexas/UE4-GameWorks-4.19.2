@@ -2,6 +2,7 @@
 
 #include "SlatePrivatePCH.h"
  
+DECLARE_CYCLE_STAT( TEXT("OnPaint SBorder"), STAT_SlateOnPaint_SBorder, STATGROUP_Slate );
 
 SBorder::SBorder()
 	: BorderImage( FCoreStyle::Get().GetBrush( "Border" ) )

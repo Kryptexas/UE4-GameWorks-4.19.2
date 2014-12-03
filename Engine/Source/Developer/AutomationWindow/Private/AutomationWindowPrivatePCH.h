@@ -12,7 +12,7 @@
 #include "DesktopPlatformModule.h"
 #include "IFilter.h"
 #include "SessionServices.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 
 

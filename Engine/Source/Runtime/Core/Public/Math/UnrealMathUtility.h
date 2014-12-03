@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "HAL/PlatformMath.h"
 
 //#define IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 
@@ -72,7 +74,8 @@ struct FLinearColor;
 #define THRESH_SPLIT_POLY_WITH_PLANE	(0.25f)		/* A plane splits a polygon in half */
 #define THRESH_SPLIT_POLY_PRECISELY		(0.01f)		/* A plane exactly splits a polygon */
 #define THRESH_ZERO_NORM_SQUARED		(0.0001f)	/* Size of a unit normal that is considered "zero", squared */
-#define THRESH_VECTORS_ARE_PARALLEL		(0.02f)		/* Vectors are parallel if dot product varies less than this */
+#define THRESH_NORMALS_ARE_PARALLEL		(0.999845f)	/* Two unit vectors are parallel if abs(A dot B) is greater than or equal to this. This is roughly cosine(1.0 degrees). */
+#define THRESH_NORMALS_ARE_ORTHOGONAL	(0.017455f)	/* Two unit vectors are orthogonal (perpendicular) if abs(A dot B) is less than or equal this. This is roughly cosine(89.0 degrees). */
 
 #define THRESH_VECTOR_NORMALIZED		(0.01f)		/** Allowed error for a normalized vector (against squared magnitude) */
 #define THRESH_QUAT_NORMALIZED			(0.01f)		/** Allowed error for a normalized quaternion (against squared magnitude) */
@@ -127,6 +130,17 @@ struct FMath : public FPlatformMath
 	/** Returns a random point within the passed in bounding box */
 	static CORE_API FVector RandPointInBox(const FBox& Box);
 
+	/** 
+	 * Given a direction vector and a surface normal, returns the vector reflected across the surface normal.
+	 * Produces a result like shining a laser at a mirror!
+	 *
+	 * @param Direction Direction vector the ray is comming from.
+	 * @param SurfaceNormal A normal of the surface the ray should be reflected on.
+	 *
+	 * @returns Reflected vector.
+	 */
+	static CORE_API FVector GetReflectionVector(const FVector& Direction, const FVector& SurfaceNormal);
+	
 	// Predicates
 
 	/** Checks if value is within a range, exclusive on MaxValue) */
@@ -287,7 +301,13 @@ struct FMath : public FPlatformMath
 	 * @return					Value in degrees.
 	 */
 	template<class T>
-	static FORCEINLINE T RadiansToDegrees(T const& RadVal)
+	static FORCEINLINE float RadiansToDegrees(T const& RadVal)
+	{
+		return RadVal * (180.f / PI);
+	}
+
+	/** This overload allows us to maintain double precision */
+	static FORCEINLINE double RadiansToDegrees(double RadVal)
 	{
 		return RadVal * (180.f / PI);
 	}
@@ -298,7 +318,13 @@ struct FMath : public FPlatformMath
 	 * @return					Value in radians.
 	 */
 	template<class T>
-	static FORCEINLINE T DegreesToRadians(T const& DegVal)
+	static FORCEINLINE float DegreesToRadians(T const& DegVal)
+	{
+		return DegVal * (PI / 180.f);
+	}
+
+	/** This overload allows us to maintain double precision */
+	static FORCEINLINE double DegreesToRadians(double DegVal)
 	{
 		return DegVal * (PI / 180.f);
 	}
@@ -467,6 +493,13 @@ struct FMath : public FPlatformMath
 		return (T)((A * (1.0 - Alpha)) + (B * Alpha));
 	}
 
+	/** Performs a linear interpolation between two values, Alpha ranges from 0-1. Handles full numeric range of T */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T LerpStable(const T& A, const T& B, float Alpha)
+	{
+		return (T)((A * (1.0f - Alpha)) + (B * Alpha));
+	}
+
 	/** Performs a 2D linear interpolation between four values values, FracX, FracY ranges from 0-1 */
 	template< class T, class U > 
 	static FORCEINLINE_DEBUGGABLE T BiLerp(const T& P00,const T& P10,const T& P01,const T& P11, const U& FracX, const U& FracY)
@@ -555,9 +588,11 @@ struct FMath : public FPlatformMath
 	template< class T > 
 	static FORCEINLINE_DEBUGGABLE T InterpEaseInOut( const T& A, const T& B, float Alpha, float Exp )
 	{
-		return (Alpha < 0.5f) ?
-			InterpEaseIn(A, B, Alpha * 2.f, Exp) * 0.5f :
-			InterpEaseOut(A, B, Alpha * 2.f - 1.f, Exp) * 0.5f + 0.5f;
+		float const ModifiedAlpha = (Alpha < 0.5f) ?
+			0.5f * Pow(2.f * Alpha, Exp) :
+			1.f - 0.5f * Pow(2.f * (1.f - Alpha), Exp);
+
+		return Lerp<T>(A, B, ModifiedAlpha);
 	}
 
 	/** Interpolation between A and B, applying a step function. */

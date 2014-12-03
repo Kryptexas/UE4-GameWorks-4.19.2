@@ -62,7 +62,7 @@
 	#define CA_CHECK_RETVAL [returnvalue:Post(MustCheck=Yes)]
 
 	// Function is expected to never return
-	#define CA_NORETURN __declspec(noreturn)
+	#define CA_NO_RETURN __declspec(noreturn)
 
 	// Suppresses a warning for a single occurrence.  Should be used only for code analysis warnings on Windows platform!
 	#define CA_SUPPRESS( WarningNumber ) __pragma( warning( suppress: WarningNumber ) )

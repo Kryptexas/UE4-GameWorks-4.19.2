@@ -6,7 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformAtomics.h"
+#include "Linux/LinuxSystemIncludes.h"
 
 /**
  * Android implementation of the Atomics OS functions.

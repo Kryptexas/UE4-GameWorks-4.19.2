@@ -101,6 +101,7 @@ struct FStreamedAudioPlatformData
 #if WITH_EDITORONLY_DATA
 	void Cache(class USoundWave& InSoundWave, FName AudioFormatName, uint32 InFlags);
 	void FinishCache();
+	bool IsFinishedCache() const;
 	ENGINE_API bool TryInlineChunkData();
 	bool AreDerivedChunksAvailable() const;
 #endif
@@ -388,6 +389,8 @@ public:
 	 * Begins caching platform data in the background for the platform requested
 	 */
 	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
+
+	virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) override;
 
 	/**
 	 * Begins caching platform data in the background.

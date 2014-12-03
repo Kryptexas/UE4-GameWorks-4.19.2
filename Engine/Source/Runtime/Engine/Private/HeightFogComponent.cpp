@@ -5,11 +5,12 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
+#include "Components/ExponentialHeightFogComponent.h"
 #include "Engine/ExponentialHeightFog.h"
+#include "Net/UnrealNetwork.h"
 
-UExponentialHeightFogComponent::UExponentialHeightFogComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled_DEPRECATED = true;
 
@@ -157,16 +158,16 @@ void UExponentialHeightFogComponent::SetStartDistance(float Value)
 //////////////////////////////////////////////////////////////////////////
 // AExponentialHeightFog
 
-AExponentialHeightFog::AExponentialHeightFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AExponentialHeightFog::AExponentialHeightFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	Component = PCIP.CreateDefaultSubobject<UExponentialHeightFogComponent>(this, TEXT("HeightFogComponent0"));
+	Component = ObjectInitializer.CreateDefaultSubobject<UExponentialHeightFogComponent>(this, TEXT("HeightFogComponent0"));
 	RootComponent = Component;
 
 	bHidden = false;
 
 #if WITH_EDITORONLY_DATA
-	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
+	if (!IsRunningCommandlet() && (GetSpriteComponent() != NULL))
 	{
 		// Structure to hold one-time initialization
 		struct FConstructorStatics
@@ -183,11 +184,11 @@ AExponentialHeightFog::AExponentialHeightFog(const class FPostConstructInitializ
 		};
 		static FConstructorStatics ConstructorStatics;
 
-		SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
-		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
-		SpriteComponent->AttachParent = Component;
+		GetSpriteComponent()->Sprite = ConstructorStatics.FogTextureObject.Get();
+		GetSpriteComponent()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+		GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Fog;
+		GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
+		GetSpriteComponent()->AttachParent = Component;
 	}
 #endif // WITH_EDITORONLY_DATA
 }
@@ -210,3 +211,6 @@ void AExponentialHeightFog::OnRep_bEnabled()
 {
 	Component->SetVisibility(bEnabled);
 }
+
+/** Returns Component subobject **/
+UExponentialHeightFogComponent* AExponentialHeightFog::GetComponent() const { return Component; }

@@ -26,8 +26,8 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddPlayMovieScene::PerformAction(class UEdG
 }
 
 
-UK2Node_PlayMovieScene::UK2Node_PlayMovieScene(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_PlayMovieScene::UK2Node_PlayMovieScene(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

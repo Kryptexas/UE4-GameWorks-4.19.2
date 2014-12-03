@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of FSessionBrowserOwnerFilter. */
-typedef TSharedPtr<class FSessionBrowserOwnerFilter> FSessionBrowserOwnerFilterPtr;
-
-/** Type definition for shared references to instances of FSessionBrowserOwnerFilter. */
-typedef TSharedRef<class FSessionBrowserOwnerFilter> FSessionBrowserOwnerFilterRef;
-
-
 /**
  * Delegate type for session owner filter state changes.
  *
@@ -59,7 +52,7 @@ public:
 	 *
 	 * @return The user name of the session owner.
 	 */
-	const FString& GetOwnerName( )
+	const FString& GetOwnerName()
 	{
 		return OwnerName;
 	}
@@ -69,7 +62,7 @@ public:
 	 *
 	 * @return Checked if the filter is enabled, Unchecked otherwise.
 	 */
-	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled( ) const
+	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled() const
 	{
 		return (Enabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
 	}
@@ -77,23 +70,30 @@ public:
 	/**
 	 * Checks whether this filter is enabled.
 	 *
-	 * @param true if the filter is enabled, false otherwise.
+	 * @return true if the filter is enabled, false otherwise.
 	 */
-	bool IsEnabled( ) const
+	bool IsEnabled() const
 	{
 		return Enabled;
 	}
 
 private:
 
-	// Holds a flag indicating whether this filter is enabled.
+	/** Holds a flag indicating whether this filter is enabled. */
 	bool Enabled;
 
-	// Holds the name of the session owner.
+	/** Holds the name of the session owner. */
 	FString OwnerName;
 
 private:
 
-	// Holds a delegate that is executed when the filter's enabled state changed.
+	/** Holds a delegate that is executed when the filter's enabled state changed. */
 	FOnSessionBrowserOwnerFilterStateChanged OnStateChanged;
 };
+
+
+/** Type definition for shared pointers to instances of FSessionBrowserOwnerFilter. */
+typedef TSharedPtr<FSessionBrowserOwnerFilter> FSessionBrowserOwnerFilterPtr;
+
+/** Type definition for shared references to instances of FSessionBrowserOwnerFilter. */
+typedef TSharedRef<FSessionBrowserOwnerFilter> FSessionBrowserOwnerFilterRef;

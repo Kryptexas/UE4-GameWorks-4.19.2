@@ -9,6 +9,11 @@ class FHeadMountedDisplayModule : public IHeadMountedDisplayModule
 		TSharedPtr<IHeadMountedDisplay> DummyVal = NULL;
 		return DummyVal;
 	}
+
+	FString GetModulePriorityKeyName() const
+	{
+		return FString(TEXT("Default"));
+	}
 };
 
 IMPLEMENT_MODULE( FHeadMountedDisplayModule, HeadMountedDisplay );

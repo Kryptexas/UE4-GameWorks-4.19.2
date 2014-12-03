@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 
-UBlackboardKeyType::UBlackboardKeyType(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType::UBlackboardKeyType(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = 0;
 	SupportedOp = EBlackboardKeyOperation::Basic;
@@ -42,6 +42,21 @@ bool UBlackboardKeyType::GetLocation(const uint8* RawData, FVector& Location) co
 
 bool UBlackboardKeyType::GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const
 {
+	return false;
+}
+
+bool UBlackboardKeyType::Clear(uint8* MemoryBlock) const
+{
+	for (int32 ByteIndex = 0; ByteIndex < GetValueSize(); ++ByteIndex)
+	{
+		if (MemoryBlock[ByteIndex] != uint8(0))
+		{
+			FMemory::Memzero(MemoryBlock, GetValueSize());
+			return true;
+		}		
+	}
+
+	// value already "0", return false to indicate it had not changed
 	return false;
 }
 

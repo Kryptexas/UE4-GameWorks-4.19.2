@@ -28,7 +28,7 @@
 
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
-	-nochunks			Creates file based patch data instead of chunk based patch data.
+	-nochunks			Creates file based patch data instead of chunk based patch data. Should not be used with builds that have large files.
 	-FileIgnoreList=""	Specifies in quotes, the path to a text file containing BuildRoot relative files, separated by \r\n line endings, to not be included in the build.
 	-PrereqName=""		Specifies in quotes, the display name for the prerequisites installer
 	-PrereqPath=""		Specifies in quotes, the prerequisites installer to launch on successful product install
@@ -55,6 +55,7 @@
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
 	-preview			Log all the actions it will take to update internal structures, but don't actually execute them.
+	-touchonly			When specified, will only set the modified date of referenced files to the current time, but will NOT delete any patch data.
 	-ManifestsList=""			Specifies in quotes, the list of manifest filenames to keep following the operation. If omitted, all manifests are kept.
 	-ManifestsFile=""			Specifies in quotes, the name of the file (relative to CloudDir) which contains a list of manifests to keep, one manifest filename per line
 	-DataAgeThreshold=14.25		The maximum age in days of chunk files that will be retained. All older chunks will be deleted.
@@ -73,6 +74,8 @@
 
 #include "BuildPatchServices.h"
 
+#include "CoreUObject.h"
+
 // Ensure compiled with patch generation code
 #if WITH_BUILDPATCHGENERATION
 #else
@@ -87,9 +90,9 @@ struct FCommandLineMatcher
 
 	FCommandLineMatcher(){}
 
-	FORCEINLINE bool Matches( const FString& ToMatch ) const
+	FORCEINLINE bool operator()(const FString& ToMatch) const
 	{
-		if( ToMatch.StartsWith( Command, ESearchCase::CaseSensitive ) )
+		if (ToMatch.StartsWith(Command, ESearchCase::CaseSensitive))
 		{
 			return true;
 		}
@@ -153,6 +156,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	bool bCompactify = false;
 	bool bPatchGeneration = true;
 	bool bPreview = false;
+	bool bTouchOnly = false;
 	bool bPatchWithReuseAgeThreshold = true;
 
 	// Collect all the info from the CommandLine
@@ -179,53 +183,56 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		bSuccess = true;
 
 		Matcher.Command = TEXT("compactify");
-		bCompactify = Switches.FindMatch(Matcher) != INDEX_NONE;
+		bCompactify = Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
 		bPatchGeneration = !bCompactify;
 
 		Matcher.Command = TEXT("preview");
-		bPreview = bCompactify && Switches.FindMatch(Matcher) != INDEX_NONE;
+		bPreview = bCompactify && Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
+
+		Matcher.Command = TEXT("touchonly");
+		bTouchOnly = bCompactify && Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
 		
 		Matcher.Command = TEXT( "BuildRoot" );
-		BuildRootIdx = Switches.FindMatch( Matcher );
+		BuildRootIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "CloudDir" );
-		CloudDirIdx = Switches.FindMatch( Matcher );
+		CloudDirIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppID" );
-		AppIDIdx = Switches.FindMatch( Matcher );
+		AppIDIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppName" );
-		AppNameIdx = Switches.FindMatch( Matcher );
+		AppNameIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "BuildVersion" );
-		BuildVersionIdx = Switches.FindMatch( Matcher );
+		BuildVersionIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppLaunch" );
-		AppLaunchIdx = Switches.FindMatch( Matcher );
+		AppLaunchIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppArgs" );
-		AppArgsIdx = Switches.FindMatch( Matcher );
+		AppArgsIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "FileIgnoreList" );
-		FileIgnoreListIdx = Switches.FindMatch( Matcher );
+		FileIgnoreListIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "PrereqName" );
-		PrereqNameIdx = Switches.FindMatch( Matcher );
+		PrereqNameIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "PrereqPath" );
-		PrereqPathIdx = Switches.FindMatch( Matcher );
+		PrereqPathIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "PrereqArgs" );
-		PrereqArgsIdx = Switches.FindMatch( Matcher );
+		PrereqArgsIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT("ManifestsList");
-		ManifestsListIdx = Switches.FindMatch(Matcher);
+		ManifestsListIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT("ManifestsFile");
-		ManifestsFileIdx = Switches.FindMatch(Matcher);
+		ManifestsFileIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT("DataAgeThreshold");
-		DataAgeThresholdIdx = Switches.FindMatch(Matcher);
+		DataAgeThresholdIdx = Switches.IndexOfByPredicate(Matcher);
 
 		// Check required param indexes
 		bSuccess = bSuccess && CloudDirIdx != INDEX_NONE;
@@ -259,17 +266,17 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 		if( PrereqNameIdx != INDEX_NONE )
 		{
-			FParse::Value( *Switches[ PrereqNameIdx ], TEXT( "FileIgnoreList=" ), PrereqName );
+			FParse::Value( *Switches[ PrereqNameIdx ], TEXT( "PrereqName=" ), PrereqName );
 		}
 
 		if( PrereqPathIdx != INDEX_NONE )
 		{
-			FParse::Value( *Switches[ PrereqPathIdx ], TEXT( "FileIgnoreList=" ), PrereqPath );
+			FParse::Value( *Switches[ PrereqPathIdx ], TEXT( "PrereqPath=" ), PrereqPath );
 		}
 
 		if( PrereqArgsIdx != INDEX_NONE )
 		{
-			FParse::Value( *Switches[ PrereqArgsIdx ], TEXT( "FileIgnoreList=" ), PrereqArgs );
+			FParse::Value( *Switches[ PrereqArgsIdx ], TEXT( "PrereqArgs=" ), PrereqArgs );
 		}
 
 		if (ManifestsListIdx != INDEX_NONE)
@@ -308,7 +315,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 					Right.TrimTrailing();
 					if (!Right.IsNumeric())
 					{
-						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customint. Non Numeric character found right of ="));
+						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customfloat. Non Numeric character found right of ="));
 						bSuccess = false;
 					}
 					CustomFields.Add(Left, FVariant(TCString<TCHAR>::Atod(*Right)));
@@ -324,7 +331,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 					Right.TrimTrailing();
 					if (!Right.IsNumeric())
 					{
-						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customfloat. Non Numeric character found right of ="));
+						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customint. Non Numeric character found right of ="));
 						bSuccess = false;
 					}
 					CustomFields.Add(Left, FVariant(TCString<TCHAR>::Atoi64(*Right)));
@@ -376,12 +383,22 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		return 1;
 	}
 
+	if (bCompactify && bPreview && bTouchOnly)
+	{
+		GLog->Log(ELogVerbosity::Error, TEXT("Only one of -preview and -touchonly can be specified"));
+		return 5;
+	}
 
 	// Initialize the file manager
 	IFileManager::Get().ProcessCommandLineOptions();
 
 	// Load the BuildPatchServices Module
 	TSharedPtr<IBuildPatchServicesModule> BuildPatchServicesModule = StaticCastSharedPtr<IBuildPatchServicesModule>( FModuleManager::Get().LoadModule( TEXT( "BuildPatchServices" ) ) );
+
+	// Initialise the UObject system and process our uobject classes
+	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
+	FCoreDelegates::OnInit.Broadcast();
+	ProcessNewlyLoadedUObjects();
 
 	// Setup the module
 	BuildPatchServicesModule->SetCloudDirectory( CloudDirectory + TEXT( "/" ) );
@@ -407,18 +424,30 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			{
 				GLog->Log(ELogVerbosity::Error, TEXT("Could not open specified manifests to keep file"));
 				BuildPatchServicesModule.Reset();
+				FCoreDelegates::OnExit.Broadcast();
 				return 2;
 			}
 		}
 
+		// Determine our mode of operation
+		ECompactifyMode::Type CompactifyMode = ECompactifyMode::Full;
+		if (bPreview)
+		{
+			CompactifyMode = ECompactifyMode::Preview;
+		}
+		else if (bTouchOnly)
+		{
+			CompactifyMode = ECompactifyMode::TouchOnly;
+		}
+
 		// Run the compactify routine
-		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(ManifestsArr, DataAgeThreshold, bPreview);
+		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(ManifestsArr, DataAgeThreshold, CompactifyMode);
 	}
 	else if (bPatchGeneration)
 	{
 		FBuildPatchSettings Settings;
 		Settings.RootDirectory = RootDirectory + TEXT("/");
-		Settings.InAppID = AppID;
+		Settings.AppID = AppID;
 		Settings.AppName = AppName;
 		Settings.BuildVersion = BuildVersion;
 		Settings.LaunchExe = LaunchExe;
@@ -445,6 +474,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	{
 		GLog->Log(ELogVerbosity::Error, TEXT("Unknown tool mode"));
 		BuildPatchServicesModule.Reset();
+		FCoreDelegates::OnExit.Broadcast();
 		return 3;
 	}
 
@@ -455,8 +485,11 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	if (!bSuccess)
 	{
 		GLog->Log(ELogVerbosity::Error, TEXT("A fatal error occurred executing BuildPatchTool.exe"));
+		FCoreDelegates::OnExit.Broadcast();
 		return 4;
 	}
+
+	FCoreDelegates::OnExit.Broadcast();
 
 	GLog->Log(TEXT("BuildPatchToolMain completed successfuly"));
 	return 0;

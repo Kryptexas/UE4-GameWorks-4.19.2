@@ -17,26 +17,6 @@ UClass* FAssetTypeActions_Blackboard::GetSupportedClass() const
 	return UBlackboardData::StaticClass(); 
 }
 
-bool FAssetTypeActions_Blackboard::HasActions ( const TArray<UObject*>& InObjects ) const
-{
-	return true;
-}
-
-void FAssetTypeActions_Blackboard::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
-{
-	auto BlackboardData = GetTypedWeakObjectPtrs<UBlackboardData>(InObjects);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Blackboard_Edit", "Edit"),
-		LOCTEXT("Blackboard_EditTooltip", "Opens the selected Blackboard in editor."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_Blackboard::ExecuteEdit, BlackboardData ),
-		FCanExecuteAction()
-		)
-	);
-}
-
 void FAssetTypeActions_Blackboard::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor )
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
@@ -50,18 +30,6 @@ void FAssetTypeActions_Blackboard::OpenAssetEditor( const TArray<UObject*>& InOb
 			BehaviorTreeEditorModule.CreateBehaviorTreeEditor( EToolkitMode::Standalone, EditWithinLevelEditor, BlackboardData );
 		}
 	}	
-}
-
-void FAssetTypeActions_Blackboard::ExecuteEdit(TArray<TWeakObjectPtr<class UBlackboardData>> Objects)
-{
-	for(auto Object : Objects)
-	{
-		auto BlackboardData = Object.Get();
-		if(BlackboardData != nullptr)
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(BlackboardData);
-		}
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,18 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProfileEditorModule.cpp: Implements the FDeviceProfileEditorModule class.
-=============================================================================*/
-
 #include "DeviceProfileEditorPCH.h"
 #include "WorkspaceMenuStructureModule.h"
-
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "DeviceProfileEditor"
 
-
 IMPLEMENT_MODULE(FDeviceProfileEditorModule, DeviceProfileEditor);
-
 
 static const FName DeviceProfileEditorName("DeviceProfileEditor");
 
@@ -20,9 +14,9 @@ static const FName DeviceProfileEditorName("DeviceProfileEditor");
 void FDeviceProfileEditorModule::StartupModule()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DeviceProfileEditorName, FOnSpawnTab::CreateStatic(&FDeviceProfileEditorModule::SpawnDeviceProfileEditorTab))
-		.SetDisplayName( NSLOCTEXT("DeviceProfileEditor", "DeviceProfileEditorTitle", "Device Profile Editor") )
+		.SetDisplayName( NSLOCTEXT("DeviceProfileEditor", "DeviceProfileEditorTitle", "Device Profiles") )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "DeviceDetails.Tabs.ProfileEditor"))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() );
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory() );
 }
 
 

@@ -3,7 +3,7 @@
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 
-UEnvironmentQueryGraphNode_Test::UEnvironmentQueryGraphNode_Test(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvironmentQueryGraphNode_Test::UEnvironmentQueryGraphNode_Test(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bTestEnabled = true;
 	bHasNamedWeight = false;
@@ -17,6 +17,9 @@ void UEnvironmentQueryGraphNode_Test::PostPlacedNewNode()
 		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
 		NodeInstance = ConstructObject<UEnvQueryTest>(EnvQueryNodeClass, Query);
 		NodeInstance->SetFlags(RF_Transactional);
+
+		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(NodeInstance);
+		TestInstance->UpdateTestVersion();
 	}
 
 	if (ParentNode)

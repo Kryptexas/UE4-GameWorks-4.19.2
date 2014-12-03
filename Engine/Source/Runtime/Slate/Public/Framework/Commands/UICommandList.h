@@ -100,17 +100,17 @@ public:
 	bool IsChecked( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**
-	 * Processes any UI commands which are activated by the specified keyboard event
+	 * Processes any UI commands which are activated by the specified key event
 	 *
-	 * @param InKeyboardEvent	The keyboard event to check
+	 * @param InKeyEvent	The key event to check
 	 * @return true if an action was processed
 	 */
-	bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const;
+	bool ProcessCommandBindings( const FKeyEvent& InKeyEvent ) const;
 
 	/**
 	 * Processes any UI commands which are activated by the specified mouse event
 	 *
-	 * @param InKeyboardEvent	The mouse event to check
+	 * @param InKeyEvent	The mouse event to check
 	 * @return true if an action was processed
 	 */
 	bool ProcessCommandBindings( const FPointerEvent& InMouseEvent ) const;

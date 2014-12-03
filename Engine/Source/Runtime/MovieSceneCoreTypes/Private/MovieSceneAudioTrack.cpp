@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "MovieSceneDirectorTrack"
 
-UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

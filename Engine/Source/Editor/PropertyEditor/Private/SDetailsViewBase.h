@@ -66,7 +66,7 @@ struct FDetailFilter
 	bool bShowAllAdvanced;
 	/** If we should only show differing properties */
 	bool bShowOnlyDiffering;
-	TSet<FName> DifferingProperties;
+	TSet<FPropertyPath> WhitelistedProperties;
 };
 
 struct FDetailColumnSizeData
@@ -81,6 +81,15 @@ struct FDetailColumnSizeData
 class SDetailsViewBase : public IDetailsViewPrivate
 {
 public:
+	SDetailsViewBase()
+		: ColumnWidth(.65f)
+		, bHasActiveFilter(false)
+		, bIsLocked(false)
+		, bHasOpenColorPicker(false)
+		, bDisableCustomDetailLayouts( false )
+	{
+	}
+
 	/**
 	* @return true of the details view can be updated from editor selection
 	*/
@@ -101,9 +110,13 @@ public:
 	virtual void HideFilterArea(bool bHide) override;
 
 	/** 
-	 * Creates a box around the property with PropertyName and scrolls the property into view
+	 * Implementation of IDetailsView:
 	 */
-	virtual void HighlightProperty(const UProperty* Property) override;
+	virtual TArray< FPropertyPath > GetPropertiesInOrderDisplayed() const override;
+	virtual void HighlightProperty(const FPropertyPath& Property) override;
+	virtual void ShowAllAdvancedProperties() override;
+	virtual void SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChangedDelegate) override;
+	virtual void SetDisableCustomDetailLayouts( bool bInDisableCustomDetailLayouts ) override { bDisableCustomDetailLayouts = bInDisableCustomDetailLayouts; }
 
 	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() override
 	{ 
@@ -142,6 +155,9 @@ public:
 
 	virtual void SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler ) override;
 	virtual TSharedPtr<IDetailKeyframeHandler> GetKeyframeHandler() override;
+
+	virtual void SetExtensionHandler(TSharedPtr<class IDetailPropertyExtensionHandler> InExtensionHandler);
+	virtual TSharedPtr<IDetailPropertyExtensionHandler> GetExtensionHandler();
 
 	/**
 	 * Requests that an item in the tree be expanded or collapsed
@@ -244,7 +260,7 @@ public:
 
 	// SWidget interface
 	virtual bool SupportsKeyboardFocus() const override;
-	virtual FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent) override;
+	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End of SWidget interface
 
@@ -269,7 +285,6 @@ public:
 	void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) override;
 
 protected:
-
 	/**
 	 * Called when a color property is changed from a color picker
 	 */
@@ -353,7 +368,7 @@ protected:
 	void OnFilterTextChanged(const FText& InFilterText);
 
 	/** Called when the list of currently differing properties changes */
-	virtual void UpdateDifferingProperties(const TSet<FName> InDifferingProperties) override { CurrentFilter.DifferingProperties = InDifferingProperties; }
+	virtual void UpdatePropertiesWhitelist(const TSet<FPropertyPath> InWhitelistedProperties) override { CurrentFilter.WhitelistedProperties = InWhitelistedProperties; }
 
 	/** 
 	 * Hides or shows properties based on the passed in filter text
@@ -364,7 +379,6 @@ protected:
 
 	/** Called to get the visibility of the filter box */
 	EVisibility GetFilterBoxVisibility() const;
-
 protected:
 	/** The user defined args for the details view */
 	FDetailsViewArgs DetailsViewArgs;
@@ -424,10 +438,21 @@ protected:
 	/** Root tree node that needs to be destroyed when safe */
 	TSharedPtr<FComplexPropertyNode> RootNodePendingKill;
 
+	/** The handler for the keyframe UI, determines if the key framing UI should be displayed. */
 	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler;
+
+	/** Property extension handler returns additional UI to apply after the customization is applied to the property. */
+	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler;
 
 	/** External property nodes which need to validated each tick */
 	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;
 
-	TWeakPtr< FPropertyNode > PrevHighlightedProperty;
+	/** The tree node that is currently highlighted, may be none: */
+	TWeakPtr< IDetailTreeNode > CurrentlyHighlightedNode;
+
+	/** Executed when the tree is refreshed */
+	FOnDisplayedPropertiesChanged OnDisplayedPropertiesChangedDelegate;
+
+	/** True if we want to skip generation of custom layouts for displayed object */
+	bool bDisableCustomDetailLayouts;
 };

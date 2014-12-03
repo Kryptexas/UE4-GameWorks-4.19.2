@@ -34,7 +34,8 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 
 
 	TArray<TSharedRef<class ITextDecorator>> Decorators;
-	FTutorialText::GetRichTextDecorators(Decorators);
+	const bool bForEditing = true;
+	FTutorialText::GetRichTextDecorators(bForEditing, Decorators);
 
 	for(auto& Decorator : Decorators)
 	{
@@ -395,7 +396,7 @@ void STutorialEditableText::StyleSelectedText()
 		const FRunInfo RunInfo = ActiveStyle->CreateRunInfo();
 		const FTextBlockStyle TextBlockStyle = ActiveStyle->CreateTextBlockStyle();
 		RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
-		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EFocusCause::SetDirectly);
 	}
 }
 

@@ -55,8 +55,7 @@ namespace UnrealBuildTool
 				}
 				return Type == TargetRules.TargetType.Client ||
 					 Type == TargetRules.TargetType.Game ||
-					 Type == TargetRules.TargetType.Server ||
-					 Type == TargetRules.TargetType.RocketGame;
+					 Type == TargetRules.TargetType.Server;
 			}
 		}
 
@@ -73,8 +72,7 @@ namespace UnrealBuildTool
                 }
                 return Type == TargetRules.TargetType.Client ||
                      Type == TargetRules.TargetType.Game ||
-                     Type == TargetRules.TargetType.Server ||
-                     Type == TargetRules.TargetType.RocketGame;
+                     Type == TargetRules.TargetType.Server;
             }
         }
     }
@@ -157,6 +155,9 @@ namespace UnrealBuildTool
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
 
+		/** If true then the engine will call it's StartupModule at engine initialization automatically. */
+		public bool bIsAutoStartupModule = false;
+
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
@@ -233,7 +234,7 @@ namespace UnrealBuildTool
 		/// <param name="ModuleNames">The names of the modules to add</param>
 		public void AddThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
 		{
-			if (UnrealBuildTool.RunningRocket() == false || Target.Type == TargetRules.TargetType.Game || Target.Type == TargetRules.TargetType.RocketGame)
+			if (UnrealBuildTool.RunningRocket() == false || Target.Type == TargetRules.TargetType.Game)
 			{
 				PrivateDependencyModuleNames.AddRange(InModuleNames);
 			}
@@ -248,7 +249,7 @@ namespace UnrealBuildTool
 		/// <param name="ModuleNames">The names of the modules to add</param>
 		public void AddThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
 		{
-			if (UnrealBuildTool.RunningRocket() == false || Target.Type == TargetRules.TargetType.Game || Target.Type == TargetRules.TargetType.RocketGame)
+			if (UnrealBuildTool.RunningRocket() == false || Target.Type == TargetRules.TargetType.Game)
 			{
 				PrivateIncludePathModuleNames.AddRange(InModuleNames);
 				DynamicallyLoadedModuleNames.AddRange(InModuleNames);
@@ -336,9 +337,6 @@ namespace UnrealBuildTool
 
 			/// Program (standalone program, e.g. ShaderCompileWorker.exe, can be modular or monolithic depending on the program)
 			Program,
-
-			/// Cooked monolithic game executable (GameName.exe) that statically links against UE4Game libs
-			RocketGame,
 		}
 
         /// <summary>
@@ -363,11 +361,17 @@ namespace UnrealBuildTool
 		public bool bUsesSlateEditorStyle = false;
 
         /// <summary>
-        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        // so that you can debug your program's code.
+		/// Forces linking against the static CRT. This is not supported across the engine due to the need for allocator implementations to be shared (for example), and TPS 
+		/// libraries to be consistent with each other, but can be used for utility programs.
+		/// </summary>
+        public bool bUseStaticCRT = false;
+
+        /// <summary>
+        /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
+        /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
+        /// our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
+        /// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
+        /// so that you can debug your program's code.
         /// </summary>
         public bool bDebugBuildsActuallyUseDebugCRT = false;
 
@@ -386,7 +390,6 @@ namespace UnrealBuildTool
 		{
 			return (
 				(InType == TargetType.Game) ||
-				(InType == TargetType.RocketGame) ||
 				(InType == TargetType.Editor) ||
 				(InType == TargetType.Client) ||
 				(InType == TargetType.Server)
@@ -402,8 +405,7 @@ namespace UnrealBuildTool
 		{
 			return (
 				(InType == TargetType.Game) ||
-				(InType == TargetType.Client) ||
-				(InType == TargetType.RocketGame)
+				(InType == TargetType.Client)
 				);
 		}
 
@@ -648,7 +650,14 @@ namespace UnrealBuildTool
         {
             return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development };
         }
-
+		/// <summary>
+		/// Return true if target should include a NonUnity test
+		/// </summary>
+		/// <returns>true if this target should include a NonUnity test
+		public virtual bool GUBP_IncludeNonUnityToolTest()
+		{
+			return false;
+		}
         /// <summary>
         /// Return true if this target should use a platform specific pass
         /// </summary>
@@ -839,6 +848,29 @@ namespace UnrealBuildTool
 #endif
             return Result;
         }
+		/// <summary>
+		/// Return additional parameters to cook commandlet
+		/// </summary>
+		public virtual string GUBP_AdditionalCookParameters(UnrealTargetPlatform HostPlatform, string Platform)
+		{
+			return "";
+		}
+
+		/// <summary>
+		/// Return additional parameters to package commandlet
+		/// </summary>
+		public virtual string GUBP_AdditionalPackageParameters(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+		{
+			return "";
+		}
+
+		/// <summary>
+		/// Allow Cook Platform Override from a target file
+		/// </summary>
+		public virtual string GUBP_AlternateCookPlatform(UnrealTargetPlatform HostPlatform, string Platform)
+		{
+			return "";
+		}
 	}
 
 
@@ -1573,15 +1605,6 @@ namespace UnrealBuildTool
 					InTargetName, AssemblyFileName, Ex.ToString());
 			}
 
-			// Right now, we assume that a 'rocket project file' was generated by rocket...
-			if (UnrealBuildTool.BuildingRocket() || /*UnrealBuildTool.HasUProjectFile() && */UnrealBuildTool.RunningRocket())
-			{
-				// When running rocket, force 'Game' targets to be 'RocketGame'
-				if (OutRulesObject.Type == TargetRules.TargetType.Game)
-				{
-					OutRulesObject.Type = TargetRules.TargetType.RocketGame;
-				}
-			}
             OutRulesObject.TargetName = InTargetName;
 
 			return true;
@@ -1735,7 +1758,6 @@ namespace UnrealBuildTool
 			switch (RulesObject.Type)
 			{
 				case TargetRules.TargetType.Game:
-				case TargetRules.TargetType.RocketGame:
 					{
 						BuildTarget = new UEBuildGame(
 							InGameName:TargetName, 

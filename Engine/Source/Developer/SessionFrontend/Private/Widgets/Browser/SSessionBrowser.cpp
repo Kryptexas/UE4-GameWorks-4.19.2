@@ -9,7 +9,7 @@
 /* SSessionBrowser structors
  *****************************************************************************/
 
-SSessionBrowser::~SSessionBrowser( )
+SSessionBrowser::~SSessionBrowser()
 {
 	if (SessionManager.IsValid())
 	{
@@ -128,7 +128,7 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 /* SSessionBrowser implementation
  *****************************************************************************/
 
-void SSessionBrowser::FilterSessions( )
+void SSessionBrowser::FilterSessions()
 {
 	SessionList.Reset();
 
@@ -187,7 +187,7 @@ FText SSessionBrowser::GetSessionName( const ISessionInfoPtr& SessionInfo ) cons
 }
 
 
-void SSessionBrowser::ReloadSessions( )
+void SSessionBrowser::ReloadSessions()
 {
 	SessionManager->GetSessions(AvailableSessions);
 	FilterSessions();
@@ -250,7 +250,7 @@ void SSessionBrowser::HandleSessionComboBoxSelectionChanged( ISessionInfoPtr Sel
 }
 
 
-FText SSessionBrowser::HandleSessionComboBoxText( ) const
+FText SSessionBrowser::HandleSessionComboBoxText() const
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
 
@@ -263,7 +263,7 @@ FText SSessionBrowser::HandleSessionComboBoxText( ) const
 }
 
 
-FText SSessionBrowser::HandleSessionDetailsText( ) const
+FText SSessionBrowser::HandleSessionDetailsText() const
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
 
@@ -306,13 +306,13 @@ void SSessionBrowser::HandleSessionManagerSelectedSessionChanged( const ISession
 }
 
 
-void SSessionBrowser::HandleSessionManagerSessionsUpdated( )
+void SSessionBrowser::HandleSessionManagerSessionsUpdated()
 {
 	ReloadSessions();
 }
 
 
-FReply SSessionBrowser::HandleTerminateSessionButtonClicked( )
+FReply SSessionBrowser::HandleTerminateSessionButtonClicked()
 {
 	int32 DialogResult = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("TerminateSessionDialogPrompt", "Are you sure you want to terminate this session and its instances?"));
 
@@ -337,7 +337,7 @@ FReply SSessionBrowser::HandleTerminateSessionButtonClicked( )
 }
 
 
-bool SSessionBrowser::HandleTerminateSessionButtonIsEnabled( ) const
+bool SSessionBrowser::HandleTerminateSessionButtonIsEnabled() const
 {
 	return SessionManager->GetSelectedSession().IsValid();
 }

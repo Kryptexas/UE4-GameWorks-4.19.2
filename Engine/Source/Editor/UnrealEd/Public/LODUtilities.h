@@ -53,7 +53,7 @@ public:
 	 *
 	 * @param	InSkeletalMesh	SkeletalMesh that LOD has been changed for
 	 */
-	static void RefreshLODChange(const USkeletalMesh * SkeletalMesh);
+	static void RefreshLODChange(const USkeletalMesh* SkeletalMesh);
 
 	/**
 	 * Create LOD Settings Dialog

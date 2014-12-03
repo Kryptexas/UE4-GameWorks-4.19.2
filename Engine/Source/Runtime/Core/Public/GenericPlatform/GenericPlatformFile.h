@@ -6,6 +6,11 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+
+class FArchive;
+class FString;
+struct FDateTime;
 
 /** 
  * File handle interface. 
@@ -134,10 +139,12 @@ public:
 	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) = 0;
 	/** Return the last access time of a file. Returns FDateTime::MinValue() on failure **/
 	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) = 0;
+	/** For case insensitive filesystems, returns the full path of the file with the same case as in the filesystem */
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) = 0;
 
-	/** Attempt to open a file for reading. If successful will return a non-NULL pointer. Close the file by delete'ing the handle. **/
+	/** Attempt to open a file for reading. If successful will return a non-nullptr pointer. Close the file by delete'ing the handle. **/
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) = 0;
-	/** Attempt to open a file for writing. If successful will return a non-NULL pointer. Close the file by delete'ing the handle. **/
+	/** Attempt to open a file for writing. If successful will return a non-nullptr pointer. Close the file by delete'ing the handle. **/
 	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = 0, bool bAllowRead = 0) = 0;
 
 	/** Return true if the directory exists. **/
@@ -268,7 +275,7 @@ public:
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) override;
 	virtual IPlatformFile* GetLowerLevel() override
 	{
-		return NULL;
+		return nullptr;
 	}
 	virtual const TCHAR* GetName() const override
 	{

@@ -68,8 +68,8 @@ struct FEaseFunctionNodeHelper
 
 };
 
-UK2Node_EaseFunction::UK2Node_EaseFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EaseFunction::UK2Node_EaseFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, CachedEaseFuncPin(NULL)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Interpolates from value A to value B using a user specified easing function");
@@ -384,48 +384,45 @@ void UK2Node_EaseFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
-	{
-		/**
+	/**
 		At the end of this, the UK2Node_EaseFunction will not be a part of the Blueprint, it merely handles connecting
 		the other nodes into the Blueprint.
-		*/
+	*/
 
-		UFunction* function = UKismetMathLibrary::StaticClass()->FindFunctionByName(*EaseFunctionName);
-		if (function == NULL)
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("InvalidFunctionName", "BaseAsyncTask: Type not supported or not initialized. @@").ToString(), this);
-			return;
-		}
-
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
-		// The call function does all the real work, each child class implementing easing for  a given type provides
-		// the name of the desired function
-		UK2Node_CallFunction* CallFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		
-		CallFunction->SetFromFunction(function);
-		CallFunction->AllocateDefaultPins();
-		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(CallFunction, this);
-
-		// Move the ease function and the alpha connections from us to the call function
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetEaseFuncPinName()), *CallFunction->FindPin(TEXT("EasingFunc")));
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetAlphaPinName()), *CallFunction->FindPin(TEXT("Alpha")));
-
-		// Move base connections to the call function's connections
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetAPinName()), *CallFunction->FindPin(TEXT("A")));
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetBPinName()), *CallFunction->FindPin(TEXT("B")));
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetResultPinName()), *CallFunction->GetReturnValuePin());
-
-		// Now move the custom pins to their new locations
-		for (int32 ArgIdx = 0; ArgIdx < CustomPinNames.Num(); ++ArgIdx)
-		{
-			CompilerContext.MovePinLinksToIntermediate(*FindPin(CustomPinNames[ArgIdx].PinName), *CallFunction->FindPin(CustomPinNames[ArgIdx].CallFuncPinName));
-		}
-
-		// Cleanup links to ourselfs and we are done!
-		BreakAllNodeLinks();
+	UFunction* function = UKismetMathLibrary::StaticClass()->FindFunctionByName(*EaseFunctionName);
+	if (function == NULL)
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("InvalidFunctionName", "BaseAsyncTask: Type not supported or not initialized. @@").ToString(), this);
+		return;
 	}
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+	// The call function does all the real work, each child class implementing easing for  a given type provides
+	// the name of the desired function
+	UK2Node_CallFunction* CallFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+		
+	CallFunction->SetFromFunction(function);
+	CallFunction->AllocateDefaultPins();
+	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(CallFunction, this);
+
+	// Move the ease function and the alpha connections from us to the call function
+	CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetEaseFuncPinName()), *CallFunction->FindPin(TEXT("EasingFunc")));
+	CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetAlphaPinName()), *CallFunction->FindPin(TEXT("Alpha")));
+
+	// Move base connections to the call function's connections
+	CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetAPinName()), *CallFunction->FindPin(TEXT("A")));
+	CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetBPinName()), *CallFunction->FindPin(TEXT("B")));
+	CompilerContext.MovePinLinksToIntermediate(*FindPin(FEaseFunctionNodeHelper::GetResultPinName()), *CallFunction->GetReturnValuePin());
+
+	// Now move the custom pins to their new locations
+	for (int32 ArgIdx = 0; ArgIdx < CustomPinNames.Num(); ++ArgIdx)
+	{
+		CompilerContext.MovePinLinksToIntermediate(*FindPin(CustomPinNames[ArgIdx].PinName), *CallFunction->FindPin(CustomPinNames[ArgIdx].CallFuncPinName));
+	}
+
+	// Cleanup links to ourselfs and we are done!
+	BreakAllNodeLinks();
 }
 
 UEdGraphPin* UK2Node_EaseFunction::GetEaseFuncPin() const

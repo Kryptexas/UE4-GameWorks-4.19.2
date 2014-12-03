@@ -8,9 +8,10 @@
 #include "MacGraphicsSwitchingWidget.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Runtime/SlateCore/Public/Rendering/SlateRenderer.h"
-#include "Developer/Settings/Public/Settings.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
+#include "ISettingsModule.h"
 #include "LevelEditor.h"
+#include "ModuleManager.h"
 
 #import <IOKit/ps/IOPowerSources.h>
 #import <IOKit/ps/IOPSKeys.h>
@@ -103,7 +104,7 @@ void FMacGraphicsSwitchingModule::StartupModule()
 	}
 	
 	// Register settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if( SettingsModule != nullptr )
 	{
 		SettingsModule->RegisterSettings( "Editor", "Plugins", "MacGraphicsSwitching",
@@ -161,7 +162,7 @@ void FMacGraphicsSwitchingModule::AddGraphicsSwitcher( FToolBarBuilder& ToolBarB
 void FMacGraphicsSwitchingModule::ShutdownModule()
 {
 	// Unregister settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if( SettingsModule != nullptr )
 	{
 		SettingsModule->UnregisterSettings( "Editor", "Plugins", "MacGraphicsSwitching" );

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationTestItemContextMenu.h: Declares the SAutomationTestItemContextMenu class.
-=============================================================================*/
-
 #pragma once
+
 
 #if WITH_EDITOR
 
@@ -23,8 +20,8 @@ public:
 	/**
 	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InSessionManager - The session to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InSessionManager The session to use.
 	 */
 	void Construct( const FArguments& InArgs, const FString& InAssetName )
 	{
@@ -63,9 +60,7 @@ protected:
 
 private:
 
-	/**
-	 * Handle the context menu closing down. If an asset is selected, request that it gets loaded
-	 */
+	/** Handle the context menu closing down. If an asset is selected, request that it gets loaded */
 	void HandleContextItemTerminate( )
 	{
 		if (Assetname.Len() > 0)
@@ -76,11 +71,11 @@ private:
 
 private:
 
-	// Holds the selected asset name
+	/** Holds the selected asset name. */
 	FString Assetname;
 };
 
 
 #undef LOCTEXT_NAMESPACE
 
-#endif
+#endif //WITH_EDITOR

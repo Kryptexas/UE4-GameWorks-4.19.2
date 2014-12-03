@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MacEvent.h"
 #include "MacApplication.h"
 #include "CocoaThread.h"
@@ -9,34 +9,22 @@
 FMacEvent::FMacEvent(NSEvent* const Event)
 : EventData(Event)
 {
+	SCOPED_AUTORELEASE_POOL;
 	check(Event);
 	[Event retain];
-	
-	CocoaWindow = FMacApplication::FindMacEventWindow(Event);
-
-	CGEventRef CGEvent = [Event CGEvent];
-	CGPoint CGMouseLocation = CGEventGetLocation(CGEvent);
-	MousePosition.X = CGMouseLocation.x;
-	MousePosition.Y = CGMouseLocation.y;
 }
 
-FMacEvent::FMacEvent(NSNotification* const Notification, NSWindow* const Window)
+FMacEvent::FMacEvent(NSNotification* const Notification)
 : EventData(Notification)
 {
+	SCOPED_AUTORELEASE_POOL;
 	check(Notification);
 	[Notification retain];
-
-	CocoaWindow = [Window isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)Window : nullptr;
-
-	CGEventRef Event = CGEventCreate(NULL);
-	CGPoint CursorPos = CGEventGetLocation(Event);
-	MousePosition.X = CursorPos.x;
-	MousePosition.Y = CursorPos.y;
-	CFRelease(Event);
 }
 
 void FMacEvent::SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMethod SendMethod, NSArray* SendModes)
 {
+	SCOPED_AUTORELEASE_POOL;
 	dispatch_block_t Block = ^{ FMacApplication::ProcessEvent(Event); };
 	const bool bWait = (SendMethod == EMacEventSendMethod::Sync);
 	
@@ -52,26 +40,28 @@ void FMacEvent::SendToGameRunLoop(NSEvent* const Event, EMacEventSendMethod Send
 	}
 }
 
-void FMacEvent::SendToGameRunLoop(NSNotification* const Notification, NSWindow* const Window, EMacEventSendMethod SendMethod, NSArray* SendModes)
+void FMacEvent::SendToGameRunLoop(NSNotification* const Notification, EMacEventSendMethod SendMethod, NSArray* SendModes)
 {
 	if(MacApplication)
 	{
-		FMacEvent* MacEvent = new FMacEvent(Notification, Window);
+		FMacEvent* MacEvent = new FMacEvent(Notification);
 		FMacEvent::SendToGameRunLoop(MacEvent, SendMethod, SendModes);
 	}
 }
 
-FMacEvent::~FMacEvent(void)
+FMacEvent::~FMacEvent()
 {
 	if(EventData)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		[EventData release];
 		EventData = nil;
 	}
 }
 
-NSEvent* FMacEvent::GetEvent(void) const
+NSEvent* FMacEvent::GetEvent() const
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(EventData && [EventData isKindOfClass:[NSEvent class]])
 	{
 		return (NSEvent*)EventData;
@@ -82,8 +72,9 @@ NSEvent* FMacEvent::GetEvent(void) const
 	}
 }
 
-NSNotification* FMacEvent::GetNotification(void) const
+NSNotification* FMacEvent::GetNotification() const
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(EventData && [EventData isKindOfClass:[NSNotification class]])
 	{
 		return (NSNotification*)EventData;
@@ -92,14 +83,4 @@ NSNotification* FMacEvent::GetNotification(void) const
 	{
 		return nil;
 	}
-}
-
-FCocoaWindow* FMacEvent::GetWindow(void) const
-{
-	return CocoaWindow;
-}
-
-FVector2D FMacEvent::GetMousePosition(void) const
-{
-	return MousePosition;
 }

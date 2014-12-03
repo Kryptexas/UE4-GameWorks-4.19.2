@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/PainCausingVolume.h"
 
-APainCausingVolume::APainCausingVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APainCausingVolume::APainCausingVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bPainCausing = true;

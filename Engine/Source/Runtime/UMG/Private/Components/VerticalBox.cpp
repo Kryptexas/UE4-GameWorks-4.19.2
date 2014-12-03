@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UVerticalBox
 
-UVerticalBox::UVerticalBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVerticalBox::UVerticalBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

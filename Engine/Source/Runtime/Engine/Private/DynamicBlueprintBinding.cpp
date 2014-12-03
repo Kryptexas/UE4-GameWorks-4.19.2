@@ -5,8 +5,8 @@
 #include "Engine/InputDelegateBinding.h"
 
 
-UDynamicBlueprintBinding::UDynamicBlueprintBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDynamicBlueprintBinding::UDynamicBlueprintBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

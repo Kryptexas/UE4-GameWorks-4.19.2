@@ -44,11 +44,11 @@ namespace
 			return true;
 		}
 
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 		{
 			if (OnKeyDownDelegate.IsBound())
 			{
-				return OnKeyDownDelegate.Execute(InKeyboardEvent.GetKey());
+				return OnKeyDownDelegate.Execute(InKeyEvent.GetKey());
 			}
 
 			return FReply::Unhandled();
@@ -171,7 +171,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 		.InitialOpacity(InitialWindowOpacity)
 		.SupportsTransparency( bUseTransparency )
 		.FocusWhenFirstShown( bFocusImmediately )
-		.ActivateWhenFirstShown( true )
+		.ActivateWhenFirstShown( bFocusImmediately )
 		[
 			WrappedContent
 		];

@@ -12,8 +12,8 @@
 // UAIAsyncTaskBlueprintProxy
 //----------------------------------------------------------------------//
 
-UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MyWorld = Cast<UWorld>(GetOuter());
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
@@ -73,12 +73,12 @@ void UAIAsyncTaskBlueprintProxy::BeginDestroy()
 // UAIAsyncTaskBlueprintProxy
 //----------------------------------------------------------------------//
 
-UAIBlueprintHelperLibrary::UAIBlueprintHelperLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIBlueprintHelperLibrary::UAIBlueprintHelperLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-class UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(class UObject* WorldContextObject, APawn* Pawn, FVector Destination, AActor* TargetActor, float AcceptanceRadius, bool bStopOnOverlap)
+UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(UObject* WorldContextObject, APawn* Pawn, FVector Destination, AActor* TargetActor, float AcceptanceRadius, bool bStopOnOverlap)
 {
 	check(WorldContextObject);
 	if (!Pawn)
@@ -111,7 +111,7 @@ void UAIBlueprintHelperLibrary::SendAIMessage(APawn* Target, FName Message, UObj
 	FAIMessage::Send(Target, FAIMessage(Message, MessageSource, bSuccess));
 }
 
-APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(class UObject* WorldContextObject, TSubclassOf<APawn> PawnClass, class UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
+APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(UObject* WorldContextObject, TSubclassOf<APawn> PawnClass, UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
 {
 	APawn* NewPawn = NULL;
 
@@ -144,38 +144,28 @@ APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(class UObject* WorldContextOb
 	return NewPawn;
 }
 
-APawn* UAIBlueprintHelperLibrary::SpawnAI(class UObject* WorldContextObject, UBlueprint* Pawn, class UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
-{
-	APawn* NewPawn = NULL;
-
-	const bool bGoodBPGeneratedClass = Pawn && Pawn->GeneratedClass && Pawn->GeneratedClass->IsChildOf(APawn::StaticClass());
-	if (bGoodBPGeneratedClass)
-	{
-		NewPawn = SpawnAIFromClass(WorldContextObject, *(Pawn->GeneratedClass), BehaviorTree, Location, Rotation, bNoCollisionFail);
-	}
-
-	return NewPawn;
-}
-
 UBlackboardComponent* UAIBlueprintHelperLibrary::GetBlackboard(AActor* Target)
 {
-	UBlackboardComponent* BlackboardComp = NULL;
+	UBlackboardComponent* BlackboardComp = nullptr;
 
-	APawn* TargetPawn = Cast<APawn>(Target);
-	if (TargetPawn && TargetPawn->GetController())
+	if (Target != nullptr)
 	{
-		BlackboardComp = TargetPawn->GetController()->FindComponentByClass<UBlackboardComponent>();
-	}
+		APawn* TargetPawn = Cast<APawn>(Target);
+		if (TargetPawn && TargetPawn->GetController())
+		{
+			BlackboardComp = TargetPawn->GetController()->FindComponentByClass<UBlackboardComponent>();
+		}
 
-	if (BlackboardComp == NULL && Target)
-	{
-		BlackboardComp = Target->FindComponentByClass<UBlackboardComponent>();
+		if (BlackboardComp == nullptr)
+		{
+			BlackboardComp = Target->FindComponentByClass<UBlackboardComponent>();
+		}
 	}
 
 	return BlackboardComp;
 }
 
-void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(class UAnimInstance* AnimInstance, bool bLockMovement, bool LockAILogic)
+void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(UAnimInstance* AnimInstance, bool bLockMovement, bool LockAILogic)
 {
 	if (AnimInstance == NULL)
 	{
@@ -188,9 +178,9 @@ void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(class UAnimInstance
 		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
 		if (OwningAI)
 		{
-			if (bLockMovement && OwningAI->PathFollowingComponent)
+			if (bLockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->PathFollowingComponent->LockResource(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->LockResource(EAILockSource::Animation);
 			}
 			if (LockAILogic && OwningAI->BrainComponent)
 			{
@@ -200,7 +190,7 @@ void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(class UAnimInstance
 	}
 }
 
-void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(class UAnimInstance* AnimInstance, bool bUnlockMovement, bool UnlockAILogic)
+void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(UAnimInstance* AnimInstance, bool bUnlockMovement, bool UnlockAILogic)
 {
 	if (AnimInstance == NULL)
 	{
@@ -213,9 +203,9 @@ void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(class UAnimInstan
 		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
 		if (OwningAI)
 		{
-			if (bUnlockMovement && OwningAI->PathFollowingComponent)
+			if (bUnlockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->PathFollowingComponent->ClearResourceLock(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->ClearResourceLock(EAILockSource::Animation);
 			}
 			if (UnlockAILogic && OwningAI->BrainComponent)
 			{

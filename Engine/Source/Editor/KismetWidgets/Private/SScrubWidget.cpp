@@ -332,7 +332,7 @@ FReply SScrubWidget::OnMouseMove( const FGeometry& MyGeometry, const FPointerEve
 		else if (!bDragging)
 		{
 			DistanceDragged += FMath::Abs(MouseEvent.GetCursorDelta().X);
-			if ( DistanceDragged > SlateDragStartDistance )
+			if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistnace() )
 			{
 				bDragging = true;
 			}

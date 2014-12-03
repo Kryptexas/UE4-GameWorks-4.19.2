@@ -20,11 +20,26 @@
 
 #include "TranslationUnit.h"
 #include "SSearchBox.h"
+#include "SDockTab.h"
 #include "InternationalizationExportSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LocalizationExport, Log, All);
 
 #define LOCTEXT_NAMESPACE "TranslationEditor"
+
+namespace TranslationEditorUtils
+{
+
+/** Get the filename used by the given font info */
+FString GetFontFilename(const FSlateFontInfo& InFontInfo)
+{
+	const FCompositeFont* const ResolvedCompositeFont = InFontInfo.GetCompositeFont();
+	return (ResolvedCompositeFont && ResolvedCompositeFont->DefaultTypeface.Fonts.Num() > 0)
+		? ResolvedCompositeFont->DefaultTypeface.Fonts[0].Font.FontFilename
+		: "";
+}
+
+} // namespace TranslationEditorUtils
 
 const FName FTranslationEditor::UntranslatedTabId( TEXT( "TranslationEditor_Untranslated" ) );
 const FName FTranslationEditor::ReviewTabId( TEXT( "TranslationEditor_Review" ) );
@@ -46,41 +61,42 @@ void FTranslationEditor::Initialize()
 
 void FTranslationEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_TranslationEditor", "Translation Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
 	TabManager->RegisterTabSpawner( UntranslatedTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Untranslated) )
 		.SetDisplayName( LOCTEXT("UntranslatedTab", "Untranslated") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( ReviewTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Review) )
 		.SetDisplayName( LOCTEXT("ReviewTab", "Needs Review") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( CompletedTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Completed) )
 		.SetDisplayName( LOCTEXT("CompletedTab", "Completed") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( PreviewTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Preview) )
 		.SetDisplayName( LOCTEXT("PreviewTab", "Preview") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( ContextTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Context) )
 		.SetDisplayName( LOCTEXT("ContextTab", "Context") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( HistoryTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_History) )
 		.SetDisplayName( LOCTEXT("HistoryTab", "History") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( SearchTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Search) )
 		.SetDisplayName(LOCTEXT("SearchTab", "Search"))
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
+		.SetGroup( WorkspaceMenuCategoryRef );
 
 	TabManager->RegisterTabSpawner( ChangedOnImportTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_ChangedOnImport) )
-		.SetDisplayName(LOCTEXT("ChangedOnImportTab", "ChangedOnImport"))
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
+		.SetDisplayName(LOCTEXT("ChangedOnImportTab", "Changed On Import"))
+		.SetGroup( WorkspaceMenuCategoryRef );
 }
 
 void FTranslationEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -755,7 +771,7 @@ void FTranslationEditor::MapActions()
 void FTranslationEditor::ChangeSourceFont()
 {
 	// Use path from current font
-	FString DefaultFile(SourceFont.FontName.ToString());
+	FString DefaultFile = TranslationEditorUtils::GetFontFilename(SourceFont);
 
 	FString NewFontFilename;
 	bool bOpened = OpenFontPicker(DefaultFile, NewFontFilename);
@@ -770,7 +786,7 @@ void FTranslationEditor::ChangeSourceFont()
 void FTranslationEditor::ChangeTranslationTargetFont()
 {
 	// Use path from current font
-	FString DefaultFile(TranslationTargetFont.FontName.ToString());
+	FString DefaultFile = TranslationEditorUtils::GetFontFilename(TranslationTargetFont);
 
 	FString NewFontFilename;
 	bool bOpened = OpenFontPicker(DefaultFile, NewFontFilename);

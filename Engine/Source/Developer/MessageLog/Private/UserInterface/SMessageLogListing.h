@@ -27,6 +27,8 @@ public:
 
 	/** Used to execute the 'on clicked token' delegate */
 	void BroadcastMessageTokenClicked( TSharedPtr< class FTokenizedMessage > Message, const TSharedRef<class IMessageToken>& Token );
+	/** Used to execute a message's featured action (a token associated with the entire message) */
+	void BroadcastMessageDoubleClicked(TSharedPtr< class FTokenizedMessage > Message);
 
 	/** Gets a list of the selected messages */
 	const TArray< TSharedRef< class FTokenizedMessage > > GetSelectedMessages() const;
@@ -81,13 +83,13 @@ public:
 	const TSharedRef< const FUICommandList > GetCommandList() const;
 
 	/**
-	 * Called after a key is pressed when this widget has keyboard focus
+	 * Called after a key is pressed when this widget has focus
 	 *
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Delegate supplying a label for the page-flipper widget */
 	FString GetPageText() const;

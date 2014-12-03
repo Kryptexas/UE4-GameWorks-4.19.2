@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Math/UnrealMathUtility.h"
 
 // Functions for manipulating bit sets.
 struct FBitSet

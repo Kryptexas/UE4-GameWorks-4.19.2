@@ -1,8 +1,12 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "Containers/UnrealString.h"
+#include "Internationalization/CulturePointer.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/NameTypes.h"
 
-#include "SharedPointer.h"
-#include "CulturePointer.h"
+class FTimespan;
+struct FDateTime;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 

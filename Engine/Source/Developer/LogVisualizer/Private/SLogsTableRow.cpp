@@ -114,7 +114,7 @@ bool SLogsTableRow::ShouldDrawSelection()
 	return OwnerTable.IsValid() && OwnerTable->Private_IsItemSelected(Item);
 }
 
-void SLogsTableRow::OnBarGraphSelectionChanged( TSharedPtr<FVisLogEntry> Selection )
+void SLogsTableRow::OnBarGraphSelectionChanged( TSharedPtr<FVisualLogEntry> Selection )
 {
 	if( Selection.IsValid() )
 	{

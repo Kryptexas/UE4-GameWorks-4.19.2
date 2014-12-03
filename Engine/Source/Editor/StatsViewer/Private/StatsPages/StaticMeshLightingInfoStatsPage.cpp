@@ -7,6 +7,7 @@
 #include "Editor/PropertyEditor/Public/IPropertyTableRow.h"
 #include "BusyCursor.h"
 #include "ScopedTransaction.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.StaticMeshLightingInfo"
 

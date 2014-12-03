@@ -12,10 +12,10 @@ class FDisplayedBoneMappingInfo
 public:
 	FName Name;
 	FString DisplayName;
-	USkeleton * Skeleton;
+	USkeleton* Skeleton;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedBoneMappingInfo> Make(const FName NodeName, const FString DisplayName, USkeleton * InSkeleton)
+	static TSharedRef<FDisplayedBoneMappingInfo> Make(const FName NodeName, const FString DisplayName, USkeleton* InSkeleton)
 	{
 		return MakeShareable(new FDisplayedBoneMappingInfo(NodeName, DisplayName, InSkeleton));
 	}
@@ -32,9 +32,9 @@ public:
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedBoneMappingInfo(const FName InNodeName, const FString DisplayName, USkeleton * InSkeleton)
+	FDisplayedBoneMappingInfo(const FName InNodeName, const FString InDisplayName, USkeleton* InSkeleton)
 		: Name( InNodeName )
-		, DisplayName( DisplayName )
+		, DisplayName( InDisplayName )
 		, Skeleton( InSkeleton )
 	{}
 
@@ -148,20 +148,26 @@ private:
 	/** show advanced? */
 	bool bDisplayAdvanced;
 
+	/** rig combo button */
+	TSharedPtr< class SComboButton > AssetComboButton;
+
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();
 
 	/**
 	 * Callback for asset picker
 	 */
-	/* Set new reference for skeletal mesh */
+	/* Set rig set combo box*/
 	void OnAssetSelected(UObject* Object);
+	FString GetAssetName() const;
+	void CloseComboButton();
+	TSharedRef<SWidget> MakeRigPickerWithMenu();
 
 	/** Returns true if the asset shouldn't show  */
-	bool ShouldFilterAssetBased(const class FAssetData& AssetData);
+	bool ShouldFilterAsset(const class FAssetData& AssetData);
 
 	UObject* GetRigObject() const;
-
+	
 	void OnBoneMappingChanged( FName NodeName, FName BoneName );
 	FName GetBoneMapping( FName NodeName );
 

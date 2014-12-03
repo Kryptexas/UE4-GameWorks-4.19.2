@@ -28,7 +28,7 @@ void FAnimNode_HandIKRetargeting::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_HandIKRetargeting::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_HandIKRetargeting::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	checkSlow(OutBoneTransforms.Num() == 0);
 
@@ -61,7 +61,7 @@ void FAnimNode_HandIKRetargeting::EvaluateBoneTransforms(USkeletalMeshComponent*
 	}
 }
 
-bool FAnimNode_HandIKRetargeting::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones)
+bool FAnimNode_HandIKRetargeting::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
 	if (RightHandFK.IsValid(RequiredBones)
 		&& LeftHandFK.IsValid(RequiredBones)
@@ -81,7 +81,7 @@ bool FAnimNode_HandIKRetargeting::IsValidToEvaluate(const USkeleton * Skeleton, 
 	return false;
 }
 
-void FAnimNode_HandIKRetargeting::InitializeBoneReferences(const FBoneContainer & RequiredBones)
+void FAnimNode_HandIKRetargeting::InitializeBoneReferences(const FBoneContainer& RequiredBones)
 {
 	RightHandFK.Initialize(RequiredBones);
 	LeftHandFK.Initialize(RequiredBones);

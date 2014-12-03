@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformSurvey.h"
 
 // generic implementation
 typedef FGenericPlatformSurvey FPlatformSurvey;

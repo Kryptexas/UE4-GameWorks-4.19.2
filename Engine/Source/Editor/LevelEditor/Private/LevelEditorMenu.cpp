@@ -9,6 +9,7 @@
 #include "MRUFavoritesList.h"
 #include "GlobalEditorCommonCommands.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "LevelEditorMenu"
 

@@ -3,8 +3,8 @@
 
 #include "EnginePrivate.h"
 
-USphereComponent::USphereComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USphereComponent::USphereComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SphereRadius = 32.0f;
 	ShapeColor = FColor(255, 0, 0, 255);
@@ -12,7 +12,7 @@ USphereComponent::USphereComponent(const class FPostConstructInitializePropertie
 	bUseEditorCompositing = true;
 }
 
-FBoxSphereBounds USphereComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USphereComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds( FVector::ZeroVector, FVector(SphereRadius), SphereRadius ).TransformBy(LocalToWorld);
 }
@@ -33,7 +33,7 @@ void USphereComponent::UpdateBodySetup()
 	}
 
 	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);
-	FKSphereElem* se = ShapeBodySetup->AggGeom.SphereElems.GetTypedData();
+	FKSphereElem* se = ShapeBodySetup->AggGeom.SphereElems.GetData();
 
 	// check for mal formed values
 	float Radius = SphereRadius;

@@ -27,40 +27,36 @@ struct FPropertyTag
 	FPropertyTag()
 	{}
 	FPropertyTag( FArchive& InSaveAr, UProperty* Property, int32 InIndex, uint8* Value, uint8* Defaults )
-	:	Type		(Property->GetID())
-	, BoolVal	(0)
-	,	Name		(Property->GetFName())
-	,	StructName	(NAME_None)
-	,	EnumName	(NAME_None)
-	, InnerType	(NAME_None)
-	,	Size		(0)
-	,	ArrayIndex	(InIndex)
-	,	SizeOffset	(INDEX_NONE)
+		: Type      (Property->GetID())
+		, BoolVal   (0)
+		, Name      (Property->GetFName())
+		, StructName(NAME_None)
+		, EnumName  (NAME_None)
+		, InnerType (NAME_None)
+		, Size      (0)
+		, ArrayIndex(InIndex)
+		, SizeOffset(INDEX_NONE)
 	{
 		if (Property)
 		{
 			// Handle structs.
-			if (Property->IsA(UStructProperty::StaticClass()))
+			if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
 			{
-				UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
 				StructName = StructProperty->Struct->GetFName();
 			}
-			else if (Property->GetClass() == UByteProperty::StaticClass())
+			else if (UByteProperty* ByteProp = Cast<UByteProperty>(Property))
 			{
-				UByteProperty* ByteProp = CastChecked<UByteProperty>(Property);
 				if (ByteProp->Enum != NULL)
 				{
 					EnumName = ByteProp->Enum->GetFName();
 				}
 			}
-			else if (Property->IsA(UArrayProperty::StaticClass()))
+			else if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property))
 			{
-				UArrayProperty* ArrayProp = CastChecked<UArrayProperty>(Property);
 				InnerType = ArrayProp->Inner->GetID();
 			}
-			else if (Property->IsA(UBoolProperty::StaticClass()))
+			else if (UBoolProperty* Bool = Cast<UBoolProperty>(Property))
 			{
-				UBoolProperty* Bool = CastChecked<UBoolProperty>(Property);
 				BoolVal = Bool->GetPropertyValue(Value);
 			}
 		}
@@ -125,12 +121,12 @@ struct FPropertyTag
 		}
 		else
 		{
-			UProperty* OldSerializedProperty = GSerializedProperty;
-			GSerializedProperty = Property;
+			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
+			Ar.SetSerializedProperty(Property);
 
 			Property->SerializeItem( Ar, Value, MaxReadBytes, Defaults );
 
-			GSerializedProperty = OldSerializedProperty;
+			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 };

@@ -4,12 +4,17 @@
 #include "Toolkits/BaseToolkit.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/ToolkitManager.h"
+#include "SDockableTab.h"
+#include "SDockTabStack.h"
+#include "SDockTab.h"
 
+#define LOCTEXT_NAMESPACE "BaseToolkit"
 
 FBaseToolkit::FBaseToolkit()
 	: ToolkitMode( EToolkitMode::Standalone ),
 	  ToolkitCommands( new FUICommandList() )
 {
+	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_BaseToolkit", "Toolkit"));
 }
 
 
@@ -67,9 +72,9 @@ FName FBaseToolkit::GetToolkitContextFName() const
 }
 
 
-bool FBaseToolkit::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const
+bool FBaseToolkit::ProcessCommandBindings( const FKeyEvent& InKeyEvent ) const
 {
-	if( ToolkitCommands->ProcessCommandBindings( InKeyboardEvent ) )
+	if( ToolkitCommands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return true;
 	}
@@ -195,6 +200,8 @@ bool FBaseToolkit::IsBlueprintEditor() const
 {
 	return false;
 }
+
+#undef LOCTEXT_NAMESPACE
 
 
 void FModeToolkit::Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost)

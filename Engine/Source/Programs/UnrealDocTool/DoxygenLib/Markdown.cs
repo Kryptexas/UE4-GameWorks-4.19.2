@@ -395,6 +395,10 @@ namespace DoxygenLib
 				{
 					Result.Append("&#33;");
 				}
+				else if(Text[Idx] == '*')
+				{
+					Result.Append("&#42;");
+				}
 				else
 				{
 					Result.Append(Text[Idx]);
@@ -402,7 +406,6 @@ namespace DoxygenLib
 			}
 			return Result.ToString();
 		}
-
 
 		/** 
 		 * Truncates a line to a given width, respecting embedded links.
@@ -498,6 +501,16 @@ namespace DoxygenLib
             }
             return -1;
         }
+
+		public static int MeasureText(string Text)
+		{
+			int Length = 0;
+			for(int Idx = 0; Idx < Text.Length; Idx = SkipCharacter(Text, Idx))
+			{
+				Length++;
+			}
+			return Length;
+		}
 
 		public static int SkipCharacter(string Text, int Idx)
 		{

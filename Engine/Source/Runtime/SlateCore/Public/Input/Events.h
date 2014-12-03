@@ -9,40 +9,51 @@ class SWindow;
 
 
 /**
- * Context for keyboard focus change
- */
+* Context for focus change
+*/
 UENUM()
+enum class EFocusCause
+{
+	/** Focus was changed because of a mouse action */
+	Mouse,
+
+	/** Focus was changed in response to a navigation, such as the arrow keys, TAB key, controller DPad, ... */
+	Navigation,
+
+	/** Focus was changed because someone asked the application to change it. */
+	SetDirectly,
+
+	/** Focus was explicitly cleared via the escape key or other similar action */
+	Cleared,
+
+	/** Focus was changed because another widget lost focus, and focus moved to a new widget */
+	OtherWidgetLostFocus,
+
+	/** Focus was set in response to the owning window being activated */
+	WindowActivate,
+};
+
+/** DEPRECATED 4.6 - Do not use */
+//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
 namespace EKeyboardFocusCause
 {
-	enum Type
-	{
-		/** Keyboard focus was changed because of a mouse action */
-		Mouse,
+	DEPRECATED(4.6, "EFocusCause::Type is deprecated and was renamed to EFocusCause. Please use that type instead.")
+	typedef ::EFocusCause Type;
 
-		/** Keyboard focus was changed in response to a keystroke, such as the TAB key. */
-		Keyboard,
-
-		/** Keyboard focus was changed because someone asked the application to change it. */
-		SetDirectly,
-
-		/** Keyboard focus was explicitly cleared via the escape key or other similar action */
-		Cleared,
-
-		/** Keyboard focus was changed because another widget lost focus, and focus moved to a new widget */
-		OtherWidgetLostFocus,
-
-		/** Keyboard focus was set in response to the owning window being activated */
-		WindowActivate,
-	};
+	const EFocusCause Mouse = EFocusCause::Mouse;
+	const EFocusCause Keyboard = EFocusCause::Navigation;
+	const EFocusCause SetDirectly = EFocusCause::SetDirectly;
+	const EFocusCause Cleared = EFocusCause::Cleared;
+	const EFocusCause OtherWidgetLostFocus = EFocusCause::OtherWidgetLostFocus;
+	const EFocusCause WindowActivate = EFocusCause::WindowActivate;
 }
 
-
 /**
- * FKeyboardFocusEvent is used when notifying widgets about keyboard focus changes
+ * FFocusEvent is used when notifying widgets about keyboard focus changes
  * It is passed to event handlers dealing with keyboard focus
  */
 USTRUCT()
-struct FKeyboardFocusEvent
+struct FFocusEvent
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -51,8 +62,8 @@ public:
 	/**
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
-	FKeyboardFocusEvent()
-		: Cause(EKeyboardFocusCause::SetDirectly)
+	FFocusEvent()
+		: Cause(EFocusCause::SetDirectly)
 	{ }
 
 	/**
@@ -60,7 +71,7 @@ public:
 	 *
 	 * @param  InCause  The cause of the focus event
 	 */
-	FKeyboardFocusEvent( const EKeyboardFocusCause::Type InCause )
+	FFocusEvent(const EFocusCause InCause)
 		: Cause(InCause)
 	{ }
 
@@ -68,9 +79,9 @@ public:
 	/**
 	 * Queries the reason for the focus change
 	 *
-	 * @return  The cause of the keyboard focus change
+	 * @return  The cause of the focus change
 	 */
-	EKeyboardFocusCause::Type GetCause() const
+	EFocusCause GetCause() const
 	{
 		return Cause;
 	}
@@ -78,12 +89,35 @@ public:
 private:
 
 	/** The cause of the focus change */
-	EKeyboardFocusCause::Type Cause;
+	EFocusCause Cause;
 };
 
+//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
+USTRUCT()
+//struct DEPRECATED(4.6, "Use FFocusEvent") FKeyboardFocusEvent : public FFocusEvent
+struct FKeyboardFocusEvent : public FFocusEvent
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	FKeyboardFocusEvent() { }
+	FKeyboardFocusEvent(const EFocusCause InCause) : FFocusEvent(InCause) { }
+};
 
 /**
- * Base class for all mouse and keyboard events.
+ * Represents the current and last cursor position in a "virtual window" for events that are routed to widgets transformed in a 3D scene.
+ */
+struct FVirtualPointerPosition
+{
+	FVirtualPointerPosition()
+	: CurrentCursorPosition(FVector2D::ZeroVector)
+	, LastCursorPosition(FVector2D::ZeroVector)
+	{}
+	FVector2D CurrentCursorPosition;
+	FVector2D LastCursorPosition;
+};
+
+/**
+ * Base class for all mouse and keyevents.
  */
 USTRUCT(BlueprintType)
 struct FInputEvent
@@ -97,6 +131,7 @@ public:
 	 */
 	FInputEvent()
 		: ModifierKeys(FModifierKeysState())
+		, UserIndex(0)
 		, bIsRepeat(false)
 		, EventPath(nullptr)
 	{ }
@@ -107,8 +142,9 @@ public:
 	 * @param  InModifierKeys  Modifier key state for this event
 	 * @param  bInIsRepeat  True if this key is an auto-repeated keystroke
 	 */
-	FInputEvent( const FModifierKeysState& InModifierKeys, const bool bInIsRepeat )
+	FInputEvent(const FModifierKeysState& InModifierKeys, const int32 InUserIndex, const bool bInIsRepeat)
 		: ModifierKeys(InModifierKeys)
+		, UserIndex(InUserIndex)
 		, bIsRepeat(bInIsRepeat)
 		, EventPath(nullptr)
 	{ }
@@ -250,10 +286,30 @@ public:
 		return ModifierKeys.IsRightCommandDown();
 	}
 
+	/**
+	 * Returns true if caps lock was on when this event occurred
+	 * 
+	 * @return True if caps lock is on
+	 */
+	bool AreCapsLocked() const
+	{
+		return ModifierKeys.AreCapsLocked();
+	}
+
+	/**
+	* Returns the index of the user that generated this event.
+	*
+	* @return The index of the user that caused the event
+	*/
+	uint32 GetUserIndex() const
+	{
+		return UserIndex;
+	}
+
 	/** The event path provides additional context for handling */
 	FGeometry FindGeometry( const TSharedRef<SWidget>& WidgetToFind ) const
 	{
-		return EventPath->FindArrangedWidget(WidgetToFind).Geometry;
+		return EventPath->FindArrangedWidget(WidgetToFind).Get(FArrangedWidget::NullWidget).Geometry;
 	}
 
 	TSharedRef<SWindow> GetWindow() const
@@ -267,10 +323,15 @@ public:
 		EventPath = &InEventPath;
 	}
 
+	SLATECORE_API virtual FText ToText() const;
+
 protected:
 
 	// State of modifier keys when this event happened.
 	FModifierKeysState ModifierKeys;
+
+	// The index of the user that caused the event.
+	uint32 UserIndex;
 
 	// True if this key was auto-repeated.
 	bool bIsRepeat;
@@ -281,11 +342,11 @@ protected:
 
 
 /**
- * FKeyboardEvent describes a keyboard action (key pressed or released.)
- * It is passed to event handlers dealing with keyboard input.
+ * FKeyEvent describes a key action (keyboard/controller key/button pressed or released.)
+ * It is passed to event handlers dealing with key input.
  */
 USTRUCT(BlueprintType)
-struct FKeyboardEvent
+struct FKeyEvent
 	: public FInputEvent
 {
 	GENERATED_USTRUCT_BODY()
@@ -294,10 +355,11 @@ public:
 	/**
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
-	FKeyboardEvent()
-		: FInputEvent(FModifierKeysState(), false)
+	FKeyEvent()
+		: FInputEvent(FModifierKeysState(), 0, false)
 		, Key(EKeys::SpaceBar)
 		, CharacterCode(0)
+		, KeyCode(0)
 	{
 	}
 
@@ -308,16 +370,19 @@ public:
 	 * @param  InModifierKeys  Modifier key state for this event
 	 * @param  bInIsRepeat  True if this key is an auto-repeated keystroke
 	 */
-	FKeyboardEvent( const FKey InKey,
-					const FModifierKeysState& InModifierKeys, 
-					const bool bInIsRepeat,
-					const uint32 InCharacterCode
+	FKeyEvent(	const FKey InKey,
+				const FModifierKeysState& InModifierKeys, 
+				const uint32 InUserIndex,
+				const bool bInIsRepeat,
+				const uint32 InCharacterCode,
+				const uint32 InKeyCode
 	)
-		: FInputEvent(InModifierKeys, bInIsRepeat)
+		: FInputEvent(InModifierKeys, InUserIndex, bInIsRepeat)
 		, Key(InKey)
 		, CharacterCode(InCharacterCode)
+		, KeyCode(InKeyCode)
 	{ }
-	
+
 	/**
 	 * Returns the name of the key for this event
 	 *
@@ -329,7 +394,7 @@ public:
 	}
 
 	/**
-	 * Returns the character code for this event
+	 * Returns the character code for this event.
 	 *
 	 * @return  Character code or 0 if this event was not a character key press
 	 */
@@ -338,15 +403,101 @@ public:
 		return CharacterCode;
 	}
 
-private:
+	/**
+	 * Returns the key code received from hardware before any conversion/mapping.
+	 *
+	 * @return  Key code received from hardware
+	 */
+	uint32 GetKeyCode() const
+	{
+		return KeyCode;
+	}
 
+	SLATECORE_API virtual FText ToText() const override;
+
+private:
 	// Name of the key that was pressed.
 	FKey Key;
 
 	// The character code of the key that was pressed.  Only applicable to typed character keys, 0 otherwise.
 	uint32 CharacterCode;
+
+	// Original key code received from hardware before any conversion/mapping
+	uint32 KeyCode;
 };
 
+/** DEPRECATED 4.6 - Do not use */
+//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
+#define FKeyboardEvent \
+	FKeyEvent \
+	EMIT_DEPRECATED_WARNING_MESSAGE("FKeyboardEvent is deprecated in 4.6 and was renamed to FKeyEvent. Please use that type instead.")
+/*
+USTRUCT(BlueprintType)
+struct FKeyboardEvent : public FKeyEvent
+//struct DEPRECATED(4.6, "Use FKeyEvent") FKeyboardEvent : public FKeyEvent
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	FKeyEvent() {}
+
+	FKeyEvent(const FKey InKey, const FModifierKeysState& InModifierKeys, const uint32 InUserIndex, const bool bInIsRepeat, const uint32 InCharacterCode, const uint32 InKeyCode)
+		: FKeyEvent(InKey, InModifierKeys, InUserIndex, bInIsRepeat, InCharacterCode, InKeyCode) {}
+}*/
+
+/**
+ * FAnalogEvent describes a analog key value.
+ * It is passed to event handlers dealing with analog keys.
+ */
+USTRUCT(BlueprintType)
+struct FAnalogInputEvent
+	: public FKeyEvent
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	/**
+	* UStruct Constructor.  Not meant for normal usage.
+	*/
+	FAnalogInputEvent()
+		: FKeyEvent(FKey(EKeys::SpaceBar), FModifierKeysState(), false, 0, 0, 0)
+		, AnalogValue(0.0f)
+	{
+	}
+
+	/**
+	 * Constructor.  Events are immutable once constructed.
+	 *
+	 * @param  InKeyName  Character name
+	 * @param  InModifierKeys  Modifier key state for this event
+	 * @param  bInIsRepeat  True if this key is an auto-repeated keystroke
+	 */
+	FAnalogInputEvent(const FKey InKey,
+		const FModifierKeysState& InModifierKeys,
+		const uint32 InUserIndex,
+		const bool bInIsRepeat,
+		const uint32 InCharacterCode,
+		const uint32 InKeyCode,
+		const float InAnalogValue
+		)
+		: FKeyEvent(InKey, InModifierKeys, InUserIndex, bInIsRepeat, InCharacterCode, InKeyCode)
+		, AnalogValue(InAnalogValue)
+	{ }
+
+	/**
+	 * Returns the analog value between 0 and 1.
+	 * 0 being not pressed at all, 1 being fully pressed.
+	 * Non analog keys will only be 0 or 1.
+	 *
+	 * @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all
+	 */
+	float GetAnalogValue() const { return AnalogValue; }
+
+	SLATECORE_API virtual FText ToText() const override;
+
+private:
+	//  Analog value between 0 and 1 (0 being not pressed at all, 1 being fully pressed).
+	float AnalogValue;
+};
 
 /**
  * FCharacterEvent describes a keyboard action where the utf-16 code is given.  Used for OnKeyChar messages
@@ -362,13 +513,13 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FCharacterEvent()
-		: FInputEvent(FModifierKeysState(), false)
+		: FInputEvent(FModifierKeysState(), 0, false)
 		, Character(0)
 	{
 	}
 
-	FCharacterEvent( const TCHAR InCharacter, const FModifierKeysState& InModifierKeys, const bool bInIsRepeat )
-		: FInputEvent(InModifierKeys, bInIsRepeat)
+	FCharacterEvent(const TCHAR InCharacter, const FModifierKeysState& InModifierKeys, const uint32 InUserIndex, const bool bInIsRepeat)
+		: FInputEvent(InModifierKeys, InUserIndex, bInIsRepeat)
 		, Character(InCharacter)
 	{ }
 
@@ -381,6 +532,8 @@ public:
 	{
 		return Character;
 	}
+
+	SLATECORE_API virtual FText ToText() const override;	
 
 private:
 
@@ -437,7 +590,6 @@ public:
 		, CursorDelta(FVector2D(0, 0))
 		, PressedButtons(FTouchKeySet::EmptySet)
 		, EffectingButton(EKeys::LeftMouseButton)
-		, UserIndex(0)
 		, PointerIndex(0)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
@@ -455,13 +607,12 @@ public:
 		float InWheelDelta,
 		const FModifierKeysState& InModifierKeys
 	)
-		: FInputEvent(InModifierKeys, false)
+		: FInputEvent(InModifierKeys, 0, false)
 		, ScreenSpacePosition(InScreenSpacePosition)
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
 		, CursorDelta(InScreenSpacePosition - InLastScreenSpacePosition)
 		, PressedButtons(InPressedButtons)
 		, EffectingButton(InEffectingButton)
-		, UserIndex(0)
 		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
@@ -478,12 +629,11 @@ public:
 		const TSet<FKey>& InPressedButtons,
 		const FModifierKeysState& InModifierKeys
 	)
-		: FInputEvent(InModifierKeys, false)
+		: FInputEvent(InModifierKeys, 0, false)
 		, ScreenSpacePosition(InScreenSpacePosition)
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
 		, CursorDelta(InDelta)
 		, PressedButtons(InPressedButtons)
-		, UserIndex(0)
 		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
@@ -501,13 +651,12 @@ public:
 		const FModifierKeysState& InModifierKeys = FModifierKeysState(),
 		uint32 InTouchpadIndex=0
 	)
-		: FInputEvent(InModifierKeys, false)
+	: FInputEvent(InModifierKeys, InUserIndex, false)
 		, ScreenSpacePosition(InScreenSpacePosition)
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
 		, CursorDelta(InScreenSpacePosition - InLastScreenSpacePosition)
 		, PressedButtons(bPressLeftMouseButton ? FTouchKeySet::StandardSet : FTouchKeySet::EmptySet)
 		, EffectingButton(EKeys::LeftMouseButton)
-		, UserIndex(InUserIndex)
 		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(InTouchpadIndex)
 		, bIsTouchEvent(true)
@@ -524,12 +673,11 @@ public:
 		EGestureEvent::Type InGestureType,
 		const FVector2D& InGestureDelta
 	)
-		: FInputEvent(InModifierKeys, false)
+		: FInputEvent(InModifierKeys, 0, false)
 		, ScreenSpacePosition(InScreenSpacePosition)
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
 		, CursorDelta(LastScreenSpacePosition - ScreenSpacePosition)
 		, PressedButtons(InPressedButtons)
-		, UserIndex(0)
 		, PointerIndex(0)
 		, bIsTouchEvent(false)
 		, GestureType(InGestureType)
@@ -590,6 +738,18 @@ public:
 		WheelOrGestureDelta = Other.WheelOrGestureDelta;
 	}
 
+	SLATECORE_API virtual FText ToText() const override;
+
+	template<typename PointerEventType>
+	static PointerEventType MakeTranslatedEvent( const PointerEventType& InPointerEvent, const FVirtualPointerPosition& VirtualPosition )
+	{
+		PointerEventType NewEvent = InPointerEvent;
+		NewEvent.ScreenSpacePosition = VirtualPosition.CurrentCursorPosition;
+		NewEvent.LastScreenSpacePosition = VirtualPosition.LastCursorPosition;
+		//NewEvent.CursorDelta = VirtualPosition.GetDelta();
+		return NewEvent;
+	}
+
 private:
 
 	FVector2D ScreenSpacePosition;
@@ -597,7 +757,6 @@ private:
 	FVector2D CursorDelta;
 	const TSet<FKey>& PressedButtons;
 	FKey EffectingButton;
-	uint32 UserIndex;
 	uint32 PointerIndex;
 	uint32 TouchpadIndex;
 	bool bIsTouchEvent;
@@ -606,10 +765,8 @@ private:
 };
 
 
-/**
- * FControllerEvent describes a controller action (e.g. Button Press, Release, Analog stick move, etc).
- * It is passed to event handlers dealing with controller input.
- */
+/** DEPRECATED 4.6 - Do not use */
+//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
 USTRUCT(BlueprintType)
 struct FControllerEvent
 	: public FInputEvent
@@ -617,42 +774,25 @@ struct FControllerEvent
 	GENERATED_USTRUCT_BODY()
 public:
 
-	/**
-	 * UStruct Constructor.  Not meant for normal usage.
-	 */
 	FControllerEvent()
 		: EffectingButton(EKeys::Gamepad_RightTrigger)
-		, UserIndex(0)
 		, AnalogValue(0)
 	{ }
 
 	FControllerEvent( FKey InEffectingButton, int32 InUserIndex, float InAnalogValue, bool bIsRepeat )
-		: FInputEvent(FModifierKeysState(), bIsRepeat)
+		: FInputEvent(FModifierKeysState(), InUserIndex, bIsRepeat)
 		, EffectingButton(InEffectingButton)
-		, UserIndex(InUserIndex)
 		, AnalogValue(InAnalogValue)
 	{ }
 
 public:
-
-	/** @return The controller button that caused this event */
 	FKey GetEffectingButton() const { return EffectingButton; }
-
-	/** @return The index of the user that caused the event */
-	uint32 GetUserIndex() const { return UserIndex; }
-
-	/** @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all */
 	float GetAnalogValue() const { return AnalogValue; }
 
+	SLATECORE_API virtual FText ToText() const override;
+
 private:
-
-	// The controller button that caused this event.
 	FKey EffectingButton;
-
-	// The index of the user that caused the event.
-	uint32 UserIndex;
-	
-	//  Analog value between 0 and 1 (1 being fully pressed, 0 being not pressed at all).
 	float AnalogValue;
 };
 
@@ -672,8 +812,7 @@ public:
 	* UStruct Constructor.  Not meant for normal usage.
 	*/
 	FMotionEvent()
-		: UserIndex(0)
-		, Tilt(FVector(0, 0, 0))
+		: Tilt(FVector(0, 0, 0))
 		, RotationRate(FVector(0, 0, 0))
 		, Gravity(FVector(0, 0, 0))
 		, Acceleration(FVector(0, 0, 0))
@@ -686,8 +825,7 @@ public:
 		const FVector& InGravity, 
 		const FVector& InAcceleration
 	)
-		: FInputEvent(FModifierKeysState(), false)
-		, UserIndex(InUserIndex)
+		: FInputEvent(FModifierKeysState(), InUserIndex, false)
 		, Tilt(InTilt)
 		, RotationRate(InRotationRate)
 		, Gravity(InGravity)
@@ -713,9 +851,6 @@ public:
 
 private:
 
-	// The index of the user that caused the event.
-	uint32 UserIndex;
-
 	// The current tilt of the device/controller.
 	FVector Tilt;
 
@@ -729,6 +864,40 @@ private:
 	FVector Acceleration;
 };
 
+
+/**
+* FNavigationEvent describes a navigation action (Left, Right, Up, Down)
+* It is passed to event handlers dealing with navigation.
+*/
+USTRUCT(BlueprintType)
+struct FNavigationEvent
+	: public FInputEvent
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	/**
+	* UStruct Constructor.  Not meant for normal usage.
+	*/
+	FNavigationEvent()
+		: NavigationType(EUINavigation::Invalid)
+	{ }
+
+	FNavigationEvent(uint32 InUserIndex, EUINavigation InNavigationType)
+		: FInputEvent(FModifierKeysState(), InUserIndex, false)
+		, NavigationType(InNavigationType)
+	{ }
+
+public:
+
+	/** @return the type of navigation request (Left, Right, Up, Down) */
+	EUINavigation GetNavigationType() const { return NavigationType; }
+
+private:
+
+	// The navigation type
+	EUINavigation NavigationType;
+};
 
 /**
  * FWindowActivateEvent describes a window being activated or deactivated.

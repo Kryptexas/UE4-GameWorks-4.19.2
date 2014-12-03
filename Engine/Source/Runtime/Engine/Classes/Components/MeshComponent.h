@@ -8,6 +8,12 @@
 
 struct FMaterialRelevance;
 
+/**
+ * MeshComponent is an abstract base for any component that is an instance of a renderable collection of triangles.
+ *
+ * @see UStaticMeshComponent
+ * @see USkeletalMeshComponent
+ */
 UCLASS(abstract)
 class ENGINE_API UMeshComponent : public UPrimitiveComponent
 {

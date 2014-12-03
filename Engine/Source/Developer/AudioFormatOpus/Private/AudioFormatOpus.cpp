@@ -124,7 +124,7 @@ public:
 
 		while (SrcBufferOffset < SrcBufferCopy.Num())
 		{
-			int32 CompressedLength = opus_encode(Encoder, (const opus_int16*)(SrcBufferCopy.GetTypedData() + SrcBufferOffset), kOpusFrameSizeSamples, TempCompressedData.GetTypedData(), TempCompressedData.Num());
+			int32 CompressedLength = opus_encode(Encoder, (const opus_int16*)(SrcBufferCopy.GetData() + SrcBufferOffset), kOpusFrameSizeSamples, TempCompressedData.GetData(), TempCompressedData.Num());
 
 			if (CompressedLength < 0)
 			{
@@ -140,7 +140,7 @@ public:
 			{
 				// Store frame length and copy compressed data before incrementing pointers
 				check(CompressedLength < MAX_uint16);
-				SerialiseFrameData(CompressedData, TempCompressedData.GetTypedData(), CompressedLength);
+				SerialiseFrameData(CompressedData, TempCompressedData.GetData(), CompressedLength);
 				SrcBufferOffset += kBytesPerFrame;
 			}
 		}
@@ -218,9 +218,9 @@ public:
 #if USE_UE4_MEM_ALLOC
 		int32 EncSize = opus_multistream_surround_encoder_get_size(QualityInfo.NumChannels, mapping_family);
 		Encoder = (OpusMSEncoder*)FMemory::Malloc(EncSize);
-		EncError = opus_multistream_surround_encoder_init(Encoder, kOpusSampleRate, QualityInfo.NumChannels, mapping_family, &streams, &coupled_streams, mapping.GetTypedData(), OPUS_APPLICATION_AUDIO);
+		EncError = opus_multistream_surround_encoder_init(Encoder, kOpusSampleRate, QualityInfo.NumChannels, mapping_family, &streams, &coupled_streams, mapping.GetData(), OPUS_APPLICATION_AUDIO);
 #else
-		Encoder = opus_multistream_surround_encoder_create(kOpusSampleRate, QualityInfo.NumChannels, mapping_family, &streams, &coupled_streams, mapping.GetTypedData(), OPUS_APPLICATION_AUDIO, &EncError);
+		Encoder = opus_multistream_surround_encoder_create(kOpusSampleRate, QualityInfo.NumChannels, mapping_family, &streams, &coupled_streams, mapping.GetData(), OPUS_APPLICATION_AUDIO, &EncError);
 #endif
 		if (EncError != OPUS_OK)
 		{
@@ -281,12 +281,12 @@ public:
 				else
 				{
 					// Zero the rest of the temp buffer to make it an exact frame
-					FMemory::Memzero(TempInterleavedSrc.GetTypedData() + CurrInterleavedOffset, kBytesPerFrame - CurrInterleavedOffset);
+					FMemory::Memzero(TempInterleavedSrc.GetData() + CurrInterleavedOffset, kBytesPerFrame - CurrInterleavedOffset);
 					SampleIndex = kOpusFrameSizeSamples;
 				}
 			}
 
-			int32 CompressedLength = opus_multistream_encode(Encoder, (const opus_int16*)(TempInterleavedSrc.GetTypedData()), kOpusFrameSizeSamples, TempCompressedData.GetTypedData(), TempCompressedData.Num());
+			int32 CompressedLength = opus_multistream_encode(Encoder, (const opus_int16*)(TempInterleavedSrc.GetData()), kOpusFrameSizeSamples, TempCompressedData.GetData(), TempCompressedData.Num());
 
 			if (CompressedLength < 0)
 			{
@@ -302,7 +302,7 @@ public:
 			{
 				// Store frame length and copy compressed data before incrementing pointers
 				check(CompressedLength < MAX_uint16);
-				SerialiseFrameData(CompressedData, TempCompressedData.GetTypedData(), CompressedLength);
+				SerialiseFrameData(CompressedData, TempCompressedData.GetData(), CompressedLength);
 				SrcBufferOffset += kOpusFrameSizeSamples * SAMPLE_SIZE;
 			}
 		}
@@ -330,7 +330,7 @@ public:
 		}
 
 		// Parse the opus header for the relevant information
-		if( !AudioInfo.ReadCompressedInfo( CompressedDataStore.GetTypedData(), CompressedDataStore.Num(), &QualityInfo ) )
+		if( !AudioInfo.ReadCompressedInfo( CompressedDataStore.GetData(), CompressedDataStore.Num(), &QualityInfo ) )
 		{
 			return 0;
 		}
@@ -338,7 +338,7 @@ public:
 		// Decompress all the sample data
 		OutBuffer.Empty(QualityInfo.SampleDataSize);
 		OutBuffer.AddZeroed(QualityInfo.SampleDataSize);
-		AudioInfo.ExpandFile( OutBuffer.GetTypedData(), &QualityInfo );
+		AudioInfo.ExpandFile( OutBuffer.GetData(), &QualityInfo );
 
 		return CompressedDataStore.Num();
 	}
@@ -355,7 +355,7 @@ public:
 		uint32 ReadOffset = 0;
 		uint32 WriteOffset = 0;
 		uint16 ProcessedFrames = 0;
-		const uint8* LockedSrc = SrcBuffer.GetTypedData();
+		const uint8* LockedSrc = SrcBuffer.GetData();
 
 		// Read Identifier, True Sample Count, Number of channels and Frames to Encode first
 		if (FCStringAnsi::Strcmp((char*)LockedSrc, OPUS_ID_STRING) != 0)
@@ -446,11 +446,11 @@ public:
 		// Do resampling and check results
 		if (NumChannels == 1)
 		{
-			err = speex_resampler_process_int(resampler, 0, (const short*)(InBuffer.GetTypedData()), &InSamples, (short*)(OutBuffer.GetTypedData()), &OutSamples);
+			err = speex_resampler_process_int(resampler, 0, (const short*)(InBuffer.GetData()), &InSamples, (short*)(OutBuffer.GetData()), &OutSamples);
 		}
 		else
 		{
-			err = speex_resampler_process_interleaved_int(resampler, (const short*)(InBuffer.GetTypedData()), &InSamples, (short*)(OutBuffer.GetTypedData()), &OutSamples);
+			err = speex_resampler_process_interleaved_int(resampler, (const short*)(InBuffer.GetData()), &InSamples, (short*)(OutBuffer.GetData()), &OutSamples);
 		}
 
 		speex_resampler_destroy(resampler);
@@ -525,7 +525,7 @@ public:
 		TArray<uint8>& NewBuffer = *new (OutBuffers) TArray<uint8>;
 		NewBuffer.Empty(ChunkSize);
 		NewBuffer.AddUninitialized(ChunkSize);
-		FMemory::Memcpy(NewBuffer.GetTypedData(), ChunkData, ChunkSize);
+		FMemory::Memcpy(NewBuffer.GetData(), ChunkData, ChunkSize);
 		return ChunkSize;
 	}
 };
