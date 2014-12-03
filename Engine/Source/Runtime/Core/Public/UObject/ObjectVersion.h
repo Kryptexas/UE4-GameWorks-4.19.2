@@ -657,6 +657,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_PIVOT_TO_WIDGET_COMPONENT,
 	// Added finer control over when AI Pawns are automatically possessed. Also renamed Pawn.AutoPossess to Pawn.AutoPossessPlayer indicate this was a setting for players and not AI.
 	VER_UE4_PAWN_AUTO_POSSESS_AI,
+	// Added serialization of timezone to FTextHistory for AsDate operations.
+	VER_UE4_FTEXT_HISTORY_DATE_TIMEZONE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

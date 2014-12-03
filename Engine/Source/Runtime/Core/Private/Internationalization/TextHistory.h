@@ -198,7 +198,7 @@ class CORE_API FTextHistory_AsDate : public FTextHistory
 {
 public:
 	FTextHistory_AsDate() {};
-	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const FCulturePtr InTargetCulture);
+	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
@@ -210,6 +210,8 @@ private:
 	FDateTime SourceDateTime;
 	/** Style to format the date using */
 	EDateTimeStyle::Type DateStyle;
+	/** Timezone to put the time in */
+	FString TimeZone;
 	/** Culture to format the date in */
 	FCulturePtr TargetCulture;
 };

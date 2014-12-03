@@ -21,7 +21,7 @@ bool FText::IsWhitespace( const TCHAR Char )
 	return u_isWhitespace(ICUChar) != 0;
 }
 
-FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FCulturePtr& TargetCulture)
+FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
@@ -31,7 +31,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
-	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetDateFormatter(DateStyle) );
+	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetDateFormatter(DateStyle, TimeZone) );
 	icu::UnicodeString FormattedString;
 	ICUDateFormat->format(ICUDate, FormattedString);
 
@@ -39,7 +39,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ResultText = FText::CreateChronologicalText(NativeString);
-	ResultText.History = MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TargetCulture));
+	ResultText.History = MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture));
 
 	return ResultText;
 }

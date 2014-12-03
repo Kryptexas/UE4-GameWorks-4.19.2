@@ -43,24 +43,27 @@ namespace
 	TSharedRef<const icu::DateFormat> CreateDateFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		TSharedPtr<const icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createDateInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		TSharedPtr<icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createDateInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
 		checkf(Ptr.IsValid(), TEXT("Creating a date format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		Ptr->adoptTimeZone( icu::TimeZone::createDefault() );
 		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DateFormat> CreateTimeFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		TSharedPtr<const icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createTimeInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		TSharedPtr<icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createTimeInstance( icu::DateFormat::EStyle::kDefault, ICULocale ) );
 		checkf(Ptr.IsValid(), TEXT("Creating a time format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		Ptr->adoptTimeZone( icu::TimeZone::createDefault() );
 		return Ptr.ToSharedRef();
 	}
 
 	TSharedRef<const icu::DateFormat> CreateDateTimeFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		TSharedPtr<const icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createDateTimeInstance( icu::DateFormat::EStyle::kDefault, icu::DateFormat::EStyle::kDefault, ICULocale ) );
+		TSharedPtr<icu::DateFormat> Ptr = MakeShareable( icu::DateFormat::createDateTimeInstance( icu::DateFormat::EStyle::kDefault, icu::DateFormat::EStyle::kDefault, ICULocale ) );
 		checkf(Ptr.IsValid(), TEXT("Creating a date-time format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
+		Ptr->adoptTimeZone( icu::TimeZone::createDefault() );
 		return Ptr.ToSharedRef();
 	}
 }
@@ -306,11 +309,34 @@ TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetPer
 	}
 }
 
-TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFormatter(const EDateTimeStyle::Type DateStyle) const
+TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFormatter(const EDateTimeStyle::Type DateStyle, const FString& TimeZone) const
 {
-	const bool bIsDefault = (DateStyle == EDateTimeStyle::Default);
+	icu::UnicodeString InputTimeZoneID;
+	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateFormat );
+
+	bool bIsDefaultTimeZone = TimeZone.IsEmpty();
+	if( !bIsDefaultTimeZone )
+	{
+		UErrorCode ICUStatus = U_ZERO_ERROR;
+
+		icu::UnicodeString CanonicalInputTimeZoneID;
+		icu::TimeZone::getCanonicalID(InputTimeZoneID, CanonicalInputTimeZoneID, ICUStatus);
+
+		icu::UnicodeString DefaultTimeZoneID;
+		DefaultFormatter->getTimeZone().getID(DefaultTimeZoneID);
+
+		icu::UnicodeString CanonicalDefaultTimeZoneID;
+		icu::TimeZone::getCanonicalID(DefaultTimeZoneID, CanonicalDefaultTimeZoneID, ICUStatus);
+
+		bIsDefaultTimeZone = (CanonicalInputTimeZoneID == CanonicalDefaultTimeZoneID ? true : false);
+	}
+
+	const bool bIsDefault = 
+		DateStyle == EDateTimeStyle::Default &&
+		bIsDefaultTimeZone;
+
 	if(bIsDefault)
 	{
 		return DefaultFormatter;
@@ -318,8 +344,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFo
 	else
 	{
 		const TSharedRef<icu::DateFormat> Formatter( icu::DateFormat::createDateInstance( UEToICU(DateStyle), ICULocale ) );
-		const icu::TimeZone& TimeZone = *(icu::TimeZone::getGMT());
-		Formatter->setTimeZone( TimeZone );
+		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() :icu::TimeZone::createTimeZone(InputTimeZoneID) );
 		return Formatter;
 	}
 }
