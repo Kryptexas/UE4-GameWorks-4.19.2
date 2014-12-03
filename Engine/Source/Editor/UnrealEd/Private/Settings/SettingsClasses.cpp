@@ -193,6 +193,12 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const FObjectInitial
 	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
 }
 
+void ULevelEditorViewportSettings::PostInitProperties()
+{
+	Super::PostInitProperties();
+	UBillboardComponent::SetEditorScale(BillboardScale);
+	UArrowComponent::SetEditorScale(BillboardScale);
+}
 
 void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {

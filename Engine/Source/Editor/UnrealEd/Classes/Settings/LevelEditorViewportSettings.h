@@ -476,6 +476,7 @@ protected:
 
 	// UObject overrides
 
+	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 private:

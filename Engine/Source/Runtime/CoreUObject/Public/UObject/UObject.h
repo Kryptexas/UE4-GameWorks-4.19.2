@@ -136,7 +136,7 @@ protected:
 	virtual FString GetDetailedInfoInternal() const { return TEXT("No_Detailed_Info_Specified"); }
 public:
 	/**
-	 * Called after the C++ constructor and after the properties have been initialized, but before the config has been loaded, etc.
+	 * Called after the C++ constructor and after the properties have been initialized, including those loaded from config.
 	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.
 	 */
 	virtual void PostInitProperties();
