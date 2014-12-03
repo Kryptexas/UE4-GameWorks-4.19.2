@@ -91,6 +91,7 @@ void UProjectileMovementComponent::InitializeComponent()
 void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_ProjectileMovementComponent_TickComponent );
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// skip if don't want component updated when not rendered or updated component can't move
 	if ( ShouldSkipUpdate(DeltaTime) )

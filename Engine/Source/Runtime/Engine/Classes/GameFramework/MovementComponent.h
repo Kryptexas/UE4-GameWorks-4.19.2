@@ -131,6 +131,7 @@ public:
 	uint32 bAutoRegisterUpdatedComponent:1;
 
 	// Begin ActorComponent interface 
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void PostLoad() override;
 

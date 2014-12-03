@@ -53,7 +53,8 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 		UpdatedComponent->PrimaryComponentTick.RemovePrerequisite(this, PrimaryComponentTick); 
 	}
 
-	UpdatedComponent = NewUpdatedComponent;
+	// Don't assign pending kill components, but allow those to null out previous UpdatedComponent.
+	UpdatedComponent = IsValid(NewUpdatedComponent) ? NewUpdatedComponent : NULL;
 
 	if (IsValid(UpdatedComponent))
 	{
@@ -149,6 +150,18 @@ void UMovementComponent::UpdateTickRegistration()
 	{
 		const bool bHasUpdatedComponent = (UpdatedComponent != NULL);
 		SetComponentTickEnabled(bHasUpdatedComponent && bAutoActivate);
+	}
+}
+
+
+void UMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// Don't hang on to stale references to a destroyed UpdatedComponent.
+	if (UpdatedComponent != NULL && UpdatedComponent->IsPendingKill())
+	{
+		SetUpdatedComponent(NULL);
 	}
 }
 
