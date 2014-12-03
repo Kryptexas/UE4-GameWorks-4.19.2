@@ -45,5 +45,10 @@ protected:
 	void MoveLayerUp();
 	void MoveLayerDown();
 
+	int32 GetNumLayers() const;
+	bool CanExecuteActionNeedingLayerAbove() const;
+	bool CanExecuteActionNeedingLayerBelow() const;
+	bool CanExecuteActionNeedingSelectedLayer() const;
+
 	void SetSelectedLayer(UPaperTileLayer* SelectedLayer);
 };
