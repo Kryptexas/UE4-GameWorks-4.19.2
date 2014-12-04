@@ -4626,11 +4626,25 @@ UWorld* FSeamlessTravelHandler::Tick()
 			GWorld = NULL;
 
 			// mark everything else contained in the world to be deleted
+			TArray<UPackage*> CurrentWorldPackages;
+			for (auto LevelIt(CurrentWorld->GetLevelIterator()); LevelIt; ++LevelIt)
+			{
+				const ULevel* Level = *LevelIt;
+				if (Level)
+				{
+					CurrentWorldPackages.Add(Level->GetOutermost());
+				}
+			}
+
 			for (TObjectIterator<UObject> It; It; ++It)
 			{
-				if (It->IsIn(CurrentWorld))
+				for (const UPackage* WorldPackage : CurrentWorldPackages)
 				{
-					It->MarkPendingKill();
+					if (It->IsIn(WorldPackage))
+					{
+						It->MarkPendingKill();
+						break;
+					}
 				}
 			}
 
