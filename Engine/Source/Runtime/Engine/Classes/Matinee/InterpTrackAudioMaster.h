@@ -17,7 +17,9 @@ class UInterpTrackAudioMaster : public UInterpTrackVectorBase
 	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
 	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
 	virtual void SetTrackToSensibleDefault() override;
+#if WITH_EDITORONLY_DATA
 	virtual class UTexture2D* GetTrackIcon() const override;
+#endif // WITH_EDITORONLY_DATA
 	// End UInterpTrack interface.
 
 	/** Return the sound volume scale for the specified time */

@@ -43,7 +43,9 @@ class UInterpTrackMoveAxis : public UInterpTrackFloatBase
 	virtual int32 SetKeyframeTime( int32 KeyIndex, float NewKeyTime, bool bUpdateOrder ) override;
 	virtual void RemoveKeyframe( int32 KeyIndex ) override;
 	virtual int32 DuplicateKeyframe( int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL ) override;
+#if WITH_EDITORONLY_DATA
 	virtual class UTexture2D* GetTrackIcon() const override;
+#endif // WITH_EDITORONLY_DATA
 	virtual void ReduceKeys( float IntervalStart, float IntervalEnd, float Tolerance ) override;
 	// End UInterpTrack Interface
 	

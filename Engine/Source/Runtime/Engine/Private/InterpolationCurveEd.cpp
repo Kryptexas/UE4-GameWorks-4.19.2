@@ -539,10 +539,12 @@ int32 UInterpTrackMoveAxis::SetKeyIn( int32 KeyIndex, float NewInVal )
 	return NewIndex;
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackMoveAxis::GetTrackIcon() const
 {
 	return NULL;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackFloatBase

@@ -93,7 +93,9 @@ class UInterpTrackToggle : public UInterpTrack
 	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
 	virtual const FString	GetEdHelperClassName() const override;
 	virtual const FString	GetSlateHelperClassName() const override;
+#if WITH_EDITORONLY_DATA
 	virtual class UTexture2D* GetTrackIcon() const override;
+#endif // WITH_EDITORONLY_DATA
 	virtual bool AllowStaticActors() override { return true; }
 	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) override;
 	// Begin UInterpTrack interface.

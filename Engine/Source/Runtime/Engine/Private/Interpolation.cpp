@@ -2817,8 +2817,8 @@ UInterpTrack::UInterpTrack(const FObjectInitializer& ObjectInitializer)
 	bVisible = true;
 	SetSelected( false );
 	bIsRecording = false;
-	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 #if WITH_EDITORONLY_DATA
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 	bIsCollapsed = false;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -3316,7 +3316,9 @@ UInterpTrackMove::UInterpTrackMove(const FObjectInitializer& ObjectInitializer)
 	RotMode = IMR_Keyframed;
 	bShowTranslationOnCurveEd = true;
 	bShowRotationOnCurveEd = false;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Move.MAT_Groups_Move"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
 	int32 NewArrayIndex0 = SupportedSubTracks.Add(FSupportedSubTrackInfo());
@@ -4980,7 +4982,9 @@ UInterpTrackToggle::UInterpTrackToggle(const FObjectInitializer& ObjectInitializ
 	bFireEventsWhenBackwards = true;
 	bFireEventsWhenJumpingForwards = true;
 
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Toggle.MAT_Groups_Toggle"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackToggle::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5439,7 +5443,9 @@ UInterpTrackFloatProp::UInterpTrackFloatProp(const FObjectInitializer& ObjectIni
 {
 	TrackInstClass = UInterpTrackInstFloatProp::StaticClass();
 	TrackTitle = TEXT("Float Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackFloatProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5599,10 +5605,11 @@ void UInterpTrackInstFloatProp::InitTrackInst(UInterpTrack* Track)
 UInterpTrackVectorProp::UInterpTrackVectorProp(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	TrackInstClass = UInterpTrackInstVectorProp::StaticClass();
 	TrackTitle = TEXT("Vector Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Vector.MAT_Groups_Vector"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackVectorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5752,7 +5759,9 @@ UInterpTrackBoolProp::UInterpTrackBoolProp(const FObjectInitializer& ObjectIniti
 {
 	TrackInstClass = UInterpTrackInstBoolProp::StaticClass();
 	TrackTitle = TEXT("Bool Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackBoolProp::AddKeyframe( float Time, UInterpTrackInst* TrackInst, EInterpCurveMode InitInterpMode )
@@ -5928,7 +5937,9 @@ UInterpTrackColorProp::UInterpTrackColorProp(const FObjectInitializer& ObjectIni
 
 	TrackInstClass = UInterpTrackInstColorProp::StaticClass();
 	TrackTitle = TEXT("Color Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackColorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6084,7 +6095,9 @@ UInterpTrackLinearColorProp::UInterpTrackLinearColorProp(const FObjectInitialize
 {
 	TrackInstClass = UInterpTrackInstLinearColorProp::StaticClass();
 	TrackTitle = TEXT("LinearColor Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackLinearColorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6241,7 +6254,9 @@ UInterpTrackEvent::UInterpTrackEvent(const FObjectInitializer& ObjectInitializer
 	TrackTitle = TEXT("Event");
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Event.MAT_Groups_Event"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackEvent::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6430,8 +6445,8 @@ UInterpTrackDirector::UInterpTrackDirector(const FObjectInitializer& ObjectIniti
 	TrackInstClass = UInterpTrackInstDirector::StaticClass();
 	TrackTitle = TEXT("Director");
 	bSimulateCameraCutsOnClients = true;
-	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Director.MAT_Groups_Director"), NULL, LOAD_None, NULL ));
 #if WITH_EDITORONLY_DATA
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Director.MAT_Groups_Director"), NULL, LOAD_None, NULL ));
 	PreviewCamera = NULL;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -6765,7 +6780,9 @@ UInterpTrackFade::UInterpTrackFade(const FObjectInitializer& ObjectInitializer)
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstFade::StaticClass();
 	TrackTitle = TEXT("Fade");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackFade::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6856,7 +6873,9 @@ UInterpTrackSlomo::UInterpTrackSlomo(const FObjectInitializer& ObjectInitializer
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstSlomo::StaticClass();
 	TrackTitle = TEXT("Slomo");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Slomo.MAT_Groups_Slomo"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 
@@ -6988,7 +7007,9 @@ UInterpTrackAnimControl::UInterpTrackAnimControl(const FObjectInitializer& Objec
 	TrackInstClass = UInterpTrackInstAnimControl::StaticClass();
 	TrackTitle = TEXT("Anim");
 	bIsAnimControlTrack = true;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Anim.MAT_Groups_Anim"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 void UInterpTrackAnimControl::PostLoad()
@@ -7589,7 +7610,9 @@ UInterpTrackSound::UInterpTrackSound(const FObjectInitializer& ObjectInitializer
 
 	TrackInstClass = UInterpTrackInstSound::StaticClass();
 	TrackTitle = TEXT("Sound");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Sound.MAT_Groups_Sound"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 
 	bAttach = true;
 }
@@ -8813,7 +8836,9 @@ UInterpTrackColorScale::UInterpTrackColorScale(const FObjectInitializer& ObjectI
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstColorScale::StaticClass();
 	TrackTitle = TEXT("Color Scale");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackColorScale::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -8897,7 +8922,9 @@ UInterpTrackAudioMaster::UInterpTrackAudioMaster(const FObjectInitializer& Objec
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstAudioMaster::StaticClass();
 	TrackTitle = TEXT("Audio Master");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_AudioMaster.MAT_Groups_AudioMaster"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 
@@ -8995,7 +9022,9 @@ UInterpTrackVisibility::UInterpTrackVisibility(const FObjectInitializer& ObjectI
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
 	bFireEventsWhenJumpingForwards = true;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Visibility.MAT_Groups_Visibility"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackVisibility::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
