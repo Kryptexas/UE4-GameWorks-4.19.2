@@ -250,7 +250,8 @@ namespace UnrealBuildTool
                     else if (InModule.ToString() == "TargetPlatform")
                     {
                         bBuildShaderFormats = true;
-                        InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
+						InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
+						InModule.AddDynamicallyLoadedModule("TextureFormatASTC");
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("AudioFormatADPCM");

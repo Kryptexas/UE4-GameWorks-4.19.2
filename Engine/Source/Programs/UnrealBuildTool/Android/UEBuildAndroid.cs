@@ -249,6 +249,7 @@ namespace UnrealBuildTool
 						bBuildShaderFormats = true;
                         InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
 						InModule.AddDynamicallyLoadedModule("TextureFormatDXT");
+						InModule.AddDynamicallyLoadedModule("TextureFormatASTC");
                         InModule.AddPlatformSpecificDynamicallyLoadedModule("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
                         if (UEBuildConfiguration.bBuildDeveloperTools)
 						{

@@ -314,6 +314,23 @@ static bool SupportsMetalMRT()
 	return bSupportsMetalMRT;
 }
 
+static bool CookPVRTC()
+{
+	// default to using PVRTC
+	bool bCookPVRTCTextures = true;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bCookPVRTCTextures"), bCookPVRTCTextures, GEngineIni);
+	return bCookPVRTCTextures;
+}
+
+static bool CookASTC()
+{
+	// default to not using ASTC
+	bool bCookASTCTextures = true;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bCookASTCTextures"), bCookASTCTextures, GEngineIni);
+	return bCookASTCTextures;
+}
+
+
 void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
@@ -346,14 +363,15 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 {
 	check(Texture);
 
-	// we remap some of the defaults
-	static FName FormatRemap[] = 
+	// we remap some of the defaults (with PVRTC and ASTC formats)
+	static FName FormatRemap[] =
 	{
-		FName(TEXT("DXT1")), FName(TEXT("PVRTC2")),
-		FName(TEXT("DXT5")), FName(TEXT("PVRTC4")),
-		FName(TEXT("DXT5n")), FName(TEXT("PVRTCN")),
-		FName(TEXT("BC5")), FName(TEXT("PVRTCN")),
-		FName(TEXT("AutoDXT")), FName(TEXT("AutoPVRTC")),
+		// original				PVRTC						ASTC
+		FName(TEXT("DXT1")),	FName(TEXT("PVRTC2")),		FName(TEXT("ASTC_RGB")),
+		FName(TEXT("DXT5")),	FName(TEXT("PVRTC4")),		FName(TEXT("ASTC_RGBA")),
+		FName(TEXT("DXT5n")),	FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalAG")),
+		FName(TEXT("BC5")),		FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalRG")),
+		FName(TEXT("AutoDXT")),	FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
 	};
 
 	FName TextureFormatName = NAME_None;
@@ -371,15 +389,32 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	}
 
 	// perform any remapping away from defaults
-	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 2)
+	bool bFoundRemap = false;
+	bool bIncludePVRTC = CookPVRTC();
+	bool bIncludeASTC = CookASTC();
+	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
 	{
 		if (TextureFormatName == FormatRemap[RemapIndex])
 		{
-			TextureFormatName = FormatRemap[RemapIndex + 1];
+			// we found a remapping
+			bFoundRemap = true;
+			// include the formats we want (use ASTC first so that it is preferred at runtime if they both exist and it's supported)
+			if (bIncludeASTC)
+			{
+				OutFormats.AddUnique(FormatRemap[RemapIndex + 2]);
+			}
+			if (bIncludePVRTC)
+			{
+				OutFormats.AddUnique(FormatRemap[RemapIndex + 1]);
+			}
 		}
 	}
 
-	OutFormats.Add(TextureFormatName);
+	// if we didn't already remap above, add it now
+	if (!bFoundRemap)
+	{
+		OutFormats.Add(TextureFormatName);
+	}
 }
 
 

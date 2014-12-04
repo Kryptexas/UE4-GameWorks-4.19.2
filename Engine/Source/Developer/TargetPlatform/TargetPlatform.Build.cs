@@ -40,6 +40,7 @@ public class TargetPlatform : ModuleRules
 				{
                     DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
 				}
 
 				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
@@ -73,6 +74,7 @@ public class TargetPlatform : ModuleRules
 				{
 					DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
 				}
 
 				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
@@ -103,6 +105,7 @@ public class TargetPlatform : ModuleRules
                 {
                     DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
                 }
 
                 DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
