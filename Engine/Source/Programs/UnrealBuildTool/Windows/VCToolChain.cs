@@ -92,37 +92,14 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
-			{
-				// Pack struct members on 8-byte boundaries.
-				Arguments.Append(" /Zp8");
-			}
-			else
-			{
-				// Pack struct members on 4-byte boundaries.
-				Arguments.Append(" /Zp4");
-			}
-
 			// Separate functions for linker.
 			Arguments.Append(" /Gy");
-
-			if( !WindowsPlatform.bCompileWithClang )	// @todo clang: These options are not supported with clang-cl yet
-			{
-				// Relaxes floating point precision semantics to allow more optimization.
-				Arguments.Append(" /fp:fast");
-			}
 
 			// Compile into an .obj file, and skip linking.
 			Arguments.Append(" /c");
 
 			// Allow 800% of the default memory allocation limit.
 			Arguments.Append(" /Zm800");
-
-			if( !WindowsPlatform.bCompileWithClang )	// @todo clang: Not supported in clang-cl yet
-			{
-				// Allow large object files to avoid hitting the 2^16 section limit when running with -StressTestUnity.
-				Arguments.Append(" /bigobj");
-			}
 
 			// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 			Arguments.Append(" /wd4819");
@@ -205,21 +182,6 @@ namespace UnrealBuildTool
 				if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
 				{
 					Arguments.Append(" /Ox");
-
-					if( !WindowsPlatform.bCompileWithClang )
-					{
-						// Allow optimized code to be debugged more easily.  This makes PDBs a bit larger, but doesn't noticeably affect
-						// compile times.  The executable code is not affected at all by this switch, only the debugging information.
-						if (EnvVars.CLExeVersion >= new Version("18.0.30723"))
-						{
-							// VC2013 Update 3 has a new flag for doing this
-							Arguments.Append(" /Zo");
-						}
-						else
-						{
-							Arguments.Append(" /d2Zi+");
-						}
-					}
 				}
 				
 				// Favor code speed.
@@ -350,6 +312,59 @@ namespace UnrealBuildTool
 					Arguments.Append(" /MD");
 				}
 			}
+
+			//
+			// Options that aren't parsed by clang-cl yet
+			//
+			if (!WindowsPlatform.bCompileWithClang && !BuildConfiguration.bRunUnrealCodeAnalyzer)	// @todo clang: Not supported in clang-cl yet
+			{
+				// Allow large object files to avoid hitting the 2^16 section limit when running with -StressTestUnity.
+				Arguments.Append(" /bigobj");
+
+				// Relaxes floating point precision semantics to allow more optimization.
+				Arguments.Append(" /fp:fast");
+
+				if (CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds)
+				{
+					// Allow optimized code to be debugged more easily.  This makes PDBs a bit larger, but doesn't noticeably affect
+					// compile times.  The executable code is not affected at all by this switch, only the debugging information.
+					if (EnvVars.CLExeVersion >= new Version("18.0.30723"))
+					{
+						// VC2013 Update 3 has a new flag for doing this
+						Arguments.Append(" /Zo");
+					}
+					else
+					{
+						Arguments.Append(" /d2Zi+");
+					}
+				}
+			}
+
+			//
+			// Options skipped for UnrealCodeAnalyzer
+			//
+			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				if (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
+				{
+					// Pack struct members on 8-byte boundaries.
+					Arguments.Append(" /Zp8");
+				}
+				else if (!UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer"))
+				{
+					// Pack struct members on 4-byte boundaries.
+					// Disabled when compiling UnrealCodeAnalyzer as it breaks compilation (some structs in clang/llvm headers require 8-byte alignment in 32-bit compilation)
+					Arguments.Append(" /Zp4");
+				}
+			}
+
+			//
+			// Options required by UnrealCodeAnalyzer
+			//
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				Arguments.Append(" /DUNREAL_CODE_ANALYZER");
+			}
 		}
 
 		static void AppendCLArguments_CPP( CPPEnvironment CompileEnvironment, StringBuilder Arguments )
@@ -380,8 +395,17 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Level 4 warnings.
-			Arguments.Append(" /W4");
+			// Set warning level.
+			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				// Restrictive during regular compilation.
+				Arguments.Append(" /W4");
+			}
+			else
+			{
+				// If we had /W4 with clang on windows we would be flooded with warnings. This will be fixed incrementally.
+				Arguments.Append(" /W0");
+			}
 
 			if( WindowsPlatform.bCompileWithClang )
 			{
@@ -675,9 +699,19 @@ namespace UnrealBuildTool
 			AppendCLArguments_Global(CompileEnvironment, EnvVars, Arguments);
 
 			// Add include paths to the argument list.
-			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
+			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
 			{
-				Arguments.AppendFormat(" /I \"{0}\"", IncludePath);
+				foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
+				{
+					Arguments.AppendFormat(" /I \"{0}\"", IncludePath);
+				}
+			}
+			else
+			{
+				foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
+				{
+					Arguments.AppendFormat(" /I \"{0}\"", System.IO.Path.GetFullPath(IncludePath));
+				}
 			}
 			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 			{
@@ -850,9 +884,13 @@ namespace UnrealBuildTool
 							}
 						}
 					}
-					
-					// Add the source file path to the command-line.
-					FileArguments.AppendFormat(" \"{0}\"", SourceFile.AbsolutePath);
+
+					// UnrealCodeAnalyzer requires compiled file name to be first argument.
+					if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+					{
+						// Add the source file path to the command-line.
+						FileArguments.AppendFormat(" \"{0}\"", SourceFile.AbsolutePath);
+					}
 
 					CompileAction.StatusDescription = Path.GetFileName( SourceFile.AbsolutePath );
 				}
@@ -869,7 +907,11 @@ namespace UnrealBuildTool
 						);
 					CompileAction.ProducedItems.Add(ObjectFile);
 					Result.ObjectFiles.Add(ObjectFile);
-					FileArguments.AppendFormat(" /Fo\"{0}\"", ObjectFile.AbsolutePath);
+					// UnrealCodeAnalyzer requires specific position of output file.
+					if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+					{
+						FileArguments.AppendFormat(" /Fo\"{0}\"", ObjectFile.AbsolutePath);
+					}
 				}
 
 				// Create PDB files if we were configured to do that.
@@ -939,13 +981,30 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath      = EnvVars.CompilerPath;
+				if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+				{
+					CompileAction.CommandPath = System.IO.Path.Combine(CompileAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
+				}
+				else
+				{
+					CompileAction.CommandPath = EnvVars.CompilerPath;
+				}
 
-				if( !WindowsPlatform.bCompileWithClang )
+				if( !WindowsPlatform.bCompileWithClang || !BuildConfiguration.bRunUnrealCodeAnalyzer )
 				{
 					CompileAction.bIsVCCompiler = true;
 				}
-				CompileAction.CommandArguments = Arguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
+
+				string UnrealCodeAnalyzerArguments = "";
+				if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+				{
+					var ObjectFileExtension = @".includes";
+					FileItem ObjectFile = FileItem.GetItemByPath(Path.Combine(CompileEnvironment.Config.OutputDirectory, Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension));
+					var ClangPath = System.IO.Path.Combine(CompileAction.WorkingDirectory, @"ThirdParty", @"llvm", @"3.5.0", @"bin", @"vs2013", @"x86", @"release", @"clang++.exe");
+					UnrealCodeAnalyzerArguments = @"-CreateIncludeFiles " + SourceFile.AbsolutePath + @" -OutputFile=""" + ObjectFile.AbsolutePath + @""" -- " + ClangPath + @" --driver-mode=cl ";
+				}
+
+				CompileAction.CommandArguments = UnrealCodeAnalyzerArguments + Arguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
 
 				if( CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create )
 				{
@@ -958,7 +1017,7 @@ namespace UnrealBuildTool
 					Log.TraceVerbose("     Command: " + CompileAction.CommandArguments);
 				}
 
-				if( WindowsPlatform.bCompileWithClang )
+				if( WindowsPlatform.bCompileWithClang || BuildConfiguration.bRunUnrealCodeAnalyzer)
 				{
 					// Clang doesn't print the file names by default, so we'll do it ourselves
 					CompileAction.bShouldOutputStatusDescription = true;

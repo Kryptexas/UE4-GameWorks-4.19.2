@@ -2256,7 +2256,16 @@ namespace UnrealBuildTool
 		{
 			// Determine the binary extension for the platform and binary type.
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-			string BinaryExtension = BuildPlatform.GetBinaryExtension(BinaryType);
+			string BinaryExtension;
+
+			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				BinaryExtension = BuildPlatform.GetBinaryExtension(BinaryType);
+			}
+			else
+			{
+				BinaryExtension = @"-" + BuildConfiguration.UCAModuleToAnalyze + @".analysis";
+			}
 
 			UnrealTargetConfiguration LocalConfig = Configuration;
 			if(Configuration == UnrealTargetConfiguration.DebugGame && !String.IsNullOrEmpty(ModuleName) && !RulesCompiler.IsGameModule(ModuleName))

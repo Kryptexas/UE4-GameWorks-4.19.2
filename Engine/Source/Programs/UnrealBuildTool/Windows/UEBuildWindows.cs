@@ -215,7 +215,14 @@ namespace UnrealBuildTool
                 case UEBuildBinaryType.StaticLibrary:
                     return ".lib";
                 case UEBuildBinaryType.Object:
-                    return ".obj";
+					if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+					{
+						return ".obj";
+					}
+					else
+					{
+						return @".includes";
+					}
                 case UEBuildBinaryType.PrecompiledHeader:
                     return ".pch";
             }

@@ -798,7 +798,8 @@ namespace UnrealBuildTool
                     {
                         string LowercaseArg = Arg.ToLowerInvariant();
                         const string OnlyPlatformSpecificForArg = "-onlyplatformspecificfor=";
-
+						const string UCAUsageThresholdString = "-ucausagethreshold=";
+						const string UCAModuleToAnalyzeString = "-ucamoduletoanalyze=";
                         if (ParseRocketCommandlineArg(Arg, ref GameName))
                         {
                             // Already handled at startup. Calling now just to properly set the game name
@@ -979,6 +980,19 @@ namespace UnrealBuildTool
 						{
 							UEBuildConfiguration.bCompileCEF3 = false;
 						}
+						else if (LowercaseArg == "-rununrealcodeanalyzer")
+						{
+							BuildConfiguration.bRunUnrealCodeAnalyzer = true;
+						}
+						else if (LowercaseArg.StartsWith(UCAUsageThresholdString))
+						{
+							string UCAUsageThresholdValue = LowercaseArg.Substring(UCAUsageThresholdString.Length);
+							BuildConfiguration.UCAUsageThreshold = float.Parse(UCAUsageThresholdValue.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture);
+						}
+						else if (LowercaseArg.StartsWith(UCAModuleToAnalyzeString))
+						{
+							BuildConfiguration.UCAModuleToAnalyze = LowercaseArg.Substring(UCAModuleToAnalyzeString.Length).Trim();
+						}
                         else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
                         {
                             // It's the platform set...
@@ -1006,6 +1020,11 @@ namespace UnrealBuildTool
                     {
                         throw new BuildException( "UnrealBuildTool: At least one of either IsGatheringBuild or IsAssemblingBuild must be true.  Did you pass '-NoGather' with '-NoAssemble'?" );
                     }
+
+					if (BuildConfiguration.bRunUnrealCodeAnalyzer && (BuildConfiguration.UCAModuleToAnalyze == null || BuildConfiguration.UCAModuleToAnalyze.Length == 0))
+					{
+						throw new BuildException("When running UnrealCodeAnalyzer, please specify module to analyze in UCAModuleToAnalyze field in BuildConfiguration.xml");
+					}
 
                     // Send an event with basic usage dimensions
                     // [RCL] 2014-11-03 FIXME: this is incorrect since we can have more than one action

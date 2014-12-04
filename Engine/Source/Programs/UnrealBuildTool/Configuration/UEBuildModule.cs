@@ -987,6 +987,8 @@ namespace UnrealBuildTool
 		/** Path to this module's redist static library */
 		public string[] RedistStaticLibraryPaths = null;
 
+		public List<string> IncludeSearchPaths = new List<string>();
+
 		/** Whether we're building the redist static library (as well as using it). */
 		public bool bBuildingRedistStaticLibrary = false;
 
@@ -1142,6 +1144,8 @@ namespace UnrealBuildTool
 			}
 
 			var ModuleCompileEnvironment = CreateModuleCompileEnvironment(CompileEnvironment);
+			IncludeSearchPaths = ModuleCompileEnvironment.Config.CPPIncludeInfo.IncludePaths.ToList();
+			IncludeSearchPaths.AddRange(ModuleCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.ToList());
 
 			if( IntelliSenseGatherer != null )
 			{
