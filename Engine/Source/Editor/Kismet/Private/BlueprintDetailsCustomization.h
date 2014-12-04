@@ -551,6 +551,9 @@ private:
 	/** Callback function when an interface class is picked */
 	void OnClassPicked(UClass* PickedClass);
 
+	/** Helper function to set the Blueprint back into the KismetInspector's details view */
+	void OnRefreshInDetailsView();
+
 private:
 	/** The parent graph action details customization */
 	TWeakPtr<class FBlueprintGlobalOptionsDetails> GlobalOptionsDetailsPtr;

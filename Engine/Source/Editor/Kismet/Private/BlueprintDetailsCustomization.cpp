@@ -3895,6 +3895,8 @@ void FBlueprintInterfaceLayout::OnRemoveInterface(FInterfaceName InterfaceName)
 	FBlueprintEditorUtils::RemoveInterface(Blueprint, InterfaceFName, bPreserveInterfaceFunctions);
 
 	RegenerateChildrenDelegate.ExecuteIfBound();
+
+	OnRefreshInDetailsView();
 }
 
 void FBlueprintInterfaceLayout::OnClassPicked(UClass* PickedClass)
@@ -3910,6 +3912,8 @@ void FBlueprintInterfaceLayout::OnClassPicked(UClass* PickedClass)
 	FBlueprintEditorUtils::ImplementNewInterface( Blueprint, PickedClass->GetFName() );
 
 	RegenerateChildrenDelegate.ExecuteIfBound();
+
+	OnRefreshInDetailsView();
 }
 
 TSharedRef<SWidget> FBlueprintInterfaceLayout::OnGetAddInterfaceMenuContent()
@@ -3936,6 +3940,16 @@ TSharedRef<SWidget> FBlueprintInterfaceLayout::OnGetAddInterfaceMenuContent()
 				]
 			]
 		];
+}
+
+void FBlueprintInterfaceLayout::OnRefreshInDetailsView()
+{
+	TSharedPtr<SKismetInspector> Inspector = GlobalOptionsDetailsPtr.Pin()->GetBlueprintEditorPtr().Pin()->GetInspector();
+	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
+	check(Blueprint);
+
+	// Show details for the Blueprint instance we're editing
+	Inspector->ShowDetailsForSingleObject(Blueprint);
 }
 
 UBlueprint* FBlueprintGlobalOptionsDetails::GetBlueprintObj() const
@@ -3992,6 +4006,11 @@ void FBlueprintGlobalOptionsDetails::OnClassPicked(UClass* PickedClass)
 	{
 		BlueprintEditorPtr.Pin()->ReparentBlueprint_NewParentChosen(PickedClass);
 	}
+
+	check(BlueprintEditorPtr.IsValid());
+	TSharedPtr<SKismetInspector> Inspector = BlueprintEditorPtr.Pin()->GetInspector();
+	// Show details for the Blueprint instance we're editing
+	Inspector->ShowDetailsForSingleObject(GetBlueprintObj());
 }
 
 bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
