@@ -12,9 +12,12 @@
 #include "GenericPlatformProcess.h"
 
 
+// increment this if you change anything that will affect compression in this file, including FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE
+#define BASE_FORMAT_VERSION 30
+
 #define MAX_QUALITY_BY_SIZE 4
 #define MAX_QUALITY_BY_SPEED 3
-#define FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE 1
+#define FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE 4
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatASTC, Log, All);
@@ -296,9 +299,17 @@ class FTextureFormatASTC : public ITextureFormat
 
 	virtual uint16 GetVersion(FName Format) const override
 	{
-		return GetQualityVersion() + 29;
+		return GetQualityVersion() + BASE_FORMAT_VERSION;
 	}
 
+//	// Since we want to have per texture [group] compression settings, we need to have the key based on the texture
+//	virtual FString GetDerivedDataKeyString(const class UTexture& Texture) const override
+//	{
+//		const int32 LODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
+//		check(LODBias >= 0);
+//		return FString::Printf(TEXT("%02u%d_"), (uint32)LODBias, CVarVirtualTextureReducedMemoryEnabled->GetValueOnGameThread());
+//	}
+	
 	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const override
 	{
 		FTextureFormatCompressorCaps RetCaps;
