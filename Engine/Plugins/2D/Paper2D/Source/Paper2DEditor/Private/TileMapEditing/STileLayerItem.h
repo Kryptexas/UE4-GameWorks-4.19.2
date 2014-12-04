@@ -11,7 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(STileLayerItem) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, class UPaperTileLayer* InItem);
+	void Construct(const FArguments& InArgs, class UPaperTileLayer* InItem, FIsSelected InIsSelectedDelegate);
 
 protected:
 	class UPaperTileLayer* MyLayer;

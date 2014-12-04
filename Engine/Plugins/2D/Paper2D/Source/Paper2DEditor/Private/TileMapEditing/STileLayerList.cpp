@@ -102,11 +102,15 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* TileMap)
 
 TSharedRef<ITableRow> STileLayerList::OnGenerateLayerListRow(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STableRow<class UPaperTileLayer*>, OwnerTable)
-		.Style(&FPaperStyle::Get()->GetWidgetStyle<FTableRowStyle>("TileMapEditor.LayerBrowser.TableViewRow"))
-		[
-			SNew(STileLayerItem, Item)
-		];
+	typedef STableRow<class UPaperTileLayer*> RowType;
+
+	TSharedRef<RowType> NewRow = SNew(RowType, OwnerTable)
+		.Style(&FPaperStyle::Get()->GetWidgetStyle<FTableRowStyle>("TileMapEditor.LayerBrowser.TableViewRow"));
+
+	FIsSelected IsSelectedDelegate = FIsSelected::CreateSP(NewRow, &RowType::IsSelectedExclusively);
+	NewRow->SetContent(SNew(STileLayerItem, Item, IsSelectedDelegate));
+
+	return NewRow;
 }
 
 UPaperTileLayer* STileLayerList::GetSelectedLayer() const
