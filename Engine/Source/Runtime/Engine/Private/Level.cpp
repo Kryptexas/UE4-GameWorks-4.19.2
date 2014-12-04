@@ -222,6 +222,27 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 	return Ar;
 }
 
+FLevelSimplificationDetails::FLevelSimplificationDetails()
+ : DetailsPercentage(70.f)
+ , LandscapeExportLOD(7)
+ , bGenerateLandscapeNormalMap(true)
+ , bGenerateLandscapeRoughnessMap(false)
+ , bGenerateLandscapeSpecularMap(false)
+ , bBakeFoliageToLandscape(false)
+{
+}
+
+bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails& Other) const
+{
+	return
+		DetailsPercentage == Other.DetailsPercentage &&
+		LandscapeExportLOD == Other.LandscapeExportLOD &&
+		bGenerateLandscapeNormalMap == Other.bGenerateLandscapeNormalMap &&
+		bGenerateLandscapeRoughnessMap == Other.bGenerateLandscapeRoughnessMap &&
+		bGenerateLandscapeSpecularMap == Other.bGenerateLandscapeSpecularMap &&
+		bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape;
+}
+
 TMap<FName, UWorld*> ULevel::StreamedLevelsOwningWorld;
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer )

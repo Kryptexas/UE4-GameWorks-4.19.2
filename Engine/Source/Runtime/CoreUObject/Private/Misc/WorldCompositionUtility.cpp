@@ -27,10 +27,10 @@ FArchive& operator<<( FArchive& Ar, FWorldTileLODInfo& D )
 {
 	// Serialized with FPackageFileSummary
 	Ar << D.RelativeStreamingDistance 
-		<< D.GenDetailsPercentage
-		<< D.GenMaxDeviation
 		<< D.Reserved0
-		<< D.Reserved1;
+		<< D.Reserved1
+		<< D.Reserved2
+		<< D.Reserved3;
 	return Ar;
 }
 

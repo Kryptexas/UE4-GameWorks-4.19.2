@@ -229,6 +229,40 @@ private:
 	friend class FLightmassProcessor;
 };
 
+USTRUCT()
+struct ENGINE_API FLevelSimplificationDetails
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Percentage of details relative to main tile details
+	UPROPERTY(Category=ReductionSettings, EditAnywhere, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
+	float DetailsPercentage;
+	
+	// Landscape LOD to use for static mesh generation
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7"))
+	int32 LandscapeExportLOD;
+
+	// Whether to generate normal map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeNormalMap;
+
+	// Whether to generate roughness map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeRoughnessMap;
+	
+	// Whether to generate specular map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeSpecularMap;
+	
+	// Whether to bake foliage into landscape static mesh texture
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bBakeFoliageToLandscape;
+
+	FLevelSimplificationDetails();
+
+	bool operator == (const FLevelSimplificationDetails& Other) const;
+};
+
 //
 // The level object.  Contains the level's actor list, BSP information, and brush list.
 //
@@ -391,6 +425,12 @@ public:
 		return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
 	}
 
+#if WITH_EDITORONLY_DATA
+	/** Level simplification settings for each LOD */
+	UPROPERTY()
+	FLevelSimplificationDetails LevelSimplification[WORLDTILE_LOD_MAX_INDEX];
+#endif //WITH_EDITORONLY_DATA
+
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 	/** Mapping of how long each actor class takes to have UpdateComponents called on it */
 	TMap<const UClass*,struct FMapTimeEntry>		UpdateComponentsTimePerActorClass;
@@ -408,7 +448,6 @@ private:
 	FLevelBoundsActorUpdatedEvent LevelBoundsActorUpdatedEvent; 
 
 protected:
-
 	/** Array of all MovieSceneBindings that are used in this level.  These store the relationship between
 	    a MovieScene asset and possessed actors in this level. */
 	UPROPERTY()
@@ -424,9 +463,7 @@ protected:
 	UPROPERTY()
 	TArray<UAssetUserData*> AssetUserData;
 
-
 private:
-
 	// Actors awaiting input to be enabled once the appropriate PlayerController has been created
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
 

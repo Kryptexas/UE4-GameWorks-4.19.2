@@ -2691,6 +2691,76 @@ namespace MaterialExportUtils
 		OutFlattenMaterial.MaterialId = InMaterial->GetLightingGuid();
 		return true;
 	}
+
+	void RenderSceneToTexture(
+		FSceneInterface* Scene,
+		const FName& VisualizationMode, 
+		const FMatrix& ViewMatrix, 
+		const FMatrix& ProjectionMatrix,  
+		const TSet<FPrimitiveComponentId>& HiddenPrimitives, 
+		FIntPoint TargetSize, 
+		TArray<FColor>& OutSamples)
+	{
+		UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FObjectInitializer());
+		check(RenderTargetTexture);
+		RenderTargetTexture->AddToRoot();
+		RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		RenderTargetTexture->InitCustomFormat(TargetSize.X, TargetSize.Y, PF_B8G8R8A8, true);
+		FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
+
+		FSceneViewFamilyContext ViewFamily(
+			FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
+				.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
+			);
+
+		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
+		ViewFamily.EngineShowFlags.MotionBlur = 0;
+		ViewFamily.EngineShowFlags.Lighting = 0;
+		ViewFamily.EngineShowFlags.PostProcessing = 0;
+		ViewFamily.EngineShowFlags.LightFunctions = 0;
+		ViewFamily.EngineShowFlags.DynamicShadows = 0;
+		ViewFamily.EngineShowFlags.Atmosphere = 0;
+		// To enable visualization mode
+		ViewFamily.EngineShowFlags.PostProcessing = 1;
+		ViewFamily.EngineShowFlags.PostProcessMaterial = 1;
+		ViewFamily.EngineShowFlags.VisualizeBuffer = 1; 
+
+		FSceneViewInitOptions ViewInitOptions;
+		ViewInitOptions.SetViewRectangle(FIntRect(0, 0, TargetSize.X, TargetSize.Y));
+		ViewInitOptions.ViewFamily = &ViewFamily;
+		ViewInitOptions.HiddenPrimitives = HiddenPrimitives;
+		ViewInitOptions.ViewMatrix = ViewMatrix;
+		ViewInitOptions.ProjectionMatrix = ProjectionMatrix;
+		
+		FSceneView* NewView = new FSceneView(ViewInitOptions);
+		NewView->CurrentBufferVisualizationMode = VisualizationMode;
+		ViewFamily.Views.Add(NewView);
+					
+		FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
+		Canvas.Clear(FLinearColor::Black);
+		GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			UpdateThumbnailRTCommand,
+			FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
+		{
+			// Copy (resolve) the rendered thumbnail from the render target to its texture
+			RHICmdList.CopyToResolveTarget(
+				RenderTargetResource->GetRenderTargetTexture(),		// Source texture
+				RenderTargetResource->TextureRHI,					// Dest texture
+				false,												// Do we need the source image content again?
+				FResolveParams() );									// Resolve parameters
+		});
+
+		// Copy the contents of the remote texture to system memory
+		// NOTE: OutRawImageData must be a preallocated buffer!
+		OutSamples.Init(TargetSize.X*TargetSize.Y);
+		RenderTargetResource->ReadPixelsPtr(OutSamples.GetData(), FReadSurfaceDataFlags(), FIntRect(0, 0, TargetSize.X, TargetSize.Y));
+		FlushRenderingCommands();
+					
+		RenderTargetTexture->RemoveFromRoot();
+		RenderTargetTexture = nullptr;
+	}
 	
 	bool ExportMaterial(ALandscapeProxy* InLandscape, FFlattenMaterial& OutFlattenMaterial)
 	{
@@ -2716,178 +2786,84 @@ namespace MaterialExportUtils
 				PrimitivesToHide.Add(PrimitiveComp->SceneProxy->GetPrimitiveComponentId());
 			}
 		}
-		
+
+		FMatrix ViewMatrix = FTranslationMatrix(-LandscapeCenter);
+		ViewMatrix*= FInverseRotationMatrix(InLandscape->GetActorRotation());
+		ViewMatrix*= FMatrix(FPlane(1,	0,	0,	0),
+							 FPlane(0,	-1,	0,	0),
+							 FPlane(0,	0,	-1,	0),
+							 FPlane(0,	0,	0,	1));
+				
+		const float ZOffset = WORLD_MAX;
+		FMatrix ProjectionMatrix =  FReversedZOrthoMatrix(
+			LandscapeExtent.X,
+			LandscapeExtent.Y,
+			0.5f / ZOffset,
+			ZOffset);
+
 		FSceneInterface* Scene = InLandscape->GetWorld()->Scene;
+		
+		// Render diffuse texture using BufferVisualizationMode=BaseColor
+		if (OutFlattenMaterial.DiffuseSize.X > 0 && 
+			OutFlattenMaterial.DiffuseSize.Y > 0)
 		{
-			// Render diffuse texture
-			if (OutFlattenMaterial.DiffuseSize.X > 0 && 
-				OutFlattenMaterial.DiffuseSize.Y > 0)
-			{
-				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FObjectInitializer());
-				check(RenderTargetTexture);
-				RenderTargetTexture->AddToRoot();
-				RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				RenderTargetTexture->InitCustomFormat(
-					OutFlattenMaterial.DiffuseSize.X, 
-					OutFlattenMaterial.DiffuseSize.Y, PF_B8G8R8A8, true);
-				FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
-			
-				FSceneViewFamilyContext ViewFamily(
-					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
-						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
-					);
-
-				ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
-				ViewFamily.EngineShowFlags.MotionBlur = 0;
-				ViewFamily.EngineShowFlags.Lighting = 0;
-				ViewFamily.EngineShowFlags.PostProcessing = 0;
-				ViewFamily.EngineShowFlags.LightFunctions = 0;
-				ViewFamily.EngineShowFlags.DynamicShadows = 0;
-				ViewFamily.EngineShowFlags.Atmosphere = 0;
-
-				FSceneViewInitOptions ViewInitOptions;
-				ViewInitOptions.SetViewRectangle(FIntRect(0, 0, OutFlattenMaterial.DiffuseSize.X, OutFlattenMaterial.DiffuseSize.Y));
-				ViewInitOptions.ViewFamily = &ViewFamily;
-				ViewInitOptions.HiddenPrimitives = PrimitivesToHide;
-
-				ViewInitOptions.ViewMatrix = FTranslationMatrix(-LandscapeCenter);
-				ViewInitOptions.ViewMatrix*= FInverseRotationMatrix(InLandscape->GetActorRotation());
-				ViewInitOptions.ViewMatrix*= FMatrix(	FPlane(1,	0,	0,	0),
-														FPlane(0,	-1,	0,	0),
-														FPlane(0,	0,	-1,	0),
-														FPlane(0,	0,	0,	1));
-				
-				const float ZOffset = WORLD_MAX;
-				ViewInitOptions.ProjectionMatrix =  FReversedZOrthoMatrix(
-					LandscapeExtent.X,
-					LandscapeExtent.Y,
-					0.5f / ZOffset,
-					ZOffset);
-
-				ViewFamily.Views.Add(new FSceneView(ViewInitOptions));
-					
-				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
-				Canvas.Clear(FLinearColor::Black);
-				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
-
-				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-					UpdateThumbnailRTCommand,
-					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
-				{
-					// Copy (resolve) the rendered thumbnail from the render target to its texture
-					RHICmdList.CopyToResolveTarget(
-						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
-						RenderTargetResource->TextureRHI,					// Dest texture
-						false,												// Do we need the source image content again?
-						FResolveParams() );									// Resolve parameters
-				});
-
-				OutFlattenMaterial.DiffuseSamples.Empty();
-				OutFlattenMaterial.DiffuseSamples.AddUninitialized(OutFlattenMaterial.DiffuseSize.X*OutFlattenMaterial.DiffuseSize.Y);
-
-				// Copy the contents of the remote texture to system memory
-				// NOTE: OutRawImageData must be a preallocated buffer!
-				RenderTargetResource->ReadPixelsPtr(
-					(FColor*)OutFlattenMaterial.DiffuseSamples.GetData(), 
-					FReadSurfaceDataFlags(), 
-					FIntRect(0, 0, OutFlattenMaterial.DiffuseSize.X, OutFlattenMaterial.DiffuseSize.Y)
-					);
-			
-				FlushRenderingCommands();
-					
-				RenderTargetTexture->RemoveFromRoot();
-				RenderTargetTexture = nullptr;
-			}
-
-			// Render normal map using BufferVisualizationMode=WorldNormal
-			// Final material should use world space instead of tangent space for normals
-			if (OutFlattenMaterial.NormalSize.X > 0 && 
-				OutFlattenMaterial.NormalSize.Y > 0)
-			{
-				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FObjectInitializer());
-				check(RenderTargetTexture);
-				RenderTargetTexture->AddToRoot();
-				RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				RenderTargetTexture->InitCustomFormat(
-					OutFlattenMaterial.NormalSize.X, 
-					OutFlattenMaterial.NormalSize.Y, PF_B8G8R8A8, true);
-				FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
-
-				FSceneViewFamilyContext ViewFamily(
-					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
-						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
-					);
-
-				ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
-				ViewFamily.EngineShowFlags.MotionBlur = 0;
-				ViewFamily.EngineShowFlags.Lighting = 0;
-				ViewFamily.EngineShowFlags.LightFunctions = 0;
-				ViewFamily.EngineShowFlags.DynamicShadows = 0;
-				ViewFamily.EngineShowFlags.Atmosphere = 0;
-				// To enable WorldNormal visualization mode
-				ViewFamily.EngineShowFlags.PostProcessing = 1;
-				ViewFamily.EngineShowFlags.PostProcessMaterial = 1;
-				ViewFamily.EngineShowFlags.VisualizeBuffer = 1; 
-				
-				FSceneViewInitOptions ViewInitOptions;
-				ViewInitOptions.SetViewRectangle(FIntRect(0, 0, OutFlattenMaterial.NormalSize.X, OutFlattenMaterial.NormalSize.Y));
-				ViewInitOptions.ViewFamily = &ViewFamily;
-				ViewInitOptions.HiddenPrimitives = PrimitivesToHide;
-
-				ViewInitOptions.ViewMatrix = FTranslationMatrix(-LandscapeCenter);
-				ViewInitOptions.ViewMatrix*= FInverseRotationMatrix(InLandscape->GetActorRotation());
-				ViewInitOptions.ViewMatrix*= FMatrix(	FPlane(1,	0,	0,	0),
-														FPlane(0,	-1,	0,	0),
-														FPlane(0,	0,	-1,	0),
-														FPlane(0,	0,	0,	1));
-				
-				const float ZOffset = WORLD_MAX;
-				ViewInitOptions.ProjectionMatrix =  FReversedZOrthoMatrix(
-					LandscapeExtent.X,
-					LandscapeExtent.Y,
-					0.5f / ZOffset,
-					ZOffset);
-
-				FSceneView* NewView = new FSceneView(ViewInitOptions);
-				NewView->CurrentBufferVisualizationMode = FName("WorldNormal");
-				ViewFamily.Views.Add(NewView);
-										
-				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
-				Canvas.Clear(FLinearColor::Black);
-				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
-
-				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-					UpdateThumbnailRTCommand,
-					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
-				{
-					// Copy (resolve) the rendered thumbnail from the render target to its texture
-					RHICmdList.CopyToResolveTarget(
-						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
-						RenderTargetResource->TextureRHI,					// Dest texture
-						false,												// Do we need the source image content again?
-						FResolveParams() );									// Resolve parameters
-				});
-
-				OutFlattenMaterial.NormalSamples.Empty();
-				OutFlattenMaterial.NormalSamples.AddUninitialized(OutFlattenMaterial.NormalSize.X*OutFlattenMaterial.NormalSize.Y);
-
-				// Copy the contents of the remote texture to system memory
-				// NOTE: OutRawImageData must be a preallocated buffer!
-				RenderTargetResource->ReadPixelsPtr(
-					(FColor*)OutFlattenMaterial.NormalSamples.GetData(), 
-					FReadSurfaceDataFlags(), 
-					FIntRect(0, 0, OutFlattenMaterial.NormalSize.X, OutFlattenMaterial.NormalSize.Y)
-					);
-			
-				FlushRenderingCommands();
-
-				RenderTargetTexture->RemoveFromRoot();
-				RenderTargetTexture = nullptr;
-			}
+			static const FName BaseColorName("BaseColor");
+			RenderSceneToTexture(Scene, BaseColorName, ViewMatrix, ProjectionMatrix, PrimitivesToHide, 
+				OutFlattenMaterial.DiffuseSize, OutFlattenMaterial.DiffuseSamples);
 		}
 
+		// Render normal map using BufferVisualizationMode=WorldNormal
+		// Final material should use world space instead of tangent space for normals
+		if (OutFlattenMaterial.NormalSize.X > 0 && 
+			OutFlattenMaterial.NormalSize.Y > 0)
+		{
+			static const FName WorldNormalName("WorldNormal");
+			RenderSceneToTexture(Scene, WorldNormalName, ViewMatrix, ProjectionMatrix, PrimitivesToHide, 
+				OutFlattenMaterial.NormalSize, OutFlattenMaterial.NormalSamples);
+		}
+
+		// Render roughness map using BufferVisualizationMode=Roughness
+		if (OutFlattenMaterial.RoughnessSize.X > 0 && 
+			OutFlattenMaterial.RoughnessSize.Y > 0)
+		{
+			static const FName RoughnessName("Roughness");
+			RenderSceneToTexture(Scene, RoughnessName, ViewMatrix, ProjectionMatrix, PrimitivesToHide, 
+				OutFlattenMaterial.RoughnessSize, OutFlattenMaterial.RoughnessSamples);
+		}
+
+		// Render roughness map using BufferVisualizationMode=Specular
+		if (OutFlattenMaterial.SpecularSize.X > 0 && 
+			OutFlattenMaterial.SpecularSize.Y > 0)
+		{
+			static const FName SpecularName("Specular");
+			RenderSceneToTexture(Scene, SpecularName, ViewMatrix, ProjectionMatrix, PrimitivesToHide, 
+				OutFlattenMaterial.SpecularSize, OutFlattenMaterial.SpecularSamples);
+		}
+				
 		OutFlattenMaterial.MaterialId = InLandscape->GetLandscapeGuid();
 		return true;
+	}
+
+	UTexture2D* CreateTexture(UPackage* Outer, const FString& AssetName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags)
+	{
+		FCreateTexture2DParameters TexParams;
+		TexParams.bUseAlpha = false;
+		TexParams.CompressionSettings = CompressionSettings;
+		TexParams.bDeferCompression = true;
+		TexParams.bSRGB = false;
+
+		if (Outer == nullptr)
+		{
+			Outer = CreatePackage(NULL, *AssetName);
+			Outer->FullyLoad();
+			Outer->Modify();
+		}
+
+		UTexture2D* Texture = FImageUtils::CreateTexture2D(Size.X, Size.Y, Samples, Outer, AssetName, Flags, TexParams);
+		Texture->LODGroup = LODGroup;
+		Texture->PostEditChange();
+		
+		return Texture;
 	}
 
 	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags)
@@ -2910,6 +2886,76 @@ namespace MaterialExportUtils
 		Material->TwoSided = false;
 		Material->SetShadingModel(MSM_DefaultLit);
 
+		// Set BaseColor
+		if (InFlattenMaterial.DiffuseSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_D");
+			UTexture2D* Texture = CreateTexture(Outer, AssetName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, TEXTUREGROUP_World, Flags);
+			
+			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			BasecolorExpression->Texture = Texture;
+			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+			BasecolorExpression->MaterialExpressionEditorX = -400;
+			BasecolorExpression->MaterialExpressionEditorY = -150;
+			Material->Expressions.Add(BasecolorExpression);
+			Material->BaseColor.Expression = BasecolorExpression;
+		}
+
+		// Set Normal
+		if (InFlattenMaterial.NormalSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
+			UTexture2D* Texture = CreateTexture(Outer, AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, TEXTUREGROUP_WorldNormalMap, Flags);
+			
+			UMaterialExpressionTextureSample* NormalExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			NormalExpression->Texture = Texture;
+			NormalExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
+			NormalExpression->MaterialExpressionEditorX = -400;
+			NormalExpression->MaterialExpressionEditorY = 0;
+			Material->Expressions.Add(NormalExpression);
+			Material->Normal.Expression = NormalExpression;
+		}
+
+		if (InFlattenMaterial.SpecularSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
+			UTexture2D* Texture = CreateTexture(Outer, AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags);
+			
+			UMaterialExpressionTextureSample* SpecularExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			SpecularExpression->Texture = Texture;
+			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+			SpecularExpression->MaterialExpressionEditorX = -400;
+			SpecularExpression->MaterialExpressionEditorY = 300;
+			Material->Expressions.Add(SpecularExpression);
+			Material->Specular.Expression = SpecularExpression;
+		}
+		
+		// Set Roughness
+		if (InFlattenMaterial.RoughnessSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
+			UTexture2D* Texture = CreateTexture(Outer, AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Default, TEXTUREGROUP_World, Flags);
+			
+			UMaterialExpressionTextureSample* RoughnessExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+			RoughnessExpression->Texture = Texture;
+			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+			RoughnessExpression->MaterialExpressionEditorX = -250;
+			RoughnessExpression->MaterialExpressionEditorY = 150;
+			Material->Expressions.Add(RoughnessExpression);
+			Material->Roughness.Expression = RoughnessExpression;
+		}
+		else
+		{
+			float Roughness = InFlattenMaterial.RoughnessSamples.Num() ? InFlattenMaterial.RoughnessSamples[0].R : 0.8f;
+			// Set Roughness to constant
+			UMaterialExpressionConstant* RoughnessExpression = ConstructObject<UMaterialExpressionConstant>(UMaterialExpressionConstant::StaticClass(), Material);
+			RoughnessExpression->R = Roughness;
+			RoughnessExpression->MaterialExpressionEditorX = -250;
+			RoughnessExpression->MaterialExpressionEditorY = 150;
+			Material->Expressions.Add(RoughnessExpression);
+			Material->Roughness.Expression = RoughnessExpression;
+		}
+
 		//Set Metallic as a default constant
 		{
 			UMaterialExpressionConstant* MetallicExpression = ConstructObject<UMaterialExpressionConstant>(UMaterialExpressionConstant::StaticClass(), Material);
@@ -2920,95 +2966,7 @@ namespace MaterialExportUtils
 			MetallicExpression->MaterialExpressionEditorX = -250;
 			MetallicExpression->MaterialExpressionEditorY = 0;
 		}
-		
-		//Set Roughness as default constant
-		{
-			UMaterialExpressionConstant* RoughnessExpression = ConstructObject<UMaterialExpressionConstant>(UMaterialExpressionConstant::StaticClass(), Material);
-			RoughnessExpression->R = 0.8f;
-			Material->Expressions.Add(RoughnessExpression);
-			Material->Roughness.Expression = RoughnessExpression;
-
-			RoughnessExpression->MaterialExpressionEditorX = -250;
-			RoughnessExpression->MaterialExpressionEditorY = 150;
-		}
-
-		//Build the Diffuse UTexture
-		if (InFlattenMaterial.DiffuseSamples.Num() > 1)
-		{
-			FCreateTexture2DParameters TexParams;
-			TexParams.bUseAlpha = false;
-			TexParams.CompressionSettings = TC_Default;
-			TexParams.bDeferCompression = true;
-			TexParams.bSRGB = false;
-
-			const FString TextureAssetName = TEXT("T_") + AssetBaseName + TEXT("_D");
-			UPackage* TextureOuter = Outer;
-			if (TextureOuter == NULL)
-			{
-				TextureOuter = CreatePackage(NULL, *(AssetBasePath + TextureAssetName));
-				TextureOuter->FullyLoad();
-				TextureOuter->Modify();
-			}
-
-			UTexture2D* DiffuseTexture = FImageUtils::CreateTexture2D(
-				InFlattenMaterial.DiffuseSize.X, 
-				InFlattenMaterial.DiffuseSize.Y,
-				InFlattenMaterial.DiffuseSamples,
-				TextureOuter,
-				TextureAssetName,
-				Flags, 
-				TexParams);
-
-			//Create BaseColor Expression of the diffuse texture
-			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
-			BasecolorExpression->Texture = DiffuseTexture;
-			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
-			BasecolorExpression->MaterialExpressionEditorX = -400;
-			BasecolorExpression->MaterialExpressionEditorY = -150;
-			Material->Expressions.Add(BasecolorExpression);
-			Material->BaseColor.Expression = BasecolorExpression;
-		}
-
-		//Build the Normal UTexture
-		if (InFlattenMaterial.NormalSamples.Num() > 1)
-		{
-			FCreateTexture2DParameters TexParams;
-			TexParams.bUseAlpha = false;
-			TexParams.CompressionSettings = TC_Normalmap;
-			TexParams.bDeferCompression = true;
-			TexParams.bSRGB = false;
-
-			const FString TextureAssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
-			UPackage* TextureOuter = Outer;
-			if (TextureOuter == NULL)
-			{
-				TextureOuter = CreatePackage(NULL, *(AssetBasePath + TextureAssetName));
-				TextureOuter->FullyLoad();
-				TextureOuter->Modify();
-			}
-
-			UTexture2D* NormalTexture = FImageUtils::CreateTexture2D(
-				InFlattenMaterial.NormalSize.X, 
-				InFlattenMaterial.NormalSize.Y,
-				InFlattenMaterial.NormalSamples,
-				TextureOuter,
-				TextureAssetName,
-				Flags, 
-				TexParams);
-
-			NormalTexture->LODGroup = TEXTUREGROUP_WorldNormalMap;
-			NormalTexture->PostEditChange();
-						
-			//Assign the normalmap to the material
-			UMaterialExpressionTextureSample* NormalExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
-			NormalExpression->Texture = NormalTexture;
-			NormalExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
-			NormalExpression->MaterialExpressionEditorX = -400;
-			NormalExpression->MaterialExpressionEditorY = 300;
-			Material->Expressions.Add(NormalExpression);
-			Material->Normal.Expression = NormalExpression;
-		}
-			
+							
 		Material->PostEditChange();
 		return Material;
 	}
