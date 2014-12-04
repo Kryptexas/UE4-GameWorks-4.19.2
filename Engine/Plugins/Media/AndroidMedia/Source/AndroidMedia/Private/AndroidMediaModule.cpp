@@ -14,7 +14,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		if (IsSupported())
 		{
@@ -29,7 +29,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if (IsSupported())
 		{
