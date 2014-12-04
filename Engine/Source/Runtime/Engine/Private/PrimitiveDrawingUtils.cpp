@@ -1196,34 +1196,39 @@ void DrawWireChoppedCone(FPrimitiveDrawInterface* PDI,const FVector& Base,const 
  * @param	DepthPriority	Depth priority for the cone.
  */
 
-void DrawOrientedWireBox(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z, FVector Extent, const FLinearColor& Color,uint8 DepthPriority)
+void DrawOrientedWireBox(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, FVector Extent, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	FVector	B[2],P,Q;
-	int32 i,j;
 
-	FMatrix m(X, Y, Z, Base);
+	FMatrix M(X, Y, Z, Base);
 	B[0] = -Extent;
 	B[1] = Extent;
 
-	for( i=0; i<2; i++ ) for( j=0; j<2; j++ )
+	for (int32 i = 0; i < 2; i++)
 	{
-		P.X=B[i].X; Q.X=B[i].X;
-		P.Y=B[j].Y; Q.Y=B[j].Y;
-		P.Z=B[0].Z; Q.Z=B[1].Z;
-		P = m.TransformPosition(P); Q = m.TransformPosition(Q);
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+		for (int32 j = 0; j < 2; j++)
+		{
+			P.X = B[i].X; Q.X = B[i].X;
+			P.Y = B[j].Y; Q.Y = B[j].Y;
+			P.Z = B[0].Z; Q.Z = B[1].Z;
+			P = M.TransformPosition(P);
+			Q = M.TransformPosition(Q);
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
-		P.Y=B[i].Y; Q.Y=B[i].Y;
-		P.Z=B[j].Z; Q.Z=B[j].Z;
-		P.X=B[0].X; Q.X=B[1].X;
-		P = m.TransformPosition(P); Q = m.TransformPosition(Q);
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+			P.Y = B[i].Y; Q.Y = B[i].Y;
+			P.Z = B[j].Z; Q.Z = B[j].Z;
+			P.X = B[0].X; Q.X = B[1].X;
+			P = M.TransformPosition(P);
+			Q = M.TransformPosition(Q);
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
-		P.Z=B[i].Z; Q.Z=B[i].Z;
-		P.X=B[j].X; Q.X=B[j].X;
-		P.Y=B[0].Y; Q.Y=B[1].Y;
-		P = m.TransformPosition(P); Q = m.TransformPosition(Q);
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+			P.Z = B[i].Z; Q.Z = B[i].Z;
+			P.X = B[j].X; Q.X = B[j].X;
+			P.Y = B[0].Y; Q.Y = B[1].Y;
+			P = M.TransformPosition(P);
+			Q = M.TransformPosition(Q);
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
+		}
 	}
 }
 
