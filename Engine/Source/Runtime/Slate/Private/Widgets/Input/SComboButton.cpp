@@ -33,7 +33,6 @@ void SComboButton::Construct( const FArguments& InArgs )
 			.ForegroundColor( InArgs._ForegroundColor )
 			.ButtonColorAndOpacity( InArgs._ButtonColorAndOpacity )
 			.IsFocusable( InArgs._IsFocusable )
-			.Cursor(InArgs._Cursor)
 			[
 				// Button and down arrow on the right
 				// +-------------------+---+
