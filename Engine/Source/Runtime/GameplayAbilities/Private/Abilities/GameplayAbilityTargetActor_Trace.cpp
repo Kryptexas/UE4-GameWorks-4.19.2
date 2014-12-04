@@ -20,7 +20,6 @@ AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const FObje
 	StaticTargetFunction = false;
 
 	MaxRange = 999999.0f;
-	TraceChannel = ECC_WorldStatic;
 }
 
 void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -33,42 +32,50 @@ void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPl
 	Super::EndPlay(EndPlayReason);
 }
 
-void AGameplayAbilityTargetActor_Trace::LineTraceWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, ECollisionChannel Channel, const FCollisionQueryParams Params) const
+void AGameplayAbilityTargetActor_Trace::LineTraceWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, FName TraceProfileName, const FCollisionQueryParams Params) const
 {
 	check(InWorld);
-	FCollisionQueryParams LocalParams = Params;
-	while (true)
+
+	TArray<FHitResult> HitResults;
+	InWorld->LineTraceMultiByProfile(HitResults, InTraceStart, InTraceEnd, TraceProfileName, Params);
+
+	ReturnHitResult.TraceStart = InTraceStart;
+	ReturnHitResult.TraceEnd = InTraceEnd;
+
+	for (int32 HitIdx = 0; HitIdx < HitResults.Num(); ++HitIdx)
 	{
-		FHitResult TempHitResult;
-		InWorld->LineTraceSingle(TempHitResult, InTraceStart, InTraceEnd, Channel, LocalParams);
-		if (TempHitResult.bBlockingHit && TempHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(TempHitResult.Actor))
+		const FHitResult& Hit = HitResults[HitIdx];
+
+		if (!Hit.Actor.IsValid() || InFilterHandle.FilterPassesForActor(Hit.Actor))
 		{
-			LocalParams.AddIgnoredActor(TempHitResult.Actor.Get());
-			continue;
+			ReturnHitResult = Hit;
+			ReturnHitResult.bBlockingHit = true; // treat it as a blocking hit
+			return;
 		}
-		//Either hit something we're not ignoring, or didn't hit anything.
-		ReturnHitResult = TempHitResult;
-		break;
-	};
+	}
 }
 
-void AGameplayAbilityTargetActor_Trace::SweepWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, const FQuat& InRotation, ECollisionChannel Channel, const FCollisionShape CollisionShape, const FCollisionQueryParams Params) const
+void AGameplayAbilityTargetActor_Trace::SweepWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, const FQuat& InRotation, const FCollisionShape CollisionShape, FName TraceProfileName, const FCollisionQueryParams Params) const
 {
 	check(InWorld);
-	FCollisionQueryParams LocalParams = Params;
-	while (true)
+
+	TArray<FHitResult> HitResults;
+	InWorld->SweepMultiByProfile(HitResults, InTraceStart, InTraceEnd, InRotation, TraceProfileName, CollisionShape, Params);
+
+	ReturnHitResult.TraceStart = InTraceStart;
+	ReturnHitResult.TraceEnd = InTraceEnd;
+
+	for (int32 HitIdx = 0; HitIdx < HitResults.Num(); ++HitIdx)
 	{
-		FHitResult TempHitResult;
-		InWorld->SweepSingle(TempHitResult, InTraceStart, InTraceEnd, InRotation, Channel, CollisionShape, LocalParams);
-		if (TempHitResult.bBlockingHit && TempHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(TempHitResult.Actor))
+		const FHitResult& Hit = HitResults[HitIdx];
+
+		if (!Hit.Actor.IsValid() || InFilterHandle.FilterPassesForActor(Hit.Actor))
 		{
-			LocalParams.AddIgnoredActor(ReturnHitResult.Actor.Get());
-			continue;
+			ReturnHitResult = Hit;
+			ReturnHitResult.bBlockingHit = true; // treat it as a blocking hit
+			return;
 		}
-		//Either hit something we're not ignoring, or didn't hit anything.
-		ReturnHitResult = TempHitResult;
-		break;
-	};
+	}
 }
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
@@ -94,7 +101,7 @@ void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(AActor* InSource
 		ClipCameraRayToAbilityRange(CamLoc, CamDir, TraceStart, MaxRange, CamTarget);
 
 		FHitResult TempHitResult;
-		LineTraceWithFilter(TempHitResult, InSourceActor->GetWorld(), Filter, CamLoc, CamTarget, TraceChannel, Params);
+		LineTraceWithFilter(TempHitResult, InSourceActor->GetWorld(), Filter, CamLoc, CamTarget, TraceProfile.Name, Params);
 		if (TempHitResult.bBlockingHit && (FVector::DistSquared(TraceStart, TempHitResult.Location) <= (MaxRange * MaxRange)))
 		{
 			//We actually made a hit? Pull back.

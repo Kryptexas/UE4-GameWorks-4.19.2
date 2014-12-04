@@ -1166,7 +1166,8 @@ bool UEdGraphSchema_K2::PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin)
 			|| &SubCategoryObject == RotatorStruct
 			|| &SubCategoryObject == TransformStruct
 			|| &SubCategoryObject == LinearColorStruct
-			|| &SubCategoryObject == ColorStruct;
+			|| &SubCategoryObject == ColorStruct
+			|| &SubCategoryObject == FCollisionProfileName::StaticStruct();
 	}
 
 	return true;

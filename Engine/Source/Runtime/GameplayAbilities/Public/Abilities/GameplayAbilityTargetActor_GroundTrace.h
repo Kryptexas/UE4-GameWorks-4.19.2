@@ -13,10 +13,6 @@ class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_GroundTrace : public AGa
 
 	virtual void StartTargeting(UGameplayAbility* InAbility) override;
 
-	/** This trace channel is used when finding the ground, and may be different from the direct line trace channel */
-	//UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Trace)
-	//TEnumAsByte<ECollisionChannel> TraceChannelToGround;
-
 	/** Radius for a sphere or capsule. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
 	float CollisionRadius;
