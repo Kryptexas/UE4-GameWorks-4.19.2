@@ -69,7 +69,7 @@ class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it eas
 	UMaterialInterface* Material;
 
 	// The list of layers
-	UPROPERTY(Category=Debug, VisibleAnywhere, Instanced) //@TODO: Remove this
+	UPROPERTY(Instanced)
 	TArray<class UPaperTileLayer*> TileLayers;
 
 	// Collision domain (no collision, 2D, or 3D)
