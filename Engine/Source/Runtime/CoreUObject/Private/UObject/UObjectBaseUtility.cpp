@@ -116,9 +116,7 @@ UPackage* UObjectBaseUtility::GetOutermost() const
 		UObject* Outer = Top->GetOuter();
 		if (!Outer)
 		{
-			UPackage* Result = dynamic_cast<UPackage*>(Top);
-			check(Result);
-			return Result;
+			return CastChecked<UPackage*>(Top);
 		}
 		Top = Outer;
 	}

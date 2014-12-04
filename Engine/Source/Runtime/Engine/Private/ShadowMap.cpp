@@ -91,8 +91,7 @@ struct FShadowMapAllocation
 	{
 		if (InstanceIndex >= 0)
 		{
-			UInstancedStaticMeshComponent* Component = dynamic_cast<UInstancedStaticMeshComponent*>(Primitive);
-			check(Component);
+			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent*>(Primitive);
 
 			// TODO: We currently only support one LOD of static lighting in foliage
 			// Need to create per-LOD instance data to fix that
