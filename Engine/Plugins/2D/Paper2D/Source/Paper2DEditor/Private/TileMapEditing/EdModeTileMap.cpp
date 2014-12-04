@@ -364,10 +364,12 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 				FVector LocalStart = ComponentToWorld.InverseTransformPosition(TraceStart);
 				FVector LocalDirection = ComponentToWorld.InverseTransformVector(TraceDir);
 
-				FVector Intersection;
-				FPlane Plane(FVector(1, 0, 0), FVector::ZeroVector, FVector(0, 0, 1));
+				const FVector LSPlaneCorner = PaperAxisZ * TileMap->SeparationPerLayer;
 
-				if (FMath::SegmentPlaneIntersection(LocalStart, LocalDirection * HALF_WORLD_MAX, Plane, /*out*/ Intersection))
+				const FPlane LayerPlane(LSPlaneCorner + PaperAxisX, LSPlaneCorner, LSPlaneCorner + PaperAxisY);
+
+				FVector Intersection;
+				if (FMath::SegmentPlaneIntersection(LocalStart, LocalDirection * HALF_WORLD_MAX, LayerPlane, /*out*/ Intersection))
 				{
 					//@TODO: Ideally tile pivots weren't in the center!
 					const float NormalizedX = (Intersection.X + 0.5f * TileMap->TileWidth) / WX;
@@ -735,8 +737,11 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 			const int32 LocalTileY1 = LocalTileY0 + CursorHeight;
 
 			UPaperTileMap* TileMap = TileLayer->GetTileMap();
-			const FVector WorldPosition = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0, LocalTileY0));
-			const FVector WorldPositionBR = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX1, LocalTileY1));
+			int32 LayerIndex;
+			ensure(TileMap->TileLayers.Find(TileLayer, LayerIndex));
+
+			const FVector WorldPosition = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0, LocalTileY0, LayerIndex));
+			const FVector WorldPositionBR = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX1, LocalTileY1, LayerIndex));
 
 			DrawPreviewSpace = ComponentToWorld;
 			DrawPreviewLocation = (WorldPosition + WorldPositionBR) * 0.5f;

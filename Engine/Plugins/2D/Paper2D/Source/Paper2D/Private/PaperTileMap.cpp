@@ -106,9 +106,12 @@ void UPaperTileMap::UpdateBodySetup()
 
 FVector UPaperTileMap::GetTilePositionInLocalSpace(int32 TileX, int32 TileY, int32 LayerIndex) const
 {
-	//@TODO: Layer depth, multiply by layer depth here!
 	//@TODO: Tile pivot issue
-	const FVector LocalPos(PaperAxisX * (TileX - 0.5f) * TileWidth + PaperAxisY * -(TileY - 0.5f) * TileHeight);
+	const FVector PartialX = PaperAxisX * (TileX - 0.5f) * TileWidth;
+	const FVector PartialY = PaperAxisY * -(TileY - 0.5f) * TileHeight;
+	const FVector PartialZ = PaperAxisZ * (LayerIndex * SeparationPerLayer);
+
+	const FVector LocalPos(PartialX + PartialY + PartialZ);
 	
 	return LocalPos;
 }
