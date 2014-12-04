@@ -28,10 +28,6 @@ class UCurveFloat : public UCurveBase
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Legacy keyframe data. */
-	UPROPERTY()
-	FInterpCurveFloat FloatKeys_DEPRECATED;
-
 	/** Keyframe data */
 	UPROPERTY()
 	FRichCurve FloatCurve;
@@ -43,9 +39,6 @@ class UCurveFloat : public UCurveBase
 	/** Evaluate this float curve at the specified time */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
 	ENGINE_API float GetFloatValue(float InTime) const;
-
-	// UObject interface
-	virtual void PostLoad() override;
 
 	// Begin FCurveOwnerInterface
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;

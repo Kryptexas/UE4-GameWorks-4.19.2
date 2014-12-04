@@ -10,7 +10,7 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "TargetPlatform.h"
-#include "Animation/AnimCompress_RevertToRaw.h"
+#include "Animation/AnimCompress.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/Rig.h"
@@ -236,7 +236,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 
 		// and then use the codecs to byte swap
 		check( RotationCodec != NULL );
-		((AnimEncoding*)RotationCodec)->ByteSwapIn(*this, MemoryReader, Ar.UE3Ver());
+		((AnimEncoding*)RotationCodec)->ByteSwapIn(*this, MemoryReader);
 	}
 	else if( Ar.IsSaving() || Ar.IsCountingMemory() )
 	{
@@ -319,14 +319,6 @@ void UAnimSequence::PostLoad()
 #endif // WITH_EDITOR
 
 	Super::PostLoad();
-
-	// If RAW animation data exists, and needs to be recompressed, do so.
-	if( GIsEditor && GetLinkerUE4Version() < VER_UE4_REMOVE_REDUNDANT_KEY && RawAnimationData.Num() > 0 )
-	{
-		// Recompress Raw Animation data w/ lossless compression.
-		// If some keys have been removed, then recompress animsequence with its original compression algorithm
-		CompressRawAnimData();
-	}
 
 	// Ensure notifies are sorted.
 	SortNotifies();
@@ -415,17 +407,6 @@ void UAnimSequence::PostLoad()
 	}
 
 #if WITH_EDITORONLY_DATA
-	// swap out the deprecated revert to raw compression scheme with a least destructive compression scheme
-	if (GIsEditor && CompressionScheme && CompressionScheme->IsA(UDEPRECATED_AnimCompress_RevertToRaw::StaticClass()))
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("AnimSequence %s (%s) uses the deprecated revert to RAW compression scheme. Using least destructive compression scheme instead"), *GetName(), *GetFullName());
-#if 0 //@todoanim: we won't compress in this case for now 
-		USkeletalMesh* DefaultSkeletalMesh = LoadObject<USkeletalMesh>(NULL, *AnimSet->BestRatioSkelMeshName.ToString(), NULL, LOAD_None, NULL);
-		UAnimCompress* NewAlgorithm = ConstructObject<UAnimCompress>( UAnimCompress_LeastDestructive::StaticClass() );
-		NewAlgorithm->Reduce(this, DefaultSkeletalMesh, false);
-#endif
-	}
-
 	bWasCompressedWithoutTranslations = false; //@todoanim: @fixmelh : AnimRotationOnly - GetAnimSet()->bAnimRotationOnly;
 #endif // WITH_EDITORONLY_DATA
 
@@ -437,29 +418,10 @@ void UAnimSequence::PostLoad()
 	VerifyTrackMap();
 #endif
 
-	// save track data for the case
-	FixAdditiveType();
-
 	if( IsRunningGame() )
 	{
 		// this probably will not show newly created animations in PIE but will show them in the game once they have been saved off
 		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize(EResourceSizeMode::Exclusive) );
-	}
-
-	// Convert Notifies to new data
-	if( GIsEditor && GetLinkerUE4Version() < VER_UE4_ANIMNOTIFY_NAMECHANGE && Notifies.Num() > 0 )
-	{
-		LOG_SCOPE_VERBOSITY_OVERRIDE(LogAnimation, ELogVerbosity::Warning);
- 		// convert animnotifies
- 		for (int32 I=0; I<Notifies.Num(); ++I)
- 		{
- 			if (Notifies[I].Notify!=NULL)
- 			{
-				FString Label = Notifies[I].Notify->GetClass()->GetName();
-				Label = Label.Replace(TEXT("AnimNotify_"), TEXT(""), ESearchCase::CaseSensitive);
-				Notifies[I].NotifyName = FName(*Label);
- 			}
- 		}
 	}
 
 #if WITH_EDITOR
@@ -547,18 +509,6 @@ void UAnimSequence::VerifyTrackMap()
 }
 
 #endif // WITH_EDITOR
-void UAnimSequence::FixAdditiveType()
-{
-	if( GetLinkerUE4Version() < VER_UE4_ADDITIVE_TYPE_CHANGE )
-	{
-		if ( RefPoseType!=ABPT_None && AdditiveAnimType == AAT_None )
-		{
-			AdditiveAnimType = AAT_LocalSpaceBase;
-			MarkPackageDirty();
-		}
-	}
-}
-
 void UAnimSequence::BeginDestroy()
 {
 	Super::BeginDestroy();
@@ -1712,56 +1662,6 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 #endif // WITH_EDITOR
 
 	return true;
-}
-
-void UAnimSequence::UpgradeMorphTargetCurves()
-{
-	// call super first, it will convert currently existing curve first
-	Super::UpgradeMorphTargetCurves();
-
-	// this also gets called for the imported data, so don't check version number
-	// until we fix importing data
-	for (auto CurveIter = CurveData_DEPRECATED.CreateConstIterator(); CurveIter; ++CurveIter)
-	{
-		const FCurveTrack& CurveTrack = (*CurveIter);
-
-		{
-			// Add curves into naming system 
-			FSmartNameMapping* NameMapping = GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-			check(NameMapping); // This name mapping should always be present
-			USkeleton::AnimCurveUID NewId;
-			NameMapping->AddOrFindName(CurveTrack.CurveName, NewId);
-
-			// add it first, it won't add if duplicate
-			RawCurveData.AddCurveData(NewId);
-			
-			// get the last one I just added
-			FFloatCurve * NewCurve = static_cast<FFloatCurve*>(RawCurveData.GetCurveData(NewId, FRawCurveTracks::FloatType));
-			check (NewCurve);
-
-			// since the import code change, this might not match all the time
-			// but the current import should cover 0-(NumFrames-1) for whole SequenceLength
-			//ensure (CurveTrack.CurveWeights.Num() == NumFrames);
-
-			// make sure this matches
-			// the way we import animation should cover 0 - (NumFrames-1) for SequenceLength;
-			// if only 1 frame, it will be written in the first frame
-			float TimeInterval = GetIntervalPerKey(NumFrames, SequenceLength);
-
-			// copy all weights back
-			for (int32 Iter = 0 ; Iter<CurveTrack.CurveWeights.Num(); ++Iter)
-			{
-				// add the new value
-				NewCurve->FloatCurve.AddKey(TimeInterval*Iter, CurveTrack.CurveWeights[Iter]);
-			}
-
-			// set morph target flags on them, not editable by default
-			NewCurve->SetCurveTypeFlags(ACF_DrivesMorphTarget | ACF_TriggerEvent);
-		}
-	}
-
-	// now conversion is done, clear all previous data
-	CurveData_DEPRECATED.Empty();
 }
 
 bool UAnimSequence::IsValidAdditive() const		

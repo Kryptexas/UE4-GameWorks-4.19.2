@@ -1603,20 +1603,6 @@ struct FHeightmapInfo
 	TArray<FColor*> HeightmapTextureMipData;
 };
 
-FLandscapeLayerStruct* ALandscapeProxy::GetLayerInfo_Deprecated(FName LayerName)
-{
-	for (auto It = LayerInfoObjs_DEPRECATED.CreateIterator(); It; It++)
-	{
-		ULandscapeLayerInfoObject* LayerInfo = It->LayerInfoObj;
-		if (LayerInfo && LayerInfo->LayerName == LayerName)
-		{
-			return &*It;
-		}
-	}
-
-	return NULL;
-}
-
 TArray<FName> ALandscapeProxy::GetLayersFromMaterial(UMaterialInterface* Material)
 {
 	TArray<FName> Result;

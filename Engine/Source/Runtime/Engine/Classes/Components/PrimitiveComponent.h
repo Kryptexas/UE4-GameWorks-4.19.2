@@ -139,15 +139,7 @@ public:
 	UPROPERTY()
 	TEnumAsByte<enum ESceneDepthPriorityGroup> ViewOwnerDepthPriorityGroup;
 
-private:
-	/** DEPRECATED, use bGenerateOverlapEvents instead */
-	UPROPERTY()
-	uint32 bNoEncroachCheck_DEPRECATED:1;
-
 public:
-	UPROPERTY()
-	uint32 bDisableAllRigidBody_DEPRECATED:1;
-
 	/** 
 	 * Indicates if we'd like to create physics state all the time (for collision and simulation). 
 	 * If you set this to false, it still will create physics state if collision or simulation activated. 
@@ -217,14 +209,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
 
-	/** Whether to completely hide the primitive in the game; if true, the primitive is not drawn, does not cast a shadow. */
-	UPROPERTY()
-	uint32 HiddenGame_DEPRECATED:1;
-
-	/** Whether to draw the primitive in game views, if the primitive isn't hidden. */
-	UPROPERTY()
-	uint32 DrawInGame_DEPRECATED:1;
-	
 	/** Whether the primitive receives decals. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
 	uint32 bReceivesDecals:1;

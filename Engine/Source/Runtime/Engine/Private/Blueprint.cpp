@@ -190,47 +190,42 @@ void UBlueprintCore::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() >= VER_UE4_BLUEPRINT_NATIVE_SERIALIZATION)
+	Ar << bLegacyGeneratedClassIsAuthoritative;	
+
+	if ((Ar.UE4Ver() < VER_UE4_BLUEPRINT_SKEL_CLASS_TRANSIENT_AGAIN)
+		&& (Ar.UE4Ver() != VER_UE4_BLUEPRINT_SKEL_TEMPORARY_TRANSIENT))
 	{
-		if (Ar.UE4Ver() >= VER_UE4_BLUEPRINT_CDO_MIGRATION)
+		Ar << SkeletonGeneratedClass;
+		if( SkeletonGeneratedClass )
 		{
-			Ar << bLegacyGeneratedClassIsAuthoritative;	
+			// If we serialized in a skeleton class, make sure it and all its children are updated to be transient
+			SkeletonGeneratedClass->SetFlags(RF_Transient);
+			TArray<UObject*> SubObjs;
+			GetObjectsWithOuter(SkeletonGeneratedClass, SubObjs, true);
+			for(auto SubObjIt = SubObjs.CreateIterator(); SubObjIt; ++SubObjIt)
+			{
+				(*SubObjIt)->SetFlags(RF_Transient);
+			}
 		}
 
-		if ((Ar.UE4Ver() < VER_UE4_BLUEPRINT_SKEL_CLASS_TRANSIENT_AGAIN)
-			&& (Ar.UE4Ver() != VER_UE4_BLUEPRINT_SKEL_TEMPORARY_TRANSIENT))
+		// We only want to serialize in the GeneratedClass if the SkeletonClass didn't trigger a recompile
+		bool bSerializeGeneratedClass = true;
+		if (UBlueprint* BP = Cast<UBlueprint>(this))
 		{
-			Ar << SkeletonGeneratedClass;
-			if( SkeletonGeneratedClass )
-			{
-				// If we serialized in a skeleton class, make sure it and all its children are updated to be transient
-				SkeletonGeneratedClass->SetFlags(RF_Transient);
-				TArray<UObject*> SubObjs;
-				GetObjectsWithOuter(SkeletonGeneratedClass, SubObjs, true);
-				for(auto SubObjIt = SubObjs.CreateIterator(); SubObjIt; ++SubObjIt)
-				{
-					(*SubObjIt)->SetFlags(RF_Transient);
-				}
-			}
+			bSerializeGeneratedClass = !Ar.IsLoading() || !BP->bHasBeenRegenerated;
+		}
 
-			// We only want to serialize in the GeneratedClass if the SkeletonClass didn't trigger a recompile
-			bool bSerializeGeneratedClass = true;
-			if (UBlueprint* BP = Cast<UBlueprint>(this))
-			{
-				bSerializeGeneratedClass = !Ar.IsLoading() || !BP->bHasBeenRegenerated;
-			}
-
-			if (bSerializeGeneratedClass)
-			{
-				Ar << GeneratedClass;
-			}
-			else if (Ar.IsLoading())
-			{
-				UClass* DummyClass = NULL;
-				Ar << DummyClass;
-			}
+		if (bSerializeGeneratedClass)
+		{
+			Ar << GeneratedClass;
+		}
+		else if (Ar.IsLoading())
+		{
+			UClass* DummyClass = NULL;
+			Ar << DummyClass;
 		}
 	}
+
 	if( Ar.ArIsLoading && !BlueprintGuid.IsValid() )
 	{
 		GenerateDeterministicGuid();
@@ -296,15 +291,6 @@ void UBlueprint::Serialize(FArchive& Ar)
 		{
 			FBPVariableDescription& Variable = NewVariables[i];
 			Variable.PropertyFlags &= ~CPF_BlueprintReadOnly;
-		}
-	}
-
-	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADD_KISMETVISIBLE)
-	{
-		for (int32 i = 0; i < NewVariables.Num(); ++i)
-		{
-			FBPVariableDescription& Variable = NewVariables[i];
-			Variable.PropertyFlags |= CPF_BlueprintVisible;
 		}
 	}
 

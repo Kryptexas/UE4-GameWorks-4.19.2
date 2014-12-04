@@ -8,7 +8,6 @@
 #include "Distributions/DistributionFloatParticleParameter.h"
 #include "Distributions/DistributionVectorParticleParameter.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Color/ParticleModuleColor.h"
 #include "Particles/Color/ParticleModuleColorBase.h"
 #include "Particles/Color/ParticleModuleColorOverLife.h"
@@ -67,17 +66,6 @@ void UParticleModuleColor::PostInitProperties()
 		InitializeDefaults();
 	}
 }
-
-void UParticleModuleColor::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(StartColor.Distribution, TEXT("DistributionStartColor"), FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(StartAlpha.Distribution, TEXT("DistributionStartAlpha"), 1.0f);
-	}
-}
-
 
 void UParticleModuleColor::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {
@@ -257,15 +245,6 @@ void UParticleModuleColorOverLife::PostInitProperties()
 		UDistributionFloatConstant* DistributionAlphaOverLife = NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionAlphaOverLife"));
 		DistributionAlphaOverLife->Constant = 1.0f;
 		AlphaOverLife.Distribution = DistributionAlphaOverLife;
-	}
-}
-
-void UParticleModuleColorOverLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(AlphaOverLife.Distribution, TEXT("DistributionAlphaOverLife"), 1.0f);
 	}
 }
 
@@ -514,16 +493,6 @@ void UParticleModuleColorScaleOverLife::PostInitProperties()
 		InitializeDefaults();
 	}
 }
-
-void UParticleModuleColorScaleOverLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(AlphaScaleOverLife.Distribution, TEXT("DistributionAlphaScaleOverLife"), 1.0f);
-	}
-}
-
 
 void UParticleModuleColorScaleOverLife::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {

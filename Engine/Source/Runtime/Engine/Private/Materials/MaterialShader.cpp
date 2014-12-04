@@ -312,12 +312,9 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 	// Backwards compatibility only works with FMaterialShaderMapId's stored in packages.  
 	// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FMaterialShaderMapId.
 
-	if (Ar.UE4Ver() >= VER_UE4_ADDED_MATERIALSHADERMAP_USAGE)
-	{
-		uint32 UsageInt = Usage;
-		Ar << UsageInt;
-		Usage = (EMaterialShaderMapUsage::Type)UsageInt;
-	}
+	uint32 UsageInt = Usage;
+	Ar << UsageInt;
+	Usage = (EMaterialShaderMapUsage::Type)UsageInt;
 
 	Ar << BaseMaterialId;
 
@@ -326,7 +323,7 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 		Ar << (int32&)QualityLevel;
 		Ar << (int32&)FeatureLevel;
 	}
-	else if (Ar.UE4Ver() >= VER_UE4_MATERIAL_QUALITY_LEVEL_SWITCH)
+	else
 	{
 		uint8 LegacyQualityLevel;
 		Ar << LegacyQualityLevel;
@@ -334,27 +331,21 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 
 	ParameterSet.Serialize(Ar);
 
-	if (Ar.UE4Ver() >= VER_UE4_FUNCTIONS_IN_SHADERMAPID)
-	{
-		Ar << ReferencedFunctions;
-	}
+	Ar << ReferencedFunctions;
 
 	if (Ar.UE4Ver() >= VER_UE4_COLLECTIONS_IN_SHADERMAPID)
 	{
 		Ar << ReferencedParameterCollections;
 	}
 
-	if (Ar.UE4Ver() >= VER_UE4_REMOVED_PERSHADER_DDC)
-	{
-		Ar << ShaderTypeDependencies;
-		Ar << VertexFactoryTypeDependencies;
-	}
+	Ar << ShaderTypeDependencies;
+	Ar << VertexFactoryTypeDependencies;
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
 		Ar << TextureReferencesHash;
 	}
-	else if (Ar.UE4Ver() >= VER_UE4_HASHED_MATERIAL_OUTPUT)
+	else
 	{
 		FSHAHash LegacyHash;
 		Ar << LegacyHash;

@@ -7,7 +7,6 @@
 APrecomputedVisibilityOverrideVolume::APrecomputedVisibilityOverrideVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
 	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	bColored = true;

@@ -134,10 +134,6 @@ struct ENGINE_API FBodyInstance
 	/////////
 	// COLLISION SETTINGS
 
-	/** Enable any collision for this body */
-	UPROPERTY()
-	uint32 bEnableCollision_DEPRECATED:1;
-
 	/** Types of objects that this physics objects will collide with. */
 	// @todo : make this to be transient, so that it doesn't have to save anymore
 	// we have to still load them until resave
@@ -338,11 +334,6 @@ public:
 
 	/** Constructor **/
 	FBodyInstance();
-
-	// BodyInstance interface
-
-	/** Update CollisionEnabled in old assets (before VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED) using bEnableCollision_DEPRECATED */ 
-	void UpdateFromDeprecatedEnableCollision();
 
 	/**  
 	 * Update profile data if required

@@ -76,7 +76,6 @@ FAutoConsoleCommand CmdPrintNumLandscapeShadows(
 ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bGenerateOverlapEvents = false;
 	CastShadow = true;
@@ -162,10 +161,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar << LightMap;
-	if (Ar.UE4Ver() >= VER_UE4_PRECOMPUTED_SHADOW_MAPS_BSP)
-	{
-		Ar << ShadowMap;
-	}
+	Ar << ShadowMap;
 
 #if WITH_EDITOR
 	if (Ar.IsTransacting())
@@ -181,12 +177,6 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		}
 	}
 #endif
-
-	if (Ar.UE4Ver() < VER_UE4_CHANGED_IRRELEVANT_LIGHT_GUIDS)
-	{
-		// Irrelevant lights were incorrect before VER_UE4_CHANGED_IRRELEVANT_LIGHT_GUIDS
-		IrrelevantLights.Empty();
-	}
 
 	bool bCooked = false;
 
@@ -383,25 +373,6 @@ void ULandscapeComponent::PostLoad()
 		bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
 		bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
 
-		// convert from deprecated layer names to direct LayerInfo references
-		static const FName DataWeightmapName = FName("__DataLayer__");
-		for (int32 i = 0; i < WeightmapLayerAllocations.Num(); i++)
-		{
-			if (WeightmapLayerAllocations[i].LayerName_DEPRECATED != NAME_None)
-			{
-				if (WeightmapLayerAllocations[i].LayerName_DEPRECATED == DataWeightmapName)
-				{
-					WeightmapLayerAllocations[i].LayerInfo = ALandscapeProxy::VisibilityLayer;
-				}
-				else
-				{
-					FLandscapeLayerStruct* Layer = LandscapeProxy->GetLayerInfo_Deprecated(WeightmapLayerAllocations[i].LayerName_DEPRECATED);
-					WeightmapLayerAllocations[i].LayerInfo = Layer ? Layer->LayerInfoObj : NULL;
-				}
-				WeightmapLayerAllocations[i].LayerName_DEPRECATED = NAME_None;
-			}
-		}
-
 		// check SectionBaseX/Y are correct
 		int32 CheckSectionBaseX = FMath::RoundToInt(RelativeLocation.X) + LandscapeProxy->LandscapeSectionOffset.X;
 		int32 CheckSectionBaseY = FMath::RoundToInt(RelativeLocation.Y) + LandscapeProxy->LandscapeSectionOffset.Y;
@@ -436,18 +407,6 @@ void ULandscapeComponent::PostLoad()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		if (!CachedLocalBox.IsValid && CachedBoxSphereBounds_DEPRECATED.SphereRadius > 0)
-		{
-			USceneComponent* LandscapeRoot = LandscapeProxy->GetRootComponent();
-			check(LandscapeRoot == AttachParent);
-
-			// Component isn't attached so we can't use its LocalToWorld
-			FTransform ComponentLtWTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale3D) * FTransform(LandscapeRoot->RelativeRotation, LandscapeRoot->RelativeLocation, LandscapeRoot->RelativeScale3D);
-
-			// This is good enough. The exact box will be calculated during painting.
-			CachedLocalBox = CachedBoxSphereBounds_DEPRECATED.GetBox().InverseTransformBy(ComponentLtWTransform);
-		}
-
 		// If we're loading on a platform that doesn't require cooked data, but *only* supports OpenGL ES, preload data from the DDC
 		if (!FPlatformProperties::RequiresCookedData() && GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
 		{

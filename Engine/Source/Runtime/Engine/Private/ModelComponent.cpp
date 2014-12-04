@@ -42,10 +42,7 @@ FModelElement::~FModelElement()
 FArchive& operator<<(FArchive& Ar,FModelElement& Element)
 {
 	Ar << Element.LightMap;
-	if( Ar.UE4Ver() >= VER_UE4_PRECOMPUTED_SHADOW_MAPS_BSP )
-	{
-		Ar << Element.ShadowMap;
-	}
+	Ar << Element.ShadowMap;
 	
 	Ar << (UObject*&)Element.Component << (UObject*&)Element.Material << Element.Nodes;
 	Ar << Element.IrrelevantLights;

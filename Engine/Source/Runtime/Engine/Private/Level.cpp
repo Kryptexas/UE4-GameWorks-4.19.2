@@ -9,7 +9,6 @@ Level.cpp: Level-related functions
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/WorldComposition.h"
-#include "Sound/SoundNodeWave.h"
 #include "Net/UnrealNetwork.h"
 #include "Model.h"
 #include "StaticLighting.h"
@@ -41,65 +40,6 @@ ULevel implementation.
 
 /** Called when a level package has been dirtied. */
 FSimpleMulticastDelegate ULevel::LevelDirtiedEvent;
-
-//@deprecated with VER_SPLIT_SOUND_FROM_TEXTURE_STREAMING
-struct FStreamableResourceInstanceDeprecated
-{
-	FSphere BoundingSphere;
-	float TexelFactor;
-	friend FArchive& operator<<( FArchive& Ar, FStreamableResourceInstanceDeprecated& ResourceInstance )
-	{
-		Ar << ResourceInstance.BoundingSphere;
-		Ar << ResourceInstance.TexelFactor;
-		return Ar;
-	}
-};
-//@deprecated with VER_SPLIT_SOUND_FROM_TEXTURE_STREAMING
-struct FStreamableResourceInfoDeprecated
-{
-	UObject* Resource;
-	TArray<FStreamableResourceInstanceDeprecated> ResourceInstances;
-	friend FArchive& operator<<( FArchive& Ar, FStreamableResourceInfoDeprecated& ResourceInfo )
-	{
-		Ar << ResourceInfo.Resource;
-		Ar << ResourceInfo.ResourceInstances;
-		return Ar;
-	}
-};
-//@deprecated with VER_RENDERING_REFACTOR
-struct FStreamableSoundInstanceDeprecated
-{
-	FSphere BoundingSphere;
-	friend FArchive& operator<<( FArchive& Ar, FStreamableSoundInstanceDeprecated& SoundInstance )
-	{
-		Ar << SoundInstance.BoundingSphere;
-		return Ar;
-	}
-};
-//@deprecated with VER_RENDERING_REFACTOR
-struct FStreamableSoundInfoDeprecated
-{
-	UDEPRECATED_SoundNodeWave*	SoundNodeWave;
-	TArray<FStreamableSoundInstanceDeprecated> SoundInstances;
-	friend FArchive& operator<<( FArchive& Ar, FStreamableSoundInfoDeprecated& SoundInfo )
-	{
-		Ar << SoundInfo.SoundNodeWave;
-		Ar << SoundInfo.SoundInstances;
-		return Ar;
-	}
-};
-//@deprecated with VER_RENDERING_REFACTOR
-struct FStreamableTextureInfoDeprecated
-{
-	UTexture*							Texture;
-	TArray<FStreamableTextureInstance>	TextureInstances;
-	friend FArchive& operator<<( FArchive& Ar, FStreamableTextureInfoDeprecated& TextureInfo )
-	{
-		Ar << TextureInfo.Texture;
-		Ar << TextureInfo.TextureInstances;
-		return Ar;
-	}
-};
 
 int32 FPrecomputedVisibilityHandler::NextId = 0;
 
@@ -349,12 +289,6 @@ void ULevel::Serialize( FArchive& Ar )
 
 	Ar << ModelComponents;
 
-	if(Ar.UE4Ver() < VER_UE4_REMOVE_USEQUENCE)
-	{
-		TArray<UObject*> DummySequences;
-		Ar << DummySequences;
-	}
-
 	if(!Ar.IsFilterEditorOnly() || (Ar.UE4Ver() < VER_UE4_EDITORONLY_BLUEPRINTS) )
 	{
 #if WITH_EDITORONLY_DATA
@@ -395,7 +329,7 @@ void ULevel::Serialize( FArchive& Ar )
 		{
 			Ar << bIsCooked;
 		}
-		if (Ar.UE4Ver() >= VER_UE4_EXPLICIT_STREAMING_TEXTURE_BUILT && Ar.UE4Ver() < VER_UE4_REBUILD_TEXTURE_STREAMING_DATA_ON_LOAD)
+		if (Ar.UE4Ver() < VER_UE4_REBUILD_TEXTURE_STREAMING_DATA_ON_LOAD)
 		{
 			bool bTextureStreamingBuiltDummy = bIsCooked;
 			Ar << bTextureStreamingBuiltDummy;
@@ -447,19 +381,6 @@ void ULevel::Serialize( FArchive& Ar )
 	// serialize the nav list
 	Ar << NavListStart;
 	Ar << NavListEnd;
-	// and pylons
-	if (Ar.UE4Ver() < VER_UE4_REMOVED_OLD_NAVMESH)
-	{
-		if (Ar.IsLoading())
-		{
-			// pylons were removed
-			// so if reading old data, just read and discard these 2 pointers
-			AActor* LegacyPylonListStart;
-			AActor* LegacyPylonListEnd;
-			Ar << LegacyPylonListStart;
-			Ar << LegacyPylonListEnd;
-		}
-	}
 
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -603,17 +524,6 @@ void ULevel::PostLoad()
 
 	UWorldComposition::OnLevelPostLoad(this);
 		
-#if WITH_EDITOR
-	if(GetLinkerUE4Version() < VER_UE4_CLEAR_STANDALONE_FROM_LEVEL_SCRIPT_BLUEPRINTS)
-	{
-		if (LevelScriptBlueprint)
-		{
-			LevelScriptBlueprint->ConditionalPostLoad();
-			LevelScriptBlueprint->ClearFlags(RF_Standalone);
-		}
-	}
-#endif //WITH_EDITOR
-
 #if WITH_EDITOR
 	Actors.Remove(nullptr);
 #endif

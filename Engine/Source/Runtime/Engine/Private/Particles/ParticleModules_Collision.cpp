@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "Engine/TriggerBase.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Collision/ParticleModuleCollision.h"
 #include "Particles/Collision/ParticleModuleCollisionBase.h"
 #include "Particles/Collision/ParticleModuleCollisionGPU.h"
@@ -96,19 +95,6 @@ void UParticleModuleCollision::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleCollision::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(DampingFactor.Distribution, TEXT("DistributionDampingFactor"), FVector::ZeroVector, FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(DampingFactorRotation.Distribution, TEXT("DistributionDampingFactorRotation"), FVector(1.0f, 1.0f, 1.0f));
-		FDistributionHelpers::RestoreDefaultUniform(MaxCollisions.Distribution, TEXT("DistributionMaxCollisions"), 0.0f, 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(ParticleMass.Distribution, TEXT("DistributionParticleMass"), 0.1f);
-		FDistributionHelpers::RestoreDefaultConstant(DelayAmount.Distribution, TEXT("DistributionDelayAmount"), 0.0f);
 	}
 }
 

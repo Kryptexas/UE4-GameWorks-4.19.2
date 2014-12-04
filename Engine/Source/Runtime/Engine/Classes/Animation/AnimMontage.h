@@ -29,10 +29,6 @@ struct FCompositeSection : public FAnimLinkableElement
 
 	/** Start Time **/
 	UPROPERTY()
-	float StarTime_DEPRECATED;
-
-	/** Start Time **/
-	UPROPERTY()
 	float StartTime_DEPRECATED;
 
 	/** Should this animation loop. */
@@ -42,7 +38,6 @@ struct FCompositeSection : public FAnimLinkableElement
 	FCompositeSection()
 		: FAnimLinkableElement()
 		, SectionName(NAME_None)
-		, StarTime_DEPRECATED(0.f)
 		, NextSectionName(NAME_None)
 	{
 	}

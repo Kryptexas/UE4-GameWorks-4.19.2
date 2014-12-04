@@ -202,7 +202,6 @@ FBodyInstance::FBodyInstance()
 , Scale3D(1.0f)
 , SceneIndexSync(0)
 , SceneIndexAsync(0)
-, bEnableCollision_DEPRECATED(true)
 , CollisionProfileName(UCollisionProfile::CustomCollisionProfileName)
 , CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
 , ObjectType(ECC_WorldStatic)
@@ -289,19 +288,6 @@ FBodyInstance* FindParentBodyInstance(FName BodyName, USkeletalMeshComponent* Sk
 	}
 
 	return NULL;
-}
-
-void FBodyInstance::UpdateFromDeprecatedEnableCollision()
-{
-	//@todo should I invalidate profile name if this happens?
-	if(bEnableCollision_DEPRECATED)
-	{
-		CollisionEnabled = ECollisionEnabled::QueryAndPhysics;
-	}
-	else
-	{
-		CollisionEnabled = ECollisionEnabled::NoCollision;
-	}
 }
 
 #if WITH_PHYSX
@@ -3850,11 +3836,6 @@ void FBodyInstance::FixupData(class UObject* Loader)
 		{
 			CollisionProfileName = UCollisionProfile::CustomCollisionProfileName;
 		}
-	}
-
-	if(UE4Version < VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED)
-	{
-		UpdateFromDeprecatedEnableCollision();
 	}
 
 	if (UE4Version < VER_UE4_SAVE_COLLISIONRESPONSE_PER_CHANNEL)

@@ -608,11 +608,6 @@ class UAnimSequenceBase : public UAnimationAsset
 
 #endif	//WITH_EDITORONLY_DATA
 
-	/**
-	 * Update Morph Target Data type to new Curve Type
-	 */
-	ENGINE_API virtual void UpgradeMorphTargetCurves();
-
 	// Begin UAnimationAsset interface
 	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
 	// this is used in editor only when used for transition getter

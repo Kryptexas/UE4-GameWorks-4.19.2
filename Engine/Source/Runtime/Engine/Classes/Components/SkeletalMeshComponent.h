@@ -445,10 +445,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bNoSkeletonUpdate:1;
 
-	/** If true, tick anim nodes even when our Owner has not been rendered recently  */
-	UPROPERTY()
-	uint32 bTickAnimationWhenNotRendered_DEPRECATED:1;
-
 	/** pauses this component's animations (doesn't tick them, but still refreshes bones) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
 	uint32 bPauseAnims:1;

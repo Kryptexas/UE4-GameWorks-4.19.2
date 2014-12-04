@@ -46,7 +46,6 @@ class UParticleModuleSpawn : public UParticleModuleSpawnBase
 #endif // WITH_EDITOR
 	virtual void	PostInitProperties() override;
 	virtual void	PostLoad() override;
-	virtual void	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface

@@ -110,7 +110,6 @@ class UInterpCurveEdSetup : public UObject
 
 	// Begin UObject interface
 	virtual void PostLoad() override;
-	virtual void Serialize(FArchive& Ar) override;
 	virtual bool NeedsLoadForClient() const override
 	{
 		return false;

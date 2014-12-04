@@ -827,12 +827,6 @@ void UObject::Serialize( FArchive& Ar )
 		}
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_NET_INDEX && (!(Ar.GetPortFlags() & PPF_Duplicate)))
-	{
-		int32 OldNetIndex = 0;
-		Ar << OldNetIndex;
-	}
-
 	// Serialize object properties which are defined in the class.
 	if( !Class->IsChildOf(UClass::StaticClass()) )
 	{
@@ -843,10 +837,7 @@ void UObject::Serialize( FArchive& Ar )
 		// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
 		if (Class != UClass::StaticClass())
 		{
-			if (Ar.UE4Ver() >= VER_UE4_ADDED_SCRIPT_SERIALIZATION_FOR_BLUEPRINT_GENERATED_CLASSES)
-			{
-				SerializeScriptProperties(Ar);
-			}
+			SerializeScriptProperties(Ar);
 		}
 	}
 

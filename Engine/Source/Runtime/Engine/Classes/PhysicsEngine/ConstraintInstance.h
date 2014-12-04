@@ -179,13 +179,6 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Linear, meta=(editcondition = "bLinearBreakable", ClampMin = "0.0"))
 	float LinearBreakThreshold;
 
-	// ANGULAR DOF
-	UPROPERTY()
-	uint32 bSwingLimited_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bTwistLimited_DEPRECATED:1;
-
 	/** Indicates whether rotation about the Z axis is allowed, blocked, or limited. If limited, the 
 		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
 	UPROPERTY(EditAnywhere, Category=Angular)

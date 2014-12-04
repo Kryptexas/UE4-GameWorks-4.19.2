@@ -17,7 +17,6 @@ ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	MeshComp = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("CamMesh0"));
-	MeshComp->BodyInstance.bEnableCollision_DEPRECATED = false;
 
 	MeshComp->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 

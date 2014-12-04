@@ -167,19 +167,6 @@ void ABrush::PostLoad()
 {
 	Super::PostLoad();
 
-	if( GetLinkerUE4Version() < VER_UE4_FIX_BSP_BRUSH_TYPE && BrushType == Brush_Default )
-	{
-		ECsgOper Oper = CsgOper_DEPRECATED;
-		if( Oper == CSG_Add )
-		{
-			BrushType = Brush_Add;
-		}
-		else if( Oper == CSG_Subtract )
-		{
-			BrushType = Brush_Subtract;
-		}
-	}
-
 #if WITH_EDITOR
 	if (BrushBuilder && BrushBuilder->GetOuter() != this)
 	{

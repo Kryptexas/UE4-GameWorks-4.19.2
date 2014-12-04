@@ -48,7 +48,6 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 
 	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
-	CapsuleComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 
 	static FName CollisionProfileName(TEXT("Pawn"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);

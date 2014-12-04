@@ -171,9 +171,6 @@ class USoundClass : public UObject
 	UPROPERTY(EditAnywhere, Category=SoundClass)
 	TArray<struct FPassiveSoundMixModifier> PassiveSoundMixModifiers;
 
-	UPROPERTY()
-	TArray<FName> ChildClassNames_DEPRECATED;
-
 public:
 	UPROPERTY()
 	USoundClass* ParentClass;

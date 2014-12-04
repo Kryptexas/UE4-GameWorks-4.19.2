@@ -31,7 +31,6 @@ ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
 	BoxComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
 	if (BoxComponent != nullptr)
 	{
-		BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 		BoxComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 		BoxComponent->ShapeColor = FColor(80, 80, 200, 255);

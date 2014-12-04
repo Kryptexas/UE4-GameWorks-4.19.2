@@ -373,7 +373,7 @@ struct FGenerationInfo
 	FGenerationInfo( int32 InExportCount, int32 InNameCount );
 
 	/** I/O function
-	 * we use a function instead of operator<< so we can pass in the package file summary for version tests, since Ar.UE3Ver() hasn't been set yet
+	 * we use a function instead of operator<< so we can pass in the package file summary for version tests, since archive version hasn't been set yet
 	 */
 	void Serialize(FArchive& Ar, const struct FPackageFileSummary& Summary);
 };
@@ -541,8 +541,6 @@ struct FPackageFileSummary
 	int32		Tag;
 
 private:
-	/* UE3 file version */
-	int32		FileVersionUE3;
 	/* UE4 file version */
 	int32		FileVersionUE4;
 	/* Licensee file version */
@@ -652,9 +650,6 @@ public:
 	 */
 	TArray<FString>	AdditionalPackagesToCook;
 
-	/** If true, this file had legacy version numbers (UE3 + Licensee) instead of modern version numbers (UE3 + UE4 + licensee) */
-	bool bHadLegacyVersionNumbers;
-
 	/** 
 	 * If true, this file will not be saved with version numbers or was saved without version numbers. In this case they are assumed to be the current version. 
 	 * This is only used for full cooks for distribution because it is hard to guarantee correctness 
@@ -689,11 +684,6 @@ public:
 	/** Constructor */
 	COREUOBJECT_API FPackageFileSummary();
 
-	int32 GetFileVersionUE3() const
-	{
-		return FileVersionUE3; 
-	}
-
 	int32 GetFileVersionUE4() const
 	{
 		return FileVersionUE4;
@@ -714,9 +704,8 @@ public:
 		CustomVersionContainer = InContainer;
 	}
 
-	void SetFileVersions(int32 EpicUE3, int32 EpicUE4, int32 LicenseeUE4, bool bInSaveUnversioned = false)
+	void SetFileVersions(const int32 EpicUE4, const int32 LicenseeUE4, const bool bInSaveUnversioned = false)
 	{
-		FileVersionUE3 = EpicUE3;
 		FileVersionUE4 = EpicUE4;
 		FileVersionLicenseeUE4 = LicenseeUE4;
 		bUnversioned = bInSaveUnversioned;

@@ -16,10 +16,6 @@ class UMaterialExpressionBreakMaterialAttributes : public UMaterialExpression
  	UPROPERTY()
  	FMaterialAttributesInput MaterialAttributes;
  
-	// Begin UObject interface.
- 	virtual void Serialize( FArchive& Ar ) override;
-	// End UObject interface.
-
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;

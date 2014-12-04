@@ -77,11 +77,6 @@ void URadialForceComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (GetLinkerUE4Version() < VER_UE4_CONFORM_COMPONENT_ACTIVATE_FLAG)
-	{
-		bAutoActivate = bForceEnabled_DEPRECATED;
-	}
-
 	UpdateCollisionObjectQueryParams();
 }
 

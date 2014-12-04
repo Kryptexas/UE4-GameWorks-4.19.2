@@ -124,7 +124,6 @@ UDrawFrustumComponent::UDrawFrustumComponent(const FObjectInitializer& ObjectIni
 	FrustumEndDist = 1000.0f;
 	bUseEditorCompositing = true;
 	bHiddenInGame = true;
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bGenerateOverlapEvents = false;
 }

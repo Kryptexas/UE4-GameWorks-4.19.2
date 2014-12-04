@@ -1978,7 +1978,6 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	UpdateTime_Delta = 1.0f/60.0f;
 	WarmupTime = 0.0f;
 	WarmupTickRate = 0.0f;
-	bLit_DEPRECATED = true;
 #if WITH_EDITORONLY_DATA
 	EditorLODSetting = 0;
 #endif // WITH_EDITORONLY_DATA
@@ -2103,9 +2102,6 @@ void UParticleSystem::PostLoad()
 {
 	Super::PostLoad();
 
-	//@todo. Put this in a better place??
-	bool bHadDeprecatedEmitters = false;
-
 	// Remove any old emitters
 	bHasPhysics = false;
 	for (int32 i = Emitters.Num() - 1; i >= 0; i--)
@@ -2160,11 +2156,6 @@ void UParticleSystem::PostLoad()
 		}
 	}
 
-	if ((bHadDeprecatedEmitters || (GetLinker() && (GetLinker()->UE3Ver() < 204))) && CurveEdSetup)
-	{
-		CurveEdSetup->ResetTabs();
-	}
-
 	if (LODSettings.Num() == 0)
 	{
 		if (Emitters.Num() > 0)
@@ -2201,7 +2192,6 @@ void UParticleSystem::PostLoad()
 	}
 
 #if WITH_EDITOR
-//	if (GetLinker() && (GetLinker()->UE3Ver() < VER_PARTICLE_LOD_DISTANCE_FIXUP))
 	// Due to there still being some ways that LODLevel counts get mismatched,
 	// when loading in the editor LOD levels will always be checked and fixed
 	// up... This can be removed once all the edge cases that lead to the
@@ -2931,7 +2921,6 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 #if WITH_EDITORONLY_DATA
 	EditorDetailMode = -1;
 #endif // WITH_EDITORONLY_DATA
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bGenerateOverlapEvents = false;
 

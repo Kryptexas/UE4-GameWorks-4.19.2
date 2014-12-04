@@ -299,10 +299,6 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	TArray<bool> bEnableShadowCasting_DEPRECATED;
 
-	/** Per-section sorting options */
-	UPROPERTY()
-	TArray<TEnumAsByte<enum ETriangleSortOption> > TriangleSorting_DEPRECATED;
-
 	UPROPERTY(EditAnywhere, editfixedsize, Category=SkeletalMeshLODInfo)
 	TArray<struct FTriangleSortSettings> TriangleSortSettings;
 
@@ -634,11 +630,6 @@ public:
 	class UPhysicsAsset* PhysicsAsset;
 
 #if WITH_EDITORONLY_DATA
-	/** Asset used for previewing bounds in AnimSetViewer. Makes setting up LOD distance factors more reliable. 
-	 *  Removing this and use PhysicsAsset for preview from now on, but meanwhile, we will copy this info to PhysicsAsset (below)
-	 */
-	UPROPERTY()
-	class UPhysicsAsset* BoundsPreviewAsset_DEPRECATED;
 
 	/** Importing data and options used for this mesh */
 	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
@@ -671,12 +662,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureStreaming)
 	float StreamingDistanceMultiplier;
-
-	/** This is serialized right now with strong pointer to Morph Target
-	 * Later on when memory is concerned, this can be transient array that is built based on MorphTarget loaded 
-	 */
-	UPROPERTY()
-	TArray<FMorphTargetMap> MorphTargetTable_DEPRECATED;
 
 	UPROPERTY(Category=Mesh, BlueprintReadWrite)
 	TArray<UMorphTarget*> MorphTargets;

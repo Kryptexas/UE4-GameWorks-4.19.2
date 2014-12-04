@@ -8,7 +8,6 @@
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Parameter/ParticleModuleParameterBase.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic_Seeded.h"
@@ -68,18 +67,6 @@ void UParticleModuleParameterDynamic::PostInitProperties()
 		DynamicParams.Add(FEmitterDynamicParameter(ConstructorStatics.NAME_None, false, EDPV_UserSet, NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionParam2"))));
 		DynamicParams.Add(FEmitterDynamicParameter(ConstructorStatics.NAME_None, false, EDPV_UserSet, NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionParam3"))));
 		DynamicParams.Add(FEmitterDynamicParameter(ConstructorStatics.NAME_None, false, EDPV_UserSet, NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionParam4"))));
-	}
-}
-
-void UParticleModuleParameterDynamic::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{		
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam1"))), TEXT("DistributionParam1"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam2"))), TEXT("DistributionParam2"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam3"))), TEXT("DistributionParam3"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam4"))), TEXT("DistributionParam4"), 0.0f);
 	}
 }
 

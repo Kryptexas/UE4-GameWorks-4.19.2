@@ -306,14 +306,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bConsiderAllBodiesForBounds:1;
 
-	/** If true, update skeleton/attachments even when our Owner has not been rendered recently
-	 * @note if this is false, bone information may not be accurate, so be careful setting this to false if bone info is relevant to gameplay
-	 * @note you can use ForceSkelUpdate() to force an update
-	 * @note: In the output from SHOWSKELCOMPTICKTIME you want UpdatePoseTotal to be 0 when this is false for a specific component
-	 */
-	UPROPERTY()
-	uint32 bUpdateSkelWhenNotRendered_DEPRECATED:1;
-
 	/** This is update frequency flag even when our Owner has not been rendered recently
 	 * 
 	 * SMU_AlwaysTickPoseAndRefreshBones,			// Always Tick and Refresh BoneTransforms whether rendered or not

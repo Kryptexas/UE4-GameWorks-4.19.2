@@ -284,7 +284,6 @@ UArrowComponent::UArrowComponent(const FObjectInitializer& ObjectInitializer)
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	ArrowColor = FColor(255, 0, 0, 255);
 

@@ -312,11 +312,10 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	IndirectLightingIntensity = 1.0f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
-	bUseIESBrightness = (GetLinkerUE4Version() < VER_UE4_LIGHTS_USE_IES_BRIGHTNESS_DEFAULT_CHANGED);
+	bUseIESBrightness = false;
 	IESBrightnessScale = 1.0f;
 	IESTexture = NULL;
 
-	bEnabled_DEPRECATED = true;
 	bAffectTranslucentLighting = true;
 	LightFunctionScale = FVector(1024.0f, 1024.0f, 1024.0f);
 
@@ -407,11 +406,6 @@ void ULightComponent::Serialize(FArchive& Ar)
 void ULightComponent::PostLoad()
 {
 	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_REMOVE_COMPONENT_ENABLED_FLAG)
-	{
-		bVisible = bEnabled_DEPRECATED;	
-	}
 
 	if (LightFunctionMaterial && HasStaticLighting())
 	{

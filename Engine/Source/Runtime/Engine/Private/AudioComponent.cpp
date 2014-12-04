@@ -13,7 +13,6 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAutoDestroy = false;
-	bAutoPlay_DEPRECATED = false;
 	bAutoActivate = true;
 	bAllowSpatialization = true;
 	bStopWhenOwnerDestroyed = true;
@@ -385,16 +384,6 @@ void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenu
 				AttenuationSettingsToApply->CollectAttenuationShapesForVisualization(ShapeDetailsMap);
 			}
 		}
-	}
-}
-
-void UAudioComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_CONFORM_COMPONENT_ACTIVATE_FLAG)
-	{
-		bAutoActivate = bAutoPlay_DEPRECATED;
 	}
 }
 

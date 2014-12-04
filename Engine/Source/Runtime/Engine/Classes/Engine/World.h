@@ -504,10 +504,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
-	// List of the layer names which were checked when the level was last saved
-	UPROPERTY(config) 
-	FString VisibleLayers_DEPRECATED;
-	
 	/** List of all the layers referenced by the world's actors */
 	UPROPERTY()
 	TArray< class ULayer* > Layers; 

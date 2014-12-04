@@ -1310,45 +1310,6 @@ void ULandscapeHeightfieldCollisionComponent::PostLoad()
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		bShouldSaveCookedDataToDDC = true;
-
-		if (!CachedLocalBox.IsValid && CachedBoxSphereBounds_DEPRECATED.SphereRadius > 0)
-		{
-			ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
-			USceneComponent* LandscapeRoot = LandscapeProxy->GetRootComponent();
-			check(LandscapeRoot == AttachParent);
-
-			// Component isn't attached so we can't use its LocalToWorld
-			FTransform ComponentLtWTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale3D) * FTransform(LandscapeRoot->RelativeRotation, LandscapeRoot->RelativeLocation, LandscapeRoot->RelativeScale3D);
-
-			// This is good enough. The exact box will be calculated during painting.
-			CachedLocalBox = CachedBoxSphereBounds_DEPRECATED.GetBox().InverseTransformBy(ComponentLtWTransform);
-		}
-	}
-
-	// convert from deprecated layer names to direct LayerInfo references
-	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
-	if (ensure(LandscapeProxy) && ComponentLayerInfos.Num() == 0 && ComponentLayers_DEPRECATED.Num() > 0)
-	{
-		ComponentLayerInfos.AddUninitialized(ComponentLayers_DEPRECATED.Num());
-
-		static const FName DataWeightmapName = FName("__DataLayer__");
-		for (int32 i = 0; i < ComponentLayers_DEPRECATED.Num(); i++)
-		{
-			if (ComponentLayers_DEPRECATED[i] != NAME_None)
-			{
-				if (ComponentLayers_DEPRECATED[i] == DataWeightmapName)
-				{
-					ComponentLayerInfos[i] = ALandscapeProxy::VisibilityLayer;
-				}
-				else
-				{
-					FLandscapeLayerStruct* Layer = LandscapeProxy->GetLayerInfo_Deprecated(ComponentLayers_DEPRECATED[i]);
-					ComponentLayerInfos[i] = Layer ? Layer->LayerInfoObj : NULL;
-				}
-			}
-		}
-
-		ComponentLayers_DEPRECATED.Empty();
 	}
 #endif//WITH_EDITOR
 }
@@ -1810,7 +1771,6 @@ void ULandscapeHeightfieldCollisionComponent::SetSectionBase(FIntPoint InSection
 ULandscapeHeightfieldCollisionComponent::ULandscapeHeightfieldCollisionComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bGenerateOverlapEvents = false;
 	CastShadow = false;

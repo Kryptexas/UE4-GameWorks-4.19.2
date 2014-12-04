@@ -162,8 +162,7 @@ public:
 	 */
 	virtual void ByteSwapIn(
 		UAnimSequence& Seq, 
-		FMemoryReader& MemoryReader,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapIn,);
+		FMemoryReader& MemoryReader) PURE_VIRTUAL(AnimEncoding::ByteSwapIn,);
 
 	/**
 	 * Handles Byte-swapping outgoing animation data to an array of BYTEs
@@ -298,7 +297,7 @@ public:
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		int32 TrackIndex,
-		float Time);
+		float Time) override;
 
 	/**
 	 * Decompress the Rotation component of a BoneAtom
@@ -362,12 +361,10 @@ public:
 	 *
 	 * @param	Seq					An Animation Sequence to contain the read data.
 	 * @param	MemoryReader		The MemoryReader object to read from.
-	 * @param	SourceArVersion		The version of the archive that the data is coming from.
 	 */
 	virtual void ByteSwapIn(
 		UAnimSequence& Seq, 
-		FMemoryReader& MemoryReader,
-		int32 SourceArVersion);
+		FMemoryReader& MemoryReader) override;
 
 	/**
 	 * Handles Byte-swapping outgoing animation data to an array of BYTEs
@@ -379,7 +376,7 @@ public:
 	virtual void ByteSwapOut(
 		UAnimSequence& Seq,
 		TArray<uint8>& SerializedData, 
-		bool ForceByteSwapping);
+		bool ForceByteSwapping) override;
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on import
@@ -395,8 +392,7 @@ public:
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& Stream,
-		int32 NumKeys,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapRotationIn,);
+		int32 NumKeys) PURE_VIRTUAL(AnimEncoding::ByteSwapRotationIn,);
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on import
@@ -412,8 +408,7 @@ public:
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& Stream,
-		int32 NumKeys,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapTranslationIn,);
+		int32 NumKeys) PURE_VIRTUAL(AnimEncoding::ByteSwapTranslationIn,);
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on import
@@ -429,8 +424,7 @@ public:
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& Stream,
-		int32 NumKeys,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapScaleIn,);
+		int32 NumKeys) PURE_VIRTUAL(AnimEncoding::ByteSwapScaleIn,);
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on export

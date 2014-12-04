@@ -429,7 +429,6 @@ private:
 UVectorFieldComponent::UVectorFieldComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bHiddenInGame = true;
 	Intensity = 1.0f;

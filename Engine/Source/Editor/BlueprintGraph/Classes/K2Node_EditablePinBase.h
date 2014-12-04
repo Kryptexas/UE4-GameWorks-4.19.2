@@ -29,15 +29,8 @@ struct FUserPinInfo
 		{
 			Ar << Info.PinName;
 
-			if (Ar.UE4Ver() >= VER_UE4_ADD_PINTYPE_ARRAY )
-			{
-				Ar << Info.PinType.bIsArray;
-			}
-
-			if (Ar.UE4Ver() >= VER_UE4_ADD_PINTYPE_BYREF )
-			{
-				Ar << Info.PinType.bIsReference;
-			}
+			Ar << Info.PinType.bIsArray;
+			Ar << Info.PinType.bIsReference;
 
 			Ar << Info.PinType.PinCategory;
 			Ar << Info.PinType.PinSubCategory;

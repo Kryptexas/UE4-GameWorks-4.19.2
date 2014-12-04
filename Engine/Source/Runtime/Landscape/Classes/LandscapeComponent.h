@@ -73,9 +73,6 @@ struct FWeightmapLayerAllocationInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FName LayerName_DEPRECATED;
-
-	UPROPERTY()
 	ULandscapeLayerInfoObject* LayerInfo;
 
 	UPROPERTY()
@@ -161,10 +158,6 @@ class ULandscapeComponent : public UPrimitiveComponent
 	/** Heightmap texture reference */
 	UPROPERTY(TextExportTransient)
 	class UTexture2D* HeightmapTexture;
-
-	/** Cached bounds, created at heightmap update time */
-	UPROPERTY()
-	FBoxSphereBounds CachedBoxSphereBounds_DEPRECATED;
 
 	/** Cached local-space bounding box, created at heightmap update time */
 	UPROPERTY()

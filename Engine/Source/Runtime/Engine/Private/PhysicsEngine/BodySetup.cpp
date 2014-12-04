@@ -718,12 +718,8 @@ void UBodySetup::Serialize(FArchive& Ar)
 		BodySetupGuid = FGuid::NewGuid();
 	}
 
-	bool bCooked = false;
-	if (Ar.UE4Ver() >= VER_UE4_ADD_COOKED_TO_BODY_SETUP)
-	{
-		bCooked = Ar.IsCooking();
-		Ar << bCooked;
-	}
+	bool bCooked = Ar.IsCooking();
+	Ar << bCooked;
 
 	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
 	{

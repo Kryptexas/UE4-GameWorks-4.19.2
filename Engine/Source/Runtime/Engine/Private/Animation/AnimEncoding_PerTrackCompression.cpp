@@ -380,12 +380,10 @@ void AEFPerTrackCompressionCodec::PreservePadding(uint8*& TrackData, FMemoryArch
  *
  * @param	Seq					An Animation Sequence to contain the read data.
  * @param	MemoryReader		The MemoryReader object to read from.
- * @param	SourceArVersion		The version of the archive that the data is coming from.
  */
 void AEFPerTrackCompressionCodec::ByteSwapIn(
 	UAnimSequence& Seq, 
-	FMemoryReader& MemoryReader,
-	int32 SourceArVersion)
+	FMemoryReader& MemoryReader)
 {
 	int32 OriginalNumBytes = MemoryReader.TotalSize();
 	Seq.CompressedByteStream.Empty(OriginalNumBytes);

@@ -1184,22 +1184,6 @@ bool AMatineeActor::CanEditChange( const UProperty* Property ) const
 }
 #endif	// WITH_EDITOR
 
-void AMatineeActor::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph )
-{
-	Super::PostLoadSubobjects(OuterInstanceGraph);
-
-	if ( GetLinkerUE4Version() < VER_UE4_FIX_INTERPDATA_OUTERS )
-	{
-		// Fix up auto-created MatineeData such that it has the correct outer
-		// If the Outer of the MatineeData is the OuterMost (i.e the level) then we rename
-		if (MatineeData && GetOutermost() == MatineeData->GetOuter())
-		{
-			MatineeData->ConditionalPostLoad();
-			MatineeData->Rename(NULL, this, REN_DontCreateRedirectors | REN_NonTransactional | REN_ForceNoResetLoaders);
-		}
-	}
-}
-
 #if WITH_EDITOR
 
 void AMatineeActor::ValidateActorGroups()

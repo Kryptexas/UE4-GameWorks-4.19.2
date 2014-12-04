@@ -118,10 +118,6 @@ class UParticleModuleRequired : public UParticleModule
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	uint32 bKillOnCompleted:1;
 
-	/** Whether this emitter requires sorting as specified by artist.					*/
-	UPROPERTY()
-	uint32 bRequiresSorting_DEPRECATED:1;
-
 	/**
 	 *	The sorting mode to use for this emitter.
 	 *	PSORTMODE_None				- No sorting required.
@@ -344,7 +340,6 @@ class UParticleModuleRequired : public UParticleModule
 #endif // WITH_EDITOR
 	virtual void	PostLoad() override;
 	virtual void	PostInitProperties() override;
-	virtual void	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface

@@ -664,26 +664,23 @@ void UAtmosphericFogComponent::Serialize(FArchive& Ar)
 		IrradianceData.Serialize(Ar, this);
 	}
 
-	if (Ar.UE4Ver() >= VER_UE4_ATMOSPHERIC_FOG_CACHE_TEXTURE)
-	{
-		InscatterData.Serialize(Ar,this);
+	InscatterData.Serialize(Ar,this);
 
-		if (Ar.IsLoading())
+	if (Ar.IsLoading())
+	{
+		int32 CounterVal;
+		Ar << CounterVal;
+		// Precomputation was not successful, just ignore it
+		if (CounterVal < EValid)
 		{
-			int32 CounterVal;
-			Ar << CounterVal;
-			// Precomputation was not successful, just ignore it
-			if (CounterVal < EValid)
-			{
-				CounterVal = EInvalid;
-			}
-			PrecomputeCounter.Set(CounterVal);
+			CounterVal = EInvalid;
 		}
-		else
-		{
-			int32 CounterVal = PrecomputeCounter.GetValue();
-			Ar << CounterVal;
-		}
+		PrecomputeCounter.Set(CounterVal);
+	}
+	else
+	{
+		int32 CounterVal = PrecomputeCounter.GetValue();
+		Ar << CounterVal;
 	}
 
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ATMOSPHERIC_FOG_CACHE_DATA && PrecomputeCounter.GetValue() == EValid) 

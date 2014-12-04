@@ -64,14 +64,6 @@ struct FAnimSegment
 	float	StartPos;
 
 	/** Time to start playing AnimSequence at. */
-	UPROPERTY()
-	float	AnimStartOffset_DEPRECATED;
-
-	/** Time to end playing the AnimSequence at. */
-	UPROPERTY()
-	float	AnimEndOffset_DEPRECATED;
-
-	/** Time to start playing AnimSequence at. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
 	float	AnimStartTime;
 

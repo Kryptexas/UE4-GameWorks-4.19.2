@@ -10,7 +10,6 @@
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "Distributions/DistributionVectorUniform.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Particles/Velocity/ParticleModuleVelocity.h"
@@ -62,16 +61,6 @@ void UParticleModuleVelocity::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleVelocity::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartVelocity.Distribution, TEXT("DistributionStartVelocity"), FVector::ZeroVector, FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultUniform(StartVelocityRadial.Distribution, TEXT("DistributionStartVelocityRadial"), 0.0f, 0.0f);
 	}
 }
 
@@ -186,15 +175,6 @@ void UParticleModuleVelocityInheritParent::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleVelocityInheritParent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Scale.Distribution, TEXT("DistributionScale"), FVector(1.0f, 1.0f, 1.0f));
 	}
 }
 
@@ -422,16 +402,6 @@ void UParticleModuleVelocityCone::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleVelocityCone::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(Angle.Distribution, TEXT("DistributionAngle"), 0.0f, 0.0f);
-		FDistributionHelpers::RestoreDefaultUniform(Velocity.Distribution, TEXT("DistributionVelocity"), 0.0f, 0.0f);
 	}
 }
 

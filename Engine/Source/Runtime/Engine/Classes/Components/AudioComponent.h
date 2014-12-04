@@ -39,9 +39,6 @@ struct FAudioComponentParam
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioComponentParam)
 	int32 IntParam;
 
-	UPROPERTY()
-	class UDEPRECATED_SoundNodeWave* WaveParam_DEPRECATED;
-
 	// Value of the parameter when used as a sound wave
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioComponentParam)
 	class USoundWave* SoundWaveParam;
@@ -51,7 +48,6 @@ struct FAudioComponentParam
 		: FloatParam(0)
 		, BoolParam(false)
 		, IntParam(0)
-		, WaveParam_DEPRECATED(NULL)
 		, SoundWaveParam(NULL)
 	{
 	}
@@ -80,10 +76,6 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	/** Optional sound group this AudioComponent belongs to */
 	UPROPERTY(EditAnywhere, Category=Sound, AdvancedDisplay)
 	USoundClass* SoundClassOverride;
-
-	/** Auto start this component on creation */
-	UPROPERTY()
-	uint32 bAutoPlay_DEPRECATED:1;
 
 	/** Auto destroy this component on completion */
 	UPROPERTY()
@@ -275,7 +267,6 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() override;
 	virtual FString GetDetailedInfoInternal() const override;
 	// End UObject interface.
 

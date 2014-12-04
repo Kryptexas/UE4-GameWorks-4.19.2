@@ -41,9 +41,6 @@ struct FInterpGroupActorInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	FName GroupName_DEPRECATED;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpGroupActorInfo)
 	FName ObjectName;
 
@@ -328,7 +325,6 @@ public:
 	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override; 
 	virtual bool CanEditChange( const UProperty* Property ) const override;
 #endif // WITH_EDITOR
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	// End UObject Interface
 
 	/** Increment track forwards by given timestep and iterate over each track updating any properties. */

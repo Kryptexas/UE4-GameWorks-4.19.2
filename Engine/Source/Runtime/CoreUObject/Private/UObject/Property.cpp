@@ -380,20 +380,8 @@ void UProperty::Serialize( FArchive& Ar )
 	Ar << ArrayDim << SaveFlags;
 	if (Ar.IsLoading())
 	{
-		if (Ar.UE4Ver() < VER_UE4_REMOVE_CTOR_LINK)
-		{
-			SaveFlags &= ~0x0000000000400000; // remove old CPF_NeedCtorLink flag
-		}
 		PropertyFlags = (SaveFlags & ~CPF_ComputedFlags) | (PropertyFlags & CPF_ComputedFlags);
 	}
-	// Old categories (moved to metadata).
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CATEGORY_MOVED_TO_METADATA)
-	{
-		FName	TempCategory;
-		Ar << TempCategory;
-		UEnum* TempArraySizeEnum = NULL;
-		Ar << TempArraySizeEnum;
-	}	
 	
 	if (FPlatformProperties::HasEditorOnlyData() == false)
 	{

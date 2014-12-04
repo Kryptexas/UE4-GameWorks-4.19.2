@@ -571,29 +571,11 @@ void FMaterial::LegacySerialize(FArchive& Ar)
 		QualityLevel = EMaterialQualityLevel::High;
 		Ar << Id_DEPRECATED;
 
-		if (Ar.UE4Ver() < VER_UE4_REMOVED_FMATERIAL_COMPILE_OUTPUTS)
-		{
-			uint32 Temp = 0;
-			Ar << Temp;
-		}
-
 		TArray<UTexture*> LegacyTextures;
 		Ar << LegacyTextures;
 
 		bool bTemp2;
 		Ar << bTemp2;
-
-		if (Ar.UE4Ver() < VER_UE4_REMOVED_FMATERIAL_COMPILE_OUTPUTS)
-		{
-			bool bUsesLightmapUVsTemp = false;
-			Ar << bUsesLightmapUVsTemp;
-
-			bool bUsesMaterialVertexPositionOffsetTemp = false;
-			Ar << bUsesMaterialVertexPositionOffsetTemp;
-
-			bool bUsesSphericalParticleOpacityTemp = false;
-			Ar << bUsesSphericalParticleOpacityTemp;
-		}
 
 		bool bTemp;
 		Ar << bTemp;
@@ -610,13 +592,8 @@ void FMaterial::LegacySerialize(FArchive& Ar)
 
 void FMaterial::SerializeInlineShaderMap(FArchive& Ar)
 {
-	bool bCooked = false;
-
-	if (Ar.UE4Ver() >= VER_UE4_INLINE_SHADERS)
-	{
-		bCooked = Ar.IsCooking();
-		Ar << bCooked;
-	}
+	bool bCooked = Ar.IsCooking();
+	Ar << bCooked;
 
 	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
 	{
@@ -663,8 +640,7 @@ void FMaterialResource::LegacySerialize(FArchive& Ar)
 {
 	FMaterial::LegacySerialize(Ar);
 
-	if (Ar.UE4Ver() < VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS
-		&& Ar.UE4Ver() >= VER_UE4_MATERIAL_BLEND_OVERRIDE)
+	if (Ar.UE4Ver() < VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
 		int32 BlendModeOverrideValueTemp = 0;
 		Ar << BlendModeOverrideValueTemp;

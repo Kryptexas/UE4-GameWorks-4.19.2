@@ -108,7 +108,6 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void	PostInitProperties() override;
-	virtual void	Serialize(FArchive& Ar) override;
 	// Begin UObject Interface
 
 	// Begin UParticleModule Interface

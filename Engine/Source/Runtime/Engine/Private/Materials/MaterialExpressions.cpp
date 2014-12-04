@@ -2220,18 +2220,6 @@ UMaterialExpressionConstant3Vector::UMaterialExpressionConstant3Vector(const FOb
 	bCollapsed = false;
 }
 
-void UMaterialExpressionConstant3Vector::PostLoad()
-{
-	Super::PostLoad();
-
-	if(GetLinkerUE4Version() < VER_UE4_CHANGE_MATERIAL_EXPRESSION_CONSTANTS_TO_LINEARCOLOR)
-	{
-		Constant.R = R_DEPRECATED;
-		Constant.G = G_DEPRECATED;
-		Constant.B = B_DEPRECATED;
-	}
-}
-
 int32 UMaterialExpressionConstant3Vector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	return Compiler->Constant3(Constant.R,Constant.G,Constant.B);
@@ -2273,19 +2261,6 @@ UMaterialExpressionConstant4Vector::UMaterialExpressionConstant4Vector(const FOb
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	bCollapsed = false;
-}
-
-void UMaterialExpressionConstant4Vector::PostLoad()
-{
-	Super::PostLoad();
-
-	if(GetLinkerUE4Version() < VER_UE4_CHANGE_MATERIAL_EXPRESSION_CONSTANTS_TO_LINEARCOLOR)
-	{
-		Constant.R = R_DEPRECATED;
-		Constant.G = G_DEPRECATED;
-		Constant.B = B_DEPRECATED;
-		Constant.A = A_DEPRECATED;
-	}
 }
 
 int32 UMaterialExpressionConstant4Vector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -3259,23 +3234,6 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	for (int32 UVIndex = 0; UVIndex <= MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
-	}
-}
-
-void  UMaterialExpressionBreakMaterialAttributes::Serialize( FArchive& Ar )
-{
-	Super::Serialize(Ar);
-
-	//Switch the connection over to the new input.
-	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX )
-	{
-		MaterialAttributes.Expression = Struct.Expression;
-		MaterialAttributes.OutputIndex = Struct.OutputIndex;
-		MaterialAttributes.Mask = Struct.Mask;
-		MaterialAttributes.MaskR = Struct.MaskR;
-		MaterialAttributes.MaskG = Struct.MaskG;
-		MaterialAttributes.MaskB = Struct.MaskB;
-		MaterialAttributes.MaskA = Struct.MaskA;
 	}
 }
 

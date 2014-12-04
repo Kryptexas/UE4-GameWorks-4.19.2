@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "DistributionHelpers.h"
 #include "Distributions/DistributionVectorParameterBase.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "Distributions/DistributionVectorUniformCurve.h"
@@ -21,7 +20,7 @@
 // Moving UDistributions to PostInitProps to not be default sub-objects:
 // Small enough value to be rounded to 0.0 in the editor 
 // but significant enough to properly detect uninitialized defaults.
-const float FDistributionHelpers::DefaultValue = 1.2345E-20f;
+const float UDistribution::DefaultValue = 1.2345E-20f;
 
 ENGINE_API uint32 GDistributionType = 1;
 
@@ -1562,14 +1561,14 @@ void UDistributionFloatConstant::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Constant = FDistributionHelpers::DefaultValue;
+		Constant = UDistribution::DefaultValue;
 	}
 }
 
 void UDistributionFloatConstant::PostLoad()
 {
 	Super::PostLoad();
-	if (Constant == FDistributionHelpers::DefaultValue)
+	if (Constant == UDistribution::DefaultValue)
 	{
 		// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
 		Constant = 0.0f;
@@ -1855,8 +1854,8 @@ void UDistributionFloatUniform::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Min = FDistributionHelpers::DefaultValue;
-		Max = FDistributionHelpers::DefaultValue;
+		Min = UDistribution::DefaultValue;
+		Max = UDistribution::DefaultValue;
 	}
 }
 
@@ -1864,11 +1863,11 @@ void UDistributionFloatUniform::PostLoad()
 {
 	Super::PostLoad();
 	// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
-	if (Min == FDistributionHelpers::DefaultValue)
+	if (Min == UDistribution::DefaultValue)
 	{
 		Min = 0.0f;
 	}
-	if (Max == FDistributionHelpers::DefaultValue)
+	if (Max == UDistribution::DefaultValue)
 	{
 		Max = 0.0f;
 	}
@@ -2326,7 +2325,7 @@ void UDistributionVectorConstant::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Constant = FVector(FDistributionHelpers::DefaultValue);
+		Constant = FVector(UDistribution::DefaultValue);
 	}
 }
 
@@ -2334,7 +2333,7 @@ void UDistributionVectorConstant::PostLoad()
 {
 	Super::PostLoad();
 	// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
-	if (Constant == FVector(FDistributionHelpers::DefaultValue))
+	if (Constant == FVector(UDistribution::DefaultValue))
 	{
 		Constant = FVector::ZeroVector;
 	}
@@ -2933,8 +2932,8 @@ void UDistributionVectorUniform::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Min = FVector(FDistributionHelpers::DefaultValue);
-		Max = FVector(FDistributionHelpers::DefaultValue);
+		Min = FVector(UDistribution::DefaultValue);
+		Max = FVector(UDistribution::DefaultValue);
 	}
 }
 
@@ -2942,11 +2941,11 @@ void UDistributionVectorUniform::PostLoad()
 {
 	Super::PostLoad();
 	// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
-	if (Min == FVector(FDistributionHelpers::DefaultValue))
+	if (Min == FVector(UDistribution::DefaultValue))
 	{
 		Min = FVector::ZeroVector;
 	}
-	if (Max == FVector(FDistributionHelpers::DefaultValue))
+	if (Max == FVector(UDistribution::DefaultValue))
 	{
 		Max = FVector::ZeroVector;
 	}

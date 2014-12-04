@@ -111,7 +111,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components")
 	class AActor* GetOwner() const;
 
-	UFUNCTION(BlueprintCallable, Category="Components", meta=(DeprecatedFunction))
 	virtual class UWorld* GetWorld() const override;
 
 	/** See if this component contains the supplied tag */

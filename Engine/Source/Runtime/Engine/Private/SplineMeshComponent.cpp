@@ -222,7 +222,6 @@ USplineMeshComponent::USplineMeshComponent(const FObjectInitializer& ObjectIniti
 {
 	Mobility = EComponentMobility::Static;
 
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 

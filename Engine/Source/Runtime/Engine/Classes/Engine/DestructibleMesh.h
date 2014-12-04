@@ -449,10 +449,6 @@ class UDestructibleMesh : public USkeletalMesh
 	UPROPERTY(EditAnywhere, Category=DestructibleMesh)
 	struct FDestructibleParameters DefaultDestructibleParameters;
 
-	/** The PhysicalMaterial used if there is no override in the component. */
-	UPROPERTY()
-	class UPhysicalMaterial* DestructiblePhysicalMaterial_DEPRECATED;
-
 	/** Fracture effects for each fracture level, unless overridden in the component. */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Effects)
 	TArray<struct FFractureEffect> FractureEffects;

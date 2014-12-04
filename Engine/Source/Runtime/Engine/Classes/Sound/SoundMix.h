@@ -75,9 +75,6 @@ struct FSoundClassAdjuster
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	FName SoundClass_DEPRECATED;
-
 	/* The sound class this adjuster affects. */
 	UPROPERTY(EditAnywhere, Category=SoundClassAdjuster, DisplayName = "Sound Class" )
 	USoundClass* SoundClassObject;

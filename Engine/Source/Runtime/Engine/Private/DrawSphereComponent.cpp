@@ -10,7 +10,6 @@
 UDrawSphereComponent::UDrawSphereComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	bHiddenInGame = true;

@@ -7,7 +7,6 @@
 APostProcessVolume::APostProcessVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
 	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	// post process volume needs physics data for trace
 	GetBrushComponent()->bAlwaysCreatePhysicsState = true;

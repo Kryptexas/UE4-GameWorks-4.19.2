@@ -86,7 +86,6 @@ AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializ
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bAbsoluteScale = true;
-		SpriteComponent->BodyInstance.bEnableCollision_DEPRECATED = false;	
 		SpriteComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
@@ -118,7 +117,6 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
-	DrawInfluenceRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
@@ -126,7 +124,6 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 	DrawCaptureRadius->AttachParent = GetCaptureComponent();
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
-	DrawCaptureRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawCaptureRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawCaptureRadius->ShapeColor = FColor(100, 90, 40);
 }
@@ -169,7 +166,6 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	DrawInfluenceBox->AttachParent = GetCaptureComponent();
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
-	DrawInfluenceBox->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawInfluenceBox->InitBoxExtent(FVector(1, 1, 1));
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
@@ -178,7 +174,6 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
-	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawCaptureBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawCaptureBox->ShapeColor = FColor(100, 90, 40);
 	DrawCaptureBox->InitBoxExtent(FVector(1, 1, 1));
@@ -202,7 +197,6 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
-	DrawInfluenceRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
@@ -210,7 +204,6 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
-	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawCaptureBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawCaptureBox->ShapeColor = FColor(100, 90, 40);
 	DrawCaptureBox->InitBoxExtent(FVector(1, 1, 1));

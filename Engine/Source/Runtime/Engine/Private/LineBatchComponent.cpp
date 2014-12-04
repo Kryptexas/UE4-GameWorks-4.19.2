@@ -102,7 +102,6 @@ ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitial
 	bAutoActivate = true;
 	bTickInEditor = true;
 	PrimaryComponentTick.bCanEverTick = true;
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 

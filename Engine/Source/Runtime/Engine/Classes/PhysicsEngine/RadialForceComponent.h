@@ -40,10 +40,6 @@ class URadialForceComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Destructible)
 	float DestructibleDamage;
 
-	/** Is the force currently enabled */
-	UPROPERTY()
-	uint32 bForceEnabled_DEPRECATED:1;
-
 	/** Fire a single impulse */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
 	virtual void FireImpulse();

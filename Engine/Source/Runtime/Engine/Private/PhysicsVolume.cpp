@@ -8,7 +8,6 @@
 APhysicsVolume::APhysicsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
 	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
 

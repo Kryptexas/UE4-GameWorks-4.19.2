@@ -912,10 +912,6 @@ public:
 	//==============================================================================
 	// Misc Blueprint support
 
-	/** Get the World in which this Actor exists. */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction))
-	UWorld* K2_GetWorld() const;
-
 	/** 
 	 * Get CustomTimeDilation - this can be used for input control or speed control for slomo.
 	 * We don't want to scale input globally because input can be used for UI, which do not care for TimeDilation.
@@ -953,12 +949,10 @@ public:
 	//=============================================================================
 	// Sound functions.
 	
-	/* DEPRECATED - Use UGameplayStatics::PlaySoundAttached */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
+	DEPRECATED(4.0, "Actor::PlaySoundOnActor will be removed. Use UGameplayStatics::PlaySoundAttached instead.")
 	void PlaySoundOnActor(class USoundCue* InSoundCue, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
-	/* DEPRECATED - Use UGameplayStatics::PlaySoundAtLocation */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
+	DEPRECATED(4.0, "Actor::PlaySoundOnActor will be removed. Use UGameplayStatics::PlaySoundAtLocation instead.")
 	void PlaySoundAtLocation(class USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
 	//=============================================================================

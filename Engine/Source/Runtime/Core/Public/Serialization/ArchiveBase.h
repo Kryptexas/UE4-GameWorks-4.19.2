@@ -532,11 +532,6 @@ public:
 	VARARG_DECL(void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE);
 
 	// Status accessors.
-	FORCEINLINE int32 UE3Ver() const
-	{ 
-		return ArUE3Ver;
-	}
-
 	FORCEINLINE int32 NetVer() const
 	{
 		return ArNetVer & 0x7fffffff;
@@ -711,21 +706,10 @@ public:
 	}
 
 	/**
-	 * Sets the archive version number. Used by the code that makes sure that ULinkerLoad's internal 
-	 * archive versions match the file reader it creates.
-	 *
-	 * @param UE3Ver	new version number
-	 */
-	void SetUE3Ver(int32 InVer)
-	{
-		ArUE3Ver = InVer;
-	}
-
-	/**
 	 * Sets the archive licensee version number. Used by the code that makes sure that ULinkerLoad's 
 	 * internal archive versions match the file reader it creates.
 	 *
-	 * @param UE3Ver	new version number
+	 * @param UE4Ver	new version number
 	 */
 	void SetUE4Ver(int32 InVer)
 	{
@@ -917,9 +901,6 @@ private:
 	void CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveStatusToCopy);
 
 protected:
-
-	/** Status variables. */
-	int32 ArUE3Ver;
 
 	/** Holds the archive's network version. */
 	int32 ArNetVer;

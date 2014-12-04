@@ -761,7 +761,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 		}
 
 		// Set status info.
-		ArUE3Ver		= VER_LAST_ENGINE_UE3;
 		ArUE4Ver		= GPackageFileUE4Version;
 		ArLicenseeUE4Ver	= GPackageFileLicenseeUE4Version;
 		ArIsLoading		= true;
@@ -810,7 +809,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 		}
 
 		// Validate the summary.
-		if( Summary.GetFileVersionUE3() < VER_MIN_ENGINE_UE3 || Summary.GetFileVersionUE4() < VER_UE4_OLDEST_LOADABLE_PACKAGE)
+		if( Summary.GetFileVersionUE4() < VER_UE4_OLDEST_LOADABLE_PACKAGE)
 		{
 			UE_LOG(LogLinker, Warning, TEXT("The file %s was saved by a previous version which is not backwards compatible with this one. Min Required Version: %i  Package Version: %i"), *Filename, (int32)VER_UE4_OLDEST_LOADABLE_PACKAGE, Summary.GetFileVersionUE4() );
 			return LINKER_Failed;
@@ -841,9 +840,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 		}
 
 		// Don't load packages that were saved with package version newer than the current one.
-		if( (Summary.GetFileVersionUE3() > VER_LAST_ENGINE_UE3) || (Summary.GetFileVersionUE4() > GPackageFileUE4Version) || (Summary.GetFileVersionLicenseeUE4() > GPackageFileLicenseeUE4Version) )
+		if( (Summary.GetFileVersionUE4() > GPackageFileUE4Version) || (Summary.GetFileVersionLicenseeUE4() > GPackageFileLicenseeUE4Version) )
 		{
-			UE_LOG(LogLinker, Warning, TEXT("Unable to load package (%s) PackageVersion %i, MaxExpected %i : UE4PackageVersion %i, MaxExpected %i : LicenseePackageVersion %i, MaxExpected %i."), *Filename, Summary.GetFileVersionUE3(), (int32)VER_LAST_ENGINE_UE3, Summary.GetFileVersionUE4(), GPackageFileUE4Version, Summary.GetFileVersionLicenseeUE4(), GPackageFileLicenseeUE4Version );
+			UE_LOG(LogLinker, Warning, TEXT("Unable to load package (%s) PackageVersion %i, MaxExpected %i : LicenseePackageVersion %i, MaxExpected %i."), *Filename, Summary.GetFileVersionUE4(), GPackageFileUE4Version, Summary.GetFileVersionLicenseeUE4(), GPackageFileLicenseeUE4Version );
 			return LINKER_Failed;
 		}
 
@@ -857,28 +856,25 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 
 #if PLATFORM_WINDOWS
 		// check if this package version stored the 4-byte magic post tag
-		if (Summary.GetFileVersionUE4() >= VER_UE4_PACKAGE_MAGIC_POSTTAG)
+		// get the offset of the post tag
+		int64 MagicOffset = TotalSize() - sizeof(uint32);
+		// store the current file offset
+		int64 OriginalOffset = Tell();
+			
+		uint32 Tag = 0;
+			
+		// seek to the post tag and serialize it
+		Seek(MagicOffset);
+		*this << Tag;
+
+		if (Tag != PACKAGE_FILE_TAG)
 		{
-			// get the offset of the post tag
-			int64 MagicOffset = TotalSize() - sizeof(uint32);
-			// store the current file offset
-			int64 OriginalOffset = Tell();
-			
-			uint32 Tag = 0;
-			
-			// seek to the post tag and serialize it
-			Seek(MagicOffset);
-			*this << Tag;
-
-			if (Tag != PACKAGE_FILE_TAG)
-			{
-				UE_LOG(LogLinker, Warning, TEXT("Unable to load package (%s). Post Tag is not valid. File might be corrupted."), *Filename );
-				return LINKER_Failed;
-			}
-
-			// seek back to the position after the package summary
-			Seek(OriginalOffset);
+			UE_LOG(LogLinker, Warning, TEXT("Unable to load package (%s). Post Tag is not valid. File might be corrupted."), *Filename );
+			return LINKER_Failed;
 		}
+
+		// seek back to the position after the package summary
+		Seek(OriginalOffset);
 #endif // PLATFORM_WINDOWS
 
 		// Check custom versions.
@@ -904,11 +900,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 		}
 
 		// Loader needs to be the same version.
-		Loader->SetUE3Ver(Summary.GetFileVersionUE3());
 		Loader->SetUE4Ver(Summary.GetFileVersionUE4());
 		Loader->SetLicenseeUE4Ver(Summary.GetFileVersionLicenseeUE4());
 
-		ArUE3Ver = Summary.GetFileVersionUE3();
 		ArUE4Ver = Summary.GetFileVersionUE4();
 		ArLicenseeUE4Ver = Summary.GetFileVersionLicenseeUE4();
 

@@ -28,28 +28,6 @@ void UInterpCurveEdSetup::PostLoad()
 	}
 }
 
-void UInterpCurveEdSetup::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	if (Ar.IsLoading() && GetLinker() && (GetLinker()->UE3Ver() < 203))
-	{
-		for (int32 i=0; i<Tabs.Num(); i++)
-		{
-			FCurveEdTab& Tab = Tabs[i];
-			for(int32 j=Tab.Curves.Num()-1; j>=0; j--)
-			{
-				FCurveEdEntry& Entry = Tab.Curves[j];
-
-				if (Entry.bHideCurve)
-				{
-					Entry.bHideCurve	= 0x00000001;
-				}
-			}
-		}
-	}
-}
-
 UInterpCurveEdSetup::UInterpCurveEdSetup(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

@@ -22,7 +22,6 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 	CollisionComponent->bAbsoluteScale = true;
 	//CollisionComponent->AlwaysLoadOnServer = true;
 	CollisionComponent->bCanEverAffectNavigation = false;
-	CollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	//USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));

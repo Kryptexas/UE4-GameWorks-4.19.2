@@ -915,20 +915,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( Ar.UE4Ver() < VER_UE4_BLUEPRINT_PROPERTYFLAGS_SIZE_CHANGE && Tag.Type == NAME_IntProperty && Property->GetID() == NAME_UInt64Property)
-			{
-				// PropertyFlag on Blueprints changes from int32 uint64
-				int32 PreviousValue;
-
-				// de-serialize the previous value
-				Ar << PreviousValue;
-
-				// now copy the value into the object's address space
-				CastChecked<UUInt64Property>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue;
-
-			}
 			else if ( Tag.Type == NAME_ByteProperty && Property->GetID() == NAME_IntProperty )
 			{
 				// this property's data was saved as a uint8, but the property has been changed to an int32.  Since there is no loss of data
@@ -1256,26 +1242,7 @@ void UStruct::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	Ar << SuperStruct;
-
-	if (Ar.UE4Ver() < VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES)
-	{
-		UTextBuffer* ScriptText;
-		Ar << ScriptText;
-	}
-
 	Ar << Children;
-
-	if (Ar.UE4Ver() < VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES)
-	{
-		UTextBuffer* CppText = NULL;
-		Ar << CppText;
-
-		int32 Line = 0;
-		Ar << Line;
-
-		int32 TextPos = 0;
-		Ar << TextPos;
-	}
 
 	// Script code.
 	// Skip serialization if we're duplicating classes for reinstancing, since we only need the memory layout
@@ -2910,12 +2877,6 @@ void UClass::Serialize( FArchive& Ar )
 	Ar << ClassWithin;
 	Ar << ClassConfigName;
 
-	if (Ar.UE4Ver() < VER_UE4_STOPPED_SERIALIZING_COMPONENTNAMETODEFAULTOBJECTMAP)
-	{
-		TArray<UObject*> ComponentNameToDefaultObjectMapSerialized;
-		Ar << ComponentNameToDefaultObjectMapSerialized;
-	}
-
 	int32 NumInterfaces = 0;
 	int64 InterfacesStart = 0L;
 	if(Ar.IsLoading())
@@ -2988,36 +2949,8 @@ void UClass::Serialize( FArchive& Ar )
 		Ar << Interfaces;
 	}
 
-	if( Ar.UE4Ver() < VER_UE4_DONTSORTCATEGORIES_REMOVED )
-	{
-		TArray<FName> DeprecatedDontSortCategories;
-		Ar << DeprecatedDontSortCategories;
-	}
-
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CATEGORY_MOVED_TO_METADATA)
-	{
-		TArray<FName> TempHideCategories;
-		TArray<FName> TempAutoExpandCategories;
-		TArray<FName> TempAutoCollapseCategories;
-		Ar << TempHideCategories;
-		Ar << TempAutoExpandCategories;
-		Ar << TempAutoCollapseCategories;
-	}
-
 	bool bDeprecatedForceScriptOrder = false;
 	Ar << bDeprecatedForceScriptOrder;
-
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CATEGORY_MOVED_TO_METADATA)
-	{
-		TArray<FName> TempClassGroupNames;
-		Ar << TempClassGroupNames;
-	}
-
-	if( Ar.UE4Ver() < VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES )
-	{
-		FString ClassHeaderFilename;
-		Ar << ClassHeaderFilename;
-	}
 
 	FName Dummy = NAME_None;
 	Ar << Dummy;
@@ -3125,12 +3058,6 @@ bool UClass::ImplementsInterface( const class UClass* SomeInterface ) const
  */
 void UClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 {
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_NET_INDEX && (!(Ar.GetPortFlags() & PPF_Duplicate)))
-	{
-		int32 OldNetIndex = 0;
-		Ar << OldNetIndex;
-	}
-
 	// tell the archive that it's allowed to load data for transient properties
 	Ar.StartSerializingDefaults();
 
@@ -3156,17 +3083,7 @@ void UClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 FArchive& operator<<(FArchive& Ar, FImplementedInterface& A)
 {
 	Ar << A.Class;
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NO_INTERFACE_PROPERTY)
-	{
-		UObject* Junk = NULL;
-		Ar << Junk;
-		check(!Junk); // these should be exclusively K2, which should not have an associated property
-		A.PointerOffset = 0;
-	}
-	else
-	{
-		Ar << A.PointerOffset;
-	}
+	Ar << A.PointerOffset;
 	Ar << A.bImplementedByK2;
 
 	return Ar;

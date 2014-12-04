@@ -51,14 +51,6 @@ class ENGINE_API USoundNode : public UObject
 	TArray<class USoundNode*> ChildNodes;
 
 #if WITH_EDITORONLY_DATA
-	/** X position of node in the editor, so old UEdGraphNode data not lost.*/
-	UPROPERTY()
-	int32 NodePosX_DEPRECATED;
-
-	/** Y position of node in the editor, so old UEdGraphNode data not lost. */
-	UPROPERTY()
-	int32 NodePosY_DEPRECATED;
-
 	/** Node's Graph representation, used to get position. */
 	class USoundCueGraphNode*	GraphNode;
 #endif

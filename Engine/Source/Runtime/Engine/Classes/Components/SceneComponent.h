@@ -183,9 +183,6 @@ public:
 
 private:
 
-	UPROPERTY()
-	float RelativeScale_DEPRECATED;
-
 	bool NetUpdateTransform;
 
 	USceneComponent *NetOldAttachParent;

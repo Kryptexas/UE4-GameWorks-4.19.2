@@ -12,10 +12,6 @@ class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** True if the fog is enabled. */
-	UPROPERTY()
-	uint32 bEnabled_DEPRECATED:1;
-
 	/** Global density factor. */
 	UPROPERTY(BlueprintReadOnly, interp, Category=ExponentialHeightFogComponent, meta=(UIMin = "0", UIMax = ".05"))
 	float FogDensity;
@@ -100,7 +96,6 @@ protected:
 
 public:
 	// Begin UObject Interface
-	virtual void PostLoad() override; 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR

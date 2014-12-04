@@ -43,12 +43,6 @@ FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings)
 	Ar << Settings.EmissiveBoost;
 	Ar << Settings.DiffuseBoost;
 
-	if( Ar.UE4Ver() < VER_UE4_REMOVED_SPECULAR_BOOST )
-	{
-		float SpecularBoost;
-		Ar << SpecularBoost;
-	}
-
 	return Ar;
 }
 

@@ -1621,28 +1621,7 @@ void FLightMap2D::Serialize(FArchive& Ar)
 {
 	FLightMap::Serialize(Ar);
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SH_LIGHTMAPS)
-	{
-		for(uint32 CoefficientIndex = 0;CoefficientIndex < 3;CoefficientIndex++)
-		{
-			ULightMapTexture2D* Dummy = NULL;
-			Ar << Dummy;
-			FVector Dummy2;
-			Ar << Dummy2;
-		}
-	}
-	else if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_LIGHTMAP_COMPRESSION )
-	{
-		for( uint32 CoefficientIndex = 0; CoefficientIndex < 5; CoefficientIndex++ )
-		{
-			ULightMapTexture2D* Dummy = NULL;
-			Ar << Dummy;
-			FVector Dummy2;
-			Ar << Dummy2;
-			Ar << Dummy2;
-		}
-	}
-	else if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_LOW_QUALITY_DIRECTIONAL_LIGHTMAPS )
+	if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_LOW_QUALITY_DIRECTIONAL_LIGHTMAPS )
 	{
 		for(uint32 CoefficientIndex = 0;CoefficientIndex < 3;CoefficientIndex++)
 		{
@@ -1764,32 +1743,13 @@ void FLegacyLightMap1D::Serialize(FArchive& Ar)
 
 	DirectionalSamples.Serialize( Ar, Owner );
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SH_LIGHTMAPS)
+	for (int32 ElementIndex = 0; ElementIndex < 5; ElementIndex++)
 	{
-		for (int32 ElementIndex = 0; ElementIndex < 3; ElementIndex++)
-		{
-			FVector Dummy;
-			Ar << Dummy;
-		}
-	}
-	else
-	{
-		for (int32 ElementIndex = 0; ElementIndex < 5; ElementIndex++)
-		{
-			FVector Dummy;
-			Ar << Dummy;
-		}
+		FVector Dummy;
+		Ar << Dummy;
 	}
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SH_LIGHTMAPS)
-	{
-		TQuantizedLightSampleBulkData<FLegacyQuantizedSimpleLightSample> Dummy;
-		Dummy.Serialize(Ar, Owner);
-	}
-	else
-	{
-		SimpleSamples.Serialize( Ar, Owner );
-	}
+	SimpleSamples.Serialize( Ar, Owner );
 }
 
 /*-----------------------------------------------------------------------------

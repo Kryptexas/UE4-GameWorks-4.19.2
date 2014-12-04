@@ -60,5 +60,8 @@ class UDistribution : public UObject, public FCurveEdInterface
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Default value for initializing and checking correct values on UDistributions. */
+	static const float DefaultValue;
+
 };
 

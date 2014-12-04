@@ -8,7 +8,6 @@
 #include "EnginePrivate.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Size/ParticleModuleSize_Seeded.h"
 #include "Particles/Size/ParticleModuleSizeMultiplyLife.h"
 #include "Particles/Size/ParticleModuleSizeScale.h"
@@ -56,15 +55,6 @@ void UParticleModuleSize::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleSize::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartSize.Distribution, TEXT("DistributionStartSize"), FVector(1.0f, 1.0f, 1.0f), FVector(1.0f, 1.0f, 1.0f));
 	}
 }
 
@@ -166,15 +156,6 @@ void UParticleModuleSizeMultiplyLife::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleSizeMultiplyLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(LifeMultiplier.Distribution, TEXT("DistributionLifeMultiplier"), FVector::ZeroVector);
 	}
 }
 
@@ -365,15 +346,6 @@ void UParticleModuleSizeScale::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleSizeScale::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SizeScale.Distribution, TEXT("DistributionSizeScale"), FVector::ZeroVector);
 	}
 }
 

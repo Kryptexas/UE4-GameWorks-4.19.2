@@ -257,19 +257,6 @@ void UDestructibleFractureSettings::Serialize(FArchive& Ar)
 			physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream(Buffer.GetData(), Size);
 			if (Stream != NULL)
 			{
-				if (Ar.UE4Ver() < VER_UE4_NX_DESTRUCTIBLE_ASSET_AUTHORING_LOAD_FIX)
-				{
-					// Create an NxParameterized serializer
-					NxParameterized::Serializer* Serializer = GApexSDK->createSerializer(NxParameterized::Serializer::NST_BINARY);
-					if (Serializer != NULL)
-					{
-						// Deserialize into a DeserializedData buffer
-						NxParameterized::Serializer::DeserializedData DeserializedData;
-						Serializer->deserialize(*Stream, DeserializedData);
-						// Release the NxParameterized serializer
-						Serializer->release();
-					}
-				}
 				// Now deserialize the ExplicitHierarchicalMeshes
 				FExplicitHierarchicalMeshEmbedding ExplicitHierarchicalMeshEmbedding;
 				ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh().deserialize(*Stream, ExplicitHierarchicalMeshEmbedding);

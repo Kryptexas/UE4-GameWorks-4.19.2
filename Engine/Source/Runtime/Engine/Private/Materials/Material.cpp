@@ -53,7 +53,6 @@ bool FMaterialsWithDirtyUsageFlags::IsUsageFlagDirty(EMaterialUsage UsageFlag)
 }
 
 FUObjectAnnotationSparseBool GMaterialsThatNeedSamplerFixup;
-FUObjectAnnotationSparseBool GMaterialsThatNeedPhysicalConversion;
 FUObjectAnnotationSparse<FMaterialsWithDirtyUsageFlags,true> GMaterialsWithDirtyUsageFlags;
 FUObjectAnnotationSparseBool GMaterialsThatNeedExpressionsFlipped;
 FUObjectAnnotationSparseBool GMaterialsThatNeedCoordinateCheck;
@@ -518,8 +517,6 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	Opacity.Constant = 1.0f;
 	OpacityMask.Constant = 1.0f;
 	OpacityMaskClipValue = 0.3333f;
-	FresnelBaseReflectFraction_DEPRECATED = 0.04f;
-	bPhysicallyBasedInputs_DEPRECATED = true;
 	bUsedWithStaticLighting = false;
 	D3D11TessellationMode = MTM_NoTessellation;
 	bEnableCrackFreeDisplacement = false;
@@ -1705,11 +1702,6 @@ void UMaterial::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
-	if ( Ar.UE4Ver() < VER_UE4_PHYSICAL_MATERIAL_MODEL )
-	{
-		GMaterialsThatNeedPhysicalConversion.Set( this );
-	}
-
 	if (Ar.UE4Ver() < VER_UE4_FLIP_MATERIAL_COORDS)
 	{
 		GMaterialsThatNeedExpressionsFlipped.Set(this);
@@ -1758,51 +1750,6 @@ void UMaterial::PostDuplicate(bool bDuplicateForPIE)
 void UMaterial::BackwardsCompatibilityInputConversion()
 {
 #if WITH_EDITOR
-	if ( GMaterialsThatNeedPhysicalConversion.Get( this ) )
-	{
-		GMaterialsThatNeedPhysicalConversion.Clear( this );
-
-		Roughness.Constant = 0.4238f;
-
-		if( ShadingModel != MSM_Unlit )
-		{
-			// Multiply SpecularColor by FresnelBaseReflectFraction
-			if( SpecularColor_DEPRECATED.IsConnected() && FresnelBaseReflectFraction_DEPRECATED != 1.0f )
-			{
-				UMaterialExpressionMultiply* MulExpression = ConstructObject< UMaterialExpressionMultiply >( UMaterialExpressionMultiply::StaticClass(), this );
-				Expressions.Add( MulExpression );
-
-				MulExpression->MaterialExpressionEditorX += 450;
-				MulExpression->MaterialExpressionEditorY += 20;
-
-				MulExpression->Desc = TEXT("FresnelBaseReflectFraction");
-				MulExpression->ConstA = 1.0f;
-				MulExpression->ConstB = FresnelBaseReflectFraction_DEPRECATED;
-
-				MulExpression->A.Connect( SpecularColor_DEPRECATED.OutputIndex, SpecularColor_DEPRECATED.Expression );
-				SpecularColor_DEPRECATED.Connect( 0, MulExpression );
-			}
-
-			// Convert from SpecularPower to Roughness
-			if( SpecularPower_DEPRECATED.IsConnected() )
-			{
-				check( GPowerToRoughnessMaterialFunction );
-
-				UMaterialExpressionMaterialFunctionCall* FunctionExpression = ConstructObject< UMaterialExpressionMaterialFunctionCall >( UMaterialExpressionMaterialFunctionCall::StaticClass(), this );
-				Expressions.Add( FunctionExpression );
-
-				FunctionExpression->MaterialExpressionEditorX += 200;
-				FunctionExpression->MaterialExpressionEditorY += 100;
-
-				FunctionExpression->MaterialFunction = GPowerToRoughnessMaterialFunction;
-				FunctionExpression->UpdateFromFunctionResource();
-
-				FunctionExpression->GetInput(0)->Connect( SpecularPower_DEPRECATED.OutputIndex, SpecularPower_DEPRECATED.Expression );
-				Roughness.Connect( 0, FunctionExpression );
-			}
-		}
-	}
-
 	if( ShadingModel != MSM_Unlit )
 	{
 		bool bIsDS = DiffuseColor_DEPRECATED.IsConnected() || SpecularColor_DEPRECATED.IsConnected();
@@ -1961,18 +1908,6 @@ void UMaterial::PostLoad()
 
 		LightingGuidFixupMap.Add(GetLightingGuid(), this);
 	}
-
-	// Fix exclusive material usage flags moved to an enum.
-	if (bUsedAsLightFunction_DEPRECATED)
-	{
-		MaterialDomain = MD_LightFunction;
-	}
-	else if (bUsedWithDeferredDecal_DEPRECATED)
-	{
-		MaterialDomain = MD_DeferredDecal;
-	}
-	bUsedAsLightFunction_DEPRECATED = false;
-	bUsedWithDeferredDecal_DEPRECATED = false;
 
 	// Fix the shading model to be valid.  Loading a material saved with a shading model that has been removed will yield a MSM_MAX.
 	if(ShadingModel == MSM_MAX)

@@ -302,9 +302,6 @@ class UNREALED_API UEditorEngine : public UEngine
 	UPROPERTY(EditAnywhere, config, Category=Advanced)
 	uint32 bShowBrushMarkerPolys:1;
 
-	UPROPERTY()
-	uint32 bPrefabsLocked_DEPRECATED:1;
-
 	/** If true, socket snapping is enabled in the main level viewports. */
 	UPROPERTY(EditAnywhere, config, Category=Advanced)
 	uint32 bEnableSocketSnapping:1;
@@ -2671,7 +2668,6 @@ private:
 
 	/** Gets the init values for worlds opened via Map_Load in the editor */
 	UWorld::InitializationValues GetEditorWorldInitializationValues() const;
-
 
 public:
 	// Launcher Worker

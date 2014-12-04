@@ -25,7 +25,6 @@ class UParticleModuleRotationRate : public UParticleModuleRotationRateBase
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void	PostInitProperties() override;
-	virtual void	Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	// Begin UParticleModule Interface

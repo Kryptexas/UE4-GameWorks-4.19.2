@@ -326,7 +326,6 @@ ULandscapeGizmoRenderComponent::ULandscapeGizmoRenderComponent(const FObjectInit
 	AlwaysLoadOnClient = false;
 	AlwaysLoadOnServer = false;
 	bSelectable = false;
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 }
 

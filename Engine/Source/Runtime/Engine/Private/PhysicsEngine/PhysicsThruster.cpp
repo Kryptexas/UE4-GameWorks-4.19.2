@@ -31,16 +31,6 @@ void UPhysicsThrusterComponent::TickComponent(float DeltaTime, enum ELevelTick T
 	}
 }
 
-void UPhysicsThrusterComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_CONFORM_COMPONENT_ACTIVATE_FLAG)
-	{
-		bAutoActivate = bThrustEnabled_DEPRECATED;
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////
 
 APhysicsThruster::APhysicsThruster(const FObjectInitializer& ObjectInitializer)

@@ -77,10 +77,6 @@ class ENGINE_API ABrush : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	/** CSG operation performed in editor. */
-	UPROPERTY()
-	TEnumAsByte<enum ECsgOper> CsgOper_DEPRECATED;
-
 	/** Type of brush */
 	UPROPERTY(EditAnywhere, Category=Brush)
 	TEnumAsByte<enum EBrushType> BrushType;

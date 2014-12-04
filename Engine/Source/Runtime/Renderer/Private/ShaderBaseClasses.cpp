@@ -240,7 +240,7 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 		Ar << DebugUniformExpressionSet;
 		Ar << DebugDescription;
 	}
-	else if (Ar.IsLoading() && Ar.UE4Ver() >= VER_DEBUG_MATERIALSHADER_UNIFORM_EXPRESSIONS)
+	else if (Ar.IsLoading())
 	{
 		FUniformExpressionSet TempExpressionSet;
 		TempExpressionSet.Serialize(Ar);

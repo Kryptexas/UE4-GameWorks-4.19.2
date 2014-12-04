@@ -290,9 +290,6 @@ class UMaterial : public UMaterialInterface
 	FScalarMaterialInput Specular;
 
 	UPROPERTY()
-	FScalarMaterialInput SpecularPower_DEPRECATED;
-
-	UPROPERTY()
 	FScalarMaterialInput Roughness;
 
 	UPROPERTY()
@@ -308,9 +305,6 @@ class UMaterial : public UMaterialInterface
 
 	UPROPERTY()
 	FScalarMaterialInput OpacityMask;
-
-	UPROPERTY()
-	float FresnelBaseReflectFraction_DEPRECATED;
 
 	/** 
 	 * The domain that the material's attributes will be evaluated in. 
@@ -477,16 +471,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, meta=(DisplayName = "Emissive (Dynamic Area Light)"), AdvancedDisplay)
 	uint32 bUseEmissiveForDynamicAreaLighting : 1;
-
-	/** Whether material uses BaseColor, Metallic, Specular */
-	UPROPERTY()
-	uint32 bPhysicallyBasedInputs_DEPRECATED : 1;
-
-	UPROPERTY()
-	uint32 bUsedAsLightFunction_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bUsedWithDeferredDecal_DEPRECATED:1;
 
 	/** 
 	 * This is a special usage flag that allows a material to be assignable to any primitive type.

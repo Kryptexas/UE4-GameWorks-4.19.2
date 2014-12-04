@@ -1038,10 +1038,6 @@ struct FLightmassLightSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Scale factor for the indirect lighting */
-	UPROPERTY()
-	float IndirectLightingScale_DEPRECATED;
-
 	/** 0 will be completely desaturated, 1 will be unchanged */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass, meta=(UIMin = "0.0", UIMax = "4.0"))
 	float IndirectLightingSaturation;
@@ -1051,8 +1047,7 @@ struct FLightmassLightSettings
 	float ShadowExponent;
 
 	FLightmassLightSettings()
-		: IndirectLightingScale_DEPRECATED(1.0f)
-		, IndirectLightingSaturation(1.0f)
+		: IndirectLightingSaturation(1.0f)
 		, ShadowExponent(2.0f)
 	{
 	}

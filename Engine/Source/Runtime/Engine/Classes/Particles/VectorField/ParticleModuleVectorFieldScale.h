@@ -19,7 +19,6 @@ class UParticleModuleVectorFieldScale : public UParticleModuleVectorFieldBase
 
 	// Begin UObject Interface
 	virtual void PostInitProperties() override;
-	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface

@@ -9,7 +9,6 @@
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "ParticleDefinitions.h"
 #include "RawIndexBuffer.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Location/ParticleModuleLocation.h"
 #include "Particles/Location/ParticleModuleLocationBoneSocket.h"
 #include "Particles/Location/ParticleModuleLocationDirect.h"
@@ -68,15 +67,6 @@ void UParticleModuleLocation::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleLocation::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartLocation.Distribution, TEXT("DistributionStartLocation"), FVector::ZeroVector, FVector::ZeroVector);
 	}
 }
 
@@ -316,18 +306,6 @@ void UParticleModuleLocationDirect::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleLocationDirect::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(Location.Distribution, TEXT("DistributionLocation"), FVector::ZeroVector, FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(LocationOffset.Distribution, TEXT("DistributionLocationOffset"), FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(ScaleFactor.Distribution, TEXT("DistributionScaleFactor"), FVector(1.0f, 1.0f, 1.0f));
-		FDistributionHelpers::RestoreDefaultUniform(Direction.Distribution, TEXT("DistributionDirection"), FVector::ZeroVector, FVector::ZeroVector);
 	}
 }
 
@@ -692,16 +670,6 @@ void UParticleModuleLocationPrimitiveBase::PostInitProperties()
 	}
 }
 
-void UParticleModuleLocationPrimitiveBase::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(VelocityScale.Distribution, TEXT("DistributionVelocityScale"), 1.0f);
-		FDistributionHelpers::RestoreDefaultConstant(StartLocation.Distribution, TEXT("DistributionStartLocation"), FVector(0.0f, 0.0f, 0.0f));
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleLocationPrimitiveBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -829,18 +797,6 @@ void UParticleModuleLocationPrimitiveTriangle::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleLocationPrimitiveTriangle::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(StartOffset.Distribution, TEXT("DistributionOffset"), FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(Height.Distribution, TEXT("DistributionHeight"), 50.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Angle.Distribution, TEXT("DistributionAngle"), 90.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Thickness.Distribution, TEXT("DistributionThickness"), 0.0f);
 	}
 }
 
@@ -994,16 +950,6 @@ void UParticleModuleLocationPrimitiveCylinder::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleLocationPrimitiveCylinder::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(StartRadius.Distribution, TEXT("DistributionStartRadius"), 50.0f);
-		FDistributionHelpers::RestoreDefaultConstant(StartHeight.Distribution, TEXT("DistributionStartHeight"), 50.0f);
 	}
 }
 
@@ -1303,15 +1249,6 @@ void UParticleModuleLocationPrimitiveSphere::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleLocationPrimitiveSphere::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(StartRadius.Distribution, TEXT("DistributionStartRadius"), 50.0f);
 	}
 }
 

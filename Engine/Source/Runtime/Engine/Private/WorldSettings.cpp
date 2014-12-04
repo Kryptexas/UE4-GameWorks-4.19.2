@@ -60,7 +60,6 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 
 	UStaticMeshComponent* StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->bHiddenInGame = true;
-	StaticMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	StaticMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
 	StaticMeshComponent->Mobility = EComponentMobility::Static;

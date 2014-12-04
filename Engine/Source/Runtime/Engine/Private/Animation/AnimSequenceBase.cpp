@@ -481,21 +481,6 @@ void UAnimSequenceBase::PostLoad()
 	// Convert Notifies to new data
 	if( GIsEditor && Notifies.Num() > 0 )
 	{
-		if(GetLinkerUE4Version() < VER_UE4_ANIMNOTIFY_NAMECHANGE)
-		{
-			LOG_SCOPE_VERBOSITY_OVERRIDE(LogAnimation, ELogVerbosity::Warning);
-			// convert animnotifies
-			for(int32 I = 0; I < Notifies.Num(); ++I)
-			{
-				if(Notifies[I].Notify != NULL)
-				{
-					FString Label = Notifies[I].Notify->GetClass()->GetName();
-					Label = Label.Replace(TEXT("AnimNotify_"), TEXT(""), ESearchCase::CaseSensitive);
-					Notifies[I].NotifyName = FName(*Label);
-				}
-			}
-		}
-
 		if(GetLinkerUE4Version() < VER_UE4_CLEAR_NOTIFY_TRIGGERS)
 		{
 			for(FAnimNotifyEvent Notify : Notifies)
@@ -509,10 +494,6 @@ void UAnimSequenceBase::PostLoad()
 		}
 	}
 
-	if ( GetLinkerUE4Version() < VER_UE4_MORPHTARGET_CURVE_INTEGRATION )
-	{
-		UpgradeMorphTargetCurves();
-	}
 	// Ensure notifies are sorted.
 	SortNotifies();
 
@@ -542,20 +523,6 @@ void UAnimSequenceBase::PostLoad()
 #if WITH_EDITOR
 		VerifyCurveNames<FTransformCurve>(Skeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 #endif
-	}
-}
-
-void UAnimSequenceBase::UpgradeMorphTargetCurves()
-{
-	// make sure this doesn't get called by anywhere else or you'll have to check this before calling 
-	if ( GetLinkerUE4Version() < VER_UE4_MORPHTARGET_CURVE_INTEGRATION )
-	{
-		for ( auto CurveIter = RawCurveData.FloatCurves.CreateIterator(); CurveIter; ++CurveIter )
-		{
-			FFloatCurve & Curve = (*CurveIter);
-			// make sure previous curves has editable flag
-			Curve.SetCurveTypeFlag(ACF_DefaultCurve, true);
-		}	
 	}
 }
 

@@ -9,10 +9,6 @@ class UCurveVector : public UCurveBase
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Legacy keyframe data. */
-	UPROPERTY()
-	FInterpCurveVector VectorKeys_DEPRECATED;
-
 	/** Keyframe data, one curve for X, Y and Z */
 	UPROPERTY()
 	FRichCurve FloatCurves[3];
@@ -20,9 +16,6 @@ class UCurveVector : public UCurveBase
 	/** Evaluate this float curve at the specified time */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
 	ENGINE_API FVector GetVectorValue(float InTime) const;
-
-	// UObject interface
-	virtual void PostLoad() override;
 
 	// Begin FCurveOwnerInterface
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;

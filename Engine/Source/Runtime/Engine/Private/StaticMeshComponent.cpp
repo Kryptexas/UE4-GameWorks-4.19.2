@@ -138,7 +138,6 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	// check BaseEngine.ini for profile setup
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
@@ -1902,11 +1901,7 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 	if( !StripFlags.IsDataStrippedForServer() )
 	{
 		Ar << I.LightMap;
-
-		if (Ar.UE4Ver() >= VER_UE4_PRECOMPUTED_SHADOW_MAPS)
-		{
-			Ar << I.ShadowMap;
-		}
+		Ar << I.ShadowMap;
 	}
 
 	if( !StripFlags.IsClassDataStripped( OverrideColorsStripFlag ) )

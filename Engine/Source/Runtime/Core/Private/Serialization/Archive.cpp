@@ -59,7 +59,6 @@ FArchive::~FArchive()
 // Resets all of the base archive members
 void FArchive::Reset()
 {
-	ArUE3Ver							= VER_LAST_ENGINE_UE3;
 	ArNetVer							= GEngineNegotiationVersion;
 	ArUE4Ver							= GPackageFileUE4Version;
 	ArLicenseeUE4Ver					= GPackageFileLicenseeUE4Version;
@@ -98,7 +97,6 @@ void FArchive::Reset()
 
 void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 {
-	ArUE3Ver                             = ArchiveToCopy.ArUE3Ver;
 	ArNetVer                             = ArchiveToCopy.ArNetVer;
 	ArUE4Ver                             = ArchiveToCopy.ArUE4Ver;
 	ArLicenseeUE4Ver                     = ArchiveToCopy.ArLicenseeUE4Ver;

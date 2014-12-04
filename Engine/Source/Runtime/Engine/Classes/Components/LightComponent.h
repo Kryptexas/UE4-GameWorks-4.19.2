@@ -78,10 +78,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	UPROPERTY()
 	uint32 InverseSquaredFalloff_DEPRECATED:1;
 
-	/** Runtime toggleable enabled state - this has been replaced by USceneComponent::bVisible */
-	UPROPERTY()
-	uint32 bEnabled_DEPRECATED:1;
-
 	/** Whether the light is allowed to cast dynamic shadows from translucency. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
 	uint32 CastTranslucentShadows:1;

@@ -675,19 +675,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			// Size on disk, which in the case of compression is != GetBulkDataSize()
 			Ar << BulkDataSizeOnDisk;
 			
-			// Read the Offset in file
-			if (Ar.UE4Ver() < VER_UE4_BULKDATA_AT_LARGE_OFFSETS)
-			{
-				// legacy fallback to read 32bit integer
-				int32 LegacyOffset = 0;
-				Ar << LegacyOffset;
-
-				BulkDataOffsetInFile = LegacyOffset;
-			}
-			else
-			{
-				Ar << BulkDataOffsetInFile;
-			}
+			Ar << BulkDataOffsetInFile;
 
 			// fix up the file offset 
 			if (Owner != NULL && Owner->GetLinker())

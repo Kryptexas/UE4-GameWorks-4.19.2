@@ -1100,19 +1100,6 @@ FBlueprintEditor::FBlueprintEditor()
 	DocumentManager = MakeShareable(new FDocumentTracker);
 }
 
-void FBlueprintEditor::SetSCSNodesTransactional(USCS_Node* Node)
-{
-	if (Node != NULL)
-	{
-		Node->SetFlags(RF_Transactional);
-
-		for (int32 i = 0; i < Node->ChildNodes.Num(); i++)
-		{
-			SetSCSNodesTransactional(Node->ChildNodes[i]);
-		}
-	}
-}
-
 void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 {
 	// Purge any NULL graphs
@@ -1166,18 +1153,6 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			// Mark the Blueprint as having been structurally modified
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
 		}
-	}
-
-	// Set transactional flag on SimpleConstructionScript and Nodes associated with it.
-	if ((BlueprintObj->SimpleConstructionScript != NULL) && (BlueprintObj->GetLinkerUE4Version() < VER_UE4_FLAG_SCS_TRANSACTIONAL))
-	{
-		BlueprintObj->SimpleConstructionScript->SetFlags( RF_Transactional );
-		const TArray<USCS_Node*>& RootNodes = BlueprintObj->SimpleConstructionScript->GetRootNodes();
-		for(int32 i = 0; i < RootNodes.Num(); ++i)
-		{
-			SetSCSNodesTransactional( RootNodes[i] );
-		}
-		BlueprintObj->Status = BS_Dirty;
 	}
 
 	// Make sure that this blueprint is up-to-date with regards to its parent functions

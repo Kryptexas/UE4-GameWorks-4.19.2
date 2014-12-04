@@ -20,16 +20,6 @@ void UK2Node_Variable::Serialize(FArchive& Ar)
 	// Fix old content 
 	if(Ar.IsLoading())
 	{
-		if(Ar.UE4Ver() < VER_UE4_VARK2NODE_NULL_VARSRCCLASS_ON_SELF)
-		{
-			// See if bSelfContext is set but there is still a class assigned
-			if(bSelfContext_DEPRECATED && VariableSourceClass_DEPRECATED != NULL)
-			{
-				VariableSourceClass_DEPRECATED = NULL;
-				UE_LOG(LogBlueprint, Log, TEXT("VarNode '%s' Variable '%s': Cleared VariableSourceClass."), *GetPathName(), *GetVarNameString());
-			}
-		}
-
 		if(Ar.UE4Ver() < VER_UE4_VARK2NODE_USE_MEMBERREFSTRUCT)
 		{
 			// Copy info into new struct

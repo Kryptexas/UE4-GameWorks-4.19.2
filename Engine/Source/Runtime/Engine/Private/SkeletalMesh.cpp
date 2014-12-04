@@ -1178,11 +1178,8 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		RawPointIndices.Serialize( Ar, Owner );
 	}
 
-	if(Ar.UE4Ver() >= VER_UE4_ADD_SKELMESH_MESHTOIMPORTVERTEXMAP)
-	{
-		Ar << MeshToImportVertexMap;
-		Ar << MaxImportVertex;
-	}
+	Ar << MeshToImportVertexMap;
+	Ar << MaxImportVertex;
 
 	if( !StripFlags.IsDataStrippedForServer() )
 	{
@@ -1198,11 +1195,6 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		if( SkelMeshOwner->bHasVertexColors)
 		{
 			Ar << ColorVertexBuffer;
-		}
-		if( Ar.UE4Ver() < VER_UE4_REMOVE_EXTRA_SKELMESH_VERTEX_INFLUENCES )
-		{
-			TArray<FSkeletalMeshVertexInfluences_DEPRECATED> DummyVertexInfluences;
-			Ar << DummyVertexInfluences;
 		}
 
 		if ( !StripFlags.IsClassDataStripped( LodAdjacencyStripFlag ) )
@@ -2344,15 +2336,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		Ar << DummyNameIndexMap;
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_EXTRA_SKELMESH_VERTEX_INFLUENCES)
-	{
-		TArray<FString> DummyBoneBreakNames;
-		Ar << DummyBoneBreakNames;
-
-		TArray<uint8> DummyBoneBreakOptions;
-		Ar << DummyBoneBreakOptions;
-	}
-
 	//@todo legacy
 	TArray<UObject*> DummyObjs;
 	Ar << DummyObjs;
@@ -2364,15 +2347,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		FSkeletalMeshSourceData& SkelSourceData = *(FSkeletalMeshSourceData*)( &SourceData );
 		SkelSourceData.Serialize( Ar, this );
 	}
-
-#if WITH_EDITORONLY_DATA
-	if (BoundsPreviewAsset_DEPRECATED && BoundsPreviewAsset_DEPRECATED != PhysicsAsset)
-	{
-		PhysicsAsset = BoundsPreviewAsset_DEPRECATED;
-		BoundsPreviewAsset_DEPRECATED = NULL;
-		MarkPackageDirty();
-	}
-#endif
 
 #if WITH_EDITORONLY_DATA
 	// SourceFilePath and SourceFileTimestamp were moved into a subobject
@@ -2598,36 +2572,6 @@ void USkeletalMesh::PostLoad()
 		{
 			check(ThisLODModel.Sections[SectionIndex].ChunkIndex == SectionIndex);
 		}
-	}
-
-#if WITH_EDITORONLY_DATA
-	if( GetLinker() && (GetLinker()->UE4Ver() < VER_UE4_FIX_REQUIRED_BONES) )
-	{
-		for (int32 LodIndex=0; LodIndex<ImportedResource->LODModels.Num(); LodIndex++)
-		{
-			FStaticLODModel& LODModel = ImportedResource->LODModels[LodIndex];
-			CalculateRequiredBones(LODModel,RefSkeleton,NULL);
-		}
-	}
-#endif
-
-	if ( MorphTargetTable_DEPRECATED.Num() )
-	{
-		TArray<FMorphTargetMap> OldMorphTargetTable = MorphTargetTable_DEPRECATED;
-		MorphTargets.Empty(OldMorphTargetTable.Num());
-
-		for ( auto TableIter = MorphTargetTable_DEPRECATED.CreateIterator(); TableIter; ++TableIter )
-		{
-			// @todo we can remove Name soon once this is all converted
-			// Name should match with object name
-			FMorphTargetMap MorphTargetMap = *TableIter;
-			if ( MorphTargetMap.MorphTarget )
-			{
-				MorphTargets.Add(MorphTargetMap.MorphTarget);
-			}
-		}
-
-		MorphTargetTable_DEPRECATED.Empty();
 	}
 
 	// Revert to using 32 bit Float UVs on hardware that doesn't support rendering with 16 bit Float UVs 
@@ -3676,7 +3620,6 @@ ASkeletalMeshActor::ASkeletalMeshActor(const FObjectInitializer& ObjectInitializ
 
 	SkeletalMeshComponent = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("SkeletalMeshComponent0"));
 	SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
-	SkeletalMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	// check BaseEngine.ini for profile setup
 	SkeletalMeshComponent->SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
 	RootComponent = SkeletalMeshComponent;
@@ -4594,9 +4537,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;	
 	WireframeColor = FColor(221, 221, 28, 255);
 
-	bUpdateSkelWhenNotRendered_DEPRECATED = true;
 	MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
@@ -4639,18 +4580,6 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
 		SpaceBasesArray[1].CountBytes(Ar);
 		MasterBoneMap.CountBytes(Ar);
 	}
-
-	if (Ar.UE4Ver() < VER_UE4_CONSOLIDATE_SKINNEDMESH_UPDATE_FLAGS)
-	{
-		if (bUpdateSkelWhenNotRendered_DEPRECATED)
-		{
-			MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-		}
-		else
-		{
-			MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-		}
-	}
 }
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
@@ -4672,23 +4601,6 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	{
 		LocalAtoms.CountBytes(Ar);
 		RequiredBones.CountBytes(Ar);
-	}
-
-	// super will get first, and this will fix up all tick related issue
-	if (Ar.UE4Ver() < VER_UE4_CONSOLIDATE_SKINNEDMESH_UPDATE_FLAGS)
-	{
-		if (bUpdateSkelWhenNotRendered_DEPRECATED && bTickAnimationWhenNotRendered_DEPRECATED)
-		{
-			MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-		}
-		else if (bTickAnimationWhenNotRendered_DEPRECATED)
-		{
-			MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
-		}
-		else
-		{
-			MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-		}
 	}
 
 	if (Ar.UE4Ver() < VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION)

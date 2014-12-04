@@ -219,9 +219,6 @@ private:
 	/** Retrieve the size and offset for a source mip. The size includes all slices. */
 	int32 CalcMipOffset(int32 MipIndex) const;
 
-	/** Converts bulk data from legacy DDS. */
-	void ConvertFromLegacyDDS();
-
 	/** Uses a hash as the GUID, useful to prevent creating new GUIDs on load for legacy assets. */
 	void UseHashAsGuid();
 #endif
@@ -381,10 +378,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(DisplayName = "Max Alpha"))
 	float AdjustMaxAlpha;
 
-	/** Has uncompressed source art? */
-	UPROPERTY()
-	uint32 bIsSourceArtUncompressed_DEPRECATED:1;
-
 	/** If enabled, the texture's alpha channel will be discarded during compression */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Compression, meta=(DisplayName="Compress Without Alpha"))
 	uint32 CompressionNoAlpha:1;
@@ -395,9 +388,6 @@ public:
 	/** If enabled, defer compression of the texture until save. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Compression)
 	uint32 DeferCompression:1;
-
-	UPROPERTY()
-	uint32 CompressionNoMipmaps_DEPRECATED:1;
 
 	/** The maximum resolution for generated textures. A value of 0 means the maximum size for the format on each platform, except HDR long/lat cubemaps, which default to a resolution of 512. */ 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Compression, meta=(DisplayName="Maximum Texture Size", ClampMin = "0.0"), AdvancedDisplay)
@@ -415,26 +405,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AdvancedDisplay)
 	uint32 bFlipGreenChannel:1;
 
-	/** If true, the color border pixels are preserved by mipmap generation.  One flag per color channel. */
-	UPROPERTY()
-	uint32 bPreserveBorderR_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bPreserveBorderG_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bPreserveBorderB_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bPreserveBorderA_DEPRECATED:1;
-
 	/** For DXT1 textures, setting this will cause the texture to be twice the size, but better looking, on iPhone */
 	UPROPERTY()
 	uint32 bForcePVRTC4:1;
-
-	/* e.g. TSAT_Uncompressed, TSAT_PNGCompressed or TSAT_DDSFile */
-	UPROPERTY()
-	TEnumAsByte<enum ETextureSourceArtType> SourceArtType_DEPRECATED;
 
 	/** Per asset specific setting to define the mip-map generation properties like sharpening and kernel size. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail)
@@ -733,13 +706,6 @@ public:
 		LightingGuid = FGuid::NewGuid();
 #endif // WITH_EDITORONLY_DATA
 	}
-
-#if WITH_EDITORONLY_DATA
-	/**
-	 * Legacy serialization.
-	 */
-	void LegacySerialize(class FArchive& Ar, class FStripDataFlags& StripDataFlags);
-#endif
 
 	/**
 	 * Retrieves the pixel format enum for enum <-> string conversions.

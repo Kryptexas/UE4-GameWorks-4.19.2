@@ -22,10 +22,6 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** DEPRECATED List of layers painted on this component. Matches the WeightmapLayerAllocations array in the LandscapeComponent. */
-	UPROPERTY()
-	TArray<FName> ComponentLayers_DEPRECATED;
-
 	/** List of layers painted on this component. Matches the WeightmapLayerAllocations array in the LandscapeComponent. */
 	UPROPERTY()
 	TArray<ULandscapeLayerInfoObject*> ComponentLayerInfos;
@@ -52,10 +48,6 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	/** Guid used to share PhysX heightfield objects in the editor */
 	UPROPERTY()
 	FGuid HeightfieldGuid;
-
-	/** Cached bounds, created at heightmap update time */
-	UPROPERTY()
-	FBoxSphereBounds CachedBoxSphereBounds_DEPRECATED;
 
 	/** Cached local-space bounding box, created at heightmap update time */
 	UPROPERTY()

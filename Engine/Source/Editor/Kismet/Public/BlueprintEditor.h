@@ -130,13 +130,6 @@ public:
 	 */
 	void InitBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<class UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
-	/**
-	 * Set transactional flag on SCSNodes and its children.
-	 *
-	 * @param: Node reference to set transactional flag.
-	 */
-	static void SetSCSNodesTransactional(USCS_Node* Node);
-
 public:
 	// FAssetEditorToolkit interface
 	virtual bool OnRequestClose() override;

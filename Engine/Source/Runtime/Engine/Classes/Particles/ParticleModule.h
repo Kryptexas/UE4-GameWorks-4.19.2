@@ -418,28 +418,6 @@ class UParticleModule : public UObject
 	}
 
 	/**
-	 *	Comparison routine...
-	 *	Intended for editor-use only, this function will return true if the given
-	 *	particle module settings are identical to the one the function is called on.
-	 *
-	 *	@param	InModule	The module to compare against.
-	 *
-	 *	@return	true		If the modules have all the relevant settings the same.
-	 *			false		If they don't.
-	 */
-	virtual bool	IsIdentical_Deprecated(const UParticleModule* InModule) const;
-
-	/**
-	 *	Used by the comparison routine to check for properties that are irrelevant.
-	 *
-	 *	@param	InPropName	The name of the property being checked.
-	 *
-	 *	@return	true		If the property is relevant.
-	 *			false		If it isn't.
-	 */
-	virtual bool	PropertyIsRelevantForIsIdentical_Deprecated(const FName& InPropName) const;
-
-	/**
 	 *	Generates a new module for LOD levels, setting the values appropriately.
 	 *	Note that the module returned could simply be the module it was called on.
 	 *

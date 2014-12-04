@@ -63,8 +63,6 @@ class USoundCue : public USoundBase
 
 	/** EdGraph based representation of the SoundCue */
 	class USoundCueGraph* SoundCueGraph;
-
-	TMap<USoundNode*,FSoundNodeEditorData> EditorData_DEPRECATED;
 #endif
 
 private:

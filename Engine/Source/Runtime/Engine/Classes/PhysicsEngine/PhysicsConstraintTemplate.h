@@ -62,10 +62,6 @@ class UPhysicsConstraintTemplate : public UObject
 	UPROPERTY()
 	float LinearBreakThreshold_DEPRECATED;
 	UPROPERTY()
-	uint32 bSwingLimited_DEPRECATED:1;
-	UPROPERTY()
-	uint32 bTwistLimited_DEPRECATED:1;
-	UPROPERTY()
 	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing1Motion_DEPRECATED;
 	UPROPERTY()
 	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing2Motion_DEPRECATED;
@@ -99,7 +95,6 @@ class UPhysicsConstraintTemplate : public UObject
 
 
 	// Begin UObject interface.
-	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface.
 

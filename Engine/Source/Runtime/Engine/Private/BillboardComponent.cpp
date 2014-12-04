@@ -246,7 +246,6 @@ UBillboardComponent::UBillboardComponent(const FObjectInitializer& ObjectInitial
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	Sprite = ConstructorStatics.SpriteTexture.Object;
 	bAbsoluteScale = true;

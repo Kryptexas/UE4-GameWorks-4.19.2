@@ -240,11 +240,7 @@ void UEdGraphNode::PostLoad()
 	// Create Guid if not present (and not CDO)
 	if(!NodeGuid.IsValid() && !IsTemplate() && GetLinker() && GetLinker()->IsPersistent() && GetLinker()->IsLoading())
 	{
-		// _Should_ have a guid on all nodes after this version
-		if(GetLinkerUE4Version() >= VER_UE4_ADD_EDGRAPHNODE_GUID)
-		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
-		}
+		UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
 
 		// Generate new one
 		CreateNewGuid();

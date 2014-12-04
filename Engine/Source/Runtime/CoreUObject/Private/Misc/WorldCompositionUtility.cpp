@@ -104,7 +104,6 @@ bool FWorldTileInfo::Read(const FString& InPackageFileName, FWorldTileInfo& OutI
 		FileReader->Seek(FileSummary.WorldTileInfoDataOffset);
 
 		//make sure the filereader gets the correct version number (it defaults to latest version)
-		FileReader->SetUE3Ver(FileSummary.GetFileVersionUE3());
 		FileReader->SetUE4Ver(FileSummary.GetFileVersionUE4());
 
 		// Load the structure

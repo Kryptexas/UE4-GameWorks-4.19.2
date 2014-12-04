@@ -9,9 +9,6 @@ class AAmbientSound : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	uint32 bAutoPlay_DEPRECATED:1;
-
 private_subobject:
 	/** Audio component that handles sound playing */
 	DEPRECATED_FORGAME(4.6, "AudioComponent should not be accessed directly, please use GetAudioComponent() function instead. AudioComponent will soon be private and your code will not compile.")
@@ -19,11 +16,6 @@ private_subobject:
 	class UAudioComponent* AudioComponent;
 public:
 	
-	UPROPERTY(instanced)
-	class UDEPRECATED_SoundNodeAmbient* SoundNodeInstance_DEPRECATED;
-
-	ENGINE_API static bool bUE4AudioRefactorMigrationUnderway;
-	ENGINE_API void MigrateSoundNodeInstance();	
 	ENGINE_API FString GetInternalSoundCueName();
 
 	// Begin AActor interface.
@@ -31,7 +23,6 @@ public:
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
-	virtual void PostLoad() override;
 	virtual void PostRegisterAllComponents() override;
 	// End AActor interface.
 

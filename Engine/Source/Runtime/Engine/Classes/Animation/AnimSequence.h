@@ -398,13 +398,6 @@ class UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(transient)
 	TArray<struct FScaleTrack> ScaleData;
 
-
-	/**
-	 * Curve data - no compression yet                                                                       
-	 */
-	UPROPERTY()
-	TArray<struct FCurveTrack> CurveData_DEPRECATED;
-
 #if WITH_EDITORONLY_DATA
 	/**
 	 * The compression scheme that was most recently used to compress this animation.
@@ -572,7 +565,6 @@ public:
 
 	// Begin UAnimSequenceBase interface
 	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
-	ENGINE_API virtual void UpgradeMorphTargetCurves() override;
 	ENGINE_API virtual bool HasRootMotion() const { return bEnableRootMotion; }
 	// End UAnimSequenceBase interface
 
@@ -752,11 +744,6 @@ public:
 	 * Return number of tracks in this animation
 	 */
 	int32 GetNumberOfTracks() const;
-
-	/**
-	 * Fix for new additive type - Mesh Rotation Only allowed
-	 */
-	ENGINE_API void FixAdditiveType();
 
 	// End Utility functions
 #if WITH_EDITOR

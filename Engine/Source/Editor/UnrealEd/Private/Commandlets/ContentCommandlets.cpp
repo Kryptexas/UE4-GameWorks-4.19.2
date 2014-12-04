@@ -397,8 +397,8 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			{
 				if( bIsReadOnly == true && bVerifyContent == true && bAutoCheckOut == false )
 				{
-					UE_LOG(LogContentCommandlet, Warning, TEXT("Package [%s] is read-only but needs to be resaved (Package Version: %i, UE4 Version: %i, Licensee Version: %i  Current Version: %i, Current UE4 Version: %i, Current Licensee Version: %i)"),
-						*Filename, Linker->Summary.GetFileVersionUE3(), Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), VER_LAST_ENGINE_UE3, GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
+					UE_LOG(LogContentCommandlet, Warning, TEXT("Package [%s] is read-only but needs to be resaved (UE4 Version: %i, Licensee Version: %i  Current UE4 Version: %i, Current Licensee Version: %i)"),
+						*Filename, Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
 					if( SavePackageHelper(Package, FString(TEXT("Temp.temp"))) )
 					{
 						UE_LOG(LogContentCommandlet, Warning, TEXT("Correctly saved:  [Temp.temp].") );
@@ -450,8 +450,8 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 					if (Verbosity != ONLY_ERRORS)
 					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Resaving package [%s] (Package Version: %i, UE4 Version: %i, Licensee Version: %i  Saved Version: %i, Saved UE4 Version: %i, Saved Licensee Version: %i)"),
-							*Filename, Linker->Summary.GetFileVersionUE3(), Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), VER_LAST_ENGINE_UE3, GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
+						UE_LOG(LogContentCommandlet, Display, TEXT("Resaving package [%s] (UE4 Version: %i, Licensee Version: %i  Saved UE4 Version: %i, Saved Licensee Version: %i)"),
+							*Filename,Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
 					}
 
 					if( SavePackageHelper(Package, Filename) )

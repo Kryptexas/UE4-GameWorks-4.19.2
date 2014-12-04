@@ -93,7 +93,6 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bSelectable = true;
 	AlwaysLoadOnClient = true;
 	AlwaysLoadOnServer = true;
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bAlwaysCreatePhysicsState = false;
 	bRenderInMainPass = true;
@@ -665,21 +664,6 @@ void UPrimitiveComponent::PostLoad()
 	if (IsTemplate()==false)
 	{
 		BodyInstance.FixupData(this);
-	}
-
-	if(UE4Version < VER_UE4_VISIBILITY_FLAG_CHANGES)
-	{
-		// copy visible flag if before it wans't hidden or drawingame was true
-		bVisible = !HiddenGame_DEPRECATED || DrawInGame_DEPRECATED;
-	}
-
-	if(UE4Version < VER_UE4_DEPRECATED_BNOENCROACHCHECK)
-	{
-		if (bNoEncroachCheck_DEPRECATED)
-		{
-			bGenerateOverlapEvents = false;
-		}
-		// else use defaults
 	}
 
 	if (UE4Version < VER_UE4_RENAME_CANBECHARACTERBASE)

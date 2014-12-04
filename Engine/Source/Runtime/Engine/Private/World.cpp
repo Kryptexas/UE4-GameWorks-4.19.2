@@ -176,12 +176,6 @@ void UWorld::Serialize( FArchive& Ar )
 	Ar << ExtraReferencedObjects;
 	Ar << StreamingLevels;
 		
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_CLIENTDESTROYEDACTORCONTENT)
-	{
-		TArray<class UObject*>	TempClientDestroyedActorContent;
-		Ar << TempClientDestroyedActorContent;
-	}
-
 	// Mark archive and package as containing a map if we're serializing to disk.
 	if( !HasAnyFlags( RF_ClassDefaultObject ) && Ar.IsPersistent() )
 	{
@@ -457,14 +451,6 @@ void UWorld::PostLoad()
 	Super::PostLoad();
 	CurrentLevel = PersistentLevel;
 
-	// copy StreamingLevels from WorldSettings to this if exists
-	AWorldSettings * WorldSettings = GetWorldSettings(false, false);
-	if ( WorldSettings && WorldSettings->StreamingLevels_DEPRECATED.Num() > 0 )
-	{
-		StreamingLevels = WorldSettings->StreamingLevels_DEPRECATED;
-		WorldSettings->StreamingLevels_DEPRECATED.Empty();
-	}
-	
 	// Remove null streaming level entries (could be if level was saved with transient level streaming objects)
 	StreamingLevels.Remove(nullptr);
 	
@@ -487,48 +473,6 @@ void UWorld::PostLoad()
 			}
 		}
 	}
-
-#if WITH_EDITORONLY_DATA
-	if( GIsEditor && !VisibleLayers_DEPRECATED.IsEmpty() )
-	{
-		TArray< FString > OldVisibleLayerArray; 
-		VisibleLayers_DEPRECATED.ParseIntoArray( &OldVisibleLayerArray, TEXT(","), 0 );
-
-		for( auto VisibleLayerIt = OldVisibleLayerArray.CreateConstIterator(); VisibleLayerIt; ++VisibleLayerIt )
-		{
-			FName VisibleLayerName = FName( *( *VisibleLayerIt ) );
-
-			if( VisibleLayerName == TEXT("None") )
-			{
-				continue;
-			}
-
-			bool bFoundExistingLayer = false;
-			for( auto LayerIt = Layers.CreateConstIterator(); LayerIt; ++LayerIt )
-			{
-				TWeakObjectPtr< ULayer > Layer = *LayerIt;
-				if( VisibleLayerName == Layer->LayerName )
-				{
-					bFoundExistingLayer = true;
-					break;
-				}
-			}
-
-			if( !bFoundExistingLayer )
-			{
-				ULayer* NewLayer = ConstructObject< ULayer >( ULayer::StaticClass(), this, NAME_None, RF_Transactional );
-				check( NewLayer != NULL );
-
-				NewLayer->LayerName = VisibleLayerName;
-				NewLayer->bIsVisible = true;
-
-				Layers.Add( NewLayer );
-			}
-		}
-
-		VisibleLayers_DEPRECATED.Empty();
-	}
-#endif // WITH_EDITORONLY_DATA
 
 	// Add the garbage collection callbacks
 	FLevelStreamingGCHelper::AddGarbageCollectorCallback();

@@ -22,7 +22,7 @@ void USoundNode::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (!Ar.IsCooking() && Ar.UE4Ver() >= VER_UE4_SOUND_CUE_GRAPH_EDITOR)
+	if (!Ar.IsCooking())
 	{
 		Ar << GraphNode;
 	}

@@ -22,16 +22,6 @@ FVector UCurveVector::GetVectorValue( float InTime ) const
 	return Result;
 }
 
-void UCurveVector::PostLoad()
-{
-	Super::PostLoad();
-
-	if(GetLinkerUE4Version() < VER_UE4_UCURVE_USING_RICHCURVES)
-	{
-		FRichCurve::ConvertInterpCurveVector(VectorKeys_DEPRECATED, FloatCurves);
-	}
-}
-
 static const FName XCurveName(TEXT("X"));
 static const FName YCurveName(TEXT("Y"));
 static const FName ZCurveName(TEXT("Z"));

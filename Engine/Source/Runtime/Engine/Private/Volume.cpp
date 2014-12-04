@@ -19,7 +19,6 @@ AVolume::AVolume(const FObjectInitializer& ObjectInitializer)
 {
 	GetBrushComponent()->AlwaysLoadOnClient = true;
 	GetBrushComponent()->AlwaysLoadOnServer = true;
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAll"));
 	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
 	GetBrushComponent()->bGenerateOverlapEvents = true;

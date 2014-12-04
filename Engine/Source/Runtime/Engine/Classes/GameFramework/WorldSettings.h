@@ -359,17 +359,9 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY()
 	class UBookMark* BookMarks[10];
 
-	/** Clip pad entries */
-	UPROPERTY()
-	TArray<class UDEPRECATED_ClipPadEntry*> ClipPadEntries_DEPRECATED;
-
 #endif // WITH_EDITORONLY_DATA
 	/************************************/
 
-	/** Level collection. ULevels are referenced by FName (Package name) to avoid serialized references. Also contains offsets in world units */
-	UPROPERTY()
-	TArray<class ULevelStreaming*> StreamingLevels_DEPRECATED;
-	
 	/** 
 	 * Normally 1 - scales real time passage.
 	 * Warning - most use cases should use GetEffectiveTimeDilation() instead of reading from this directly

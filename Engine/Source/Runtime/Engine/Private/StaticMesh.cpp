@@ -1681,21 +1681,12 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	FStripDataFlags StripFlags( Ar );
 
 	bool bCooked = Ar.IsCooking();
-	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		Ar << bCooked;
-	}
+	Ar << bCooked;
 
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS)
 	{
 		GStaticMeshesThatNeedMaterialFixup.Set(this);
-	}
-
-	FBoxSphereBounds LegacyBounds;
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		Ar << LegacyBounds;
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
@@ -1705,21 +1696,6 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{
 		Ar << NavCollision;
 	}
-
-#if WITH_EDITOR
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		int64 StartCycles = FPlatformTime::Cycles();
-		SerializeLegacySouceData(Ar, LegacyBounds);
-		int64 EndCycles = FPlatformTime::Cycles();
-		StaticMeshDerivedDataTimings::ConvertCycles += (EndCycles - StartCycles);
-		UE_LOG(LogStaticMesh,Verbose,
-			TEXT("Converting legacy source data for %s took %fs"),
-			*GetPathName(),
-			FPlatformTime::ToSeconds(EndCycles - StartCycles)
-			);
-	}
-#endif
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )
@@ -1758,40 +1734,10 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 	Ar << LightingGuid;
-
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		int32 VertexPositionVersionNumber = 0;
-		Ar << VertexPositionVersionNumber;
-	}
-
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_CACHED_STATIC_MESH_STREAMING_FACTORS)
-	{
-		TArray<float> CachedStreamingTextureFactors;
-		Ar << CachedStreamingTextureFactors;
-	}
-
-#if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		bool bRemoveDegenerates_DEPRECATED;
-		Ar << bRemoveDegenerates_DEPRECATED;
-		for (int32 i = 0; i < SourceModels.Num(); ++i)
-		{
-			FStaticMeshSourceModel& SrcModel = SourceModels[i];
-			SrcModel.BuildSettings.bRemoveDegenerates = SrcModel.BuildSettings.bRemoveDegenerates && bRemoveDegenerates_DEPRECATED;
-			SrcModel.BuildSettings.bUseFullPrecisionUVs = UseFullPrecisionUVs_DEPRECATED;
-		}
-	}
-#endif // #if WITH_EDITORONLY_DATA
-
-	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_SOCKETS)
-	{
-		Ar << Sockets;
-	}
+	Ar << Sockets;
 
 #if WITH_EDITOR
-	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_REFACTOR && !StripFlags.IsEditorDataStripped())
+	if (!StripFlags.IsEditorDataStripped())
 	{
 		for (int32 i = 0; i < SourceModels.Num(); ++i)
 		{

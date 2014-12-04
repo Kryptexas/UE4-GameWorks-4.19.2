@@ -10,7 +10,6 @@ ABlockingVolume::ABlockingVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	GetBrushComponent()->bCanEverAffectNavigation = true;
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	GetBrushComponent()->SetCollisionProfileName(InvisibleWall_NAME);
 }
 
