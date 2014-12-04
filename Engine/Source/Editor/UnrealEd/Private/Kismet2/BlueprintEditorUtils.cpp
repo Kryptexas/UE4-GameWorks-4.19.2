@@ -6769,40 +6769,45 @@ FName FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(const UClass* InClas
 
 bool FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
 {
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	if (FunctionName != NAME_None)
 	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
-		{
-			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
-			if (FunctionGraph && FunctionGraph->GetFName() == FunctionName)
-			{
-				FunctionGuid = FunctionGraph->GraphGuid;
-				return true;
-			}
-		}
+		TArray<UBlueprint*> Blueprints;
+		UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
 
-		TArray<UEdGraph*> UberGraphs;
-		FUberGraphHelper::GetAll(Blueprint, UberGraphs);
-		for (const auto UberGraph : UberGraphs)
+		for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
 		{
-			TArray<UK2Node_CustomEvent*> CustomEvents;
-			UberGraph->GetNodesOfClass(CustomEvents);
-			for (const auto CustomEvent : CustomEvents)
+			UBlueprint* Blueprint = Blueprints[BPIndex];
+			for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
 			{
-				if (!CustomEvent->bOverrideFunction && (CustomEvent->CustomFunctionName == FunctionName))
+				UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
+				if (FunctionGraph && FunctionGraph->GetFName() == FunctionName)
 				{
-					ensure(CustomEvent->CustomFunctionName != NAME_None);
-					ensure(CustomEvent->NodeGuid.IsValid());
-					FunctionGuid = CustomEvent->NodeGuid;
+					FunctionGuid = FunctionGraph->GraphGuid;
 					return true;
+				}
+			}
+
+			TArray<UEdGraph*> UberGraphs;
+			FUberGraphHelper::GetAll(Blueprint, UberGraphs);
+			for (const auto UberGraph : UberGraphs)
+			{
+				TArray<UK2Node_CustomEvent*> CustomEvents;
+				UberGraph->GetNodesOfClass(CustomEvents);
+				for (const auto CustomEvent : CustomEvents)
+				{
+					if (!CustomEvent->bOverrideFunction
+						&& (CustomEvent->CustomFunctionName == FunctionName)
+						&& CustomEvent->NodeGuid.IsValid())
+					{
+						FunctionGuid = CustomEvent->NodeGuid;
+						return true;
+					}
 				}
 			}
 		}
 	}
+
+	FunctionGuid.Invalidate();
 
 	return false;
 }
