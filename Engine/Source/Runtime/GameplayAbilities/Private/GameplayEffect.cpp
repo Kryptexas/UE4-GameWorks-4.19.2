@@ -2147,15 +2147,34 @@ void FActiveGameplayEffectHandle::RemoveFromGlobalMap()
 
 bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 {
-	if (TagContainer)
+	bool bFoundMatches = false;
+
+	// if we are looking for owner tags check InheritableOwnedTagsContainer with OwningTagContainer
+	if (OwningTagContainer)
 	{
-		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*TagContainer, false) &&
-			!Effect.Spec.DynamicGrantedTags.MatchesAny(*TagContainer, false))
+		if (Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*OwningTagContainer, false) ||
+			Effect.Spec.DynamicGrantedTags.MatchesAny(*OwningTagContainer, false))
 		{
-			return false;
+			bFoundMatches = true;
 		}
 	}	
-	
+
+	// if we are looking for effect tags check InheritableGameplayEffectTags with EffectTagContainer
+	if (EffectTagContainer)
+	{
+		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, false) ||
+			Effect.Spec.DynamicGrantedTags.MatchesAny(*EffectTagContainer, false))
+		{
+			bFoundMatches = true;
+		}
+	}
+
+	// if we didn't fine any tag matches this is our bail point.
+	if (!bFoundMatches)
+	{
+		return false;
+	}
+
 	if (ModifyingAttribute.IsValid())
 	{
 		bool FailedModifyingAttributeCheck = true;

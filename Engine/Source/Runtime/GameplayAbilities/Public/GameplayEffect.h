@@ -1072,19 +1072,32 @@ struct FActiveGameplayEffectQuery
 	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffectQuery()
-		: TagContainer(NULL)
+		: OwningTagContainer(NULL)
+		, EffectTagContainer(NULL)
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
-		: TagContainer(InTagContainer)
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+		: OwningTagContainer(InOwningTagContainer)
+		, EffectTagContainer(NULL)
+		, ModifyingAttribute(InModifyingAttribute)
+	{
+	}
+
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+		: OwningTagContainer(InOwningTagContainer)
+		, EffectTagContainer(InEffectTagContainer)
 		, ModifyingAttribute(InModifyingAttribute)
 	{
 	}
 
 	bool Matches(const FActiveGameplayEffect& Effect) const;
 
-	const FGameplayTagContainer* TagContainer;
+	/** used to match with InheritableOwnedTagsContainer */
+	const FGameplayTagContainer* OwningTagContainer;
+
+	/** used to match with InheritableGameplayEffectTags */
+	const FGameplayTagContainer* EffectTagContainer;
 
 	/** Matches on GameplayEffects which modify given attribute */
 	FGameplayAttribute ModifyingAttribute;
