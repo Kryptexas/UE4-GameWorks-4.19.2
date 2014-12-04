@@ -1561,6 +1561,12 @@ public:
 	//--------------------------------------------------------------------------------------
 	// Actor overlap tracking
 	
+	/**
+	 * Dispatch all EndOverlap for all of the Actor's PrimitiveComponents. 
+	 * Generally used when removing the Actor from the world.
+	 */
+	void ClearComponentOverlaps();
+
 	/** 
 	 * Queries world and updates overlap detection state for this actor.
 	 * @param bDoNotifies		True to dispatch being/end overlap notifications when these events occur.

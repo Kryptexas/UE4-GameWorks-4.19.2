@@ -897,6 +897,34 @@ void AActor::SetTickGroup(ETickingGroup NewTickGroup)
 	PrimaryActorTick.TickGroup = NewTickGroup;
 }
 
+void AActor::ClearComponentOverlaps()
+{
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	GetComponents(PrimitiveComponents);
+
+	// Remove owned components from overlap tracking
+	// We don't traverse the RootComponent attachment tree since that might contain
+	// components owned by other actors.
+	for (UPrimitiveComponent* const PrimComp : PrimitiveComponents)
+	{
+		TArray<UPrimitiveComponent*> OverlappingComponents;
+		PrimComp->GetOverlappingComponents(OverlappingComponents);
+
+		for (UPrimitiveComponent* const OverlapComp : OverlappingComponents)
+		{
+			if (OverlapComp)
+			{
+				PrimComp->EndComponentOverlap(OverlapComp, true, true);
+
+				if (IsPendingKill())
+				{
+					return;
+				}
+			}
+		}
+	}
+}
+
 void AActor::UpdateOverlaps(bool bDoNotifies)
 {
 	// just update the root component, which will cascade down to the children
@@ -1506,6 +1534,8 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	// Behaviors specific to an actor being unloaded due to a streaming level removal
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
 	{
+		ClearComponentOverlaps();
+
 		bActorInitialized = false;
 		GetWorld()->RemoveNetworkActor(this);
 

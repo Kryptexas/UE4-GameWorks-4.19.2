@@ -502,31 +502,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 		return true;
 	}
 
-	// Remove owned components from overlap tracking
-	// We don't traverse the RootComponent attachment tree since that might contain
-	// components owned by other actors.
-	for (int32 Index = 0; Index < SceneComponents.Num(); ++Index)
+	ThisActor->ClearComponentOverlaps();
+
+	if (ThisActor->IsPendingKill())
 	{
-		UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(SceneComponents[Index]);
-		if (PrimComp)
-		{
-			TArray<UPrimitiveComponent*> OverlappingComponents;
-			PrimComp->GetOverlappingComponents(OverlappingComponents);
-
-			for (auto OverlapIt = OverlappingComponents.CreateIterator(); OverlapIt; ++OverlapIt)
-			{
-				UPrimitiveComponent* const OverlapComp = *OverlapIt;
-				if (OverlapComp)
-				{
-					PrimComp->EndComponentOverlap(OverlapComp, true, true);
-
-					if (ThisActor->IsPendingKill())
-					{
-						return true;
-					}
-				}
-			}
-		}
+		return true;
 	}
 
 	// If this actor has an owner, notify it that it has lost a child.
