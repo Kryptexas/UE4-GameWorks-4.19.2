@@ -150,7 +150,7 @@ struct FCrowdTickHelper : FTickableGameObject
 	virtual TStatId GetStatId() const;
 };
 
-UCLASS()
+UCLASS(config = Engine, defaultconfig)
 class AIMODULE_API UCrowdManager : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -236,35 +236,35 @@ protected:
 	ANavigationData* MyNavData;
 
 	/** obstacle avoidance params */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	TArray<FCrowdAvoidanceConfig> AvoidanceConfig;
 
 	/** obstacle avoidance params */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	TArray<FCrowdAvoidanceSamplingPattern> SamplingPatterns;
 
 	/** max number of agents supported by crowd */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	int32 MaxAgents;
 
 	/** max radius of agent that can be added to crowd */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	float MaxAgentRadius;
 
 	/** max number of neighbor agents for velocity avoidance */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	int32 MaxAvoidedAgents;
 
 	/** max number of wall segments for velocity avoidance */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	int32 MaxAvoidedWalls;
 
 	/** how often should agents check their position after moving off navmesh? */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	float NavmeshCheckInterval;
 
 	/** how often should agents try to optimize their paths? */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	float PathOptimizationInterval;
 
 	uint32 bPruneStartedOffmeshConnections : 1;

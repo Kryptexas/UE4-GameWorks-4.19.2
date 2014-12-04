@@ -16,6 +16,7 @@
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
+#include "Runtime/AIModule/Classes/Navigation/CrowdManager.h"
 #include "AISystem.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
@@ -146,7 +147,15 @@ protected:
 			LOCTEXT("AISystemSettingsDescription", "Settings for the AI System."),
 			GetMutableDefault<UAISystem>()
 			);
-/*
+
+		// Crowd manager
+		SettingsModule.RegisterSettings("Project", "Engine", "CrowdManager",
+			LOCTEXT("CrowdManagerSettingsName", "Crowd Manager"),
+			LOCTEXT("CrowdManagerSettingsDescription", "Settings for the AI Crowd Manager."),
+			GetMutableDefault<UCrowdManager>()
+			);
+
+		/*
 		// network settings
 		SettingsModule.RegisterSettings("Project", "Engine", "NetworkManager",
 			LOCTEXT("GameNetworkManagerSettingsName", "Network Manager"),
@@ -259,6 +268,7 @@ protected:
 
 			// engine settings
 			SettingsModule->UnregisterSettings("Project", "Engine", "General");
+			SettingsModule->UnregisterSettings("Project", "Engine", "CrowdManager");
 			SettingsModule->UnregisterSettings("Project", "Engine", "NavigationSystem");
 			SettingsModule->UnregisterSettings("Project", "Engine", "NavigationMesh");
 			SettingsModule->UnregisterSettings("Project", "Engine", "Input");
