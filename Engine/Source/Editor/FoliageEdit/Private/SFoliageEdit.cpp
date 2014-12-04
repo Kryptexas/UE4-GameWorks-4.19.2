@@ -12,7 +12,6 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/IntroTutorials/Public/IIntroTutorials.h"
-
 #include "SFoliageEditMeshDisplayItem.h"
 #include "Engine/StaticMesh.h"
 
@@ -172,7 +171,6 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 						.OnValueChanged(this, &SFoliageEdit::SetPaintDensity)
 					]
 				]
-
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
@@ -588,6 +586,7 @@ float SFoliageEdit::GetPaintDensity() const
 	return FoliageEditMode->UISettings.GetPaintDensity();
 }
 
+
 void SFoliageEdit::SetEraseDensity(float InDensity)
 {
 	FoliageEditMode->UISettings.SetUnpaintDensity(InDensity);
@@ -712,7 +711,7 @@ ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_Translucent() const
 
 EVisibility SFoliageEdit::GetVisibility_Radius() const
 {
-	if (FoliageEditMode->UISettings.GetSelectToolSelected() || FoliageEditMode->UISettings.GetReapplyPaintBucketToolSelected() || FoliageEditMode->UISettings.GetPaintBucketToolSelected())
+	if (FoliageEditMode->UISettings.GetSelectToolSelected() || FoliageEditMode->UISettings.GetReapplyPaintBucketToolSelected() || FoliageEditMode->UISettings.GetPaintBucketToolSelected() )
 	{
 		return EVisibility::Collapsed;
 	}
@@ -749,6 +748,7 @@ EVisibility SFoliageEdit::GetVisibility_Filters() const
 
 	return EVisibility::Visible;
 }
+
 
 void SFoliageEdit::NotifyNewCurrentLevel()
 {

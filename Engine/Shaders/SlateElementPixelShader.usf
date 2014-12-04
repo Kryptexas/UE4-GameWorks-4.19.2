@@ -51,7 +51,7 @@ struct VertexOut
 float4 GetMaterialColor( VertexOut InVertex, float2 UV )
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
-	CalcMaterialParameters(Parameters, true, InVertex.Position);
+	CalcMaterialParameters(Parameters, InVertex.Position, true, InVertex.Position);
 
 #if NUM_MATERIAL_TEXCOORDS == 1
 	Parameters.TexCoords[0] = UV;

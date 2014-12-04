@@ -21,6 +21,7 @@ LandscapeCollision.cpp: Landscape collision
 #include "InstancedFoliage.h"
 #include "Foliage/FoliageType.h"
 #include "Engine/StaticMesh.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavigationSystem.h"
@@ -337,6 +338,8 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const
 {
 #if WITH_PHYSX
+	// we have 2 versions of collision objects
+	const int32 CookedDataIndex = bUseDefMaterial ? 0 : 1;
 
 	if (bCheckDDC)
 	{
@@ -345,7 +348,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Form
 		{
 			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
 			{
-				bShouldSaveCookedDataToDDC = false;
+				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
 			}
 		}
@@ -451,10 +454,10 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Form
 		OutCookedData.Init(OutData.Num());
 		FMemory::Memcpy(OutCookedData.GetData(), OutData.GetData(), OutData.Num());
 
-		if (bShouldSaveCookedDataToDDC)
+		if (bShouldSaveCookedDataToDDC[CookedDataIndex])
 		{
 			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData);
-			bShouldSaveCookedDataToDDC = false;
+			bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 		}
 	}
 	else
@@ -473,6 +476,9 @@ bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, boo
 {
 #if WITH_PHYSX
 	
+	// we have 2 versions of collision objects
+	const int32 CookedDataIndex = bUseDefMaterial ? 0 : 1;
+
 	if (bCheckDDC)
 	{
 		// Ensure that content was saved with physical materials before using DDC data
@@ -480,7 +486,7 @@ bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, boo
 		{
 			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
 			{
-				bShouldSaveCookedDataToDDC = false;
+				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
 			}
 		}
@@ -620,10 +626,10 @@ bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, boo
 		OutCookedData.Init(OutData.Num());
 		FMemory::Memcpy(OutCookedData.GetData(), OutData.GetData(), OutData.Num());
 
-		if (bShouldSaveCookedDataToDDC)
+		if (bShouldSaveCookedDataToDDC[CookedDataIndex])
 		{
 			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData);
-			bShouldSaveCookedDataToDDC = false;
+			bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 		}
 	}
 	else
@@ -1077,28 +1083,10 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(AInstancedFol
 
 								// Todo: add do validation with other parameters such as max/min height etc.
 
-								// Update this instances' transform in the UInstancedStaticMeshComponent
-								if (MeshInfo.InstanceClusters.IsValidIndex(Instance.ClusterIndex))
-								{
-									FFoliageInstanceCluster& Cluster = MeshInfo.InstanceClusters[Instance.ClusterIndex];
-
-									Cluster.ClusterComponent->Modify();
-
-									int32 ClusterInstanceDataIndex = Cluster.InstanceIndices.Find(InstanceIndex);
-
-									check(ClusterInstanceDataIndex != INDEX_NONE);
-									check(Cluster.ClusterComponent->PerInstanceSMData.IsValidIndex(ClusterInstanceDataIndex));
-									Cluster.ClusterComponent->MarkRenderStateDirty();
-
-									// Update bounds
-									FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
-									Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
-
-									// Update transform in InstancedStaticMeshComponent
-									FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
-									Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
-									Cluster.ClusterComponent->InvalidateLightingCache();
-								}
+								check(MeshInfo.Component);
+								MeshInfo.Component->Modify();
+								MeshInfo.Component->UpdateInstanceTransform(InstanceIndex, Instance.GetInstanceWorldTransform(), true);
+								MeshInfo.Component->InvalidateLightingCache();
 
 								// Re-add the new instance location to the hash
 								MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
@@ -1175,8 +1163,12 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 		else
 		{
 #if WITH_EDITORONLY_DATA			
+			// do not need this data in PIE, so don't bother duplicating it
+			if (!(Ar.GetPortFlags() & PPF_DuplicateForPIE)) 
+			{
 			CollisionHeightData.Serialize(Ar, this);
 			DominantLayerData.Serialize(Ar, this);
+			}
 #endif//WITH_EDITORONLY_DATA
 		}
 	}
@@ -1309,7 +1301,8 @@ void ULandscapeHeightfieldCollisionComponent::PostLoad()
 #if WITH_EDITOR
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		bShouldSaveCookedDataToDDC = true;
+		bShouldSaveCookedDataToDDC[0] = true;
+		bShouldSaveCookedDataToDDC[1] = true;
 	}
 #endif//WITH_EDITOR
 }

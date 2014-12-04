@@ -188,14 +188,14 @@ float4 IndividualVelocityScale;
  
 void MainPixelShader(
 	FVelocityInterpsVSToPS Input,
-	float4	PixelPosition	: SV_POSITION,
+	in float4 SvPosition : SV_Position,
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor : SV_Target0
 	)
 {
 	// Manual clipping here (alpha-test, etc)
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, PixelPosition);
-	CalcMaterialParameters(MaterialParameters, bIsFrontFace, PixelPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, SvPosition);
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
 	float2 ScreenPosition = Input.PackedVelocityA.xy / Input.PackedVelocityA.w - View.ViewToClip[2].xy;

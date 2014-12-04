@@ -1938,7 +1938,7 @@ DEFINE_RHIMETHOD_CMDLIST_8(
 	FIndexBufferRHIParamRef,IndexBuffer,
 	uint32,PrimitiveType,
 	int32,BaseVertexIndex,
-	uint32,MinIndex,
+	uint32,FirstInstance,
 	uint32,NumVertices,
 	uint32,StartIndex,
 	uint32,NumPrimitives,

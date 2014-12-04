@@ -462,39 +462,37 @@ FReply FSceneViewport::OnMouseMove( const FGeometry& InGeometry, const FPointerE
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled();
 
-	if( !InMouseEvent.GetCursorDelta().IsZero() )
+	UpdateCachedMousePos(InGeometry, InMouseEvent);
+	UpdateCachedGeometry(InGeometry);
+
+	const bool bViewportHasCapture = ViewportWidget.IsValid() && ViewportWidget.Pin()->HasMouseCapture();
+	if ( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
 	{
-		UpdateCachedMousePos( InGeometry, InMouseEvent );
-		UpdateCachedGeometry(InGeometry);
+		// Switch to the viewport clients world before processing input
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
 
-		const bool bViewportHasCapture = ViewportWidget.IsValid() && ViewportWidget.Pin()->HasMouseCapture();
-		if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
+		if ( bViewportHasCapture )
 		{
-			// Switch to the viewport clients world before processing input
-			FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
+			ViewportClient->CapturedMouseMove(this, GetMouseX(), GetMouseY());
+		}
+		else
+		{
+			ViewportClient->MouseMove(this, GetMouseX(), GetMouseY());
+		}
 
-			if( bViewportHasCapture )
-			{
-				ViewportClient->CapturedMouseMove( this, GetMouseX(), GetMouseY() );
-			}
-			else
-			{
-				ViewportClient->MouseMove( this, GetMouseX(), GetMouseY() );
-			}
-		
-			if( bViewportHasCapture )
-			{
-				// Accumulate delta changes to mouse movment.  Depending on the sample frequency of a mouse we may get many per frame.
-				//@todo Slate: In directinput, number of samples in x/y could be different...
-				const FVector2D CursorDelta = InMouseEvent.GetCursorDelta();
-				MouseDelta.X += CursorDelta.X;
-				++NumMouseSamplesX;
+		if ( bViewportHasCapture )
+		{
+			// Accumulate delta changes to mouse movement.  Depending on the sample frequency of a mouse we may get many per frame.
+			//@todo Slate: In directinput, number of samples in x/y could be different...
+			const FVector2D CursorDelta = InMouseEvent.GetCursorDelta();
+			MouseDelta.X += CursorDelta.X;
+			++NumMouseSamplesX;
 
-				MouseDelta.Y -= CursorDelta.Y;
-				++NumMouseSamplesY;
-			}
+			MouseDelta.Y -= CursorDelta.Y;
+			++NumMouseSamplesY;
 		}
 	}
+
 	return CurrentReplyState;
 }
 

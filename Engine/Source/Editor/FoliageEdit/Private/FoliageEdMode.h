@@ -37,6 +37,7 @@ struct FFoliageUISettings
 	void SetPaintBucketToolSelected(bool InbPaintBucketToolSelected) { bPaintBucketToolSelected = InbPaintBucketToolSelected; }
 	bool GetReapplyPaintBucketToolSelected() const { return bReapplyPaintBucketToolSelected ? true : false; }
 	void SetReapplyPaintBucketToolSelected(bool InbReapplyPaintBucketToolSelected) { bReapplyPaintBucketToolSelected = InbReapplyPaintBucketToolSelected; }
+
 	float GetRadius() const { return Radius; }
 	void SetRadius(float InRadius) { Radius = InRadius; }
 	float GetPaintDensity() const { return PaintDensity; }

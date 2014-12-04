@@ -596,7 +596,7 @@ void AGameMode::HandleMatchHasStarted()
 	}
 
 	// Make sure level streaming is up to date before triggering NotifyMatchStarted
-	GetWorld()->FlushLevelStreaming();
+	GEngine->BlockTillLevelStreamingCompleted(GetWorld());
 
 	// First fire BeginPlay, if we haven't already in waiting to start match
 	GetWorldSettings()->NotifyBeginPlay();

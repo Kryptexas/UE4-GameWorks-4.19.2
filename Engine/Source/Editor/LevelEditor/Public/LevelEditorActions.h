@@ -110,6 +110,9 @@ public:
 	/** Edits associated asset(s) */
 	TSharedPtr< FUICommandInfo > EditAssetNoConfirmMultiple;
 
+	/** Moves the camera to the current mouse position */
+	TSharedPtr< FUICommandInfo > GoHere;
+
 	/** Snaps the camera to the selected actors. */
 	TSharedPtr< FUICommandInfo > SnapCameraToActor;
 
@@ -779,6 +782,12 @@ public:
 
 	/** Called when create new outliner folder is clicked */
 	static void CreateNewOutlinerFolder_Clicked();
+
+	/** Called when the go here command is clicked 
+	 * 
+	 * @param Point	- Specified point to go to.  If null, a point will be calculated from current mouse position
+	 */
+	static void GoHere_Clicked( const FVector* Point );
 
 	/** Called when 'Go to Code for Actor' is clicked */
 	static void GoToCodeForActor_Clicked();

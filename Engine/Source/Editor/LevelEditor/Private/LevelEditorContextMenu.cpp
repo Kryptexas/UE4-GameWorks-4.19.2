@@ -233,6 +233,14 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 	MenuBuilder.BeginSection( "ActorControl", LOCTEXT("ActorHeading", "Actor") );
 	{
 		MenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().FocusViewportToSelection );
+
+		
+		const FVector* ClickLocation = &GEditor->ClickLocation;
+
+		FUIAction GoHereAction;
+		GoHereAction.ExecuteAction = FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::GoHere_Clicked, ClickLocation );
+
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().GoHere );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapCameraToActor );
 	}
 	MenuBuilder.EndSection();

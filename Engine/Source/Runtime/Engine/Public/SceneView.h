@@ -136,6 +136,8 @@ struct FViewMatrices
 		ViewMatrix.SetIdentity();
 		TranslatedViewProjectionMatrix.SetIdentity();
 		InvTranslatedViewProjectionMatrix.SetIdentity();
+		GetDynamicMeshElementsShadowCullFrustum = nullptr;
+		PreShadowTranslation = FVector::ZeroVector;
 		PreViewTranslation = FVector::ZeroVector;
 		ViewOrigin = FVector::ZeroVector;
 	}
@@ -148,6 +150,10 @@ struct FViewMatrices
 	FMatrix		TranslatedViewProjectionMatrix;
 	/** The inverse view-projection transform, ending with world-space points translated by -ViewOrigin. */
 	FMatrix		InvTranslatedViewProjectionMatrix;
+	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
+	const FConvexVolume* GetDynamicMeshElementsShadowCullFrustum;
+	/** If the above is non-null, a translation that is applied to world-space before transforming by one of the shadow matrices. */
+	FVector PreShadowTranslation;
 	/** The translation to apply to the world before TranslatedViewProjectionMatrix. Usually it is -ViewOrigin but with rereflections this can differ */
 	FVector		PreViewTranslation;
 	/** To support ortho and other modes this is redundant, in world space */
@@ -533,6 +539,31 @@ public:
 
 	/** @return true:perspective, false:orthographic */
 	inline bool IsPerspectiveProjection() const { return ViewMatrices.IsPerspectiveProjection(); }
+
+	/** Returns true if temporal LOD is active **/
+	bool GetTemporalLODActive() const;
+
+	/** Returns the location used as the origin for LOD computations
+	 * @param Index, 0 or 1, which LOD origin to return
+	 * @return LOD origin
+	 */
+	FVector GetTemporalLODOrigin(int32 Index) const;
+
+	/** Get LOD distance factor: Sqrt(GetLODDistanceFactor()*SphereRadius*SphereRadius / ScreenPercentage) = distance to this LOD transition
+	 * @return distance factor
+	 */
+	float GetLODDistanceFactor() const;
+
+	/** Get LOD distance factor for temporal LOD: Sqrt(GetTemporalLODDistanceFactor(?)*SphereRadius*SphereRadius / ScreenPercentage) = distance to this LOD transition
+	 * @param Index, 0 or 1, which temporal sample to return
+	 * @return distance factor
+	 */
+	float GetTemporalLODDistanceFactor(int32 Index) const;
+
+	/** 
+	 * Returns the blend factor between the last two LOD samples
+	 */
+	float GetTemporalLODTransition() const;
 
 	/** Allow things like HMD displays to update the view matrix at the last minute, to minimize perceived latency */
 	void UpdateViewMatrix();

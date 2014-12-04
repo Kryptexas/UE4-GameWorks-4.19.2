@@ -122,8 +122,6 @@ private:
 	/** Cluster Accessors */
 	FText GetInstanceCountString() const;
 
-	FText GetInstanceClusterCountString() const;
-
 	/** General functions for delegates. */
 	EVisibility IsReapplySettingsVisible() const;
 	EVisibility IsReapplySettingsVisible_Dummy() const;
@@ -146,6 +144,21 @@ private:
 	void OnDensityReapplyChanged(float InValue);
 
 	float GetDensityReapply() const;
+
+	int32 GetSeedsPerComponent() const;
+	void OnSeedsPerComponentChanged(int32 InValue);
+
+	int32 GetSimulationSteps() const;
+	void OnSimulationStepsChanged(int32 InValue);
+
+	float GetMaxRadius() const;
+	void OnMaxRadiusChanged(float InValue);
+
+	float GetSpreadRadius() const;
+	void OnSpreadRadiusChanged(float InValue);
+
+	float GetGrowthRadius() const;
+	void OnGrowthRadiusChanged(float InValue);
 
 	/** Radius */
 	void OnRadiusReapply(ESlateCheckBoxState::Type InState);
@@ -293,6 +306,19 @@ private:
 	void OnHeightMaxChanged(float InValue);
 
 	float GetHeightMax() const;
+
+	float GetShadeRadius() const;
+
+	void OnShadeRadiusChanged(float InValue);
+
+	float GetShadeAffinity() const;
+
+	void OnShadeAffinityChanged(float InValue);
+
+
+	float GetSimulationPriority() const;
+
+	void OnSimulationPriorityChanged(float InValue);
 
 	/** Landscape Layer */
 	void OnLandscapeLayerReapply(ESlateCheckBoxState::Type InState);

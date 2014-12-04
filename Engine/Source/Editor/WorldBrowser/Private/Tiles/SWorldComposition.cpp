@@ -349,16 +349,17 @@ public:
 				FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")),
 				MyClippingRect
 				);
+		}
 
-			// Draw a current camera position
+		// Draw observer location
+		{
+			FVector ObserverPosition;
+			FRotator ObserverRotation;
+			if (WorldModel->GetObserverView(ObserverPosition, ObserverRotation))
 			{
-				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
-				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().Inverse();
-				FVector ObserverPosition	= ObserverViewToWorld.GetOrigin();
-				FRotator ObserverRotation	= ObserverViewToWorld.Rotator();
-								
 				FVector2D ObserverPositionScreen = GraphCoordToPanelCoord(FVector2D(ObserverPosition.X, ObserverPosition.Y));
-
+				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
+	
 				FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry(
 					ObserverPositionScreen - CameraImage->ImageSize*0.5f, 
 					CameraImage->ImageSize
@@ -371,7 +372,7 @@ public:
 					CameraImage,
 					MyClippingRect,
 					ESlateDrawEffect::None,
-					FMath::DegreesToRadians(ObserverRotation.Yaw - 90.f), // 0 degrees pointing along +Y axis, arrow on the image pointing along +X axis
+					FMath::DegreesToRadians(ObserverRotation.Yaw),
 					CameraImage->ImageSize*0.5f,
 					FSlateDrawElement::RelativeToElement
 					);

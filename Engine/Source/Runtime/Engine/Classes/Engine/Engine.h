@@ -2356,6 +2356,14 @@ public:
 	virtual void TriggerStreamingDataRebuild() { }
 
 	/**
+	 * Updates level streaming state using active game players view and blocks until all sub-levels are loaded/ visible/ hidden
+	 * so further calls to UpdateLevelStreaming won't do any work unless state changes.
+	 *
+	 * @param InWorld Target world
+	 */
+	void BlockTillLevelStreamingCompleted(UWorld* InWorld);
+
+	/**
 	 * true if the loading movie was started during LoadMap().
 	 */
 	UPROPERTY(transient)

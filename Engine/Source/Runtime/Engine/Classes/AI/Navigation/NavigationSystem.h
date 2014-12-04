@@ -515,6 +515,9 @@ public:
 	/** force updating parent node and all its children */
 	void UpdateNavOctreeParentChain(UObject* ElementOwner);
 
+	/** update component bounds in navigation octree and mark only specified area as dirty, doesn't re-export component geometry */
+	bool UpdateNavOctreeElementBounds(UActorComponent* Comp, const FBox& NewBounds, const FBox& DirtyArea);
+
 	//----------------------------------------------------------------------//
 	// Custom navigation links
 	//----------------------------------------------------------------------//

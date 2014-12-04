@@ -50,6 +50,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/GameMode.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
 
@@ -8947,16 +8948,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	check(WorldContext.World()->PersistentLevel);
 	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
 
-	// Make sure all relevant streaming levels are fully loaded
-	if (WorldContext.World()->WorldComposition)
-	{
-		// Set initial world origin and stream in levels
-		WorldContext.World()->NavigateTo(FIntVector::ZeroValue);
-	}
-	else
-	{
-		WorldContext.World()->FlushLevelStreaming();
-	}
+	// Make sure "always loaded" sub-levels are fully loaded
+	WorldContext.World()->FlushLevelStreaming(nullptr, EFlushLevelStreamingType::Visibility);
 	
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
 	
@@ -9027,6 +9020,62 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// Successfully started local level.
 	return true;
+}
+
+void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)
+{
+	check(InWorld);
+	
+	// Update streaming levels state using streaming volumes
+	if (InWorld->GetNetMode() != NM_Client)
+	{
+		InWorld->ProcessLevelStreamingVolumes();
+	}
+
+	if (InWorld->WorldComposition)
+	{
+		InWorld->WorldComposition->UpdateStreamingState();
+	}
+
+	// Create view collection
+	int32 NumPlayers = GetNumGamePlayers(InWorld);
+	TUniquePtr<FSceneViewFamilyContext> ViewFamily;
+	if (NumPlayers && GameViewport)
+	{
+		ViewFamily = MakeUnique<FSceneViewFamilyContext>(
+			FSceneViewFamily::ConstructionValues(GameViewport->Viewport, InWorld->Scene, GameViewport->EngineShowFlags).SetRealtimeUpdate(true));
+
+		for (int32 PlayerIndex = 0; PlayerIndex < NumPlayers; ++PlayerIndex)
+		{
+			ULocalPlayer* Player = GetGamePlayer(InWorld, PlayerIndex);
+			if (Player && Player->ViewportClient)
+			{
+				FVector ViewLocation;
+				FRotator ViewRotation;
+				Player->CalcSceneView(ViewFamily.Get(), /*out*/ ViewLocation, /*out*/ ViewRotation, Player->ViewportClient->Viewport);
+			}
+		}
+	}
+
+	// Probe if we have anything to do
+	InWorld->UpdateLevelStreaming(ViewFamily.Get());
+	bool bWorkToDo = (InWorld->IsVisibilityRequestPending() || IsAsyncLoading());
+	
+	if (bWorkToDo)
+	{
+		if( GameViewport && GEngine->BeginStreamingPauseDelegate && GEngine->BeginStreamingPauseDelegate->IsBound() )
+		{
+			GEngine->BeginStreamingPauseDelegate->Execute( GameViewport->Viewport );
+		}	
+
+		// Flush level streaming requests, blocking till completion.
+		InWorld->FlushLevelStreaming(ViewFamily.Get(), EFlushLevelStreamingType::Full);
+
+		if( GEngine->EndStreamingPauseDelegate && GEngine->EndStreamingPauseDelegate->IsBound() )
+		{
+			GEngine->EndStreamingPauseDelegate->Execute( );
+		}	
+	}
 }
 
 void UEngine::CleanupPackagesToFullyLoad(FWorldContext &Context, EFullyLoadPackageType FullyLoadType, const FString& Tag)

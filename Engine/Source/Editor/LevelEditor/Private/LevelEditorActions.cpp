@@ -1096,6 +1096,54 @@ void FLevelEditorActionCallbacks::CreateNewOutlinerFolder_Clicked()
 	FActorFolders::Get().CreateFolderContainingSelection(*GetWorld(), NewFolderName);
 }
 
+void FLevelEditorActionCallbacks::GoHere_Clicked( const FVector* Point )
+{
+	if( GCurrentLevelEditingViewportClient )
+	{
+		FVector ZoomToPoint;
+		if( !Point )
+		{
+			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+				GCurrentLevelEditingViewportClient->Viewport,
+				GCurrentLevelEditingViewportClient->GetWorld()->Scene,
+				GCurrentLevelEditingViewportClient->EngineShowFlags)
+				.SetRealtimeUpdate(true));
+
+
+			FSceneView* SceneView = GCurrentLevelEditingViewportClient->CalcSceneView(&ViewFamily);
+
+			if(SceneView)
+			{
+				FIntPoint MousePosition;
+				FVector WorldOrigin;
+				FVector WorldDirection;
+				GCurrentLevelEditingViewportClient->Viewport->GetMousePos(MousePosition);
+
+				SceneView->DeprojectFVector2D(MousePosition, WorldOrigin, WorldDirection);
+
+				FHitResult HitResult;
+
+				static FName FocusOnPoint = FName(TEXT("FocusOnPoint"));
+				FCollisionQueryParams LineParams(FocusOnPoint, true);
+
+				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingle(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, LineParams, FCollisionObjectQueryParams(ECC_WorldStatic)))
+				{
+					ZoomToPoint = HitResult.ImpactPoint;
+				}
+			}
+		}
+		else
+		{
+			ZoomToPoint = *Point;
+		}
+
+		const float PushOutSize = 500;
+		FBox BoundingBox(ZoomToPoint-PushOutSize, ZoomToPoint+PushOutSize);
+
+		GCurrentLevelEditingViewportClient->FocusViewportOnBox(BoundingBox);
+	}
+}
+
 bool FLevelEditorActionCallbacks::LockActorMovement_IsChecked()
 {
 	return GEditor->HasLockedActors();
@@ -2612,7 +2660,10 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( EditAsset, "Edit Asset", "Edits the asset associated with the selected actor", EUserInterfaceActionType::Button, FInputGesture( EKeys::E, EModifierKey::Control ) );
 	UI_COMMAND( EditAssetNoConfirmMultiple, "Edit Asset", "Edits the asset associated with the selected actor", EUserInterfaceActionType::Button, FInputGesture( EKeys::E, EModifierKey::Control | EModifierKey::Shift ) );
 
+	UI_COMMAND( GoHere, "Go Here", "Moves the camera to the current mouse position", EUserInterfaceActionType::Button, FInputGesture() );
+
 	UI_COMMAND( SnapCameraToActor, "Snap View to Actor", "Snaps the view to the selected actors", EUserInterfaceActionType::Button, FInputGesture() );
+
 	UI_COMMAND( GoToCodeForActor, "Go to C++ Code for Actor", "Opens a code editing IDE and navigates to the source file associated with the seleced actor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GoToDocsForActor, "Go to Documentation for Actor", "Opens documentation for the Actor in the default web browser", EUserInterfaceActionType::Button, FInputGesture() );
 

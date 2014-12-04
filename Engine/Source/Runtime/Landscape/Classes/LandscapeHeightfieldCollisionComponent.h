@@ -104,8 +104,9 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	/** 
 	 *	Flag to indicate that the next time we cook data, we should save it to the DDC.
 	 *	Used to ensure DDC is populated when loading content for the first time. 
+	 *  For editor and full version of collision objects
 	 */
-	mutable bool								bShouldSaveCookedDataToDDC;
+	mutable bool								bShouldSaveCookedDataToDDC[2];
 #endif //WITH_EDITORONLY_DATA
 
 	/** 

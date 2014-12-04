@@ -4,6 +4,50 @@
 #include "StaticMeshResources.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 
+
+static TAutoConsoleVariable<float> CVarLODTemporalLag(
+	TEXT("lod.TemporalLag"),
+	0.5f,
+	TEXT("This controls the the time lag for temporal LOD, in seconds."));
+
+void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float LastRenderTime)
+{
+	bool bOk = false;
+	if (!View.bDisableDistanceBasedFadeTransitions)
+	{
+		bOk = true;
+		TemporalLODLag = CVarLODTemporalLag.GetValueOnRenderThread();
+		if (TemporalLODTime[1] < LastRenderTime - TemporalLODLag)
+		{
+			if (TemporalLODTime[0] < TemporalLODTime[1])
+			{
+				TemporalLODViewOrigin[0] = TemporalLODViewOrigin[1];
+				TemporalDistanceFactor[0] = TemporalDistanceFactor[1];
+				TemporalLODTime[0] = TemporalLODTime[1];
+			}
+			TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+			TemporalDistanceFactor[1] = View.GetLODDistanceFactor();
+			TemporalLODTime[1] = LastRenderTime;
+			if (TemporalLODTime[1] <= TemporalLODTime[0])
+			{
+				bOk = false; // we are paused or something or otherwise didn't get a good sample
+			}
+		}
+	}
+	if (!bOk)
+	{
+		TemporalLODViewOrigin[0] = View.ViewMatrices.ViewOrigin;
+		TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+		TemporalDistanceFactor[0] = View.GetLODDistanceFactor();
+		TemporalDistanceFactor[1] = TemporalDistanceFactor[0];
+		TemporalLODTime[0] = LastRenderTime;
+		TemporalLODTime[1] = LastRenderTime;
+		TemporalLODLag = 0.0f;
+	}
+}
+
+
+
 FSimpleElementCollector::~FSimpleElementCollector()
 {
 	// Cleanup the dynamic resources.

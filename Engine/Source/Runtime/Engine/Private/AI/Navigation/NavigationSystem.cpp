@@ -2349,6 +2349,30 @@ void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
 	}
 }
 
+bool UNavigationSystem::UpdateNavOctreeElementBounds(UActorComponent* Comp, const FBox& NewBounds, const FBox& DirtyArea)
+{
+	const FOctreeElementId* ElementId = GetObjectsNavOctreeId(Comp);
+	if (ElementId && ElementId->IsValidId())
+	{
+		NavOctree->UpdateNode(*ElementId, NewBounds);
+		
+		// Add dirty area
+		if (DirtyArea.IsValid)
+		{
+			ElementId = GetObjectsNavOctreeId(Comp);
+			if (ElementId && ElementId->IsValidId())
+			{
+				FNavigationOctreeElement& ElementData = NavOctree->GetElementById(*ElementId);
+				AddDirtyArea(DirtyArea, ElementData.Data.GetDirtyFlag());
+			}
+		}
+
+		return true;
+	}
+	
+	return false;
+}
+
 void UNavigationSystem::OnComponentRegistered(UActorComponent* Comp)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);

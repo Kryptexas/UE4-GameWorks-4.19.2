@@ -20,6 +20,7 @@
 // Classes
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType.h"
+#include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeInfo.h"
@@ -29,7 +30,9 @@
 #include "Engine/CollisionProfile.h"
 #include "Components/ModelComponent.h"
 #include "EngineUtils.h"
+#include "LandscapeDataAccess.h"
 
+#define LOCTEXT_NAMESPACE "FoliageEdMode"
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
 //
@@ -118,21 +121,6 @@ void FEdModeFoliage::Enter()
 	{
 		Toolkit = MakeShareable(new FFoliageEdModeToolkit);
 		Toolkit->Init(Owner->GetToolkitHost());
-	}
-
-	// Fixup any broken clusters
-	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
-	for (auto& MeshPair : IFA->FoliageMeshes)
-	{
-		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-		for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
-		{
-			if (Cluster.ClusterComponent == nullptr)
-			{
-				MeshInfo.ReallocateClusters(IFA, MeshPair.Key);
-				break;
-			}
-		}
 	}
 }
 
@@ -455,7 +443,7 @@ struct FPotentialInstance
 		, HitWeight(InHitWeight)
 	{}
 
-	bool PlaceInstance(UFoliageType* Settings, FFoliageInstance& Inst, UWorld* InWorld, AInstancedFoliageActor* InIFA)
+	bool PlaceInstance(UFoliageType* Settings, FFoliageInstance& Inst, UWorld* InWorld, AInstancedFoliageActor* InIFA, bool bSkipCollision = false)
 	{
 		if (Settings->UniformScale)
 		{
@@ -499,7 +487,7 @@ struct FPotentialInstance
 
 		Inst.Base = HitComponent;
 
-		return CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation, InWorld, InIFA);
+		return bSkipCollision || CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation, InWorld, InIFA);
 	}
 };
 
@@ -1621,7 +1609,7 @@ bool FEdModeFoliage::RemoveFoliageMesh(UFoliageType* Settings)
 	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(Settings);
 	if (MeshInfo != nullptr)
 	{
-		int32 InstancesNum = MeshInfo->Instances.Num() - MeshInfo->FreeInstanceIndices.Num();
+		int32 InstancesNum = MeshInfo->Instances.Num();
 
 		bool bProceed = true;
 		if (Settings->GetStaticMesh() != nullptr && InstancesNum > 0)
@@ -1656,7 +1644,7 @@ void FEdModeFoliage::BakeFoliage(UFoliageType* Settings, bool bSelectedOnly)
 		TArray<int32> InstancesToConvert;
 		if (bSelectedOnly)
 		{
-			InstancesToConvert = MeshInfo->SelectedIndices;
+			InstancesToConvert = MeshInfo->SelectedIndices.Array();
 		}
 		else
 		{
@@ -1771,7 +1759,7 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 
 	if (OldMeshInfo != nullptr && OldSettings->GetStaticMesh() != NewStaticMesh)
 	{
-		int32 InstancesNum = OldMeshInfo->Instances.Num() - OldMeshInfo->FreeInstanceIndices.Num();
+		int32 InstancesNum = OldMeshInfo->Instances.Num();
 
 		// Look for the new mesh in the mesh list, and either create a new mesh or merge the instances.
 		UFoliageType* NewSettings = nullptr;
@@ -1815,12 +1803,9 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 			// copy instances from old to new.
 			for (FFoliageInstance& Instance : OldMeshInfo->Instances)
 			{
-				if (Instance.ClusterIndex != -1)
-				{
 					NewMeshInfo->AddInstance(IFA, NewSettings, Instance);
 				}
 			}
-		}
 
 		// Remove the old mesh.
 		IFA->RemoveMesh(OldSettings);
@@ -1904,7 +1889,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 					FFoliageMeshInfo& Mesh = *MeshPair.Value;
 					if (Mesh.SelectedIndices.Num() > 0)
 					{
-						TArray<int32> InstancesToDelete = Mesh.SelectedIndices;
+						TArray<int32> InstancesToDelete = Mesh.SelectedIndices.Array();
 						Mesh.RemoveInstances(IFA, InstancesToDelete);
 					}
 				}
@@ -1922,10 +1907,12 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 				{
 					FFoliageMeshInfo& Mesh = *MeshPair.Value;
 
-					Mesh.PreMoveInstances(IFA, Mesh.SelectedIndices);
+					TArray<int32> SelectedIndices = Mesh.SelectedIndices.Array();
+
+					Mesh.PreMoveInstances(IFA, SelectedIndices);
 
 					UWorld* World = ViewportClient->GetWorld();
-					for (int32 SelectedInstanceIdx : Mesh.SelectedIndices)
+					for (int32 SelectedInstanceIdx : SelectedIndices)
 					{
 						FFoliageInstance& Instance = Mesh.Instances[SelectedInstanceIdx];
 
@@ -1959,7 +1946,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 						bMovedInstance = true;
 					}
 
-					Mesh.PostMoveInstances(IFA, Mesh.SelectedIndices);
+					Mesh.PostMoveInstances(IFA, SelectedIndices);
 				}
 
 				if (bMovedInstance)
@@ -2075,6 +2062,7 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 		return true;
 	}
 
+
 	return FEdMode::HandleClick(InViewportClient, HitProxy, Click);
 }
 
@@ -2126,16 +2114,18 @@ bool FEdModeFoliage::InputDelta(FEditorViewportClient* InViewportClient, FViewpo
 		for (auto& MeshPair : IFA->FoliageMeshes)
 		{
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-			bFoundSelection |= MeshInfo.SelectedIndices.Num() > 0;
+			TArray<int32> SelectedIndices = MeshInfo.SelectedIndices.Array();
+
+			bFoundSelection |= SelectedIndices.Num() > 0;
 
 			if (bAltDown && bCanAltDrag && (InViewportClient->GetCurrentWidgetAxis() & EAxisList::XYZ))
 			{
-				MeshInfo.DuplicateInstances(IFA, MeshPair.Key, MeshInfo.SelectedIndices);
+				MeshInfo.DuplicateInstances(IFA, MeshPair.Key, SelectedIndices);
 			}
 
-			MeshInfo.PreMoveInstances(IFA, MeshInfo.SelectedIndices);
+			MeshInfo.PreMoveInstances(IFA, SelectedIndices);
 
-			for (int32 SelectedInstanceIdx : MeshInfo.SelectedIndices)
+			for (int32 SelectedInstanceIdx : SelectedIndices)
 			{
 				FFoliageInstance& Instance = MeshInfo.Instances[SelectedInstanceIdx];
 				Instance.Location += InDrag;
@@ -2144,7 +2134,7 @@ bool FEdModeFoliage::InputDelta(FEditorViewportClient* InViewportClient, FViewpo
 				Instance.DrawScale3D += InScale;
 			}
 
-			MeshInfo.PostMoveInstances(IFA, MeshInfo.SelectedIndices);
+			MeshInfo.PostMoveInstances(IFA, SelectedIndices);
 		}
 
 		// Only allow alt-drag on first InputDelta
@@ -2227,3 +2217,5 @@ void FFoliageUISettings::Save()
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterBSP"), bFilterBSP, GEditorUserSettingsIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterTranslucent"), bFilterTranslucent, GEditorUserSettingsIni);
 }
+
+#undef LOCTEXT_NAMESPACE

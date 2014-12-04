@@ -1847,14 +1847,6 @@ private:
 	 */
 	void UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamily* ViewFamily );
 
-	/**
-	 * Evaluates current world origin location against provided view information
-	 * Might issue request for world origin shifting
-	 *
-	 * @param ViewFamily	Collection of views to take into account
-	 */
-	void EvaluateWorldOriginLocation( const FSceneViewFamily& ViewFamily );
-
 public:
 	/**
 	 * Flushes level streaming in blocking fashion and returns when all levels are loaded/ visible/ hidden

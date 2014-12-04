@@ -1606,6 +1606,31 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	// Backup properties of the view that we will override
 	TUniformBufferRef<FViewUniformShaderParameters> OriginalUniformBuffer = FoundView->UniformBuffer;
 	FMatrix OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
+	FIntRect OriginalViewRect = FoundView->ViewRect;
+	FoundView->ViewRect.Min.X = 0;
+	FoundView->ViewRect.Min.Y = 0;
+	FoundView->ViewRect.Max.X = ResolutionX;
+	FoundView->ViewRect.Max.Y =  ResolutionY;
+
+	float JitterX = FoundView->ViewMatrices.ProjMatrix.M[2][0];
+	float JitterY = FoundView->ViewMatrices.ProjMatrix.M[2][1];
+
+	FoundView->ViewMatrices.ProjMatrix.M[2][0] = 0.0f;
+	FoundView->ViewMatrices.ProjMatrix.M[2][1] = 0.0f;
+
+	{
+		// Compute the view projection matrix and its inverse.
+		FoundView->ViewProjectionMatrix = FoundView->ViewMatrices.ViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->InvViewProjectionMatrix = FoundView->ViewMatrices.GetInvProjMatrix() * FoundView->InvViewMatrix;
+
+		/** The view transform, starting from world-space points translated by -ViewOrigin. */
+		FMatrix TranslatedViewMatrix = FTranslationMatrix(-FoundView->ViewMatrices.PreViewTranslation) * FoundView->ViewMatrices.ViewMatrix;
+
+		// Compute a transform from view origin centered world-space to clip space.
+		FoundView->ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->ViewMatrices.InvTranslatedViewProjectionMatrix = FoundView->ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+	}
+
 
 	// Override the view matrix so that billboarding primitives will be aligned to the light
 	//@todo - creating a new uniform buffer is expensive, only do this when the vertex factory needs an accurate view matrix (particle sprites)
@@ -1617,6 +1642,9 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 		VolumeBounds,
 		TVC_MAX);
 
+	// we are going to set this back now because we only want the correct view rect for the uniform buffer. For LOD calculations, we want the rendering viewrect and proj matrix.
+	FoundView->ViewRect = OriginalViewRect;
+
 	// Prevent materials from getting overridden during shadow casting in viewmodes like lighting only
 	// Lighting only should only affect the material used with direct lighting, not the indirect lighting
 	FoundView->bForceShowMaterials = true;
@@ -1626,6 +1654,22 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	FoundView->bForceShowMaterials = false;
 	FoundView->UniformBuffer = OriginalUniformBuffer;
 	FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+
+	FoundView->ViewMatrices.ProjMatrix.M[2][0] = JitterX;
+	FoundView->ViewMatrices.ProjMatrix.M[2][1] = JitterY;
+
+	{
+		// Compute the view projection matrix and its inverse.
+		FoundView->ViewProjectionMatrix = FoundView->ViewMatrices.ViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->InvViewProjectionMatrix = FoundView->ViewMatrices.GetInvProjMatrix() * FoundView->InvViewMatrix;
+
+		/** The view transform, starting from world-space points translated by -ViewOrigin. */
+		FMatrix TranslatedViewMatrix = FTranslationMatrix(-FoundView->ViewMatrices.PreViewTranslation) * FoundView->ViewMatrices.ViewMatrix;
+
+		// Compute a transform from view origin centered world-space to clip space.
+		FoundView->ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->ViewMatrices.InvTranslatedViewProjectionMatrix = FoundView->ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+	}
 }
 
 void StencilingGeometry::DrawSphere(FRHICommandList& RHICmdList)

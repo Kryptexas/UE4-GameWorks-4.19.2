@@ -185,6 +185,9 @@ extern RHI_API int32 GNumPrimitivesDrawnRHI;
 /** Whether or not the RHI can handle a non-zero BaseVertexIndex - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsBaseVertexIndex;
 
+/** Whether or not the RHI can handle a non-zero FirstInstance - extra SetStreamSource calls will be needed if this is false */
+extern RHI_API bool GRHISupportsFirstInstance;
+
 /** Whether or not the engine should set the BackBuffer as a render target early in the frame. */
 extern RHI_API bool GRHIRequiresEarlyBackBufferRenderTarget;
 

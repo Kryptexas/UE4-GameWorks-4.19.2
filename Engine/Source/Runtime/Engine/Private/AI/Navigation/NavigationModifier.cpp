@@ -136,6 +136,10 @@ bool UNavLinkDefinition::HasAdjustableLinks() const
 FAreaNavModifier::FAreaNavModifier(float Radius, float Height, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> InAreaClass)
 {
 	Init(InAreaClass);
+	
+	FVector Scale3D = LocalToWorld.GetScale3D().GetAbs();
+	Radius *= FMath::Max(Scale3D.X, Scale3D.Y);
+	Height *= Scale3D.Z;
 
 	Points.Init(2);
 	Points[0] = LocalToWorld.GetLocation();
@@ -584,6 +588,11 @@ uint32 FCompositeNavModifier::GetAllocatedSize() const
 	}
 
 	return MemUsed;
+}
+
+bool FCompositeNavModifier::HasPerInstanceTransforms() const
+{
+	return NavDataPerInstanceTransformDelegate.IsBound();
 }
 
 //----------------------------------------------------------------------//

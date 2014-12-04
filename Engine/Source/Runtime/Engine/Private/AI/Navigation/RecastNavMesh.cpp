@@ -590,16 +590,18 @@ FColor ARecastNavMesh::GetAreaIDColor(uint8 AreaID) const
 	return DefArea ? DefArea->DrawColor : NavDataConfig.Color;
 }
 
-void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const
+void ARecastNavMesh::SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>& Modifiers) const
 {
 	// initialize costs for sorting
 	float AreaCosts[RECAST_MAX_AREAS];
 	float AreaFixedCosts[RECAST_MAX_AREAS];
 	DefaultQueryFilter->GetAllAreaCosts(AreaCosts, AreaFixedCosts, RECAST_MAX_AREAS);
 
-	for (int32 Idx = 0; Idx < Areas.Num(); Idx++)
+	for (auto& Element : Modifiers)
 	{
-		FAreaNavModifier& AreaMod = Areas[Idx];
+		check(Element.Areas.Num() > 0);
+		
+		FAreaNavModifier& AreaMod = Element.Areas[0];
 		const int32 AreaId = GetAreaID(AreaMod.GetAreaClass());
 		if (AreaId >= 0 && AreaId < RECAST_MAX_AREAS)
 		{
@@ -610,8 +612,14 @@ void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) cons
 
 	struct FNavAreaSortPredicate
 	{
-		FORCEINLINE bool operator()(const FAreaNavModifier& A, const FAreaNavModifier& B) const
+		FORCEINLINE bool operator()(const FRecastAreaNavModifierElement& ElA, const FRecastAreaNavModifierElement& ElB) const
 		{
+			check(ElA.Areas.Num() > 0);
+			check(ElB.Areas.Num() > 0);
+			// assuming composite modifiers has same area type
+			const FAreaNavModifier& A = ElA.Areas[0];
+			const FAreaNavModifier& B = ElB.Areas[0];
+			
 			const bool bIsAReplacing = (A.GetAreaClassToReplace() != NULL);
 			const bool bIsBReplacing = (B.GetAreaClassToReplace() != NULL);
 			if (bIsAReplacing != bIsBReplacing)
@@ -623,7 +631,7 @@ void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) cons
 		}
 	};
 
-	Areas.Sort(FNavAreaSortPredicate());
+	Modifiers.Sort(FNavAreaSortPredicate());
 }
 
 void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh)

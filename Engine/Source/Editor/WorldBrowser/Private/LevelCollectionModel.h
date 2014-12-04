@@ -130,8 +130,8 @@ public:
 	/**	Customize 'File' section in main menu  */
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const;
 
-	/**	@return	Observer view matrix in the world, usually camera view */
-	virtual FMatrix GetObserverViewMatrix() const;
+	/**	@return	Observer view in the world, usually camera view */
+	virtual bool GetObserverView(FVector& Location, FRotator& Rotation) const;
 
 	/**	Compares 2 levels by Z order */
 	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const;

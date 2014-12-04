@@ -583,6 +583,12 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanViewReferences )
 		);
 
+	const FVector* NullVector = nullptr;
+	ActionList.MapAction(
+		Commands.GoHere,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::GoHere_Clicked, NullVector )
+		);
+
 	ActionList.MapAction( 
 		Commands.SnapCameraToActor, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("CAMERA SNAP") ) )

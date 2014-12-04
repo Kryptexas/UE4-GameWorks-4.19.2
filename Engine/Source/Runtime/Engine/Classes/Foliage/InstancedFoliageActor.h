@@ -31,7 +31,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// Begin UObject interface. 
+	// End UObject interface. 
 
 	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
@@ -41,6 +41,7 @@ public:
 	// End AActor interface.
 
 #if WITH_EDITOR
+	virtual void PostEditUndo() override;
 
 	// Called in response to BSP rebuilds to migrate foliage from obsolete to new components.
 	ENGINE_API void MapRebuild();

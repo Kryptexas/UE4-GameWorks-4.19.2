@@ -178,6 +178,18 @@ void FVertexFactory::Set(FRHICommandList& RHICmdList) const
 	}
 }
 
+void FVertexFactory::OffsetInstanceStreams(FRHICommandList& RHICmdList, uint32 FirstVertex) const
+{
+	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
+	{
+		const FVertexStream& Stream = Streams[StreamIndex];
+		if (Stream.bUseInstanceIndex)
+		{
+			RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset + Stream.Stride * FirstVertex);
+		}
+	}
+}
+
 void FVertexFactory::SetPositionStream(FRHICommandList& RHICmdList) const
 {
 	check(IsInitialized());
@@ -187,6 +199,18 @@ void FVertexFactory::SetPositionStream(FRHICommandList& RHICmdList) const
 		const FVertexStream& Stream = PositionStream[StreamIndex];
 		check(Stream.VertexBuffer->IsInitialized());
 		RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset);
+	}
+}
+
+void FVertexFactory::OffsetPositionInstanceStreams(FRHICommandList& RHICmdList, uint32 FirstVertex) const
+{
+	for(int32 StreamIndex = 0;StreamIndex < PositionStream.Num();StreamIndex++)
+	{
+		const FVertexStream& Stream = PositionStream[StreamIndex];
+		if (Stream.bUseInstanceIndex)
+		{
+			RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset + Stream.Stride * FirstVertex);
+		}
 	}
 }
 
@@ -244,6 +268,7 @@ FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponen
 	VertexStream.VertexBuffer = Component.VertexBuffer;
 	VertexStream.Stride = Component.Stride;
 	VertexStream.Offset = 0;
+	VertexStream.bUseInstanceIndex = Component.bUseInstanceIndex;
 
 	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
 }
@@ -254,6 +279,7 @@ FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStream
 	VertexStream.VertexBuffer = Component.VertexBuffer;
 	VertexStream.Stride = Component.Stride;
 	VertexStream.Offset = 0;
+	VertexStream.bUseInstanceIndex = Component.bUseInstanceIndex;
 
 	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
 }

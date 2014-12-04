@@ -458,7 +458,7 @@ void UStaticMeshComponent::OnRegister()
 		}
 	}
 
-	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
+	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
 	{
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
@@ -471,7 +471,7 @@ void UStaticMeshComponent::OnRegister()
 
 void UStaticMeshComponent::OnUnregister()
 {
-	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
+	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
 	{
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{

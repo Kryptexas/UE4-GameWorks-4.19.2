@@ -188,7 +188,7 @@ public class UnrealEd : ModuleRules
 				"ReferenceViewer",
 				"EditorLiveStreaming",
 				"HotReload",
-                "IOSPlatformEditor"
+                "IOSPlatformEditor",
 			}
 		);
 

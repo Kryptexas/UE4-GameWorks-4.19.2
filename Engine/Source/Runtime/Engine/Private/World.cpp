@@ -2276,17 +2276,6 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 		return;
 	}
 
-	if (WorldComposition)
-	{
-		// May issue the world origin shift request depending on view location
-		if (ViewFamily)
-		{
-			EvaluateWorldOriginLocation(*ViewFamily);
-		}
-		// May add/remove streaming objects to persistent world depending on view location
-		WorldComposition->UpdateStreamingState(ViewFamily);
-	}
-
 	// Store current count of pending unload levels
 	const int32 NumLevelsPendingPurge = FLevelStreamingGCHelper::GetNumLevelsPendingPurge();
 	// Store current count of async loading packages
@@ -2307,28 +2296,6 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	if (NumLevelsPendingPurge < FLevelStreamingGCHelper::GetNumLevelsPendingPurge())
 	{
 		ForceGarbageCollection(true); 
-	}
-}
-
-void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
-{
-	if (IsGameWorld() && GetWorldSettings()->bEnableWorldOriginRebasing)
-	{
-		FVector CentroidLocation(0,0,0);
-		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ViewIndex++)
-		{
-			CentroidLocation+= ViewFamily.Views[ViewIndex]->ViewMatrices.ViewOrigin;
-		}
-
-		CentroidLocation/= ViewFamily.Views.Num();
-		// Consider only XY plane
-		CentroidLocation.Z = 0.f;
-	
-		// Request to shift world in case current view is quite far from current origin
-		if (CentroidLocation.Size() > HALF_WORLD_MAX1*0.5f)
-		{
-			RequestNewWorldOrigin(FIntVector(CentroidLocation.X, CentroidLocation.Y, CentroidLocation.Z) + OriginLocation);
-		}
 	}
 }
 

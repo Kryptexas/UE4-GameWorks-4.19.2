@@ -169,6 +169,11 @@ struct FNavigationDirtyElement
 	}
 };
 
+//
+// Used to gather per instance transforms in a specific area
+//
+DECLARE_DELEGATE_TwoParams(FNavDataPerInstanceTransformDelegate, const FBox&, TArray<FTransform>&);
+
 //////////////////////////////////////////////////////////////////////////
 // Path
 

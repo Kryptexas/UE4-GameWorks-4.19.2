@@ -68,11 +68,17 @@ class ENGINE_API UWorldComposition : public UObject
 
 	typedef TArray<FWorldCompositionTile> FTilesList;
 
-	/** Adds or removes level streaming objects to world based on distance settings from current view */
-	void UpdateStreamingState(FSceneViewFamily* InViewFamily = NULL);
+	/** Adds or removes level streaming objects to world based on distance settings from players current view */
+	void UpdateStreamingState();
 	
 	/** Adds or removes level streaming objects to world based on distance settings from current view point */
 	void UpdateStreamingState(const FVector& InLocation);
+
+	/**
+	 * Evaluates current world origin location against provided view location
+	 * Issues request for world origin rebasing in case location is far enough from current origin
+	 */
+	void EvaluateWorldOriginLocation(const FVector& ViewLocation);
 
 	/** Returns currently visible and hidden levels based on distance based streaming */
 	void GetDistanceVisibleLevels(const FVector& InLocation, TArray<FDistanceVisibleLevel>& OutVisibleLevels, TArray<FDistanceVisibleLevel>& OutHiddenLevels) const;
@@ -171,9 +177,6 @@ private:
 
 public:
 #if WITH_EDITOR
-	// Last view from where streaming state was updated
-	mutable FMatrix				LastWorldToViewMatrix;
-
 	// Hack for a World Browser to be able to temporally show hidden levels 
 	// regardless of current world origin and without offsetting them temporally 
 	bool						bTemporallyDisableOriginTracking;

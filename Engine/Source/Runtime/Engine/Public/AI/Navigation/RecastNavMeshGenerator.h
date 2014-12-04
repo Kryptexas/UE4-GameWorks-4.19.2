@@ -105,6 +105,26 @@ struct FRecastGeometryCache
 	FRecastGeometryCache(const uint8* Memory);
 };
 
+struct FRecastRawGeometryElement
+{
+	// Instance geometry
+	TArray<float>		GeomCoords;
+	TArray<int32>		GeomIndices;
+	
+	// Per instance transformations in unreal coords
+	// When empty geometry is in world space
+	TArray<FTransform>	PerInstanceTransform;
+};
+
+struct FRecastAreaNavModifierElement
+{
+	TArray<FAreaNavModifier> Areas;
+	
+	// Per instance transformations in unreal coords
+	// When empty areas are in world space
+	TArray<FTransform>	PerInstanceTransform;
+};
+
 /**
  * Class handling generation of a single tile, caching data that can speed up subsequent tile generations
  */
@@ -156,16 +176,13 @@ private:
 
 	void ApplyVoxelFilter(struct rcHeightfield* SolidHF, float WalkableRadius);
 
-	/** apply areas from StaticAreas to heightfield */
-	void MarkStaticAreas(FNavMeshBuildContext& BuildContext, rcCompactHeightfield& CompactHF);
-
 	/** apply areas from DynamicAreas to layer */
 	void MarkDynamicAreas(dtTileCacheLayer& Layer);
+	void MarkDynamicArea(const FAreaNavModifier& Modifier, const FTransform& LocalToWorld, dtTileCacheLayer& Layer);
 	
-	void AppendModifier(const FCompositeNavModifier& Modifier, bool bStatic);
+	void AppendModifier(const FCompositeNavModifier& Modifier, const FNavDataPerInstanceTransformDelegate& InTransformsDelegate);
 	/** Appends specified geometry to tile's geometry */
-	void AppendGeometry(const TNavStatArray<uint8>& RawCollisionCache);
-	void AppendGeometry(const TNavStatArray<FVector>& Verts, const TNavStatArray<int32>& Faces);
+	void AppendGeometry(const TNavStatArray<uint8>& RawCollisionCache, const FNavDataPerInstanceTransformDelegate& InTransformsDelegate);
 	void AppendVoxels(rcSpanCache* SpanData, int32 NumSpans);
 	
 	/** prepare voxel cache from collision data */
@@ -185,7 +202,7 @@ protected:
 	FBox TileBB;
 	
 	/** Layers dirty flags */
-	TBitArray<>  DirtyLayers;
+	TBitArray<> DirtyLayers;
 	
 	/** Parameters defining navmesh tiles */
 	FRecastBuildConfig TileConfig;
@@ -201,12 +218,9 @@ protected:
 	TArray<FNavMeshTileData> NavigationData;
 	
 	// tile's geometry: without voxel cache
-	TArray<float> GeomCoords;
-	TArray<int32> GeomIndices;
-	// areas used for creating compressed layers: static zones
-	TArray<FAreaNavModifier> StaticAreas;
+	TArray<FRecastRawGeometryElement> RawGeometry;
 	// areas used for creating navigation data: obstacles
-	TArray<FAreaNavModifier> DynamicAreas;
+	TArray<FRecastAreaNavModifierElement> Modifiers;
 	// navigation links
 	TArray<FSimpleLinkNavModifier> OffmeshLinks;
 };

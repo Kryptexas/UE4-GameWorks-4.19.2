@@ -435,6 +435,64 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #endif
 }
 
+bool FSceneView::GetTemporalLODActive() const
+{
+	if (State)
+	{
+		const FTemporalLODState& LODState = State->GetTemporalLODState();
+		if (LODState.TemporalLODLag != 0.0f)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+float FSceneView::GetLODDistanceFactor() const
+{
+	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ViewMatrices.ProjMatrix.M[0][0],
+		ViewRect.Height() / 2.0f * ViewMatrices.ProjMatrix.M[1][1]);
+	float Fac = PI * ScreenMultiple * ScreenMultiple / ViewRect.Area();
+	return Fac;
+}
+
+float FSceneView::GetTemporalLODDistanceFactor(int32 Index) const
+{
+	if (State)
+	{
+		const FTemporalLODState& LODState = State->GetTemporalLODState();
+		if (LODState.TemporalLODLag != 0.0f)
+		{
+			return LODState.TemporalDistanceFactor[Index];
+		}
+	}
+	return GetLODDistanceFactor();
+}
+
+
+FVector FSceneView::GetTemporalLODOrigin(int32 Index) const
+{
+	if (State)
+	{
+		const FTemporalLODState& LODState = State->GetTemporalLODState();
+		if (LODState.TemporalLODLag != 0.0f)
+		{
+			return LODState.TemporalLODViewOrigin[Index];
+		}
+	}
+	return ViewMatrices.ViewOrigin;
+}
+
+float FSceneView::GetTemporalLODTransition() const
+{
+	if (State)
+	{
+		return State->GetTemporalLODTransition();
+	}
+	return 0.0f;
+}
+
+
 void FSceneView::UpdateViewMatrix()
 {
 	FVector StereoViewLocation = ViewLocation;

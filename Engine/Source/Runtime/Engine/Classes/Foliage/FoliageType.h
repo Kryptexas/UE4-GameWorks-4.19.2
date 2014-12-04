@@ -108,17 +108,6 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 VertexColorMaskInvert:1;
 
-	/* The maximum number of instances that can be placed in a single cluster component and rendered in a single draw call */
-	UPROPERTY(EditAnywhere, Category=Clustering)
-	int32 MaxInstancesPerCluster;
-
-	/**
-	 * Determines the maximum size of a cluster of instances, rendered as a single component in a single draw call.
-	 * A smaller size will improve culling at the expense of more draw calls.
-	 */
-	UPROPERTY(EditAnywhere, Category = Clustering)
-	float MaxClusterRadius;
-
 	UPROPERTY()
 	float ReapplyDensityAmount;
 

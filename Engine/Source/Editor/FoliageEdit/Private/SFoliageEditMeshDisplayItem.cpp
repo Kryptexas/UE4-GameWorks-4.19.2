@@ -1655,14 +1655,6 @@ void SFoliageEditMeshDisplayItem::Construct(const FArguments& InArgs)
 								SNew(STextBlock)
 								.Text(this, &SFoliageEditMeshDisplayItem::GetInstanceCountString)
 							]
-
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.VAlign(VAlign_Center)
-							[
-								SNew(STextBlock)
-								.Text(this, &SFoliageEditMeshDisplayItem::GetInstanceClusterCountString)
-							]
 						]
 
 						+ SHorizontalBox::Slot()
@@ -1949,11 +1941,6 @@ bool SFoliageEditMeshDisplayItem::IsPropertyVisible(const FPropertyAndParent& Pr
 FText SFoliageEditMeshDisplayItem::GetInstanceCountString() const
 {
 	return FText::Format(LOCTEXT("InstanceCount_Value", "Instance Count: {0}"), FText::AsNumber(FoliageMeshUIInfo->MeshInfo ? FoliageMeshUIInfo->MeshInfo->GetInstanceCount() : 0 ));
-}
-
-FText SFoliageEditMeshDisplayItem::GetInstanceClusterCountString() const
-{
-	return FText::Format(LOCTEXT("ClusterCount_Value", "Cluster Count: {0}"), FText::AsNumber(FoliageMeshUIInfo->MeshInfo ? FoliageMeshUIInfo->MeshInfo->InstanceClusters.Num() : 0));
 }
 
 EVisibility SFoliageEditMeshDisplayItem::IsReapplySettingsVisible() const

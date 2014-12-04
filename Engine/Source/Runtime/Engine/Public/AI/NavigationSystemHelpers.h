@@ -33,6 +33,9 @@ struct FNavigableGeometryExport
 	virtual void ExportCustomMesh(const FVector* VertexBuffer, int32 NumVerts, const int32* IndexBuffer, int32 NumIndices, const FTransform& LocalToWorld) = 0;
 	
 	virtual void AddNavModifiers(const FCompositeNavModifier& Modifiers) = 0;
+
+	// Optional delegate for geometry per instance transforms
+	virtual void SetNavDataPerInstanceTransformDelegate(const FNavDataPerInstanceTransformDelegate& InDelegate) = 0;
 };
 
 

@@ -31,6 +31,39 @@ DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);
 // -----------------------------------------------------------------------------
 
 
+/**
+ * struct to hold the temporal LOD state within a view state
+ */
+struct ENGINE_API FTemporalLODState
+{
+	/** The last two camera origin samples collected for stateless temporal LOD transitions */
+	FVector	TemporalLODViewOrigin[2];
+	/** The last two fov-like parameters from the projection matrix for stateless temporal LOD transitions */
+	float	TemporalDistanceFactor[2];
+	/** The last two time samples collected for stateless temporal LOD transitions */
+	float	TemporalLODTime[2];
+	/** If non-zero, then we are doing temporal LOD smoothing, this is the time interval. */
+	float	TemporalLODLag;
+
+	FTemporalLODState()
+		: TemporalLODLag(0.0f) // nothing else is used if this is zero
+	{
+
+	}
+	/** 
+	 * Returns the blend factor between the last two LOD samples
+	 */
+	float GetTemporalLODTransition(float LastRenderTime) const
+	{
+		if (TemporalLODLag == 0.0)
+		{
+			return 0.0f; // no fade
+		}
+		return FMath::Clamp((LastRenderTime - TemporalLODLag - TemporalLODTime[0]) / (TemporalLODTime[1] - TemporalLODTime[0]), 0.0f, 1.0f);
+	}
+
+	void UpdateTemporalLODTransition(const class FViewInfo& View, float LastRenderTime);
+};
 
 /**
  * The scene manager's persistent view state.
@@ -103,6 +136,13 @@ public:
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;
 	/** Allows MIDs being created and released during view rendering without the overhead of creating and relasing objects */
 	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) = 0;
+	/** Returns the temporal LOD struct from the viewstate */
+	virtual FTemporalLODState& GetTemporalLODState() = 0;
+	virtual const FTemporalLODState& GetTemporalLODState() const = 0;
+	/** 
+	 * Returns the blend factor between the last two LOD samples
+	 */
+	virtual float GetTemporalLODTransition() const = 0;
 protected:
 	// Don't allow direct deletion of the view state, Destroy should be called instead.
 	virtual ~FSceneViewStateInterface() {}

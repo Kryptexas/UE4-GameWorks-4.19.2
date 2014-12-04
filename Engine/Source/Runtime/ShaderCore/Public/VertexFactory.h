@@ -355,9 +355,19 @@ public:
 	void Set(FRHICommandList& RHICmdList) const;
 
 	/**
+	 * Call SetStreamSource on instance streams to offset the read pointer
+	 */
+	void OffsetInstanceStreams(FRHICommandList& RHICmdList, uint32 FirstVertex) const;
+
+	/**
 	* Sets the position stream as the current stream source.
 	*/
 	void SetPositionStream(FRHICommandList& RHICmdList) const;
+
+	/**
+	* Call SetStreamSource on instance streams to offset the read pointer
+	 */
+	void OffsetPositionInstanceStreams(FRHICommandList& RHICmdList, uint32 FirstVertex) const;
 
 	/**
 	* Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.
@@ -441,6 +451,7 @@ protected:
 		const FVertexBuffer* VertexBuffer;
 		uint32 Stride;
 		uint32 Offset;
+		bool bUseInstanceIndex;
 
 		friend bool operator==(const FVertexStream& A,const FVertexStream& B)
 		{

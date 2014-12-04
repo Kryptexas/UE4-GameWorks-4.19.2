@@ -40,6 +40,7 @@ class UNavigationSystem;
 class URecastNavMeshDataChunk;
 struct FAreaNavModifier;
 struct FNavigationQueryFilter;
+struct FRecastAreaNavModifierElement;
 
 UENUM()
 namespace ERecastPartitioning
@@ -752,7 +753,7 @@ public:
 	void SetDefaultForbiddenFlags(uint16 ForbiddenAreaFlags);
 
 	/** Area sort function */
-	virtual void SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const;
+	virtual void SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>& Areas) const;
 
 	//----------------------------------------------------------------------//
 	// Custom navigation links
@@ -853,7 +854,7 @@ public:
 
 	/** Runs A* pathfinding on navmesh and collect data for every step */
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
-	
+
 	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
 	

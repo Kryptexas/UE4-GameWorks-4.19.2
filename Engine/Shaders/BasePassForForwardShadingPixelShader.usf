@@ -62,7 +62,7 @@ half DirectionalLightShadowing;
 void Main( 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FForwardShadingBasePassInterpolantsVSToPS BasePassInterpolants,
-		in half4 SvPosition	: SV_Position,
+	in float4 SvPosition : SV_Position,
 	OPTIONAL_IsFrontFace,
 	out half4 OutColor	: SV_Target0
 	)
@@ -73,7 +73,7 @@ void Main(
 #endif
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, BasePassInterpolants.PixelPosition);
 
-	CalcMaterialParameters(MaterialParameters, bIsFrontFace, BasePassInterpolants.PixelPosition
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, BasePassInterpolants.PixelPosition
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		, BasePassInterpolants.PixelPositionExcludingWPO
 #endif
@@ -81,16 +81,6 @@ void Main(
 	  
 	//Clip if the blend mode requires it.
 	GetMaterialCoverageAndClipping(MaterialParameters);	
-
-	//@mw todo:
-	//Go over with Brian to determine the proper defines to wrap it and test cases to fix it.
-#if !(GL3_PROFILE || GL4_PROFILE || COMPILER_GLSL_ES2 || COMPILER_GLSL || METAL_PROFILE)
-	float2 PixelPos = SvPosition - View.ViewRectMin.xy;	
-	MaterialParameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
-	MaterialParameters.ScreenPosition.zw = SvPosition.zw;
-	
-	MaterialParameters.ScreenPosition.xyz *= MaterialParameters.ScreenPosition.w;
-#endif
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	// Store the results in local variables and reuse instead of calling the functions multiple times.

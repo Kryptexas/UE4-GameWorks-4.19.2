@@ -861,6 +861,11 @@ void FProjectedShadowInfo::AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSc
 	ReceiverPrimitives.Add(PrimitiveSceneInfo);
 }
 
+static TAutoConsoleVariable<int32> CVarDisableCullShadows(
+	TEXT("foliage.DisableCullShadows"),
+	0,
+	TEXT("First three bits are disable SubjectPrimitives, ReceiverPrimitives, SubjectTranslucentPrimitives"));
+
 void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray)
 {
 	if (SubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
@@ -892,9 +897,32 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 
 		ReusedViewsArray[0] = FoundView;
 
-		GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+		check(!FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum);
+
+		int32 Disable = 0; //CVarDisableCullShadows.GetValueOnRenderThread();
+		FConvexVolume NoCull;
+
+		if (IsWholeSceneDirectionalShadow())
+		{
+			FoundView->ViewMatrices.PreShadowTranslation = FVector(0,0,0);
+			FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate;
+			GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
+		}
+		else
+		{
+			FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
+			FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CasterFrustum;
+			GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+		}
+
+		FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 2) ? &NoCull : &ReceiverFrustum;
 		GatherDynamicMeshElementsArray(FoundView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
+
+		FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 4) ? &NoCull : &CasterFrustum;
 		GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
+
+		FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = nullptr;
 
 		FoundView->bForceShowMaterials = false;
 		FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;

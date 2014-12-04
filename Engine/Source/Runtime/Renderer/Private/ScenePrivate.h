@@ -552,6 +552,8 @@ public:
 	bool bBokehDOFHistory;
 	bool bBokehDOFHistory2;
 
+	FTemporalLODState TemporalLODState;
+
 	// call after SetupTemporalAA()
 	uint32 GetCurrentTemporalAASampleIndex() const
 	{
@@ -623,6 +625,14 @@ public:
 			LastRenderTimeDelta = Family.CurrentRealTime - LastRenderTime;
 			LastRenderTime = Family.CurrentRealTime;
 		}
+	}
+
+	/** 
+	 * Called every frame after UpdateLastRenderTime, sets up the information for the lagged temporal LOD transition
+	 */
+	void UpdateTemporalLODTransition(const FViewInfo& View)
+	{
+		TemporalLODState.UpdateTemporalLODTransition(View, LastRenderTime);
 	}
 
 	/** 
@@ -777,6 +787,24 @@ public:
 
 		return Ret;
 	}
+
+	virtual FTemporalLODState& GetTemporalLODState() override
+	{
+		return TemporalLODState;
+	}
+	virtual const FTemporalLODState& GetTemporalLODState() const override
+	{
+		return TemporalLODState;
+	}
+	/** 
+	 * Returns the blend factor between the last two LOD samples
+	 */
+	float GetTemporalLODTransition() const override
+	{
+		return TemporalLODState.GetTemporalLODTransition(LastRenderTime);
+	}
+
+
 
 	// FDeferredCleanupInterface
 	virtual void FinishCleanup()

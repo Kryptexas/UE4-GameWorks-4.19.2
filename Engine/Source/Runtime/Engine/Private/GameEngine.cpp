@@ -878,45 +878,9 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Block on async loading if requested.
-		if( Context.World()->bRequestedBlockOnAsyncLoading )
+		if (Context.World()->bRequestedBlockOnAsyncLoading)
 		{
-			// Only perform work if there is anything to do. This ensures we are not syncronizing with the GPU
-			// and suspending the device needlessly.
-			bool bWorkToDo = IsAsyncLoading();
-			if (!bWorkToDo)
-			{
-				Context.World()->UpdateLevelStreaming();
-				bWorkToDo = Context.World()->IsVisibilityRequestPending();
-			}
-			if (bWorkToDo)
-			{
-				// tell clients to do the same so they don't fall behind
-				for( FConstPlayerControllerIterator Iterator = Context.World()->GetPlayerControllerIterator(); Iterator; ++Iterator )
-				{
-					APlayerController* PlayerController = *Iterator;
-					UNetConnection* Conn = Cast<UNetConnection>(PlayerController->Player);
-					if (Conn != NULL && Conn->GetUChildConnection() == NULL)
-					{
-						// call the event to replicate the call
-						PlayerController->ClientSetBlockOnAsyncLoading();
-						// flush the connection to make sure it gets sent immediately
-						Conn->FlushNet(true);
-					}
-				}
-
-				if( GameViewport && BeginStreamingPauseDelegate && BeginStreamingPauseDelegate->IsBound() )
-				{
-					BeginStreamingPauseDelegate->Execute( GameViewport->Viewport );
-				}	
-
-				// Flushes level streaming requests, blocking till completion.
-				Context.World()->FlushLevelStreaming();
-
-				if( EndStreamingPauseDelegate && EndStreamingPauseDelegate->IsBound() )
-				{
-					EndStreamingPauseDelegate->Execute( );
-				}	
-			}
+			BlockTillLevelStreamingCompleted(Context.World());
 			Context.World()->bRequestedBlockOnAsyncLoading = false;
 		}
 

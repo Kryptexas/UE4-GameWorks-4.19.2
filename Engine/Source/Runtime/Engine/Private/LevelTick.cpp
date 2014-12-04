@@ -8,6 +8,7 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SceneCaptureComponentCube.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/WorldComposition.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
@@ -1200,9 +1201,14 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		if( !bIsPaused )
 		{
 			// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
-			if( IsGameWorld() && GetNetMode() != NM_Client)
+			if (IsGameWorld() && GetNetMode() != NM_Client)
 			{
 				ProcessLevelStreamingVolumes();
+			}
+
+			if (IsGameWorld() && WorldComposition)
+			{
+				WorldComposition->UpdateStreamingState();
 			}
 		}
 	}

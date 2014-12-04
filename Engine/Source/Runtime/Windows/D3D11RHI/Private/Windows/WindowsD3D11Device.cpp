@@ -663,6 +663,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "D3D11" ) );
 
 		GRHISupportsTextureStreaming = true;
+		GRHISupportsFirstInstance = true;
 
 		// Set the RHI initialized flag.
 		GIsRHIInitialized = true;

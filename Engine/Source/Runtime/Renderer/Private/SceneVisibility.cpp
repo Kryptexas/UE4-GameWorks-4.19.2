@@ -1777,6 +1777,8 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 			// This finishes the update of view state
 			ViewState->UpdateLastRenderTime(*View.Family);
+
+			ViewState->UpdateTemporalLODTransition(View);
 		}
 	}
 }

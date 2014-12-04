@@ -686,9 +686,9 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 	}
 }
 
-FMatrix FLevelCollectionModel::GetObserverViewMatrix() const
+bool FLevelCollectionModel::GetObserverView(FVector& Location, FRotator& Rotation) const
 {
-	return FMatrix::Identity;
+	return false;
 }
 
 bool FLevelCollectionModel::CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const

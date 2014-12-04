@@ -571,17 +571,43 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 	InMenuBuilder.EndSection();
 }
 
-FMatrix FWorldTileCollectionModel::GetObserverViewMatrix() const
+bool FWorldTileCollectionModel::GetObserverView(FVector& Location, FRotator& Rotation) const
 {
-	UWorld*	SimulationWorld = GetSimulationWorld();
-	if (SimulationWorld && SimulationWorld->WorldComposition)
+	const UEditorEngine* EditorEngine = Editor.Get();
+
+	if (IsSimulating())
 	{
-		return SimulationWorld->WorldComposition->LastWorldToViewMatrix;
+		if (EditorEngine->bIsSimulatingInEditor && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
+		{
+			Rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
+			Location = GCurrentLevelEditingViewportClient->GetViewLocation();
+			return true;
+		}
+		else
+		{
+			UWorld* SimulationWorld = GetSimulationWorld();
+			for (FConstPlayerControllerIterator Iterator = SimulationWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController* PlayerActor = *Iterator;
+				PlayerActor->GetPlayerViewPoint(Location, Rotation);
+				return true;
+			}
+		}
 	}
 	else
 	{
-		return FMatrix::Identity;
+		for (const FLevelEditorViewportClient* ViewportClient : EditorEngine->LevelViewportClients)
+		{
+			if (ViewportClient && ViewportClient->IsPerspective())
+			{
+				Rotation = ViewportClient->GetViewRotation();
+				Location = ViewportClient->GetViewLocation();
+				return true;
+			}
+		}
 	}
+	
+	return false;
 }
 
 static double Area(FVector2D InRect)
