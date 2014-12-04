@@ -34,6 +34,9 @@
 #include "ComponentAssetBroker.h"
 #include "BlueprintEditorSettings.h"
 #include "Editor/UnrealEd/Classes/Editor/Transactor.h"
+#include "Editor/UnrealEd/Public/PackageTools.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h" // for FNotificationInfo
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
 
@@ -157,6 +160,181 @@ void FObjectsBeingDebuggedIterator::FindNextLevelScriptActor()
 		{
 			break;
 		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FBlueprintUnloader
+
+/** Utility struct, used to aid in unloading and replacing a specific blueprint. */
+struct FBlueprintUnloader
+{
+public:
+	FBlueprintUnloader(UBlueprint* OldBlueprint);
+
+	/** 
+	 * Unloads the specified Blueprint (marking it pending-kill, and removing it 
+	 * from its outer package). Optionally, will unload the package as well.
+	 *
+	 * @param  bResetPackage	Whether or not this should unload the entire package.
+	 */
+	void UnloadBlueprint(const bool bResetPackage);
+	
+	/** 
+	 * Replaces all old references to the original blueprints (its class/CDO/etc.)
+	 * @param  NewBlueprint	The blueprint to replace old references with
+	 */
+	void ReplaceStaleRefs(UBlueprint* NewBlueprint);
+
+private:
+	TWeakObjectPtr<UBlueprint> OldBlueprint;
+	UClass*  OldGeneratedClass;
+	UObject* OldCDO;
+	UClass*  OldSkeletonClass;
+	UObject* OldSkelCDO;
+};
+
+FBlueprintUnloader::FBlueprintUnloader(UBlueprint* OldBlueprintIn)
+	: OldBlueprint(OldBlueprintIn)
+	, OldGeneratedClass(OldBlueprint->GeneratedClass)
+	, OldCDO(nullptr)
+	, OldSkeletonClass(OldBlueprint->SkeletonGeneratedClass)
+	, OldSkelCDO(nullptr)
+{
+	if (OldGeneratedClass != nullptr)
+	{
+		OldCDO = OldGeneratedClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
+	}
+	if (OldSkeletonClass != nullptr)
+	{
+		OldSkelCDO = OldSkeletonClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
+	}
+	OldBlueprint = OldBlueprintIn;
+}
+
+void FBlueprintUnloader::UnloadBlueprint(const bool bResetPackage)
+{
+	if (OldBlueprint.IsValid())
+	{
+		UBlueprint* UnloadingBp = OldBlueprint.Get();
+
+		UPackage* const OldPackage = Cast<UPackage>(UnloadingBp->GetOutermost());
+		bool const bIsDirty = OldPackage->IsDirty();
+
+		UPackage* const TransientPackage = GetTransientPackage();
+		check(OldPackage != TransientPackage); // is the blueprint already unloaded?
+		
+		FName const BlueprintName = UnloadingBp->GetFName();
+		// move the blueprint to the transient package (to be picked up by garbage collection later)
+		FName UnloadedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), BlueprintName);
+		UnloadingBp->Rename(*UnloadedName.ToString(), TransientPackage, REN_DontCreateRedirectors | REN_DoNotDirty);
+		// @TODO: currently, REN_DoNotDirty does not guarantee that the package 
+		//        will not be marked dirty
+		OldPackage->SetDirtyFlag(bIsDirty);
+
+		// make sure the blueprint is properly trashed (remove it from the package)
+		UnloadingBp->SetFlags(RF_Transient);
+		UnloadingBp->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+		UnloadingBp->RemoveFromRoot();
+		UnloadingBp->MarkPendingKill();
+		// if it's in the undo buffer, then we have to clear that...
+		if (FKismetEditorUtilities::IsReferencedByUndoBuffer(UnloadingBp))
+		{
+			GEditor->Trans->Reset(LOCTEXT("UnloadedBlueprint", "Unloaded Blueprint"));
+		}
+
+		if (bResetPackage)
+		{
+			TArray<UPackage*> PackagesToUnload;
+			PackagesToUnload.Add(OldPackage);
+
+			FText PackageUnloadError;
+			PackageTools::UnloadPackages(PackagesToUnload, PackageUnloadError);
+
+			if (!PackageUnloadError.IsEmpty())
+			{
+				const FText ErrorMessage = FText::Format(LOCTEXT("UnloadBpPackageError", "Failed to unload Bluprint '{0}': {1}"),
+					FText::FromName(BlueprintName), PackageUnloadError);
+				FSlateNotificationManager::Get().AddNotification(FNotificationInfo(ErrorMessage));
+
+				// fallback to manually setting up the package so it can reload 
+				// the blueprint 
+				ResetLoaders(OldPackage);
+				OldPackage->ClearFlags(RF_WasLoaded);
+				OldPackage->bHasBeenFullyLoaded = false;
+				OldPackage->GetMetaData()->RemoveMetaDataOutsidePackage();
+			}
+		}
+
+		FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(UnloadingBp);
+
+		// handled in FBlueprintEditor (from the OnBlueprintUnloaded event)
+// 		IAssetEditorInstance* EditorInst = FAssetEditorManager::Get().FindEditorForAsset(UnloadingBp, /*bFocusIfOpen =*/false);
+// 		if (EditorInst != nullptr)
+// 		{
+// 			EditorInst->CloseWindow();
+// 		}
+	}
+}
+
+void FBlueprintUnloader::ReplaceStaleRefs(UBlueprint* NewBlueprint)
+{
+	//--------------------------------------
+	// Construct redirects
+	//--------------------------------------
+
+	TMap<UObject*, UObject*> Redirects;
+	TArray<UObject*> OldObjsNeedingReplacing;
+
+	if (OldBlueprint.IsValid(/*bEvenIfPendingKill =*/true))
+	{
+		UBlueprint* ToBeReplaced = OldBlueprint.Get(/*bEvenIfPendingKill =*/true);
+		if (OldGeneratedClass != nullptr)
+		{
+			OldObjsNeedingReplacing.Add(OldGeneratedClass);
+			Redirects.Add(OldGeneratedClass, NewBlueprint->GeneratedClass);
+		}
+		if (OldCDO != nullptr)
+		{
+			OldObjsNeedingReplacing.Add(OldCDO);
+			Redirects.Add(OldCDO, NewBlueprint->GeneratedClass->GetDefaultObject());
+		}
+		if (OldSkeletonClass != nullptr)
+		{
+			OldObjsNeedingReplacing.Add(OldSkeletonClass);
+			Redirects.Add(OldSkeletonClass, NewBlueprint->SkeletonGeneratedClass);
+		}
+		if (OldSkelCDO != nullptr)
+		{
+			OldObjsNeedingReplacing.Add(OldSkelCDO);
+			Redirects.Add(OldSkelCDO, NewBlueprint->SkeletonGeneratedClass->GetDefaultObject());
+		}
+
+		OldObjsNeedingReplacing.Add(ToBeReplaced);
+		Redirects.Add(ToBeReplaced, NewBlueprint);
+
+		// clear the object being debugged; otherwise ReplaceInstancesOfClass()  
+		// trys to reset it with a new level instance, and OldBlueprint won't 
+		// match the new instance's type (it's now a NewBlueprint)
+		ToBeReplaced->SetObjectBeingDebugged(nullptr);
+	}
+
+	//--------------------------------------
+	// Replace old references
+	//--------------------------------------
+
+	TArray<UObject*> Referencers;
+	// find all objects, still referencing the old blueprint/class/cdo/etc.
+	for (auto Referencer : TFindObjectReferencers<UObject>(OldObjsNeedingReplacing, /*PackageToCheck =*/nullptr, /*bIgnoreTemplates =*/false))
+	{
+		Referencers.Add(Referencer.Value);
+	}
+
+	FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldGeneratedClass, NewBlueprint->GeneratedClass);
+
+	for (UObject* Referencer : Referencers)
+	{
+		FArchiveReplaceObjectRef<UObject>(Referencer, Redirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/false, /*bIgnoreArchetypeRef=*/false);
 	}
 }
 
@@ -338,7 +516,36 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	return NewBP;
 }
 
-static bool IsReferencedByUndoBuffer(UBlueprint* Blueprint)
+UBlueprint* FKismetEditorUtilities::ReloadBlueprint(UBlueprint* StaleBlueprint)
+{
+	check(StaleBlueprint->IsAsset());
+	FStringAssetReference BlueprintAssetRef(StaleBlueprint);
+
+	FBlueprintUnloader Unloader(StaleBlueprint);
+	Unloader.UnloadBlueprint(/*bResetPackage =*/true);
+
+	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), /*Outer =*/nullptr, *BlueprintAssetRef.AssetLongPathname));
+
+	Unloader.ReplaceStaleRefs(ReloadedBlueprint);
+	return ReloadedBlueprint;
+}
+
+UBlueprint* FKismetEditorUtilities::ReplaceBlueprint(UBlueprint* Target, UBlueprint const* ReplacementArchetype)
+{
+	UPackage* BlueprintPackage = Target->GetOutermost();
+	check(BlueprintPackage != GetTransientPackage());
+	const FString BlueprintName = Target->GetName();
+
+	FBlueprintUnloader Unloader(Target);
+	Unloader.UnloadBlueprint(/*bResetPackage =*/false);
+
+	UBlueprint* Replacement = Cast<UBlueprint>(StaticDuplicateObject(ReplacementArchetype, BlueprintPackage, *BlueprintName));
+
+	Unloader.ReplaceStaleRefs(Replacement);
+	return Replacement;
+}
+
+bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 {
 	UObject* BlueprintObj = Blueprint;
 	FReferencerInformationList ReferencesIncludingUndo;
@@ -355,133 +562,6 @@ static bool IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 	const int32 NonUndoReferenceCount = ReferencesExcludingUndo.ExternalReferences.Num() + ReferencesExcludingUndo.InternalReferences.Num();
 
 	return (TotalReferenceCount > NonUndoReferenceCount);
-}
-
-static void UnloadBlueprint(UBlueprint* const Blueprint)
-{
-	UPackage* const OldPackage = Cast<UPackage>(Blueprint->GetOutermost());
-
-	UPackage* const TransientPackage = GetTransientPackage();
-	// move the blueprint to the transient package (to be picked up by garbage collection later)
-	FName UnloadedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), Blueprint->GetFName());
-	Blueprint->Rename(*UnloadedName.ToString(), TransientPackage, REN_DontCreateRedirectors | REN_DoNotDirty);
-
-	// make sure the blueprint is properly trashed
-	Blueprint->SetFlags(RF_Transient);
-	Blueprint->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
-	Blueprint->RemoveFromRoot();
-	Blueprint->MarkPendingKill();
-
-	FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(Blueprint);
-
-	// reset the blueprint's original package/linker so that we can get by
-	// any early returns (in the load code), and reload its exports as if new 
-	ResetLoaders(OldPackage);
-	OldPackage->ClearFlags(RF_WasLoaded);
-	OldPackage->bHasBeenFullyLoaded = false;
-	OldPackage->GetMetaData()->RemoveMetaDataOutsidePackage();
-
-	if (IsReferencedByUndoBuffer(Blueprint))
-	{
-		GEditor->Trans->Reset(LOCTEXT("ReloadedBlueprint", "Reloaded Blueprint"));
-	}
-
-	// handled in FBlueprintEditor (from the OnBlueprintUnloaded event)
-// 	IAssetEditorInstance* EditorInst = FAssetEditorManager::Get().FindEditorForAsset(Blueprint, /*bFocusIfOpen =*/false);
-// 	if (EditorInst != nullptr)
-// 	{
-// 		EditorInst->CloseWindow();
-// 	}
-}
-
-UBlueprint* FKismetEditorUtilities::ReloadBlueprint(UBlueprint* StaleBlueprint)
-{
-	check(StaleBlueprint->IsAsset());
-
-	UClass* OldGeneratedClass = StaleBlueprint->GeneratedClass;
-	UObject* OldCDO = nullptr; // will be filled out below
-	UClass* OldSkeletonClass = StaleBlueprint->SkeletonGeneratedClass;
-	UObject* OldSkelCDO = nullptr; // will be filled out below
-
-	//--------------------------------------
-	// Collect objects that need replacing
-	//--------------------------------------
-
-	TArray<UObject*> StaleObjects;
-	if (OldGeneratedClass != nullptr)
-	{
-		StaleObjects.Add(OldGeneratedClass);
-
-		OldCDO = OldGeneratedClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
-		if (OldCDO != nullptr)
-		{
-			StaleObjects.Add(OldCDO);
-		}		
-	}
-	if (OldSkeletonClass != nullptr)
-	{
-		StaleObjects.Add(OldSkeletonClass);
-
-		OldSkelCDO = OldSkeletonClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
-		if (OldSkelCDO != nullptr)
-		{
-			StaleObjects.Add(OldSkelCDO);
-		}
-	}
-	StaleObjects.Add(StaleBlueprint);
-
-	//--------------------------------------
-	// Unload/Load Blueprint
-	//--------------------------------------
-
-	FStringAssetReference BlueprintAssetRef(StaleBlueprint);
-	UnloadBlueprint(StaleBlueprint);
-	
-	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), /*Outer =*/nullptr, *BlueprintAssetRef.AssetLongPathname));
-
-	//--------------------------------------
-	// Construct redirects
-	//--------------------------------------
-
-	TMap<UObject*, UObject*> Redirects;
-	if (OldGeneratedClass != nullptr)
-	{
-		Redirects.Add(OldGeneratedClass, ReloadedBlueprint->GeneratedClass);
-	}
-	if (OldCDO != nullptr)
-	{
-		Redirects.Add(OldCDO, ReloadedBlueprint->GeneratedClass->GetDefaultObject());
-	}
-	if (OldSkeletonClass != nullptr)
-	{
-		Redirects.Add(OldSkeletonClass, ReloadedBlueprint->SkeletonGeneratedClass);
-	}
-	if (OldSkelCDO != nullptr)
-	{
-		Redirects.Add(OldSkelCDO, ReloadedBlueprint->SkeletonGeneratedClass->GetDefaultObject());
-	}
-	Redirects.Add(StaleBlueprint, ReloadedBlueprint);
-
-	//--------------------------------------
-	// Replace old references
-	//--------------------------------------
-
-	TArray<UObject*> Referencers;
-	// find all objects, still referencing the old blueprint/class/cdo/etc.
-	for (auto Referencer : TFindObjectReferencers<UObject>(StaleObjects, /*PackageToCheck =*/nullptr, /*bIgnoreTemplates =*/false))
-	{
-		Referencers.Add(Referencer.Value);
-	}
-
-	StaleBlueprint->SetObjectBeingDebugged(nullptr);
-	FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldGeneratedClass, ReloadedBlueprint->GeneratedClass);
-
-	for (UObject* Referencer : Referencers)
-	{
-		FArchiveReplaceObjectRef<UObject>(Referencer, Redirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/false, /*bIgnoreArchetypeRef=*/false);
-	}
-	
-	return ReloadedBlueprint;
 }
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)

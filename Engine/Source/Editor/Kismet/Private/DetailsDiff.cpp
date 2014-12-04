@@ -31,6 +31,11 @@ FDetailsDiff::FDetailsDiff(const UObject* InObject, const TArray< FPropertyPath 
 	DifferingProperties = DetailsView->GetPropertiesInOrderDisplayed();
 }
 
+FDetailsDiff::~FDetailsDiff()
+{
+	DetailsView->SetOnDisplayedPropertiesChanged(::FOnDisplayedPropertiesChanged());
+}
+
 void FDetailsDiff::HighlightProperty(const FPropertySoftPath& PropertyName)
 {
 	// resolve the property soft path:

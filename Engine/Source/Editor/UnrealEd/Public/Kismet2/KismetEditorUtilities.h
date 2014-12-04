@@ -34,17 +34,37 @@ public:
 	 * Event that's broadcast anytime a blueprint is unloaded, and becomes 
 	 * invalid (with calls to ReloadBlueprint(), for example).
 	 */
-	DECLARE_EVENT_OneParam(FKismetEditorUtilities, FOnBlueprintUnloaded, UBlueprint*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlueprintUnloaded, UBlueprint*);
 	static FOnBlueprintUnloaded OnBlueprintUnloaded;
 
 	/** 
 	 * Unloads the supplied Blueprint (marking it pending-kill, and removing it 
 	 * from its outer package). Then proceeds to reload from disk.
-
+	 *
 	 * @param  TargetBlueprint	The Blueprint you want to unload and replace.
 	 * @return The freshly loaded Blueprint (replacing the, now invalid, input).
 	 */
 	static UBlueprint* ReloadBlueprint(UBlueprint* TargetBlueprint);
+
+	/** 
+	 * Unloads the specified Blueprint (marking it pending-kill, and removing it 
+	 * from its outer package). Then proceeds to replace all references with a
+	 * copy of the one passed.
+	 *
+	 * @param  Target		The Blueprint you want to unload and replace.
+	 * @param  Replacement	The Blueprint you cloned and used to replace Target.
+	 * @return The duplicated replacement Blueprint.
+	 */
+	static UBlueprint* ReplaceBlueprint(UBlueprint* Target, UBlueprint const* Replacement);
+
+	/** 
+	 * Determines if the specified blueprint is referenced currently in the undo 
+	 * buffer.
+	 *
+	 * @param  Blueprint	The Blueprint you want to query about.
+	 * @return True if the Blueprint is saved in the undo buffer, false if not.
+	 */
+	static bool IsReferencedByUndoBuffer(UBlueprint* Blueprint);
 
 	/** Create the correct event graphs for this blueprint */
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);

@@ -120,21 +120,19 @@ static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor>
                                                     const FRevisionInfo&    BaseRevInfo,
 													const UBlueprint*       RemoteBlueprint,
 													const FRevisionInfo&    RemoteRevInfo,
-													const UBlueprint&       LocalBlueprint,
+													const UBlueprint*       LocalBlueprint,
 													const FOnMergeResolved& MereResolutionCallback)
 {
 	TSharedPtr<SWidget> TabContent;
 
 	if (RemoteBlueprint && BaseBlueprint)
 	{
-		LocalBlueprint.bDuplicatingReadOnly = true;
 		FBlueprintMergeData Data(Editor
-			, static_cast<const UBlueprint*>(StaticDuplicateObject(&LocalBlueprint, GetTransientPackage(), TEXT("None")))
+			, LocalBlueprint
 			, BaseBlueprint
 			, RemoteRevInfo
 			, RemoteBlueprint
 			, BaseRevInfo);
-		LocalBlueprint.bDuplicatingReadOnly = false;
 
 		TabContent = SNew(SBlueprintMerge, Data)
 			.OnMergeResolved(MereResolutionCallback);
@@ -158,7 +156,7 @@ static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor>
 		DisplayErrorMessage(
 			FText::Format(
 				LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}")
-				, FText::FromString(LocalBlueprint.GetName())
+				, FText::FromString(LocalBlueprint->GetName())
 				, MissingFiles
 			)
 		);
@@ -246,7 +244,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 		FRevisionInfo BaseRevInfo = FRevisionInfo::InvalidRevision();
 		const UBlueprint* BaseBlueprint = Cast< UBlueprint >(LoadBaseRev(PackageName, AssetName, SourceControlStateRef, BaseRevInfo));
 
-		Contents = GenerateMergeTabContents(Editor, BaseBlueprint, BaseRevInfo, RemoteBlueprint, CurrentRevInfo, Object, FOnMergeResolved());
+		Contents = GenerateMergeTabContents(Editor, BaseBlueprint, BaseRevInfo, RemoteBlueprint, CurrentRevInfo, &Object, FOnMergeResolved());
 	}
 
 	TSharedRef<SDockTab> Tab =  FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
@@ -268,7 +266,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint* BaseBlueprint
 	}
 
 	// @TODO: pipe revision info through
-	TSharedPtr<SWidget> TabContents = GenerateMergeTabContents(Editor, BaseBlueprint, FRevisionInfo::InvalidRevision(), RemoteBlueprint, FRevisionInfo::InvalidRevision(), *LocalBlueprint, MergeResolutionCallback);
+	TSharedPtr<SWidget> TabContents = GenerateMergeTabContents(Editor, BaseBlueprint, FRevisionInfo::InvalidRevision(), RemoteBlueprint, FRevisionInfo::InvalidRevision(), LocalBlueprint, MergeResolutionCallback);
 
 	TSharedRef<SDockTab> Tab = FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
 	Tab->SetContent(TabContents.ToSharedRef());

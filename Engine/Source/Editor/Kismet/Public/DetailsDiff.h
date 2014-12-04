@@ -10,6 +10,7 @@ public:
 	DECLARE_DELEGATE( FOnDisplayedPropertiesChanged );
 
 	FDetailsDiff( const UObject* InObject, const TArray< FPropertyPath >& InDifferingProperties, FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChanged );
+	~FDetailsDiff();
 
 	void HighlightProperty( const FPropertySoftPath& PropertyName );
 	TSharedRef< SWidget > DetailsWidget();

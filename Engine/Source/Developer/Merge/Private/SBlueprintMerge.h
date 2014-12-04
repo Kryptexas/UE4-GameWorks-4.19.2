@@ -35,9 +35,13 @@ private:
 	void OnFinishMerge();
 	void OnCancelClicked();
 	void OnModeChanged(FName NewMode);
+	void OnAcceptRemote();
+	void OnAcceptLocal();
+	void ResolveMerge(UBlueprint* Result);
 
 	FBlueprintMergeData		Data; 
 	FString					BackupSubDir;
+	FString					LocalBackupPath;
 
 	TSharedPtr<SBorder>		MainView;
 
