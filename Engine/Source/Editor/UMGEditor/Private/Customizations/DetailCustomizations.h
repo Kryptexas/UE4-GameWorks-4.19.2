@@ -35,6 +35,8 @@ private:
 	void CreateEventCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property, UWidget* Widget );
 
 	void CreateMulticastEventCustomization(IDetailLayoutBuilder& DetailLayout, FName ThisComponentName, UClass* PropertyClass, UMulticastDelegateProperty* Property);
+
+	void ResetToDefault_RemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
 private:
 
 	TWeakPtr<FWidgetBlueprintEditor> Editor;

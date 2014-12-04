@@ -76,6 +76,19 @@ void FEditorPropertyPathSegment::Rebase(UBlueprint* SegmentBase)
 
 bool FEditorPropertyPathSegment::ValidateMember(UDelegateProperty* DelegateProperty, FText& OutError) const
 {
+	// We may be binding to a function that doesn't have a explicit binder system that can handle it.  In that case
+	// check to see if the function signatures are compatible, if it is, even if we don't have a binder we can just
+	// directly bind the function to the delegate.
+	if ( UFunction* Function = Cast<UFunction>(GetMember()) )
+	{
+		// Check the signatures to ensure these functions match.
+		if ( Function->IsSignatureCompatibleWith(DelegateProperty->SignatureFunction, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+		{
+			return true;
+		}
+	}
+
+	// Next check to see if we have a binder suitable for handling this case.
 	if ( DelegateProperty->SignatureFunction->NumParms == 1 )
 	{
 		if ( UProperty* ReturnProperty = DelegateProperty->SignatureFunction->GetReturnProperty() )

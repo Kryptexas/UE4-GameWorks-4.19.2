@@ -20,6 +20,11 @@ public:
 protected:
 	struct FFunctionInfo
 	{
+		FFunctionInfo()
+			: Function(nullptr)
+		{
+		}
+
 		FText DisplayName;
 		FString Tooltip;
 

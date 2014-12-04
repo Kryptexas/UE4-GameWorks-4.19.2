@@ -572,13 +572,9 @@ void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> Prop
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.FunctionName = SelectedFunction->FuncName;
 
-		// On event function bindings, we don't allow nested bindings, so don't fill out
-		// the source path, it will be interpreted as needing a dynamic binder.
-		if ( GeneratePureBindings )
-		{
-			Binding.SourcePath = BindingPath;
-		}
-		else
+		Binding.SourcePath = BindingPath;
+
+		if ( SelectedFunction->Function )
 		{
 			UBlueprint::GetGuidFromClassByFieldName<UFunction>(
 				SelectedFunction->Function->GetOwnerClass(),
