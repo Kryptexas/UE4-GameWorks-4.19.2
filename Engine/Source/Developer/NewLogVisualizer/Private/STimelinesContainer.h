@@ -30,6 +30,8 @@ public:
 	void OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry);
 	void OnFiltersChanged();
 	void OnSearchChanged(const FText& Filter);
+	void OnFiltersSearchChanged(const FText& Filter);
+
 	void GenerateReport();
 
 	/**

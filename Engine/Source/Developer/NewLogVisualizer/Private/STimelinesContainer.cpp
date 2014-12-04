@@ -316,22 +316,16 @@ void STimelinesContainer::OnFiltersChanged()
 	}
 }
 
+void STimelinesContainer::OnFiltersSearchChanged(const FText& Filter)
+{
+	for (auto CurrentItem : TimelineItems)
+	{
+		CurrentItem->OnFiltersSearchChanged(Filter);
+	}
+}
+
 void STimelinesContainer::GenerateReport()
 {
-	//TArray< TSharedPtr<FLogsListItem> > ItemsToSave = LogsListWidget->GetSelectedItems();
-	//TArray< TSharedPtr<class STimeline> > AllLogs;
-
-	//TSharedPtr<FLogsListItem>* LogListItem = ItemsToSave.GetData();
-	//for (int32 ItemIndex = 0; ItemIndex < ItemsToSave.Num(); ++ItemIndex, ++LogListItem)
-	//{
-	//	if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
-	//	{
-	//		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[(*LogListItem)->LogIndex];
-	//		AllLogs.Add(Log);
-	//	}
-	//}
-
-
 	TSharedRef<SWindow> NewWindow = SNew(SWindow)
 		.ClientSize(FVector2D(720, 768))
 		.Title(NSLOCTEXT("LogVisualizerReport", "WindowTitle", "Log Visualizer Report"))

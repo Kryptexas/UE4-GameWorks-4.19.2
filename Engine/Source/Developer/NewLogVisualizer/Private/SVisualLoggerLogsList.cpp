@@ -7,6 +7,7 @@
 #include "SSequencerSectionOverlay.h"
 #include "STimelinesContainer.h"
 #include "SVisualLoggerLogsList.h"
+#include "LogVisualizerSettings.h"
 
 #define LOCTEXT_NAMESPACE "SVisualLoggerLogsList"
 
@@ -83,6 +84,7 @@ TSharedRef<ITableRow> SVisualLoggerLogsList::LogEntryLinesGenerateRow(TSharedPtr
 				SNew(STextBlock)
 				.ColorAndOpacity(FSlateColor(Item->CategoryColor))
 				.Text(Item->Category)
+				.HighlightText(this, &SVisualLoggerLogsList::GetFilterText)
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -98,8 +100,22 @@ TSharedRef<ITableRow> SVisualLoggerLogsList::LogEntryLinesGenerateRow(TSharedPtr
 				SNew(STextBlock)
 				.AutoWrapText(true)
 				.Text(Item->Line)
+				.HighlightText(this, &SVisualLoggerLogsList::GetFilterText)
 			]
 		];
+}
+
+FText SVisualLoggerLogsList::GetFilterText() const
+{
+	static FText NoText;
+	const bool bSearchInsideLogs = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bSearchInsideLogs;
+	return bSearchInsideLogs ? FilterText : NoText;
+}
+
+void SVisualLoggerLogsList::OnFiltersSearchChanged(const FText& Filter)
+{
+	FilterText = Filter;
+	OnFiltersChanged();
 }
 
 void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& LogEntry)

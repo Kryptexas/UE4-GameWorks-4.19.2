@@ -44,6 +44,10 @@ public:
 	DECLARE_EVENT_OneParam(ULogVisualizerSettings, FSettingChangedEvent, FName /*PropertyName*/);
 	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
 
+	/**Whether to search/filter categories or to get text vlogs into account too */
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bSearchInsideLogs;
+
 protected:
 
 	// UObject overrides

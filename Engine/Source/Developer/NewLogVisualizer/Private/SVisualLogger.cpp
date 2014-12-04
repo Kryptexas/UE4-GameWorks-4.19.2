@@ -675,7 +675,7 @@ void SVisualLogger::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLin
 void SVisualLogger::OnFiltersSearchChanged(const FText& Filter)
 {
 	VisualLoggerFilters->OnFiltersSearchChanged(Filter);
-	LogsList->OnFiltersChanged();
-	MainView->OnFiltersChanged();
+	LogsList->OnFiltersSearchChanged(Filter);
+	MainView->OnFiltersSearchChanged(Filter);
 }
 #undef LOCTEXT_NAMESPACE

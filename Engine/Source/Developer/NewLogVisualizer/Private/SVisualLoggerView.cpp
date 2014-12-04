@@ -37,6 +37,8 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 		SNew(SScrollBar)
 		.Thickness(FVector2D(5.0f, 5.0f));
 
+	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+
 	ChildSlot
 		[
 			SNew(SBorder)
@@ -93,7 +95,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 								[
 									SNew(SSearchBox)
 									.OnTextChanged(InArgs._OnFiltersSearchChanged)
-									.HintText(LOCTEXT("FiltersSearchHint", "Log Category Search"))
+									.HintText_Lambda([Settings]()->FText{return Settings->bSearchInsideLogs ? LOCTEXT("FiltersSearchHint", "Log Data Search") : LOCTEXT("FiltersSearchHint", "Log Category Search"); })
 								]
 #endif
 							]
@@ -210,4 +212,10 @@ void SVisualLoggerView::OnFiltersChanged()
 {
 	TimelinesContainer->OnFiltersChanged();
 }
+
+void SVisualLoggerView::OnFiltersSearchChanged(const FText& Filter)
+{
+	TimelinesContainer->OnFiltersSearchChanged(Filter);
+}
+
 #undef LOCTEXT_NAMESPACE

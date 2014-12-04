@@ -393,13 +393,15 @@ void SVisualLoggerFilters::AddFilter(const FString& GraphName, const FString& Da
 
 bool SVisualLoggerFilters::IsFilterEnabled(const FString& InFilterName, TEnumAsByte<ELogVerbosity::Type> Verbosity)
 {
+	const ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
 	const FName FilterName(*InFilterName);
 	for (int32 Index = 0; Index < Filters.Num(); ++Index)
 	{
 		const SFilterWidget& Filter = Filters[Index].Get();
 		if (Filter.GetFilterName() == FilterName)
 		{
-			return Filter.IsEnabled() && Filter.GetVerbosity() >= Verbosity.GetValue() && (FiltersSearchString.Len() == 0 || Filter.GetFilterName().ToString().Find(FiltersSearchString) != INDEX_NONE);
+			return Filter.IsEnabled() && Filter.GetVerbosity() >= Verbosity.GetValue() && 
+				(Settings->bSearchInsideLogs == true || (Settings->bSearchInsideLogs == false && (FiltersSearchString.Len() == 0 || Filter.GetFilterName().ToString().Find(FiltersSearchString) != INDEX_NONE)));
 		}
 	}
 

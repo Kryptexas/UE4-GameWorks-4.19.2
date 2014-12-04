@@ -310,82 +310,115 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	TArray<float> ErrorTimes;
 	TArray<float> WarningTimes;
 	auto &Entries = TimelineOwner.Pin()->GetEntries();
-	for (int32 Index = 0; Index < Entries.Num(); Index++)
+	int32 EntryIndex = 0;
+
+	while (EntryIndex < Entries.Num())
 	{
-		int32 CurrentIndex = Index;
-		float CurrentTime = Entries[CurrentIndex].Entry.TimeStamp;
-		if (CurrentTime < LocalViewRange.GetLowerBoundValue() || CurrentTime > LocalViewRange.GetUpperBoundValue())
+		const FVisualLogEntry& Entry = Entries[EntryIndex].Entry;
+		if (Entry.TimeStamp < LocalViewRange.GetLowerBoundValue() || Entry.TimeStamp > LocalViewRange.GetUpperBoundValue())
 		{
+			EntryIndex++;
 			continue;
 		}
 
-		if( TimelineOwner.Pin()->IsEntryHidden(Entries[CurrentIndex]) )
+		if (TimelineOwner.Pin()->IsEntryHidden(Entries[EntryIndex]))
 		{
+			EntryIndex++;
 			continue;
 		}
 
-		const TArray<FVisualLogLine>& LogLines = Entries[CurrentIndex].Entry.LogLines;
-		for (const FVisualLogLine& CurrentLine : LogLines)
+		// find bar width, connect all contiguous bars to draw them as one geometry (rendering optimization)
+		const float StartPos = (Entry.TimeStamp - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput - 2;
+		float EndPos = (Entry.TimeStamp - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput + 2;
+		int32 StartIndex = EntryIndex;
+		float LastEndX = MAX_FLT;
+		for (; StartIndex < Entries.Num(); ++StartIndex)
 		{
-			if (CurrentLine.Verbosity <= ELogVerbosity::Error)
+			const FVisualLogEntry& CurrentEntry = Entries[StartIndex].Entry;
+			if (CurrentEntry.TimeStamp < LocalViewRange.GetLowerBoundValue() || CurrentEntry.TimeStamp > LocalViewRange.GetUpperBoundValue())
 			{
-				ErrorTimes.AddUnique(CurrentTime);
 				break;
 			}
-			else if (CurrentLine.Verbosity == ELogVerbosity::Warning)
+
+			if (TimelineOwner.Pin()->IsEntryHidden(Entries[StartIndex]))
 			{
-				WarningTimes.AddUnique(CurrentTime);
+				continue;
+			}
+
+			const TArray<FVisualLogLine>& LogLines = CurrentEntry.LogLines;
+			for (const FVisualLogLine& CurrentLine : LogLines)
+			{
+				if (CurrentLine.Verbosity <= ELogVerbosity::Error)
+				{
+					ErrorTimes.AddUnique(CurrentEntry.TimeStamp);
+					break;
+				}
+				else if (CurrentLine.Verbosity == ELogVerbosity::Warning)
+				{
+					WarningTimes.AddUnique(CurrentEntry.TimeStamp);
+					break;
+				}
+			}
+
+			const float CurrentStartPos = (CurrentEntry.TimeStamp - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput - 2;
+			if (CurrentStartPos > EndPos)
+			{
 				break;
 			}
+			EndPos = (CurrentEntry.TimeStamp - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput + 2;
 		}
 
-		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
-
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			RetLayerId++,
-			AllottedGeometry.ToPaintGeometry(
-			FVector2D(LinePos - BoxWidth * 0.5f, 0.0f),
-			FVector2D(BoxWidth, AllottedGeometry.Size.Y)),
-			FillImage,
-			MyClippingRect,
-			DrawEffects,
-			CurrentTimeColor
-			);
+		if (EndPos - StartPos > 0)
+		{
+			const float BarWidth = (EndPos - StartPos);
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				RetLayerId,
+				AllottedGeometry.ToPaintGeometry(
+				FVector2D(StartPos, 0.0f),
+				FVector2D(BarWidth, AllottedGeometry.Size.Y)),
+				FillImage,
+				MyClippingRect,
+				DrawEffects,
+				CurrentTimeColor
+				);
+		}
+		EntryIndex = StartIndex;
 	}
 
-	float ErrorBoxWidth = BoxWidth+2;
-	for (auto CurrentTime : ErrorTimes)
-	{
-		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
-
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			RetLayerId++,
-			AllottedGeometry.ToPaintGeometry(
-			FVector2D(LinePos - ErrorBoxWidth * 0.5f, 0.0f),
-			FVector2D(ErrorBoxWidth, AllottedGeometry.Size.Y)),
-			FillImage,
-			MyClippingRect,
-			DrawEffects,
-			ErrorTimeColor
-			);
-	}
-
+	if (WarningTimes.Num()) RetLayerId++;
 	for (auto CurrentTime : WarningTimes)
 	{
 		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			RetLayerId++,
+			RetLayerId,
 			AllottedGeometry.ToPaintGeometry(
-			FVector2D(LinePos - ErrorBoxWidth * 0.5f, 0.0f),
-			FVector2D(ErrorBoxWidth, AllottedGeometry.Size.Y)),
+			FVector2D(LinePos - 3, 0.0f),
+			FVector2D(6, AllottedGeometry.Size.Y)),
 			FillImage,
 			MyClippingRect,
 			DrawEffects,
 			WarningTimeColor
+			);
+	}
+
+	if (ErrorTimes.Num()) RetLayerId++;
+	for (auto CurrentTime : ErrorTimes)
+	{
+		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			RetLayerId,
+			AllottedGeometry.ToPaintGeometry(
+			FVector2D(LinePos - 3, 0.0f),
+			FVector2D(6, AllottedGeometry.Size.Y)),
+			FillImage,
+			MyClippingRect,
+			DrawEffects,
+			ErrorTimeColor
 			);
 	}
 
@@ -402,13 +435,12 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		float CurrentTime = Entries[BestItemIndex].Entry.TimeStamp;
 		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
 
-		BoxWidth += 2;
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			RetLayerId++,
+			++RetLayerId,
 			AllottedGeometry.ToPaintGeometry(
-			FVector2D(LinePos - BoxWidth * 0.5f, 0.0f),
-			FVector2D(BoxWidth, AllottedGeometry.Size.Y)),
+			FVector2D(LinePos - 2, 0.0f),
+			FVector2D(4, AllottedGeometry.Size.Y)),
 			SelectedFillImage,
 			MyClippingRect,
 			ESlateDrawEffect::None,
