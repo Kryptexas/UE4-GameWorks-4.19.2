@@ -380,7 +380,7 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 		// PropertyClass itself (in the middle of an FArchiveReplaceObjectRef 
 		// pass)... if this is the case, then we might have already replaced 
 		// the object's class, but not the PropertyClass yet (or vise-versa)... 
-		// so we use this to ensure in that situation that we don't clear the 
+		// so we use this to ensure, in that situation, that we don't clear the 
 		// object value (if CLASS_NewerVersionExists is set, then we are likely 
 		// in the middle of an FArchiveReplaceObjectRef pass)
 		bool bIsReplacingClassRefs = PropertyClass->HasAnyClassFlags(CLASS_NewerVersionExists) != ObjectClass->HasAnyClassFlags(CLASS_NewerVersionExists);
