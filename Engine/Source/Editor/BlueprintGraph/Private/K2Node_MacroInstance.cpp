@@ -32,8 +32,7 @@ bool UK2Node_MacroInstance::IsActionFilteredOut(FBlueprintActionFilter const& Fi
 
 	for (UEdGraph* Graph : FilterContext.Graphs)
 	{
-		// Macro Instances are not allowed in it's own graph, nor in Function graphs if the macro has latent functions in it
-		if (Graph == GetMacroGraph() || (Graph->GetSchema()->GetGraphType(Graph) == GT_Function && FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(GetMacroGraph())) )
+		if (!CanPasteHere(Graph))
 		{
 			bIsFilteredOut = true;
 			break;
@@ -355,6 +354,35 @@ FName UK2Node_MacroInstance::GetPaletteIcon(FLinearColor& OutColor) const
 	}
 
 	return TEXT("GraphEditor.Macro_16x");
+}
+
+bool UK2Node_MacroInstance::CanPasteHere(const UEdGraph* TargetGraph) const
+{
+	bool bCanPaste = false;
+
+	UBlueprint* MacroBlueprint  = GetSourceBlueprint();
+	UBlueprint* TargetBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+
+	if ((MacroBlueprint != nullptr) && (TargetBlueprint != nullptr))
+	{
+		UClass* TargetClass = (TargetBlueprint->GeneratedClass != nullptr) ? TargetBlueprint->GeneratedClass : TargetBlueprint->ParentClass;
+		UClass* MacroBaseClass = ((MacroBlueprint->BlueprintType == BPTYPE_MacroLibrary) || (MacroBlueprint->GeneratedClass == nullptr)) ? 
+			MacroBlueprint->ParentClass : MacroBlueprint->GeneratedClass;
+		
+		if ((MacroBaseClass != nullptr) && (TargetClass != nullptr))
+		{
+			bCanPaste = TargetClass->IsChildOf(MacroBaseClass);
+		}
+	}
+
+	// Macro Instances are not allowed in it's own graph
+	UEdGraph* MacroGraph = GetMacroGraph();
+	bCanPaste &= (MacroGraph != TargetGraph);
+	// nor in Function graphs if the macro has latent functions in it
+	bool const bIsTargetFuncGraph = (TargetGraph->GetSchema()->GetGraphType(TargetGraph) == GT_Function);
+	bCanPaste &= (!bIsTargetFuncGraph || !FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(MacroGraph));
+
+	return bCanPaste && Super::CanPasteHere(TargetGraph);
 }
 
 void UK2Node_MacroInstance::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
