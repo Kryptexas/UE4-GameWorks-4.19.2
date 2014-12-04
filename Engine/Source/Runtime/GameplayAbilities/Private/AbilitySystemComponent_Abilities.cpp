@@ -396,7 +396,7 @@ void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithT
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
 		bool WithTagPass = (!WithTags || Spec.Ability->AbilityTags.MatchesAny(*WithTags, false));
-		bool WithoutTagPass = (!WithoutTags || Spec.Ability->AbilityTags.MatchesAll(*WithoutTags, false));
+		bool WithoutTagPass = (!WithoutTags || !Spec.Ability->AbilityTags.MatchesAny(*WithoutTags, false));
 
 		if (Spec.IsActive() && Spec.Ability && WithTagPass && WithoutTagPass)
 		{
