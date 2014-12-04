@@ -174,7 +174,16 @@ void SAssetViewItem::Tick( const FGeometry& AllottedGeometry, const double InCur
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
+	const float PrevSizeX = LastGeometry.Size.X;
+
 	LastGeometry = AllottedGeometry;
+
+	// Set cached wrap text width based on new "LastGeometry" value. 
+	// We set this only when changed because binding a delegate to text wrapping attributes is expensive
+	if( PrevSizeX != AllottedGeometry.Size.X && InlineRenameWidget.IsValid() )
+	{
+		InlineRenameWidget->SetWrapTextAt( GetNameTextWrapWidth() );
+	}
 
 	UpdatePackageDirtyState();
 
@@ -1296,7 +1305,6 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 					.HighlightText(InArgs._HighlightText)
 					.IsSelected(InArgs._IsSelected)
 					.IsReadOnly(ThumbnailEditMode)
-					.WrapTextAt(this, &SAssetTileItem::GetNameTextWrapWidth)
 					.Justification(ETextJustify::Center)
 					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 			]
@@ -1352,11 +1360,7 @@ FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
 	return FEditorStyle::GetFontStyle(RegularFont);
 }
 
-float SAssetTileItem::GetNameTextWrapWidth() const
-{
-	// Wrap to the entire size of the tile, minus some padding
-	return LastGeometry.Size.X - 2.f;
-}
+
 
 ///////////////////////////////
 // SAssetColumnItem

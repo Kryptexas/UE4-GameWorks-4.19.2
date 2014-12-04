@@ -120,6 +120,11 @@ void SInlineEditableTextBlock::SetText( const FString& InText )
 	TextBox->SetText( Text );
 }
 
+void SInlineEditableTextBlock::SetWrapTextAt( const TAttribute<float>& InWrapTextAt )
+{
+	TextBlock->SetWrapTextAt( InWrapTextAt );
+}
+
 FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if( !MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) || MouseEvent.IsControlDown() || MouseEvent.IsShiftDown())

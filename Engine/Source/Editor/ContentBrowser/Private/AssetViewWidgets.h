@@ -182,6 +182,8 @@ protected:
 	/** Delegate handler for when source control state changes */
 	void HandleSourceControlStateChanged();
 
+	/** Returns the width at which the name label will wrap the name */
+	virtual float GetNameTextWrapWidth() const { return 0.0f; }
 protected:
 
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
@@ -455,7 +457,10 @@ public:
 	/** Handles committing a name change */
 	virtual void OnAssetDataChanged() override;
 
-private:
+protected:
+	/** SAssetViewItem interface */
+	virtual float GetNameTextWrapWidth() const override { return LastGeometry.Size.X - 2.f; }
+
 	/** Returns the size of the thumbnail box widget */
 	FOptionalSize GetThumbnailBoxSize() const;
 
@@ -464,9 +469,6 @@ private:
 
 	/** Returns the size of the source control state box widget */
 	FOptionalSize GetSCCImageSize() const;
-
-	/** Returns the width at which the name label will wrap the name */
-	float GetNameTextWrapWidth() const;
 
 private:
 	/** The handle to the thumbnail that this item is rendering */
