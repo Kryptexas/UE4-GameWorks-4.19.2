@@ -703,8 +703,7 @@ bool SDesignerView::GetWidgetParentGeometry(const FWidgetReference& Widget, FGeo
 	{
 		if ( UPanelWidget* Parent = WidgetPreview->GetParent() )
 		{
-			FWidgetReference ParentReference = BlueprintEditor.Pin()->GetReferenceFromPreview(Parent);
-			return GetWidgetGeometry(ParentReference, Geometry);
+			return GetWidgetGeometry(Parent, Geometry);
 		}
 	}
 
@@ -714,21 +713,43 @@ bool SDesignerView::GetWidgetParentGeometry(const FWidgetReference& Widget, FGeo
 
 bool SDesignerView::GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const
 {
-	if ( UWidget* WidgetPreview = Widget.GetPreview() )
+	if ( const UWidget* PreviewWidget = Widget.GetPreview() )
 	{
-		TSharedPtr<SWidget> CachedPreviewWidget = WidgetPreview->GetCachedWidget();
-		if ( CachedPreviewWidget.IsValid() )
+		return GetWidgetGeometry(PreviewWidget, Geometry);
+	}
+
+	return false;
+}
+
+bool SDesignerView::GetWidgetGeometry(const UWidget* PreviewWidget, FGeometry& Geometry) const
+{
+	TSharedPtr<SWidget> CachedPreviewWidget = PreviewWidget->GetCachedWidget();
+	if ( CachedPreviewWidget.IsValid() )
+	{
+		const FArrangedWidget* ArrangedWidget = CachedWidgetGeometry.Find(CachedPreviewWidget.ToSharedRef());
+		if ( ArrangedWidget )
 		{
-			const FArrangedWidget* ArrangedWidget = CachedWidgetGeometry.Find(CachedPreviewWidget.ToSharedRef());
-			if ( ArrangedWidget )
-			{
-				Geometry = ArrangedWidget->Geometry;
-				return true;
-			}
+			Geometry = ArrangedWidget->Geometry;
+			return true;
 		}
 	}
 
 	return false;
+}
+
+FGeometry SDesignerView::MakeGeometryWindowLocal(const FGeometry& WidgetGeometry) const
+{
+	FGeometry NewGeometry = WidgetGeometry;
+
+	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(SharedThis(this));
+	if ( WidgetWindow.IsValid() )
+	{
+		TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
+
+		NewGeometry.AppendTransform(FSlateLayoutTransform(Inverse(CurrentWindowRef->GetPositionInScreen())));
+	}
+
+	return NewGeometry;
 }
 
 void SDesignerView::ClearExtensionWidgets()
