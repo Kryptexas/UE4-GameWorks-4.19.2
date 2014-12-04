@@ -642,7 +642,7 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 	FString NextToken;
 	while (FParse::Token(InCmdLine, NextToken, false))
 	{
-		if ((**NextToken == TCHAR('-')) || (**NextToken == TCHAR('/')))
+		if ((**NextToken == TCHAR('-')))
 		{
 			new(Switches) FString(NextToken.Mid(1));
 		}
