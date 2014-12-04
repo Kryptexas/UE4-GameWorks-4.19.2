@@ -386,6 +386,10 @@ void STileLayerList::SetSelectedLayer(UPaperTileLayer* SelectedLayer)
 
 void STileLayerList::OnSelectionChanged(UPaperTileLayer* ItemChangingState, ESelectInfo::Type SelectInfo)
 {
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		TileMap->SelectedLayerIndex = GetSelectionIndex();
+	}
 }
 
 TSharedPtr<SWidget> STileLayerList::OnConstructContextMenu()

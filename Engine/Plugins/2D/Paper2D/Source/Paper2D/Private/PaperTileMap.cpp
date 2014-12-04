@@ -21,6 +21,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 	SpriteCollisionDomain = ESpriteCollisionMode::None;
 
 #if WITH_EDITORONLY_DATA
+	SelectedLayerIndex = INDEX_NONE;
 	LayerNameIndex = 1;
 #endif
 
@@ -39,6 +40,8 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 	//@TODO: Determine when these are really needed, as they're seriously expensive!
 	TComponentReregisterContext<UPaperTileMapRenderComponent> ReregisterStaticComponents;
+
+	ValidateSelectedLayerIndex();
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapWidth)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapHeight)))
 	{
@@ -60,6 +63,34 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+void UPaperTileMap::PostLoad()
+{
+	Super::PostLoad();
+	ValidateSelectedLayerIndex();
+}
+
+void UPaperTileMap::ValidateSelectedLayerIndex()
+{
+	if (!TileLayers.IsValidIndex(SelectedLayerIndex))
+	{
+		// Select the top-most visible layer
+		SelectedLayerIndex = INDEX_NONE;
+		for (int32 LayerIndex = 0; (LayerIndex < TileLayers.Num()) && (SelectedLayerIndex == INDEX_NONE); ++LayerIndex)
+		{
+			if (!TileLayers[LayerIndex]->bHiddenInEditor)
+			{
+				SelectedLayerIndex = LayerIndex;
+			}
+		}
+
+		if ((SelectedLayerIndex == INDEX_NONE) && (TileLayers.Num() > 0))
+		{
+			SelectedLayerIndex = 0;
+		}
+	}
+}
+
 #endif
 
 

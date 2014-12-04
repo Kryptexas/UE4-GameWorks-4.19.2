@@ -90,6 +90,10 @@ public:
 	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
 	class UAssetImportData* AssetImportData;
 
+	/** The currently selected layer index */
+	UPROPERTY()
+	int32 SelectedLayerIndex;
+
 	/** The naming index to start at when trying to create a new layer */
 	UPROPERTY()
 	int32 LayerNameIndex;
@@ -99,6 +103,8 @@ public:
 	// UObject interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostLoad() override;
+	void ValidateSelectedLayerIndex();
 #endif
 	// End of UObject interface
 
