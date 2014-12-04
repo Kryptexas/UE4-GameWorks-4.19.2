@@ -234,8 +234,12 @@ TArray<FSlateFontInfo*> FSlateFontInfoStructCustomization::GetFontInfoBeingEdite
 
 		for(auto It = StructPtrs.CreateConstIterator(); It; ++It)
 		{
-			FSlateFontInfo* const SlateFontInfo = reinterpret_cast<FSlateFontInfo*>(*It);
-			SlateFontInfoStructs.Add(SlateFontInfo);
+			void* RawPtr = *It;
+			if(RawPtr)
+			{
+				FSlateFontInfo* const SlateFontInfo = reinterpret_cast<FSlateFontInfo*>(RawPtr);
+				SlateFontInfoStructs.Add(SlateFontInfo);
+			}
 		}
 	}
 
@@ -254,8 +258,12 @@ TArray<const FSlateFontInfo*> FSlateFontInfoStructCustomization::GetFontInfoBein
 
 		for(auto It = StructPtrs.CreateConstIterator(); It; ++It)
 		{
-			const FSlateFontInfo* const SlateFontInfo = reinterpret_cast<const FSlateFontInfo*>(*It);
-			SlateFontInfoStructs.Add(SlateFontInfo);
+			const void* RawPtr = *It;
+			if(RawPtr)
+			{
+				const FSlateFontInfo* const SlateFontInfo = reinterpret_cast<const FSlateFontInfo*>(RawPtr);
+				SlateFontInfoStructs.Add(SlateFontInfo);
+			}
 		}
 	}
 
