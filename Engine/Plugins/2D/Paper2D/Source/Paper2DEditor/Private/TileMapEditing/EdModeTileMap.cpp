@@ -341,19 +341,11 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 	{
 		if (UPaperTileMap* TileMap = TileMapComponent->TileMap)
 		{
-			// Find the first visible layer
-			int32 LayerIndex = 0;
-			for (; LayerIndex < TileMap->TileLayers.Num(); ++LayerIndex)
-			{
-				UPaperTileLayer* Layer = TileMap->TileLayers[LayerIndex];
-				if (!Layer->bHiddenInEditor && Layer->bCollisionLayer == bCollisionPainting)
-				{
-					break;
-				}
-			}
+			// Find the selected layer
+			int32 LayerIndex = TileMap->SelectedLayerIndex;
 
-			// If there was a visible layer, pick it
-			if (LayerIndex < TileMap->TileLayers.Num())
+			// If there was a selected layer, pick it
+			if (TileMap->TileLayers.IsValidIndex(LayerIndex))
 			{
 				UPaperTileLayer* Layer = TileMap->TileLayers[LayerIndex];
 
