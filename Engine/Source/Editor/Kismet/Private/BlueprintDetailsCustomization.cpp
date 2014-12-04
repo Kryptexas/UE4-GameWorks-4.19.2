@@ -676,15 +676,9 @@ bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
 		}
 		else if(IsAComponentVariable(VariableProperty) && Blueprint->SimpleConstructionScript != NULL)
 		{
-			TArray<USCS_Node*> Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-			for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
+			if (USCS_Node* Node = Blueprint->SimpleConstructionScript->FindSCSNode(GetVariableName()))
 			{
-				USCS_Node* Node = *NodeIt;
-				if (Node->VariableName == GetVariableName())
-				{
-					bIsReadOnly = !Node->IsValidVariableNameString(Node->VariableName.ToString());
-					break;
-				}
+				bIsReadOnly = !Node->IsValidVariableNameString(Node->VariableName.ToString());
 			}
 		}
 		else if(IsALocalVariable(VariableProperty))
@@ -798,7 +792,15 @@ bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 	UProperty* VariableProperty = SelectionAsProperty();
 	if(VariableProperty)
 	{
-		return GetBlueprintObj()->SkeletonGeneratedClass->GetAuthoritativeClass() == VariableProperty->GetOwnerClass()->GetAuthoritativeClass();
+		if(GetBlueprintObj()->SkeletonGeneratedClass->GetAuthoritativeClass() != VariableProperty->GetOwnerClass()->GetAuthoritativeClass())
+		{
+			return false;
+		}
+		// If the variable belongs to this class and cannot be found in the member variable list, it is not editable (it may be a component)
+		if (FBlueprintEditorUtils::FindNewVariableIndex(GetBlueprintObj(), GetVariableName()) == INDEX_NONE)
+		{
+			return false;
+		}
 	}
 	return true;
 }
