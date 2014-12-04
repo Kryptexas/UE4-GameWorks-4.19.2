@@ -51,6 +51,9 @@ private:
 
 	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height);
 
+	void OnMouseEnterAnchor();
+	void OnMouseLeaveAnchor();
+
 	const FSlateBrush* GetAnchorBrush(EAnchorWidget::Type AnchorType) const;
 	EVisibility GetAnchorVisibility(EAnchorWidget::Type AnchorType) const;
 	FVector2D GetAnchorAlignment(EAnchorWidget::Type AnchorType) const;
@@ -72,6 +75,9 @@ private:
 
 	/** */
 	bool bMovingAnchor;
+
+	/** */
+	bool bHoveringAnchor;
 
 	/** */
 	FVector2D MouseDownPosition;
