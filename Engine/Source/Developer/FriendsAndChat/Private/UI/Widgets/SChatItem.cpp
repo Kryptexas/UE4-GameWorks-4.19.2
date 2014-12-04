@@ -66,6 +66,7 @@ public:
 			.MaxWidth(FriendStyle.ChatListWidth)
 			[
 				SNew( SRichTextBlock )
+				.Visibility(this, &SChatItemImpl::GetTextVisibility)
 				.Text(DisplayText)
 				.TextStyle(&TextStyle)
 				.DecoratorStyleSet(&FFriendsAndChatModuleStyle::Get())
@@ -102,6 +103,11 @@ private:
 				default: return FLinearColor::Gray;
 			}
 		}
+	}
+
+	EVisibility GetTextVisibility() const
+	{
+		return OwnerViewModel->GetOverrideColorSet() ? EVisibility::Hidden : EVisibility::Visible;
 	}
 
 	FSlateColor GetChannelColor () const
