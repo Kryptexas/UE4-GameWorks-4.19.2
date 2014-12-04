@@ -116,7 +116,7 @@ UPackage* UObjectBaseUtility::GetOutermost() const
 		UObject* Outer = Top->GetOuter();
 		if (!Outer)
 		{
-			return CastChecked<UPackage*>(Top);
+			return CastChecked<UPackage>(Top);
 		}
 		Top = Outer;
 	}
