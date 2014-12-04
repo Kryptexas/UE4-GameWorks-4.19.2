@@ -201,6 +201,11 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
 	this->LayoutBorder = InArgs._LayoutBorder;
 	this->UserResizeBorder = InArgs._UserResizeBorder;
+	this->SizeLimits = FWindowSizeLimits()
+		.SetMinWidth(InArgs._MinWidth)
+		.SetMinHeight(InArgs._MinHeight)
+		.SetMaxWidth(InArgs._MaxWidth)
+		.SetMaxHeight(InArgs._MaxHeight);
 	
 	// calculate window size from client size
 	const bool bCreateTitleBar = InArgs._CreateTitleBar && !bIsPopupWindow && !bIsCursorDecoratorWindow && !bHasOSWindowBorder;
@@ -515,6 +520,11 @@ bool SWindow::HasActiveChildren() const
 TSharedRef<FHittestGrid> SWindow::GetHittestGrid()
 {
 	return HittestGrid;
+}
+
+FWindowSizeLimits SWindow::GetSizeLimits() const
+{
+	return SizeLimits;
 }
 
 void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

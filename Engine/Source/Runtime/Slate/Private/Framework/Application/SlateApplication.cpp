@@ -4698,6 +4698,20 @@ void FSlateApplication::OnOSPaint( const TSharedRef< FGenericWindow >& PlatformW
 	Renderer->FlushCommands();
 }
 
+FWindowSizeLimits FSlateApplication::GetSizeLimitsForWindow(const TSharedRef<FGenericWindow>& Window) const
+{
+	TSharedPtr<SWindow> SlateWindow = FSlateWindowHelper::FindWindowByPlatformWindow(SlateWindows, Window);
+	if (SlateWindow.IsValid())
+	{
+		return SlateWindow->GetSizeLimits();
+	}
+	else
+	{
+		return FWindowSizeLimits();
+	}
+
+}
+
 void FSlateApplication::OnResizingWindow( const TSharedRef< FGenericWindow >& PlatformWindow )
 {
 	// Flush the rendering command queue to ensure that there aren't pending viewport draw commands for the old viewport size.

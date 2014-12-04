@@ -138,6 +138,18 @@ public:
 		/** Can this window be minimized? */
 		SLATE_ARGUMENT( bool, SupportsMinimize )
 
+		/** The smallest width this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MinWidth )
+		
+		/** The smallest height this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MinHeight )
+		
+		/** The biggest width this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MaxWidth )
+
+		/** The biggest height this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MaxHeight )
+
 		/** True if we should initially create a traditional title bar area.  If false, the user must embed the title
 		    area content into the window manually, taking into account platform-specific considerations!  Has no
 			effect for certain types of windows (popups, tool-tips, etc.) */
@@ -655,7 +667,7 @@ public:
 	}
 
 	/**
-	 * Returns the viewport size, taking into consideration if the window size should drive the viewport size
+	 * Returns the viewport size, taking into consideration if the window size should drive the viewport size 
 	 */
 	inline FVector2D GetViewportSize() const
 	{
@@ -677,6 +689,9 @@ public:
 	 * @see FHittestGrid for more details.
 	 */
 	TSharedRef<FHittestGrid> GetHittestGrid();
+
+	/** Optional constraints on min and max sizes that this window can be. */
+	FWindowSizeLimits GetSizeLimits() const;
 
 public:
 
@@ -840,6 +855,9 @@ protected:
 	const FSlateBrush* WindowBackground;
 
 private:
+
+	/** Min and Max values for Width and Height; all optional. */
+	FWindowSizeLimits SizeLimits;
 
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
