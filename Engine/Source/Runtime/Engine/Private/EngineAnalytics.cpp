@@ -214,7 +214,6 @@ void FEngineAnalytics::Initialize()
 
 void FEngineAnalytics::Shutdown()
 {
-	checkf(bIsInitialized, TEXT("FEngineAnalytics::Shutdown called outside of Initialize."));
 	Analytics.Reset();
 	bIsInitialized = false;
 }
