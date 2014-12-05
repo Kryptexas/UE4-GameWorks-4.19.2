@@ -790,7 +790,7 @@ void FBlueprintVarActionDetails::OnVarNameCommitted(const FText& InNewText, ETex
 bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 {
 	UProperty* VariableProperty = SelectionAsProperty();
-	if(VariableProperty)
+	if(VariableProperty && !IsALocalVariable(VariableProperty))
 	{
 		if(GetBlueprintObj()->SkeletonGeneratedClass->GetAuthoritativeClass() != VariableProperty->GetOwnerClass()->GetAuthoritativeClass())
 		{
