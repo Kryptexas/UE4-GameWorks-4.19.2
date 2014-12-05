@@ -1280,6 +1280,7 @@ void SGraphNode_BehaviorTree::SetOwner( const TSharedRef<SGraphPanel>& OwnerPane
 		if(DecoratorWidget.IsValid())
 		{
 			DecoratorWidget->SetOwner(OwnerPanel);
+			OwnerPanel->AttachGraphEvents(DecoratorWidget);
 		}
 	}
 
@@ -1288,6 +1289,7 @@ void SGraphNode_BehaviorTree::SetOwner( const TSharedRef<SGraphPanel>& OwnerPane
 		if(ServicesWidget.IsValid())
 		{
 			ServicesWidget->SetOwner(OwnerPanel);
+			OwnerPanel->AttachGraphEvents(ServicesWidget);
 		}
 	}
 }
