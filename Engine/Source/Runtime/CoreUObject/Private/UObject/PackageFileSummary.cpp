@@ -84,7 +84,6 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 				int32 Zero = 0;
 				Ar << Zero;
 				Ar << Zero;
-				Ar << Zero;
 
 				FCustomVersionContainer NoCustomVersions;
 				NoCustomVersions.Serialize(Ar);
