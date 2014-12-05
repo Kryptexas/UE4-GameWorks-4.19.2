@@ -20,7 +20,7 @@
 #include "DrawDebugHelpers.h"
 
 FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data)
-	: FEditorViewportClient(GLevelEditorModeTools(), &Data->PreviewScene)
+	: FEditorViewportClient(nullptr, &Data->PreviewScene)
 	, PhATPtr(InPhAT)
 	, SharedData(Data)
 	, MinPrimSize(0.5f)
@@ -176,7 +176,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 
 				FName BoneName = SharedData->EditorSkelMesh->RefSkeleton.GetBoneName(i);
 
-				FColor BoneNameColor = FColor(255,255,255);
+				FColor BoneNameColor = FColor::White;
 				//iterate through selected bones and see if any match
 				for(int32 j=0; j< SharedData->SelectedBodies.Num(); ++j)
 				{
@@ -184,7 +184,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 					FName SelectedBoneName = SharedData->PhysicsAsset->BodySetup[SelectedBodyIndex]->BoneName;
 					if(SelectedBoneName == BoneName)
 					{
-						BoneNameColor = FColor(0,255,0);
+						BoneNameColor = FColor::Green;
 						break;
 					}
 
@@ -892,7 +892,7 @@ void FPhATEdPreviewViewportClient::SimMouseMove(float DeltaX, float DeltaY)
 	float QuickRadius = 5 - SimGrabPush / SimHoldDistanceChangeDelta;
 	QuickRadius = QuickRadius < 2 ? 2 : QuickRadius;
 
-	DrawDebugPoint(GetWorld(), NewLocation, QuickRadius, FColor(255,0,0), false, 0.3);
+	DrawDebugPoint(GetWorld(), NewLocation, QuickRadius, FColorList::Red, false, 0.3);
 
 	SharedData->MouseHandle->SetTargetLocation(NewLocation);
 	SharedData->MouseHandle->GrabbedComponent->WakeRigidBody(SharedData->MouseHandle->GrabbedBoneName);

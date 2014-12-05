@@ -1423,7 +1423,7 @@ void FTrackingTransaction::PromotePendingToActive()
 }
 
 FLevelEditorViewportClient::FLevelEditorViewportClient()
-	: FEditorViewportClient(GLevelEditorModeTools(), NULL)
+	: FEditorViewportClient(&GLevelEditorModeTools(), NULL)
 	, ViewHiddenLayers()
 	, VolumeActorVisibility()
 	, LastEditorViewLocation( FVector::ZeroVector )
@@ -1453,7 +1453,9 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 
 	GEditor->LevelViewportClients.Add(this);
 
-	Widget->SetUsesEditorModeTools( ModeTools );
+	// The level editor fully supports mode tools and isn't doing any incompatible stuff with the Widget
+	ModeTools->SetWidgetMode(FWidget::WM_Translate);
+	Widget->SetUsesEditorModeTools(ModeTools);
 
 	// Register for editor cleanse events so we can release references to hovered actors
 	FEditorSupportDelegates::CleanseEditor.AddRaw(this, &FLevelEditorViewportClient::OnEditorCleanse);
@@ -1834,8 +1836,6 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 		GUnrealEd->UpdatePivotLocationForSelection();
 	}
 
-	ModeTools->Tick(this, DeltaTime);
-
 	// Update the preview mesh for the preview mesh mode. 
 	GEditor->UpdatePreviewMesh();
 
@@ -2057,7 +2057,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 	}
 }
 
-bool FLevelEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
+bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
 {
 	if (GUnrealEd->ComponentVisManager.HandleInputDelta(this, Viewport, Drag, Rot, Scale))
 	{
@@ -2067,20 +2067,13 @@ bool FLevelEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisLis
 	bool bHandled = false;
 
 	// Give the current editor mode a chance to use the input first.  If it does, don't apply it to anything else.
-	if (ModeTools->InputDelta(this, Viewport, Drag, Rot, Scale))
+	if (FEditorViewportClient::InputWidgetDelta(Viewport, CurrentAxis, Drag, Rot, Scale))
 	{
-		if (ModeTools->AllowWidgetMove())
-		{
-			ModeTools->PivotLocation += Drag;
-			ModeTools->SnappedLocation += Drag;
-		}
-
-		// Update visuals of the rotate widget 
-		ApplyDeltaToRotateWidget( Rot );
 		bHandled = true;
 	}
 	else
 	{
+		//@TODO: MODETOOLS: Much of this needs to get pushed to Super, but not all of it can be...
 		if( CurrentAxis != EAxisList::None )
 		{
 			// Skip actors transformation routine in case if any of the selected actors locked
@@ -2193,38 +2186,6 @@ TSharedPtr<FDragTool> FLevelEditorViewportClient::MakeDragTool( EDragTool::Type 
 	return DragTool;
 }
 
-void FLevelEditorViewportClient::UpdateMouseDelta()
-{
-	// Do nothing if a drag tool is being used.
-	if (MouseDeltaTracker->UsingDragTool() || ModeTools->DisallowMouseDeltaTracking())
-	{
-		return;
-	}
-
-	// Stop tracking and do nothing else if we're tracking and the widget mode has changed mid-track.
-	// It can confuse the widget code that handles the mouse movements.
-	if (bIsTracking && MouseDeltaTracker->GetTrackingWidgetMode() != ModeTools->GetWidgetMode())
-	{
-		StopTracking();
-		return;
-	}
-
-	// If any actor in the selection requires snapping, they all need to be snapped.
-	bool bNeedMovementSnapping = false;
-
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-	{
-		AActor* Actor = static_cast<AActor*>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		bNeedMovementSnapping = true;
-		break;
-	}
-
-	FEditorViewportClient::UpdateMouseDelta();
-}
-
-
 static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKey Key, const TSharedPtr<FUICommandInfo> Command )
 {
 	const FInputGesture& Gesture = *Command->GetActiveGesture();
@@ -2316,77 +2277,36 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 		return true;
 	}
 
-	
-	// Let the current mode have a look at the input before reacting to it.
-	if (ModeTools->InputKey(this, Viewport, Key, Event))
-	{
-		return true;
-	}
+	bool bHandled = FEditorViewportClient::InputKey(Viewport,ControllerId,Key,Event,AmountDepressed,bGamepad);
 
-
-	bool bHandled = false;
 	// Handle input for the player height preview mode. 
-	if( !InputState.IsMouseButtonEvent() && CommandAcceptsInput( *this, Key, GetLevelViewportCommands().EnablePreviewMesh ) )
+	if (!InputState.IsMouseButtonEvent() && CommandAcceptsInput(*this, Key, GetLevelViewportCommands().EnablePreviewMesh))
 	{
 		// Holding down the backslash buttons turns on the mode. 
-		if( Event == IE_Pressed )
+		if (Event == IE_Pressed)
 		{
 			GEditor->SetPreviewMeshMode(true);
 
 			// If shift down, cycle between the preview meshes
-			if( CommandAcceptsInput( *this, Key, GetLevelViewportCommands().CyclePreviewMesh ) )
+			if (CommandAcceptsInput(*this, Key, GetLevelViewportCommands().CyclePreviewMesh))
 			{
 				GEditor->CyclePreviewMesh();
 			}
 		}
 		// Releasing backslash turns off the mode. 
-		else if( Event == IE_Released )
+		else if (Event == IE_Released)
 		{
 			GEditor->SetPreviewMeshMode(false);
 		}
 
 		bHandled = true;
 	}
-	else if( (IsOrtho() || InputState.IsAltButtonPressed()) && (Key == EKeys::Left || Key == EKeys::Right || Key == EKeys::Up || Key == EKeys::Down) )
-	{
-		NudgeSelectedObjects( InputState );
-
-		bHandled = true;
-	}
-	else if (Key == EKeys::Escape && Event == IE_Pressed && TrackingTransaction.IsActive())
-	{
-		// Pressing Escape cancels the current operation
-
-		// Applying the global undo here will reset the drag operation
-		GUndo->Apply();
-		TrackingTransaction.Cancel();
-		StopTracking();
-		bHandled = true;
-	}
-
-	// If in ortho and right mouse button and ctrl is pressed
-	if ( !InputState.IsAltButtonPressed()
-		&& InputState.IsCtrlButtonPressed() 
-		&& !InputState.IsButtonPressed(EKeys::LeftMouseButton) 
-		&& !InputState.IsButtonPressed(EKeys::MiddleMouseButton) 
-		&& InputState.IsButtonPressed(EKeys::RightMouseButton) 
-		&& IsOrtho() )
-	{
-		ModeTools->SetWidgetModeOverride(FWidget::WM_Rotate);
-	}
-	else
-	{
-		ModeTools->SetWidgetModeOverride(FWidget::WM_None);
-	}
-
-	bHandled |= FEditorViewportClient::InputKey(Viewport,ControllerId,Key,Event,AmountDepressed,bGamepad);
 
 	// Clear Duplicate Actors mode when ALT and all mouse buttons are released
 	if ( !InputState.IsAltButtonPressed() && !InputState.IsAnyMouseButtonDown() )
 	{
 		bDuplicateActorsInProgress = false;
 	}
-
 	
 	return bHandled;
 }
@@ -2427,7 +2347,7 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 
 		if( bIsDraggingWidget )
 		{
-			// Notify that this actor is begining to move
+			// Notify that this actor is beginning to move
 			GEditor->BroadcastBeginObjectMovement( *Actor );
 		}
 
@@ -2621,15 +2541,26 @@ void FLevelEditorViewportClient::TrackingStopped()
 		FScopedLevelDirtied LevelDirtyCallback;
 		LevelDirtyCallback.Request();
 
-		GEditor->RedrawLevelEditingViewports();
+		RedrawAllViewportsIntoThisScene();
 	}
 
 	PreDragActorTransforms.Empty();
 }
 
+void FLevelEditorViewportClient::AbortTracking()
+{
+	if (TrackingTransaction.IsActive())
+	{
+		// Applying the global undo here will reset the drag operation
+		GUndo->Apply();
+		TrackingTransaction.Cancel();
+		StopTracking();
+	}
+}
+
 void FLevelEditorViewportClient::HandleViewportSettingChanged(FName PropertyName)
 {
-	if (PropertyName == TEXT("bUseSelectionOutline"))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bUseSelectionOutline))
 	{
 		EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
 	}
@@ -2690,7 +2621,7 @@ void FLevelEditorViewportClient::NudgeSelectedObjects( const struct FInputEventS
 		Widget->SetCurrentAxis( EAxisList::None );
 	}
 
-	GEditor->RedrawLevelEditingViewports();
+	RedrawAllViewportsIntoThisScene();
 }
 
 
@@ -2765,15 +2696,8 @@ bool FLevelEditorViewportClient::InputAxis(FViewport* Viewport, int32 Controller
 	// @todo Slate: GCurrentLevelEditingViewportClient is switched multiple times per frame and since we draw the border in slate this effectively causes border to always draw on the last viewport
 
 	FScopedSetCurrentViewportClient( this );
-	// Let the current mode have a look at the input before reacting to it.
-	if (ModeTools->InputAxis(this, Viewport, ControllerId, Key, Delta, DeltaTime))
-	{
-		return true;
-	}
 
-	FEditorViewportClient::InputAxis(Viewport,ControllerId,Key,Delta,DeltaTime,NumSamples,bGamepad);
-
-	return true;
+	return FEditorViewportClient::InputAxis(Viewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
 }
 
 
@@ -2817,45 +2741,10 @@ bool FLevelEditorViewportClient::IsVolumeVisibleInViewport( const AActor& Volume
 	return VolumeActorVisibility[ VolumeId ];
 }
 
-void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMode )
+void FLevelEditorViewportClient::RedrawAllViewportsIntoThisScene()
 {
-	if (!ModeTools->IsTracking() && !IsFlightCameraActive())
-	{
-		ModeTools->SetWidgetMode(ActivatedMode);
-
-		// force an invalidation (non-deferred) of the hit proxy here, otherwise we will
-		// end up checking against an incorrect hit proxy if the cursor is not moved
-		Viewport->InvalidateHitProxy();
-		bShouldCheckHitProxy = true;
-
-		// Fire event delegate
-		ModeTools->BroadcastWidgetModeChanged(ActivatedMode);
-	}
-	
 	// Invalidate all viewports, so the new gizmo is rendered in each one
-	for (auto ViewportClient : GEditor->LevelViewportClients)
-	{
-		if (ViewportClient)
-		{
-			ViewportClient->Invalidate();
-		}
-	}
-}
-
-bool FLevelEditorViewportClient::CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const
-{
-	return ModeTools->GetShowWidget() == true;
-}
-
-void FLevelEditorViewportClient::SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem )
-{
-	ModeTools->SetCoordSystem(NewCoordSystem);
-	Invalidate();
-}
-
-FWidget::EWidgetMode FLevelEditorViewportClient::GetWidgetMode() const
-{
-	return ModeTools->GetWidgetMode();
+	GEditor->RedrawLevelEditingViewports();
 }
 
 FVector FLevelEditorViewportClient::GetWidgetLocation() const
@@ -2866,7 +2755,7 @@ FVector FLevelEditorViewportClient::GetWidgetLocation() const
 		return ComponentVisWidgetLocation;
 	}
 
-	return ModeTools->GetWidgetLocation();
+	return FEditorViewportClient::GetWidgetLocation();
 }
 
 FMatrix FLevelEditorViewportClient::GetWidgetCoordSystem() const 
@@ -2877,16 +2766,10 @@ FMatrix FLevelEditorViewportClient::GetWidgetCoordSystem() const
 		return ComponentVisWidgetCoordSystem;
 	}
 
-	return ModeTools->GetCustomInputCoordinateSystem();
+	return FEditorViewportClient::GetWidgetCoordSystem();
 }
 
-ECoordSystem FLevelEditorViewportClient::GetWidgetCoordSystemSpace() const
-{
-	return ModeTools->GetCoordSystem();
-}
-
-
-void FLevelEditorViewportClient::MoveLockedActorToCamera() const
+void FLevelEditorViewportClient::MoveLockedActorToCamera()
 {
 	// If turned on, move any selected actors to the cameras location/rotation
 	TWeakObjectPtr<AActor> ActiveActorLock = GetActiveActorLock();
@@ -2907,7 +2790,7 @@ void FLevelEditorViewportClient::MoveLockedActorToCamera() const
 		FScopedLevelDirtied LevelDirtyCallback;
 		LevelDirtyCallback.Request();
 
-		GEditor->RedrawLevelEditingViewports();
+		RedrawAllViewportsIntoThisScene();
 	}
 }
 
@@ -3275,43 +3158,6 @@ void FLevelEditorViewportClient::ApplyDeltaToActor( AActor* InActor, const FVect
 	UpdateLockedActorViewports(InActor, true);
 }
 
-/** Updates the rotate widget with the passed in delta rotation. */
-void FLevelEditorViewportClient::ApplyDeltaToRotateWidget( const FRotator& InRot )
-{
-	//apply rotation to translate rotate widget
-	if (!InRot.IsZero())
-	{
-		FRotator TranslateRotateWidgetRotation(0, ModeTools->TranslateRotateXAxisAngle, 0);
-		TranslateRotateWidgetRotation += InRot;
-		ModeTools->TranslateRotateXAxisAngle = TranslateRotateWidgetRotation.Yaw;
-	}
-
-}
-
-void FLevelEditorViewportClient::MouseEnter( FViewport* Viewport,int32 x, int32 y )
-{
-	ModeTools->MouseEnter(this, Viewport, x, y);
-}
-
-void FLevelEditorViewportClient::MouseLeave( FViewport* Viewport ) 
-{
-	ModeTools->MouseLeave(this, Viewport);
-
-	FEditorViewportClient::MouseLeave(Viewport);
-}
-
-void FLevelEditorViewportClient::MouseMove(FViewport* Viewport,int32 x, int32 y)
-{
-	FEditorViewportClient::MouseMove(Viewport,x,y);
-
-	// Let the current editor mode know about the mouse movement.
-	if (IsLevelEditorClient() && ModeTools->MouseMove(this, Viewport, x, y))
-	{
-		return;
-	}
-}
-
-
 EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* Viewport,int32 X,int32 Y)
 {
 	EMouseCursor::Type CursorType = FEditorViewportClient::GetCursor(Viewport,X,Y);
@@ -3512,12 +3358,6 @@ bool FLevelEditorViewportClient::GetActiveSafeFrame(float& OutAspectRatio) const
 	return false;
 }
 
-void FLevelEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type NewAxis )
-{
-	FEditorViewportClient::SetCurrentWidgetAxis( NewAxis );
-	ModeTools->SetCurrentWidgetAxis(NewAxis);
-}
-
 /** 
  * Renders a view frustum specified by the provided frustum parameters
  *
@@ -3595,12 +3435,6 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 	{
 		DrawTextureStreamingBounds(View, PDI);
 	}
-
-
-	ModeTools->DrawActiveModes(View, PDI);
-
-	// Draw the current editor mode.
-	ModeTools->Render(View, Viewport, PDI);
 
 	// Determine if a view frustum should be rendered in the viewport.
 	// The frustum should definitely be rendered if the viewport has a view parent.
@@ -3794,10 +3628,7 @@ void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& 
 		GUnrealEd->DrawComponentVisualizersHUD(&InViewport, &View, &Canvas);
 	}
 
-	// Information string
-	Canvas.DrawShadowedString(4, 4, *ModeTools->InfoString, GEngine->GetSmallFont(), FColor(255, 255, 255));
-
-	ModeTools->DrawHUD(this, &InViewport, &View, &Canvas);
+	FEditorViewportClient::DrawCanvas(InViewport, View, Canvas);
 
 	// Testbed
 	FCanvasItemTestbed TestBed;
@@ -3830,14 +3661,14 @@ void FLevelEditorViewportClient::DrawTextureStreamingBounds(const FSceneView* Vi
 				InMin -= FVector(Max);
 				InMax += FVector(Max);
 				FBox Box = FBox(InMin, InMax);
-				DrawWireBox(PDI, Box, FColor(255,255,0), SDPG_World);
+				DrawWireBox(PDI, Box, FColorList::Yellow, SDPG_World);
 #else	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
 				// Draw bounding spheres
 				FVector Origin = STI.BoundingSphere.Center;
 				float Radius = STI.BoundingSphere.W;
-				DrawCircle(PDI, Origin, FVector(1,0,0), FVector(0,1,0), FColor(255,255,0), Radius, 32, SDPG_World);
-				DrawCircle(PDI, Origin, FVector(1,0,0), FVector(0,0,1), FColor(255,255,0), Radius, 32, SDPG_World);
-				DrawCircle(PDI, Origin, FVector(0,1,0), FVector(0,0,1), FColor(255,255,0), Radius, 32, SDPG_World);
+				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColorList::Yellow, Radius, 32, SDPG_World);
+				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
+				DrawCircle(PDI, Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
 #endif	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
 			}
 		}
@@ -3977,17 +3808,6 @@ void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
 	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
 }
 
-void FLevelEditorViewportClient::ReceivedFocus(FViewport* Viewport)
-{
-	FEditorViewportClient::ReceivedFocus(Viewport);
-	ModeTools->ReceivedFocus(this, Viewport);
-}
-
-void FLevelEditorViewportClient::LostFocus(FViewport* Viewport)
-{
-	FEditorViewportClient::LostFocus(Viewport);
-	ModeTools->LostFocus(this, Viewport);
-}
 
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
 {

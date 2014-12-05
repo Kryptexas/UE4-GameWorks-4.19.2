@@ -15,7 +15,7 @@
 -----------------------------------------------------------------------------*/
 
 FMatineeViewportClient::FMatineeViewportClient( class FMatinee* InMatinee )
-	: FEditorViewportClient(GLevelEditorModeTools())
+	: FEditorViewportClient(nullptr)
 {
 	InterpEd = InMatinee;
 

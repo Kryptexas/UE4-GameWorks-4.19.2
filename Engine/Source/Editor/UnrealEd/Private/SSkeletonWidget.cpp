@@ -1069,7 +1069,7 @@ class FBasePoseViewportClient: public FEditorViewportClient
 {
 public:
 	FBasePoseViewportClient(FPreviewScene& InPreviewScene)
-			: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+			: FEditorViewportClient(nullptr, &InPreviewScene)
 	{
 		SetViewMode(VMI_Lit);
 

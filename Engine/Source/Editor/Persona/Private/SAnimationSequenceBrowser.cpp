@@ -962,7 +962,8 @@ bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
 	return bVisible;
 }
 
-FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene) : FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene)
+	: FEditorViewportClient(nullptr, &InPreviewScene)
 {
 	SetViewMode(VMI_Lit);
 

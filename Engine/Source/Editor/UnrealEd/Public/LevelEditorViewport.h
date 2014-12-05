@@ -138,9 +138,6 @@ public:
 	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
-	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) override;
-	virtual void MouseLeave( FViewport* Viewport ) override;
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) override;
 	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -149,19 +146,13 @@ public:
 	virtual bool IsLevelEditorClient() const { return ParentLevelEditor.IsValid(); }
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
 	virtual void TrackingStopped() override;
-	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) override;
-	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const override;
-	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) override;
-	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual void AbortTracking() override;
 	virtual FVector GetWidgetLocation() const override;
 	virtual FMatrix GetWidgetCoordSystem() const;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
-	virtual void ReceivedFocus(FViewport* Viewport) override;
-	virtual void LostFocus(FViewport* Viewport) override;
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
@@ -219,7 +210,7 @@ public:
 	 */
 	EAxisList::Type GetVertAxis() const;
 
-	void NudgeSelectedObjects( const struct FInputEventState& InputState );
+	virtual void NudgeSelectedObjects( const struct FInputEventState& InputState ) override;
 
 	/**
 	 * Moves the viewport camera according to the locked actors location and rotation
@@ -238,9 +229,6 @@ public:
 
 	void ApplyDeltaToActors( const FVector& InDrag, const FRotator& InRot, const FVector& InScale );
 	void ApplyDeltaToActor( AActor* InActor, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale );
-
-	/** Updates the rotate widget with the passed in delta rotation. */
-	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
 	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) override;
 
@@ -301,9 +289,7 @@ public:
 	void SetAllSpriteCategoryVisibility( bool bVisible );
 
 	/** FEditorViewportClient Interface*/
-	virtual void UpdateMouseDelta() override;
 	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
-	virtual void SetCurrentWidgetAxis( EAxisList::Type NewAxis ) override;
 	virtual UWorld* GetWorld() const override;
 
 	void SetReferenceToWorldContext(FWorldContext& WorldContext);
@@ -520,6 +506,7 @@ protected:
 	virtual bool ShouldLockPitch() const override;
 	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) override;
 	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const override;
+	virtual void RedrawAllViewportsIntoThisScene() override;
 
 private:
 	/**
@@ -531,7 +518,7 @@ private:
 	/**
 	 * Moves the locked actor according to the viewport cameras location and rotation
 	 */
-	void MoveLockedActorToCamera() const;
+	void MoveLockedActorToCamera();
 
 	
 	/** @return	Returns true if the delta tracker was used to modify any selected actors or BSP.  Must be called before EndTracking(). */

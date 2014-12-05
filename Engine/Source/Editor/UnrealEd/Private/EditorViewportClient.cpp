@@ -192,8 +192,9 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 
 float const FEditorViewportClient::SafePadding = 0.075f;
 
-FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPreviewScene* InPreviewScene)
-	: CameraSpeedSetting(4)
+FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene)
+	: bAllowMatineePreview(false)
+	, CameraSpeedSetting(4)
 	, ImmersiveDelegate()
 	, VisibilityDelegate()
 	, Viewport(NULL)
@@ -218,7 +219,9 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, bDrawAxes(true)
 	, bSetListenerPosition(false)
 	, LandscapeLODOverride(-1)
-	, ModeTools(&InModeTools)
+	, bDrawVertices(false)
+	, bOwnsModeTools(false)
+	, ModeTools(InModeTools)
 	, Widget(new FWidget)
 	, MouseDeltaTracker(new FMouseDeltaTracker)
 	, RecordingInterpEd(NULL)
@@ -255,6 +258,14 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
 {
+	if (ModeTools == nullptr)
+	{
+		ModeTools = new FEditorModeTools();
+		bOwnsModeTools = true;
+	}
+
+	//@TODO: MODETOOLS: Would like to make this the default, and have specific editors opt-out, but for now opt-in is the safer choice
+	//Widget->SetUsesEditorModeTools(ModeTools);
 
 	ViewState.Allocate();
 
@@ -324,6 +335,11 @@ FEditorViewportClient::~FEditorViewportClient()
 	FCoreDelegates::StatEnabled.RemoveAll(this);
 	FCoreDelegates::StatDisabled.RemoveAll(this);
 	FCoreDelegates::StatDisableAll.RemoveAll(this);
+
+	if (bOwnsModeTools)
+	{
+		delete ModeTools;
+	}
 }
 
 void FEditorViewportClient::RedrawRequested(FViewport* InViewport)
@@ -750,11 +766,14 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 		// Allow the joystick to be used for matinee capture
 		InViewport->SetUserFocus( true );
 	}
+
+	ModeTools->ReceivedFocus(this, Viewport);
 }
 
 void FEditorViewportClient::LostFocus(FViewport* InViewport)
 {
 	StopTracking();
+	ModeTools->LostFocus(this, Viewport);
 }
 
 void FEditorViewportClient::Tick(float DeltaTime)
@@ -806,6 +825,9 @@ void FEditorViewportClient::Tick(float DeltaTime)
 	{
 		Invalidate();
 	}
+
+	// Tick the editor modes
+	ModeTools->Tick(this, DeltaTime);
 }
 
 namespace ViewportDeadZoneConstants
@@ -1517,6 +1539,20 @@ void FEditorViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewpo
 
 void FEditorViewportClient::UpdateMouseDelta()
 {
+	// Do nothing if a drag tool is being used.
+	if (MouseDeltaTracker->UsingDragTool() || ModeTools->DisallowMouseDeltaTracking())
+	{
+		return;
+	}
+
+	// Stop tracking and do nothing else if we're tracking and the widget mode has changed mid-track.
+	// It can confuse the widget code that handles the mouse movements.
+	if (bIsTracking && MouseDeltaTracker->GetTrackingWidgetMode() != GetWidgetMode())
+	{
+		StopTracking();
+		return;
+	}
+
 	FVector DragDelta = FVector::ZeroVector;
 
 	bool bNeedMovementSnapping = true;
@@ -1821,6 +1857,44 @@ bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, 
 		return true;
 	}
 
+	// Let the current mode have a look at the input before reacting to it.
+	if (ModeTools->InputKey(this, Viewport, Key, Event))
+	{
+		return true;
+	}
+
+	FInputEventState InputState(InViewport, Key, Event);
+
+	bool bHandled = false;
+
+	if ((IsOrtho() || InputState.IsAltButtonPressed()) && (Key == EKeys::Left || Key == EKeys::Right || Key == EKeys::Up || Key == EKeys::Down))
+	{
+		NudgeSelectedObjects(InputState);
+
+		bHandled = true;
+	}
+	else if (Key == EKeys::Escape && Event == IE_Pressed/* && TrackingTransaction.IsActive()*/) //@TODO: MODETOOLS: Now consuming Escape regardless of if we were previously tracking
+	{
+		// Pressing Escape cancels the current operation
+		AbortTracking();
+		bHandled = true;
+	}
+
+	// If in ortho and right mouse button and ctrl is pressed
+	if (!InputState.IsAltButtonPressed()
+		&& InputState.IsCtrlButtonPressed()
+		&& !InputState.IsButtonPressed(EKeys::LeftMouseButton)
+		&& !InputState.IsButtonPressed(EKeys::MiddleMouseButton)
+		&& InputState.IsButtonPressed(EKeys::RightMouseButton)
+		&& IsOrtho())
+	{
+		ModeTools->SetWidgetModeOverride(FWidget::WM_Rotate);
+	}
+	else
+	{
+		ModeTools->SetWidgetModeOverride(FWidget::WM_None);
+	}
+
 	const int32	HitX = InViewport->GetMouseX();
 	const int32	HitY = InViewport->GetMouseY();
 
@@ -1829,8 +1903,6 @@ bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, 
 	{
 		JoystickState->KeyEventValues.Add(Key, Event);
 	}
-
-	FInputEventState InputState( InViewport, Key, Event );
 
 	const bool bWasCursorVisible = InViewport->IsCursorVisible();
 	const bool bWasSoftwareCursorVisible = InViewport->IsSoftwareCursorVisible();
@@ -1841,8 +1913,6 @@ bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, 
 
 	RequiredCursorVisibiltyAndAppearance.bDontResetCursor = false;
 	UpdateRequiredCursorVisibility();
-
-	bool bHandled = false;
 
 	if( bWasCursorVisible != RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible || bWasSoftwareCursorVisible != RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible )
 	{
@@ -1968,9 +2038,14 @@ void FEditorViewportClient::StopTracking()
 	bHasMouseMovedSinceClick = false;
 }
 
+void FEditorViewportClient::AbortTracking()
+{
+	StopTracking();
+}
+
 bool FEditorViewportClient::IsInImmersiveViewport() const
 {
-	return ImmersiveDelegate.IsBound() ? ImmersiveDelegate.Execute() : false ;
+	return ImmersiveDelegate.IsBound() ? ImmersiveDelegate.Execute() : false;
 }
 
 void FEditorViewportClient::StartTrackingDueToInput( const struct FInputEventState& InputState, FSceneView& View )
@@ -2517,6 +2592,97 @@ void FEditorViewportClient::AddReferencedObjects( FReferenceCollector& Collector
 	}
 }
 
+void FEditorViewportClient::ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
+{
+	const FViewportClick Click(&View, this, Key, Event, HitX, HitY);
+	ModeTools->HandleClick(this, HitProxy, Click);
+}
+
+bool FEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
+{
+	if (ModeTools->InputDelta(this, Viewport, Drag, Rot, Scale))
+	{
+		if (ModeTools->AllowWidgetMove())
+		{
+			ModeTools->PivotLocation += Drag;
+			ModeTools->SnappedLocation += Drag;
+		}
+
+		// Update visuals of the rotate widget 
+		ApplyDeltaToRotateWidget(Rot);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void FEditorViewportClient::SetWidgetMode(FWidget::EWidgetMode NewMode)
+{
+	if (!ModeTools->IsTracking() && !IsFlightCameraActive())
+	{
+		ModeTools->SetWidgetMode(NewMode);
+
+		// force an invalidation (non-deferred) of the hit proxy here, otherwise we will
+		// end up checking against an incorrect hit proxy if the cursor is not moved
+		Viewport->InvalidateHitProxy();
+		bShouldCheckHitProxy = true;
+
+		// Fire event delegate
+		ModeTools->BroadcastWidgetModeChanged(NewMode);
+	}
+
+	RedrawAllViewportsIntoThisScene();
+}
+
+bool FEditorViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
+{
+	return ModeTools->GetShowWidget() == true;
+}
+
+FWidget::EWidgetMode FEditorViewportClient::GetWidgetMode() const
+{
+	return ModeTools->GetWidgetMode();
+}
+
+FVector FEditorViewportClient::GetWidgetLocation() const
+{
+	return ModeTools->GetWidgetLocation();
+}
+
+FMatrix FEditorViewportClient::GetWidgetCoordSystem() const
+{
+	return ModeTools->GetCustomInputCoordinateSystem();
+}
+
+void FEditorViewportClient::SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem)
+{
+	ModeTools->SetCoordSystem(NewCoordSystem);
+	RedrawAllViewportsIntoThisScene();
+}
+
+ECoordSystem FEditorViewportClient::GetWidgetCoordSystemSpace() const
+{
+	return ModeTools->GetCoordSystem();
+}
+
+void FEditorViewportClient::ApplyDeltaToRotateWidget(const FRotator& InRot)
+{
+	//apply rotation to translate rotate widget
+	if (!InRot.IsZero())
+	{
+		FRotator TranslateRotateWidgetRotation(0, ModeTools->TranslateRotateXAxisAngle, 0);
+		TranslateRotateWidgetRotation += InRot;
+		ModeTools->TranslateRotateXAxisAngle = TranslateRotateWidgetRotation.Yaw;
+	}
+}
+
+void FEditorViewportClient::RedrawAllViewportsIntoThisScene()
+{
+	Invalidate();
+}
+
 FSceneInterface* FEditorViewportClient::GetScene() const
 {
 	UWorld* World = GetWorld();
@@ -2543,6 +2709,13 @@ UWorld* FEditorViewportClient::GetWorld() const
 	return OutWorldPtr;
 }
 
+void FEditorViewportClient::DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas)
+{
+	// Information string
+	Canvas.DrawShadowedString(4, 4, *ModeTools->InfoString, GEngine->GetSmallFont(), FColor::White);
+
+	ModeTools->DrawHUD(this, &InViewport, &View, &Canvas);
+}
 
 void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View )
 {
@@ -2732,6 +2905,11 @@ void FEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInterface*
 		DrawHelper.Draw( View, PDI );
 	}
 
+	ModeTools->DrawActiveModes(View, PDI);
+
+	// Draw the current editor mode.
+	ModeTools->Render(View, Viewport, PDI);
+
 	// This viewport was just rendered, reset this value.
 	FramesSinceLastDraw = 0;
 }
@@ -2879,6 +3057,12 @@ FVector FEditorViewportClient::TranslateDelta( FKey InKey, float InDelta, bool I
 bool FEditorViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
 {
 	if (bDisableInput)
+	{
+		return true;
+	}
+
+	// Let the current mode have a look at the input before reacting to it.
+	if (ModeTools->InputAxis(this, Viewport, ControllerId, Key, Delta, DeltaTime))
 	{
 		return true;
 	}
@@ -3429,9 +3613,10 @@ EAxisList::Type FEditorViewportClient::GetCurrentWidgetAxis() const
 	return Widget->GetCurrentAxis();
 }
 
-void FEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type InAxis )
+void FEditorViewportClient::SetCurrentWidgetAxis(EAxisList::Type InAxis)
 {
-	Widget->SetCurrentAxis( InAxis );
+	Widget->SetCurrentAxis(InAxis);
+	ModeTools->SetCurrentWidgetAxis(InAxis);
 }
 
 void FEditorViewportClient::AdjustTransformWidgetSize(const int32 SizeDelta)
@@ -3832,6 +4017,8 @@ void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const
 
 void FEditorViewportClient::MouseEnter(FViewport* InViewport,int32 x, int32 y)
 {
+	ModeTools->MouseEnter(this, Viewport, x, y);
+
 	MouseMove(InViewport, x, y);
 }
 
@@ -3840,11 +4027,16 @@ void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
 	check(IsInGameThread());
 
 	CurrentMousePos = FIntPoint(x, y);
+
+	// Let the current editor mode know about the mouse movement.
+	ModeTools->MouseMove(this, Viewport, x, y);
 }
 
 void FEditorViewportClient::MouseLeave(FViewport* InViewport)
 {
 	check(IsInGameThread());
+
+	ModeTools->MouseLeave(this, Viewport);
 
 	CurrentMousePos = FIntPoint(-1, -1);
 

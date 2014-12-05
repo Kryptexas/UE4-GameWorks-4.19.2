@@ -240,7 +240,7 @@ class UNREALED_API FEditorViewportClient : public FCommonViewportClient, public 
 public:
 	friend class FMouseDeltaTracker;
 
-	FEditorViewportClient(FEditorModeTools& InModeTools, FPreviewScene* InPreviewScene = nullptr);
+	FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene = nullptr);
 	virtual ~FEditorViewportClient();
 
 	/**
@@ -475,7 +475,7 @@ public:
 	 * @param HitX			The X location of the mouse
 	 * @param HitY			The Y location of the mouse
 	 */
-	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) {}
+	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
 	
 	/**
 	 * Called when mouse movement tracking begins
@@ -500,17 +500,17 @@ public:
 	 * @param Rot			The amount the widget was rotated  (the value depends on the coordinate system of the widget.  See GetWidgetCoordSystem )
 	 * @param Scale			The amount the widget was scaled (the value depends on the coordinate system of the widget.  See GetWidgetCoordSystem )
 	 */
-	virtual bool InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) { return false; }
+	virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale);
 
 	/**
 	 * Sets the current widget mode
 	 */
-	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) {};
+	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode);
 
 	/**
 	 * Whether or not the new widget mode can be set in this viewport
 	 */
-	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const { return true; }
+	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const;
 
 	/**
 	 * Whether or not the widget mode can be cycled
@@ -520,28 +520,28 @@ public:
 	/**
 	 * @return The current display mode for transform widget 
 	 */
-	virtual FWidget::EWidgetMode GetWidgetMode() const { return FWidget::WM_None; }
+	virtual FWidget::EWidgetMode GetWidgetMode() const;
 
 	/**
 	 * @return The world space location of the transform widget
 	 */
-	virtual FVector GetWidgetLocation() const { return FVector::ZeroVector; }
+	virtual FVector GetWidgetLocation() const;
 
 	/**
 	 * @return The current coordinate system for drawing and input of the transform widget.  
 	 * For world coordiante system return the identity matrix
 	 */
-	virtual FMatrix GetWidgetCoordSystem() const { return FMatrix::Identity; }
+	virtual FMatrix GetWidgetCoordSystem() const;
 
 	/**
 	 * Sets the coordinate system space to use
 	 */
-	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) {};
+	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem );
 
 	/**
 	 * @return The coordinate system space (world or local) to display the widget in
 	 */
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const { return COORD_World; }
+	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
 
 	/**
 	 * Sets the current axis being manipulated by the transform widget
@@ -568,7 +568,7 @@ public:
 	 * @param View			The view of the scene to be rendered
 	 * @param Canvas		The canvas to draw on
 	 */
-	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) {};
+	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas);
 
 	/**
 	 * Render the drag tool in the viewport
@@ -1018,6 +1018,12 @@ protected:
 	 */
 	virtual void PerspectiveCameraMoved() {}
 
+	/** Updates the rotate widget with the passed in delta rotation. */
+	void ApplyDeltaToRotateWidget(const FRotator& InRot);
+
+	/** Invalidates this and other linked viewports (anything viewing the same scene) */
+	virtual void RedrawAllViewportsIntoThisScene();
+
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
 	 */
@@ -1133,6 +1139,11 @@ protected:
 	 */
 	void StopTracking();
 
+	/**
+	 * Aborts mouse tracking (stop and cancel)
+	 */
+	virtual void AbortTracking();
+
 	/** Enables or disables camera lock **/
 	void EnableCameraLock(bool bEnable);
 
@@ -1146,6 +1157,8 @@ protected:
 
 	/** Helper function to calculate the safe frame rectangle on the current viewport */
 	bool CalculateEditorConstrainedViewRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
+
+	virtual void NudgeSelectedObjects(const struct FInputEventState& InputState) {}
 
 private:
 	/** @return Whether or not the camera should be panned or dollied */
@@ -1290,8 +1303,10 @@ public:
 	bool bDrawVertices;
 
 protected:
+	/** Does this viewport client own the mode tools instance pointed at by ModeTools control the lifetime of it? */
+	bool bOwnsModeTools;
 
-	/** Editor mode tools provided to this instance. Assumed to be managed externally */
+	/** Editor mode tools provided to this instance. Assumed to be managed externally if bOwnsModeTools is false */
 	FEditorModeTools*		ModeTools;
 
 	FWidget*				Widget;

@@ -35,7 +35,7 @@ private:
 };
 
 FNiagaraEffectEditorViewportClient::FNiagaraEffectEditorViewportClient(TWeakPtr<INiagaraEffectEditor> InEffectEditor, FPreviewScene& InPreviewScene)
-: FEditorViewportClient( GLevelEditorModeTools(), &InPreviewScene )
+: FEditorViewportClient( nullptr, &InPreviewScene )
 , EffectEditorPtr(InEffectEditor)
 {
 	// Setup defaults for the common draw helper.

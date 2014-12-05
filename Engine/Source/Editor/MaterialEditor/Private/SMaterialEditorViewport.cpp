@@ -45,7 +45,7 @@ private:
 };
 
 FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient( GLevelEditorModeTools(), &InPreviewScene )
+	: FEditorViewportClient( nullptr, &InPreviewScene )
 	, MaterialEditorPtr(InMaterialEditor)
 {
 	// Setup defaults for the common draw helper.

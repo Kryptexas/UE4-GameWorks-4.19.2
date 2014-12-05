@@ -41,9 +41,10 @@ USelection* FAssetEditorModeTools::GetSelectedObjects() const
 // FPaperEditorViewportClient
 
 FPaperEditorViewportClient::FPaperEditorViewportClient()
-	: FEditorViewportClient(*( new FAssetEditorModeTools() ))
+	: FEditorViewportClient(new FAssetEditorModeTools())
 	, CheckerboardTexture(NULL)
 {
+	bOwnsModeTools = true;
 	ZoomPos = FVector2D::ZeroVector;
 	ZoomAmount = 1.0f;
 

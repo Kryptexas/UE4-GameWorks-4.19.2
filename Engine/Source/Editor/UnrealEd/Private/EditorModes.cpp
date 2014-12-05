@@ -50,6 +50,10 @@ const FEditorModeID FBuiltinEditorModes::EM_ActorPicker(TEXT("EM_ActorPicker"));
 
 FEdModeDefault::FEdModeDefault()
 {
-	bDrawKillZ = true;
+	bDrawGrid = false;
+	bDrawPivot = false;
+	bDrawBaseInfo = false;
+	bDrawWorldBox = false;
+	bDrawKillZ = false;
 }
 
