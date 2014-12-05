@@ -537,14 +537,22 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Not Equal (vector)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Vector")
 	static bool NotEqual_VectorVector(FVector A, FVector B, float ErrorTolerance = 1.e-4f);
 
-	/* Returns the dot product of two vectors */
+	/* Returns the dot product of two 3d vectors */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Dot Product", CompactNodeTitle = "."), Category="Math|Vector" )
 	static float Dot_VectorVector(FVector A, FVector B);
 
-	/* Returns the cross product of two vectors */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Cross Product", CompactNodeTitle = "x"), Category="Math|Vector" )
+	/* Returns the cross product of two 3d vectors */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Cross Product", CompactNodeTitle = ""), Category="Math|Vector" )
 	static FVector Cross_VectorVector(FVector A, FVector B);
-	
+
+	/* Returns the dot product of two 2d vectors */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Dot Product (2D)", CompactNodeTitle="."), Category="Math|Vector")
+	static float DotProduct2D(FVector2D A, FVector2D B);
+
+	/* Returns the cross product of two 2d vectors */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Cross Product (2D)", CompactNodeTitle="x"), Category="Math|Vector")
+	static float CrossProduct2D(FVector2D A, FVector2D B);
+
 	/* Returns the length of the FVector */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "VectorLength"), Category="Math|Vector")
 	static float VSize(FVector A);

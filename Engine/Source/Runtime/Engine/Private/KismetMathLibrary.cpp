@@ -705,13 +705,23 @@ bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B, float Error
 
 float UKismetMathLibrary::Dot_VectorVector(FVector A, FVector B)
 {
-	return A | B;
+	return FVector::DotProduct(A, B);
 }	
 
 FVector UKismetMathLibrary::Cross_VectorVector(FVector A, FVector B)
 {
-	return A ^ B;
-}	
+	return FVector::CrossProduct(A, B);
+}
+
+float UKismetMathLibrary::DotProduct2D(FVector2D A, FVector2D B)
+{
+	return FVector2D::DotProduct(A, B);
+}
+
+float UKismetMathLibrary::CrossProduct2D(FVector2D A, FVector2D B)
+{
+	return FVector2D::CrossProduct(A, B);
+}
 
 float UKismetMathLibrary::VSize(FVector A)
 {
