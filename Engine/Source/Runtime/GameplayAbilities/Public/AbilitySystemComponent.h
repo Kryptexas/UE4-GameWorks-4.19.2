@@ -498,6 +498,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, bool InputPressed, FPredictionKey PredictionKey);
 
+	UFUNCTION(Server, reliable, WithValidation)
+	void	ServerTryActivateAbilityWithEventData(FGameplayAbilitySpecHandle AbilityToActivate, bool InputPressed, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData);
+
 	/** Called by ServerEndAbility and ClientEndAbility; avoids code duplication. */
 	void EndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
 
@@ -646,6 +649,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	float GetCurrentMontageSectionTimeLeft() const;
 
 protected:
+
+	/** Implementation of ServerTryActivateAbility */
+	virtual void InternalServerTryActiveAbility(FGameplayAbilitySpecHandle AbilityToActivate, bool InputPressed, const FPredictionKey& PredictionKey, const FGameplayEventData* TriggerEventData);
 
 	/** Called when a prediction key that played a montage is rejected */
 	void OnPredictiveMontageRejected(UAnimMontage* PredictiveMontage);

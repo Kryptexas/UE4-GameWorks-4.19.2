@@ -583,7 +583,14 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	}
 	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Server)
 	{
-		ServerTryActivateAbility(Handle, Spec->InputPressed, FPredictionKey());
+		if (TriggerEventData)
+		{
+			ServerTryActivateAbilityWithEventData(Handle, Spec->InputPressed, FPredictionKey(), *TriggerEventData);
+		}
+		else
+		{
+			ServerTryActivateAbility(Handle, Spec->InputPressed, FPredictionKey());
+		}
 	}
 	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
@@ -593,7 +600,14 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		ActivationInfo.SetPredicting(ScopedPredictionKey);
 		
 		// This must be called immediately after GeneratePredictionKey to prevent problems with recursively activating abilities
-		ServerTryActivateAbility(Handle, Spec->InputPressed, ScopedPredictionKey);
+		if (TriggerEventData)
+		{
+			ServerTryActivateAbilityWithEventData(Handle, Spec->InputPressed, ScopedPredictionKey, *TriggerEventData);
+		}
+		else
+		{
+			ServerTryActivateAbility(Handle, Spec->InputPressed, ScopedPredictionKey);
+		}
 
 		// If this PredictionKey is rejected, we will call OnClientActivateAbilityFailed.
 		ScopedPredictionKey.NewRejectedDelegate().BindUObject(this, &UAbilitySystemComponent::OnClientActivateAbilityFailed, Handle, ScopedPredictionKey.Current);
@@ -630,6 +644,26 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 }
 
 void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey)
+{
+	InternalServerTryActiveAbility(Handle, InputPressed, PredictionKey, nullptr);
+}
+
+bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerTryActivateAbilityWithEventData_Implementation(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
+{
+	InternalServerTryActiveAbility(Handle, InputPressed, PredictionKey, &TriggerEventData);
+}
+
+bool UAbilitySystemComponent::ServerTryActivateAbilityWithEventData_Validate(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpecHandle Handle, bool InputPressed, const FPredictionKey& PredictionKey, const FGameplayEventData* TriggerEventData)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
@@ -697,7 +731,7 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	Spec->InputPressed = InputPressed; // Tasks that check input may need this to be right immediately on ability startup.
 
 	// Attempt to activate the ability (server side) and tell the client if it succeeded or failed.
-	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility))
+	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility, nullptr, TriggerEventData))
 	{
 		ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
 		//Client commands to end the ability that come in after this point are considered for this instance
@@ -711,11 +745,6 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	{
 		ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 	}
-}
-
-bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey)
-{
-	return true;
 }
 
 //This is only called when ending an ability in response to a remote instruction.
