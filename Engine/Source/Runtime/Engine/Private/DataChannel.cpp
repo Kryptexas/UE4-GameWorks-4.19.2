@@ -2225,9 +2225,13 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 		// Sub-objects must reside within their actor parents
 		if ( !SubObj->IsIn( Actor ) )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object not in parent actor 1. SubObj: %s, Actor: %s" ), *SubObj->GetName(), *Actor->GetName() );
-			Bunch.SetError();
-			return NULL;
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object not in parent actor. SubObj: %s, Actor: %s" ), *SubObj->GetName(), *Actor->GetName() );
+
+			if ( IsServer )
+			{
+				Bunch.SetError();
+				return NULL;
+			}
 		}
 	}
 
@@ -2309,21 +2313,19 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 	{
 		// Construct the sub-object
 		UE_LOG( LogNetTraffic, Log, TEXT( "UActorChannel::ReadContentBlockHeader: Instantiating sub-object. Class: %s, Actor: %s" ), *SubObjClass->GetName(), *Actor->GetName() );
+
 		SubObj = ConstructObject< UObject >( SubObjClass, Actor );
+
+		// Sanity check some things
 		check( SubObj != NULL );
+		check( SubObj->IsIn( Actor ) );
+		check( Cast< AActor >( SubObj ) == NULL );
+
+		// Notify actor that we created a component from replication
 		Actor->OnSubobjectCreatedFromReplication( SubObj );
+		
+		// Register the component guid
 		Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, SubObj );
-	}
-
-	// Sanity check one last time
-	check( SubObj != NULL );
-	check( Cast< AActor >( SubObj ) == NULL );
-
-	if ( !SubObj->IsIn( Actor ) )
-	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object is not in parent actor 2. SubObj: %s, Actor: %s" ), *SubObj->GetName(), *Actor->GetName() );
-		Bunch.SetError();
-		return NULL;
 	}
 
 	return SubObj;
