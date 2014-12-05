@@ -47,6 +47,9 @@ protected:
 	/** Don't call GC */
 	bool bSkipGarbageCollection;
 
+	/** Cached value, true if reinstancing a skeleton class or not */
+	bool bIsReinstancingSkeleton;
+
 	uint32 ClassToReinstanceDefaultValuesCRC;
 
 public:

@@ -585,3 +585,9 @@ bool UBlueprintGeneratedClass::UsePersistentUberGraphFrame()
 	return false;
 #endif
 }
+
+bool UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses()
+{
+	static const FBoolConfigValueHelper SkeletonClassesInheritSkeletonClasses(TEXT("Kismet"), TEXT("bSkeletonInheritSkeletonClasses"), GEngineIni);
+	return SkeletonClassesInheritSkeletonClasses;
+}

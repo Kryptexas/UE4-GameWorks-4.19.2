@@ -10,6 +10,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/ScriptDisassembler.h"
 #include "K2Node_PlayMovieScene.h"
 #include "RuntimeMovieScenePlayer.h"
@@ -153,6 +154,15 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	UClass* TransientClass = ConstructObject<UBlueprintGeneratedClass>(UBlueprintGeneratedClass::StaticClass(), GetTransientPackage(), TransientClassName, RF_Public|RF_Transient);
 	
 	UClass* ParentClass = Blueprint->ParentClass;
+
+	if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses() && FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToClean))
+	{
+		if(UBlueprint* BlueprintParent = Cast<UBlueprint>(Blueprint->ParentClass->ClassGeneratedBy))
+		{
+			ParentClass = BlueprintParent->SkeletonGeneratedClass;
+		}
+	}
+
 	if( ParentClass == NULL )
 	{
 		ParentClass = UObject::StaticClass();
@@ -3260,9 +3270,18 @@ void FKismetCompilerContext::Compile()
 
 	NewClass->ClassGeneratedBy = Blueprint;
 
-	NewClass->SetSuperStruct(Blueprint->ParentClass);
-	NewClass->ClassFlags |= (Blueprint->ParentClass->ClassFlags & CLASS_Inherit);
-	NewClass->ClassCastFlags |= Blueprint->ParentClass->ClassCastFlags;
+	UClass* ParentClass = nullptr;
+	if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses())
+	{
+		ParentClass = NewClass->ClassWithin;
+	}
+	else
+	{
+		ParentClass = Blueprint->ParentClass;
+	}
+	NewClass->SetSuperStruct(ParentClass);
+	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
+	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
 	
 	if(Blueprint->bGenerateConstClass)
 	{
