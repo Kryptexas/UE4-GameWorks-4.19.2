@@ -343,8 +343,11 @@ public:
 			{
 				TranslucentLightingParameters.Set(RHICmdList, this, View);
 			}
+		}
 
 #if WITH_EDITOR
+		if ( GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 )
+		{
 			if( MaterialResource.IsUsedWithEditorCompositing() )
 			{
 				// Compute parameters for converting from screen space to pixel 
@@ -354,7 +357,7 @@ public:
 
 				FVector4 ScreenPosToPixelValue(
 					ViewportExtent.X * 0.5f,
-					-ViewportExtent.Y * 0.5f, 
+					-ViewportExtent.Y * 0.5f,
 					ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
 					ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
 
@@ -375,8 +378,8 @@ public:
 				SetShaderValue(RHICmdList, ShaderRHI, EditorCompositeDepthTestParameter, bEnableEditorPrimitveDepthTest );
 				SetShaderValue(RHICmdList, ShaderRHI, MSAASampleCount, GSceneRenderTargets.EditorPrimitivesColor ? GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples : 0 );
 			}
-#endif
 		}
+#endif
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode)

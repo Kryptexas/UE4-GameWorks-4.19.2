@@ -147,6 +147,10 @@
 
 #endif
 
+#ifndef ES2_EMULATION
+#define ES2_EMULATION (!COMPILER_GLSL_ES2 && COMPILE_SHADERS_FOR_DEVELOPMENT && !METAL_PROFILE)
+#endif
+
 // If we didn't request color component swizzling, just make it empty
 #ifndef FCOLOR_COMPONENT_SWIZZLE
 #define FCOLOR_COMPONENT_SWIZZLE
@@ -623,7 +627,7 @@ float CalcSceneDepth( float2 ScreenUV )
 #endif
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION
 
 	// depth in in DeviceZ
 	Texture2D<float> SceneDepthTextureNonMS;
