@@ -68,6 +68,25 @@ void UUserWidget::Initialize()
 	}
 }
 
+void UUserWidget::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	// If anyone ever calls BeginDestroy explicitly on a widget we need to immediately remove it from
+	// the the parent as it may be owned currently by a slate widget.  As long as it's the viewport we're
+	// fine.
+	RemoveFromParent();
+
+	// If it's not owned by the viewport we need to take more extensive measures.  If the GC widget still
+	// exists after this point we should just reset the widget, which will forcefully cause the SObjectWidget
+	// to lose access to this UObject.
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->ResetWidget();
+	}
+}
+
 void UUserWidget::PostEditImport()
 {
 	Super::PostEditImport();

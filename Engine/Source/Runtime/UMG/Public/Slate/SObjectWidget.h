@@ -24,6 +24,8 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 
 	void Construct(const FArguments& InArgs, UUserWidget* InWidgetObject);
 
+	void ResetWidget();
+
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FGCObject interface

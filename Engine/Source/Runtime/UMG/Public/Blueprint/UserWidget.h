@@ -117,6 +117,7 @@ public:
 	virtual class UWorld* GetWorld() const override;
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	void Initialize();

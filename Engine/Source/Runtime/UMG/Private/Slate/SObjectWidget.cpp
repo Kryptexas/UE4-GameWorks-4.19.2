@@ -16,15 +16,28 @@ void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObj
 
 SObjectWidget::~SObjectWidget(void)
 {
+	ResetWidget();
+}
+
+void SObjectWidget::ResetWidget()
+{
 	if ( UObjectInitialized() && WidgetObject )
 	{
 		// NOTE: When the SObjectWidget gets released we know that the User Widget has
 		// been removed from the slate widget hierarchy.  When this occurs, we need to 
-		// immediately release all slate widget widgets to deletion from taking n-frames
-		// due to widget nesting.
+		// immediately release all slate widget widgets to prevent deletion from taking
+		// n-frames due to widget nesting.
 		const bool bReleaseChildren = true;
 		WidgetObject->ReleaseSlateResources(bReleaseChildren);
+
+		WidgetObject = nullptr;
 	}
+
+	// Remove slate widget from our container
+	ChildSlot
+	[
+		SNullWidget::NullWidget
+	];
 }
 
 void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
