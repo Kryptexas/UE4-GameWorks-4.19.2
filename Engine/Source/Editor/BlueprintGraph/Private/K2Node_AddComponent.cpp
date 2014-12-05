@@ -422,10 +422,4 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 	}
 }
 
-bool UK2Node_AddComponent::CanPasteHere(const UEdGraph* TargetGraph) const
-{
-	// We want to bypass the base UK2Node_CallFunction override for this node type - we will always allow the function this node represents to be placed in a compatible graph.
-	return UK2Node::CanPasteHere(TargetGraph);
-}
-
 #undef LOCTEXT_NAMESPACE
