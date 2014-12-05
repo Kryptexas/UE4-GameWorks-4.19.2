@@ -37,6 +37,10 @@ class UEdGraphNode_Comment : public UEdGraphNode
 	UPROPERTY(EditAnywhere, Category=Comment)
 	TEnumAsByte<ECommentBoxMode::Type> MoveMode;
 
+	/** comment Depth */
+	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="CommentDepth"))
+	int32 CommentDepth;
+
 public:
 
 	// Begin UObject Interface

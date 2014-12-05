@@ -230,6 +230,35 @@ FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometr
 	}
 }
 
+FReply SGraphNodeComment::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if ( (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) && bUserIsDragging )
+	{
+		bUserIsDragging = false;
+
+		// Resize the node	
+		UserSize.X = FMath::RoundToFloat(UserSize.X);
+		UserSize.Y = FMath::RoundToFloat(UserSize.Y);
+
+		GetNodeObj()->ResizeNode(UserSize);
+
+		// End resize transaction
+		ResizeTransactionPtr.Reset();
+
+		// Update contained child Nodes
+		HandleSelection( bIsSelected, true );
+
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	return FReply::Unhandled();
+}
+
+int32 SGraphNodeComment::GetSortDepth() const
+{
+	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>( GraphNode );
+	return CommentNode ? CommentNode->CommentDepth : -1;
+}
+
 void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderComment) const
 {
 	const FVector2D NodeSize = GetDesiredSize();
@@ -239,20 +268,19 @@ void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderCo
 		if ((!this->bIsSelected && bSelected) || bUpdateNodesUnderComment)
 		{
 			SGraphNodeComment* Comment = const_cast<SGraphNodeComment*> (this);
-
 			UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
 
 			if (CommentNode)
 			{
-
 				// Get our geo
 				const FVector2D NodePosition = GetPosition();
 				const FSlateRect CommentRect( NodePosition.X, NodePosition.Y, NodePosition.X + NodeSize.X, NodePosition.Y + NodeSize.Y );
 
-				TSharedPtr< SGraphPanel > Panel = Comment->GetOwnerPanel();
+				TSharedPtr<SGraphPanel> Panel = Comment->GetOwnerPanel();
 				FChildren* PanelChildren = Panel->GetAllChildren();
 				int32 NumChildren = PanelChildren->Num();
 				CommentNode->ClearNodesUnderComment();
+				int32 MinDepth = 0;
 
 				for ( int32 NodeIndex=0; NodeIndex < NumChildren; ++NodeIndex )
 				{
@@ -260,15 +288,25 @@ void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderCo
 
 					UObject* GraphObject = SomeNodeWidget->GetObjectBeingDisplayed();
 
-					const FVector2D SomeNodePosition = SomeNodeWidget->GetPosition();
-					const FVector2D SomeNodeSize = SomeNodeWidget->GetDesiredSize();
-
-					const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
-					if ( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
+					if( GraphObject != CommentNode )
 					{
-						CommentNode->AddNodeUnderComment(GraphObject);
+						const FVector2D SomeNodePosition = SomeNodeWidget->GetPosition();
+						const FVector2D SomeNodeSize = SomeNodeWidget->GetDesiredSize();
+
+						const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
+						if( FSlateRect::DoRectanglesIntersect( CommentRect, NodeGeometryGraphSpace ) )
+						{
+							MinDepth = FMath::Min( MinDepth, SomeNodeWidget->GetSortDepth() - 1 );
+
+							if ( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
+							{
+								CommentNode->AddNodeUnderComment(GraphObject);
+							}
+						}
 					}
 				}
+				// Fix Depth to include any overlapped comments
+				CommentNode->CommentDepth = FMath::Min( CommentNode->CommentDepth, MinDepth );
 			}
 		}
 		bIsSelected = bSelected;
@@ -378,7 +416,7 @@ FSlateColor SGraphNodeComment::GetCommentTitleBarColor() const
 bool SGraphNodeComment::CanBeSelected(const FVector2D& MousePositionInNode) const
 {
 	const EResizableWindowZone InMouseZone = FindMouseZone(MousePositionInNode);
-	return CRWZ_TitleBar == MouseZone;
+	return CRWZ_TitleBar == InMouseZone;
 }
 
 FVector2D SGraphNodeComment::GetDesiredSizeForMarquee() const

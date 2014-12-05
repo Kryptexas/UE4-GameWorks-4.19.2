@@ -1066,14 +1066,6 @@ void SNodePanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 	NodeToWidgetLookup.Add( NodeToAdd->GetObjectBeingDisplayed(), NodeToAdd );
 }
 
-/** Add a node in the 'back plane' of the panel */
-void SNodePanel::AddGraphNodeToBack( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
-{
-	// add into the back plane
-	Children.Insert( NodeToAdd, 0 );
-	NodeToWidgetLookup.Add( NodeToAdd->GetObjectBeingDisplayed(), NodeToAdd );
-}
-
 /** Remove all nodes from the panel */
 void SNodePanel::RemoveAllNodes()
 {
@@ -1092,6 +1084,15 @@ void SNodePanel::PopulateVisibleChildren(const FGeometry& AllottedGeometry)
 		{
 			VisibleChildren.Add(SomeChild);
 		}
+	}
+	// Depth Sort Nodes
+	if( VisibleChildren.Num() > 0 )
+	{
+		struct SNodeLessThanSort
+		{
+			FORCEINLINE bool operator()(const TSharedRef<SNodePanel::SNode>& A, const TSharedRef<SNodePanel::SNode>& B) const { return A.Get() < B.Get(); }
+		};
+		VisibleChildren.Sort( SNodeLessThanSort() );
 	}
 }
 

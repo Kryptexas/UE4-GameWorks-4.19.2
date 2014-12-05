@@ -880,14 +880,7 @@ void SGraphPanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 		NodeGuidMap.Add(Node->NodeGuid, GraphNode);
 	}
 
-	if (Node && Node->IsA( UEdGraphNode_Comment::StaticClass()))
-	{
-		SNodePanel::AddGraphNodeToBack(NodeToAdd);
-	}
-	else
-	{
-		SNodePanel::AddGraphNode(NodeToAdd);
-	}
+	SNodePanel::AddGraphNode(NodeToAdd);
 }
 
 void SGraphPanel::RemoveAllNodes()
@@ -1093,7 +1086,6 @@ void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
 		SelectAndCenterObject(JumpToMe, true);
 	}
 }
-
 
 void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 {

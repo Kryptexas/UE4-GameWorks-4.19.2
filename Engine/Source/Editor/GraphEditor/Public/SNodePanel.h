@@ -482,6 +482,15 @@ public:
 			return GetDesiredSize();
 		}
 
+		// Returns node sort depth, defaults to and is generally 0 for most nodes
+		virtual int32 GetSortDepth() const { return 0; }
+
+		// Node Sort Operator
+		bool operator < ( const SNodePanel::SNode& NodeIn ) const
+		{
+			return GetSortDepth() < NodeIn.GetSortDepth();
+		}
+
 	protected:
 		SNode()
 		: BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
@@ -654,9 +663,6 @@ protected:
 
 	/** Add a slot to the CanvasPanel dynamically */
 	virtual void AddGraphNode(const TSharedRef<SNode>& NodeToAdd);
-
-	/** Add a node widget to the back of the panel */
-	virtual void AddGraphNodeToBack(const TSharedRef<SNode>& NodeToAdd);
 
 	/** Remove all nodes from the panel */
 	virtual void RemoveAllNodes();

@@ -28,6 +28,7 @@ UEdGraphNode_Comment::UEdGraphNode_Comment(const FObjectInitializer& ObjectIniti
 	bCommentBubbleVisible = true;
 	bCanResizeNode = true;
 	bCanRenameNode = true;
+	CommentDepth = -1;
 }
 
 void UEdGraphNode_Comment::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector) 
@@ -114,6 +115,10 @@ void UEdGraphNode_Comment::ResizeNode(const FVector2D& NewSize)
 
 void UEdGraphNode_Comment::AddNodeUnderComment(UObject* Object)
 {
+	if( UEdGraphNode_Comment* ChildComment = Cast<UEdGraphNode_Comment>(Object))
+	{
+		CommentDepth = FMath::Min( CommentDepth, ChildComment->CommentDepth - 1 );
+	}
 	NodesUnderComment.Add(Object);
 }
 
