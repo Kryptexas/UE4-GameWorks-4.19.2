@@ -3,6 +3,7 @@
 #pragma once
 #include "Containers/UnrealString.h"
 #include "HAL/Platform.h"
+#include "GenericApplicationMessageHandler.h"
 
 struct CORE_API FGenericWindowDefinition
 {
@@ -32,4 +33,6 @@ struct CORE_API FGenericWindowDefinition
 	FString Title;
 	float Opacity;
 	int32 CornerRadius;
+
+	FWindowSizeLimits SizeLimits;
 };

@@ -1438,6 +1438,8 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->Opacity = InSlateWindow->GetOpacity();
 	Definition->CornerRadius = InSlateWindow->GetCornerRadius();
 
+	Definition->SizeLimits = InSlateWindow->GetSizeLimits();
+
 	TSharedRef< FGenericWindow > NewWindow = PlatformApplication->MakeWindow();
 
 	InSlateWindow->SetNativeWindow( NewWindow );
