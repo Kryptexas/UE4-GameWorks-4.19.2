@@ -7,7 +7,7 @@ bool FSQLiteDatabase::Execute(const TCHAR* CommandString, FSQLiteResultSet*& Rec
 	
 	//Compile the statement/query
 	sqlite3_stmt* PreparedStatement;
-	int32 PrepareStatus = sqlite3_prepare16_v2(DbHandle, CommandString, -1, &PreparedStatement, NULL);
+	int32 PrepareStatus = sqlite3_prepare_v2(DbHandle, TCHAR_TO_UTF8(CommandString), -1, &PreparedStatement, NULL);
 	if (PrepareStatus == SQLITE_OK)
 	{
 		//Initialize records from compiled query
@@ -26,7 +26,7 @@ bool FSQLiteDatabase::Execute(const TCHAR* CommandString)
 {
 	//Compile the statement/query
 	sqlite3_stmt* PreparedStatement;
-	int32 PrepareStatus = sqlite3_prepare16_v2(DbHandle, CommandString, -1, &PreparedStatement, NULL);
+	int32 PrepareStatus = sqlite3_prepare_v2(DbHandle, TCHAR_TO_UTF8(CommandString), -1, &PreparedStatement, NULL);
 	if (PrepareStatus == SQLITE_OK)
 	{
 		int32 StepStatus = SQLITE_ERROR;
@@ -74,14 +74,14 @@ bool FSQLiteDatabase::Open(const TCHAR* ConnectionString, const TCHAR* RemoteCon
 		return false;
 	}
 
-	int32 Result = sqlite3_open16(ConnectionString, &DbHandle);
+	int32 Result = sqlite3_open(TCHAR_TO_UTF8(ConnectionString), &DbHandle);
 	return Result == SQLITE_OK;
 }
 
 FString FSQLiteDatabase::GetLastError()
 {
 	TCHAR* ErrorString = NULL;
-	ErrorString = (TCHAR*) sqlite3_errmsg16(DbHandle);
+	ErrorString = (TCHAR*) UTF8_TO_TCHAR(sqlite3_errmsg(DbHandle));
 	if (ErrorString)
 	{
 		return FString(ErrorString);
