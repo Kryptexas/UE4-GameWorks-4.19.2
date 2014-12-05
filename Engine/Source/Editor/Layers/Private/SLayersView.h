@@ -59,14 +59,14 @@ public:
 			/** We don't want the normal header to be visible */
 			.Visibility( EVisibility::Collapsed )
 
-			/** LayerName label column */
-			+ SHeaderRow::Column( LayersView::ColumnID_LayerLabel )
-			.DefaultLabel( LOCTEXT("Column_LayerNameLabel", "Layer") )
-
 			/** Layer visibility column */
-			+ SHeaderRow::Column( LayersView::ColumnID_Visibility )
-			.DefaultLabel( NSLOCTEXT("LayersView", "Visibility", "Visibility") )
-			.FixedWidth( 48.0f );
+			+SHeaderRow::Column(LayersView::ColumnID_Visibility)
+			.DefaultLabel(NSLOCTEXT("LayersView", "Visibility", "Visibility"))
+			.FixedWidth(40.0f)
+
+			/** LayerName label column */
+			+SHeaderRow::Column(LayersView::ColumnID_LayerLabel)
+			.DefaultLabel(LOCTEXT("Column_LayerNameLabel", "Layer"));
 
 		ChildSlot
 			[

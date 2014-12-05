@@ -59,17 +59,15 @@ TSharedRef< SWidget > SLayersViewRow::GenerateWidgetForColumn(const FName& Colum
 		TableRowContent =
 			SAssignNew(VisibilityButton, SButton)
 			.ContentPadding(0)
-			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 			.OnClicked(this, &SLayersViewRow::OnToggleVisibility)
 			.ToolTipText(LOCTEXT("VisibilityButtonToolTip", "Toggle Layer Visibility"))
-			.ForegroundColor(FSlateColor::UseForeground())
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.Content()
 			[
 				SNew(SImage)
 				.Image(this, &SLayersViewRow::GetVisibilityBrushForLayer)
-				.ColorAndOpacity(this, &SLayersViewRow::GetForegroundColorForButton)
 			]
 		;
 	}
@@ -154,12 +152,6 @@ FReply SLayersViewRow::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent&
 	return FReply::Handled();
 }
 
-FSlateColor SLayersViewRow::GetForegroundColorForButton() const
-{
-	static const FName InvertedForegroundName("InvertedForeground");
-	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FSlateColor::UseForeground();
-}
-
 FSlateColor SLayersViewRow::GetColorAndOpacity() const
 {
 	if (!FSlateApplication::Get().IsDragDropping())
@@ -183,7 +175,16 @@ FSlateColor SLayersViewRow::GetColorAndOpacity() const
 
 const FSlateBrush* SLayersViewRow::GetVisibilityBrushForLayer() const
 {
-	return (ViewModel->IsVisible()) ? FEditorStyle::GetBrush("Layer.VisibleIcon16x") : FEditorStyle::GetBrush("Layer.NotVisibleIcon16x");
+	if (ViewModel->IsVisible())
+	{
+		return IsHovered() ? FEditorStyle::GetBrush("Level.VisibleHighlightIcon16x") :
+			FEditorStyle::GetBrush("Level.VisibleIcon16x");
+	}
+	else
+	{
+		return IsHovered() ? FEditorStyle::GetBrush("Level.NotVisibleHighlightIcon16x") :
+			FEditorStyle::GetBrush("Level.NotVisibleIcon16x");
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

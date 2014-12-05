@@ -82,14 +82,6 @@ protected:
 private:
 	
 	/**
-	 *	Gets the appropriate SlateColor for the specified button depending on the button's current state
-	 *
-	 *	@param	Button	The SButton Widget to get the Foreground Color for
-	 *	@return			The ForegroundColor
-	 */
-	FSlateColor GetForegroundColorForButton() const;
-
-	/**
 	 *	Returns the Color and Opacity for displaying the bound Layer's Name.
 	 *	The Color and Opacity changes depending on whether a drag/drop operation is occurring
 	 *
