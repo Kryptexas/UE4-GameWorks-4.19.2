@@ -979,7 +979,8 @@ public:
 					const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
 					const FName WorldAssetPackageFName = StreamingLevel->GetWorldAssetPackageFName();
 					PreviousStreamingPackageNames.Add( WorldAssetPackageFName );
-					const FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( WorldAssetPackageName ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( WorldAssetPackageName ));
+					FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( WorldAssetPackageName ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( WorldAssetPackageName ));
+					StreamingLevelPackageName.ReplaceInline(TEXT("//"), TEXT("/"));
 					StreamingLevel->SetWorldAssetByPackageName(FName(*StreamingLevelPackageName));
 				}
 			}
