@@ -3902,6 +3902,12 @@ public:
 						.Text(LOCTEXT("TestingBigTextBigMargin", "Big notififcation text!"))
 						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 30))
 					]
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(15.0f, 0.0f, 0.0f, 0.0f))
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("TestButtonInNotificaiton", "Button Test"))
+					]
 				]
 			];
 	}

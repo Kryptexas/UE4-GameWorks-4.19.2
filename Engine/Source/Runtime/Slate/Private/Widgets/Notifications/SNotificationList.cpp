@@ -642,6 +642,7 @@ public:
 						.Padding(0)
 						.BorderImage(FCoreStyle::Get().GetBrush("NotificationList.ItemBackground_Border_Transparent"))
 						.BorderBackgroundColor(this, &SNotificationItemExternalImpl::GetGlowColor)
+						.Visibility(EVisibility::SelfHitTestInvisible)
 					]
 				]
 			];
