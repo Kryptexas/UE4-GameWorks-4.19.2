@@ -203,7 +203,7 @@ void UNetConnection::Close()
 			*LowLevelGetRemoteAddress(true),
 			*FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 
-		if (Channels[0] != NULL && Channels[0]->OpenedLocally)
+		if (Channels[0] != NULL)
 		{
 			Channels[0]->Close();
 		}

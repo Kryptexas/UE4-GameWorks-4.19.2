@@ -65,7 +65,7 @@ void UChannel::SetClosingFlag()
 
 void UChannel::Close()
 {
-	check(OpenedLocally);		// We are only allowed to close channels that we opened locally
+	check(OpenedLocally || ChIndex == 0);		// We are only allowed to close channels that we opened locally (except channel 0, so the server can notify disconnected clients)
 	check(Connection->Channels[ChIndex]==this);
 
 	if ( !Closing && ( Connection->State == USOCK_Open || Connection->State == USOCK_Pending ) )
