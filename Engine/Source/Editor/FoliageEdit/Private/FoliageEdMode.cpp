@@ -754,7 +754,7 @@ void FEdModeFoliage::RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFolia
 		// Filter PotentialInstancesToRemove
 		for (int32 Idx = 0; Idx < PotentialInstancesToRemove.Num(); Idx++)
 		{
-			UPrimitiveComponent* Base = MeshInfo.Instances[PotentialInstancesToRemove[Idx]].Base;
+			UPrimitiveComponent* Base = Cast<UPrimitiveComponent> (MeshInfo.Instances[PotentialInstancesToRemove[Idx]].Base);
 			UMaterialInterface* Material = Base ? Base->GetMaterial(0) : nullptr;
 
 			// Check if instance is candidate for removal based on filter settings

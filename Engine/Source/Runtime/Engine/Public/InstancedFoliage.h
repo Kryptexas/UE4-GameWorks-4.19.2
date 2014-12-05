@@ -52,7 +52,7 @@ struct FFoliageInstancePlacementInfo
  */
 struct FFoliageInstance : public FFoliageInstancePlacementInfo
 {
-	UPrimitiveComponent* Base;
+	UActorComponent* Base;
 
 	FFoliageInstance()
 	: Base(NULL)
