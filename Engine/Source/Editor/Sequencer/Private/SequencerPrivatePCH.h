@@ -20,6 +20,7 @@
 #include "SSequencerTrackViewPanel.h"
 #include "SAnimationOutlinerView.h"
 #include "MovieSceneInstance.h"
+#include "SequencerSnapSettings.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSequencer, Log, All);
 

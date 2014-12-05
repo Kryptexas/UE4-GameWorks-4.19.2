@@ -165,6 +165,10 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 		TRange<float> SectionBoundaries = GetSectionBoundaries(Section.Get(), SequencerNode);
 		
 		// Snapping
+		if ( SnapSettings->GetIsSnapEnabled() )
+		{
+			bool bSnappedToSection = false;
+			if ( SnapSettings->GetSnapSectionsToSections() )
 		{
 			TArray<float> TimesToSnapTo;
 			GetSectionSnapTimes(TimesToSnapTo, Section.Get(), SequencerNode, bIsDilating);
@@ -174,6 +178,13 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 			if (NewSnappedTime.IsSet())
 			{
 				NewTime = NewSnappedTime.GetValue();
+					bSnappedToSection = true;
+				}
+			}
+
+			if ( bSnappedToSection == false && SnapSettings->GetSnapSectionsToInterval() )
+			{
+				NewTime = SnapSettings->SnapToInterval(NewTime);
 			}
 		}
 
@@ -259,7 +270,11 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 		float DistanceMoved = TotalDelta.X / TimeToPixelConverter.GetPixelsPerInput();
 		
 		float DeltaTime = DistanceMoved;
-		// Snapping
+		
+		if ( SnapSettings->GetIsSnapEnabled() )
+		{
+			bool bSnappedToSection = false;
+			if ( SnapSettings->GetSnapSectionsToSections() )
 		{
 			TArray<float> TimesToSnapTo;
 			GetSectionSnapTimes(TimesToSnapTo, Section.Get(), SequencerNode, true);
@@ -270,10 +285,17 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 
 			float OutSnappedTime = 0.f;
 			float OutNewTime = 0.f;
-			bool bSuccess = SnapToTimes(TimesToSnap, TimesToSnapTo, TimeToPixelConverter, OutSnappedTime, OutNewTime);
-			if (bSuccess)
+				if ( SnapToTimes( TimesToSnap, TimesToSnapTo, TimeToPixelConverter, OutSnappedTime, OutNewTime ) )
 			{
 				DeltaTime = OutNewTime - (OutSnappedTime - DistanceMoved);
+					bSnappedToSection = true;
+			}
+		}
+
+			if ( bSnappedToSection == false && SnapSettings->GetSnapSectionsToInterval() )
+			{
+				float NewStartTime = DistanceMoved + Section->GetStartTime();
+				DeltaTime = SnapSettings->SnapToInterval( NewStartTime ) - Section->GetStartTime();
 			}
 		}
 
@@ -407,7 +429,11 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 	{
 		float TimeDelta = DistanceMoved;
 		// Snapping
+		if ( SnapSettings->GetIsSnapEnabled() )
 		{
+			bool bSnappedToKeyTime = false;
+			if ( SnapSettings->GetSnapKeysToKeys() )
+			{
 			TArray<float> OutSnapTimes;
 			GetKeySnapTimes(OutSnapTimes, SequencerNode);
 
@@ -419,11 +445,16 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 			}
 			float OutInitialTime = 0.f;
 			float OutSnapTime = 0.f;
-			bool bSuccess = SnapToTimes(InitialTimes, OutSnapTimes, TimeToPixelConverter, OutInitialTime, OutSnapTime);
+				if ( SnapToTimes( InitialTimes, OutSnapTimes, TimeToPixelConverter, OutInitialTime, OutSnapTime ) )
+				{
+					bSnappedToKeyTime = true;
+					TimeDelta = OutSnapTime - (OutInitialTime - DistanceMoved);
+				}
+			}
 
-			if (bSuccess)
+			if ( bSnappedToKeyTime == false && SnapSettings->GetSnapKeysToInterval() )
 			{
-				TimeDelta = OutSnapTime - (OutInitialTime - DistanceMoved);
+				TimeDelta = SnapSettings->SnapToInterval( MouseTime ) - SelectedKeyTime;
 			}
 		}
 

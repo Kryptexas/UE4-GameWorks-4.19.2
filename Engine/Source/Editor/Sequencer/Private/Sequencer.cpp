@@ -75,14 +75,11 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 		SequencerWidget = SNew( SSequencer, SharedThis( this ) )
 			.ViewRange( this, &FSequencer::OnGetViewRange )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
-			.AllowAutoKey( this, &FSequencer::OnGetAllowAutoKey )
 			.CleanViewEnabled( this, &FSequencer::IsUsingCleanView )
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
 			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged, false )
-			.OnToggleAutoKey( this, &FSequencer::OnToggleAutoKey )
 			.OnToggleCleanView( this, &FSequencer::OnToggleCleanView );
 
-		
 		// When undo occurs, get a notification so we can make sure our view is up to date
 		GEditor->RegisterForUndo(this);
 
@@ -880,9 +877,9 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 	SetGlobalTime( NewScrubPosition );
 }
 
-void FSequencer::OnToggleAutoKey( bool bInAllowAutoKey )
+void FSequencer::OnToggleAutoKey()
 {
-	bAllowAutoKey = bInAllowAutoKey;
+	bAllowAutoKey = !bAllowAutoKey;
 }
 
 void FSequencer::OnToggleCleanView( bool bInCleanViewEnabled )
@@ -1391,6 +1388,50 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.SetKey,
 		FExecuteAction::CreateSP( this, &FSequencer::SetKey ) );
+
+	USequencerSnapSettings* SnapSettings = GetMutableDefault<USequencerSnapSettings>();
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleAutoKeyEnabled,
+		FExecuteAction::CreateSP( this, &FSequencer::OnToggleAutoKey ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateSP( this, &FSequencer::OnGetAllowAutoKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleIsSnapEnabled,
+		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetIsSnapEnabled( !SnapSettings->GetIsSnapEnabled() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetIsSnapEnabled(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapKeysToInterval,
+		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapKeysToInterval( !SnapSettings->GetSnapKeysToInterval() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapKeysToInterval(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapKeysToKeys,
+		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapKeysToKeys( !SnapSettings->GetSnapKeysToKeys() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapKeysToKeys(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapSectionsToInterval,
+		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapSectionsToInterval( !SnapSettings->GetSnapSectionsToInterval() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapSectionsToInterval(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapSectionsToSections,
+		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapSectionsToSections( !SnapSettings->GetSnapSectionsToSections() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapSectionsToSections(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapPlayTimeToInterval,
+		FExecuteAction::CreateLambda( [SnapSettings]{ SnapSettings->SetSnapPlayTimeToInterval( !SnapSettings->GetSnapPlayTimeToInterval() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [SnapSettings]{ return SnapSettings->GetSnapPlayTimeToInterval(); } ) );
 }
 
 void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)

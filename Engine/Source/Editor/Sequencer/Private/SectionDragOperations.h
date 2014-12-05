@@ -8,6 +8,11 @@
 class FSequencerDragOperation
 {
 public:
+	FSequencerDragOperation()
+	{
+		SnapSettings = GetDefault<USequencerSnapSettings>();
+	}
+
 	virtual ~FSequencerDragOperation(){}
 	void BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc );
 	void EndTransaction();
@@ -69,6 +74,9 @@ protected:
 	 * @return						The snap time that was snapped to, or potentially nothing if nothing snapped
 	 */
 	TOptional<float> SnapToTimes(float InitialTimes, const TArray<float>& SnapTimes, const FTimeToPixel& TimeToPixelConverter);
+
+	/** The current snap settings */
+	const USequencerSnapSettings* SnapSettings;
 };
 
 
