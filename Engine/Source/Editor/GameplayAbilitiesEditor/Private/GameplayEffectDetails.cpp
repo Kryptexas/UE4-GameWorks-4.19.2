@@ -63,10 +63,16 @@ void FGameplayEffectDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout
 			}
 		}
 
-		if ( Obj->DurationPolicy != EGameplayEffectDurationType::HasDuration )
+		if (Obj->DurationPolicy != EGameplayEffectDurationType::HasDuration)
 		{
 			TSharedPtr<IPropertyHandle> DurationMagnitudeProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UGameplayEffect, DurationMagnitude), UGameplayEffect::StaticClass());
 			DetailLayout.HideProperty(DurationMagnitudeProperty);
+		}
+
+		if (Obj->DurationPolicy == EGameplayEffectDurationType::Instant)
+		{
+			TSharedPtr<IPropertyHandle> PeriodProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UGameplayEffect, Period), UGameplayEffect::StaticClass());
+			DetailLayout.HideProperty(PeriodProperty);
 		}
 	}
 }
