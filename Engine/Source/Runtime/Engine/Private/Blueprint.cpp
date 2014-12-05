@@ -351,7 +351,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
-	if(Ar.IsSaving())
+	if(Ar.IsSaving() && !Ar.IsTransacting())
 	{
 		// Cache the BP for use
 		FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
