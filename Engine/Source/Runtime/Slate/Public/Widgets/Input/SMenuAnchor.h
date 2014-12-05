@@ -99,17 +99,6 @@ protected:
 	int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 	// End of SWidget interface
 
-	/**
-	 * Computes the desired position for a popup that is attached to this anchor.
-	 *
-	 * @param   AllottedGeometry    Our widget's geometry
-	 * @param   PopupDesiredSize    How big the popup needs to be for all of its contents to be visible
-	 * @param   PlacementMode       Should the popup be below the anchor? Right of it? Some other placement?
-	 *
-	 * @return Geometry computed for the popup widget.
-	 */
-	static FGeometry ComputeMenuPlacement( const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, EMenuPlacement PlacementMode );
-
 	/** Invoked when the popup window is being closed by the application */
 	void RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindow );
 
@@ -143,6 +132,9 @@ protected:
 
 	/** Should we summon a new window for this popup or  */
 	TOptional<EPopupMethod> Method;
+
+	/** Method currently being used to show the popup. No value if popup is closed. */
+	TOptional<EPopupMethod> MethodInUse;
 
 	TPanelChildren<FSimpleSlot> Children;
 };
