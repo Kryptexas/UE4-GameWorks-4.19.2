@@ -141,6 +141,8 @@ public:
 
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 
+	virtual bool IsInteractable() const override;
+
 protected:
 
 	/** @return combines the user-specified margin and the button's internal margin. */

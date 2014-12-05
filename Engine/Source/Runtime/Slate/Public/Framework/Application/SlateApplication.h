@@ -949,6 +949,12 @@ public:
 	/** Set the analog cursor to be enabled or disabled. */
 	void SetAnalogCursorEnable(bool bEnable, TSharedPtr<class FAnalogCursor> OptionalNewAnalogCursor = nullptr);
 
+	/** Sets the hit detection radius of the cursor */
+	void SetCursorRadius(float NewRadius);
+
+	/** Getter for the cursor radius */
+	float GetCursorRadius() const;
+
 public:
 
 	// Begin FSlateApplicationBase interface
@@ -1268,6 +1274,8 @@ private:
 
 	TSharedPtr<FAnalogCursor> AnalogCursor;
 
+	/** The hit-test radius of the cursor. Default value is 0. */
+	float CursorRadius;
 
 	struct FUserFocusEntry
 	{

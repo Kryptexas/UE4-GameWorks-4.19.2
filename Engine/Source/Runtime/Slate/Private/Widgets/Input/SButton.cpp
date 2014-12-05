@@ -281,6 +281,11 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 	}
 }
 
+bool SButton::IsInteractable() const
+{
+	return IsEnabled() && SupportsKeyboardFocus();
+}
+
 bool SButton::IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const
 {
 	return ( TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.IsTouchEvent() ) ||

@@ -593,6 +593,12 @@ public:
 		return EnabledState.Get();
 	}
 
+	/** @return Is this widget interactable or not? Defaults to false */
+	virtual bool IsInteractable() const
+	{
+		return false;
+	}
+
 	/** @return The tool tip associated with this widget; Invalid reference if there is not one */
 	virtual TSharedPtr<IToolTip> GetToolTip();
 

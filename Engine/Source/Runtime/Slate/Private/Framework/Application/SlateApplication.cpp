@@ -653,6 +653,7 @@ FSlateApplication::FSlateApplication()
 	, bSlateWindowActive(true)
 	, Scale( 1.0f )
 	, DragTriggerDistnace( 5.0f )
+	, CursorRadius(0.0f)
 	, LastUserInteractionTime( 0.0 )
 	, LastUserInteractionTimeForThrottling( 0.0 )
 	, SlateSoundDevice( MakeShareable(new FNullSlateSoundDevice()) )
@@ -812,7 +813,7 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 
 		if ( Window->IsVisible() && AcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate) && !bPrevWindowWasModal )
 		{
-			const TArray<FWidgetAndPointer> WidgetsAndCursors = Window->GetHittestGrid()->GetBubblePath(ScreenspaceMouseCoordinate, bIgnoreEnabledStatus);
+			const TArray<FWidgetAndPointer> WidgetsAndCursors = Window->GetHittestGrid()->GetBubblePath(ScreenspaceMouseCoordinate, GetCursorRadius(), bIgnoreEnabledStatus);
 			return FWidgetPath( WidgetsAndCursors );
 		}
 	}
@@ -3011,6 +3012,15 @@ void FSlateApplication::SetAnalogCursorEnable(bool bEnable, TSharedPtr<class FAn
 	}
 }
 
+void FSlateApplication::SetCursorRadius(float NewRadius)
+{
+	CursorRadius = FMath::Max<float>(0.0f, NewRadius);
+}
+
+float FSlateApplication::GetCursorRadius() const
+{
+	return CursorRadius;
+}
 
 FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation ) const
 {
@@ -5138,3 +5148,5 @@ void FSlateApplication::SetWidgetReflector(const TSharedRef<IWidgetReflector>& W
 
 	WidgetReflectorPtr = WidgetReflector;
 }
+
+
