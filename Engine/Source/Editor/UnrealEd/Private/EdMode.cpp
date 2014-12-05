@@ -176,11 +176,12 @@ const FName FEdMode::MD_MakeEditWidget(TEXT("MakeEditWidget"));
 const FName FEdMode::MD_ValidateWidgetUsing(TEXT("ValidateWidgetUsing"));
 
 FEdMode::FEdMode()
-	: bPendingDeletion( false )
-	, CurrentTool( NULL )
-	, EditedPropertyName(TEXT(""))
-	, EditedPropertyIndex( INDEX_NONE )
-	, bEditedPropertyIsTransform( false )
+	: bPendingDeletion(false)
+	, CurrentWidgetAxis(EAxisList::None)
+	, CurrentTool(nullptr)
+	, Owner(nullptr)
+	, EditedPropertyIndex(INDEX_NONE)
+	, bEditedPropertyIsTransform(false)
 {
 	bDrawKillZ = true;
 }
@@ -607,13 +608,13 @@ void FEdMode::Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawIn
 						const FVector Vertex0 = Poly->Vertices[0];
 						FVector Vertex1 = Poly->Vertices[1];
 
-						MeshBuilder.AddVertex(Vertex0, FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(Vertex1, FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						MeshBuilder.AddVertex(Vertex0, FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor::White);
+						MeshBuilder.AddVertex(Vertex1, FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor::White);
 
 						for( int32 VertexIdx = 2 ; VertexIdx < Poly->Vertices.Num() ; ++VertexIdx )
 						{
 							const FVector Vertex2 = Poly->Vertices[VertexIdx];
-							MeshBuilder.AddVertex(Vertex2, FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+							MeshBuilder.AddVertex(Vertex2, FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor::White);
 							MeshBuilder.AddTriangle(VertexOffset,VertexOffset + VertexIdx,VertexOffset+VertexIdx-1);
 							Vertex1 = Vertex2;
 						}
@@ -700,7 +701,7 @@ void FEdMode::Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawIn
 				bool bIsTransform = WidgetInfos[i].bIsTransform;
 
 				bool bSelected = (WidgetName == EditedPropertyName) && (WidgetIndex == EditedPropertyIndex);
-				FColor WidgetColor = bSelected ? FColor(255,255,255) : FColor(128,128,255);
+				FColor WidgetColor = bSelected ? FColor::White : FColor(128, 128, 255);
 
 				FVector LocalPos = FVector::ZeroVector;
 				if(bIsTransform)

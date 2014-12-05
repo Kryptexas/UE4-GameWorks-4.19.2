@@ -309,31 +309,24 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 FEditorCommonDrawHelper.
 ------------------------------------------------------------------------------*/
 FEditorCommonDrawHelper::FEditorCommonDrawHelper()
-	: GridWidget(0)
+	: bDrawGrid(true)
+	, bDrawPivot(true)
+	, bDrawBaseInfo(true)
+	, bDrawWorldBox(false)
+	, bDrawKillZ(false)
+	, AxesLineThickness(0.0f)
+	, GridColorAxis(70, 70, 70)
+	, GridColorMajor(40, 40, 40)
+	, GridColorMinor(20, 20, 20)
+	, PerspectiveGridSize(HALF_WORLD_MAX1)
+	, PivotColor(FColor::Red)
+	, PivotSize(0.02f)
+	, NumCells(64)
+	, BaseBoxColor(FColor::Green)
+	, DepthPriorityGroup(SDPG_World)
+	, GridDepthBias(0.000001f)
+	, GridWidget(nullptr)
 {
-	bDrawGrid = true;
-	bDrawPivot = true;
-	bDrawBaseInfo = true;
-	AxesLineThickness = 0.f;
-
-	GridColorAxis = FColor(70, 70, 70);
-	GridColorMajor = FColor(40, 40, 40);
-	GridColorMinor = FColor(20, 20, 20);
-
-	PerspectiveGridSize = HALF_WORLD_MAX1;
-	NumCells = 64;
-
-	bDrawWorldBox = false;
-	bDrawKillZ = false;
-
-	PivotColor = FColor(255,0,0);
-	PivotSize = 0.02f;
-
-	BaseBoxColor = FColor(0,255,0);
-
-	DepthPriorityGroup=SDPG_World;
-
-	GridDepthBias = 0.000001;
 }
 
 FEditorCommonDrawHelper::~FEditorCommonDrawHelper()
@@ -487,8 +480,8 @@ void FEditorCommonDrawHelper::DrawOldGrid(const FSceneView* View,FPrimitiveDrawI
 		{
 			float KillZ = GWorld->GetWorldSettings()->KillZ;
 
-			PDI->DrawLine( FVector(-HALF_WORLD_MAX,0,KillZ), FVector(HALF_WORLD_MAX,0,KillZ), FColor(255,0,0), SDPG_Foreground );
-			PDI->DrawLine( FVector(0,-HALF_WORLD_MAX,KillZ), FVector(0,HALF_WORLD_MAX,KillZ), FColor(255,0,0), SDPG_Foreground );
+			PDI->DrawLine(FVector(-HALF_WORLD_MAX, 0, KillZ), FVector(HALF_WORLD_MAX, 0, KillZ), FColor::Red, SDPG_Foreground);
+			PDI->DrawLine(FVector(0, -HALF_WORLD_MAX, KillZ), FVector(0, HALF_WORLD_MAX, KillZ), FColor::Red, SDPG_Foreground);
 		}
 	}
 
