@@ -12,7 +12,7 @@ public:
 		: LocalViewRange( InLocalViewRange )
 	{
 		const float ViewRange = LocalViewRange.Size<float>();
-		PixelsPerInput = ViewRange > 0 ? AllottedGeometry.Size.X / ViewRange : 0;
+		PixelsPerInput = ViewRange > 0 ? AllottedGeometry.Size.X / ViewRange : MaxPixelsPerInput;
 	}
 
 	/**
@@ -45,8 +45,12 @@ public:
 		return PixelsPerInput;
 	}
 private:
+	static const float MaxPixelsPerInput;
+
 	/** time range of the sequencer */
 	TRange<float> LocalViewRange;
 	/** The number of pixels in the view range */
 	float PixelsPerInput;
 };
+
+const float FTimeToPixel::MaxPixelsPerInput = 10000.0f;
