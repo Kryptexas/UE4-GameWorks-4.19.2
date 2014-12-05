@@ -19,17 +19,11 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		}
 
 		// Add our delegate for the async call
-		OnAcceptInviteCompleteDelegate = FOnAcceptInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnAcceptInviteComplete);
-		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnSendInviteComplete);
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendComplete);
-		OnDeleteFriendsListCompleteDelegate = FOnDeleteFriendsListCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendsListComplete);
 		OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnQueryRecentPlayersComplete);
 		
 
-		OnlineSub->GetFriendsInterface()->AddOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->AddOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendsListCompleteDelegate(0, OnDeleteFriendsListCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
 
 		// list of pending users to send invites to
@@ -72,11 +66,13 @@ void FTestFriendsInterface::StartNextTest()
 	}
 	else if (bAcceptInvites && InvitesToAccept.Num() > 0)
 	{
-		OnlineSub->GetFriendsInterface()->AcceptInvite(0, *InvitesToAccept[0], FriendsListName);
+		FOnAcceptInviteComplete Delegate = FOnAcceptInviteComplete::CreateRaw(this, &FTestFriendsInterface::OnAcceptInviteComplete);
+		OnlineSub->GetFriendsInterface()->AcceptInvite(0, *InvitesToAccept[0], FriendsListName, Delegate);
 	}
 	else if (bSendInvites && InvitesToSend.Num() > 0)
 	{
-		OnlineSub->GetFriendsInterface()->SendInvite(0, *InvitesToSend[0], FriendsListName);
+		FOnSendInviteComplete OnSendInviteCompleteDelegate = FOnSendInviteComplete::CreateRaw(this, &FTestFriendsInterface::OnSendInviteComplete);
+		OnlineSub->GetFriendsInterface()->SendInvite(0, *InvitesToSend[0], FriendsListName, OnSendInviteCompleteDelegate);
 	}
 	else if (bDeleteFriends && FriendsToDelete.Num() > 0)
 	{
@@ -84,7 +80,8 @@ void FTestFriendsInterface::StartNextTest()
 	}
 	else if (bDeleteFriendsList)
 	{
-		OnlineSub->GetFriendsInterface()->DeleteFriendsList(0, FriendsListName);
+		FOnDeleteFriendsListComplete Delegate = FOnDeleteFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendsListComplete);
+		OnlineSub->GetFriendsInterface()->DeleteFriendsList(0, FriendsListName, Delegate);
 	}
 	else
 	{
@@ -99,10 +96,7 @@ void FTestFriendsInterface::FinishTest()
 		OnlineSub->GetFriendsInterface().IsValid())
 	{
 		// Clear delegates for the various async calls
-		OnlineSub->GetFriendsInterface()->ClearOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->ClearOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendsListCompleteDelegate(0, OnDeleteFriendsListCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
 	}
 	delete this;

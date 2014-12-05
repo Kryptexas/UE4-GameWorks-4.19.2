@@ -57,8 +57,7 @@ DECLARE_DELEGATE_FourParams(FOnReadFriendsListComplete, int32, bool, const FStri
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnDeleteFriendsListComplete, int32, bool, const FString&, const FString&);
-typedef FOnDeleteFriendsListComplete::FDelegate FOnDeleteFriendsListCompleteDelegate;
+DECLARE_DELEGATE_FourParams(FOnDeleteFriendsListComplete, int32, bool, const FString&, const FString&);
 
 /**
  * Delegate used when an invite send request has completed
@@ -69,8 +68,7 @@ typedef FOnDeleteFriendsListComplete::FDelegate FOnDeleteFriendsListCompleteDele
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FiveParams(FOnSendInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
-typedef FOnSendInviteComplete::FDelegate FOnSendInviteCompleteDelegate;
+DECLARE_DELEGATE_FiveParams(FOnSendInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
 
 /**
  * Delegate used when an invite accept request has completed
@@ -81,8 +79,7 @@ typedef FOnSendInviteComplete::FDelegate FOnSendInviteCompleteDelegate;
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FiveParams(FOnAcceptInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
-typedef FOnAcceptInviteComplete::FDelegate FOnAcceptInviteCompleteDelegate;
+DECLARE_DELEGATE_FiveParams(FOnAcceptInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
 
 /**
  * Delegate used when an invite reject request has completed
@@ -221,17 +218,7 @@ public:
 	 *
 	 * @return true if the delete request was started successfully, false otherwise
 	 */
-	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName) = 0;
-
-	/**
-     * Delegate used when the friends list delete request has completed
-     *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-     * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-     */
-	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnDeleteFriendsListComplete, bool, const FString&, const FString&);
+	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate = FOnDeleteFriendsListComplete()) = 0;
 
 	/**
 	 * Starts an async task that sends an invite to another player. 
@@ -242,18 +229,7 @@ public:
 	 *
 	 * @return true if the request was started successfully, false otherwise
 	 */
-	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) = 0;
-
-	/**
-	 * Delegate used when an invite send request has completed
-	 *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param FriendId player that was invited
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnSendInviteComplete, bool, const FUniqueNetId&, const FString&, const FString&);
+	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate = FOnSendInviteComplete()) = 0;
 
 	/**
 	 * Starts an async task that accepts an invite from another player. 
@@ -264,18 +240,7 @@ public:
 	 *
 	 * @return true if the request was started successfully, false otherwise
 	 */
-	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) = 0;
-
-	/**
-	 * Delegate used when an invite accept request has completed
-	 *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param FriendId player that invited us
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnAcceptInviteComplete, bool, const FUniqueNetId&, const FString&, const FString&);
+	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate = FOnAcceptInviteComplete()) = 0;
 
 	/**
 	 * Starts an async task that rejects an invite from another player. 
