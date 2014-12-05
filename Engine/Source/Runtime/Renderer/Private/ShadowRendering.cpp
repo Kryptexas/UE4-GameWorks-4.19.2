@@ -1165,7 +1165,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShad
 			);
 
 		// Clear depth only.
-		RHICmdList.Clear(false, FColor(255, 255, 255), true, 1.0f, false, 0, FIntRect());
+		RHICmdList.Clear(false, FColor::White, true, 1.0f, false, 0, FIntRect());
 	}
 	else
 	{
@@ -1198,7 +1198,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShad
 				);
 
 			// Clear depth only.
-			RHICmdList.Clear(false, FColor(255, 255, 255), true, 1.0f, false, 0, FIntRect());
+			RHICmdList.Clear(false, FColor::White, true, 1.0f, false, 0, FIntRect());
 		}
 	}
 }

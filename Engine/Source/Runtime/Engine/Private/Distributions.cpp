@@ -1612,7 +1612,7 @@ FColor UDistributionFloatConstant::GetKeyColor(int32 SubIndex, int32 KeyIndex, c
 	check( KeyIndex == 0 );
 
 	// Always return RED since there is only one key
-	return FColor(255,0,0);
+	return FColor::Red;
 }
 
 void UDistributionFloatConstant::GetInRange(float& MinIn, float& MaxIn) const
@@ -1725,7 +1725,7 @@ FColor UDistributionFloatConstantCurve::GetKeyColor(int32 SubIndex, int32 KeyInd
 	check( KeyIndex >= 0 && KeyIndex < ConstantCurve.Points.Num() );
 
 	// Always return RED since there is only one sub-curve.
-	return FColor(255,0,0);
+	return FColor::Red;
 }
 
 void UDistributionFloatConstantCurve::GetInRange(float& MinIn, float& MaxIn) const
@@ -1918,11 +1918,11 @@ FColor UDistributionFloatUniform::GetSubCurveButtonColor(int32 SubCurveIndex, bo
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -1957,13 +1957,11 @@ FColor UDistributionFloatUniform::GetKeyColor(int32 SubIndex, int32 KeyIndex, co
 
 	if( 0 == SubIndex )
 	{
-		// RED
-		KeyColor = FColor(255,0,0);
+		KeyColor = FColor::Red;
 	} 
 	else
 	{
-		// GREEN
-		KeyColor = FColor(0,255,0);
+		KeyColor = FColor::Green;
 	}
 
 	return KeyColor;
@@ -2109,11 +2107,11 @@ FColor UDistributionFloatUniformCurve::GetSubCurveButtonColor(int32 SubCurveInde
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -2152,11 +2150,11 @@ FColor UDistributionFloatUniformCurve::GetKeyColor(int32 SubIndex, int32 KeyInde
 
 	if (SubIndex == 0)
 	{
-		return FColor(255,0,0);
+		return FColor::Red;
 	}
 	else
 	{
-		return FColor(0,255,0);
+		return FColor::Green;
 	}
 }
 
@@ -2388,15 +2386,15 @@ FColor UDistributionVectorConstant::GetSubCurveButtonColor(int32 SubCurveIndex, 
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -2457,12 +2455,18 @@ FColor UDistributionVectorConstant::GetKeyColor(int32 SubIndex, int32 KeyIndex, 
 	check( SubIndex >= 0 && SubIndex < 3);
 	check( KeyIndex == 0 );
 
-	if(SubIndex == 0)
-		return FColor(255,0,0);
-	else if(SubIndex == 1)
-		return FColor(0,255,0);
+	if (SubIndex == 0)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Green;
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 void UDistributionVectorConstant::GetInRange(float& MinIn, float& MaxIn) const
@@ -2622,15 +2626,15 @@ FColor UDistributionVectorConstantCurve::GetSubCurveButtonColor(int32 SubCurveIn
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -2687,12 +2691,18 @@ FColor UDistributionVectorConstantCurve::GetKeyColor(int32 SubIndex, int32 KeyIn
 	check( SubIndex >= 0 && SubIndex < 3);
 	check( KeyIndex >= 0 && KeyIndex < ConstantCurve.Points.Num() );
 
-	if(SubIndex == 0)
-		return FColor(255,0,0);
-	else if(SubIndex == 1)
-		return FColor(0,255,0);
+	if (SubIndex == 0)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Green;
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 void UDistributionVectorConstantCurve::GetInRange(float& MinIn, float& MaxIn) const
@@ -3255,7 +3265,7 @@ FColor UDistributionVectorUniform::GetSubCurveButtonColor(int32 SubCurveIndex, b
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		if (bShouldGroupMinAndMax)
@@ -3266,19 +3276,19 @@ FColor UDistributionVectorUniform::GetSubCurveButtonColor(int32 SubCurveIndex, b
 		else
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor::Green;
 		}
 		break;
 	case 2:
 		if (bShouldGroupMinAndMax)
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		}
 		else
 		{
 			// Blue
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		}
 		break;
 	case 3:
@@ -3287,7 +3297,7 @@ FColor UDistributionVectorUniform::GetSubCurveButtonColor(int32 SubCurveIndex, b
 		break;
 	case 4:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	case 5:
 		// Dark blue
@@ -3361,18 +3371,30 @@ FColor UDistributionVectorUniform::GetKeyColor(int32 SubIndex, int32 KeyIndex, c
 	check( SubIndex >= 0 && SubIndex < 6);
 	check( KeyIndex == 0 );
 
-	if(SubIndex == 0)
-		return FColor(128,0,0);
-	else if(SubIndex == 1)
-		return FColor(255,0,0);
-	else if(SubIndex == 2)
-		return FColor(0,128,0);
-	else if(SubIndex == 3)
-		return FColor(0,255,0);
-	else if(SubIndex == 4)
-		return FColor(0,0,128);
+	if (SubIndex == 0)
+	{
+		return FColor(128, 0, 0);
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 2)
+	{
+		return FColor(0, 128, 0);
+	}
+	else if (SubIndex == 3)
+	{
+		return FColor::Green;
+	}
+	else if (SubIndex == 4)
+	{
+		return FColor(0, 0, 128);
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 void UDistributionVectorUniform::GetInRange(float& MinIn, float& MaxIn) const
@@ -3651,7 +3673,7 @@ FColor UDistributionVectorUniformCurve::GetSubCurveButtonColor(int32 SubCurveInd
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		if (bShouldGroupMinAndMax)
@@ -3662,19 +3684,19 @@ FColor UDistributionVectorUniformCurve::GetSubCurveButtonColor(int32 SubCurveInd
 		else
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		}
 		break;
 	case 2:
 		if (bShouldGroupMinAndMax)
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		}
 		else
 		{
 			// Blue
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		}
 		break;
 	case 3:
@@ -3683,7 +3705,7 @@ FColor UDistributionVectorUniformCurve::GetSubCurveButtonColor(int32 SubCurveInd
 		break;
 	case 4:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(  0,  0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	case 5:
 		// Dark blue
@@ -3729,27 +3751,23 @@ FColor UDistributionVectorUniformCurve::GetKeyColor(int32 SubIndex, int32 KeyInd
 
 	if (SubIndex == 0)
 	{
-		return FColor(255,0,0);
+		return FColor::Red;
 	}
-	else 
-	if (SubIndex == 1)
+	else if (SubIndex == 1)
 	{
 		return FColor(128,0,0);
 	}
-	else
-	if (SubIndex == 2)
+	else if (SubIndex == 2)
 	{
-		return FColor(0,255,0);
+		return FColor::Green;
 	}
-	else
-	if (SubIndex == 3)
+	else if (SubIndex == 3)
 	{
 		return FColor(0,128,0);
 	}
-	else
-	if (SubIndex == 4)
+	else if (SubIndex == 4)
 	{
-		return FColor(0,0,255);
+		return FColor::Blue;
 	}
 	else
 	{

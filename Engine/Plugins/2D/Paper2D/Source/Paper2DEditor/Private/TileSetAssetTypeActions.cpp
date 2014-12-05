@@ -21,7 +21,7 @@ FText FTileSetAssetTypeActions::GetName() const
 
 FColor FTileSetAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FTileSetAssetTypeActions::GetSupportedClass() const

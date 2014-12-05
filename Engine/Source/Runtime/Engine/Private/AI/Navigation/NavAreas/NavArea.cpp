@@ -7,7 +7,7 @@ UNavArea::UNavArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
 {
 	DefaultCost = 1.f;
 	FixedAreaEnteringCost = 0.f;
-	DrawColor = FColor(255,0,255);
+	DrawColor = FColor::Magenta;
 	SupportedAgentsBits = 0xffffffff;
 	// NOTE! AreaFlags == 0 means UNWALKABLE!
 	AreaFlags = 1;  

@@ -461,7 +461,7 @@ private:
 class FWhiteTextureCube : public FSolidColorTextureCube
 {
 public:
-	FWhiteTextureCube(): FSolidColorTextureCube(FColor(255,255,255)) {}
+	FWhiteTextureCube() : FSolidColorTextureCube(FColor::White) {}
 };
 FTexture* GWhiteTextureCube = new TGlobalResource<FWhiteTextureCube>;
 
@@ -469,7 +469,7 @@ FTexture* GWhiteTextureCube = new TGlobalResource<FWhiteTextureCube>;
 class FBlackTextureCube : public FSolidColorTextureCube
 {
 public:
-	FBlackTextureCube(): FSolidColorTextureCube(FColor(0,0,0)) {}
+	FBlackTextureCube(): FSolidColorTextureCube(FColor::Black) {}
 };
 FTexture* GBlackTextureCube = new TGlobalResource<FBlackTextureCube>;
 

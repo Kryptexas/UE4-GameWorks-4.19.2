@@ -967,7 +967,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 				}
 			}
 			FText ToolTipMessage = GetToolTipText(GridPos, Seqs, Weights);
-			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 		}
 		else if ( Elements.Num() > 0 )
 		{
@@ -1002,7 +1002,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 					ToolTipMessage = GetToolTipText(LastValidMouseEditorPoint, Seqs, Weights);
 				}
 
-				DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+				DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 			}
 
 			if (bPreviewOn)
@@ -1020,7 +1020,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 			UAnimSequence * Seq = CachedSamples[HighlightedSampleIndex].Animation;
 			const FText Sequence = (Seq)? FText::FromString( Seq->GetName() ) : LOCTEXT("None", "None");
 			const FText ToolTipMessage = FText::Format( LOCTEXT("Sequence", "{0}\nSequence ({1})"), GetInputText(LastValidMouseEditorPoint), Sequence );
-			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+			DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 		}
 	}
 

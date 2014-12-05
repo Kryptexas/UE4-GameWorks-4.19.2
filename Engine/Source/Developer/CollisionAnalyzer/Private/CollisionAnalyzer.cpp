@@ -107,7 +107,7 @@ void FCollisionAnalyzer::TickAnalyzer(UWorld* World)
 	// Draw debug box if desired
 	if(DrawBox.IsValid)
 	{
-		DrawDebugBox(World, DrawBox.GetCenter(), DrawBox.GetExtent(), FColor(255,255,255));
+		DrawDebugBox(World, DrawBox.GetCenter(), DrawBox.GetExtent(), FColor::White);
 	}
 }
 

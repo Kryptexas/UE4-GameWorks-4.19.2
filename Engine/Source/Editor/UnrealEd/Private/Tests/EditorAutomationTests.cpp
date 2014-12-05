@@ -49,7 +49,7 @@ struct PointLightParameters
 		, LightBrightness(5000.0f)
 		, LightRadius(1000.0f)
 		, LightLocation(FVector(0.0f, 0.0f, 0.0f))
-		, LightColor(FColor(255, 255, 255))
+		, LightColor(FColor::White)
 	{
 	}
 };
@@ -1460,7 +1460,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	const FTransform Transform(FVector(0.0f, 0.0f, 400.0f));
 	APointLight* PointLight = Cast<APointLight>(GEditor->AddActor(World->GetCurrentLevel(), APointLight::StaticClass(), Transform));
 	LightParameters.PointLight = PointLight;
-	LightParameters.LightColor = FColor(255, 0, 0);
+	LightParameters.LightColor = FColor::Red;
 	LightParameters.LightLocation = FVector(0.0f, 0.0f, 400.0f);
 	ADD_LATENT_AUTOMATION_COMMAND(PointLightUpdateCommand(LightParameters));
 
@@ -1495,7 +1495,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	//Update the original point light actor.
 	LightParameters.LightRadius = 500.0f;
 	LightParameters.LightLocation = FVector(500.0f, 300.0f, 500.0f);
-	LightParameters.LightColor = FColor(255, 255, 255);
+	LightParameters.LightColor = FColor::White;
 	ADD_LATENT_AUTOMATION_COMMAND(PointLightUpdateCommand(LightParameters));
 
 	//Wait

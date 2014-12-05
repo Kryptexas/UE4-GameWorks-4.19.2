@@ -1011,7 +1011,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 					IntersectUpper = IntersectionPoint;
 
 					// visualizes the intersection
-					//AddQuadElement( IntersectUpper-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor(255,0,0));
+					//AddQuadElement( IntersectUpper-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor::Red);
 
 				}
 
@@ -1021,7 +1021,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 					IntersectLower = IntersectionPoint;
 
 					// visualizes the intersection
-					//AddQuadElement( IntersectLower-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor(255,255,0));
+					//AddQuadElement( IntersectLower-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor::Yellow);
 				}
 				// the midpoint of the intersection.  Used as the new end to the line segment (not adjusted for anti-aliasing)
 				IntersectCenter = (IntersectUpper+IntersectLower) * .5f;

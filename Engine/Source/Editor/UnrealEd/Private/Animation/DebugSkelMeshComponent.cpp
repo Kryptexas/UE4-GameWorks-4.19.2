@@ -25,7 +25,7 @@ public:
 	* Constructor. 
 	* @param	Component - skeletal mesh primitive being added
 	*/
-	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor(255, 255, 255)) :
+	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor::White) :
 		FSkeletalMeshSceneProxy( InComponent, InSkelMeshResource )
 	{
 		SkeletalMeshComponent = InComponent;

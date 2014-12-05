@@ -470,7 +470,7 @@ void DrawStaticLightingDebugInfo(const FSceneView* View,FPrimitiveDrawInterface*
 		for (int32 RayIndex = 0; RayIndex < GDebugStaticLightingInfo.ShadowRays.Num(); RayIndex++)
 		{
 			const FDebugStaticLightingRay& CurrentRay = GDebugStaticLightingInfo.ShadowRays[RayIndex];
-			PDI->DrawLine(CurrentRay.Start, CurrentRay.End, CurrentRay.bHit ? FColor(255,0,0) : FColor(0,255,0), SDPG_World);
+			PDI->DrawLine(CurrentRay.Start, CurrentRay.End, CurrentRay.bHit ? FColor::Red : FColor::Green, SDPG_World);
 		}
 		
 		for (int32 RayIndex = 0; RayIndex < GDebugStaticLightingInfo.PathRays.Num(); RayIndex++)
@@ -556,7 +556,7 @@ void DrawStaticLightingDebugInfo(const FSceneView* View,FPrimitiveDrawInterface*
 		for (int32 RayIndex = 0; RayIndex < GDebugStaticLightingInfo.IndirectPhotonPaths.Num(); RayIndex++)
 		{
 			const FDebugStaticLightingRay& CurrentRay = GDebugStaticLightingInfo.IndirectPhotonPaths[RayIndex];
-			PDI->DrawLine(CurrentRay.Start, CurrentRay.End, FColor(255,255,255), SDPG_World);
+			PDI->DrawLine(CurrentRay.Start, CurrentRay.End, FColor::White, SDPG_World);
 		}
 
 		for (int32 SampleIndex = 0; SampleIndex < GDebugStaticLightingInfo.VolumeLightingSamples.Num(); SampleIndex++)

@@ -704,7 +704,7 @@ UTextRenderComponent::UTextRenderComponent(const FObjectInitializer& ObjectIniti
 	TextMaterial = ConstructorStatics.TextMaterial.Get();
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	TextRenderColor = FColor(255, 255, 255);
+	TextRenderColor = FColor::White;
 	XScale = 1;
 	YScale = 1;
 	HorizSpacingAdjust = 0;

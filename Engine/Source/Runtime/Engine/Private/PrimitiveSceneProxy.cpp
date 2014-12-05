@@ -464,9 +464,9 @@ void FPrimitiveSceneProxy::RenderBounds(
 	{
 		// Draw the static mesh's bounding box and sphere.
 		DrawWireBox(PDI,Bounds.GetBox(), FColor(72,72,255),DrawBoundsDPG);
-		DrawCircle(PDI,Bounds.Origin,FVector(1,0,0),FVector(0,1,0),FColor(255,255,0),Bounds.SphereRadius,32,DrawBoundsDPG);
-		DrawCircle(PDI,Bounds.Origin,FVector(1,0,0),FVector(0,0,1),FColor(255,255,0),Bounds.SphereRadius,32,DrawBoundsDPG);
-		DrawCircle(PDI,Bounds.Origin,FVector(0,1,0),FVector(0,0,1),FColor(255,255,0),Bounds.SphereRadius,32,DrawBoundsDPG);
+		DrawCircle(PDI, Bounds.Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColor::Yellow, Bounds.SphereRadius, 32, DrawBoundsDPG);
+		DrawCircle(PDI, Bounds.Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColor::Yellow, Bounds.SphereRadius, 32, DrawBoundsDPG);
+		DrawCircle(PDI, Bounds.Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColor::Yellow, Bounds.SphereRadius, 32, DrawBoundsDPG);
 	}
 }
 

@@ -100,7 +100,7 @@ UAtmosphericFogComponent::UAtmosphericFogComponent(const FObjectInitializer& Obj
 
 	// Default lighting
 	DefaultBrightness = 50.f;
-	DefaultLightColor = FColor(255, 255, 255);
+	DefaultLightColor = FColor::White;
 
 	bDisableSunDisk = false;
 	bDisableGroundScattering = false;

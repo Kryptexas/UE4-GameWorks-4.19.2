@@ -1282,7 +1282,7 @@ public:
 					PDI->DrawLine(StartPos, HandlePos, FColor::White, SDPG_Foreground);
 
 					if (PDI->IsHitTesting()) PDI->SetHitProxy(new HLandscapeSplineProxy_Tangent(Connection.Segment, Connection.End));
-					PDI->DrawPoint(HandlePos, FColor(255, 255, 255), 10.f, SDPG_Foreground);
+					PDI->DrawPoint(HandlePos, FColor::White, 10.f, SDPG_Foreground);
 					if (PDI->IsHitTesting()) PDI->SetHitProxy(NULL);
 				}
 			}
@@ -1305,7 +1305,7 @@ public:
 
 					PDI->DrawLine(EndPos, EndHandlePos, FColor::White, SDPG_Foreground);
 					if (PDI->IsHitTesting()) PDI->SetHitProxy(new HLandscapeSplineProxy_Tangent(Segment, !!End));
-					PDI->DrawPoint(EndHandlePos, FColor(255, 255, 255), 10.f, SDPG_Foreground);
+					PDI->DrawPoint(EndHandlePos, FColor::White, 10.f, SDPG_Foreground);
 					if (PDI->IsHitTesting()) PDI->SetHitProxy(NULL);
 				}
 			}

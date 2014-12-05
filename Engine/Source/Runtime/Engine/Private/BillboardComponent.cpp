@@ -160,7 +160,7 @@ public:
 					// Sprites of locked actors draw in red.
 					if (bIsActorLocked)
 					{
-						ColorToUse = FColor(255,0,0);
+						ColorToUse = FColor::Red;
 					}
 					FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : (FLinearColor)LevelColor;
 					FLinearColor PropertyColorToUse = PropertyColor;

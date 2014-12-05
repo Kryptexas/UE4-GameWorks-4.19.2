@@ -2161,7 +2161,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 			TmpWedges[UnrealVertexIndex].MatIndex = Triangle.MatIndex;
 			TmpWedges[UnrealVertexIndex].VertexIndex = ExistPointNum + Mesh->GetPolygonVertex(LocalIndex,VertexIndex);
 			// Initialize all colors to white.
-			TmpWedges[UnrealVertexIndex].Color = FColor(255,255,255);
+			TmpWedges[UnrealVertexIndex].Color = FColor::White;
 		}
 
 		//

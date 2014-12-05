@@ -96,7 +96,7 @@ UClass* FMediaPlayerActions::GetSupportedClass() const
 
 FColor FMediaPlayerActions::GetTypeColor() const
 {
-	return FColor(255, 0, 0);
+	return FColor::Red;
 }
 
 

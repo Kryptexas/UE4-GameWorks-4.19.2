@@ -2346,9 +2346,9 @@ void FDynamicBeam2EmitterData::RenderDirectLine(const FParticleSystemSceneProxy*
 			continue;
 		}
 
-		DrawWireStar(PDI, BeamPayloadData->SourcePoint, 20.0f, FColor(0,255,0),Proxy->GetDepthPriorityGroup(View));
-		DrawWireStar(PDI, BeamPayloadData->TargetPoint, 20.0f, FColor(255,0,0),Proxy->GetDepthPriorityGroup(View));
-		PDI->DrawLine(BeamPayloadData->SourcePoint, BeamPayloadData->TargetPoint, FColor(255,255,0),Proxy->GetDepthPriorityGroup(View));
+		DrawWireStar(PDI, BeamPayloadData->SourcePoint, 20.0f, FColor::Green, Proxy->GetDepthPriorityGroup(View));
+		DrawWireStar(PDI, BeamPayloadData->TargetPoint, 20.0f, FColor::Red, Proxy->GetDepthPriorityGroup(View));
+		PDI->DrawLine(BeamPayloadData->SourcePoint, BeamPayloadData->TargetPoint, FColor::Yellow, Proxy->GetDepthPriorityGroup(View));
 	}
 }
 
@@ -2518,7 +2518,7 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 			EndPoint	= CurrDrawPosition;
 
 			// 'Lead' edge
-			DrawWireStar(PDI, Location, 15.0f, FColor(0,255,0), Proxy->GetDepthPriorityGroup(View));
+			DrawWireStar(PDI, Location, 15.0f, FColor::Green, Proxy->GetDepthPriorityGroup(View));
 
 			for (int32 StepIndex = 0; StepIndex < BeamPayloadData->Steps; StepIndex++)
 			{
@@ -2618,12 +2618,12 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 					FColor StarColor(255,0,255);
 					if (TessIndex == 0)
 					{
-						StarColor = FColor(0,0,255);
+						StarColor = FColor::Blue;
 					}
 					else
 					if (TessIndex == (TessFactor - 1))
 					{
-						StarColor = FColor(255,255,0);
+						StarColor = FColor::Yellow;
 					}
 
 					// Generate the vertex
@@ -2690,12 +2690,11 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 					FColor StarColor(255,0,255);
 					if (TessIndex == 0)
 					{
-						StarColor = FColor(255,255,255);
+						StarColor = FColor::White;
 					}
-					else
-					if (TessIndex == (TessFactor - 1))
+					else if (TessIndex == (TessFactor - 1))
 					{
-						StarColor = FColor(255,255,0);
+						StarColor = FColor::Yellow;
 					}
 
 					// Generate the vertex
@@ -2728,9 +2727,9 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 				FVector EndPoint	= Particle->Location;
 				FVector Location	= BeamPayloadData->SourcePoint;
 
-				DrawWireStar(PDI, Location, 15.0f, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
-				DrawWireStar(PDI, EndPoint, 15.0f, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
-				PDI->DrawLine(Location, EndPoint, FColor(255,255,0), Proxy->GetDepthPriorityGroup(View));
+				DrawWireStar(PDI, Location, 15.0f, FColor::Red, Proxy->GetDepthPriorityGroup(View));
+				DrawWireStar(PDI, EndPoint, 15.0f, FColor::Red, Proxy->GetDepthPriorityGroup(View));
+				PDI->DrawLine(Location, EndPoint, FColor::Yellow, Proxy->GetDepthPriorityGroup(View));
 			}
 		}
 		else
@@ -2760,12 +2759,12 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 				Location	= BeamPayloadData->SourcePoint;
 				EndPoint	= InterpolatedPoints[0];
 
-				DrawWireStar(PDI, Location, 15.0f, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
+				DrawWireStar(PDI, Location, 15.0f, FColor::Red, Proxy->GetDepthPriorityGroup(View));
 				for (int32 StepIndex = 0; StepIndex < BeamPayloadData->InterpolationSteps; StepIndex++)
 				{
 					EndPoint = InterpolatedPoints[StepIndex];
-					DrawWireStar(PDI, EndPoint, 15.0f, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
-					PDI->DrawLine(Location, EndPoint, FColor(255,255,0), Proxy->GetDepthPriorityGroup(View));
+					DrawWireStar(PDI, EndPoint, 15.0f, FColor::Red, Proxy->GetDepthPriorityGroup(View));
+					PDI->DrawLine(Location, EndPoint, FColor::Yellow, Proxy->GetDepthPriorityGroup(View));
 					Location = EndPoint;
 				}
 			}
@@ -5258,11 +5257,11 @@ void FDynamicRibbonEmitterData::RenderDebug(const FParticleSystemSceneProxy* Pro
 					{
 						if (TrailPayload->bInterpolatedSpawn == false)
 						{
-							DrawWireStar(PDI, DrawPosition, DrawSize, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
+							DrawWireStar(PDI, DrawPosition, DrawSize, FColor::Red, Proxy->GetDepthPriorityGroup(View));
 						}
 						else
 						{
-							DrawWireStar(PDI, DrawPosition, DrawSize, FColor(0,255,0), Proxy->GetDepthPriorityGroup(View));
+							DrawWireStar(PDI, DrawPosition, DrawSize, FColor::Green, Proxy->GetDepthPriorityGroup(View));
 						}
 
 						//
@@ -5272,7 +5271,7 @@ void FDynamicRibbonEmitterData::RenderDebug(const FParticleSystemSceneProxy* Pro
 							{
 								// Draw a straight line between the particles
 								// This will allow us to visualize the tessellation difference
-								PDI->DrawLine(DrawPosition, PrevParticle->Location, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
+								PDI->DrawLine(DrawPosition, PrevParticle->Location, FColor::Blue, Proxy->GetDepthPriorityGroup(View));
 								int32 InterpCount = TrailPayload->RenderingInterpCount;
 								// Interpolate between current and next...
 								FVector LineStart = DrawPosition;
@@ -5949,21 +5948,21 @@ void FDynamicAnimTrailEmitterData::RenderDebug(const FParticleSystemSceneProxy* 
 				{
 					if (TRAIL_EMITTER_IS_START(RenderData.Payload->Flags))
 					{
-						DrawWireStar(PDI, DrawPosition, DrawSize, FColor(0, 255, 0), Proxy->GetDepthPriorityGroup(View));
-						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(0, 255, 0), Proxy->GetDepthPriorityGroup(View));
-						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(0, 255, 0), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawPosition, DrawSize, FColor::Green, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor::Green, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor::Green, Proxy->GetDepthPriorityGroup(View));
 					}
 					else if (TRAIL_EMITTER_IS_DEADTRAIL(RenderData.Payload->Flags))
 					{
-						DrawWireStar(PDI, DrawPosition, DrawSize, FColor(255, 0, 0), Proxy->GetDepthPriorityGroup(View));
-						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(255, 0, 0), Proxy->GetDepthPriorityGroup(View));
-						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(255, 0, 0), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawPosition, DrawSize, FColor::Red, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor::Red, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor::Red, Proxy->GetDepthPriorityGroup(View));
 					}
 					else if (TRAIL_EMITTER_IS_END(RenderData.Payload->Flags))
 					{
-						DrawWireStar(PDI, DrawPosition, DrawSize, FColor(255, 255, 255), Proxy->GetDepthPriorityGroup(View));
-						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(255, 255, 255), Proxy->GetDepthPriorityGroup(View));
-						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(255, 255, 255), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawPosition, DrawSize, FColor::White, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor::White, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor::White, Proxy->GetDepthPriorityGroup(View));
 					}
 					else
 					{
@@ -5984,9 +5983,9 @@ void FDynamicAnimTrailEmitterData::RenderDebug(const FParticleSystemSceneProxy* 
 
 						// Draw a straight line between the particles
 						// This will allow us to visualize the tessellation difference
-						PDI->DrawLine(DrawPosition, PrevDrawPosition, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
-						PDI->DrawLine(DrawFirstEdgePosition, PrevDrawFirstEdgePosition, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
-						PDI->DrawLine(DrawSecondEdgePosition, PrevDrawSecondEdgePosition, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(DrawPosition, PrevDrawPosition, FColor::Blue, Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(DrawFirstEdgePosition, PrevDrawFirstEdgePosition, FColor::Blue, Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(DrawSecondEdgePosition, PrevDrawSecondEdgePosition, FColor::Blue, Proxy->GetDepthPriorityGroup(View));
 
 						int32 InterpCount = RenderData.Payload->RenderingInterpCount;
 						// Interpolate between prev and current...

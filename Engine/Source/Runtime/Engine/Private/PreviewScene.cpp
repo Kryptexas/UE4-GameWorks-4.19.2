@@ -36,7 +36,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 
 	DirectionalLight = ConstructObject<UDirectionalLightComponent>(UDirectionalLightComponent::StaticClass());
 	DirectionalLight->Intensity = CVS.LightBrightness;
-	DirectionalLight->LightColor = FColor(255,255,255);
+	DirectionalLight->LightColor = FColor::White;
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));
 
 	LineBatcher = ConstructObject<ULineBatchComponent>(ULineBatchComponent::StaticClass());

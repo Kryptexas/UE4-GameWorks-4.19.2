@@ -999,11 +999,11 @@ void FLightMapPendingTexture::StartEncoding()
 							X == Allocation->MappedRect.Min.X+1 || Y == Allocation->MappedRect.Min.Y+1 ||
 							X == Allocation->MappedRect.Max.X-2 || Y == Allocation->MappedRect.Max.Y-2 )
 						{
-							DestColor = FColor(255,0,0);
+							DestColor = FColor::Red;
 						}
 						else
 						{
-							DestColor = FColor(0,255,0);
+							DestColor = FColor::Green;
 						}
 #else
 						DestColor.R = SourceCoefficients.Coefficients[CoefficientIndex][0];

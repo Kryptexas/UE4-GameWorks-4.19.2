@@ -10595,29 +10595,29 @@ void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<F
 /** Utility that gets a color for a particular level status */
 FColor GetColorForLevelStatus(int32 Status)
 {
-	FColor Color = FColor(255, 255, 255);
+	FColor Color = FColor::White;
 	switch (Status)
 	{
 	case LEVEL_Visible:
-		Color = FColor(255, 0, 0);	// red  loaded and visible
+		Color = FColor::Red;		// red  loaded and visible
 		break;
 	case LEVEL_MakingVisible:
-		Color = FColor(255, 128, 0);	// orange, in process of being made visible
+		Color = FColor(255, 128, 0);// orange, in process of being made visible
 		break;
 	case LEVEL_Loading:
-		Color = FColor(255, 0, 255);	// purple, in process of being loaded
+		Color = FColor::Magenta;	// purple, in process of being loaded
 		break;
 	case LEVEL_Loaded:
-		Color = FColor(255, 255, 0);	// yellow loaded but not visible
+		Color = FColor::Yellow;		// yellow loaded but not visible
 		break;
 	case LEVEL_UnloadedButStillAround:
-		Color = FColor(0, 0, 255);	// blue  (GC needs to occur to remove this)
+		Color = FColor::Blue;		// blue  (GC needs to occur to remove this)
 		break;
 	case LEVEL_Unloaded:
-		Color = FColor(0, 255, 0);	// green
+		Color = FColor::Green;		// green
 		break;
 	case LEVEL_Preloading:
-		Color = FColor(255, 0, 255);	// purple (preloading)
+		Color = FColor::Magenta;	// purple (preloading)
 		break;
 	default:
 		break;
@@ -10759,7 +10759,7 @@ int32 UEngine::RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas
 	UFont* Font = FPlatformProperties::SupportsWindowedMode() ? GetSmallFont() : GetMediumFont();
 
 	// Choose the counter color based on the average framerate.
-	FColor FPSColor = GAverageFPS < 20.0f ? FColor(255, 0, 0) : (GAverageFPS < 29.5f ? FColor(255, 255, 0) : FColor(0, 255, 0));
+	FColor FPSColor = GAverageFPS < 20.0f ? FColor::Red : (GAverageFPS < 29.5f ? FColor::Yellow : FColor::Green);
 
 	// Start drawing the various counters.
 	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
@@ -11290,7 +11290,7 @@ int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas*
 	FAudioDevice* AudioDevice = GetAudioDevice();
 	if (AudioDevice)
 	{
-		Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		if (AudioDevice->SoundMixModifiers.Num() > 0)
@@ -11302,7 +11302,7 @@ int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas*
 				uint32 TotalRefCount = It.Value().ActiveRefCount + It.Value().PassiveRefCount;
 				FString TheString = FString::Printf(TEXT("%s - Fade Proportion: %1.2f - Total Ref Count: %i"), *It.Key()->GetName(), It.Value().InterpValue, TotalRefCount);
 
-				FColor TextColour = FColor(255, 255, 255);
+				FColor TextColour = FColor::White;
 				if (It.Key() == CurrentEQMix)
 				{
 					TextColour = FColor(255, 255, 0);
@@ -11315,7 +11315,7 @@ int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas*
 		}
 		else
 		{
-			Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor(255, 255, 255));
+			Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor::White);
 			Y += 12;
 		}
 	}
@@ -11352,7 +11352,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 				SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
 				SoundClass ? *SoundClass->GetName() : TEXT("None"));
 
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor(255, 255, 255));
+			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
 			Y += 12;
 		}
 
@@ -11397,7 +11397,7 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 		}
 	}
 
-	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Cues:"), GetSmallFont(), FColor(0, 255, 0));
+	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Cues:"), GetSmallFont(), FColor::Green);
 	Y += 12;
 
 	int32 ActiveSoundCount = 0;
@@ -11405,11 +11405,11 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 	{
 		USoundClass* SoundClass = ActiveSound->GetSoundClass();
 		const FString TheString = FString::Printf(TEXT("%4i. %s %s"), ActiveSoundCount++, *ActiveSound->Sound->GetPathName(), (SoundClass ? *SoundClass->GetName() : TEXT("None")));
-		Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor(255, 255, 255));
+		Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
 		Y += 12;
 	}
 
-	Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total: %i"), ActiveSounds.Num()), GetSmallFont(), FColor(0, 255, 0));
+	Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total: %i"), ActiveSounds.Num()), GetSmallFont(), FColor::Green);
 	Y += 12;
 	return Y;
 }
@@ -11572,14 +11572,14 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 		}
 
 
-		Canvas->DrawShadowedString(X, Y, TEXT("Active Sounds:"), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, TEXT("Active Sounds:"), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		const FString InfoText = FString::Printf(TEXT(" Sorting: %s Debug: %s"), *SortingName, bDebug ? TEXT("enabled") : TEXT("disabled"));
 		Canvas->DrawShadowedString(X, Y, *InfoText, GetSmallFont(), FColor(128, 255, 128));
 		Y += 12;
 
-		Canvas->DrawShadowedString(X, Y, TEXT("Index Path (Class) Distance"), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, TEXT("Index Path (Class) Distance"), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		int32 TotalSoundWavesNum = 0;
@@ -11593,7 +11593,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 			{
 				{
 					const FString TheString = FString::Printf(TEXT("%4i. %s (%s) %6.2f"), SoundIndex, *SoundInfo.PathName, *SoundInfo.ClassName.ToString(), SoundInfo.Distance);
-					Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor(255, 255, 255));
+					Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
 					Y += 12;
 				}
 
@@ -11615,10 +11615,10 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 			}
 		}
 
-		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total sounds: %i, sound waves: %i"), SoundIndex, TotalSoundWavesNum), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total sounds: %i, sound waves: %i"), SoundIndex, TotalSoundWavesNum), GetSmallFont(), FColor::Green);
 		Y += 12;
 
-		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Listener position: %s"), *ListenerPosition.ToString()), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Listener position: %s"), *ListenerPosition.ToString()), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		// Draw sound cue's sphere.
@@ -11746,7 +11746,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 
 #define MAXDUDES 20
 #define BADAMTOFDUDES 12
-	FColor TotalColor = FColor(0, 255, 0);
+	FColor TotalColor = FColor::Green;
 	if (NumAI > BADAMTOFDUDES)
 	{
 		float Scalar = 1.0f - FMath::Clamp<float>((float)NumAI / (float)MAXDUDES, 0.f, 1.f);
@@ -11754,7 +11754,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 		TotalColor = FColor::MakeRedToGreenColorFromScalar(Scalar);
 	}
 
-	FColor RenderedColor = FColor(0, 255, 0);
+	FColor RenderedColor = FColor::Green;
 	if (NumAIRendered > BADAMTOFDUDES)
 	{
 		float Scalar = 1.0f - FMath::Clamp<float>((float)NumAIRendered / (float)MAXDUDES, 0.f, 1.f);
@@ -11803,7 +11803,7 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 		Y,
 		TEXT("Slate Batches:"),
 		Font, 
-		FColor(0,255,0) );
+		FColor::Green );
 	
 	Y+=RowHeight;
 	
@@ -11821,7 +11821,7 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 			Y,
 			*FString::Printf(TEXT("Layer: %d, Elements: %d, Vertices: %d"), Stat.Layer, Stat.NumElementsInBatch, Stat.NumVertices ), 
 			Font,
-			FColor(0,255,0) );
+			FColor::Green );
 		Y += RowHeight;
 	}*/
 	return Y;

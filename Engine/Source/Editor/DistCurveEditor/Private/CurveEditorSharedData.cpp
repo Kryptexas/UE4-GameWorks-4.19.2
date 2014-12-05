@@ -25,7 +25,7 @@ FCurveEditorSharedData::FCurveEditorSharedData(UInterpCurveEdSetup* InEdSetup)
 
 	bShowPositionMarker = false;
 	MarkerPosition = 0.f;
-	MarkerColor = FColor(255,255,255);
+	MarkerColor = FColor::White;
 
 	bShowEndMarker = false;
 	EndMarkerPosition = 0.f;

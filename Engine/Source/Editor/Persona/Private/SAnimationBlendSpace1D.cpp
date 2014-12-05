@@ -382,7 +382,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				{
 					ToolTipMessage = GetToolTipText(LastValidMouseEditorPoint, Seqs, Weights);
 				}
-				DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+				DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 			}
 		}
 		else if (bIsOnValidSample) // If I'm on top of a sample
@@ -390,7 +390,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 			UAnimSequence * Seq = CachedSamples[HighlightedSampleIndex].Animation;
 			const FText Sequence = (Seq)? FText::FromString( Seq->GetName() ): LOCTEXT("None", "None");
 			const FText ToolTipMessage = FText::Format( LOCTEXT("Sequence", "{0}\nSequence ({1})"), GetInputText(LastValidMouseEditorPoint), Sequence );
-			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+			DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 		}
 	}
 

@@ -3240,7 +3240,7 @@ bool UEditorEngine::GetPropertyColorationColor(UObject* Object, FColor& OutColor
 				if ( PropertyValue == GPropertyColorationValue )
 				{
 					bResult  = true;
-					OutColor = FColor(255,0,0);
+					OutColor = FColor::Red;
 
 					// Collect actor references.
 					if ( GPropertyColorationActorCollector && Owner )

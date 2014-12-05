@@ -1343,11 +1343,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		if( IsGameWorld() && GAreScreenMessagesEnabled && ThisFramePawnSpawns.Num() > GEngine->NumPawnsAllowedToBeSpawnedInAFrame )
 		{
-			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.f, FColor(255,0,0), *WarningMessage);
+			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.f, FColor::Red, *WarningMessage);
 
 			for(int32 i=0; i<ThisFramePawnSpawns.Num(); i++)
 			{
-				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)+i), 5.f, FColor(255,0,0), *ThisFramePawnSpawns[i]);
+				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)+i), 5.f, FColor::Red, *ThisFramePawnSpawns[i]);
 			}
 		}
 	}

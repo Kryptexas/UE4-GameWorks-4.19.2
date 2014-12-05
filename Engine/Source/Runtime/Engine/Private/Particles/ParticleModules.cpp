@@ -2817,7 +2817,7 @@ void UParticleModuleLight::Render3DPreview(FParticleEmitterInstance* Owner, cons
 				const FVector Size = Scale * Particle.Size;
 				const float LightRadius = LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f;
 
-				DrawWireSphere(PDI, LightPosition, FColor(255, 255, 255), LightRadius, 18, SDPG_World);
+				DrawWireSphere(PDI, LightPosition, FColor::White, LightRadius, 18, SDPG_World);
 			}
 		}
 	}

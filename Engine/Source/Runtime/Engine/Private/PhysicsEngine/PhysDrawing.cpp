@@ -18,12 +18,12 @@ static const float JointRenderSize = 10.f;
 static const float LimitRenderSize = 16.0f;
 
 static const FColor JointUnselectedColor(255, 0, 255);
-static const FColor JointRed(255, 0, 0);
-static const FColor JointGreen(0, 255, 0);
-static const FColor JointBlue(0, 0, 255);
+static const FColor JointRed(FColor::Red);
+static const FColor JointGreen(FColor::Green);
+static const FColor JointBlue(FColor::Blue);
 
-static const FColor	JointLimitColor(0,255,0);
-static const FColor	JointRefColor(255,255,0);
+static const FColor	JointLimitColor(FColor::Green);
+static const FColor	JointRefColor(FColor::Yellow);
 static const FColor JointLockedColor(255,128,10);
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -590,7 +590,7 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 				for(int32 i=0; i<ConvexElems.Num(); i++)
 				{
 					// Get vertices/triangles from this hull.
-					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, FColor(255,255,255));
+					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, FColor::White);
 				}
 
 				// Only continue if we actually got some valid geometry

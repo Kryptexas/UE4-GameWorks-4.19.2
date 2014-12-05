@@ -17,7 +17,7 @@ FText FAtlasAssetTypeActions::GetName() const
 
 FColor FAtlasAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FAtlasAssetTypeActions::GetSupportedClass() const

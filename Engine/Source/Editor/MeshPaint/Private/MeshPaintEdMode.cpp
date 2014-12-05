@@ -1444,7 +1444,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 						bool bConvertSRGB = false;
 						FColor FillColor = Params.BrushColor.ToFColor(bConvertSRGB);
 						// Original mesh didn't have any colors, so just use a default color
-						InstanceMeshLODInfo->OverrideVertexColors->InitFromSingleColor(FColor(255, 255, 255), LODModel.GetNumVertices());
+						InstanceMeshLODInfo->OverrideVertexColors->InitFromSingleColor(FColor::White, LODModel.GetNumVertices());
 					}
 
 				}
@@ -3713,8 +3713,8 @@ void FEdModeMeshPaint::CopyInstanceVertexColors()
 								// mismatched or empty color buffer - just use white
 								for( uint32 VertexIndex = 0; VertexIndex < NumPosVertices; VertexIndex++ )
 								{
-									LodColorData.ColorsByIndex.Add( FColor(255,255,255,255) );
-									LodColorData.ColorsByPosition.Add( PosBuffer->VertexPosition( VertexIndex ), FColor(255,255,255,255) );
+									LodColorData.ColorsByIndex.Add( FColor::White );
+									LodColorData.ColorsByPosition.Add( PosBuffer->VertexPosition( VertexIndex ), FColor::White );
 								}
 							}
 						}
@@ -3796,7 +3796,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 								for (int32 TargetVertIdx = 0; TargetVertIdx < LodRenderData.GetNumVertices(); TargetVertIdx++)
 								{
-									ReOrderedColors[TargetVertIdx] = FColor(255,255,255,255);
+									ReOrderedColors[TargetVertIdx] = FColor::White;
 								}
 							}
 							else if (LodRenderData.GetNumVertices() == FoundColors->PerLODVertexColorData[CurLODIndex].ColorsByIndex.Num())
@@ -3824,7 +3824,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 									else
 									{
 										// A matching color for this vertex could not be found. Make this vertex white
-										ReOrderedColors[TargetVertIdx] = FColor(255,255,255,255);
+										ReOrderedColors[TargetVertIdx] = FColor::White;
 									}
 								}
 							}

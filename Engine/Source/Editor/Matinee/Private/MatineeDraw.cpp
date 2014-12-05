@@ -734,7 +734,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 		FString KeyTitle = FString::Printf( TEXT("%s%d"), ( rSelKey.Track ? *rSelKey.Track->TrackTitle : TEXT( "?" ) ), rSelKey.KeyIndex );
 		FString AdjustString = FText::Format( NSLOCTEXT("UnrealEd", "Key_F", "KEY {0}"), FText::FromString(KeyTitle) ).ToString();
 
-		Canvas->DrawNGon(FIntPoint(HeadTitleMargin + 5, ViewY - 1.1 * YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
+		Canvas->DrawNGon(FIntPoint(HeadTitleMargin + 5, ViewY - 1.1 * YL - 2 * HeadTitleMargin), FColor::Red, 12, 5);
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( AdjustString );
 		Canvas->DrawItem(TextItem, 2 * HeadTitleMargin + 10, (int32)( ViewY - 1.6 * YL - 2 * HeadTitleMargin ));
@@ -775,7 +775,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 			AdjustString += TEXT( "] " );
 		}
 
-		Canvas->DrawNGon(FIntPoint(HeadTitleMargin + 5, ViewY - 1.1*YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
+		Canvas->DrawNGon(FIntPoint(HeadTitleMargin + 5, ViewY - 1.1*YL - 2 * HeadTitleMargin), FColor::Red, 12, 5);
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( AdjustString );
 		Canvas->DrawItem(TextItem, 2 * HeadTitleMargin + 10, (int32)(ViewY - 1.6*YL - 2 * HeadTitleMargin));

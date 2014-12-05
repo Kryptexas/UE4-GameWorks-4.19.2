@@ -23,7 +23,7 @@ FText FPaperSpriteSheetAssetTypeActions::GetName() const
 
 FColor FPaperSpriteSheetAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FPaperSpriteSheetAssetTypeActions::GetSupportedClass() const

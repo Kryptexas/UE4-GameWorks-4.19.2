@@ -79,7 +79,7 @@ UClass* FMediaTextureActions::GetSupportedClass() const
 
 FColor FMediaTextureActions::GetTypeColor() const
 {
-	return FColor(255, 0, 0);
+	return FColor::Red;
 }
 
 

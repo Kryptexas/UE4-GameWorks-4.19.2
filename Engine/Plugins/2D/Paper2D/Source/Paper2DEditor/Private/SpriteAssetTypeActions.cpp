@@ -20,7 +20,7 @@ FText FSpriteAssetTypeActions::GetName() const
 
 FColor FSpriteAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FSpriteAssetTypeActions::GetSupportedClass() const

@@ -54,8 +54,8 @@ DEFINE_LOG_CATEGORY(LogSlateMatinee);
 
 #define LOCTEXT_NAMESPACE "Matinee"
 
-const FColor FMatinee::ActiveCamColor = FColor(255, 255, 0);
-const FColor FMatinee::SelectedCurveColor = FColor(255, 255, 0);
+const FColor FMatinee::ActiveCamColor = FColor::Yellow;
+const FColor FMatinee::SelectedCurveColor = FColor::Yellow;
 const int32	FMatinee::DuplicateKeyOffset = 10;
 const int32	FMatinee::KeySnapPixels = 5;
 
@@ -63,7 +63,7 @@ const float FMatinee::InterpEditor_ZoomIncrement = 1.2f;
 
 const FColor FMatinee::PositionMarkerLineColor = FColor(255, 222, 206);
 const FColor FMatinee::LoopRegionFillColor = FColor(80,255,80,24);
-const FColor FMatinee::Track3DSelectedColor = FColor(255,255,0);
+const FColor FMatinee::Track3DSelectedColor = FColor::Yellow;
 
 const float FMatinee::InterpEdSnapSizes[5] = { 0.01f, 0.05f, 0.1f, 0.5f, 1.0f };
 const float FMatinee::InterpEdFPSSnapSizes[9] =
