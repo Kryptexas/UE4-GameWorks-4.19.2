@@ -1185,7 +1185,7 @@ SDL_UpdateFullscreenMode(SDL_Window * window, SDL_bool fullscreen)
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     #define CREATE_FLAGS \
-        (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_UTILITY | SDL_WINDOW_TOOLTIP)
+        (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_ACCEPTS_INPUT | SDL_WINDOW_SKIP_TASKBAR | SDL_WINDOW_UTILITY | SDL_WINDOW_TOOLTIP | SDL_WINDOW_ALWAYS_ON_TOP)
 #else
     #define CREATE_FLAGS \
         (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
@@ -2045,6 +2045,43 @@ SDL_GetWindowOpacity(SDL_Window * window, float * out_opacity)
     }
 
     return _this->GetWindowOpacity(_this, window, out_opacity);
+}
+
+int 
+SDL_SetWindowInputState(SDL_Window * window, SDL_bool enable)
+{
+    CHECK_WINDOW_MAGIC(window, -1);
+
+    if (!_this->SetWindowInputState) {
+        return SDL_Unsupported();
+    }
+    
+    return _this->SetWindowInputState(_this, window, enable);
+}
+
+int 
+SDL_SetWindowActive(SDL_Window * window) 
+{
+	CHECK_WINDOW_MAGIC(window, -1);
+
+    if (!_this->SetWindowActive) {
+        return SDL_Unsupported();
+    }
+    
+    return _this->SetWindowActive(_this, window);
+}
+
+int 
+SDL_SetWindowModalFor(SDL_Window * modal_window, SDL_Window * parent_window)
+{
+    CHECK_WINDOW_MAGIC(modal_window, -1);
+    CHECK_WINDOW_MAGIC(parent_window, -1);
+
+    if (!_this->SetWindowModalFor) {
+        return SDL_Unsupported();
+    }
+    
+    return _this->SetWindowModalFor(_this, modal_window, parent_window);
 }
 #endif // SDL_WITH_EPIC_EXTENSIONS
 /* EG END */

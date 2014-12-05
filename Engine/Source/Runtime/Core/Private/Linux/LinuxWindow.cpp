@@ -82,18 +82,19 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	{
 		WindowStyle |= SDL_WINDOW_BORDERLESS;
 
-		if ( !Definition->AppearsInTaskbar )
+		if (Definition->AcceptsInput)
 		{
-			if ( Definition->AcceptsInput )
-			{
-				UE_LOG(LogLinuxWindow, Verbose, TEXT("Creating an utility window '%s'."), *Definition->Title);
-				WindowStyle |= SDL_WINDOW_UTILITY;
-			}
-			else
-			{
-				UE_LOG(LogLinuxWindow, Verbose, TEXT("Creating a tooltip window '%s'."), *Definition->Title);
-				WindowStyle |= SDL_WINDOW_TOOLTIP;
-			}
+			WindowStyle |= SDL_WINDOW_ACCEPTS_INPUT;
+		} 
+
+		if (Definition->IsTopmostWindow)
+		{
+			WindowStyle |= SDL_WINDOW_ALWAYS_ON_TOP;
+		}
+
+		if (!Definition->AppearsInTaskbar)
+		{
+			WindowStyle |= SDL_WINDOW_SKIP_TASKBAR;
 		}
 	}
 
@@ -106,6 +107,11 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	//	the size of the window you input is the sizeof the client.
 	HWnd = SDL_CreateWindow( TCHAR_TO_ANSI( *Definition->Title ), X, Y, ClientWidth, ClientHeight, WindowStyle  );
 	SDL_SetWindowHitTest( HWnd, FLinuxWindow::HitTest, this );
+
+	if (InParent.IsValid())
+	{
+		SDL_SetWindowModalFor(HWnd, InParent->GetHWnd());
+	}
 
 	VirtualWidth  = ClientWidth;
 	VirtualHeight = ClientHeight;
@@ -490,7 +496,7 @@ bool FLinuxWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32
 /** Sets focus on the native window */
 void FLinuxWindow::SetWindowFocus()
 {
-	SDL_RaiseWindow( HWnd );
+	SDL_SetWindowActive( HWnd );
 }
 
 /**

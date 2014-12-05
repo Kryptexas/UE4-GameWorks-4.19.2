@@ -114,8 +114,11 @@ typedef enum
     /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     ,
-    SDL_WINDOW_UTILITY = 0x08000000,            /**< window should not appear on taskbar> */
-    SDL_WINDOW_TOOLTIP = 0x04000000             /**< window should not appear on taskbar nor accept input> */
+    SDL_WINDOW_UTILITY       = 0x08000000,      /**< window should not appear on taskbar> */
+    SDL_WINDOW_TOOLTIP       = 0x04000000,      /**< window should not appear on taskbar nor accept input> */
+    SDL_WINDOW_ALWAYS_ON_TOP = 0x02000000,      /**< window should always be above others> */
+    SDL_WINDOW_SKIP_TASKBAR  = 0x01000000,      /**< window should not added to the taskbar> */
+    SDL_WINDOW_ACCEPTS_INPUT = 0x00800000       /**< window should accept input> */
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
 
@@ -803,6 +806,41 @@ extern DECLSPEC int SDLCALL SDL_SetWindowOpacity(SDL_Window * window, float opac
  *  \sa SDL_SetWindowOpacity()
  */
 extern DECLSPEC int SDLCALL SDL_GetWindowOpacity(SDL_Window * window, float * out_opacity);
+
+/**
+ *  \brief Change the input state of the window.
+ *
+ *  \param window The window in question
+ *  \param enable Enable/Disable Input behavior of the windows.
+ * 
+ *  \return 0 on success, or -1 if getting the opacity isn't supported.
+ *
+ *  \sa SDL_SetWindowInputState()
+ */
+extern DECLSPEC int SDLCALL SDL_SetWindowInputState(SDL_Window * window, SDL_bool enable);
+
+/**
+ *  \brief Activates the window (@TODO: reconsider this function and/or its name)
+ *
+ *  \param window The window in question
+ * 
+ *  \return 0 on success, or -1 if getting the opacity isn't supported.
+ *
+ *  \sa SDL_SetWindowActive()
+ */
+extern DECLSPEC int SDLCALL SDL_SetWindowActive(SDL_Window * window);
+
+/**
+ *  \brief Sets the window as a modal for another window (@TODO: reconsider this function and/or its name)
+ *
+ *  \param modal_window The window that should be modal
+ *  \param parent_window The parent window
+ * 
+ *  \return 0 on success, or -1 if getting the opacity isn't supported.
+ *
+ *  \sa SDL_SetWindowInputState()
+ */
+extern DECLSPEC int SDLCALL SDL_SetWindowModalFor(SDL_Window * modal_window, SDL_Window * parent_window);
 #endif // SDL_WITH_EPIC_EXTENSIONS
 /* EG END */
 

@@ -136,7 +136,13 @@ X11_SetNetWMState(_THIS, Window xwindow, Uint32 flags)
     Atom _NET_WM_STATE_MAXIMIZED_VERT = videodata->_NET_WM_STATE_MAXIMIZED_VERT;
     Atom _NET_WM_STATE_MAXIMIZED_HORZ = videodata->_NET_WM_STATE_MAXIMIZED_HORZ;
     Atom _NET_WM_STATE_FULLSCREEN = videodata->_NET_WM_STATE_FULLSCREEN;
-    Atom atoms[5];
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS	
+    Atom _NET_WM_STATE_ABOVE = videodata->_NET_WM_STATE_ABOVE;
+    Atom _NET_WM_STATE_SKIP_TASKBAR = videodata->_NET_WM_STATE_SKIP_TASKBAR;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */	
+    Atom atoms[6];
     int count = 0;
 
     /* The window manager sets this property, we shouldn't set it.
@@ -147,6 +153,16 @@ X11_SetNetWMState(_THIS, Window xwindow, Uint32 flags)
         atoms[count++] = _NET_WM_STATE_HIDDEN;
     }
     */
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    if (flags & SDL_WINDOW_ALWAYS_ON_TOP) {
+        atoms[count++] = _NET_WM_STATE_ABOVE;
+    }
+    if (flags & SDL_WINDOW_SKIP_TASKBAR) {
+        atoms[count++] = _NET_WM_STATE_SKIP_TASKBAR;
+    }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */
     if (flags & SDL_WINDOW_INPUT_FOCUS) {
         atoms[count++] = _NET_WM_STATE_FOCUSED;
     }
@@ -512,8 +528,13 @@ X11_CreateWindow(_THIS, SDL_Window * window)
 
     /* Setup the input hints so we get keyboard input */
     wmhints = X11_XAllocWMHints();
-    wmhints->input = True;
-    wmhints->flags = InputHint;
+    if( window->flags & SDL_WINDOW_ACCEPTS_INPUT) {
+        wmhints->input = True;
+    } else {
+        wmhints->input = False;
+    }
+    wmhints->window_group = 20140512;
+    wmhints->flags = InputHint | WindowGroupHint;
 
     /* Setup the class hints so we can get an icon (AfterStep) */
     classhints = X11_XAllocClassHint();
@@ -970,6 +991,35 @@ X11_SetWindowOpacity(_THIS, SDL_Window * window, float opacity)
             PropModeReplace, (unsigned char *)&x11_opacity, 1);
     }
 }
+
+int 
+X11_SetWindowInputState(_THIS, SDL_Window * window, SDL_bool enable) {
+    SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
+    Display *display = data->videodata->display;
+
+    XWMHints* hints = X11_XAllocWMHints();
+    if(enable) {
+      hints->input = True;
+    } else {
+      hints->input = False;
+    }
+    hints->flags = InputHint;
+    
+    X11_XSetWMHints(display, data->xwindow, hints);
+    X11_XFree(hints);
+    X11_XFlush(display);
+    return 0;
+}
+
+int
+X11_SetWindowModalFor(_THIS, SDL_Window * modal_window, SDL_Window * parent_window) {
+    SDL_WindowData *data = (SDL_WindowData *) modal_window->driverdata;
+    SDL_WindowData *parent_data = (SDL_WindowData *) parent_window->driverdata;
+    Display *display = data->videodata->display;
+
+    X11_XSetTransientForHint(display, data->xwindow, parent_data->xwindow);
+    return 0;
+}
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 
@@ -1039,8 +1089,8 @@ X11_HideWindow(_THIS, SDL_Window * window)
     }
 }
 
-static void
-SetWindowActive(_THIS, SDL_Window * window)
+int
+X11_SetWindowActive(_THIS, SDL_Window * window)
 {
     SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
     SDL_DisplayData *displaydata =
@@ -1064,7 +1114,9 @@ SetWindowActive(_THIS, SDL_Window * window)
                    SubstructureNotifyMask | SubstructureRedirectMask, &e);
 
         X11_XFlush(display);
+        return 0;
     }
+    return -1;
 }
 
 void
@@ -1074,7 +1126,7 @@ X11_RaiseWindow(_THIS, SDL_Window * window)
     Display *display = data->videodata->display;
 
     X11_XRaiseWindow(display, data->xwindow);
-    SetWindowActive(_this, window);
+    X11_SetWindowActive(_this, window);
     X11_XFlush(display);
 }
 
@@ -1140,7 +1192,7 @@ X11_RestoreWindow(_THIS, SDL_Window * window)
 {
     SetWindowMaximized(_this, window, SDL_FALSE);
     X11_ShowWindow(_this, window);
-    SetWindowActive(_this, window);
+    X11_SetWindowActive(_this, window);
 }
 
 /* This asks the Window Manager to handle fullscreen for us. Most don't do it right, though. */
