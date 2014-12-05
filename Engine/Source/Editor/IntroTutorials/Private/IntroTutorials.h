@@ -33,7 +33,7 @@ public:
 
 	void SummonTutorialBrowser();
 
-	static FString AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial);
+	static FString AnalyticsEventNameFromTutorial(UEditorTutorial* Tutorial);
 
 private:
 

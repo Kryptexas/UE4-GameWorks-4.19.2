@@ -619,9 +619,12 @@ void STutorialContent::HandleRestartSelected()
 		const bool bRestart = true;
 		IntroTutorials.LaunchTutorial(Tutorial.Get(), bRestart, FSlateApplication::Get().FindWidgetWindow(AsShared()));
 
-		if( FEngineAnalytics::IsAvailable() )
+		if( FEngineAnalytics::IsAvailable() && Tutorial.IsValid() )
 		{
-			FEngineAnalytics::GetProvider().RecordEvent( FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT("Rocket.Tutorials.Restarted"), Tutorial.Get()) );
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TutorialAsset"), FIntroTutorials::AnalyticsEventNameFromTutorial(Tutorial.Get())));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.Restarted"), EventAttributes );
 		}
 	}
 }
@@ -631,7 +634,7 @@ void STutorialContent::HandleBrowseSelected()
 	if( FEngineAnalytics::IsAvailable() && Tutorial.IsValid())
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("FromTutorial"), FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT(""), Tutorial.Get())));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("FromTutorial"), FIntroTutorials::AnalyticsEventNameFromTutorial(Tutorial.Get())));
 
 		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.OpenedBrowser"), EventAttributes );
 	}

@@ -50,7 +50,7 @@ FIntroTutorials::FIntroTutorials()
 	bDesireResettingTutorialSeenFlagOnLoad = FParse::Param(FCommandLine::Get(), TEXT("ResetTutorials"));
 }
 
-FString FIntroTutorials::AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial)
+FString FIntroTutorials::AnalyticsEventNameFromTutorial(UEditorTutorial* Tutorial)
 {
 	FString TutorialPath = Tutorial->GetOutermost()->GetFName().ToString();
 
@@ -58,12 +58,7 @@ FString FIntroTutorials::AnalyticsEventNameFromTutorial(const FString& BaseEvent
 	FString RightStr;
 	TutorialPath.Split( TEXT("/"), NULL, &RightStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd );
 
-	// then append that to the header
-	// e.g. Rocket.Tutorials.ClosedInEditorTutorial
-	FString OutStr = BaseEventName;
-	OutStr += RightStr;
-
-	return OutStr;
+	return RightStr;
 }
 
 TSharedRef<FExtender> FIntroTutorials::AddSummonBlueprintTutorialsMenuExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> EditingObjects) const

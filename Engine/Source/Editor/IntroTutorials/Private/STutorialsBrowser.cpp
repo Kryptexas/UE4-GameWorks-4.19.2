@@ -816,8 +816,9 @@ void STutorialsBrowser::OnTutorialSelected(UEditorTutorial* InTutorial, bool bRe
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Restarted"), bRestart));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TutorialAsset"), FIntroTutorials::AnalyticsEventNameFromTutorial(InTutorial)));
 
-		FEngineAnalytics::GetProvider().RecordEvent( FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT("Rocket.Tutorials.LaunchedFromBrowser"), InTutorial), EventAttributes );
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.LaunchedFromBrowser"), EventAttributes );
 	}
 
 	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart, ParentWindow, FSimpleDelegate(), FSimpleDelegate());
