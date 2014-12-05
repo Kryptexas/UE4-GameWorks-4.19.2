@@ -153,11 +153,11 @@ void FPaperEditorViewportClient::SetupCheckerboardTexture(const FColor& ColorOne
 
 				if (ColNum < HalfPixelNum)
 				{
-					CurColor = (RowNum < HalfPixelNum)? ColorOne: ColorTwo;
+					CurColor = (RowNum < HalfPixelNum) ? ColorOne: ColorTwo;
 				}
 				else
 				{
-					CurColor = (RowNum < HalfPixelNum)? ColorTwo: ColorOne;
+					CurColor = (RowNum < HalfPixelNum) ? ColorTwo: ColorOne;
 				}
 			}
 		}
