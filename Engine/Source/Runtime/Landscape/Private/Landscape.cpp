@@ -89,7 +89,7 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 
 	bBoundsChangeTriggersStreamingDataRebuild = true;
 	ForcedLOD = -1;
-	// Neighbor LOD and LODBias are saved in BYTE, so need to convert to range [-128:127]
+	// Neighbor LOD and LODBias are saved in a legacy uint8 form instead of int8. Todo: convert
 	NeighborLOD[0] = 255;
 	NeighborLOD[1] = 255;
 	NeighborLOD[2] = 255;
@@ -1859,7 +1859,7 @@ void ULandscapeComponent::PostDuplicate(bool bDuplicateForPIE)
 }
 
 // Generate a new guid to force a recache of all landscape derived data
-#define LANDSCAPE_FULL_DERIVEDDATA_VER			TEXT("28f0da4d085e48a680482c9835907e2f")
+#define LANDSCAPE_FULL_DERIVEDDATA_VER			TEXT("016D326F3A954BBA9CCDFA00CEFA31E9")
 
 FString FLandscapeComponentDerivedData::GetDDCKeyString(const FGuid& StateId)
 {
