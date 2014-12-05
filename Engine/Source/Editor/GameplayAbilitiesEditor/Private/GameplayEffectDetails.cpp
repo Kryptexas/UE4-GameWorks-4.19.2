@@ -37,25 +37,36 @@ void FGameplayEffectDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout
 
 	FSimpleDelegate UpdatTemplateDelegate = FSimpleDelegate::CreateSP(this, &FGameplayEffectDetails::OnTemplateChange);
 	TemplateProperty->SetOnPropertyValueChanged(UpdatTemplateDelegate);
-	
+
+	TSharedPtr<IPropertyHandle> DurationPolicyProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UGameplayEffect, DurationPolicy), UGameplayEffect::StaticClass());
+	FSimpleDelegate UpdateDurationPolicyDelegate = FSimpleDelegate::CreateSP(this, &FGameplayEffectDetails::OnDurationPolicyChange);
+	DurationPolicyProperty->SetOnPropertyValueChanged(UpdateDurationPolicyDelegate);
 	
 	// Hide properties where necessary
 	UGameplayEffect* Obj = Cast<UGameplayEffect>(Objects[0].Get());
-	if (Obj && !Obj->ShowAllProperties)
+	if (Obj)
 	{
-		UGameplayEffectTemplate* Template = Obj->Template;
-
-		UE_LOG(LogGameplayEffectDetails, Warning, TEXT("ObjectBeingEditor: %s"), *Obj->GetName());
-		if (Template)
+		if ( !Obj->ShowAllProperties )
 		{
-			UGameplayEffect* DefObj = Obj->Template->GetClass()->GetDefaultObject<UGameplayEffect>();
+			UGameplayEffectTemplate* Template = Obj->Template;
 
-			for (TFieldIterator<UProperty> PropIt(UGameplayEffect::StaticClass(), EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt)
+			if (Template)
 			{
-				UProperty* Property = *PropIt;
-				TSharedPtr<IPropertyHandle> PropHandle = DetailLayout.GetProperty(Property->GetFName());
-				HideProperties(DetailLayout, PropHandle, Template);
+				UGameplayEffect* DefObj = Obj->Template->GetClass()->GetDefaultObject<UGameplayEffect>();
+
+				for (TFieldIterator<UProperty> PropIt(UGameplayEffect::StaticClass(), EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt)
+				{
+					UProperty* Property = *PropIt;
+					TSharedPtr<IPropertyHandle> PropHandle = DetailLayout.GetProperty(Property->GetFName());
+					HideProperties(DetailLayout, PropHandle, Template);
+				}
 			}
+		}
+
+		if ( Obj->DurationPolicy != EGameplayEffectDurationType::HasDuration )
+		{
+			TSharedPtr<IPropertyHandle> DurationMagnitudeProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UGameplayEffect, DurationMagnitude), UGameplayEffect::StaticClass());
+			DetailLayout.HideProperty(DurationMagnitudeProperty);
 		}
 	}
 }
@@ -139,6 +150,11 @@ void FGameplayEffectDetails::OnTemplateChange()
 		}
 	}
 
+	MyDetailLayout->ForceRefreshDetails();
+}
+
+void FGameplayEffectDetails::OnDurationPolicyChange()
+{
 	MyDetailLayout->ForceRefreshDetails();
 }
 

@@ -35,6 +35,7 @@ private:
 
 	void OnShowAllChange();
 	void OnTemplateChange();
+	void OnDurationPolicyChange();
 
 	bool HideProperties(IDetailLayoutBuilder& DetailLayout, TSharedPtr<IPropertyHandle> PropHandle, UGameplayEffectTemplate* Template);
 };

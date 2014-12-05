@@ -37,7 +37,7 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 	UK2Node_GameplayEffectVariable* GameplayEffectNode = Cast<UK2Node_GameplayEffectVariable>(GraphNode);
 	UGameplayEffect* GameplayEffect = GameplayEffectNode ? GameplayEffectNode->GameplayEffect : NULL;
 
-	FString DurationString = FString::Printf(TEXT("%d s"), (GameplayEffect) ? GameplayEffect->Duration.Value : 0.f);
+	FText DurationText = GameplayEffect ? GameplayEffect->DurationMagnitude.GetValueForEditorDisplay() : FText::GetEmpty();
 	FString PeriodString = FString::Printf(TEXT("%d s"), (GameplayEffect) ? GameplayEffect->Period.Value : 0.f);
 
 	RightNodeBox->AddSlot()
@@ -53,7 +53,7 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			.HAlign(HAlign_Right)
 			[
 				SNew(STextBlock)
-				.Text(DurationString)
+				.Text(DurationText)
 			]
 		];
 

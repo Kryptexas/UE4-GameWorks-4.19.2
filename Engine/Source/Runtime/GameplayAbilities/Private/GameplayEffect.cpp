@@ -26,6 +26,7 @@ const float UGameplayEffect::INVALID_LEVEL = -1.f;
 UGameplayEffect::UGameplayEffect(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	DurationPolicy = EGameplayEffectDurationType::Instant;
 	ChanceToApplyToTarget.SetValue(1.f);
 	ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 	StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
@@ -84,6 +85,28 @@ void UGameplayEffect::PostLoad()
 	ClearTagsContainer.RemoveAllTags();
 
 	UpdateInheritedTagProperties();
+
+	if (Duration.Curve.CurveTable != nullptr || Duration.Value != 0)
+	{
+		if (Duration.Value == INFINITE_DURATION)
+		{
+			DurationPolicy = EGameplayEffectDurationType::Infinite;
+		}
+		else if (Duration.Value == INSTANT_APPLICATION)
+		{
+			DurationPolicy = EGameplayEffectDurationType::Instant;
+		}
+		else
+		{
+			DurationPolicy = EGameplayEffectDurationType::HasDuration;
+		}
+
+		DurationMagnitude.ScalableFloatMagnitude = Duration;
+		DurationMagnitude.MagnitudeCalculationType = EGameplayEffectMagnitudeCalculation::ScalableFloat;
+
+		Duration.Curve.CurveTable = nullptr;
+		Duration.Value = 0;
+	}
 }
 
 void UGameplayEffect::PostInitProperties()
@@ -299,6 +322,28 @@ void FGameplayEffectModifierMagnitude::GetAttributeCaptureDefinitions(OUT TArray
 	}
 }
 
+#if WITH_EDITOR
+FText FGameplayEffectModifierMagnitude::GetValueForEditorDisplay() const
+{
+	switch (MagnitudeCalculationType)
+	{
+		case EGameplayEffectMagnitudeCalculation::ScalableFloat:
+			return FText::Format(NSLOCTEXT("GameplayEffect", "ScalableFloatModifierMagnitude", "{0} s"), FText::AsNumber(ScalableFloatMagnitude.Value));
+			
+		case EGameplayEffectMagnitudeCalculation::AttributeBased:
+			return NSLOCTEXT("GameplayEffect", "AttributeBasedModifierMagnitude", "Attribute Based");
+
+		case EGameplayEffectMagnitudeCalculation::CustomCalculationClass:
+			return NSLOCTEXT("GameplayEffect", "CustomCalculationClassModifierMagnitude", "Custom Calculation");
+
+		case EGameplayEffectMagnitudeCalculation::SetByCaller:
+			return NSLOCTEXT("GameplayEffect", "SetByCallerModifierMagnitude", "Set by Caller");
+	}
+
+	return NSLOCTEXT("GameplayEffect", "UnknownModifierMagnitude", "Unknown");
+}
+#endif // WITH_EDITOR
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -366,8 +411,24 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 
 void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
 {
-	// Gather all capture definitions from modifiers
+	// Add duration if required
+	if (Def->DurationPolicy == EGameplayEffectDurationType::HasDuration)
+	{
+		CapturedRelevantAttributes.AddCaptureDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture());
+		CapturedRelevantAttributes.AddCaptureDefinition(UAbilitySystemComponent::GetIncomingDurationCapture());
+	}
 
+	// Gather capture definitions from duration
+	{
+		TArray<FGameplayEffectAttributeCaptureDefinition> DurationCaptureDefs;
+		Def->DurationMagnitude.GetAttributeCaptureDefinitions(DurationCaptureDefs);
+		for (const FGameplayEffectAttributeCaptureDefinition& CurDurationCaptureDef : DurationCaptureDefs)
+		{
+			CapturedRelevantAttributes.AddCaptureDefinition(CurDurationCaptureDef);
+		}
+	}
+
+	// Gather all capture definitions from modifiers
 	for (int32 ModIdx = 0; ModIdx < Modifiers.Num(); ++ModIdx)
 	{
 		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
@@ -404,6 +465,31 @@ void FGameplayEffectSpec::CaptureDataFromSource()
 	// Capture source Attributes
 	// Is this the right place to do it? Do we ever need to create spec and capture attributes at a later time? If so, this will need to move.
 	CapturedRelevantAttributes.CaptureAttributes(EffectContext.GetInstigatorAbilitySystemComponent(), EGameplayEffectAttributeCaptureSource::Source);
+
+	// Now that we have source attributes captured, re-evaluate the duration since it could be based on the captured attributes.
+	RecalculateDuration();
+}
+
+void FGameplayEffectSpec::RecalculateDuration()
+{
+	check(Def);
+
+	if (Def->DurationPolicy == EGameplayEffectDurationType::Infinite)
+	{
+		SetDuration(UGameplayEffect::INFINITE_DURATION);
+	}
+	else if (Def->DurationPolicy == EGameplayEffectDurationType::Instant)
+	{
+		SetDuration(UGameplayEffect::INSTANT_APPLICATION);
+	}
+	else
+	{
+		float NewDuration = 0.f;
+		if (Def->DurationMagnitude.AttemptCalculateMagnitude(*this, NewDuration))
+		{
+			SetDuration(NewDuration);
+		}
+	}
 }
 
 void FGameplayEffectSpec::SetLevel(float InLevel)
@@ -411,8 +497,8 @@ void FGameplayEffectSpec::SetLevel(float InLevel)
 	Level = InLevel;
 	if (Def)
 	{
-		SetDuration(Def->Duration.GetValueAtLevel(InLevel));
-
+		RecalculateDuration();
+		
 		Period = Def->Period.GetValueAtLevel(InLevel);
 		ChanceToApplyToTarget = Def->ChanceToApplyToTarget.GetValueAtLevel(InLevel);
 		ChanceToExecuteOnGameplayEffect = Def->ChanceToExecuteOnGameplayEffect.GetValueAtLevel(InLevel);
@@ -1443,17 +1529,19 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	float DurationBaseValue = NewEffect.Spec.GetDuration();
 	if (DurationBaseValue > 0.f)
 	{
-		const FAggregator& IncomingAgg = *FindOrCreateAttributeAggregator(UAbilitySystemComponent::GetIncomingDurationProperty()).Get();
-		
 		FAggregator DurationAgg;
 
-		const FGameplayEffectAttributeCaptureSpec* CaptureSpec = NewEffect.Spec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture(), true);
-		if (CaptureSpec)
+		const FGameplayEffectAttributeCaptureSpec* OutgoingCaptureSpec = NewEffect.Spec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture(), true);
+		if (OutgoingCaptureSpec)
 		{
-			CaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
+			OutgoingCaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
 		}
 
-		DurationAgg.AddModsFrom(IncomingAgg);
+		const FGameplayEffectAttributeCaptureSpec* IncomingCaptureSpec = NewEffect.Spec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetIncomingDurationCapture(), true);
+		if (IncomingCaptureSpec)
+		{
+			IncomingCaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
+		}
 
 		FAggregatorEvaluateParameters Params;
 		Params.SourceTags = NewEffect.Spec.CapturedSourceTags.GetAggregatedTags();

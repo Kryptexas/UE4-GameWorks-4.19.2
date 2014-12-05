@@ -116,7 +116,7 @@ public: // the tests
 			
 			CONSTRUCT_CLASS(UGameplayEffect, BaseDmgEffect);
 			AddModifier(BaseDmgEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Health), EGameplayModOp::Additive, FScalableFloat(-DamageValue));
-			BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+			BaseDmgEffect->DurationPolicy = EGameplayEffectDurationType::Instant;
 			
 			SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
 		}
@@ -136,7 +136,7 @@ public: // the tests
 
 			CONSTRUCT_CLASS(UGameplayEffect, BaseDmgEffect);
 			AddModifier(BaseDmgEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Damage), EGameplayModOp::Additive, FScalableFloat(DamageValue));
-			BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+			BaseDmgEffect->DurationPolicy = EGameplayEffectDurationType::Instant;
 
 			SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
 		}
@@ -161,7 +161,7 @@ public: // the tests
 
 			CONSTRUCT_CLASS(UGameplayEffect, DamageBuffEffect);
 			AddModifier(DamageBuffEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Mana), EGameplayModOp::Additive, FScalableFloat(BuffValue));
-			DamageBuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+			DamageBuffEffect->DurationPolicy = EGameplayEffectDurationType::Infinite;
 
 			BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(DamageBuffEffect, DestComponent, 1.f);
 		}

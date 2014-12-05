@@ -238,6 +238,10 @@ public:
 
 	EGameplayEffectMagnitudeCalculation GetMagnitudeCalculationType() const { return MagnitudeCalculationType; }
 
+#if WITH_EDITOR
+	GAMEPLAYABILITIES_API FText GetValueForEditorDisplay() const;
+#endif
+
 protected:
 
 	/** Type of calculation to perform to derive the magnitude */
@@ -456,6 +460,18 @@ struct GAMEPLAYABILITIES_API FInheritedTagContainer
 	void RemoveTag(FGameplayTag TagToRemove);
 };
 
+/** Gameplay effect duration policies */
+UENUM()
+enum class EGameplayEffectDurationType : uint8
+{
+	/** This effect applies instantly */
+	Instant,
+	/** This effect lasts forever */
+	Infinite,
+	/** The duration of this effect will be specified by a magnitude */
+	HasDuration
+};
+
 /**
  * UGameplayEffect
  *	The GameplayEffect definition. This is the data asset defined in the editor that drives everything.
@@ -495,8 +511,16 @@ public:
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 #endif
 
+	/** Policy for the duration of this effect */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
+	EGameplayEffectDurationType DurationPolicy;
+
 	/** Duration in seconds. 0.0 for instantaneous effects; -1.0 for infinite duration. */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
+	FGameplayEffectModifierMagnitude DurationMagnitude;
+
+	/** Deprecated. Use DurationMagnitude instead. */
+	UPROPERTY()
 	FScalableFloat	Duration;
 
 	/** Period in seconds. 0.0 for non-periodic effects */
@@ -961,6 +985,7 @@ private:
 	TMap<FName, float>	SetByCallerMagnitudes;
 
 	void CaptureDataFromSource();
+	void RecalculateDuration();
 
 	/** Helper function to initialize all of the capture definitions required by the spec */
 	void SetupAttributeCaptureDefinitions();
