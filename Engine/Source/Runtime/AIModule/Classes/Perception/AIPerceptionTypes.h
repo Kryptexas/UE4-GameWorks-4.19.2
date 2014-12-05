@@ -118,7 +118,7 @@ public:
 	FORCEINLINE bool AgeStimulus(float ConstPerceptionAgingRate) 
 	{ 
 		Age += ConstPerceptionAgingRate; 
-		return Age > ExpirationAge;
+		return Age < ExpirationAge;
 	}
 	FORCEINLINE bool WasSuccessfullySensed() const { return bLastSensingResult; }
 	FORCEINLINE bool IsExpired() const { return bExpired; }
