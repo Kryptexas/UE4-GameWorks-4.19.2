@@ -8,12 +8,12 @@ public class SuperSearch : ModuleRules
 	{
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
-			PrivateDependencyModuleNames.AddRange(
-				new string[] {
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
 					"Core",
 					"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
 					"Engine",
-					"InputCore",
+	                "InputCore",
 					"Json",
 					"UnrealEd",
 					"Slate",
@@ -32,9 +32,9 @@ public class SuperSearch : ModuleRules
 					"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
 					"Slate",
 					"SlateCore",
-					"HTTP"
-				}
-			);
-		}
+	                "HTTP"
+			}
+		);
 	}
+}
 }

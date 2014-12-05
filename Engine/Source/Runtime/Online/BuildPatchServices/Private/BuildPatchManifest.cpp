@@ -8,6 +8,9 @@
 
 #define LOCTEXT_NAMESPACE "BuildPatchManifest"
 
+// Remove this when we are to enable creating compressed file data and related manifests
+#define ENABLE_NOCHUNKS_COMPRESSION 0
+
 // The manifest header magic codeword, for quick checking that the opened file is probably a manifest file.
 #define MANIFEST_HEADER_MAGIC		0x44BEC00C
 
@@ -54,7 +57,11 @@ bool BufferIsJsonManifest(const TArray<uint8>& DataInput)
 *****************************************************************************/
 const EBuildPatchAppManifestVersion::Type EBuildPatchAppManifestVersion::GetLatestVersion()
 {
+#if ENABLE_NOCHUNKS_COMPRESSION
 	return static_cast<EBuildPatchAppManifestVersion::Type>(LatestPlusOne - 1);
+#else
+	return EBuildPatchAppManifestVersion::StoredAsCompressedUClass;
+#endif
 }
 
 const EBuildPatchAppManifestVersion::Type EBuildPatchAppManifestVersion::GetLatestJsonVersion()

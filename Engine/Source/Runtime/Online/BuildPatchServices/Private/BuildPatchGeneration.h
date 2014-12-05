@@ -365,7 +365,7 @@ private:
 	/**
 	 * Make the default constructor private so that we must have the required params passed in.
 	 */
-	FBuildDataFileProcessor() : MaxFilePartSize(0) { check(false); }
+	FBuildDataFileProcessor() { check(false); }
 
 public:
 
@@ -375,18 +375,13 @@ public:
 	 * @param	InBuildRoot				The root directory of the build
 	 * @param	InDataThresholdTime		The cutoff time used for file reuse. Files older than this will not be reused
 	 */
-	FBuildDataFileProcessor(FBuildPatchAppManifestRef InBuildManifest, const FString& InBuildRoot, const FDateTime& InDataThresholdTime, const uint64 MaxFilePartSize);
+	FBuildDataFileProcessor( FBuildPatchAppManifestRef InBuildManifest, const FString& InBuildRoot, const FDateTime& InDataThresholdTime );
 
 	/**
 	 * Mark the beginning of a new file
 	 * @param	InFileName		The file's local filename
 	 */
-	void BeginFile(const FString& InFileName);
-
-	/**
-	 * Starts a new file part for the current file
-	 */
-	void BeginFilePart();
+	void BeginFile( const FString& InFileName );
 
 	/**
 	 * Process a set of data for a file
@@ -394,11 +389,6 @@ public:
 	 * @param	DataLen		The length of the data
 	 */
 	void ProcessFileData( const uint8* Data, const uint32& DataLen );
-
-	/**
-	 * Ends the current file part of this file
-	 */
-	void EndFilePart();
 
 	/**
 	 * Mark the end of the current file
@@ -414,9 +404,6 @@ public:
 
 private:
 
-	// The maximum filepart allowed
-	const uint64 MaxFilePartSize;
-
 	// Keep track of the number of new files
 	uint32 NumNewFiles;
 
@@ -431,13 +418,6 @@ private:
 
 	// Holds the current file being processed. Receives the chunk parts that we pass over.
 	FFileManifestData* CurrentFile;
-
-	// Holds current file part data and info
-	FChunkPartData CurrentFilePartData;
-	FChunkInfoData CurrentFilePartInfo;
-
-	// Holds the current part data for saving out
-	TArray<uint8> CurrentFilePart;
 
 	// Holds an SHA hash calculator
 	FSHA1 FileHash;
@@ -630,24 +610,35 @@ public:
 	static bool FindExistingChunkData( const uint64& ChunkHash, const uint8* ChunkData, FGuid& ChunkGuid );
 
 	/**
-	 * Checks to see if a given file data part already exists in the database of known files.
+	 * Given a Guid and Hash for a chunk file, try to find it from a cloud directory, starting from the latest
+	 * version of the naming convention.
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
-	 * @param Data					IN		The data for the file part
-	 * @param FilePartInfo			INOUT	The part info, the guid and hash will be setup by this function
-	 * @param FilePartData			INOUT	The part data, the guid will be set correctly if we found a match
+	 * @param ChunkGuid		The guid of the chunk data
+	 * @param ChunkHash		The chunk's hash value
+	 * @return		The full patch to the found chunk, otherwise empty string.
+	 */
+	static FString DiscoverChunkFilename(const FGuid& ChunkGuid, const uint64& ChunkHash);
+
+	/**
+	 * Checks to see if a given file already exists in the database of known files
+	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
+	 * @param InSourceFile			IN		The filename of the file on disk.
+	 * @param InFileHash			IN		The hash for the file.
 	 * @param DataThresholdTime		IN		The date/time before which files will not be reused
+	 * @param OutFileGuid			OUT		Will be set to the existing file guid if found.
 	 * @return		Whether this file is new or existing.
 	 */
-	static bool FindExistingFileData(const TArray<uint8>& Data, FChunkInfoData& FilePartInfo, FChunkPartData& FilePartData, const FDateTime& DataThresholdTime);
+	static bool FindExistingFileData(const FString& InSourceFile, const FSHAHashData& InFileHash, const FDateTime& DataThresholdTime, FGuid& OutFileGuid);
 
 	/**
 	 * Saves out the file data for use with file based patch manifests
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
 	 * @param SourceFile		The filename of the source file on disk.
-	 * @param InFileManifest	The file manifest for saving out parts.
+	 * @param FileHash			The hash for the file.
+	 * @param FileGuid			The GUID for the file.
 	 * @return		Whether this file is new or existing.
 	 */
-	static bool SaveOutFileDataPart(TArray<uint8>& Data, FChunkInfoData& FilePartInfo, FChunkPartData& FilePartData);
+	static bool SaveOutFileData(const FString& SourceFile, const FSHAHashData& FileHash, const FGuid& FileGuid);
 
 	/**
 	 * Strips out files from the provided array that appear in the ignore list file
@@ -680,7 +671,7 @@ private:
 	static bool ExistingChunksEnumerated;
 
 	// For File Manifest generation, the existing files
-	static TMap< uint64, TArray< FString > > ExistingFileInventory;
+	static TMap< FSHAHashData, TArray< FString > > ExistingFileInventory;
 
 	// For File Manifest generation, have we enumerated the existing files yet
 	static bool ExistingFilesEnumerated;
