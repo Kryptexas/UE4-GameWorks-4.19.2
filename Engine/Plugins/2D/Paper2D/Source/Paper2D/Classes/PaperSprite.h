@@ -74,6 +74,11 @@ protected:
 	// This texture is rotated in the atlas
 	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
 	bool bRotatedInSourceImage;
+
+	// Dimension of the texture when this sprite was created
+	// Used when the sprite is resized at some point
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	FVector2D SourceTextureDimension;
 #endif
 
 	// The source texture that the sprite comes from
@@ -180,6 +185,9 @@ public:
 
 	// Returns the current pivot position in texture space
 	FVector2D GetPivotPosition() const;
+
+	// Rescale properties to handle source texture size change
+	void RescaleSpriteData(const FVector2D& PreviousTextureDimension, const FVector2D& CurrentTextureDimension);
 
 	void RebuildCollisionData();
 	void RebuildRenderData();
