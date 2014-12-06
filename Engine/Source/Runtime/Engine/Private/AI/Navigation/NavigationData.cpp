@@ -100,10 +100,12 @@ ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bEnableDrawing(false)
 	, bRebuildAtRuntime(false)
+	, bForceRebuildOnLoad(false)
 	, DataVersion(NAVMESHVER_LATEST)
 	, FindPathImplementation(NULL)
 	, FindHierarchicalPathImplementation(NULL)
 	, bRegistered(false)
+	, bWantsUpdate(true)
 	, NavDataUniqueID(GetNextUniqueID())
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -425,10 +427,14 @@ void ANavigationData::TickAsyncBuild(float DeltaSeconds)
 
 void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
 {
-	if (NavDataGenerator)
+	// the 'bWantsUpdate' mechanics allows us to skip first requested update after data is loaded
+	// Can be also used to manually control navigation rebuilding, by for example forcing bWantsUpdate 
+	//	to false in Tick function effectively supressing rebuilding
+	if (bWantsUpdate == true && NavDataGenerator)
 	{
 		NavDataGenerator->RebuildDirtyAreas(DirtyAreas);
 	}
+	bWantsUpdate = true;
 }
 
 TArray<FBox> ANavigationData::GetNavigableBounds() const

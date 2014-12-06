@@ -393,8 +393,13 @@ class ENGINE_API ANavigationData : public AActor
 	//----------------------------------------------------------------------//
 
 	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
-	UPROPERTY(EditAnywhere, Category=Runtime, config)
+	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	uint32 bRebuildAtRuntime:1;
+
+	/** By default navigation will skip the first update after being successfully loaded
+	 *  setting bForceRebuildOnLoad to false can override this behavior */
+	UPROPERTY(config, EditAnywhere, Category = Runtime)
+	uint32 bForceRebuildOnLoad : 1;
 
 	/** all observed paths will be processed every ObservedPathsTickInterval seconds */
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
@@ -447,6 +452,8 @@ public:
 	bool IsSupportingDefaultAgent() const { return bSupportsDefaultAgent; }
 
 	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const;
+
+	FORCEINLINE void MarkAsNeedingUpdate() { bWantsUpdate = true; }
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
@@ -779,6 +786,10 @@ protected:
 
 	/** was it generated for default agent (SupportedAgents[0]) */
 	uint32 bSupportsDefaultAgent:1;
+
+	/** controls whether this NavigationData will accept navigation building requests resulting from dirty areas
+	 *	true by default, set to false on successful serialization to skip initial rebuild */
+	uint32 bWantsUpdate:1;
 
 private:
 	uint16 NavDataUniqueID;

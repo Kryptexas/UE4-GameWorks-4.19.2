@@ -207,7 +207,6 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 	, bWholeWorldNavigable(false)
 	, bAddPlayersToGenerationSeeds(true)
 	, bSkipAgentHeightCheckWhenPickingNavData(false)
-	, bForceRebuildOnLoad(false)
 	, DirtyAreasUpdateFreq(60)
 	, OperationMode(FNavigationSystem::InvalidMode)
 	, NavOctree(NULL)
@@ -454,9 +453,6 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 			bInitialBuildingLockActive = false;
 		}
 
-		// don't mark dirty areas after loading a map if navigation system doesn't want to rebuilt from scratch
-		bSkipDirtyAreasOnce = !bForceRebuildOnLoad;
-
 		if (bAutoCreateNavigationData == true)
 		{
 			SpawnMissingNavigationData();
@@ -583,12 +579,6 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 
 		if (DirtyAreas.Num() > 0 && bCanRebuildNow)
 		{
-			if (bSkipDirtyAreasOnce)
-			{
-				bSkipDirtyAreasOnce = false;
-				DirtyAreas.Reset();
-			}
-
 			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 			{
 				ANavigationData* NavData = NavDataSet[NavDataIndex];

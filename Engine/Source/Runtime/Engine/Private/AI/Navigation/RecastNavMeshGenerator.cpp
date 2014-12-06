@@ -2708,6 +2708,7 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh* InDestNavMesh)
 	if (bRecreateNavmesh)
 	{
 		ConstructTiledNavMesh();
+		InDestNavMesh->MarkAsNeedingUpdate();
 	}
 	else
 	{
