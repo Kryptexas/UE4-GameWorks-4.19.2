@@ -248,7 +248,7 @@ std::string FOnlineSubsystemGooglePlay::ConvertFStringToStdString(const FString&
 	TArray<ANSICHAR> Converted;
 	Converted.AddUninitialized(DestLen);
 	
-	FPlatformString::Convert(Converted.GetTypedData(), DestLen, *InString, SrcLen);
+	FPlatformString::Convert(Converted.GetData(), DestLen, *InString, SrcLen);
 
-	return std::string(Converted.GetTypedData());
+	return std::string(Converted.GetData());
 }
