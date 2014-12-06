@@ -78,7 +78,7 @@ public:
 
 protected:
 	void SpawnSegment(const class UPaperSprite* NewSprite, float Position, float HorizontalScale, float NominalWidth, const struct FPaperTerrainMaterialRule* Rule);
-	void SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& FillDrawCall, const FVector2D& TextureSize, FPoly& Poly);
+	void SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& FillDrawCall, const FVector2D& TextureSize, const TArray<FVector2D>& SplinePolyVertices2D);
 
 	void OnSplineEdited();
 

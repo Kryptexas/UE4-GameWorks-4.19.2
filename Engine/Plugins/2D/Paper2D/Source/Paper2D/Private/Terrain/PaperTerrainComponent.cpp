@@ -4,6 +4,7 @@
 #include "Components/SplineComponent.h"
 
 #include "PaperRenderSceneProxy.h"
+#include "PaperGeomTools.h"
 
 #define PAPER_USE_MATERIAL_SLOPES 1
 
@@ -469,7 +470,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 		{
 			// Create a polygon from the spline
 			FBox2D SplineBounds(ForceInit);
-			FPoly SplineAsPolygon;
+			TArray<FVector2D> SplinePolyVertices2D;
 			{
 				float CurrentTime = 0.0f;
 				while (CurrentTime < SplineLength)
@@ -477,10 +478,9 @@ void UPaperTerrainComponent::OnSplineEdited()
 					const float Param = AssociatedSpline->SplineReparamTable.Eval(CurrentTime, 0.0f);
 					const FVector Position3D = AssociatedSpline->SplineInfo.Eval(Param, FVector::ZeroVector);
 					const FVector2D Position2D = FVector2D(FVector::DotProduct(Position3D, PaperAxisX), FVector::DotProduct(Position3D, PaperAxisY));
-					const FVector CleanPosition3D = (PaperAxisX * Position2D.X) + (PaperAxisY * Position2D.Y);
 
 					SplineBounds += Position2D;
-					SplineAsPolygon.Vertices.Add(CleanPosition3D);
+					SplinePolyVertices2D.Add(Position2D);
 
 					CurrentTime += FillRasterizationTimeRate;
 				}
@@ -499,7 +499,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 			const FVector2D TextureSize = GetSpriteRenderDataBounds2D(FillSprite->BakedRenderData).GetSize();
 			const FVector2D SplineSize = SplineBounds.GetSize();
 			
-			SpawnFromPoly(FillSprite, FillDrawCall, TextureSize, SplineAsPolygon);
+			SpawnFromPoly(FillSprite, FillDrawCall, TextureSize, SplinePolyVertices2D);
 
 			//@TODO: Add support for the fill sprite being smaller than the entire texture
 #if NOT_WORKING
@@ -599,55 +599,27 @@ void UPaperTerrainComponent::SpawnSegment(const UPaperSprite* NewSprite, float P
 	}
 }
 
-#if WITH_EDITOR
-#include "GeomTools.h"
-#endif
-
-void UPaperTerrainComponent::SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& Batch, const FVector2D& TextureSize, FPoly& Poly)
+void UPaperTerrainComponent::SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& Batch, const FVector2D& TextureSize, const TArray<FVector2D>& SplinePolyVertices2D)
 {
-	//@TODO: Need to split geom tools out of UnrealEd to support this outside of the editor
-#if WITH_EDITOR
 	const FVector2D TextureSizeInUnits = TextureSize * NewSprite->GetUnrealUnitsPerPixel();
 
-	if (Poly.Vertices.Num() >= 3)
+	// Correct spline vertices so they are always CCW
+	//@TODO: Handle overlapping and crossing polygon edges during triangulation
+	TArray<FVector2D> CorrectedSpriteVertices;
+	PaperGeomTools::CorrectPolygonWinding(/*out*/CorrectedSpriteVertices, SplinePolyVertices2D, false);
+
+	if (SplinePolyVertices2D.Num() >= 3)
 	{
-		FClipSMPolygon Polygon(0);
-		for (int32 v = 0; v < Poly.Vertices.Num(); ++v)
+		TArray<FVector2D> TriangulatedPolygonVertices;
+		PaperGeomTools::TriangulatePoly(/*out*/TriangulatedPolygonVertices, CorrectedSpriteVertices, false);
+
+		// Pack vertex data
+		for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < TriangulatedPolygonVertices.Num(); ++TriangleVertexIndex)
 		{
-			FClipSMVertex vtx;
-			vtx.Pos = Poly.Vertices[v];
-			Polygon.Vertices.Add(vtx);
-		}
-
-		Polygon.FaceNormal = -PaperAxisZ;
-
-		TArray<FClipSMTriangle> GeneratedTriangles;
-		TriangulatePoly(GeneratedTriangles, Polygon, false);
-
-		struct Local
-		{
-			static FVector4 GenerateVert(const FVector& Source3D, const FVector2D& Size2D)
-			{
-				const float X = FVector::DotProduct(Source3D, PaperAxisX);
-				const float Y = FVector::DotProduct(Source3D, PaperAxisY);
-				const float U = (X / (Size2D.X));
-				const float V = (-Y / (Size2D.Y));
-
-				return FVector4(X, Y, U, V);
-			}
-		};
-
-		// Convert the triangles back to our 2D data structure
-		for (int32 TriangleIndex = 0; TriangleIndex < GeneratedTriangles.Num(); ++TriangleIndex)
-		{
-			const FClipSMTriangle& Triangle = GeneratedTriangles[TriangleIndex];
-
-			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[0].Pos, TextureSizeInUnits));
-			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[1].Pos, TextureSizeInUnits));
-			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[2].Pos, TextureSizeInUnits));
+			const FVector2D& TriangleVertex = TriangulatedPolygonVertices[TriangleVertexIndex];
+			new (Batch.RenderVerts) FVector4(TriangleVertex.X, TriangleVertex.Y, TriangleVertex.X / TextureSizeInUnits.X, -TriangleVertex.Y / TextureSizeInUnits.Y);
 		}
 	}
-#endif
 }
 
 void UPaperTerrainComponent::SetTerrainColor(FLinearColor NewColor)

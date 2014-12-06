@@ -1033,38 +1033,49 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 {
 	Target.Empty();
 	TArray<FVector2D> AllGeneratedTriangles;
+	
+	// AOS -> Validate -> SOA
+	TArray<bool> PolygonsNegativeWinding; // do these polygons have negative winding?
+	TArray<TArray<FVector2D> > ValidPolygonTriangles;
+	PolygonsNegativeWinding.Empty(Source.Polygons.Num());
+	ValidPolygonTriangles.Empty(Source.Polygons.Num());
+	bool bSourcePolygonHasHoles = false;
 
 	// Correct polygon winding for additive and subtractive polygons
 	// Invalid polygons (< 3 verts) removed from this list
-	TArray<FSpritePolygon> ValidPolygons = PaperGeomTools::CorrectPolygonWinding(Source.Polygons);
-	
+	TArray<FSpritePolygon> ValidPolygons;
+	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
+	{
+		const FSpritePolygon& SourcePolygon = Source.Polygons[PolygonIndex];
+		if (SourcePolygon.Vertices.Num() >= 3)
+		{
+			TArray<FVector2D>* FixedVertices = new (ValidPolygonTriangles)TArray<FVector2D>();
+			PaperGeomTools::CorrectPolygonWinding(*FixedVertices, SourcePolygon.Vertices, SourcePolygon.bNegativeWinding);
+			PolygonsNegativeWinding.Add(SourcePolygon.bNegativeWinding);
+		}
+
+		if (Source.Polygons[PolygonIndex].bNegativeWinding)
+		{
+			bSourcePolygonHasHoles = true;
+		}
+	}
+
 	// Check if polygons overlap, or have inconsistent winding, or edges overlap
-	if (!PaperGeomTools::ArePolygonsValid(ValidPolygons))
+	if (!PaperGeomTools::ArePolygonsValid(ValidPolygonTriangles))
 	{
 		return;
 	}
 
 	// Merge each additive and associated subtractive polygons to form a list of polygons in CCW winding
-	ValidPolygons = PaperGeomTools::ReducePolygons(ValidPolygons);
+	ValidPolygonTriangles = PaperGeomTools::ReducePolygons(ValidPolygonTriangles, PolygonsNegativeWinding);
 
 	// Triangulate the polygons
-	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygons.Num(); ++PolygonIndex)
+	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygonTriangles.Num(); ++PolygonIndex)
 	{
-		const FSpritePolygon& SourcePoly = ValidPolygons[PolygonIndex];
 		TArray<FVector2D> Generated2DTriangles;
-		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, SourcePoly.Vertices, Source.bAvoidVertexMerging))
+		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, ValidPolygonTriangles[PolygonIndex], Source.bAvoidVertexMerging))
 		{
 			AllGeneratedTriangles.Append(Generated2DTriangles);
-		}
-	}
-
-	bool bSourcePolygonHasHoles = false;
-	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
-	{
-		if (Source.Polygons[PolygonIndex].bNegativeWinding)
-		{
-			bSourcePolygonHasHoles = true;
-			break;
 		}
 	}
 
