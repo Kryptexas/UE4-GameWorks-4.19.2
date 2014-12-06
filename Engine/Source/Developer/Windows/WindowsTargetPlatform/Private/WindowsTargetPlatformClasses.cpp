@@ -8,4 +8,6 @@
 
 UWindowsTargetSettings::UWindowsTargetSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-{ }
+{
+	MinimumOSVersion = EMinimumSupportedOS::MSOS_Vista;
+}

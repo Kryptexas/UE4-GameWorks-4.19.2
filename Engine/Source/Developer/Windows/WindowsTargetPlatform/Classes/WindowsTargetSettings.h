@@ -8,6 +8,12 @@
 
 #include "WindowsTargetSettings.generated.h"
 
+UENUM()
+enum class EMinimumSupportedOS : uint8
+{
+	MSOS_Vista = 0 UMETA(DisplayName = "Windows Vista"),
+	MSOS_XP = 1 UMETA(DisplayName = "Windows XP"),
+};
 
 /**
  * Implements the settings for the Windows target platform.
@@ -26,4 +32,10 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category=Rendering)
 	TArray<FString> TargetedRHIs;
+
+	/**
+	 * Determine the minimum supported 
+	 */
+	UPROPERTY(EditAnywhere, config, Category=OSInfo)
+	TEnumAsByte<EMinimumSupportedOS> MinimumOSVersion;
 };

@@ -231,6 +231,10 @@ namespace UnrealBuildTool
 				{
 					Platform = ParsedPlatform;
 				}
+				else if (Arguments[ArgumentIndex].ToLowerInvariant().StartsWith("-overridetargetappname="))
+				{
+					AdditionalDefinitions.Add(Arguments[ArgumentIndex]);
+				}
 				else
 				{
 					switch (Arguments[ArgumentIndex].ToUpperInvariant())
@@ -755,7 +759,17 @@ namespace UnrealBuildTool
 			List<OnlyModule> InOnlyModules,
 			bool bInEditorRecompile)
 		{
-			AppName = InAppName;
+			string CmdlineAppName = null;
+			const string OverrideTargetAppNameSwitch = "-overridetargetappname=";
+			if ((CmdlineAppName = InAdditionalDefinitions.Find(x => x.StartsWith(OverrideTargetAppNameSwitch))) != null)
+			{
+				AppName = CmdlineAppName.Substring(OverrideTargetAppNameSwitch.Length);
+			}
+			else
+			{
+				AppName = InAppName;
+			}
+
 			GameName = InGameName;
 			Platform = InPlatform;
 			Configuration = InConfiguration;
