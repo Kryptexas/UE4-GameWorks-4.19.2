@@ -34,6 +34,55 @@ UENUM()
 	IOS_8 = 8 UMETA(DisplayName="8.0"),
 };
 
+
+/**
+ *	IOS Build resource file struct, used to serialize filepaths to the configs for use in the build system,
+ */
+USTRUCT()
+struct FIOSBuildResourceFilePath
+{
+	GENERATED_USTRUCT_BODY()
+	
+	/**
+	 * Custom export item used to serialize FIOSBuildResourceFilePath types as only a filename, no garland.
+	 */
+	bool ExportTextItem(FString& ValueStr, FIOSBuildResourceFilePath const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
+	{
+		ValueStr += FilePath;
+		return true;
+	}
+
+	/**
+	 * Custom import item used to parse ini entries straight into the filename.
+	 */
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+	{
+		FilePath = Buffer;
+		return true;
+	}
+
+	/**
+	 * The path to the file.
+	 */
+	UPROPERTY(EditAnywhere, Category = FilePath)
+	FString FilePath;
+};
+
+/**
+ *	Setup our resource filepath to make it easier to parse in UBT
+ */
+template<>
+struct TStructOpsTypeTraits<FIOSBuildResourceFilePath> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+	};
+};
+
+
+
 /**
  * Implements the settings for the iOS target platform.
  */
@@ -82,6 +131,26 @@ public:
 	// Enable ArmV7s support for shipping build? [CURRENTLY AVAILABLE ON MAC ONLY OR FULL SOURCE BUILD]
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Shipping"))
 	bool bShipForArmV7S;
+	
+	// The name or ip address of the remote mac which will be used to build IOS
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Build")
+	FString RemoteServerName;
+
+	// Enable the use of RSync for remote builds on a mac
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Build", meta = (DisplayName = "Use RSync for IOS build"))
+	bool bUseRSync;
+
+	// The mac users name which matches the SSH Private Key, for remote builds using RSync.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Build", meta = (EditCondition = "bUseRSync", DisplayName = "User for RSync enabled builds."))
+	FString RSyncUsername;
+
+	// The path of the ssh permissions key to be used when connecting to the remote server.
+	UPROPERTY(VisibleAnywhere, Category = "Build", meta = (DisplayName = "Existing SSH permissions file"))
+	FString SSHPrivateKeyLocation;
+
+	// The path of the ssh permissions key to be used when connecting to the remote server.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Build", meta = (EditCondition = "bUseRSync", DisplayName = "Override existing SSH permissions file"))
+	FIOSBuildResourceFilePath SSHPrivateKeyOverridePath;
 
 	// Does the application support portrait orientation?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceOrientations)
@@ -134,6 +203,7 @@ public:
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostInitProperties() override;
 	// End of UObject interface
 #endif
 };

@@ -44,6 +44,7 @@ private:
 
 	void BuildPListSection(IDetailLayoutBuilder& DetailLayout);
 	void BuildIconSection(IDetailLayoutBuilder& DetailLayout);
+	void BuildRemoteBuildingSection(IDetailLayoutBuilder& DetailLayout);
 
 	// Navigates to the plist in explorer or finder
 	FReply OpenPlistFolder();
