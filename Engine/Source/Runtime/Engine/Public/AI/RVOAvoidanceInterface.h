@@ -1,3 +1,5 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 //=============================================================================
 // IRVOAvoidanceInterface is an interface for objects that want to perform
 // RVO avoidance. See UCharacterMovementComponent and UWheeledVehicleMovementComponent

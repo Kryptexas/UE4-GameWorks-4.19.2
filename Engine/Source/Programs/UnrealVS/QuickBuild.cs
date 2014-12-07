@@ -1,4 +1,6 @@
-﻿using EnvDTE;
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;

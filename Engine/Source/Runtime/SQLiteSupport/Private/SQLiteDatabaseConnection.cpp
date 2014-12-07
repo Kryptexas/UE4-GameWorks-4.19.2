@@ -1,3 +1,5 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #include "SQLiteSupportPrivatePCH.h"
 #include "SQLiteDatabaseConnection.h"
 #include "sqlite3.h"
