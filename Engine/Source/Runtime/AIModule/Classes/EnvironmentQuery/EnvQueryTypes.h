@@ -344,6 +344,13 @@ struct AIMODULE_API FEnvTraceData
 	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
 	float ExtentZ;
 
+	/** this value will be added to resulting location's Z axis. Can be useful when 
+	 *	projecting points to navigation since navmesh is just an approximation of level 
+	 *	geometry and items may end up being under collide-able geometry which would 
+	 *	for example falsify visibility tests.*/
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	float PostProjectionVerticalOffset;
+
 	/** geometry trace channel */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
 	TEnumAsByte<enum ETraceTypeQuery> TraceChannel;
@@ -966,7 +973,7 @@ public:
 namespace FEQSHelpers
 {
 #if WITH_RECAST
-	const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
+	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }
 
