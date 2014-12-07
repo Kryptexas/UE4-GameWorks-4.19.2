@@ -394,6 +394,9 @@ public:
 	/** Indicates whether the vertex factory supports a position-only stream. */
 	bool SupportsPositionOnlyStream() const { return !!PositionStream.Num(); }
 
+	/** Indicates whether the vertex factory supports a null pixel shader. */
+	virtual bool SupportsNullPixelShader() const { return true; }
+
 	/**
 	* Fill in array of strides from this factory's vertex streams without shadow/light maps
 	* @param OutStreamStrides - output array of # MaxVertexElementCount stream strides to fill

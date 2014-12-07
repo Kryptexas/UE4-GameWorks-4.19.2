@@ -56,8 +56,6 @@
 
 DECLARE_STATS_GROUP(TEXT("Foliage"), STATGROUP_Foliage, STATCAT_Advanced);
 
-#define USE_NEW_LOD_TRANSITION_FOR_FOLIAGE (1)
-
 extern TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize;
 extern TAutoConsoleVariable<float> CVarFoliageLODDistanceScale;
 
@@ -247,7 +245,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("USE_INSTANCING"),TEXT("1"));
 		const bool bInstanced = RHISupportsInstancing(Platform);
 		OutEnvironment.SetDefine(TEXT("USE_INSTANCING_EMULATED"), bInstanced ? TEXT("0") : TEXT("1"));
-		OutEnvironment.SetDefine(TEXT("USE_NEW_LOD_TRANSITION"), USE_NEW_LOD_TRANSITION_FOR_FOLIAGE ? TEXT("1") : TEXT("0"));
+		OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION"), ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES ? TEXT("1") : TEXT("0"));
 	}
 
 	/**
@@ -284,6 +282,9 @@ public:
 		uint32 NumElements = FMath::Min((uint32)Batch->Elements.Num(), NumBitsForVisibilityMask());
 		return (1ULL << (uint64)NumElements) - 1ULL;
 	}
+#if ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES
+	virtual bool SupportsNullPixelShader() const override { return false; }
+#endif
 
 private:
 	DataType Data;
@@ -299,13 +300,11 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 		FLocalVertexFactoryShaderParameters::Bind(ParameterMap);
 
 		InstancingFadeOutParamsParameter.Bind(ParameterMap, TEXT("InstancingFadeOutParams"));
-#if USE_NEW_LOD_TRANSITION_FOR_FOLIAGE
 		InstancingViewZCompareZeroParameter.Bind(ParameterMap, TEXT("InstancingViewZCompareZero"));
 		InstancingViewZCompareOneParameter.Bind(ParameterMap, TEXT("InstancingViewZCompareOne"));
 		InstancingViewZConstantParameter.Bind(ParameterMap, TEXT("InstancingViewZConstant"));
 		InstancingWorldViewOriginZeroParameter.Bind(ParameterMap, TEXT("InstancingWorldViewOriginZero"));
 		InstancingWorldViewOriginOneParameter.Bind(ParameterMap, TEXT("InstancingWorldViewOriginOne"));
-#endif
 		CPUInstanceShadowMapBias.Bind(ParameterMap, TEXT("CPUInstanceShadowMapBias"));
 		CPUInstanceTransform.Bind(ParameterMap, TEXT("CPUInstanceTransform"));
 		CPUInstanceInverseTransform.Bind(ParameterMap, TEXT("CPUInstanceInverseTransform"));
@@ -317,13 +316,11 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 	{
 		FLocalVertexFactoryShaderParameters::Serialize(Ar);
 		Ar << InstancingFadeOutParamsParameter;
-#if USE_NEW_LOD_TRANSITION_FOR_FOLIAGE
 		Ar << InstancingViewZCompareZeroParameter;
 		Ar << InstancingViewZCompareOneParameter;
 		Ar << InstancingViewZConstantParameter;
 		Ar << InstancingWorldViewOriginZeroParameter;
 		Ar << InstancingWorldViewOriginOneParameter;
-#endif
 		Ar << CPUInstanceShadowMapBias;
 		Ar << CPUInstanceTransform;
 		Ar << CPUInstanceInverseTransform;
@@ -333,13 +330,11 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 
 private:
 	FShaderParameter InstancingFadeOutParamsParameter;
-#if USE_NEW_LOD_TRANSITION_FOR_FOLIAGE
 	FShaderParameter InstancingViewZCompareZeroParameter;
 	FShaderParameter InstancingViewZCompareOneParameter;
 	FShaderParameter InstancingViewZConstantParameter;
 	FShaderParameter InstancingWorldViewOriginZeroParameter;
 	FShaderParameter InstancingWorldViewOriginOneParameter;
-#endif
 
 	FShaderParameter CPUInstanceShadowMapBias;
 	FShaderParameter CPUInstanceTransform;

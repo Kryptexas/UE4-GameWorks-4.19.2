@@ -21,15 +21,10 @@
 	#include "AtmosphereCommon.usf"
 #endif
 
-#if USE_INSTANCING
-	#ifndef USE_NEW_LOD_TRANSITION
-		#error "USE_NEW_LOD_TRANSITION must be defined if USE_INSTANCING is"
-	#endif
-#else
-	#ifndef USE_NEW_LOD_TRANSITION
-		#define USE_NEW_LOD_TRANSITION (0)
-	#endif
+#ifndef USE_DITHERED_LOD_TRANSITION
+	#define USE_DITHERED_LOD_TRANSITION 0
 #endif
+
 /**
  * Parameters used by vertex and pixel shaders to access particle properties.
  */
@@ -141,7 +136,7 @@ struct FMaterialPixelParameters
 #endif
 
 #if USE_INSTANCING
-	half3 PerInstanceParams;
+	half4 PerInstanceParams;
 #endif
 
 	/** Per-particle properties. Only valid for particle vertex factories. */
@@ -238,7 +233,7 @@ struct FMaterialVertexParameters
 	float4x4 InstanceLocalToWorld;
 	float3x3 InstanceWorldToLocal;
 	float3 InstanceLocalPosition;
-	float3 PerInstanceParams;
+	float4 PerInstanceParams;
 #elif PARTICLE_MESH_FACTORY
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
@@ -395,11 +390,7 @@ float GetPerInstanceRandom(FMaterialPixelParameters Parameters)
 float GetPerInstanceFadeAmount(FMaterialPixelParameters Parameters)
 {
 #if USE_INSTANCING
-	#if !USE_NEW_LOD_TRANSITION
-		return float(Parameters.PerInstanceParams.y);
-	#else
-		return float(saturate(1.0 - abs(Parameters.PerInstanceParams.y)));
-	#endif
+	return float(Parameters.PerInstanceParams.y);
 #else
 	return float(1.0);
 #endif
@@ -722,7 +713,7 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 
 	// compute LOD by finding screen space size
 	float LodInterp = 1.0;
-#if !USE_INSTANCING || !USE_NEW_LOD_TRANSITION
+#if !USE_INSTANCING || !USE_DITHERED_LOD_TRANSITION
 	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 	{
 		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndSceneTexelSize.x * View.ViewToClip[0][0],
@@ -1277,11 +1268,11 @@ float3 GetMaterialHemisphereLightTransferFull(float3 DiffuseColor,FMaterialPixel
 	       LowerLighting * LowerColor;
 }
 
-void ClipLODTransition(FMaterialPixelParameters Parameters, float DitherFactor)
+void ClipLODTransition(float2 SVPosition, float DitherFactor)
 {
 	if (abs(DitherFactor) > .001)
 	{
-		float RandCos = cos(dot(floor(Parameters.SVPosition.xy), float2(347.83451793,3343.28371963)));
+		float RandCos = cos(dot(floor(SVPosition.xy), float2(347.83451793,3343.28371963)));
 		float RandomVal = frac(RandCos * 1000.0);
 		half RetVal = (DitherFactor < 0.0) ?
 			(DitherFactor + 1.0 > RandomVal) :
@@ -1290,18 +1281,33 @@ void ClipLODTransition(FMaterialPixelParameters Parameters, float DitherFactor)
 	}
 }
 
-#if USE_INSTANCING && USE_NEW_LOD_TRANSITION
+void ClipLODTransition(FMaterialPixelParameters Parameters, float DitherFactor)
+{
+	ClipLODTransition(Parameters.SVPosition.xy, DitherFactor);
+}
+
+
+#define REQUIRES_VF_ATTRIBUTES_FOR_CLIPPING (USE_INSTANCING && USE_DITHERED_LOD_TRANSITION)
+
+#if USE_INSTANCING && USE_DITHERED_LOD_TRANSITION
 void ClipLODTransition(FMaterialPixelParameters Parameters)
 {
-	ClipLODTransition(Parameters, Parameters.PerInstanceParams.y);
+	ClipLODTransition(Parameters, Parameters.PerInstanceParams.w);
 }
-#elif USE_NEW_LOD_TRANSITION
+#elif USE_DITHERED_LOD_TRANSITION
 void ClipLODTransition(FMaterialPixelParameters Parameters)
 {
 	ClipLODTransition(Parameters, NonInstancedDitherLODFactor);
 }
+void ClipLODTransition(float2 SVPosition)
+{
+	ClipLODTransition(SVPosition, NonInstancedDitherLODFactor);
+}
 #else
 void ClipLODTransition(FMaterialPixelParameters Parameters)
+{
+}
+void ClipLODTransition(float2 SVPosition)
 {
 }
 #endif

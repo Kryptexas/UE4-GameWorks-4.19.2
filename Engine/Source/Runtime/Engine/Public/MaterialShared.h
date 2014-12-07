@@ -42,9 +42,10 @@ struct FShaderCompilerEnvironment;
 #define ME_STD_LABEL_PAD		16
 #define ME_STD_TAB_HEIGHT		21
 
+
+#define ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES (1)
+
 DECLARE_LOG_CATEGORY_EXTERN(LogMaterial,Log,Verbose);
-
-
 
 /** Creates a string that represents the given quality level. */
 extern void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InMaterialQualityLevel, FString& OutName);

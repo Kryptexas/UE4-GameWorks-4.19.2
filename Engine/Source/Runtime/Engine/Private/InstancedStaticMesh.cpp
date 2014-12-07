@@ -224,6 +224,7 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 	check(HasValidFeatureLevel());
 	const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
 
+#if !ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES // position only shaders cannot work with dithered LOD
 	// If the vertex buffer containing position is not the same vertex buffer containing the rest of the data,
 	// then initialize PositionStream and PositionDeclaration.
 	if(Data.PositionComponent.VertexBuffer != Data.TangentBasisComponents[0].VertexBuffer)
@@ -240,6 +241,7 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 		}
 		InitPositionDeclaration(PositionOnlyStreamElements);
 	}
+#endif
 
 	FVertexDeclarationElementList Elements;
 	if(Data.PositionComponent.VertexBuffer != NULL)
@@ -1459,7 +1461,6 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 
 	FRHIVertexShader* VS = VertexShader->GetVertexShader();
 	const FInstancingUserData* InstancingUserData = (const FInstancingUserData*)BatchElement.UserData;
-#if USE_NEW_LOD_TRANSITION_FOR_FOLIAGE
 	if( InstancingWorldViewOriginOneParameter.IsBound() )
 	{
 		FVector4 InstancingViewZCompareZero(MIN_flt, MIN_flt, MAX_flt, MAX_flt);
@@ -1468,7 +1469,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		FVector4 InstancingWorldViewOriginZero(ForceInit);
 		FVector4 InstancingWorldViewOriginOne(ForceInit);
 		InstancingWorldViewOriginOne.W = 1.0f;
-		if (InstancingUserData && BatchElement.InstancedLODRange && View.GetTemporalLODActive())
+		if (InstancingUserData && BatchElement.InstancedLODRange)
 		{
 			float SphereRadius = InstancingUserData->MeshRenderData->Bounds.SphereRadius;
 			float MinSize = CVarFoliageMinimumScreenSize.GetValueOnRenderThread();
@@ -1552,13 +1553,11 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		SetShaderValue(RHICmdList, VS, InstancingWorldViewOriginZeroParameter, InstancingWorldViewOriginZero );
 		SetShaderValue(RHICmdList, VS, InstancingWorldViewOriginOneParameter, InstancingWorldViewOriginOne );
 	}
-#endif
 	if( InstancingFadeOutParamsParameter.IsBound() )
 	{
 		FVector4 InstancingFadeOutParams(MAX_flt,0.f,1.f,1.f);
 		if (InstancingUserData)
 		{
-#if !USE_NEW_LOD_TRANSITION_FOR_FOLIAGE
 			InstancingFadeOutParams.X = InstancingUserData->StartCullDistance;
 			if( InstancingUserData->EndCullDistance > 0 )
 			{
@@ -1575,7 +1574,6 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			{
 				InstancingFadeOutParams.Y = 0.f;
 			}
-#endif
 			InstancingFadeOutParams.Z = InstancingUserData->bRenderSelected ? 1.f : 0.f;
 			InstancingFadeOutParams.W = InstancingUserData->bRenderUnselected ? 1.f : 0.f;
 		}

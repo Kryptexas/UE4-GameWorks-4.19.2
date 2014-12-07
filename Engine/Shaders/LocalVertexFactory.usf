@@ -11,13 +11,13 @@ float4x4 PreviousLocalToWorld;
 float4 LightMapCoordinateScaleBias;
 float4 ShadowMapCoordinateScaleBias;
 
-#ifndef USE_NEW_LOD_TRANSITION
-	#define USE_NEW_LOD_TRANSITION 0
+#ifndef USE_DITHERED_LOD_TRANSITION
+	#error "USE_DITHERED_LOD_TRANSITION should have been defined"
 #endif
 
 #if USE_INSTANCING
 
-#if USE_NEW_LOD_TRANSITION
+#if USE_DITHERED_LOD_TRANSITION
     float4 InstancingViewZCompareZero;
     float4 InstancingViewZCompareOne;
     float4 InstancingViewZConstant;
@@ -39,17 +39,13 @@ float4 InstancingFadeOutParams;
 #endif	// USE_INSTANCING_EMULATED
 
 #else // USE_INSTANCING
-	#ifndef USE_NEW_LOD_TRANSITION
-		#define USE_NEW_LOD_TRANSITION (0)
-	#endif
 	#ifndef USE_INSTANCING_EMULATED
 		#define USE_INSTANCING_EMULATED (0)
 	#endif
+	#if USE_DITHERED_LOD_TRANSITION
+		float NonInstancedDitherLODFactor;
+	#endif
 #endif	// USE_INSTANCING
-
-#if !USE_INSTANCING && USE_NEW_LOD_TRANSITION
-float NonInstancedDitherLODFactor;
-#endif
 
 
 #if USE_SPLINEDEFORM
@@ -151,7 +147,8 @@ struct FVertexFactoryIntermediates
 
 	half4 Color;
 #if USE_INSTANCING
-	float3 PerInstanceParams;
+	// x = per-instance random, y = per-instance fade out amount, z = hide/show flag, w dither fade cutoff
+	float4 PerInstanceParams;
 #endif	// USE_INSTANCING
 };
 
@@ -460,36 +457,29 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	// Swizzle vertex color.
 	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE;
 #if USE_INSTANCING
-	// x = per-instance random, y = per-instance fade out factor, z = zero or one depending of if it is shown at all. 
+	// x = per-instance random, y = per-instance fade out factor, z = zero or one depending of if it is shown at all, w is dither cutoff 
 
 	// PerInstanceParams.z stores a hide/show flag for this instance
 	float SelectedValue = trunc(GetInstanceShadowMapBias(Input).z * (1.0 / 256.0));
 	// InstancingFadeOutParams.z,w are RenderSelected and RenderDeselected respectively.
-	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
-	#if !USE_NEW_LOD_TRANSITION
-		#if !USE_INSTANCING_EMULATED
-			Intermediates.PerInstanceParams.x = Input.InstanceInverseTransform3.w;
-			float3 InstanceLocation = TransformLocalToTranslatedWorld(float3(Input.InstanceTransform1.w, Input.InstanceTransform2.w, Input.InstanceTransform3.w)).xyz;
-		#else
-			Intermediates.PerInstanceParams.x = CPUInstanceInverseTransform[2].w;
-			float3 InstanceLocation = TransformLocalToTranslatedWorld(float3(CPUInstanceTransform[0].w, CPUInstanceTransform[1].w, CPUInstanceTransform[2].w)).xyz;
-		#endif // !USE_INSTANCING_EMULATED
-		Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
+	#if !USE_INSTANCING_EMULATED
+		Intermediates.PerInstanceParams.x = Input.InstanceInverseTransform3.w;
+		float3 InstanceLocation = TransformLocalToWorld(float3(Input.InstanceTransform1.w, Input.InstanceTransform2.w, Input.InstanceTransform3.w)).xyz;
 	#else
-		#if !USE_INSTANCING_EMULATED
-			Intermediates.PerInstanceParams.x = Input.InstanceInverseTransform3.w;
-			float3 InstanceLocation = TransformLocalToWorld(float3(Input.InstanceTransform1.w, Input.InstanceTransform2.w, Input.InstanceTransform3.w)).xyz;
-		#else
-			Intermediates.PerInstanceParams.x = CPUInstanceInverseTransform[2].w;
-			float3 InstanceLocation = TransformLocalToWorld(float3(CPUInstanceTransform[0].w, CPUInstanceTransform[1].w, CPUInstanceTransform[2].w)).xyz;
-		#endif // !USE_INSTANCING_EMULATED
-
+		Intermediates.PerInstanceParams.x = CPUInstanceInverseTransform[2].w;
+		float3 InstanceLocation = TransformLocalToWorld(float3(CPUInstanceTransform[0].w, CPUInstanceTransform[1].w, CPUInstanceTransform[2].w)).xyz;
+	#endif // !USE_INSTANCING_EMULATED
+	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + View.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
+	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
+	#if USE_DITHERED_LOD_TRANSITION
 		float ViewZZero = length(InstanceLocation - InstancingWorldViewOriginZero.xyz);
 		float ViewZOne = length(InstanceLocation - InstancingWorldViewOriginOne.xyz);
-		Intermediates.PerInstanceParams.y = 
+		Intermediates.PerInstanceParams.w = 
 			dot(ViewZZero > InstancingViewZCompareZero.xyz, InstancingViewZConstant.xyz) * InstancingWorldViewOriginZero.w +
 			dot(ViewZOne > InstancingViewZCompareOne.xyz, InstancingViewZConstant.xyz) * InstancingWorldViewOriginOne.w;
-		Intermediates.PerInstanceParams.z *= abs(Intermediates.PerInstanceParams.y) < .999;
+		Intermediates.PerInstanceParams.z *= abs(Intermediates.PerInstanceParams.w) < .999;
+	#else
+		Intermediates.PerInstanceParams.w = 0;
 	#endif
 #endif	// USE_INSTANCING
 	return Intermediates;

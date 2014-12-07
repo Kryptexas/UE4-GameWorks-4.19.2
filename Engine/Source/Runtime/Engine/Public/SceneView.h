@@ -540,14 +540,11 @@ public:
 	/** @return true:perspective, false:orthographic */
 	inline bool IsPerspectiveProjection() const { return ViewMatrices.IsPerspectiveProjection(); }
 
-	/** Returns true if temporal LOD is active **/
-	bool GetTemporalLODActive() const;
-
 	/** Returns the location used as the origin for LOD computations
 	 * @param Index, 0 or 1, which LOD origin to return
 	 * @return LOD origin
 	 */
-	FVector GetTemporalLODOrigin(int32 Index) const;
+	FVector GetTemporalLODOrigin(int32 Index, bool bUseLaggedLODTransition = true) const;
 
 	/** Get LOD distance factor: Sqrt(GetLODDistanceFactor()*SphereRadius*SphereRadius / ScreenPercentage) = distance to this LOD transition
 	 * @return distance factor
@@ -558,7 +555,7 @@ public:
 	 * @param Index, 0 or 1, which temporal sample to return
 	 * @return distance factor
 	 */
-	float GetTemporalLODDistanceFactor(int32 Index) const;
+	float GetTemporalLODDistanceFactor(int32 Index, bool bUseLaggedLODTransition = true) const;
 
 	/** 
 	 * Returns the blend factor between the last two LOD samples

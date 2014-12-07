@@ -32,6 +32,11 @@ static TAutoConsoleVariable<int32> CVarCullAll(
 	0,
 	TEXT("If greater than zero, everything is conside3red culled."));
 
+static TAutoConsoleVariable<int32> CVarDitheredLOD(
+	TEXT("foliage.DitheredLOD"),
+	1,
+	TEXT("If greater than zero, dithered LOD is used, otherwise popping LOD is used."));
+
 static TAutoConsoleVariable<int32> CVarMaxTrianglesToRender(
 	TEXT("foliage.MaxTrianglesToRender"),
 	100000000,
@@ -551,8 +556,10 @@ class FHierarchicalStaticMeshSceneProxy : public FInstancedStaticMeshSceneProxy
 	int32 LastUnbuiltIndex;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	mutable TArray<uint32> DebugRuns[MAX_STATIC_MESH_LODS];
-	mutable int32 DebugTotalInstances[MAX_STATIC_MESH_LODS];
+	mutable TArray<uint32> SingleDebugRuns[MAX_STATIC_MESH_LODS];
+	mutable int32 SingleDebugTotalInstances[MAX_STATIC_MESH_LODS];
+	mutable TArray<uint32> MultipleDebugRuns[MAX_STATIC_MESH_LODS];
+	mutable int32 MultipleDebugTotalInstances[MAX_STATIC_MESH_LODS];
 	mutable int32 CaptureTag;
 #endif
 
@@ -627,33 +634,55 @@ public:
 
 struct FFoliageRenderInstanceParams
 {
-	mutable TArray<uint32, SceneRenderingAllocator> Runs[MAX_STATIC_MESH_LODS];
-	mutable int32 TotalInstances[MAX_STATIC_MESH_LODS];
+	bool bNeedsSingleLODRuns;
+	bool bNeedsMultipleLODRuns;
+	mutable TArray<uint32, SceneRenderingAllocator> MultipleLODRuns[MAX_STATIC_MESH_LODS];
+	mutable TArray<uint32, SceneRenderingAllocator> SingleLODRuns[MAX_STATIC_MESH_LODS];
+	mutable int32 TotalSingleLODInstances[MAX_STATIC_MESH_LODS];
+	mutable int32 TotalMultipleLODInstances[MAX_STATIC_MESH_LODS];
 
-	FFoliageRenderInstanceParams()
+	FFoliageRenderInstanceParams(bool InbNeedsSingleLODRuns, bool InbNeedsMultipleLODRuns)
+		: bNeedsSingleLODRuns(InbNeedsSingleLODRuns)
+		, bNeedsMultipleLODRuns(InbNeedsMultipleLODRuns)
 	{
 		for (int32 Index = 0; Index < MAX_STATIC_MESH_LODS; Index++)
 		{
-			TotalInstances[Index] = 0;
+			TotalSingleLODInstances[Index] = 0;
+			TotalMultipleLODInstances[Index] = 0;
 		}
 	}
-	FORCEINLINE_DEBUGGABLE void AddRun(int32 Lod, int32 FirstInstance, int32 LastInstance) const
+	static FORCEINLINE_DEBUGGABLE void AddRun(TArray<uint32, SceneRenderingAllocator>& Array, int32 FirstInstance, int32 LastInstance)
 	{
-		TotalInstances[Lod] += 1 + LastInstance - FirstInstance;
-		if (Runs[Lod].Num() && Runs[Lod].Last() + 1 == FirstInstance)
+		if (Array.Num() && Array.Last() + 1 == FirstInstance)
 		{
-			Runs[Lod].Last() = (uint32)LastInstance;
+			Array.Last() = (uint32)LastInstance;
 		}
 		else
 		{
-			Runs[Lod].Add((uint32)FirstInstance);
-			Runs[Lod].Add((uint32)LastInstance);
+			Array.Add((uint32)FirstInstance);
+			Array.Add((uint32)LastInstance);
+		}
+	}
+	FORCEINLINE_DEBUGGABLE void AddRun(int32 MinLod, int32 MaxLod, int32 FirstInstance, int32 LastInstance) const
+	{
+		if (bNeedsSingleLODRuns)
+		{
+			AddRun(SingleLODRuns[MinLod], FirstInstance, LastInstance);
+			TotalSingleLODInstances[MinLod] += 1 + LastInstance - FirstInstance;
+		}
+		if (bNeedsMultipleLODRuns)
+		{
+			for (int32 Lod = MinLod; Lod <= MaxLod; Lod++)
+			{
+				TotalMultipleLODInstances[Lod] += 1 + LastInstance - FirstInstance;
+				AddRun(MultipleLODRuns[Lod], FirstInstance, LastInstance);
+			}
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE void AddRun(int32 Lod, const FClusterNode& Node) const
+	FORCEINLINE_DEBUGGABLE void AddRun(int32 MinLod, int32 MaxLod, const FClusterNode& Node) const
 	{
-		AddRun(Lod, Node.FirstInstance, Node.LastInstance);
+		AddRun(MinLod, MaxLod, Node.FirstInstance, Node.LastInstance);
 	}
 };
 
@@ -670,8 +699,9 @@ struct FFoliageCullInstanceParams : public FFoliageRenderInstanceParams
 	float LODPlanesMin[MAX_STATIC_MESH_LODS];
 
 
-	FFoliageCullInstanceParams(const TArray<FClusterNode>& InTree)
-	:	Tree(InTree)
+	FFoliageCullInstanceParams(bool InbNeedsSingleLODRuns, bool InbNeedsMultipleLODRuns, const TArray<FClusterNode>& InTree)
+	:	FFoliageRenderInstanceParams(InbNeedsSingleLODRuns, InbNeedsMultipleLODRuns)
+	,	Tree(InTree)
 	{
 	}
 };
@@ -815,10 +845,7 @@ void FHierarchicalStaticMeshSceneProxy::Traverse(const FFoliageCullInstanceParam
 	if (!bSplit)
 	{
 		MaxLOD = FMath::Min(MaxLOD, Params.LODs - 1);
-		for (int32 LODIndex = MinLOD; LODIndex <= MaxLOD; LODIndex++)
-		{
-			Params.AddRun(LODIndex, Node);
-		}
+		Params.AddRun(MinLOD, MaxLOD, Node);
 		return;
 	}
 	for (int32 ChildIndex = Node.FirstChild; ChildIndex <= Node.LastChild; ChildIndex++)
@@ -847,29 +874,35 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 	int64 TotalTriangles = 0;
 	for (int32 LODIndex = 0; LODIndex < InstancedRenderData.VertexFactories.Num(); LODIndex++)
 	{
-		if (!Params.Runs[LODIndex].Num())
-		{
-			continue;
-		}
 		const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[LODIndex];
 
 		for (int32 SelectionGroupIndex = 0; SelectionGroupIndex < ElementParams.NumSelectionGroups; SelectionGroupIndex++)
 		{
 			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 			{
+				const FLODInfo& ProxyLODInfo = LODs[LODIndex];
+				UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
+				const bool bDitherLODEnabled = ElementParams.bBlendLODs;
+
+				TArray<uint32, SceneRenderingAllocator>& RunArray = bDitherLODEnabled ? Params.MultipleLODRuns[LODIndex] : Params.SingleLODRuns[LODIndex];
+
+				if (!RunArray.Num())
+				{
+					continue;
+				}
 
 				int32 NumBatches = 1;
 				int32 CurrentRun = 0;
 				int32 CurrentInstance = 0;
-				int32 RemainingInstances = Params.TotalInstances[LODIndex];
+				int32 RemainingInstances = bDitherLODEnabled ? Params.TotalMultipleLODInstances[LODIndex] : Params.TotalSingleLODInstances[LODIndex];
 
 				if (!ElementParams.bInstanced)
 				{
 					NumBatches = FMath::DivideAndRoundUp(RemainingInstances, (int32)FInstancedStaticMeshVertexFactory::NumBitsForVisibilityMask());
 					if (NumBatches)
 					{
-						check(Params.Runs[LODIndex].Num());
-						CurrentInstance = Params.Runs[LODIndex][CurrentRun];
+						check(RunArray.Num());
+						CurrentInstance = RunArray[CurrentRun];
 					}
 				}
 
@@ -900,10 +933,12 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					BatchElement0.MaxScreenSize = 1.0;
 					BatchElement0.MinScreenSize = 0.0;
 					BatchElement0.InstancedLODIndex = LODIndex;
-					BatchElement0.InstancedLODRange = ElementParams.bBlendLODs ? 1 : 0;
+					BatchElement0.InstancedLODRange = bDitherLODEnabled ? 1 : 0;
 					MeshElement.bCanApplyViewModeOverrides = true;
 					MeshElement.bUseSelectionOutline = ElementParams.BatchRenderSelection[SelectionGroupIndex];
 					MeshElement.bUseWireframeSelectionColoring = ElementParams.BatchRenderSelection[SelectionGroupIndex];
+					MeshElement.bUseAsOccluder = false;
+
 					if (!bDidStats)
 					{
 						bDidStats = true;
@@ -912,8 +947,8 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					}
 					if (ElementParams.bInstanced)
 					{
-						BatchElement0.NumInstances = Params.Runs[LODIndex].Num() / 2;
-						BatchElement0.InstanceRuns = &Params.Runs[LODIndex][0];
+						BatchElement0.NumInstances = RunArray.Num() / 2;
+						BatchElement0.InstanceRuns = &RunArray[0];
 #if STATS
 						INC_DWORD_STAT_BY(STAT_FoliageRuns, BatchElement0.NumInstances);
 #endif
@@ -942,11 +977,11 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 							NewBatchElement->UserIndex = CurrentInstance;
 							if (--RemainingInstances)
 							{
-								if ((uint32)CurrentInstance >= Params.Runs[LODIndex][CurrentRun + 1])
+								if ((uint32)CurrentInstance >= RunArray[CurrentRun + 1])
 								{
 									CurrentRun += 2;
-									check(CurrentRun + 1 < Params.Runs[LODIndex].Num());
-									CurrentInstance = Params.Runs[LODIndex][CurrentRun];
+									check(CurrentRun + 1 < RunArray.Num());
+									CurrentInstance = RunArray[CurrentRun];
 								}
 								else
 								{
@@ -976,6 +1011,9 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_HierarchicalInstancedStaticMeshSceneProxy_GetMeshElements);
 
+	bool bMultipleSections = ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES && CVarDitheredLOD.GetValueOnRenderThread() > 0;
+	bool bSingleSections = !bMultipleSections;
+
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		if (VisibilityMap & (1 << ViewIndex))
@@ -997,7 +1035,8 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 
 			// Render built instances
 			{
-				FFoliageCullInstanceParams InstanceParams(ClusterTree);
+
+				FFoliageCullInstanceParams InstanceParams(bSingleSections, bMultipleSections, ClusterTree);
 				InstanceParams.LODs = RenderData->LODResources.Num();
 
 				InstanceParams.View = View;
@@ -1080,10 +1119,11 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 					InstanceParams.ViewFrustumGuardBandLocal.Init();
 				}
 
-				InstanceParams.ViewOriginInLocalZero = WorldToLocal.TransformPosition(View->GetTemporalLODOrigin(0));
-				InstanceParams.ViewOriginInLocalOne = WorldToLocal.TransformPosition(View->GetTemporalLODOrigin(1));
+				ElementParams.bBlendLODs = bMultipleSections;
 
-				ElementParams.bBlendLODs = View->GetTemporalLODActive();
+				InstanceParams.ViewOriginInLocalZero = WorldToLocal.TransformPosition(View->GetTemporalLODOrigin(0, bMultipleSections));
+				InstanceParams.ViewOriginInLocalOne = WorldToLocal.TransformPosition(View->GetTemporalLODOrigin(1, bMultipleSections));
+
 				float MinSize = CVarFoliageMinimumScreenSize.GetValueOnRenderThread();
 				float LODScale = CVarFoliageLODDistanceScale.GetValueOnRenderThread();
 				float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
@@ -1097,7 +1137,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 				{
 					// we aren't going to accurately figure out LOD planes for both samples and try all 4 possibilities, rather we just consider the worst case LOD range; the shaders will render correctly
-					float Fac = View->GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * SphereRadius * LODScale * LODScale;
+					float Fac = View->GetTemporalLODDistanceFactor(SampleIndex, bMultipleSections) * SphereRadius * SphereRadius * LODScale * LODScale;
 
 					float FinalCull = MAX_flt;
 
@@ -1127,11 +1167,16 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				{
 					for (int32 LODIndex = 0; LODIndex < InstanceParams.LODs; LODIndex++)
 					{
-						for (int32 Run = 0; Run < DebugRuns[LODIndex].Num(); Run++)
+						for (int32 Run = 0; Run < SingleDebugRuns[LODIndex].Num(); Run++)
 						{
-							InstanceParams.Runs[LODIndex].Add(DebugRuns[LODIndex][Run]);
+							InstanceParams.SingleLODRuns[LODIndex].Add(SingleDebugRuns[LODIndex][Run]);
 						}
-						InstanceParams.TotalInstances[LODIndex] = DebugTotalInstances[LODIndex];
+						InstanceParams.TotalSingleLODInstances[LODIndex] = SingleDebugTotalInstances[LODIndex];
+						for (int32 Run = 0; Run < MultipleDebugRuns[LODIndex].Num(); Run++)
+						{
+							InstanceParams.MultipleLODRuns[LODIndex].Add(MultipleDebugRuns[LODIndex][Run]);
+						}
+						InstanceParams.TotalMultipleLODInstances[LODIndex] = MultipleDebugTotalInstances[LODIndex];
 					}
 				}
 				else
@@ -1170,11 +1215,17 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 						CaptureTag = GDebugTag;
 						for (int32 LODIndex = 0; LODIndex < InstanceParams.LODs; LODIndex++)
 						{
-							DebugRuns[LODIndex].Empty();
-							DebugTotalInstances[LODIndex] = InstanceParams.TotalInstances[LODIndex];
-							for (int32 Run = 0; Run < InstanceParams.Runs[LODIndex].Num(); Run++)
+							SingleDebugRuns[LODIndex].Empty();
+							SingleDebugTotalInstances[LODIndex] = InstanceParams.TotalSingleLODInstances[LODIndex];
+							for (int32 Run = 0; Run < InstanceParams.SingleLODRuns[LODIndex].Num(); Run++)
 							{
-								DebugRuns[LODIndex].Add(InstanceParams.Runs[LODIndex][Run]);
+								SingleDebugRuns[LODIndex].Add(InstanceParams.SingleLODRuns[LODIndex][Run]);
+							}
+							MultipleDebugRuns[LODIndex].Empty();
+							MultipleDebugTotalInstances[LODIndex] = InstanceParams.TotalMultipleLODInstances[LODIndex];
+							for (int32 Run = 0; Run < InstanceParams.MultipleLODRuns[LODIndex].Num(); Run++)
+							{
+								MultipleDebugRuns[LODIndex].Add(InstanceParams.MultipleLODRuns[LODIndex][Run]);
 							}
 						}
 					}
@@ -1187,7 +1238,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 			// Render unbuilt instances
 			if (FirstUnbuiltIndex <= LastUnbuiltIndex)
 			{
-				FFoliageRenderInstanceParams InstanceParams;
+				FFoliageRenderInstanceParams InstanceParams(true, false);
 
 				// disable LOD blending for unbuilt instances as we haven't calculated the correct LOD.
 				ElementParams.bBlendLODs = false;
@@ -1195,12 +1246,12 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				if (LastUnbuiltIndex - FirstUnbuiltIndex < 1000)
 				{
 					// less than 1000 instances, just add them all at LOD 0
-					InstanceParams.AddRun(0, FirstUnbuiltIndex, LastUnbuiltIndex);
+					InstanceParams.AddRun(0, 0, FirstUnbuiltIndex, LastUnbuiltIndex);
 				}
 				else
 				{
 					// more than 1000, render them all at Max LOD
-					InstanceParams.AddRun(RenderData->LODResources.Num() - 1, FirstUnbuiltIndex, FMath::Min<int32>(LastUnbuiltIndex - FirstUnbuiltIndex + 10000, LastUnbuiltIndex));
+					InstanceParams.AddRun(RenderData->LODResources.Num() - 1, RenderData->LODResources.Num() - 1, FirstUnbuiltIndex, FMath::Min<int32>(LastUnbuiltIndex - FirstUnbuiltIndex + 10000, LastUnbuiltIndex));
 				}
 				FillDynamicMeshElements(Collector, ElementParams, InstanceParams);
 			}

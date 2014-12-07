@@ -435,19 +435,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #endif
 }
 
-bool FSceneView::GetTemporalLODActive() const
-{
-	if (State)
-	{
-		const FTemporalLODState& LODState = State->GetTemporalLODState();
-		if (LODState.TemporalLODLag != 0.0f)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 float FSceneView::GetLODDistanceFactor() const
 {
 	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ViewMatrices.ProjMatrix.M[0][0],
@@ -456,9 +443,9 @@ float FSceneView::GetLODDistanceFactor() const
 	return Fac;
 }
 
-float FSceneView::GetTemporalLODDistanceFactor(int32 Index) const
+float FSceneView::GetTemporalLODDistanceFactor(int32 Index, bool bUseLaggedLODTransition) const
 {
-	if (State)
+	if (bUseLaggedLODTransition && State)
 	{
 		const FTemporalLODState& LODState = State->GetTemporalLODState();
 		if (LODState.TemporalLODLag != 0.0f)
@@ -470,9 +457,9 @@ float FSceneView::GetTemporalLODDistanceFactor(int32 Index) const
 }
 
 
-FVector FSceneView::GetTemporalLODOrigin(int32 Index) const
+FVector FSceneView::GetTemporalLODOrigin(int32 Index, bool bUseLaggedLODTransition) const
 {
-	if (State)
+	if (bUseLaggedLODTransition && State)
 	{
 		const FTemporalLODState& LODState = State->GetTemporalLODState();
 		if (LODState.TemporalLODLag != 0.0f)
