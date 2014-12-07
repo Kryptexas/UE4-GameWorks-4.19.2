@@ -19,8 +19,12 @@ class AIMODULE_API UBTTask_Wait : public UBTTaskNode
 	GENERATED_UCLASS_BODY()
 
 	/** wait time in seconds */
-	UPROPERTY(Category=Wait, EditAnywhere)
+	UPROPERTY(Category = Wait, EditAnywhere)
 	float WaitTime;
+
+	/** allows adding random time to wait time */
+	UPROPERTY(Category = Wait, EditAnywhere, meta = (UIMin = 0, ClampMin = 0))
+	float RandomDeviation;
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual uint16 GetInstanceMemorySize() const override;
