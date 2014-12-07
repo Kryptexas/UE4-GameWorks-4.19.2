@@ -4,8 +4,6 @@
 #include "AssetTypeActions_SoundMod.h"
 #include "Components/AudioComponent.h"
 
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 UClass* FAssetTypeActions_SoundMod::GetSupportedClass() const
