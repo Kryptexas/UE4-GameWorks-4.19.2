@@ -1894,6 +1894,13 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 
 
 #if WITH_APEX_CLOTHING
+
+// convert a bone name from APEX stype to FBX style
+static FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex)
+{
+	return *FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"));
+}
+
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds) const
 {
 	int32 NumAssets = ClothingActors.Num();
@@ -1994,7 +2001,7 @@ void USkeletalMeshComponent::ValidateClothingActors()
  * APEX clothing actor is created from APEX clothing asset for cloth simulation 
  * If this is invalid, re-create actor , but if valid ,just skip to create
 */
-bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAssetWrapper, TArray<FVector>* BlendedDelta)
+bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset, TArray<FVector>* BlendedDelta)
 {	
 	int32 NumActors = ClothingActors.Num();
 	int32 ActorIndex = -1;
@@ -2022,7 +2029,6 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 		ActorIndex = ClothingActors.AddZeroed();
 	}
 	 
-	NxClothingAsset* ClothingAsset = ClothingAssetWrapper->GetAsset();
 	// Get the (singleton!) default actor descriptor.
 	NxParameterized::Interface* ActorDesc = ClothingAsset->getDefaultActorDesc();
 	PX_ASSERT(ActorDesc != NULL);
@@ -2115,7 +2121,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 	}
 
 	//set parent pointer to verify later whether became invalid or not
-	ClothingActors[ActorIndex].ParentClothingAsset = ClothingAssetWrapper;
+	ClothingActors[ActorIndex].ParentClothingAsset = ClothingAsset;
 
 	// budget is millisecond units
 	ScenePtr->setLODResourceBudget(100); // for temporary, 100ms
@@ -2164,7 +2170,7 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 				}
 			}
 
-			int32 NumClothLODs = Actor.ParentClothingAsset->GetAsset()->getNumGraphicalLodLevels();
+			int32 NumClothLODs = Actor.ParentClothingAsset->getNumGraphicalLodLevels();
 
 			// decide whether should enable or disable
 			if (!IsMappedClothLOD || (LODIndex >= NumClothLODs))
@@ -2587,7 +2593,7 @@ void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolum
 				continue;
 			}
 
-			FName BoneName = Asset.ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
+			FName BoneName = GetConvertedBoneName(Asset.ApexClothingAsset, Collision.BoneIndex);
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -3208,7 +3214,7 @@ void USkeletalMeshComponent::ChangeClothMorphTargetMapping(FClothMorphTargetData
 				ClothOriginalPosArray[Index] = U2PVector(MorphData.OriginPos[Index]);
 			}
 
-			NxClothingAsset* ClothingAsset = Asset.ApexClothingAsset->GetAsset();
+			NxClothingAsset* ClothingAsset = Asset.ApexClothingAsset;
 			float Epsilon = 0.0f;
 			uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray.GetData(), NumOriginPos, Epsilon);
 
@@ -3317,7 +3323,7 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 			{
 				if (ClothOriginalPosArray[AssetIdx].Num() > 0)
 				{
-					NxClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetAsset();
+					NxClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset;
 					float Epsilon = 0.0f;
 					uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray[AssetIdx].GetData(), ClothOriginalPosArray[AssetIdx].Num(), Epsilon);
 
@@ -3485,7 +3491,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		TArray<physx::PxMat44> BoneMatrices;
 
-		NxClothingAsset* ClothingAsset = ClothingActors[ActorIdx].ParentClothingAsset->GetAsset();
+		NxClothingAsset* ClothingAsset = ClothingActors[ActorIdx].ParentClothingAsset;
 
 		uint32 NumUsedBones = ClothingAsset->getNumUsedBones();
 
@@ -3494,7 +3500,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		for(uint32 Index=0; Index < NumUsedBones; Index++)
 		{
-		   FName BoneName = ClothingActors[ActorIdx].ParentClothingAsset->GetConvertedBoneName(Index);
+			FName BoneName = GetConvertedBoneName(ClothingActors[ActorIdx].ParentClothingAsset, Index);
 
 		   int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -3546,15 +3552,15 @@ void USkeletalMeshComponent::GetClothRootBoneMatrix(int32 AssetIndex, FMatrix& O
 {
 	if (IsValidClothingActor(AssetIndex))
 	{
-		TSharedPtr<FClothingAssetWrapper> Asset = ClothingActors[AssetIndex].ParentClothingAsset;
+		NxClothingAsset* Asset = ClothingActors[AssetIndex].ParentClothingAsset;
 
-		check(Asset.IsValid());
+		check(Asset);
 
-		const NxParameterized::Interface* AssetParams = Asset->GetAsset()->getAssetNxParameterized();
+		const NxParameterized::Interface* AssetParams = Asset->getAssetNxParameterized();
 		uint32 InternalRootBoneIndex;
 		verify(NxParameterized::getParamU32(*AssetParams, "rootBoneIndex", InternalRootBoneIndex));
 		check(InternalRootBoneIndex >= 0);
-		FName BoneName = Asset->GetConvertedBoneName(InternalRootBoneIndex);
+		FName BoneName = GetConvertedBoneName(Asset, InternalRootBoneIndex);
 		int32 BoneIndex = GetBoneIndex(BoneName);
 		check(BoneIndex >= 0);
 		OutRootBoneMatrix = GetBoneMatrix(BoneIndex);
@@ -3726,6 +3732,11 @@ bool USkeletalMeshComponent::IsValidClothingActor(int32 ActorIndex) const
 {
 #if WITH_APEX_CLOTHING
 
+	if (!SkeletalMesh)
+	{
+		return false;
+	}
+
 	//false if ActorIndex is out-range
 	if(ActorIndex >= SkeletalMesh->ClothingAssets.Num()
 	|| ActorIndex >= ClothingActors.Num())
@@ -3734,7 +3745,7 @@ bool USkeletalMeshComponent::IsValidClothingActor(int32 ActorIndex) const
 	}
 
 	if(ClothingActors[ActorIndex].ApexClothingActor
-	&& SkeletalMesh->ClothingAssets[ActorIndex].ApexClothingAsset->IsValid())
+	&& ClothingActors[ActorIndex].ParentClothingAsset == SkeletalMesh->ClothingAssets[ActorIndex].ApexClothingAsset)
 	{
 		return true;
 	}
@@ -4091,7 +4102,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 				continue;
 			}
 
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
+			FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, Collision.BoneIndex);
 			
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4150,7 +4161,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 		for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
 		{
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(BonePlanes[PlaneIdx].BoneIndex);
+			FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, BonePlanes[PlaneIdx].BoneIndex);
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4188,7 +4199,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 				continue;
 			}
 
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Spheres[i].BoneIndex);
+			FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, Spheres[i].BoneIndex);
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4365,7 +4376,7 @@ void USkeletalMeshComponent::LoadClothingVisualizationInfo(int32 AssetIndex)
 
 
 	FClothingAssetData& AssetData = SkeletalMesh->ClothingAssets[AssetIndex];
-	NxClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset->GetAsset();
+	NxClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset;
 	const NxParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNxParameterized();
 
 	int32 NumPhysicalLODs;
@@ -4747,7 +4758,7 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 						{
 							uint16 ApexBoneIndex = VisualInfo.ClothPhysicalMeshBoneWeightsInfo[FixedVertIdx].Indices[BoneWeightIdx];
 
-							FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(ApexBoneIndex);
+							FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, ApexBoneIndex);
 
 							int32 BoneIndex = GetBoneIndex(BoneName);
 

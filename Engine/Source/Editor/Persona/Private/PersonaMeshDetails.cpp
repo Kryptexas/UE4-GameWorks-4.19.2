@@ -1383,7 +1383,7 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
 	FClothingAssetData& AssetData = SkelMesh->ClothingAssets[ElementIndex];
 
-	ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(AssetData.ApexClothingAsset->GetAsset(), AssetData.PhysicsProperties);
+	ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(AssetData.ApexClothingAsset, AssetData.PhysicsProperties);
 
 	// cloth physics properties
 	TSharedRef<IPropertyHandle> ClothPhysicsProperties = StructProperty->GetChildHandle(FName("PhysicsProperties")).ToSharedRef();
@@ -1422,7 +1422,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 		return Grid;
 	}
 
-	int32 NumLODs = ApexClothingUtils::GetNumLODs(Asset.ApexClothingAsset->GetAsset());
+	int32 NumLODs = ApexClothingUtils::GetNumLODs(Asset.ApexClothingAsset);
 	int32 RowNumber = 0;
 
 	for(int32 LODIndex=0; LODIndex < NumLODs; LODIndex++)
@@ -1438,7 +1438,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 		RowNumber++;
 
 		TArray<FSubmeshInfo> SubmeshInfos;
-		if(ApexClothingUtils::GetSubmeshInfoFromApexAsset(Asset.ApexClothingAsset->GetAsset(), LODIndex, SubmeshInfos))
+		if(ApexClothingUtils::GetSubmeshInfoFromApexAsset(Asset.ApexClothingAsset, LODIndex, SubmeshInfos))
 		{
 			// content names
 			Grid->AddSlot(0, RowNumber) // x, y
@@ -1577,7 +1577,7 @@ FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex, IDetailL
 		if (EAppReturnType::Yes == Ret)
 		{
 			bNeedToLeaveProperties = true;
-			ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset->GetAsset(), CurClothPhysicsProperties);
+			ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset, CurClothPhysicsProperties);
 		}
 		else if (EAppReturnType::Cancel == Ret)
 		{
@@ -1593,7 +1593,7 @@ FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex, IDetailL
 		{
 			// overwrites changed values instead of original values
 			SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged = true;
-			ApexClothingUtils::SetPhysicsPropertiesToApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset->GetAsset(), CurClothPhysicsProperties);
+			ApexClothingUtils::SetPhysicsPropertiesToApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset, CurClothPhysicsProperties);
 		}
 		else
 		{
@@ -1671,7 +1671,7 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 				{
 					int32 AssetIndex = SkelMesh->ClothingAssets.Num()-1;
 					FClothingAssetData& AssetData = SkelMesh->ClothingAssets[AssetIndex];
-					int32 NumLODs = ApexClothingUtils::GetNumLODs(AssetData.ApexClothingAsset->GetAsset());
+					int32 NumLODs = ApexClothingUtils::GetNumLODs(AssetData.ApexClothingAsset);
 
 					uint32 MaxClothVertices = ApexClothingUtils::GetMaxClothSimulVertices(GMaxRHIFeatureLevel);
 
@@ -1682,7 +1682,7 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 					for(int32 LODIndex=0; LODIndex < NumLODs; LODIndex++)
 					{
 						TArray<FSubmeshInfo> SubmeshInfos;
-						if(ApexClothingUtils::GetSubmeshInfoFromApexAsset(AssetData.ApexClothingAsset->GetAsset(), LODIndex, SubmeshInfos))
+						if(ApexClothingUtils::GetSubmeshInfoFromApexAsset(AssetData.ApexClothingAsset, LODIndex, SubmeshInfos))
 						{
 							for(int32 SubIndex=0; SubIndex < SubmeshInfos.Num(); SubIndex++)
 							{
@@ -1817,7 +1817,7 @@ void FPersonaMeshDetails::UpdateComboBoxStrings()
 
 			TArray<FSubmeshInfo> SubmeshInfos;
 			// if failed to get sub-mesh info, then skip
-			if (!ApexClothingUtils::GetSubmeshInfoFromApexAsset(ClothingAssetData.ApexClothingAsset->GetAsset(), LODIdx, SubmeshInfos))
+			if (!ApexClothingUtils::GetSubmeshInfoFromApexAsset(ClothingAssetData.ApexClothingAsset, LODIdx, SubmeshInfos))
 			{
 				continue;
 			}
@@ -2021,7 +2021,7 @@ void FPersonaMeshDetails::UpdateClothPhysicsProperties(int32 AssetIndex)
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
 	FClothingAssetData& Asset = SkelMesh->ClothingAssets[AssetIndex];
 
-	ApexClothingUtils::SetPhysicsPropertiesToApexAsset(Asset.ApexClothingAsset->GetAsset(), Asset.PhysicsProperties);
+	ApexClothingUtils::SetPhysicsPropertiesToApexAsset(Asset.ApexClothingAsset, Asset.PhysicsProperties);
 	Asset.bClothPropertiesChanged = true;
 }
 

@@ -351,43 +351,6 @@ struct FMorphTargetMap
 	}
 };
 
-#if WITH_APEX_CLOTHING
-class FClothingAssetWrapper
-{
-public:
-
-	FClothingAssetWrapper(physx::apex::NxClothingAsset* InApexClothingAsset)
-	:	ApexClothingAsset(InApexClothingAsset),bValid(true)
-	{}
-
-	ENGINE_API ~FClothingAssetWrapper();
-
-	physx::apex::NxClothingAsset* GetAsset()
-	{
-		return ApexClothingAsset;
-	}
-
-	//returns bone name converted to fbx style
-	FName GetConvertedBoneName(int32 BoneIndex);
-
-
-	bool	IsValid()
-	{ 
-		return bValid;
-	}
-
-	void	SetValid(bool valid)
-	{
-		bValid = valid;
-	}
-
-private:
-	physx::apex::NxClothingAsset* ApexClothingAsset;
-	bool						  bValid;
-};
-#endif // #if WITH_APEX_CLOTHING
-
-
 /** 
  * constrain Coefficients - max distance, collisionSphere radius, collision sphere distance 
  */
@@ -497,7 +460,7 @@ struct FClothingAssetData
 	FClothPhysicsProperties PhysicsProperties;
 
 #if WITH_APEX_CLOTHING
-	TSharedPtr<FClothingAssetWrapper> ApexClothingAsset;
+	physx::apex::NxClothingAsset* ApexClothingAsset;
 
 	/** Collision volume data for showing to the users whether collision shape is correct or not */
 	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
@@ -513,6 +476,11 @@ struct FClothingAssetData
 	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
 	/** currently mapped morph target name */
 	FName PreparedMorphTargetName;
+
+	FClothingAssetData()
+		:ApexClothingAsset(NULL)
+	{
+	}
 #endif// #if WITH_APEX_CLOTHING
 
 	// serialization

@@ -1781,23 +1781,6 @@ void FSkelMeshChunk::CalcMaxBoneInfluences()
 	}
 }
 
-#if WITH_APEX_CLOTHING
-/*-----------------------------------------------------------------------------
-	FClothingAssetWrapper
------------------------------------------------------------------------------*/
-
-FClothingAssetWrapper::~FClothingAssetWrapper()
-{
-	check(ApexClothingAsset);
-	GPhysCommandHandler->DeferredRelease(ApexClothingAsset);
-}
-
-FName FClothingAssetWrapper::GetConvertedBoneName(int32 BoneIndex)
-{
-	return *FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "),TEXT("-"));
-}
-
-#endif// #if WITH_APEX_CLOTHING
 /*-----------------------------------------------------------------------------
 	FClothingAssetData
 -----------------------------------------------------------------------------*/
@@ -1817,7 +1800,7 @@ FArchive& operator<<(FArchive& Ar, FClothingAssetData& A)
 			Buffer.AddUninitialized( AssetSize );
 			Ar.Serialize( Buffer.GetData(), AssetSize );
 #if WITH_APEX_CLOTHING
-			A.ApexClothingAsset = MakeShareable( new FClothingAssetWrapper(LoadApexClothingAssetFromBlob(Buffer)) );
+			A.ApexClothingAsset = LoadApexClothingAssetFromBlob(Buffer);
 #endif //#if WITH_APEX_CLOTHING
 		}
 	}
@@ -1825,10 +1808,10 @@ FArchive& operator<<(FArchive& Ar, FClothingAssetData& A)
 	if( Ar.IsSaving() )
 	{
 #if WITH_APEX_CLOTHING
-		if( A.ApexClothingAsset->GetAsset() )
+		if (A.ApexClothingAsset)
 		{
 			TArray<uint8> Buffer;
-			SaveApexClothingAssetToBlob(A.ApexClothingAsset->GetAsset(), Buffer);
+			SaveApexClothingAssetToBlob(A.ApexClothingAsset, Buffer);
 			uint32 AssetSize = Buffer.Num();
 			Ar << AssetSize;
 			Ar.Serialize(Buffer.GetData(), AssetSize);
@@ -2276,7 +2259,11 @@ void USkeletalMesh::BeginDestroy()
 	// release clothing assets
 	for (FClothingAssetData& Data : ClothingAssets)
 	{
-		Data.ApexClothingAsset.Reset();
+		if (Data.ApexClothingAsset)
+		{
+			GPhysCommandHandler->DeferredRelease(Data.ApexClothingAsset);
+			Data.ApexClothingAsset = NULL;
+		}
 	}
 #endif // #if WITH_APEX_CLOTHING
 }
@@ -2614,9 +2601,9 @@ void USkeletalMesh::PostLoad()
 	// load clothing section collision
 	for( int32 AssetIdx=0; AssetIdx<ClothingAssets.Num();AssetIdx++ )
 	{
-		if( ClothingAssets[AssetIdx].ApexClothingAsset->GetAsset() )
+		if( ClothingAssets[AssetIdx].ApexClothingAsset )
 		{
-			LoadClothCollisionVolumes(AssetIdx, ClothingAssets[AssetIdx].ApexClothingAsset->GetAsset());
+			LoadClothCollisionVolumes(AssetIdx, ClothingAssets[AssetIdx].ApexClothingAsset);
 		}
 #if WITH_EDITOR
 		// Remove any clothing sections that have invalid APEX data.
