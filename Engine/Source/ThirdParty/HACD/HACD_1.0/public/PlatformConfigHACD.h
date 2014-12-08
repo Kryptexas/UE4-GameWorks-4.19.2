@@ -1,4 +1,4 @@
-// Modifications copyright (c) 2014 Epic Games, Inc. All rights reserved.
+// Modifications copyright (c) 2014-2015 Epic Games, Inc. All rights reserved.
 
 #ifndef PLATFORM_CONFIG_H
 

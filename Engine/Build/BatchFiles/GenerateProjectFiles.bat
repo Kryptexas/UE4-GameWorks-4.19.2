@@ -3,7 +3,7 @@
 echo Setting up Unreal Engine 4 project files...
 
 rem ## Unreal Engine 4 Visual Studio project setup script
-rem ## Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+rem ## Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 rem ## This script is expecting to exist in the UE4 root directory.  It will not work correctly
 rem ## if you copy it to a different location and run it.

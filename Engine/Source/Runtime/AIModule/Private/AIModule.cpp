@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "AIModulePrivate.h"
 #include "AISystem.h"
 #if WITH_EDITOR && ENABLE_VISUAL_LOG

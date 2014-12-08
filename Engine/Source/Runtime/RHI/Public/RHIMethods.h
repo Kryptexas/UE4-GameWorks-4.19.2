@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHIMETHOD_SPECIFIERSs.h: The RHI method definitions.  The same methods are defined multiple places, so they're simply included from this file where necessary.
