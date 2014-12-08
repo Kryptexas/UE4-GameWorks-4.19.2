@@ -2054,6 +2054,11 @@ namespace UnrealDocTranslator
                                         }
                                         else
                                         {
+                                            if (PartFileName.Contains("ENGINE/PERFORMANCE"))
+                                            {
+                                                int i = 0;
+                                            }
+
                                             INTFileProcessingDictionary.Add(PartFileName,
                                                                             new FileProcessingDetails(
                                                                                 FileDetails.DepotPath.ToString(),
