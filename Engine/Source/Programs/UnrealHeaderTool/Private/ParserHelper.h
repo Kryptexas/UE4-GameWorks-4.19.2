@@ -914,9 +914,9 @@ struct FFuncInfo
 	,	FunctionReference   (NULL)
 	,	RPCId               (0)
 	,	RPCResponseId       (0)
-	,	bSealedEvent        (false)
 	,	bCppImplNameEndsWith_Implementation(false)
 	,	bCppValidationImplNameEndsWith_Validate(false)
+	,	bSealedEvent        (false)
 	{}
 
 	FFuncInfo( const FFuncInfo& Other )
