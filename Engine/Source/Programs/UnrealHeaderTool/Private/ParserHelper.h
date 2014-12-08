@@ -924,10 +924,10 @@ struct FFuncInfo
 	,	FunctionExportFlags(Other.FunctionExportFlags)
 	,	ExpectParms		(Other.ExpectParms)
 	,	FunctionReference(Other.FunctionReference)
-	,	RPCId(Other.RPCId)
-	,	RPCResponseId(Other.RPCResponseId)
 	,	bCppImplNameEndsWith_Implementation(Other.bCppImplNameEndsWith_Implementation)
 	,	bCppValidationImplNameEndsWith_Validate(Other.bCppValidationImplNameEndsWith_Validate)
+	,	RPCId(Other.RPCId)
+	,	RPCResponseId(Other.RPCResponseId)
 	{
 		Function.Clone(Other.Function);
 		if (FunctionReference)
