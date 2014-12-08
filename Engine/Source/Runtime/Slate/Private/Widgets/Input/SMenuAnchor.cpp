@@ -412,7 +412,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 bool SMenuAnchor::IsOpen() const
 {
-	return MethodInUse.IsSet(); PopupWindowPtr.Pin().IsValid() || IsOpenAndReusingWindow();
+	return (MethodInUse.IsSet() && PopupWindowPtr.Pin().IsValid()) || IsOpenAndReusingWindow();
 }
 
 bool SMenuAnchor::ShouldOpenDueToClick() const
