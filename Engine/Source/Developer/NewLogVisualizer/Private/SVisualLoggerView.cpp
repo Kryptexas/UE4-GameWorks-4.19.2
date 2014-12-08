@@ -95,7 +95,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 								SNew(SBox)
 								.Padding(FMargin(0, 0, 4, 0))
 								[
-									SNew(SSearchBox)
+									SAssignNew(SearchBox, SSearchBox)
 									.OnTextChanged(InArgs._OnFiltersSearchChanged)
 									.HintText_Lambda([Settings]()->FText{return Settings->bSearchInsideLogs ? LOCTEXT("FiltersSearchHint", "Log Data Search") : LOCTEXT("FiltersSearchHint", "Log Category Search"); })
 								]
@@ -159,6 +159,14 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 			.VisualLoggerInterface(VisualLoggerInterface)
 		];
 
+}
+
+void SVisualLoggerView::SetSearchString(FText SearchString) 
+{ 
+	if (SearchBox.IsValid())
+	{
+		SearchBox->SetText(SearchString);
+	}
 }
 
 void SVisualLoggerView::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)

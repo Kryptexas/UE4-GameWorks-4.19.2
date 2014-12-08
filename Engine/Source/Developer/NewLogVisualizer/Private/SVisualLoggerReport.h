@@ -8,12 +8,17 @@ public:
 
 	SLATE_END_ARGS()
 
-		void Construct(const FArguments& InArgs, TArray< TSharedPtr<class STimeline> >&);
+	void Construct(const FArguments& InArgs, TArray< TSharedPtr<class STimeline> >&, TSharedPtr<class SVisualLoggerView> VisualLoggerView);
 
 	virtual ~SVisualLoggerReport();
 
-	FText GenerateReportText() const;
+protected:
+	void GenerateReportText();
 
 protected:
 	TArray< TSharedPtr<class STimeline> > SelectedItems;
+	TArray<TSharedRef<ITextDecorator>> Decorators;
+	TSharedPtr<class SRichTextBlock> InteractiveRichText;
+	FText ReportText;
+	TArray<FString> CollectedEvents;
 };

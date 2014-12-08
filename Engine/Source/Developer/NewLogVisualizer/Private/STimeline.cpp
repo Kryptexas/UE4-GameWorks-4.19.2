@@ -83,6 +83,17 @@ void STimeline::UpdateVisibilityForItems()
 					break;
 				}
 			}
+			if (!bMatchSearchString)
+			{
+				for (const FVisualLogEvent& CurrentEvent : CurrentEntry.Entry.Events)
+				{
+					if (CurrentEvent.Name.Find(QuickSearchStrng) != INDEX_NONE)
+					{
+						bMatchSearchString = true;
+						break;
+					}
+				}
+			}
 
 			if (!bMatchSearchString)
 			{

@@ -14,40 +14,69 @@
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #include "VisualLoggerTypes.h"
 #include "SVisualLoggerReport.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SVisualLoggerReport"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SVisualLoggerReport::Construct(const FArguments& InArgs, TArray< TSharedPtr<class STimeline> >& InSelectedItems)
+void SVisualLoggerReport::Construct(const FArguments& InArgs, TArray< TSharedPtr<class STimeline> >& InSelectedItems, TSharedPtr<class SVisualLoggerView> VisualLoggerView)
 {
 	SelectedItems = InSelectedItems;
+	GenerateReportText();
+
+	TArray< TSharedRef< ITextDecorator > > CustomDecorators;
+	for (auto& CurrentEvent : CollectedEvents)
+	{
+		CustomDecorators.Add(SRichTextBlock::HyperlinkDecorator(CurrentEvent, FSlateHyperlinkRun::FOnClick::CreateLambda(
+			[this, VisualLoggerView](const FSlateHyperlinkRun::FMetadata& Metadata){ VisualLoggerView->SetSearchString(FText::FromString(Metadata[TEXT("id")])); }
+		)));
+	}
+
 	this->ChildSlot
+	[
+		SNew(SBorder)
+		.BorderImage(FLogVisualizerStyle::Get().GetBrush("RichText.Background")).HAlign(EHorizontalAlignment::HAlign_Fill)
 		[
 			SNew(SScrollBox)
 			+ SScrollBox::Slot()
+			.HAlign(EHorizontalAlignment::HAlign_Fill)
 			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(15, 15)
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot().AutoHeight().Padding(0)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().MaxWidth(300)
 					[
-						SNew(SBorder)
-						.BorderImage(FEditorStyle::Get().GetBrush("Menu.Background"))
-						.Padding(0)
+						SNew(SSearchBox)
+						.OnTextChanged( FOnTextChanged::CreateLambda(
+						[this](FText NewText){
+							InteractiveRichText->SetHighlightText(NewText); 
+						}))
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				[
+					SNew(SBorder)
+					.Padding(5.0f)
+					.BorderImage(FCoreStyle::Get().GetBrush("BoxShadow"))
+					[
+						SNew(SBorder).Padding(2).HAlign(HAlign_Left)
+						.BorderImage(FLogVisualizerStyle::Get().GetBrush("RichText.Background"))
 						[
-							SNew(SRichTextBlock)
-							.Text(this, &SVisualLoggerReport::GenerateReportText)
-							.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
-							.DecoratorStyleSet(&FEditorStyle::Get())
-							.WrapTextAt(800)
+							SAssignNew(InteractiveRichText, SRichTextBlock)
+							.Text(ReportText)
+							.TextStyle(FLogVisualizerStyle::Get(), "RichText.Text")
+							.DecoratorStyleSet(&FLogVisualizerStyle::Get())
 							.Justification(ETextJustify::Left)
 							.Margin(FMargin(20))
+							.Decorators(CustomDecorators)
 						]
 					]
 				]
 			]
-		];
+		]
+	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -55,13 +84,14 @@ SVisualLoggerReport::~SVisualLoggerReport()
 {
 }
 
-FText SVisualLoggerReport::GenerateReportText() const
+void SVisualLoggerReport::GenerateReportText()
 {
 	FString OutString;
 	TArray<FVisualLogEvent> GlobalEventsStats;
 	TMap<FString, TArray<FString> >	 EventToObjectsMap;
 
 
+	OutString.Append(TEXT("<RichText.HeaderText1>Report Details</>\n"));
 	for (TSharedPtr<class STimeline> LogItem : SelectedItems)
 	{
 		TArray<FVisualLogEvent> AllEvents;
@@ -94,17 +124,18 @@ FText SVisualLoggerReport::GenerateReportText() const
 		}
 
 		bool bPrintNextLine = false;
+
 		if (AllEvents.Num() > 0)
 		{
-			OutString.Append(FString::Printf(TEXT("%s\n"), *LogItem->GetName().ToString()));
+			OutString.Append(FString::Printf(TEXT("    <RichText.HeaderText2>%s</>"), *LogItem->GetName().ToString()));
 		}
 		for (auto& CurrentEvent : AllEvents)
 		{
 			for (auto& CurrentEventTag : CurrentEvent.EventTags)
 			{
-				OutString.Append(FString::Printf(TEXT("        %s  with <%s> tag occurred    %d times\n"), *CurrentEvent.Name, *CurrentEventTag.Key.ToString(), CurrentEventTag.Value));
+				OutString.Append(FString::Printf(TEXT(" \n        \u2022  <a id=\"%s\" style=\"RichText.Hyperlink\">%s</>  with <RichText.TextBold>%s</> tag occurred    <RichText.TextBold>%d times</>"), *CurrentEvent.Name, *CurrentEvent.Name, *CurrentEventTag.Key.ToString(), CurrentEventTag.Value));
 			}
-			OutString.Append(FString::Printf(TEXT("        %s occurred %d times\n\n"), *CurrentEvent.Name, CurrentEvent.Counter));
+			OutString.Append(FString::Printf(TEXT("\n        \u2022  <a id=\"%s\" style=\"RichText.Hyperlink\">%s</> occurred <RichText.TextBold>%d times</>"), *CurrentEvent.Name, *CurrentEvent.Name, CurrentEvent.Counter));
 
 			bool bJustAdded = false;
 			int32 Index = GlobalEventsStats.Find(FVisualLogEvent(CurrentEvent));
@@ -137,23 +168,27 @@ FText SVisualLoggerReport::GenerateReportText() const
 					EventToObjectsMap.FindOrAdd(CurrentEvent.Name + CurrentEventTag.Key.ToString()).AddUnique(LogItem->GetName().ToString());
 				}
 			}
-		}
-	}
-
-	OutString.Append(TEXT("-= SUMMARY =-\n"));
-
-	for (auto& CurrentEvent : GlobalEventsStats)
-	{
-		OutString.Append(FString::Printf(TEXT("%s  occurred %d times by %d owners (%s)\n"), *CurrentEvent.Name, CurrentEvent.Counter, EventToObjectsMap.Contains(CurrentEvent.Name) ? EventToObjectsMap[CurrentEvent.Name].Num() : 0, *CurrentEvent.UserFriendlyDesc));
-		for (auto& CurrentEventTag : CurrentEvent.EventTags)
-		{
-			const int32 ObjectsNumber = EventToObjectsMap.Contains(CurrentEvent.Name + CurrentEventTag.Key.ToString()) ? EventToObjectsMap[CurrentEvent.Name + CurrentEventTag.Key.ToString()].Num() : 0;
-			OutString.Append(FString::Printf(TEXT("%s to <%s> tag occurred %d  times by %d owners (average %.2f times each)\n"), *CurrentEvent.Name, *CurrentEventTag.Key.ToString(), CurrentEventTag.Value, ObjectsNumber, ObjectsNumber > 0 ? float(CurrentEventTag.Value) / ObjectsNumber : -1));
+			OutString.Append(TEXT("\n"));
 		}
 		OutString.Append(TEXT("\n"));
 	}
 
-	return FText::FromString(OutString);
+	OutString.Append(TEXT("\n\n<RichText.HeaderText1>Report Summary</>\n"));
+
+	CollectedEvents.Reset();
+	for (auto& CurrentEvent : GlobalEventsStats)
+	{
+		CollectedEvents.Add(*CurrentEvent.Name);
+		OutString.Append(FString::Printf(TEXT("    <a id=\"%s\" style=\"RichText.Hyperlink\">%s</>  occurred <RichText.TextBold>%d times</> by %d owners (%s)\n"), *CurrentEvent.Name, *CurrentEvent.Name, CurrentEvent.Counter, EventToObjectsMap.Contains(CurrentEvent.Name) ? EventToObjectsMap[CurrentEvent.Name].Num() : 0, *CurrentEvent.UserFriendlyDesc));
+		for (auto& CurrentEventTag : CurrentEvent.EventTags)
+		{
+			const int32 ObjectsNumber = EventToObjectsMap.Contains(CurrentEvent.Name + CurrentEventTag.Key.ToString()) ? EventToObjectsMap[CurrentEvent.Name + CurrentEventTag.Key.ToString()].Num() : 0;
+			OutString.Append(FString::Printf(TEXT("        \u2022  %s to <RichText.TextBold>%s</> tag occurred <RichText.TextBold>%d times</> by %d owners (average %.2f times each)\n"), *CurrentEvent.Name, *CurrentEventTag.Key.ToString(), CurrentEventTag.Value, ObjectsNumber, ObjectsNumber > 0 ? float(CurrentEventTag.Value) / ObjectsNumber : -1));
+		}
+		OutString.Append(TEXT("\n"));
+	}
+
+	ReportText = FText::FromString(OutString);
 }
 
 

@@ -107,6 +107,91 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 		Style.Set("Sequencer.SectionArea.Background", new FSlateColorBrush(FColor::White));
 	}
 
+	// Default text styles
+	{
+		const FTextBlockStyle NormalText = FTextBlockStyle()
+			.SetFont(TTF_FONT("Fonts/Roboto-Regular", 9))
+			.SetColorAndOpacity(FSlateColor::UseForeground())
+			.SetShadowOffset(FVector2D::ZeroVector)
+			.SetShadowColorAndOpacity(FLinearColor::Black)
+			.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
+			.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)));
+
+		Style.Set("RichText.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xffeff3f3))));
+
+		Style.Set("RichText.RoundedBackground", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(FColor(0xffeff3f3))));
+
+		const FTextBlockStyle NormalRichTextStyle = FTextBlockStyle(NormalText)
+			.SetFont(TTF_FONT("Fonts/Roboto-Regular", 10))
+			.SetColorAndOpacity(FLinearColor(FColor(0xff2c3e50)));
+
+		Style.Set("RichText.Text", NormalRichTextStyle);
+		Style.Set("RichText.TextHighlight", FTextBlockStyle(NormalRichTextStyle)
+			.SetColorAndOpacity(FLinearColor(FColor(0xff19bc9c)))
+			);
+
+		Style.Set("RichText.TextBold", FTextBlockStyle(NormalRichTextStyle)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10)));
+
+		Style.Set("RichText.HeaderText2", FTextBlockStyle(NormalRichTextStyle)
+			.SetFontSize(14));
+
+		Style.Set("RichText.HeaderText1", FTextBlockStyle(NormalRichTextStyle)
+			.SetFontSize(20));
+
+		{
+			const FButtonStyle RichTextHyperlinkButton = FButtonStyle()
+				.SetNormal(BORDER_BRUSH("Old/HyperlinkDotted", FMargin(0, 0, 0, 3 / 16.0f), FLinearColor::Blue))
+				.SetPressed(FSlateNoResource())
+				.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f), FLinearColor::Blue));
+
+			const FTextBlockStyle RichTextHyperlinkText = FTextBlockStyle(NormalRichTextStyle)
+				.SetColorAndOpacity(FLinearColor::Blue);
+
+			Style.Set("RichText.HyperlinkText", RichTextHyperlinkText);
+
+			// legacy style
+			Style.Set("RichText.EditableHyperlinkText", RichTextHyperlinkText);
+
+			const FHyperlinkStyle RichTextHyperlink = FHyperlinkStyle()
+				.SetUnderlineStyle(RichTextHyperlinkButton)
+				.SetTextStyle(RichTextHyperlinkText)
+				.SetPadding(FMargin(0.0f));
+			Style.Set("RichText.Hyperlink", RichTextHyperlink);
+
+			Style.Set("RichText.ExternalLink", new IMAGE_BRUSH("Tutorials/ExternalLink", Icon16x16, FLinearColor::Blue));
+
+			// legacy style
+			Style.Set("RichText.EditableHyperlink", RichTextHyperlink);
+		}
+
+		//Tagline
+		{
+			Style.Set("RichText.Tagline.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(FColor(0xffdbe4e4))));
+			Style.Set("RichText.Tagline.DarkBackground", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(0.55423, 0.60548, 0.60548)));
+			Style.Set("RichText.Tagline.Text", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Bold", 24))
+				.SetColorAndOpacity(FLinearColor(FColor(0xff2c3e50)))
+				);
+
+			Style.Set("RichText.Tagline.TextHighlight", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Bold", 24))
+				.SetColorAndOpacity(FLinearColor(FColor(0xff19bc9c)))
+				);
+
+			Style.Set("RichText.Tagline.SubtleText", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Regular", 16))
+				.SetColorAndOpacity(FLinearColor(FColor(0xff2c3e50)))
+				);
+
+			Style.Set("RichText.Tagline.SubtleTextHighlight", FTextBlockStyle(NormalText)
+				.SetFont(TTF_FONT("Fonts/Roboto-Regular", 16))
+				.SetColorAndOpacity(FLinearColor(FColor(0xff19bc9c)))
+				);
+		}
+
+	}
+
 	return StyleRef;
 }
 

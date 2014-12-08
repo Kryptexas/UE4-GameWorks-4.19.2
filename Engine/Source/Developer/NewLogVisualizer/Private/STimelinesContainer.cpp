@@ -332,7 +332,7 @@ void STimelinesContainer::GenerateReport()
 		.ClientSize(FVector2D(720, 768))
 		.Title(NSLOCTEXT("LogVisualizerReport", "WindowTitle", "Log Visualizer Report"))
 		[
-			SNew(SVisualLoggerReport, SelectedNodes)
+			SNew(SVisualLoggerReport, SelectedNodes, VisualLoggerView)
 		];
 
 	FSlateApplication::Get().AddWindow(NewWindow);
