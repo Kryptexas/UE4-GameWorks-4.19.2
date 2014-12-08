@@ -1483,6 +1483,31 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 			}
 			break;
 
+			case ELandscapeViewMode::WireframeOnTop:
+			{
+				// base mesh
+				Mesh.MaterialRenderProxy = MaterialInterface->GetRenderProxy(false);
+				Mesh.bCanApplyViewModeOverrides = false;
+				Collector.AddMesh(ViewIndex, Mesh);
+				NumPasses++;
+				NumTriangles += Mesh.GetNumPrimitives();
+				NumDrawCalls += Mesh.Elements.Num();
+
+				// wireframe on top
+				FMeshBatch& WireMesh = Collector.AllocateMesh();
+				WireMesh = MeshTools;
+				auto WireMaterialInstance = new FColoredMaterialRenderProxy(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), FLinearColor(0, 0, 1));
+				WireMesh.MaterialRenderProxy = WireMaterialInstance;
+				Collector.RegisterOneFrameMaterialProxy(WireMaterialInstance);
+				WireMesh.bCanApplyViewModeOverrides = false;
+				WireMesh.bWireframe = true;
+				Collector.AddMesh(ViewIndex, WireMesh);
+				NumPasses++;
+				NumTriangles += WireMesh.GetNumPrimitives();
+				NumDrawCalls++;
+			}
+			break;
+
 			default:
 
 #else
@@ -1509,7 +1534,7 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					NumPasses++;
 					NumTriangles += Mesh.GetNumPrimitives();
 					NumDrawCalls += Mesh.Elements.Num();
-			}
+				}
 			}
 #if WITH_EDITOR
 

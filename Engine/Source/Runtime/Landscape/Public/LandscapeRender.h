@@ -41,6 +41,7 @@ namespace ELandscapeViewMode
 		DebugLayer,
 		LayerDensity,
 		LOD,
+		WireframeOnTop,
 	};
 }
 

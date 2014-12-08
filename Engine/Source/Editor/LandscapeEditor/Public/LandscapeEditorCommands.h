@@ -73,6 +73,7 @@ public:
 	TSharedPtr< FUICommandInfo > ViewModeLOD;
 	TSharedPtr< FUICommandInfo > ViewModeLayerDensity;
 	TSharedPtr< FUICommandInfo > ViewModeLayerDebug;
+	TSharedPtr< FUICommandInfo > ViewModeWireframeOnTop;
 
 	// Map
 	TMap<FName, TSharedPtr<FUICommandInfo>> NameToCommandMap;
