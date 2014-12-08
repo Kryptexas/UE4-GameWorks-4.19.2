@@ -15,6 +15,7 @@
 #include "WidgetBlueprint.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Misc/TextFilter.h"
+#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
