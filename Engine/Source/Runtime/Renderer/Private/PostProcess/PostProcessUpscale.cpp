@@ -16,7 +16,7 @@
 static TAutoConsoleVariable<float> CVarUpscaleSoftness(
 	TEXT("r.Upscale.Softness"),
 	0.3f,
-	TEXT("To scale up with higher quality loosing some sharpness\n")
+	TEXT("To scale up with higher quality losing some sharpness\n")
 	TEXT(" 0..1 (0.3 is good for ScreenPercentage 90"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
@@ -40,7 +40,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return true;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -90,6 +90,12 @@ class FPostProcessUpscalePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
+		// Always allow simple bilinear upscale. (Provides upscaling for ES2 emulation)
+		if (Method == 1)
+		{
+			return true;
+		}
+
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 

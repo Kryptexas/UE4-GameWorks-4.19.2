@@ -721,6 +721,9 @@ protected:
 	/** Renders any necessary shadowmaps. */
 	void RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
 
+	/** Perform upscaling when post process is not used. */
+	void SimpleUpscale(FRHICommandListImmediate& RHICmdList, FViewInfo &View);
+
 	/**
 	  * Used by RenderShadowDepthMaps to render shadowmap for the given light.
 	  *

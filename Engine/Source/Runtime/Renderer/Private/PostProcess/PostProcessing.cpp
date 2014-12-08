@@ -1696,7 +1696,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 		PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
 		Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
 		// if Context.FinalOutput was the clipped result of sunmask stage then this stage also restores Context.FinalOutput back original target size.
-		FinalOutputViewRect = View.ViewRect;
+		FinalOutputViewRect = View.UnscaledViewRect;
 
 		if(bUseAa && View.Family->EngineShowFlags.PostProcessing)
 		{

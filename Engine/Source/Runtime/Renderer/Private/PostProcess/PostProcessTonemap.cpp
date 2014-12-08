@@ -1609,7 +1609,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	const FPooledRenderTargetDesc& OutputDesc = PassOutputs[0].RenderTargetDesc;
 
 	FIntRect SrcRect = ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect DestRect = View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DstSize = OutputDesc.Extent;
 
