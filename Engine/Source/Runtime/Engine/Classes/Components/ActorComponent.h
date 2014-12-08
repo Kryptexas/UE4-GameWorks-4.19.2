@@ -27,6 +27,8 @@ public:
 	 */
 	UActorComponent(const FObjectInitializer& ObjectInitializer);
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	/** Main tick function for the Actor */
 	UPROPERTY()
 	struct FActorComponentTickFunction PrimaryComponentTick;

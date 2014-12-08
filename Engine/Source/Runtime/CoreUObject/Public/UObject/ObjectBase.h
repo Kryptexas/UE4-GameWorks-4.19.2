@@ -1439,3 +1439,4 @@ private:
 	UClass* Class;
 };
 
+GENERATE_MEMBER_FUNCTION_CHECK(GetLifetimeReplicatedProps, void, const, TArray<FLifetimeProperty>&)

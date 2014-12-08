@@ -207,6 +207,7 @@ public:
 	 */
 	ACharacter(const FObjectInitializer& ObjectInitializer);
 
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 private_subobject:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
 	DEPRECATED_FORGAME(4.6, "Mesh should not be accessed directly, please use GetMesh() function instead. Mesh will soon be private and your code will not compile.")
@@ -426,6 +427,7 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character|InternalEvents", meta=(FriendlyName="CanJump"))
 	bool CanJumpInternal() const;
+	virtual bool CanJumpInternal_Implementation() const;
 
 public:
 
@@ -479,6 +481,7 @@ public:
 	/** Event fired when the character has just started jumping */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	void OnJumped();
+	void OnJumped_Implementation();
 
 	/** Called when the character's movement enters falling */
 	virtual void Falling() {}
@@ -513,6 +516,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	void OnWalkingOffLedge();
+	virtual void OnWalkingOffLedge_Implementation();
 
 	/** Called when pawn's movement is blocked
 		@PARAM Impact describes the blocking hit. */
@@ -636,12 +640,15 @@ public:
 
 	UFUNCTION(reliable, client)
 	void ClientCheatWalk();
+	void ClientCheatWalk_Implementation();
 
 	UFUNCTION(reliable, client)
 	void ClientCheatFly();
+	void ClientCheatFly_Implementation();
 
 	UFUNCTION(reliable, client)
 	void ClientCheatGhost();
+	void ClientCheatGhost_Implementation();
 
 	// Root Motion
 public:

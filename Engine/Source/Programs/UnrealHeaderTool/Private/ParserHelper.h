@@ -889,8 +889,12 @@ struct FFuncInfo
 	FString		MarshallAndCallName;
 	/** Name of the actual implementation **/
 	FString		CppImplName;
+	/** Cached info whether CppImplName ends with _Implementation suffix to avoid string comparisons. **/
+	bool		bCppImplNameEndsWith_Implementation;
 	/** Name of the actual validation implementation **/
 	FString		CppValidationImplName;
+	/** Cached info whether CppValidationImplName ends with _Validate suffix to avoid string comparisons. **/
+	bool		bCppValidationImplNameEndsWith_Validate;
 	/** Name for callback-style names **/
 	FString		UnMarshallAndCallName;
 	/** Identifier for an RPC call to a platform service */
@@ -911,6 +915,8 @@ struct FFuncInfo
 	,	RPCId               (0)
 	,	RPCResponseId       (0)
 	,	bSealedEvent        (false)
+	,	bCppImplNameEndsWith_Implementation(false)
+	,	bCppValidationImplNameEndsWith_Validate(false)
 	{}
 
 	FFuncInfo( const FFuncInfo& Other )
@@ -920,6 +926,8 @@ struct FFuncInfo
 	,	FunctionReference(Other.FunctionReference)
 	,	RPCId(Other.RPCId)
 	,	RPCResponseId(Other.RPCResponseId)
+	,	bCppImplNameEndsWith_Implementation(Other.bCppImplNameEndsWith_Implementation)
+	,	bCppValidationImplNameEndsWith_Validate(Other.bCppValidationImplNameEndsWith_Validate)
 	{
 		Function.Clone(Other.Function);
 		if (FunctionReference)
@@ -961,9 +969,11 @@ struct FFuncInfo
 			else
 			{
 				CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
+				bCppImplNameEndsWith_Implementation = true;
 				if (FunctionReference->HasAllFunctionFlags(FUNC_NetValidate))
 				{
 					CppValidationImplName = FunctionReference->GetName() + TEXT("_Validate");
+					bCppValidationImplNameEndsWith_Validate = true;
 				}
 			}
 		}
@@ -977,6 +987,7 @@ struct FFuncInfo
 		{
 			MarshallAndCallName = FunctionName;
 			CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
+			bCppImplNameEndsWith_Implementation = true;
 		}
 	}
 };

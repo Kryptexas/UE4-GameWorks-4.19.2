@@ -61,9 +61,11 @@ private:
 	FStringOutputDevice GeneratedMCPText;
 	FStringOutputDevice	PrologMacroCalls;
 	FStringOutputDevice	InClassMacroCalls;
+	FStringOutputDevice	InClassNoPureDeclsMacroCalls;
 	FStringOutputDevice	StandardUObjectConstructorsMacroCall;
 	FStringOutputDevice	EnhancedUObjectConstructorsMacroCall;
 	FStringOutputDevice	AllConstructors;
+	FStringOutputDevice StaticChecks;
 
 	/** Generated function implementations that belong in the cpp file, split into multiple files base on line count **/
 	TArray<FStringOutputDeviceCountLines> GeneratedFunctionBodyTextSplit;
@@ -358,6 +360,16 @@ private:
 	void ExportNativeFunctionHeader( const FFuncInfo& FunctionData, FStringOutputDevice& HeaderOutput, EExportFunctionType::Type FunctionType, EExportFunctionHeaderStyle::Type FunctionHeaderStyle, const TCHAR* ExtraParam = NULL );
 
 	/**
+	* Exports checks if function exists
+	*
+	* @param	FunctionData			Data representing the function to export.
+	* @param	CheckClasses			Where to write the member check classes.
+	* @param	StaticChecks			Where to write the static asserts throwing errors when function doesn't exist.
+	* @param	ClassName				Name of currently parsed class.
+	*/
+	void ExportFunctionChecks(const FFuncInfo& FunctionData, FStringOutputDevice& CheckClasses, FStringOutputDevice& StaticChecks, const FString& ClassName);
+
+	/**
 	 * Exports the native stubs for the list of functions specified
 	 * 
 	 * @param	NativeFunctions	the functions to export
@@ -476,4 +488,20 @@ public:
 
 	// Constructor
 	FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders );
+
+	/**
+	 * Gets string with function return type.
+	 * 
+	 * @param Function Function to get return type of.
+	 * @return FString with function return type.
+	 */
+	FString GetFunctionReturnString(UFunction* Function);
+
+	/**
+	* Gets string with function parameters (with names).
+	*
+	* @param Function Function to get parameters of.
+	* @return FString with function parameters.
+	*/
+	FString GetFunctionParameterString(UFunction* Function);
 };

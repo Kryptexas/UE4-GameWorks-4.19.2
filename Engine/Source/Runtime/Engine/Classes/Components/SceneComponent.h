@@ -87,6 +87,8 @@ public:
 	 */
 	USceneComponent(const FObjectInitializer& ObjectInitializer);
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	/** Current transform of this component, relative to the world */
 	FTransform ComponentToWorld;
 
