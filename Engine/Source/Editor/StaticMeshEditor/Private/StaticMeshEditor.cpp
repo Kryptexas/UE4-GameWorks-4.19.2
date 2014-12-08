@@ -1547,6 +1547,10 @@ void FStaticMeshEditor::OnChangeMesh()
 
 		SetEditorMesh(SelectedMesh);
 
+		// Clear selections made on previous mesh
+		ClearSelectedPrims();
+		GetSelectedEdges().Empty();
+
 		if(SocketManager.IsValid())
 		{
 			SocketManager->UpdateStaticMesh();
