@@ -911,11 +911,11 @@ struct FFuncInfo
 	,	FunctionFlags       (0)
 	,	FunctionExportFlags (0)
 	,	ExpectParms		    (0)
-	,	FunctionReference   (NULL)
-	,	RPCId               (0)
-	,	RPCResponseId       (0)
+	,	FunctionReference(NULL)
 	,	bCppImplNameEndsWith_Implementation(false)
 	,	bCppValidationImplNameEndsWith_Validate(false)
+	,	RPCId               (0)
+	,	RPCResponseId       (0)
 	,	bSealedEvent        (false)
 	{}
 
