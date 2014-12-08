@@ -351,7 +351,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 	Style = *InStyle;
 	SAssignNew(ChatWidget, SChatWindow, ChatViewModel)
 	.FriendStyle(&Style)
-	.Method(SMenuAnchor::UseCurrentWindow);
+	.Method(EPopupMethod::UseCurrentWindow);
 	return ChatWidget;
 }
 
