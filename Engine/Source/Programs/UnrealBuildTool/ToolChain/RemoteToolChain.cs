@@ -214,17 +214,21 @@ namespace UnrealBuildTool
 		// Gather a users root path from the remote server. Should only be called once.
 		public static void SetUserDevRootFromServer()
 		{
-			Hashtable Results = SSHCommand("/", "echo $HOME", null);
+			if (!bUseRPCUtil)
+			{
+				// Only set relative to the users root when using rsync, for now
+				Hashtable Results = RPCUtilHelper.Command("/", "echo $HOME", null);
 
-			if (Results == null)
-			{
-				Log.TraceInformation("UserDevRoot Command failed to execute!");
-			}
-			else if (Results["CommandOutput"] != null)
-			{
-				// pass back the string
-				string HomeLocation = Results["CommandOutput"] as string;
-				UserDevRootMac = HomeLocation + UserDevRootMac;
+				if (Results == null)
+				{
+					Log.TraceInformation("UserDevRoot Command failed to execute!");
+				}
+				else if (Results["CommandOutput"] != null)
+				{
+					// pass back the string
+					string HomeLocation = Results["CommandOutput"] as string;
+					UserDevRootMac = HomeLocation + UserDevRootMac;
+				}
 			}
 		}
 
