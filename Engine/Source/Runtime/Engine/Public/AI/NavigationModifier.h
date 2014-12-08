@@ -2,6 +2,7 @@
 
 #pragma once 
 #include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavigationTypes.h"
 
 class UNavArea;
 class UNavLinkDefinition;
