@@ -527,8 +527,7 @@ FReply FFriendsAndChatManager::HandleMessageAccepted( TSharedPtr< FFriendsAndCha
 			TSharedPtr< IFriendItem > User = FindUser(ChatMessage->GetUniqueID().Get());
 			if ( User.IsValid() )
 			{
-				User->SetPendingAccept();
-				RefreshList();
+				AcceptFriend(User);
 			}
 		}
 		break;
@@ -538,10 +537,8 @@ FReply FFriendsAndChatManager::HandleMessageAccepted( TSharedPtr< FFriendsAndCha
 			TSharedPtr< IFriendItem > User = FindUser( ChatMessage->GetUniqueID().Get());
 			if ( User.IsValid() )
 			{
-				FriendsList.Remove( User );
-				RefreshList();
+				RejectFriend(User);
 			}
-			PendingOutgoingDeleteFriendRequests.Add(FUniqueNetIdString(ChatMessage->GetUniqueID().Get().ToString()));
 		}
 		break;
 	}
@@ -1106,7 +1103,7 @@ void FFriendsAndChatManager::SendFriendInviteNotification()
 {
 	for( const auto& FriendRequest : PendingIncomingInvitesList)
 	{
-		if(FriendsListActionNotificationDelegate.IsBound())
+		if(OnFriendsActionNotification().IsBound())
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("Username"), FText::FromString(FriendRequest->GetName()));
@@ -1114,8 +1111,11 @@ void FFriendsAndChatManager::SendFriendInviteNotification()
 
 			TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(FriendRequestMessage.ToString(), FriendRequest->GetUniqueID()));
 			NotificationMessage->SetButtonCallback( FOnClicked::CreateSP(this, &FFriendsAndChatManager::HandleMessageAccepted, NotificationMessage, EFriendsResponseType::Response_Accept));
+			NotificationMessage->SetButtonCallback( FOnClicked::CreateSP(this, &FFriendsAndChatManager::HandleMessageAccepted, NotificationMessage, EFriendsResponseType::Response_Reject));
+			NotificationMessage->SetButtonDescription(LOCTEXT("FFriendsAndChatManager_Accept", "Accept"));
+			NotificationMessage->SetButtonDescription(LOCTEXT("FFriendsAndChatManager_Reject", "Reject"));
 			NotificationMessage->SetMessageType(EFriendsRequestType::FriendInvite);
-			FriendsListActionNotificationDelegate.Broadcast(NotificationMessage.ToSharedRef());
+			OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
 		}
 	}
 
@@ -1125,7 +1125,7 @@ void FFriendsAndChatManager::SendFriendInviteNotification()
 
 void FFriendsAndChatManager::SendInviteAcceptedNotification(const TSharedPtr< IFriendItem > Friend)
 {
-	if(FriendsListActionNotificationDelegate.IsBound())
+	if(OnFriendsActionNotification().IsBound())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Username"), FText::FromString(Friend->GetName()));

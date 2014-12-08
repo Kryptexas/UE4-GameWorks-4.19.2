@@ -134,6 +134,16 @@ public:
 	}
 
 	/**
+	 * Set a button callbacks.
+	 *
+	 * @param InCallback The button callback.
+	 */
+	void SetButtonDescription( FText Description )
+	{
+		MessageDescriptions.Add( Description );
+	}
+
+	/**
 	 * Set the message type.
 	 *
 	 * @param InType The message type.
@@ -234,9 +244,19 @@ public:
 	 *
 	 * @return The button callback array.
 	 */
-	TArray< FOnClicked > GetCallbacks()
+	const TArray< FOnClicked >& GetCallbacks() const
 	{
 		return ButtonCallbacks;
+	}
+
+	/**
+	 * Get a button description.
+	 *
+	 * @return The button callback array.
+	 */
+	const TArray< FText >& GetButtonDescriptions() const
+	{
+		return MessageDescriptions;
 	}
 
 	/** Set this message into a handled state. */
@@ -249,6 +269,9 @@ private:
 
 	// Holds the button callbacks
 	TArray< FOnClicked > ButtonCallbacks;
+
+	// Holds the Action Descriptions
+	TArray< FText > MessageDescriptions;
 	
 	// Holds the message content
 	FString MessageConent;
