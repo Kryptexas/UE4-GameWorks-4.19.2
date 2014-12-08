@@ -67,7 +67,7 @@ public:
 	
 	static FORCEINLINE void ClearBufferfi(GLenum Buffer, GLint DrawBufferIndex, GLfloat Depth, GLint Stencil)
 	{
-		if(FPlatformMisc::IsRunningOnMavericks())
+		if(FPlatformMisc::IsRunningOnMavericks() || !GSupportsDepthFetchDuringDepthTest)
 		{
 			switch (Buffer)
 			{
@@ -206,7 +206,7 @@ public:
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
@@ -218,7 +218,7 @@ public:
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
@@ -230,7 +230,7 @@ public:
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
@@ -242,7 +242,7 @@ public:
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
@@ -254,13 +254,37 @@ public:
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("Tessellation not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("Tessellation not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
 	static FORCEINLINE void DepthBounds(GLfloat Min, GLfloat Max)
 	{
 		glDepthBoundsEXT( Min, Max);
+	}
+	
+	static FORCEINLINE void DrawArraysIndirect (GLenum Mode, const void *Offset)
+	{
+		if(glDrawArraysIndirect)
+		{
+			glDrawArraysIndirect( Mode, Offset);
+		}
+		else
+		{
+			UE_LOG(LogRHI, Fatal, TEXT("Draw Indirect not supported on Mac OS X GL 3 contexts!"));
+		}
+	}
+	
+	static FORCEINLINE void DrawElementsIndirect (GLenum Mode, GLenum Type, const void *Offset)
+	{
+		if(glDrawElementsIndirect)
+		{
+			glDrawElementsIndirect( Mode, Type, Offset);
+		}
+		else
+		{
+			UE_LOG(LogRHI, Fatal, TEXT("Draw Indirect not supported on Mac OS X GL 3 contexts!"));
+		}
 	}
 	
 private:
