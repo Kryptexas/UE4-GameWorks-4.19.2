@@ -546,6 +546,7 @@ public:
 			return (Material->IsSpecialEngineMaterial()
 					// Only compile for masked or lit translucent materials
 					|| Material->IsMasked()
+					|| (Material->MaterialMayModifyMeshPosition() && Material->IsUsedWithInstancedStaticMeshes())
 					// Perspective correct rendering needs a pixel shader and WPO materials can't be overridden with default material.
 					|| (ShaderMode == PixelShadowDepth_PerspectiveCorrect && Material->MaterialMayModifyMeshPosition()))
 				// Only compile one pass point light shaders for feature levels >= SM4

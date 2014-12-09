@@ -1034,6 +1034,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 			ElementParams.View = View;
 
 			// Render built instances
+			if (ClusterTree.Num())
 			{
 
 				FFoliageCullInstanceParams InstanceParams(bSingleSections, bMultipleSections, ClusterTree);
