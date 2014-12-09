@@ -32,10 +32,6 @@ UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitial
 		Senses[ECorePerceptionTypes::Team] = ConstructObject<UAISense>(UAISense_Team::StaticClass(), this);		
 		Senses[ECorePerceptionTypes::Prediction] = ConstructObject<UAISense>(UAISense_Prediction::StaticClass(), this);
 	}
-	else
-	{
-		AActor::SetMakeNoiseDelegate(FMakeNoiseDelegate::CreateStatic(&UAIPerceptionSystem::MakeNoiseImpl));
-	}
 }
 
 void UAIPerceptionSystem::PostInitProperties() 
