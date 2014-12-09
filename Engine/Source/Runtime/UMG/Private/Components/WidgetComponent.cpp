@@ -650,6 +650,7 @@ void UWidgetComponent::UpdateRenderTarget()
 		if ( RenderTarget->SizeX != DrawSize.X || RenderTarget->SizeY != DrawSize.Y )
 		{
 			RenderTarget->InitCustomFormat( DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false );
+			MarkRenderStateDirty();
 		}
 
 		// Update the clear color
@@ -668,14 +669,13 @@ void UWidgetComponent::UpdateRenderTarget()
 				bClearColorChanged = true;
 			}
 		}
-		
-		MarkRenderStateDirty();
 	}
 
 	// If the clear color of the render target changed, update the BackColor of the material to match
 	if ( bClearColorChanged )
 	{
 		MaterialInstance->SetVectorParameterValue( "BackColor", RenderTarget->ClearColor );
+		MarkRenderStateDirty();
 	}
 }
 
