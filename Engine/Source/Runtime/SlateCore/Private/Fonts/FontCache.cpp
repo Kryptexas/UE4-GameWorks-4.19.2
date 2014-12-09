@@ -955,7 +955,9 @@ bool FCharacterList::IsStale() const
 
 int8 FCharacterList::GetKerning( TCHAR FirstChar, TCHAR SecondChar )
 {
-	return GetKerning( GetCharacter( FirstChar ), GetCharacter( SecondChar ) );
+	const FCharacterEntry First = GetCharacter( FirstChar );
+	const FCharacterEntry Second = GetCharacter( SecondChar );
+	return GetKerning( First, Second );
 }
 
 int8 FCharacterList::GetKerning( const FCharacterEntry& FirstCharacterEntry, const FCharacterEntry& SecondCharacterEntry )
