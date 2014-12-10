@@ -75,6 +75,10 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Utilities")
 	static ENGINE_API bool IsValid(const UObject* Object);
 
+	// Return true if the class is usable : non-null and not pending kill
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static ENGINE_API bool IsValidClass(UClass* Class);
+
 	// Returns the display name (or actor label), for displaying to end users.  Note:  In editor builds, this is the actor label.  In non-editor builds, this is the actual object name.  This function should not be used to uniquely identify actors!
 	UFUNCTION(BlueprintPure, Category="Utilities")
 	static ENGINE_API FString GetDisplayName(const UObject* Object);

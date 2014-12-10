@@ -32,6 +32,11 @@ bool UKismetSystemLibrary::IsValid(const UObject* Object)
 	return ::IsValid(Object);
 }
 
+bool UKismetSystemLibrary::IsValidClass(UClass* Class)
+{
+	return ::IsValid(Class);
+}
+
 FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
 {
 #if WITH_EDITOR
