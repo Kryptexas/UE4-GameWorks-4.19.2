@@ -20,6 +20,7 @@ const int32 MaxAtlasDimension = 512;
 FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat) :
 	BlockAllocator(0, 0, 0, MaxAtlasDimension, MaxAtlasDimension, MaxAtlasDimension, false, false)
 {
+	Generation = 0;
 	Format = InFormat;
 }
  
@@ -49,10 +50,8 @@ struct FCompareVolumeAllocation
 	}
 };
 
-bool FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
+void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 {
-	bool bRecomputedLayouts = false;
-
 	if (PendingAllocations.Num() > 0)
 	{
 		// Sort largest to smallest for best packing
@@ -81,7 +80,7 @@ bool FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				// Remove all allocations from the layout so we have a clean slate
 				BlockAllocator = FTextureLayout3d(0, 0, 0, MaxAtlasDimension, MaxAtlasDimension, MaxAtlasDimension, false, false);
 				
-				bRecomputedLayouts = true;
+				Generation++;
 
 				// Re-upload all textures since we had to reallocate
 				PendingAllocations.Append(CurrentAllocations);
@@ -146,8 +145,6 @@ bool FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 		CurrentAllocations.Append(PendingAllocations);
 		PendingAllocations.Empty();
 	}
-
-	return bRecomputedLayouts;
 }
 
 void FDistanceFieldVolumeTexture::Initialize()

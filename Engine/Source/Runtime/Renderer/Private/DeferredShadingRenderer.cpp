@@ -649,8 +649,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (ShouldPrepareForDistanceFieldAO() || ShouldPrepareForDistanceFieldShadows())
 	{
-		const bool bReallocatedAtlasLayouts = GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
-		UpdateGlobalDistanceFieldObjectBuffers(RHICmdList, bReallocatedAtlasLayouts);
+		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
+		UpdateGlobalDistanceFieldObjectBuffers(RHICmdList);
 	}
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;

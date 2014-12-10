@@ -351,7 +351,7 @@ private:
 	bool ShouldPrepareForDistanceFieldShadows() const;
 	bool ShouldPrepareForDistanceFieldAO() const;
 
-	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList, bool bReallocatedAtlasLayouts);
+	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList);
 
 	friend class FTranslucentPrimSet;
 };

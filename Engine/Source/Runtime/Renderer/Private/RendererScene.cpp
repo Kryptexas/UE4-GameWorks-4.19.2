@@ -79,6 +79,7 @@ FSceneViewState::FSceneViewState()
 FDistanceFieldSceneData::FDistanceFieldSceneData() 
 	: NumObjectsInBuffer(0)
 	, ObjectBuffers(NULL)
+	, AtlasGeneration(0)
 {
 
 }

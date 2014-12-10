@@ -627,6 +627,8 @@ public:
 		}
 	}
 
+	void TrimHistoryRenderTargets(const FScene* Scene);
+
 	/** 
 	 * Called every frame after UpdateLastRenderTime, sets up the information for the lagged temporal LOD transition
 	 */
@@ -948,6 +950,9 @@ public:
 	TArray<FPrimitiveSceneInfo*> PendingAddOperations;
 	TArray<FPrimitiveSceneInfo*> PendingUpdateOperations;
 	TArray<int32> PendingRemoveOperations;
+
+	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
+	int32 AtlasGeneration;
 };
 
 /** Stores data for an allocation in the FIndirectLightingCache. */

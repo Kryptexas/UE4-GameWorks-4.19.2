@@ -78,7 +78,9 @@ public:
 	void RemoveAllocation(FDistanceFieldVolumeTexture* Texture);
 
 	/** Reallocates the volume texture if necessary and uploads new allocations. */
-	ENGINE_API bool UpdateAllocations();
+	ENGINE_API void UpdateAllocations();
+
+	int32 GetGeneration() const { return Generation; }
 
 	EPixelFormat Format;
 	FTexture3DRHIRef VolumeTextureRHI;
@@ -92,6 +94,9 @@ private:
 
 	/** Allocations that have already been added, stored in case we need to realloc. */
 	TArray<FDistanceFieldVolumeTexture*> CurrentAllocations;
+
+	/** Incremented when the atlas is reallocated, so dependencies know to update. */
+	int32 Generation;
 };
 
 extern ENGINE_API TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas;
