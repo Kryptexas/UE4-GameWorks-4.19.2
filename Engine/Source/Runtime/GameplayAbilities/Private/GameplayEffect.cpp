@@ -1858,7 +1858,7 @@ bool FActiveGameplayEffectsContainer::CheckApplicationImmunity(const FGameplayEf
 	
 
 	// Quick map test
-	if (!ApplicationImmunityGameplayTagCountContainer.HasAnyMatchingGameplayTags(*Tags, EGameplayTagMatchType::Explicit, false))
+	if (!ApplicationImmunityGameplayTagCountContainer.HasAnyMatchingGameplayTags(*Tags, EGameplayTagMatchType::IncludeParentTags, false))
 	{
 		return false;
 	}
