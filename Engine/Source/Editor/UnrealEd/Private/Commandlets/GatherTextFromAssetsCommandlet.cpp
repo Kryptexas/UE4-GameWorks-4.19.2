@@ -432,7 +432,7 @@ namespace
 					if(Property->ArrayDim > 1)
 					{
 						uint8* ArrayValueAddress = reinterpret_cast<uint8*>(ValueAddress);
-						Text = reinterpret_cast<FText*>(ArrayValueAddress + Property->ElementSize * i));
+						Text = reinterpret_cast<FText*>(ArrayValueAddress + Property->ElementSize * i);
 					}
 					else
 					{
