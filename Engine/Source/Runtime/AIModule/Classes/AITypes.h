@@ -104,6 +104,7 @@ namespace EPawnActionEventType
 	{
 		Invalid,
 		FailedToStart,
+		InstantAbort,
 		FinishedAborting,
 		FinishedExecution,
 		Push,
