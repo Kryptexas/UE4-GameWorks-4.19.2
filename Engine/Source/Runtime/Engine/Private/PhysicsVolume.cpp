@@ -35,6 +35,29 @@ void APhysicsVolume::LoadedFromAnotherClass(const FName& OldClassName)
 }
 #endif
 
+void APhysicsVolume::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld)
+	{
+		MyWorld->AddPhysicsVolume(this);
+	}
+}
+
+void APhysicsVolume::Destroyed()
+{
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld)
+	{
+		MyWorld->RemovePhysicsVolume(this);
+	}
+
+	Super::Destroyed();
+}
+
+
 bool APhysicsVolume::IsOverlapInVolume(const class USceneComponent& TestComponent) const
 {
 	bool bInsideVolume = true;

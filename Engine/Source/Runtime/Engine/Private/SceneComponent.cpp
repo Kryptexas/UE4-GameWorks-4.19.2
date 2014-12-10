@@ -1212,34 +1212,61 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
 	if ( bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld() )
 	{
-		APhysicsVolume *NewVolume = GetWorld()->GetDefaultPhysicsVolume();
+		UWorld* const MyWorld = GetWorld();
+		APhysicsVolume *NewVolume = MyWorld->GetDefaultPhysicsVolume();
 		
-		// check for all volumes that overlap the component
-		TArray<FOverlapResult> Hits;
-		static FName NAME_PhysicsVolumeTrace = FName(TEXT("PhysicsVolumeTrace"));
-		FComponentQueryParams Params(NAME_PhysicsVolumeTrace, GetOwner());
-
-		bool bOverlappedOrigin = false;
-		const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
-		if (SelfAsPrimitive)
+		// Avoid doing anything if there are no other physics volumes in the world.
+		if (MyWorld->GetNonDefaultPhysicsVolumeCount() > 0)
 		{
-			GetWorld()->ComponentOverlapMulti(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentRotation(), GetCollisionObjectType(), Params);
-		}
-		else
-		{
-			bOverlappedOrigin = true;
-			GetWorld()->OverlapMulti(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
-		}
-
-		for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
-		{
-			const FOverlapResult& Link = Hits[HitIdx];
-			APhysicsVolume* const V = Cast<APhysicsVolume>(Link.GetActor());
-			if (V && (V->Priority > NewVolume->Priority))
+			// Avoid a full overlap query if we can do some quick bounds tests against the volumes.
+			bool bAnyPotentialOverlap = false;
+			for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter)
 			{
-				if (bOverlappedOrigin || V->IsOverlapInVolume(*this))
+				const APhysicsVolume* Volume = *VolumeIter;
+				const USceneComponent* VolumeRoot = Volume->GetRootComponent();
+				if (VolumeRoot)
 				{
-					NewVolume = V;
+					if (FBoxSphereBounds::SpheresIntersect(VolumeRoot->Bounds, Bounds))
+					{
+						if (FBoxSphereBounds::BoxesIntersect(VolumeRoot->Bounds, Bounds))
+						{
+							bAnyPotentialOverlap = true;
+						}
+					}
+				}
+				// TODO: bail if too many volumes?				
+			}
+			
+			if (bAnyPotentialOverlap)
+			{
+				// check for all volumes that overlap the component
+				TArray<FOverlapResult> Hits;
+				static FName NAME_PhysicsVolumeTrace = FName(TEXT("PhysicsVolumeTrace"));
+				FComponentQueryParams Params(NAME_PhysicsVolumeTrace, GetOwner());
+
+				bool bOverlappedOrigin = false;
+				const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
+				if (SelfAsPrimitive)
+				{
+					MyWorld->ComponentOverlapMulti(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentRotation(), GetCollisionObjectType(), Params);
+				}
+				else
+				{
+					bOverlappedOrigin = true;
+					MyWorld->OverlapMulti(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
+				}
+
+				for (int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++)
+				{
+					const FOverlapResult& Link = Hits[HitIdx];
+					APhysicsVolume* const V = Cast<APhysicsVolume>(Link.GetActor());
+					if (V && (V->Priority > NewVolume->Priority))
+					{
+						if (bOverlappedOrigin || V->IsOverlapInVolume(*this))
+						{
+							NewVolume = V;
+						}
+					}
 				}
 			}
 		}

@@ -39,6 +39,7 @@ typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPla
 typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
 typedef TArray<TAutoWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
 typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
+typedef TArray<TAutoWeakObjectPtr<APhysicsVolume> >::TConstIterator FConstPhysicsVolumeIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
 
@@ -679,16 +680,19 @@ public:
 private:
 
 	/** List of all the controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class AController> >	ControllerList;
+	TArray<TAutoWeakObjectPtr<class AController> > ControllerList;
 
 	/** List of all the player controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class APlayerController> >	PlayerControllerList;
+	TArray<TAutoWeakObjectPtr<class APlayerController> > PlayerControllerList;
 
 	/** List of all the pawns in the world. */
-	TArray<TAutoWeakObjectPtr<class APawn> >			PawnList;	
+	TArray<TAutoWeakObjectPtr<class APawn> > PawnList;	
 
 	/** List of all the cameras in the world that auto-activate for players. */
 	TArray<TAutoWeakObjectPtr<ACameraActor> > AutoCameraActorList;
+
+	/** List of all physics volumes in the world. Does not include the DefaultPhysicsVolume. */
+	TArray<TAutoWeakObjectPtr<APhysicsVolume> > NonDefaultPhysicsVolumeList;
 
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
@@ -1632,6 +1636,18 @@ public:
 	 * @return default physics volume
 	 */
 	APhysicsVolume* GetDefaultPhysicsVolume() const;
+
+	/** Add a physics volume to the list of those in the world. DefaultPhysicsVolume is not tracked. Used internally by APhysicsVolume. */
+	void AddPhysicsVolume(APhysicsVolume* Volume);
+
+	/** Removes a physics volume from the list of those in the world. */
+	void RemovePhysicsVolume(APhysicsVolume* Volume);
+
+	/** Get an iterator for all PhysicsVolumes in the world that are not a DefaultPhysicsVolume. */
+	FConstPhysicsVolumeIterator GetNonDefaultPhysicsVolumeIterator() const;
+
+	/** Get the count of all PhysicsVolumes in the world that are not a DefaultPhysicsVolume. */
+	int32 GetNonDefaultPhysicsVolumeCount() const;
 
 	/**
 	 * Returns the current (or specified) level's level scripting actor

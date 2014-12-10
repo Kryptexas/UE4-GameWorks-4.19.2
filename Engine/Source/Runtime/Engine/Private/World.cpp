@@ -3238,6 +3238,28 @@ APhysicsVolume* UWorld::GetDefaultPhysicsVolume() const
 	return DefaultPhysicsVolume;
 }
 
+void UWorld::AddPhysicsVolume(APhysicsVolume* Volume)
+{
+	if (!Cast<ADefaultPhysicsVolume>(Volume))
+	{
+		NonDefaultPhysicsVolumeList.Add(Volume);
+	}
+}
+
+void UWorld::RemovePhysicsVolume(APhysicsVolume* Volume)
+{
+	NonDefaultPhysicsVolumeList.Remove(Volume);
+}
+
+FConstPhysicsVolumeIterator UWorld::GetNonDefaultPhysicsVolumeIterator() const
+{
+	return NonDefaultPhysicsVolumeList.CreateConstIterator();
+}
+
+int32 UWorld::GetNonDefaultPhysicsVolumeCount() const
+{
+	return NonDefaultPhysicsVolumeList.Num();
+}
 
 ALevelScriptActor* UWorld::GetLevelScriptActor( ULevel* OwnerLevel ) const
 {
