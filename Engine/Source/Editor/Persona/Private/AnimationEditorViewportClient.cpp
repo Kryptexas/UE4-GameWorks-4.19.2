@@ -1670,6 +1670,10 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 			else
 			if (WidgetMode == FWidget::WM_Rotate)
 			{
+				WidgetMode = FWidget::WM_Scale;
+			}
+			else if (WidgetMode == FWidget::WM_Scale)
+			{
 				WidgetMode = FWidget::WM_Translate;
 			}
 			else
