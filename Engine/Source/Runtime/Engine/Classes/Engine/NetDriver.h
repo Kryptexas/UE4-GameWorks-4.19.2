@@ -151,10 +151,6 @@ public:
 	UPROPERTY(Config)
 	float ConnectionTimeout;
 
-	/** Requires engine version to match exactly in order to connect. Else fall back to GEngineMinNetVersion check */
-	UPROPERTY(Config)
-	bool RequireEngineVersionMatch;
-
 	/** Connection to the server (this net driver is a client) */
 	UPROPERTY()
 	class UNetConnection* ServerConnection;

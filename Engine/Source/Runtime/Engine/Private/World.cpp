@@ -3585,35 +3585,24 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 		{
 			case NMT_Hello:
 			{
-				uint8 IsLittleEndian;
-				int32 RemoteMinVer, RemoteVer;
-				FGuid RemoteGameGUID;
-				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteMinVer, RemoteVer, RemoteGameGUID);
+				uint8 IsLittleEndian = 0;
+				uint32 RemoteNetworkVersion = 0;
+				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 
-				if (!IsNetworkCompatible(Connection->Driver->RequireEngineVersionMatch, RemoteVer, RemoteMinVer))
+				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion);
+
+				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 				{
-					UE_LOG(LogNet, Log, TEXT("Requesting client to upgrade or downgrade to GEngineMinNetVersion=%d, GEngineNetVersion=%d"), GEngineMinNetVersion, GEngineNetVersion);
-					FNetControlMessage<NMT_Upgrade>::Send(Connection, GEngineMinNetVersion, GEngineNetVersion);
+					UE_LOG(LogNet, Log, TEXT("NotifyControlMessage: Client connecting with invalid version. LocalNetworkVersion: %i, RemoteNetworkVersion: %i"), LocalNetworkVersion, RemoteNetworkVersion);
+					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
 					Connection->FlushNet(true);
 					Connection->Close();
 				}
 				else
 				{
-					Connection->NegotiatedVer = FMath::Min(RemoteVer, GEngineNetVersion);
-
-					// Make sure the server has the same GameGUID as we do
-					if( RemoteGameGUID != GetDefault<UGeneralProjectSettings>()->ProjectID )
-					{
-						FString ErrorMsg = NSLOCTEXT("NetworkErrors", "ServerHostingDifferentGame", "Incompatible game connection.").ToString();
-						FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
-						Connection->FlushNet(true);
-						Connection->Close();
-						break;
-					}
-
 					Connection->Challenge = FString::Printf(TEXT("%08X"), FPlatformTime::Cycles());
 					Connection->SetExpectedClientLoginMsgType( NMT_Login );
-					FNetControlMessage<NMT_Challenge>::Send(Connection, Connection->NegotiatedVer, Connection->Challenge);
+					FNetControlMessage<NMT_Challenge>::Send(Connection, Connection->Challenge);
 					Connection->FlushNet();
 				}
 				break;

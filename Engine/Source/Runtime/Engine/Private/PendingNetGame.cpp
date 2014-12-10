@@ -42,7 +42,10 @@ void UPendingNetGame::InitNetDriver()
 			// Send initial message.
 			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
-			FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, GEngineMinNetVersion, GEngineNetVersion, Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->ProjectID);
+			
+			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+
+			FNetControlMessage<NMT_Hello>::Send( NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion );
 
 			NetDriver->ServerConnection->FlushNet();
 		}
@@ -114,20 +117,11 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 	{
 		case NMT_Upgrade:
 			// Report mismatch.
-			int32 RemoteMinVer, RemoteVer;
-			FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteMinVer, RemoteVer);
-			if (GEngineNetVersion < RemoteMinVer)
-			{
-				// Upgrade
-				ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
-				GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
-			}
-			else
-			{
-				// Downgrade
-				ConnectionError = NSLOCTEXT("Engine", "ServerOutdated", "Server's version is outdated").ToString();
-				GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedServer, ConnectionError);
-			}
+			uint32 RemoteNetworkVersion;
+			FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion);
+			// Upgrade
+			ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
+			GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
 			break;
 
 		case NMT_Failure:
@@ -158,7 +152,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 		case NMT_Challenge:
 		{
 			// Challenged by server.
-			FNetControlMessage<NMT_Challenge>::Receive(Bunch, Connection->NegotiatedVer, Connection->Challenge);
+			FNetControlMessage<NMT_Challenge>::Receive(Bunch, Connection->Challenge);
 
 			FURL PartialURL(URL);
 			PartialURL.Host = TEXT("");

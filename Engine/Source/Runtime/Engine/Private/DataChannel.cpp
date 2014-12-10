@@ -53,7 +53,6 @@ void UChannel::Init( UNetConnection* InConnection, int32 InChIndex, bool InOpene
 	ChIndex			= InChIndex;
 	OpenedLocally	= InOpenedLocally;
 	OpenPacketId	= FPacketIdRange();
-	NegotiatedVer	= InConnection->NegotiatedVer;
 }
 
 

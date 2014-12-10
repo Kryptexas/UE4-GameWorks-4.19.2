@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "Net/DataChannel.h"
+#include "Net/UnrealNetwork.h"
 
 #define BEACON_RPC_TIMEOUT 15.0f
 
@@ -43,7 +44,10 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 				check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
 				BeaconConnection = NetDriver->ServerConnection;
-				FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, GEngineMinNetVersion, GEngineNetVersion, Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->ProjectID);
+
+				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+				
+				FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion);
 				NetDriver->ServerConnection->FlushNet();
 
 				bSuccess = true;
@@ -153,20 +157,11 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 		case NMT_Upgrade:
 			{
 				// Report mismatch.
-				int32 RemoteMinVer, RemoteVer;
-				FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteMinVer, RemoteVer);
-				if (GEngineNetVersion < RemoteMinVer)
-				{
-					// Upgrade
-					const FString ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
-					GEngine->BroadcastNetworkFailure(GetWorld(), NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
-				}
-				else
-				{
-					// Downgrade
-					const FString ConnectionError = NSLOCTEXT("Engine", "ServerOutdated", "Server's version is outdated").ToString();
-					GEngine->BroadcastNetworkFailure(GetWorld(), NetDriver, ENetworkFailure::OutdatedServer, ConnectionError);
-				}
+				uint32 RemoteNetworkVersion;
+				FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion);
+				// Upgrade
+				const FString ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
+				GEngine->BroadcastNetworkFailure(GetWorld(), NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
 				break;
 			}
 		case NMT_Failure:

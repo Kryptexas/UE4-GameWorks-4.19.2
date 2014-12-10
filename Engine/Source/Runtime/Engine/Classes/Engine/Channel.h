@@ -46,7 +46,6 @@ class ENGINE_API UChannel : public UObject
 	EChannelType		ChType;				// Type of this channel.
 	int32					NumInRec;			// Number of packets in InRec.
 	int32					NumOutRec;			// Number of packets in OutRec.
-	int32					NegotiatedVer;		// Negotiated version of engine = Min(client version, server version).
 	class FInBunch*		InRec;				// Incoming data with queued dependencies.
 	class FOutBunch*	OutRec;				// Outgoing reliable unacked data.
 	class FInBunch*		InPartialBunch;		// Partial bunch we are receiving (incoming partial bunches are appended to this)

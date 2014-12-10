@@ -37,21 +37,33 @@ inline int32 MakeRelative( int32 Value, int32 Reference, int32 Max )
 	return Reference + BestSignedDifference(Value,Reference,Max);
 }
 
-/**
- * Determine if a connection is compatible with this instance
- *
- * @param bRequireEngineVersionMatch should the engine versions match exactly
- * @param RemoteVer current version of the remote party
- * @param RemoteMinVer min net compatible version of the remote party
- *
- * @return true if the two instances can communicate, false otherwise
- */
-inline bool IsNetworkCompatible(bool bRequireEngineVersionMatch, int32 RemoteVer, int32 RemoteMinVer)
+struct ENGINE_API FNetworkVersion
 {
-	bool bEngineVerMatch = !bRequireEngineVersionMatch || RemoteVer == GEngineNetVersion || GEngineNetVersion == 0 || RemoteVer == 0;
-	bool bMinEngineVerMatch = (RemoteVer > GEngineMinNetVersion || RemoteVer == 0) && (RemoteMinVer < GEngineNetVersion || GEngineNetVersion == 0);
-	return bEngineVerMatch && bMinEngineVerMatch;
-}
+	/** Called in GetLocalNetworkVersion if bound */
+	DECLARE_DELEGATE_RetVal( uint32, FGetLocalNetworkVersionOverride );
+	static FGetLocalNetworkVersionOverride GetLocalNetworkVersionOverride;
+
+	/** Called in IsNetworkCompatible if bound */
+	DECLARE_DELEGATE_RetVal_TwoParams( bool, FIsNetworkCompatibleOverride, uint32, uint32 );
+	static FIsNetworkCompatibleOverride IsNetworkCompatibleOverride;
+
+	/**
+	 * Generates a version number, that by default, is based on a checksum of the engine version + project name + project version string
+	 * Game/project code can completely override what this value returns through the GetLocalNetworkVersionOverride delegate
+	 */
+	static uint32 GetLocalNetworkVersion();
+
+	/**
+	 * Determine if a connection is compatible with this instance
+	 *
+	 * @param bRequireEngineVersionMatch should the engine versions match exactly
+	 * @param LocalNetworkVersion current version of the local machine
+	 * @param RemoteNetworkVersion current version of the remote machine
+	 *
+	 * @return true if the two instances can communicate, false otherwise
+	 */
+	static bool IsNetworkCompatible( const uint32 LocalNetworkVersion, const uint32 RemoteNetworkVersion );
+};
 
 /*-----------------------------------------------------------------------------
 	Replication.

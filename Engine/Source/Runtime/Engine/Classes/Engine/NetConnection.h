@@ -160,7 +160,6 @@ public:
 	FString			Challenge;				// Server-generated challenge.
 	FString			ClientResponse;			// Client-generated response.
 	int32			ResponseId;				// Id assigned by the server for linking responses to connections upon authentication
-	int32			NegotiatedVer;			// Negotiated version for new channels.
 	FString			RequestURL;				// URL requested by client
 
 	// Login state tracking

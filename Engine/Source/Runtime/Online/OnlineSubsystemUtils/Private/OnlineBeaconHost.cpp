@@ -81,28 +81,19 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 			{
 				UE_LOG(LogNet, Log, TEXT("Beacon Hello"));
 				uint8 IsLittleEndian;
-				int32 RemoteMinVer, RemoteVer;
-				FGuid RemoteGameGUID;
-				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteMinVer, RemoteVer, RemoteGameGUID);
 
-				if (!IsNetworkCompatible(Connection->Driver->RequireEngineVersionMatch, RemoteVer, RemoteMinVer))
+				uint32 RemoteNetworkVersion = 0;
+				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+
+				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion);
+
+				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 				{
-					FNetControlMessage<NMT_Upgrade>::Send(Connection, GEngineMinNetVersion, GEngineNetVersion);
+					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
 					bCloseConnection = true;
 				}
 				else
 				{
-					Connection->NegotiatedVer = FMath::Min(RemoteVer, GEngineNetVersion);
-
-					// Make sure the server has the same GameGUID as we do
-					if( RemoteGameGUID != GetDefault<UGeneralProjectSettings>()->ProjectID )
-					{
-						FString ErrorMsg = NSLOCTEXT("NetworkErrors", "ServerHostingDifferentGame", "Incompatible game connection.").ToString();
-						FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
-						bCloseConnection = true;
-						break;
-					}
-
 					Connection->Challenge = FString::Printf(TEXT("%08X"), FPlatformTime::Cycles());
 					FNetControlMessage<NMT_BeaconWelcome>::Send(Connection);
 					Connection->FlushNet();

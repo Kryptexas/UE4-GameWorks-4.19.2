@@ -31,7 +31,6 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	ProtocolVersion		( MIN_PROTOCOL_VERSION )
 ,	PacketOverhead		( 0 )
 ,	ResponseId			( 0 )
-,	NegotiatedVer		( GEngineNegotiationVersion )
 
 ,	QueuedBytes			( 0 )
 ,	TickCount			( 0 )
