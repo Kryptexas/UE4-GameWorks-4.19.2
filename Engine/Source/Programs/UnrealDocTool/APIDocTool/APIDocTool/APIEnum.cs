@@ -27,7 +27,7 @@ namespace APIDocTool
 		public List<APIEnumValue> Values = new List<APIEnumValue>();
 
 		public APIEnum(APIPage InParent, DoxygenEntity InEntity, string InName)
-			: base(InParent, InName)
+			: base(InParent, GetCleanName(InName))
         {
 			// Set the defaults
 			Entity = InEntity;
@@ -48,6 +48,16 @@ namespace APIDocTool
 			// Add it as a link target
 			AddRefLink(Node.Attributes["id"].InnerText, this);
         }
+
+		public static string GetCleanName(string Name)
+		{
+			int Index = Name.IndexOf("::@");
+			if(Index != -1)
+			{
+				Name = Name.Substring(0, Index + 2);
+			}
+			return Name;
+		}
 
 		public override void Link()
         {
@@ -107,6 +117,9 @@ namespace APIDocTool
 				Writer.LeaveSection();
 
 				// Write the enum values
+				Writer.WriteListSection("values", "Values", "Name", "Description", Values.Select(x => x.GetListItem()));
+
+				// Write the description
 				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");

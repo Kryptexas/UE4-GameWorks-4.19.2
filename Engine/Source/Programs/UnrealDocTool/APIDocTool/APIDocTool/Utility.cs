@@ -247,7 +247,7 @@ namespace APIDocTool
 			{
 				Result += "_";
 			}
-			return Result;
+			return Result.TrimEnd('_');
 		}
 
 		public static void Add<Key, Value>(this Dictionary<Key, List<Value>> Map, Key InKey, Value InValue)
