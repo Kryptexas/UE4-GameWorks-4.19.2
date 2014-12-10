@@ -133,9 +133,13 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 	return Supported;
 }
 
-bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
 	SetCurrentActorInfo(Handle, ActorInfo);
+
+	//make into a reference for simplicity
+	FGameplayTagContainer DummyContainer;
+	FGameplayTagContainer& OutTags = OptionalRelevantTags ? *OptionalRelevantTags : DummyContainer;
 
 	if (ActorInfo->AbilitySystemComponent->GetUserAbilityActivationInhibited())
 	{
@@ -172,7 +176,8 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handl
 
 	if (HasBlueprintCanUse)
 	{
-		if (K2_CanActivateAbility(*ActorInfo) == false)
+
+		if (K2_CanActivateAbility(*ActorInfo, OutTags) == false)
 		{
 			ABILITY_LOG(Log, TEXT("CanActivateAbility %s failed, blueprint refused"), *GetName());
 			return false;

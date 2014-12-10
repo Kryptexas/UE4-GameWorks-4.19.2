@@ -39,9 +39,9 @@ void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilitySpecHan
 	}
 }
 
-bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
-	if (!Super::CanActivateAbility(Handle, ActorInfo))
+	if (!Super::CanActivateAbility(Handle, ActorInfo, OptionalRelevantTags))
 	{
 		return false;
 	}
