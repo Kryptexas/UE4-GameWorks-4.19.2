@@ -10,6 +10,7 @@
 
 #include "AndroidPlatformCrashContext.h"
 #include "MallocCrash.h"
+#include "AndroidJavaMessageBox.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -152,30 +153,83 @@ void FAndroidMisc::ClipboardPaste(class FString& Result)
 
 EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
-	//implement android message box here.
-	
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Cannot display dialog box on this platform: %s : %s"), Caption, Text);
-	switch(MsgType)
+	FJavaAndroidMessageBox MessageBox;
+	MessageBox.SetText(Text);
+	MessageBox.SetCaption(Caption);
+	EAppReturnType::Type * ResultValues = nullptr;
+	static EAppReturnType::Type ResultsOk[] = {
+		EAppReturnType::Ok };
+	static EAppReturnType::Type ResultsYesNo[] = {
+		EAppReturnType::Yes, EAppReturnType::No };
+	static EAppReturnType::Type ResultsOkCancel[] = {
+		EAppReturnType::Ok, EAppReturnType::Cancel };
+	static EAppReturnType::Type ResultsYesNoCancel[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::Cancel };
+	static EAppReturnType::Type ResultsCancelRetryContinue[] = {
+		EAppReturnType::Cancel, EAppReturnType::Retry, EAppReturnType::Continue };
+	static EAppReturnType::Type ResultsYesNoYesAllNoAll[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll,
+		EAppReturnType::NoAll };
+	static EAppReturnType::Type ResultsYesNoYesAllNoAllCancel[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll,
+		EAppReturnType::NoAll, EAppReturnType::Cancel };
+
+	// TODO: Should we localize button text?
+
+	switch (MsgType)
 	{
 	case EAppMsgType::Ok:
-		return EAppReturnType::Ok; // Ok
+		MessageBox.AddButton(TEXT("Ok"));
+		ResultValues = ResultsOk;
+		break;
 	case EAppMsgType::YesNo:
-		return EAppReturnType::No; // No
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		ResultValues = ResultsYesNo;
+		break;
 	case EAppMsgType::OkCancel:
-		return EAppReturnType::Cancel; // Cancel
+		MessageBox.AddButton(TEXT("Ok"));
+		MessageBox.AddButton(TEXT("Cancel"));
+		ResultValues = ResultsOkCancel;
+		break;
 	case EAppMsgType::YesNoCancel:
-		return EAppReturnType::Cancel; // Cancel
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Cancel"));
+		ResultValues = ResultsYesNoCancel;
+		break;
 	case EAppMsgType::CancelRetryContinue:
-		return EAppReturnType::Cancel; // Cancel
+		MessageBox.AddButton(TEXT("Cancel"));
+		MessageBox.AddButton(TEXT("Retry"));
+		MessageBox.AddButton(TEXT("Continue"));
+		ResultValues = ResultsCancelRetryContinue;
+		break;
 	case EAppMsgType::YesNoYesAllNoAll:
-		return EAppReturnType::No; // No
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Yes To All"));
+		MessageBox.AddButton(TEXT("No To All"));
+		ResultValues = ResultsYesNoYesAllNoAll;
+		break;
 	case EAppMsgType::YesNoYesAllNoAllCancel:
-		return EAppReturnType::Yes; // Yes
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Yes To All"));
+		MessageBox.AddButton(TEXT("No To All"));
+		MessageBox.AddButton(TEXT("Cancel"));
+		ResultValues = ResultsYesNoYesAllNoAllCancel;
+		break;
 	default:
 		check(0);
 	}
-	return EAppReturnType::Cancel; // Cancel
-
+	int32 Choice = MessageBox.Show();
+	if (Choice >= 0 && nullptr != ResultValues)
+	{
+		return ResultValues[Choice];
+	}
+	// Failed to show dialog, or failed to get a response,
+	// return default cancel response instead.
+	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 }
 
 extern void AndroidThunkCpp_KeepScreenOn(bool Enable);

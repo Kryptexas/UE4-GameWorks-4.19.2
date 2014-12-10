@@ -19,6 +19,9 @@
 -keepclassmembers class com.epicgames.ue4.MediaPlayer14 {
    public *;
 }
+-keepclassmembers class com.epicgames.ue4.MessageBox01 {
+   public *;
+}
 
 # Needed...
 -keep class com.epicgames.ue4.GameActivity$JavaAchievement {
