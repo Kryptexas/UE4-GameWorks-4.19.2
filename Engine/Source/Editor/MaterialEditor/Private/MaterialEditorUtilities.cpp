@@ -214,22 +214,27 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 	}
 }
 
-bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, const TArray<FFunctionExpressionInput>* FunctionInputs)
+bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
 {
 	// If switch value is a function input expression then we must recursively find the associated input expressions from the parent function/material to evaluate the value.
 	UMaterialExpressionFunctionInput* FunctionInputExpression =  Cast<UMaterialExpressionFunctionInput>(SwitchValueExpression);
 	if(FunctionInputExpression && FunctionInputExpression->InputType == FunctionInput_StaticBool)
 	{
+		FGetVisibleMaterialParametersFunctionState* TopmostFunctionState = FunctionStack.Pop();
+		const TArray<FFunctionExpressionInput>* FunctionInputs = TopmostFunctionState->FunctionCall ? &TopmostFunctionState->FunctionCall->FunctionInputs : NULL;
+
 		// Get the FFunctionExpressionInput which stores information about the input node from the parent that this is linked to.
 		const FFunctionExpressionInput* MatchingInput = FindInputById(FunctionInputExpression, *FunctionInputs);
 		if (MatchingInput && (MatchingInput->Input.Expression || !FunctionInputExpression->bUsePreviewValueAsDefault))
 		{
-			GetStaticSwitchExpressionValue(MaterialInstance, MatchingInput->Input.Expression, OutValue, OutExpressionID, FunctionInputs);
+			GetStaticSwitchExpressionValue(MaterialInstance, MatchingInput->Input.Expression, OutValue, OutExpressionID, FunctionStack);
 		}
 		else
 		{
-			GetStaticSwitchExpressionValue(MaterialInstance, FunctionInputExpression->Preview.Expression, OutValue, OutExpressionID, FunctionInputs);
+			GetStaticSwitchExpressionValue(MaterialInstance, FunctionInputExpression->Preview.Expression, OutValue, OutExpressionID, FunctionStack);
 		}
+
+		FunctionStack.Push(TopmostFunctionState);
 	}
 
 	if(SwitchValueExpression)
@@ -458,8 +463,7 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 
 		if (StaticSwitchExpression->Value.Expression)
 		{
-			const TArray<FFunctionExpressionInput>* FunctionInputs = FunctionStack.Top()->FunctionCall ? &(FunctionStack.Top()->FunctionCall->FunctionInputs) : NULL;
-			GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchExpression->Value.Expression, bValue, ExpressionID, FunctionInputs);
+			GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchExpression->Value.Expression, bValue, ExpressionID, FunctionStack);
 
 			if (ExpressionID.IsValid())
 			{
