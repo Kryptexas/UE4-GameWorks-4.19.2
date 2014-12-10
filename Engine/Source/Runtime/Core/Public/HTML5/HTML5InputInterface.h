@@ -3,6 +3,10 @@
 #pragma once
 #include <SDL.h>
 
+#if PLATFORM_HTML5_BROWSER
+#include <html5.h>
+#endif 
+
 
 /**
  * Interface class for HTML5 input devices                 
@@ -38,4 +42,12 @@ private:
 	const TSharedPtr< ICursor > Cursor;
 
 	TBitArray<FDefaultBitArrayAllocator> KeyStates;
+
+#if PLATFORM_HTML5_BROWSER
+
+	EmscriptenGamepadEvent PrevGamePadState[5]; 
+	double LastPressedTime[5][15];
+
+#endif 
+
 };
