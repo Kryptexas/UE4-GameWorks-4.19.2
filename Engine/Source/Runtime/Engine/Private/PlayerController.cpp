@@ -1039,10 +1039,19 @@ void APlayerController::CreateTouchInterface()
 			Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 		}
 
-		// load what the game wants to show at startup
-		FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
+		if (CurrentTouchInterface == nullptr)
+		{
+			// load what the game wants to show at startup
+			FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
-		if (DefaultTouchInterfaceName.IsValid())
+			if (DefaultTouchInterfaceName.IsValid())
+			{
+				// activate this interface if we have it
+				CurrentTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
+			}
+		}
+
+		if (CurrentTouchInterface)
 		{
 			// create the joystick 
 			VirtualJoystick = SNew(SVirtualJoystick);
@@ -1050,12 +1059,7 @@ void APlayerController::CreateTouchInterface()
 			// add it to the player's viewport
 			LocalPlayer->ViewportClient->AddViewportWidgetContent(VirtualJoystick.ToSharedRef());
 
-			// activate this interface if we have it
-			UTouchInterface* DefaultTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
-			if (DefaultTouchInterface != NULL)
-			{
-				ActivateTouchInterface(DefaultTouchInterface);
-			}
+			ActivateTouchInterface(CurrentTouchInterface);
 		}
 	}
 }
@@ -1064,10 +1068,9 @@ void APlayerController::CleanupGameViewport()
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
-	if (LocalPlayer && LocalPlayer->ViewportClient && VirtualJoystick.IsValid())
+	if (VirtualJoystick.IsValid())
 	{
-		LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
-		VirtualJoystick = NULL;
+		ActivateTouchInterface(nullptr);
 	}
 }
 
@@ -1333,7 +1336,7 @@ void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		if (VirtualJoystick.IsValid())
 		{
-			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+			ActivateTouchInterface(nullptr);
 		}
 
 		// Stop any force feedback effects that may be active
@@ -4300,11 +4303,27 @@ void APlayerController::DisableInput(class APlayerController* PlayerController)
 
 void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterface)
 {
+	CurrentTouchInterface = NewTouchInterface;
 	if(NewTouchInterface)
 	{
-		NewTouchInterface->Activate(VirtualJoystick);
+		if (!VirtualJoystick.IsValid())
+		{
+			CreateTouchInterface();
+		}
+		else
+		{
+			NewTouchInterface->Activate(VirtualJoystick);
+		}
 	}
-	CurrentTouchInterface = NewTouchInterface;
+	else if (VirtualJoystick.IsValid())
+	{
+		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+		if (LocalPlayer && LocalPlayer->ViewportClient)
+		{
+			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+		}
+		VirtualJoystick = NULL;
+	}
 }
 
 void APlayerController::SetVirtualJoystickVisibility(bool bVisible)
