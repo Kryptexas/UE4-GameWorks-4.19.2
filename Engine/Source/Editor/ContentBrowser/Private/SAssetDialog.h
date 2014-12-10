@@ -34,6 +34,9 @@ private:
 	/** Gets the name to display in the asset name box */
 	FText GetAssetNameText() const;
 
+	/** Gets the name to display in the path text block */
+	FText GetPathNameText() const;
+
 	/** Fired when the asset name box text is commited */
 	void OnAssetNameTextCommited(const FText& InText, ETextCommit::Type InCommitType);
 
@@ -112,6 +115,9 @@ private:
 
 	/** The name box. Only used in save dialogs. */
 	TSharedPtr<SEditableTextBox> NameEditableText;
+
+	/** The path box. */
+	TSharedPtr<STextBlock> PathText;
 
 	/** The object path of the asset to save. Only used in save dialogs. */
 	FString CurrentlySelectedPath;
