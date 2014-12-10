@@ -1,9 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
-//#include "AssetToolsModule.h"
-//#include "Toolkits/AssetEditorManager.h"
-//#include "AssetRegistryModule.h"
 #include "TileSetAssetTypeActions.h"
 #include "TileSetEditor.h"
 
@@ -21,7 +18,7 @@ FText FTileSetAssetTypeActions::GetName() const
 
 FColor FTileSetAssetTypeActions::GetTypeColor() const
 {
-	return FColor::Cyan;
+	return FColorList::Orange;
 }
 
 UClass* FTileSetAssetTypeActions::GetSupportedClass() const

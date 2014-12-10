@@ -17,7 +17,7 @@ FText FTileMapAssetTypeActions::GetName() const
 
 FColor FTileMapAssetTypeActions::GetTypeColor() const
 {
-	return FColor::Cyan;
+	return FColorList::BrightGold;
 }
 
 UClass* FTileMapAssetTypeActions::GetSupportedClass() const
