@@ -33,7 +33,6 @@ public class NewLogVisualizer : ModuleRules
                 "EditorStyle",
 				"Engine",
 				"TaskGraph",
-                "GeometryMode",
 				"UnrealEd",
                 "SequencerWidgets",
 			}
