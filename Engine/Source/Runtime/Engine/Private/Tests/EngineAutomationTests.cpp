@@ -13,7 +13,6 @@
 #include "PlatformFeatures.h"
 #include "SaveGameSystem.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationTests, Log, All);
 
 namespace
 {
@@ -335,22 +334,6 @@ bool FSaveGameTest::RunTest(const FString& Parameters)
 
 	return LoadedData == SavedData;
 }
-
-/**
- * Latent command to load a map in game
- */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
-
-bool FLoadGameMapCommand::Update()
-{
-	check(GEngine->GetWorldContexts().Num() == 1);
-	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
-
-	UE_LOG(LogEngineAutomationTests, Log, TEXT("Loading Map Now. '%s'"), *MapName);
-	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
-	return true;
-}
-
 
 /**
  * Automation test to load a map and capture FPS performance charts

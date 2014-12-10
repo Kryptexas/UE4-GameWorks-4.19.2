@@ -9,6 +9,7 @@
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationTests, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
 
 /** Common automation functions */
@@ -102,3 +103,10 @@ DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeActiveEditorScreensho
  * Take a screenshot of the active window
  */
 DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeEditorScreenshotCommand, WindowScreenshotParameters, ScreenshotParameters);
+
+/**
+* Latent command to load a map in game
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
+
+
