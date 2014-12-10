@@ -86,6 +86,8 @@ FEdModeTileMap::FEdModeTileMap()
 	, DrawPreviewDimensionsLS(0.0f, 0.0f, 0.0f)
 	, EraseBrushSize(1)
 {
+	bDrawPivot = false;
+
 	SetActiveTool(ETileMapEditorTool::Paintbrush);
 	SetActiveLayerPaintingMode(ETileMapLayerPaintingMode::VisualLayers);
 }
