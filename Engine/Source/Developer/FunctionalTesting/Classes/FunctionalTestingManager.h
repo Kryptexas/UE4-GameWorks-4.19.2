@@ -34,6 +34,7 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	 static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
 		
 	bool IsRunning() const { return bIsRunning; }
+	bool IsFinished() const { return bFinished; }
 	bool IsLooped() const { return bLooped; }
 	void SetLooped(const bool bNewLooped) { bLooped = bNewLooped; }
 
@@ -70,6 +71,7 @@ protected:
 	virtual UWorld* GetWorld() const;
 	
 	bool bIsRunning;
+	bool bFinished;
 	bool bLooped;
 	bool bWaitForNavigationBuildFinish;
 	bool bInitialDelayApplied;

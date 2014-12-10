@@ -14,6 +14,8 @@ public:
 	virtual void RunAllTestsOnMap(bool bClearLog, bool bRunLooped) override;
 	
 	virtual bool IsRunning() const override;
+
+	virtual bool IsFinished() const override;
 	
 	virtual void SetScript(class UFunctionalTestingManager* NewScript) override;
 

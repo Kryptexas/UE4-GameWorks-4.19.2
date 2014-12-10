@@ -58,6 +58,7 @@ FAutomationTestExecutionInfo* UFunctionalTestingManager::ExecutionInfo = NULL;
 UFunctionalTestingManager::UFunctionalTestingManager( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, bIsRunning(false)
+	, bFinished(false)
 	, bLooped(false)
 	, bWaitForNavigationBuildFinish(false)
 	, bInitialDelayApplied(false)
@@ -91,6 +92,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		FunctionalTestingLog.NewPage(LOCTEXT("NewLogLabel", "Functional Test"));
 	}
 
+	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
 	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
@@ -274,6 +276,7 @@ void UFunctionalTestingManager::AllTestsDone()
 	}
 	else
 	{
+		bFinished = true;
 		AddLogItem(LOCTEXT("TestDone", "DONE."));
 		RemoveFromRoot();
 	}

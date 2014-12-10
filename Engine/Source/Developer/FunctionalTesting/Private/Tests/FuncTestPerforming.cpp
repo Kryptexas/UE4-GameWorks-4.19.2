@@ -62,14 +62,17 @@ DEFINE_LATENT_AUTOMATION_COMMAND(FTriggerFTests);
 bool FTriggerFTests::Update()
 {
 	IFuncTestManager* Manager = FFunctionalTestingModule::Get();
-	// if tests have been already triggered by level script just make sure it's not looping
-	if (Manager->IsRunning())
+	if (Manager->IsFinished() == false)
 	{
-		FFunctionalTestingModule::Get()->SetLooping(false);
-	}
-	else
-	{
-		FFunctionalTestingModule::Get()->RunAllTestsOnMap(false, false);
+		// if tests have been already triggered by level script just make sure it's not looping
+		if (Manager->IsRunning())
+		{
+			FFunctionalTestingModule::Get()->SetLooping(false);
+		}
+		else
+		{
+			FFunctionalTestingModule::Get()->RunAllTestsOnMap(false, false);
+		}
 	}
 
 	return true;

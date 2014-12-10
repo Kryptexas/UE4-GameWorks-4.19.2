@@ -9,6 +9,8 @@ public:
 	virtual void RunAllTestsOnMap(bool bClearLog, bool bRunLooped) = 0;
 
 	virtual bool IsRunning() const = 0;
+
+	virtual bool IsFinished() const = 0;
 	
 	virtual void SetScript(class UFunctionalTestingManager* NewScript) = 0;
 

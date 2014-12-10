@@ -15,6 +15,11 @@ bool FFuncTestManager::IsRunning() const
 	return TestScript.IsValid() && TestScript->IsRunning();
 }
 
+bool FFuncTestManager::IsFinished() const
+{
+	return TestScript.IsValid() && TestScript->IsFinished();
+}
+
 void FFuncTestManager::SetLooping(const bool bLoop)
 { 
 	if (TestScript.IsValid())
