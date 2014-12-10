@@ -191,29 +191,40 @@ public: // the tests
 		{
 			CONSTRUCT_CLASS(UGameplayEffect, BaseDmgEffect);
 			AddModifier(BaseDmgEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Health), EGameplayModOp::Additive, FScalableFloat(-DamagePerPeriod));
-			BaseDmgEffect->Duration.Value = NumPeriods * PeriodSecs;
+			BaseDmgEffect->DurationPolicy = EGameplayEffectDurationType::HasDuration;
+			BaseDmgEffect->DurationMagnitude = FGameplayEffectModifierMagnitude(FScalableFloat(NumPeriods * PeriodSecs));
 			BaseDmgEffect->Period.Value = PeriodSecs;
 
 			SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
 		}
 
-		// make sure health was not reduced on the first tick
-		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth);
+		int32 NumApplications = 0;
 
-		for (int32 i=1;i<=NumPeriods;++i)
+		// Tick a small number to verify the application tick
+		TickWorld(SMALL_NUMBER);
+		++NumApplications;
+
+		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+
+		// Tick a bit more to address possible floating point issues
+		TickWorld(PeriodSecs * .1f);
+
+		for (int32 i = 0; i < NumPeriods; ++i)
 		{
 			// advance time by one period
 			TickWorld(PeriodSecs);
 
+			++NumApplications;
+
 			// check that health has been reduced
-			TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - i*DamagePerPeriod);
+			TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
 		}
 
 		// advance time by one extra period
 		TickWorld(PeriodSecs);
 
 		// should not have reduced further
-		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - NumPeriods*DamagePerPeriod);
+		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
 
 		// TODO: test that the effect is no longer applied
 	}
@@ -356,5 +367,3 @@ namespace
 }
 
 #endif //WITH_EDITOR
-
-

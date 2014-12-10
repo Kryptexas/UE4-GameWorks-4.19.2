@@ -415,7 +415,7 @@ struct FGameplayEffectContextHandle
 	}
 
 	/** Constructs from an existing context, should be allocated by new */
-	FGameplayEffectContextHandle(FGameplayEffectContext* DataPtr)
+	explicit FGameplayEffectContextHandle(FGameplayEffectContext* DataPtr)
 	{
 		Data = TSharedPtr<FGameplayEffectContext>(DataPtr);
 	}

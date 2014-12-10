@@ -1919,13 +1919,16 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 			if (Duration > 0.f && (Effect.StartWorldTime + Duration) < CurrentTime)
 			{
 				// This gameplay effect has hit its duration. Check if it needs to execute one last time before removing it.
-				if (Effect.PeriodHandle.IsValid())
+				if (Effect.PeriodHandle.IsValid() && TimerManager.TimerExists(Effect.PeriodHandle))
 				{
 					float PeriodTimeRemaining = TimerManager.GetTimerRemaining(Effect.PeriodHandle);
-					if (FMath::IsNearlyEqual(PeriodTimeRemaining, 0.f))
+					if (PeriodTimeRemaining <= KINDA_SMALL_NUMBER)
 					{
 						ExecuteActiveEffectsFrom(Effect.Spec);
 					}
+
+					// Forcibly clear the periodic ticks because this effect is going to be removed
+					TimerManager.ClearTimer(Effect.PeriodHandle);
 				}
 
 				InternalRemoveActiveGameplayEffect(Idx);
