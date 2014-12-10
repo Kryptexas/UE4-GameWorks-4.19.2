@@ -61,3 +61,4 @@ protected:
 #include "SVisualLoggerStatusView.h"
 #include "STimeline.h"
 #include "LogVisualizerSettings.h"
+#include "LogVisualizerSessionSettings.h"

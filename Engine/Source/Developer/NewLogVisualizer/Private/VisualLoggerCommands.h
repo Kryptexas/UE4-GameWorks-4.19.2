@@ -27,6 +27,7 @@ public:
 		UI_COMMAND(FreeCamera, "FreeCamera", "Enable free camera", EUserInterfaceActionType::ToggleButton, FInputGesture());
 		UI_COMMAND(Load, "Load", "Load external vlogs", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(Save, "Save", "Save selected data to vlog file", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(ToggleGraphs, "ToggleGraphs", "Toggle graphs visualization on/off", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	}
 
 public:
@@ -38,6 +39,7 @@ public:
 	TSharedPtr<FUICommandInfo> FreeCamera;
 	TSharedPtr<FUICommandInfo> Load;
 	TSharedPtr<FUICommandInfo> Save;
+	TSharedPtr<FUICommandInfo> ToggleGraphs;
 };
 
 

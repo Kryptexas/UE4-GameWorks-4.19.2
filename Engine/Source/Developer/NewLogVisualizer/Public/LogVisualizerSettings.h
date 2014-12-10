@@ -40,6 +40,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bSearchInsideLogs;
 
+	/** Background color for 2d graphs visualization */
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	FColor GraphsBackgroundColor;
+
 	// UObject overrides
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

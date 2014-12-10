@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "Misc/CoreMisc.h"
-#include "LogVisualizerSettings.h"
+#include "LogVisualizerSessionSettings.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
 #include "ISettingsModule.h"
@@ -10,25 +10,23 @@
 #include "UnrealEdMisc.h"
 #endif // WITH_EDITOR
 
-ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+ULogVisualizerSessionSettings::ULogVisualizerSessionSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	TrivialLogsThreshold = 1;
-	DefaultCameraDistance = 150;
-	bSearchInsideLogs = true;
-	GraphsBackgroundColor = FColor(0, 0, 0, 70);
+	bEnableGraphsVisualization = true;
 }
 
 #if WITH_EDITOR
-void ULogVisualizerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void ULogVisualizerSessionSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+#if 0  //FIXME: should we save this settings too? (SebaK)
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
 		SaveConfig();
 	}
-
+#endif
 	SettingChangedEvent.Broadcast(Name);
 }
 #endif

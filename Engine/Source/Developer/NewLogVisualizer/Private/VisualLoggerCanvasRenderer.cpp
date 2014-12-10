@@ -101,7 +101,10 @@ void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APla
 		}
 	}
 
-	DrawHistogramGraphs(Canvas, NULL);
+	if (ULogVisualizerSessionSettings::StaticClass()->GetDefaultObject<ULogVisualizerSessionSettings>()->bEnableGraphsVisualization)
+	{
+		DrawHistogramGraphs(Canvas, NULL);
+	}
 }
 
 void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, class APlayerController*)
@@ -184,6 +187,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 	int32 GraphIndex = 0;
 	if (CollectedGraphs.Num() > 0)
 	{
+		const FColor GraphsBackgroundColor = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->GraphsBackgroundColor;
 		const int NumberOfGraphs = CollectedGraphs.Num();
 		const int32 NumberOfColumns = FMath::CeilToInt(FMath::Sqrt(NumberOfGraphs));
 		int32 NumberOfRows = FMath::FloorToInt(NumberOfGraphs / NumberOfColumns);
@@ -260,7 +264,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 			HistogramGraph->SetCursorLocation(SelectedEntry.TimeStamp);
 			HistogramGraph->SetNumThresholds(0);
 			HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
-			HistogramGraph->SetBackgroundColor(FColor(0, 0, 0, 200));
+			HistogramGraph->SetBackgroundColor(GraphsBackgroundColor);
 			HistogramGraph->SetLegendPosition(/*bShowHistogramLabelsOutside*/ false ? ELegendPosition::Outside : ELegendPosition::Inside);
 			HistogramGraph->OffsetDataSets(/*bOffsetDataSet*/false);
 			HistogramGraph->bVisible = true;
