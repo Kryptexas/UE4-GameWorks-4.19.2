@@ -95,10 +95,6 @@ public:
 	/** Refreshes the viewport */
 	void RefreshViewport();
 
-	/** Serialization */
-	void AddReferencedObjects(FReferenceCollector& Collector);
-
-
 	float GetZoomAmount() const;
 	FText GetZoomText() const;
 	FSlateColor GetZoomTextColorAndOpacity() const;
@@ -162,7 +158,7 @@ protected:
 	bool bShowSoftwareCursor;
 
 	/** Level viewport client */
-	TSharedPtr<FPaperEditorViewportClient> ViewportClient;
+	TSharedPtr<class FPaperEditorViewportClient> ViewportClient;
 
 	/** Slate viewport for rendering and I/O */
 	TSharedPtr<FSceneViewport> Viewport;

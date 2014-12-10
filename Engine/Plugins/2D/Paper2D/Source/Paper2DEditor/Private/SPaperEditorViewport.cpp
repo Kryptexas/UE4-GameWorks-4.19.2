@@ -474,11 +474,6 @@ void SPaperEditorViewport::RefreshViewport()
 	Viewport->InvalidateDisplay();
 }
 
-void SPaperEditorViewport::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	ViewportClient->AddReferencedObjects(Collector);
-}
-
 /** Search through the list of zoom levels and find the one closest to what was passed in. */
 int32 SPaperEditorViewport::FindNearestZoomLevel(int32 CurrentZoomLevel, float InZoomAmount) const
 {
