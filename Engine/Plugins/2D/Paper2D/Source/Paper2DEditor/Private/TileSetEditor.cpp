@@ -213,6 +213,12 @@ void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, boo
 		if (TileMapEditor != nullptr)
 		{
 			TileMapEditor->SetActivePaint(TileSetBeingEdited, SelectionTopLeft, SelectionDimensions);
+
+			// Switch to paint brush mode if we were in the eraser mode since the user is trying to select some ink to paint with
+			if (TileMapEditor->GetActiveTool() == ETileMapEditorTool::Eraser)
+			{
+				TileMapEditor->SetActiveTool(ETileMapEditorTool::Paintbrush);
+			}
 		}
 
 		RefreshSelectionRectangle();
