@@ -230,11 +230,6 @@ class ENGINE_API URendererSettings
 	TEnumAsByte<EClearSceneOptions::Type> ClearSceneMethod;
 
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
-		ConsoleVariable="r.MSAA.CompositingSampleCount",DisplayName="Editor primitive MSAA",
-		ToolTip="Affects the render quality of 3D editor objects."))
-	TEnumAsByte<ECompositingSampleCount::Type> EditorPrimitiveMSAA;
-
-	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
