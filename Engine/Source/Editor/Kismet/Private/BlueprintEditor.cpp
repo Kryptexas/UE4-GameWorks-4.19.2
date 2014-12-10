@@ -5764,6 +5764,7 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 		// so when expanding a collapsed graph we don't want to check the CanPasteHere function:
 		if (!bIsCollapsedGraph && !Node->CanPasteHere(DestinationGraph))
 		{
+			Node->BreakAllNodeLinks();
 			continue;
 		}
 
