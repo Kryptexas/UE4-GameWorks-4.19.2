@@ -112,6 +112,7 @@ class FToolBarButtonBlock;
 class SToolBarButtonBlock;
 class FToolBarComboButtonBlock;
 class SToolBarComboButtonBlock;
+class SPopup;
 ///
 #include "SComboButton.h"
 #include "SComboBox.h"
