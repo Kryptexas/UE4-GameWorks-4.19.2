@@ -2,7 +2,6 @@
 
 #include "LogVisualizer.h"
 #include "TimeSliderController.h"
-
 #define LOCTEXT_NAMESPACE "TimeSlider"
 
 namespace ScrubConstants
@@ -345,7 +344,8 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> Widg
 		}
 		
 		bPanning = false;
-		
+		FReply::Handled().CaptureMouse(WidgetOwner).UseHighPrecisionMouseMovement(WidgetOwner);
+
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 	else if ( bHandleLeftMouseButton )
@@ -375,18 +375,22 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 {
 	if ( WidgetOwner->HasMouseCapture() )
 	{
-		if (MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ))
+		if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 		{
 			if (!bPanning)
 			{
 				DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
 				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistnace() )
 				{
+					FReply::Handled().CaptureMouse(WidgetOwner).UseHighPrecisionMouseMovement(WidgetOwner);
+					SoftwareCursorPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 					bPanning = true;
 				}
 			}
 			else
 			{
+				SoftwareCursorPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
+
 				TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
 				float LocalViewRangeMin = LocalViewRange.GetLowerBoundValue();
 				float LocalViewRangeMax = LocalViewRange.GetUpperBoundValue();
@@ -414,6 +418,12 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				}
 
 				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax));
+				if (Scrollbar.IsValid())
+				{
+					float InOffsetFraction = NewViewOutputMin / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+					float InThumbSizeFraction = (NewViewOutputMax - NewViewOutputMin) / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+					Scrollbar->SetState(InOffsetFraction, InThumbSizeFraction);
+				}
 
 				if( !TimeSliderArgs.ViewRange.IsBound() )
 				{	
@@ -459,6 +469,45 @@ void FSequencerTimeSliderController::CommitScrubPosition( float NewValue, bool b
 	TimeSliderArgs.OnScrubPositionChanged.ExecuteIfBound( NewValue, bIsScrubbing );
 }
 
+void FSequencerTimeSliderController::SetExternalScrollbar(TSharedRef<SScrollBar> InScrollbar) 
+{ 
+	Scrollbar = InScrollbar;
+	Scrollbar->SetOnUserScrolled(FOnUserScrolled::CreateRaw(this, &FSequencerTimeSliderController::HorizontalScrollBar_OnUserScrolled)); 
+};
+
+void FSequencerTimeSliderController::HorizontalScrollBar_OnUserScrolled(float ScrollOffset)
+{
+	if (!TimeSliderArgs.ViewRange.IsBound())
+	{
+		TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
+		float LocalViewRangeMin = LocalViewRange.GetLowerBoundValue();
+		float LocalViewRangeMax = LocalViewRange.GetUpperBoundValue();
+		TOptional<float> LocalClampMin = TimeSliderArgs.ClampMin.Get();
+		TOptional<float> LocalClampMax = TimeSliderArgs.ClampMax.Get();
+
+		float NewViewOutputMin = ScrollOffset * (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+		// The  output is not bound to a delegate so we'll manage the value ourselves
+		float NewViewOutputMax = NewViewOutputMin + (LocalViewRangeMax - LocalViewRangeMin);
+		TimeSliderArgs.ViewRange.Set(TRange<float>(NewViewOutputMin, NewViewOutputMax));
+
+		float InOffsetFraction = NewViewOutputMin / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+		float InThumbSizeFraction = (NewViewOutputMax - NewViewOutputMin) / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+		Scrollbar->SetState(InOffsetFraction, InThumbSizeFraction);
+	}
+}
+
+void FSequencerTimeSliderController::SetTimeRange(float NewViewOutputMin, float NewViewOutputMax)
+{
+	TimeSliderArgs.ViewRange.Set(TRange<float>(NewViewOutputMin, NewViewOutputMax));
+
+	TOptional<float> LocalClampMin = TimeSliderArgs.ClampMin.Get();
+	TOptional<float> LocalClampMax = TimeSliderArgs.ClampMax.Get();
+
+	float InOffsetFraction = NewViewOutputMin / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+	float InThumbSizeFraction = (NewViewOutputMax - NewViewOutputMin) / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+	Scrollbar->SetState(InOffsetFraction, InThumbSizeFraction);
+}
+
 FReply FSequencerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply ReturnValue = FReply::Unhandled();;
@@ -501,7 +550,20 @@ FReply FSequencerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> WidgetO
 				}
 
 				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax));
-
+				if (Scrollbar.IsValid())
+				{
+					/**
+					* Set the offset and size of the track's thumb.
+					* Note that the maximum offset is 1.0-ThumbSizeFraction.
+					* If the user can view 1/3 of the items in a single page, the maximum offset will be ~0.667f
+					*
+					* @param InOffsetFraction     Offset of the thumbnail from the top as a fraction of the total available scroll space.
+					* @param InThumbSizeFraction  Size of thumbnail as a fraction of the total available scroll space.
+					*/
+					float InOffsetFraction = NewViewOutputMin / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+					float InThumbSizeFraction = (NewViewOutputMax - NewViewOutputMin) / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
+					Scrollbar->SetState(InOffsetFraction, InThumbSizeFraction);
+				}
 				if( !TimeSliderArgs.ViewRange.IsBound() )
 				{	
 					// The  output is not bound to a delegate so we'll manage the value ourselves
@@ -557,7 +619,7 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			LayerId + 1,
+			++LayerId,
 			CursorGeometry,
 			CursorBackground,
 			MyClippingRect,
@@ -573,7 +635,7 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,
-			LayerId+2,
+			++LayerId,
 			AllottedGeometry.ToPaintGeometry( FVector2D(LinePos, 0.0f ), FVector2D(1.0f,1.0f) ),
 			LinePoints,
 			MyClippingRect,

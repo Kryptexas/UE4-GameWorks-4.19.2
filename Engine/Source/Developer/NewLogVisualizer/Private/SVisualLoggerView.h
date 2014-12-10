@@ -23,7 +23,7 @@ public:
 
 		return LeftSplitterSlot.SizeValue.Get()/ RightSplitterSlot.SizeValue.Get();
 	}
-	void SetAnimationOutlinerFillPercentage(float FillPercentage) { AnimationOutlinerFillPercentage = FillPercentage; }
+	void SetAnimationOutlinerFillPercentage(float FillPercentage);
 
 	TSharedRef<SWidget> MakeSectionOverlay(TSharedRef<class FSequencerTimeSliderController> TimeSliderController, const TAttribute< TRange<float> >& ViewRange, const TAttribute<float>& ScrubPosition, bool bTopOverlay);
 	void SetSearchString(FText SearchString);
@@ -36,8 +36,10 @@ public:
 	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);
 
 	void GetTimelines(TArray<TSharedPtr<class STimeline> >&, bool bOnlySelectedOnes = false);
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 
 protected:
+	TSharedPtr<struct IVisualLoggerInterface> VisualLoggerInterface;
 	TSharedPtr<class STimelinesContainer> TimelinesContainer;
 	TSharedPtr<class SSplitter> SearchSplitter;
 	TSharedPtr<class SScrollBox> ScrollBox;

@@ -42,10 +42,27 @@ void SVisualLoggerLogsList::Construct(const FArguments& InArgs, const TSharedRef
 			SAssignNew(LogsLinesWidget, SListView<TSharedPtr<FLogEntryItem> >)
 			.ItemHeight(20)
 			.ListItemsSource(&LogEntryLines)
-			.SelectionMode(ESelectionMode::Single)
+			.SelectionMode(ESelectionMode::Multi)
 			.OnSelectionChanged(this, &SVisualLoggerLogsList::LogEntryLineSelectionChanged)
 			.OnGenerateRow(this, &SVisualLoggerLogsList::LogEntryLinesGenerateRow)
 		];
+}
+
+FReply SVisualLoggerLogsList::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::C && (InKeyEvent.IsLeftCommandDown() || InKeyEvent.IsLeftControlDown()))
+	{
+		FString ClipboardString;
+		for (const TSharedPtr<struct FLogEntryItem>& CurrentItem : LogsLinesWidget->GetSelectedItems())
+		{
+			ClipboardString += CurrentItem->Category + FString(TEXT(" (")) + FString(FOutputDevice::VerbosityToString(CurrentItem->Verbosity)) + FString(TEXT(") ")) + CurrentItem->Line;
+			ClipboardString += TEXT("\n");
+		}
+		FPlatformMisc::ClipboardCopy(*ClipboardString);
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }
 
 void SVisualLoggerLogsList::OnFiltersChanged()

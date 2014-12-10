@@ -7,6 +7,32 @@
 #include "STimelinesContainer.h"
 #include "LogVisualizerSettings.h"
 
+class STimelineLabelAnchor : public SMenuAnchor
+{
+public:
+	void Construct(const FArguments& InArgs, TSharedPtr<class STimeline> InTimelineOwner)
+	{
+		SMenuAnchor::Construct(InArgs);
+		TimelineOwner = InTimelineOwner;
+	}
+
+private:
+	/** SWidget Interface */
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	TWeakPtr<class STimeline> TimelineOwner;
+};
+
+FReply STimelineLabelAnchor::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && TimelineOwner.IsValid() && TimelineOwner.Pin()->IsSelected())
+	{
+		SetIsOpen(!IsOpen());
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
+
 STimeline::~STimeline()
 {
 	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().RemoveAll(this);
@@ -15,12 +41,8 @@ STimeline::~STimeline()
 FReply STimeline::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	Owner->ChangeSelection(SharedThis(this), MouseEvent);
-	if (OnGetMenuContent.IsBound() && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
-	{
-		PopupAnchor->SetIsOpen(!PopupAnchor->IsOpen());
-	}
 
-	return FReply::Handled();
+	return FReply::Unhandled();
 }
 
 FReply STimeline::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -161,7 +183,7 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView
 			.VAlign(VAlign_Fill)
 			.FillWidth(TAttribute<float>(VisualLoggerView.Get(), &SVisualLoggerView::GetAnimationOutlinerFillPercentage))
 			[
-				SAssignNew(PopupAnchor, SMenuAnchor)
+				SAssignNew(PopupAnchor, STimelineLabelAnchor, SharedThis(this))
 				.OnGetMenuContent(OnGetMenuContent)
 				[
 					SNew(SBorder)

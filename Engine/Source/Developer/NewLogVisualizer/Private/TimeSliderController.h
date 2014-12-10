@@ -43,6 +43,10 @@ public:
 	 */
 	void CommitScrubPosition( float NewValue, bool bIsScrubbing );
 
+	void SetExternalScrollbar(TSharedRef<SScrollBar> Scrollbar);
+	void SetTimeRange(float MinValue, float MaxValue);
+	bool IsPanning() { return bPanning; }
+
 private:
 
 	/**
@@ -53,6 +57,7 @@ private:
 	 * @param InArgs			Parameters for drawing the tick lines
 	 */
 	void DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs ) const;
+	void HorizontalScrollBar_OnUserScrolled(float ScrollOffset);
 private:
 	FVisualLoggerTimeSliderArgs TimeSliderArgs;
 	/** Brush for drawing an upwards facing scrub handle */
@@ -67,4 +72,7 @@ private:
 	bool bDraggingScrubber;
 	/** If we are currently panning the panel */
 	bool bPanning;
+	/***/
+	TSharedPtr<SScrollBar> Scrollbar;
+	FVector2D SoftwareCursorPosition;
 };

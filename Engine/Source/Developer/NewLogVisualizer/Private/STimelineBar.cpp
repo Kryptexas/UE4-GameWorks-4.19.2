@@ -18,26 +18,20 @@
 FReply STimelineBar::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	TimelineOwner.Pin()->OnMouseButtonDown(MyGeometry, MouseEvent);
-
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		return TimeSliderController->OnMouseButtonDown(SharedThis(this), MyGeometry, MouseEvent);
-	}
-	return FReply::Unhandled();
+	return TimeSliderController->OnMouseButtonDown(SharedThis(this), MyGeometry, MouseEvent);
 }
 
 FReply STimelineBar::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	TimelineOwner.Pin()->OnMouseButtonUp(MyGeometry, MouseEvent);
 
+	FReply  Replay = TimeSliderController->OnMouseButtonUp(SharedThis(this), MyGeometry, MouseEvent);
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		FReply  Replay = TimeSliderController->OnMouseButtonUp(SharedThis(this), MyGeometry, MouseEvent);
 		SnapScrubPosition(TimeSliderController->GetTimeSliderArgs().ScrubPosition.Get());
-		return Replay;
 	}
 
-	return FReply::Unhandled();
+	return Replay;
 }
 
 FReply STimelineBar::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -187,11 +181,11 @@ FReply STimelineBar::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InK
 			SnapScrubPosition(NewTimeStamp);
 			if (NewTimeStamp < LocalViewRange.GetLowerBoundValue())
 			{
-				TimeSliderController->GetTimeSliderArgs().ViewRange.Set(TRange<float>(NewTimeStamp, NewTimeStamp + RangeSize));
+				TimeSliderController->SetTimeRange(NewTimeStamp, NewTimeStamp + RangeSize);
 			}
 			else if (NewTimeStamp > LocalViewRange.GetUpperBoundValue())
 			{
-				TimeSliderController->GetTimeSliderArgs().ViewRange.Set(TRange<float>(NewTimeStamp - RangeSize, NewTimeStamp));
+				TimeSliderController->SetTimeRange(NewTimeStamp - RangeSize, NewTimeStamp);
 			}
 		}
 	}

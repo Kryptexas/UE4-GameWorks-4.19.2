@@ -13,7 +13,7 @@ int32 SSequencerSectionOverlay::OnPaint( const FPaintArgs& Args, const FGeometry
 
 FReply SSequencerSectionOverlay::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	return TimeSliderController->OnMouseButtonDown( SharedThis(this), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseButtonDown(SharedThis(this), MyGeometry, MouseEvent);
 }
 
 FReply SSequencerSectionOverlay::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -28,5 +28,9 @@ FReply SSequencerSectionOverlay::OnMouseMove( const FGeometry& MyGeometry, const
 
 FReply SSequencerSectionOverlay::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	return TimeSliderController->OnMouseWheel( SharedThis(this), MyGeometry, MouseEvent );
+	if (MouseEvent.IsLeftShiftDown() || MouseEvent.IsLeftControlDown())
+	{
+		return TimeSliderController->OnMouseWheel(SharedThis(this), MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
 }

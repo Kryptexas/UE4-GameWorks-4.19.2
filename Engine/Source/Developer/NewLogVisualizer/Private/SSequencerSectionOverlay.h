@@ -17,7 +17,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<class FSequencerTimeSliderController> InTimeSliderController )
+	void Construct(const FArguments& InArgs, TSharedRef<class FSequencerTimeSliderController> InTimeSliderController)
 	{
 		bDisplayScrubPosition = InArgs._DisplayScrubPosition;
 		bDisplayTickLines = InArgs._DisplayTickLines;
@@ -39,5 +39,4 @@ private:
 	TAttribute<bool> bDisplayScrubPosition;
 	/** Whether or not to display tick lines */
 	TAttribute<bool> bDisplayTickLines;
-
 };
