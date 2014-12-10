@@ -896,15 +896,11 @@ public class GameActivity extends NativeActivity
 
 	public native void nativeConsoleCommand(String commandString);
 	public native void nativeVirtualKeyboardResult(boolean update, String contents);
-	
-	public native boolean nativeIsGooglePlayEnabled();
 
 	public native void nativeInitHMDs();
 
 	public native void nativeResumeMainInit();
 	
-	public native void nativeCompletedConnection(int playerID, int errorCode);
-
 	static
 	{
 		System.loadLibrary("gnustl_shared");

@@ -2,7 +2,6 @@
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 
-#include "Android/AndroidJNI.h"
 FOnlineIdentityGooglePlay::FPendingConnection FOnlineIdentityGooglePlay::PendingConnectRequest;
 
 FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
