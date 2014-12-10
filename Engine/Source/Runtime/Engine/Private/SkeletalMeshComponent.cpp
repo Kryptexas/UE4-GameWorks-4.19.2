@@ -232,6 +232,7 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
         TickAnimation(0.f); 
 
 		RefreshBoneTransforms();
+		FlipEditableSpaceBases();
 		UpdateComponentToWorld();
 	}
 }
