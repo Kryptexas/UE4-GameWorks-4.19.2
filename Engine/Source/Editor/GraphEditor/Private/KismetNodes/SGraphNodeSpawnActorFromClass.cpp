@@ -45,9 +45,10 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 			if(NULL != InClass)
 			{
 				const bool bActorBased = InClass->IsChildOf(AActor::StaticClass());
+				const bool bNotBrushBased = !InClass->IsChildOf(ABrush::StaticClass());
 				const bool bBlueprintType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(InClass);
 				const bool bNotAbstract = !InClass->HasAnyClassFlags(CLASS_Abstract);
-				return bActorBased && bBlueprintType && bNotAbstract;
+				return bActorBased && bNotBrushBased && bBlueprintType && bNotAbstract;
 			}
 			return false;
 		}
@@ -55,8 +56,9 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 		{
 			const bool bActorBased = InUnloadedClassData->IsChildOf(AActor::StaticClass());
+			const bool bNotBrushBased = !InUnloadedClassData->IsChildOf(ABrush::StaticClass());
 			const bool bNotAbstract = !InUnloadedClassData->HasAnyClassFlags(CLASS_Abstract);
-			return bActorBased && bNotAbstract;
+			return bActorBased && bNotBrushBased && bNotAbstract;
 		}
 	};
 
