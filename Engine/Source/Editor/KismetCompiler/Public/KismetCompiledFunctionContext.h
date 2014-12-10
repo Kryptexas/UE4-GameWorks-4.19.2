@@ -12,9 +12,6 @@ namespace KismetCompilerDebugOptions
 	//@TODO: K2: Turning this off is probably broken due to state merging not working with the current code generation
 	enum { DebuggingCompiler = 1 };
 
-	// Should adjacent states be merged together?
-	enum { MergeAdjacentStates = !DebuggingCompiler };
-
 	// Should the compiler emit node comments to the backends?
 	enum { EmitNodeComments = DebuggingCompiler };
 }
@@ -94,6 +91,9 @@ public:
 	TArray< UK2Node_CallFunction* > LatentFunctionCalls;
 
 	bool bGeneratingCpp;
+
+	//Does this function use requires FlowStack ?
+	bool bUseFlowStack;
 public:
 	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp);
 	
@@ -273,90 +273,20 @@ public:
 		return (SourceStatementList != NULL) && (SourceStatementList->Num() > 0);
 	}
 
-	// Sorts the 'linear execution list' again by likely execution order; the list should only contain impure nodes by this point.
-	void FinalSortLinearExecList()
-	{
-		// By this point, all of the pure data dependencies have been taken care of and the position in the list 
-		// doesn't represent much.
-		// Doing this sort will enable more gotos to be optimized away, and make the C++ backend generated code easier to read
-		for (int32 TestIndex = 0; TestIndex < LinearExecutionList.Num(); )
-		{
-			UEdGraphNode* CurrentNode = LinearExecutionList[TestIndex];
-			TArray<FBlueprintCompiledStatement*>* CurStatementList = StatementsPerNode.Find(CurrentNode);
-
-			if ((CurStatementList == NULL) || (CurStatementList->Num() == 0))
-			{
-				// Node generated nothing for the backend to consume, remove it
-				LinearExecutionList.RemoveAtSwap(TestIndex);
-			}
-			else
-			{
-				//@TODO: Actually do some real sorting here!
-				//FBlueprintCompiledStatement& LastStatementInCurrentNode = *(CurStatementList->Last());
-				//UEdGraphNode* JumpTargetNode = GotoFixupRequestMap.FindChecked(&LastStatementInCurrentNode);
-
-				// Sort so the entry point node is always first
-				if ((CurrentNode == EntryPoint) && (TestIndex > 0))
-				{
-					LinearExecutionList.SwapMemory(0, TestIndex);
-				}
-				else
-				{
-					TestIndex++;
-				}
-			}
-		}
-	}
-
+private:
 	// Optimize out any useless jumps (jump to the very next statement, where the control flow can just fall through)
-	void MergeAdjacentStates()
-	{
-		for (int32 i = 0; i < LinearExecutionList.Num(); ++i)
-		{
-			UEdGraphNode* CurrentNode = LinearExecutionList[i];
-			TArray<FBlueprintCompiledStatement*>* CurStatementList = StatementsPerNode.Find(CurrentNode);
+	void MergeAdjacentStates();
 
-			if ((CurStatementList != NULL) && (CurStatementList->Num() > 0))
-			{
-				FBlueprintCompiledStatement& LastStatementInCurrentNode = *(CurStatementList->Last());
-				if (LastStatementInCurrentNode.Type == KCST_UnconditionalGoto)
-				{
-					// Last statement is an unconditional goto; see if we can remove it
+	// Sorts the 'linear execution list' again by likely execution order; the list should only contain impure nodes by this point.
+	void FinalSortLinearExecList();
 
-					// Find the next node that generated statements
-					UEdGraphNode* NextNode = NULL;
-					for (int32 j = i+1; j < LinearExecutionList.Num(); ++j)
-					{
-						UEdGraphNode* TestNode = LinearExecutionList[j];
-						if (StatementsPerNode.Find(TestNode) != NULL)
-						{
-							NextNode = TestNode;
-							break;
-						}
-					}
+	/** Resolves all pending goto fixups; Should only be called after all nodes have had a chance to generate code! */
+	void ResolveGotoFixups();
 
-					if (NextNode != NULL)
-					{
-						UEdGraphNode* JumpTargetNode = NULL;
+public:
 
-						UEdGraphPin const* JumpPin = GotoFixupRequestMap.FindChecked(&LastStatementInCurrentNode);
-						if ((JumpPin != NULL) && (JumpPin->LinkedTo.Num() > 0))
-						{
-							JumpTargetNode = JumpPin->LinkedTo[0]->GetOwningNode();
-						}
-
-						// Is this node the target of the last statement in the previous node?
-						if (NextNode == JumpTargetNode)
-						{
-							// Jump and label are adjacent, can optimize it out
-							GotoFixupRequestMap.Remove(&LastStatementInCurrentNode);
-							CurStatementList->RemoveAt(CurStatementList->Num() - 1);
-						}
-					}
-				}
-			}
-		}
-	}
+	// The function links gotos, sorts statments, and merges adjacent ones. 
+	void ResolveStatements();
 
 	/**
 	 * Makes sure an KCST_WireTraceSite is inserted before the specified 
@@ -405,98 +335,6 @@ public:
 				}
 			}
 		}
-	}
-
-	/** Resolves all pending goto fixups; Should only be called after all nodes have had a chance to generate code! */
-	void ResolveGotoFixups()
-	{
-		/**
-		 * This local lambda is intended to save on code duplication within this
-		 * function. It tests the supplied statement to see if it is an event 
-		 * entry point.
-		 *
-		 * @param GotoStatement		The compiled statement you wish to test.
-		 * @return True if the passed statement is an event entry point, false if not.
-		 */
-		auto IsUberGraphEventStatement = [](FBlueprintCompiledStatement* GotoStatement) -> bool 
-		{
-			return ((GotoStatement->Type == KCST_CallFunction) && (GotoStatement->UbergraphCallIndex == 0));
-		};
-
-		if (bCreateDebugData)
-		{
-			// if we're debugging, go through an insert a wire trace before  
-			// every "goto" statement so we can trace what execution pin a node
-			// was executed from
-			for (auto GotoIt = GotoFixupRequestMap.CreateIterator(); GotoIt; ++GotoIt)
-			{
-				FBlueprintCompiledStatement* GotoStatement = GotoIt.Key();
-				if (IsUberGraphEventStatement(GotoStatement))
-				{
-					continue;
-				}
-
-				InsertWireTrace(GotoIt.Key(), GotoIt.Value());
-			}
-		}
-
-		if (KismetCompilerDebugOptions::MergeAdjacentStates)
-		{
-			MergeAdjacentStates();
-		}
-
-		// Resolve the remaining fixups
-		for (auto GotoIt = GotoFixupRequestMap.CreateIterator(); GotoIt; ++GotoIt)
-		{
-			FBlueprintCompiledStatement* GotoStatement = GotoIt.Key();
-
-			UEdGraphPin const* ExecNet = GotoIt.Value();
-			if (ExecNet == NULL)
-			{
-				// Execution flow ended here; pop the stack
-				GotoStatement->Type = (GotoStatement->Type == KCST_GotoIfNot) ? KCST_EndOfThreadIfNot : KCST_EndOfThread;
-				continue;
-			}
-
-			UEdGraphNode* TargetNode = NULL;
-			if (IsUberGraphEventStatement(GotoStatement))
-			{
-				TargetNode = ExecNet->GetOwningNode();
-			}
-			else if (ExecNet->LinkedTo.Num() > 0)
-			{
-				TargetNode = ExecNet->LinkedTo[0]->GetOwningNode();
-			}
-
-			if (TargetNode == NULL)
-			{
-				// Execution flow ended here; pop the stack
-				GotoStatement->Type = (GotoStatement->Type == KCST_GotoIfNot) ? KCST_EndOfThreadIfNot : KCST_EndOfThread;
-			}
-			else
-			{
-				// Try to resolve the goto
-				TArray<FBlueprintCompiledStatement*>* StatementList = StatementsPerNode.Find(TargetNode);
-
-				if ((StatementList == NULL) || (StatementList->Num() == 0))
-				{
-					MessageLog.Error(TEXT("Statement tried to pass control flow to a node @@ that generates no code"), TargetNode);
-					GotoStatement->Type = KCST_CompileError;
-				}
-				else
-				{
-					// Wire up the jump target and notify the target that it is targeted
-					FBlueprintCompiledStatement& FirstStatement = *((*StatementList)[0]);
-					GotoStatement->TargetLabel = &FirstStatement;
-					FirstStatement.bIsJumpTarget = true;
-				}
-			}
-		}
-
-		// Clear out the pending fixup map
-		GotoFixupRequestMap.Empty();
-
-		//@TODO: Remove any wire debug sites where the next statement is a stack pop
 	}
 	
 	/** Looks for a pin of the given name, erroring if the pin is not found or if the direction doesn't match (doesn't verify the pin type) */

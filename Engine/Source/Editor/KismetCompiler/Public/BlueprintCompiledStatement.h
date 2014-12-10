@@ -34,6 +34,8 @@ enum EKismetCompiledStatementType
 	KCST_MetaCast = 24,	    // Cast<TargetClass>(TargetObject)
 	KCST_AssignmentOnPersistentFrame = 25, //
 	KCST_CastInterfaceToObj = 26, // Cast<TargetClass>(TargetInterface)
+	KCST_GotoReturn = 27,	// goto ReturnLabel
+	KCST_GotoReturnIfNot = 28, // [if (!TargetObject->TargetProperty)] goto TargetLabel
 };
 
 //@TODO: Too rigid / icky design

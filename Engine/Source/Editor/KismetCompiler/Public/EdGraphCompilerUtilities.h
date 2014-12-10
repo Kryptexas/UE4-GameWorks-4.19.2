@@ -28,6 +28,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Clean and Sanitize Class"), EKismetCompilerStats
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Create Class Properties"), EKismetCompilerStats_CreateClassVariables, STATGROUP_KismetCompiler, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Bind and Link Class"), EKismetCompilerStats_BindAndLinkClass, STATGROUP_KismetCompiler, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Calculate checksum of CDO"), EKismetCompilerStats_ChecksumCDO, STATGROUP_KismetCompiler, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Resolve compiled statements"), EKismetCompilerStats_ResolveCompiledStatements, STATGROUP_KismetCompiler, );
 
 //////////////////////////////////////////////////////////////////////////
 

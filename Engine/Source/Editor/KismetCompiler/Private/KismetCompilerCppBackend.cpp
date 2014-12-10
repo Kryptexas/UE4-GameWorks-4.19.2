@@ -1166,7 +1166,7 @@ void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContex
 		Emit(Body, *FString::Printf(TEXT("\t\t\tCurrentState = %s;\n"), *NextStateExpression));
 		Emit(Body, *FString::Printf(TEXT("\t\t\tbreak;\n")));
 	}
-	else if ((Statement.Type == KCST_GotoIfNot) || (Statement.Type == KCST_EndOfThreadIfNot))
+	else if ((Statement.Type == KCST_GotoIfNot) || (Statement.Type == KCST_EndOfThreadIfNot) || (Statement.Type == KCST_GotoReturnIfNot))
 	{
 		FString ConditionExpression;
 		ConditionExpression = TermToText(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
@@ -1176,7 +1176,12 @@ void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContex
 
 		if (Statement.Type == KCST_EndOfThreadIfNot)
 		{
+			ensure(FunctionContext.bUseFlowStack);
 			Emit(Body, TEXT("\t\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop() : -1;\n"));
+		}
+		else if (Statement.Type == KCST_GotoReturnIfNot)
+		{
+			Emit(Body, TEXT("\t\t\t\tCurrentState = -1;\n"));
 		}
 		else
 		{
@@ -1185,6 +1190,10 @@ void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContex
 
 		Emit(Body, *FString::Printf(TEXT("\t\t\t\tbreak;\n")));
 		Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
+	}
+	else if (Statement.Type == KCST_GotoReturn)
+	{
+		Emit(Body, TEXT("\t\t\tCurrentState = -1;\n"));
 	}
 	else
 	{
@@ -1195,11 +1204,13 @@ void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContex
 
 void FKismetCppBackend::EmitPushStateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
+	ensure(FunctionContext.bUseFlowStack);
 	Emit(Body, *FString::Printf(TEXT("\t\t\tStateStack.Push(%d);\n"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 }
 
 void FKismetCppBackend::EmitEndOfThreadStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString)
 {
+	ensure(FunctionContext.bUseFlowStack);
 	Emit(Body, TEXT("\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop() : -1;\n"));
 	Emit(Body, TEXT("\t\t\tbreak;\n"));
 }
@@ -1228,7 +1239,10 @@ void FKismetCppBackend::DeclareLocalVariables(FKismetFunctionContext& FunctionCo
 
 void FKismetCppBackend::DeclareStateSwitch(FKismetFunctionContext& FunctionContext)
 {
-	Emit(Body, TEXT("\tTArray< int32, TInlineAllocator<8> > StateStack;\n"));
+	if (FunctionContext.bUseFlowStack)
+	{
+		Emit(Body, TEXT("\tTArray< int32, TInlineAllocator<8> > StateStack;\n"));
+	}
 	Emit(Body, TEXT("\tint32 CurrentState = 0;\n"));
 	Emit(Body, TEXT("\tdo\n"));
 	Emit(Body, TEXT("\t{\n"));
@@ -1241,7 +1255,10 @@ void FKismetCppBackend::CloseStateSwitch(FKismetFunctionContext& FunctionContext
 {
 	// Default error-catching case 
 	Emit(Body, TEXT("\t\tdefault:\n"));
-	Emit(Body, TEXT("\t\t\tcheck(false); // Invalid state\n"));
+	if (FunctionContext.bUseFlowStack)
+	{
+		Emit(Body, TEXT("\t\t\tcheck(false); // Invalid state\n"));
+	}
 	Emit(Body, TEXT("\t\t\tbreak;\n"));
 
 	// Close the switch block and do-while loop
@@ -1354,7 +1371,39 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 		// Emit local variables
 		DeclareLocalVariables(FunctionContext, LocalVariables);
 
-		DeclareStateSwitch(FunctionContext);
+		bool bUseSwitchState = false;
+		for (auto Node : FunctionContext.LinearExecutionList)
+		{
+			TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(Node);
+			if (StatementList)
+			{
+				for (auto Statement : (*StatementList))
+				{
+					if (Statement && (
+						Statement->Type == KCST_UnconditionalGoto ||
+						Statement->Type == KCST_PushState ||
+						Statement->Type == KCST_GotoIfNot ||
+						Statement->Type == KCST_ComputedGoto ||
+						Statement->Type == KCST_EndOfThread ||
+						Statement->Type == KCST_EndOfThreadIfNot ||
+						Statement->Type == KCST_GotoReturn ||
+						Statement->Type == KCST_GotoReturnIfNot))
+					{
+						bUseSwitchState = true;
+						break;
+					}
+				}
+			}
+			if (bUseSwitchState)
+			{
+				break;
+			}
+		}
+
+		if (bUseSwitchState)
+		{
+			DeclareStateSwitch(FunctionContext);
+		}
 
 
 		// Run thru code looking only at things marked as jump targets, to make sure the jump targets are ordered in order of appearance in the linear execution list
@@ -1391,7 +1440,7 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 				{
 					FBlueprintCompiledStatement& Statement = *((*StatementList)[StatementIndex]);
 
-					if (Statement.bIsJumpTarget)
+					if (Statement.bIsJumpTarget && bUseSwitchState)
 					{
 						const int32 StateNum = StatementToStateIndex(FunctionContext, &Statement);
 						Emit(Body, *FString::Printf(TEXT("\n\t\tcase %d:\n"), StateNum));
@@ -1451,6 +1500,8 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 					case KCST_UnconditionalGoto:
 					case KCST_GotoIfNot:
 					case KCST_EndOfThreadIfNot:
+					case KCST_GotoReturn:
+					case KCST_GotoReturnIfNot:
 						EmitGotoStatement(FunctionContext, Statement);
 						break;
 					case KCST_PushState:
@@ -1477,7 +1528,10 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 			}
 		}
 
-		CloseStateSwitch(FunctionContext);
+		if (bUseSwitchState)
+		{
+			CloseStateSwitch(FunctionContext);
+		}
 	}
 
 	EmitReturnStatement(FunctionContext, ReturnValueString);
