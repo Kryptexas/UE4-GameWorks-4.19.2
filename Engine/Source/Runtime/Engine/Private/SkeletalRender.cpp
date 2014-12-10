@@ -207,10 +207,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 
 	const bool bIsMasterCompValid = MasterComp && InMeshComponent->MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
 
-	TArray<FBoneIndexType> ActiveBoneIndices(LOD.ActiveBoneIndices);
-	ActiveBoneIndices.Sort();
-
-	const TArray<FBoneIndexType>* RequiredBoneSets[3] = { &ActiveBoneIndices, ExtraRequiredBoneIndices, NULL };
+	const TArray<FBoneIndexType>* RequiredBoneSets[3] = { &LOD.ActiveBoneIndices, ExtraRequiredBoneIndices, NULL };
 
 	const bool bBoneVisibilityStatesValid = InMeshComponent->BoneVisibilityStates.Num() == InMeshComponent->GetNumSpaceBases();
 

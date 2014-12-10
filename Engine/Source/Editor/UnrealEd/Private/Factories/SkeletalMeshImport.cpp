@@ -846,6 +846,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 
 				// Sort ascending for parent child relationship
 				LODModel.RequiredBones.Sort();
+				LODModel.ActiveBoneIndices.Sort();
 
 				// Fix the chunks' BoneMaps.
 				for(int32 ChunkIndex = 0;ChunkIndex < LODModel.Chunks.Num();ChunkIndex++)

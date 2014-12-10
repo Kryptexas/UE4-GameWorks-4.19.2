@@ -2666,6 +2666,15 @@ void USkeletalMesh::PostLoad()
 		RefSkeleton.RebuildNameToIndexMap();
 	}
 
+	if (GetLinkerUE4Version() < VER_UE4_SORT_ACTIVE_BONE_INDICES)
+	{
+		for (int32 LodIndex = 0; LodIndex < LODInfo.Num(); LodIndex++)
+		{
+			FStaticLODModel & ThisLODModel = ImportedResource->LODModels[LodIndex];
+			ThisLODModel.ActiveBoneIndices.Sort();
+		}
+	}
+
 #if WITH_EDITORONLY_DATA
 	if (RetargetBasePose.Num() == 0)
 	{
