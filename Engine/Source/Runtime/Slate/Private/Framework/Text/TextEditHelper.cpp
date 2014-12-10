@@ -55,6 +55,14 @@ FReply FTextEditHelper::OnKeyChar( const FCharacterEvent& InCharacterEvent, cons
 		break;
 
 
+		// Newline (Ctrl+Enter - handled correctly outside this function)
+	case TCHAR( '\n' ):
+		{
+			Reply = FReply::Handled();
+		}
+		break;
+
+
 		// Swallow OnKeyChar keys that we don't want to be entered into the buffer
 	case 1:		// Swallow Ctrl+A, we handle that through OnKeyDown
 	case 3:		// Swallow Ctrl+C, we handle that through OnKeyDown
