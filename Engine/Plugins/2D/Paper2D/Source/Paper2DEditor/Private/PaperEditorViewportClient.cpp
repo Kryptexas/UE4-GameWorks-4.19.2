@@ -81,8 +81,6 @@ FPaperEditorViewportClient::FPaperEditorViewportClient()
 
 FPaperEditorViewportClient::~FPaperEditorViewportClient()
 {
-	//DestroyCheckerboardTexture();
-	delete ModeTools;
 }
 
 void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
