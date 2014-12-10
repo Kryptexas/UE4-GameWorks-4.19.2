@@ -19,7 +19,7 @@ class UMaterialExpressionIf : public UMaterialExpression
 	UPROPERTY()
 	FExpressionInput AGreaterThanB;
 
-	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstAEqualsB' if not specified"))
+	UPROPERTY(meta = (RequiredInput = "false"))
 	FExpressionInput AEqualsB;
 
 	UPROPERTY()
@@ -32,9 +32,8 @@ class UMaterialExpressionIf : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionIf)
 	float ConstB;
 
-	/** only used if AEqualsB is not hooked up */
-	UPROPERTY(EditAnywhere, Category = MaterialExpressionIf)
-	float ConstAEqualsB;
+	UPROPERTY()
+	float ConstAEqualsB_DEPRECATED;
 
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
