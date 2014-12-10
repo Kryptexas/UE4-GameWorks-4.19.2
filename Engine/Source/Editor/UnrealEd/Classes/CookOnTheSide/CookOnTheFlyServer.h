@@ -349,7 +349,7 @@ private:
 			return true;
 		}
 
-		void RemoveAllCookedFilesForPlatform( const FName& PlatformName )
+		void RemoveAllFilesForPlatform( const FName& PlatformName )
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -371,11 +371,25 @@ private:
 			return false;
 			
 		}
-		int RemoveAll( const FName& Filename )
+		int RemoveFile( const FName& Filename )
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return FilesProcessed.Remove( Filename );
 		}
+
+		bool RemoveFileForPlatform( const FName& Filename, const FName& PlatformName )
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			FFilePlatformRequest* ProcessedFile = FilesProcessed.Find(Filename);
+			if( ProcessedFile )
+			{
+				ProcessedFile->RemovePlatform(PlatformName);
+				return true; 
+			}
+			return false;
+		}
+
+
 		void Empty(int32 ExpectedNumElements = 0)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -554,7 +568,8 @@ private:
 private:
 	/** Current cook mode the cook on the fly server is running in */
 	ECookMode::Type CurrentCookMode;
-	
+	/** Directory to output to instead of the default should be empty in the case of DLC cooking */ 
+	FString OutputDirectoryOverride;
 	//////////////////////////////////////////////////////////////////////////
 	// Cook by the book options
 	struct FCookByTheBookOptions
@@ -576,6 +591,8 @@ private:
 		bool bCancel;
 		/** DlcName setup if we are cooking dlc will be used as the directory to save cooked files to */
 		FString DlcName;
+		/** Create a release from this manifest and store it in the releases directory for this cgame */
+		FString CreateReleaseVersion;
 		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
 		TSet<FWeakObjectPtr> LastGCItems;
 		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
@@ -605,24 +622,28 @@ private:
 	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
 	FThreadSafeFilenameSet CookedPackages; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
 
-	TMap<FName, FCachedPackageFilename> PackageFilenameCache; // filename cache (only process the string operations once)
+	FString GetCachedPackageFilename( const FName& PackageName ) const;
+	FString GetCachedStandardPackageFilename( const FName& PackageName ) const;
+	FName GetCachedStandardPackageFileFName( const FName& PackageName ) const;
+	FString GetCachedPackageFilename( UPackage* Package ) const;
+	FString GetCachedStandardPackageFilename( UPackage* Package ) const;
+	FName GetCachedStandardPackageFileFName( UPackage* Package ) const;
+	const FString& GetCachedSandboxFilename( UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile ) const;
+	const FCachedPackageFilename& Cache(const FName& PackageName) const;
+	void ClearPackageFilenameCache() const;
 
-	FString GetCachedPackageFilename( const FName& PackageName );
-	FString GetCachedStandardPackageFilename( const FName& PackageName );
-	FName GetCachedStandardPackageFileFName( const FName& PackageName );
-	FString GetCachedPackageFilename( UPackage* Package );
-	FString GetCachedStandardPackageFilename( UPackage* Package );
-	FName GetCachedStandardPackageFileFName( UPackage* Package );
-	const FString& GetCachedSandboxFilename( UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile );
-	const FCachedPackageFilename& Cache(const FName& PackageName);
-	void ClearPackageFilenameCache();
+	// declared mutable as it's used to cache package filename strings and I don't want to declare all functions using it as non const
+	// used by GetCached * Filename functions
+	mutable TMap<FName, FCachedPackageFilename> PackageFilenameCache; // filename cache (only process the string operations once)
+
 
 	// declared mutable as it's used purely as a cache and don't want to have to declare all the functions as non const just because of this cache
+	// used by IniSettingsOutOfDate and GetCurrentIniStrings 
 	mutable TMap<FName, TArray<FString>> CachedIniVersionStringsMap;
 
 public:
 
-	void WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames);
+	// void WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames);
 
 	
 
@@ -669,14 +690,30 @@ public:
 	void EndNetworkFileServer();
 
 
+	struct FCookByTheBookStartupOptions
+	{
+	public:
+		TArray<ITargetPlatform*> TargetPlatforms;
+		TArray<FString> CookMaps;
+		TArray<FString> CookDirectories;
+		TArray<FString> CookCultures; 
+		TArray<FString> IniMapSections;
+		ECookByTheBookOptions CookOptions;
+		FString DLCName;
+		FString CreateReleaseVersion;
+		FString BasedOnReleaseVersion;
+
+		FCookByTheBookStartupOptions() :
+			CookOptions(ECookByTheBookOptions::None),
+			DLCName(FString())
+		{ }
+	};
+
 	/**
 	 * Start a cook by the book session
 	 * Cook on the fly can't run at the same time as cook by the book
 	 */
-	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, 
-		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, 
-		const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections, 
-		ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None, const FString &DLCName = FString() );
+	void StartCookByTheBook( const FCookByTheBookStartupOptions& CookByTheBookStartupOptions );
 
 	/**
 	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
@@ -796,6 +833,15 @@ private:
 	 */
 	void CookByTheBookFinished();
 
+	/**
+	 * Get all the packages which are listed in asset registry passed in.  
+	 *
+	 * @param AssetRegistryPath path of the assetregistry.bin file to read
+	 * @param OutPackageNames out list of packages which were contained in the asset registry file
+	 * @return true if successfully read false otherwise
+	 */
+	bool GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// cook on the fly specific functions
@@ -863,9 +909,17 @@ private:
 
 	/**
 	 * Convert a path to a full sandbox path
-	 * This function should be used instead of calling the 
+	 * is effected by the cooking dlc settings
+	 * This function should be used instead of calling the FSandbox Sandbox->ConvertToSandboxPath functions
 	 */
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite = false ) const;
+	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite, const FString& PlatformName ) const;
+	/**
+	 * Get the sandbox root directory for that platform
+	 * is effected by the CookingDlc settings
+	 * This should be used instead of calling the Sandbox function
+	 */
+	FString GetSandboxDirectory( const FString& PlatformName ) const;
 
 	inline bool IsCookingDLC() const
 	{
@@ -878,13 +932,37 @@ private:
 		return false;
 	}
 
+	inline bool IsCreatingReleaseVersion()
+	{
+		if ( CookByTheBookOptions )
+		{
+			return !CookByTheBookOptions->CreateReleaseVersion.IsEmpty();
+		}
+		return false;
+	}
+
+	/**
+	 * Loads the cooked ini version settings maps into the Ini settings cache
+	 * 
+	 * @param TargetPlatforms to look for ini settings for
+	 */
+	bool CacheIniVersionStringsMap( const ITargetPlatform* TargetPlatform ) const;
+
 	/**
 	 * Checks if important ini settings have changed since last cook for each target platform 
 	 * 
 	 * @param TargetPlatforms to check if out of date
 	 * @param OutOfDateTargetPlatforms return list of out of date target platforms which should be cleaned
 	 */
-	bool IniSettingsOutOfDate( const TArray<ITargetPlatform*>& TargetPlatforms, TArray<ITargetPlatform*>& OutOfDateTargetPlatforms, bool bShouldSaveCookedVersions = true ) const;
+	bool IniSettingsOutOfDate( const ITargetPlatform* TargetPlatform ) const;
+
+	/**
+	 * Saves ini settings which are in the memory cache to the hard drive in ini files
+	 *
+	 * @param TargetPlatforms to save
+	 */
+	bool SaveCurrentIniSettings( const ITargetPlatform* TargetPlatform ) const;
+
 
 	/**
 	 * IsCookFlagSet
@@ -896,20 +974,6 @@ private:
 	{
 		return (CookFlags & InCookFlags) != ECookInitializationFlags::None;
 	}
-
-	/**
-	 * Returns cooker output directory.
-	 *
-	 * @param PlatformName Target platform name.
-	 * @return Cooker output directory for the specified platform.
-	 */
-	FString GetOutputDirectory( const FString& PlatformName ) const;
-
-
-	/**
-	 * Gets the asset registry path and name
-	 */
-	FString GetAssetRegistryPath() const;
 
 	/**
 	 *	Get the given packages 'cooked' timestamp (i.e. account for dependencies)
@@ -953,8 +1017,10 @@ private:
 	void SaveGlobalShaderMapFiles(const TArray<ITargetPlatform*>& Platforms);
 
 
+	/** Create sandbox file in directory using current settings supplied */
+	void CreateSandboxFile();
 	/** Gets the output directory respecting any command line overrides */
-	FString GetOutputDirectoryOverride( const FString& OutputDirectoryOverride ) const;
+	FString GetOutputDirectoryOverride() const;
 
 	/** Cleans sandbox folders for all target platforms */
 	void CleanSandbox(const TArray<ITargetPlatform*>& Platforms);

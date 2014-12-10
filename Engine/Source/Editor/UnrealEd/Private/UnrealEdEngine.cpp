@@ -147,7 +147,14 @@ bool UUnrealEdEngine::CanCookByTheBookInEditor() const
 
 void UUnrealEdEngine::StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections )
 {
-	CookServer->StartCookByTheBook( TargetPlatforms, CookMaps, CookDirectories, CookCultures, IniMapSections );
+	UCookOnTheFlyServer::FCookByTheBookStartupOptions StartupOptions;
+	StartupOptions.CookMaps = CookMaps;
+	StartupOptions.TargetPlatforms = TargetPlatforms;
+	StartupOptions.CookDirectories = CookDirectories;
+	StartupOptions.CookCultures = CookCultures;
+	StartupOptions.IniMapSections = IniMapSections;
+
+	CookServer->StartCookByTheBook( StartupOptions );
 }
 
 bool UUnrealEdEngine::IsCookByTheBookInEditorFinished() const 

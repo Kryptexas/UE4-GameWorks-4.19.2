@@ -1038,7 +1038,13 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	// parse commandline options 
 
 	FString DLCName;
-	FParse::Value( *Params, TEXT("DLCNAME"), DLCName);
+	FParse::Value( *Params, TEXT("DLCNAME="), DLCName);
+
+	FString BasedOnReleaseVersion;
+	FParse::Value( *Params, TEXT("BasedOnReleaseVersion="), BasedOnReleaseVersion);
+
+	FString CreateReleaseVersion;
+	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
 
 	/*FString AssetRegistry;
 	if (FParse::Value(*Params, TEXT("SHIPPEDASSETREGISTRY="), AssetRegistry))
@@ -1139,7 +1145,18 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		MapList.Add( MapName );
 	}
 
-	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections, CookOptions, DLCName );
+	UCookOnTheFlyServer::FCookByTheBookStartupOptions StartupOptions;
+
+	StartupOptions.TargetPlatforms = Platforms;
+	Swap( StartupOptions.CookMaps, MapList );
+	Swap( StartupOptions.CookDirectories, CmdLineDirEntries );
+	Swap( StartupOptions.CookCultures, CmdLineCultEntries );
+	Swap( StartupOptions.DLCName, DLCName );
+	Swap( StartupOptions.BasedOnReleaseVersion, BasedOnReleaseVersion );
+	Swap( StartupOptions.CreateReleaseVersion, CreateReleaseVersion );
+	StartupOptions.CookOptions = CookOptions;
+
+	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map
