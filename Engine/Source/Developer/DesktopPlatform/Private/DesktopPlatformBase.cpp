@@ -427,8 +427,8 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	FString Arguments = TEXT("-projectfiles");
 #endif
 
-	// Build the arguments to pass to UBT
-	if ( !ProjectFileName.IsEmpty() )
+	// Build the arguments to pass to UBT. If it's a non-foreign project, just build full project files.
+	if ( !ProjectFileName.IsEmpty() && GetCachedProjectDictionary(RootDir).IsForeignProject(ProjectFileName) )
 	{
 		// Figure out whether it's a foreign project
 		const FUProjectDictionary &ProjectDictionary = GetCachedProjectDictionary(RootDir);
