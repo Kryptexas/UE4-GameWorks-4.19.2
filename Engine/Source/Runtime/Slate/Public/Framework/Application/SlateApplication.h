@@ -542,7 +542,13 @@ public:
 	/** Get the current drag-dropping content */
 	TSharedPtr<class FDragDropOperation> GetDragDroppingContent() const;
 
-	/** End any in flight drag and drops */
+	DEPRECATED(4.6, "Use CancelDragDrop")
+	void EndDragDrop()
+	{
+		CancelDragDrop();
+	}
+
+	/** Cancels any in flight drag and drops */
 	void CancelDragDrop();
 
 	/**
