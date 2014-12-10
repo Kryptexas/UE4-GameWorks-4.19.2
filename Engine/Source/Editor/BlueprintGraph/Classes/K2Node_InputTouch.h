@@ -49,6 +49,9 @@ class UK2Node_InputTouch : public UK2Node
 	/** Get the 'released' input pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetReleasedPin() const;
 
+	/** Get the 'moved' input pin */
+	BLUEPRINTGRAPH_API UEdGraphPin* GetMovedPin() const;
+
 	BLUEPRINTGRAPH_API UEdGraphPin* GetLocationPin() const;
 	BLUEPRINTGRAPH_API UEdGraphPin* GetFingerIndexPin() const;
 	
