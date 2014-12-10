@@ -117,11 +117,22 @@ void FEdModeTileMap::Enter()
 
 void FEdModeTileMap::Exit()
 {
-	FToolkitManager::Get().CloseToolkit(Toolkit.ToSharedRef());
-	Toolkit.Reset();
+	if (Toolkit.IsValid())
+	{
+		FToolkitManager::Get().CloseToolkit(Toolkit.ToSharedRef());
+		Toolkit.Reset();
+	}
 
 	// Call base Exit method to ensure proper cleanup
 	FEdMode::Exit();
+}
+
+void FEdModeTileMap::ActorSelectionChangeNotify()
+{
+	if (FindSelectedComponent() == nullptr)
+	{
+		Owner->DeactivateMode(FEdModeTileMap::EM_TileMap);
+	}
 }
 
 bool FEdModeTileMap::MouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 x, int32 y)
@@ -301,13 +312,8 @@ bool FEdModeTileMap::UsesTransformWidget() const
 	return false;
 }
 
-UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCursorLocation& Ray, int32& OutTileX, int32& OutTileY) const
+UPaperTileMapRenderComponent* FEdModeTileMap::FindSelectedComponent() const
 {
-	const FVector TraceStart = Ray.GetOrigin();
-	const FVector TraceDir = Ray.GetDirection();
-
-	const bool bCollisionPainting = (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers);
-
 	UPaperTileMapRenderComponent* TileMapComponent = nullptr;
 
 	USelection* SelectedActors = Owner->GetSelectedActors();
@@ -336,6 +342,18 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 			}
 		}
 	}
+
+	return TileMapComponent;
+}
+
+UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCursorLocation& Ray, int32& OutTileX, int32& OutTileY) const
+{
+	const FVector TraceStart = Ray.GetOrigin();
+	const FVector TraceDir = Ray.GetDirection();
+
+	const bool bCollisionPainting = (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers);
+
+	UPaperTileMapRenderComponent* TileMapComponent = FindSelectedComponent();
 
 	if (TileMapComponent != nullptr)
 	{
@@ -752,7 +770,7 @@ FViewportCursorLocation FEdModeTileMap::CalculateViewRay(FEditorViewportClient* 
 		.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 
 	FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-	FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
+	FViewportCursorLocation MouseViewportRay( View, InViewportClient, InViewport->GetMouseX(), InViewport->GetMouseY() );
 
 	return MouseViewportRay;
 }
