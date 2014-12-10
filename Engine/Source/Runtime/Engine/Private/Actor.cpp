@@ -2461,7 +2461,7 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotati
 	return false;
 }
 
-void AActor::SetActorScale3D(const FVector& NewScale3D)
+void AActor::SetActorScale3D(FVector NewScale3D)
 {
 	if (RootComponent)
 	{

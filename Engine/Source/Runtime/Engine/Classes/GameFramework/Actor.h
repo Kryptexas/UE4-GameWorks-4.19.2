@@ -685,7 +685,7 @@ public:
 
 	/** Set the Actor's world-space scale. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetActorScale3D(const FVector& NewScale3D);
+	void SetActorScale3D(FVector NewScale3D);
 
 	/** Returns the Actor's world-space scale. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
