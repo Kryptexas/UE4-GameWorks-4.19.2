@@ -556,6 +556,14 @@ public:
 	/** Attempts to load missing shaders from memory. */
 	void LoadMissingShadersFromMemory(const FMaterial* Material);
 
+	/**
+	 * Checks to see if the shader map is already being compiled for another material, and if so
+	 * adds the specified material to the list to be applied to once the compile finishes.
+	 * @param Material - The material we also wish to apply the compiled shader map to.
+	 * @return True if the shader map was being compiled and we added Material to the list to be applied.
+	 */
+	bool TryToAddToSimultaneousCompilation(FMaterial* Material);
+
 	/** Builds a list of the shaders in a shader map. */
 	ENGINE_API void GetShaderList(TMap<FShaderId,FShader*>& OutShaders) const;
 

@@ -1272,7 +1272,13 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		}
 	}
 
-	bool bRequiredRecompile = false;
+	if (GameThreadShaderMap && GameThreadShaderMap->TryToAddToExistingCompilationTask(this))
+	{
+		// Reset the shader map so the default material will be used until the compile finishes.
+		GameThreadShaderMap = NULL;
+		bSucceeded = true;
+	}
+	else
 	if (!GameThreadShaderMap || !GameThreadShaderMap->IsComplete(this, true))
 	{
 		if (bContainsInlineShaders || FPlatformProperties::RequiresCookedData())
@@ -1306,7 +1312,6 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 			// If there's no cached shader map for this material, compile a new one.
 			// This is just kicking off the async compile, GameThreadShaderMap will not be complete yet
 			bSucceeded = BeginCompileShaderMap(ShaderMapId, Platform, GameThreadShaderMap, bApplyCompletedShaderMapForRendering);
-			bRequiredRecompile = true;
 
 			if (!bSucceeded)
 			{

@@ -1315,6 +1315,20 @@ bool FMaterialShaderMap::ProcessCompilationResults(const TArray<FShaderCompileJo
 	return false;
 }
 
+bool FMaterialShaderMap::TryToAddToExistingCompilationTask(FMaterial* Material)
+{
+	check(NumRefs > 0);
+	TArray<FMaterial*>* CorrespondingMaterials = FMaterialShaderMap::ShaderMapsBeingCompiled.Find(this);
+
+	if (CorrespondingMaterials)
+	{
+		CorrespondingMaterials->AddUnique(Material);
+		return true;
+	}
+
+	return false;
+}
+
 bool FMaterialShaderMap::IsComplete(const FMaterial* Material, bool bSilent)
 {
 	bool bIsComplete = true;
