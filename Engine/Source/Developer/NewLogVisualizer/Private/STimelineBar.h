@@ -27,6 +27,7 @@ public:
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	FVector2D ComputeDesiredSize() const;
 	void SnapScrubPosition(float ScrubPosition);
+	void SnapScrubPosition(int32 NewItemIndex);
 	uint32 GetClosestItem(float Time) const;
 
 	void OnSelect();

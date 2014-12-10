@@ -178,7 +178,7 @@ FReply STimelineBar::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InK
 		if (NewItemIndex != CurrentItemIndex)
 		{
 			float NewTimeStamp = Entries[NewItemIndex].Entry.TimeStamp;
-			SnapScrubPosition(NewTimeStamp);
+			SnapScrubPosition(NewItemIndex);
 			if (NewTimeStamp < LocalViewRange.GetLowerBoundValue())
 			{
 				TimeSliderController->SetTimeRange(NewTimeStamp, NewTimeStamp + RangeSize);
@@ -234,6 +234,21 @@ void STimelineBar::SnapScrubPosition(float ScrubPosition)
 		{
 			CurrentItemIndex = BestItemIndex;
 			VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[BestItemIndex]);
+		}
+		TimeSliderController->CommitScrubPosition(CurrentTime, false);
+	}
+}
+
+void STimelineBar::SnapScrubPosition(int32 NewItemIndex)
+{
+	if (NewItemIndex != INDEX_NONE)
+	{
+		auto &Entries = TimelineOwner.Pin()->GetEntries();
+		const float CurrentTime = Entries[NewItemIndex].Entry.TimeStamp;
+		if (CurrentItemIndex != NewItemIndex)
+		{
+			CurrentItemIndex = NewItemIndex;
+			VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[NewItemIndex]);
 		}
 		TimeSliderController->CommitScrubPosition(CurrentTime, false);
 	}
