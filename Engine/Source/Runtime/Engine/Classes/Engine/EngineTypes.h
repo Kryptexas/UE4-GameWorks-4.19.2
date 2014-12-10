@@ -1899,7 +1899,7 @@ struct FMeshBuildSettings
 
 	/** Default settings. */
 	FMeshBuildSettings()
-		: bUseMikkTSpace(false)
+		: bUseMikkTSpace(true)
 		, bRecomputeNormals(true)
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)

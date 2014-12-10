@@ -444,6 +444,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SORT_ACTIVE_BONE_INDICES,
 	// Added per-frame material uniform expressions
 	VER_UE4_PERFRAME_MATERIAL_UNIFORM_EXPRESSIONS,
+	// Make MikkTSpace the default tangent space calculation method for static meshes.
+	VER_UE4_MIKKTSPACE_IS_DEFAULT,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

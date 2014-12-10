@@ -312,7 +312,7 @@ void FMeshBuildSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeR
 	];
 }
 
-TAutoConsoleVariable<int32> GEnableMikkTSpaceCVar(TEXT("r.MikkTSPace"),0,TEXT("Set to be non-zero to display the option of using MikkTSpace to generate tangents for static meshes."),ECVF_Default);
+TAutoConsoleVariable<int32> GEnableMikkTSpaceCVar(TEXT("r.MikkTSPaceOptional"),0,TEXT("Set to be non-zero to display the option of using MikkTSpace to generate tangents for static meshes. MikkTSpace is the default."),ECVF_Default);
 
 void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {

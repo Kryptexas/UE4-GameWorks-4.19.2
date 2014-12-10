@@ -997,12 +997,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	// Note: this serializer is currently only used to build the mesh DDC key, no versioning is required
 	Ar << BuildSettings.bRecomputeNormals;
 	Ar << BuildSettings.bRecomputeTangents;
-#if PLATFORM_WINDOWS
 	Ar << BuildSettings.bUseMikkTSpace;
-#else
-	// Until the library gets compiled for Mac + Linux ignore the user's selection.
-	bool bUseMikkTSpace = false;
-#endif
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
@@ -1829,6 +1824,14 @@ void UStaticMesh::PostLoad()
 		for( int32 i = 0; i < SourceModels.Num(); i++ )
 		{
 			SourceModels[i].BuildSettings.bGenerateLightmapUVs = false;
+		}
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_MIKKTSPACE_IS_DEFAULT)
+	{
+		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		{
+			SourceModels[i].BuildSettings.bUseMikkTSpace = true;
 		}
 	}
 
