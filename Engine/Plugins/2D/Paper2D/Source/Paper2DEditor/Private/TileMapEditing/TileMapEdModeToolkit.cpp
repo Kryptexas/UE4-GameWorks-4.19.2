@@ -67,17 +67,11 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 	BindCommands();
 
 	// Try to determine a good default tile set based on the current selection set
-	USelection* SelectedActors = GEditor->GetSelectedActors();
-	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+	if (UPaperTileMapRenderComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
 	{
-		AActor* Actor = CastChecked<AActor>(*Iter);
-		if (UPaperTileMapRenderComponent* TileMapComponent = Actor->FindComponentByClass<UPaperTileMapRenderComponent>())
+		if (TargetComponent->TileMap != nullptr)
 		{
-			if (TileMapComponent->TileMap != nullptr)
-			{
-				CurrentTileSetPtr = TileMapComponent->TileMap->DefaultLayerTileSet;
-				break;
-			}
+			CurrentTileSetPtr = TargetComponent->TileMap->SelectedTileSet.Get();
 		}
 	}
 
@@ -154,10 +148,22 @@ void FTileMapEdModeToolkit::OnChangeTileSet(UObject* NewAsset)
 {
 	if (UPaperTileSet* NewTileSet = Cast<UPaperTileSet>(NewAsset))
 	{
-		CurrentTileSetPtr = NewTileSet;
-		if (TileSetPalette.IsValid())
+		if (CurrentTileSetPtr.Get() != NewTileSet)
 		{
-			TileSetPalette->ChangeTileSet(NewTileSet);
+			CurrentTileSetPtr = NewTileSet;
+			if (TileSetPalette.IsValid())
+			{
+				TileSetPalette->ChangeTileSet(NewTileSet);
+			}
+
+			// Save the newly selected tile set in the asset so it can be restored next time we edit it
+			if (UPaperTileMapRenderComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
+			{
+				if (TargetComponent->TileMap != nullptr)
+				{
+					TargetComponent->TileMap->SelectedTileSet = NewTileSet;
+				}
+			}
 		}
 	}
 }

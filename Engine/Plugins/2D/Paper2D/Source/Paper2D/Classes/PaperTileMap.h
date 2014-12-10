@@ -60,9 +60,9 @@ class PAPER2D_API UPaperTileMap : public UObject
 	UPROPERTY(Category=Setup, EditAnywhere)
 	float SeparationPerLayer;
 
-	// Default tile set to use for new layers
-	UPROPERTY(Category=Setup, EditAnywhere)
-	class UPaperTileSet* DefaultLayerTileSet;
+	// Last tile set that was selected when editing the tile map
+	UPROPERTY()
+	TAssetPtr<class UPaperTileSet> SelectedTileSet;
 
 	// Test material
 	UPROPERTY(Category=Setup, EditAnywhere)

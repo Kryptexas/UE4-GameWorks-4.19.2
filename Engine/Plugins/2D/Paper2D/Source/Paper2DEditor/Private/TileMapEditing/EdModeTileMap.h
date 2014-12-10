@@ -90,10 +90,12 @@ protected:
 	
 	TSharedRef<FExtender> AddCreationModeExtender(const TSharedRef<FUICommandList> InCommandList);
 
-	UPaperTileMapRenderComponent* FindSelectedComponent() const;
-
 	void EnableTileMapEditMode();
 	bool IsTileMapEditModeActive() const;
+
+public:
+	UPaperTileMapRenderComponent* FindSelectedComponent() const;
+
 protected:
 	bool bIsPainting;
 	TWeakObjectPtr<UPaperTileSet> PaintSourceTileSet;

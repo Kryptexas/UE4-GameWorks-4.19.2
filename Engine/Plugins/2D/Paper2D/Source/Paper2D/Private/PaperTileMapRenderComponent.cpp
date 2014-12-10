@@ -97,7 +97,7 @@ void UPaperTileMapRenderComponent::PostLoad()
 		TileMap->TileWidth = TileWidth_DEPRECATED;
 		TileMap->TileHeight = TileHeight_DEPRECATED;
 		TileMap->PixelsPerUnit = 1.0f;
-		TileMap->DefaultLayerTileSet = DefaultLayerTileSet_DEPRECATED;
+		TileMap->SelectedTileSet = DefaultLayerTileSet_DEPRECATED;
 		TileMap->Material = Material_DEPRECATED;
 		TileMap->TileLayers = TileLayers_DEPRECATED;
 
