@@ -212,6 +212,11 @@ void FLANSession::StopLANSession()
 
 void FLANSession::Tick(float DeltaTime)
 {
+	if (LanBeaconState == ELanBeaconState::NotUsingLanBeacon)
+	{
+		return;
+	}
+
 	uint8 PacketData[LAN_BEACON_MAX_PACKET_SIZE];
 	bool bShouldRead = true;
 	// Read each pending packet and pass it out for processing

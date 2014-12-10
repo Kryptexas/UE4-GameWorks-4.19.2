@@ -300,31 +300,23 @@ uint32 FOnlineSessionNull::UpdateLANStatus()
 	if ( NeedsToAdvertise() )
 	{
 		// set up LAN session
-		if (NULL == LANSessionManager)
+		if (LANSessionManager.GetBeaconState() == ELanBeaconState::NotUsingLanBeacon)
 		{
-			LANSessionManager = new FLANSession();
-
 			FOnValidQueryPacketDelegate QueryPacketDelegate = FOnValidQueryPacketDelegate::CreateRaw(this, &FOnlineSessionNull::OnValidQueryPacketReceived);
-			if (!LANSessionManager->Host(QueryPacketDelegate))
+			if (!LANSessionManager.Host(QueryPacketDelegate))
 			{
 				Result = E_FAIL;
 
-				LANSessionManager->StopLANSession();
-				delete LANSessionManager;
-
-				LANSessionManager = NULL;
+				LANSessionManager.StopLANSession();
 			}
 		}
 	}
 	else
 	{
-		if (LANSessionManager && LANSessionManager->GetBeaconState() != ELanBeaconState::Searching)
+		if (LANSessionManager.GetBeaconState() != ELanBeaconState::Searching)
 		{
 			// Tear down the LAN beacon
-			LANSessionManager->StopLANSession();
-			delete LANSessionManager;
-
-			LANSessionManager = NULL;
+			LANSessionManager.StopLANSession();
 		}
 	}
 
@@ -526,20 +518,15 @@ uint32 FOnlineSessionNull::FindLANSession()
 {
 	uint32 Return = ERROR_IO_PENDING;
 
-	if (!LANSessionManager)
-	{
-		LANSessionManager = new FLANSession();
-	}
-
 	// Recreate the unique identifier for this client
-	GenerateNonce((uint8*)&LANSessionManager->LanNonce, 8);
+	GenerateNonce((uint8*)&LANSessionManager.LanNonce, 8);
 
 	FOnValidResponsePacketDelegate ResponseDelegate = FOnValidResponsePacketDelegate::CreateRaw(this, &FOnlineSessionNull::OnValidResponsePacketReceived);
 	FOnSearchingTimeoutDelegate TimeoutDelegate = FOnSearchingTimeoutDelegate::CreateRaw(this, &FOnlineSessionNull::OnLANSearchTimeout);
 
 	FNboSerializeToBufferNull Packet(LAN_BEACON_MAX_PACKET_SIZE);
-	LANSessionManager->CreateClientQueryPacket(Packet, LANSessionManager->LanNonce);
-	if (LANSessionManager->Search(Packet, ResponseDelegate, TimeoutDelegate) == false)
+	LANSessionManager.CreateClientQueryPacket(Packet, LANSessionManager.LanNonce);
+	if (LANSessionManager.Search(Packet, ResponseDelegate, TimeoutDelegate) == false)
 	{
 		Return = E_FAIL;
 
@@ -943,10 +930,7 @@ void FOnlineSessionNull::Tick(float DeltaTime)
 
 void FOnlineSessionNull::TickLanTasks(float DeltaTime)
 {
-	if (LANSessionManager != NULL && LANSessionManager->GetBeaconState() > ELanBeaconState::NotUsingLanBeacon)
-	{
-		LANSessionManager->Tick(DeltaTime);
-	}
+	LANSessionManager.Tick(DeltaTime);
 }
 
 void FOnlineSessionNull::AppendSessionToPacket(FNboSerializeToBufferNull& Packet, FOnlineSession* Session)
@@ -1033,7 +1017,7 @@ void FOnlineSessionNull::OnValidQueryPacketReceived(uint8* PacketData, int32 Pac
 			{
 				FNboSerializeToBufferNull Packet(LAN_BEACON_MAX_PACKET_SIZE);
 				// Create the basic header before appending additional information
-				LANSessionManager->CreateHostResponsePacket(Packet, ClientNonce);
+				LANSessionManager.CreateHostResponsePacket(Packet, ClientNonce);
 
 				// Add all the session details
 				AppendSessionToPacket(Packet, Session);
@@ -1041,7 +1025,7 @@ void FOnlineSessionNull::OnValidQueryPacketReceived(uint8* PacketData, int32 Pac
 				// Broadcast this response so the client can see us
 				if (!Packet.HasOverflow())
 				{
-					LANSessionManager->BroadcastPacket(Packet, Packet.GetByteCount());
+					LANSessionManager.BroadcastPacket(Packet, Packet.GetByteCount());
 				}
 				else
 				{
@@ -1174,12 +1158,9 @@ void FOnlineSessionNull::OnValidResponsePacketReceived(uint8* PacketData, int32 
 
 uint32 FOnlineSessionNull::FinalizeLANSearch()
 {
-	if (LANSessionManager)
+	if (LANSessionManager.GetBeaconState() == ELanBeaconState::Searching)
 	{
-		check(LANSessionManager->GetBeaconState() == ELanBeaconState::Searching);
-		LANSessionManager->StopLANSession();
-		delete LANSessionManager;
-		LANSessionManager = NULL;
+		LANSessionManager.StopLANSession();
 	}
 
 	return UpdateLANStatus();

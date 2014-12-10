@@ -5,6 +5,7 @@
 #include "OnlineSessionInterface.h"
 #include "OnlineSubsystemNullTypes.h"
 #include "OnlineSubsystemNullPackage.h"
+#include "LANBeacon.h"
 
 /**
  * Interface definition for the online services session services 
@@ -19,12 +20,11 @@ private:
 	class FOnlineSubsystemNull* NullSubsystem;
 
 	/** Handles advertising sessions over LAN and client searches */
-	class FLANSession* LANSessionManager;
+	FLANSession LANSessionManager;
 
 	/** Hidden on purpose */
 	FOnlineSessionNull() :
 		NullSubsystem(NULL),
-		LANSessionManager(NULL),
 		CurrentSessionSearch(NULL)
 	{}
 
@@ -165,7 +165,6 @@ PACKAGE_SCOPE:
 
 	FOnlineSessionNull(class FOnlineSubsystemNull* InSubsystem) :
 		NullSubsystem(InSubsystem),
-		LANSessionManager(NULL),
 		CurrentSessionSearch(NULL),
 		SessionSearchStartInSeconds(0)
 	{}
