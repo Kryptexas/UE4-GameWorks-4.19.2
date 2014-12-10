@@ -2228,21 +2228,22 @@ void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const
 			{
 				Addr = ParentPropertyNode->GetValueBaseAddress((uint8*)ActualObjToChange);
 			}
-			check(Addr != NULL);
 
-			FScriptArrayHelper ArrayHelper(ArrayProperty, Addr);
-
-			FString ArrayContent;
-
-			ArrayProperty->ExportText_Direct(ArrayContent, Addr, Addr, NULL, PPF_Localized);
-			bool bIsDefault = ArrayContent == OriginalArrayContent;
-
-			// Check if the original value was the default value and change it only then
-			if (bIsDefault)
+			if (Addr != NULL)
 			{
-				int32 ElementToInitialize = -1;
-				switch (ChangeType)
+				FScriptArrayHelper ArrayHelper(ArrayProperty, Addr);
+
+				FString ArrayContent;
+
+				ArrayProperty->ExportText_Direct(ArrayContent, Addr, Addr, NULL, PPF_Localized);
+				bool bIsDefault = ArrayContent == OriginalArrayContent;
+
+				// Check if the original value was the default value and change it only then
+				if (bIsDefault)
 				{
+					int32 ElementToInitialize = -1;
+					switch (ChangeType)
+					{
 					case EPropertyArrayChangeType::Add:
 						ElementToInitialize = ArrayHelper.AddValue();
 						break;
@@ -2262,10 +2263,11 @@ void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const
 						NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ArrayIndex), ArrayHelper.GetRawPtr(ArrayIndex + 1));
 						Object->InstanceSubobjectTemplates();
 						break;
-				}
-				if (ElementToInitialize >= 0)
-				{
-					AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
+					}
+					if (ElementToInitialize >= 0)
+					{
+						AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
+					}
 				}
 			}
 		}
