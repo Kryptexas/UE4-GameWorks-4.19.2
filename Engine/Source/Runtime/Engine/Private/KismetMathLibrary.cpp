@@ -1770,6 +1770,11 @@ UObject* UKismetMathLibrary::SelectObject(UObject* A, UObject* B, bool bSelectA)
 	return bSelectA ? A : B;
 }
 
+UClass* UKismetMathLibrary::SelectClass(UClass* A, UClass* B, bool bSelectA)
+{
+	return bSelectA ? A : B;
+}
+
 FRotator UKismetMathLibrary::MakeRotationFromAxes(FVector Forward, FVector Right, FVector Up)
 {
 	Forward.Normalize();

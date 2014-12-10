@@ -1187,6 +1187,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Utilities")
 	static UObject* SelectObject(UObject* A, UObject* B, bool bSelectA);
 
+	/** If bPickA is true, A is returned, otherwise B is */
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static UClass* SelectClass(UClass* A, UClass* B, bool bSelectA);
+
 	// Build a reference frame from three axes
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
 	static FRotator MakeRotationFromAxes(FVector Forward, FVector Right, FVector Up);
