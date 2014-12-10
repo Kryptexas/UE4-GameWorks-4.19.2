@@ -1945,7 +1945,17 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 			Blueprint->DelegateSignatureGraphs.Remove( GraphToRemove );
 			Blueprint->FunctionGraphs.Remove( GraphToRemove );
 			Blueprint->UbergraphPages.Remove( GraphToRemove );
-			Blueprint->LastEditedDocuments.Remove( GraphToRemove );
+
+			// Can't just call Remove, the object is wrapped in a struct
+			for(int EditedDocIdx = 0; EditedDocIdx < Blueprint->LastEditedDocuments.Num(); ++EditedDocIdx)
+			{
+				if(Blueprint->LastEditedDocuments[EditedDocIdx].EditedObject == GraphToRemove)
+				{
+					Blueprint->LastEditedDocuments.RemoveAt(EditedDocIdx);
+					break;
+				}
+			}
+
 			if(Blueprint->MacroGraphs.Remove( GraphToRemove ) > 0 ) 
 			{
 				//removes all macro nodes using this macro graph
