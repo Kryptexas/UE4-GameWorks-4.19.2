@@ -28,12 +28,22 @@ enum ERotationGridMode
 UENUM()
 enum EWASDType
 {
-	WASD_Always UMETA(DisplayName="Use WASD for Camera Controls"),
+	WASD_Always  UMETA(DisplayName="Use WASD for Camera Controls"),
 	WASD_RMBOnly UMETA(DisplayName="Use WASD only when a Mouse Button is Pressed"),
-	WASD_Never UMETA(DisplayName="Never use WASD for Camera Controls"),
+	WASD_Never   UMETA(DisplayName="Never use WASD for Camera Controls"),
 	WASD_MAX,
 };
 
+/**
+ * Is Ctrl key required for editing landscape/foliage?
+ */
+UENUM()
+enum class ELandscapeFoliageEditorControlType : uint8
+{
+	IgnoreCtrl    UMETA(DisplayName = "Ignore Ctrl key (allow but don't require Ctrl held)"),
+	RequireCtrl   UMETA(DisplayName = "Require Ctrl held for tools"),
+	RequireNoCtrl UMETA(DisplayName = "Require Ctrl is not held"),
+};
 
 /**
  * Units used by measuring tool
@@ -42,8 +52,8 @@ UENUM()
 enum EMeasuringToolUnits
 {
 	MeasureUnits_Centimeters UMETA(DisplayName="Centimeters"),
-	MeasureUnits_Meters UMETA(DisplayName="Meters"),
-	MeasureUnits_Kilometers UMETA(DisplayName="Kilometers")
+	MeasureUnits_Meters      UMETA(DisplayName="Meters"),
+	MeasureUnits_Kilometers  UMETA(DisplayName="Kilometers")
 };
 
 
@@ -182,7 +192,15 @@ class UNREALED_API ULevelEditorViewportSettings
 
 	/** Enable the use of flight camera controls under various circumstances. */
 	UPROPERTY(EditAnywhere, config, Category=Controls)
-	TEnumAsByte<enum EWASDType> FlightCameraControlType;
+	TEnumAsByte<EWASDType> FlightCameraControlType;
+
+	/** Choose the control scheme for landscape tools (ignored for pen input) */
+	UPROPERTY(EditAnywhere, config, Category=Controls)
+	ELandscapeFoliageEditorControlType LandscapeEditorControlType;
+
+	/** Choose the control scheme for foliage tools */
+	UPROPERTY(EditAnywhere, config, Category=Controls)
+	ELandscapeFoliageEditorControlType FoliageEditorControlType;
 
 	/** If true, moves the canvas and shows the mouse.  If false, uses original camera movement. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Grab and Drag to Move Orthographic Cameras"), AdvancedDisplay)
@@ -221,7 +239,7 @@ class UNREALED_API ULevelEditorViewportSettings
 	uint32 bUseAbsoluteTranslation:1;
 
 	/** If enabled, the viewport will stream in levels automatically when the camera is moved. */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), aDvancedDisplay)
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), AdvancedDisplay)
 	bool bLevelStreamingVolumePrevis;
 
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */

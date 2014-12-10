@@ -1159,11 +1159,26 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			return true;
 		}
 
+		// Require Ctrl or not as per user preference
+		ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
+
+		// HACK - Splines tool has not yet been updated to support not using ctrl
+		if (CurrentBrush->GetBrushType() == FLandscapeBrush::BT_Splines)
+		{
+			LandscapeEditorControlType = ELandscapeFoliageEditorControlType::RequireCtrl;
+		}
+
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
 			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
 			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
-			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(Viewport) && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
+			bool bMovingCamera = Viewport->KeyState(EKeys::MiddleMouseButton) || Viewport->KeyState(EKeys::RightMouseButton) || IsAltDown(Viewport);
+
+			if ((Viewport->IsPenActive() && Viewport->GetTabletPressure() > 0.f) ||
+				(!bMovingCamera && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None &&
+					(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::IgnoreCtrl ||
+					 LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl   && IsCtrlDown(Viewport) ||
+					 LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireNoCtrl && !IsCtrlDown(Viewport))))
 			{
 				if (CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
 				{
@@ -1191,7 +1206,8 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			}
 		}
 
-		if (Key == EKeys::LeftMouseButton)
+		if (Key == EKeys::LeftMouseButton ||
+			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && (Key == EKeys::LeftControl || Key == EKeys::RightControl)))
 		{
 			if (Event == IE_Released && CurrentTool && bToolActive)
 			{
