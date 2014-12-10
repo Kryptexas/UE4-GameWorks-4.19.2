@@ -4047,6 +4047,12 @@ void FEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMo
 {
 	UpdateRequiredCursorVisibility();
 	ApplyRequiredCursorVisibility();
+
+	// Let the current editor mode know about the mouse movement.
+	if (ModeTools->CapturedMouseMove(this, InViewport, InMouseX, InMouseY))
+	{
+		return;
+	}
 }
 
 void FEditorViewportClient::OpenScreenshot( FString SourceFilePath )

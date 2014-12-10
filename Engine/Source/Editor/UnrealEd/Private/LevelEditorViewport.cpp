@@ -3214,16 +3214,10 @@ FViewportCursorLocation FLevelEditorViewportClient::GetCursorWorldLocationFromMo
  */
 void FLevelEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY )
 {
-	FEditorViewportClient::CapturedMouseMove(InViewport,InMouseX,InMouseY);
-
 	// Commit to any pending transactions now
 	TrackingTransaction.PromotePendingToActive();
 
-	// Let the current editor mode know about the mouse movement.
-	if (IsLevelEditorClient() && ModeTools->CapturedMouseMove(this, InViewport, InMouseX, InMouseY))
-	{
-		return;
-	}
+	FEditorViewportClient::CapturedMouseMove(InViewport, InMouseX, InMouseY);
 }
 
 
