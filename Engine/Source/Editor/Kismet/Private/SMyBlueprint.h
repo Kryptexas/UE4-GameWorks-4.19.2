@@ -157,8 +157,8 @@ private:
 	FText OnGetSectionTitle( int32 InSectionID );
 
 	/** Support functions for checkbox to manage displaying user variables only */
-	ESlateCheckBoxState::Type OnUserVarsCheckState() const;
-	void OnUserVarsCheckStateChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnUserVarsCheckState() const;
+	void OnUserVarsCheckStateChanged(ECheckBoxState InNewState);
 	
 	/** Helper function to open the selected graph */
 	void OpenGraph(FDocumentTracker::EOpenDocumentCause InCause);

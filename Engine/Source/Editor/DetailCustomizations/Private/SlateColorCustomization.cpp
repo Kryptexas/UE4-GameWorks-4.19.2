@@ -73,22 +73,22 @@ void FSlateColorCustomization::OnValueChanged()
 	ColorRuleHandle->SetValueFromFormattedString(TEXT("UseColor_Specified"));
 }
 
-ESlateCheckBoxState::Type FSlateColorCustomization::GetForegroundCheckState() const
+ECheckBoxState FSlateColorCustomization::GetForegroundCheckState() const
 {
 	FString ColorRuleValue;
 	ColorRuleHandle->GetValueAsFormattedString(ColorRuleValue);
 
 	if ( ColorRuleValue == TEXT("UseColor_Foreground") )
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FSlateColorCustomization::HandleForegroundChanged(ESlateCheckBoxState::Type CheckedState)
+void FSlateColorCustomization::HandleForegroundChanged(ECheckBoxState CheckedState)
 {
-	if ( CheckedState == ESlateCheckBoxState::Checked )
+	if ( CheckedState == ECheckBoxState::Checked )
 	{
 		ColorRuleHandle->SetValueFromFormattedString(TEXT("UseColor_Foreground"));
 	}

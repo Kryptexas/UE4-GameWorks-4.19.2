@@ -515,18 +515,18 @@ EVisibility SGraphNode_EnvironmentQuery::GetTestToggleVisibility() const
 	return MyTestNode ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type SGraphNode_EnvironmentQuery::IsTestToggleChecked() const
+ECheckBoxState SGraphNode_EnvironmentQuery::IsTestToggleChecked() const
 {
 	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
-	return MyTestNode && MyTestNode->bTestEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return MyTestNode && MyTestNode->bTestEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SGraphNode_EnvironmentQuery::OnTestToggleChanged(ESlateCheckBoxState::Type NewState)
+void SGraphNode_EnvironmentQuery::OnTestToggleChanged(ECheckBoxState NewState)
 {
 	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
 	if (MyTestNode)
 	{
-		MyTestNode->bTestEnabled = (NewState == ESlateCheckBoxState::Checked);
+		MyTestNode->bTestEnabled = (NewState == ECheckBoxState::Checked);
 		
 		if (MyTestNode->ParentNode)
 		{

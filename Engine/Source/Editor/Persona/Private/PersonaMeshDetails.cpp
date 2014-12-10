@@ -356,9 +356,9 @@ float FSkelMeshReductionSettingsLayout::GetWeldingThreshold() const
 	return ReductionSettings.WeldingThreshold;
 }
 
-ESlateCheckBoxState::Type FSkelMeshReductionSettingsLayout::ShouldRecalculateNormals() const
+ECheckBoxState FSkelMeshReductionSettingsLayout::ShouldRecalculateNormals() const
 {
-	return ReductionSettings.bRecalcNormals ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return ReductionSettings.bRecalcNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 float FSkelMeshReductionSettingsLayout::GetHardAngleThreshold() const
@@ -387,9 +387,9 @@ void FSkelMeshReductionSettingsLayout::OnWeldingThresholdChanged(float NewValue)
 	ReductionSettings.WeldingThreshold = NewValue;
 }
 
-void FSkelMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue)
+void FSkelMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ECheckBoxState NewValue)
 {
-	ReductionSettings.bRecalcNormals = NewValue == ESlateCheckBoxState::Checked;
+	ReductionSettings.bRecalcNormals = NewValue == ECheckBoxState::Checked;
 }
 
 void FSkelMeshReductionSettingsLayout::OnHardAngleThresholdChanged(float NewValue)
@@ -1046,29 +1046,29 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 	return MaterialWidget;
 }
 
-ESlateCheckBoxState::Type FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
+ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 {
-	ESlateCheckBoxState::Type State = ESlateCheckBoxState::Unchecked;
+	ECheckBoxState State = ECheckBoxState::Unchecked;
 	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
 
 	if (Mesh)
 	{
-		State = Mesh->SelectedEditorSection == SectionIndex ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		State = Mesh->SelectedEditorSection == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	return State;
 }
 
-void FPersonaMeshDetails::OnSectionSelectedChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
 	if (Mesh)
 	{
-		if (NewState == ESlateCheckBoxState::Checked)
+		if (NewState == ECheckBoxState::Checked)
 		{
 			Mesh->SelectedEditorSection = SectionIndex;
 		}
-		else if (NewState == ESlateCheckBoxState::Unchecked)
+		else if (NewState == ECheckBoxState::Unchecked)
 		{
 			Mesh->SelectedEditorSection = INDEX_NONE;
 		}
@@ -1076,32 +1076,32 @@ void FPersonaMeshDetails::OnSectionSelectedChanged(ESlateCheckBoxState::Type New
 	}
 }
 
-ESlateCheckBoxState::Type FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) const
+ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) const
 {
-	ESlateCheckBoxState::Type State = ESlateCheckBoxState::Unchecked;
+	ECheckBoxState State = ECheckBoxState::Unchecked;
 	USkeletalMesh* Mesh = Cast<USkeletalMesh>( SelectedObjects[0].Get() );
 
 	if (Mesh && MaterialIndex < Mesh->Materials.Num())
 	{
-		State = Mesh->Materials[MaterialIndex].bEnableShadowCasting ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		State = Mesh->Materials[MaterialIndex].bEnableShadowCasting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	return State;
 }
 
-void FPersonaMeshDetails::OnShadowCastingChanged(ESlateCheckBoxState::Type NewState, int32 MaterialIndex)
+void FPersonaMeshDetails::OnShadowCastingChanged(ECheckBoxState NewState, int32 MaterialIndex)
 {
 	USkeletalMesh* Mesh = Cast<USkeletalMesh>( SelectedObjects[0].Get() );
 
 	if ( Mesh )
 	{
-		if (NewState == ESlateCheckBoxState::Checked)
+		if (NewState == ECheckBoxState::Checked)
 		{
 			const FScopedTransaction Transaction( LOCTEXT( "SetShadowCastingFlag", "Set Shadow Casting For Material" ) );
 			Mesh->Modify();
 			Mesh->Materials[MaterialIndex].bEnableShadowCasting = true;
 		}
-		else if (NewState == ESlateCheckBoxState::Unchecked)
+		else if (NewState == ECheckBoxState::Unchecked)
 		{
 			const FScopedTransaction Transaction( LOCTEXT( "ClearShadowCastingFlag", "Clear Shadow Casting For Material" ) );
 			Mesh->Modify();

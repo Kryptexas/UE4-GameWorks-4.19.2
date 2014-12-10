@@ -1067,15 +1067,15 @@ TSharedRef<SWidget> SFiltersAndPresets::GetToggleButtonForStatType( const EProfi
 		];
 }
 
-void SFiltersAndPresets::FilterByStatType_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EProfilerSampleTypes::Type InStatType )
+void SFiltersAndPresets::FilterByStatType_OnCheckStateChanged( ECheckBoxState NewRadioState, const EProfilerSampleTypes::Type InStatType )
 {
-	bStatTypeIsVisible[InStatType] = NewRadioState == ESlateCheckBoxState::Checked;
+	bStatTypeIsVisible[InStatType] = NewRadioState == ECheckBoxState::Checked;
 	ApplyFiltering();
 }
 
-ESlateCheckBoxState::Type SFiltersAndPresets::FilterByStatType_IsChecked( const EProfilerSampleTypes::Type InStatType ) const
+ECheckBoxState SFiltersAndPresets::FilterByStatType_IsChecked( const EProfilerSampleTypes::Type InStatType ) const
 {
-	return bStatTypeIsVisible[InStatType] ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bStatTypeIsVisible[InStatType] ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 /*-----------------------------------------------------------------------------

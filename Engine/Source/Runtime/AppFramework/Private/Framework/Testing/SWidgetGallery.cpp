@@ -943,12 +943,12 @@ private:
 
 	EPopupMethod PopupMethod;
 
-	ESlateCheckBoxState::Type IsCreateNewWindowChecked() const
+	ECheckBoxState IsCreateNewWindowChecked() const
 	{
-		return this->PopupMethod == EPopupMethod::CreateNewWindow ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return this->PopupMethod == EPopupMethod::CreateNewWindow ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void CreateNewWindowToggled(ESlateCheckBoxState::Type NewState)
+	void CreateNewWindowToggled(ECheckBoxState NewState)
 	{
 		this->PopupMethod = (PopupMethod == EPopupMethod::CreateNewWindow)
 			? EPopupMethod::UseCurrentWindow
@@ -965,17 +965,17 @@ private:
 	}
 
 	// Callback for changing the checked state of a check box.
-	void HandleCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type NewState, bool* CheckBoxThatChanged )
+	void HandleCheckBoxCheckedStateChanged( ECheckBoxState NewState, bool* CheckBoxThatChanged )
 	{
-		*CheckBoxThatChanged = (NewState == ESlateCheckBoxState::Checked);
+		*CheckBoxThatChanged = (NewState == ECheckBoxState::Checked);
 	}
 
 	// Callback for determining whether a check box is checked.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked( bool* CheckBox ) const
+	ECheckBoxState HandleCheckBoxIsChecked( bool* CheckBox ) const
 	{
 		return (*CheckBox)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	// Callback for generating a widget in the SComboBox example.
@@ -998,20 +998,20 @@ private:
 	}
 
 	// Callback for checking a radio button.
-	void HandleRadioButtonCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, ERadioChoice RadioThatChanged )
+	void HandleRadioButtonCheckStateChanged( ECheckBoxState NewRadioState, ERadioChoice RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			RadioChoice = RadioThatChanged;
 		}
 	}
 
 	// Callback for determining whether a radio button is checked.
-	ESlateCheckBoxState::Type HandleRadioButtonIsChecked( ERadioChoice ButtonId ) const
+	ECheckBoxState HandleRadioButtonIsChecked( ERadioChoice ButtonId ) const
 	{
 		return (RadioChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	// Callback for searching in the SSearchBox example.

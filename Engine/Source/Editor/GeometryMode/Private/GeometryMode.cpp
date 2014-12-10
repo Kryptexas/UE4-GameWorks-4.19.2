@@ -33,9 +33,9 @@ void SGeometryModeControls::Construct(const FArguments& InArgs)
 	CreateLayout();
 }
 
-void SGeometryModeControls::OnModifierStateChanged(ESlateCheckBoxState::Type NewCheckedState, UGeomModifier* Modifier)
+void SGeometryModeControls::OnModifierStateChanged(ECheckBoxState NewCheckedState, UGeomModifier* Modifier)
 {
-	if (NewCheckedState == ESlateCheckBoxState::Checked)
+	if (NewCheckedState == ECheckBoxState::Checked)
 	{
 		GetGeometryModeTool()->SetCurrentModifier(Modifier);
 
@@ -45,11 +45,11 @@ void SGeometryModeControls::OnModifierStateChanged(ESlateCheckBoxState::Type New
 	}
 }
 
-ESlateCheckBoxState::Type SGeometryModeControls::IsModifierChecked(UGeomModifier* Modifier) const
+ECheckBoxState SGeometryModeControls::IsModifierChecked(UGeomModifier* Modifier) const
 {
 	return (GetGeometryModeTool()->GetCurrentModifier() == Modifier)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
 bool SGeometryModeControls::IsModifierEnabled(UGeomModifier* Modifier) const

@@ -157,7 +157,7 @@ private:
 	FOnParametersUpdated OnParametersUpdated;
 };
 
-typedef TAttribute<ESlateCheckBoxState::Type>::FGetter FReturnCheckboxValueDelegate;
+typedef TAttribute<ECheckBoxState>::FGetter FReturnCheckboxValueDelegate;
 
 struct FBlendSpaceDisplayCheckBoxEntry
 {
@@ -372,9 +372,9 @@ protected:
 	virtual TSharedRef<SWidget> MakeDisplayOptionsBox() const;
 
 	/** Handle preview on blend checkbox */
-	ESlateCheckBoxState::Type IsPreviewOn() const;
-	void ShowPreview_OnIsCheckedChanged( ESlateCheckBoxState::Type NewValue );
-	void ShowToolTip_OnIsCheckedChanged( ESlateCheckBoxState::Type NewValue );
+	ECheckBoxState IsPreviewOn() const;
+	void ShowPreview_OnIsCheckedChanged( ECheckBoxState NewValue );
+	void ShowToolTip_OnIsCheckedChanged( ECheckBoxState NewValue );
 
 	/** Updates Persona's preview window */
 	void UpdatePreviewParameter() const;

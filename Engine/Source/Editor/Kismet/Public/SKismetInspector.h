@@ -80,7 +80,7 @@ protected:
 	bool bShowInspectorPropertyView;
 
 	/** State of CheckBox representing whether to show only the public variables*/
-	ESlateCheckBoxState::Type	PublicViewState;
+	ECheckBoxState	PublicViewState;
 
 	/** Property viewing widget */
 	TSharedPtr<class IDetailsView> PropertyView;
@@ -124,6 +124,6 @@ protected:
 	 */
 	FString GetContextualEditingWidgetTitle() const;
 
-	ESlateCheckBoxState::Type GetPublicViewCheckboxState() const;
-	void SetPublicViewCheckboxState(ESlateCheckBoxState::Type InIsChecked);
+	ECheckBoxState GetPublicViewCheckboxState() const;
+	void SetPublicViewCheckboxState(ECheckBoxState InIsChecked);
 };

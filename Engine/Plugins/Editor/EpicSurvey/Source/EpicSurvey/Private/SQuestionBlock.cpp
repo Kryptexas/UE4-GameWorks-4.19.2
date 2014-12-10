@@ -302,7 +302,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 	];
 }
 
-ESlateCheckBoxState::Type SQuestionBlock::IsAnswerChecked( TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex ) const
+ECheckBoxState SQuestionBlock::IsAnswerChecked( TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex ) const
 {
 	TSharedPtr< FQuestionBlock > Block =  BlockPtr.Pin();
 
@@ -312,10 +312,10 @@ ESlateCheckBoxState::Type SQuestionBlock::IsAnswerChecked( TWeakPtr< FQuestionBl
 		IsChecked = Block->GetUserAnswers( QuestionIndex ).Contains( AnswerIndex );
 	}
 
-	return IsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SQuestionBlock::AnswerCheckStateChanged( ESlateCheckBoxState::Type CheckState, TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex )
+void SQuestionBlock::AnswerCheckStateChanged( ECheckBoxState CheckState, TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex )
 {
 	TSharedPtr< FQuestionBlock > Block =  BlockPtr.Pin();
 

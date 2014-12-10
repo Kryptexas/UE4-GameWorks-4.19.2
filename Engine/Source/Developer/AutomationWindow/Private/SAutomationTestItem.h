@@ -68,7 +68,7 @@ protected:
 	*
 	* @return true if the test is enabled.
 	*/
-	ESlateCheckBoxState::Type IsTestEnabled( ) const;
+	ECheckBoxState IsTestEnabled( ) const;
 
 	/**
 	 * Returns color that indicates test status per cluster.
@@ -128,7 +128,7 @@ protected:
 private:
 
 	/** Handle the testing checkbox click. */
-	void HandleTestingCheckbox_Click( ESlateCheckBoxState::Type );
+	void HandleTestingCheckbox_Click( ECheckBoxState );
 
 private:
 

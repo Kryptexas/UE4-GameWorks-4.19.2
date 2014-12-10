@@ -688,14 +688,14 @@ FText STiledLandcapeImportDlg::GetWeightmapCountText(TSharedPtr<FTiledLandscapeI
 	return FText::AsNumber(NumWeighmaps);
 }
 
-ESlateCheckBoxState::Type STiledLandcapeImportDlg::GetLayerBlendState(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const
+ECheckBoxState STiledLandcapeImportDlg::GetLayerBlendState(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const
 {
-	return (InLayerData->bNoBlendWeight ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked);
+	return (InLayerData->bNoBlendWeight ? ECheckBoxState::Unchecked : ECheckBoxState::Checked);
 }
 
-void STiledLandcapeImportDlg::OnLayerBlendStateChanged(ESlateCheckBoxState::Type NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData)
+void STiledLandcapeImportDlg::OnLayerBlendStateChanged(ECheckBoxState NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData)
 {
-	InLayerData->bNoBlendWeight = !(NewState == ESlateCheckBoxState::Checked);
+	InLayerData->bNoBlendWeight = !(NewState == ECheckBoxState::Checked);
 }
 
 FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, int32 NumSectionsPerComponent, int32 NumQuadsPerSection) const

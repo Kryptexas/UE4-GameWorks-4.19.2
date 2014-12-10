@@ -339,19 +339,19 @@ FReply SSymbolDebugger::FileOpenClicked()
 	return FReply::Unhandled();
 }
 
-ESlateCheckBoxState::Type SSymbolDebugger::IsMethodChecked(ESymbolDebuggerMethods InMethod) const
+ECheckBoxState SSymbolDebugger::IsMethodChecked(ESymbolDebuggerMethods InMethod) const
 {
 	if (GetSymbolDebuggertMethod() == InMethod)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SSymbolDebugger::OnMethodChanged(ESlateCheckBoxState::Type InNewRadioState, ESymbolDebuggerMethods InMethodThatChanged)
+void SSymbolDebugger::OnMethodChanged(ECheckBoxState InNewRadioState, ESymbolDebuggerMethods InMethodThatChanged)
 {
-	if (InNewRadioState == ESlateCheckBoxState::Checked)
+	if (InNewRadioState == ECheckBoxState::Checked)
 	{
 		Delegate_OnSetCurrentMethod.Execute(InMethodThatChanged);
 	}

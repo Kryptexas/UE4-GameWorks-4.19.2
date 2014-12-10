@@ -89,20 +89,20 @@ void SDeviceBrowserFilterBar::HandleFilterStringTextChanged( const FText& NewTex
 }
 
 
-void SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged(ESlateCheckBoxState::Type CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry)
+void SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged(ECheckBoxState CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry)
 {
-	Filter->SetPlatformEnabled(PlatformEntry->PlatformName, CheckState == ESlateCheckBoxState::Checked);
+	Filter->SetPlatformEnabled(PlatformEntry->PlatformName, CheckState == ECheckBoxState::Checked);
 }
 
 
-ESlateCheckBoxState::Type SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
+ECheckBoxState SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
 {
 	if (Filter->IsPlatformEnabled(PlatformEntry->PlatformName))
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

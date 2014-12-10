@@ -2099,51 +2099,51 @@ void SLogVisualizer::OnSetHistogramWindowValue(float NewValue)
 	InvalidateCanvas();
 }
 
-void SLogVisualizer::OnDrawLogEntriesPathChanged(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnDrawLogEntriesPathChanged(ECheckBoxState NewState)
 {
-	bDrawLogEntriesPath = (NewState == ESlateCheckBoxState::Checked);
+	bDrawLogEntriesPath = (NewState == ECheckBoxState::Checked);
 	InvalidateCanvas();
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetDrawLogEntriesPathState() const
+ECheckBoxState SLogVisualizer::GetDrawLogEntriesPathState() const
 {
-	return bDrawLogEntriesPath ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bDrawLogEntriesPath ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SLogVisualizer::OnIgnoreTrivialLogs(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnIgnoreTrivialLogs(ECheckBoxState NewState)
 {
-	bIgnoreTrivialLogs = (NewState == ESlateCheckBoxState::Checked);
+	bIgnoreTrivialLogs = (NewState == ECheckBoxState::Checked);
 	DoFullUpdate();
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetIgnoreTrivialLogs() const
+ECheckBoxState SLogVisualizer::GetIgnoreTrivialLogs() const
 {
-	return bIgnoreTrivialLogs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIgnoreTrivialLogs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SLogVisualizer::OnChangeHistogramLabelLocation(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnChangeHistogramLabelLocation(ECheckBoxState NewState)
 {
-	bShowHistogramLabelsOutside = (NewState == ESlateCheckBoxState::Checked);
+	bShowHistogramLabelsOutside = (NewState == ECheckBoxState::Checked);
 	InvalidateCanvas();
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetHistogramLabelLocation() const
+ECheckBoxState SLogVisualizer::GetHistogramLabelLocation() const
 {
-	return bShowHistogramLabelsOutside ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bShowHistogramLabelsOutside ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SLogVisualizer::OnStickToLastData(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnStickToLastData(ECheckBoxState NewState)
 {
-	bStickToLastData = (NewState == ESlateCheckBoxState::Checked);
+	bStickToLastData = (NewState == ECheckBoxState::Checked);
 	InvalidateCanvas();
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetStickToLastData() const
+ECheckBoxState SLogVisualizer::GetStickToLastData() const
 {
-	return bStickToLastData ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bStickToLastData ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SLogVisualizer::OnToggleCamera(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnToggleCamera(ECheckBoxState NewState)
 {
 	UWorld* World = GetWorld();
 	if (ALogVisualizerCameraController::IsEnabled(World))
@@ -2157,26 +2157,26 @@ void SLogVisualizer::OnToggleCamera(ESlateCheckBoxState::Type NewState)
 	InvalidateCanvas();
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetToggleCameraState() const
+ECheckBoxState SLogVisualizer::GetToggleCameraState() const
 {
 	return ALogVisualizerCameraController::IsEnabled(GetWorld())
-		? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SLogVisualizer::OnOffsetDataSets(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnOffsetDataSets(ECheckBoxState NewState)
 {
-	bOffsetDataSet = (NewState == ESlateCheckBoxState::Checked);
+	bOffsetDataSet = (NewState == ECheckBoxState::Checked);
 	InvalidateCanvas();
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetOffsetDataSets() const
+ECheckBoxState SLogVisualizer::GetOffsetDataSets() const
 {
-	return bOffsetDataSet ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bOffsetDataSet ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SLogVisualizer::OnHistogramGraphsFilter(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnHistogramGraphsFilter(ECheckBoxState NewState)
 {
-	bHistogramGraphsFilter = (NewState == ESlateCheckBoxState::Checked);
+	bHistogramGraphsFilter = (NewState == ECheckBoxState::Checked);
 	QuickFilterText.Empty();
 	QuickFilterBox->SetText(FText::FromString(QuickFilterText));
 
@@ -2194,9 +2194,9 @@ void SLogVisualizer::OnHistogramGraphsFilter(ESlateCheckBoxState::Type NewState)
 	}
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetHistogramGraphsFilter() const
+ECheckBoxState SLogVisualizer::GetHistogramGraphsFilter() const
 {
-	return bHistogramGraphsFilter ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bHistogramGraphsFilter ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 //----------------------------------------------------------------------//
@@ -2609,10 +2609,10 @@ FString SLogVisualizer::GetStatusText() const
 	return TEXT("");
 }
 
-ESlateCheckBoxState::Type SLogVisualizer::GetPauseState() const
+ECheckBoxState SLogVisualizer::GetPauseState() const
 {
 	UWorld* World = GetWorld();
-	return (World != NULL && (World->bPlayersOnly || World->bPlayersOnlyPending)) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (World != NULL && (World->bPlayersOnly || World->bPlayersOnlyPending)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FReply SLogVisualizer::OnRecordButtonClicked()
@@ -2749,12 +2749,12 @@ FReply SLogVisualizer::OnRemove()
 	return FReply::Handled();
 }
 
-void SLogVisualizer::OnPauseChanged(ESlateCheckBoxState::Type NewState)
+void SLogVisualizer::OnPauseChanged(ECheckBoxState NewState)
 {
 	UWorld* World = GetWorld();
 	if (World != NULL)
 	{
-		if (NewState != ESlateCheckBoxState::Checked)
+		if (NewState != ECheckBoxState::Checked)
 		{
 			World->bPlayersOnly = false;
 			World->bPlayersOnlyPending = false;

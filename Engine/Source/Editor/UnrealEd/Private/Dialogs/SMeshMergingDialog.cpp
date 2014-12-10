@@ -270,14 +270,14 @@ FReply SMeshMergingDialog::OnMergeClicked()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type SMeshMergingDialog::GetGenerateLightmapUV() const
+ECheckBoxState SMeshMergingDialog::GetGenerateLightmapUV() const
 {
-	return (MergingSettings.bGenerateLightMapUV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+	return (MergingSettings.bGenerateLightMapUV ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
-void SMeshMergingDialog::SetGenerateLightmapUV(ESlateCheckBoxState::Type NewValue)
+void SMeshMergingDialog::SetGenerateLightmapUV(ECheckBoxState NewValue)
 {
-	MergingSettings.bGenerateLightMapUV = (ESlateCheckBoxState::Checked == NewValue);
+	MergingSettings.bGenerateLightMapUV = (ECheckBoxState::Checked == NewValue);
 }
 
 bool SMeshMergingDialog::IsLightmapChannelEnabled() const
@@ -295,14 +295,14 @@ void SMeshMergingDialog::SetTargetLightMapResolution(TSharedPtr<FString> NewSele
 	TTypeFromString<int32>::FromString(MergingSettings.TargetLightMapResolution, **NewSelection);
 }
 
-ESlateCheckBoxState::Type SMeshMergingDialog::GetImportVertexColors() const
+ECheckBoxState SMeshMergingDialog::GetImportVertexColors() const
 {
-	return (MergingSettings.bImportVertexColors ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+	return (MergingSettings.bImportVertexColors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
-void SMeshMergingDialog::SetImportVertexColors(ESlateCheckBoxState::Type NewValue)
+void SMeshMergingDialog::SetImportVertexColors(ECheckBoxState NewValue)
 {
-	MergingSettings.bImportVertexColors = (ESlateCheckBoxState::Checked == NewValue);
+	MergingSettings.bImportVertexColors = (ECheckBoxState::Checked == NewValue);
 }
 
 void SMeshMergingDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSelection)
@@ -310,24 +310,24 @@ void SMeshMergingDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSele
 	GenerateNewPackageName();
 }
 
-ESlateCheckBoxState::Type SMeshMergingDialog::GetPivotPointAtZero() const
+ECheckBoxState SMeshMergingDialog::GetPivotPointAtZero() const
 {
-	return (MergingSettings.bPivotPointAtZero ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+	return (MergingSettings.bPivotPointAtZero ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
-void SMeshMergingDialog::SetPivotPointAtZero(ESlateCheckBoxState::Type NewValue)
+void SMeshMergingDialog::SetPivotPointAtZero(ECheckBoxState NewValue)
 {
-	MergingSettings.bPivotPointAtZero = (ESlateCheckBoxState::Checked == NewValue);
+	MergingSettings.bPivotPointAtZero = (ECheckBoxState::Checked == NewValue);
 }
 
-ESlateCheckBoxState::Type SMeshMergingDialog::GetPlaceInWorld() const
+ECheckBoxState SMeshMergingDialog::GetPlaceInWorld() const
 {
-	return (bPlaceInWorld ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+	return (bPlaceInWorld ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
-void SMeshMergingDialog::SetPlaceInWorld(ESlateCheckBoxState::Type NewValue)
+void SMeshMergingDialog::SetPlaceInWorld(ECheckBoxState NewValue)
 {
-	bPlaceInWorld = (ESlateCheckBoxState::Checked == NewValue);
+	bPlaceInWorld = (ECheckBoxState::Checked == NewValue);
 }
 
 void SMeshMergingDialog::GenerateNewPackageName()

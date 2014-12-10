@@ -213,7 +213,7 @@ void SSessionConsoleFilterBar::HandleFilterStringTextChanged( const FText& NewTe
 }
 
 
-void SSessionConsoleFilterBar::HandleHighlightOnlyCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckedState )
+void SSessionConsoleFilterBar::HandleHighlightOnlyCheckBoxCheckStateChanged( ECheckBoxState CheckedState )
 {
 	OnFilterChanged.ExecuteIfBound();
 }

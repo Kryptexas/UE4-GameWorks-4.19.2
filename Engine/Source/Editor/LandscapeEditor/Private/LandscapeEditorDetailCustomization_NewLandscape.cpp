@@ -726,22 +726,22 @@ EVisibility FLandscapeEditorDetailCustomization_NewLandscape::GetVisibilityOnlyI
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FLandscapeEditorDetailCustomization_NewLandscape::NewLandscapeModeIsChecked(ENewLandscapePreviewMode::Type value) const
+ECheckBoxState FLandscapeEditorDetailCustomization_NewLandscape::NewLandscapeModeIsChecked(ENewLandscapePreviewMode::Type value) const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
 		if (LandscapeEdMode->NewLandscapePreviewMode == value)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FLandscapeEditorDetailCustomization_NewLandscape::OnNewLandscapeModeChanged(ESlateCheckBoxState::Type NewCheckedState, ENewLandscapePreviewMode::Type value)
+void FLandscapeEditorDetailCustomization_NewLandscape::OnNewLandscapeModeChanged(ECheckBoxState NewCheckedState, ENewLandscapePreviewMode::Type value)
 {
-	if (NewCheckedState == ESlateCheckBoxState::Checked)
+	if (NewCheckedState == ECheckBoxState::Checked)
 	{
 		FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 		if (LandscapeEdMode != NULL)

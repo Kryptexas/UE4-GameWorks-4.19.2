@@ -137,7 +137,7 @@ private:
 	 */
 	FText GetToolTipText() const
 	{
-		if (GetFavoritedState() == ESlateCheckBoxState::Checked)
+		if (GetFavoritedState() == ECheckBoxState::Checked)
 		{
 			return LOCTEXT("Unfavorite", "Click to remove this item from your favorites.");
 		}
@@ -148,14 +148,14 @@ private:
 	 * Checks on the associated action's favorite state, and returns a 
 	 * corresponding checkbox state to match.
 	 * 
-	 * @return ESlateCheckBoxState::Checked if the associated action is already favorited, ESlateCheckBoxState::Unchecked if not.
+	 * @return ECheckBoxState::Checked if the associated action is already favorited, ECheckBoxState::Unchecked if not.
 	 */
-	ESlateCheckBoxState::Type GetFavoritedState() const
+	ECheckBoxState GetFavoritedState() const
 	{
-		ESlateCheckBoxState::Type FavoriteState = ESlateCheckBoxState::Unchecked;
+		ECheckBoxState FavoriteState = ECheckBoxState::Unchecked;
 		if (GEditor->EditorUserSettings->BlueprintFavorites->IsFavorited(ActionPtr.Pin()))
 		{
-			FavoriteState = ESlateCheckBoxState::Checked;
+			FavoriteState = ECheckBoxState::Checked;
 		}
 		return FavoriteState;
 	}
@@ -166,9 +166,9 @@ private:
 	 * 
 	 * @param  InNewState	The new state that the user set the checkbox to.
 	 */
-	void OnFavoriteToggled(ESlateCheckBoxState::Type InNewState)
+	void OnFavoriteToggled(ECheckBoxState InNewState)
 	{
-		if (InNewState == ESlateCheckBoxState::Checked)
+		if (InNewState == ECheckBoxState::Checked)
 		{
 			GEditor->EditorUserSettings->BlueprintFavorites->AddFavorite(ActionPtr.Pin());
 		}
@@ -193,7 +193,7 @@ private:
 SBlueprintActionMenu::~SBlueprintActionMenu()
 {
 	OnClosedCallback.ExecuteIfBound();
-	OnCloseReasonCallback.ExecuteIfBound(bActionExecuted, ContextToggleIsChecked() == ESlateCheckBoxState::Checked, DraggedFromPins.Num() > 0);
+	OnCloseReasonCallback.ExecuteIfBound(bActionExecuted, ContextToggleIsChecked() == ECheckBoxState::Checked, DraggedFromPins.Num() > 0);
 }
 
 void SBlueprintActionMenu::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InEditor )
@@ -374,15 +374,15 @@ FText SBlueprintActionMenu::GetSearchContextDesc() const
 	}
 }
 
-void SBlueprintActionMenu::OnContextToggleChanged(ESlateCheckBoxState::Type CheckState)
+void SBlueprintActionMenu::OnContextToggleChanged(ECheckBoxState CheckState)
 {
-	EditorPtr.Pin()->GetIsContextSensitive() = CheckState == ESlateCheckBoxState::Checked;
+	EditorPtr.Pin()->GetIsContextSensitive() = CheckState == ECheckBoxState::Checked;
 	GraphActionMenu->RefreshAllActions(true, false);
 }
 
-ESlateCheckBoxState::Type SBlueprintActionMenu::ContextToggleIsChecked() const
+ECheckBoxState SBlueprintActionMenu::ContextToggleIsChecked() const
 {
-	return EditorPtr.Pin()->GetIsContextSensitive() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return EditorPtr.Pin()->GetIsContextSensitive() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)

@@ -319,7 +319,7 @@ public:
 	}
 
 	// TODO: At this moment SButtonRowBlock::OnIsChecked supports only Checked and Unchecked
-	// ESlateCheckBoxState.Undetermined is not supported
+	// ECheckBoxState.Undetermined is not supported
 	/**
 	 * @return true, if the specified session instance tracks any stats.
 	 */
@@ -638,7 +638,7 @@ protected:
 	/** Profiler view mode. */
 	EProfilerViewMode::Type ViewMode;
 
-	// TODO: Bool should be replaces with type similar to ESlateCheckBoxState {Checked,Unchecked,Undertermined}
+	// TODO: Bool should be replaces with type similar to ECheckBoxState {Checked,Unchecked,Undertermined}
 
 	/** True, if the profiler is currently showing the latest data, only valid if profiler is connected to network based session. */
 	bool bLivePreview;

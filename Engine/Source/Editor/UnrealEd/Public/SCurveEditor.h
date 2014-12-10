@@ -452,12 +452,12 @@ private:
 	FVector2D SnapLocation(FVector2D InLocation);
 
 	FText GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	ESlateCheckBoxState::Type IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	void OnCurveIsVisibleChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
+	ECheckBoxState IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	void OnCurveIsVisibleChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
 
 	FText GetIsCurveLockedToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	ESlateCheckBoxState::Type IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	void OnCurveIsLockedChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
+	ECheckBoxState IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	void OnCurveIsLockedChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
 
 	void RemoveCurveKeysFromSelection(TSharedPtr<FCurveViewModel> CurveViewModel);
 

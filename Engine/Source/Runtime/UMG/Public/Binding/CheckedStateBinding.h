@@ -17,7 +17,7 @@ public:
 	virtual bool IsSupportedDestination(UProperty* Property) const override;
 
 	UFUNCTION()
-	ESlateCheckBoxState::Type GetValue() const;
+	ECheckBoxState GetValue() const;
 
 private:
 	enum class EConversion : uint8

@@ -916,14 +916,14 @@ const FSlateBrush* SSurfaceProperties::GetPreserveScaleRatioImage() const
 	return bPreserveScaleRatio ? FEditorStyle::GetBrush( TEXT("GenericLock") ) : FEditorStyle::GetBrush( TEXT("GenericUnlock") ) ;
 }
 
-ESlateCheckBoxState::Type SSurfaceProperties::IsPreserveScaleRatioChecked() const
+ECheckBoxState SSurfaceProperties::IsPreserveScaleRatioChecked() const
 {
-	return bPreserveScaleRatio ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bPreserveScaleRatio ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SSurfaceProperties::OnPreserveScaleRatioToggled( ESlateCheckBoxState::Type NewState )
+void SSurfaceProperties::OnPreserveScaleRatioToggled( ECheckBoxState NewState )
 {
-	bPreserveScaleRatio = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	bPreserveScaleRatio = (NewState == ECheckBoxState::Checked) ? true : false;
 	CachedScalingValueV = CachedScalingValueU;
 	GConfig->SetBool(TEXT("SurfaceSelection"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
 }
@@ -948,19 +948,19 @@ const FSlateBrush* SSurfaceProperties::GetTogglePanDirectionImage( TextureCoordC
 	return bUseNegativePanningV ? FEditorStyle::GetBrush( TEXT("SurfaceDetails.PanVNegative") ) : FEditorStyle::GetBrush( TEXT("SurfaceDetails.PanVPositive") ) ;
 }
 
-ESlateCheckBoxState::Type SSurfaceProperties::IsUsingNegativePanning( TextureCoordChannel Channel ) const
+ECheckBoxState SSurfaceProperties::IsUsingNegativePanning( TextureCoordChannel Channel ) const
 {
 	if (Channel == UChannel)
 	{
-		return bUseNegativePanningU ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bUseNegativePanningU ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	return bUseNegativePanningV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bUseNegativePanningV ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SSurfaceProperties::OnTogglePanningDirection( ESlateCheckBoxState::Type NewState, TextureCoordChannel Channel )
+void SSurfaceProperties::OnTogglePanningDirection( ECheckBoxState NewState, TextureCoordChannel Channel )
 {
-	bool CheckBoxState = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	bool CheckBoxState = (NewState == ECheckBoxState::Checked) ? true : false;
 	(Channel == UChannel) ? bUseNegativePanningU = CheckBoxState : bUseNegativePanningV = CheckBoxState;
 }
 
@@ -969,14 +969,14 @@ const FSlateBrush* SSurfaceProperties::GetToggleRotationDirectionImage() const
 	return bUseNegativeRotation ? FEditorStyle::GetBrush( TEXT("SurfaceDetails.ClockwiseRotation") ) : FEditorStyle::GetBrush( TEXT("SurfaceDetails.AntiClockwiseRotation") ) ;
 }
 
-ESlateCheckBoxState::Type SSurfaceProperties::IsUsingNegativeRotation() const
+ECheckBoxState SSurfaceProperties::IsUsingNegativeRotation() const
 {
-	return bUseNegativeRotation ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bUseNegativeRotation ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SSurfaceProperties::OnToggleRotationDirection( ESlateCheckBoxState::Type NewState )
+void SSurfaceProperties::OnToggleRotationDirection( ECheckBoxState NewState )
 {
-	bUseNegativeRotation = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	bUseNegativeRotation = (NewState == ECheckBoxState::Checked) ? true : false;
 }
 
 #undef LOCTEXT_NAMESPACE

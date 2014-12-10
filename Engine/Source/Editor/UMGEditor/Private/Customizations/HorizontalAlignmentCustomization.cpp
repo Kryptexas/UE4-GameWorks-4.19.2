@@ -96,20 +96,20 @@ void FHorizontalAlignmentCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 {
 }
 
-void FHorizontalAlignmentCustomization::HandleCheckStateChanged(ESlateCheckBoxState::Type InCheckboxState, TSharedRef<IPropertyHandle> PropertyHandle, EHorizontalAlignment ToAlignment)
+void FHorizontalAlignmentCustomization::HandleCheckStateChanged(ECheckBoxState InCheckboxState, TSharedRef<IPropertyHandle> PropertyHandle, EHorizontalAlignment ToAlignment)
 {
 	PropertyHandle->SetValue((uint8)ToAlignment);
 }
 
-ESlateCheckBoxState::Type FHorizontalAlignmentCustomization::GetCheckState(TSharedRef<IPropertyHandle> PropertyHandle, EHorizontalAlignment ForAlignment) const
+ECheckBoxState FHorizontalAlignmentCustomization::GetCheckState(TSharedRef<IPropertyHandle> PropertyHandle, EHorizontalAlignment ForAlignment) const
 {
 	uint8 Value;
 	if ( PropertyHandle->GetValue(Value) )
 	{
-		return Value == ForAlignment ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Value == ForAlignment ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 #undef LOCTEXT_NAMESPACE

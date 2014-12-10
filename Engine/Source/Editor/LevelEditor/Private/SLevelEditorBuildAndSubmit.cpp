@@ -51,7 +51,7 @@ public:
 				[
 					SNew(SCheckBox)
 					.OnCheckStateChanged(this, &SPackageItem::OnCheckStateChanged)
-					.IsChecked(Item->Selected ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(Item->Selected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("BuildAndSubmit.NormalFont"))
@@ -113,9 +113,9 @@ public:
 
 private:
 	/** User clicked the check box on this item - set the item struct's selected flag to match */
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 	{
-		Item->Selected = (NewCheckedState == ESlateCheckBoxState::Checked);
+		Item->Selected = (NewCheckedState == ECheckBoxState::Checked);
 	}
 
 	/** the item that this row represents */
@@ -242,7 +242,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 				.Padding(2)
 				[
 					SAssignNew(AddFilesToSCBox, SCheckBox)
-					.IsChecked(ESlateCheckBoxState::Checked)
+					.IsChecked(ECheckBoxState::Checked)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("AddFilesButtonLabel", "Add Files to Source Control if Necessary"))
@@ -432,7 +432,7 @@ void SLevelEditorBuildAndSubmit::OnShowHideExtraPackagesSection(bool bIsExpanded
 	}
 }
 
-void SLevelEditorBuildAndSubmit::OnShowPackagesNotInSCBoxChanged(ESlateCheckBoxState::Type InNewState)
+void SLevelEditorBuildAndSubmit::OnShowPackagesNotInSCBoxChanged(ECheckBoxState InNewState)
 {
 	if (bIsExtraPackagesSectionExpanded)
 	{

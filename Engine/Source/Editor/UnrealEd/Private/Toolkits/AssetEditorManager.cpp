@@ -519,16 +519,16 @@ void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const boo
 	/** Utility functions for the notification which don't rely on the state from FAssetEditorManager */
 	struct Local
 	{
-		static ESlateCheckBoxState::Type GetDontAskAgainCheckBoxState()
+		static ECheckBoxState GetDontAskAgainCheckBoxState()
 		{
 			bool bSuppressNotification = false;
 			GConfig->GetBool(TEXT("AssetEditorManager"), TEXT("SuppressRestorePreviouslyOpenAssetsNotification"), bSuppressNotification, GEditorUserSettingsIni);
-			return bSuppressNotification ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return bSuppressNotification ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 
-		static void OnDontAskAgainCheckBoxStateChanged(ESlateCheckBoxState::Type NewState)
+		static void OnDontAskAgainCheckBoxStateChanged(ECheckBoxState NewState)
 		{
-			const bool bSuppressNotification = (NewState == ESlateCheckBoxState::Checked);
+			const bool bSuppressNotification = (NewState == ECheckBoxState::Checked);
 			GConfig->SetBool(TEXT("AssetEditorManager"), TEXT("SuppressRestorePreviouslyOpenAssetsNotification"), bSuppressNotification, GEditorUserSettingsIni);
 		}
 	};
@@ -564,7 +564,7 @@ void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const boo
 	// Only let the user suppress the non-crash version
 	if(bCleanShutdown)
 	{
-		Info.CheckBoxState = TAttribute<ESlateCheckBoxState::Type>::Create(&Local::GetDontAskAgainCheckBoxState);
+		Info.CheckBoxState = TAttribute<ECheckBoxState>::Create(&Local::GetDontAskAgainCheckBoxState);
 		Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateStatic(&Local::OnDontAskAgainCheckBoxStateChanged);
 		Info.CheckBoxText = NSLOCTEXT("ModalDialogs", "DefaultCheckBoxMessage", "Don't show this again");
 	}

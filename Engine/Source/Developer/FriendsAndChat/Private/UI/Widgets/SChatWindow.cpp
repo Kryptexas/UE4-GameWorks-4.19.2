@@ -584,17 +584,17 @@ private:
 		}
 	}
 
-	void OnGlobalOptionChanged(ESlateCheckBoxState::Type NewState)
+	void OnGlobalOptionChanged(ECheckBoxState NewState)
 	{
-		const bool bDisabled = NewState == ESlateCheckBoxState::Unchecked;
+		const bool bDisabled = NewState == ECheckBoxState::Unchecked;
 		ViewModel->SetAllowGlobalChat(!bDisabled);
 
 		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), !bDisabled, TEXT("Social.Chat.Toggle"));
 	}
 
-	ESlateCheckBoxState::Type GetGlobalOptionState() const
+	ECheckBoxState GetGlobalOptionState() const
 	{
-		return ViewModel->IsGlobalChatEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return ViewModel->IsGlobalChatEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	virtual bool SupportsKeyboardFocus() const override

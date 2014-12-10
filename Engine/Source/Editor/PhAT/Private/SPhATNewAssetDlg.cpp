@@ -78,7 +78,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 1)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bAlignDownBone ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bAlignDownBone ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleOrientAlongBone)
 				]
 				+SUniformGridPanel::Slot(0, 2)
@@ -118,7 +118,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 4)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bCreateJoints ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bCreateJoints ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleCreateJoints)
 				]
 				+SUniformGridPanel::Slot(0, 5)
@@ -144,7 +144,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 6)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bWalkPastSmall ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bWalkPastSmall ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleWalkPastSmallBones)
 				]
 				+SUniformGridPanel::Slot(0, 7)
@@ -156,7 +156,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 7)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bBodyForAll ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bBodyForAll ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleCreateBodyForAllBones)
 				]
 				// Add in the UI options for the max hulls and the max verts on the hulls
@@ -312,24 +312,24 @@ void SPhATNewAssetDlg::OnAngularConstraintModeSelectionChanged(TSharedPtr<FStrin
 	}
 }
 
-void SPhATNewAssetDlg::OnToggleOrientAlongBone(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleOrientAlongBone(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bAlignDownBone = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bAlignDownBone = (InCheckboxState == ECheckBoxState::Checked);
 }
 
-void SPhATNewAssetDlg::OnToggleCreateJoints(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleCreateJoints(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bCreateJoints = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bCreateJoints = (InCheckboxState == ECheckBoxState::Checked);
 }
 
-void SPhATNewAssetDlg::OnToggleWalkPastSmallBones(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleWalkPastSmallBones(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bWalkPastSmall = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bWalkPastSmall = (InCheckboxState == ECheckBoxState::Checked);
 }
 
-void SPhATNewAssetDlg::OnToggleCreateBodyForAllBones(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleCreateBodyForAllBones(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bBodyForAll = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bBodyForAll = (InCheckboxState == ECheckBoxState::Checked);
 }
 
 EVisibility SPhATNewAssetDlg::GetHullOptionsVisibility() const

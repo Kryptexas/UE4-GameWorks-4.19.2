@@ -301,17 +301,17 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 }
 
 
-ESlateCheckBoxState::Type SPluginListTile::IsPluginEnabled() const
+ECheckBoxState SPluginListTile::IsPluginEnabled() const
 {
 	return ItemData->PluginStatus.bIsEnabled
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
 
-void SPluginListTile::OnEnablePluginCheckboxChanged(ESlateCheckBoxState::Type NewCheckedState)
+void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 {
-	const bool bNewEnabledState = (NewCheckedState == ESlateCheckBoxState::Checked);
+	const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 
 	if (bNewEnabledState && ItemData->PluginStatus.bIsBetaVersion)
 	{

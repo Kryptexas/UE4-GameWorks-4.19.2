@@ -70,10 +70,10 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	bool IsScalingAllowed() const;
 
 	/** Called to display/hide the comment bubble */
-	void OnCommentBubbleToggle( ESlateCheckBoxState::Type State );
+	void OnCommentBubbleToggle( ECheckBoxState State );
 
 	/** Called when a node's comment bubble pinned state is changed */
-	void OnPinStateToggle( ESlateCheckBoxState::Type State ) const;
+	void OnPinStateToggle( ECheckBoxState State ) const;
 
 	/** Called to update the bubble widget layout */
 	void UpdateBubble();

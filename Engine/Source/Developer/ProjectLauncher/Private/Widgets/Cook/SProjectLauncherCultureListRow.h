@@ -66,13 +66,13 @@ public:
 private:
 
 	// Callback for changing the checked state of the check box.
-	void HandleCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+	void HandleCheckBoxCheckStateChanged( ECheckBoxState NewState )
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 		if (SelectedProfile.IsValid())
 		{
-			if (NewState == ESlateCheckBoxState::Checked)
+			if (NewState == ECheckBoxState::Checked)
 			{
 				SelectedProfile->AddCookedCulture(*CultureName);
 			}
@@ -84,16 +84,16 @@ private:
 	}
 
 	// Callback for determining the checked state of the check box.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked( ) const
+	ECheckBoxState HandleCheckBoxIsChecked( ) const
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 		if (SelectedProfile.IsValid() && SelectedProfile->GetCookedCultures().Contains(*CultureName))
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 private:

@@ -1188,14 +1188,14 @@ void SFindInBlueprints::OnSearchTextCommitted( const FText& Text, ETextCommit::T
 	}
 }
 
-void SFindInBlueprints::OnFindModeChanged(ESlateCheckBoxState::Type CheckState)
+void SFindInBlueprints::OnFindModeChanged(ECheckBoxState CheckState)
 {
-	bIsInFindWithinBlueprintMode = CheckState == ESlateCheckBoxState::Checked;
+	bIsInFindWithinBlueprintMode = CheckState == ECheckBoxState::Checked;
 }
 
-ESlateCheckBoxState::Type SFindInBlueprints::OnGetFindModeChecked() const
+ECheckBoxState SFindInBlueprints::OnGetFindModeChecked() const
 {
-	return bIsInFindWithinBlueprintMode ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsInFindWithinBlueprintMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFindInBlueprints::InitiateSearch()

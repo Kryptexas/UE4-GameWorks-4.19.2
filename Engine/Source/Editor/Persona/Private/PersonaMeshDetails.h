@@ -60,14 +60,14 @@ private:
 	float GetPercentTriangles() const;
 	float GetMaxDeviation() const;
 	float GetWeldingThreshold() const;
-	ESlateCheckBoxState::Type ShouldRecalculateNormals() const;
+	ECheckBoxState ShouldRecalculateNormals() const;
 	float GetHardAngleThreshold() const;
 	int32 GetMaxBonesPerVertex() const;
 
 	void OnPercentTrianglesChanged(float NewValue);
 	void OnMaxDeviationChanged(float NewValue);
 	void OnReductionAmountChanged(float NewValue);
-	void OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue);
+	void OnRecalculateNormalsChanged(ECheckBoxState NewValue);
 	void OnWeldingThresholdChanged(float NewValue);
 	void OnHardAngleThresholdChanged(float NewValue);
 	void OnMaxBonesPerVertexChanged(int32 NewValue);
@@ -145,28 +145,28 @@ private:
 	 *
 	 * @param SectionIndex	The material section that is being tested
 	 */
-	ESlateCheckBoxState::Type IsSectionSelected(int32 SectionIndex) const;
+	ECheckBoxState IsSectionSelected(int32 SectionIndex) const;
 
 	/**
 	 * Handler for changing highlight status on a material
 	 *
 	 * @param SectionIndex	The material section that is being tested
 	 */
-	void OnSectionSelectedChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
+	void OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex);
 
 		/**
 	 * Handler for check box display based on whether the material has shadow casting enabled
 	 *
 	 * @param MaterialIndex	The material index which a section in a specific LOD model has
 	 */
-	ESlateCheckBoxState::Type IsShadowCastingEnabled(int32 MaterialIndex) const;
+	ECheckBoxState IsShadowCastingEnabled(int32 MaterialIndex) const;
 
 	/**
 	 * Handler for changing shadow casting status on a material
 	 *
 	 * @param MaterialIndex	The material index which a section in a specific LOD model has
 	 */
-	void OnShadowCastingChanged(ESlateCheckBoxState::Type NewState, int32 MaterialIndex);
+	void OnShadowCastingChanged(ECheckBoxState NewState, int32 MaterialIndex);
 
 	/**
 	 * Handler for enabling delete button on materials

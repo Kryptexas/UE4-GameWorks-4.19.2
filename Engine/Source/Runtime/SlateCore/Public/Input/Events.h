@@ -13,7 +13,7 @@ class SWindow;
 * Context for focus change
 */
 UENUM()
-enum class EFocusCause
+enum class EFocusCause : uint8
 {
 	/** Focus was changed because of a mouse action */
 	Mouse,

@@ -107,7 +107,7 @@ private:
 class FPackageItem : public TSharedFromThis<FPackageItem>
 {
 public:
-	FPackageItem(UPackage* InPackage, const FString& InEntryName, ESlateCheckBoxState::Type InState, bool InDisabled = false, FString InIconName=TEXT("SavePackages.SCC_DlgNoIcon"), FString InIconToolTip=TEXT(""))
+	FPackageItem(UPackage* InPackage, const FString& InEntryName, ECheckBoxState InState, bool InDisabled = false, FString InIconName=TEXT("SavePackages.SCC_DlgNoIcon"), FString InIconToolTip=TEXT(""))
 		: Package(InPackage)
 		, EntryName(InEntryName)
 		, State(InState)
@@ -116,9 +116,9 @@ public:
 		, IconToolTip(InIconToolTip)
 	{
 		/** if the item is checked and disabled make the state Undetermined */
-		if(State == ESlateCheckBoxState::Checked && Disabled)
+		if(State == ECheckBoxState::Checked && Disabled)
 		{
-			State = ESlateCheckBoxState::Undetermined;
+			State = ECheckBoxState::Undetermined;
 		}
 	}
 
@@ -127,7 +127,7 @@ public:
 	 *
 	 * @return the item state
 	 */
-	ESlateCheckBoxState::Type OnGetDisplayCheckState() const
+	ECheckBoxState OnGetDisplayCheckState() const
 	{
 		RefreshButtonCallback.ExecuteIfBound();
 		return State;
@@ -138,14 +138,14 @@ public:
 	 *
 	 * @param InNewState the new state to set the item to
 	 */
-	void OnDisplayCheckStateChanged(ESlateCheckBoxState::Type InNewState)
+	void OnDisplayCheckStateChanged(ECheckBoxState InNewState)
 	{
 		State = InNewState;
 
 		/** if the item is checked and disabled make the state Undetermined */
-		if( State == ESlateCheckBoxState::Checked  && Disabled )
+		if( State == ECheckBoxState::Checked  && Disabled )
 		{
-			State = ESlateCheckBoxState::Undetermined;
+			State = ECheckBoxState::Undetermined;
 		}
 	}
 
@@ -164,7 +164,7 @@ public:
 	 *
 	 * @return the state of the checkbox item
 	 */
-	ESlateCheckBoxState::Type GetState() const { return State; }
+	ECheckBoxState GetState() const { return State; }
 
 	/**
 	 * Gets the package represented by this checkbox item
@@ -236,12 +236,12 @@ public:
 	 *
 	 * @param	NewState	New state
 	 */
-	void SetState(ESlateCheckBoxState::Type NewState) { State = NewState; }
+	void SetState(ECheckBoxState NewState) { State = NewState; }
 
 private:
 	UPackage* Package; 						// The package associated with this entry
 	FString EntryName;						// Name of the checkbox
-	ESlateCheckBoxState::Type State;		// The state of the checkbox
+	ECheckBoxState State;		// The state of the checkbox
 	bool Disabled; 							// if the entry is disabled
 	FString IconName; 						// Name of an icon to show next to the checkbox
 	FString IconToolTip;					// ToolTip to display for the icon
@@ -369,13 +369,13 @@ private:
 	 * @return	the desired toggle state for the ToggleSelectedCheckBox.
 	 * Returns Unchecked, unless all of the selected packages are Checked.
 	 */
-	ESlateCheckBoxState::Type GetToggleSelectedState() const;
+	ECheckBoxState GetToggleSelectedState() const;
 
 	/** 
 	 * Toggles the highlighted packages.
 	 * If no packages are explicitly highlighted, toggles all packages in the list.
 	 */
-	void OnToggleSelectedCheckBox(ESlateCheckBoxState::Type InNewState);
+	void OnToggleSelectedCheckBox(ECheckBoxState InNewState);
 
 	/** 
 	 * Makes the widget for the checkbox items in the list view 

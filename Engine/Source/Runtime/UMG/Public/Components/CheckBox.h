@@ -24,7 +24,7 @@ class UMG_API UCheckBox : public UContentWidget
 public:
 	/** Whether the check box is currently in a checked state */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	TEnumAsByte<ESlateCheckBoxState::Type> CheckedState;
+	ECheckBoxState CheckedState;
 
 	/** A bindable delegate for the IsChecked. */
 	UPROPERTY()
@@ -105,7 +105,7 @@ public:
 
 	/** @return the full current checked state. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	ESlateCheckBoxState::Type GetCheckedState() const;
+	ECheckBoxState GetCheckedState() const;
 
 	/** Sets the checked state. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -113,7 +113,7 @@ public:
 
 	/** Sets the checked state. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetCheckedState(ESlateCheckBoxState::Type InCheckedState);
+	void SetCheckedState(ECheckBoxState InCheckedState);
 
 public:
 	
@@ -146,7 +146,7 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
-	void SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState);
+	void SlateOnCheckStateChangedCallback(ECheckBoxState NewState);
 	
 protected:
 	TSharedPtr<SCheckBox> MyCheckbox;

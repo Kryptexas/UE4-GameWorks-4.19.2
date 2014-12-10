@@ -195,7 +195,7 @@ private:
 	void OnTestSelectionChanged(TSharedPtr<IAutomationReport> Selection, ESelectInfo::Type SelectInfo);
 	
 	/** Called when the header checkbox's state is changed. Will go through all the Unit Tests available and change the state of their checkbox. */
-	void HeaderCheckboxStateChange(ESlateCheckBoxState::Type InCheckboxState);	/** Creates table row for each visible automation test */
+	void HeaderCheckboxStateChange(ECheckBoxState InCheckboxState);	/** Creates table row for each visible automation test */
 	
 	/** Rebuilds the platform icon header */
 	void RebuildPlatformIcons();
@@ -265,29 +265,29 @@ private:
 	void OnToggleErrorFilter();
 	
 	/** Returns if we're tracking history for automation tests */
-	ESlateCheckBoxState::Type IsTrackingHistory() const;
+	ECheckBoxState IsTrackingHistory() const;
 	
 	/** Toggles whether we are tracking history of automation tests */
-	void OnToggleTrackHistory(ESlateCheckBoxState::Type InState);
+	void OnToggleTrackHistory(ECheckBoxState InState);
 
 	/** Returns if full size screen shots are enabled */
-	ESlateCheckBoxState::Type IsFullSizeScreenshotsCheckBoxChecked() const;
+	ECheckBoxState IsFullSizeScreenshotsCheckBoxChecked() const;
 	/** Toggles if we are collecting full size screenshots */
-	void HandleFullSizeScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState);
+	void HandleFullSizeScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState);
 
 	/** Returns if screen shots are enabled */
-	ESlateCheckBoxState::Type IsEnableScreenshotsCheckBoxChecked() const;
+	ECheckBoxState IsEnableScreenshotsCheckBoxChecked() const;
 	/** Toggles if we are taking screenshots */
-	void HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState);
+	void HandleEnableScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState);
 
 	/** Returns if the full size screenshots option is enabled */
 	bool IsFullSizeScreenshotsOptionEnabled() const;
 
 	/** Returns if a device group is enabled */
-	ESlateCheckBoxState::Type IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const;
+	ECheckBoxState IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const;
 	
 	/** Toggles a device group flag */
-	void HandleDeviceGroupCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState, const int32 DeviceGroupFlag);
+	void HandleDeviceGroupCheckStateChanged(ECheckBoxState CheckBoxState, const int32 DeviceGroupFlag);
 	
 	/** Sets the number of times to repeat the tests */
 	void OnChangeRepeatCount(int32 InNewValue);
@@ -460,10 +460,10 @@ private:
 	EVisibility GetTestGraphVisibility( ) const;
 
 	/** Handles changing the display type for the graphical results window. */
-	void HandleResultDisplayTypeStateChanged( ESlateCheckBoxState::Type NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType );
+	void HandleResultDisplayTypeStateChanged( ECheckBoxState NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType );
 
 	/** Handles checking if a display type is active for the graphical results window. */
-	ESlateCheckBoxState::Type HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const;
+	ECheckBoxState HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const;
 
 	/** 
 	 * Gets the visibility for the throbber.

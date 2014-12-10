@@ -26,8 +26,8 @@ public:
 
 private:
 	// Begin Grid Snapping
-	ESlateCheckBoxState::Type IsLocationGridSnapChecked() const;
-	void HandleToggleLocationGridSnap(ESlateCheckBoxState::Type InState);
+	ECheckBoxState IsLocationGridSnapChecked() const;
+	void HandleToggleLocationGridSnap(ECheckBoxState InState);
 	FText GetLocationGridLabel() const;
 	TSharedRef<SWidget> FillLocationGridSnapMenu();
 	TSharedRef<SWidget> BuildLocationGridCheckBoxList(FName InExtentionHook, const FText& InHeading, const TArray<int32>& InGridSizes) const;

@@ -193,7 +193,7 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	}
 }
 
-ESlateCheckBoxState::Type FSceneCaptureDetails::OnGetDisplayCheckState(FString ShowFlagName) const
+ECheckBoxState FSceneCaptureDetails::OnGetDisplayCheckState(FString ShowFlagName) const
 {
 	bool IsChecked = false;
 	FEngineShowFlagsSetting* FlagSetting;
@@ -210,14 +210,14 @@ ESlateCheckBoxState::Type FSceneCaptureDetails::OnGetDisplayCheckState(FString S
 		}
 	}
 
-	return IsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FSceneCaptureDetails::OnShowFlagCheckStateChanged(ESlateCheckBoxState::Type InNewRadioState, FString FlagName)
+void FSceneCaptureDetails::OnShowFlagCheckStateChanged(ECheckBoxState InNewRadioState, FString FlagName)
 {
 	SceneCaptureComponent->Modify();
 	FEngineShowFlagsSetting* FlagSetting;
-	bool bNewCheckState = (InNewRadioState == ESlateCheckBoxState::Checked);
+	bool bNewCheckState = (InNewRadioState == ECheckBoxState::Checked);
 
 	// If setting exists, update it
 	if (SceneCaptureComponent->GetSettingForShowFlag(FlagName, &FlagSetting))

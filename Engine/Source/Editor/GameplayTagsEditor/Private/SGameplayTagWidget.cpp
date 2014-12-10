@@ -201,13 +201,13 @@ void SGameplayTagWidget::OnGetChildren(TSharedPtr<FGameplayTagNode> InItem, TArr
 	OutChildren += FilteredChildren;
 }
 
-void SGameplayTagWidget::OnTagCheckStatusChanged(ESlateCheckBoxState::Type NewCheckState, TSharedPtr<FGameplayTagNode> NodeChanged)
+void SGameplayTagWidget::OnTagCheckStatusChanged(ECheckBoxState NewCheckState, TSharedPtr<FGameplayTagNode> NodeChanged)
 {
-	if (NewCheckState == ESlateCheckBoxState::Checked)
+	if (NewCheckState == ECheckBoxState::Checked)
 	{
 		OnTagChecked(NodeChanged);
 	}
-	else if (NewCheckState == ESlateCheckBoxState::Unchecked)
+	else if (NewCheckState == ECheckBoxState::Unchecked)
 	{
 		OnTagUnchecked(NodeChanged);
 	}
@@ -322,7 +322,7 @@ void SGameplayTagWidget::UncheckChildren(TSharedPtr<FGameplayTagNode> NodeUnchec
 	}
 }
 
-ESlateCheckBoxState::Type SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Node) const
+ECheckBoxState SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Node) const
 {
 	int32 NumValidAssets = 0;
 	int32 NumAssetsTagIsAppliedTo = 0;
@@ -351,21 +351,21 @@ ESlateCheckBoxState::Type SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayT
 		// Check if any children are tagged
 		for (auto It = Node->GetChildTagNodes().CreateConstIterator(); It; ++It)
 		{
-			if (IsTagChecked(*It) == ESlateCheckBoxState::Checked)
+			if (IsTagChecked(*It) == ECheckBoxState::Checked)
 			{
-				return ESlateCheckBoxState::Checked;
+				return ECheckBoxState::Checked;
 			}
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 	else if (NumAssetsTagIsAppliedTo == NumValidAssets)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
 }
 
@@ -494,18 +494,18 @@ void SGameplayTagWidget::LoadSettings()
 
 void SGameplayTagWidget::SetDefaultTagNodeItemExpansion( TSharedPtr<FGameplayTagNode> Node )
 {
-	if (Node.IsValid() && TagTreeWidget.IsValid())
+	if ( Node.IsValid() && TagTreeWidget.IsValid() )
 	{
 		bool bExpanded = false;
 
-		if( IsTagChecked( Node ) )
+		if ( IsTagChecked(Node) == ECheckBoxState::Checked )
 		{
 			bExpanded = true;
 		}
-		TagTreeWidget->SetItemExpansion( Node, bExpanded );
+		TagTreeWidget->SetItemExpansion(Node, bExpanded);
 
 		const TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = Node->GetChildTagNodes();
-		for (int32 ChildIdx = 0; ChildIdx < ChildTags.Num(); ++ChildIdx)
+		for ( int32 ChildIdx = 0; ChildIdx < ChildTags.Num(); ++ChildIdx )
 		{
 			SetDefaultTagNodeItemExpansion(ChildTags[ChildIdx]);
 		}
@@ -522,7 +522,7 @@ void SGameplayTagWidget::LoadTagNodeItemExpansion( TSharedPtr<FGameplayTagNode> 
 		{
 			TagTreeWidget->SetItemExpansion( Node, bExpanded );
 		}
-		else if( IsTagChecked( Node ) ) // If we have no save data but its ticked then we probably lost our settings so we shall expand it
+		else if( IsTagChecked( Node ) == ECheckBoxState::Checked ) // If we have no save data but its ticked then we probably lost our settings so we shall expand it
 		{
 			TagTreeWidget->SetItemExpansion( Node, true );
 		}

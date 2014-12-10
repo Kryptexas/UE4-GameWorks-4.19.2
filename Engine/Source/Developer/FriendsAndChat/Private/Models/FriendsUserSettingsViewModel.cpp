@@ -19,13 +19,13 @@ private:
 	{
 	}
 
-	virtual void HandleCheckboxStateChanged(ESlateCheckBoxState::Type NewState, EUserSettngsType::Type OptionType) override
+	virtual void HandleCheckboxStateChanged(ECheckBoxState NewState, EUserSettngsType::Type OptionType) override
 	{
 		switch(OptionType)
 		{
 			case EUserSettngsType::ShowNotifications:
 			{
-				bShowNotifications = NewState == ESlateCheckBoxState::Checked ? true : false;
+				bShowNotifications = NewState == ECheckBoxState::Checked ? true : false;
 			}
 			break;
 		};
@@ -36,16 +36,16 @@ private:
 		UserSettings.Add(EUserSettngsType::ShowNotifications);
 	}
 
-	virtual ESlateCheckBoxState::Type GetOptionCheckState(EUserSettngsType::Type Option) const override
+	virtual ECheckBoxState GetOptionCheckState(EUserSettngsType::Type Option) const override
 	{
 		switch(Option)
 		{
 			case EUserSettngsType::ShowNotifications:
 			{
-				return bShowNotifications ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; break;
+				return bShowNotifications ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; break;
 			}
 			default:
-			return ESlateCheckBoxState::Undetermined;
+			return ECheckBoxState::Undetermined;
 		};
 	}
 

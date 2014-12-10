@@ -87,11 +87,11 @@ private:
 	 * @param	ButtonId	The ID for the radio button
 	 * @return				The status of the radio button
 	 */
-	ESlateCheckBoxState::Type IsRadioChecked( int32 ButtonId ) const
+	ECheckBoxState IsRadioChecked( int32 ButtonId ) const
 	{
 		return (CurrentCompressionChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	/**
@@ -100,9 +100,9 @@ private:
 	 * @param	NewRadioState	The new state of the radio button
 	 * @param	RadioThatChanged	The ID of the radio button that has changed. 
 	 */
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, int32 RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, int32 RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentCompressionChoice = RadioThatChanged;
 		}

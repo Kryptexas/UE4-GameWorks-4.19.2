@@ -845,14 +845,14 @@ void SNewClassDialog::OnAdvancedClassSelected(UClass* Class)
 	ParentClassInfo = GameProjectUtils::FNewClassInfo(Class);
 }
 
-ESlateCheckBoxState::Type SNewClassDialog::IsFullClassTreeChecked() const
+ECheckBoxState SNewClassDialog::IsFullClassTreeChecked() const
 {
-	return bShowFullClassTree ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bShowFullClassTree ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SNewClassDialog::OnFullClassTreeChanged(ESlateCheckBoxState::Type NewCheckedState)
+void SNewClassDialog::OnFullClassTreeChanged(ECheckBoxState NewCheckedState)
 {
-	bShowFullClassTree = (NewCheckedState == ESlateCheckBoxState::Checked);
+	bShowFullClassTree = (NewCheckedState == ECheckBoxState::Checked);
 }
 
 EVisibility SNewClassDialog::GetBasicParentClassVisibility() const
@@ -1140,14 +1140,14 @@ FText SNewClassDialog::GetClassLocationTooltip(GameProjectUtils::EClassLocation 
 	return LOCTEXT("ClassLocation_UserDefined", "Your project is either not using a Public and Private source layout, or you're explicitly creating your class outside of the Public or Private folder");
 }
 
-ESlateCheckBoxState::Type SNewClassDialog::IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const
+ECheckBoxState SNewClassDialog::IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const
 {
-	return (ClassLocation == InLocation) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (ClassLocation == InLocation) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SNewClassDialog::OnClassLocationChanged(ESlateCheckBoxState::Type InCheckedState, GameProjectUtils::EClassLocation InLocation)
+void SNewClassDialog::OnClassLocationChanged(ECheckBoxState InCheckedState, GameProjectUtils::EClassLocation InLocation)
 {
-	if(InCheckedState == ESlateCheckBoxState::Checked)
+	if(InCheckedState == ECheckBoxState::Checked)
 	{
 		const FString AbsoluteClassPath = FPaths::ConvertRelativePathToFull(NewClassPath) / ""; // Ensure trailing /
 

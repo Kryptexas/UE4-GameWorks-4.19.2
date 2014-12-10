@@ -127,23 +127,23 @@ void FPackagesDialogModule::SetMessage(const FText& InMessage)
  * @param	OutPackages	The array that should be populated with the desired packages
  * @param	InChecked	The type of packages that we want to retrieve
  */
-void FPackagesDialogModule::GetResults(OUT TArray<UPackage*>& OutPackages, ESlateCheckBoxState::Type InChecked)
+void FPackagesDialogModule::GetResults(OUT TArray<UPackage*>& OutPackages, ECheckBoxState InChecked)
 {
-	if(InChecked == ESlateCheckBoxState::Checked)
+	if(InChecked == ECheckBoxState::Checked)
 	{
 		for(int32 PackageIndex = 0; PackageIndex < CheckedPackages.Num(); ++PackageIndex)
 		{
 			OutPackages.Add(CheckedPackages[PackageIndex]);
 		}
 	}
-	else if(InChecked == ESlateCheckBoxState::Unchecked)
+	else if(InChecked == ECheckBoxState::Unchecked)
 	{
 		for(int32 PackageIndex = 0; PackageIndex < UncheckedPackages.Num(); ++PackageIndex)
 		{
 			OutPackages.Add(UncheckedPackages[PackageIndex]);
 		}
 	}
-	else if(InChecked == ESlateCheckBoxState::Undetermined)
+	else if(InChecked == ECheckBoxState::Undetermined)
 	{
 		for(int32 PackageIndex = 0; PackageIndex < UndeterminedPackages.Num(); ++PackageIndex)
 		{
@@ -162,7 +162,7 @@ void FPackagesDialogModule::GetResults(OUT TArray<UPackage*>& OutPackages, ESlat
  * @param	InIconName		The name of the icon to display
  * @param	InIconToolTip	The tooltip to display
  */
-void FPackagesDialogModule::AddPackageItem(UPackage* InPackage, const FString& InEntryName, ESlateCheckBoxState::Type InChecked, 
+void FPackagesDialogModule::AddPackageItem(UPackage* InPackage, const FString& InEntryName, ECheckBoxState InChecked, 
 	bool InDisabled/*=false*/, FString InIconName/*=TEXT("SavePackages.SCC_DlgNoIcon")*/, FString InIconToolTip/*=TEXT("")*/)
 {
 	PackagesDialogWidget.Get()->Add(MakeShareable(new FPackageItem(InPackage, InEntryName, InChecked, InDisabled, InIconName, InIconToolTip)));

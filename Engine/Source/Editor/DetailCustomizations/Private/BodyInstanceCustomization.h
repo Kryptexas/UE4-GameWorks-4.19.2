@@ -48,11 +48,11 @@ private:
 	EVisibility ShouldShowResetToDefaultResponse(int32 ValidIndex) const;
 
 	// collision channel check boxes
-	void OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsCollisionChannelChecked( int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
+	void OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsCollisionChannelChecked( int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
 	// all collision channel check boxes
-	void OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsAllCollisionChannelChecked( ECollisionResponse InCollisionResponse) const;
+	void OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsAllCollisionChannelChecked( ECollisionResponse InCollisionResponse) const;
 
 	// should show custom prop
 	bool ShouldEnableCustomCollisionSetup() const;

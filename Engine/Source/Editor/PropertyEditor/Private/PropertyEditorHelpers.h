@@ -88,9 +88,9 @@ class SEditConditionWidget : public SCompoundWidget
 	void Construct( const FArguments& Args, TSharedPtr<FPropertyEditor> InPropertyEditor );
 
 private:
-	void OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState );
+	void OnEditConditionCheckChanged( ECheckBoxState CheckState );
 	bool HasEditCondition() const;
-	ESlateCheckBoxState::Type OnGetEditConditionCheckState() const;
+	ECheckBoxState OnGetEditConditionCheckState() const;
 private:
 	TSharedPtr<FPropertyEditor> PropertyEditor;
 	FCustomEditCondition CustomEditCondition;

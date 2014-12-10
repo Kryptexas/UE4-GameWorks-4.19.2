@@ -1064,12 +1064,12 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 			if( SourceControlState.IsValid() && !SourceControlState->IsCurrent() )
 			{				
 				// This package is not at the head revision and it should be ghosted as a result
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), SourceControlState->GetDisplayTooltip().ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), SourceControlState->GetDisplayTooltip().ToString());
 			}
 			else if( SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther() )
 			{
 				// This package is checked out by someone else so it should be ghosted
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), SourceControlState->GetDisplayTooltip().ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), SourceControlState->GetDisplayTooltip().ToString());
 			}
 			else
 			{
@@ -1078,7 +1078,7 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 				bHavePackageToCheckOut = true;
 				//Add this package to the dialog if its not checked out, in the source control depot, dirty(if we are checking), and read only
 				//This package could also be marked for delete, which we will treat as SCC_ReadOnly until it is time to check it out. At that time, we will revert it.
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 			}
 			bPackagesAdded = true;
 		}
@@ -1091,7 +1091,7 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 
 			// This package is read only but source control is not available, show the dialog so users can save the package by making the file writable or by connecting to source control.
 			// If we don't care about read-only state, we should allow the user to make the file writable whatever the state of source control.
-			CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, bIsDisabled, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
+			CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, bIsDisabled, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 			bPackagesAdded = true;
 		}
 		else if ( OutPackagesNotNeedingCheckout )
@@ -1140,7 +1140,7 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 			{
 				// Get the packages that should be checked out from the user's choices in the dialog
 				TArray<UPackage*> PkgsToCheckOut;
-				CheckoutPackagesDialogModule.GetResults( PkgsToCheckOut, ESlateCheckBoxState::Checked );
+				CheckoutPackagesDialogModule.GetResults( PkgsToCheckOut, ECheckBoxState::Checked );
 
 				if(CheckoutPackages(PkgsToCheckOut, OutPackagesCheckedOutOrMadeWritable) == ECommandResult::Cancelled)
 				{
@@ -1156,8 +1156,8 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 				// Get the packages that should be made writable out from the user's choices in the dialog
 				TArray<UPackage*> PkgsToMakeWritable;
 				// Both undetermined and checked should be made writable.  Undetermined is only available when packages cant be checked out
-				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ESlateCheckBoxState::Undetermined );
-				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ESlateCheckBoxState::Checked);
+				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ECheckBoxState::Undetermined );
+				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ECheckBoxState::Checked);
 
 				bool bPackageFailedWritable = false;
 				FString PkgsWhichFailedWritable;
@@ -2741,11 +2741,11 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 		{
 			for (auto Iter = AddPackageItemsChecked.CreateIterator(); Iter; ++Iter)
 			{
-				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ESlateCheckBoxState::Checked);
+				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ECheckBoxState::Checked);
 			}
 			for (auto Iter = AddPackageItemsUnchecked.CreateIterator(); Iter; ++Iter)
 			{
-				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ESlateCheckBoxState::Unchecked);
+				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ECheckBoxState::Unchecked);
 			}
 
 			// If valid packages were added to the dialog, display it to the user
@@ -2754,10 +2754,10 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 			// If the user has responded yes, they want to save the packages they have checked
 			if ( UserResponse == DRT_Save )
 			{
-				PackagesDialogModule.GetResults( FilteredPackages, ESlateCheckBoxState::Checked );
+				PackagesDialogModule.GetResults( FilteredPackages, ECheckBoxState::Checked );
 
 				TArray<UPackage*> UncheckedPackagesRaw;
-				PackagesDialogModule.GetResults( UncheckedPackagesRaw, ESlateCheckBoxState::Unchecked );
+				PackagesDialogModule.GetResults( UncheckedPackagesRaw, ECheckBoxState::Unchecked );
 				UncheckedPackages.Empty();
 				for (auto Iter = UncheckedPackagesRaw.CreateIterator(); Iter; ++Iter)
 				{

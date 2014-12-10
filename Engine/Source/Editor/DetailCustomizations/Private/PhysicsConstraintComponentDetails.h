@@ -46,8 +46,8 @@ private:
 	FReply OnPrismaticClicked();
 	FReply OnBallSocketClicked();
 
-	ESlateCheckBoxState::Type IsLimitRadioChecked(TSharedPtr<IPropertyHandle> Property, uint8 Value) const ;
-	void OnLimitRadioChanged(ESlateCheckBoxState::Type CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value);
+	ECheckBoxState IsLimitRadioChecked(TSharedPtr<IPropertyHandle> Property, uint8 Value) const ;
+	void OnLimitRadioChanged(ECheckBoxState CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value);
 
 
 	TSharedPtr<IPropertyHandle> LinearPositionDriveProperty;

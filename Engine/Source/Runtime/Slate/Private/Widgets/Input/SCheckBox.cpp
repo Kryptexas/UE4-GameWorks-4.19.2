@@ -117,12 +117,12 @@ FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEv
 	if ( InKeyEvent.GetKey() == EKeys::SpaceBar )
 	{
 		ToggleCheckedState();
-		const TAttribute<ESlateCheckBoxState::Type>& State = IsCheckboxChecked.Get();
-		if(State == ESlateCheckBoxState::Checked)
+		const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
+		if(State == ECheckBoxState::Checked)
 		{
 			PlayCheckedSound();
 		}
-		else if(State == ESlateCheckBoxState::Unchecked)
+		else if(State == ECheckBoxState::Unchecked)
 		{
 			PlayUncheckedSound();
 		}
@@ -150,12 +150,12 @@ FReply SCheckBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointer
 		if( ClickMethod == EButtonClickMethod::MouseDown )
 		{
 			ToggleCheckedState();
-			const TAttribute<ESlateCheckBoxState::Type>& State = IsCheckboxChecked.Get();
-			if(State == ESlateCheckBoxState::Checked)
+			const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
+			if(State == ECheckBoxState::Checked)
 			{
 				PlayCheckedSound();
 			}
-			else if(State == ESlateCheckBoxState::Unchecked)
+			else if(State == ECheckBoxState::Unchecked)
 			{
 				PlayUncheckedSound();
 			}
@@ -229,12 +229,12 @@ FReply SCheckBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 				if( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() )
 				{
 					ToggleCheckedState();
-					const TAttribute<ESlateCheckBoxState::Type>& State = IsCheckboxChecked.Get();
-					if(State == ESlateCheckBoxState::Checked)
+					const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
+					if(State == ECheckBoxState::Checked)
 					{
 						PlayCheckedSound();
 					}
-					else if(State == ESlateCheckBoxState::Unchecked)
+					else if(State == ECheckBoxState::Unchecked)
 					{
 						PlayUncheckedSound();
 					}
@@ -275,21 +275,21 @@ void SCheckBox::OnMouseLeave( const FPointerEvent& MouseEvent )
  */
 const FSlateBrush* SCheckBox::OnGetCheckImage() const
 {
-	ESlateCheckBoxState::Type State = IsCheckboxChecked.Get();
+	ECheckBoxState State = IsCheckboxChecked.Get();
 
 	const FSlateBrush* ImageToUse;
 	switch( State )
 	{
-		case ESlateCheckBoxState::Unchecked:
+		case ECheckBoxState::Unchecked:
 			ImageToUse = IsPressed() ? GetUncheckedPressedImage() : ( IsHovered() ? GetUncheckedHoveredImage() : GetUncheckedImage() );
 			break;
 	
-		case ESlateCheckBoxState::Checked:
+		case ECheckBoxState::Checked:
 			ImageToUse = IsPressed() ? GetCheckedPressedImage() : ( IsHovered() ? GetCheckedHoveredImage() : GetCheckedImage() );
 			break;
 	
 		default:
-		case ESlateCheckBoxState::Undetermined:
+		case ECheckBoxState::Undetermined:
 			ImageToUse = IsPressed() ? GetUndeterminedPressedImage() : ( IsHovered() ? GetUndeterminedHoveredImage() : GetUndeterminedImage() );
 			break;
 	}
@@ -298,7 +298,7 @@ const FSlateBrush* SCheckBox::OnGetCheckImage() const
 }
 
 
-ESlateCheckBoxState::Type SCheckBox::GetCheckedState() const
+ECheckBoxState SCheckBox::GetCheckedState() const
 {
 	return IsCheckboxChecked.Get();
 }
@@ -308,34 +308,34 @@ ESlateCheckBoxState::Type SCheckBox::GetCheckedState() const
  */
 void SCheckBox::ToggleCheckedState()
 {
-	const TAttribute<ESlateCheckBoxState::Type>& State = IsCheckboxChecked.Get();
+	const TAttribute<ECheckBoxState>& State = IsCheckboxChecked.Get();
 
 	// If the current check box state is checked OR undetermined we set the check box to checked.
-	if( State == ESlateCheckBoxState::Checked || State == ESlateCheckBoxState::Undetermined )
+	if( State == ECheckBoxState::Checked || State == ECheckBoxState::Undetermined )
 	{
 		if ( !IsCheckboxChecked.IsBound() )
 		{
 			// When we are not bound, just toggle the current state.
-			IsCheckboxChecked.Set( ESlateCheckBoxState::Unchecked );
+			IsCheckboxChecked.Set( ECheckBoxState::Unchecked );
 		}
 
 		// The state of the check box changed.  Execute the delegate to notify users
-		OnCheckStateChanged.ExecuteIfBound( ESlateCheckBoxState::Unchecked );
+		OnCheckStateChanged.ExecuteIfBound( ECheckBoxState::Unchecked );
 	}
-	else if( State == ESlateCheckBoxState::Unchecked )
+	else if( State == ECheckBoxState::Unchecked )
 	{
 		if ( !IsCheckboxChecked.IsBound() )
 		{
 			// When we are not bound, just toggle the current state.
-			IsCheckboxChecked.Set( ESlateCheckBoxState::Checked );
+			IsCheckboxChecked.Set( ECheckBoxState::Checked );
 		}
 
 		// The state of the check box changed.  Execute the delegate to notify users
-		OnCheckStateChanged.ExecuteIfBound( ESlateCheckBoxState::Checked );
+		OnCheckStateChanged.ExecuteIfBound( ECheckBoxState::Checked );
 	}
 }
 
-void SCheckBox::SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked)
+void SCheckBox::SetIsChecked(TAttribute<ECheckBoxState> InIsChecked)
 {
 	IsCheckboxChecked = InIsChecked;
 }

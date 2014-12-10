@@ -317,8 +317,8 @@ protected:
 	void RecreateSortByOptionsSources();
 
 	TSharedRef<SWidget> GetToggleButtonForStatType( const EProfilerSampleTypes::Type StatType );
-	void FilterByStatType_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EProfilerSampleTypes::Type InStatType );
-	ESlateCheckBoxState::Type FilterByStatType_IsChecked( const EProfilerSampleTypes::Type InStatType ) const;
+	void FilterByStatType_OnCheckStateChanged( ECheckBoxState NewRadioState, const EProfilerSampleTypes::Type InStatType );
+	ECheckBoxState FilterByStatType_IsChecked( const EProfilerSampleTypes::Type InStatType ) const;
 
 	/*-----------------------------------------------------------------------------
 		GroupAndStatTree

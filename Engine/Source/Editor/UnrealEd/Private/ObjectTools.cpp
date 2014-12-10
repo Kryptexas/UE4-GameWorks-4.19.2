@@ -1303,7 +1303,7 @@ namespace ObjectTools
 			for ( int32 PackageIdx = 0; PackageIdx < PackagesToDelete.Num(); ++PackageIdx )
 			{
 				UPackage* Package = PackagesToDelete[PackageIdx];
-				PackagesDialogModule.AddPackageItem(Package, Package->GetName(), ESlateCheckBoxState::Checked);
+				PackagesDialogModule.AddPackageItem(Package, Package->GetName(), ECheckBoxState::Checked);
 			}
 
 			// Display the delete dialog

@@ -141,22 +141,22 @@ protected:
 	void OnFlowAmountChanged(float InFlowAmount);
 
 	/** Called to get the checked state of the ignore back-facing checkbox */
-	ESlateCheckBoxState::Type IsIgnoreBackfaceChecked() const;
+	ECheckBoxState IsIgnoreBackfaceChecked() const;
 
 	/** Called when the ignore back face checkbox value is changed */
-	void OnIgnoreBackfaceChanged(ESlateCheckBoxState::Type InCheckState);
+	void OnIgnoreBackfaceChanged(ECheckBoxState InCheckState);
 
 	/** Called to get the checked state of the seam painting checkbox */
-	ESlateCheckBoxState::Type IsSeamPaintingChecked() const;
+	ECheckBoxState IsSeamPaintingChecked() const;
 
 	/** Called when the seam painting checkbox value is changed */
-	void OnSeamPaintingChanged(ESlateCheckBoxState::Type InCheckState);
+	void OnSeamPaintingChanged(ECheckBoxState InCheckState);
 	
 	/** Called to get the checked state of the enable flow checkbox */
-	ESlateCheckBoxState::Type IsEnableFlowChecked() const;
+	ECheckBoxState IsEnableFlowChecked() const;
 
 	/** Called when the enable flow checkbox value is changed */
-	void OnEnableFlowChanged(ESlateCheckBoxState::Type InCheckState);
+	void OnEnableFlowChanged(ECheckBoxState InCheckState);
 
 	/** Called when the erase weight is modified */
 	void OnEraseWeightChanged(int32 InWeightIndex);
@@ -165,10 +165,10 @@ protected:
 	void OnPaintWeightChanged(int32 InWeightIndex);
 
 	/** Called to get the checked state of the write channel check boxes */
-	ESlateCheckBoxState::Type IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const;
+	ECheckBoxState IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const;
 
 	/** Called when the state of one of the write channel check boxes is modified */
-	void OnWriteColorChannelChanged(ESlateCheckBoxState::Type InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo);
+	void OnWriteColorChannelChanged(ECheckBoxState InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo);
 
 	/** Called when the fill button is clicked */
 	FReply FillInstanceVertexColorsButtonClicked();

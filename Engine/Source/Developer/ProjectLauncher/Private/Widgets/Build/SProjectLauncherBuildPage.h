@@ -43,10 +43,10 @@ protected:
 private:
 
 	/** Callback for changing the checked state of a platform menu check box. */
-	void HandleBuildCheckedStateChanged( ESlateCheckBoxState::Type CheckState );
+	void HandleBuildCheckedStateChanged( ECheckBoxState CheckState );
 
 	/** Callback for determining whether a platform menu entry is checked. */
-	ESlateCheckBoxState::Type HandleBuildIsChecked() const;
+	ECheckBoxState HandleBuildIsChecked() const;
 
 	/** Callback for changing the selected profile in the profile manager. */
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
@@ -73,10 +73,10 @@ private:
 	EVisibility HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const;
 
 	/** Callback for changing the checked state of a platform menu check box. */
-	void HandleUATCheckedStateChanged( ESlateCheckBoxState::Type CheckState );
+	void HandleUATCheckedStateChanged( ECheckBoxState CheckState );
 
 	/** Callback for determining whether a platform menu entry is checked. */
-	ESlateCheckBoxState::Type HandleUATIsChecked() const;
+	ECheckBoxState HandleUATIsChecked() const;
 
 private:
 

@@ -18,14 +18,14 @@ TSharedRef<SWidget>	SGraphPinBool::GetDefaultValueWidget()
 		.Visibility( this, &SGraphPin::GetDefaultValueVisibility );
 }
 
-ESlateCheckBoxState::Type SGraphPinBool::IsDefaultValueChecked() const
+ECheckBoxState SGraphPinBool::IsDefaultValueChecked() const
 {
 	FString CurrentValue = GraphPinObj->GetDefaultAsString();
-	return CurrentValue.ToBool() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurrentValue.ToBool() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SGraphPinBool::OnDefaultValueCheckBoxChanged(ESlateCheckBoxState::Type InIsChecked)
+void SGraphPinBool::OnDefaultValueCheckBoxChanged(ECheckBoxState InIsChecked)
 {
-	const FString BoolString = (InIsChecked == ESlateCheckBoxState::Checked) ? TEXT("true") : TEXT("false");
+	const FString BoolString = (InIsChecked == ECheckBoxState::Checked) ? TEXT("true") : TEXT("false");
 	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, BoolString);
 }

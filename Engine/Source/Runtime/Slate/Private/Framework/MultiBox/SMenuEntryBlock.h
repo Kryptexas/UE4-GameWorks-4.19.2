@@ -210,14 +210,14 @@ protected:
 	/**
 	 * Called by Slate when this check box button is toggled in a menu entry
 	 */
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState );
 
 	/**
 	 * Called by slate to determine if this menu entry should appear checked
 	 *
 	 * @return true if it should be checked, false if not.
 	 */
-	ESlateCheckBoxState::Type IsChecked() const;
+	ECheckBoxState IsChecked() const;
 
 	/**
 	 * In the case that we have an icon to show.  This function is called to get the image that indicates the menu item should appear checked

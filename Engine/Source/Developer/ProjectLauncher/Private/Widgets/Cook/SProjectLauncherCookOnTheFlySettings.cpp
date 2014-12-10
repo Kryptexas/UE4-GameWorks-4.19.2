@@ -89,18 +89,18 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 /* SProjectLauncherCookOnTheFlySettings callbacks
  *****************************************************************************/
 
-void SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+void SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetIncrementalCooking(NewState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetIncrementalCooking(NewState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherCookOnTheFlySettings::HandleIncrementalCheckBoxIsChecked( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -108,11 +108,11 @@ ESlateCheckBoxState::Type SProjectLauncherCookOnTheFlySettings::HandleIncrementa
 	{
 		if (SelectedProfile->IsCookingIncrementally())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

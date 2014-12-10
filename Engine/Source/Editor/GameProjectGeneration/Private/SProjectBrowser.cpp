@@ -262,7 +262,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 				.VAlign(VAlign_Center)
 				[
 					SNew(SCheckBox)			
-					.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SProjectBrowser::OnAutoloadLastProjectChanged)
 					.Content()
 					[
@@ -1265,10 +1265,10 @@ void SProjectBrowser::OnFilterTextChanged(const FText& InText)
 	PopulateFilteredProjectCategories();
 }
 
-void SProjectBrowser::OnAutoloadLastProjectChanged(ESlateCheckBoxState::Type NewState)
+void SProjectBrowser::OnAutoloadLastProjectChanged(ECheckBoxState NewState)
 {
 	UEditorGameAgnosticSettings &Settings = GEditor->AccessGameAgnosticSettings();
-	Settings.bLoadTheMostRecentlyLoadedProjectAtStartup = (NewState == ESlateCheckBoxState::Checked);
+	Settings.bLoadTheMostRecentlyLoadedProjectAtStartup = (NewState == ECheckBoxState::Checked);
 
 	UProperty* AutoloadProjectProperty = FindField<UProperty>(Settings.GetClass(), "bLoadTheMostRecentlyLoadedProjectAtStartup");
 	if (AutoloadProjectProperty != NULL)

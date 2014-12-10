@@ -56,7 +56,7 @@ public:
 				+ SHorizontalBox::Slot()
 					[
 						SNew(SCheckBox)
-							.IsChecked(ESlateCheckBoxState::Checked)
+							.IsChecked(ECheckBoxState::Checked)
 					]
 
 				+ SHorizontalBox::Slot()

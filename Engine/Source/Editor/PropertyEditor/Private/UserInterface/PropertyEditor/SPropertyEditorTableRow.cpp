@@ -193,15 +193,15 @@ const FSlateBrush* SPropertyEditorTableRow::OnGetFavoriteImage() const
 	return FEditorStyle::GetBrush(TEXT("PropertyWindow.Favorites_Disabled"));
 }
 
-void SPropertyEditorTableRow::OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState )
+void SPropertyEditorTableRow::OnEditConditionCheckChanged( ECheckBoxState CheckState )
 {
-	PropertyEditor->SetEditConditionState( CheckState == ESlateCheckBoxState::Checked );
+	PropertyEditor->SetEditConditionState( CheckState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type SPropertyEditorTableRow::OnGetEditConditionCheckState() const
+ECheckBoxState SPropertyEditorTableRow::OnGetEditConditionCheckState() const
 {
 	bool bEditConditionMet = PropertyEditor->IsEditConditionMet();
-	return bEditConditionMet ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bEditConditionMet ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FReply SPropertyEditorTableRow::OnNameDoubleClicked()

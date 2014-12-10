@@ -281,24 +281,24 @@ TSharedRef<SWidget> FMatinee::AddFilterButton(UInterpFilter* Filter)
 		.OnContextMenuOpening(this, &FMatinee::CreateTabMenu);
 }
 
-void FMatinee::SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter)
+void FMatinee::SetFilterActive(ECheckBoxState CheckStatus, UInterpFilter* Filter)
 {
-	if ( CheckStatus == ESlateCheckBoxState::Checked )
+	if ( CheckStatus == ECheckBoxState::Checked )
 	{
 		SetSelectedFilter(Filter);
 		InvalidateTrackWindowViewports();
 	}
 }
 
-ESlateCheckBoxState::Type FMatinee::GetFilterActive(UInterpFilter* Filter) const
+ECheckBoxState FMatinee::GetFilterActive(UInterpFilter* Filter) const
 {
 	if ( IData->SelectedFilter == Filter )
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 }
 

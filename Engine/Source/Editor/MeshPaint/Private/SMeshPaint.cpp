@@ -235,18 +235,18 @@ public:
 
 private:
 
-	void OnImportColorChannelChanged(ESlateCheckBoxState::Type InNewValue, FImportVertexTextureHelper::ChannelsMask InColorChannelMask)
+	void OnImportColorChannelChanged(ECheckBoxState InNewValue, FImportVertexTextureHelper::ChannelsMask InColorChannelMask)
 	{
 		// Toggle the appropriate bit in the import color mask
 		ImportColorMask ^= InColorChannelMask;
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( FImportVertexTextureHelper::ChannelsMask InColorChannelMask ) const
+	ECheckBoxState IsRadioChecked( FImportVertexTextureHelper::ChannelsMask InColorChannelMask ) const
 	{
 		// Bitwise check to see if the specified color channel should be checked
 		return (ImportColorMask & InColorChannelMask)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	FReply FindTGAButtonClicked()
@@ -410,16 +410,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintResource::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintResource::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintResource::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintResource::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -491,16 +491,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshVertexPaintTarget::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshVertexPaintTarget::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshVertexPaintTarget::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshVertexPaintTarget::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -573,16 +573,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintMode::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintMode::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintMode::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintMode::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -680,16 +680,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintColorViewMode::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintColorViewMode::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintColorViewMode::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintColorViewMode::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -861,16 +861,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintColorSet::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintColorSet::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintColorSet::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintColorSet::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -1030,16 +1030,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( int32 ButtonId ) const
+	ECheckBoxState IsRadioChecked( int32 ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, int32 RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, int32 RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			if (OnSelectionChanged.IsBound())
 			{
@@ -2220,40 +2220,40 @@ void SMeshPaint::OnFlowAmountChanged(float InFlowAmount)
 	FMeshPaintSettings::Get().FlowAmount = InFlowAmount;
 }
 
-ESlateCheckBoxState::Type SMeshPaint::IsIgnoreBackfaceChecked() const
+ECheckBoxState SMeshPaint::IsIgnoreBackfaceChecked() const
 {
 	return (FMeshPaintSettings::Get().bOnlyFrontFacingTriangles)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnIgnoreBackfaceChanged(ESlateCheckBoxState::Type InCheckState)
+void SMeshPaint::OnIgnoreBackfaceChanged(ECheckBoxState InCheckState)
 {
-	FMeshPaintSettings::Get().bOnlyFrontFacingTriangles = (InCheckState == ESlateCheckBoxState::Checked);
+	FMeshPaintSettings::Get().bOnlyFrontFacingTriangles = (InCheckState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SMeshPaint::IsSeamPaintingChecked() const
+ECheckBoxState SMeshPaint::IsSeamPaintingChecked() const
 {
 	return (FMeshPaintSettings::Get().bEnableSeamPainting)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnSeamPaintingChanged(ESlateCheckBoxState::Type InCheckState)
+void SMeshPaint::OnSeamPaintingChanged(ECheckBoxState InCheckState)
 {
-	FMeshPaintSettings::Get().bEnableSeamPainting = (InCheckState == ESlateCheckBoxState::Checked);
+	FMeshPaintSettings::Get().bEnableSeamPainting = (InCheckState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SMeshPaint::IsEnableFlowChecked() const
+ECheckBoxState SMeshPaint::IsEnableFlowChecked() const
 {
 	return (FMeshPaintSettings::Get().bEnableFlow)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnEnableFlowChanged(ESlateCheckBoxState::Type InCheckState)
+void SMeshPaint::OnEnableFlowChanged(ECheckBoxState InCheckState)
 {
-	FMeshPaintSettings::Get().bEnableFlow = (InCheckState == ESlateCheckBoxState::Checked);
+	FMeshPaintSettings::Get().bEnableFlow = (InCheckState == ECheckBoxState::Checked);
 }
 
 void SMeshPaint::OnEraseWeightChanged(int32 InWeightIndex)
@@ -2267,7 +2267,7 @@ void SMeshPaint::OnPaintWeightChanged(int32 InWeightIndex)
 }
 
 
-ESlateCheckBoxState::Type SMeshPaint::IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const
+ECheckBoxState SMeshPaint::IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const
 {
 	const bool bIsRedAndChecked = ( CheckBoxInfo == EMeshPaintWriteColorChannels::Red && FMeshPaintSettings::Get().bWriteRed );
 	const bool bIsGreenAndChecked = ( CheckBoxInfo == EMeshPaintWriteColorChannels::Green && FMeshPaintSettings::Get().bWriteGreen );
@@ -2275,12 +2275,12 @@ ESlateCheckBoxState::Type SMeshPaint::IsWriteColorChannelChecked(EMeshPaintWrite
 	const bool bIsAlphaAndChecked = (CheckBoxInfo == EMeshPaintWriteColorChannels::Alpha && FMeshPaintSettings::Get().bWriteAlpha);
 
 	const bool bIsChecked = ( bIsRedAndChecked || bIsGreenAndChecked || bIsBlueAndChecked || bIsAlphaAndChecked );
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnWriteColorChannelChanged(ESlateCheckBoxState::Type InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo)
+void SMeshPaint::OnWriteColorChannelChanged(ECheckBoxState InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo)
 {
-	bool bIsCheckedState = (InNewValue == ESlateCheckBoxState::Checked);
+	bool bIsCheckedState = (InNewValue == ECheckBoxState::Checked);
 	if(CheckBoxInfo == EMeshPaintWriteColorChannels::Red)
 	{
 		FMeshPaintSettings::Get().bWriteRed = bIsCheckedState;

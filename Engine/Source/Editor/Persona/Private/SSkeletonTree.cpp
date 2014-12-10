@@ -741,26 +741,26 @@ TSharedRef< SWidget > FDisplayedAttachedAssetInfo::GenerateWidgetForDataColumn()
 		];
 }
 
-ESlateCheckBoxState::Type FDisplayedAttachedAssetInfo::IsAssetDisplayed() const
+ECheckBoxState FDisplayedAttachedAssetInfo::IsAssetDisplayed() const
 {
 	if(AssetComponent.IsValid())
 	{
-		return AssetComponent->IsVisible() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return AssetComponent->IsVisible() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void FDisplayedAttachedAssetInfo::OnToggleAssetDisplayed( ESlateCheckBoxState::Type InCheckboxState )
+void FDisplayedAttachedAssetInfo::OnToggleAssetDisplayed( ECheckBoxState InCheckboxState )
 {
 	if(AssetComponent.IsValid())
 	{
-		AssetComponent->SetVisibility(InCheckboxState == ESlateCheckBoxState::Checked);
+		AssetComponent->SetVisibility(InCheckboxState == ECheckBoxState::Checked);
 	}
 }
 
 const FSlateBrush* FDisplayedAttachedAssetInfo::OnGetAssetDisplayedButtonImage() const
 {
-	return IsAssetDisplayed() == ESlateCheckBoxState::Checked ?
+	return IsAssetDisplayed() == ECheckBoxState::Checked ?
 		FEditorStyle::GetBrush( "Kismet.VariableList.ExposeForInstance" ) :
 		FEditorStyle::GetBrush( "Kismet.VariableList.HideForInstance" );
 }
@@ -2545,15 +2545,15 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 	}
 }
 
-void SSkeletonTree::OnChangeShowingRetargetingOptions(ESlateCheckBoxState::Type NewState)
+void SSkeletonTree::OnChangeShowingRetargetingOptions(ECheckBoxState NewState)
 {
-	bShowingRetargetingOptions = NewState == ESlateCheckBoxState::Checked;
+	bShowingRetargetingOptions = NewState == ECheckBoxState::Checked;
 	CreateTreeColumns();
 }
 
-ESlateCheckBoxState::Type SSkeletonTree::IsShowingRetargetingOptions() const
+ECheckBoxState SSkeletonTree::IsShowingRetargetingOptions() const
 {
-	return bShowingRetargetingOptions ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bShowingRetargetingOptions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 

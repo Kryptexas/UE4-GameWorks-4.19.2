@@ -65,10 +65,10 @@ private:
 	FText GetShowOtherDevelopersToolTip() const;
 
 	/** Toggles the filter for showing other developers assets */
-	void HandleShowOtherDevelopersCheckStateChanged( const ESlateCheckBoxState::Type InCheckboxState );
+	void HandleShowOtherDevelopersCheckStateChanged( const ECheckBoxState InCheckboxState );
 
 	/** Gets if showing other developers assets */
-	ESlateCheckBoxState::Type GetShowOtherDevelopersCheckState() const;
+	ECheckBoxState GetShowOtherDevelopersCheckState() const;
 
 	/** Called upon the Rename UICommand being executed, sends rename request to the asset view */
 	void OnRenameRequested() const;

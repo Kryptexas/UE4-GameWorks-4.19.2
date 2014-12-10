@@ -22,7 +22,7 @@ public:
 		SLATE_ARGUMENT(TSharedPtr<STableViewBase>, OwnerTableView)
 		SLATE_ARGUMENT(OptionType, Option)
 		SLATE_EVENT(FOnCheckStateChanged, OnCheckStateChanged)
-		SLATE_ATTRIBUTE(ESlateCheckBoxState::Type, IsChecked)
+		SLATE_ATTRIBUTE(ECheckBoxState, IsChecked)
 		SLATE_EVENT(FOnGenerateWidget, OnGenerateWidget)
 	SLATE_END_ARGS()
 
@@ -67,13 +67,13 @@ public:
 
 private:
 	// Callback for changing the checked state of the check box.
-	void HandleCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+	void HandleCheckBoxCheckStateChanged( ECheckBoxState NewState )
 	{
 		OnCheckStateChanged.Execute(NewState);
 	}
 
 	// Callback for determining the checked state of the check box.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked( ) const
+	ECheckBoxState HandleCheckBoxIsChecked( ) const
 	{
 		return IsChecked.Get();
 	}
@@ -84,7 +84,7 @@ public:
 private:
 	OptionType Option;
 	FOnCheckStateChanged OnCheckStateChanged;
-	TAttribute<ESlateCheckBoxState::Type> IsChecked;
+	TAttribute<ECheckBoxState> IsChecked;
 	FOnGenerateWidget OnGenerateWidget;
 };
 
@@ -126,10 +126,10 @@ private:
 	TSharedRef<SWidget> GenerateWidgetForOption(OptionType Option);
 
 	// Calls the provided user callback to notify them that an option has been checked or unchecked.
-	void HandleCheckBoxCheckStateChanged(ESlateCheckBoxState::Type NewState, OptionType Option) const;
+	void HandleCheckBoxCheckStateChanged(ECheckBoxState NewState, OptionType Option) const;
 
 	// Calls the provided user callback to be notified that an option is selected or unselected in some way.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked(OptionType Option) const;
+	ECheckBoxState HandleCheckBoxIsChecked(OptionType Option) const;
 
 	// Selects all options.
 	void HandleAllHyperlinkNavigate();
@@ -263,15 +263,15 @@ TSharedRef<SWidget> SMultipleOptionTable<OptionType>::GenerateWidgetForOption(Op
 }
 
 template<typename OptionType>
-void SMultipleOptionTable<OptionType>::HandleCheckBoxCheckStateChanged(ESlateCheckBoxState::Type NewState, OptionType Option) const
+void SMultipleOptionTable<OptionType>::HandleCheckBoxCheckStateChanged(ECheckBoxState NewState, OptionType Option) const
 {
-	OnOptionSelectionChanged.Execute(NewState == ESlateCheckBoxState::Checked, Option);
+	OnOptionSelectionChanged.Execute(NewState == ECheckBoxState::Checked, Option);
 }
 
 template<typename OptionType>
-ESlateCheckBoxState::Type SMultipleOptionTable<OptionType>::HandleCheckBoxIsChecked(OptionType Option) const
+ECheckBoxState SMultipleOptionTable<OptionType>::HandleCheckBoxIsChecked(OptionType Option) const
 {
-	return IsOptionSelected.Execute(Option) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsOptionSelected.Execute(Option) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 template<typename OptionType>
@@ -280,7 +280,7 @@ void SMultipleOptionTable<OptionType>::HandleAllHyperlinkNavigate()
 	OnPreBatchSelect.ExecuteIfBound();
 	for (const OptionType& Option : *Options)
 	{
-		HandleCheckBoxCheckStateChanged(ESlateCheckBoxState::Checked, Option);
+		HandleCheckBoxCheckStateChanged(ECheckBoxState::Checked, Option);
 	}
 	OnPostBatchSelect.ExecuteIfBound();
 }
@@ -291,7 +291,7 @@ void SMultipleOptionTable<OptionType>::HandleNoneHyperlinkNavigate()
 	OnPreBatchSelect.ExecuteIfBound();
 	for (const OptionType& Option : *Options)
 	{
-		HandleCheckBoxCheckStateChanged(ESlateCheckBoxState::Unchecked, Option);
+		HandleCheckBoxCheckStateChanged(ECheckBoxState::Unchecked, Option);
 	}
 	OnPostBatchSelect.ExecuteIfBound();
 }

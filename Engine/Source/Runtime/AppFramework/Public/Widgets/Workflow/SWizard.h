@@ -264,10 +264,10 @@ private:
 	EVisibility HandleNextButtonVisibility() const;
 
 	// Callback for getting the checked state of a page button.
-	void HandlePageButtonCheckStateChanged( ESlateCheckBoxState::Type NewState, int32 PageIndex );
+	void HandlePageButtonCheckStateChanged( ECheckBoxState NewState, int32 PageIndex );
 
 	// Callback for clicking a page button.
-	ESlateCheckBoxState::Type HandlePageButtonIsChecked( int32 PageIndex ) const;
+	ECheckBoxState HandlePageButtonIsChecked( int32 PageIndex ) const;
 
 	// Callback for getting the enabled state of a page button.
 	bool HandlePageButtonIsEnabled( int32 PageIndex ) const;

@@ -103,14 +103,14 @@ const FSlateBrush* FMathStructCustomization::GetPreserveScaleRatioImage() const
 	return bPreserveScaleRatio ? FEditorStyle::GetBrush(TEXT("GenericLock")) : FEditorStyle::GetBrush(TEXT("GenericUnlock"));
 }
 
-ESlateCheckBoxState::Type FMathStructCustomization::IsPreserveScaleRatioChecked() const
+ECheckBoxState FMathStructCustomization::IsPreserveScaleRatioChecked() const
 {
-	return bPreserveScaleRatio ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bPreserveScaleRatio ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMathStructCustomization::OnPreserveScaleRatioToggled(ESlateCheckBoxState::Type NewState, TWeakPtr<IPropertyHandle> PropertyHandle)
+void FMathStructCustomization::OnPreserveScaleRatioToggled(ECheckBoxState NewState, TWeakPtr<IPropertyHandle> PropertyHandle)
 {
-	bPreserveScaleRatio = ( NewState == ESlateCheckBoxState::Checked ) ? true : false;
+	bPreserveScaleRatio = ( NewState == ECheckBoxState::Checked ) ? true : false;
 
 	if ( PropertyHandle.IsValid() )
 	{

@@ -506,21 +506,21 @@ void FRigDetails::OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpaceProp
 	ComboBox->SetSelectedItem(SelectedItem);
 }
 
-void FRigDetails::OnAdvancedCheckBoxStateChanged(ESlateCheckBoxState::Type NewState, TSharedRef<IPropertyHandle> PropertyHandle)
+void FRigDetails::OnAdvancedCheckBoxStateChanged(ECheckBoxState NewState, TSharedRef<IPropertyHandle> PropertyHandle)
 {
-	bool bValue = (NewState == ESlateCheckBoxState::Checked)? true : false;
+	bool bValue = (NewState == ECheckBoxState::Checked)? true : false;
 	PropertyHandle->SetValue(bValue);
 }
 
-ESlateCheckBoxState::Type FRigDetails::AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const
+ECheckBoxState FRigDetails::AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const
 {
 	bool bValue = false;
 	// multi value doesn't work in array, so i'm not handling multi value
 	if (PropertyHandle->GetValue(bValue) != FPropertyAccess::Fail)
 	{
-		return (bValue)? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+		return (bValue)? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 #undef LOCTEXT_NAMESPACE

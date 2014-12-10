@@ -631,24 +631,24 @@ void SAnimationRemapSkeleton::Construct( const FArguments& InArgs )
 	UpdateAssetPicker();
 }
 
-ESlateCheckBoxState::Type SAnimationRemapSkeleton::IsRemappingReferencedAssets() const
+ECheckBoxState SAnimationRemapSkeleton::IsRemappingReferencedAssets() const
 {
-	return bRemapReferencedAssets ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bRemapReferencedAssets ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAnimationRemapSkeleton::OnRemappingReferencedAssetsChanged(ESlateCheckBoxState::Type InNewRadioState)
+void SAnimationRemapSkeleton::OnRemappingReferencedAssetsChanged(ECheckBoxState InNewRadioState)
 {
-	bRemapReferencedAssets = (InNewRadioState == ESlateCheckBoxState::Checked);
+	bRemapReferencedAssets = (InNewRadioState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SAnimationRemapSkeleton::IsConvertSpacesChecked() const
+ECheckBoxState SAnimationRemapSkeleton::IsConvertSpacesChecked() const
 {
-	return bConvertSpaces ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bConvertSpaces ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAnimationRemapSkeleton::OnConvertSpacesCheckChanged(ESlateCheckBoxState::Type InNewRadioState)
+void SAnimationRemapSkeleton::OnConvertSpacesCheckChanged(ECheckBoxState InNewRadioState)
 {
-	bConvertSpaces = (InNewRadioState == ESlateCheckBoxState::Checked);
+	bConvertSpaces = (InNewRadioState == ECheckBoxState::Checked);
 }
 
 bool SAnimationRemapSkeleton::IsShowOnlyCompatibleSkeletonsEnabled() const
@@ -657,14 +657,14 @@ bool SAnimationRemapSkeleton::IsShowOnlyCompatibleSkeletonsEnabled() const
 	return (bConvertSpaces == true);
 }
 
-ESlateCheckBoxState::Type SAnimationRemapSkeleton::IsShowOnlyCompatibleSkeletonsChecked() const
+ECheckBoxState SAnimationRemapSkeleton::IsShowOnlyCompatibleSkeletonsChecked() const
 {
-	return bShowOnlyCompatibleSkeletons ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bShowOnlyCompatibleSkeletons ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAnimationRemapSkeleton::OnShowOnlyCompatibleSkeletonsCheckChanged(ESlateCheckBoxState::Type InNewRadioState)
+void SAnimationRemapSkeleton::OnShowOnlyCompatibleSkeletonsCheckChanged(ECheckBoxState InNewRadioState)
 {
-	bShowOnlyCompatibleSkeletons = (InNewRadioState == ESlateCheckBoxState::Checked);
+	bShowOnlyCompatibleSkeletons = (InNewRadioState == ECheckBoxState::Checked);
 
 	UpdateAssetPicker();
 }

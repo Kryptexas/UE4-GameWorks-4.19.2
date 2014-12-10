@@ -752,26 +752,26 @@ bool FLevelEditorActionCallbacks::IsLightingDensityRenderGrayscaleChecked()
 	return GEngine->bRenderLightMapDensityGrayscale;
 }
 
-void FLevelEditorActionCallbacks::SetLightingResolutionStaticMeshes( ESlateCheckBoxState::Type NewCheckedState )
+void FLevelEditorActionCallbacks::SetLightingResolutionStaticMeshes( ECheckBoxState NewCheckedState )
 {
 	FLightmapResRatioAdjustSettings& Settings = FLightmapResRatioAdjustSettings::Get();
-	Settings.bStaticMeshes = ( NewCheckedState == ESlateCheckBoxState::Checked );
+	Settings.bStaticMeshes = ( NewCheckedState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type FLevelEditorActionCallbacks::IsLightingResolutionStaticMeshesChecked()
+ECheckBoxState FLevelEditorActionCallbacks::IsLightingResolutionStaticMeshesChecked()
 {
-	return ( FLightmapResRatioAdjustSettings::Get().bStaticMeshes ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked );
+	return ( FLightmapResRatioAdjustSettings::Get().bStaticMeshes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked );
 }
 
-void FLevelEditorActionCallbacks::SetLightingResolutionBSPSurfaces( ESlateCheckBoxState::Type NewCheckedState )
+void FLevelEditorActionCallbacks::SetLightingResolutionBSPSurfaces( ECheckBoxState NewCheckedState )
 {
 	FLightmapResRatioAdjustSettings& Settings = FLightmapResRatioAdjustSettings::Get();
-	Settings.bBSPSurfaces = ( NewCheckedState == ESlateCheckBoxState::Checked );
+	Settings.bBSPSurfaces = ( NewCheckedState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type FLevelEditorActionCallbacks::IsLightingResolutionBSPSurfacesChecked()
+ECheckBoxState FLevelEditorActionCallbacks::IsLightingResolutionBSPSurfacesChecked()
 {
-	return ( FLightmapResRatioAdjustSettings::Get().bBSPSurfaces ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked );
+	return ( FLightmapResRatioAdjustSettings::Get().bBSPSurfaces ? ECheckBoxState::Checked : ECheckBoxState::Unchecked );
 }
 
 void FLevelEditorActionCallbacks::SetLightingResolutionLevel( FLightmapResRatioAdjustSettings::AdjustLevels NewLevel )

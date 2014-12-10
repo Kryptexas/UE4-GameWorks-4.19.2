@@ -245,10 +245,10 @@ private:
 	void OnSearchTextCommitted(const FText& Text, ETextCommit::Type CommitType);
 
 	/** Called when the find mode checkbox is hit */
-	void OnFindModeChanged(ESlateCheckBoxState::Type CheckState);
+	void OnFindModeChanged(ECheckBoxState CheckState);
 
 	/** Called to check what the find mode is for the checkbox */
-	ESlateCheckBoxState::Type OnGetFindModeChecked() const;
+	ECheckBoxState OnGetFindModeChecked() const;
 
 	/* Get the children of a row */
 	void OnGetChildren( FSearchResult InItem, TArray< FSearchResult >& OutChildren );

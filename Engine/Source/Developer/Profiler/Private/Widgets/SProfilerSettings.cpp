@@ -222,14 +222,14 @@ FReply SProfilerSettings::ResetToDefaults_OnClicked()
 	return FReply::Handled();
 }
 
-void SProfilerSettings::OptionValue_OnCheckStateChanged( ESlateCheckBoxState::Type CheckBoxState, bool* ValuePtr )
+void SProfilerSettings::OptionValue_OnCheckStateChanged( ECheckBoxState CheckBoxState, bool* ValuePtr )
 {
-	*ValuePtr = CheckBoxState == ESlateCheckBoxState::Checked ? true : false;
+	*ValuePtr = CheckBoxState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SProfilerSettings::OptionValue_IsChecked( const bool* ValuePtr ) const
+ECheckBoxState SProfilerSettings::OptionValue_IsChecked( const bool* ValuePtr ) const
 {
-	return *ValuePtr ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return *ValuePtr ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 EVisibility SProfilerSettings::OptionDefault_GetDiffersFromDefaultAsVisibility( const bool* ValuePtr, const bool* DefaultPtr ) const

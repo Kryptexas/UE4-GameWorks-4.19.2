@@ -53,9 +53,9 @@ FReply SPropertyEditorBool::OnFocusReceived( const FGeometry& MyGeometry, const 
 	return FReply::Handled().SetUserFocus(CheckBox.ToSharedRef(), InFocusEvent.GetCause());
 }
 
-ESlateCheckBoxState::Type SPropertyEditorBool::OnGetCheckState() const
+ECheckBoxState SPropertyEditorBool::OnGetCheckState() const
 {
-	ESlateCheckBoxState::Type ReturnState = ESlateCheckBoxState::Undetermined;
+	ECheckBoxState ReturnState = ECheckBoxState::Undetermined;
 
 	bool Value;
 	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
@@ -63,21 +63,21 @@ ESlateCheckBoxState::Type SPropertyEditorBool::OnGetCheckState() const
 	{
 		if( Value == true )
 		{
-			ReturnState = ESlateCheckBoxState::Checked;
+			ReturnState = ECheckBoxState::Checked;
 		}
 		else if( Value == false )
 		{
-			ReturnState = ESlateCheckBoxState::Unchecked;
+			ReturnState = ECheckBoxState::Unchecked;
 		}
 	}
 
 	return ReturnState;
 }
 
-void SPropertyEditorBool::OnCheckStateChanged( ESlateCheckBoxState::Type InNewState )
+void SPropertyEditorBool::OnCheckStateChanged( ECheckBoxState InNewState )
 {
 	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
-	if( InNewState == ESlateCheckBoxState::Checked || InNewState == ESlateCheckBoxState::Undetermined )
+	if( InNewState == ECheckBoxState::Checked || InNewState == ECheckBoxState::Undetermined )
 	{
 		PropertyHandle->SetValue( true );
 	}

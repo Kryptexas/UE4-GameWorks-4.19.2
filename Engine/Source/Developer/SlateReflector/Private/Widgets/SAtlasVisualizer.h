@@ -26,11 +26,11 @@ public:
 
 protected:
 	FText GetZoomLevelPercentText() const;
-	void OnFitToWindowStateChanged( ESlateCheckBoxState::Type NewState );
-	ESlateCheckBoxState::Type OnGetFitToWindowState() const;
+	void OnFitToWindowStateChanged( ECheckBoxState NewState );
+	ECheckBoxState OnGetFitToWindowState() const;
 	FReply OnActualSizeClicked();
-	void OnDisplayCheckerboardStateChanged( ESlateCheckBoxState::Type NewState );
-	ESlateCheckBoxState::Type OnGetCheckerboardState() const;
+	void OnDisplayCheckerboardStateChanged( ECheckBoxState NewState );
+	ECheckBoxState OnGetCheckerboardState() const;
 	EVisibility OnGetCheckerboardVisibility() const;
 	void OnComboOpening();
 	FText OnGetSelectedItemText() const;

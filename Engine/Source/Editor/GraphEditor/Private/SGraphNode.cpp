@@ -860,19 +860,19 @@ EVisibility SGraphNode::AdvancedViewArrowVisibility() const
 	return bShowAdvancedViewArrow ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SGraphNode::OnAdvancedViewChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SGraphNode::OnAdvancedViewChanged( const ECheckBoxState NewCheckedState )
 {
 	if(GraphNode && (ENodeAdvancedPins::NoPins != GraphNode->AdvancedPinDisplay))
 	{
-		const bool bAdvancedPinsHidden = (NewCheckedState != ESlateCheckBoxState::Checked);
+		const bool bAdvancedPinsHidden = (NewCheckedState != ECheckBoxState::Checked);
 		GraphNode->AdvancedPinDisplay = bAdvancedPinsHidden ? ENodeAdvancedPins::Hidden : ENodeAdvancedPins::Shown;
 	}
 }
 
-ESlateCheckBoxState::Type SGraphNode::IsAdvancedViewChecked() const
+ECheckBoxState SGraphNode::IsAdvancedViewChecked() const
 {
 	const bool bAdvancedPinsHidden = GraphNode && (ENodeAdvancedPins::Hidden == GraphNode->AdvancedPinDisplay);
-	return bAdvancedPinsHidden ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+	return bAdvancedPinsHidden ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 }
 
 const FSlateBrush* SGraphNode::GetAdvancedViewArrow() const

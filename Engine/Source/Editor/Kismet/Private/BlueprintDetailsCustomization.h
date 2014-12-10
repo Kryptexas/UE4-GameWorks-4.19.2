@@ -100,24 +100,24 @@ private:
 	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
 	
 	EVisibility ShowEditableCheckboxVisibilty() const;
-	ESlateCheckBoxState::Type OnEditableCheckboxState() const;
-	void OnEditableChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnEditableCheckboxState() const;
+	void OnEditableChanged(ECheckBoxState InNewState);
 
-	ESlateCheckBoxState::Type OnCreateWidgetCheckboxState() const;
-	void OnCreateWidgetChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnCreateWidgetCheckboxState() const;
+	void OnCreateWidgetChanged(ECheckBoxState InNewState);
 	EVisibility Show3DWidgetVisibility() const;
 	bool Is3DWidgetEnabled();
 	
-	ESlateCheckBoxState::Type OnGetExposedToSpawnCheckboxState() const;
-	void OnExposedToSpawnChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetExposedToSpawnCheckboxState() const;
+	void OnExposedToSpawnChanged(ECheckBoxState InNewState);
 	EVisibility ExposeOnSpawnVisibility() const;
 
-	ESlateCheckBoxState::Type OnGetPrivateCheckboxState() const;
-	void OnPrivateChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetPrivateCheckboxState() const;
+	void OnPrivateChanged(ECheckBoxState InNewState);
 	EVisibility ExposePrivateVisibility() const;
 	
-	ESlateCheckBoxState::Type OnGetExposedToMatineeCheckboxState() const;
-	void OnExposedToMatineeChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetExposedToMatineeCheckboxState() const;
+	void OnExposedToMatineeChanged(ECheckBoxState InNewState);
 	EVisibility ExposeToMatineeVisibility() const;
 
 	FText OnGetMetaKeyValue(FName Key) const;
@@ -130,12 +130,12 @@ private:
 	EVisibility ReplicationVisibility() const;
 
 	EVisibility GetTransientVisibility() const;
-	ESlateCheckBoxState::Type OnGetTransientCheckboxState() const;
-	void OnTransientChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetTransientCheckboxState() const;
+	void OnTransientChanged(ECheckBoxState InNewState);
 
 	EVisibility GetSaveGameVisibility() const;
-	ESlateCheckBoxState::Type OnGetSaveGameCheckboxState() const;
-	void OnSaveGameChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetSaveGameCheckboxState() const;
+	void OnSaveGameChanged(ECheckBoxState InNewState);
 
 	/** Refresh the property flags list */
 	void RefreshPropertyFlags();
@@ -226,7 +226,7 @@ protected:
 	bool AttemptToCreateResultNode();
 
 	/** Toggles the ability to be called in editor */
-	void OnToggleEditorCallableEvent( const ESlateCheckBoxState::Type NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
+	void OnToggleEditorCallableEvent( const ECheckBoxState NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
 
 protected:
 	/** Pointer to the parent */
@@ -366,10 +366,10 @@ private:
 	void OnPrePinInfoChange(const FEdGraphPinType& PinType);
 
 	/** Returns whether the "Pass-by-Reference" checkbox is checked or not */
-	ESlateCheckBoxState::Type IsRefChecked() const;
+	ECheckBoxState IsRefChecked() const;
 
 	/** Handles toggling the "Pass-by-Reference" checkbox */
-	void OnRefCheckStateChanged(ESlateCheckBoxState::Type InState);
+	void OnRefCheckStateChanged(ECheckBoxState InState);
 
 	FText OnGetArgDefaultValueText() const;
 	void OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
@@ -455,8 +455,8 @@ private:
 	FReply ColorBlock_OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	bool IsCustomEvent() const;
-	void OnIsReliableReplicationFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
-	ESlateCheckBoxState::Type GetIsReliableReplicatedFunction() const;
+	void OnIsReliableReplicationFunctionModified(const ECheckBoxState NewCheckedState);
+	ECheckBoxState GetIsReliableReplicatedFunction() const;
 
 	struct FReplicationSpecifierLabel
 	{
@@ -474,14 +474,14 @@ private:
 	TSharedRef<ITableRow> OnGenerateReplicationComboWidget( TSharedPtr<FReplicationSpecifierLabel> InNetFlag, const TSharedRef<STableViewBase>& OwnerTable );
 	
 	bool IsPureFunctionVisible() const;
-	void OnIsPureFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
-	ESlateCheckBoxState::Type GetIsPureFunction() const;
+	void OnIsPureFunctionModified(const ECheckBoxState NewCheckedState);
+	ECheckBoxState GetIsPureFunction() const;
 
 	/** Determines if the selected event is identified as editor callable */
-	ESlateCheckBoxState::Type GetIsEditorCallableEvent() const;
+	ECheckBoxState GetIsEditorCallableEvent() const;
 
 	/** Enables/Disables selected event as editor callable  */
-	void OnEditorCallableEventModified( const ESlateCheckBoxState::Type NewCheckedState ) const;
+	void OnEditorCallableEventModified( const ECheckBoxState NewCheckedState ) const;
 
 	
 	FReply OnAddNewOutputClicked();
@@ -623,10 +623,10 @@ protected:
 	bool CanDeprecateBlueprint() const;
 
 	/** Callback when toggling the Deprecate checkbox, handles marking a Blueprint as deprecated */
-	void OnDeprecateBlueprint(ESlateCheckBoxState::Type InCheckState);
+	void OnDeprecateBlueprint(ECheckBoxState InCheckState);
 
 	/** Callback for Deprecate checkbox, returns checked if the Blueprint is deprecated */
-	ESlateCheckBoxState::Type IsDeprecatedBlueprint() const;
+	ECheckBoxState IsDeprecatedBlueprint() const;
 
 	/** Returns the tooltip explaining deprecation */
 	FText GetDeprecatedTooltip() const;

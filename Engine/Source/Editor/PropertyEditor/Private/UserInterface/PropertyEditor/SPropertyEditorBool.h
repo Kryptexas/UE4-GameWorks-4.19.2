@@ -23,9 +23,9 @@ private:
 
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
 
-	ESlateCheckBoxState::Type OnGetCheckState() const;
+	ECheckBoxState OnGetCheckState() const;
 
-	void OnCheckStateChanged( ESlateCheckBoxState::Type InNewState );
+	void OnCheckStateChanged( ECheckBoxState InNewState );
 
 	/** @return True if the property can be edited */
 	bool CanEdit() const;

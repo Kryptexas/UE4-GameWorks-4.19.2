@@ -350,17 +350,17 @@ TSharedRef<IDetailCustomization> FSceneComponentDetails::MakeInstance()
 	return MakeShareable( new FSceneComponentDetails );
 }
 
-ESlateCheckBoxState::Type FSceneComponentDetails::IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
+ECheckBoxState FSceneComponentDetails::IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
 {
 	if ( MobilityHandle.IsValid() )
 	{
 		uint8 MobilityByte;
 		MobilityHandle.Pin()->GetValue(MobilityByte);
 
-		return MobilityByte == InMobility ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return MobilityByte == InMobility ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 FSlateColor FSceneComponentDetails::GetMobilityTextColor(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
@@ -376,9 +376,9 @@ FSlateColor FSceneComponentDetails::GetMobilityTextColor(TWeakPtr<IPropertyHandl
 	return FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
 }
 
-void FSceneComponentDetails::OnMobilityChanged(ESlateCheckBoxState::Type InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility)
+void FSceneComponentDetails::OnMobilityChanged(ECheckBoxState InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility)
 {
-	if ( MobilityHandle.IsValid() && InCheckedState == ESlateCheckBoxState::Checked)
+	if ( MobilityHandle.IsValid() && InCheckedState == ECheckBoxState::Checked)
 	{
 		MobilityHandle.Pin()->SetValue((uint8)InMobility);
 	}

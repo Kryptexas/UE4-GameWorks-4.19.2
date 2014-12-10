@@ -174,14 +174,14 @@ public:
 private:
 
 	// Callback for changing this row's check box state.
-	void HandleCheckBoxStateChanged(ESlateCheckBoxState::Type NewState)
+	void HandleCheckBoxStateChanged(ECheckBoxState NewState)
 	{
 		ILauncherDeviceGroupPtr ActiveGroup = DeviceGroup.Get();
 
 		if (ActiveGroup.IsValid() && DeviceProxy.IsValid() && DeviceProxy->HasVariant(SelectedVariant))
 		{
 			const FString& DeviceID = DeviceProxy->GetTargetDeviceId(SelectedVariant);
-			if (NewState == ESlateCheckBoxState::Checked)
+			if (NewState == ECheckBoxState::Checked)
 			{
 				ActiveGroup->AddDevice(DeviceID);
 				bDeviceInGroup = true;
@@ -195,14 +195,14 @@ private:
 	}
 
 	// Callback for determining this row's check box state.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked() const
+	ECheckBoxState HandleCheckBoxIsChecked() const
 	{
 		if (IsEnabled())
 		{
-			return bDeviceInGroup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return bDeviceInGroup ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 	// Callback for getting the text of the current variant

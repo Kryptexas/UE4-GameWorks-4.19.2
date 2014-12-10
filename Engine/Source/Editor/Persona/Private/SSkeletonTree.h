@@ -334,10 +334,10 @@ public:
 	UObject* GetAsset() const { return Asset; }
 
 	/** Accessor for SCheckBox **/
-	ESlateCheckBoxState::Type IsAssetDisplayed() const;
+	ECheckBoxState IsAssetDisplayed() const;
 
 	/** Called when user toggles checkbox **/
-	void OnToggleAssetDisplayed( ESlateCheckBoxState::Type InCheckboxState );
+	void OnToggleAssetDisplayed( ECheckBoxState InCheckboxState );
 
 	/** Called when we need to get the state-based-image to show for the asset displayed checkbox */
 	const FSlateBrush* OnGetAssetDisplayedButtonImage() const;
@@ -535,10 +535,10 @@ private:
 	bool IsAddingSocketsAllowed() const;
 
 	/** Handler for "Show Retargeting Options" check box IsChecked functionality */
-	ESlateCheckBoxState::Type IsShowingRetargetingOptions() const;
+	ECheckBoxState IsShowingRetargetingOptions() const;
 
 	/**  Handler for when we change the "Show Retargeting Options" check box */
-	void OnChangeShowingRetargetingOptions(ESlateCheckBoxState::Type NewState);
+	void OnChangeShowingRetargetingOptions(ECheckBoxState NewState);
 
 	/** This replicates the socket filter to the previewcomponent so that the viewport can use the same settings */
 	void SetPreviewComponentSocketFilter() const;

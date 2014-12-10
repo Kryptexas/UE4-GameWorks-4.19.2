@@ -1175,14 +1175,14 @@ private:
 		return bIsReadOnly;
 	}
 
-	ESlateCheckBoxState::Type IsReadOnlyChecked() const
+	ECheckBoxState IsReadOnlyChecked() const
 	{
-		return (bIsReadOnly) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (bIsReadOnly) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnReadOnlyCheckedStateChanged(ESlateCheckBoxState::Type InState)
+	void OnReadOnlyCheckedStateChanged(ECheckBoxState InState)
 	{
-		bIsReadOnly = (InState == ESlateCheckBoxState::Checked);
+		bIsReadOnly = (InState == ECheckBoxState::Checked);
 	}
 
 	bool bIsReadOnly;
@@ -1882,14 +1882,14 @@ public:
 		WrapWidth = Value;
 	}
 
-	ESlateCheckBoxState::Type ShouldWrapRichText() const
+	ECheckBoxState ShouldWrapRichText() const
 	{
-		return bShouldWrap ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bShouldWrap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void ShouldWrapRichTextChanged( ESlateCheckBoxState::Type CheckState )
+	void ShouldWrapRichTextChanged( ECheckBoxState CheckState )
 	{
-		bShouldWrap = CheckState == ESlateCheckBoxState::Checked ? true : false;
+		bShouldWrap = CheckState == ECheckBoxState::Checked ? true : false;
 	}
 
 	float GetRichTextWrapWidthValue() const
@@ -2796,14 +2796,14 @@ protected:
 		StyleSelectedText();
 	}
 
-	ESlateCheckBoxState::Type IsFontStyleBold() const
+	ECheckBoxState IsFontStyleBold() const
 	{
-		return (FontStyle & FTextStyles::EFontStyle::Bold) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (FontStyle & FTextStyles::EFontStyle::Bold) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnFontStyleBoldChanged(ESlateCheckBoxState::Type InState)
+	void OnFontStyleBoldChanged(ECheckBoxState InState)
 	{
-		if(InState == ESlateCheckBoxState::Checked)
+		if(InState == ECheckBoxState::Checked)
 		{
 			FontStyle |= FTextStyles::EFontStyle::Bold;
 		}
@@ -2814,14 +2814,14 @@ protected:
 		StyleSelectedText();
 	}
 
-	ESlateCheckBoxState::Type IsFontStyleItalic() const
+	ECheckBoxState IsFontStyleItalic() const
 	{
-		return (FontStyle & FTextStyles::EFontStyle::Italic) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (FontStyle & FTextStyles::EFontStyle::Italic) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnFontStyleItalicChanged(ESlateCheckBoxState::Type InState)
+	void OnFontStyleItalicChanged(ECheckBoxState InState)
 	{
-		if(InState == ESlateCheckBoxState::Checked)
+		if(InState == ECheckBoxState::Checked)
 		{
 			FontStyle |= FTextStyles::EFontStyle::Italic;
 		}
@@ -2924,14 +2924,14 @@ protected:
 		return FReply::Handled();
 	}
 
-	ESlateCheckBoxState::Type IsEnableSyntaxHighlightingChecked() const
+	ECheckBoxState IsEnableSyntaxHighlightingChecked() const
 	{
-		return (SyntaxHighlighterMarshaller->IsSyntaxHighlightingEnabled()) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (SyntaxHighlighterMarshaller->IsSyntaxHighlightingEnabled()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnEnableSyntaxHighlightingChanged(ESlateCheckBoxState::Type InState)
+	void OnEnableSyntaxHighlightingChanged(ECheckBoxState InState)
 	{
-		SyntaxHighlighterMarshaller->EnableSyntaxHighlighting(InState == ESlateCheckBoxState::Checked);
+		SyntaxHighlighterMarshaller->EnableSyntaxHighlighting(InState == ECheckBoxState::Checked);
 	}
 
 protected:
@@ -3506,7 +3506,7 @@ class SFxTest : public SCompoundWidget
 		RenderScaleOrigin = FVector2D(0.5f, 0.5f);
 		LayoutScale = 1.0f;
 		VisualOffset = FVector2D::ZeroVector;
-		FxWidgetIgnoreClippingState = ESlateCheckBoxState::Checked;
+		FxWidgetIgnoreClippingState = ECheckBoxState::Checked;
 
 
 		this->ChildSlot
@@ -3659,10 +3659,10 @@ class SFxTest : public SCompoundWidget
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-	bool GetFxWidgetIgnoreClipping() const { return FxWidgetIgnoreClippingState == ESlateCheckBoxState::Checked; }
-	ESlateCheckBoxState::Type GetFxWidgetIgnoreClippingState() const { return FxWidgetIgnoreClippingState; }
-	void OnFxWidgetIgnoreClippingChanged( ESlateCheckBoxState::Type InValue ) { FxWidgetIgnoreClippingState = InValue; }
-	ESlateCheckBoxState::Type FxWidgetIgnoreClippingState;
+	bool GetFxWidgetIgnoreClipping() const { return FxWidgetIgnoreClippingState == ECheckBoxState::Checked; }
+	ECheckBoxState GetFxWidgetIgnoreClippingState() const { return FxWidgetIgnoreClippingState; }
+	void OnFxWidgetIgnoreClippingChanged( ECheckBoxState InValue ) { FxWidgetIgnoreClippingState = InValue; }
+	ECheckBoxState FxWidgetIgnoreClippingState;
 
 	float GetRenderScale() const { return RenderScale; }
 	void OnRenderScaleChanged( float InValue ) { RenderScale = InValue; }
@@ -3754,18 +3754,18 @@ class SDPIScalingTest : public SCompoundWidget
 		DPIScale = InScale;
 	}
 
-	ESlateCheckBoxState::Type IsFillChecked() const
+	ECheckBoxState IsFillChecked() const
 	{
 		const bool bIsFilling = (ScalerSlot->HAlignment == HAlign_Fill);
 		return (bIsFilling)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnFillChecked(ESlateCheckBoxState::Type InValue)
+	void OnFillChecked(ECheckBoxState InValue)
 	{
-		ScalerSlot->HAlign( (InValue == ESlateCheckBoxState::Checked) ? HAlign_Fill : HAlign_Center );
-		ScalerSlot->VAlign( (InValue == ESlateCheckBoxState::Checked) ? VAlign_Fill : VAlign_Center );
+		ScalerSlot->HAlign( (InValue == ECheckBoxState::Checked) ? HAlign_Fill : HAlign_Center );
+		ScalerSlot->VAlign( (InValue == ECheckBoxState::Checked) ? VAlign_Fill : VAlign_Center );
 	}
 
 	float DPIScale;
@@ -3935,7 +3935,7 @@ public:
 		bAddDummyCheckBox = false;
 		bAddDummyHyperlink = false;
 
-		DummyCheckBoxState = ESlateCheckBoxState::Unchecked;
+		DummyCheckBoxState = ECheckBoxState::Unchecked;
 
 		this->ChildSlot
 		[
@@ -4051,44 +4051,44 @@ public:
 	}
 
 protected:
-	ESlateCheckBoxState::Type IsUseLargeFontChecked() const
+	ECheckBoxState IsUseLargeFontChecked() const
 	{
-		return bUseLargeFont ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bUseLargeFont ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnUseLargeFontCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnUseLargeFontCheckStateChanged(ECheckBoxState NewState)
 	{
-		bUseLargeFont = (NewState == ESlateCheckBoxState::Checked);
+		bUseLargeFont = (NewState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type IsAddDummyButtonsChecked() const
+	ECheckBoxState IsAddDummyButtonsChecked() const
 	{
-		return bAddDummyButtons ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bAddDummyButtons ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnAddDummyButtonsCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnAddDummyButtonsCheckStateChanged(ECheckBoxState NewState)
 	{
-		bAddDummyButtons = (NewState == ESlateCheckBoxState::Checked);
+		bAddDummyButtons = (NewState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type IsAddDummyCheckBoxChecked() const
+	ECheckBoxState IsAddDummyCheckBoxChecked() const
 	{
-		return bAddDummyCheckBox ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bAddDummyCheckBox ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnAddDummyCheckBoxCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnAddDummyCheckBoxCheckStateChanged(ECheckBoxState NewState)
 	{
-		bAddDummyCheckBox = (NewState == ESlateCheckBoxState::Checked);
+		bAddDummyCheckBox = (NewState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type IsAddDummyHyperlinkChecked() const
+	ECheckBoxState IsAddDummyHyperlinkChecked() const
 	{
-		return bAddDummyHyperlink ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bAddDummyHyperlink ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnAddDummyHyperlinkCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnAddDummyHyperlinkCheckStateChanged(ECheckBoxState NewState)
 	{
-		bAddDummyHyperlink = (NewState == ESlateCheckBoxState::Checked);
+		bAddDummyHyperlink = (NewState == ECheckBoxState::Checked);
 	}
 
 	void SetNotificationInfoFlags(FNotificationInfo& Info)
@@ -4121,7 +4121,7 @@ protected:
 
 		if(bAddDummyCheckBox)
 		{
-			Info.CheckBoxState = TAttribute<ESlateCheckBoxState::Type>(this, &SNotificationListTest::GetDummyCheckBoxState);
+			Info.CheckBoxState = TAttribute<ECheckBoxState>(this, &SNotificationListTest::GetDummyCheckBoxState);
 			Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateSP(this, &SNotificationListTest::OnDummyCheckBoxStateChanged);
 			Info.CheckBoxText = LOCTEXT("NotificationListTest-DummyCheckBoxText", "Dummy Check Box");
 		}
@@ -4133,12 +4133,12 @@ protected:
 		}
 	}
 
-	ESlateCheckBoxState::Type GetDummyCheckBoxState() const
+	ECheckBoxState GetDummyCheckBoxState() const
 	{
 		return DummyCheckBoxState;
 	}
 
-	void OnDummyCheckBoxStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnDummyCheckBoxStateChanged(ECheckBoxState NewState)
 	{
 		DummyCheckBoxState = NewState;
 	}
@@ -4238,7 +4238,7 @@ protected:
 	/** The pending progress message */
 	TWeakPtr<SNotificationItem> PendingProgressPtr;
 	/** If showing a dummy check box, this maintains its state in the UI */
-	ESlateCheckBoxState::Type DummyCheckBoxState;
+	ECheckBoxState DummyCheckBoxState;
 };
 
 class SGridPanelTest : public SCompoundWidget

@@ -387,24 +387,24 @@ void SReferenceViewer::OnUpdateHistoryData(FReferenceViewerHistoryData& HistoryD
 	}
 }
 
-void SReferenceViewer::OnSearchDepthEnabledChanged( ESlateCheckBoxState::Type NewState )
+void SReferenceViewer::OnSearchDepthEnabledChanged( ECheckBoxState NewState )
 {
 	if ( GraphObj )
 	{
-		GraphObj->SetSearchDepthLimitEnabled(NewState == ESlateCheckBoxState::Checked);
+		GraphObj->SetSearchDepthLimitEnabled(NewState == ECheckBoxState::Checked);
 		GraphObj->RebuildGraph();
 	}
 }
 
-ESlateCheckBoxState::Type SReferenceViewer::IsSearchDepthEnabledChecked() const
+ECheckBoxState SReferenceViewer::IsSearchDepthEnabledChecked() const
 {
 	if ( GraphObj )
 	{
-		return GraphObj->IsSearchDepthLimited() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return GraphObj->IsSearchDepthLimited() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 }
 
@@ -429,24 +429,24 @@ void SReferenceViewer::OnSearchDepthCommitted(int32 NewValue)
 	}
 }
 
-void SReferenceViewer::OnSearchBreadthEnabledChanged( ESlateCheckBoxState::Type NewState )
+void SReferenceViewer::OnSearchBreadthEnabledChanged( ECheckBoxState NewState )
 {
 	if ( GraphObj )
 	{
-		GraphObj->SetSearchBreadthLimitEnabled(NewState == ESlateCheckBoxState::Checked);
+		GraphObj->SetSearchBreadthLimitEnabled(NewState == ECheckBoxState::Checked);
 		GraphObj->RebuildGraph();
 	}
 }
 
-ESlateCheckBoxState::Type SReferenceViewer::IsSearchBreadthEnabledChecked() const
+ECheckBoxState SReferenceViewer::IsSearchBreadthEnabledChecked() const
 {
 	if ( GraphObj )
 	{
-		return GraphObj->IsSearchBreadthLimited() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return GraphObj->IsSearchBreadthLimited() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 }
 

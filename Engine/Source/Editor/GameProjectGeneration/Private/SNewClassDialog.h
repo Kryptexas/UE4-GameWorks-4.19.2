@@ -57,10 +57,10 @@ private:
 	void OnAdvancedClassSelected(UClass* Class);
 
 	/** Gets the check box state for the full class list */
-	ESlateCheckBoxState::Type IsFullClassTreeChecked() const;
+	ECheckBoxState IsFullClassTreeChecked() const;
 
 	/** Gets the check box state for the full class list */
-	void OnFullClassTreeChanged(ESlateCheckBoxState::Type NewCheckedState);
+	void OnFullClassTreeChanged(ECheckBoxState NewCheckedState);
 
 	/** Gets the visibility of the basic class list */
 	EVisibility GetBasicParentClassVisibility() const;
@@ -140,10 +140,10 @@ private:
 	FText GetClassLocationTooltip(GameProjectUtils::EClassLocation InLocation) const;
 
 	/** Checks to see if the given class location is active based on the current value of NewClassPath */
-	ESlateCheckBoxState::Type IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const;
+	ECheckBoxState IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const;
 
 	/** Update the value of NewClassPath so that it uses the given class location */
-	void OnClassLocationChanged(ESlateCheckBoxState::Type InCheckedState, GameProjectUtils::EClassLocation InLocation);
+	void OnClassLocationChanged(ECheckBoxState InCheckedState, GameProjectUtils::EClassLocation InLocation);
 
 	/** Checks to see if the class location can be changed (relies on us having a Public/Private folder layout) */
 	bool CanChangeClassLocation() const;

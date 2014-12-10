@@ -948,7 +948,7 @@ bool SMenuEntryBlock::IsEnabled() const
 /**
  * Called by Slate when this menu entry check box button is toggled
  */
-void SMenuEntryBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SMenuEntryBlock::OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 {
 	// The check box was clicked
 	const bool bCheckBoxClicked = true;
@@ -958,9 +958,9 @@ void SMenuEntryBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type NewCh
 /**
  * Called by slate to determine if this menu entry should appear checked
  *
- * @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+ * @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
  */
-ESlateCheckBoxState::Type SMenuEntryBlock::IsChecked() const
+ECheckBoxState SMenuEntryBlock::IsChecked() const
 {
 	TSharedPtr< const FUICommandList > ActionList = MultiBlock->GetActionList();
 	TSharedPtr< const FUICommandInfo > Action = MultiBlock->GetAction();
@@ -977,12 +977,12 @@ ESlateCheckBoxState::Type SMenuEntryBlock::IsChecked() const
 		bIsChecked = DirectActions.IsChecked();
 	}
 
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 const FSlateBrush* SMenuEntryBlock::OnGetCheckImage() const
 {
-	return IsChecked() == ESlateCheckBoxState::Checked ? CheckedImage : UncheckedImage;
+	return IsChecked() == ECheckBoxState::Checked ? CheckedImage : UncheckedImage;
 }
 
 /**
@@ -1250,8 +1250,8 @@ const FSlateBrush* SMenuEntryBlock::GetCheckBoxImageBrushFromStyle(const FCheckB
 {
 	switch (IsChecked())
 	{
-	case ESlateCheckBoxState::Checked: return &Style->CheckedImage;
-	case ESlateCheckBoxState::Unchecked: return &Style->UncheckedImage;
+	case ECheckBoxState::Checked: return &Style->CheckedImage;
+	case ECheckBoxState::Unchecked: return &Style->UncheckedImage;
 	default: return &Style->UndeterminedImage;
 	}
 }

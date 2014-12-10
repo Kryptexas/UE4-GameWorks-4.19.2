@@ -114,7 +114,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeSurfaceSnappingButton( FNam
 			.Style( FEditorStyle::Get(), EMultiBlockLocation::ToName(FEditorStyle::Join(ToolBarStyle, ".ToggleButton"), EMultiBlockLocation::Start) )
 			.Padding( 0 )
 			.ToolTipText( LOCTEXT("SurfaceSnappingCheckboxDescription", "Open editor surface snapping options") )
-			.IsChecked_Static( []{ return GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; })
+			.IsChecked_Static( []{ return GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
 			.Content()
 			[
 				SNew( SComboButton )
@@ -651,32 +651,32 @@ TSharedRef<SWidget> STransformViewportToolBar::FillScaleGridSnapMenu()
 	return ScaleGridMenuBuilder.MakeWidget();
 }
 
-ESlateCheckBoxState::Type STransformViewportToolBar::IsLocationGridSnapChecked() const
+ECheckBoxState STransformViewportToolBar::IsLocationGridSnapChecked() const
 {
-	return GetDefault<ULevelEditorViewportSettings>()->GridEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetDefault<ULevelEditorViewportSettings>()->GridEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type STransformViewportToolBar::IsRotationGridSnapChecked() const
+ECheckBoxState STransformViewportToolBar::IsRotationGridSnapChecked() const
 {
-	return GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type STransformViewportToolBar::IsScaleGridSnapChecked() const
+ECheckBoxState STransformViewportToolBar::IsScaleGridSnapChecked() const
 {
-	return GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void STransformViewportToolBar::HandleToggleLocationGridSnap( ESlateCheckBoxState::Type InState )
+void STransformViewportToolBar::HandleToggleLocationGridSnap( ECheckBoxState InState )
 {
 	GUnrealEd->Exec( GEditor->GetEditorWorldContext().World(), *FString::Printf( TEXT("MODE GRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->GridEnabled ? 1 : 0 ) );
 }
 
-void STransformViewportToolBar::HandleToggleRotationGridSnap( ESlateCheckBoxState::Type InState )
+void STransformViewportToolBar::HandleToggleRotationGridSnap( ECheckBoxState InState )
 {
 	GUnrealEd->Exec( GEditor->GetEditorWorldContext().World(), *FString::Printf( TEXT("MODE ROTGRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled ? 1 : 0 ) );
 }
 
-void STransformViewportToolBar::HandleToggleScaleGridSnap( ESlateCheckBoxState::Type InState )
+void STransformViewportToolBar::HandleToggleScaleGridSnap( ECheckBoxState InState )
 {
 	GUnrealEd->Exec( GEditor->GetEditorWorldContext().World(), *FString::Printf( TEXT("MODE SCALEGRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled ? 1 : 0 ) );
 }

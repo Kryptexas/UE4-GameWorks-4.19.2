@@ -114,15 +114,15 @@ FSlateColor SPinTypeSelector::GetTypeIconColor() const
 	return Schema->GetPinTypeColor(TargetPinType.Get());
 }
 
-ESlateCheckBoxState::Type SPinTypeSelector::IsArrayChecked() const
+ECheckBoxState SPinTypeSelector::IsArrayChecked() const
 {
-	return TargetPinType.Get().bIsArray ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return TargetPinType.Get().bIsArray ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SPinTypeSelector::OnArrayCheckStateChanged(ESlateCheckBoxState::Type NewState)
+void SPinTypeSelector::OnArrayCheckStateChanged(ECheckBoxState NewState)
 {
 	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
-	NewTargetPinType.bIsArray = (NewState == ESlateCheckBoxState::Checked)? true : false;
+	NewTargetPinType.bIsArray = (NewState == ECheckBoxState::Checked)? true : false;
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
@@ -373,7 +373,7 @@ const FSlateBrush* SPinTypeSelector::GetIconFromPin( const FEdGraphPinType& PinT
 {
 	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.TypeIcon"));
 	const UObject* PinSubObject = PinType.PinSubCategoryObject.Get();
-	if( (PinType.bIsArray || (IsArrayChecked() == ESlateCheckBoxState::Checked)) && PinType.PinCategory != Schema->PC_Exec )
+	if( (PinType.bIsArray || (IsArrayChecked() == ECheckBoxState::Checked)) && PinType.PinCategory != Schema->PC_Exec )
 	{
 		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon"));
 	}

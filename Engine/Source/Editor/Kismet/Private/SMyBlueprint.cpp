@@ -1045,14 +1045,14 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 	}
 }
 
-ESlateCheckBoxState::Type SMyBlueprint::OnUserVarsCheckState() const
+ECheckBoxState SMyBlueprint::OnUserVarsCheckState() const
 {
-	return !bShowUserVarsOnly ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return !bShowUserVarsOnly ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SMyBlueprint::OnUserVarsCheckStateChanged(ESlateCheckBoxState::Type InNewState)
+void SMyBlueprint::OnUserVarsCheckStateChanged(ECheckBoxState InNewState)
 {
-	bShowUserVarsOnly = (InNewState != ESlateCheckBoxState::Checked);
+	bShowUserVarsOnly = (InNewState != ECheckBoxState::Checked);
 	Refresh();
 }
 

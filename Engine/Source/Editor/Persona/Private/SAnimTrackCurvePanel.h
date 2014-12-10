@@ -91,11 +91,11 @@ private:
 	/**
 	 * Returns true if this curve is editable
 	 */
-	ESlateCheckBoxState::Type	IsCurveEditable(USkeleton::AnimCurveUID Uid) const;
+	ECheckBoxState	IsCurveEditable(USkeleton::AnimCurveUID Uid) const;
 	/**
 	 * Toggle curve visibility
 	 */
-	void		ToggleEditability(ESlateCheckBoxState::Type NewType, USkeleton::AnimCurveUID Uid);
+	void		ToggleEditability(ECheckBoxState NewType, USkeleton::AnimCurveUID Uid);
 	/**
 	 * Refresh Panel
 	 */
@@ -108,10 +108,10 @@ private:
 	/**
 	 * Convert the requested flag bool value into a checkbox state
 	 */
-	ESlateCheckBoxState::Type GetCurveFlagAsCheckboxState(USkeleton::AnimCurveUID CurveUid, EAnimCurveFlags InFlag) const;
+	ECheckBoxState GetCurveFlagAsCheckboxState(USkeleton::AnimCurveUID CurveUid, EAnimCurveFlags InFlag) const;
 
 	/**
 	 * Convert a given checkbox state into a flag value in the provided curve
 	 */
-	void SetCurveFlagFromCheckboxState(ESlateCheckBoxState::Type CheckState, USkeleton::AnimCurveUID CurveUid, EAnimCurveFlags InFlag);
+	void SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, USkeleton::AnimCurveUID CurveUid, EAnimCurveFlags InFlag);
 };

@@ -21,9 +21,9 @@ private:
 	 */
 	virtual void OnValueChanged();
 
-	ESlateCheckBoxState::Type GetForegroundCheckState() const;
+	ECheckBoxState GetForegroundCheckState() const;
 
-	void HandleForegroundChanged(ESlateCheckBoxState::Type CheckedState);
+	void HandleForegroundChanged(ECheckBoxState CheckedState);
 
 private:
 

@@ -189,11 +189,11 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 						.Style( FCoreStyle::Get(), "ToggleButtonCheckbox" )
 						.IsChecked_Lambda([]()
 						{
-							return bFoldTick == 0 ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+							return bFoldTick == 0 ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 						})
-						.OnCheckStateChanged_Lambda([]( const ESlateCheckBoxState::Type NewState )
+						.OnCheckStateChanged_Lambda([]( const ECheckBoxState NewState )
 						{
-							bFoldTick = (NewState == ESlateCheckBoxState::Checked) ? 1 : 0;
+							bFoldTick = (NewState == ECheckBoxState::Checked) ? 1 : 0;
 						})
 						[
 							SNew(SBox)
@@ -458,9 +458,9 @@ FReply SWidgetReflector::HandleDisplayFontAtlases()
 	return FReply::Handled();
 }
 
-void SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type NewValue )
+void SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged( ECheckBoxState NewValue )
 {
-	bShowFocus = NewValue != ESlateCheckBoxState::Unchecked;
+	bShowFocus = NewValue != ECheckBoxState::Unchecked;
 
 	if (bShowFocus)
 	{

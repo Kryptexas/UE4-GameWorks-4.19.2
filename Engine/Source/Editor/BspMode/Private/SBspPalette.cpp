@@ -217,24 +217,24 @@ FReply SBspPalette::OnDraggingListViewWidget(const FGeometry& MyGeometry, const 
 	return FReply::Unhandled();
 }
 
-void SBspPalette::OnAdditiveModeButtonClicked(ESlateCheckBoxState::Type CheckType)
+void SBspPalette::OnAdditiveModeButtonClicked(ECheckBoxState CheckType)
 {
-	bIsAdditive = CheckType == ESlateCheckBoxState::Checked;
+	bIsAdditive = CheckType == ECheckBoxState::Checked;
 }
 
-void SBspPalette::OnSubtractiveModeButtonClicked(ESlateCheckBoxState::Type CheckType)
+void SBspPalette::OnSubtractiveModeButtonClicked(ECheckBoxState CheckType)
 {
-	bIsAdditive = CheckType != ESlateCheckBoxState::Checked;
+	bIsAdditive = CheckType != ECheckBoxState::Checked;
 }
 
-ESlateCheckBoxState::Type SBspPalette::IsAdditiveModeChecked() const
+ECheckBoxState SBspPalette::IsAdditiveModeChecked() const
 {
-	return bIsAdditive ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsAdditive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type SBspPalette::IsSubtractiveModeChecked() const
+ECheckBoxState SBspPalette::IsSubtractiveModeChecked() const
 {
-	return !bIsAdditive ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return !bIsAdditive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 const FSlateBrush* SBspPalette::GetAdditiveModeImage() const

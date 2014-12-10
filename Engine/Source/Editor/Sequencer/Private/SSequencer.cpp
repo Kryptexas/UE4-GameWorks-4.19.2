@@ -463,14 +463,14 @@ EVisibility SSequencer::OnGetCleanViewVisibility() const
 	return Sequencer.Pin()->IsLevelEditorSequencer() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type SSequencer::OnGetCleanViewCheckState() const
+ECheckBoxState SSequencer::OnGetCleanViewCheckState() const
 {
-	return CleanViewEnabled.Get() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CleanViewEnabled.Get() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SSequencer::OnCleanViewChecked( ESlateCheckBoxState::Type InState ) 
+void SSequencer::OnCleanViewChecked( ECheckBoxState InState ) 
 {
-	OnToggleCleanView.ExecuteIfBound( InState == ESlateCheckBoxState::Checked ? true : false );
+	OnToggleCleanView.ExecuteIfBound( InState == ECheckBoxState::Checked ? true : false );
 }
 
 TOptional<float> SSequencer::OnGetSnapInterval() const

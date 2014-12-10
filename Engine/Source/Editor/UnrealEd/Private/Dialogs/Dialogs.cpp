@@ -521,7 +521,7 @@ public:
 		.AutoWidth()
 		[
 			SNew(SCheckBox)
-			.IsChecked(InArgs._bDefaultCheckValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+			.IsChecked(InArgs._bDefaultCheckValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged(this, &SModalDialogWithCheckbox::OnCheckboxClicked)
 			.Visibility(this, &SModalDialogWithCheckbox::GetCheckboxVisibility)
 			[
@@ -622,9 +622,9 @@ private:
 	}
 
 	/** Used as a delegate for the Checkboxs OnClicked method */
-	void OnCheckboxClicked(ESlateCheckBoxState::Type InNewState)
+	void OnCheckboxClicked(ECheckBoxState InNewState)
 	{
-		bCheckboxResult = InNewState == ESlateCheckBoxState::Checked;
+		bCheckboxResult = InNewState == ECheckBoxState::Checked;
 	}
 
 	/** Used as a delegate for the Checkboxs Visibile method */

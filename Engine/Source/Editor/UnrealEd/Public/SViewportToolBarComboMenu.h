@@ -26,7 +26,7 @@ public:
 		SLATE_EVENT( FOnCheckStateChanged, OnCheckStateChanged )
 			
 		/** Sets the current checked state of the checkbox */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, IsChecked )
+		SLATE_ATTRIBUTE( ECheckBoxState, IsChecked )
 
 		/** Icon shown on the toggle button */
 		SLATE_ATTRIBUTE( FSlateIcon, Icon )

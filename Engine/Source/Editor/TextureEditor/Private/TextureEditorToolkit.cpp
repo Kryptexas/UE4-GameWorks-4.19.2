@@ -910,15 +910,15 @@ bool FTextureEditorToolkit::HandleGreenChannelActionIsChecked( ) const
 }
 
 
-void FTextureEditorToolkit::HandleMipLevelCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type InNewState )
+void FTextureEditorToolkit::HandleMipLevelCheckBoxCheckedStateChanged( ECheckBoxState InNewState )
 {
-	bUseSpecifiedMipLevel = InNewState == ESlateCheckBoxState::Checked;
+	bUseSpecifiedMipLevel = InNewState == ECheckBoxState::Checked;
 }
 
 
-ESlateCheckBoxState::Type FTextureEditorToolkit::HandleMipLevelCheckBoxIsChecked( ) const
+ECheckBoxState FTextureEditorToolkit::HandleMipLevelCheckBoxIsChecked( ) const
 {
-	return GetUseSpecifiedMip() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetUseSpecifiedMip() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 

@@ -123,7 +123,7 @@ TSharedRef<SWidget> SProjectTargetPlatformSettings::MakePlatformRow(const FText&
 		];
 }
 
-ESlateCheckBoxState::Type SProjectTargetPlatformSettings::HandlePlatformCheckBoxIsChecked(const FName PlatformName) const
+ECheckBoxState SProjectTargetPlatformSettings::HandlePlatformCheckBoxIsChecked(const FName PlatformName) const
 {
 	FProjectStatus ProjectStatus;
 	if(IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus))
@@ -131,15 +131,15 @@ ESlateCheckBoxState::Type SProjectTargetPlatformSettings::HandlePlatformCheckBox
 		if(PlatformName.IsNone())
 		{
 			// None is "All Platforms"
-			return (ProjectStatus.SupportsAllPlatforms()) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return (ProjectStatus.SupportsAllPlatforms()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 		else
 		{
-			return (ProjectStatus.IsTargetPlatformSupported(PlatformName)) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return (ProjectStatus.IsTargetPlatformSupported(PlatformName)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 bool SProjectTargetPlatformSettings::HandlePlatformCheckBoxIsEnabled(const FName PlatformName) const
@@ -162,12 +162,12 @@ bool SProjectTargetPlatformSettings::HandlePlatformCheckBoxIsEnabled(const FName
 	return false;
 }
 
-void SProjectTargetPlatformSettings::HandlePlatformCheckBoxStateChanged(ESlateCheckBoxState::Type InState, const FName PlatformName) const
+void SProjectTargetPlatformSettings::HandlePlatformCheckBoxStateChanged(ECheckBoxState InState, const FName PlatformName) const
 {
 	if(PlatformName.IsNone())
 	{
 		// None is "All Platforms"
-		if(InState == ESlateCheckBoxState::Checked)
+		if(InState == ECheckBoxState::Checked)
 		{
 			FGameProjectGenerationModule::Get().ClearSupportedTargetPlatforms();
 		}
@@ -182,7 +182,7 @@ void SProjectTargetPlatformSettings::HandlePlatformCheckBoxStateChanged(ESlateCh
 	}
 	else
 	{
-		FGameProjectGenerationModule::Get().UpdateSupportedTargetPlatforms(PlatformName, InState == ESlateCheckBoxState::Checked);
+		FGameProjectGenerationModule::Get().UpdateSupportedTargetPlatforms(PlatformName, InState == ECheckBoxState::Checked);
 	}
 }
 

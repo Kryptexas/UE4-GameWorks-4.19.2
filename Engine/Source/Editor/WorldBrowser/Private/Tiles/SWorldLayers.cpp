@@ -207,9 +207,9 @@ void SWorldLayerButton::Construct(const FArguments& InArgs)
 	CheckBox->SetOnLayerDoubleClicked(FOnClicked::CreateSP(this, &SWorldLayerButton::OnDoubleClicked));
 }
 
-void SWorldLayerButton::OnCheckStateChanged(ESlateCheckBoxState::Type NewState)
+void SWorldLayerButton::OnCheckStateChanged(ECheckBoxState NewState)
 {
-	if (NewState == ESlateCheckBoxState::Checked)
+	if (NewState == ECheckBoxState::Checked)
 	{
 		WorldModel->SetSelectedLayer(WorldLayer);
 	}
@@ -219,9 +219,9 @@ void SWorldLayerButton::OnCheckStateChanged(ESlateCheckBoxState::Type NewState)
 	}
 }
 
-ESlateCheckBoxState::Type SWorldLayerButton::IsChecked() const
+ECheckBoxState SWorldLayerButton::IsChecked() const
 {
-	return WorldModel->IsLayerSelected(WorldLayer) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return WorldModel->IsLayerSelected(WorldLayer) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 /** Handler for when the filter checkbox is double clicked */

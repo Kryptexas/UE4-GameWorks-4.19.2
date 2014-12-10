@@ -76,9 +76,9 @@ private:
 		Config.ResolutionMultiplier = FMath::RoundToFloat(FMath::Lerp(FHighResScreenshotConfig::MinResolutionMultipler, FHighResScreenshotConfig::MaxResolutionMultipler, NewValue));
 	}
 
-	void OnMaskEnabledChanged( ESlateCheckBoxState::Type NewValue )
+	void OnMaskEnabledChanged( ECheckBoxState NewValue )
 	{
-		Config.bMaskEnabled = (NewValue == ESlateCheckBoxState::Checked);
+		Config.bMaskEnabled = (NewValue == ECheckBoxState::Checked);
 		auto ConfigViewport = Config.TargetViewport.Pin();
 		if (ConfigViewport.IsValid())
 		{
@@ -87,9 +87,9 @@ private:
 		}
 	}
 
-	void OnHDREnabledChanged(ESlateCheckBoxState::Type NewValue)
+	void OnHDREnabledChanged(ECheckBoxState NewValue)
 	{
-		Config.SetHDRCapture(NewValue == ESlateCheckBoxState::Checked);
+		Config.SetHDRCapture(NewValue == ECheckBoxState::Checked);
 		auto ConfigViewport = Config.TargetViewport.Pin();
 		if (ConfigViewport.IsValid())
 		{
@@ -97,9 +97,9 @@ private:
 		}
 	}
 
-	void OnBufferVisualizationDumpEnabledChanged(ESlateCheckBoxState::Type NewValue)
+	void OnBufferVisualizationDumpEnabledChanged(ECheckBoxState NewValue)
 	{
-		bool bEnabled = (NewValue == ESlateCheckBoxState::Checked);
+		bool bEnabled = (NewValue == ECheckBoxState::Checked);
 		Config.bDumpBufferVisualizationTargets = bEnabled;
 		SetHDRUIEnableState(bEnabled);
 	}
@@ -129,19 +129,19 @@ private:
 		return Config.ResolutionMultiplierScale;
 	}
 
-	ESlateCheckBoxState::Type GetMaskEnabled() const
+	ECheckBoxState GetMaskEnabled() const
 	{
-		return Config.bMaskEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Config.bMaskEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	ESlateCheckBoxState::Type GetHDRCheckboxUIState() const
+	ECheckBoxState GetHDRCheckboxUIState() const
 	{
-		return Config.bCaptureHDR ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Config.bCaptureHDR ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	ESlateCheckBoxState::Type GetBufferVisualizationDumpEnabled() const
+	ECheckBoxState GetBufferVisualizationDumpEnabled() const
 	{
-		return Config.bDumpBufferVisualizationTargets ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Config.bDumpBufferVisualizationTargets ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	bool IsCaptureRegionEditingAvailable() const

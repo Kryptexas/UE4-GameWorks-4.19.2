@@ -76,7 +76,7 @@ void SEditorViewportToolBarButton::Construct( const FArguments& Declaration )
 	];
 }
 
-void SEditorViewportToolBarButton::OnCheckStateChanged( ESlateCheckBoxState::Type NewCheckedState )
+void SEditorViewportToolBarButton::OnCheckStateChanged( ECheckBoxState NewCheckedState )
 {
 	// When the check state changes (can only happen during clicking in this case) execute our on clicked delegate
 	if(OnClickedDelegate.IsBound() == true)
@@ -90,8 +90,8 @@ const FSlateBrush* SEditorViewportToolBarButton::OnGetButtonImage() const
 	return IsChecked.Get() == true ? CheckedBrush : NormalBrush;
 }
 
-ESlateCheckBoxState::Type SEditorViewportToolBarButton::OnIsChecked() const
+ECheckBoxState SEditorViewportToolBarButton::OnIsChecked() const
 {
-	return IsChecked.Get() == true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsChecked.Get() == true ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 

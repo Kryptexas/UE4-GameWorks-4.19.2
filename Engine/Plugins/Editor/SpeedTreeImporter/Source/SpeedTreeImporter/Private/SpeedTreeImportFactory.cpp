@@ -103,7 +103,7 @@ public:
 	TSharedRef<SWidget> CreateOption(TSharedPtr<SCheckBox>& CheckBox, const FText& NameText, bool bChecked)
 	{
 		return SAssignNew(CheckBox, SCheckBox)
-		.IsChecked(bChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+		.IsChecked(bChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SSpeedTreeImportOptions::OnOptionModified)
 		.Content()
 		[
@@ -123,14 +123,14 @@ public:
 		];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked(EImportGeometryType ButtonId) const
+	ECheckBoxState IsRadioChecked(EImportGeometryType ButtonId) const
 	{
-		return (ImportGeometryType == ButtonId) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (ImportGeometryType == ButtonId) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EImportGeometryType RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EImportGeometryType RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			ImportGeometryType = RadioThatChanged;
 		}
@@ -312,7 +312,7 @@ public:
 		return FReply::Handled();
 	}
 
-	void OnOptionModified(const ESlateCheckBoxState::Type /*NewCheckedState*/)
+	void OnOptionModified(const ECheckBoxState /*NewCheckedState*/)
 	{
 		bool bEnable = MakeMaterialsCheck->IsChecked();
 

@@ -135,12 +135,12 @@ private:
 	}
 
 	/** Callback for checked state changes of the focus check box. */
-	void HandleFocusCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type NewValue );
+	void HandleFocusCheckBoxCheckedStateChanged( ECheckBoxState NewValue );
 
 	/** Callback for getting the checked state of the focus check box. */
-	ESlateCheckBoxState::Type HandleFocusCheckBoxIsChecked() const
+	ECheckBoxState HandleFocusCheckBoxIsChecked() const
 	{
-		return bShowFocus ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bShowFocus ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** Callback for getting the text of the frame rate text block. */

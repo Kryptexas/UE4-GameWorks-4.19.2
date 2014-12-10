@@ -20,8 +20,8 @@ public:
 
 	~SWorldLayerButton();
 	void Construct(const FArguments& InArgs);
-	void OnCheckStateChanged(ESlateCheckBoxState::Type NewState);
-	ESlateCheckBoxState::Type IsChecked() const;
+	void OnCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState IsChecked() const;
 	FReply OnDoubleClicked();
 	FReply OnCtrlClicked();
 	TSharedRef<SWidget> GetRightClickMenu();
@@ -52,9 +52,9 @@ public:
 		return LayerData.StreamingDistance;
 	}
 	
-	ESlateCheckBoxState::Type GetDistanceStreamingState() const
+	ECheckBoxState GetDistanceStreamingState() const
 	{
-		return IsDistanceStreamingEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return IsDistanceStreamingEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	bool IsDistanceStreamingEnabled() const
@@ -62,9 +62,9 @@ public:
 		return LayerData.DistanceStreamingEnabled;
 	}
 	
-	void OnDistanceStreamingStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnDistanceStreamingStateChanged(ECheckBoxState NewState)
 	{
-		SetDistanceStreamingState(NewState == ESlateCheckBoxState::Checked);
+		SetDistanceStreamingState(NewState == ECheckBoxState::Checked);
 	}
 
 	FText GetLayerName() const

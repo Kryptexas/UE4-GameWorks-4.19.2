@@ -95,7 +95,7 @@ private:
 	 * @param The new state, checked or unchecked.
 	 * @param The type of checkbox set.
 	 */
-	void OnDisplayCheckStateChanged( ESlateCheckBoxState::Type InNewState, EFileExportType::Type CheckType );
+	void OnDisplayCheckStateChanged( ECheckBoxState InNewState, EFileExportType::Type CheckType );
 
 	/** 
 	 * Gets the display state to send to a display filter check box
@@ -103,7 +103,7 @@ private:
 	 * @param The type of checkbox.
 	 * @return The desired checkbox state.
 	 */
-	ESlateCheckBoxState::Type OnGetDisplayCheckState( EFileExportType::Type CheckType ) const;
+	ECheckBoxState OnGetDisplayCheckState( EFileExportType::Type CheckType ) const;
 
 	/**
 	 * Add a notification when the file is exported.

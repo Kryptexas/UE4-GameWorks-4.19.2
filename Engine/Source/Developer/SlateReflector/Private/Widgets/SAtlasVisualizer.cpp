@@ -404,11 +404,11 @@ FText SAtlasVisualizer::GetZoomLevelPercentText() const
 	return FText::GetEmpty();
 }
 
-void SAtlasVisualizer::OnFitToWindowStateChanged( ESlateCheckBoxState::Type NewState )
+void SAtlasVisualizer::OnFitToWindowStateChanged( ECheckBoxState NewState )
 {
 	if( ScrollPanel.IsValid() )
 	{
-		if( NewState == ESlateCheckBoxState::Checked )
+		if( NewState == ECheckBoxState::Checked )
 		{
 			ScrollPanel->FitToWindow();
 		}
@@ -419,14 +419,14 @@ void SAtlasVisualizer::OnFitToWindowStateChanged( ESlateCheckBoxState::Type NewS
 	}
 }
 
-ESlateCheckBoxState::Type SAtlasVisualizer::OnGetFitToWindowState() const
+ECheckBoxState SAtlasVisualizer::OnGetFitToWindowState() const
 {
 	if( ScrollPanel.IsValid() )
 	{
-		return (ScrollPanel->IsFitToWindow()) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (ScrollPanel->IsFitToWindow()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
 FReply SAtlasVisualizer::OnActualSizeClicked()
@@ -439,14 +439,14 @@ FReply SAtlasVisualizer::OnActualSizeClicked()
 	return FReply::Handled();
 }
 
-void SAtlasVisualizer::OnDisplayCheckerboardStateChanged( ESlateCheckBoxState::Type NewState )
+void SAtlasVisualizer::OnDisplayCheckerboardStateChanged( ECheckBoxState NewState )
 {
-	bDisplayCheckerboard = NewState == ESlateCheckBoxState::Checked;
+	bDisplayCheckerboard = NewState == ECheckBoxState::Checked;
 }
 
-ESlateCheckBoxState::Type SAtlasVisualizer::OnGetCheckerboardState() const
+ECheckBoxState SAtlasVisualizer::OnGetCheckerboardState() const
 {
-	return bDisplayCheckerboard ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bDisplayCheckerboard ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 EVisibility SAtlasVisualizer::OnGetCheckerboardVisibility() const

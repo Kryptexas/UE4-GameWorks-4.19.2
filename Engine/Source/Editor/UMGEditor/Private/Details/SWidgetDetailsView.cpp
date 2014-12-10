@@ -430,21 +430,21 @@ void SWidgetDetailsView::HandleNameTextCommitted(const FText& Text, ETextCommit:
 	}
 }
 
-ESlateCheckBoxState::Type SWidgetDetailsView::GetIsVariable() const
+ECheckBoxState SWidgetDetailsView::GetIsVariable() const
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		if ( Widget )
 		{
-			return Widget->bIsVariable ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return Widget->bIsVariable ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type CheckState)
+void SWidgetDetailsView::HandleIsVariableChanged(ECheckBoxState CheckState)
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
@@ -463,7 +463,7 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 			Template->Modify();
 			Preview->Modify();
 
-			Template->bIsVariable = Preview->bIsVariable = CheckState == ESlateCheckBoxState::Checked ? true : false;
+			Template->bIsVariable = Preview->bIsVariable = CheckState == ECheckBoxState::Checked ? true : false;
 
 			// Refresh references and flush editors
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);

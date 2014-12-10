@@ -302,14 +302,14 @@ FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveVi
 		FText::Format(LOCTEXT("ShowFormat", "Show {0} curve"), FText::FromName(CurveViewModel->CurveInfo.CurveName));
 }
 
-ESlateCheckBoxState::Type SCurveEditor::IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const
+ECheckBoxState SCurveEditor::IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const
 {
-	return CurveViewModel->bIsVisible ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurveViewModel->bIsVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCurveEditor::OnCurveIsVisibleChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
+void SCurveEditor::OnCurveIsVisibleChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
 {
-	if (NewCheckboxState == ESlateCheckBoxState::Checked)
+	if (NewCheckboxState == ECheckBoxState::Checked)
 	{
 		CurveViewModel->bIsVisible = true;
 	}
@@ -327,14 +327,14 @@ FText SCurveEditor::GetIsCurveLockedToolTip(TSharedPtr<FCurveViewModel> CurveVie
 		FText::Format(LOCTEXT("LockFormat", "Lock {0} curve for editing"), FText::FromName(CurveViewModel->CurveInfo.CurveName));
 }
 
-ESlateCheckBoxState::Type SCurveEditor::IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const
+ECheckBoxState SCurveEditor::IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const
 {
-	return CurveViewModel->bIsLocked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurveViewModel->bIsLocked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCurveEditor::OnCurveIsLockedChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
+void SCurveEditor::OnCurveIsLockedChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
 {
-	if (NewCheckboxState == ESlateCheckBoxState::Checked)
+	if (NewCheckboxState == ECheckBoxState::Checked)
 	{
 		CurveViewModel->bIsLocked = true;
 		RemoveCurveKeysFromSelection(CurveViewModel);

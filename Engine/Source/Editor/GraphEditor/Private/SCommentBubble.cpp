@@ -127,7 +127,7 @@ void SCommentBubble::UpdateBubble()
 					[
 						SNew( SCheckBox )
 						.Style( &FEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>( "CommentBubblePin" ))
-						.IsChecked( GraphNode->bCommentBubblePinned ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+						.IsChecked( GraphNode->bCommentBubblePinned ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 						.OnCheckStateChanged( this, &SCommentBubble::OnPinStateToggle )
 						.ToolTipText( this, &SCommentBubble::GetScaleButtonTooltip )
 						.Cursor( EMouseCursor::Default )
@@ -141,7 +141,7 @@ void SCommentBubble::UpdateBubble()
 				[
 					SNew( SCheckBox )
 					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
-					.IsChecked( GraphNode->bCommentBubbleVisible ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+					.IsChecked( GraphNode->bCommentBubbleVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
@@ -158,7 +158,7 @@ void SCommentBubble::UpdateBubble()
 				[
 					SNew( SCheckBox )
 					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
-					.IsChecked( GraphNode->bCommentBubbleVisible ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+					.IsChecked( GraphNode->bCommentBubbleVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
@@ -245,7 +245,7 @@ void SCommentBubble::UpdateBubble()
 			[
 				SNew( SCheckBox )
 				.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentTitleButton" ))
-				.IsChecked( ESlateCheckBoxState::Unchecked )
+				.IsChecked( ECheckBoxState::Unchecked )
 				.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 				.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 				.Cursor( EMouseCursor::Default )
@@ -358,7 +358,7 @@ EVisibility SCommentBubble::GetBubbleVisibility() const
 	return bIsVisible ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void SCommentBubble::OnCommentBubbleToggle( ESlateCheckBoxState::Type State )
+void SCommentBubble::OnCommentBubbleToggle( ECheckBoxState State )
 {
 	if( GraphNode )
 	{
@@ -370,12 +370,12 @@ void SCommentBubble::OnCommentBubbleToggle( ESlateCheckBoxState::Type State )
 	}
 }
 
-void SCommentBubble::OnPinStateToggle( ESlateCheckBoxState::Type State ) const
+void SCommentBubble::OnPinStateToggle( ECheckBoxState State ) const
 {
 	if( GraphNode )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT( "CommentBubble", "BubblePinned", "Comment Bubble Pin" ) );
 		GraphNode->Modify();
-		GraphNode->bCommentBubblePinned = State == ESlateCheckBoxState::Checked;
+		GraphNode->bCommentBubblePinned = State == ECheckBoxState::Checked;
 	}
 }

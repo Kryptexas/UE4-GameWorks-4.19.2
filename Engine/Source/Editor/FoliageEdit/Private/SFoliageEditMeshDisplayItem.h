@@ -69,9 +69,9 @@ private:
 	FSlateColor GetBorderColor() const;
 
 	/** Returns true if this item is selected. */
-	ESlateCheckBoxState::Type IsSelected() const;
+	ECheckBoxState IsSelected() const;
 
-	void OnSelectionChanged(ESlateCheckBoxState::Type InType);
+	void OnSelectionChanged(ECheckBoxState InType);
 
 	/** Bind commands used by this class for the toolbar. */
 	void BindCommands();
@@ -133,9 +133,9 @@ private:
 
 
 	/** Density */
-	void OnDensityReapply(ESlateCheckBoxState::Type InState);
+	void OnDensityReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsDensityReapplyChecked() const;
+	ECheckBoxState IsDensityReapplyChecked() const;
 
 	void OnDensityChanged(float InValue);
 
@@ -161,22 +161,22 @@ private:
 	void OnGrowthRadiusChanged(float InValue);
 
 	/** Radius */
-	void OnRadiusReapply(ESlateCheckBoxState::Type InState);
+	void OnRadiusReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsRadiusReapplyChecked() const;
+	ECheckBoxState IsRadiusReapplyChecked() const;
 
 	void OnRadiusChanged(float InValue);
 
 	float GetRadius() const;
 
 	/** Align to Normal */
-	void OnAlignToNormalReapply(ESlateCheckBoxState::Type InState);
+	void OnAlignToNormalReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsAlignToNormalReapplyChecked() const;
+	ECheckBoxState IsAlignToNormalReapplyChecked() const;
 
-	void OnAlignToNormal(ESlateCheckBoxState::Type InState);
+	void OnAlignToNormal(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsAlignToNormalChecked() const;
+	ECheckBoxState IsAlignToNormalChecked() const;
 
 	EVisibility IsAlignToNormalVisible() const;
 
@@ -186,23 +186,23 @@ private:
 	float GetMaxAngle() const;
 
 	/** Random Yaw */
-	void OnRandomYawReapply(ESlateCheckBoxState::Type InState);
+	void OnRandomYawReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsRandomYawReapplyChecked() const;
+	ECheckBoxState IsRandomYawReapplyChecked() const;
 
-	void OnRandomYaw(ESlateCheckBoxState::Type InState);
+	void OnRandomYaw(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsRandomYawChecked() const;
+	ECheckBoxState IsRandomYawChecked() const;
 
 	/** Uniform Scale Checkbox */
-	void OnUniformScale(ESlateCheckBoxState::Type InState);
+	void OnUniformScale(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsUniformScaleChecked() const;
+	ECheckBoxState IsUniformScaleChecked() const;
 
 	/** Uniform Scaling Min/Max */
-	void OnScaleUniformReapply(ESlateCheckBoxState::Type InState);
+	void OnScaleUniformReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsScaleUniformReapplyChecked() const;
+	ECheckBoxState IsScaleUniformReapplyChecked() const;
 
 	void OnScaleUniformMinChanged(float InValue);
 
@@ -213,9 +213,9 @@ private:
 	float GetScaleUniformMax() const;
 
 	/** X-Axis Scaling Min/Max */
-	void OnScaleXReapply(ESlateCheckBoxState::Type InState);
+	void OnScaleXReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsScaleXReapplyChecked() const;
+	ECheckBoxState IsScaleXReapplyChecked() const;
 
 	void OnScaleXMinChanged(float InValue);
 
@@ -225,14 +225,14 @@ private:
 
 	float GetScaleXMax() const;
 
-	ESlateCheckBoxState::Type IsScaleXLockedChecked() const;
+	ECheckBoxState IsScaleXLockedChecked() const;
 
-	void OnScaleXLocked(ESlateCheckBoxState::Type InState);
+	void OnScaleXLocked(ECheckBoxState InState);
 
 	/** Y-Axis Scaling Min/Max */
-	void OnScaleYReapply(ESlateCheckBoxState::Type InState);
+	void OnScaleYReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsScaleYReapplyChecked() const;
+	ECheckBoxState IsScaleYReapplyChecked() const;
 
 	void OnScaleYMinChanged(float InValue);
 
@@ -242,14 +242,14 @@ private:
 
 	float GetScaleYMax() const;
 
-	ESlateCheckBoxState::Type IsScaleYLockedChecked() const;
+	ECheckBoxState IsScaleYLockedChecked() const;
 
-	void OnScaleYLocked(ESlateCheckBoxState::Type InState);
+	void OnScaleYLocked(ECheckBoxState InState);
 
 	/** Z-Axis Scaling Min/Max */
-	void OnScaleZReapply(ESlateCheckBoxState::Type InState);
+	void OnScaleZReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsScaleZReapplyChecked() const;
+	ECheckBoxState IsScaleZReapplyChecked() const;
 
 	void OnScaleZMinChanged(float InValue);
 
@@ -259,14 +259,14 @@ private:
 
 	float GetScaleZMax() const;
 
-	ESlateCheckBoxState::Type IsScaleZLockedChecked() const;
+	ECheckBoxState IsScaleZLockedChecked() const;
 
-	void OnScaleZLocked(ESlateCheckBoxState::Type InState);
+	void OnScaleZLocked(ECheckBoxState InState);
 
 	/** Z-Offset Min/Max */
-	void OnZOffsetReapply(ESlateCheckBoxState::Type InState);
+	void OnZOffsetReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsZOffsetReapplyChecked() const;
+	ECheckBoxState IsZOffsetReapplyChecked() const;
 
 	void OnZOffsetMin(float InValue);
 
@@ -277,27 +277,27 @@ private:
 	float GetZOffsetMax() const;
 
 	/** Random Pitch +/- */
-	void OnRandomPitchReapply(ESlateCheckBoxState::Type InState);
+	void OnRandomPitchReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsRandomPitchReapplyChecked() const;
+	ECheckBoxState IsRandomPitchReapplyChecked() const;
 
 	void OnRandomPitchChanged(float InValue);
 
 	float GetRandomPitch() const;
 
 	/** Ground Slope */
-	void OnGroundSlopeReapply(ESlateCheckBoxState::Type InState);
+	void OnGroundSlopeReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsGroundSlopeReapplyChecked() const;
+	ECheckBoxState IsGroundSlopeReapplyChecked() const;
 
 	void OnGroundSlopeChanged(float InValue);
 
 	float GetGroundSlope() const;
 
 	/** Height Min/Max */
-	void OnHeightReapply(ESlateCheckBoxState::Type InState);
+	void OnHeightReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsHeightReapplyChecked() const;
+	ECheckBoxState IsHeightReapplyChecked() const;
 
 	void OnHeightMinChanged(float InValue);
 
@@ -321,24 +321,24 @@ private:
 	void OnSimulationPriorityChanged(float InValue);
 
 	/** Landscape Layer */
-	void OnLandscapeLayerReapply(ESlateCheckBoxState::Type InState);
+	void OnLandscapeLayerReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsLandscapeLayerReapplyChecked() const;
+	ECheckBoxState IsLandscapeLayerReapplyChecked() const;
 
 	void OnLandscapeLayerChanged(const FText& InValue);
 
 	FText GetLandscapeLayer() const;
 
 	/** Collision with World */
-	void OnCollisionWithWorld(ESlateCheckBoxState::Type InState);
+	void OnCollisionWithWorld(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsCollisionWithWorldChecked() const;
+	ECheckBoxState IsCollisionWithWorldChecked() const;
 
 	EVisibility IsCollisionWithWorldVisible() const;
 
-	void OnCollisionWithWorldReapply(ESlateCheckBoxState::Type InState);
+	void OnCollisionWithWorldReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsCollisionWithWorldReapplyChecked() const;
+	ECheckBoxState IsCollisionWithWorldReapplyChecked() const;
 
 	void OnCollisionScaleXChanged(float InValue);
 	void OnCollisionScaleYChanged(float InValue);
@@ -349,13 +349,13 @@ private:
 	float GetCollisionScaleZ() const;
 
 	/** Vertex Color Mask */
-	void OnVertexColorMaskReapply(ESlateCheckBoxState::Type InState);
+	void OnVertexColorMaskReapply(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsVertexColorMaskReapplyChecked() const;
+	ECheckBoxState IsVertexColorMaskReapplyChecked() const;
 
-	void OnVertexColorMask(ESlateCheckBoxState::Type InState, FoliageVertexColorMask Mask);
+	void OnVertexColorMask(ECheckBoxState InState, FoliageVertexColorMask Mask);
 
-	ESlateCheckBoxState::Type IsVertexColorMaskChecked(FoliageVertexColorMask Mask) const;
+	ECheckBoxState IsVertexColorMaskChecked(FoliageVertexColorMask Mask) const;
 
 	/** Vertex Color Threshold */
 	void OnVertexColorMaskThresholdChanged(float InValue);
@@ -364,9 +364,9 @@ private:
 
 	EVisibility IsVertexColorMaskThresholdVisible() const;
 
-	void OnVertexColorMaskInvert(ESlateCheckBoxState::Type InState);
+	void OnVertexColorMaskInvert(ECheckBoxState InState);
 
-	ESlateCheckBoxState::Type IsVertexColorMaskInvertChecked() const;
+	ECheckBoxState IsVertexColorMaskInvertChecked() const;
 
 private:
 	/** Pointer back to the foliage edit mode containing this. */

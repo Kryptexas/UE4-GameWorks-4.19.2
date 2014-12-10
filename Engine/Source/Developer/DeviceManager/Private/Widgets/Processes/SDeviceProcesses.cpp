@@ -283,22 +283,22 @@ void SDeviceProcesses::HandleModelSelectedDeviceServiceChanged( )
 }
 
 
-void SDeviceProcesses::HandleProcessTreeCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+void SDeviceProcesses::HandleProcessTreeCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
-	ShowProcessTree = (NewState == ESlateCheckBoxState::Checked);
+	ShowProcessTree = (NewState == ECheckBoxState::Checked);
 
 	ReloadProcessList(false);
 }
 
 
-ESlateCheckBoxState::Type SDeviceProcesses::HandleProcessTreeCheckBoxIsChecked( ) const
+ECheckBoxState SDeviceProcesses::HandleProcessTreeCheckBoxIsChecked( ) const
 {
 	if (ShowProcessTree)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

@@ -47,8 +47,8 @@ protected:
 	void ScreenSizeChanged(int32 NewValue);		//used with editable text block (Simplygon)
 
 	/** Recalculate Normals accessors */
-	ESlateCheckBoxState::Type GetRecalculateNormals() const;
-	void SetRecalculateNormals(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetRecalculateNormals() const;
+	void SetRecalculateNormals(ECheckBoxState NewValue);
 
 	/** Hard Angle Threshold accessors */
 	TOptional<float> GetHardAngleThreshold() const;
@@ -60,8 +60,8 @@ protected:
 	void MergeDistanceChanged(int32 NewValue);
 
 	/** Clipping Plane accessors */
-	ESlateCheckBoxState::Type GetUseClippingPlane() const;
-	void SetUseClippingPlane(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetUseClippingPlane() const;
+	void SetUseClippingPlane(ECheckBoxState NewValue);
 	bool UseClippingPlaneEnabled() const;
 	void SetClippingAxis(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	TOptional<float> GetClippingLevel() const;
@@ -463,14 +463,14 @@ void SMeshProxyDialog::ScreenSizeChanged(int32 NewValue)
 }
 
 //Recalculate normals
-ESlateCheckBoxState::Type SMeshProxyDialog::GetRecalculateNormals() const
+ECheckBoxState SMeshProxyDialog::GetRecalculateNormals() const
 {
-	return ProxySettings.bRecalculateNormals ? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+	return ProxySettings.bRecalculateNormals ? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetRecalculateNormals(ESlateCheckBoxState::Type NewValue)
+void SMeshProxyDialog::SetRecalculateNormals(ECheckBoxState NewValue)
 {
-	ProxySettings.bRecalculateNormals = (NewValue == ESlateCheckBoxState::Checked);
+	ProxySettings.bRecalculateNormals = (NewValue == ECheckBoxState::Checked);
 }
 
 //Hard Angle Threshold
@@ -506,14 +506,14 @@ void SMeshProxyDialog::MergeDistanceChanged(int32 NewValue)
 }
 
 //Clipping Plane
-ESlateCheckBoxState::Type SMeshProxyDialog::GetUseClippingPlane() const
+ECheckBoxState SMeshProxyDialog::GetUseClippingPlane() const
 {
-	return ProxySettings.bUseClippingPlane ? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+	return ProxySettings.bUseClippingPlane ? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetUseClippingPlane(ESlateCheckBoxState::Type NewValue)
+void SMeshProxyDialog::SetUseClippingPlane(ECheckBoxState NewValue)
 {
-	ProxySettings.bUseClippingPlane = (NewValue == ESlateCheckBoxState::Checked);
+	ProxySettings.bUseClippingPlane = (NewValue == ECheckBoxState::Checked);
 }
 
 bool SMeshProxyDialog::UseClippingPlaneEnabled() const

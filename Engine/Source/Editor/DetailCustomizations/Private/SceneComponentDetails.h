@@ -16,9 +16,9 @@ private:
 
 	FSlateColor GetMobilityTextColor(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
 
-	ESlateCheckBoxState::Type IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
+	ECheckBoxState IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
 
-	void OnMobilityChanged(ESlateCheckBoxState::Type InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility);
+	void OnMobilityChanged(ECheckBoxState InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility);
 
 	FText GetMobilityToolTip(TWeakPtr<IPropertyHandle> MobilityHandle) const;
 	

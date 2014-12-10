@@ -140,13 +140,13 @@ private:
 	virtual bool InitiallyCollapsed() const override { return true; }
 
 	FReply OnApplyChanges();
-	ESlateCheckBoxState::Type ShouldRecomputeNormals() const;
-	ESlateCheckBoxState::Type ShouldRecomputeTangents() const;
-	ESlateCheckBoxState::Type ShouldUseMikkTSpace() const;
-	ESlateCheckBoxState::Type ShouldRemoveDegenerates() const;
-	ESlateCheckBoxState::Type ShouldUseFullPrecisionUVs() const;
-	ESlateCheckBoxState::Type ShouldGenerateLightmapUVs() const;
-	ESlateCheckBoxState::Type ShouldGenerateDistanceFieldAsIfTwoSided() const;
+	ECheckBoxState ShouldRecomputeNormals() const;
+	ECheckBoxState ShouldRecomputeTangents() const;
+	ECheckBoxState ShouldUseMikkTSpace() const;
+	ECheckBoxState ShouldRemoveDegenerates() const;
+	ECheckBoxState ShouldUseFullPrecisionUVs() const;
+	ECheckBoxState ShouldGenerateLightmapUVs() const;
+	ECheckBoxState ShouldGenerateDistanceFieldAsIfTwoSided() const;
 	int32 GetMinLightmapResolution() const;
 	int32 GetSrcLightmapIndex() const;
 	int32 GetDstLightmapIndex() const;
@@ -155,13 +155,13 @@ private:
 	TOptional<float> GetBuildScaleZ() const;
 	float GetDistanceFieldResolutionScale() const;
 
-	void OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState);
-	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
-	void OnUseMikkTSpaceChanged(ESlateCheckBoxState::Type NewState);
-	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
-	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
-	void OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState);
-	void OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState);
+	void OnRecomputeNormalsChanged(ECheckBoxState NewState);
+	void OnRecomputeTangentsChanged(ECheckBoxState NewState);
+	void OnUseMikkTSpaceChanged(ECheckBoxState NewState);
+	void OnRemoveDegeneratesChanged(ECheckBoxState NewState);
+	void OnUseFullPrecisionUVsChanged(ECheckBoxState NewState);
+	void OnGenerateLightmapUVsChanged(ECheckBoxState NewState);
+	void OnGenerateDistanceFieldAsIfTwoSidedChanged(ECheckBoxState NewState);
 	void OnMinLightmapResolutionChanged( int32 NewValue );
 	void OnSrcLightmapIndexChanged( int32 NewValue );
 	void OnDstLightmapIndexChanged( int32 NewValue );
@@ -198,7 +198,7 @@ private:
 	float GetPercentTriangles() const;
 	float GetMaxDeviation() const;
 	float GetWeldingThreshold() const;
-	ESlateCheckBoxState::Type ShouldRecalculateNormals() const;
+	ECheckBoxState ShouldRecalculateNormals() const;
 	float GetHardAngleThreshold() const;
 
 	void OnPercentTrianglesChanged(float NewValue);
@@ -206,7 +206,7 @@ private:
 	void OnMaxDeviationChanged(float NewValue);
 	void OnMaxDeviationCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnReductionAmountChanged(float NewValue);
-	void OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue);
+	void OnRecalculateNormalsChanged(ECheckBoxState NewValue);
 	void OnWeldingThresholdChanged(float NewValue);
 	void OnWeldingThresholdCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnHardAngleThresholdChanged(float NewValue);
@@ -244,12 +244,12 @@ private:
 	TSharedRef<SWidget> OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
 	TSharedRef<SWidget> OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
 	void OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 SlotIndex);
-	ESlateCheckBoxState::Type DoesSectionCastShadow(int32 SectionIndex) const;
-	void OnSectionCastShadowChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
-	ESlateCheckBoxState::Type DoesSectionCollide(int32 SectionIndex) const;
-	void OnSectionCollisionChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
-	ESlateCheckBoxState::Type IsSectionSelected(int32 SectionIndex) const;
-	void OnSectionSelectedChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
+	ECheckBoxState DoesSectionCastShadow(int32 SectionIndex) const;
+	void OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex);
+	ECheckBoxState DoesSectionCollide(int32 SectionIndex) const;
+	void OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex);
+	ECheckBoxState IsSectionSelected(int32 SectionIndex) const;
+	void OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex);
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
 	
 	IStaticMeshEditor& StaticMeshEditor;
@@ -295,8 +295,8 @@ private:
 	void OnSectionSettingsExpanded(bool bIsExpanded, int32 LODIndex);
 	void OnLODGroupChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	bool IsAutoLODEnabled() const;
-	ESlateCheckBoxState::Type IsAutoLODChecked() const;
-	void OnAutoLODChanged(ESlateCheckBoxState::Type NewState);
+	ECheckBoxState IsAutoLODChecked() const;
+	void OnAutoLODChanged(ECheckBoxState NewState);
 	float GetPixelError() const;
 	void OnPixelErrorChanged(float NewValue);
 	void OnImportLOD(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);

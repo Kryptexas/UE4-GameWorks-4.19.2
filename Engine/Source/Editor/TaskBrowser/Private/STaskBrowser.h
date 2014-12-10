@@ -169,16 +169,16 @@ private:
 	void OnDatabaseFilterSelect( TSharedPtr<FString> InFilter, ESelectInfo::Type SelectInfo );
 
 	/** Handle when the Open Only flag is toggled */
-	void OnOpenOnlyChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnOpenOnlyChanged( const ECheckBoxState NewCheckedState );
 
 	/** Handle when the Assigned To Me flag is toggled */
-	void OnAssignedToMeChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnAssignedToMeChanged( const ECheckBoxState NewCheckedState );
 
 	/** Handle when the Created By Me flag is toggled */
-	void OnCreatedByMeChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnCreatedByMeChanged( const ECheckBoxState NewCheckedState );
 
 	/** Handle when the Current Map flag is toggled */
-	void OnCurrentMapChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnCurrentMapChanged( const ECheckBoxState NewCheckedState );
 
 	/** Create a widget to display a row of our table correctly */
 	TSharedRef<ITableRow> OnTaskGenerateRow( TSharedPtr<FTaskOverview> InTaskOverview, const TSharedRef<STableViewBase>& OwnerTable );

@@ -1830,14 +1830,14 @@ FSlateColor SFoliageEditMeshDisplayItem::GetBorderColor() const
 	return FSlateColor(FLinearColor(0.25f, 0.25f, 0.25f));
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsSelected() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsSelected() const
 {
-	return FoliageSettingsPtr->IsSelected ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->IsSelected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnSelectionChanged(ESlateCheckBoxState::Type InType)
+void SFoliageEditMeshDisplayItem::OnSelectionChanged(ECheckBoxState InType)
 {
-	FoliageSettingsPtr->IsSelected = InType == ESlateCheckBoxState::Checked;
+	FoliageSettingsPtr->IsSelected = InType == ECheckBoxState::Checked;
 }
 
 FReply SFoliageEditMeshDisplayItem::OnSync()
@@ -1976,14 +1976,14 @@ EVisibility SFoliageEditMeshDisplayItem::IsNonUniformScalingVisible_Dummy() cons
 	return FoliageSettingsPtr->UniformScale ? EVisibility::Collapsed : EVisibility::Hidden;
 }
 
-void SFoliageEditMeshDisplayItem::OnDensityReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnDensityReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyDensity = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyDensity = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsDensityReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsDensityReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyDensity ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyDensity ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnDensityChanged(float InValue)
@@ -2006,14 +2006,14 @@ float SFoliageEditMeshDisplayItem::GetDensityReapply() const
 	return FoliageSettingsPtr->ReapplyDensityAmount;
 }
 
-void SFoliageEditMeshDisplayItem::OnRadiusReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnRadiusReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyRadius = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyRadius = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsRadiusReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsRadiusReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyRadius ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyRadius ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnRadiusChanged(float InValue)
@@ -2026,19 +2026,19 @@ float SFoliageEditMeshDisplayItem::GetRadius() const
 	return FoliageSettingsPtr->Radius;
 }
 
-void SFoliageEditMeshDisplayItem::OnAlignToNormalReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnAlignToNormalReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyAlignToNormal = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyAlignToNormal = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsAlignToNormalReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsAlignToNormalReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyAlignToNormal ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyAlignToNormal ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnAlignToNormal(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnAlignToNormal(ECheckBoxState InState)
 {
-	if (InState == ESlateCheckBoxState::Checked)
+	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->AlignToNormal = true;
 	}
@@ -2048,9 +2048,9 @@ void SFoliageEditMeshDisplayItem::OnAlignToNormal(ESlateCheckBoxState::Type InSt
 	}
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsAlignToNormalChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsAlignToNormalChecked() const
 {
-	return FoliageSettingsPtr->AlignToNormal ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->AlignToNormal ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 EVisibility SFoliageEditMeshDisplayItem::IsAlignToNormalVisible() const
@@ -2068,19 +2068,19 @@ float SFoliageEditMeshDisplayItem::GetMaxAngle() const
 	return FoliageSettingsPtr->AlignMaxAngle;
 }
 
-void SFoliageEditMeshDisplayItem::OnRandomYawReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnRandomYawReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyRandomYaw = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyRandomYaw = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsRandomYawReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsRandomYawReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyRandomYaw ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyRandomYaw ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnRandomYaw(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnRandomYaw(ECheckBoxState InState)
 {
-	if (InState == ESlateCheckBoxState::Checked)
+	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->RandomYaw = true;
 	}
@@ -2090,14 +2090,14 @@ void SFoliageEditMeshDisplayItem::OnRandomYaw(ESlateCheckBoxState::Type InState)
 	}
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsRandomYawChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsRandomYawChecked() const
 {
-	return FoliageSettingsPtr->RandomYaw ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->RandomYaw ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnUniformScale(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnUniformScale(ECheckBoxState InState)
 {
-	if (InState == ESlateCheckBoxState::Checked)
+	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->UniformScale = true;
 
@@ -2110,21 +2110,21 @@ void SFoliageEditMeshDisplayItem::OnUniformScale(ESlateCheckBoxState::Type InSta
 	}
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsUniformScaleChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsUniformScaleChecked() const
 {
-	return FoliageSettingsPtr->UniformScale ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->UniformScale ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleUniformReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleUniformReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyScaleX = InState == ESlateCheckBoxState::Checked ? true : false;
-	FoliageSettingsPtr->ReapplyScaleY = InState == ESlateCheckBoxState::Checked ? true : false;
-	FoliageSettingsPtr->ReapplyScaleZ = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyScaleX = InState == ECheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyScaleY = InState == ECheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyScaleZ = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleUniformReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleUniformReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyScaleX ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyScaleX ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleUniformMinChanged(float InValue)
@@ -2159,14 +2159,14 @@ float SFoliageEditMeshDisplayItem::GetScaleUniformMax() const
 	return FoliageSettingsPtr->ScaleMaxX;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleXReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleXReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyScaleX = InState == ESlateCheckBoxState::Checked;
+	FoliageSettingsPtr->ReapplyScaleX = InState == ECheckBoxState::Checked;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleXReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleXReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyScaleX ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyScaleX ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleXMinChanged(float InValue)
@@ -2193,24 +2193,24 @@ float SFoliageEditMeshDisplayItem::GetScaleXMax() const
 	return FoliageSettingsPtr->ScaleMaxX;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleXLockedChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleXLockedChecked() const
 {
-	return FoliageSettingsPtr->LockScaleX ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->LockScaleX ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleXLocked(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleXLocked(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->LockScaleX = InState == ESlateCheckBoxState::Checked;
+	FoliageSettingsPtr->LockScaleX = InState == ECheckBoxState::Checked;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleYReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleYReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyScaleY = InState == ESlateCheckBoxState::Checked;
+	FoliageSettingsPtr->ReapplyScaleY = InState == ECheckBoxState::Checked;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleYReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleYReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyScaleY ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyScaleY ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleYMinChanged(float InValue)
@@ -2237,24 +2237,24 @@ float SFoliageEditMeshDisplayItem::GetScaleYMax() const
 	return FoliageSettingsPtr->ScaleMaxY;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleYLockedChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleYLockedChecked() const
 {
-	return FoliageSettingsPtr->LockScaleY ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->LockScaleY ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleYLocked(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleYLocked(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->LockScaleY = InState == ESlateCheckBoxState::Checked;
+	FoliageSettingsPtr->LockScaleY = InState == ECheckBoxState::Checked;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleZReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleZReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyScaleZ = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyScaleZ = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleZReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleZReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyScaleZ ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyScaleZ ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleZMinChanged(float InValue)
@@ -2281,24 +2281,24 @@ float SFoliageEditMeshDisplayItem::GetScaleZMax() const
 	return FoliageSettingsPtr->ScaleMaxZ;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleZLockedChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsScaleZLockedChecked() const
 {
-	return FoliageSettingsPtr->LockScaleZ ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->LockScaleZ ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnScaleZLocked(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnScaleZLocked(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->LockScaleZ = InState == ESlateCheckBoxState::Checked;
+	FoliageSettingsPtr->LockScaleZ = InState == ECheckBoxState::Checked;
 }
 
-void SFoliageEditMeshDisplayItem::OnZOffsetReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnZOffsetReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyZOffset = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyZOffset = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsZOffsetReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsZOffsetReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyZOffset ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyZOffset ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnZOffsetMin(float InValue)
@@ -2325,14 +2325,14 @@ float SFoliageEditMeshDisplayItem::GetZOffsetMax() const
 	return FoliageSettingsPtr->ZOffsetMax;
 }
 
-void SFoliageEditMeshDisplayItem::OnRandomPitchReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnRandomPitchReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyRandomPitchAngle = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyRandomPitchAngle = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsRandomPitchReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsRandomPitchReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyRandomPitchAngle ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyRandomPitchAngle ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnRandomPitchChanged(float InValue)
@@ -2345,14 +2345,14 @@ float SFoliageEditMeshDisplayItem::GetRandomPitch() const
 	return FoliageSettingsPtr->RandomPitchAngle;
 }
 
-void SFoliageEditMeshDisplayItem::OnGroundSlopeReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnGroundSlopeReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyGroundSlope = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyGroundSlope = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsGroundSlopeReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsGroundSlopeReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyGroundSlope ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyGroundSlope ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnGroundSlopeChanged(float InValue)
@@ -2365,14 +2365,14 @@ float SFoliageEditMeshDisplayItem::GetGroundSlope() const
 	return FoliageSettingsPtr->GroundSlope;
 }
 
-void SFoliageEditMeshDisplayItem::OnHeightReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnHeightReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyHeight = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyHeight = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsHeightReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsHeightReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyHeight ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyHeight ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnHeightMinChanged(float InValue)
@@ -2399,14 +2399,14 @@ float SFoliageEditMeshDisplayItem::GetHeightMax() const
 	return FoliageSettingsPtr->HeightMax;
 }
 
-void SFoliageEditMeshDisplayItem::OnLandscapeLayerReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnLandscapeLayerReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyLandscapeLayer = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyLandscapeLayer = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsLandscapeLayerReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsLandscapeLayerReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyLandscapeLayer ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyLandscapeLayer ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnLandscapeLayerChanged(const FText& InValue)
@@ -2419,9 +2419,9 @@ FText SFoliageEditMeshDisplayItem::GetLandscapeLayer() const
 	return FText::FromName(FoliageSettingsPtr->LandscapeLayer);
 }
 
-void SFoliageEditMeshDisplayItem::OnCollisionWithWorld(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnCollisionWithWorld(ECheckBoxState InState)
 {
-	if (InState == ESlateCheckBoxState::Checked)
+	if (InState == ECheckBoxState::Checked)
 	{
 		FoliageSettingsPtr->CollisionWithWorld = true;
 	}
@@ -2431,9 +2431,9 @@ void SFoliageEditMeshDisplayItem::OnCollisionWithWorld(ESlateCheckBoxState::Type
 	}
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsCollisionWithWorldChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsCollisionWithWorldChecked() const
 {
-	return FoliageSettingsPtr->CollisionWithWorld ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->CollisionWithWorld ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 EVisibility SFoliageEditMeshDisplayItem::IsCollisionWithWorldVisible() const
@@ -2441,14 +2441,14 @@ EVisibility SFoliageEditMeshDisplayItem::IsCollisionWithWorldVisible() const
 	return FoliageSettingsPtr->CollisionWithWorld ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SFoliageEditMeshDisplayItem::OnCollisionWithWorldReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnCollisionWithWorldReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyCollisionWithWorld = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyCollisionWithWorld = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsCollisionWithWorldReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsCollisionWithWorldReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyCollisionWithWorld ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyCollisionWithWorld ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnCollisionScaleXChanged(float InValue)
@@ -2481,14 +2481,14 @@ float SFoliageEditMeshDisplayItem::GetCollisionScaleZ() const
 	return FoliageSettingsPtr->CollisionScale.Z;
 }
 
-void SFoliageEditMeshDisplayItem::OnVertexColorMask(ESlateCheckBoxState::Type InState, FoliageVertexColorMask Mask)
+void SFoliageEditMeshDisplayItem::OnVertexColorMask(ECheckBoxState InState, FoliageVertexColorMask Mask)
 {
 	FoliageSettingsPtr->VertexColorMask = Mask;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsVertexColorMaskChecked(FoliageVertexColorMask Mask) const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsVertexColorMaskChecked(FoliageVertexColorMask Mask) const
 {
-	return FoliageSettingsPtr->VertexColorMask == Mask ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->VertexColorMask == Mask ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnVertexColorMaskThresholdChanged(float InValue)
@@ -2506,24 +2506,24 @@ EVisibility SFoliageEditMeshDisplayItem::IsVertexColorMaskThresholdVisible() con
 	return (FoliageSettingsPtr->VertexColorMask == FOLIAGEVERTEXCOLORMASK_Disabled) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-void SFoliageEditMeshDisplayItem::OnVertexColorMaskInvert(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnVertexColorMaskInvert(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->VertexColorMaskInvert = (InState == ESlateCheckBoxState::Checked);
+	FoliageSettingsPtr->VertexColorMaskInvert = (InState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsVertexColorMaskInvertChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsVertexColorMaskInvertChecked() const
 {
-	return FoliageSettingsPtr->VertexColorMaskInvert ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->VertexColorMaskInvert ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEditMeshDisplayItem::OnVertexColorMaskReapply(ESlateCheckBoxState::Type InState)
+void SFoliageEditMeshDisplayItem::OnVertexColorMaskReapply(ECheckBoxState InState)
 {
-	FoliageSettingsPtr->ReapplyVertexColorMask = InState == ESlateCheckBoxState::Checked ? true : false;
+	FoliageSettingsPtr->ReapplyVertexColorMask = InState == ECheckBoxState::Checked ? true : false;
 }
 
-ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsVertexColorMaskReapplyChecked() const
+ECheckBoxState SFoliageEditMeshDisplayItem::IsVertexColorMaskReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyVertexColorMask ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyVertexColorMask ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FReply SFoliageEditMeshDisplayItem::OnMouseDownSelection(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

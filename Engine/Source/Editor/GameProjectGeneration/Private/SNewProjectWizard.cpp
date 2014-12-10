@@ -730,7 +730,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	// Initialize the current page name. Assuming the template page.
 	CurrentPageName = TemplatePageName;
 
-	HandleCategoryChanged(ESlateCheckBoxState::Checked, ActiveCategory);
+	HandleCategoryChanged(ECheckBoxState::Checked, ActiveCategory);
 
 	UpdateProjectFileValidity();
 }
@@ -1582,14 +1582,14 @@ void SNewProjectWizard::HandleCreateProjectWizardFinished( )
 	CreateAndOpenProject();
 }
 
-ESlateCheckBoxState::Type SNewProjectWizard::GetCategoryTabCheckState(FName Category) const
+ECheckBoxState SNewProjectWizard::GetCategoryTabCheckState(FName Category) const
 {
-	return Category == ActiveCategory ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Category == ActiveCategory ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SNewProjectWizard::HandleCategoryChanged(ESlateCheckBoxState::Type CheckState, FName Category)
+void SNewProjectWizard::HandleCategoryChanged(ECheckBoxState CheckState, FName Category)
 {
-	if (CheckState != ESlateCheckBoxState::Checked)
+	if (CheckState != ECheckBoxState::Checked)
 	{
 		return;
 	}

@@ -195,10 +195,10 @@ private:
 	void HandleTemplateListViewSelectionChanged( TSharedPtr<FTemplateItem> TemplateItem, ESelectInfo::Type SelectInfo );
 
 	/** Handle choosing a different category tab */
-	void HandleCategoryChanged(ESlateCheckBoxState::Type Checked, FName Category);
+	void HandleCategoryChanged(ECheckBoxState Checked, FName Category);
 
 	/** Get the check state for the specified categories tab */
-	ESlateCheckBoxState::Type GetCategoryTabCheckState(FName Category) const;
+	ECheckBoxState GetCategoryTabCheckState(FName Category) const;
 
 private:
 

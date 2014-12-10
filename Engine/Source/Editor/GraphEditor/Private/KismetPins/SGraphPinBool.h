@@ -16,8 +16,8 @@ protected:
 	// End SGraphPin interface
 
 	/** Determine if the check box should be checked or not */
-	ESlateCheckBoxState::Type IsDefaultValueChecked() const;
+	ECheckBoxState IsDefaultValueChecked() const;
 
 	/** Called when check box is changed */
-	void OnDefaultValueCheckBoxChanged( ESlateCheckBoxState::Type InIsChecked );
+	void OnDefaultValueCheckBoxChanged( ECheckBoxState InIsChecked );
 };

@@ -44,9 +44,9 @@ public:
 	 *
 	 * @param CheckState The check box state.
 	 */
-	void EnableFromCheckState( ESlateCheckBoxState::Type CheckState )
+	void EnableFromCheckState( ECheckBoxState CheckState )
 	{
-		Enabled = (CheckState == ESlateCheckBoxState::Checked);
+		Enabled = (CheckState == ECheckBoxState::Checked);
 
 		OnStateChanged.ExecuteIfBound(Verbosity, Enabled);
 	}
@@ -56,9 +56,9 @@ public:
 	 *
 	 * @return Checked if the filter is enabled, Unchecked otherwise.
 	 */
-	ESlateCheckBoxState::Type GetCheckStateFromIsEnabled() const
+	ECheckBoxState GetCheckStateFromIsEnabled() const
 	{
-		return (Enabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+		return (Enabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 	}
 
 	/**

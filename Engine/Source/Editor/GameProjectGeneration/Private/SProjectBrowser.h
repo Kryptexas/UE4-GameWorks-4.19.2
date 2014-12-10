@@ -112,7 +112,7 @@ private:
 	void OnFilterTextChanged(const FText& InText);
 
 	/** Whether to autoload the last project. */
-	void OnAutoloadLastProjectChanged(ESlateCheckBoxState::Type NewState);
+	void OnAutoloadLastProjectChanged(ECheckBoxState NewState);
 
 	/** Get the visibility of the specified category */
 	EVisibility GetProjectCategoryVisibility(const TSharedRef<FProjectCategory> InCategory) const;

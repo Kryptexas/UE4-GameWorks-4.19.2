@@ -33,14 +33,14 @@ struct FRevertCheckBoxListViewItem
 		IsModified = false;
 	}
 
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 	{
-		IsSelected = (NewCheckedState == ESlateCheckBoxState::Checked);
+		IsSelected = (NewCheckedState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type OnIsChecked() const
+	ECheckBoxState OnIsChecked() const
 	{
-		return ( IsSelected ) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return ( IsSelected ) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	EVisibility OnGetModifiedStateVisibility() const
@@ -288,16 +288,16 @@ private:
 	}
 
 	/** Called when the user checks or unchecks the revert unchanged checkbox; updates the list view accordingly */
-	void RevertUnchangedToggled( const ESlateCheckBoxState::Type NewCheckedState )
+	void RevertUnchangedToggled( const ECheckBoxState NewCheckedState )
 	{
-		bRevertUnchangedFilesOnly = (NewCheckedState == ESlateCheckBoxState::Checked);
+		bRevertUnchangedFilesOnly = (NewCheckedState == ECheckBoxState::Checked);
 	}
 
 	/**
 	 * Called whenever a column header is clicked, or in the case of the dialog, also when the "Check/Uncheck All" column header
 	 * checkbox is called, because its event bubbles to the column header. 
 	 */
-	void ColumnHeaderClicked( const ESlateCheckBoxState::Type NewCheckedState )
+	void ColumnHeaderClicked( const ECheckBoxState NewCheckedState )
 	{
 		for (int32 i=0; i<ListViewItemSource.Num(); i++)
 		{
@@ -305,7 +305,7 @@ private:
 
 			if (OnGetItemsEnabled())
 			{
-				CurListViewItem->IsSelected = (NewCheckedState == ESlateCheckBoxState::Checked);
+				CurListViewItem->IsSelected = (NewCheckedState == ECheckBoxState::Checked);
 			}
 		}
 	}

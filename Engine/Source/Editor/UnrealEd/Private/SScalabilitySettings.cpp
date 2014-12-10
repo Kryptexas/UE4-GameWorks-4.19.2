@@ -5,7 +5,7 @@
 
 #define LOCTEXT_NAMESPACE "EngineScalabiltySettings"
 
-ESlateCheckBoxState::Type SScalabilitySettings::IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const
+ECheckBoxState SScalabilitySettings::IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const
 {
 	int32 QualityLevel = -1;
 
@@ -17,10 +17,10 @@ ESlateCheckBoxState::Type SScalabilitySettings::IsGroupQualityLevelSelected(cons
 	else if (FCString::Strcmp(InGroupName, TEXT("TextureQuality")) == 0) QualityLevel = CachedQualityLevels.TextureQuality;
 	else if (FCString::Strcmp(InGroupName, TEXT("EffectsQuality")) == 0) QualityLevel = CachedQualityLevels.EffectsQuality;
 
-	return (QualityLevel == InQualityLevel) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (QualityLevel == InQualityLevel) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SScalabilitySettings::OnGroupQualityLevelChanged(ESlateCheckBoxState::Type NewState, const TCHAR* InGroupName, int32 InQualityLevel)
+void SScalabilitySettings::OnGroupQualityLevelChanged(ECheckBoxState NewState, const TCHAR* InGroupName, int32 InQualityLevel)
 {
 	if (FCString::Strcmp(InGroupName, TEXT("ResolutionQuality")) == 0) CachedQualityLevels.ResolutionQuality = InQualityLevel;
 	else if (FCString::Strcmp(InGroupName, TEXT("ViewDistanceQuality")) == 0) CachedQualityLevels.ViewDistanceQuality = InQualityLevel;
@@ -122,15 +122,15 @@ SGridPanel::FSlot& SScalabilitySettings::MakeGridSlot(int32 InCol, int32 InRow, 
 		.ColumnSpan(InColSpan);
 }
 
-ESlateCheckBoxState::Type SScalabilitySettings::IsMonitoringPerformance() const
+ECheckBoxState SScalabilitySettings::IsMonitoringPerformance() const
 {
 	const bool bMonitorEditorPerformance = GEditor->GetEditorUserSettings().bMonitorEditorPerformance;
-	return bMonitorEditorPerformance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bMonitorEditorPerformance ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SScalabilitySettings::OnMonitorPerformanceChanged(ESlateCheckBoxState::Type NewState)
+void SScalabilitySettings::OnMonitorPerformanceChanged(ECheckBoxState NewState)
 {
-	const bool bNewEnabledState = ( NewState == ESlateCheckBoxState::Checked );
+	const bool bNewEnabledState = ( NewState == ECheckBoxState::Checked );
 
 	auto& Settings = GEditor->AccessEditorUserSettings();
 	Settings.bMonitorEditorPerformance = bNewEnabledState;

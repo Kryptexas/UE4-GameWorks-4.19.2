@@ -12,7 +12,7 @@
  * The first parameter is the engine instance that was checked or unchecked.
  * The second parameter is the new checked state.
  */
-DECLARE_DELEGATE_TwoParams(FOnSessionInstanceCheckStateChanged, const ISessionInstanceInfoPtr&, ESlateCheckBoxState::Type)
+DECLARE_DELEGATE_TwoParams(FOnSessionInstanceCheckStateChanged, const ISessionInstanceInfoPtr&, ECheckBoxState)
 
 
 /**

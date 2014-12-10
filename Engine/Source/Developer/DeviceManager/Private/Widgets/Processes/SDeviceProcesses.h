@@ -56,10 +56,10 @@ private:
 	void HandleModelSelectedDeviceServiceChanged( );
 
 	// Callback for changing 'Show process tree' check box state.
-	void HandleProcessTreeCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+	void HandleProcessTreeCheckBoxCheckStateChanged( ECheckBoxState NewState );
 
 	// Callback for determining checked state of the 'Show process tree' check box.
-	ESlateCheckBoxState::Type HandleProcessTreeCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleProcessTreeCheckBoxIsChecked( ) const;
 
 	// Callback for generating a row widget in the process tree view.
 	TSharedRef<ITableRow> HandleProcessTreeViewGenerateRow( FDeviceProcessesProcessTreeNodePtr Item, const TSharedRef<STableViewBase>& OwnerTable );

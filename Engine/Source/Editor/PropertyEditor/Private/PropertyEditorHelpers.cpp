@@ -274,22 +274,22 @@ bool SEditConditionWidget::HasEditCondition() const
 		||	( CustomEditCondition.OnEditConditionValueChanged.IsBound() );
 }
 
-void SEditConditionWidget::OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState )
+void SEditConditionWidget::OnEditConditionCheckChanged( ECheckBoxState CheckState )
 {
 	if( PropertyEditor.IsValid() && PropertyEditor->HasEditCondition() && PropertyEditor->SupportsEditConditionToggle() )
 	{
-		PropertyEditor->SetEditConditionState( CheckState == ESlateCheckBoxState::Checked );
+		PropertyEditor->SetEditConditionState( CheckState == ECheckBoxState::Checked );
 	}
 	else
 	{
-		CustomEditCondition.OnEditConditionValueChanged.ExecuteIfBound( CheckState == ESlateCheckBoxState::Checked );
+		CustomEditCondition.OnEditConditionValueChanged.ExecuteIfBound( CheckState == ECheckBoxState::Checked );
 	}
 }
 
-ESlateCheckBoxState::Type SEditConditionWidget::OnGetEditConditionCheckState() const
+ECheckBoxState SEditConditionWidget::OnGetEditConditionCheckState() const
 {
 	bool bEditConditionMet = ( PropertyEditor.IsValid() && PropertyEditor->HasEditCondition() && PropertyEditor->IsEditConditionMet() ) || CustomEditCondition.EditConditionValue.Get();
-	return bEditConditionMet ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bEditConditionMet ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 namespace PropertyEditorHelpers

@@ -45,8 +45,8 @@ private:
 	void OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle, int32 ArrayIndex, bool bTranslation);
 	// check box handler
 	// Callback for changing this row's Share check box state.
-	void OnAdvancedCheckBoxStateChanged(ESlateCheckBoxState::Type NewState, TSharedRef<IPropertyHandle> PropertyHandle);
-	ESlateCheckBoxState::Type AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	void OnAdvancedCheckBoxStateChanged(ECheckBoxState NewState, TSharedRef<IPropertyHandle> PropertyHandle);
+	ECheckBoxState AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	// button handlers
 	FReply OnSetAllToWorld();

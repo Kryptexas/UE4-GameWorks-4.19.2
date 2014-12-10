@@ -103,14 +103,14 @@ private:
 	/**
 	 * @return The state of the auto-key check box
 	 */
-	ESlateCheckBoxState::Type OnGetCleanViewCheckState() const;
+	ECheckBoxState OnGetCleanViewCheckState() const;
 	
 	/**
 	 * Called when the auto-key checkbox state changes
 	 * 
 	 * @param InState	The new state
 	 */
-	void OnCleanViewChecked( ESlateCheckBoxState::Type InState );	
+	void OnCleanViewChecked( ECheckBoxState InState );	
 
 	/**
 	* @return The value of the current snap interval.

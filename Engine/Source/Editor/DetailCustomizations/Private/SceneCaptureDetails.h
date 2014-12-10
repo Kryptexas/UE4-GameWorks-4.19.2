@@ -23,8 +23,8 @@ private:
 	* @param The type of checkbox.
 	* @return The desired checkbox state.
 	*/
-	ESlateCheckBoxState::Type OnGetDisplayCheckState(FString ShowFlagName) const;
+	ECheckBoxState OnGetDisplayCheckState(FString ShowFlagName) const;
 
 	/** Show flag settings changed, so update the scene capture */
-	void OnShowFlagCheckStateChanged(ESlateCheckBoxState::Type InNewRadioState, FString FlagName);
+	void OnShowFlagCheckStateChanged(ECheckBoxState InNewRadioState, FString FlagName);
 };

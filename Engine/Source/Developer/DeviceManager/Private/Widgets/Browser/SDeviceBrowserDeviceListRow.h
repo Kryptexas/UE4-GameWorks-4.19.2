@@ -146,20 +146,20 @@ private:
 	}
 
 	// Callback for changing this row's Share check box state.
-	void HandleShareCheckBoxStateChanged( ESlateCheckBoxState::Type NewState )
+	void HandleShareCheckBoxStateChanged( ECheckBoxState NewState )
 	{
-		DeviceService->SetShared(NewState == ESlateCheckBoxState::Checked);
+		DeviceService->SetShared(NewState == ECheckBoxState::Checked);
 	}
 
 	// Callback for getting the state of the 'Share' check box.
-	ESlateCheckBoxState::Type HandleShareCheckBoxIsChecked( ) const
+	ECheckBoxState HandleShareCheckBoxIsChecked( ) const
 	{
 		if (DeviceService->IsShared())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 	// Callback for getting the enabled state of the 'Share' check box.

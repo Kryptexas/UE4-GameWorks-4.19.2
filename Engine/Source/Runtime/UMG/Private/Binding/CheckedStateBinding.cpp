@@ -29,7 +29,7 @@ bool UCheckedStateBinding::IsSupportedDestination(UProperty* Property) const
 	return false;
 }
 
-ESlateCheckBoxState::Type UCheckedStateBinding::GetValue() const
+ECheckBoxState UCheckedStateBinding::GetValue() const
 {
 	if ( UObject* Source = SourceObject.Get() )
 	{
@@ -39,7 +39,7 @@ ESlateCheckBoxState::Type UCheckedStateBinding::GetValue() const
 			if ( SourcePath.GetValue<uint8>(Source, Value) )
 			{
 				bConversion = EConversion::None;
-				return static_cast<ESlateCheckBoxState::Type>(Value);
+				return static_cast<ECheckBoxState>(Value);
 			}
 		}
 
@@ -49,12 +49,12 @@ ESlateCheckBoxState::Type UCheckedStateBinding::GetValue() const
 			if ( SourcePath.GetValue<bool>(Source, Value) )
 			{
 				bConversion = EConversion::Bool;
-				return Value ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+				return Value ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			}
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 #undef LOCTEXT_NAMESPACE

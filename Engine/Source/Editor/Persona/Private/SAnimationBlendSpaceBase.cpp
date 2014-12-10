@@ -1194,7 +1194,7 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs)
 */
 void SBlendSpaceEditorBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	BlendSpaceWidget->bPreviewOn = IsPreviewOn()==ESlateCheckBoxState::Checked;
+	BlendSpaceWidget->bPreviewOn = IsPreviewOn()==ECheckBoxState::Checked;
 	if (BlendSpaceWidget->bPreviewOn)
 	{
 		UpdatePreviewParameter();
@@ -1262,7 +1262,7 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
 	DisplayOptionsPanel->AddCheckBoxSlot()
 	[
 		SNew(SCheckBox) 
-		.IsChecked( true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+		.IsChecked( true ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 		.OnCheckStateChanged( this, &SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged)
 		[
 			SNew(STextBlock)
@@ -1272,7 +1272,7 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
 	return DisplayOptionsPanel;
 }
 
-ESlateCheckBoxState::Type SBlendSpaceEditorBase::IsPreviewOn() const
+ECheckBoxState SBlendSpaceEditorBase::IsPreviewOn() const
 {
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
@@ -1280,15 +1280,15 @@ ESlateCheckBoxState::Type SBlendSpaceEditorBase::IsPreviewOn() const
 	{
 		if (Component->PreviewInstance->CurrentAsset == BlendSpace)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ESlateCheckBoxState::Type NewValue )
+void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ECheckBoxState NewValue )
 {
-	bool bPreviewOn = (NewValue != ESlateCheckBoxState::Unchecked);
+	bool bPreviewOn = (NewValue != ECheckBoxState::Unchecked);
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
 	if ( Component != NULL )
@@ -1297,11 +1297,11 @@ void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ESlateCheckBoxState:
 	}
 }
 
-void SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged( ESlateCheckBoxState::Type NewValue )
+void SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged( ECheckBoxState NewValue )
 {
 	if (BlendSpaceWidget.IsValid())
 	{
-		BlendSpaceWidget->bTooltipOn = (NewValue != ESlateCheckBoxState::Unchecked);
+		BlendSpaceWidget->bTooltipOn = (NewValue != ECheckBoxState::Unchecked);
 	}
 }
 

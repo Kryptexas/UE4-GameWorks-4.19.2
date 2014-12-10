@@ -22,16 +22,16 @@ private:
 	FReply OnDraggingListViewWidget(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	/** Select additive mode */
-	void OnAdditiveModeButtonClicked(ESlateCheckBoxState::Type CheckType);
+	void OnAdditiveModeButtonClicked(ECheckBoxState CheckType);
 
 	/** Select subtractive mode */
-	void OnSubtractiveModeButtonClicked(ESlateCheckBoxState::Type CheckType);
+	void OnSubtractiveModeButtonClicked(ECheckBoxState CheckType);
 
 	/** @return the check state of the additive mode checkbox */
-	ESlateCheckBoxState::Type IsAdditiveModeChecked() const;
+	ECheckBoxState IsAdditiveModeChecked() const;
 
 	/** @return the check state of the subtractive mode checkbox */
-	ESlateCheckBoxState::Type IsSubtractiveModeChecked() const;
+	ECheckBoxState IsSubtractiveModeChecked() const;
 
 	/** Get the image for additive mode */
 	const FSlateBrush* GetAdditiveModeImage() const;

@@ -186,8 +186,8 @@ private:
 	void OnBlendSpaceParamtersChanged();
 
 	/** Handle display editor vertically checkbox */
-	ESlateCheckBoxState::Type IsEditorDisplayedVertically() const;
-	void OnChangeDisplayedVertically( ESlateCheckBoxState::Type NewValue );
+	ECheckBoxState IsEditorDisplayedVertically() const;
+	void OnChangeDisplayedVertically( ECheckBoxState NewValue );
 
 	/** Get the blend space object we are editing cast to 1D */
 	UBlendSpace1D* GetBlendSpace() {return Cast<UBlendSpace1D>(BlendSpace);}

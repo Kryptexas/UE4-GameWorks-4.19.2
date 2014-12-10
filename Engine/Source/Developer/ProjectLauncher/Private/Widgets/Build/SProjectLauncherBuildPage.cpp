@@ -166,18 +166,18 @@ bool SProjectLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectNa
 /* SProjectLauncherBuildPage callbacks
  *****************************************************************************/
 
-void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ESlateCheckBoxState::Type CheckState )
+void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ECheckBoxState CheckState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetBuildGame(CheckState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetBuildGame(CheckState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleBuildIsChecked() const
+ECheckBoxState SProjectLauncherBuildPage::HandleBuildIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -185,11 +185,11 @@ ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleBuildIsChecked() cons
 	{
 		if (SelectedProfile->IsBuilding())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
@@ -304,18 +304,18 @@ EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELaun
 	return EVisibility::Hidden;
 }
 
-void SProjectLauncherBuildPage::HandleUATCheckedStateChanged( ESlateCheckBoxState::Type CheckState )
+void SProjectLauncherBuildPage::HandleUATCheckedStateChanged( ECheckBoxState CheckState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetBuildUAT(CheckState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetBuildUAT(CheckState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleUATIsChecked() const
+ECheckBoxState SProjectLauncherBuildPage::HandleUATIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -323,11 +323,11 @@ ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleUATIsChecked() const
 	{
 		if (SelectedProfile->IsBuildingUAT())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

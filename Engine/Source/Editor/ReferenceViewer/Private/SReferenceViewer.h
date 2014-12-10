@@ -61,13 +61,13 @@ private:
 
 	void OnUpdateHistoryData(FReferenceViewerHistoryData& HistoryData) const;
 	
-	void OnSearchDepthEnabledChanged( ESlateCheckBoxState::Type NewState );
-	ESlateCheckBoxState::Type IsSearchDepthEnabledChecked() const;
+	void OnSearchDepthEnabledChanged( ECheckBoxState NewState );
+	ECheckBoxState IsSearchDepthEnabledChecked() const;
 	int32 GetSearchDepthCount() const;
 	void OnSearchDepthCommitted(int32 NewValue);
 
-	void OnSearchBreadthEnabledChanged( ESlateCheckBoxState::Type NewState );
-	ESlateCheckBoxState::Type IsSearchBreadthEnabledChecked() const;
+	void OnSearchBreadthEnabledChanged( ECheckBoxState NewState );
+	ECheckBoxState IsSearchBreadthEnabledChecked() const;
 	int32 GetSearchBreadthCount() const;
 	void OnSearchBreadthCommitted(int32 NewValue);
 

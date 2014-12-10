@@ -42,8 +42,8 @@ private:
 	const FSlateBrush* OnGetFavoriteImage() const;
 	FReply OnToggleFavoriteClicked();
 
-	void OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState );
-	ESlateCheckBoxState::Type OnGetEditConditionCheckState() const;
+	void OnEditConditionCheckChanged( ECheckBoxState CheckState );
+	ECheckBoxState OnGetEditConditionCheckState() const;
 
 	FReply OnNameDoubleClicked();
 

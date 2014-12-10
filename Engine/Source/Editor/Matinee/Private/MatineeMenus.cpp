@@ -4387,7 +4387,7 @@ private:
 
 	void SetIntervalStart(float InStart) { IntervalStart = InStart; }
 	void SetIntervalEnd(float InEnd) { IntervalEnd = InEnd; }
-	void ToggleFullInterval(ESlateCheckBoxState::Type CheckState) { bFullInterval = (CheckState == ESlateCheckBoxState::Checked); }
+	void ToggleFullInterval(ECheckBoxState CheckState) { bFullInterval = (CheckState == ECheckBoxState::Checked); }
 
 	bool  UseFullInterval() { return bFullInterval; }
 	TOptional<float> GetIntervalStart() const {return IntervalStart; }

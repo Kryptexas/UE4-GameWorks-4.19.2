@@ -24,10 +24,10 @@ public:
 private:
 
 	// Checks cached quality levels to see if the specified group is at the specified quality level
-	ESlateCheckBoxState::Type IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const;
+	ECheckBoxState IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const;
 
 	// Callback for when a particular scalability group has its quality level changed
-	void OnGroupQualityLevelChanged(ESlateCheckBoxState::Type NewState, const TCHAR* InGroupName, int32 InQualityLevel);
+	void OnGroupQualityLevelChanged(ECheckBoxState NewState, const TCHAR* InGroupName, int32 InQualityLevel);
 
 	// Callback for when the resolution scale slider changes
 	void OnResolutionScaleChanged(float InValue);
@@ -57,10 +57,10 @@ private:
 	SGridPanel::FSlot& MakeGridSlot(int32 InCol, int32 InRow, int32 InColSpan = 1, int32 InRowSpan = 1);
 
 	/** Called to get the "Show notification" check box state */
-	ESlateCheckBoxState::Type IsMonitoringPerformance() const;
+	ECheckBoxState IsMonitoringPerformance() const;
 
 	/** Called when the state of the "Show notification" check box changes */
-	void OnMonitorPerformanceChanged(ESlateCheckBoxState::Type NewState);
+	void OnMonitorPerformanceChanged(ECheckBoxState NewState);
 
 private:
 	/* The state of scalability settings at the point of opening the menu*/

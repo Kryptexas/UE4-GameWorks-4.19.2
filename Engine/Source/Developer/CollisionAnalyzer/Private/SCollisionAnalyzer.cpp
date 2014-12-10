@@ -665,9 +665,9 @@ FString SCollisionAnalyzer::GetStatusText() const
 	return FString::Printf(TEXT("Total: %d queries over %d frames. Shown: %d queries"), Analyzer->Queries.Num(), Analyzer->GetNumFramesOfRecording(), TotalNumQueries);
 }
 
-ESlateCheckBoxState::Type SCollisionAnalyzer::GetDrawRecentState() const
+ECheckBoxState SCollisionAnalyzer::GetDrawRecentState() const
 {
-	return bDrawRecentQueries ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bDrawRecentQueries ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
@@ -679,48 +679,48 @@ FReply SCollisionAnalyzer::OnRecordButtonClicked()
 	return FReply::Handled();
 }
 
-void SCollisionAnalyzer::OnDrawRecentChanged(ESlateCheckBoxState::Type NewState)
+void SCollisionAnalyzer::OnDrawRecentChanged(ECheckBoxState NewState)
 {
-	bDrawRecentQueries = (NewState == ESlateCheckBoxState::Checked);
+	bDrawRecentQueries = (NewState == ECheckBoxState::Checked);
 }
 
 // By frame
 
-ESlateCheckBoxState::Type SCollisionAnalyzer::GetGroupByFrameState() const
+ECheckBoxState SCollisionAnalyzer::GetGroupByFrameState() const
 {
-	return (GroupBy == EQueryGroupMode::ByFrameNum) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (GroupBy == EQueryGroupMode::ByFrameNum) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCollisionAnalyzer::OnGroupByFrameChanged(ESlateCheckBoxState::Type NewState)
+void SCollisionAnalyzer::OnGroupByFrameChanged(ECheckBoxState NewState)
 {
-	GroupBy = (NewState == ESlateCheckBoxState::Checked) ? EQueryGroupMode::ByFrameNum : EQueryGroupMode::Ungrouped;
+	GroupBy = (NewState == ECheckBoxState::Checked) ? EQueryGroupMode::ByFrameNum : EQueryGroupMode::Ungrouped;
 	RebuildFilteredList();
 }
 
 
 // By Tag
 
-ESlateCheckBoxState::Type SCollisionAnalyzer::GetGroupByTagState() const
+ECheckBoxState SCollisionAnalyzer::GetGroupByTagState() const
 {
-	return (GroupBy == EQueryGroupMode::ByTag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (GroupBy == EQueryGroupMode::ByTag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCollisionAnalyzer::OnGroupByTagChanged(ESlateCheckBoxState::Type NewState)
+void SCollisionAnalyzer::OnGroupByTagChanged(ECheckBoxState NewState)
 {
-	GroupBy = (NewState == ESlateCheckBoxState::Checked) ? EQueryGroupMode::ByTag : EQueryGroupMode::Ungrouped;
+	GroupBy = (NewState == ECheckBoxState::Checked) ? EQueryGroupMode::ByTag : EQueryGroupMode::Ungrouped;
 	RebuildFilteredList();
 }
 
 // By Owner
 
-ESlateCheckBoxState::Type SCollisionAnalyzer::GetGroupByOwnerState() const
+ECheckBoxState SCollisionAnalyzer::GetGroupByOwnerState() const
 {
-	return (GroupBy == EQueryGroupMode::ByOwnerTag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (GroupBy == EQueryGroupMode::ByOwnerTag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCollisionAnalyzer::OnGroupByOwnerChanged(ESlateCheckBoxState::Type NewState)
+void SCollisionAnalyzer::OnGroupByOwnerChanged(ECheckBoxState NewState)
 {
-	GroupBy = (NewState == ESlateCheckBoxState::Checked) ? EQueryGroupMode::ByOwnerTag : EQueryGroupMode::Ungrouped;
+	GroupBy = (NewState == ECheckBoxState::Checked) ? EQueryGroupMode::ByOwnerTag : EQueryGroupMode::Ungrouped;
 	RebuildFilteredList();
 }
 

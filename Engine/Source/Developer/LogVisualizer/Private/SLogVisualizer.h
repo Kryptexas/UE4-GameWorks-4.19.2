@@ -93,14 +93,14 @@ public:
 	// Get delegates
 	const FSlateBrush* GetRecordButtonBrush() const;
 	FString GetStatusText() const;
-	ESlateCheckBoxState::Type GetPauseState() const;
+	ECheckBoxState GetPauseState() const;
 	EColumnSortMode::Type GetLogsSortMode() const;
 	// Handler delegates
 	FReply OnRecordButtonClicked();
 	FReply OnLoad();
 	FReply OnSave();
 	FReply OnRemove();
-	void OnPauseChanged(ESlateCheckBoxState::Type NewState);
+	void OnPauseChanged(ECheckBoxState NewState);
 	void FilterTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
 	void OnQuickFilterTextChanged(const FText& CommentText, ETextCommit::Type CommitInfo);
 	void OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode);
@@ -211,31 +211,31 @@ private:
 	void OnSetHistogramWindowValue(float NewValue);
 
 	/** handler for toggling DrawLogEntriesPath option change */
-	void OnDrawLogEntriesPathChanged(ESlateCheckBoxState::Type NewState);
+	void OnDrawLogEntriesPathChanged(ECheckBoxState NewState);
 	/** retrieves whether DrawLogEntriesPath checkbox should be checked */
-	ESlateCheckBoxState::Type GetDrawLogEntriesPathState() const;
+	ECheckBoxState GetDrawLogEntriesPathState() const;
 
 	/** handler for toggling IgnoreTrivialLogs option change */
-	void OnIgnoreTrivialLogs(ESlateCheckBoxState::Type NewState);
+	void OnIgnoreTrivialLogs(ECheckBoxState NewState);
 	/** retrieves whether IgnoreTrivialLogs checkbox should be checked */
-	ESlateCheckBoxState::Type GetIgnoreTrivialLogs() const;
+	ECheckBoxState GetIgnoreTrivialLogs() const;
 
-	void OnChangeHistogramLabelLocation(ESlateCheckBoxState::Type NewState);
-	ESlateCheckBoxState::Type GetHistogramLabelLocation() const;
+	void OnChangeHistogramLabelLocation(ECheckBoxState NewState);
+	ECheckBoxState GetHistogramLabelLocation() const;
 
-	void OnStickToLastData(ESlateCheckBoxState::Type NewState);
-	ESlateCheckBoxState::Type GetStickToLastData() const;
+	void OnStickToLastData(ECheckBoxState NewState);
+	ECheckBoxState GetStickToLastData() const;
 	
 	/** handler for toggling log visualizer camera in game view */
-	void OnToggleCamera(ESlateCheckBoxState::Type NewState);
+	void OnToggleCamera(ECheckBoxState NewState);
 	/** retrieves whether ToggleCamera toggle button should appear pressed */
-	ESlateCheckBoxState::Type GetToggleCameraState() const;
+	ECheckBoxState GetToggleCameraState() const;
 
-	void OnOffsetDataSets(ESlateCheckBoxState::Type NewState);
-	ESlateCheckBoxState::Type GetOffsetDataSets() const;
+	void OnOffsetDataSets(ECheckBoxState NewState);
+	ECheckBoxState GetOffsetDataSets() const;
 
-	void OnHistogramGraphsFilter(ESlateCheckBoxState::Type NewState);
-	ESlateCheckBoxState::Type GetHistogramGraphsFilter() const;
+	void OnHistogramGraphsFilter(ECheckBoxState NewState);
+	ECheckBoxState GetHistogramGraphsFilter() const;
 	
 	/** See if a particular log passes the current filter and other display flags */
 	bool ShouldListLog(const TSharedPtr<FActorsVisLog>& Log);

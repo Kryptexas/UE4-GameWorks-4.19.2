@@ -168,7 +168,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.AutoWidth()
 							[
 								SAssignNew(Autoconnect, SCheckBox)
-								.IsChecked( TBSettings.bAutoConnectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+								.IsChecked( TBSettings.bAutoConnectAtStartup ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 							]
 							+SHorizontalBox::Slot()
 							.AutoWidth()
@@ -183,7 +183,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.AutoWidth()
 							[
 								SAssignNew(SingleSignOn, SCheckBox)
-								.IsChecked( TBSettings.bUseSingleSignOn ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+								.IsChecked( TBSettings.bUseSingleSignOn ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 								.OnCheckStateChanged( this, &STaskSettings::OnSingleSignOnChanged )
 							]
 							+SHorizontalBox::Slot()
@@ -234,10 +234,10 @@ void STaskSettings::Construct(const FArguments& InArgs)
 	];
 }
 
-void STaskSettings::OnSingleSignOnChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void STaskSettings::OnSingleSignOnChanged( const ECheckBoxState NewCheckedState )
 {
 	// Enable/Disable the login and password fields
-	const bool bEnabled = ( NewCheckedState == ESlateCheckBoxState::Checked ? false : true );
+	const bool bEnabled = ( NewCheckedState == ECheckBoxState::Checked ? false : true );
 	Login->SetEnabled( bEnabled );
 	Password->SetEnabled( bEnabled );
 }

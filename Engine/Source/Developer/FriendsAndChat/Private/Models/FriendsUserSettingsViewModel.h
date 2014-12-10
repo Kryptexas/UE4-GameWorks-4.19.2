@@ -7,9 +7,9 @@ class FFriendsUserSettingsViewModel
 {
 public:
 	virtual ~FFriendsUserSettingsViewModel() {}
-	virtual void HandleCheckboxStateChanged(ESlateCheckBoxState::Type NewState, EUserSettngsType::Type OptionType) = 0;
+	virtual void HandleCheckboxStateChanged(ECheckBoxState NewState, EUserSettngsType::Type OptionType) = 0;
 	virtual void EnumerateUserSettings(TArray<EUserSettngsType::Type>& UserSettings) = 0;
-	virtual ESlateCheckBoxState::Type GetOptionCheckState(EUserSettngsType::Type Option) const = 0;
+	virtual ECheckBoxState GetOptionCheckState(EUserSettngsType::Type Option) const = 0;
 };
 
 /**

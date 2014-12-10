@@ -286,7 +286,7 @@ void FTargetShaderFormatsPropertyDetails::CreateTargetShaderFormatsPropertyView(
 }
 
 
-void FTargetShaderFormatsPropertyDetails::OnTargetedRHIChanged(ESlateCheckBoxState::Type InNewValue, FName InRHIName)
+void FTargetShaderFormatsPropertyDetails::OnTargetedRHIChanged(ECheckBoxState InNewValue, FName InRHIName)
 {
 	TArray<void*> RawPtrs;
 	TargetShaderFormatsPropertyHandle->AccessRawData(RawPtrs);
@@ -297,7 +297,7 @@ void FTargetShaderFormatsPropertyDetails::OnTargetedRHIChanged(ESlateCheckBoxSta
 		for (void* RawPtr : RawPtrs)
 		{
 			TArray<FString>& Array = *(TArray<FString>*)RawPtr;
-			if(InNewValue == ESlateCheckBoxState::Checked)
+			if(InNewValue == ECheckBoxState::Checked)
 			{
 				Array.Add(InRHIName.ToString());
 			}
@@ -311,9 +311,9 @@ void FTargetShaderFormatsPropertyDetails::OnTargetedRHIChanged(ESlateCheckBoxSta
 }
 
 
-ESlateCheckBoxState::Type FTargetShaderFormatsPropertyDetails::IsTargetedRHIChecked(FName InRHIName) const
+ECheckBoxState FTargetShaderFormatsPropertyDetails::IsTargetedRHIChecked(FName InRHIName) const
 {
-	ESlateCheckBoxState::Type CheckState = ESlateCheckBoxState::Unchecked;
+	ECheckBoxState CheckState = ECheckBoxState::Unchecked;
 
 	TArray<void*> RawPtrs;
 	TargetShaderFormatsPropertyHandle->AccessRawData(RawPtrs);
@@ -323,7 +323,7 @@ ESlateCheckBoxState::Type FTargetShaderFormatsPropertyDetails::IsTargetedRHIChec
 		TArray<FString>& Array = *(TArray<FString>*)RawPtr;
 		if(Array.Contains(InRHIName.ToString()))
 		{
-			CheckState = ESlateCheckBoxState::Checked;
+			CheckState = ECheckBoxState::Checked;
 		}
 	}
 	return CheckState;

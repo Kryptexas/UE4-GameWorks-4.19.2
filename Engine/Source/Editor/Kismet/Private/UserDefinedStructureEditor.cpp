@@ -537,25 +537,25 @@ public:
 		}
 	}
 
-	ESlateCheckBoxState::Type OnGetEditableOnBPInstanceState() const
+	ECheckBoxState OnGetEditableOnBPInstanceState() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
 		{
 			if (const FStructVariableDescription* FieldDesc = StructureDetailsSP->FindStructureFieldByGuid(FieldGuid))
 			{
-				return !FieldDesc->bDontEditoOnInstance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+				return !FieldDesc->bDontEditoOnInstance ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			}
 		}
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
 
-	void OnEditableOnBPInstanceCommitted(ESlateCheckBoxState::Type InNewState)
+	void OnEditableOnBPInstanceCommitted(ECheckBoxState InNewState)
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
 		{
-			FStructureEditorUtils::ChangeEditableOnBPInstance(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Unchecked != InNewState);
+			FStructureEditorUtils::ChangeEditableOnBPInstance(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ECheckBoxState::Unchecked != InNewState);
 		}
 	}
 
@@ -570,22 +570,22 @@ public:
 		return EVisibility::Collapsed;
 	}
 
-	ESlateCheckBoxState::Type OnGet3dWidgetEnabled() const
+	ECheckBoxState OnGet3dWidgetEnabled() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
 		{
-			return FStructureEditorUtils::Is3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return FStructureEditorUtils::Is3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
 
-	void On3dWidgetEnabledCommitted(ESlateCheckBoxState::Type InNewState)
+	void On3dWidgetEnabledCommitted(ECheckBoxState InNewState)
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
-		if (StructureDetailsSP.IsValid() && (ESlateCheckBoxState::Undetermined != InNewState))
+		if (StructureDetailsSP.IsValid() && (ECheckBoxState::Undetermined != InNewState))
 		{
-			FStructureEditorUtils::Change3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Checked == InNewState);
+			FStructureEditorUtils::Change3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ECheckBoxState::Checked == InNewState);
 		}
 	}
 

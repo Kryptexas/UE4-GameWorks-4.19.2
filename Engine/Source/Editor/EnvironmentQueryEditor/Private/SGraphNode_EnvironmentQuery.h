@@ -41,8 +41,8 @@ public:
 	FSlateColor GetWeightProgressBarColor() const; 
 
 	EVisibility GetTestToggleVisibility() const;
-	ESlateCheckBoxState::Type IsTestToggleChecked() const;
-	void OnTestToggleChanged(ESlateCheckBoxState::Type NewState);
+	ECheckBoxState IsTestToggleChecked() const;
+	void OnTestToggleChanged(ECheckBoxState NewState);
 
 	/** gets drag over marker visibility */
 	EVisibility GetDragOverMarkerVisibility() const;

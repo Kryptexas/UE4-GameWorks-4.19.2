@@ -63,10 +63,10 @@ protected:
 	//EVisibility ExpressionPreviewVisibility() const;
 
 	/** Show/hide Expression Preview */
-	//void OnExpressionPreviewChanged(const ESlateCheckBoxState::Type NewCheckedState);
+	//void OnExpressionPreviewChanged(const ECheckBoxState NewCheckedState);
 
 	/** hidden == unchecked, shown == checked */
-	//ESlateCheckBoxState::Type IsExpressionPreviewChecked() const;
+	//ECheckBoxState IsExpressionPreviewChecked() const;
 
 	/** Up when shown, down when hidden */
 	//const FSlateBrush* GetExpressionPreviewArrow() const;

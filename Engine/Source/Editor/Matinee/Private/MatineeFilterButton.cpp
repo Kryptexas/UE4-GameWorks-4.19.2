@@ -28,7 +28,7 @@ FReply SMatineeFilterButton::OnMouseButtonUp( const FGeometry& MyGeometry, const
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		// Pretend as if the checkbox was clicked so that the current tab will be selected
-		OnCheckStateChanged.ExecuteIfBound( ESlateCheckBoxState::Checked );
+		OnCheckStateChanged.ExecuteIfBound( ECheckBoxState::Checked );
 
 		if ( OnContextMenuOpening.IsBound() )
 		{

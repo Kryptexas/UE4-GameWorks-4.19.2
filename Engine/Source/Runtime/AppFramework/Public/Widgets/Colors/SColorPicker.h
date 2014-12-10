@@ -307,10 +307,10 @@ private:
 	void HandleRGBColorChanged( FLinearColor NewValue );
 
 	// Callback for changing the checked state of the sRGB check box.
-	void HandleSRGBCheckBoxCheckStateChanged( ESlateCheckBoxState::Type InIsChecked );
+	void HandleSRGBCheckBoxCheckStateChanged( ECheckBoxState InIsChecked );
 
 	// Callback for determining whether the sRGB check box should be checked.
-	ESlateCheckBoxState::Type HandleSRGBCheckBoxIsChecked() const;
+	ECheckBoxState HandleSRGBCheckBoxIsChecked() const;
 
 	// Callback for selecting a color in the color theme bar.
 	void HandleThemeBarColorSelected( FLinearColor NewValue );

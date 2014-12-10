@@ -63,7 +63,7 @@ private:
 	EVisibility GetInternationalizationRestartRowVisibility() const;
 
 	/** Delegate called when the the checked state of whether or not field names should be localized has changed. */
-	void ShoudLoadLocalizedFieldNamesCheckChanged(ESlateCheckBoxState::Type CheckState);
+	void ShoudLoadLocalizedFieldNamesCheckChanged(ECheckBoxState CheckState);
 
 	/** Write to config now the Editor is shutting down (all packages are saved) */
 	void HandleShutdownPostPackagesSaved();

@@ -84,15 +84,15 @@ public:
 
 private:
 	/** The check status of the item. */
-	ESlateCheckBoxState::Type IsChecked() const
+	ECheckBoxState IsChecked() const
 	{
-		return SubmitItemData->bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return SubmitItemData->bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** Changes the check status of the item .*/
-	void OnCheckStateChanged(ESlateCheckBoxState::Type InState)
+	void OnCheckStateChanged(ECheckBoxState InState)
 	{
-		SubmitItemData->bIsChecked = InState == ESlateCheckBoxState::Checked;
+		SubmitItemData->bIsChecked = InState == ECheckBoxState::Checked;
 	}
 
 private:
@@ -258,7 +258,7 @@ public:
 		;
 
 		DialogResult = ESubmitResults::SUBMIT_CANCELED;
-		KeepCheckedOut = ESlateCheckBoxState::Unchecked;
+		KeepCheckedOut = ECheckBoxState::Unchecked;
 
 		ParentFrame.Pin()->SetWidgetToFocusOnActivate(ChangeListDescriptionTextCtrl);
 	}
@@ -312,10 +312,10 @@ private:
 	 * @return the desired toggle state for the ToggleSelectedCheckBox.
 	 * Returns Unchecked, unless all of the selected items are Checked.
 	 */
-	ESlateCheckBoxState::Type GetToggleSelectedState() const
+	ECheckBoxState GetToggleSelectedState() const
 	{
 		// Default to a Checked state
-		ESlateCheckBoxState::Type PendingState = ESlateCheckBoxState::Checked;
+		ECheckBoxState PendingState = ECheckBoxState::Checked;
 
 		TArray< TSharedPtr<TSubmitItemData> > SelectedItems = GetSelectedItems(true);
 
@@ -327,7 +327,7 @@ private:
 			{
 				// If any item in the selection is Unchecked, then represent the entire set of highlighted items as Unchecked,
 				// so that the first (user) toggle of ToggleSelectedCheckBox consistently Checks all highlighted items
-				PendingState = ESlateCheckBoxState::Unchecked;
+				PendingState = ECheckBoxState::Unchecked;
 			}
 		}
 
@@ -338,11 +338,11 @@ private:
 	 * Toggles the highlighted items.
 	 * If no items are explicitly highlighted, toggles all items in the list.
 	 */
-	void OnToggleSelectedCheckBox(ESlateCheckBoxState::Type InNewState)
+	void OnToggleSelectedCheckBox(ECheckBoxState InNewState)
 	{
 		TArray< TSharedPtr<TSubmitItemData> > SelectedItems = GetSelectedItems(true);
 
-		const bool bIsChecked = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bIsChecked = (InNewState == ECheckBoxState::Checked);
 		for(auto SelectedItem = SelectedItems.CreateConstIterator(); SelectedItem; ++SelectedItem)
 		{
 			TSubmitItemData* const Item = SelectedItem->Get();
@@ -380,7 +380,7 @@ public:
 	/** Does the user want to keep the files checked out */
 	bool WantToKeepCheckedOut()
 	{
-		return KeepCheckedOut == ESlateCheckBoxState::Checked ? true : false;
+		return KeepCheckedOut == ECheckBoxState::Checked ? true : false;
 	}
 
 private:
@@ -416,13 +416,13 @@ private:
 	}
 
 	/** Called when the Keep checked out Checkbox is changed */
-	void OnCheckStateChanged_KeepCheckedOut(ESlateCheckBoxState::Type InState)
+	void OnCheckStateChanged_KeepCheckedOut(ECheckBoxState InState)
 	{
 		KeepCheckedOut = InState;
 	}
 
 	/** Get the current state of the Keep Checked Out checkbox  */
-	ESlateCheckBoxState::Type GetKeepCheckedOut() const
+	ECheckBoxState GetKeepCheckedOut() const
 	{
 		return KeepCheckedOut;
 	}
@@ -448,7 +448,7 @@ private:
 	/** Internal widgets to save having to get in multiple places*/
 	TSharedPtr<SMultiLineEditableTextBox> ChangeListDescriptionTextCtrl;
 
-	ESlateCheckBoxState::Type	KeepCheckedOut;
+	ECheckBoxState	KeepCheckedOut;
 };
 
 static void FindFilesForCheckIn(const TArray<FString>& InFilenames, TArray<FString>& OutAddFiles, TArray<FString>& OutOpenFiles)

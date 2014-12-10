@@ -64,9 +64,9 @@ protected:
 
 	EVisibility GetOpenAssetVisibility() const;
 
-	void HandleOpenAssetCheckStateChanged(ESlateCheckBoxState::Type InCheckState);
+	void HandleOpenAssetCheckStateChanged(ECheckBoxState InCheckState);
 
-	ESlateCheckBoxState::Type IsOpenAssetChecked() const;
+	ECheckBoxState IsOpenAssetChecked() const;
 
 	EVisibility GetExcerptVisibility() const;
 

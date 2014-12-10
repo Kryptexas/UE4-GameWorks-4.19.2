@@ -400,11 +400,11 @@ private:
 	void AddCollisionChannel(TArray<FCollisionChannelInfo>	ValidCollisionChannels, bool bTraceType);
 
 	// collision channel check boxes
-	void OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
+	void OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
 	// all collision channel check boxes
-	void OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const;
+	void OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const;
 };
 
 void SProfileEditDialog::Construct(const FArguments& InArgs)
@@ -1084,7 +1084,7 @@ void SProfileEditDialog::AddCollisionChannel(TArray<FCollisionChannelInfo>	Valid
 	}
 }
 
-void SProfileEditDialog::OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse)
+void SProfileEditDialog::OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse)
 {
 	if(ValidIndex >= 0 && ValidIndex < MAX_COLLISION_CHANNEL)
 	{
@@ -1092,7 +1092,7 @@ void SProfileEditDialog::OnCollisionChannelChanged(ESlateCheckBoxState::Type InN
 	}
 }
 
-ESlateCheckBoxState::Type SProfileEditDialog::IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const
+ECheckBoxState SProfileEditDialog::IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const
 {
 	TArray<uint8> CollisionResponses;
 
@@ -1100,14 +1100,14 @@ ESlateCheckBoxState::Type SProfileEditDialog::IsCollisionChannelChecked(int32 Va
 	{
 		if(ProfileTemplate.ResponseToChannels.EnumArray[ValidIndex] == InCollisionResponse)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SProfileEditDialog::OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse)
+void SProfileEditDialog::OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse)
 {
 	for(int32 Index=0; Index<MAX_COLLISION_CHANNEL; ++Index)
 	{
@@ -1115,17 +1115,17 @@ void SProfileEditDialog::OnAllCollisionChannelChanged(ESlateCheckBoxState::Type 
 	}
 }
 
-ESlateCheckBoxState::Type SProfileEditDialog::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
+ECheckBoxState SProfileEditDialog::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
 {
 	for(int32 Index=0; Index<MAX_COLLISION_CHANNEL; ++Index)
 	{
 		if(ProfileTemplate.ResponseToChannels.EnumArray[Index] != InCollisionResponse)
 		{
-			return ESlateCheckBoxState::Unchecked;
+			return ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Checked;
+	return ECheckBoxState::Checked;
 }
 //====================================================================================
 // SChannelListItem 

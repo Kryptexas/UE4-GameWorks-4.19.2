@@ -271,10 +271,10 @@ protected:
 	EVisibility AdvancedViewArrowVisibility() const;
 
 	/** Show/hide advanced view */
-	void OnAdvancedViewChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnAdvancedViewChanged( const ECheckBoxState NewCheckedState );
 
 	/** hidden == unchecked, shown == checked */
-	ESlateCheckBoxState::Type IsAdvancedViewChecked() const;
+	ECheckBoxState IsAdvancedViewChecked() const;
 
 	/** Up when shown, down when hidden */
 	const FSlateBrush* GetAdvancedViewArrow() const;

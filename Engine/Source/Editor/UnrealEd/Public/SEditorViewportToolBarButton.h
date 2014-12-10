@@ -34,7 +34,7 @@ private:
 	 * 
 	 * @param NewCheckedState	The new state of the check box
 	 */
-	void OnCheckStateChanged( ESlateCheckBoxState::Type NewCheckedState );
+	void OnCheckStateChanged( ECheckBoxState NewCheckedState );
 
 	/**
 	 * Called when we need to get the image to show in the button
@@ -48,7 +48,7 @@ private:
 	 *
 	 * @return The state of the check box button
 	 */
-	ESlateCheckBoxState::Type OnIsChecked() const;
+	ECheckBoxState OnIsChecked() const;
 
 private:
 	/** Attribute used to get the state of a checkbox */

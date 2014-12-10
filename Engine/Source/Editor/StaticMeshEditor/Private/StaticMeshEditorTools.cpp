@@ -563,39 +563,39 @@ FReply FMeshBuildSettingsLayout::OnApplyChanges()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRecomputeNormals() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldRecomputeNormals() const
 {
-	return BuildSettings.bRecomputeNormals ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bRecomputeNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRecomputeTangents() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldRecomputeTangents() const
 {
-	return BuildSettings.bRecomputeTangents ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bRecomputeTangents ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseMikkTSpace() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldUseMikkTSpace() const
 {
-	return BuildSettings.bUseMikkTSpace ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bUseMikkTSpace ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRemoveDegenerates() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldRemoveDegenerates() const
 {
-	return BuildSettings.bRemoveDegenerates ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bRemoveDegenerates ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
 {
-	return BuildSettings.bUseFullPrecisionUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bUseFullPrecisionUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs() const
 {
-	return BuildSettings.bGenerateLightmapUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bGenerateLightmapUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided() const
 {
-	return BuildSettings.bGenerateDistanceFieldAsIfTwoSided ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bGenerateDistanceFieldAsIfTwoSided ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 int32 FMeshBuildSettingsLayout::GetMinLightmapResolution() const
@@ -633,9 +633,9 @@ float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
 	return BuildSettings.DistanceFieldResolutionScale;
 }
 
-void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ECheckBoxState NewState)
 {
-	const bool bRecomputeNormals = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRecomputeNormals = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bRecomputeNormals != bRecomputeNormals)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -646,9 +646,9 @@ void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Ty
 	}
 }
 
-void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ECheckBoxState NewState)
 {
-	const bool bRecomputeTangents = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRecomputeTangents = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bRecomputeTangents != bRecomputeTangents)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -659,18 +659,18 @@ void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::T
 	}
 }
 
-void FMeshBuildSettingsLayout::OnUseMikkTSpaceChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnUseMikkTSpaceChanged(ECheckBoxState NewState)
 {
-	const bool bUseMikkTSpace = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bUseMikkTSpace = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bUseMikkTSpace != bUseMikkTSpace)
 	{
 		BuildSettings.bUseMikkTSpace = bUseMikkTSpace;
 	}
 }
 
-void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ECheckBoxState NewState)
 {
-	const bool bRemoveDegenerates = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRemoveDegenerates = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bRemoveDegenerates != bRemoveDegenerates)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -681,9 +681,9 @@ void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ESlateCheckBoxState::T
 	}
 }
 
-void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ECheckBoxState NewState)
 {
-	const bool bUseFullPrecisionUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bUseFullPrecisionUVs = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bUseFullPrecisionUVs != bUseFullPrecisionUVs)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -694,9 +694,9 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 	}
 }
 
-void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ECheckBoxState NewState)
 {
-	const bool bGenerateLightmapUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bGenerateLightmapUVs = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bGenerateLightmapUVs != bGenerateLightmapUVs)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -707,9 +707,9 @@ void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ESlateCheckBoxState:
 	}
 }
 
-void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ECheckBoxState NewState)
 {
-	const bool bGenerateDistanceFieldAsIfTwoSided = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bGenerateDistanceFieldAsIfTwoSided = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bGenerateDistanceFieldAsIfTwoSided != bGenerateDistanceFieldAsIfTwoSided)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -1047,9 +1047,9 @@ float FMeshReductionSettingsLayout::GetWeldingThreshold() const
 	return ReductionSettings.WeldingThreshold;
 }
 
-ESlateCheckBoxState::Type FMeshReductionSettingsLayout::ShouldRecalculateNormals() const
+ECheckBoxState FMeshReductionSettingsLayout::ShouldRecalculateNormals() const
 {
-	return ReductionSettings.bRecalculateNormals ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return ReductionSettings.bRecalculateNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 float FMeshReductionSettingsLayout::GetHardAngleThreshold() const
@@ -1100,9 +1100,9 @@ void FMeshReductionSettingsLayout::OnWeldingThresholdCommitted(float NewValue, E
 	OnWeldingThresholdChanged(NewValue);
 }
 
-void FMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue)
+void FMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ECheckBoxState NewValue)
 {
-	const bool bRecalculateNormals = NewValue == ESlateCheckBoxState::Checked;
+	const bool bRecalculateNormals = NewValue == ECheckBoxState::Checked;
 	if (ReductionSettings.bRecalculateNormals != bRecalculateNormals)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -1308,59 +1308,59 @@ void FMeshSectionSettingsLayout::OnResetMaterialToDefaultClicked(UMaterialInterf
 	CallPostEditChange();
 }
 
-ESlateCheckBoxState::Type FMeshSectionSettingsLayout::DoesSectionCastShadow(int32 SectionIndex) const
+ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCastShadow(int32 SectionIndex) const
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	return Info.bCastShadow ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Info.bCastShadow ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMeshSectionSettingsLayout::OnSectionCastShadowChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FMeshSectionSettingsLayout::OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	Info.bCastShadow = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	Info.bCastShadow = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
 	CallPostEditChange();
 }
 
-ESlateCheckBoxState::Type FMeshSectionSettingsLayout::DoesSectionCollide(int32 SectionIndex) const
+ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCollide(int32 SectionIndex) const
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	return Info.bEnableCollision ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Info.bEnableCollision ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMeshSectionSettingsLayout::OnSectionCollisionChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FMeshSectionSettingsLayout::OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	Info.bEnableCollision = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	Info.bEnableCollision = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
 	CallPostEditChange();
 }
 
-ESlateCheckBoxState::Type FMeshSectionSettingsLayout::IsSectionSelected(int32 SectionIndex) const
+ECheckBoxState FMeshSectionSettingsLayout::IsSectionSelected(int32 SectionIndex) const
 {
-	ESlateCheckBoxState::Type State = ESlateCheckBoxState::Unchecked;
+	ECheckBoxState State = ECheckBoxState::Unchecked;
 	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
 	if (Component)
 	{
-		State = Component->SelectedEditorSection == SectionIndex ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		State = Component->SelectedEditorSection == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	return State;
 }
 
-void FMeshSectionSettingsLayout::OnSectionSelectedChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FMeshSectionSettingsLayout::OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
 	if (Component)
 	{
-		if (NewState == ESlateCheckBoxState::Checked)
+		if (NewState == ECheckBoxState::Checked)
 		{
 			Component->SelectedEditorSection = SectionIndex;
 		}
-		else if (NewState == ESlateCheckBoxState::Unchecked)
+		else if (NewState == ECheckBoxState::Unchecked)
 		{
 			Component->SelectedEditorSection = INDEX_NONE;
 		}
@@ -1842,17 +1842,17 @@ bool FLevelOfDetailSettingsLayout::IsAutoLODEnabled() const
 	return StaticMesh->bAutoComputeLODScreenSize;
 }
 
-ESlateCheckBoxState::Type FLevelOfDetailSettingsLayout::IsAutoLODChecked() const
+ECheckBoxState FLevelOfDetailSettingsLayout::IsAutoLODChecked() const
 {
-	return IsAutoLODEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsAutoLODEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ESlateCheckBoxState::Type NewState)
+void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ECheckBoxState NewState)
 {
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 	check(StaticMesh);
 	StaticMesh->Modify();
-	StaticMesh->bAutoComputeLODScreenSize = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	StaticMesh->bAutoComputeLODScreenSize = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (!StaticMesh->bAutoComputeLODScreenSize)
 	{
 		if (StaticMesh->SourceModels.IsValidIndex(0))

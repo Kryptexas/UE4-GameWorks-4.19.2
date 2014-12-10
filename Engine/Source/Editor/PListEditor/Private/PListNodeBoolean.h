@@ -66,7 +66,7 @@ private:
 	/** Delegate: When key string changes */
 	void OnKeyStringChanged(const FText& NewString);
 	/** Delegate: When the checkbox changes */
-	void OnValueChanged(ESlateCheckBoxState::Type NewValue);
+	void OnValueChanged(ECheckBoxState NewValue);
 	/** Delegate: Changes the color of the key string text box based on validity */
 	FSlateColor GetKeyBackgroundColor() const;
 	/** Delegate: Changes the color of the key string text box based on validity */

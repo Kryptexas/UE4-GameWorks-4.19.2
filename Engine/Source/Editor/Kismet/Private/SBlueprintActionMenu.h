@@ -40,8 +40,8 @@ protected:
 	/** UI Callback functions */
 	EVisibility GetTypeImageVisibility() const;
 	FText GetSearchContextDesc() const;
-	void OnContextToggleChanged(ESlateCheckBoxState::Type CheckState);
-	ESlateCheckBoxState::Type ContextToggleIsChecked() const;
+	void OnContextToggleChanged(ECheckBoxState CheckState);
+	ECheckBoxState ContextToggleIsChecked() const;
 
 	void OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction );
 

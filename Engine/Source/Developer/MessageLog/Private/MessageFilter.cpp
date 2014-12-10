@@ -9,13 +9,13 @@ FReply FMessageFilter::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoint
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type FMessageFilter::OnGetDisplayCheckState() const
+ECheckBoxState FMessageFilter::OnGetDisplayCheckState() const
 {
-	return Display ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Display ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMessageFilter::OnDisplayCheckStateChanged(ESlateCheckBoxState::Type InNewState)
+void FMessageFilter::OnDisplayCheckStateChanged(ECheckBoxState InNewState)
 {
-	Display = InNewState == ESlateCheckBoxState::Checked;
+	Display = InNewState == ECheckBoxState::Checked;
 	RefreshCallback.Broadcast();
 }

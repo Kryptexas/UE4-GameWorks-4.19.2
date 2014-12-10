@@ -106,20 +106,20 @@ private:
 	}
 
 	/** Handles changing the checked state of the visibility check box. */
-	void HandleVisibilityCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckState )
+	void HandleVisibilityCheckBoxCheckStateChanged( ECheckBoxState CheckState )
 	{
-		Model->SetTypeVisibility(TypeInfo.ToSharedRef(), (CheckState == ESlateCheckBoxState::Checked));
+		Model->SetTypeVisibility(TypeInfo.ToSharedRef(), (CheckState == ECheckBoxState::Checked));
 	}
 
 	/** Gets the image for the visibility check box. */
-	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked() const
+	ECheckBoxState HandleVisibilityCheckBoxIsChecked() const
 	{
 		if (Model->IsTypeVisible(TypeInfo.ToSharedRef()))
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 private:

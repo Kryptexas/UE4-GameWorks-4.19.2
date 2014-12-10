@@ -373,9 +373,9 @@ EVisibility FAnimBlueprintDefaultsEditorSummoner::IsEditorVisible(EAnimBlueprint
 	return CurrentMode == Mode ? EVisibility::Visible: EVisibility::Hidden;
 }
 
-ESlateCheckBoxState::Type FAnimBlueprintDefaultsEditorSummoner::IsChecked(EAnimBlueprintEditorMode::Type Mode) const
+ECheckBoxState FAnimBlueprintDefaultsEditorSummoner::IsChecked(EAnimBlueprintEditorMode::Type Mode) const
 {
-	return CurrentMode == Mode ? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+	return CurrentMode == Mode ? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 }
 
 const FSlateBrush* FAnimBlueprintDefaultsEditorSummoner::GetBorderBrushByMode(EAnimBlueprintEditorMode::Type Mode) const
@@ -390,9 +390,9 @@ const FSlateBrush* FAnimBlueprintDefaultsEditorSummoner::GetBorderBrushByMode(EA
 	}
 }
 
-void FAnimBlueprintDefaultsEditorSummoner::OnCheckedChanged(ESlateCheckBoxState::Type NewType, EAnimBlueprintEditorMode::Type Mode)
+void FAnimBlueprintDefaultsEditorSummoner::OnCheckedChanged(ECheckBoxState NewType, EAnimBlueprintEditorMode::Type Mode)
 {
-	if(NewType == ESlateCheckBoxState::Checked)
+	if(NewType == ECheckBoxState::Checked)
 	{
 		CurrentMode = Mode;
 	}

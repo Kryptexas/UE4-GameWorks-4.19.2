@@ -1926,25 +1926,25 @@ void SEventGraph::EventGraph_BuildViewColumnMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.EndSection();
 }
 
-void SEventGraph::EventGraphViewMode_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EEventGraphViewModes::Type InViewMode )
+void SEventGraph::EventGraphViewMode_OnCheckStateChanged( ECheckBoxState NewRadioState, const EEventGraphViewModes::Type InViewMode )
 {
-	if( NewRadioState == ESlateCheckBoxState::Checked && GetCurrentStateViewMode() != InViewMode)
+	if( NewRadioState == ECheckBoxState::Checked && GetCurrentStateViewMode() != InViewMode)
 	{
 		const TArray< FEventGraphSamplePtr > SelectedEvents = TreeView_Base->GetSelectedItems();
 		ShowEventsInViewMode( SelectedEvents, InViewMode );
 	}
 }
 
-ESlateCheckBoxState::Type SEventGraph::EventGraphViewMode_IsChecked( const EEventGraphViewModes::Type InViewMode ) const
+ECheckBoxState SEventGraph::EventGraphViewMode_IsChecked( const EEventGraphViewModes::Type InViewMode ) const
 {
-	return (GetCurrentStateViewMode() == InViewMode) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (GetCurrentStateViewMode() == InViewMode) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SEventGraph::EventGraphType_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EEventGraphTypes::Type NewEventGraphType )
+void SEventGraph::EventGraphType_OnCheckStateChanged( ECheckBoxState NewRadioState, const EEventGraphTypes::Type NewEventGraphType )
 {
 	const uint32 NumFrames = GetCurrentState()->GetNumFrames();
 
-	if( NewRadioState == ESlateCheckBoxState::Checked && GetCurrentStateEventGraphType() != NewEventGraphType )
+	if( NewRadioState == ECheckBoxState::Checked && GetCurrentStateEventGraphType() != NewEventGraphType )
 	{
 		FEventGraphStateRef EventGraphState = GetCurrentState();
 		GetHierarchicalExpandedEvents( EventGraphState->ExpandedEvents );
@@ -1955,7 +1955,7 @@ void SEventGraph::EventGraphType_OnCheckStateChanged( ESlateCheckBoxState::Type 
 	}
 }
 
-ESlateCheckBoxState::Type SEventGraph::EventGraphType_IsChecked( const EEventGraphTypes::Type InEventGraphType ) const
+ECheckBoxState SEventGraph::EventGraphType_IsChecked( const EEventGraphTypes::Type InEventGraphType ) const
 {
 	if( IsEventGraphStatesHistoryValid() )
 	{
@@ -1963,15 +1963,15 @@ ESlateCheckBoxState::Type SEventGraph::EventGraphType_IsChecked( const EEventGra
 
 		if( NumFrames == 1 )
 		{
-			return GetCurrentStateEventGraphType() == InEventGraphType ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return GetCurrentStateEventGraphType() == InEventGraphType ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 		else if( NumFrames > 1 )
 		{
-			return GetCurrentStateEventGraphType() == InEventGraphType ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return GetCurrentStateEventGraphType() == InEventGraphType ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 bool SEventGraph::EventGraphType_IsEnabled( const EEventGraphTypes::Type InEventGraphType ) const
@@ -2016,7 +2016,7 @@ FReply SEventGraph::ExpandHotPath_OnClicked()
 	return FReply::Handled();
 }
 
-void SEventGraph::HighlightHotPath_OnCheckStateChanged( ESlateCheckBoxState::Type InState )
+void SEventGraph::HighlightHotPath_OnCheckStateChanged( ECheckBoxState InState )
 {
 
 }
@@ -3323,7 +3323,7 @@ EVisibility SEventGraph::EventGraphViewMode_GetVisibility( const EEventGraphView
 		{
 			// If view mode is not available event graph will switch to the hierarchical view mode.
 			SEventGraph* MutableThis = const_cast< SEventGraph* >( this );
-			MutableThis->EventGraphViewMode_OnCheckStateChanged( ESlateCheckBoxState::Checked, EEventGraphViewModes::Hierarchical );
+			MutableThis->EventGraphViewMode_OnCheckStateChanged( ECheckBoxState::Checked, EEventGraphViewModes::Hierarchical );
 		}
 		return Vis;
 	}

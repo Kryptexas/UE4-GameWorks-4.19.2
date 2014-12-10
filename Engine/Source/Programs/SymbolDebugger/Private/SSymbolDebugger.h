@@ -208,9 +208,9 @@ public:
 	 *
 	 *	@param	InMethod				The debugger method to check
 	 *
-	 *	@return	ESlateCheckBoxState		The state of the button for the given method
+	 *	@return	ECheckBoxState			The state of the button for the given method
 	 */
-	ESlateCheckBoxState::Type IsMethodChecked(ESymbolDebuggerMethods InMethod) const;
+	ECheckBoxState IsMethodChecked(ESymbolDebuggerMethods InMethod) const;
 
 	/**
 	 *	Handle the Method radio buttons changing
@@ -218,7 +218,7 @@ public:
 	 *	@param	InNewRadioState			The new state of the radio button
 	 *	@param	InMethodThatChanged		The method radio button that changed
 	 */
-	void OnMethodChanged(ESlateCheckBoxState::Type InNewRadioState, ESymbolDebuggerMethods InMethodThatChanged);
+	void OnMethodChanged(ECheckBoxState InNewRadioState, ESymbolDebuggerMethods InMethodThatChanged);
 
 	/**
 	 *	Is the textbox enabled for the given TextField?

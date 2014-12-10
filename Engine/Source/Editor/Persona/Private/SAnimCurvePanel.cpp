@@ -159,10 +159,10 @@ public:
 	void DeleteTrack();
 
 	// Sets the current mode for this curve
-	void ToggleCurveMode(ESlateCheckBoxState::Type NewState, EAnimCurveFlags ModeToSet);
+	void ToggleCurveMode(ECheckBoxState NewState, EAnimCurveFlags ModeToSet);
 
 	// Returns whether this curve is of the specificed mode type
-	ESlateCheckBoxState::Type IsCurveOfMode(EAnimCurveFlags ModeToTest) const;
+	ECheckBoxState IsCurveOfMode(EAnimCurveFlags ModeToTest) const;
 
 	/**
 	 * Build and display curve track context menu.
@@ -171,8 +171,8 @@ public:
 	FReply OnContextMenu();
 
 	// expand editor mode 
-	ESlateCheckBoxState::Type IsEditorExpanded() const;
-	void ToggleExpandEditor(ESlateCheckBoxState::Type NewType);
+	ECheckBoxState IsEditorExpanded() const;
+	void ToggleExpandEditor(ECheckBoxState NewType);
 	const FSlateBrush* GetExpandContent() const;
 	FVector2D GetDesiredSize() const;
 
@@ -357,7 +357,7 @@ void SCurveEdTrack::DeleteTrack()
 	}
 }
 
-void SCurveEdTrack::ToggleCurveMode(ESlateCheckBoxState::Type NewState,EAnimCurveFlags ModeToSet)
+void SCurveEdTrack::ToggleCurveMode(ECheckBoxState NewState,EAnimCurveFlags ModeToSet)
 {
 	const int32 AllModes = (ACF_DrivesMorphTarget|ACF_DrivesMaterial);
 	check((ModeToSet&AllModes) != 0); //unexpected value for ModeToSet
@@ -366,7 +366,7 @@ void SCurveEdTrack::ToggleCurveMode(ESlateCheckBoxState::Type NewState,EAnimCurv
 
 	FText UndoLabel;
 	bool bIsSwitchingFlagOn = !CurveData->GetCurveTypeFlag(ModeToSet);
-	check(bIsSwitchingFlagOn == (NewState==ESlateCheckBoxState::Checked));
+	check(bIsSwitchingFlagOn == (NewState==ECheckBoxState::Checked));
 	
 	if(bIsSwitchingFlagOn)
 	{
@@ -398,10 +398,10 @@ void SCurveEdTrack::ToggleCurveMode(ESlateCheckBoxState::Type NewState,EAnimCurv
 	CurveData->SetCurveTypeFlag(ModeToSet, bIsSwitchingFlagOn);
 }
 
-ESlateCheckBoxState::Type SCurveEdTrack::IsCurveOfMode(EAnimCurveFlags ModeToTest) const
+ECheckBoxState SCurveEdTrack::IsCurveOfMode(EAnimCurveFlags ModeToTest) const
 {
 	FFloatCurve* CurveData = (FFloatCurve*)(CurveInterface->CurveData);
-	return CurveData->GetCurveTypeFlag(ModeToTest) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurveData->GetCurveTypeFlag(ModeToTest) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FReply SCurveEdTrack::OnContextMenu()
@@ -419,14 +419,14 @@ FReply SCurveEdTrack::OnContextMenu()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type SCurveEdTrack::IsEditorExpanded() const
+ECheckBoxState SCurveEdTrack::IsEditorExpanded() const
 {
-	return (bUseExpandEditor)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (bUseExpandEditor)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCurveEdTrack::ToggleExpandEditor(ESlateCheckBoxState::Type NewType)
+void SCurveEdTrack::ToggleExpandEditor(ECheckBoxState NewType)
 {
-	bUseExpandEditor = (NewType == ESlateCheckBoxState::Checked);
+	bUseExpandEditor = (NewType == ECheckBoxState::Checked);
 }
 
 FVector2D SCurveEdTrack::GetDesiredSize() const
@@ -696,16 +696,16 @@ EVisibility SAnimCurvePanel::IsSetAllTracksButtonVisible() const
 	return (Tracks.Num() > 1) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void SAnimCurvePanel::ToggleAllCurveModes(ESlateCheckBoxState::Type NewState, EAnimCurveFlags ModeToSet)
+void SAnimCurvePanel::ToggleAllCurveModes(ECheckBoxState NewState, EAnimCurveFlags ModeToSet)
 {
-	const ESlateCheckBoxState::Type CurrentAllState = AreAllCurvesOfMode(ModeToSet);
+	const ECheckBoxState CurrentAllState = AreAllCurvesOfMode(ModeToSet);
 	for(TWeakPtr<SCurveEdTrack> TrackWeak : Tracks)
 	{
 		TSharedPtr<SCurveEdTrack> TrackWidget = TrackWeak.Pin();
 		if( TrackWidget.IsValid() )
 		{
-			const ESlateCheckBoxState::Type CurrentTrackState = TrackWidget->IsCurveOfMode(ModeToSet);
-			if( (CurrentAllState == CurrentTrackState) || ((CurrentAllState == ESlateCheckBoxState::Undetermined) && (CurrentTrackState == ESlateCheckBoxState::Unchecked)) )
+			const ECheckBoxState CurrentTrackState = TrackWidget->IsCurveOfMode(ModeToSet);
+			if( (CurrentAllState == CurrentTrackState) || ((CurrentAllState == ECheckBoxState::Undetermined) && (CurrentTrackState == ECheckBoxState::Unchecked)) )
 			{
 				TrackWidget->ToggleCurveMode( NewState, ModeToSet );
 			}
@@ -713,7 +713,7 @@ void SAnimCurvePanel::ToggleAllCurveModes(ESlateCheckBoxState::Type NewState, EA
 	}
 }
 
-ESlateCheckBoxState::Type SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags ModeToSet) const
+ECheckBoxState SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags ModeToSet) const
 {
 	int32 NumChecked = 0;
 	for(const TWeakPtr<SCurveEdTrack> TrackWeak : Tracks)
@@ -721,7 +721,7 @@ ESlateCheckBoxState::Type SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags Mo
 		const TSharedPtr<SCurveEdTrack> TrackWidget = TrackWeak.Pin();
 		if( TrackWidget.IsValid() )
 		{
-			if( TrackWidget->IsCurveOfMode(ModeToSet) )
+			if ( TrackWidget->IsCurveOfMode(ModeToSet) == ECheckBoxState::Checked )
 			{
 				NumChecked++;
 			}
@@ -729,13 +729,13 @@ ESlateCheckBoxState::Type SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags Mo
 	}
 	if( NumChecked == Tracks.Num() )
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	else if( NumChecked == 0 )
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
 void SAnimCurvePanel::UpdatePanel()
@@ -935,23 +935,23 @@ TSharedRef<SWidget> SAnimCurvePanel::GenerateCurveList()
 	return NewWidget;
 }
 
-ESlateCheckBoxState::Type SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid) const
+ECheckBoxState SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid) const
 {
 	if ( Sequence )
 	{
 		const FFloatCurve* Curve = static_cast<const FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if ( Curve )
 		{
-			return Curve->GetCurveTypeFlag(ACF_Editable)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return Curve->GetCurveTypeFlag(ACF_Editable)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void SAnimCurvePanel::ToggleEditability(ESlateCheckBoxState::Type NewType, USkeleton::AnimCurveUID Uid)
+void SAnimCurvePanel::ToggleEditability(ECheckBoxState NewType, USkeleton::AnimCurveUID Uid)
 {
-	bool bEdit = (NewType == ESlateCheckBoxState::Checked);
+	bool bEdit = (NewType == ECheckBoxState::Checked);
 
 	if ( Sequence )
 	{
@@ -1199,14 +1199,14 @@ TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FFloatCurve* Curve) 
 	return MenuBuilder.MakeWidget();
 }
 
-ESlateCheckBoxState::Type SAnimCurvePanel::GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const
+ECheckBoxState SAnimCurvePanel::GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const
 {
-	return Curve->GetCurveTypeFlag(InFlag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Curve->GetCurveTypeFlag(InFlag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAnimCurvePanel::SetCurveFlagFromCheckboxState(ESlateCheckBoxState::Type CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag)
+void SAnimCurvePanel::SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag)
 {
-	bool Enabled = CheckState == ESlateCheckBoxState::Checked;
+	bool Enabled = CheckState == ECheckBoxState::Checked;
 	Curve->SetCurveTypeFlag(InFlag, Enabled);
 }
 

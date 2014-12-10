@@ -110,7 +110,7 @@ void FEnvQueryParamInstanceCustomization::OnParamNumValueChanged(float FloatValu
 	}
 }
 
-ESlateCheckBoxState::Type FEnvQueryParamInstanceCustomization::GetParamBoolValue() const
+ECheckBoxState FEnvQueryParamInstanceCustomization::GetParamBoolValue() const
 {
 	if (ParamType == EEnvQueryParam::Bool)
 	{
@@ -118,20 +118,20 @@ ESlateCheckBoxState::Type FEnvQueryParamInstanceCustomization::GetParamBoolValue
 		FPropertyAccess::Result PropResult = ValueProp->GetValue(StoreValue);
 		if (PropResult == FPropertyAccess::Success)
 		{
-			return (StoreValue > 0.0f) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return (StoreValue > 0.0f) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 	
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void FEnvQueryParamInstanceCustomization::OnParamBoolValueChanged(ESlateCheckBoxState::Type BoolValue) const
+void FEnvQueryParamInstanceCustomization::OnParamBoolValueChanged(ECheckBoxState BoolValue) const
 {
 	if (ParamType == EEnvQueryParam::Bool)
 	{
-		const float StoreValue = (BoolValue == ESlateCheckBoxState::Checked) ? 1.0f : -1.0f;
+		const float StoreValue = (BoolValue == ECheckBoxState::Checked) ? 1.0f : -1.0f;
 		ValueProp->SetValue(StoreValue);
-		CachedBool = (BoolValue == ESlateCheckBoxState::Checked);
+		CachedBool = (BoolValue == ECheckBoxState::Checked);
 	}
 }
 
@@ -176,7 +176,7 @@ void FEnvQueryParamInstanceCustomization::InitCachedTypes()
 		{
 		case EEnvQueryParam::Float:	CachedFloat = GetParamNumValue().GetValue(); break;
 		case EEnvQueryParam::Int:	CachedInt = FMath::TruncToInt(GetParamNumValue().GetValue()); break;
-		case EEnvQueryParam::Bool:	CachedBool = (GetParamBoolValue() == ESlateCheckBoxState::Checked); break;
+		case EEnvQueryParam::Bool:	CachedBool = (GetParamBoolValue() == ECheckBoxState::Checked); break;
 		}
 	}
 }
@@ -192,7 +192,7 @@ void FEnvQueryParamInstanceCustomization::OnTypeChanged()
 		{
 		case EEnvQueryParam::Float:	OnParamNumValueChanged(CachedFloat); break;
 		case EEnvQueryParam::Int:	OnParamNumValueChanged(CachedInt); break;
-		case EEnvQueryParam::Bool:	OnParamBoolValueChanged(CachedBool ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked); break;
+		case EEnvQueryParam::Bool:	OnParamBoolValueChanged(CachedBool ? ECheckBoxState::Checked : ECheckBoxState::Unchecked); break;
 		}
 	}
 }

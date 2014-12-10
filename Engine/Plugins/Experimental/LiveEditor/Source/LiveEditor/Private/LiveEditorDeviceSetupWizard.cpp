@@ -34,10 +34,10 @@ public:
 public:
 	void Construct(const FArguments& InArgs, struct FConfigurationState *_Owner);
 
-	void OnHasButtonsChanged(ESlateCheckBoxState::Type NewCheckedState);
-	ESlateCheckBoxState::Type HasButtons() const;
-	void OnHasEndlessEncodersChanged(ESlateCheckBoxState::Type NewCheckedState);
-	ESlateCheckBoxState::Type HasEndlessEncoders() const;
+	void OnHasButtonsChanged(ECheckBoxState NewCheckedState);
+	ECheckBoxState HasButtons() const;
+	void OnHasEndlessEncodersChanged(ECheckBoxState NewCheckedState);
+	ECheckBoxState HasEndlessEncoders() const;
 
 private:
 	struct FConfigurationState *Owner;
@@ -143,25 +143,25 @@ void SDeviceQuestionnaireSubWindow::Construct(const FArguments& InArgs, FConfigu
 		]
 	];
 }
-void SDeviceQuestionnaireSubWindow::OnHasButtonsChanged(ESlateCheckBoxState::Type NewCheckedState)
+void SDeviceQuestionnaireSubWindow::OnHasButtonsChanged(ECheckBoxState NewCheckedState)
 {
 	check( Owner != NULL );
-	Owner->bHasButtons = (NewCheckedState == ESlateCheckBoxState::Checked);
+	Owner->bHasButtons = (NewCheckedState == ECheckBoxState::Checked);
 }
-ESlateCheckBoxState::Type SDeviceQuestionnaireSubWindow::HasButtons() const
+ECheckBoxState SDeviceQuestionnaireSubWindow::HasButtons() const
 {
 	check( Owner != NULL );
-	return (Owner->bHasButtons)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (Owner->bHasButtons)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
-void SDeviceQuestionnaireSubWindow::OnHasEndlessEncodersChanged(ESlateCheckBoxState::Type NewCheckedState)
+void SDeviceQuestionnaireSubWindow::OnHasEndlessEncodersChanged(ECheckBoxState NewCheckedState)
 {
 	check( Owner != NULL );
-	Owner->bHasEndlessEncoders = (NewCheckedState == ESlateCheckBoxState::Checked);
+	Owner->bHasEndlessEncoders = (NewCheckedState == ECheckBoxState::Checked);
 }
-ESlateCheckBoxState::Type SDeviceQuestionnaireSubWindow::HasEndlessEncoders() const
+ECheckBoxState SDeviceQuestionnaireSubWindow::HasEndlessEncoders() const
 {
 	check( Owner != NULL );
-	return (Owner->bHasEndlessEncoders)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (Owner->bHasEndlessEncoders)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 

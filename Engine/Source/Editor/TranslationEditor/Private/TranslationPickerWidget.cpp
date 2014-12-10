@@ -129,12 +129,12 @@ bool STranslationWidgetPicker::IsPicking() const
 	return false;
 }
 
-ESlateCheckBoxState::Type STranslationWidgetPicker::OnIsChecked() const
+ECheckBoxState STranslationWidgetPicker::OnIsChecked() const
 {
-	return IsPicking() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsPicking() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void STranslationWidgetPicker::OnCheckStateChanged(const ESlateCheckBoxState::Type NewCheckedState)
+void STranslationWidgetPicker::OnCheckStateChanged(const ECheckBoxState NewCheckedState)
 {
 	OnClicked();
 }

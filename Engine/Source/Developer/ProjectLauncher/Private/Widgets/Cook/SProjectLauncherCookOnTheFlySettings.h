@@ -34,10 +34,10 @@ public:
 private:
 
 	// Callback for check state changes of the 'Incremental' check box.
-	void HandleIncrementalCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+	void HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState );
 
 	// Callback for determining the checked state of the 'Incremental' check box.
-	ESlateCheckBoxState::Type HandleIncrementalCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
 	// Callback for changing the selected profile in the profile manager.
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );

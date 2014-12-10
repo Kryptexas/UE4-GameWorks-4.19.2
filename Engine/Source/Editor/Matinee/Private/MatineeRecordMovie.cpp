@@ -122,28 +122,28 @@ public:
 	void OnFPSTextComitted( const FText& Text, ETextCommit::Type) { FPSEntry = Text; }
 	FText GetFPSText() const { return FPSEntry; }
 
-	void OnCloseEditorChecked( ESlateCheckBoxState::Type InCheckboxState ) { bCloseEditor = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsCloseEditorChecked() const { return bCloseEditor ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnCloseEditorChecked( ECheckBoxState InCheckboxState ) { bCloseEditor = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsCloseEditorChecked() const { return bCloseEditor ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
-	void OnCinematicModeChecked( ESlateCheckBoxState::Type InCheckboxState ) { bCinematicMode = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsCinematicModeChecked() const { return bCinematicMode ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnCinematicModeChecked( ECheckBoxState InCheckboxState ) { bCinematicMode = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsCinematicModeChecked() const { return bCinematicMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 	
 	bool IsCinematicModeOptionsEnabled() const { return bCinematicMode; }
 
-	void OnDisableMovementChecked( ESlateCheckBoxState::Type InCheckboxState ) { bDisableMovement = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsDisableMovementChecked() const { return bDisableMovement ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnDisableMovementChecked( ECheckBoxState InCheckboxState ) { bDisableMovement = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsDisableMovementChecked() const { return bDisableMovement ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
-	void OnDisableTurningChecked( ESlateCheckBoxState::Type InCheckboxState ) { bDisableTurning = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsDisableTurningChecked() const { return bDisableTurning ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnDisableTurningChecked( ECheckBoxState InCheckboxState ) { bDisableTurning = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsDisableTurningChecked() const { return bDisableTurning ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
-	void OnHidePlayerChecked( ESlateCheckBoxState::Type InCheckboxState ) { bHidePlayer = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsHidePlayerChecked() const { return bHidePlayer ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnHidePlayerChecked( ECheckBoxState InCheckboxState ) { bHidePlayer = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsHidePlayerChecked() const { return bHidePlayer ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
-	void OnHideHudChecked( ESlateCheckBoxState::Type InCheckboxState ) { bHideHud = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsHideHudChecked() const { return bHideHud ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnHideHudChecked( ECheckBoxState InCheckboxState ) { bHideHud = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsHideHudChecked() const { return bHideHud ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
-	void OnDisableTextureStreamingChecked( ESlateCheckBoxState::Type InCheckboxState ) { bDisableTextureStreaming = (InCheckboxState == ESlateCheckBoxState::Checked); }
-	ESlateCheckBoxState::Type IsDisableTextureStreamingChecked() const { return bDisableTextureStreaming ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked; }
+	void OnDisableTextureStreamingChecked( ECheckBoxState InCheckboxState ) { bDisableTextureStreaming = (InCheckboxState == ECheckBoxState::Checked); }
+	ECheckBoxState IsDisableTextureStreamingChecked() const { return bDisableTextureStreaming ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; }
 
 	void OnCustomWidthChanged( int32 Width, ETextCommit::Type Type );
 	void OnCustomHeightChanged( int32 Height, ETextCommit::Type Type );

@@ -27,8 +27,8 @@ protected:
 	void OnParamNumValueChanged(float FloatValue) const;
 	EVisibility GetParamNumValueVisibility() const;
 
-	ESlateCheckBoxState::Type GetParamBoolValue() const;
-	void OnParamBoolValueChanged(ESlateCheckBoxState::Type BoolValue) const;
+	ECheckBoxState GetParamBoolValue() const;
+	void OnParamBoolValueChanged(ECheckBoxState BoolValue) const;
 	EVisibility GetParamBoolValueVisibility() const;
 
 	FString GetHeaderDesc() const;

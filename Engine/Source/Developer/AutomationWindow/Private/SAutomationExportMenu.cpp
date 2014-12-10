@@ -217,10 +217,10 @@ bool SAutomationExportMenu::IsExportReady() const
 }
 
 
-void SAutomationExportMenu::OnDisplayCheckStateChanged( ESlateCheckBoxState::Type InNewState, EFileExportType::Type CheckType )
+void SAutomationExportMenu::OnDisplayCheckStateChanged( ECheckBoxState InNewState, EFileExportType::Type CheckType )
 {
 	// set or unset the bit in the mask for the type changed
-	if ( InNewState == ESlateCheckBoxState::Checked )
+	if ( InNewState == ECheckBoxState::Checked )
 	{
 		EFileExportType::SetFlag( FileExportTypeMask, CheckType );
 	}
@@ -238,7 +238,7 @@ void SAutomationExportMenu::OnDisplayCheckStateChanged( ESlateCheckBoxState::Typ
 	}
 
 	// If we check select all, set all the valid options to be active
-	if ( CheckType == EFileExportType::FET_All && InNewState == ESlateCheckBoxState::Checked )
+	if ( CheckType == EFileExportType::FET_All && InNewState == ECheckBoxState::Checked )
 	{
 		EnableAvailableReports();
 		// Recreate the menu
@@ -247,14 +247,14 @@ void SAutomationExportMenu::OnDisplayCheckStateChanged( ESlateCheckBoxState::Typ
 }
 
 
-ESlateCheckBoxState::Type SAutomationExportMenu::OnGetDisplayCheckState( EFileExportType::Type CheckType ) const
+ECheckBoxState SAutomationExportMenu::OnGetDisplayCheckState( EFileExportType::Type CheckType ) const
 {
 	// If the item is selected, set the box to be checked
 	if(EFileExportType::IsSet( FileExportTypeMask, CheckType ) )
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

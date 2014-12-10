@@ -62,8 +62,8 @@ protected:
 	static FReply OnTargetLayerMakePublicClicked(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static FReply OnTargetLayerDeleteClicked(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetDebugModeColorChannelVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
-	static ESlateCheckBoxState::Type DebugModeColorChannelIsChecked(const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel);
-	static void OnDebugModeColorChannelChanged(ESlateCheckBoxState::Type NewCheckedState, const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel);
+	static ECheckBoxState DebugModeColorChannelIsChecked(const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel);
+	static void OnDebugModeColorChannelChanged(ECheckBoxState NewCheckedState, const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel);
 };
 
 class SLandscapeEditorSelectableBorder : public SBorder

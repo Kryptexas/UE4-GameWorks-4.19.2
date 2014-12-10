@@ -24,7 +24,7 @@ public:
 private:
 
 	/** Handle when the Single Sign On flag is checked */
-	void OnSingleSignOnChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnSingleSignOnChanged( const ECheckBoxState NewCheckedState );
 
 	/** Handle when the OK button is pressed */
 	FReply OnOKClicked();

@@ -268,15 +268,15 @@ void SCAQueryDetails::ResultListSelectionChanged(TSharedPtr<FCAHitInfo> Selected
 }
 
 
-void SCAQueryDetails::OnToggleShowMisses(ESlateCheckBoxState::Type InCheckboxState)
+void SCAQueryDetails::OnToggleShowMisses(ECheckBoxState InCheckboxState)
 {
-	bShowMisses = (InCheckboxState == ESlateCheckBoxState::Checked);
+	bShowMisses = (InCheckboxState == ECheckBoxState::Checked);
 	UpdateResultList();
 }
 
-ESlateCheckBoxState::Type SCAQueryDetails::GetShowMissesState() const
+ECheckBoxState SCAQueryDetails::GetShowMissesState() const
 {
-	return bShowMisses ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bShowMisses ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 

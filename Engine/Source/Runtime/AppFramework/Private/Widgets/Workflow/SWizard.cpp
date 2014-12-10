@@ -287,23 +287,23 @@ EVisibility SWizard::HandleNextButtonVisibility() const
 }
 
 
-void SWizard::HandlePageButtonCheckStateChanged( ESlateCheckBoxState::Type NewState, int32 PageIndex )
+void SWizard::HandlePageButtonCheckStateChanged( ECheckBoxState NewState, int32 PageIndex )
 {
-	if (NewState == ESlateCheckBoxState::Checked)
+	if (NewState == ECheckBoxState::Checked)
 	{
 		ShowPage(PageIndex);
 	}
 }
 
 
-ESlateCheckBoxState::Type SWizard::HandlePageButtonIsChecked( int32 PageIndex ) const
+ECheckBoxState SWizard::HandlePageButtonIsChecked( int32 PageIndex ) const
 {
 	if (PageIndex == WidgetSwitcher->GetActiveWidgetIndex())
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

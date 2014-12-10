@@ -21,10 +21,10 @@ class SPluginListTile : public SCompoundWidget
 private:
 
 	/** Returns the checked state for the enabled checkbox */
-	ESlateCheckBoxState::Type IsPluginEnabled() const;
+	ECheckBoxState IsPluginEnabled() const;
 
 	/** Called when the enabled checkbox is clicked */
-	void OnEnablePluginCheckboxChanged(ESlateCheckBoxState::Type NewCheckedState);
+	void OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState);
 
 	/** Called when 'Uninstall' is clicked on a plugin's tile */
 	FReply OnUninstallButtonClicked();

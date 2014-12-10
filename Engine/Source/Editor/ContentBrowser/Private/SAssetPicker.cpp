@@ -414,14 +414,14 @@ FText SAssetPicker::GetShowOtherDevelopersToolTip() const
 	}
 }
 
-void SAssetPicker::HandleShowOtherDevelopersCheckStateChanged( ESlateCheckBoxState::Type InCheckboxState )
+void SAssetPicker::HandleShowOtherDevelopersCheckStateChanged( ECheckBoxState InCheckboxState )
 {
-	OtherDevelopersFilter->SetShowOtherDeveloperAssets( InCheckboxState == ESlateCheckBoxState::Checked );
+	OtherDevelopersFilter->SetShowOtherDeveloperAssets( InCheckboxState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type SAssetPicker::GetShowOtherDevelopersCheckState() const
+ECheckBoxState SAssetPicker::GetShowOtherDevelopersCheckState() const
 {
-	return OtherDevelopersFilter->GetShowOtherDeveloperAssets() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return OtherDevelopersFilter->GetShowOtherDeveloperAssets() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SAssetPicker::OnRenameRequested() const

@@ -113,7 +113,7 @@ TSharedRef<SWidget> FPListNodeBoolean::GenerateWidgetForColumn(const FName& Colu
 			.FillWidth(1.0f)
 			[
 				SAssignNew(ValueCheckBox, SCheckBox)
-				.IsChecked(bValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+				.IsChecked(bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 				.OnCheckStateChanged(this, &FPListNodeBoolean::OnValueChanged)
 			]
 		];
@@ -292,9 +292,9 @@ void FPListNodeBoolean::OnKeyStringChanged(const FText& NewString)
 }
 
 /** Delegate: When the checkbox changes */
-void FPListNodeBoolean::OnValueChanged(ESlateCheckBoxState::Type NewValue)
+void FPListNodeBoolean::OnValueChanged(ECheckBoxState NewValue)
 {
-	if(NewValue == ESlateCheckBoxState::Checked)
+	if(NewValue == ECheckBoxState::Checked)
 	{
 		// Simply do nothing
 		if(bValue == true)
@@ -308,7 +308,7 @@ void FPListNodeBoolean::OnValueChanged(ESlateCheckBoxState::Type NewValue)
 		check(EditorWidget);
 		EditorWidget->MarkDirty();
 	}
-	else if(NewValue == ESlateCheckBoxState::Unchecked)
+	else if(NewValue == ECheckBoxState::Unchecked)
 	{
 		// Simply do nothing
 		if(bValue == false)

@@ -239,24 +239,24 @@ private:
 	FText GetTimelineName() const;
 
 	/** Get state of autoplay box*/
-	ESlateCheckBoxState::Type IsAutoPlayChecked() const;
+	ECheckBoxState IsAutoPlayChecked() const;
 	/** Handle play box being changed */
-	void OnAutoPlayChanged(ESlateCheckBoxState::Type NewType);
+	void OnAutoPlayChanged(ECheckBoxState NewType);
 
 	/** Get state of loop box */
-	ESlateCheckBoxState::Type IsLoopChecked() const;
+	ECheckBoxState IsLoopChecked() const;
 	/** Handle loop box being changed */
-	void OnLoopChanged(ESlateCheckBoxState::Type NewType);
+	void OnLoopChanged(ECheckBoxState NewType);
 
 	/** Get state of replicated box */
-	ESlateCheckBoxState::Type IsReplicatedChecked() const;
+	ECheckBoxState IsReplicatedChecked() const;
 	/** Handle loop box being changed */
-	void OnReplicatedChanged(ESlateCheckBoxState::Type NewType);
+	void OnReplicatedChanged(ECheckBoxState NewType);
 
 	/** Get state of the use last keyframe checkbox */
-	ESlateCheckBoxState::Type IsUseLastKeyframeChecked() const;
+	ECheckBoxState IsUseLastKeyframeChecked() const;
 	/** Handle toggling between use last keyframe and use length */
-	void OnUseLastKeyframeChanged(ESlateCheckBoxState::Type NewType);
+	void OnUseLastKeyframeChanged(ECheckBoxState NewType);
 
 	/** Get current length of timeline as string */
 	FText GetLengthString() const;

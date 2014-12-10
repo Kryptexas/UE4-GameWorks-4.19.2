@@ -17,13 +17,13 @@ private:
 	TSharedRef<SWidget> MakePlatformRow(const FText& DisplayName, const FName PlatformName, const FSlateBrush* Icon) const;
 
 	/** Check to see if the "enabled" checkbox should be checked for this platform */
-	ESlateCheckBoxState::Type HandlePlatformCheckBoxIsChecked(const FName PlatformName) const;
+	ECheckBoxState HandlePlatformCheckBoxIsChecked(const FName PlatformName) const;
 
 	/** Check to see if the "enabled" checkbox should be enabled for this platform */
 	bool HandlePlatformCheckBoxIsEnabled(const FName PlatformName) const;
 
 	/** Handle the "enabled" checkbox state being changed for this platform */
-	void HandlePlatformCheckBoxStateChanged(ESlateCheckBoxState::Type InState, const FName PlatformName) const;
+	void HandlePlatformCheckBoxStateChanged(ECheckBoxState InState, const FName PlatformName) const;
 
 	TArray<const PlatformInfo::FPlatformInfo*> AvailablePlatforms;
 };

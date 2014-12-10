@@ -187,7 +187,7 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 void SKismetInspector::Construct(const FArguments& InArgs)
 {
 	bShowInspectorPropertyView = true;
-	PublicViewState = ESlateCheckBoxState::Unchecked;
+	PublicViewState = ECheckBoxState::Unchecked;
 
 	Kismet2Ptr = InArgs._Kismet2;
 	bShowPublicView = InArgs._ShowPublicViewControl;
@@ -487,7 +487,7 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 
 
 	// If we are in 'instance preview' - hide anything marked 'disabled edit on instance'
-	if ((ESlateCheckBoxState::Checked == PublicViewState) && Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+	if ((ECheckBoxState::Checked == PublicViewState) && Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 	{
 		return false;
 	}
@@ -547,12 +547,12 @@ EVisibility SKismetInspector::GetPropertyViewVisibility() const
 	return bShowInspectorPropertyView? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type SKismetInspector::GetPublicViewCheckboxState() const
+ECheckBoxState SKismetInspector::GetPublicViewCheckboxState() const
 {
 	return PublicViewState;
 }
 
-void SKismetInspector::SetPublicViewCheckboxState( ESlateCheckBoxState::Type InIsChecked )
+void SKismetInspector::SetPublicViewCheckboxState( ECheckBoxState InIsChecked )
 {
 	PublicViewState = InIsChecked;
 

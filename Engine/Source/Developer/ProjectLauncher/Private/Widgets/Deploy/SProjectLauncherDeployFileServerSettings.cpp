@@ -83,18 +83,18 @@ void SProjectLauncherDeployFileServerSettings::Construct( const FArguments& InAr
 /* SProjectLauncherDeployFileServerSettings callbacks
  *****************************************************************************/
 
-void SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+void SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetHideFileServerWindow(NewState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetHideFileServerWindow(NewState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleHideWindowCheckBoxIsChecked( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -102,26 +102,26 @@ ESlateCheckBoxState::Type SProjectLauncherDeployFileServerSettings::HandleHideWi
 	{
 		if (SelectedProfile->IsFileServerHidden())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
-void SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+void SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetStreamingFileServer(NewState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetStreamingFileServer(NewState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxIsChecked( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -129,11 +129,11 @@ ESlateCheckBoxState::Type SProjectLauncherDeployFileServerSettings::HandleStream
 	{
 		if (SelectedProfile->IsFileServerStreaming())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 

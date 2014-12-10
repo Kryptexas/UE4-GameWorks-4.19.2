@@ -109,7 +109,7 @@ struct FNotificationInfo
 		bUseLargeFont(true),
 		WidthOverride(),
 		bFireAndForget(true),
-		CheckBoxState(ESlateCheckBoxState::Unchecked),
+		CheckBoxState(ECheckBoxState::Unchecked),
 		CheckBoxStateChanged(),
 		CheckBoxText(),
 		Hyperlink(),
@@ -135,7 +135,7 @@ struct FNotificationInfo
 		bUseLargeFont(false),
 		WidthOverride(),
 		bFireAndForget(true),
-		CheckBoxState(ESlateCheckBoxState::Unchecked),
+		CheckBoxState(ECheckBoxState::Unchecked),
 		CheckBoxStateChanged(),
 		CheckBoxText(),
 		Hyperlink(),
@@ -180,7 +180,7 @@ struct FNotificationInfo
 	bool bFireAndForget;
 
 	/** When set this will display a check box on the notification; handles getting the current check box state */
-	TAttribute< ESlateCheckBoxState::Type > CheckBoxState;
+	TAttribute< ECheckBoxState > CheckBoxState;
 
 	/** When set this will display a check box on the notification; handles setting the new check box state */
 	FOnCheckStateChanged CheckBoxStateChanged;

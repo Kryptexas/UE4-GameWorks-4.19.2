@@ -569,14 +569,14 @@ const FSlateBrush* FComponentTransformDetails::GetPreserveScaleRatioImage() cons
 	return bPreserveScaleRatio ? FEditorStyle::GetBrush( TEXT("GenericLock") ) : FEditorStyle::GetBrush( TEXT("GenericUnlock") ) ;
 }
 
-ESlateCheckBoxState::Type FComponentTransformDetails::IsPreserveScaleRatioChecked() const
+ECheckBoxState FComponentTransformDetails::IsPreserveScaleRatioChecked() const
 {
-	return bPreserveScaleRatio ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bPreserveScaleRatio ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FComponentTransformDetails::OnPreserveScaleRatioToggled( ESlateCheckBoxState::Type NewState )
+void FComponentTransformDetails::OnPreserveScaleRatioToggled( ECheckBoxState NewState )
 {
-	bPreserveScaleRatio = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	bPreserveScaleRatio = (NewState == ECheckBoxState::Checked) ? true : false;
 	GConfig->SetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
 }
 

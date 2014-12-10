@@ -117,7 +117,7 @@ private:
 	 * @param NewCheckState	New check box state
 	 * @param NodeChanged	Node that was checked/unchecked
 	 */
-	void OnTagCheckStatusChanged(ESlateCheckBoxState::Type NewCheckState, TSharedPtr<FGameplayTagNode> NodeChanged);
+	void OnTagCheckStatusChanged(ECheckBoxState NewCheckState, TSharedPtr<FGameplayTagNode> NodeChanged);
 
 	/**
 	 * Called via delegate to determine the checkbox state of the specified node
@@ -126,7 +126,7 @@ private:
 	 * 
 	 * @return Checkbox state of the specified node
 	 */
-	ESlateCheckBoxState::Type IsTagChecked(TSharedPtr<FGameplayTagNode> Node) const;
+	ECheckBoxState IsTagChecked(TSharedPtr<FGameplayTagNode> Node) const;
 
 	/**
 	 * Helper function called when the specified node is checked

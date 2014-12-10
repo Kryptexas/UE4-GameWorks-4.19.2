@@ -361,9 +361,9 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 }
 
 
-ESlateCheckBoxState::Type SAutomationTestItem::IsTestEnabled() const
+ECheckBoxState SAutomationTestItem::IsTestEnabled() const
 {
-	return TestStatus->IsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return TestStatus->IsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
@@ -550,7 +550,7 @@ const FSlateBrush* SAutomationTestItem::ItemStatus_StatusImage(const int32 Clust
 /* SAutomationTestitem event handlers
  *****************************************************************************/
 
-void SAutomationTestItem::HandleTestingCheckbox_Click(ESlateCheckBoxState::Type)
+void SAutomationTestItem::HandleTestingCheckbox_Click(ECheckBoxState)
 {
 	OnCheckedStateChangedDelegate.ExecuteIfBound(TestStatus);
 }

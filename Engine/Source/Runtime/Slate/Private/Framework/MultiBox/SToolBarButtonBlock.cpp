@@ -317,7 +317,7 @@ FReply SToolBarButtonBlock::OnClicked()
 /**
  * Called by Slate when this tool bar check box button is toggled
  */
-void SToolBarButtonBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SToolBarButtonBlock::OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 {
 	OnClicked();
 }
@@ -325,9 +325,9 @@ void SToolBarButtonBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type N
 /**
  * Called by slate to determine if this button should appear checked
  *
- * @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+ * @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
  */
-ESlateCheckBoxState::Type SToolBarButtonBlock::OnIsChecked() const
+ECheckBoxState SToolBarButtonBlock::OnIsChecked() const
 {
 	TSharedPtr< const FUICommandList > ActionList = MultiBlock->GetActionList();
 	TSharedPtr< const FUICommandInfo > Action = MultiBlock->GetAction();
@@ -344,7 +344,7 @@ ESlateCheckBoxState::Type SToolBarButtonBlock::OnIsChecked() const
 		bIsChecked = DirectActions.IsChecked();
 	}
 
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 /**

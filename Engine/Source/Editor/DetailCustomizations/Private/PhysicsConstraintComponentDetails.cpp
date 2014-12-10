@@ -458,19 +458,19 @@ FReply FPhysicsConstraintComponentDetails::OnBallSocketClicked()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type FPhysicsConstraintComponentDetails::IsLimitRadioChecked( TSharedPtr<IPropertyHandle> Property, uint8 Value ) const
+ECheckBoxState FPhysicsConstraintComponentDetails::IsLimitRadioChecked( TSharedPtr<IPropertyHandle> Property, uint8 Value ) const
 {
 	uint8 PropertyEnumValue = 0;
 	if (Property.IsValid() && Property->GetValue(PropertyEnumValue))
 	{
-		return PropertyEnumValue == Value ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return PropertyEnumValue == Value ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FPhysicsConstraintComponentDetails::OnLimitRadioChanged( ESlateCheckBoxState::Type CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value )
+void FPhysicsConstraintComponentDetails::OnLimitRadioChanged( ECheckBoxState CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value )
 {
-	if (Property.IsValid() && CheckType == ESlateCheckBoxState::Checked)
+	if (Property.IsValid() && CheckType == ECheckBoxState::Checked)
 	{
 		Property->SetValue(Value);
 	}

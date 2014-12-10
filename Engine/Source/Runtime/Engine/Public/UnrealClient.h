@@ -15,7 +15,7 @@ class FCanvas;
 class FViewportClient;
 enum class EPopupMethod : uint8;
 
-enum class EFocusCause;
+enum class EFocusCause : uint8;
 
 /**
  * A render target.

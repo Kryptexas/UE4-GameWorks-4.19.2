@@ -80,7 +80,7 @@ private:
 	void HandleFilterStringTextChanged( const FText& NewText );
 
 	/** Callback for changing the checked state of the 'Filter' check box. */
-	void HandleHighlightOnlyCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckedState );
+	void HandleHighlightOnlyCheckBoxCheckStateChanged( ECheckBoxState CheckedState );
 
 	/** Callback for generating a row widget for the verbosity filter list. */
 	TSharedRef<ITableRow> HandleVerbosityFilterGenerateRow( FSessionConsoleVerbosityFilterPtr Filter, const TSharedRef<STableViewBase>& OwnerTable );

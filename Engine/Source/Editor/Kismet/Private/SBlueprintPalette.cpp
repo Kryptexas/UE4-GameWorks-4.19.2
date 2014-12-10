@@ -742,19 +742,19 @@ private:
 	 * Used by this visibility-toggle widget to see if the property represented 
 	 * by this item is visible outside of Kismet.
 	 * 
-	 * @return ESlateCheckBoxState::Checked if the property is visible, false if not (or if the property wasn't found)
+	 * @return ECheckBoxState::Checked if the property is visible, false if not (or if the property wasn't found)
 	 */
-	ESlateCheckBoxState::Type GetVisibilityToggleState() const
+	ECheckBoxState GetVisibilityToggleState() const
 	{
 		TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 		UProperty* VariableProperty = VarAction->GetProperty();
 		if (VariableProperty != NULL)
 		{
-			return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+			return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 		}
 		else
 		{
-			return ESlateCheckBoxState::Unchecked;
+			return ECheckBoxState::Unchecked;
 		}
 	}
 
@@ -765,7 +765,7 @@ private:
 	 * 
 	 * @param  InNewState	The new state that the user set the checkbox to.
 	 */
-	void OnVisibilityToggleFlipped(ESlateCheckBoxState::Type InNewState)
+	void OnVisibilityToggleFlipped(ECheckBoxState InNewState)
 	{
 		if( !BlueprintEditorPtr.IsValid() )
 		{
@@ -775,7 +775,7 @@ private:
 		TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 		// Toggle the flag on the blueprint's version of the variable description, based on state
-		const bool bVariableIsExposed = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bVariableIsExposed = (InNewState == ECheckBoxState::Checked);
 
 		FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(BlueprintObj, VarAction->GetVariableName(), !bVariableIsExposed);
 	}
@@ -788,7 +788,7 @@ private:
 	 */
 	const FSlateBrush* GetVisibilityIcon() const
 	{
-		return GetVisibilityToggleState() == ESlateCheckBoxState::Checked ?
+		return GetVisibilityToggleState() == ECheckBoxState::Checked ?
 			FEditorStyle::GetBrush( "Kismet.VariableList.ExposeForInstance" ) :
 			FEditorStyle::GetBrush( "Kismet.VariableList.HideForInstance" );
 	}
@@ -802,7 +802,7 @@ private:
 	 */
 	FLinearColor GetVisibilityToggleColor() const 
 	{
-		if(GetVisibilityToggleState() != ESlateCheckBoxState::Checked)
+		if(GetVisibilityToggleState() != ECheckBoxState::Checked)
 		{
 			return FColor(64,64,64).ReinterpretAsLinear();
 		}
@@ -834,7 +834,7 @@ private:
 	FString GetVisibilityToggleToolTip() const
 	{
 		FString ToolTip;
-		if(GetVisibilityToggleState() != ESlateCheckBoxState::Checked)
+		if(GetVisibilityToggleState() != ECheckBoxState::Checked)
 		{
 			ToolTip =  LOCTEXT("VariablePrivacy_not_public_Tooltip", "Variable is not public and will not be editable on an instance of this Blueprint.").ToString();
 		}

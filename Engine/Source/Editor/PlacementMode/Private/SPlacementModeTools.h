@@ -66,10 +66,10 @@ private:
 	const FSlateBrush* PlacementGroupBorderImage( int32 PlacementGroupIndex ) const;
 
 	// When the tab is clicked we adjust the check state, so that the right style is displayed.
-	void OnPlacementTabChanged( ESlateCheckBoxState::Type NewState, int32 PlacementGroupIndex );
+	void OnPlacementTabChanged( ECheckBoxState NewState, int32 PlacementGroupIndex );
 
 	// Gets the tab 'active' state, so that we can show the active style
-	ESlateCheckBoxState::Type GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const;
+	ECheckBoxState GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const;
 
 	// Create the standard panel displayed when no search is being performed.
 	TSharedRef< SWidget > CreateStandardPanel();

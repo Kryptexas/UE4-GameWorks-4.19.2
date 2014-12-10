@@ -154,7 +154,7 @@ void FEnvQueryParamSetupCustomization::OnParamNameCommitted(const FText& ParamNa
 	LastPropName = (NameValue != NAME_None) ? NameValue : FName(TEXT("unknown"));
 }
 
-ESlateCheckBoxState::Type FEnvQueryParamSetupCustomization::GetParamBoolValue() const
+ECheckBoxState FEnvQueryParamSetupCustomization::GetParamBoolValue() const
 {
 	if (ParamType == EEnvQueryParam::Bool)
 	{
@@ -162,18 +162,18 @@ ESlateCheckBoxState::Type FEnvQueryParamSetupCustomization::GetParamBoolValue() 
 		FPropertyAccess::Result PropResult = ValueProp->GetValue(BoolValue);
 		if (PropResult == FPropertyAccess::Success)
 		{
-			return BoolValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return BoolValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 	
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void FEnvQueryParamSetupCustomization::OnParamBoolValueChanged(ESlateCheckBoxState::Type BoolValue) const
+void FEnvQueryParamSetupCustomization::OnParamBoolValueChanged(ECheckBoxState BoolValue) const
 {
 	if (ParamType == EEnvQueryParam::Bool)
 	{
-		const bool StoreValue = (BoolValue == ESlateCheckBoxState::Checked);
+		const bool StoreValue = (BoolValue == ECheckBoxState::Checked);
 		ValueProp->SetValue(StoreValue);
 	}
 }

@@ -700,10 +700,10 @@ public:
 	static void SetLightingDensityGrayscaleScale( float Value );
 	static void SetLightingDensityRenderGrayscale();
 	static bool IsLightingDensityRenderGrayscaleChecked();
-	static void SetLightingResolutionStaticMeshes( ESlateCheckBoxState::Type NewCheckedState );
-	static ESlateCheckBoxState::Type IsLightingResolutionStaticMeshesChecked();
-	static void SetLightingResolutionBSPSurfaces( ESlateCheckBoxState::Type NewCheckedState );
-	static ESlateCheckBoxState::Type IsLightingResolutionBSPSurfacesChecked();
+	static void SetLightingResolutionStaticMeshes( ECheckBoxState NewCheckedState );
+	static ECheckBoxState IsLightingResolutionStaticMeshesChecked();
+	static void SetLightingResolutionBSPSurfaces( ECheckBoxState NewCheckedState );
+	static ECheckBoxState IsLightingResolutionBSPSurfacesChecked();
 	static void SetLightingResolutionLevel( FLightmapResRatioAdjustSettings::AdjustLevels NewLevel );
 	static bool IsLightingResolutionLevelChecked( FLightmapResRatioAdjustSettings::AdjustLevels TestLevel );
 	static void SetLightingResolutionSelectedObjectsOnly();

@@ -78,7 +78,7 @@ public:
 	 * @param	OutPackages		The array that should be populated with the desired packages
 	 * @param	InChecked		The type of packages that we want to retrieve
 	 */
-	virtual void GetResults(TArray<UPackage*>& OutPackages, ESlateCheckBoxState::Type InChecked);
+	virtual void GetResults(TArray<UPackage*>& OutPackages, ECheckBoxState InChecked);
 
 	/**
 	 * Adds a new item to the checkbox that represents a package
@@ -90,7 +90,7 @@ public:
 	 * @param	InIconName		The name of the icon to display
 	 * @param	InIconToolTip	The tooltip to display
 	 */
-	virtual void AddPackageItem(UPackage* InPackage, const FString& InEntryName, ESlateCheckBoxState::Type InChecked, 
+	virtual void AddPackageItem(UPackage* InPackage, const FString& InEntryName, ECheckBoxState InChecked, 
 								bool InDisabled = false, FString InIconName=TEXT("SavePackages.SCC_DlgNoIcon"), FString InIconToolTip=TEXT(""));
 
 	/**

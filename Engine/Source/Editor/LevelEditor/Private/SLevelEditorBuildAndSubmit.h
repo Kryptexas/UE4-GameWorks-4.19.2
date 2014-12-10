@@ -66,7 +66,7 @@ private:
 	 *
 	 * @param InNewState	The state of the check box
 	 */
-	void OnShowPackagesNotInSCBoxChanged(ESlateCheckBoxState::Type InNewState);
+	void OnShowPackagesNotInSCBoxChanged(ECheckBoxState InNewState);
 
 	/** Level editor that we're associated with */
 	TWeakPtr<class ILevelEditor> LevelEditor;

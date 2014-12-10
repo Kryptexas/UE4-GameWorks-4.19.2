@@ -53,7 +53,7 @@ public:
 		/** 
 		 * Callback function used to tell the ListBox parent what item has been selected
 		 */
-		void OnAssetSelected( ESlateCheckBoxState::Type NewCheckedState )
+		void OnAssetSelected( ECheckBoxState NewCheckedState )
 		{
 			check(Parent != NULL);
 			Parent->SetSelectedListItem(this);
@@ -62,9 +62,9 @@ public:
 		/**
 		 * Callback function used to ensure only one item is highlighted (selected) at a time
 		 */
-		ESlateCheckBoxState::Type IsAssetSelected() const
+		ECheckBoxState IsAssetSelected() const
 		{
-			return (Parent->GetSelectedListItem() == this) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return (Parent->GetSelectedListItem() == this) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 
 		/** @return		The full name of the object this item represents */
@@ -249,10 +249,10 @@ private:
 	bool IsConsolidateButtonEnabled() const;
 
 	/** @return		true if the user has elected to "Save Dirty Packages" */
-	ESlateCheckBoxState::Type IsSavePackagesChecked() const;
+	ECheckBoxState IsSavePackagesChecked() const;
 	
 	/** Callback	called when the user checks/unchecks the "Save Dirty Packages" button */
-	void OnSavePackagesCheckStateChanged(ESlateCheckBoxState::Type NewCheckedState);
+	void OnSavePackagesCheckStateChanged(ECheckBoxState NewCheckedState);
 
 	/** Callback	Called to determin the error message visibility */
 	EVisibility IsErrorPanelVisible() const;
@@ -452,14 +452,14 @@ bool SConsolidateToolWidget::IsConsolidateButtonEnabled() const
 	return (ConsolidationObjects.Num() > 1 && SelectedListItem != NULL);
 }
 
-ESlateCheckBoxState::Type SConsolidateToolWidget::IsSavePackagesChecked() const
+ECheckBoxState SConsolidateToolWidget::IsSavePackagesChecked() const
 {
-	return bSavePackagesChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bSavePackagesChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SConsolidateToolWidget::OnSavePackagesCheckStateChanged(ESlateCheckBoxState::Type NewCheckedState)
+void SConsolidateToolWidget::OnSavePackagesCheckStateChanged(ECheckBoxState NewCheckedState)
 {
-	bSavePackagesChecked = (NewCheckedState == ESlateCheckBoxState::Checked);
+	bSavePackagesChecked = (NewCheckedState == ECheckBoxState::Checked);
 }
 
 EVisibility SConsolidateToolWidget::IsErrorPanelVisible() const

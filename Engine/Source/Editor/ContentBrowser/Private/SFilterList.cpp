@@ -187,9 +187,9 @@ public:
 
 private:
 	/** Handler for when the filter checkbox is clicked */
-	void FilterToggled(ESlateCheckBoxState::Type NewState)
+	void FilterToggled(ECheckBoxState NewState)
 	{
-		bEnabled = NewState == ESlateCheckBoxState::Checked;
+		bEnabled = NewState == ECheckBoxState::Checked;
 		OnFilterChanged.ExecuteIfBound();
 	}
 
@@ -283,15 +283,15 @@ private:
 	}
 
 	/** Handler to determine the "checked" state of the filter checkbox */
-	ESlateCheckBoxState::Type IsChecked() const
+	ECheckBoxState IsChecked() const
 	{
-		return bEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** Handler to determine the color of the checkbox when it is checked */
 	FSlateColor GetFilterForegroundColor() const
 	{
-		return IsChecked() ? FilterColor : FLinearColor::White;
+		return IsChecked() == ECheckBoxState::Checked ? FilterColor : FLinearColor::White;
 	}
 
 	/** Handler to determine the padding of the checkbox text when it is pressed */

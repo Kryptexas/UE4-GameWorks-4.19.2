@@ -439,10 +439,10 @@ EVisibility SGraphNodeMaterialBase::ExpressionPreviewVisibility() const
 	return bShowPreview ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SGraphNodeMaterialBase::OnExpressionPreviewChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SGraphNodeMaterialBase::OnExpressionPreviewChanged( const ECheckBoxState NewCheckedState )
 {
 	UMaterialExpression* MaterialExpression = MaterialNode->MaterialExpression;
-	const bool bCollapsed = (NewCheckedState != ESlateCheckBoxState::Checked);
+	const bool bCollapsed = (NewCheckedState != ECheckBoxState::Checked);
 	if (MaterialExpression->bCollapsed != bCollapsed)
 	{
 		UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(MaterialNode->GetGraph());
@@ -453,9 +453,9 @@ void SGraphNodeMaterialBase::OnExpressionPreviewChanged( const ESlateCheckBoxSta
 	}
 }
 
-ESlateCheckBoxState::Type SGraphNodeMaterialBase::IsExpressionPreviewChecked() const
+ECheckBoxState SGraphNodeMaterialBase::IsExpressionPreviewChecked() const
 {
-	return MaterialNode->MaterialExpression->bCollapsed ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+	return MaterialNode->MaterialExpression->bCollapsed ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 }
 
 const FSlateBrush* SGraphNodeMaterialBase::GetExpressionPreviewArrow() const

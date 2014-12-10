@@ -192,7 +192,7 @@ static bool DecryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 	}
 	FMemory::Free(OutBuffer);
 #elif PLATFORM_LINUX
-        printf("STaskBrowser.cpp: LINUX DecryptBuffer()\n");
+		printf("STaskBrowser.cpp: LINUX DecryptBuffer()\n");
 #elif PLATFORM_WINDOWS
 	DATA_BLOB SourceBlob, EntropyBlob, FinalBlob;
 	// Set up the datablob to encrypt
@@ -859,7 +859,7 @@ void STaskBrowser::OnDatabaseFilterSelect( TSharedPtr<FString> InFilter, ESelect
 	}
 }
 
-void STaskBrowser::OnOpenOnlyChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void STaskBrowser::OnOpenOnlyChanged( const ECheckBoxState NewCheckedState )
 {
 	// Refresh the GUI.  It will apply the updated filters.
 	RefreshGUI( ETaskBrowserGUIRefreshOptions::RebuildTaskList );
@@ -868,12 +868,12 @@ void STaskBrowser::OnOpenOnlyChanged( const ESlateCheckBoxState::Type NewChecked
 	{
 		FTaskBrowserSettings TBSettings;
 		TBSettings.LoadSettings();
-		TBSettings.bFilterOnlyOpen = !!NewCheckedState;
+		TBSettings.bFilterOnlyOpen = NewCheckedState == ECheckBoxState::Checked;
 		TBSettings.SaveSettings();
 	}
 }
 
-void STaskBrowser::OnAssignedToMeChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void STaskBrowser::OnAssignedToMeChanged( const ECheckBoxState NewCheckedState )
 {
 	// Refresh the GUI.  It will apply the updated filters.
 	RefreshGUI( ETaskBrowserGUIRefreshOptions::RebuildTaskList );
@@ -882,12 +882,12 @@ void STaskBrowser::OnAssignedToMeChanged( const ESlateCheckBoxState::Type NewChe
 	{
 		FTaskBrowserSettings TBSettings;
 		TBSettings.LoadSettings();
-		TBSettings.bFilterAssignedToMe = !!NewCheckedState;
+		TBSettings.bFilterAssignedToMe = NewCheckedState == ECheckBoxState::Checked;
 		TBSettings.SaveSettings();
 	}
 }
 
-void STaskBrowser::OnCreatedByMeChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void STaskBrowser::OnCreatedByMeChanged( const ECheckBoxState NewCheckedState )
 {
 	// Refresh the GUI.  It will apply the updated filters.
 	RefreshGUI( ETaskBrowserGUIRefreshOptions::RebuildTaskList );
@@ -896,12 +896,12 @@ void STaskBrowser::OnCreatedByMeChanged( const ESlateCheckBoxState::Type NewChec
 	{
 		FTaskBrowserSettings TBSettings;
 		TBSettings.LoadSettings();
-		TBSettings.bFilterCreatedByMe = !!NewCheckedState;
+		TBSettings.bFilterCreatedByMe = NewCheckedState == ECheckBoxState::Checked;
 		TBSettings.SaveSettings();
 	}
 }
 
-void STaskBrowser::OnCurrentMapChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void STaskBrowser::OnCurrentMapChanged( const ECheckBoxState NewCheckedState )
 {
 	// Refresh the GUI.  It will apply the updated filters.
 	RefreshGUI( ETaskBrowserGUIRefreshOptions::RebuildTaskList );
@@ -910,7 +910,7 @@ void STaskBrowser::OnCurrentMapChanged( const ESlateCheckBoxState::Type NewCheck
 	{
 		FTaskBrowserSettings TBSettings;
 		TBSettings.LoadSettings();
-		TBSettings.bFilterCurrentMap = !!NewCheckedState;
+		TBSettings.bFilterCurrentMap = NewCheckedState == ECheckBoxState::Checked;
 		TBSettings.SaveSettings();
 	}
 }

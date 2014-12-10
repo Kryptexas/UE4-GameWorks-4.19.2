@@ -215,7 +215,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	.MaxDesiredWidth(300.0f)
 	[
 		SAssignNew(FieldNamesCheckBox, SCheckBox)
-		.IsChecked(Model->ShouldLoadLocalizedPropertyNames() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+		.IsChecked(Model->ShouldLoadLocalizedPropertyNames() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 		.ToolTipText(FieldNamesToolTipText)
 		.OnCheckStateChanged(this, &FInternationalizationSettingsModelDetails::ShoudLoadLocalizedFieldNamesCheckChanged)
 	];
@@ -408,7 +408,7 @@ EVisibility FInternationalizationSettingsModelDetails::GetInternationalizationRe
 	return RequiresRestart ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void FInternationalizationSettingsModelDetails::ShoudLoadLocalizedFieldNamesCheckChanged(ESlateCheckBoxState::Type CheckState)
+void FInternationalizationSettingsModelDetails::ShoudLoadLocalizedFieldNamesCheckChanged(ECheckBoxState CheckState)
 {
 	HandleShutdownPostPackagesSaved();
 }

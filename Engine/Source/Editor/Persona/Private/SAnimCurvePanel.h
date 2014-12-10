@@ -98,12 +98,12 @@ public:
 	/**
 	 * Toggle all the curve modes of all the tracks
 	 */
-	void ToggleAllCurveModes(ESlateCheckBoxState::Type NewState, EAnimCurveFlags ModeToSet);
+	void ToggleAllCurveModes(ECheckBoxState NewState, EAnimCurveFlags ModeToSet);
 
 	/**
 	 * Are all the curve modes of all the tracks set to the mode
 	 */
-	ESlateCheckBoxState::Type AreAllCurvesOfMode(EAnimCurveFlags ModeToTest) const;
+	ECheckBoxState AreAllCurvesOfMode(EAnimCurveFlags ModeToTest) const;
 
 	/**
 	 * Visibility of the set-all-tracks button
@@ -143,11 +143,11 @@ private:
 	/**
 	 * Returns true if this curve is editable
 	 */
-	ESlateCheckBoxState::Type	IsCurveEditable(USkeleton::AnimCurveUID Uid) const;
+	ECheckBoxState	IsCurveEditable(USkeleton::AnimCurveUID Uid) const;
 	/**
 	 * Toggle curve visibility
 	 */
-	void		ToggleEditability(ESlateCheckBoxState::Type NewType, USkeleton::AnimCurveUID Uid);
+	void		ToggleEditability(ECheckBoxState NewType, USkeleton::AnimCurveUID Uid);
 	/**
 	 * Refresh Panel
 	 */
@@ -192,12 +192,12 @@ private:
 	/**
 	 * Convert the requested flag bool value into a checkbox state
 	 */
-	ESlateCheckBoxState::Type GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const;
+	ECheckBoxState GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const;
 
 	/**
 	 * Convert a given checkbox state into a flag value in the provided curve
 	 */
-	void SetCurveFlagFromCheckboxState(ESlateCheckBoxState::Type CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag);
+	void SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag);
 
 	/**
 	 * Handler for converting a curve from metadata to variable curve or vice versa

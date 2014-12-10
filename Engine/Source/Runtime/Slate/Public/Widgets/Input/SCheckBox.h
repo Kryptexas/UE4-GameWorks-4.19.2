@@ -8,22 +8,31 @@
 
 /** Current state of the check box */
 UENUM(BlueprintType)
+enum class ECheckBoxState : uint8
+{
+	/** Unchecked */
+	Unchecked,
+	/** Checked */
+	Checked,
+	/** Neither checked nor unchecked */
+	Undetermined
+};
+
+/** DEPRECATED 4.6 - Do not use */
+//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
 namespace ESlateCheckBoxState
 {
-	enum Type
-	{
-		/** Unchecked */
-		Unchecked,
-		/** Checked */
-		Checked,
-		/** Neither checked nor unchecked */
-		Undetermined
-	};
+	DEPRECATED(4.6, "ESlateCheckBoxState::Type is deprecated and was renamed to ECheckBoxState. Please use that type instead.")
+	typedef ::ECheckBoxState Type;
+
+	const ECheckBoxState Unchecked = ECheckBoxState::Unchecked;
+	const ECheckBoxState Checked = ECheckBoxState::Checked;
+	const ECheckBoxState Undetermined = ECheckBoxState::Undetermined;
 }
 
 
 /** Delegate that is executed when the check box state changes */
-DECLARE_DELEGATE_OneParam( FOnCheckStateChanged, ESlateCheckBoxState::Type );
+DECLARE_DELEGATE_OneParam( FOnCheckStateChanged, ECheckBoxState );
 
 
 /**
@@ -38,7 +47,7 @@ public:
 		, _Style( &FCoreStyle::Get().GetWidgetStyle< FCheckBoxStyle >("Checkbox") )
 		, _Type()
 		, _OnCheckStateChanged()
-		, _IsChecked( ESlateCheckBoxState::Unchecked )
+		, _IsChecked( ECheckBoxState::Unchecked )
 		, _HAlign( HAlign_Fill )
 		, _Padding()
 		, _ClickMethod( EButtonClickMethod::DownAndUp )
@@ -69,21 +78,21 @@ public:
 		SLATE_EVENT( FOnCheckStateChanged, OnCheckStateChanged )
 
 		/** Whether the check box is currently in a checked state */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, IsChecked )
+		SLATE_ATTRIBUTE( ECheckBoxState, IsChecked )
 
 		// TODO Remove this function when IsChecked(bool InIsChecked) is removed.  It has to be here to prevent ambiguous conversions.
 		/** Whether the check box is currently in a checked state */
-		FArguments& IsChecked(ESlateCheckBoxState::Type InIsChecked)
+		FArguments& IsChecked(ECheckBoxState InIsChecked)
 		{
 			_IsChecked = InIsChecked;
 			return Me();
 		}
 
 		/** Whether the check box is currently in a checked state */
-		DEPRECATED(4.3, "Please use IsChecked(TAttribute<ESlateCheckBoxState::Type>)")
+		DEPRECATED(4.3, "Please use IsChecked(TAttribute<ECheckBoxState>)")
 		FArguments& IsChecked(bool InIsChecked)
 		{
-			_IsChecked = InIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			_IsChecked = InIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			return Me();
 		}
 
@@ -169,11 +178,11 @@ public:
 	 */
 	bool IsChecked() const
 	{
-		return (IsCheckboxChecked.Get() == ESlateCheckBoxState::Checked);
+		return ( IsCheckboxChecked.Get() == ECheckBoxState::Checked );
 	}
 
 	/** @return The current checked state of the checkbox. */
-	ESlateCheckBoxState::Type GetCheckedState() const;
+	ECheckBoxState GetCheckedState() const;
 
 	/**
 	 * Returns true if this button is currently pressed
@@ -191,7 +200,7 @@ public:
 	void ToggleCheckedState();
 
 	/** See the IsChecked attribute */
-	void SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked);
+	void SetIsChecked(TAttribute<ECheckBoxState> InIsChecked);
 	
 	/** See the Content slot */
 	void SetContent(const TSharedRef< SWidget >& InContent);
@@ -248,7 +257,7 @@ protected:
 	bool bIsPressed;
 
 	/** Are we checked */
-	TAttribute<ESlateCheckBoxState::Type> IsCheckboxChecked;
+	TAttribute<ECheckBoxState> IsCheckboxChecked;
 
 	/** Delegate called when the check box changes state */
 	FOnCheckStateChanged OnCheckStateChanged;

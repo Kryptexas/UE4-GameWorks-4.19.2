@@ -239,23 +239,23 @@ FReply FLandscapeEditorDetailCustomization_MiscTools::OnApplySelectedSplinesButt
 	return FReply::Handled();
 }
 
-void FLandscapeEditorDetailCustomization_MiscTools::OnbUseAutoRotateControlPointChanged(ESlateCheckBoxState::Type NewState)
+void FLandscapeEditorDetailCustomization_MiscTools::OnbUseAutoRotateControlPointChanged(ECheckBoxState NewState)
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
 	{
-		LandscapeEdMode->SetbUseAutoRotateOnJoin(NewState == ESlateCheckBoxState::Checked);
+		LandscapeEdMode->SetbUseAutoRotateOnJoin(NewState == ECheckBoxState::Checked);
 	}
 }
 
-ESlateCheckBoxState::Type FLandscapeEditorDetailCustomization_MiscTools::GetbUseAutoRotateControlPoint() const
+ECheckBoxState FLandscapeEditorDetailCustomization_MiscTools::GetbUseAutoRotateControlPoint() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
 	{
-		return LandscapeEdMode->GetbUseAutoRotateOnJoin() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return LandscapeEdMode->GetbUseAutoRotateOnJoin() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 FReply FLandscapeEditorDetailCustomization_MiscTools::OnApplyRampButtonClicked()

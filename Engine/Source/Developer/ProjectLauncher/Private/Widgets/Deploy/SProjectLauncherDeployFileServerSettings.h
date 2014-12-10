@@ -28,16 +28,16 @@ public:
 private:
 
 	// Callback for check state changes of the 'Hide Window' check box.
-	void HandleHideWindowCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+	void HandleHideWindowCheckBoxCheckStateChanged( ECheckBoxState NewState );
 
 	// Callback for determining the checked state of the 'Hide Window' check box.
-	ESlateCheckBoxState::Type HandleHideWindowCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleHideWindowCheckBoxIsChecked( ) const;
 
 	// Callback for check state changes of the 'Streaming Server' check box.
-	void HandleStreamingServerCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+	void HandleStreamingServerCheckBoxCheckStateChanged( ECheckBoxState NewState );
 
 	// Callback for determining the checked state of the 'Streaming Server' check box.
-	ESlateCheckBoxState::Type HandleStreamingServerCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleStreamingServerCheckBoxIsChecked( ) const;
 
 private:
 

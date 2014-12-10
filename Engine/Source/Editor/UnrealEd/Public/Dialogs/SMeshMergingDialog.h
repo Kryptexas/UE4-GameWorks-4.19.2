@@ -34,8 +34,8 @@ private:
 	FReply OnMergeClicked();
 
 	/**  */
-	ESlateCheckBoxState::Type GetGenerateLightmapUV() const;
-	void SetGenerateLightmapUV(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetGenerateLightmapUV() const;
+	void SetGenerateLightmapUV(ECheckBoxState NewValue);
 
 	/** Target lightmap channel */
 	bool IsLightmapChannelEnabled() const;
@@ -43,15 +43,15 @@ private:
 	void SetTargetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 		
 	/**  */
-	ESlateCheckBoxState::Type GetImportVertexColors() const;
-	void SetImportVertexColors(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetImportVertexColors() const;
+	void SetImportVertexColors(ECheckBoxState NewValue);
 
 	/**  */
-	ESlateCheckBoxState::Type GetPivotPointAtZero() const;
-	void SetPivotPointAtZero(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetPivotPointAtZero() const;
+	void SetPivotPointAtZero(ECheckBoxState NewValue);
 
-	ESlateCheckBoxState::Type GetPlaceInWorld() const;
-	void SetPlaceInWorld(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetPlaceInWorld() const;
+	void SetPlaceInWorld(ECheckBoxState NewValue);
 	
 	/** Called when actors selection is changed */
 	void OnActorSelectionChanged(const TArray<UObject*>& NewSelection);

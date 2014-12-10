@@ -645,24 +645,24 @@ void SBlendSpaceEditor1D::UpdateBlendParameters()
 	BlendSpaceWidget->ResampleData();
 }
 
-ESlateCheckBoxState::Type SBlendSpaceEditor1D::IsEditorDisplayedVertically() const
+ECheckBoxState SBlendSpaceEditor1D::IsEditorDisplayedVertically() const
 {
-	return GetBlendSpace()->bDisplayEditorVertically ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetBlendSpace()->bDisplayEditorVertically ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SBlendSpaceEditor1D::OnChangeDisplayedVertically( ESlateCheckBoxState::Type NewValue )
+void SBlendSpaceEditor1D::OnChangeDisplayedVertically( ECheckBoxState NewValue )
 {
 	bool bPreviousDisplayValue = GetBlendSpace()->bDisplayEditorVertically;
 	switch(NewValue)
 	{
-		case ESlateCheckBoxState::Checked:
+		case ECheckBoxState::Checked:
 		{
 			const FScopedTransaction Transaction( LOCTEXT("Undo_SetDisplayVertically", "Set Blend Space To Display Vertically") );
 			BlendSpace->Modify();
 			GetBlendSpace()->bDisplayEditorVertically = true;
 			break;
 		}
-		case ESlateCheckBoxState::Unchecked:
+		case ECheckBoxState::Unchecked:
 		{
 			const FScopedTransaction Transaction( LOCTEXT("Undo_UnsetDisplayVertically", "Set Blend Space To Not Display Vertically") );
 			BlendSpace->Modify();

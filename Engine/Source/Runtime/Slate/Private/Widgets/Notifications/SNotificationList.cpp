@@ -298,7 +298,7 @@ public:
 		/** When set this forces the width of the box, used to stop resizeing on text change */
 		SLATE_ARGUMENT( FOptionalSize, WidthOverride )
 		/** When set this will display a check box on the notification; handles getting the current check box state */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, CheckBoxState )
+		SLATE_ATTRIBUTE( ECheckBoxState, CheckBoxState )
 		/** When set this will display a check box on the notification; handles setting the new check box state */
 		SLATE_EVENT( FOnCheckStateChanged, CheckBoxStateChanged );
 		/** Text to display for the check box message */

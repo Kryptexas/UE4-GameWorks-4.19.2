@@ -166,10 +166,10 @@ private:
 	bool HandleGreenChannelActionIsChecked( ) const;
 
 	// Callback for changing the checked state of the MipMap check box.
-	void HandleMipLevelCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type InNewState );
+	void HandleMipLevelCheckBoxCheckedStateChanged( ECheckBoxState InNewState );
 
 	// Callback for getting the checked state of the MipMap check box.
-	ESlateCheckBoxState::Type HandleMipLevelCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleMipLevelCheckBoxIsChecked( ) const;
 
 	// Callback for determining whether the MipMap check box is enabled.
 	bool HandleMipLevelCheckBoxIsEnabled( ) const;

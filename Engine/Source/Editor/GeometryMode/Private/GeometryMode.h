@@ -20,10 +20,10 @@ public:
 
 protected:
 	/** Called when a new modifier mode is selected */
-	void OnModifierStateChanged(ESlateCheckBoxState::Type NewCheckedState, UGeomModifier* Modifier);
+	void OnModifierStateChanged(ECheckBoxState NewCheckedState, UGeomModifier* Modifier);
 
 	/** Returns the state of a modifier radio button */
-	ESlateCheckBoxState::Type IsModifierChecked(UGeomModifier* Modifier) const;
+	ECheckBoxState IsModifierChecked(UGeomModifier* Modifier) const;
 
 	/** Returns the enabled state of a modifier button */
 	bool IsModifierEnabled(UGeomModifier* Modifier) const;

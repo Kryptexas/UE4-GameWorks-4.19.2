@@ -32,14 +32,14 @@ private:
 	/**
 	* Called by slate to determine if this button should appear checked
 	*
-	* @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+	* @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
 	*/
-	ESlateCheckBoxState::Type OnIsChecked() const;
+	ECheckBoxState OnIsChecked() const;
 
 	/**
 	* Called by Slate when this tool bar check box button is toggled
 	*/
-	void OnCheckStateChanged(const ESlateCheckBoxState::Type NewCheckedState);
+	void OnCheckStateChanged(const ECheckBoxState NewCheckedState);
 };
 
 #undef LOCTEXT_NAMESPACE

@@ -542,14 +542,14 @@ TSharedRef< SWidget > SPlacementModeTools::CreatePlacementGroupTab( int32 TabInd
 	];
 }
 
-ESlateCheckBoxState::Type SPlacementModeTools::GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const
+ECheckBoxState SPlacementModeTools::GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const
 {
-	return WidgetSwitcher->GetActiveWidgetIndex() == PlacementGroupIndex ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return WidgetSwitcher->GetActiveWidgetIndex() == PlacementGroupIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SPlacementModeTools::OnPlacementTabChanged( ESlateCheckBoxState::Type NewState, int32 PlacementGroupIndex )
+void SPlacementModeTools::OnPlacementTabChanged( ECheckBoxState NewState, int32 PlacementGroupIndex )
 {
-	if ( NewState == ESlateCheckBoxState::Checked )
+	if ( NewState == ECheckBoxState::Checked )
 	{
 		WidgetSwitcher->SetActiveWidgetIndex( PlacementGroupIndex );
 

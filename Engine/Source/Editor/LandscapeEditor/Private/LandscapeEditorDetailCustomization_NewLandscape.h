@@ -52,8 +52,8 @@ public:
 	FReply OnFillWorldButtonClicked();
 
 	static EVisibility GetVisibilityOnlyInNewLandscapeMode(ENewLandscapePreviewMode::Type value);
-	ESlateCheckBoxState::Type NewLandscapeModeIsChecked(ENewLandscapePreviewMode::Type value) const;
-	void OnNewLandscapeModeChanged(ESlateCheckBoxState::Type NewCheckedState, ENewLandscapePreviewMode::Type value);
+	ECheckBoxState NewLandscapeModeIsChecked(ENewLandscapePreviewMode::Type value) const;
+	void OnNewLandscapeModeChanged(ECheckBoxState NewCheckedState, ENewLandscapePreviewMode::Type value);
 
 	// Import
 	static EVisibility GetHeightmapErrorVisibility(TSharedRef<IPropertyHandle> PropertyHandle_HeightmapError);

@@ -1419,9 +1419,9 @@ void SColorPicker::HandleRGBColorChanged( FLinearColor NewValue )
 }
 
 
-void SColorPicker::HandleSRGBCheckBoxCheckStateChanged( ESlateCheckBoxState::Type InIsChecked )
+void SColorPicker::HandleSRGBCheckBoxCheckStateChanged( ECheckBoxState InIsChecked )
 {
-	SColorThemesViewer::bSRGBEnabled = (InIsChecked == ESlateCheckBoxState::Checked);
+	SColorThemesViewer::bSRGBEnabled = (InIsChecked == ECheckBoxState::Checked);
 
 	if (FPaths::FileExists(GEditorUserSettingsIni))
 	{
@@ -1430,9 +1430,9 @@ void SColorPicker::HandleSRGBCheckBoxCheckStateChanged( ESlateCheckBoxState::Typ
 }
 
 
-ESlateCheckBoxState::Type SColorPicker::HandleSRGBCheckBoxIsChecked() const
+ECheckBoxState SColorPicker::HandleSRGBCheckBoxIsChecked() const
 {
-	return SColorThemesViewer::bSRGBEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return SColorThemesViewer::bSRGBEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 

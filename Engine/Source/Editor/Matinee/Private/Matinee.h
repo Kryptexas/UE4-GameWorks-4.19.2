@@ -1281,9 +1281,9 @@ protected:
 
 	TSharedRef<SWidget> AddFilterButton(UInterpFilter* Filter);
 
-	void SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter);
+	void SetFilterActive(ECheckBoxState CheckStatus, UInterpFilter* Filter);
 
-	ESlateCheckBoxState::Type GetFilterActive(UInterpFilter* Filter) const;
+	ECheckBoxState GetFilterActive(UInterpFilter* Filter) const;
 
 	/** Holds the slate object for the Matinee Recorder. */
 	TWeakPtr<SMatineeRecorder> MatineeRecorderWindow;

@@ -276,15 +276,15 @@ public:
 		return Emitter->GetProperties()->SpawnScript;
 	}
 
-	void OnEmitterEnabledChanged(ESlateCheckBoxState::Type NewCheckedState)
+	void OnEmitterEnabledChanged(ECheckBoxState NewCheckedState)
 	{
-		const bool bNewEnabledState = (NewCheckedState == ESlateCheckBoxState::Checked);
+		const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 		Emitter->GetProperties()->bIsEnabled = bNewEnabledState;
 	}
 
-	ESlateCheckBoxState::Type IsEmitterEnabled() const
+	ECheckBoxState IsEmitterEnabled() const
 	{
-		return Emitter->IsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Emitter->IsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	void OnRenderModuleChanged(TSharedPtr<FString> ModName, ESelectInfo::Type SelectInfo);

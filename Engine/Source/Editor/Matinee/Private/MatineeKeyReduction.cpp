@@ -44,7 +44,7 @@ public:
 private:
 
 	void SetTolerance(int32 InTolerance) { Tolerance = InTolerance; }
-	void ToggleFullInterval(ESlateCheckBoxState::Type CheckState) { FullInterval = (CheckState == ESlateCheckBoxState::Checked); }
+	void ToggleFullInterval(ECheckBoxState CheckState) { FullInterval = (CheckState == ECheckBoxState::Checked); }
 	void SetIntervalStart(float InStart) { IntervalStart = InStart; }
 	void SetIntervalEnd(float InEnd) { IntervalEnd = InEnd; }
 
