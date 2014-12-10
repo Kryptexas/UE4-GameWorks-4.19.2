@@ -559,7 +559,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 		GoalLocation = ProjectedLocation.Location;
 	}
 
-	if (bCanRequestMove && PathFollowingComponent && PathFollowingComponent->HasReached(GoalLocation, AcceptanceRadius, bStopOnOverlap))
+	if (bCanRequestMove && PathFollowingComponent && PathFollowingComponent->HasReached(GoalLocation, AcceptanceRadius, !bStopOnOverlap))
 	{
 		UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: already at goal!"));
 
