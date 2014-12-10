@@ -93,6 +93,6 @@ private:
 		bSupportsFloatingPointRenderTargets = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 
 #endif
+		GAndroidGPUInfoReady = true;
 	}
-	GAndroidGPUInfoReady = true;
 };
