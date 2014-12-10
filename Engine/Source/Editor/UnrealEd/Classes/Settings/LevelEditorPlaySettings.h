@@ -58,6 +58,9 @@ enum EPlayModeType
 	/** Runs in a new process. */
 	PlayMode_InNewProcess,
 
+	/** Runs in VR. */
+	PlayMode_InVR,
+
 	/** Simulates in viewport without possessing the player */
 	PlayMode_Simulate,
 

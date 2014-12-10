@@ -31,6 +31,11 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 
+			if (UEBuildConfiguration.bBuildEditor == true)
+			{
+				PrivateDependencyModuleNames.Add("UnrealEd");
+			}
+
             // Currently, the Rift is only supported on windows and mac platforms
             if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
             {

@@ -342,7 +342,7 @@ void FSlateRHIRenderer::UpdateFullscreenState( const TSharedRef<SWindow> Window,
 		uint32 ResX = OverrideResX ? OverrideResX : GSystemResolution.ResX;
 		uint32 ResY = OverrideResY ? OverrideResY : GSystemResolution.ResY;
 
-		if(GIsEditor || Window->GetWindowMode() == EWindowMode::WindowedFullscreen)
+		if( (GIsEditor && Window->IsViewportSizeDrivenByWindow()) || (Window->GetWindowMode() == EWindowMode::WindowedFullscreen))
 		{
 			ResX = ViewInfo->Width;
 			ResY = ViewInfo->Height;

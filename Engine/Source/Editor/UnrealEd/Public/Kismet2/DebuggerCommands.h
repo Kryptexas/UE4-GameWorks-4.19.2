@@ -45,6 +45,7 @@ public:
 	TSharedPtr<FUICommandInfo> RepeatLastPlay;
 	TSharedPtr<FUICommandInfo> PlayInViewport;
 	TSharedPtr<FUICommandInfo> PlayInEditorFloating;
+	TSharedPtr<FUICommandInfo> PlayInVR;
 	TSharedPtr<FUICommandInfo> PlayInMobilePreview;
 	TSharedPtr<FUICommandInfo> PlayInNewProcess;
 	TSharedPtr<FUICommandInfo> PlayInCameraLocation;

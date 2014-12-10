@@ -65,6 +65,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 
 void UEditorEngine::EndPlayMap()
 {
+	if (GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnEndPlay();
+	}
+
 	// Matinee must be closed before PIE can stop - matinee during PIE will be editing a PIE-world actor
 	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
@@ -211,11 +216,6 @@ void UEditorEngine::EndPlayMap()
 	if (EditorWorld->GetNavigationSystem())
 	{
 		EditorWorld->GetNavigationSystem()->OnPIEEnd();
-	}
-
-	if (GEngine->HMDDevice.IsValid())
-	{
-		GEngine->HMDDevice->OnEndPlay();
 	}
 
 	EditorWorld->bAllowAudioPlayback = true;
@@ -563,6 +563,7 @@ void UEditorEngine::PlayMap( const FVector* StartLocation, const FRotator* Start
 
 	// Set whether or not we want to use mobile preview mode (PC platform only)
 	bUseMobilePreviewForPlayWorld = bUseMobilePreview;
+	bUseVRPreviewForPlayWorld = false;
 
 	// Set whether or not we want to start movie capturing immediately (PC platform only)
 	bStartMovieCapture = bMovieCapture;
@@ -578,7 +579,7 @@ void UEditorEngine::PlayMap( const FVector* StartLocation, const FRotator* Start
 }
 
 
-void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation, const FRotator* StartRotation, int32 DestinationConsole, bool bUseMobilePreview )
+void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation, const FRotator* StartRotation, int32 DestinationConsole, bool bUseMobilePreview, bool bUseVRPreview )
 {
 	// Remember whether or not we were attempting to play from playerstart or from viewport
 	GIsPIEUsingPlayerStart = bAtPlayerStart;
@@ -605,6 +606,8 @@ void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class IL
 
 	// Set whether or not we want to use mobile preview mode (PC platform only)
 	bUseMobilePreviewForPlayWorld = bUseMobilePreview;
+
+	bUseVRPreviewForPlayWorld = bUseVRPreview;
 
 	// Not capturing a movie
 	bStartMovieCapture = false;
@@ -2612,11 +2615,26 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					CenterNewWindow = true;
 				}
 
+				bool bUseOSWndBorder = false;
+				bool bRenderDirectlyToWindow = false;
+				bool bEnableStereoRendering = false;
+				if (bUseVRPreviewForPlayWorld)
+				{
+					// modify window and viewport properties for VR.
+					bUseOSWndBorder = true;
+					bRenderDirectlyToWindow = true;
+					bEnableStereoRendering = true;
+					CenterNewWindow = true;
+				}
+
 				TSharedRef<SWindow> PieWindow = SNew(SWindow)
 					.Title(ViewportName)
 					.ScreenPosition(FVector2D( NewWindowPosition.X, NewWindowPosition.Y ))
 					.ClientSize(FVector2D( NewWindowWidth, NewWindowHeight ))
-					.AutoCenter(CenterNewWindow ? EAutoCenter::PreferredWorkArea : EAutoCenter::None);
+					.AutoCenter(CenterNewWindow ? EAutoCenter::PreferredWorkArea : EAutoCenter::None)
+					.UseOSWindowBorder(bUseOSWndBorder)
+					.SizingRule(ESizingRule::UserSized);
+
 
 				// Setup a delegate for switching to the play world on slate input events, drawing and ticking
 				FOnSwitchWorldHack OnWorldSwitch = FOnSwitchWorldHack::CreateUObject( this, &UEditorEngine::OnSwitchWorldForSlatePieWindow );
@@ -2631,6 +2649,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					SNew( SViewport )
 						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 						.EnableGammaCorrection( false )// Gamma correction in the game is handled in post processing in the scene renderer
+						.RenderDirectlyToWindow( bRenderDirectlyToWindow )
+						.EnableStereoRendering( bEnableStereoRendering )
 						[
 							SNew(SScissorRectBox)
 							[
@@ -2682,6 +2702,16 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 							// Route the callback
 							PIEViewportWidget.Pin()->OnWindowClosed( WindowBeingClosed );
+
+							if (PIEViewportWidget.Pin()->IsStereoRenderingAllowed() && GEngine->HMDDevice.IsValid())
+							{
+								// restore previously minimized root window.
+								TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+								if (RootWindow.IsValid())
+								{
+									RootWindow->Restore();
+								}
+							}
 						}
 					};
 				
@@ -2704,6 +2734,18 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 				// Ensure the window has a valid size before calling BeginPlay
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->ResizeFrame( PieWindow->GetSizeInScreen().X, PieWindow->GetSizeInScreen().Y, EWindowMode::Windowed, PieWindow->GetPositionInScreen().X, PieWindow->GetPositionInScreen().Y );
+
+				if (bUseVRPreviewForPlayWorld && GEngine->HMDDevice.IsValid())
+				{
+					GEngine->HMDDevice->EnableStereo(true);
+
+					// minimize the root window to provide max performance for the preview.
+					TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+					if (RootWindow.IsValid())
+					{
+						RootWindow->Minimize();
+					}
+				}
 			}
 		}
 	}

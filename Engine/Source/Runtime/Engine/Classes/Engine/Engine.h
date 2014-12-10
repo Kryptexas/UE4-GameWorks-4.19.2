@@ -2005,8 +2005,8 @@ public:
 	/** @return whether we're currently running in split screen (more than one local player) */
 	bool IsSplitScreen(UWorld *InWorld);
 
-	/** @return whether we're currently running with stereoscopic 3D enabled */
-	bool IsStereoscopic3D();
+	/** @return whether we're currently running with stereoscopic 3D enabled for the specified viewport (or globally, if viewport is NULL) */
+	bool IsStereoscopic3D(FViewport* InViewport = nullptr);
 
 	/**
 	 * Adds a world location as a secondary view location for purposes of texture streaming.

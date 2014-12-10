@@ -11,6 +11,7 @@ DECLARE_CYCLE_STAT( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STAT
 SViewport::SViewport()
 	: bRenderDirectlyToWindow(false)
 	, bEnableGammaCorrection(true)
+	, bEnableStereoRendering(false)
 { }
 
 
@@ -23,6 +24,7 @@ void SViewport::Construct( const FArguments& InArgs )
 	bRenderDirectlyToWindow = InArgs._RenderDirectlyToWindow;
 	bEnableGammaCorrection = InArgs._EnableGammaCorrection;
 	bEnableBlending = InArgs._EnableBlending;
+	bEnableStereoRendering = InArgs._EnableStereoRendering;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
 	ViewportInterface = InArgs._ViewportInterface;
 	ViewportSize = InArgs._ViewportSize;

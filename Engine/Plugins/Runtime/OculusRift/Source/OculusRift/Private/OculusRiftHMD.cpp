@@ -6,6 +6,10 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "SceneViewport.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#endif
+
 #if !UE_BUILD_SHIPPING
 // Should be changed to CAPI when available.
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
@@ -276,13 +280,14 @@ void FOculusRiftHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation,
 {
 	// only supposed to be used from the game thread
 	checkf(IsInGameThread());
-	GetCurrentPose(CurHmdOrientation, CurrentPosition);
-	CurrentOrientation = LastHmdOrientation = CurHmdOrientation;
+	GetCurrentPose(CurrentOrientation, CurrentPosition);
+	LastHmdOrientation = CurrentOrientation;
 }
 
 void FOculusRiftHMD::GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition)
 {
 	check(IsInGameThread());
+	check(Hmd);
 
 	if (Flags.bNeedUpdateStereoRenderingParams)
 		UpdateStereoRenderingParams();
@@ -322,6 +327,7 @@ void FOculusRiftHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotat
 
 	ViewRotation.Normalize();
 
+	FQuat CurHmdOrientation;
 	FVector CurHmdPosition;
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
@@ -354,6 +360,7 @@ void FOculusRiftHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, st
 	if (Flags.bDoNotUpdateOnGT)
 		return;
 #endif
+	FQuat	CurHmdOrientation;
 	FVector CurHmdPosition;
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
@@ -461,22 +468,9 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 {
 	if (FParse::Command( &Cmd, TEXT("STEREO") ))
 	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
+		if (FParse::Command(&Cmd, TEXT("OFF")))
 		{
-			if (!IsHMDEnabled())
-			{
-				Ar.Logf(TEXT("HMD is disabled. Use 'hmd enable' to re-enable it."));
-			}
-			EnableStereo(true);
-			if (!Flags.bStereoEnabled)
-			{
-				Ar.Logf(TEXT("Stereo can't be enabled (is HMD connected?)"));
-			}
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			EnableStereo(false);
+			DoEnableStereo(false, true);
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("TOGGLE")))
@@ -501,6 +495,28 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			Ar.Logf(TEXT("stereo ipd=%.4f hfov=%.3f vfov=%.3f\n nearPlane=%.4f farPlane=%.4f"), GetInterpupillaryDistance(),
 				FMath::RadiansToDegrees(HFOVInRadians), FMath::RadiansToDegrees(VFOVInRadians),
 				(NearClippingPlane) ? NearClippingPlane : GNearClippingPlane, FarClippingPlane);
+		}
+		else
+		{
+			bool on, hmd = false;
+			on = FParse::Command(&Cmd, TEXT("ON"));
+			if (!on)
+			{
+				hmd = FParse::Command(&Cmd, TEXT("HMD"));
+			}
+			if (on || hmd)
+			{
+				if (!IsHMDEnabled())
+				{
+					Ar.Logf(TEXT("HMD is disabled. Use 'hmd enable' to re-enable it."));
+				}
+				DoEnableStereo(true, hmd);
+				if (!Flags.bStereoEnabled)
+				{
+					Ar.Logf(TEXT("Stereo can't be enabled (is HMD connected?)"));
+				}
+				return true;
+			}
 		}
 
 		// normal configuration
@@ -1021,7 +1037,6 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			Flags.bHeadTrackingEnforced = !Flags.bHeadTrackingEnforced;
 			if (!Flags.bHeadTrackingEnforced)
 			{
-				CurHmdOrientation = FQuat::Identity;
 				ResetControlRotation();
 			}
 			return true;
@@ -1029,7 +1044,6 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 		else if (!FCString::Stricmp(*CmdName, TEXT("RESET")))
 		{
 			Flags.bHeadTrackingEnforced = false;
-			CurHmdOrientation = FQuat::Identity;
 			ResetControlRotation();
 			return true;
 		}
@@ -1176,42 +1190,114 @@ bool FOculusRiftHMD::EnablePositionalTracking(bool enable)
 #endif
 }
 
+class FSceneViewport* FOculusRiftHMD::FindSceneViewport()
+{
+	if (!GIsEditor)
+	{
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		return GameEngine->SceneViewport.Get();
+	}
+#if WITH_EDITOR
+	else
+	{
+		UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
+		return (FSceneViewport*)(EditorEngine->GetPIEViewport());
+	}
+#endif
+	return nullptr;
+}
+
 //---------------------------------------------------
 // Oculus Rift IStereoRendering Implementation
 //---------------------------------------------------
 bool FOculusRiftHMD::IsStereoEnabled() const
 {
-	return Flags.bStereoEnabled && Flags.bHMDEnabled && !GIsEditor;
+	return Flags.bStereoEnabled && Flags.bHMDEnabled /* && !GIsEditor*/;
 }
 
-bool FOculusRiftHMD::EnableStereo(bool stereo)
+bool FOculusRiftHMD::EnableStereo(bool bStereo)
 {
-	if (GIsEditor) return false;
-	bool stereoEnabled = (IsHMDEnabled()) ? stereo : false;
+	return DoEnableStereo(bStereo, true);
+}
+
+bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
+{
+	FSceneViewport* SceneVP = FindSceneViewport();
+	if (bStereo && (!SceneVP || !SceneVP->IsStereoRenderingAllowed()))
+	{
+		return false;
+	}
+
+	bool stereoEnabled = (IsHMDEnabled()) ? bStereo : false;
+
+	if ((Flags.bStereoEnabled && stereoEnabled) || (!Flags.bStereoEnabled && !stereoEnabled))
+	{
+		// already in the desired mode
+		return Flags.bStereoEnabled;
+	}
+
 	bool wasFullscreenAllowed = IsFullscreenAllowed();
 	if (OnOculusStateChange(stereoEnabled))
 	{
 		Flags.bStereoEnabled = stereoEnabled;
 
-		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
-
-		if (!IsFullscreenAllowed() && stereoEnabled)
+		if (SceneVP)
 		{
-			if (Hmd)
+			if (!IsFullscreenAllowed() && stereoEnabled)
 			{
-				// keep window size, but set viewport size to Rift resolution
-				GameEngine->SceneViewport->SetViewportSize(Hmd->Resolution.w, Hmd->Resolution.h);
+				if (Hmd)
+				{
+					// keep window size, but set viewport size to Rift resolution
+					SceneVP->SetViewportSize(Hmd->Resolution.w, Hmd->Resolution.h);
+				}
 			}
-		}
-		else if (!wasFullscreenAllowed && !stereoEnabled)
-		{
-			// restoring original viewport size (to be equal to window size).
-			TSharedPtr<SWindow> Window = GameEngine->SceneViewport->FindWindow();
-			if (Window.IsValid())
+			else if ((!wasFullscreenAllowed && !stereoEnabled))
 			{
-				FVector2D size = Window->GetSizeInScreen();
-				GameEngine->SceneViewport->SetViewportSize(size.X, size.Y);
-				Window->SetViewportSizeDrivenByWindow(true);
+				// restoring original viewport size (to be equal to window size).
+				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+				if (Window.IsValid())
+				{
+					FVector2D size = Window->GetSizeInScreen();
+					SceneVP->SetViewportSize(size.X, size.Y);
+					Window->SetViewportSizeDrivenByWindow(true);
+				}
+			}
+
+			if (bApplyToHmd && IsFullscreenAllowed() && SceneVP)
+			{
+				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+				if (Window.IsValid())
+				{
+					FVector2D size = Window->GetSizeInScreen();
+					SceneVP->SetViewportSize(size.X, size.Y);
+					Window->SetViewportSizeDrivenByWindow(true);
+
+					if (stereoEnabled)
+					{
+						EWindowMode::Type wm = (!GIsEditor) ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+						FVector2D size = Window->GetSizeInScreen();
+						SceneVP->ResizeFrame(size.X, size.Y, wm, 0, 0);
+					}
+					else
+					{
+						// In Editor we cannot use ResizeFrame trick since it is called too late and App::IsGame
+						// returns false.
+						if (GIsEditor)
+						{
+							FSlateRect PreFullScreenRect;
+							PopPreFullScreenRect(PreFullScreenRect);
+							if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && IsFullscreenAllowed())
+							{
+								Window->MoveWindowTo(FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
+							}
+						}
+						else
+						{
+							FVector2D size = Window->GetSizeInScreen();
+							SceneVP->ResizeFrame(size.X, size.Y, EWindowMode::Windowed, 0, 0);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1340,6 +1426,7 @@ void FOculusRiftHMD::AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int3
 void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
 {
 	check(WorldToMeters != 0.f);
+	check(Hmd);
 
 	const int idx = (StereoPassType == eSSP_LEFT_EYE) ? 0 : 1;
 
@@ -1359,8 +1446,9 @@ void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPas
 			{
 				// Usually, the pose is updated either from ApplyHmdOrientation or from UpdateCameraOrientation methods.
 				// However, in Editor those methods are not called.
+				FQuat	CurrentHmdOrientation;
 				FVector CurrentHmdPosition;
-				GetCurrentPose(CurHmdOrientation, CurrentHmdPosition);
+				GetCurrentPose(CurrentHmdOrientation, CurrentHmdPosition);
 			}
 
 			FVector CurEyePosition;
@@ -1602,9 +1690,6 @@ void FOculusRiftHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InVie
 
 #ifndef OVR_SDK_RENDERING
 	InViewFamily.bUseSeparateRenderTarget = false;
-#else
-	InViewFamily.bUseSeparateRenderTarget = ShouldUseSeparateRenderTarget();
-#endif
 
 	// check and save texture size. 
 	if (InView.StereoPass == eSSP_LEFT_EYE)
@@ -1615,11 +1700,21 @@ void FOculusRiftHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InVie
 			Flags.bNeedUpdateStereoRenderingParams = true;
 		}
 	}
+#else
+	InViewFamily.bUseSeparateRenderTarget = ShouldUseSeparateRenderTarget();
+#endif
 }
 
 bool FOculusRiftHMD::IsHeadTrackingAllowed() const
 {
-	return Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D();
+#if WITH_EDITOR
+	UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+#endif//WITH_EDITOR
+	return Hmd && 
+#if WITH_EDITOR
+		(!EdEngine || EdEngine->bUseVRPreviewForPlayWorld) &&
+#endif//WITH_EDITOR
+		(Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
 }
 
 //---------------------------------------------------
@@ -1640,7 +1735,6 @@ FOculusRiftHMD::FOculusRiftHMD()
 	, MirrorWindowSize(0, 0)
 	, NearClippingPlane(0)
 	, FarClippingPlane(0)
-	, CurHmdOrientation(FQuat::Identity)
 	, DeltaControlRotation(FRotator::ZeroRotator)
 	, DeltaControlOrientation(FQuat::Identity)
 	, LastHmdOrientation(FQuat::Identity)
@@ -1678,6 +1772,11 @@ FOculusRiftHMD::FOculusRiftHMD()
 #else
 	AlternateFrameRateDivider = 1;
 #endif
+	if (GIsEditor)
+	{
+		Flags.bOverrideScreenPercentage = true;
+		ScreenPercentage = 100;
+	}
 	SupportedTrackingCaps = SupportedDistortionCaps = SupportedHmdCaps = 0;
 	OSWindowHandle = nullptr;
 	Startup();
@@ -1736,6 +1835,7 @@ void FOculusRiftHMD::Startup()
 	if (GIsEditor)
 	{
 		Flags.bHeadTrackingEnforced = true;
+		//AlternateFrameRateDivider = 2;
 	}
 
 	bool forced = true;
@@ -2113,12 +2213,15 @@ void FOculusRiftHMD::LoadFromIni()
 			Flags.bVSync = v;
 		}
 	}
-	if (GConfig->GetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), v, GEngineIni))
+	if (!GIsEditor)
 	{
-		Flags.bOverrideScreenPercentage = v;
-		if (GConfig->GetFloat(OculusSettings, TEXT("ScreenPercentage"), f, GEngineIni))
+		if (GConfig->GetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), v, GEngineIni))
 		{
-			ScreenPercentage = f;
+			Flags.bOverrideScreenPercentage = v;
+			if (GConfig->GetFloat(OculusSettings, TEXT("ScreenPercentage"), f, GEngineIni))
+			{
+				ScreenPercentage = f;
+			}
 		}
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bAllowFinishCurrentFrame"), v, GEngineIni))
@@ -2168,11 +2271,14 @@ void FOculusRiftHMD::SaveToIni()
 		GConfig->SetBool(OculusSettings, TEXT("VSync"), Flags.bVSync, GEngineIni);
 	}
 
-	GConfig->SetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), Flags.bOverrideScreenPercentage, GEngineIni);
-	if (Flags.bOverrideScreenPercentage)
+	if (!GIsEditor)
 	{
-		// Save the current ScreenPercentage state
-		GConfig->SetFloat(OculusSettings, TEXT("ScreenPercentage"), ScreenPercentage, GEngineIni);
+		GConfig->SetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), Flags.bOverrideScreenPercentage, GEngineIni);
+		if (Flags.bOverrideScreenPercentage)
+		{
+			// Save the current ScreenPercentage state
+			GConfig->SetFloat(OculusSettings, TEXT("ScreenPercentage"), ScreenPercentage, GEngineIni);
+		}
 	}
 	GConfig->SetBool(OculusSettings, TEXT("bAllowFinishCurrentFrame"), Flags.bAllowFinishCurrentFrame, GEngineIni);
 
@@ -2206,7 +2312,6 @@ void FOculusRiftHMD::OnBeginPlay()
 	// This call make sense when 'Play' is used from the Editor;
 	if (GIsEditor)
 	{
-		//LastHmdPosition = 
 		PositionOffset = FVector::ZeroVector;
 		DeltaControlRotation = FRotator::ZeroRotator;
 		BaseOrientation = LastHmdOrientation = DeltaControlOrientation = FQuat::Identity;
@@ -2221,6 +2326,7 @@ void FOculusRiftHMD::OnEndPlay()
 {
 	if (GIsEditor)
 	{
+		EnableStereo(false);
 		ReleaseDevice();
 	}
 }

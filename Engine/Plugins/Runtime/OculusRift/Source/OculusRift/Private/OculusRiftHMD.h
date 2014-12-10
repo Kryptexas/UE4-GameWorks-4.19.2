@@ -81,7 +81,6 @@ public:
 
 	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
 	virtual float GetInterpupillaryDistance() const override;
-    //virtual float GetFieldOfViewInRadians() const override;
 	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
 
 	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
@@ -170,6 +169,7 @@ public:
 
 	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) override;
 
+	bool DoEnableStereo(bool bStereo, bool bApplyToHmd);
 	void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition);
 	void BeginRendering_RenderThread();
 
@@ -406,6 +406,8 @@ private:
 
 	void PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOrientation, FVector& OutPosition) const;
 
+	class FSceneViewport* FindSceneViewport();
+
 #if !UE_BUILD_SHIPPING
 	void DrawDebugTrackingCameraFrustum(class UWorld* InWorld, const FVector& ViewLocation);
 #endif // #if !UE_BUILD_SHIPPING
@@ -575,9 +577,6 @@ private: // data
 	/** Optional far clipping plane for projection matrix */
 	float					FarClippingPlane;
 
-	/** Player's orientation tracking */
-	FQuat					CurHmdOrientation;
-
 	FRotator				DeltaControlRotation;    // same as DeltaControlOrientation but as rotator
 	FQuat					DeltaControlOrientation; // same as DeltaControlRotation but as quat
 
@@ -651,7 +650,6 @@ private: // data
 		Ptr<FDistortionMesh>	pDistortionMesh[2]; // 0 - left, 1 - right, same as Views
 		ovrVector2f				UVScale[2];			// 0 - left, 1 - right, same as Views
 		ovrVector2f				UVOffset[2];		// 0 - left, 1 - right, same as Views
-		FQuat					CurHmdOrientation;
 #else
 		ovrFovPort				EyeFov[2];			// 0 - left, 1 - right, same as Views
 #endif // OVR_SDK_RENDERING

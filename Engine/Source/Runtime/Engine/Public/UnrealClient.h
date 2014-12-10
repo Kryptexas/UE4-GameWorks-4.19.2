@@ -506,6 +506,9 @@ public:
   	 **/
 	ENGINE_API bool TakeHighResScreenShot();
 
+	/** Should return true, if stereo rendering is allowed in this viewport */
+	virtual bool IsStereoRenderingAllowed() const { return false; }
+
 protected:
 
 	/** The viewport's client. */

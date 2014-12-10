@@ -214,8 +214,9 @@ protected:
 	/**
 	 * Retrieve the viewpoint of this player.
 	 * @param OutViewInfo - Upon return contains the view information for the player.
+	 * @param StereoPass - Which stereoscopic pass, if any, to get the viewport for.  This will include eye offsetting
 	 */
-	void GetViewPoint(FMinimalViewInfo& OutViewInfo);
+	void GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass = eSSP_FULL);
 
 	/** @todo document */
 	void ExecMacro( const TCHAR* Filename, FOutputDevice& Ar );

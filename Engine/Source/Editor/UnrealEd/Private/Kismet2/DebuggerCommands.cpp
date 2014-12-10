@@ -20,6 +20,8 @@
 #include "ProjectTargetPlatformEditor.h"
 #include "PlatformInfo.h"
 
+#include "IHeadMountedDisplay.h"
+
 //@TODO: Remove this dependency
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
@@ -54,6 +56,8 @@ public:
 	static bool PlayInEditorFloating_CanExecute();
 	static void PlayInNewProcess_Clicked( bool MobilePreview );
 	static bool PlayInNewProcess_CanExecute();
+	static void PlayInVR_Clicked();
+	static bool PlayInVR_CanExecute();
 	static bool PlayInModeIsChecked( EPlayModeType PlayMode );
 
 	static bool PlayInLocation_CanExecute( EPlayModeLocations Location );
@@ -105,6 +109,7 @@ public:
 	static bool IsStoppedAtBreakpoint();
 
 	static bool CanShowNonPlayWorldOnlyActions();
+	static bool CanShowVROnlyActions();
 
 	static int32 GetNumberOfClients();
 	static void SetNumberOfClients(int32 NumClients, ETextCommit::Type CommitInfo);
@@ -219,6 +224,7 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( RepeatLastPlay, "Play", "Launches a game preview session in the same mode as the last game preview session launched from the Game Preview Modes dropdown next to the Play button on the level editor toolbar", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt ) )
 	UI_COMMAND( PlayInViewport, "Selected Viewport", "Play this level in the active level editor viewport", EUserInterfaceActionType::Check, FInputGesture() );
 	UI_COMMAND( PlayInEditorFloating, "New Editor Window", "Play this level in a new window", EUserInterfaceActionType::Check, FInputGesture() );
+	UI_COMMAND( PlayInVR, "VR Preview", "Play this level in VR", EUserInterfaceActionType::Check, FInputGesture() );
 	UI_COMMAND( PlayInMobilePreview, "Mobile Preview", "Play this level as a mobile device preview (runs in its own process)", EUserInterfaceActionType::Check, FInputGesture() );
 	UI_COMMAND( PlayInNewProcess, "Standalone Game", "Play this level in a new window that runs in its own process", EUserInterfaceActionType::Check, FInputGesture() );
 	UI_COMMAND( PlayInCameraLocation, "Current Camera Location", "Spawn the player at the current camera location", EUserInterfaceActionType::RadioButton, FInputGesture() );
@@ -280,6 +286,13 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_CanExecute ),
 		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InEditorFloating ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
+		);
+
+	ActionList.MapAction(Commands.PlayInVR,
+		FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked),
+		FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInVR_CanExecute),
+		FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InVR),
+		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions)
 		);
 
 	ActionList.MapAction( Commands.PlayInMobilePreview,
@@ -498,6 +511,10 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 				PlayModeCommand = FPlayWorldCommands::Get().PlayInViewport;
 				break;
 
+			case PlayMode_InVR:
+				PlayModeCommand = FPlayWorldCommands::Get().PlayInVR;
+				break;
+
 			case PlayMode_Simulate:
 				PlayModeCommand = FPlayWorldCommands::Get().Simulate;
 				break;
@@ -519,6 +536,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InViewPort);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InMobilePreview);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InEditorFloating);
+		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InVR);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InNewProcess);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_Simulate);
 	}
@@ -994,6 +1012,11 @@ const TSharedRef < FUICommandInfo > GetLastPlaySessionCommand()
 	case PlayMode_InNewProcess:
 		Command = Commands.PlayInNewProcess.ToSharedRef();
 		break;
+
+	case PlayMode_InVR:
+		Command = Commands.PlayInVR.ToSharedRef();
+		break;
+
 	case PlayMode_Simulate:
 		Command = Commands.Simulate.ToSharedRef();
 	}
@@ -1202,6 +1225,56 @@ void FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_Clicked( )
 bool FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_CanExecute()
 {
 	return !HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor;
+}
+
+void FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked()
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+
+	SetLastExecutedPlayMode(PlayMode_InVR);
+
+	// Is a PIE session already running?  If not, then we'll kick off a new one
+	if (!HasPlayWorld())
+	{
+		RecordLastExecutedPlayMode();
+
+		const bool bAtPlayerStart = (GetPlayModeLocation() == PlayLocation_DefaultPlayerStart);
+		const bool bSimulateInEditor = false;
+
+		const FVector* StartLoc = NULL;
+		const FRotator* StartRot = NULL;
+
+		if (!bAtPlayerStart)
+		{
+			TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+			// Make sure we can find a path to the view port.  This will fail in cases where the view port widget
+			// is in a backgrounded tab, etc.  We can't currently support starting PIE in a backgrounded tab
+			// due to how PIE manages focus and requires event forwarding from the application.
+			if (ActiveLevelViewport.IsValid() &&
+				FSlateApplication::Get().FindWidgetWindow(ActiveLevelViewport->AsWidget()).IsValid())
+			{
+				// Start the player where the camera is if not forcing from player start
+				StartLoc = &ActiveLevelViewport->GetLevelViewportClient().GetViewLocation();
+				StartRot = &ActiveLevelViewport->GetLevelViewportClient().GetViewRotation();
+			}
+		}
+
+		const bool bHMDIsReady = (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected());
+		// Spawn a new window to play in.
+		GUnrealEd->RequestPlaySession(bAtPlayerStart, NULL, bSimulateInEditor, StartLoc, StartRot, -1, false, bHMDIsReady);
+	}
+	else
+	{
+		// Terminate existing session
+		GUnrealEd->EndPlayMap();
+	}
+}
+
+
+bool FInternalPlayWorldCommandCallbacks::PlayInVR_CanExecute()
+{
+	return (!HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor) && GEngine && GEngine->HMDDevice.IsValid();
 }
 
 
@@ -1652,6 +1725,10 @@ bool FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions()
 	return !HasPlayWorld();
 }
 
+bool FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions()
+{
+	return !HasPlayWorld();
+}
 
 bool FInternalPlayWorldCommandCallbacks::HasPlayWorld()
 {

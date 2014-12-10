@@ -1725,20 +1725,18 @@ void UCanvas::SetView(FSceneView* InView)
 	SceneView = InView;
 	if (InView)
 	{
-		if (GEngine->StereoRenderingDevice.IsValid() && GEngine->IsStereoscopic3D() && HmdOrientation != FQuat::Identity)
+		if (GEngine->StereoRenderingDevice.IsValid() && InView->StereoPass != eSSP_FULL && HmdOrientation != FQuat::Identity)
 		{
 			GEngine->StereoRenderingDevice->InitCanvasFromView(InView, this);
 		}
 		else
 		{
 			ViewProjectionMatrix = InView->ViewProjectionMatrix;
-			//ViewRotation = InView->ViewRotation;
 		}
 	}
 	else
 	{
 		ViewProjectionMatrix.SetIdentity();
-		//ViewRotation = FRotator(0,0,0);
 	}
 }
 

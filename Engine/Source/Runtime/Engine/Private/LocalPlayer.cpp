@@ -411,7 +411,7 @@ public:
 			else
 			{
 				FMinimalViewInfo MinViewInfo;
-				Player->GetViewPoint(MinViewInfo);
+				Player->GetViewPoint(MinViewInfo, eSSP_FULL);
 				PlayerState.ViewPoint.Location = MinViewInfo.Location;
 				PlayerState.ViewPoint.Rotation = MinViewInfo.Rotation;
 				PlayerState.ViewPoint.FOV = MinViewInfo.FOV;
@@ -429,7 +429,7 @@ public:
 			else
 			{
 				FMinimalViewInfo MinViewInfo;
-				Player->GetViewPoint(MinViewInfo);
+				Player->GetViewPoint(MinViewInfo, eSSP_FULL);
 				PlayerState.ViewPoint.Location = MinViewInfo.Location;
 				PlayerState.ViewPoint.Rotation = MinViewInfo.Rotation;
 				PlayerState.ViewPoint.FOV = MinViewInfo.FOV;
@@ -625,7 +625,7 @@ FAutoConsoleCommand FLockedViewState::CmdCopyLockedViews(
 	FConsoleCommandDelegate::CreateStatic(FLockedViewState::CopyLockedViews)
 	);
 
-void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
+void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass)
 {
 	if (FLockedViewState::Get().GetViewPoint(this, OutViewInfo.Location, OutViewInfo.Rotation, OutViewInfo.FOV) == false
 		&& PlayerController != NULL)
@@ -643,7 +643,7 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
 	}
 
     // allow HMDs to override fov
-    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+    if ((StereoPass != eSSP_FULL) && GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
     {
 		float HFOV, VFOV;
         GEngine->HMDDevice->GetFieldOfView(HFOV, VFOV);
@@ -688,7 +688,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	// Get the viewpoint...technically doing this twice
 	// but it makes GetProjectionData better
 	FMinimalViewInfo ViewInfo;
-	GetViewPoint(ViewInfo);
+	GetViewPoint(ViewInfo, StereoPass);
 	
 	OutViewLocation = ViewInfo.Location;
 	OutViewRotation = ViewInfo.Rotation;
@@ -933,10 +933,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	// Get the viewpoint.
 	FMinimalViewInfo ViewInfo;
-	GetViewPoint(/*out*/ ViewInfo);
+	GetViewPoint(/*out*/ ViewInfo, StereoPass);
 
 	// If stereo rendering is enabled, update the size and offset appropriately for this pass
-	const bool bNeedStereo = GEngine->IsStereoscopic3D() && (StereoPass != eSSP_FULL);
+	const bool bNeedStereo = (StereoPass != eSSP_FULL) && GEngine->IsStereoscopic3D();
 	if( bNeedStereo )
 	{
 		GEngine->StereoRenderingDevice->AdjustViewRect(StereoPass, X, Y, SizeX, SizeY);
@@ -946,7 +946,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
 	
     FVector StereoViewLocation = ViewInfo.Location;
-    if ((GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL) || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
+    if (bNeedStereo || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
     {
         GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
     }

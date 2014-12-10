@@ -387,6 +387,10 @@ class UNREALED_API UEditorEngine : public UEngine
 	UPROPERTY()
 	uint32 bUseMobilePreviewForPlayWorld:1;
 
+	/** True to enable VR preview mode when launching the game from the editor on PC platform */
+	UPROPERTY()
+	uint32 bUseVRPreviewForPlayWorld:1;
+
 	/** True if we're Simulating In Editor, as opposed to Playing In Editor.  In this mode, simulation takes place right the level editing environment */
 	UPROPERTY()
 	uint32 bIsSimulatingInEditor:1;
@@ -1483,8 +1487,9 @@ public:
 	 * @param	StartRotation			If specified, this is the rotation to start playing at
 	 * @param	DestinationConsole		Where to play the game - -1 means in editor, 0 or more is an index into the GConsoleSupportContainer
 	 * @param	bUseMobilePreview		True to enable mobile preview mode (PC platform only)
+	 * @param	bUseVRPreview			True to enable VR preview mode (PC platform only)
 	 */
-	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false );
+	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false );
 
 	// @todo gmp: temp hack for Rocket demo
 	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview );

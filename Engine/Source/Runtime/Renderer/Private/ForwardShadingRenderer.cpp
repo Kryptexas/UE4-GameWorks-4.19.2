@@ -189,7 +189,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Finish rendering for each view, or the full stereo buffer if enabled
 		if (ViewFamily.bResolveScene)
 		{
-			if (GEngine->IsStereoscopic3D())
+			if (ViewFamily.EngineShowFlags.StereoRendering)
 			{
 				check(Views.Num() > 1);
 

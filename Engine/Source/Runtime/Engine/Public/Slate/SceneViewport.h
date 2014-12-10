@@ -211,6 +211,10 @@ public:
 	
 	void SetViewportSize(uint32 NewSizeX,uint32 NewSizeY);
 	TSharedPtr<SWindow> FindWindow();
+
+	/** Should return true, if stereo rendering is allowed in this viewport */
+	virtual bool IsStereoRenderingAllowed() const;
+
 private:
 	/**
 	 * Called when this viewport is destroyed

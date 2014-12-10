@@ -14,6 +14,7 @@ public:
 		, _RenderDirectlyToWindow(false)
 		, _EnableGammaCorrection(true)
 		, _EnableBlending(false)
+		, _EnableStereoRendering(false)
 		, _IgnoreTextureAlpha(true)
 		, _ViewportSize(FVector2D(320.0f, 240.0f))
 	{ }
@@ -35,6 +36,9 @@ public:
 
 		/** Allow this viewport to blend with its background. */
 		SLATE_ARGUMENT( bool, EnableBlending )
+
+		/** Whether or not to enable stereo rendering. */
+		SLATE_ARGUMENT(bool, EnableStereoRendering )
 
 		/**
 		 * If true, the viewport's texture alpha is ignored when performing blending.  In this case only the viewport tint opacity is used
@@ -108,6 +112,9 @@ public:
 
 	/** @return Whether or not this viewport renders directly to the backbuffer */
 	bool ShouldRenderDirectly() const { return bRenderDirectlyToWindow; }
+
+	/** @return Whether or not this viewport supports stereo rendering */
+	bool IsStereoRenderingAllowed() const { return bEnableStereoRendering; }
 
 	/**
 	 * Sets a widget that should become focused when this window is next activated
@@ -200,6 +207,9 @@ private:
 
 	/** Whether or not to blend this viewport with the background. */
 	bool bEnableBlending;
+
+	/** Whether or not to enable stereo rendering. */
+	bool bEnableStereoRendering;
 
 	/** Whether or not to allow texture alpha to be used in blending calculations. */
 	bool bIgnoreTextureAlpha;
