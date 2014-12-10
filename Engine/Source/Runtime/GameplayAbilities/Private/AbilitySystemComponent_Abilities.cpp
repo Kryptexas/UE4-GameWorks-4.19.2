@@ -142,9 +142,20 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
 {
 	check(AbilityActorInfo.IsValid());
+	bool AvatarChanged = (InAvatarActor != AbilityActorInfo->AvatarActor);
+
 	AbilityActorInfo->InitFromActor(InOwnerActor, InAvatarActor, this);
+
 	OwnerActor = InOwnerActor;
 	AvatarActor = InAvatarActor;
+
+	if (AvatarChanged)
+	{
+		for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
+		{
+			Spec.Ability->OnAvatarSet(AbilityActorInfo.Get(), Spec);
+		}
+	}
 }
 
 void UAbilitySystemComponent::UpdateShouldTick()
@@ -274,6 +285,8 @@ void UAbilitySystemComponent::OnGiveAbility(const FGameplayAbilitySpec Spec)
 			GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
 		}
 	}
+
+	Spec.Ability->OnGiveAbility(AbilityActorInfo.Get(), Spec);
 }
 
 void UAbilitySystemComponent::CheckForClearedAbilities()
@@ -822,7 +835,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGamep
 
 			if (!found)
 			{
-				ABILITY_LOG(Warning, TEXT("Ability %s was confirmed by server but no longer exists on client (replication key: %d"), *AbilityToActivate->GetName(), PredictionKey);
+				ABILITY_LOG(Verbose, TEXT("Ability %s was confirmed by server but no longer exists on client (replication key: %d"), *AbilityToActivate->GetName(), PredictionKey);
 			}
 		}
 	}
@@ -952,7 +965,6 @@ void UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, FGamepl
 		for (auto AbilityHandle : TriggeredAbilityHandles)
 		{
 			TriggerAbilityFromGameplayEvent(AbilityHandle, AbilityActorInfo.Get(), EventTag, Payload, *this);
-						
 		}
 	}
 }

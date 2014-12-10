@@ -261,7 +261,7 @@ void UGameplayAbility::CommitExecute(const FGameplayAbilitySpecHandle Handle, co
 
 void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	EndAbility();
+	EndAbility(Handle, ActorInfo, ActivationInfo);
 }
 
 void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -863,6 +863,22 @@ bool UGameplayAbility::IsTriggered() const
 bool UGameplayAbility::HasAuthorityOrPredictionKey(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo* ActivationInfo) const
 {
 	return ActorInfo->AbilitySystemComponent->HasAuthorityOrPredictionKey(ActivationInfo);
+}
+
+void UGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
+{
+	SetCurrentActorInfo(Spec.Handle, ActorInfo);
+
+	// If we already have an avatar set, call the OnAvatarSet event as well
+	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		OnAvatarSet(ActorInfo, Spec);
+	}
+}
+
+void UGameplayAbility::OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
+{
+	// Projects may want to initiate passives or do other "BeginPlay" type of logic here.
 }
 
 // -------------------------------------------------------
