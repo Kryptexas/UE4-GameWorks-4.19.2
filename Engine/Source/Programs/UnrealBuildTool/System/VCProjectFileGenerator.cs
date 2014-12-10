@@ -763,22 +763,51 @@ namespace UnrealBuildTool
 			// Save a solution config file which selects the development editor configuration by default.
 			if (bSuccess)
 			{
-				VCSolutionConfigCombination DefaultConfig = SolutionConfigCombinations.Find(x => x.Configuration == UnrealTargetConfiguration.Development && x.Platform == UnrealTargetPlatform.Win64 && x.TargetConfigurationName == "Editor");
-				if (DefaultConfig != null)
-				{
-					// Figure out the filename for the SUO file. VS2013 will automatically import the VS2012 options if necessary.
-					string SolutionOptionsExtension = (ProjectFileFormat == VCProjectFileFormat.VisualStudio2012)? "v11.suo" : "v12.suo";
+				// Figure out the filename for the SUO file. VS2013 will automatically import the VS2012 options if necessary.
+				string SolutionOptionsExtension = (ProjectFileFormat == VCProjectFileFormat.VisualStudio2012)? "v11.suo" : "v12.suo";
 
-					// Check it doesn't exist before overwriting it. Since these files store the user's preferences, it'd be bad form to overwrite them.
-					string SolutionOptionsFileName = Path.Combine(MasterProjectRelativePath, Path.ChangeExtension(SolutionFileName, SolutionOptionsExtension));
-					if(!File.Exists(SolutionOptionsFileName))
+				// Check it doesn't exist before overwriting it. Since these files store the user's preferences, it'd be bad form to overwrite them.
+				string SolutionOptionsFileName = Path.Combine(MasterProjectRelativePath, Path.ChangeExtension(SolutionFileName, SolutionOptionsExtension));
+				if(!File.Exists(SolutionOptionsFileName))
+				{
+					VCSolutionOptions Options = new VCSolutionOptions();
+
+					// Set the default configuration and startup project
+					VCSolutionConfigCombination DefaultConfig = SolutionConfigCombinations.Find(x => x.Configuration == UnrealTargetConfiguration.Development && x.Platform == UnrealTargetPlatform.Win64 && x.TargetConfigurationName == "Editor");
+					if (DefaultConfig != null)
 					{
-						VCSolutionOptions Options = new VCSolutionOptions();
-						Options.SolutionConfiguration.Add(new VCBinarySetting("ActiveCfg", DefaultConfig.VCSolutionConfigAndPlatformName));
+						List<VCBinarySetting> Settings = new List<VCBinarySetting>();
+						Settings.Add(new VCBinarySetting("ActiveCfg", DefaultConfig.VCSolutionConfigAndPlatformName));
 						if(DefaultProject != null)
 						{
-							Options.SolutionConfiguration.Add(new VCBinarySetting("StartupProject", ((MSBuildProjectFile)DefaultProject).ProjectGUID.ToString("B")));
+							Settings.Add(new VCBinarySetting("StartupProject", ((MSBuildProjectFile)DefaultProject).ProjectGUID.ToString("B")));
 						}
+						Options.SetConfiguration(Settings);
+					}
+
+					// Mark all the projects as closed by default, apart from the startup project
+					VCSolutionExplorerState ExplorerState = new VCSolutionExplorerState();
+					foreach(ProjectFile ProjectFile in AllProjectFiles)
+					{
+						string ProjectName = Path.GetFileNameWithoutExtension(ProjectFile.ProjectFilePath);
+						if(ProjectFile == DefaultProject)
+						{
+							ExplorerState.OpenProjects.Add(new Tuple<string, string[]>(ProjectName, new string[]{ ProjectName }));
+						}
+						else
+						{
+							ExplorerState.OpenProjects.Add(new Tuple<string, string[]>(ProjectName, new string[]{ }));
+						}
+					}
+					if((!bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles) || bAlwaysIncludeEngineModules)
+					{
+						ExplorerState.OpenProjects.Add(new Tuple<string, string[]>("Automation", new string[0]));
+					}
+					Options.SetExplorerState(ExplorerState);
+
+					// Write the file
+					if(Options.Sections.Count > 0)
+					{
 						Options.Write(SolutionOptionsFileName);
 					}
 				}
