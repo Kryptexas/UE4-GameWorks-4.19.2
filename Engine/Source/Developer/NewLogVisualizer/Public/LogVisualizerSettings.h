@@ -13,14 +13,6 @@ class NEWLOGVISUALIZER_API ULogVisualizerSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:
-#if WITH_EDITOR
-	// Begin UObject Interface
-	//virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	//virtual void PostInitProperties() override;
-	// End UObject Interface
-#endif
-
-public:
 	/**Whether to show trivial logs, i.e. the ones with only one entry.*/
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bIgnoreTrivialLogs;
@@ -48,11 +40,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bSearchInsideLogs;
 
-protected:
-
 	// UObject overrides
-
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 private:
 

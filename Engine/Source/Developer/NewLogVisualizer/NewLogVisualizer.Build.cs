@@ -18,6 +18,7 @@ public class NewLogVisualizer : ModuleRules
 			new string[] {
 				"Developer/TaskGraph/Public",
 				"Runtime/Engine/Classes",
+                "Editor/GeometryMode/Public"
 			}
 		);
 
@@ -32,6 +33,7 @@ public class NewLogVisualizer : ModuleRules
                 "EditorStyle",
 				"Engine",
 				"TaskGraph",
+                "GeometryMode",
 				"UnrealEd",
                 "SequencerWidgets",
 			}

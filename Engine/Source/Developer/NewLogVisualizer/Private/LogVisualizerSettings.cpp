@@ -6,6 +6,7 @@
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
 #include "ISettingsModule.h"
+#include "GeometryEdMode.h"
 #include "UnrealEdMisc.h"
 #endif // WITH_EDITOR
 
@@ -16,6 +17,7 @@ ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectI
 	bSearchInsideLogs = true;
 }
 
+#if WITH_EDITOR
 void ULogVisualizerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -28,4 +30,4 @@ void ULogVisualizerSettings::PostEditChangeProperty(struct FPropertyChangedEvent
 
 	SettingChangedEvent.Broadcast(Name);
 }
-
+#endif
