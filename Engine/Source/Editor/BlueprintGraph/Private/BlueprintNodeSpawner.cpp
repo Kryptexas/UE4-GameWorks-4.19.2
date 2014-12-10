@@ -225,7 +225,7 @@ FBlueprintActionUiSpec UBlueprintNodeSpawner::GetUiSpec(FBlueprintActionContext 
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	return SpawnNode(NodeClass, ParentGraph, Bindings, Location, CustomizeNodeDelegate);
+	return SpawnNode<UEdGraphNode>(NodeClass, ParentGraph, Bindings, Location, CustomizeNodeDelegate);
 }
 
 //------------------------------------------------------------------------------
