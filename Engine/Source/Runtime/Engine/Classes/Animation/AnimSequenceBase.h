@@ -352,6 +352,7 @@ struct FVectorCurve : public FAnimCurveBase
 	void CopyCurve(FVectorCurve& SourceCurve);
 	FVector Evaluate(float CurrentTime, float BlendWeight) const;
 	void UpdateOrAddKey(const FVector& NewKey, float CurrentTime);
+	bool DoesContainKey() const { return (FloatCurves[0].GetNumKeys() > 0 || FloatCurves[1].GetNumKeys() > 0 || FloatCurves[2].GetNumKeys() > 0);}
 };
 
 USTRUCT()

@@ -180,7 +180,14 @@ FTransform FTransformCurve::Evaluate(float CurrentTime, float BlendWeight) const
 {
 	FTransform Value;
 	Value.SetTranslation(TranslationCurve.Evaluate(CurrentTime, BlendWeight));
-	Value.SetScale3D(ScaleCurve.Evaluate(CurrentTime, BlendWeight));
+	if (ScaleCurve.DoesContainKey())
+	{
+		Value.SetScale3D(ScaleCurve.Evaluate(CurrentTime, BlendWeight));
+	}
+	else
+	{
+		Value.SetScale3D(FVector(1.f));
+	}
 
 	// blend rotation float curve
 	FVector RotationAsVector = RotationCurve.Evaluate(CurrentTime, BlendWeight);
