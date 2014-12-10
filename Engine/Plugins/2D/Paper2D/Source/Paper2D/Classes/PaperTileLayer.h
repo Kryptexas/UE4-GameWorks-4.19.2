@@ -32,6 +32,11 @@ struct FPaperTileInfo
 	{
 		return !(*this == Other);
 	}
+
+	bool IsValid() const
+	{
+		return (TileSet != nullptr) && (PackedTileIndex != INDEX_NONE);
+	}
 };
 
 UCLASS()
