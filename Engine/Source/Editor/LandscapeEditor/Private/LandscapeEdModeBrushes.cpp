@@ -260,7 +260,7 @@ public:
 
 							if (PaintAmount > 0.f)
 							{
-								if (EdMode->CurrentTool && EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
+								if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
 									&& EdMode->UISettings->bUseSelectedRegion)
 								{
 									float MaskValue = LandscapeInfo->SelectedRegion.FindRef(VertexKey);
@@ -462,7 +462,7 @@ public:
 				FIntPoint VertexKey = ALandscape::MakeKey(X, Y);
 
 				float PaintAmount = 1.0f;
-				if (EdMode->CurrentTool && EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
+				if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
 					&& EdMode->UISettings->bUseSelectedRegion)
 				{
 					float MaskValue = LandscapeInfo->SelectedRegion.FindRef(VertexKey);
@@ -681,7 +681,7 @@ public:
 
 						if (PaintAmount)
 						{
-							if (EdMode->CurrentTool && EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
+							if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
 								&& EdMode->UISettings->bUseSelectedRegion)
 							{
 								float MaskValue = LandscapeInfo->SelectedRegion.FindRef(VertexKey);
@@ -995,7 +995,7 @@ public:
 
 				if (PaintAmount > 0.f)
 				{
-					if (EdMode->CurrentTool && EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
+					if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
 						&& EdMode->UISettings->bUseSelectedRegion)
 					{
 						float MaskValue = LandscapeInfo->SelectedRegion.FindRef(VertexKey);
@@ -1131,7 +1131,7 @@ public:
 							// Set the brush value for this vertex
 							FIntPoint VertexKey = ALandscape::MakeKey(X, Y);
 
-							if (EdMode->CurrentTool && EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
+							if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != FLandscapeTool::TT_Mask
 								&& EdMode->UISettings->bUseSelectedRegion)
 							{
 								float MaskValue = LandscapeInfo->SelectedRegion.FindRef(VertexKey);

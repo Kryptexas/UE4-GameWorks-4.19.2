@@ -550,7 +550,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 			}
 		}
 
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
 			CurrentTool->Tick(ViewportClient, DeltaTime);
 		}
@@ -571,7 +571,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 {
 	if (bToolActive && !Viewport->KeyState(EKeys::LeftMouseButton))
 	{
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
 			CurrentTool->EndTool(ViewportClient);
 			bToolActive = false;
@@ -586,9 +586,9 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 	bool Result = false;
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
-			Result = CurrentTool && CurrentTool->MouseMove(ViewportClient, Viewport, MouseX, MouseY);
+			Result = CurrentTool->MouseMove(ViewportClient, Viewport, MouseX, MouseY);
 			//ViewportClient->Invalidate( false, false );
 		}
 	}
@@ -2054,7 +2054,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 	}
 
 	// Override Rendering for Splines Tool
-	if (CurrentTool && CurrentTool)
+	if (CurrentTool)
 	{
 		CurrentTool->Render(View, Viewport, PDI);
 	}
@@ -2092,7 +2092,7 @@ EAxisList::Type FEdModeLandscape::GetWidgetAxisToDraw(FWidget::EWidgetMode InWid
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
 		// Override Widget for Splines Tool
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
 			return CurrentTool->GetWidgetAxisToDraw(InWidgetMode);
 		}
@@ -2131,7 +2131,7 @@ FVector FEdModeLandscape::GetWidgetLocation() const
 	}
 
 	// Override Widget for Splines Tool
-	if (CurrentTool && CurrentTool)
+	if (CurrentTool)
 	{
 		return CurrentTool->GetWidgetLocation();
 	}
@@ -2148,7 +2148,7 @@ bool FEdModeLandscape::GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void*
 	}
 
 	// Override Widget for Splines Tool
-	if (CurrentTool && CurrentTool)
+	if (CurrentTool)
 	{
 		InMatrix = CurrentTool->GetWidgetRotation();
 		return true;
