@@ -7938,12 +7938,12 @@ void UEngine::HandleDisconnect( UWorld *InWorld, UNetDriver *NetDriver )
 		WorldContext->LastURL.RemoveOption( TEXT("Listen") );
 		WorldContext->LastURL.RemoveOption( TEXT("LAN") );
 
+		// Net driver destruction will occur during LoadMap (prevents GetNetMode from changing output for the remainder of the frame)
 		SetClientTravel( InWorld, TEXT("?closed"), TRAVEL_Absolute );
 	}
-
-	// Shut down any existing game connections
-	if (NetDriver)
+	else if (NetDriver)
 	{
+		// Shut down any existing game connections
 		if (InWorld)
 		{
 			// Call this to remove the NetDriver from the world context's ActiveNetDriver list
