@@ -29,26 +29,6 @@ enum EEmitterRenderModuleType
 };
 
 
-class SimpleTimer
-{
-public:
-	SimpleTimer()
-	{
-		StartTime = FPlatformTime::Seconds() * 1000.0;
-	}
-
-	double GetElapsedMilliseconds()
-	{
-		return (FPlatformTime::Seconds()*1000.0) - StartTime;
-	}
-
-	~SimpleTimer()
-	{
-	}
-
-private:
-	double StartTime;
-};
 
 /** 
  *	FniagaraEmitterProperties stores the attributes of an FNiagaraSimulation
