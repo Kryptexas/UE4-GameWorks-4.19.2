@@ -560,7 +560,11 @@ public:
 				{
 					Writer << EX_Self;
 				}
-				else 
+				else if (Term->ObjectLiteral == nullptr)
+				{
+					Writer << EX_NoInterface;
+				}
+				else
 				{
 					ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value! (%s)"), *CoerceProperty->GetFullName());
 				}

@@ -179,7 +179,7 @@ enum EExprToken
 	EX_NoObject				= 0x2A,	// NoObject.
 	EX_TransformConst		= 0x2B, // A transform constant
 	EX_IntConstByte			= 0x2C,	// Int constant that requires 1 byte.
-	//						= 0x2D,
+	EX_NoInterface			= 0x2D, // A null interface (similar to EX_NoObject, but for interfaces)
 	EX_DynamicCast			= 0x2E,	// Safe dynamic class casting.
 	EX_StructConst			= 0x2F, // An arbitrary UStruct constant
 	EX_EndStructConst		= 0x30, // End of UStruct constant

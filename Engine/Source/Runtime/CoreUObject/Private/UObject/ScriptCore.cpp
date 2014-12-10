@@ -1861,6 +1861,13 @@ void UObject::execNoObject( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_NoObject, execNoObject );
 
+void UObject::execNullInterface(FFrame& Stack, RESULT_DECL)
+{
+	FScriptInterface& InterfaceValue = *(FScriptInterface*)Result;
+	InterfaceValue.SetObject(nullptr);
+}
+IMPLEMENT_VM_FUNCTION( EX_NoInterface, execNullInterface );
+
 void UObject::execIntConstByte( FFrame& Stack, RESULT_DECL )
 {
 	*(int32*)Result = *Stack.Code++;

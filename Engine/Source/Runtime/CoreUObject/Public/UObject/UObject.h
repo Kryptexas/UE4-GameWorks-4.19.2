@@ -1004,6 +1004,7 @@ public:
 	DECLARE_FUNCTION(execTrue);
 	DECLARE_FUNCTION(execFalse);
 	DECLARE_FUNCTION(execNoObject);
+	DECLARE_FUNCTION(execNullInterface);
 	DECLARE_FUNCTION(execIntConstByte);
 	DECLARE_FUNCTION(execRotationConst);
 	DECLARE_FUNCTION(execVectorConst);

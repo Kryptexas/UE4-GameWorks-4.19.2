@@ -451,6 +451,11 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: EX_NoObject"), *Indents, (int32)Opcode);
 			break;
 		}
+	case EX_NoInterface:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_NoObject"), *Indents, (int32)Opcode);
+			break;
+		}
 	case EX_Self:
 		{
 			Ar.Logf(TEXT("%s $%X: EX_Self"), *Indents, (int32)Opcode);

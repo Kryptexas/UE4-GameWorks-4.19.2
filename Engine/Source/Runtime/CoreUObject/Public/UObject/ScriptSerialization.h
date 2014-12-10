@@ -179,6 +179,7 @@
 		case EX_True:
 		case EX_False:
 		case EX_NoObject:
+		case EX_NoInterface:
 		case EX_Self:
 		case EX_EndParmValue:
 		case EX_PopExecutionFlow:
