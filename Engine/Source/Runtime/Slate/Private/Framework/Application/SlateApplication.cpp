@@ -2226,7 +2226,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 
 	if (TheReply.ShouldEndDragDrop())
 	{
-		EndDragDrop();
+		CancelDragDrop();
 	}
 
 	if ( bStartingDragDrop )
@@ -2841,7 +2841,7 @@ TSharedPtr<FDragDropOperation> FSlateApplication::GetDragDroppingContent() const
 	return DragDropContent;
 }
 
-void FSlateApplication::EndDragDrop()
+void FSlateApplication::CancelDragDrop()
 {
 	FWidgetPath WidgetsToDragLeave = WidgetsUnderCursorLastEvent.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::Truncate);
 	if (WidgetsToDragLeave.IsValid())
@@ -2852,6 +2852,8 @@ void FSlateApplication::EndDragDrop()
 			WidgetsToDragLeave.Widgets[WidgetIndex].Widget->OnDragLeave(DragDropEvent);
 		}
 	}
+
+	WidgetsUnderCursorLastEvent = FWeakWidgetPath();
 	DragDropContent.Reset();
 }
 
@@ -3469,7 +3471,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 	if (IsDragDropping() && InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		// Pressing ESC while drag and dropping terminates the drag drop.
-		EndDragDrop();
+		CancelDragDrop();
 		Reply = FReply::Handled();
 	}
 	else
@@ -3972,6 +3974,7 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 			// @todo slate : depending on SetEventPath() is not ideal.
 			MouseEvent.SetEventPath( WidgetsUnderCursor );
 			LocalDragDropContent->OnDrop( Reply.IsEventHandled(), MouseEvent );
+			WidgetsUnderCursorLastEvent = FWeakWidgetPath();
 		}
 	}
 

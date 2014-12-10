@@ -543,7 +543,7 @@ public:
 	TSharedPtr<class FDragDropOperation> GetDragDroppingContent() const;
 
 	/** End any in flight drag and drops */
-	void EndDragDrop();
+	void CancelDragDrop();
 
 	/**
 	 * Returns the attribute that can be used by widgets to check if the application is in normal execution mode
