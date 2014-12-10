@@ -2032,6 +2032,11 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 
 		// sort the translucent primitives
 		View.TranslucentPrimSet.SortPrimitives();
+
+		if (View.State)
+		{
+			((FSceneViewState*)View.State)->TrimHistoryRenderTargets(Scene);
+		}
 	}
 
 	bool bCheckLightShafts = false;
