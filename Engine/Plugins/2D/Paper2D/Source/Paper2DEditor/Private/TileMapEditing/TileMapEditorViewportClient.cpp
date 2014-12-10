@@ -45,6 +45,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 		RenderTileMapComponent = NewObject<UPaperTileMapRenderComponent>();
 		UPaperTileMap* TileMap = GetTileMapBeingEdited();
 		RenderTileMapComponent->TileMap = TileMap;
+		GSelectedAnnotation.Set(RenderTileMapComponent);
 
 		PreviewScene->AddComponent(RenderTileMapComponent, FTransform::Identity);
 	}
