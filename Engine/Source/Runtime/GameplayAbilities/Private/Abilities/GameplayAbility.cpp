@@ -215,6 +215,30 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilitySpecHandle Handle, co
 	return true;
 }
 
+bool UGameplayAbility::CommitAbilityCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	// Last chance to fail (maybe we no longer have resources to commit since we after we started this ability activation)
+	if (!CheckCooldown(Handle, ActorInfo))
+	{
+		return false;
+	}
+
+	ApplyCooldown(Handle, ActorInfo, ActivationInfo);
+	return true;
+}
+
+bool UGameplayAbility::CommitAbilityCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	// Last chance to fail (maybe we no longer have resources to commit since we after we started this ability activation)
+	if (!CheckCost(Handle, ActorInfo))
+	{
+		return false;
+	}
+
+	ApplyCost(Handle, ActorInfo, ActivationInfo);
+	return true;
+}
+
 bool UGameplayAbility::CommitCheck(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	/**
@@ -225,17 +249,7 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilitySpecHandle Handle, cons
 	 *			-E.g., its possible the act of starting your ability makes it no longer activatable (CanaCtivateAbility() may be false if called here).
 	 */
 
-	if (!CheckCooldown(Handle, ActorInfo))
-	{
-		return false;
-	}
-
-	if (!CheckCost(Handle, ActorInfo))
-	{
-		return false;
-	}
-
-	return true;
+	return (CheckCooldown(Handle, ActorInfo) && CheckCost(Handle, ActorInfo));
 }
 
 void UGameplayAbility::CommitExecute(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -247,7 +261,7 @@ void UGameplayAbility::CommitExecute(const FGameplayAbilitySpecHandle Handle, co
 
 void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	EndAbility(Handle, ActorInfo, ActivationInfo);
+	EndAbility();
 }
 
 void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -564,6 +578,30 @@ bool UGameplayAbility::K2_CommitAbility()
 {
 	check(CurrentActorInfo);
 	return CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+}
+
+bool UGameplayAbility::K2_CommitAbilityCooldown()
+{
+	check(CurrentActorInfo);
+	return CommitAbilityCooldown(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+}
+
+bool UGameplayAbility::K2_CommitAbilityCost()
+{
+	check(CurrentActorInfo);
+	return CommitAbilityCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+}
+
+bool UGameplayAbility::K2_CheckAbilityCooldown()
+{
+	check(CurrentActorInfo);
+	return CheckCooldown(CurrentSpecHandle, CurrentActorInfo);
+}
+
+bool UGameplayAbility::K2_CheckAbilityCost()
+{
+	check(CurrentActorInfo);
+	return CheckCost(CurrentSpecHandle, CurrentActorInfo);
 }
 
 void UGameplayAbility::K2_EndAbility()
