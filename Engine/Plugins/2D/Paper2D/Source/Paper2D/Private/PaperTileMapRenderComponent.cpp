@@ -310,4 +310,9 @@ void UPaperTileMapRenderComponent::RebuildRenderData(FPaperTileMapRenderScenePro
 	Proxy->SetBatchesHack(BatchedSprites);
 }
 
+bool UPaperTileMapRenderComponent::OwnsTileMap() const
+{
+	return (TileMap != nullptr) && (TileMap->GetOuter() == this);
+}
+
 #undef LOCTEXT_NAMESPACE

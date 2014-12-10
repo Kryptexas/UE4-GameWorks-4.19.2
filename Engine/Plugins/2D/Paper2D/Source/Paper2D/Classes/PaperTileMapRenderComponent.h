@@ -66,4 +66,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual class UBodySetup* GetBodySetup() override;
 	// End of UPrimitiveComponent interface
+
+	// Does this component own the tile map (is it instanced instead of being an asset reference)?
+	bool OwnsTileMap() const;
 };
