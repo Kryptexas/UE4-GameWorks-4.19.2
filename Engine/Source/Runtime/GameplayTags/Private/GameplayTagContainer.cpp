@@ -2,6 +2,8 @@
 
 #include "GameplayTagsModulePrivatePCH.h"
 
+const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;
+
 FGameplayTagContainer::FGameplayTagContainer()
 {}
 

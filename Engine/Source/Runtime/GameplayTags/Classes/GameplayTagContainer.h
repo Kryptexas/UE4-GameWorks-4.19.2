@@ -240,6 +240,8 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 		return GameplayTags.Num() > 0 ? GameplayTags.Last() : FGameplayTag();
 	}
 
+	/** An empty Gameplay Tag Container */
+	static const FGameplayTagContainer EmptyContainer;
 
 protected:
 	/**
