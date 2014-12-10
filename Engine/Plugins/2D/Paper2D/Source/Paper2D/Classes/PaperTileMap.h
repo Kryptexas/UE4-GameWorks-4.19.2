@@ -26,7 +26,7 @@ namespace ETileMapProjectionMode
 
 
 UCLASS()
-class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it easy to spawn for now
+class PAPER2D_API UPaperTileMap : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
