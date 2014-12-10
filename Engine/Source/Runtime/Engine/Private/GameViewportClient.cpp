@@ -539,7 +539,7 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 
 #endif
 
-	if (!InViewport->HasMouseCapture() || !InViewport->HasFocus() || (ViewportConsole && ViewportConsole->ConsoleActive()))
+	if ((!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}
