@@ -4,6 +4,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/BodySetup2D.h"
 
+#define LOCTEXT_NAMESPACE "Paper2D"
+
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileMap
 
@@ -158,3 +160,56 @@ FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
 	const FBox Box(TopLeft, TopLeft + Dimenisons);
 	return FBoxSphereBounds(Box);
 }
+
+UPaperTileLayer* UPaperTileMap::AddNewLayer(bool bCollisionLayer, int32 InsertionIndex)
+{
+	// Create the new layer
+	UPaperTileLayer* NewLayer = NewObject<UPaperTileLayer>(this);
+	NewLayer->SetFlags(RF_Transactional);
+
+	NewLayer->LayerWidth = MapWidth;
+	NewLayer->LayerHeight = MapHeight;
+	NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
+	NewLayer->LayerName = GenerateNewLayerName(this);
+	NewLayer->bCollisionLayer = bCollisionLayer;
+
+	// Insert the new layer
+	if (TileLayers.IsValidIndex(InsertionIndex))
+	{
+		TileLayers.Insert(NewLayer, InsertionIndex);
+	}
+	else
+	{
+		TileLayers.Add(NewLayer);
+	}
+
+	return NewLayer;
+}
+
+FText UPaperTileMap::GenerateNewLayerName(UPaperTileMap* TileMap)
+{
+	// Create a set of existing names
+	TSet<FString> ExistingNames;
+	for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
+	{
+		ExistingNames.Add(ExistingLayer->LayerName.ToString());
+	}
+
+	// Find a good name
+	FText TestLayerName;
+	do
+	{
+		TileMap->LayerNameIndex++;
+
+		FNumberFormattingOptions NoGroupingFormat;
+		NoGroupingFormat.SetUseGrouping(false);
+
+		TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &NoGroupingFormat));
+	} while (ExistingNames.Contains(TestLayerName.ToString()));
+
+	return TestLayerName;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

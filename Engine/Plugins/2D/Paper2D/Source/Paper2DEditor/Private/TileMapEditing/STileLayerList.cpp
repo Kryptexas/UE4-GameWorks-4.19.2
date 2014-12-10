@@ -119,30 +119,6 @@ UPaperTileLayer* STileLayerList::GetSelectedLayer() const
 	return (ListViewWidget->GetNumItemsSelected() > 0) ? ListViewWidget->GetSelectedItems()[0] : nullptr;
 }
 
-FText STileLayerList::GenerateNewLayerName(UPaperTileMap* TileMap)
-{
-	// Create a set of existing names
-	TSet<FString> ExistingNames;
-	for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
-	{
-		ExistingNames.Add(ExistingLayer->LayerName.ToString());
-	}
-
-	// Find a good name
-	FText TestLayerName;
-	do
-	{
-		TileMap->LayerNameIndex++;
-
-		FNumberFormattingOptions NoGroupingFormat;
-		NoGroupingFormat.SetUseGrouping(false);
-
-		TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &NoGroupingFormat));
-	} while (ExistingNames.Contains(TestLayerName.ToString()));
-
-	return TestLayerName;
-}
-
 FText STileLayerList::GenerateDuplicatedLayerName(const FString& InputNameRaw, UPaperTileMap* TileMap)
 {
 	// Create a set of existing names
@@ -207,25 +183,7 @@ UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionI
 		TileMap->SetFlags(RF_Transactional);
 		TileMap->Modify();
 
-		// Create the new layer
-		NewLayer = NewObject<UPaperTileLayer>(TileMap);
-		NewLayer->SetFlags(RF_Transactional);
-
-		NewLayer->LayerWidth = TileMap->MapWidth;
-		NewLayer->LayerHeight = TileMap->MapHeight;
-		NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
-		NewLayer->LayerName = GenerateNewLayerName(TileMap);
-		NewLayer->bCollisionLayer = bCollisionLayer;
-
-		// Insert the new layer
-		if (TileMap->TileLayers.IsValidIndex(InsertionIndex))
-		{
-			TileMap->TileLayers.Insert(NewLayer, InsertionIndex);
-		}
-		else
-		{
-			TileMap->TileLayers.Add(NewLayer);
-		}
+		NewLayer = TileMap->AddNewLayer(bCollisionLayer, InsertionIndex);
 
 		ListViewWidget->RequestListRefresh();
 		TileMap->PostEditChange();

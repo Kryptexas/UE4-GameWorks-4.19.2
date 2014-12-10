@@ -112,6 +112,13 @@ public:
 	FVector GetTilePositionInLocalSpace(int32 TileX, int32 TileY, int32 LayerIndex = 0) const;
 
 	FBoxSphereBounds GetRenderBounds() const;
+
+	// Creates and adds a new layer and returns it
+	class UPaperTileLayer* AddNewLayer(bool bCollisionLayer = false, int32 InsertionIndex = INDEX_NONE);
+
+	// Creates a reasonable new layer name
+	static FText GenerateNewLayerName(UPaperTileMap* TileMap);
+
 protected:
 	virtual void UpdateBodySetup();
 };
