@@ -226,9 +226,9 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 
 // UI Creation
 
-void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle )
+void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle)
 {
-	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(350, 458);
+	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(400, 458);
 
 	Style = *InStyle;
 	FFriendsAndChatModuleStyle::Initialize(Style);
@@ -237,6 +237,7 @@ void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle*
 	{
 		FriendWindow = SNew( SWindow )
 		.Title(LOCTEXT("FFriendsAndChatManager_FriendsTitle", "Friends List"))
+		.Style(&Style.WindowStyle)
 		.ClientSize(DEFAULT_WINDOW_SIZE)
 		.ScreenPosition(FVector2D(100, 100))
 		.AutoCenter( EAutoCenter::None )
@@ -256,8 +257,6 @@ void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle*
 		FriendWindow->Restore();
 		BuildFriendsUI();
 	}
-
-	GenerateChatWindow();
 
 	FriendWindow->BringToFront(true);
 
@@ -290,7 +289,7 @@ void FFriendsAndChatManager::BuildFriendsUI()
 				.AutoHeight()
 				[
 					SAssignNew(TitleBar, SWindowTitleBar, FriendWindow.ToSharedRef(), nullptr, HAlign_Center)
-					//.Style(FPortalStyle::Get(), "Window")
+					.Style(&Style.WindowStyle)
 					.ShowAppIcon(false)
 					.Title(FText::GetEmpty())
 				]
@@ -360,17 +359,21 @@ TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 	return FChatViewModelFactory::Create(MessageManager.ToSharedRef());
 }
 
-void FFriendsAndChatManager::GenerateChatWindow()
+void FFriendsAndChatManager::CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, TSharedPtr<SWindow> Parent )
 {
 	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(420, 500);
-
+	ParentWidget = Parent;
 	check(MessageManager.IsValid());
 	bCreateChatWindow = true;
 
 	if (!ChatWindow.IsValid())
 	{
+		Style = *InStyle;
+		FFriendsAndChatModuleStyle::Initialize(Style);
+
 		ChatWindow = SNew( SWindow )
 		.Title( LOCTEXT( "FriendsAndChatManager_ChatTitle", "Chat Window") )
+		.Style(&Style.WindowStyle)
 		.ClientSize( DEFAULT_WINDOW_SIZE )
 		.ScreenPosition( FVector2D( 200, 100 ) )
 		.AutoCenter( EAutoCenter::None )
@@ -382,7 +385,7 @@ void FFriendsAndChatManager::GenerateChatWindow()
 		ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
 
 		SetChatWindowContents();
-		ChatWindow = FSlateApplication::Get().AddWindow(ChatWindow.ToSharedRef());
+		ChatWindow = FSlateApplication::Get().AddWindowAsNativeChild(ChatWindow.ToSharedRef(), Parent.ToSharedRef());
 	}
 	else if(ChatWindow->IsWindowMinimized())
 	{
@@ -396,9 +399,9 @@ void FFriendsAndChatManager::SetChatFriend( TSharedPtr< IFriendItem > FriendItem
 {
 	OnChatFriendSelected().Broadcast(FriendItem);
 
-	if(bCreateChatWindow)
+	if(bCreateChatWindow && ParentWidget.IsValid())
 	{
-		GenerateChatWindow();
+		CreateChatWindow(&Style, ParentWidget.Pin());
 	}
 }
 
@@ -429,7 +432,7 @@ void FFriendsAndChatManager::SetChatWindowContents()
 			.AutoHeight()
 			[
 				SAssignNew(TitleBar, SWindowTitleBar, ChatWindow.ToSharedRef(), nullptr, HAlign_Center)
-				//.Style(FPortalStyle::Get(), "Window")
+				.Style(&Style.WindowStyle)
 				.ShowAppIcon(false)
 				.Title(FText::GetEmpty())
 			]

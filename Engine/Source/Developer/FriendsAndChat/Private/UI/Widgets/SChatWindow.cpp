@@ -26,6 +26,8 @@ public:
 
 		TSharedRef<SScrollBar> ExternalScrollbar =
 		SNew(SScrollBar)
+		.Thickness(FVector2D(4, 4))
+		.Style(&FriendStyle.ScrollBarStyle)
 		.AlwaysShowScrollbar(true);
 
 		SUserWidget::Construct(SUserWidget::FArguments()
@@ -46,7 +48,7 @@ public:
 					.VAlign(VAlign_Fill)
 					[
 						SNew( SBorder )
-						.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
+						.BorderBackgroundColor(FLinearColor::Transparent)
 						.ColorAndOpacity(this, &SChatWindowImpl::GetTimedFadeColor)
 						[
 							ExternalScrollbar

@@ -40,11 +40,6 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	 */
 	static const FFriendsAndChatStyle& GetDefault();
 
-	/** Search button style */
-	UPROPERTY()
-	FButtonStyle SearchButtonStyle;
-	FFriendsAndChatStyle& SetSearchButtonStyle( const FButtonStyle& InButtonStyle);
-
 	/** Friends List Open Button style */
 	UPROPERTY()
 	FButtonStyle FriendListOpenButtonStyle;
@@ -285,6 +280,14 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatOptionsBackgroundBrush;
 	FFriendsAndChatStyle& SetChatOptionsBackgroundBrush(const FSlateBrush& InChatOptionsBackgroundBrush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FScrollBarStyle ScrollBarStyle;
+	FFriendsAndChatStyle& SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FWindowStyle WindowStyle;
+	FFriendsAndChatStyle& SetWindowStyle(const FWindowStyle& InStyle);
 };
 
 /** Manages the style which provides resources for the rich text widget. */

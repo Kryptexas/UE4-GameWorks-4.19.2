@@ -13,7 +13,14 @@ public:
 	 * Create a friends list window.
 	 * @param InStyle The style to use to create the widgets
 	 */
-	virtual void CreateFriendsListWindow(const struct FFriendsAndChatStyle* InStyle ) = 0;
+	virtual void CreateFriendsListWindow(const struct FFriendsAndChatStyle* InStyle) = 0;
+
+	/**
+	 * Create a chat window.
+	 * @param InStyle The style to use to create the widgets
+	 * @param Parent The parent window
+	 */
+	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, TSharedPtr<SWindow> Parent) = 0;
 
 	/**
 	 * Set the FriendsAndChatUserSettings.

@@ -6,12 +6,6 @@
 const FName FFriendsAndChatStyle::TypeName( TEXT("FFriendsAndChatStyle") );
 
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetSearchButtonStyle( const FButtonStyle& InButtonStyle)
-{
-	SearchButtonStyle = InButtonStyle; 
-	return *this; 
-}
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListOpenButtonStyle = ButtonStyle;
@@ -323,6 +317,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatChannelsBackgroundBrush(const
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatOptionsBackgroundBrush(const FSlateBrush& InChatOptionsBackgroundBrush)
 {
 	ChatOptionsBackgroundBrush = InChatOptionsBackgroundBrush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle)
+{
+	ScrollBarStyle = InScrollBarStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowStyle(const FWindowStyle& InStyle)
+{
+	WindowStyle = InStyle;
 	return *this;
 }
 

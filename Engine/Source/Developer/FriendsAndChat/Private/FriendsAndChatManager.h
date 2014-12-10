@@ -127,6 +127,7 @@ public:
 	virtual bool IsLoggedIn() override;
 	virtual void SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
 	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle ) override;
+	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, TSharedPtr<SWindow> Parent) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
@@ -168,11 +169,6 @@ public:
 	 * @return true if joining a game is allowed
 	 */
 	bool JoinGameAllowed();
-
-	/**
-	 * Create the friends list window.
-	 */
-	void GenerateChatWindow();
 
 	/**
 	 * Set the chat friend.
@@ -738,7 +734,7 @@ private:
 	/* UI
 	*****************************************************************************/
 	// Holds the parent window
-	TSharedPtr< const SWidget > ParentWidget;
+	TWeakPtr<SWindow> ParentWidget;
 	// Holds the main Friends List window
 	TSharedPtr< SWindow > FriendWindow;
 	// Holds the Friends List widget

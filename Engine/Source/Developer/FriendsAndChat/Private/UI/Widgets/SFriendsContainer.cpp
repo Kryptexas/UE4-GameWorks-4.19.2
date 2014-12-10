@@ -118,6 +118,8 @@ public:
 				.BorderImage(&FriendStyle.FriendContainerBackground)
 				[
 					SNew(SScrollBox)
+					.ScrollBarStyle(&FriendStyle.ScrollBarStyle)
+					.ScrollBarThickness(FVector2D(4, 4))
 					+SScrollBox::Slot()
 					[
 						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
