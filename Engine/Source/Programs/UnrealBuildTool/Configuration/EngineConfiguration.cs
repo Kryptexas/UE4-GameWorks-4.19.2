@@ -482,6 +482,32 @@ namespace UnrealBuildTool
 
 			// Game/Config/Default* ini
 			yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
+			
+			string UserSettingsFolder = null; // Match FPlatformProcess::UserSettingsDir()
+			string PersonalFolder = null; // Match FPlatformProcess::UserDir()
+			if (Environment.OSVersion.Platform == PlatformID.MacOSX)
+			{
+				UserSettingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "Epic");
+				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
+			}
+			else if (Environment.OSVersion.Platform == PlatformID.Unix)
+			{
+				UserSettingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Epic");
+				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
+			}
+			else
+			{
+				UserSettingsFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				PersonalFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+			}
+
+			// <AppData>/UE4/EngineConfig/User* ini
+			yield return Path.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			// <Documents>/UE4/EngineConfig/User* ini
+			yield return Path.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			
+			// Game/Config/User* ini
+			yield return Path.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
 		}
 
 		/// <summary>

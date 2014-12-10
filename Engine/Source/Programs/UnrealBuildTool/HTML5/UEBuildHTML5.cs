@@ -48,6 +48,8 @@ namespace UnrealBuildTool
 		 */
 		protected override string GetRequiredSDKString()
 		{
+			if (HTML5SDKInfo.IsSDKVersionOverridden())
+				return HTML5SDKInfo.OverriddenSDKVersion();
 			return ExpectedSDKVersion;
 		}
 
@@ -86,13 +88,13 @@ namespace UnrealBuildTool
 			}
             try
             {
-                if (HTML5SDKInfo.EmscriptenVersion().Contains(ExpectedSDKVersion))
+				if (HTML5SDKInfo.EmscriptenVersion().Contains(GetRequiredSDKString()))
                 {
                     return SDKStatus.Valid;
                 }
                 else
                 {
-                    Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is unsupported, Please install version " + ExpectedSDKVersion);
+					Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is unsupported, Please install version " + GetRequiredSDKString());
                     return SDKStatus.Invalid;
                 }
             }

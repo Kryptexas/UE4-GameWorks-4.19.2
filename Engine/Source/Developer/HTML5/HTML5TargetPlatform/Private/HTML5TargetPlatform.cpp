@@ -89,6 +89,10 @@ bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocu
 		const FString& Platform = It.Key.ToString();
 		const FString& Path = It.Value;
 		{
+			if (Platform == "Emscripten" && IFileManager::Get().DirectoryExists(*Path))
+			{
+				return true;
+			}
 #if PLATFORM_WINDOWS
 			if ( Platform == "Windows" && IFileManager::Get().DirectoryExists(*Path)) 
 			{

@@ -8,6 +8,7 @@
 #include "SecureHash.h"
 #include "DefaultValueHelper.h"
 #include "EngineBuildSettings.h"
+#include "Paths.h"
 
 
 DEFINE_LOG_CATEGORY(LogConfig);
@@ -2616,13 +2617,22 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s.ini"), EngineConfigDir, InBaseIniName), false) );
 	// Engine/Config/Base[Internal/External]* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s%s.ini"), EngineConfigDir, *BuildPurposeName, InBaseIniName), false) );
+
+	// <AppData>/UE4/EngineConfig/User* ini
+    OutHierarchy.Add(FIniFilename(FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FString::Printf(TEXT("Unreal Engine/Engine/Config/User%s.ini"), InBaseIniName)), false));
+	// <Documents>/UE4/EngineConfig/User* ini
+    OutHierarchy.Add(FIniFilename(FPaths::Combine(FPlatformProcess::UserDir(), *FString::Printf(TEXT("Unreal Engine/Engine/Config/User%s.ini"), InBaseIniName)), false));
+
 	// Game/Config/Default* ini
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sDefault%s.ini"), SourceConfigDir, InBaseIniName), bRequireDefaultIni) );
+	OutHierarchy.Add(FIniFilename(FString::Printf(TEXT("%sDefault%s.ini"), SourceConfigDir, InBaseIniName), bRequireDefaultIni));
 	// Game/Config/DedicatedServer* ini
-	if (IsRunningDedicatedServer()) 
-	{  
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s/DedicatedServer%s.ini"), SourceConfigDir, InBaseIniName), false) );
-	} 
+	if (IsRunningDedicatedServer())
+	{
+		OutHierarchy.Add(FIniFilename(FString::Printf(TEXT("%s/DedicatedServer%s.ini"), SourceConfigDir, InBaseIniName), false));
+	}
+	// Game/Config/User* ini
+	OutHierarchy.Add(FIniFilename(FString::Printf(TEXT("%s/User%s.ini"), SourceConfigDir, InBaseIniName), false));
+	
 	// Engine/Config/Platform/Platform* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
 	// Game/Config/Platform/Platform* ini

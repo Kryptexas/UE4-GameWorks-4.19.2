@@ -12,6 +12,7 @@ namespace UnrealBuildTool
     public class HTML5SDKInfo
     {
         static string EmscriptenSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".emscripten");
+		static ConfigCacheIni ConfigCache = null;
 
         static Dictionary<string, string> ReadEmscriptenSettings()
         {
@@ -42,13 +43,100 @@ namespace UnrealBuildTool
             return Settings;
         }
 
+		public static bool ParseProjectPath(string[] Arguments, out string ProjectPath)
+		{
+			string TargetName = null;
+			foreach (var Argument in Arguments)
+			{
+				// Treat any platform names as such
+				UnrealTargetPlatform ParsedPlatform = UEBuildPlatform.ConvertStringToPlatform(Argument);
+				if (ParsedPlatform == UnrealTargetPlatform.Unknown)
+				{
+					var ArgUpper = Argument.ToUpperInvariant();
+					switch (ArgUpper)
+					{
+						// Skip any build configurations 
+						case "DEBUG":
+						case "DEBUGGAME":
+						case "DEVELOPMENT":
+						case "SHIPPING":
+						case "TEST":
+							break;
+						default:
+							// Ignore any args except -project
+							if (!ArgUpper.StartsWith("-") || ArgUpper.StartsWith("-PROJECT="))
+							{
+								if (ArgUpper.StartsWith("-PROJECT="))
+								{
+									ArgUpper = ArgUpper.Remove(0, 9).Trim();
+								}
+								// If running Rocket, the PossibleTargetName could contain a path
+								TargetName = ArgUpper;
+
+								// If a project file was not specified see if we can find one
+								string CheckProjectFile = UProjectInfo.GetProjectForTarget(TargetName);
+								if (string.IsNullOrEmpty(CheckProjectFile))
+								{
+									CheckProjectFile = UProjectInfo.GetProjectFilePath(TargetName);
+								}
+								if (string.IsNullOrEmpty(CheckProjectFile) == false)
+								{
+									Log.TraceVerbose("Found project file for {0} - {1}", TargetName, CheckProjectFile);
+									string NewProjectFilename = CheckProjectFile;
+									if (Path.IsPathRooted(NewProjectFilename) == false)
+									{
+										NewProjectFilename = Path.GetFullPath(NewProjectFilename);
+									}
+
+									NewProjectFilename = NewProjectFilename.Replace("\\", "/");
+									ProjectPath = Path.GetDirectoryName(NewProjectFilename);
+									return true;
+								} 
+
+								if ((TargetName.Contains("/") || TargetName.Contains("\\")) && TargetName.Contains(".UPROJECT"))
+								{
+									// Parse off the path
+									ProjectPath = Path.GetDirectoryName(TargetName);
+									return true;
+								}
+							}
+						break;
+					}
+				}
+			}
+
+			ProjectPath = "";
+			return false;
+		}
+
+		static void EnsureConfigCacheIsReady()
+		{
+			if (ConfigCache == null)
+			{
+				var CmdLine = Environment.GetCommandLineArgs();
+				string ProjectPath = UnrealBuildTool.GetUProjectPath();
+				if (String.IsNullOrEmpty(ProjectPath))
+				{ 
+					ParseProjectPath(CmdLine, out ProjectPath);
+				}
+				ConfigCache = new ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", ProjectPath);
+				// always pick from the Engine the root directory and NOT the staged engine directory. 
+				// This breaks parse order for user & game config inis so disabled but pulling from the staged directory may still be a problem 
+				//string IniFile = Path.GetFullPath(Path.GetDirectoryName(UnrealBuildTool.GetUBTPath()) + "/../../") + "Config/HTML5/HTML5Engine.ini";
+				//ConfigCache.ParseIniFile(IniFile);
+			}
+		}
+
         public static string EmscriptenSDKPath()
         {
-           var ConfigCache = new ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", UnrealBuildTool.GetUProjectPath());
-           // always pick from the Engine the root directory and NOT the staged engine directory. 
-           string IniFile = Path.GetFullPath(Path.GetDirectoryName(UnrealBuildTool.GetUBTPath()) + "/../../") + "Config/HTML5/HTML5Engine.ini";
-           ConfigCache.ParseIniFile(IniFile);
+			EnsureConfigCacheIsReady();
+			// Search the ini file for Emscripten root first
+			string EMCCPath;
+			bool ok = ConfigCache.GetString("HTML5SDKPaths", "Emscripten", out EMCCPath);
+			if (ok && System.IO.Directory.Exists(EMCCPath))
+				return EMCCPath;
 
+			// Older method used platform name
             string PlatformName = "";
             if (!Utils.IsRunningOnMono)
             {
@@ -58,8 +146,7 @@ namespace UnrealBuildTool
             {
                 PlatformName = "Mac";
             }
-            string EMCCPath;
-            bool ok = ConfigCache.GetString("HTML5SDKPaths", PlatformName, out EMCCPath);
+            ok = ConfigCache.GetString("HTML5SDKPaths", PlatformName, out EMCCPath);
 
             if (ok && System.IO.Directory.Exists(EMCCPath))
                 return EMCCPath;
@@ -77,7 +164,15 @@ namespace UnrealBuildTool
 
         public  static string PythonPath()
         {
-            // find Python.
+			// find Python.
+			EnsureConfigCacheIsReady();
+			
+			// Check the ini first. Check for Python="path"
+			string PythonPath;
+			bool ok = ConfigCache.GetString("HTML5SDKPaths", "Python", out PythonPath);
+			if (ok && System.IO.File.Exists(PythonPath))
+				return PythonPath;
+           
             var EmscriptenSettings = ReadEmscriptenSettings();
 
 			// check emscripten generated config file. 
@@ -129,6 +224,19 @@ namespace UnrealBuildTool
             return locations[0];
         }
 
+		public static string OverriddenSDKVersion()
+		{
+			EnsureConfigCacheIsReady();
+
+			// Check the ini first. Check for ForceSDKVersion="x.xx.x"
+			string ForcedSDKVersion;
+			bool ok = ConfigCache.GetString("HTML5SDKPaths", "ForceSDKVersion", out ForcedSDKVersion);
+			if (ok)
+				return ForcedSDKVersion;
+
+			return "";
+		}
+
         public static string EmscriptenPackager()
         {
             return Path.Combine(EmscriptenSDKPath(), "tools", "file_packager.py"); 
@@ -150,6 +258,13 @@ namespace UnrealBuildTool
                 return false;
             return true;
         }
+
+		public static bool IsSDKVersionOverridden()
+		{
+			if (String.IsNullOrEmpty(OverriddenSDKVersion()))
+				return false;
+			return true;
+		}
 
         public static string EmscriptenVersion()
         {
