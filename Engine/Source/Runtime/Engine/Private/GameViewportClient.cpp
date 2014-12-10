@@ -28,7 +28,9 @@
 #include "Debug/DebugDrawService.h"
 #include "Components/BrushComponent.h"
 #include "Engine/GameEngine.h"
+#include "UserWidget.h"
 #include "GameFramework/GameUserSettings.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
@@ -223,6 +225,24 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// remember our game instance
 	GameInstance = OwningGameInstance;
+
+	// Create the cursor Widgets
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+
+#define ADD_CURSOR(enumeration, variable) \
+	if (UISettings->variable.IsValid()) { \
+	UClass* Class = LoadObject<UClass>(NULL, *UISettings->variable.ToString()); \
+	UUserWidget * UserWidget = CreateWidget<UUserWidget>(GetWorld(), Class); \
+	CursorWidgets.Add(enumeration, UserWidget->TakeWidget()); }
+
+	ADD_CURSOR(EMouseCursor::Default, DefaultCursor);
+	ADD_CURSOR(EMouseCursor::TextEditBeam, TextEditBeamCursor);
+	ADD_CURSOR(EMouseCursor::Crosshairs, CrosshairsCursor);
+	ADD_CURSOR(EMouseCursor::GrabHand, GrabHandCursor);
+	ADD_CURSOR(EMouseCursor::GrabHandClosed, GrabHandClosedCursor);
+	ADD_CURSOR(EMouseCursor::SlashedCircle, SlashedCircleCursor);
+
+#undef ADD_CURSOR
 }
 
 UWorld* UGameViewportClient::GetWorld() const
@@ -492,7 +512,7 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 }
 
 
-EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y )
+EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
 	bool bIsPlayingMovie = false;//GetMoviePlayer()->IsMovieCurrentlyPlaying();
 
@@ -536,6 +556,15 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	return FViewportClient::GetCursor(InViewport, X, Y);
 }
 
+TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* Viewport, const FCursorReply& CursorReply)
+{
+	const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
+	if (CursorWidgetPtr != nullptr)
+	{
+		return *CursorWidgetPtr;
+	}
+	return TOptional<TSharedRef<SWidget>>();
+}
 
 void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 {
@@ -1244,7 +1273,9 @@ void UGameViewportClient::Precache()
 
 TOptional<bool> UGameViewportClient::QueryShowFocus(const EFocusCause InFocusCause) const
 {
-	if (InFocusCause == EFocusCause::Mouse)
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	if ((UISettings->RenderFocusRule == ERenderFocusRule::NonPointer && InFocusCause == EFocusCause::Mouse) ||
+		(UISettings->RenderFocusRule == ERenderFocusRule::NavigationOnly && InFocusCause != EFocusCause::Navigation))
 	{
 		return false;
 	}
@@ -1259,14 +1290,14 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	if (World)
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
-	{
-			APlayerController* const PlayerController = *Iterator;
-		if (PlayerController)
 		{
-			PlayerController->FlushPressedKeys();
+			APlayerController* const PlayerController = *Iterator;
+			if (PlayerController)
+			{
+				PlayerController->FlushPressedKeys();
+			}
 		}
 	}
-}
 }
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)

@@ -94,7 +94,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				TSet<FKey>(),
 				FModifierKeysState() )
 		 );
-		EMouseCursor::Type CursorType = Reply.GetCursor();
+		EMouseCursor::Type CursorType = Reply.GetCursorType();
 
 		const FSlateBrush* Brush = FCoreStyle::Get().GetBrush(TEXT("SoftwareCursor_Grab"));
 		if( CursorType == EMouseCursor::CardinalCross )
@@ -140,6 +140,10 @@ FCursorReply SViewport::OnCursorQuery( const FGeometry& MyGeometry, const FPoint
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnCursorQuery(MyGeometry, CursorEvent) : FCursorReply::Unhandled();
 }
 
+TOptional<TSharedRef<SWidget>> SViewport::OnMapCursor(const FCursorReply& CursorReply) const
+{
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMapCursor(CursorReply) : TOptional<TSharedRef<SWidget>>();
+}
 
 FReply SViewport::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {

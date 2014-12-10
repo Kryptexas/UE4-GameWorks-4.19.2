@@ -28,9 +28,18 @@ public:
 	{
 		return FCursorReply( InCursor );
 	}
-		
-	/** @return The requested MouseCursor when the event was handled. Undefined otherwise. */
-	EMouseCursor::Type GetCursor() { return MouseCursor; }
+
+	/** @return The window to render the Cursor Widget in. */
+	TSharedPtr<SWindow> GetCursorWindow() const { return CursorWindow; }
+	
+	/** @return The custom Cursor Widget to render if set and the event was handled. */
+	TSharedPtr<SWidget> GetCursorWidget() const { return CursorWidget; }
+
+	/** @return The requested MouseCursor if no custom widget is set and the event was handled. */
+	EMouseCursor::Type GetCursorType() const { return MouseCursor; }
+
+	/** Set the Cursor Widget, used by slate application to set the cursor widget if the MapCursor returns a widget. */
+	void SetCursorWidget(TSharedPtr<SWindow> InCursorWindow, TSharedPtr<SWidget> InCursorWidget) { CursorWindow = InCursorWindow; CursorWidget = InCursorWidget; }
 
 private:
 
@@ -45,8 +54,13 @@ private:
 		: TReplyBase<FCursorReply>(true)
 		, MouseCursor( InCursorType )
 	{ }
-	
+
+	/** Window to render for cursor */
+	TSharedPtr<SWindow> CursorWindow;
+
+	/** Custom widget to render for cursor */
+	TSharedPtr<SWidget> CursorWidget;
 		
-	/** The value of the reply, if bHasValue is true. */
+	/** The cursor type must be set is CursorWidget is invalid */
 	EMouseCursor::Type MouseCursor;
 };

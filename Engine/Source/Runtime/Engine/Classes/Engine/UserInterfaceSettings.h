@@ -4,6 +4,17 @@
 #include "Curves/CurveFloat.h"
 #include "UserInterfaceSettings.generated.h"
 
+/** When to render the Focus Brush for widgets that have user focus. Based on the EFocusCause. */
+UENUM()
+enum class ERenderFocusRule : uint8
+{
+	/** Focus Brush will always be rendered for widgets that have user focus */
+	Always,
+	/** Focus Brush will be rendered for widgets that have user focus not set based on pointer causes */
+	NonPointer,
+	/** Focus Brush will be rendered for widgets that have user focus only if the focus was set by navigation. */
+	NavigationOnly,
+};
 
 /** The Side to use when scaling the UI. */
 UENUM()
@@ -24,7 +35,6 @@ namespace EUIScalingRule
 	};
 }
 
-
 /**
  * Implements user interface related settings.
  */
@@ -35,6 +45,27 @@ class ENGINE_API UUserInterfaceSettings
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	UPROPERTY(config, EditAnywhere, Category = "Focus", meta = (ToolTip = "Rule to determine if we should render the Focus Brush for widgets that have user focus."))
+	ERenderFocusRule RenderFocusRule;
+
+	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the Default Cursor is requested."))
+	FStringClassReference DefaultCursor;
+
+	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the TextEditBeam Cursor is requested."))
+	FStringClassReference TextEditBeamCursor;
+
+	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the Crosshairs Cursor is requested."))
+	FStringClassReference CrosshairsCursor;
+
+	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the GrabHand Cursor is requested."))
+	FStringClassReference GrabHandCursor;
+	
+	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the GrabHandClosed Cursor is requested."))
+	FStringClassReference GrabHandClosedCursor;
+
+	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the SlashedCircle Cursor is requested."))
+	FStringClassReference SlashedCircleCursor;
 
 	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=(
 		DisplayName="DPI Scale Rule",

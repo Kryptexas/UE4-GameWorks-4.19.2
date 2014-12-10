@@ -197,6 +197,11 @@ FCursorReply SWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPointer
 		: FCursorReply::Unhandled();
 }
 
+TOptional<TSharedRef<SWidget>> SWidget::OnMapCursor(const FCursorReply& CursorReply) const
+{
+	return TOptional<TSharedRef<SWidget>>();
+}
+
 
 FReply SWidget::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {

@@ -13,8 +13,11 @@
 
 class FCanvas;
 class FViewportClient;
-enum class EPopupMethod : uint8;
 
+class SWidget;
+class FCursorReply;
+
+enum class EPopupMethod : uint8;
 enum class EFocusCause : uint8;
 
 /**
@@ -790,10 +793,17 @@ public:
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) { return EMouseCursor::Default; }
 
 	/**
-	* Called to determine if we should render the focus brush.
-	*
-	* @param InFocusCause	The cause of focus
-	*/
+	 * Called to map a cursor reply to an actual widget to render.
+	 *
+	 * @return	the widget that should be rendered for this cursor, return TOptional<TSharedRef<SWidget>>() if no mapping.
+	 */
+	virtual TOptional<TSharedRef<SWidget>> MapCursor(FViewport* Viewport, const FCursorReply& CursorReply) { return TOptional<TSharedRef<SWidget>>(); }
+	
+	/**
+	 * Called to determine if we should render the focus brush.
+	 *
+	 * @param InFocusCause	The cause of focus
+	 */
 	virtual TOptional<bool> QueryShowFocus(const EFocusCause InFocusCause) const { return TOptional<bool>(); }
 
 	virtual void LostFocus(FViewport* Viewport) {}

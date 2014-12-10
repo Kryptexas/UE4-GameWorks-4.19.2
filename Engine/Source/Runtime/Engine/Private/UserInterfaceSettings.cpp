@@ -10,7 +10,8 @@
 
 
 UUserInterfaceSettings::UUserInterfaceSettings(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer),
+	  RenderFocusRule(ERenderFocusRule::NavigationOnly)
 {
 }
 

@@ -66,12 +66,14 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"VectorVM",
-				"Landscape"
+				"Landscape",
+                "UMG",
 			}
         );
 
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
+        CircularlyReferencedDependentModules.Add("UMG");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
@@ -80,7 +82,6 @@ public class Engine : ModuleRules
 				"MovieSceneCoreTypes",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
-                "UMG",
 			}
 		);
 

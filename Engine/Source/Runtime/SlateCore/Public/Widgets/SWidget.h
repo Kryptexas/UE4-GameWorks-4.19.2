@@ -293,6 +293,13 @@ public:
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const;
 
 	/**
+	 * After OnCursorQuery has specified a cursor type the system asks each widget under the mouse to map that cursor to a widget. This event is bubbled.
+	 * 
+	 * @return TOptional<TSharedRef<SWidget>>() if you don't have a mapping otherwise return the Widget to show.
+	 */
+	virtual TOptional<TSharedRef<SWidget>> OnMapCursor(const FCursorReply& CursorReply) const;
+
+	/**
 	 * Called when a mouse button is double clicked.  Override this in derived classes.
 	 *
 	 * @param  InMyGeometry  Widget geometry

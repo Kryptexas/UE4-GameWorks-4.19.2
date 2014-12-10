@@ -335,6 +335,15 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 	return FCursorReply::Cursor(MouseCursorToUse);
 }
 
+TOptional<TSharedRef<SWidget>> FSceneViewport::OnMapCursor(const FCursorReply& CursorReply)
+{
+	if (ViewportClient && GetSizeXY() != FIntPoint::ZeroValue)
+	{
+		return ViewportClient->MapCursor(this, CursorReply);
+	}
+	return ISlateViewport::OnMapCursor(CursorReply);
+}
+
 FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
 {
 	// Start a new reply state

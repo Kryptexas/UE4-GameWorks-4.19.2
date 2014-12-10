@@ -914,6 +914,30 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 				0,
 				FWidgetStyle(),
 				WindowToDraw->IsEnabled() );
+
+			// Draw Software Cursor
+			TSharedPtr<SWindow> CursorWindow = CursorWindowPtr.Pin();
+			if (CursorWindow.IsValid() && WindowToDraw == CursorWindow)
+			{
+				TSharedPtr<SWidget> CursorWidget = CursorWidgetPtr.Pin();
+				
+				if (CursorWidget.IsValid())
+				{
+					CursorWidget->SlatePrepass();
+
+					FVector2D CursorPosInWindowSpace = WindowToDraw->GetWindowGeometryInScreen().AbsoluteToLocal(GetCursorPos());
+					CursorPosInWindowSpace += (CursorWidget->GetDesiredSize() * -0.5);
+					const FGeometry CursorGeometry = FGeometry::MakeRoot(CursorWidget->GetDesiredSize(), FSlateLayoutTransform(CursorPosInWindowSpace));
+
+					CursorWidget->Paint(
+						FPaintArgs(WindowToDraw, *WindowToDraw->GetHittestGrid(), WindowToDraw->GetPositionInScreen(), GetCurrentTime(), GetDeltaTime()),
+						CursorGeometry, WindowToDraw->GetClippingRectangleInWindow(),
+						WindowElementList,
+						++MaxLayerId,
+						FWidgetStyle(),
+						WindowToDraw->IsEnabled());
+				}
+			}
 		}
 
 		// The widget reflector may want to paint some additional stuff as part of the Widget introspection that it performs.
@@ -1929,9 +1953,9 @@ bool FSlateApplication::SetKeyboardFocus(const FWidgetPath& InFocusPath, const E
 
 bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause)
 {
-	FUserFocusEntry& UserFocusEntry = UserFocusEntries[InUserIndex];
-
 	check(InUserIndex >= 0 && InUserIndex < SlateApplicationDefs::MaxUsers);
+
+	FUserFocusEntry& UserFocusEntry = UserFocusEntries[InUserIndex];
 
 	TSharedPtr<IWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
 	const bool bReflectorShowingFocus = WidgetReflector.IsValid() && WidgetReflector->IsShowingFocus();
@@ -2403,19 +2427,13 @@ void FSlateApplication::QueryCursor()
 	if ( PlatformApplication->Cursor.IsValid() )
 	{
 		// drag-drop overrides cursor
-		FCursorReply CursorResult = FCursorReply::Unhandled();
-
+		FCursorReply CursorReply = FCursorReply::Unhandled();
 		if(IsDragDropping())
 		{
-			CursorResult = DragDropContent->OnCursorQuery();
-			if (CursorResult.IsEventHandled())
-			{
-				// Query was handled, so we should set the cursor.
-				PlatformApplication->Cursor->SetType( CursorResult.GetCursor() );
-			}
+			CursorReply = DragDropContent->OnCursorQuery();
 		}
 		
-		if(!CursorResult.IsEventHandled())
+		if (!CursorReply.IsEventHandled())
 		{
 			FWidgetPath WidgetsToQueryForCursor;
 			const TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
@@ -2456,39 +2474,65 @@ void FSlateApplication::QueryCursor()
 				// Switch worlds for widgets in the current path
 				FScopedSwitchWorldHack SwitchWorld( WidgetsToQueryForCursor );
 
-				const FVector2D CurrentCursorPosition = GetCursorPos();
-				const FVector2D LastCursorPosition = GetLastCursorPos();
-				const FPointerEvent CursorEvent(
-					CursorPointerIndex,
-					CurrentCursorPosition,
-					LastCursorPosition,
-					CurrentCursorPosition - LastCursorPosition,
-					PressedMouseButtons,
-					PlatformApplication->GetModifierKeys()
-				);
-
-				CursorResult = FEventRouter::Route<FCursorReply>(this, FEventRouter::FBubblePolicy(WidgetsToQueryForCursor), CursorEvent, [](const FArrangedWidget& WidgetToQuery, const FPointerEvent& PointerEvent)
+				for (int32 WidgetIndex = WidgetsToQueryForCursor.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
 				{
-					return WidgetToQuery.Widget->OnCursorQuery( WidgetToQuery.Geometry, PointerEvent );
-				});
-
-				if (CursorResult.IsEventHandled())
-				{
-					// Query was handled, so we should set the cursor.
-					PlatformApplication->Cursor->SetType( CursorResult.GetCursor() );
+					const FArrangedWidget& ArrangedWidget = WidgetsToQueryForCursor.Widgets[WidgetIndex];
+					CursorReply = ArrangedWidget.Widget->OnCursorQuery(ArrangedWidget.Geometry, CursorEvent);
+					if (CursorReply.IsEventHandled())
+					{
+						if (!CursorReply.GetCursorWidget().IsValid())
+						{
+							for (; WidgetIndex >= 0; --WidgetIndex)
+							{
+								TOptional<TSharedRef<SWidget>> CursorWidget = WidgetsToQueryForCursor.Widgets[WidgetIndex].Widget->OnMapCursor(CursorReply);
+								if (CursorWidget.IsSet())
+								{
+									CursorReply.SetCursorWidget(WidgetsToQueryForCursor.GetWindow(), CursorWidget.GetValue());
+									break;
+								}
+							}
+						}
+						break;
+					}
 				}
-				else if (WidgetsToQueryForCursor.IsValid())
+
+				if (!CursorReply.IsEventHandled() && WidgetsToQueryForCursor.IsValid())
 				{
 					// Query was NOT handled, and we are still over a slate window.
-					PlatformApplication->Cursor->SetType(EMouseCursor::Default);
+					CursorReply = FCursorReply::Cursor(EMouseCursor::Default);
 				}
 			}
 			else
 			{
 				// Set the default cursor when there isn't an active window under the cursor and the mouse isn't captured
-				PlatformApplication->Cursor->SetType(EMouseCursor::Default);
+				CursorReply = FCursorReply::Cursor(EMouseCursor::Default);
 			}
 		}
+		ProcessCursorReply(CursorReply);
+	}
+}
+
+void FSlateApplication::ProcessCursorReply(const FCursorReply& CursorReply)
+{
+	if (CursorReply.IsEventHandled())
+	{
+		CursorWidgetPtr = CursorReply.GetCursorWidget();
+		if (CursorReply.GetCursorWidget().IsValid())
+		{
+			CursorReply.GetCursorWidget()->SetVisibility(EVisibility::HitTestInvisible);
+			CursorWindowPtr = CursorReply.GetCursorWindow();
+			PlatformApplication->Cursor->SetType(EMouseCursor::None);
+		}
+		else
+		{
+			CursorWindowPtr.Reset();
+			PlatformApplication->Cursor->SetType(CursorReply.GetCursorType());
+		}
+	}
+	else
+	{
+		CursorWindowPtr.Reset();
+		CursorWidgetPtr.Reset();
 	}
 }
 
@@ -4321,7 +4365,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		if (CursorResult.IsEventHandled())
 		{
 			// Query was handled, so we should set the cursor.
-			PlatformApplication->Cursor->SetType( CursorResult.GetCursor() );
+			PlatformApplication->Cursor->SetType(CursorResult.GetCursorType());
 		}
 		else
 		{
