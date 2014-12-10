@@ -261,10 +261,6 @@
 	#define PLATFORM_SUPPORTS_RHI_THREAD		0
 #endif
 
-#ifndef PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	#define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult		0
-#endif
-
 #ifndef PLATFORM_USES_FIXED_RHI_CLASS
 	#define PLATFORM_USES_FIXED_RHI_CLASS		0
 #endif
