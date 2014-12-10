@@ -1209,6 +1209,8 @@ void FSlateApplication::Tick()
 		PlatformApplication->ProcessDeferredEvents( DeltaTime );
 	}
 
+	UpdateCursorLockRegion();
+
 	// When Slate captures the mouse, it is up to us to set the cursor 
 	// because the OS assumes that we own the mouse.
 	if (MouseCaptor.HasCapture())
@@ -2373,51 +2375,71 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	}
 }
 
-void FSlateApplication::LockCursor( const TSharedPtr<SWidget>& Widget )
+void FSlateApplication::LockCursor(const TSharedPtr<SWidget>& Widget)
 {
-	if ( PlatformApplication->Cursor.IsValid() )
+	if (PlatformApplication->Cursor.IsValid())
 	{
-		if( Widget.IsValid() )
+		if (Widget.IsValid())
 		{
 			// Get a path to this widget so we know the position and size of its geometry
 			FWidgetPath WidgetPath;
-			const bool bFoundWidthToLockTo = GeneratePathToWidgetUnchecked( Widget.ToSharedRef(), WidgetPath );
-			if ( bFoundWidthToLockTo )
+			const bool bFoundWidget = GeneratePathToWidgetUnchecked(Widget.ToSharedRef(), WidgetPath);
+			if ( ensureMsgf(bFoundWidget, TEXT("Attempting to LockCursor() to widget but could not find widget %s"), *Widget->ToString()) )
 			{
-				// The last widget in the path should be the widget we are locking the cursor to
-				FArrangedWidget& WidgetGeom = WidgetPath.Widgets[WidgetPath.Widgets.Num() - 1];
-
-				TSharedRef<SWindow> Window = WidgetPath.GetWindow();
-				// Do not attempt to lock the cursor to the window if its not in the foreground.  It would cause annoying side effects
-				if (Window->GetNativeWindow()->IsForegroundWindow())
-				{
-					check(WidgetGeom.Widget == Widget);
-
-					FSlateRect SlateClipRect = WidgetGeom.Geometry.GetClippingRect();
-
-					// Generate a screen space clip rect based on the widgets geometry
-
-					// Note: We round the upper left coordinate of the clip rect so we guarantee the rect is inside the geometry of the widget.  If we truncated when there is a half pixel we would cause the clip
-					// rect to be half a pixel larger than the geometry and cause the mouse to go outside of the geometry.
-					RECT ClipRect;
-					ClipRect.left = FMath::RoundToInt(SlateClipRect.Left);
-					ClipRect.top = FMath::RoundToInt(SlateClipRect.Top);
-					ClipRect.right = FMath::TruncToInt(SlateClipRect.Right);
-					ClipRect.bottom = FMath::TruncToInt(SlateClipRect.Bottom);
-
-					// Lock the mouse to the widget
-					PlatformApplication->Cursor->Lock(&ClipRect);
-				}
-			}
-			else
-			{
-				ensureMsgf( false, TEXT("Attempting to LockCursor() to widget but could not find widget %s"), *Widget->ToString() );
+				LockCursorToPath(WidgetPath);
 			}
 		}
 		else
 		{
-			// Unlock the mouse
-			PlatformApplication->Cursor->Lock( NULL );
+			UnlockCursor();
+		}
+	}
+}
+
+void FSlateApplication::LockCursorToPath(const FWidgetPath& WidgetPath)
+{
+	// The last widget in the path should be the widget we are locking the cursor to
+	const FArrangedWidget& WidgetGeom = WidgetPath.Widgets[WidgetPath.Widgets.Num() - 1];
+
+	TSharedRef<SWindow> Window = WidgetPath.GetWindow();
+	// Do not attempt to lock the cursor to the window if its not in the foreground.  It would cause annoying side effects
+	if (Window->GetNativeWindow()->IsForegroundWindow())
+	{
+		const FSlateRect SlateClipRect = WidgetGeom.Geometry.GetClippingRect();
+		CursorLock.LastComputedBounds = SlateClipRect;
+		CursorLock.PathToLockingWidget = WidgetPath;
+			
+		// Generate a screen space clip rect based on the widgets geometry
+
+		// Note: We round the upper left coordinate of the clip rect so we guarantee the rect is inside the geometry of the widget.  If we truncated when there is a half pixel we would cause the clip
+		// rect to be half a pixel larger than the geometry and cause the mouse to go outside of the geometry.
+		RECT ClipRect;
+		ClipRect.left = FMath::RoundToInt(SlateClipRect.Left);
+		ClipRect.top = FMath::RoundToInt(SlateClipRect.Top);
+		ClipRect.right = FMath::TruncToInt(SlateClipRect.Right);
+		ClipRect.bottom = FMath::TruncToInt(SlateClipRect.Bottom);
+
+		// Lock the mouse to the widget
+		PlatformApplication->Cursor->Lock(&ClipRect);
+	}
+}
+
+void FSlateApplication::UnlockCursor()
+{
+	// Unlock the mouse
+	PlatformApplication->Cursor->Lock(NULL);
+	CursorLock.PathToLockingWidget = FWeakWidgetPath();
+}
+
+void FSlateApplication::UpdateCursorLockRegion()
+{
+	const FWidgetPath PathToWidget = CursorLock.PathToLockingWidget.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
+	if (PathToWidget.IsValid())
+	{
+		const FSlateRect ComputedClipRect = PathToWidget.Widgets.Last().Geometry.GetClippingRect();
+		if (ComputedClipRect != CursorLock.LastComputedBounds)
+		{
+			LockCursorToPath(PathToWidget);
 		}
 	}
 }

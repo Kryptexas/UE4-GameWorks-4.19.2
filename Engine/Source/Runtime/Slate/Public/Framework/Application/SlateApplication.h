@@ -888,8 +888,6 @@ public:
 	 */
 	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, uint32 UserIndex = 0);
 	
-	void LockCursor( const TSharedPtr<SWidget>& Widget );
-
 	/**
 	 * Bubble a request for which cursor to display for widgets under the mouse or the widget that captured the mouse.
 	 */
@@ -1159,6 +1157,36 @@ private:
 	 * @return int user index that this controller is mapped to. -1 if the controller isn't mapped
 	 */
 	int32 GetUserIndexForController(int32 ControllerId) const;
+
+private:
+	//
+	// Cursor Lock
+	// 
+
+	/** Lock the cursor such that it cannot leave the bounds of the specified widget. Null widget implies no cursor lock. */
+	void LockCursor(const TSharedPtr<SWidget>& Widget);
+
+	/**
+	 * Lock the cursor such that it cannot leave the bounds of the leaf-most widget of the specified path.
+	 * Assumes a valid path.
+	 */
+	void LockCursorToPath(const FWidgetPath& WidgetPath);
+
+	/** Clear any cursor locks */
+	void UnlockCursor();
+
+	/** Make sure that the cursor lock region matcher the locking widget's geometry */
+	void UpdateCursorLockRegion();
+
+	/** State related to cursor locking. */
+	struct
+	{
+		/** Path to widget that currently holds the cursor lock; invalid path if no cursor lock. */
+		FWeakWidgetPath PathToLockingWidget;
+
+		/** Desktop Space Rect that bounds the cursor. */
+		FSlateRect LastComputedBounds;
+	} CursorLock;
 
 private:
 
