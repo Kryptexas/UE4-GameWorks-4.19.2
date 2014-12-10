@@ -191,7 +191,7 @@ bool FAnimTrack::HasRootMotion() const
 {
 	for (const FAnimSegment& AnimSegment : AnimSegments)
 	{
-		if (AnimSegment.AnimReference->HasRootMotion())
+		if (AnimSegment.AnimReference && AnimSegment.AnimReference->HasRootMotion())
 		{
 			return true;
 		}
