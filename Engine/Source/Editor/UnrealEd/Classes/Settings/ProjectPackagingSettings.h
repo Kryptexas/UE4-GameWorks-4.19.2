@@ -97,6 +97,13 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = Packaging, meta = (DisplayName = "Package .pak in APK"))
 	bool UseOBB_InAPK;
 
+	/**
+	 * Specifies whether to include the crash reporter in the packaged project. 
+	 * This is included by default for Blueprint based projects, but can optionally be disabled.
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay)
+	bool IncludeCrashReporter;
+
 	/** Predefined sets of culture whose internationalization data should be packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Internationalization Support"))
 	TEnumAsByte<EProjectPackagingInternationalizationPresets> InternationalizationPreset;
