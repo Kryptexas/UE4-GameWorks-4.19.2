@@ -56,9 +56,12 @@ protected:
 
 private:
 	void OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview);
+	void RefreshSelectionRectangle();
 
 private:
 	TWeakObjectPtr<class UPaperTileSet> TileSetPtr;
 	TSharedPtr<class FTileSetEditorViewportClient> TypedViewportClient;
 	class FEdModeTileMap* TileMapEditor;
+	FIntPoint SelectionTopLeft;
+	FIntPoint SelectionDimensions;
 };
