@@ -24,8 +24,9 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 
 #if WITH_EDITORONLY_DATA
 	SelectedLayerIndex = INDEX_NONE;
-	LayerNameIndex = 0;
 #endif
+
+	LayerNameIndex = 0;
 
 	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial"));
 	Material = DefaultMaterial.Object;

@@ -93,11 +93,11 @@ public:
 	/** The currently selected layer index */
 	UPROPERTY()
 	int32 SelectedLayerIndex;
+#endif
 
 	/** The naming index to start at when trying to create a new layer */
 	UPROPERTY()
 	int32 LayerNameIndex;
-#endif
 
 public:
 	// UObject interface
