@@ -43,9 +43,6 @@ FString GFontPathBase;
 // Is the OBB in an APK file or not
 bool GOBBinAPK;
 
-// Filename of the OBB (used for OBBinAPK case to avoid close search)
-FString GOBBFilename;
-
 extern jobject AndroidJNI_GetJavaAssetManager();
 extern AAssetManager * AndroidThunkCpp_GetAssetManager();
 
@@ -665,8 +662,8 @@ public:
 			//FMountOBBVisitor MountOBB(*this);
 			//IterateDirectory(TEXT(""), MountOBB, false, true);
 
-			// Getting the OBB to mount faster on some devices (IterateDirectory above can be slow!)
-			MountOBB(*GOBBFilename);
+			// Not searching for the OBB to mount is faster on some devices (IterateDirectory above can be slow!)
+			MountOBB(TEXT("main.obb.png"));
 		}
 		else
 		{

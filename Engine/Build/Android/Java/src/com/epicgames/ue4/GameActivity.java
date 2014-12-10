@@ -744,11 +744,6 @@ public class GameActivity extends NativeActivity
 		return JavaBuildSettings.PackageType.AMAZON == JavaBuildSettings.PACKAGING;
 	}
 
-	public static String GetOBBFilename()
-	{
-		return JavaBuildSettings.OBBFILENAME;
-	}
-
 	public void AndroidThunkJava_Minimize()
 	{
 		Intent startMain = new Intent(Intent.ACTION_MAIN);
