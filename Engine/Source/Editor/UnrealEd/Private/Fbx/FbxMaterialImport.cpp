@@ -358,7 +358,7 @@ void UnFbx::FFbxImporter::FixupMaterial( FbxSurfaceMaterial& FbxMaterial, UMater
 //
 //-------------------------------------------------------------------------
 
-void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+FString UnFbx::FFbxImporter::GetMaterialFullName(FbxSurfaceMaterial& FbxMaterial)
 {
 	FString MaterialFullName = ANSI_TO_TCHAR(MakeName(FbxMaterial.GetName()));
 
@@ -373,19 +373,25 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 			if (SkinXXNumber.IsNumeric())
 			{
 				// remove the '_skinXX' suffix from the material name					
-				MaterialFullName = MaterialFullName.LeftChop(Offset+1);
+				MaterialFullName = MaterialFullName.LeftChop(Offset + 1);
 			}
 		}
 	}
 
 	MaterialFullName = ObjectTools::SanitizeObjectName(MaterialFullName);
 
+	return MaterialFullName;
+}
+
+void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+{
 	// Make sure we have a parent
 	if ( !ensure(Parent) )
 	{
 		return;
 	}
 
+	FString MaterialFullName = GetMaterialFullName(FbxMaterial);
 	FString BasePackageName = FPackageName::GetLongPackagePath(Parent->GetOutermost()->GetName()) / MaterialFullName;
 	BasePackageName = PackageTools::SanitizePackageName(BasePackageName);
 

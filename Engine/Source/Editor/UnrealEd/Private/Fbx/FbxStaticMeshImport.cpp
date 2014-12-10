@@ -204,7 +204,6 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	{
 		FFbxMaterial* NewMaterial = new(MeshMaterials) FFbxMaterial;
 		FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
-		FString MaterialName = ANSI_TO_TCHAR(MakeName(FbxMaterial->GetName()));
 		NewMaterial->FbxMaterial = FbxMaterial;
 		if (ImportOptions->bImportMaterials)
 		{
@@ -212,7 +211,9 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 		}
 		else
 		{
-			UMaterialInterface* UnrealMaterialInterface = FindObject<UMaterialInterface>(NULL,*MaterialName);
+			FString MaterialFullName = GetMaterialFullName(*FbxMaterial);
+			FString BasePackageName = PackageTools::SanitizePackageName(FPackageName::GetLongPackagePath(StaticMesh->GetOutermost()->GetName()) / MaterialFullName);
+			UMaterialInterface* UnrealMaterialInterface = FindObject<UMaterialInterface>(NULL, *(BasePackageName + TEXT(".") + MaterialFullName));
 			if (UnrealMaterialInterface == NULL)
 			{
 				UnrealMaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);

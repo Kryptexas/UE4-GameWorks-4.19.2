@@ -851,15 +851,23 @@ protected:
 	 * @return int32 material count that created from the Fbx node
 	 */
 	int32 CreateNodeMaterials(FbxNode* FbxNode, TArray<UMaterialInterface*>& outMaterials, TArray<FString>& UVSets);
-	
+
 	/**
-	* Create Unreal material from Fbx material.
-	* Only setup channels that connect to texture, and setup the UV coordinate of texture.
-	* If diffuse channel has no texture, one default node will be created with constant.
-	*
-	* @param KFbxSurfaceMaterial*  Fbx material
-	* @param outMaterials Unreal Materials we created
-	* @param outUVSets
+	 * Make material Unreal asset name from the Fbx material
+	 *
+	 * @param FbxMaterial Material from the Fbx node
+	 * @return Sanitized asset name
+	 */
+	FString GetMaterialFullName(FbxSurfaceMaterial& FbxMaterial);
+
+	/**
+	 * Create Unreal material from Fbx material.
+	 * Only setup channels that connect to texture, and setup the UV coordinate of texture.
+	 * If diffuse channel has no texture, one default node will be created with constant.
+	 *
+	 * @param KFbxSurfaceMaterial*  Fbx material
+	 * @param outMaterials Unreal Materials we created
+	 * @param outUVSets
 	 */
 	void CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets);
 	
