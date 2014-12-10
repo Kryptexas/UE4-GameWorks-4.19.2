@@ -351,6 +351,9 @@ protected:
 protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */
 	virtual TSharedRef<SWidget> RebuildWidget();
+
+	/** Function called after the underlying SWidget is constructed. */
+	virtual void OnWidgetRebuilt();
 	
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 

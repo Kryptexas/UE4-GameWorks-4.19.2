@@ -452,13 +452,16 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 	// Add the first component to the root of the widget surface.
 	TSharedRef<SWidget> UserRootWidget = WidgetTree->RootWidget ? WidgetTree->RootWidget->TakeWidget() : TSharedRef<SWidget>(SNew(SSpacer));
 
-	if ( !IsDesignTime() )
+	return UserRootWidget;
+}
+
+void UUserWidget::OnWidgetRebuilt()
+{
+	if (!IsDesignTime())
 	{
 		// Notify the widget that it has been constructed.
 		Construct();
 	}
-
-	return UserRootWidget;
 }
 
 TSharedPtr<SWidget> UUserWidget::GetSlateWidgetFromName(const FName& Name) const

@@ -251,6 +251,8 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
 
+		OnWidgetRebuilt();
+
 		bNewlyCreated = true;
 	}
 	else
@@ -290,6 +292,10 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 
 		return SafeWidget.ToSharedRef();
 	}
+}
+
+void UWidget::OnWidgetRebuilt()
+{
 }
 
 TSharedPtr<SWidget> UWidget::GetCachedWidget() const

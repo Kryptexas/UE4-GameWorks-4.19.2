@@ -655,6 +655,7 @@ public:
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void OnWidgetRebuilt() override;
 
 	FMargin GetFullScreenOffset() const;
 	FAnchors GetViewportAnchors() const;
