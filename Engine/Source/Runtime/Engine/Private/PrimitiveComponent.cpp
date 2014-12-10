@@ -2147,7 +2147,7 @@ void UPrimitiveComponent::ClearMoveIgnoreActors()
 
 void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
+	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
 	if (IsDeferringMovementUpdates())
 	{
@@ -2301,6 +2301,8 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
 	if (bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
+
 		if (bGenerateOverlapEvents && IsCollisionEnabled())
 		{
 			APhysicsVolume* BestVolume = GetWorld()->GetDefaultPhysicsVolume();

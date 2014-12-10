@@ -1212,6 +1212,8 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
 	if ( bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld() )
 	{
+		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
+
 		UWorld* const MyWorld = GetWorld();
 		APhysicsVolume *NewVolume = MyWorld->GetDefaultPhysicsVolume();
 		
@@ -1346,7 +1348,7 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, F
 
 void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
+	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
 	if (IsDeferringMovementUpdates())
 	{
