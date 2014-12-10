@@ -28,6 +28,8 @@ class GAMEPLAYABILITIES_API AGameplayAbilityWorldReticle : public AActor
 
 public:
 
+	virtual void Tick(float DeltaSeconds) override;
+
 	/** Accessor for checking, before instantiating, if this WorldReticle will replicate. */
 	bool GetReplicates() const;
 
@@ -60,8 +62,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Reticle)
 	void FaceTowardSource(bool bFaceIn2D);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
 	FWorldReticleParameters Parameters;
+
+	/** Makes the reticle's default owner-facing behavior operate in 2D (flat) instead of 3D (pitched). Defaults to true. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
+	bool bFaceOwnerFlat;
 
 protected:
 	/** This indicates whether or not the targeting actor considers the current target to be valid. Defaults to true. */

@@ -17,6 +17,15 @@ AGameplayAbilityWorldReticle::AGameplayAbilityWorldReticle(const FObjectInitiali
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	bIsTargetValid = true;
 	bIsTargetAnActor = false;
+	bFaceOwnerFlat = true;
+}
+
+
+void AGameplayAbilityWorldReticle::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	FaceTowardSource(bFaceOwnerFlat);
 }
 
 void AGameplayAbilityWorldReticle::InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor, FWorldReticleParameters InParameters)

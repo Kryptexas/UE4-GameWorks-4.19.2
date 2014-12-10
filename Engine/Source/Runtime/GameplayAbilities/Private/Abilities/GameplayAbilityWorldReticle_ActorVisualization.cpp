@@ -29,13 +29,6 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 }
 
 
-void AGameplayAbilityWorldReticle_ActorVisualization::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	FaceTowardSource(true);
-}
-
 void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial)
 {
 	if (VisualizationActor)

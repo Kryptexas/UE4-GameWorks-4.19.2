@@ -14,8 +14,6 @@ class AGameplayAbilityWorldReticle_ActorVisualization : public AGameplayAbilityW
 	GENERATED_UCLASS_BODY()
 
 public:
-	virtual void Tick(float DeltaSeconds) override;
-
 	void InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
 
 private:
