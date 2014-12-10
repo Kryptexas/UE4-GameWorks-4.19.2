@@ -1498,6 +1498,8 @@ FMaterialRenderContext::FMaterialRenderContext(
 	const FSceneView* InView)
 		: MaterialRenderProxy(InMaterialRenderProxy)
 		, Material(InMaterial)
+		, Time(0.0f)
+		, RealTime(0.0f)
 {
 	bShowSelection = GIsEditor && InView && InView->Family->EngineShowFlags.Selection;
 }
