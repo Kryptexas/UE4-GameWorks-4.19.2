@@ -6,7 +6,6 @@
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif
-#include "DeferRegisterComponents.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 
