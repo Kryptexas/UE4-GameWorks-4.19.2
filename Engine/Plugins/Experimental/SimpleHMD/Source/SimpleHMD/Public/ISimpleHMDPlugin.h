@@ -5,8 +5,6 @@
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
 
-#define SIMPLEHMD_SUPPORTED_PLATFORMS PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_ANDROID
-
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
  * within this plugin.

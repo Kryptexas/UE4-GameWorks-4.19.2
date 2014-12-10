@@ -20,6 +20,7 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
+					"InputCore",
 					"RHI",
 					"RenderCore",
 					"Renderer",

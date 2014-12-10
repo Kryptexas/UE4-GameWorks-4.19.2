@@ -15,8 +15,7 @@
 	[
 		{
 			"Name" : "SimpleHMD",
-			"Type" : "Runtime",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "Mac", "Android" ]
+			"Type" : "Runtime"
 		}
 	]
 }

@@ -4,9 +4,6 @@
 #include "ISimpleHMDPlugin.h"
 #include "HeadMountedDisplay.h"
 #include "IHeadMountedDisplay.h"
-
-#if SIMPLEHMD_SUPPORTED_PLATFORMS
-
 #include "SceneViewExtension.h"
 
 
@@ -95,9 +92,19 @@ public:
 
 	/** @return	True if the HMD was initialized OK */
 	bool IsInitialized() const;
+
+private:
+
+	FQuat					CurHmdOrientation;
+	FQuat					LastHmdOrientation;
+
+	FRotator				DeltaControlRotation;    // same as DeltaControlOrientation but as rotator
+	FQuat					DeltaControlOrientation; // same as DeltaControlRotation but as quat
+
+	double					LastSensorTime;
+
+	void GetCurrentPose(FQuat& CurrentOrientation);
 };
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
-
-#endif //SIMPLEHMD_SUPPORTED_PLATFORMS
