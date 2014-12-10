@@ -67,6 +67,8 @@ public:
 	bool			IsGUIDRegistered( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDLoaded( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const;
+	FString			FullNetGUIDPath( const FNetworkGUID& NetGUID ) const;
+	void			GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FString& FullPath ) const;
 
 	void			AsyncPackageCallback( const FName& PackageName, UPackage * Package );
 	
