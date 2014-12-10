@@ -181,7 +181,7 @@ FReply SVirtualJoystick::OnTouchStarted(const FGeometry& MyGeometry, const FPoin
 
 					if (HandleTouch(ControlIndex, LocalCoord, MyGeometry.Size)) // Never fail!
 					{
-						return FReply::Handled();
+						return FReply::Handled().CaptureMouse(SharedThis(this));
 					}
 				}
 				else
@@ -248,7 +248,8 @@ FReply SVirtualJoystick::OnTouchEnded(const FGeometry& MyGeometry, const FPointe
 				Control.bNeedUpdatedCenter = false;
 				return FReply::Unhandled();
 			}
-			return FReply::Handled();
+
+			return FReply::Handled().ReleaseMouseCapture();
 		}
 	}
 

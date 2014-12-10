@@ -620,7 +620,7 @@ void UUserWidget::AddToViewport()
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ViewportClient->AddViewportWidgetContent(RootWidget);
+				ViewportClient->AddViewportWidgetContent(RootWidget, 10);
 			}
 		}
 	}

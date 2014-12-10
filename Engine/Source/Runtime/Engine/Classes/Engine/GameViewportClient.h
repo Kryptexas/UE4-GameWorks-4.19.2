@@ -256,11 +256,11 @@ public:
 	/** Returns access to this viewport's Slate window */
 	TSharedPtr< SWindow > GetWindow()
 	{
-	 	 return Window.Pin();
+		 return Window.Pin();
 	}
 	 
 	/** 
- 	 * Sets bDropDetail and other per-frame detail level flags on the current WorldSettings
+	 * Sets bDropDetail and other per-frame detail level flags on the current WorldSettings
 	 *
 	 * @param DeltaSeconds - amount of time passed since last tick
 	 * @see UWorld
@@ -472,7 +472,7 @@ public:
 	FViewportFrame* ViewportFrame;
 
 	/**
- 	 * Controls suppression of the blue transition text messages 
+	 * Controls suppression of the blue transition text messages 
 	 * 
 	 * @param bSuppress	Pass true to suppress messages
 	 */
