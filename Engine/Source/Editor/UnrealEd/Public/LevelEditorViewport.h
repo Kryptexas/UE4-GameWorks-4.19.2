@@ -158,6 +158,11 @@ public:
 
 	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
 
+	/** 
+	 * Initialize visibility flags
+	 */
+	void InitializeVisibilityFlags();
+
 	/**
 	 * Reset the camera position and rotation.  Used when creating a new level.
 	 */

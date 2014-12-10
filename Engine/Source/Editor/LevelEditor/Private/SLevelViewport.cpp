@@ -1887,6 +1887,14 @@ void SLevelViewport::OnUseDefaultShowFlags(bool bUseSavedDefaults)
 	ApplyViewMode(CachedViewMode, LevelViewportClient->IsPerspective(), LevelViewportClient->EngineShowFlags);
 	ApplyViewMode(CachedViewMode, LevelViewportClient->IsPerspective(), LevelViewportClient->LastEngineShowFlags);
 
+	// set volume / layer / sprite visibility defaults
+	if (!bUseSavedDefaults)
+	{
+		LevelViewportClient->InitializeVisibilityFlags();
+		GUnrealEd->UpdateVolumeActorVisibility(NULL, LevelViewportClient.Get());
+		GEditor->Layers->UpdatePerViewVisibility(LevelViewportClient.Get());
+	}
+
 	LevelViewportClient->Invalidate();
 }
 
