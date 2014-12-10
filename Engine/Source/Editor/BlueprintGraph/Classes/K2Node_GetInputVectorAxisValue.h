@@ -11,6 +11,7 @@ class UK2Node_GetInputVectorAxisValue : public UK2Node_GetInputAxisKeyValue
 
 	// Begin EdGraphNode interface
 	virtual FText GetTooltipText() const override;
+	virtual FString GetKeywords() const override;
 	// End EdGraphNode interface
 
 	// Begin UK2Node interface

@@ -19,6 +19,11 @@ void UK2Node_GetInputVectorAxisValue::Initialize(const FKey AxisKey)
 	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputVectorAxisValue")));
 }
 
+FString UK2Node_GetInputVectorAxisValue::GetKeywords() const
+{
+	return TEXT("Get");
+}
+
 FText UK2Node_GetInputVectorAxisValue::GetTooltipText() const
 {
 	FFormatNamedArguments Args;

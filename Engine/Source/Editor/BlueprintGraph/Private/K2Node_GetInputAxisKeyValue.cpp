@@ -52,6 +52,11 @@ FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return CachedNodeTitle;
 }
 
+FString UK2Node_GetInputAxisKeyValue::GetKeywords() const
+{
+	return TEXT("Get");
+}
+
 FText UK2Node_GetInputAxisKeyValue::GetTooltipText() const
 {
 	if (CachedTooltip.IsOutOfDate())
