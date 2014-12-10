@@ -329,7 +329,7 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 									// Retrieve the element's default value
 									FString DefaultValue;
-									ArrayProperty->Inner->ExportTextItem( DefaultValue, PropData, PropDefault, NULL, PPF_Delimited, NULL );
+									FBlueprintEditorUtils::PropertyValueToString(ArrayProperty->Inner, PropData, DefaultValue);
 
 									if(ArrayIndex > 0)
 									{
