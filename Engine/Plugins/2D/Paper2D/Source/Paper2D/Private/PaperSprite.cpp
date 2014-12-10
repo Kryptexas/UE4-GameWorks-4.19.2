@@ -1,9 +1,13 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperSprite.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperCustomVersion.h"
+
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
 
 #if WITH_EDITOR
 
@@ -13,6 +17,7 @@
 #include "PaperGeomTools.h"
 #include "BitmapUtils.h"
 #include "ComponentReregisterContext.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // maf
@@ -278,10 +283,36 @@ UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial"));
 	AlternateMaterial = OpaqueMaterialRef.Object;
+
+#if WITH_EDITOR
+	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
+	if (GIsEditor && !bRegisteredObjectReimport)
+	{
+		bRegisteredObjectReimport = true;
+		FEditorDelegates::OnAssetReimport.AddUObject(this, &UPaperSprite::OnObjectReimported);
+	}
+#endif
 }
 
 #if WITH_EDITOR
 
+void UPaperSprite::OnObjectReimported(UObject* InObject)
+{
+	// Check if its our source texture, and if its dimensions have changed
+	// If SourceTetxureDimension == 0, we don't have a previous dimension to work off, so can't
+	// rescale sensibly
+	UTexture2D* Texture = Cast<UTexture2D>(InObject);
+	if (Texture != nullptr && Texture == GetSourceTexture() && NeedRescaleSpriteData())
+	{
+		RescaleSpriteData(GetSourceTexture());
+		PostEditChange();
+	}
+}
+
+#endif
+
+
+#if WITH_EDITOR
 
 /** Removes all components that use the specified sprite asset from their scenes for the lifetime of the class. */
 class FSpriteReregisterContext
@@ -416,14 +447,12 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	}
 
 	// The texture dimensions have changed
-	if (SourceTexture != nullptr && (SourceTextureDimension.X != SourceTexture->GetSizeX() || SourceTextureDimension.Y != SourceTexture->GetSizeY()))
-	{
-		FVector2D PreviousTextureDimension = SourceTextureDimension;
-		SourceTextureDimension = FVector2D(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
-		// Tmp - disabled, not sure if we want it on here or not
-		// RescaleSpriteData(PreviousTextureDimension, SourceTextureDimension);
-		bBothModified = true;
-	}
+	//if (NeedRescaleSpriteData())
+	//{
+		// TMP: Disabled, not sure if we want this here
+		// RescaleSpriteData(GetSourceTexture());
+		// bBothModified = true;
+	//}
 
 
 	if (bCollisionDataModified || bBothModified)
@@ -439,18 +468,22 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-void UPaperSprite::RescaleSpriteData(const FVector2D& PreviousTextureDimension, const FVector2D& CurrentTextureDimension)
+void UPaperSprite::RescaleSpriteData(const UTexture2D* Texture)
 {
+	FVector2D PreviousTextureDimension = SourceTextureDimension;
+	FVector2D NewTextureDimension(Texture->GetImportedSize().X, Texture->GetImportedSize().Y);
+
 	// Don't ever divby0 (no previously stored texture dimensions)
-	// or scale to 0
-	if (CurrentTextureDimension.X == 0 || CurrentTextureDimension.Y == 0 ||
+	// or scale to 0, should be covered by NeedRescaleSpriteData
+	if (NewTextureDimension.X == 0 || NewTextureDimension.Y == 0 ||
 		PreviousTextureDimension.X == 0 || PreviousTextureDimension.Y == 0)
 	{
 		return;
 	}
 
-	const FVector2D& S = CurrentTextureDimension;
+	const FVector2D& S = NewTextureDimension;
 	const FVector2D& D = PreviousTextureDimension;
+
 	struct Local
 	{
 		static float NoSnap(const float Value, const float Scale, const float Divisor)
@@ -484,6 +517,7 @@ void UPaperSprite::RescaleSpriteData(const FVector2D& PreviousTextureDimension, 
 	SourceUV = Local::Rescale(SourceUV, S, D);
 	SourceDimension = Local::Rescale(SourceDimension, S, D);
 	SourceImageDimensionBeforeTrimming = Local::Rescale(SourceImageDimensionBeforeTrimming, S, D);
+	SourceTextureDimension = NewTextureDimension;
 
 	if (bSnapPivotToPixelGrid)
 	{
@@ -520,6 +554,18 @@ void UPaperSprite::RescaleSpriteData(const FVector2D& PreviousTextureDimension, 
 		Translation.Z = PivotSpaceSocketPosition.Y;
 		Socket.LocalTransform.SetTranslation(Translation);
 	}
+}
+
+bool UPaperSprite::NeedRescaleSpriteData()
+{
+	if (UTexture2D* Texture = GetSourceTexture())
+	{
+		FIntPoint TextureSize = Texture->GetImportedSize();
+		bool bTextureSizeIsZero = TextureSize.X == 0 || TextureSize.Y == 0;
+		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && (TextureSize.X != SourceTextureDimension.X || TextureSize.Y != SourceTextureDimension.Y);
+	}
+
+	return false;
 }
 
 void UPaperSprite::RebuildCollisionData()
@@ -1214,7 +1260,7 @@ void UPaperSprite::InitializeSprite(const FSpriteAssetInitParameters& InitParams
 	SourceTexture = InitParams.Texture;
 	if (SourceTexture != nullptr)
 	{
-		SourceTextureDimension.Set(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
+		SourceTextureDimension.Set(SourceTexture->GetImportedSize().X, SourceTexture->GetImportedSize().Y);
 	}
 	else
 	{
@@ -1528,10 +1574,17 @@ void UPaperSprite::PostLoad()
 	{
 		bRebuildCollision = true;
 	}
-	
+
 	if ((PaperVer < FPaperCustomVersion::AddDefaultCollisionProfileInSpriteAsset) && (BodySetup != nullptr))
 	{
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+	}
+
+	if (PaperVer >= FPaperCustomVersion::AddSourceTextureSize && NeedRescaleSpriteData())
+	{
+		RescaleSpriteData(GetSourceTexture());
+		bRebuildCollision = true;
+		bRebuildRenderData = true;
 	}
 
 	if (bRebuildCollision)

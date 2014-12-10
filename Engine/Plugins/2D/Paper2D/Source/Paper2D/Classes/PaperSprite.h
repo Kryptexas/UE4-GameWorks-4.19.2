@@ -187,7 +187,8 @@ public:
 	FVector2D GetPivotPosition() const;
 
 	// Rescale properties to handle source texture size change
-	void RescaleSpriteData(const FVector2D& PreviousTextureDimension, const FVector2D& CurrentTextureDimension);
+	void RescaleSpriteData(const UTexture2D* Texture);
+	bool NeedRescaleSpriteData();
 
 	void RebuildCollisionData();
 	void RebuildRenderData();
@@ -220,6 +221,12 @@ public:
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
+#endif
+
+#if WITH_EDITOR
+	bool bRegisteredObjectReimport;
+	// Called via delegate when an object is re-imported in the editor
+	void OnObjectReimported(UObject* InObject);
 #endif
 
 	// Return the scaling factor between pixels and Unreal units (cm)

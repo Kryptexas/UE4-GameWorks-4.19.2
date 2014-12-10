@@ -603,7 +603,7 @@ public:
 	void BroadcastEndObjectMovement( UObject& Object ) const { OnEndObjectTransformEvent.Broadcast( Object ); }
 
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
-	void BroadcastObjectReimported(UObject* InObject) { ObjectReimportedEvent.Broadcast(InObject); }
+	void BroadcastObjectReimported(UObject* InObject);
 
 	// Begin UObject interface.
 	virtual void FinishDestroy() override;	
