@@ -246,7 +246,7 @@ private:
 				FEdModeTileMap::EM_TileMap,
 				LOCTEXT("TileMapEditMode", "Tile Map Editor"),
 				FSlateIcon(),
-				true);
+				false);
 		}
 	}
 };
