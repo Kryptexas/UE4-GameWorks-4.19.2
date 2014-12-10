@@ -463,22 +463,25 @@ namespace UnrealBuildTool
                 LinkAction.CommandArguments += string.Format(" \"{0}\"", InputFile.AbsolutePath);
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
-            foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
-            {
-                FileItem Item = FileItem.GetItemByPath(InputFile);
+			if (!LinkEnvironment.Config.bIsBuildingLibrary)
+			{
+				foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
+				{
+					FileItem Item = FileItem.GetItemByPath(InputFile);
 
-                if (Item.AbsolutePath.Contains(".lib"))
-                    continue; 
+					if (Item.AbsolutePath.Contains(".lib"))
+						continue;
 
-                if (Item != null)
-                {
-                    if (Item.ToString().Contains(".js"))
-                        LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
-                    else
-                        LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
-                    LinkAction.PrerequisiteItems.Add(Item);
-                }
-            }
+					if (Item != null)
+					{
+						if (Item.ToString().Contains(".js"))
+							LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
+						else
+							LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
+						LinkAction.PrerequisiteItems.Add(Item);
+					}
+				}
+			}
 			// make the file we will create
 			OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
