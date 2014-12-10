@@ -135,6 +135,8 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	ZoomTargetTopLeft = FVector2D::ZeroVector;
 	ZoomTargetBottomRight = FVector2D::ZeroVector;
 
+	ZoomToFitPadding = FVector2D(100, 100);
+
 	ChildSlot
 	[
 		InArgs._Content.Widget
@@ -190,6 +192,8 @@ int32 SDesignSurface::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 
 FReply SDesignSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
+
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		bIsPanning = false;
@@ -200,6 +204,8 @@ FReply SDesignSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoi
 
 FReply SDesignSurface::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
+
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		bIsPanning = false;
@@ -352,7 +358,7 @@ bool SDesignSurface::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, con
 	// Find lowest zoom level that will display all nodes
 	for ( int32 Zoom = 0; Zoom < DefaultZoomLevel; ++Zoom )
 	{
-		const FVector2D SizeWithZoom = CurrentSizeWithoutZoom / ZoomLevels->GetZoomAmount(Zoom);
+		const FVector2D SizeWithZoom = (CurrentSizeWithoutZoom - ZoomToFitPadding) / ZoomLevels->GetZoomAmount(Zoom);
 		const FVector2D LeftOverSize = SizeWithZoom - DesiredSize;
 
 		if ( ( DesiredSize.X > SizeWithZoom.X ) || ( DesiredSize.Y > SizeWithZoom.Y ) )

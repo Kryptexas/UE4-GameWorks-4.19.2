@@ -22,6 +22,7 @@ namespace EDesignerMessage
 class FDesignerExtension;
 class UPanelWidget;
 class UUserWidget;
+class SRuler;
 
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
@@ -35,6 +36,8 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor);
 	virtual ~SDesignerView();
+
+	TSharedRef<SWidget> CreateOverlayUI();
 
 	// SWidget interface
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -165,6 +168,7 @@ private:
 
 private:
 	FReply HandleZoomToFitClicked();
+	EVisibility GetRulerVisibility() const;
 
 private:
 	static const FString ConfigSectionName;
@@ -244,6 +248,12 @@ private:
 
 	/**  */
 	FWeakWidgetPath SelectedWidgetPath;
+
+	/** The ruler bar at the top of the designer. */
+	TSharedPtr<SRuler> TopRuler;
+
+	/** The ruler bar on the left side of the designer. */
+	TSharedPtr<SRuler> SideRuler;
 
 	/** */
 	EDesignerMessage::Type DesignerMessage;

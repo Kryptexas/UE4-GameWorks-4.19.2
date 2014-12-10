@@ -19,6 +19,7 @@
 
 #include "WidgetTemplateDragDropOp.h"
 #include "SZoomPan.h"
+#include "SRuler.h"
 #include "SDisappearingBar.h"
 #include "SDesignerToolBar.h"
 #include "DesignerCommands.h"
@@ -244,29 +245,6 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				.OnPaintHandler(this, &SDesignerView::HandleEffectsPainting)
 			]
 
-			// Top-right corner text indicating PIE is active
-			+ SOverlay::Slot()
-			.Padding(0)
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
-			[
-				SNew(SImage)
-				.Visibility(this, &SDesignerView::PIENotification)
-				.Image(FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")))
-			]
-
-			// Top-right corner text indicating PIE is active
-			+ SOverlay::Slot()
-			.Padding(20)
-			.VAlign(VAlign_Top)
-			.HAlign(HAlign_Right)
-			[
-				SNew(STextBlock)
-				.Visibility(this, &SDesignerView::PIENotification)
-				.TextStyle( FEditorStyle::Get(), "Graph.SimulatingText" )
-				.Text( LOCTEXT("SIMULATING", "SIMULATING") )
-			]
-
 			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
@@ -276,187 +254,40 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				.Visibility(EVisibility::SelfHitTestInvisible)
 			]
 
-			// Top bar with buttons for changing the designer
 			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Top)
 			[
-				SNew(SHorizontalBox)
+				SNew(SGridPanel)
+				.FillColumn(1, 1.0f)
+				.FillRow(1, 1.0f)
 
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(6, 2, 0, 0)
-				[
-					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-					.Text(this, &SDesignerView::GetZoomText)
-					.ColorAndOpacity(this, &SDesignerView::GetZoomTextColorAndOpacity)
-					.Visibility(EVisibility::SelfHitTestInvisible)
-				]
-
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				[
-					SNew(SSpacer)
-					.Size(FVector2D(1, 1))
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.0f)
-				[
-					SNew(SDesignerToolBar)
-					.CommandList(CommandList)
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.0f)
-				[
-					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
-					.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "Zoom To Fit"))
-					.OnClicked(this, &SDesignerView::HandleZoomToFitClicked)
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("UMGEditor.ZoomToFit"))
-					]
-				]
-				
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.0f)
-				[
-					SNew(SComboButton)
-					.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
-					.ForegroundColor(FLinearColor::Black)
-					.OnGetMenuContent(this, &SDesignerView::GetAspectMenu)
-					.ContentPadding(2.0f)
-					.ButtonContent()
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("PreviewSize", "Preview Size"))
-						.TextStyle(FEditorStyle::Get(), "ViewportMenu.Label")
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.0f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.AllowSpin(true)
-					.Delta(1)
-					.MinSliderValue(1)
-					.MinValue(1)
-					.MaxSliderValue(TOptional<int32>(1000))
-					.Value(this, &SDesignerView::GetCustomResolutionWidth)
-					.OnValueChanged(this, &SDesignerView::OnCustomResolutionWidthChanged)
-					.Visibility(this, &SDesignerView::GetCustomResolutionEntryVisibility)
-					.MinDesiredValueWidth(50)
-					.LabelPadding(0)
-					.Label()
-					[
-						SNumericEntryBox<int32>::BuildLabel(LOCTEXT("Width", "Width"), FLinearColor::White, SNumericEntryBox<int32>::RedLabelBackgroundColor)
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.0f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.AllowSpin(true)
-					.Delta(1)
-					.MinSliderValue(1)
-					.MaxSliderValue(TOptional<int32>(1000))
-					.MinValue(1)
-					.Value(this, &SDesignerView::GetCustomResolutionHeight)
-					.OnValueChanged(this, &SDesignerView::OnCustomResolutionHeightChanged)
-					.Visibility(this, &SDesignerView::GetCustomResolutionEntryVisibility)
-					.MinDesiredValueWidth(50)
-					.LabelPadding(0)
-					.Label()
-					[
-						SNumericEntryBox<int32>::BuildLabel(LOCTEXT("Height", "Height"), FLinearColor::White, SNumericEntryBox<int32>::GreenLabelBackgroundColor)
-					]
-				]
-			]
-
-			// Info Bar, displays heads up information about some actions.
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Bottom)
-			[
-				SNew(SDisappearingBar)
+				// Corner
+				+ SGridPanel::Slot(0, 0)
 				[
 					SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
-					.BorderBackgroundColor(FLinearColor(0.10, 0.10, 0.10, 0.75))
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(0, 5))
-					.Visibility(this, &SDesignerView::GetInfoBarVisibility)
-					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-						.Text(this, &SDesignerView::GetInfoBarText)
-					]
-				]
-			]
-
-			// Bottom bar to show current resolution & AR
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Bottom)
-			[
-				SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(6, 0, 0, 2)
-				[
-					SNew(STextBlock)
-					.Visibility(this, &SDesignerView::GetResolutionTextVisibility)
-					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-					.Text(this, &SDesignerView::GetCurrentResolutionText)
-					.ColorAndOpacity(this, &SDesignerView::GetResolutionTextColorAndOpacity)
+					.BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
+					.BorderBackgroundColor(FLinearColor(FColor(48, 48, 48)))
 				]
 
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.HAlign(HAlign_Right)
-				.Padding(0, 0, 6, 2)
+				// Top Ruler
+				+ SGridPanel::Slot(1, 0)
 				[
-					SNew(SHorizontalBox)
+					SAssignNew(TopRuler, SRuler)
+					.Orientation(Orient_Horizontal)
+					.Visibility(this, &SDesignerView::GetRulerVisibility)
+				]
 
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-						.Text(this, &SDesignerView::GetCurrentDPIScaleText)
-						.ColorAndOpacity(FLinearColor(1, 1, 1, 0.25f))
-					]
+				// Side Ruler
+				+ SGridPanel::Slot(0, 1)
+				[
+					SAssignNew(SideRuler, SRuler)
+					.Orientation(Orient_Vertical)
+					.Visibility(this, &SDesignerView::GetRulerVisibility)
+				]
 
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(6, 0, 0, 0)
-					[
-						SNew(SButton)
-						.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-						.ContentPadding(FMargin(3, 1))
-						.OnClicked(this, &SDesignerView::HandleDPISettingsClicked)
-						.ToolTipText(LOCTEXT("DPISettingsTooltip", "Configure the UI Scale Curve to control how the UI is scaled on different resolutions."))
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("UMGEditor.DPISettings"))
-						]
-					]
+				// Designer overlay UI, toolbar, status messages, zoom level...etc
+				+ SGridPanel::Slot(1, 1)
+				[
+					CreateOverlayUI()
 				]
 			]
 		]
@@ -465,6 +296,218 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SDesignerView::OnEditorSelectionChanged);
 
 	ZoomToFit(/*bInstantZoom*/ true);
+}
+
+TSharedRef<SWidget> SDesignerView::CreateOverlayUI()
+{
+	return SNew(SOverlay)
+
+	// Top-right corner text indicating PIE is active
+	+ SOverlay::Slot()
+	.Padding(0)
+	.VAlign(VAlign_Fill)
+	.HAlign(HAlign_Fill)
+	[
+		SNew(SImage)
+		.Visibility(this, &SDesignerView::PIENotification)
+		.Image(FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")))
+	]
+
+	// Top-right corner text indicating PIE is active
+	+ SOverlay::Slot()
+	.Padding(20)
+	.VAlign(VAlign_Top)
+	.HAlign(HAlign_Right)
+	[
+		SNew(STextBlock)
+		.Visibility(this, &SDesignerView::PIENotification)
+		.TextStyle( FEditorStyle::Get(), "Graph.SimulatingText" )
+		.Text( LOCTEXT("SIMULATING", "SIMULATING") )
+	]
+
+	// Top bar with buttons for changing the designer
+	+ SOverlay::Slot()
+	.HAlign(HAlign_Fill)
+	.VAlign(VAlign_Top)
+	[
+		SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(6, 2, 0, 0)
+		[
+			SNew(STextBlock)
+			.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+			.Text(this, &SDesignerView::GetZoomText)
+			.ColorAndOpacity(this, &SDesignerView::GetZoomTextColorAndOpacity)
+			.Visibility(EVisibility::SelfHitTestInvisible)
+		]
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SSpacer)
+			.Size(FVector2D(1, 1))
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.0f)
+		[
+			SNew(SDesignerToolBar)
+			.CommandList(CommandList)
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.0f)
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
+			.ToolTipText(LOCTEXT("ZoomToFit_ToolTip", "Zoom To Fit"))
+			.OnClicked(this, &SDesignerView::HandleZoomToFitClicked)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("UMGEditor.ZoomToFit"))
+			]
+		]
+				
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.0f)
+		[
+			SNew(SComboButton)
+			.ButtonStyle(FEditorStyle::Get(), "ViewportMenu.Button")
+			.ForegroundColor(FLinearColor::Black)
+			.OnGetMenuContent(this, &SDesignerView::GetAspectMenu)
+			.ContentPadding(2.0f)
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("PreviewSize", "Preview Size"))
+				.TextStyle(FEditorStyle::Get(), "ViewportMenu.Label")
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SNumericEntryBox<int32>)
+			.AllowSpin(true)
+			.Delta(1)
+			.MinSliderValue(1)
+			.MinValue(1)
+			.MaxSliderValue(TOptional<int32>(1000))
+			.Value(this, &SDesignerView::GetCustomResolutionWidth)
+			.OnValueChanged(this, &SDesignerView::OnCustomResolutionWidthChanged)
+			.Visibility(this, &SDesignerView::GetCustomResolutionEntryVisibility)
+			.MinDesiredValueWidth(50)
+			.LabelPadding(0)
+			.Label()
+			[
+				SNumericEntryBox<int32>::BuildLabel(LOCTEXT("Width", "Width"), FLinearColor::White, SNumericEntryBox<int32>::RedLabelBackgroundColor)
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SNumericEntryBox<int32>)
+			.AllowSpin(true)
+			.Delta(1)
+			.MinSliderValue(1)
+			.MaxSliderValue(TOptional<int32>(1000))
+			.MinValue(1)
+			.Value(this, &SDesignerView::GetCustomResolutionHeight)
+			.OnValueChanged(this, &SDesignerView::OnCustomResolutionHeightChanged)
+			.Visibility(this, &SDesignerView::GetCustomResolutionEntryVisibility)
+			.MinDesiredValueWidth(50)
+			.LabelPadding(0)
+			.Label()
+			[
+				SNumericEntryBox<int32>::BuildLabel(LOCTEXT("Height", "Height"), FLinearColor::White, SNumericEntryBox<int32>::GreenLabelBackgroundColor)
+			]
+		]
+	]
+
+	// Info Bar, displays heads up information about some actions.
+	+ SOverlay::Slot()
+	.HAlign(HAlign_Fill)
+	.VAlign(VAlign_Bottom)
+	[
+		SNew(SDisappearingBar)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(FLinearColor(0.10, 0.10, 0.10, 0.75))
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(FMargin(0, 5))
+			.Visibility(this, &SDesignerView::GetInfoBarVisibility)
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+				.Text(this, &SDesignerView::GetInfoBarText)
+			]
+		]
+	]
+
+	// Bottom bar to show current resolution & AR
+	+ SOverlay::Slot()
+	.HAlign(HAlign_Fill)
+	.VAlign(VAlign_Bottom)
+	[
+		SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(6, 0, 0, 2)
+		[
+			SNew(STextBlock)
+			.Visibility(this, &SDesignerView::GetResolutionTextVisibility)
+			.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+			.Text(this, &SDesignerView::GetCurrentResolutionText)
+			.ColorAndOpacity(this, &SDesignerView::GetResolutionTextColorAndOpacity)
+		]
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.HAlign(HAlign_Right)
+		.Padding(0, 0, 6, 2)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+				.Text(this, &SDesignerView::GetCurrentDPIScaleText)
+				.ColorAndOpacity(FLinearColor(1, 1, 1, 0.25f))
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(6, 0, 0, 0)
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ContentPadding(FMargin(3, 1))
+				.OnClicked(this, &SDesignerView::HandleDPISettingsClicked)
+				.ToolTipText(LOCTEXT("DPISettingsTooltip", "Configure the UI Scale Curve to control how the UI is scaled on different resolutions."))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("UMGEditor.DPISettings"))
+				]
+			]
+		]
+	];
 }
 
 SDesignerView::~SDesignerView()
@@ -1019,6 +1062,15 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 			DraggingStartPositionScreenSpace = MouseEvent.GetScreenSpacePosition();
 		}
 	}
+	else
+	{
+		// Clear the selection immediately if we didn't click anything.
+		if(MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			TSet<FWidgetReference> SelectedTemplates;
+			BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates, false);
+		}
+	}
 
 	// Capture mouse for the drag handle and general mouse actions
 	return FReply::Handled().PreventThrottling().SetUserFocus(AsShared(), EFocusCause::Mouse).CaptureMouse(AsShared());
@@ -1118,14 +1170,14 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 
 void SDesignerView::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+	SDesignSurface::OnMouseEnter(MyGeometry, MouseEvent);
 
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
 void SDesignerView::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
-	SCompoundWidget::OnMouseLeave(MouseEvent);
+	SDesignSurface::OnMouseLeave(MouseEvent);
 
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
@@ -1310,11 +1362,35 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		Ext->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	}
 
+	// Compute the origin in absolute space.
+	FGeometry RootGeometry = CachedWidgetGeometry.FindChecked(PreviewSurface.ToSharedRef()).Geometry;
+	FVector2D AbsoluteOrigin = MakeGeometryWindowLocal(RootGeometry).LocalToAbsolute(FVector2D::ZeroVector);
+
+	TopRuler->SetRuling(AbsoluteOrigin, 1.0f / GetPreviewScale());
+	SideRuler->SetRuling(AbsoluteOrigin, 1.0f / GetPreviewScale());
+
+	if ( IsHovered() )
+	{
+		// Get cursor in absolute window space.
+		FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+		CursorPos = MakeGeometryWindowLocal(RootGeometry).LocalToAbsolute(RootGeometry.AbsoluteToLocal(CursorPos));
+
+		TopRuler->SetCursor(CursorPos);
+		SideRuler->SetCursor(CursorPos);
+	}
+	else
+	{
+		TopRuler->SetCursor(TOptional<FVector2D>());
+		SideRuler->SetCursor(TOptional<FVector2D>());
+	}
+
 	SDesignSurface::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SDesignSurface::OnDragDetected(MyGeometry, MouseEvent);
+
 	FWidgetReference SelectedWidget = GetSelectedWidget();
 
 	if ( SelectedWidget.IsValid() )
@@ -1337,7 +1413,7 @@ FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 
 void SDesignerView::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
+	SDesignSurface::OnDragEnter(MyGeometry, DragDropEvent);
 
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 
@@ -1346,7 +1422,7 @@ void SDesignerView::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEven
 
 void SDesignerView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
-	SCompoundWidget::OnDragLeave(DragDropEvent);
+	SDesignSurface::OnDragLeave(DragDropEvent);
 
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 
@@ -1372,6 +1448,8 @@ void SDesignerView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 
 FReply SDesignerView::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
+	SDesignSurface::OnDragOver(MyGeometry, DragDropEvent);
+
 	UWidgetBlueprint* BP = GetBlueprint();
 	
 	if (DropPreviewWidget)
@@ -1708,6 +1786,8 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
+	SDesignSurface::OnDrop(MyGeometry, DragDropEvent);
+
 	bMovingExistingWidget = false;
 
 	UWidgetBlueprint* BP = GetBlueprint();
@@ -2003,6 +2083,11 @@ FReply SDesignerView::HandleZoomToFitClicked()
 {
 	ZoomToFit(/*bInstantZoom*/ false);
 	return FReply::Handled();
+}
+
+EVisibility SDesignerView::GetRulerVisibility() const
+{
+	return EVisibility::Visible;
 }
 
 #undef LOCTEXT_NAMESPACE

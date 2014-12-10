@@ -100,6 +100,7 @@ protected:
 
 	FVector2D ZoomTargetTopLeft;
 	FVector2D ZoomTargetBottomRight;
+	FVector2D ZoomToFitPadding;
 
 	/** Does the user need to press Control in order to over-zoom. */
 	bool bRequireControlToOverZoom;
