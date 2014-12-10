@@ -22,6 +22,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Cast_16x"); }
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	virtual void PostReconstructNode() override;
+	virtual void PostPlacedNewNode() override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface
