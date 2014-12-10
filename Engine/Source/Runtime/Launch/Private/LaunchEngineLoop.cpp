@@ -2052,9 +2052,6 @@ void FEngineLoop::Exit()
 
 	AppPreExit();
 
-	// Shutdown and unregister all online subsystems
-	Online::ShutdownOnlineSubsystem();
-
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
 	MotionBlur_Free();

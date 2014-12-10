@@ -32,21 +32,6 @@
 namespace Online
 {
 	/** 
-	 * Shutdown all online services
-	 */
-	static void ShutdownOnlineSubsystem() 
-	{ 
-		// This will potentially be called before the online subsystem was loaded...
-		FModuleManager& ModuleManager = FModuleManager::Get();
-		if (ModuleManager.IsModuleLoaded(TEXT("OnlineSubsystem")) == true)
-		{
-			// Unloading the module will call FOnlineSubsystemModule::ShutdownOnlineSubsystem()
-			const bool bIsShutdown = true;
-			ModuleManager.UnloadModule(TEXT("OnlineSubsystem"), bIsShutdown);
-		}
-	}
-
-	/** 
 	 * Get the interface for accessing the session services
 	 * @param SubsystemName - Name of the requested online service
 	 * @return Interface pointer for the appropriate session service

@@ -138,7 +138,7 @@ public:
 	 */
 	virtual bool SupportsAutomaticShutdown() override
 	{
-		return false;
+		return true;
 	}
 };
 
