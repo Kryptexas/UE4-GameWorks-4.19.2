@@ -43,6 +43,9 @@ FString GFontPathBase;
 // Is the OBB in an APK file or not
 bool GOBBinAPK;
 
+// Filename of the OBB (used for OBBinAPK case to avoid close search)
+FString GOBBFilename;
+
 extern jobject AndroidJNI_GetJavaAssetManager();
 extern AAssetManager * AndroidThunkCpp_GetAssetManager();
 
@@ -659,8 +662,11 @@ public:
 		{
 			// Since we control the APK we mount any OBBs we find
 			// inside of the APK.
-			FMountOBBVisitor MountOBB(*this);
-			IterateDirectory(TEXT(""), MountOBB);
+			//FMountOBBVisitor MountOBB(*this);
+			//IterateDirectory(TEXT(""), MountOBB, false, true);
+
+			// Getting the OBB to mount faster on some devices (IterateDirectory above can be slow!)
+			MountOBB(*GOBBFilename);
 		}
 		else
 		{
@@ -706,15 +712,13 @@ public:
 		PathToAndroidPaths(LocalPath, AssetPath, Filename, AllowLocal);
 
 		bool result = false;
-		if (IsLocal(LocalPath))
+		struct stat FileInfo;
+		if (!LocalPath.IsEmpty() && (stat(TCHAR_TO_UTF8(*LocalPath), &FileInfo) == 0))
 		{
 			// For local files we need to check if it's a plain
 			// file, as opposed to directories.
-			struct stat FileInfo;
-			if (stat(TCHAR_TO_UTF8(*LocalPath), &FileInfo) == 0)
-			{
-				result = S_ISREG(FileInfo.st_mode);
-			}
+			result = S_ISREG(FileInfo.st_mode);
+			return result;
 		}
 		else
 		{
@@ -743,16 +747,14 @@ public:
 
 		struct stat FileInfo;
 		FileInfo.st_size = -1;
-		if (IsLocal(LocalPath))
+		if (!LocalPath.IsEmpty() && (stat(TCHAR_TO_UTF8(*LocalPath), &FileInfo) == 0))
 		{
-			if (stat(TCHAR_TO_UTF8(*LocalPath), &FileInfo) == 0)
+			// make sure to return -1 for directories
+			if (S_ISDIR(FileInfo.st_mode))
 			{
-				// make sure to return -1 for directories
-				if (S_ISDIR(FileInfo.st_mode))
-				{
-					FileInfo.st_size = -1;
-				}
+				FileInfo.st_size = -1;
 			}
+			return FileInfo.st_size;
 		}
 		else if (IsResource(AssetPath))
 		{
@@ -1075,10 +1077,10 @@ public:
 
 	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
-		return DirectoryExists(Directory, false);
+		return DirectoryExists(Directory, false, false);
 	}
 	
-	bool DirectoryExists(const TCHAR* Directory, bool AllowLocal)
+	bool DirectoryExists(const TCHAR* Directory, bool AllowLocal, bool AllowAsset)
 	{
 #if LOG_ANDROID_FILE
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::DirectoryExists('%s')"), Directory);
@@ -1103,8 +1105,9 @@ public:
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::DirectoryExists('%s') => Found as resource: '%s'"), Directory, *(AssetPath + "/"));
 #endif
 		}
-		else
+		else if (AllowAsset)
 		{
+			// This can be very slow on some devices so only do it if we enabled
 			AAssetDir * dir = AAssetManager_openDir(AssetMgr, TCHAR_TO_UTF8(*AssetPath));
 			Found = AAssetDir_getNextFileName(dir) != nullptr;
 			AAssetDir_close(dir);
@@ -1166,10 +1169,10 @@ public:
 
 	virtual bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
 	{
-		return IterateDirectory(Directory, Visitor, false);
+		return IterateDirectory(Directory, Visitor, false, false);
 	}
 
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor, bool AllowLocal)
+	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor, bool AllowLocal, bool AllowAsset)
 	{
 #if LOG_ANDROID_FILE
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s')"), Directory);
@@ -1191,7 +1194,7 @@ public:
 					{
 						FString DirPath = FString(Directory) / UTF8_TO_TCHAR(Entry->d_name);
 #if LOG_ANDROID_FILE
-						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. Visit: '%s'"), Directory, *DirPath);
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. LOCAL Visit: '%s'"), Directory, *DirPath);
 #endif
 						Result = Visitor.Visit(*DirPath, Entry->d_type == DT_DIR);
 					}
@@ -1207,7 +1210,7 @@ public:
 			while (Result && ResourceDir.Next())
 			{
 #if LOG_ANDROID_FILE
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. Visit: '%s'"), Directory, *ResourceDir.Current.Key());
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. RESOURCE Visit: '%s'"), Directory, *ResourceDir.Current.Key());
 #endif
 				Result = Visitor.Visit(*ResourceDir.Current.Key(), false);
 			}
@@ -1219,12 +1222,12 @@ public:
 			while (Result && ResourceDir.Next())
 			{
 #if LOG_ANDROID_FILE
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. Visit: '%s'"), Directory, *ResourceDir.Current.Key());
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. RESOURCE/ Visit: '%s'"), Directory, *ResourceDir.Current.Key());
 #endif
 				Result = Visitor.Visit(*ResourceDir.Current.Key(), false);
 			}
 		}
-		else
+		else if (AllowAsset)
 		{
 			AAssetDir * dir = AAssetManager_openDir(AssetMgr, TCHAR_TO_UTF8(*AssetPath));
 			if (nullptr != dir)
@@ -1241,7 +1244,7 @@ public:
 						AAssetDir_close(dir);
 					}
 #if LOG_ANDROID_FILE
-					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. Visit: '%s'"), Directory, UTF8_TO_TCHAR(fileName));
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. ASSET Visit: '%s'"), Directory, UTF8_TO_TCHAR(fileName));
 #endif
 					Result = Visitor.Visit(UTF8_TO_TCHAR(fileName), isDirectory);
 				}

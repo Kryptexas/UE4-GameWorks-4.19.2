@@ -261,31 +261,47 @@ namespace UnrealBuildTool.Android
             return Path.Combine(GetUE4JavaFilePath(EngineDirectory), "JavaBuildSettings.java");
         }
 
-        public void WriteJavaBuildSettingsFile(string FileName, bool OBBinAPK)
+        public void WriteJavaBuildSettingsFile(string FileName, bool OBBinAPK, string CookFlavor)
         {
              // (!UEBuildConfiguration.bOBBinAPK ? "PackageType.AMAZON" : /*bPackageForGoogle ? "PackageType.GOOGLE" :*/ "PackageType.DEVELOPMENT") + ";\n");
             string Setting = OBBinAPK ? "AMAZON" : "DEVELOPMENT";
-            if (!File.Exists(FileName) || ShouldWriteJavaBuildSettingsFile(FileName, Setting))
+            string OBBFilename = "Android" + CookFlavor + ".obb" + (OBBinAPK ? ".png" : "");
+            if (!File.Exists(FileName) || ShouldWriteJavaBuildSettingsFile(FileName, Setting, OBBFilename))
             {
 				Log.TraceInformation("\n===={0}====WRITING JAVABUILDSETTINGS.JAVA========================================================", DateTime.Now.ToString());
 				StringBuilder BuildSettings = new StringBuilder("package com.epicgames.ue4;\npublic class JavaBuildSettings\n{\n");
                 BuildSettings.Append("\tpublic enum PackageType {AMAZON, GOOGLE, DEVELOPMENT};\n");
                 BuildSettings.Append("\tpublic static final PackageType PACKAGING = PackageType." + Setting + ";\n");
+                BuildSettings.Append("\tpublic static final String OBBFILENAME = \"" + OBBFilename + "\";\n");                    
                 BuildSettings.Append("}\n");
                 File.WriteAllText(FileName, BuildSettings.ToString());
             }
         }
 
-        public bool ShouldWriteJavaBuildSettingsFile(string FileName, string setting)
+        public bool ShouldWriteJavaBuildSettingsFile(string FileName, string setting, string OBBFilename)
         {
             var fileContent = File.ReadAllLines(FileName);
-            if (fileContent.Length < 5)
-                return true;
-            var packageLine = fileContent[4]; // We know this to be true... because we write it below...
-            int location = packageLine.IndexOf("PACKAGING") + 12 + 12; // + ("PACKAGING = ") + ("PackageType.")
-            if (location == -1)
-                return true;
-            return String.Compare(setting, packageLine.Substring(location, Math.Min(packageLine.Length - location, setting.Length))) != 0;
+
+            // compare packaging type and OBB filenames
+            int location;
+            bool packageTypeMatch = false;
+            bool obbFilenameMatch = false;
+            foreach (var fileLine in fileContent)
+            {
+                if ((location = fileLine.IndexOf("PACKAGING = ")) != -1)
+                {
+                    location += 12 + 12; // + ("PACKAGING = ") + ("PackageType.")
+                    packageTypeMatch = String.Compare(setting, fileLine.Substring(location, Math.Min(fileLine.Length - location - 1, setting.Length))) == 0;
+                }
+                else if ((location = fileLine.IndexOf("OBBFILENAME = ")) != -1)
+                {
+                    location += 15; // + ("OBBFILENAME = \"")
+                    obbFilenameMatch = String.Compare(OBBFilename, fileLine.Substring(location, Math.Min(fileLine.Length - location - 2, OBBFilename.Length))) == 0;
+                }
+            }
+
+            // write required if both don't match
+            return !(packageTypeMatch && obbFilenameMatch);
         }
 
 		private static string GetNDKArch(string UE4Arch)
@@ -585,7 +601,7 @@ namespace UnrealBuildTool.Android
 
             // See if we need to create a 'default' Java Build settings file if one doesn't exist (if it does exist we have to assume it has been setup correctly)
             string UE4JavaBuildSettingsFileName = GetUE4JavaBuildSettingsFileName(EngineDirectory);
-            WriteJavaBuildSettingsFile(UE4JavaBuildSettingsFileName, UEBuildConfiguration.bOBBinAPK);
+            WriteJavaBuildSettingsFile(UE4JavaBuildSettingsFileName, UEBuildConfiguration.bOBBinAPK, CookFlavor);
 
 			// check to see if any "meta information" is newer than last time we build
 			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks, UEBuildConfiguration.bOBBinAPK);

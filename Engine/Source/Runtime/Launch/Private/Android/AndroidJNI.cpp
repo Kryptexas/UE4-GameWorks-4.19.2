@@ -20,6 +20,7 @@ static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 extern FString GFilePathBase;
 extern FString GFontPathBase;
 extern bool GOBBinAPK;
+extern FString GOBBFilename;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -480,6 +481,13 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	// Next we check to see if the OBB file is in the APK
 	jmethodID isOBBInAPKMethod = env->GetStaticMethodID(JDef_GameActivity::ClassID, "isOBBInAPK", "()Z");
 	GOBBinAPK = (bool)env->CallStaticBooleanMethod(JDef_GameActivity::ClassID, isOBBInAPKMethod, nullptr);
+
+	// Get the OBB filename
+	jmethodID GetOBBFilenameMethod = env->GetStaticMethodID(JDef_GameActivity::ClassID, "GetOBBFilename", "()Ljava/lang/String;");
+	jstring obbString = (jstring)env->CallStaticObjectMethod(JDef_GameActivity::ClassID, GetOBBFilenameMethod, nullptr);
+	const char * nativeObbString = env->GetStringUTFChars(obbString, 0);
+	GOBBFilename = FString(nativeObbString);
+	env->ReleaseStringUTFChars(obbString, nativeObbString);
 
 	// Get the system font directory
 	jstring fontPath = (jstring)env->CallStaticObjectMethod(JDef_GameActivity::ClassID, JDef_GameActivity::AndroidThunkJava_GetFontDirectory);
