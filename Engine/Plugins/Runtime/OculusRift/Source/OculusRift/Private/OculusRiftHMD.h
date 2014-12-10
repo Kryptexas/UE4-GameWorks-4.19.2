@@ -509,6 +509,9 @@ private: // data
 			/** Whether timewarp is enabled or not */
 			bool64 bTimeWarp : 1;
 
+			/** Whether ScreenPercentage usage is enabled */
+			bool64 bScreenPercentageEnabled : 1;
+
 			/** True, if pos tracking is enabled */
 			bool64				bHmdPosTracking : 1;
 

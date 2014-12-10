@@ -1091,13 +1091,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		{
 			FinalPostProcessSettings.ScreenPercentage = Value;
 		}
-
-		// Not supported in ES2.
-		auto FeatureLevel = Family->Scene->GetFeatureLevel();
-		if(FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
-		{
-			FinalPostProcessSettings.ScreenPercentage = 100.0f;
-		}
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1429,6 +1422,13 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	LandscapeLODOverride = -1;
 	bDrawBaseInfo = true;
 #endif
+
+	// Not supported in ES2.
+	auto FeatureLevel = GetFeatureLevel();
+	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
+	{
+		EngineShowFlags.ScreenPercentage = false;
+	}
 }
 
 void FSceneViewFamily::ComputeFamilySize()

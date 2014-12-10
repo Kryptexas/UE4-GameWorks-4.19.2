@@ -1397,20 +1397,23 @@ void FOculusRiftHMD::RestoreSystemValues()
 
 void FOculusRiftHMD::UpdateScreenSettings(const FViewport*)
 {
-	// Set the current ScreenPercentage state
-	static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	float DesiredSceeenPercentage;
-	if (Flags.bOverrideScreenPercentage)
+	if (Flags.bScreenPercentageEnabled)
 	{
-		DesiredSceeenPercentage = ScreenPercentage;
-	}
-	else
-	{
-		DesiredSceeenPercentage = IdealScreenPercentage;
-	}
-	if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(DesiredSceeenPercentage))
-	{
-		CScrPercVar->Set(DesiredSceeenPercentage);
+		// Set the current ScreenPercentage state
+		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+		float DesiredSceeenPercentage;
+		if (Flags.bOverrideScreenPercentage)
+		{
+			DesiredSceeenPercentage = ScreenPercentage;
+		}
+		else
+		{
+			DesiredSceeenPercentage = IdealScreenPercentage;
+		}
+		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(DesiredSceeenPercentage))
+		{
+			CScrPercVar->Set(DesiredSceeenPercentage);
+		}
 	}
 }
 
@@ -1675,7 +1678,6 @@ void FOculusRiftHMD::ModifyShowFlags(FEngineShowFlags& ShowFlags)
 #else
 	ShowFlags.HMDDistortion = false;
 #endif
-	ShowFlags.ScreenPercentage = true;
 	ShowFlags.StereoRendering = IsStereoEnabled();
 }
 
@@ -1687,6 +1689,7 @@ void FOculusRiftHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InVie
 	{
 		WorldToMetersScale = InView.WorldToMetersScale;
 	}
+	Flags.bScreenPercentageEnabled = InViewFamily.EngineShowFlags.ScreenPercentage;
 
 #ifndef OVR_SDK_RENDERING
 	InViewFamily.bUseSeparateRenderTarget = false;

@@ -267,12 +267,15 @@ void FOculusRiftHMD::CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOut
 {
 	check(IsInGameThread());
 
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-	float value = CVar->GetValueOnGameThread();
-	if (value > 0.0f)
+	if (Flags.bScreenPercentageEnabled)
 	{
-		InOutSizeX = FMath::CeilToInt(InOutSizeX * value/100.f);
-		InOutSizeY = FMath::CeilToInt(InOutSizeY * value/100.f);
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		float value = CVar->GetValueOnGameThread();
+		if (value > 0.0f)
+		{
+			InOutSizeX = FMath::CeilToInt(InOutSizeX * value / 100.f);
+			InOutSizeY = FMath::CeilToInt(InOutSizeY * value / 100.f);
+		}
 	}
 }
 
