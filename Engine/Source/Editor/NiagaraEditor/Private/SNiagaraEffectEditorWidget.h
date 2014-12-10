@@ -15,11 +15,16 @@
 #include "Engine/NiagaraSimulation.h"
 #include "Engine/NiagaraEffectRenderer.h"
 #include "ComponentReregisterContext.h"
+#include "SNumericEntryBox.h"
 
-#define NGED_SECTION_BORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
-#define NGED_SECTION_LIGHTBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
-#define NGED_SECTION_DARKBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
+#define NGED_SECTION_BORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
+#define NGED_SECTION_LIGHTBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
+#define NGED_SECTION_DARKBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
 
+const FLinearColor RedCol(0.5, 0.1, 0.1);
+const FLinearColor GreenCol(0.1, 0.5, 0.1);
+const FLinearColor BlueCol(0.1, 0.1, 0.5);
+const FLinearColor GrayCol(0.3, 0.3, 0.3);
 
 class SVectorConstantWidget : public SCompoundWidget, public FNotifyHook
 {
@@ -27,7 +32,7 @@ private:
 	FName ConstantName;
 	TSharedPtr<FNiagaraSimulation> Emitter;
 
-	TSharedPtr<SEditableTextBox> XText, YText, ZText, WText;
+	//SNumericEntryBox<float> XText, YText, ZText, WText;
 
 public:
 	SLATE_BEGIN_ARGS(SVectorConstantWidget) :
@@ -39,27 +44,101 @@ public:
 	SLATE_ARGUMENT(FName, ConstantName)
 	SLATE_END_ARGS()
 
-
-	void OnConstantChanged(const FText &InText)
+	TOptional<float> GetConstX() const	
 	{
-		FVector4 Vec;
-		FString Strns[4];
-		Strns[0] = XText->GetText().ToString();
-		Strns[1] = YText->GetText().ToString();
-		Strns[2] = ZText->GetText().ToString();
-		Strns[3] = WText->GetText().ToString();
-		for (uint32 i = 0; i < 4; i++)
+		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (ConstPtr)
 		{
-			if (Strns[i]!="")
-			{
-				Vec[i] = FCString::Atof(*Strns[i]);
-			}
-			else
-			{
-				Vec[i] = 0.0f;
-			}
+			return ConstPtr->X;
 		}
-		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Vec);
+		return 0.0f;
+	}
+
+	TOptional<float> GetConstY() const
+	{
+		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (ConstPtr)
+		{
+			return ConstPtr->Y;
+		}
+		return 0.0f;
+	}
+
+	TOptional<float> GetConstZ() const
+	{
+		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (ConstPtr)
+		{
+			return ConstPtr->Z;
+		}
+		return 0.0f;
+	}
+
+	TOptional<float> GetConstW() const
+	{
+		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (ConstPtr)
+		{
+			return ConstPtr->W;
+		}
+		return 0.0f;
+	}
+
+	void OnConstantChangedX(float InVal)	{ OnConstantChangedX(InVal, ETextCommit::Default); }
+	void OnConstantChangedY(float InVal)	{ OnConstantChangedY(InVal, ETextCommit::Default); }
+	void OnConstantChangedZ(float InVal)	{ OnConstantChangedZ(InVal, ETextCommit::Default); }
+	void OnConstantChangedW(float InVal)	{ OnConstantChangedW(InVal, ETextCommit::Default); }
+
+	void OnConstantChangedX(float InVal, ETextCommit::Type Type)
+	{
+		FVector4 Constant(InVal, GetConstY().GetValue(), GetConstZ().GetValue(), GetConstW().GetValue());
+		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
+		/*
+		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (VecPtr)
+		{
+			VecPtr->X = InVal;
+		}
+		*/
+	}
+
+	void OnConstantChangedY(float InVal, ETextCommit::Type Type)
+	{
+		FVector4 Constant(GetConstX().GetValue(), InVal, GetConstZ().GetValue(), GetConstW().GetValue());
+		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
+		/*
+		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (VecPtr)
+		{
+			VecPtr->Y = InVal;
+		}
+		*/
+	}
+
+	void OnConstantChangedZ(float InVal, ETextCommit::Type Type)
+	{
+		FVector4 Constant(GetConstX().GetValue(), GetConstY().GetValue(), InVal, GetConstW().GetValue());
+		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
+		/*
+		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (VecPtr)
+		{
+			VecPtr->Z = InVal;
+		}
+		*/
+	}
+
+	void OnConstantChangedW(float InVal, ETextCommit::Type Type)
+	{
+		FVector4 Constant(GetConstX().GetValue(), GetConstY().GetValue(), GetConstZ().GetValue(), InVal);
+		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Constant);
+		/*
+		FVector4 *VecPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		if (VecPtr)
+		{
+			VecPtr->W = InVal;
+		}
+		*/
 	}
 
 	void Construct(const FArguments& InArgs)
@@ -67,24 +146,48 @@ public:
 		Emitter = InArgs._Emitter;
 		ConstantName = InArgs._ConstantName;
 
-		FVector4 *ConstVal = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
-		FString ConstText[4] = {"","","",""};
-		if (ConstVal)
+		FVector4 *ConstPtr = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		FVector4 ConstVal;
+		if (ConstPtr)
 		{
-			for (uint32 i = 0; i < 4; i++)
-			{
-				ConstText[i] = FString::Printf(TEXT("%.4f"), (*ConstVal)[i]);
-			}
+			ConstVal = *ConstPtr;
 		}
 		
 		this->ChildSlot
 		[
 		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot().Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
-		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(XText, SEditableTextBox).Text(FText::FromString(ConstText[0])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
-		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(YText, SEditableTextBox).Text(FText::FromString(ConstText[1])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
-		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(ZText, SEditableTextBox).Text(FText::FromString(ConstText[2])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
-		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(WText, SEditableTextBox).Text(FText::FromString(ConstText[3])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
+		+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
+		+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(SNumericEntryBox<float>).Value(this, &SVectorConstantWidget::GetConstX)
+		.OnValueCommitted(this, &SVectorConstantWidget::OnConstantChangedX).OnValueChanged(this, &SVectorConstantWidget::OnConstantChangedX)
+			.Label()
+			[
+				SNumericEntryBox<float>::BuildLabel(FText::FromString("X"), FLinearColor::White, RedCol)
+			]
+		]
+
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(SNumericEntryBox<float>).Value(this, &SVectorConstantWidget::GetConstY)
+			.OnValueCommitted(this, &SVectorConstantWidget::OnConstantChangedY).OnValueChanged(this, &SVectorConstantWidget::OnConstantChangedY)
+			.Label()
+			[
+				SNumericEntryBox<float>::BuildLabel(FText::FromString("Y"), FLinearColor::White, GreenCol)
+			]
+		]
+
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(SNumericEntryBox<float>).Value(this, &SVectorConstantWidget::GetConstZ)
+			.OnValueCommitted(this, &SVectorConstantWidget::OnConstantChangedZ).OnValueChanged(this, &SVectorConstantWidget::OnConstantChangedZ)
+			.Label()
+			[
+				SNumericEntryBox<float>::BuildLabel(FText::FromString("Z"), FLinearColor::White, BlueCol)
+			]
+		]
+
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(SNumericEntryBox<float>).Value(this, &SVectorConstantWidget::GetConstW)
+			.OnValueCommitted(this, &SVectorConstantWidget::OnConstantChangedW).OnValueChanged(this, &SVectorConstantWidget::OnConstantChangedW)
+			.Label()
+			[
+				SNumericEntryBox<float>::BuildLabel(FText::FromString("W"), FLinearColor::White, GrayCol)
+			]
+		]
 		];
 		
 	}
@@ -104,6 +207,8 @@ private:
 	TSharedPtr<FAssetThumbnail> MaterialThumbnail;
 	UNiagaraScript *CurUpdateScript, *CurSpawnScript;
 	UMaterial *CurMaterial;
+
+	TSharedPtr<IDetailsView> RendererPropertiesView;
 
 	TArray<TSharedPtr<FString> > RenderModuleList;
 
@@ -131,32 +236,18 @@ public:
 	}
 
 
-	void OnUpdateScriptSelectedFromPicker(UObject *Asset)
+	void OnEmitterNameChanged(const FText &InText)
 	{
-		// Close the asset picker
-		//AssetPickerAnchor->SetIsOpen(false);
-
-		// Set the object found from the asset picker
-		CurUpdateScript = Cast<UNiagaraScript>(Asset);
-		Emitter->GetProperties()->UpdateScript = CurUpdateScript;
-
-		UpdateScriptConstantListSlot->DetachWidget();
-		(*UpdateScriptConstantListSlot)
-			[
-				SAssignNew(UpdateScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
-				.ItemHeight(20).ListItemsSource(&CurUpdateScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
-			];
+		Emitter->GetProperties()->Name = InText.ToString();
 	}
 
-	void OnSpawnScriptSelectedFromPicker(UObject *Asset)
+	FText GetEmitterName() const
 	{
-		// Close the asset picker
-		//AssetPickerAnchor->SetIsOpen(false);
-
-		// Set the object found from the asset picker
-		CurSpawnScript = Cast<UNiagaraScript>(Asset);
-		Emitter->GetProperties()->SpawnScript = CurSpawnScript;
+		return FText::FromString(Emitter->GetProperties()->Name);
 	}
+
+	void OnUpdateScriptSelectedFromPicker(UObject *Asset);
+	void OnSpawnScriptSelectedFromPicker(UObject *Asset);
 
 	void OnMaterialSelected(UObject *Asset)
 	{
@@ -167,6 +258,7 @@ public:
 		CurMaterial = Cast<UMaterial>(Asset);
 		Emitter->GetEffectRenderer()->SetMaterial(CurMaterial, ERHIFeatureLevel::SM5);
 		Emitter->GetProperties()->Material = CurMaterial;
+		TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
 	}
 
 	UObject *GetMaterial() const
@@ -195,31 +287,8 @@ public:
 		return Emitter->IsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
-	void OnRenderModuleChanged(TSharedPtr<FString> ModName, ESelectInfo::Type SelectInfo)
-	{
-		EEmitterRenderModuleType Type = RMT_Sprites;
-		for (int32 i = 0; i < RenderModuleList.Num(); i++)
-		{
-			if (*RenderModuleList[i] == *ModName)
-			{
-				Type = (EEmitterRenderModuleType)(i+1);
-				break;
-			}
-		}
+	void OnRenderModuleChanged(TSharedPtr<FString> ModName, ESelectInfo::Type SelectInfo);
 
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			FChangeNiagaraRenderModule,
-			FNiagaraEffectInstance*, InEffect, this->EffectInstance,
-			TSharedPtr<FNiagaraSimulation>, InEmitter, this->Emitter,
-			EEmitterRenderModuleType, InType, Type,
-		{
-			InEmitter->SetRenderModuleType(InType, InEffect->GetComponent()->GetWorld()->FeatureLevel);
-			InEmitter->GetProperties()->RenderModuleType = InType;
-			InEffect->RenderModuleupdate();
-		});
-		TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
-	}
 
 	void OnSpawnRateChanged(const FText &InText)
 	{
@@ -256,7 +325,7 @@ public:
 	FString GetStatsText() const
 	{
 		TCHAR Txt[128];
-		FCString::Snprintf(Txt, 128, TEXT("%i Particles"), Emitter->GetNumParticles());
+		FCString::Snprintf(Txt, 128, TEXT("%i Particles  |  %.2f ms  |  %.1f MB"), Emitter->GetNumParticles(), Emitter->GetTotalCPUTime(), Emitter->GetTotalBytesUsed()/(1024.0*1024.0));
 		return FString(Txt);
 	}
 

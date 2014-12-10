@@ -588,4 +588,10 @@ void FNiagaraCompiler_VectorVM::Inverse_Internal(TArray<TNiagaraExprPtr>& InputE
 	
 }
 
+
+void FNiagaraCompiler_VectorVM::LessThan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+{
+	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::lessthan, InputExpressions));
+}
+
 #undef LOCTEXT_NAMESPACE

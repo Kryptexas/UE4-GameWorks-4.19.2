@@ -385,7 +385,7 @@ struct FVectorKernelSin : public TUnaryVectorKernel<FVectorKernelSin>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
-		*Dst = VectorSin(Src0);
+		*Dst = VectorSin( VectorMultiply(Src0, GlobalVectorConstants::Pi));
 	}
 };
 
@@ -393,7 +393,7 @@ struct FVectorKernelCos : public TUnaryVectorKernel<FVectorKernelCos>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
  	{
-		*Dst = VectorCos(Src0);
+		*Dst = VectorCos(VectorMultiply(Src0, GlobalVectorConstants::Pi));
 	}
 };
 
@@ -401,7 +401,7 @@ struct FVectorKernelTan : public TUnaryVectorKernel<FVectorKernelTan>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
-		*Dst = VectorTan(Src0);
+		*Dst = VectorTan(VectorMultiply(Src0, GlobalVectorConstants::Pi));
 	}
 };
 
@@ -481,23 +481,16 @@ struct FVectorKernelLessThan : public TBinaryVectorKernel<FVectorKernelLessThan>
 {
 	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
 	{
-		const VectorRegister large = MakeVectorRegister(BIG_NUMBER, BIG_NUMBER, BIG_NUMBER, BIG_NUMBER);
-		const VectorRegister one = MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f);
-		const VectorRegister zero = MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f);
+		const VectorRegister Large = MakeVectorRegister(BIG_NUMBER, BIG_NUMBER, BIG_NUMBER, BIG_NUMBER);
+		const VectorRegister One = MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f);
+		const VectorRegister Zero = MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f);
 
 		float const* FloatSrc0 = reinterpret_cast<float const*>(&Src0);
 		float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);
-		VectorRegister tmp = VectorSubtract(Src1, Src0);
-		tmp = VectorMultiply(tmp, large);
-		tmp = VectorMin(tmp, one);
-		*Dst = VectorMax(tmp, zero);
-		/*
-		float f1 = FloatSrc0[0] < FloatSrc1[0] ? 1.0f : 0.0f;
-		float f2 = FloatSrc0[1] < FloatSrc1[1] ? 1.0f : 0.0f;
-		float f3 = FloatSrc0[2] < FloatSrc1[2] ? 1.0f : 0.0f;
-		float f4 = FloatSrc0[3] < FloatSrc1[3] ? 1.0f : 0.0f;
-		*Dst = MakeVectorRegister(f1, f2, f3, f4);
-		*/
+		VectorRegister Tmp = VectorSubtract(Src1, Src0);
+		Tmp = VectorMultiply(Tmp, Large);
+		Tmp = VectorMin(Tmp, One);
+		*Dst = VectorMax(Tmp, Zero);
 	}
 };
 
@@ -546,7 +539,6 @@ struct FVectorKernelRandom : public TUnaryVectorKernel<FVectorKernelRandom>
 			static_cast<float>(FMath::Rand()) / rm,
 			static_cast<float>(FMath::Rand()) / rm);
 		*Dst = VectorMultiply(Result, Src0);
-		
 	}
 };
 
@@ -801,6 +793,7 @@ void VectorVM::Exec(
 			case EOp::composey: FVectorKernelCompose<1, 1, 1, 1>::Exec(Context); break;
 			case EOp::composez: FVectorKernelCompose<2, 2, 2, 2>::Exec(Context); break;
 			case EOp::composew: FVectorKernelCompose<3, 3, 3, 3>::Exec(Context); break;
+			case EOp::lessthan: FVectorKernelLessThan::Exec(Context); break;
 			case EOp::output: FVectorKernelOutput::Exec(Context); break;
 
 			// Execution always terminates with a "done" opcode.

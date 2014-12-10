@@ -2,14 +2,21 @@
 
 
 #include "EnginePrivate.h"
-#include "Engine/NiagaraEffectRenderer.h"
 #include "Particles/ParticleResources.h"
-
+#include "Engine/NiagaraEffectRenderer.h"
 
 DECLARE_CYCLE_STAT(TEXT("Render Total"), STAT_NiagaraRender, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Sprites"), STAT_NiagaraRenderSprites, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Ribbons"), STAT_NiagaraRenderRibbons, STATGROUP_Niagara);
 
+UNiagaraEffectRendererProperties::UNiagaraEffectRendererProperties(FObjectInitializer const &Initializer)
+{}
+
+UNiagaraSpriteRendererProperties::UNiagaraSpriteRendererProperties(FObjectInitializer const &Initializer)
+{}
+
+UNiagaraRibbonRendererProperties::UNiagaraRibbonRendererProperties(FObjectInitializer const &Initializer)
+{}
 
 
 
@@ -55,11 +62,13 @@ public:
 
 
 
-NiagaraEffectRendererSprites::NiagaraEffectRendererSprites(ERHIFeatureLevel::Type FeatureLevel) :
+NiagaraEffectRendererSprites::NiagaraEffectRendererSprites(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *InProps) :
 	NiagaraEffectRenderer(),
 	DynamicDataRender(NULL)
 {
+	//check(InProps);
 	VertexFactory = new FParticleSpriteVertexFactory(PVFT_Sprite, FeatureLevel);
+	Properties = Cast<UNiagaraSpriteRendererProperties>(InProps);
 }
 
 
@@ -78,6 +87,8 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRenderSprites);
+
+	SimpleTimer MeshElementsTimer;
 
 	check(DynamicDataRender)
 		
@@ -128,11 +139,14 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				PerViewUniformParameters.RotationBias = 0.0f;
 				PerViewUniformParameters.TangentSelector = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 				PerViewUniformParameters.InvDeltaSeconds = 0.0f;
-				PerViewUniformParameters.SubImageSize = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+				if (Properties)
+				{
+					PerViewUniformParameters.SubImageSize = FVector4(Properties->SubImageInfo.X, Properties->SubImageInfo.Y, 1.0f / Properties->SubImageInfo.X, 1.0f / Properties->SubImageInfo.Y);
+				}
 				PerViewUniformParameters.NormalsType = 0;
 				PerViewUniformParameters.NormalsSphereCenter = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 				PerViewUniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
-				PerViewUniformParameters.PivotOffset = FVector2D(0.0f, 0.0f);
+				PerViewUniformParameters.PivotOffset = FVector2D(-0.5f, -0.5f);
 				PerViewUniformParameters.MacroUVParameters = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
@@ -184,6 +198,8 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 			}
 		}
 	}
+
+	CPUTimeMS += MeshElementsTimer.GetElapsedMilliseconds();
 }
 
 
@@ -191,6 +207,9 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const FNiagaraEmitterParticleData &Data)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenSpriteVertexData);
+
+	SimpleTimer VertexDataTimer;
+
 	FNiagaraDynamicDataSprites *DynamicData = new FNiagaraDynamicDataSprites;
 	TArray<FParticleSpriteVertex>& RenderData = DynamicData->VertexData;
 
@@ -201,7 +220,11 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	const FVector4 *ColPtr = Data.GetAttributeData("Color");
 	const FVector4 *AgePtr = Data.GetAttributeData("Age");
 	const FVector4 *RotPtr = Data.GetAttributeData("Rotation");
-
+	uint32 NumSubImages = 1;
+	if (Properties)
+	{
+		NumSubImages = Properties->SubImageInfo.X*Properties->SubImageInfo.Y;
+	}
 	float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumParticles();
 	RenderData.AddUninitialized(Data.GetNumParticles());
 	for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumParticles(); ParticleIndex++)
@@ -213,9 +236,9 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 		NewVertex.ParticleId = ParticleId;
 		ParticleId += IdInc;
 		NewVertex.RelativeTime = AgePtr[ParticleIndex].X;
-		NewVertex.Size = FVector2D(2.0f, 2.0f);
+		NewVertex.Size = FVector2D(RotPtr[ParticleIndex].Y, RotPtr[ParticleIndex].Z);
 		NewVertex.Rotation = RotPtr[ParticleIndex].X;
-		NewVertex.SubImageIndex = 0.f;
+		NewVertex.SubImageIndex = RotPtr[ParticleIndex].W * NumSubImages;
 
 		FPlatformMisc::Prefetch(PosPtr + ParticleIndex+1);
 		FPlatformMisc::Prefetch(RotPtr + ParticleIndex + 1);
@@ -225,6 +248,9 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 		//CachedBounds += NewVertex.Position;
 	}
 	//CachedBounds.ExpandBy(MaxSize);
+
+	CPUTimeMS = VertexDataTimer.GetElapsedMilliseconds();
+
 
 	return DynamicData;
 }
@@ -263,11 +289,12 @@ bool NiagaraEffectRendererSprites::HasDynamicData()
 
 
 
-NiagaraEffectRendererRibbon::NiagaraEffectRendererRibbon(ERHIFeatureLevel::Type FeatureLevel) :
+NiagaraEffectRendererRibbon::NiagaraEffectRendererRibbon(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *InProps) :
 NiagaraEffectRenderer(),
 DynamicDataRender(NULL)
 {
 	VertexFactory = new FParticleBeamTrailVertexFactory(PVFT_BeamTrail, FeatureLevel);
+	Properties = Cast<UNiagaraRibbonRendererProperties>(InProps);
 }
 
 
@@ -290,6 +317,8 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRenderRibbons);
+
+	SimpleTimer MeshElementsTimer;
 
 	check(DynamicDataRender)
 	if (DynamicDataRender->VertexData.Num() == 0)
@@ -381,6 +410,8 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 			}
 		}
 	}
+
+	CPUTimeMS += MeshElementsTimer.GetElapsedMilliseconds();
 }
 
 void NiagaraEffectRendererRibbon::SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData)
@@ -416,6 +447,9 @@ bool NiagaraEffectRendererRibbon::HasDynamicData()
 FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const FNiagaraEmitterParticleData &Data)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenRibbonVertexData);
+
+	SimpleTimer VertexDataTimer;
+
 	FNiagaraDynamicDataRibbon *DynamicData = new FNiagaraDynamicDataRibbon;
 	TArray<FParticleBeamTrailVertex>& RenderData = DynamicData->VertexData;
 
@@ -457,15 +491,16 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 		{
 			ParticleDir = PrevDir*0.1f;
 		}
+		FVector NormDir = ParticleDir.GetSafeNormal();
 
-		FVector ParticleRight = FVector::CrossProduct(ParticleDir, FVector(0.0f, 0.0f, 1.0f));
-		ParticleRight.Normalize();
-		ParticleRight *= 3.0f;
+		FVector ParticleRight = FVector::CrossProduct(NormDir, FVector(0.0f, 0.0f, 1.0f));
+		ParticleRight *= RotPtr[Index1].Y;
+		FVector ParticleRightRot = ParticleRight.RotateAngleAxis(RotPtr[Index1].X, NormDir);
 
 		if (i == 0)
 		{
-			AddRibbonVert(RenderData, ParticlePos + ParticleRight, Data, UVs[0], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
-			AddRibbonVert(RenderData, ParticlePos - ParticleRight, Data, UVs[1], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
+			AddRibbonVert(RenderData, ParticlePos + ParticleRightRot, Data, UVs[0], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
+			AddRibbonVert(RenderData, ParticlePos - ParticleRightRot, Data, UVs[1], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
 		}
 		else
 		{
@@ -473,12 +508,15 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 			AddRibbonVert(RenderData, PrevPos, Data, UVs[1], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
 		}
 
-		AddRibbonVert(RenderData, ParticlePos - ParticleRight + ParticleDir, Data, UVs[2], ColorPtr[Index2], AgePtr[Index2], RotPtr[i]);
-		AddRibbonVert(RenderData, ParticlePos + ParticleRight + ParticleDir, Data, UVs[3], ColorPtr[Index2], AgePtr[Index2], RotPtr[i]);
-		PrevPos = ParticlePos - ParticleRight + ParticleDir;
-		PrevPos2 = ParticlePos + ParticleRight + ParticleDir;
+		ParticleRightRot = ParticleRight.RotateAngleAxis(RotPtr[Index2].X, NormDir);
+		AddRibbonVert(RenderData, ParticlePos - ParticleRightRot + ParticleDir, Data, UVs[2], ColorPtr[Index2], AgePtr[Index2], RotPtr[i]);
+		AddRibbonVert(RenderData, ParticlePos + ParticleRightRot + ParticleDir, Data, UVs[3], ColorPtr[Index2], AgePtr[Index2], RotPtr[i]);
+		PrevPos = ParticlePos - ParticleRightRot + ParticleDir;
+		PrevPos2 = ParticlePos + ParticleRightRot + ParticleDir;
 		PrevDir = ParticleDir;
 	}
+
+	CPUTimeMS = VertexDataTimer.GetElapsedMilliseconds();
 
 	return DynamicData;
 }

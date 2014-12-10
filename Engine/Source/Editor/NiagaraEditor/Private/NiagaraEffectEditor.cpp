@@ -208,8 +208,9 @@ FReply FNiagaraEffectEditor::OnAddEmitterClicked()
 {
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 
-	FNiagaraEmitterProperties &Props = Effect->AddEmitterProperties();
-	EffectInstance->AddEmitter(&Props);
+	FNiagaraEmitterProperties *Props = Effect->AddEmitterProperties();
+	TSharedPtr<FNiagaraSimulation> NewEmitter = EffectInstance->AddEmitter(Props);
+	Effect->CreateEffectRendererProps(NewEmitter);
 	UpdateEditorPtr.Pin()->GetViewport()->SetPreviewEffect(EffectInstance);
 	UpdateEditorPtr.Pin()->UpdateList();
 	return FReply::Handled();

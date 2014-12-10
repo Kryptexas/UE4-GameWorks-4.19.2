@@ -60,7 +60,8 @@
 	NiagaraOp(GetW)\
 	NiagaraOp(TransformVector)\
 	NiagaraOp(Transpose)\
-	NiagaraOp(Inverse)
+	NiagaraOp(Inverse)\
+	NiagaraOp(LessThan)
 
 enum class ENiagaraExpressionResultLocation
 {

@@ -10,6 +10,9 @@ NiagaraEffectRenderer.h: Base class for Niagara render modules
 #include "ParticleVertexFactory.h"
 #include "ParticleBeamTrailVertexFactory.h"
 #include "Components/NiagaraComponent.h"
+#include "NiagaraEffectRendererProperties.h"
+#include "NiagaraSpriteRendererProperties.h"
+#include "NiagaraRibbonRendererProperties.h"
 
 DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);
@@ -18,8 +21,6 @@ DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVer
 struct FNiagaraDynamicDataBase
 {
 };
-
-
 
 
 
@@ -73,7 +74,13 @@ public:
 
 	virtual ~NiagaraEffectRenderer() {}
 
+	virtual UClass *GetPropertiesClass() = 0;
+
+	float GetCPUTimeMS() { return CPUTimeMS; }
+
 protected:
+	mutable float CPUTimeMS;
+
 	NiagaraEffectRenderer()	
 		: Material(nullptr)
 	{
@@ -87,13 +94,15 @@ private:
 
 
 
+
 /**
 * NiagaraEffectRendererSprites renders an FNiagaraSimulation as sprite particles
 */
 class NiagaraEffectRendererSprites : public NiagaraEffectRenderer
 {
 public:	
-	NiagaraEffectRendererSprites(ERHIFeatureLevel::Type FeatureLevel);
+
+	explicit NiagaraEffectRendererSprites(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);
 	~NiagaraEffectRendererSprites()
 	{
 		ReleaseRenderThreadResources();
@@ -107,28 +116,21 @@ public:
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 
-
-
 	/** Update render data buffer from attributes */
 	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data) override;
-
-
-
 
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
 	int GetDynamicDataSize();
 	bool HasDynamicData();
 
+	UClass *GetPropertiesClass() override { return UNiagaraSpriteRendererProperties::StaticClass(); }
+	
 private:
-	struct FNiagaraDynamicDataSprites* DynamicDataRender;
+	UNiagaraSpriteRendererProperties *Properties;
+	struct FNiagaraDynamicDataSprites *DynamicDataRender;
 	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
 	class FParticleSpriteVertexFactory* VertexFactory;
 };
-
-
-
-
-
 
 
 
@@ -141,7 +143,7 @@ private:
 class NiagaraEffectRendererRibbon : public NiagaraEffectRenderer
 {
 public:
-	NiagaraEffectRendererRibbon(ERHIFeatureLevel::Type FeatureLevel);
+	NiagaraEffectRendererRibbon(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);
 	~NiagaraEffectRendererRibbon()
 	{
 		ReleaseRenderThreadResources();
@@ -165,7 +167,7 @@ public:
 		NewVertex.Color = FLinearColor(Color);
 		NewVertex.ParticleId = 0;
 		NewVertex.RelativeTime = Age.X;
-		NewVertex.Size = FVector2D(1.0f, 1.0f);
+		NewVertex.Size = FVector2D(Rotation.Y, Rotation.Z);
 		NewVertex.Rotation = Rotation.X;
 		NewVertex.SubImageIndex = 0.f;
 		NewVertex.Tex_U = UV1.X;
@@ -180,11 +182,13 @@ public:
 	int GetDynamicDataSize();
 	bool HasDynamicData();
 
+	UClass *GetPropertiesClass() override { return UNiagaraRibbonRendererProperties::StaticClass(); }
 
 private:
-	struct FNiagaraDynamicDataRibbon* DynamicDataRender;
+	class FParticleBeamTrailVertexFactory *VertexFactory;
+	UNiagaraRibbonRendererProperties *Properties;
+	struct FNiagaraDynamicDataRibbon *DynamicDataRender;
 	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-	class FParticleBeamTrailVertexFactory* VertexFactory;
 };
 
 

@@ -150,7 +150,10 @@ void SNiagaraEffectEditorViewport::SetPreviewEffect(FNiagaraEffectInstance *InPr
 	PreviewScene.RemoveComponent(PreviewComponent);
 	PreviewScene.AddComponent(PreviewComponent, Transform);
 
-	FComponentReregisterContext ReregisterContext(PreviewComponent);
+	{
+		FComponentReregisterContext ReregisterContext(PreviewComponent);
+	}
+
 	PreviewComponent->SetEffectInstance(InPreviewEffect);
 	PreviewComponent->GetEffectInstance()->Init(PreviewComponent);
 }

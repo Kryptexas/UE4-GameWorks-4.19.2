@@ -71,6 +71,7 @@ public:
 	FVector4 *GetCurrentBuffer()		{ return ParticleBuffers[CurrentBuffer].GetData(); }
 	FVector4 *GetPreviousBuffer()		{ return ParticleBuffers[CurrentBuffer^0x1].GetData(); }
 
+	int GetBytesUsed()	{ return (ParticleBuffers[0].Num() + ParticleBuffers[1].Num()) * 16 + Attributes.Num() * 4; }
 private:
 	uint32 CurrentBuffer, NumParticles, ParticleAllocation;
 	TArray<FVector4> ParticleBuffers[2];

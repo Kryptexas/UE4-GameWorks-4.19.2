@@ -29,10 +29,29 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIF
 	SetRenderModuleType(InProps->RenderModuleType, InFeatureLevel);
 }
 
+
+float FNiagaraSimulation::GetTotalCPUTime()
+{
+	float Total = CPUTimeMS;
+	if (EffectRenderer)
+	{
+		Total += EffectRenderer->GetCPUTimeMS();
+	}
+
+	return Total;
+}
+
+int FNiagaraSimulation::GetTotalBytesUsed()
+{
+	return Data.GetBytesUsed();
+}
+
+
 void FNiagaraSimulation::Tick(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraTick);
 
+	SimpleTimer TickTime;
 
 	// Cache the ComponentToWorld transform.
 //	CachedComponentToWorld = Component.GetComponentToWorld();
@@ -68,6 +87,8 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 	{
 		SpawnAndKillParticles(NumToSpawn);
 	}
+
+	CPUTimeMS = TickTime.GetElapsedMilliseconds();
 
 	DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"), STAT_NiagaraNumParticles, STATGROUP_Niagara);
 	INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, Data.GetNumParticles());
@@ -206,11 +227,11 @@ void FNiagaraSimulation::SetRenderModuleType(EEmitterRenderModuleType Type, ERHI
 		Props->RenderModuleType = Type;
 		switch (Type)
 		{
-		case RMT_Sprites: EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel);
+		case RMT_Sprites: EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel, Props->RendererProperties);
 			break;
-		case RMT_Ribbon: EffectRenderer = new NiagaraEffectRendererRibbon(FeatureLevel);
+		case RMT_Ribbon: EffectRenderer = new NiagaraEffectRendererRibbon(FeatureLevel, Props->RendererProperties);
 			break;
-		default:	EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel);
+		default:	EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel, Props->RendererProperties);
 					Props->RenderModuleType = RMT_Sprites;
 					break;
 		}

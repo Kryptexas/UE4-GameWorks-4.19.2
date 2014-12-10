@@ -509,7 +509,17 @@ void FNiagaraOpInfo::Init()
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Matrix, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Inverse);
 
-#define NiagaraOp(OpName) if (GetOpInfo(OpName) == NULL)\
+
+	Op = &OpInfos.Add(LessThan);
+	Op->Name = LessThan;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "LessThan Name", "A Less Than B");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "LessThan Desc", "Result = 1 if A<B, 0 otherwise");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
+	Op->OpDelegate.BindStatic(&INiagaraCompiler::LessThan);
+
+	#define NiagaraOp(OpName) if (GetOpInfo(OpName) == NULL)\
 	{\
 	UE_LOG(LogNiagaraCompiler, Fatal, TEXT("Couldn't find info for \"%s\". Have you added it to the NiagaraOpList but not provided the extra information in FNiagaraOpInfo::Init() ?"), TEXT(#OpName)); \
 	}

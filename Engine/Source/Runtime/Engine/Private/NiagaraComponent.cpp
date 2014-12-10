@@ -129,7 +129,10 @@ void FNiagaraSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector, this);
+		if (Renderer)
+		{
+			Renderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector, this);
+		}
 	}
 }
 

@@ -47,7 +47,7 @@ public:
 	bool IsTogglePreviewGridChecked() const;
 	void TogglePreviewBackground();
 	bool IsTogglePreviewBackgroundChecked() const;
-	
+	class UNiagaraComponent *GetPreviewComponent()	{ return PreviewComponent;  }
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
