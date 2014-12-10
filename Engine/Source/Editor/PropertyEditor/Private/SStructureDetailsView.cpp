@@ -22,10 +22,10 @@ SStructureDetailsView::~SStructureDetailsView()
 	SaveExpandedItems();
 }
 
-UScriptStruct* SStructureDetailsView::GetBaseScriptStruct() const
+UStruct* SStructureDetailsView::GetBaseScriptStruct() const
 {
-	const UScriptStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
-	return const_cast<UScriptStruct*>(Struct);
+	const UStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
+	return const_cast<UStruct*>(Struct);
 }
 
 void SStructureDetailsView::Construct(const FArguments& InArgs)
@@ -178,7 +178,7 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	//SET
 	StructData = InStructData;
 	RootNode->SetStructure(StructData);
-	if (!StructData.IsValid() || !StructData->IsValid())
+	if (!StructData.IsValid())
 	{
 		bIsLocked = false;
 	}

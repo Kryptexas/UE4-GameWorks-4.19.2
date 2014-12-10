@@ -303,6 +303,23 @@ public:
 
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad=NULL) const;
 
+	/**
+	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
+	 *
+	 * @param	Dest		Pointer to memory to initialize
+	 * @param	ArrayDim	Number of elements in the array
+	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
+	 */
+	virtual void InitializeStruct(void* Dest, int32 ArrayDim = 1) const;
+	/**
+	 * Destroy a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
+	 *
+	 * @param	Dest		Pointer to memory to destory
+	 * @param	ArrayDim	Number of elements in the array
+	 * @param	Stride		Stride of the array. If this default (0), then we will pull the size from the struct
+	 */
+	virtual void DestroyStruct(void* Dest, int32 ArrayDim = 1) const;
+
 #if WITH_EDITOR
 private:
 	virtual UProperty* CustomFindProperty(const FName Name) const { return NULL; };
@@ -986,6 +1003,8 @@ public:
 
 	// UStruct interface.
 	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
+	virtual COREUOBJECT_API void InitializeStruct(void* Dest, int32 ArrayDim = 1) const override;
+	virtual COREUOBJECT_API void DestroyStruct(void* Dest, int32 ArrayDim = 1) const override;
 	// End of UStruct interface.
 
 	/** Stash a CppStructOps for future use 
@@ -1063,14 +1082,6 @@ public:
 	 */
 	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
 	/**
-	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
-	 *
-	 * @param	Dest		Pointer to memory to initialize
-	 * @param	ArrayDim	Number of elements in the array
-	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
-	 */
-	COREUOBJECT_API void InitializeScriptStruct(void* Dest, int32 ArrayDim = 1) const;
-	/**
 	 * Reintialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
 	 * @param	Dest		Pointer to memory to reinitialize
@@ -1078,14 +1089,6 @@ public:
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
 	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
-	/**
-	 * Destroy a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
-	 *
-	 * @param	Dest		Pointer to memory to destory
-	 * @param	ArrayDim	Number of elements in the array
-	 * @param	Stride		Stride of the array. If this default (0), then we will pull the size from the struct
-	 */
-	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 };
@@ -1093,19 +1096,20 @@ public:
 class FStructOnScope
 {
 protected:
-	TWeakObjectPtr<const UScriptStruct> ScriptStruct;
+	TWeakObjectPtr<const UStruct> ScriptStruct;
 	uint8* SampleStructMemory;
 
 	FStructOnScope() : SampleStructMemory(NULL) {}
+
 public:
-	FStructOnScope(const UScriptStruct* InScriptStruct)
+	FStructOnScope(const UStruct* InScriptStruct)
 		: ScriptStruct(InScriptStruct)
 		, SampleStructMemory(NULL)
 	{
 		if (ScriptStruct.IsValid())
 		{
 			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
-			ScriptStruct.Get()->InitializeScriptStruct(SampleStructMemory);
+			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
 		}
 	}
 
@@ -1113,7 +1117,7 @@ public:
 
 	virtual const uint8* GetStructMemory() const { return SampleStructMemory; }
 
-	virtual const UScriptStruct* GetStruct() const { return ScriptStruct.Get(); }
+	virtual const UStruct* GetStruct() const { return ScriptStruct.Get(); }
 
 	virtual bool IsValid() const { return ScriptStruct.IsValid() && SampleStructMemory; }
 
@@ -1121,7 +1125,7 @@ public:
 	{
 		if (ScriptStruct.IsValid() && SampleStructMemory)
 		{
-			ScriptStruct.Get()->DestroyScriptStruct(SampleStructMemory);
+			ScriptStruct.Get()->DestroyStruct(SampleStructMemory);
 			ScriptStruct = NULL;
 		}
 
@@ -2202,7 +2206,6 @@ protected:
 	 **/
 	virtual UObject* CreateDefaultObject();
 };
-
 
 /**
  * Helper template to call the default constructor for a class

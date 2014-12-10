@@ -670,6 +670,58 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	*RefLinkPtr = NULL;
 }
 
+void UStruct::InitializeStruct(void* InDest, int32 ArrayDim/* = 1*/) const
+{
+	uint8 *Dest = (uint8*)InDest;
+	check(Dest);
+
+	int32 Stride = GetStructureSize();
+
+	//@todo UE4 optimize
+	FMemory::Memzero(Dest, 1 * Stride);
+
+	bool bHitBase = false;
+	for (UProperty* Property = PropertyLink; Property && !bHitBase; Property = Property->PropertyLinkNext)
+	{
+		if (!Property->IsInContainer(0))
+		{
+			for (int32 ArrayIndex = 0; ArrayIndex < 1; ArrayIndex++)
+			{
+				Property->InitializeValue_InContainer(Dest + ArrayIndex * Stride);
+			}
+		}
+		else
+		{
+			bHitBase = true;
+		}
+	}
+}
+
+void UStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
+{
+	uint8 *Data = (uint8*)Dest;
+	int32 Stride = GetStructureSize();
+
+	bool bHitBase = false;
+	for (UProperty* P = DestructorLink; P  && !bHitBase; P = P->DestructorLinkNext)
+	{
+		if (!P->IsInContainer(0))
+		{
+			if (!P->HasAnyPropertyFlags(CPF_NoDestructor))
+			{
+				for ( int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++ )
+				{
+					P->DestroyValue_InContainer(Data + ArrayIndex * Stride);
+				}
+			}
+		}
+		else
+		{
+			bHitBase = true;
+		}
+	}
+}
+
 //
 // Serialize all of the class's data that belongs in a particular
 // bin and resides in Data.
@@ -2138,8 +2190,7 @@ void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 Arra
 	}
 }
 
-
-void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim) const
+void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
 	check(Dest);
@@ -2232,7 +2283,7 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 
 }
 
-void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim) const
+void UScriptStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 {
 	if (StructFlags & (STRUCT_IsPlainOldData | STRUCT_NoDestructor))
 	{

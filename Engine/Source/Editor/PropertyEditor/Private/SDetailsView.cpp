@@ -635,7 +635,7 @@ void SDetailsView::UnregisterInstancedCustomPropertyLayout( UClass* Class )
 	InstancedClassToDetailLayoutMap.Remove( Class );
 }
 
-void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> ExternalRootNode )
+void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> ExternalRootNode )
 {
 	ExternalRootPropertyNodes.Add( ExternalRootNode );
 }

@@ -402,7 +402,7 @@ TSharedRef<IPropertyHandle> FDetailLayoutBuilderImpl::GetPropertyHandle( TShared
 	return PropertyHandle.ToSharedRef();
 }
 
-void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> InExternalRootNode )
+void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> InExternalRootNode )
 {
 	DetailsView.AddExternalRootPropertyNode( InExternalRootNode );
 }

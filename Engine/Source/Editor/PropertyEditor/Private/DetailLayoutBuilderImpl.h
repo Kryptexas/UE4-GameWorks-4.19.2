@@ -138,7 +138,7 @@ public:
 	 *
 	 * @param InExternalRootNode	The node to add
 	 */
-	void AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> InExternalRootNode );
+	void AddExternalRootPropertyNode( TSharedRef<FPropertyNode> InExternalRootNode );
 
 	/** @return The details view that owns this layout */
 	IDetailsViewPrivate& GetDetailsView() { return DetailsView; }

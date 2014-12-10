@@ -1112,6 +1112,12 @@ protected:
 	 */
 	static void GetLoadedChildBlueprints(UBlueprint* InBlueprint, TArray<UBlueprint*>& OutBlueprints);
 
+	/**
+	 * Validates flags and settings on object pins, keeping them from being given default values and from being in invalid states
+	 *
+	 * @param InOutVarDesc		The variable description to validate
+	 */
+	static void PostSetupObjectPinType(UBlueprint* InBlueprint, FBPVariableDescription& InOutVarDesc);
 public:
 	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
 	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);

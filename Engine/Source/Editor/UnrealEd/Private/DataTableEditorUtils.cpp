@@ -21,7 +21,7 @@ bool FDataTableEditorUtils::RemoveRow(UDataTable* DataTable, FName Name)
 		const bool bRemoved = DataTable->RowMap.RemoveAndCopyValue(Name, RowData);
 		if (bRemoved && RowData)
 		{
-			DataTable->RowStruct->DestroyScriptStruct(RowData);
+			DataTable->RowStruct->DestroyStruct(RowData);
 			FMemory::Free(RowData);
 			bResult = true;
 		}
@@ -40,7 +40,7 @@ uint8* FDataTableEditorUtils::AddRow(UDataTable* DataTable, FName RowName)
 	DataTable->Modify();
 	// Allocate data to store information, using UScriptStruct to know its size
 	uint8* RowData = (uint8*)FMemory::Malloc(DataTable->RowStruct->PropertiesSize);
-	DataTable->RowStruct->InitializeScriptStruct(RowData);
+	DataTable->RowStruct->InitializeStruct(RowData);
 	// And be sure to call DestroyScriptStruct later
 
 	if (auto UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))

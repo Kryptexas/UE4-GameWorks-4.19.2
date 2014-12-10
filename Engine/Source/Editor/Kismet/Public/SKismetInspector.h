@@ -103,6 +103,9 @@ protected:
 	/** Set of object properties that should be visible */
 	TSet<TWeakObjectPtr<UProperty> > SelectedObjectProperties;
 	
+	/** User defined delegate for OnFinishedChangingProperties */
+	FOnFinishedChangingProperties::FDelegate UserOnFinishedChangingProperties;
+
 protected:
 	/** Show properties of the selected object */
 	void SetPropertyWindowContents(TArray<UObject*> Objects);

@@ -12,7 +12,7 @@ FMessageContext::~FMessageContext()
 	{
 		if (TypeInfo.IsValid())
 		{
-			TypeInfo->DestroyScriptStruct(Message);
+			TypeInfo->DestroyStruct(Message);
 		}
 
 		FMemory::Free(Message);

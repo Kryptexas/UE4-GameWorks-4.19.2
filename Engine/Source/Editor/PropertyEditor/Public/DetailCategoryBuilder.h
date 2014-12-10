@@ -81,6 +81,16 @@ public:
 	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) = 0;
 
 	/**
+	 * Adds an external property, that is contained within a UStruct, that is not a property on the object(s) being customized 
+	 *
+	 * @param StructData		Struct data to find the property within
+	 * @param PropertyName		The name of the property to view
+	 * @param Location			The location within the category where the property is shown
+	 * @return A property row for customizing the property or NULL if the property could not be found
+	 */
+	virtual IDetailPropertyRow* AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) = 0;
+
+	/**
 	 * Adds a custom widget row to the category
 	 *
 	 * @param FilterString	 A string which is used to filter this custom row when a user types into the details panel search box

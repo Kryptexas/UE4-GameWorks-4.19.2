@@ -26,7 +26,7 @@ public:
 	 */
 	void Construct(const FArguments& InArgs);
 
-	UScriptStruct* GetBaseScriptStruct() const;
+	UStruct* GetBaseScriptStruct() const;
 
 	virtual bool IsConnected() const override;
 
@@ -63,7 +63,7 @@ public:
 	}
 
 	virtual void ForceRefresh() override;
-	virtual void AddExternalRootPropertyNode(TSharedRef<FObjectPropertyNode> ExternalRootNode) override {}
+	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override {}
 
 	/** IDetailsView interface */
 	virtual UStruct* GetBaseStruct() const override

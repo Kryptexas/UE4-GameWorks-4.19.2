@@ -444,11 +444,21 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	// Add in default value editing for properties that can be edited, local properties cannot be edited
 	UBlueprint* Blueprint = GetBlueprintObj();
-	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL) && !IsALocalVariable(VariableProperty))
+	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL))
 	{
 		if (VariableProperty != NULL)
 		{
-			const UProperty* OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
+			const UProperty* OriginalProperty = nullptr;
+			
+			if(!IsALocalVariable(VariableProperty))
+			{
+				OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
+			}
+			else
+			{
+				OriginalProperty = VariableProperty;
+			}
+
 			if (OriginalProperty == NULL)
 			{
 				// Prevent editing the default value of a skeleton property
@@ -518,10 +528,54 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		}
 		else 
 		{
-			// Things are in order, show the property and allow it to be edited
-			TArray<UObject*> ObjectList;
-			ObjectList.Add(Blueprint->GeneratedClass->GetDefaultObject());
-			IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+			if(IsALocalVariable(VariableProperty))
+			{
+				UFunction* StructScope = Cast<UFunction>(VariableProperty->GetOuter());
+				check(StructScope);
+
+				TSharedPtr<FStructOnScope> StructData = MakeShareable(new FStructOnScope((UFunction*)StructScope));
+				UEdGraph* Graph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), (UFunction*)StructScope);
+				TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
+				TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
+				FBlueprintEditorUtils::GetEntryAndResultNodes(Graph, EntryNode, ResultNode);
+
+				UK2Node_FunctionEntry* FuncEntry = Cast<UK2Node_FunctionEntry>(EntryNode.Get());
+
+				UClass* ActorClass = FindObject<UClass>(ANY_PACKAGE, TEXT("Actor"));
+				UClass* BPActorClass = FindObject<UClass>(ANY_PACKAGE, TEXT("BP_Actor_C"));
+				for(auto& LocalVar : FuncEntry->LocalVariables)
+				{
+					if(LocalVar.VarName == VariableProperty->GetFName()) //Property->GetFName())
+					{
+						// Only set the default value if there is one
+						if(!LocalVar.DefaultValue.IsEmpty())
+						{
+							FBlueprintEditorUtils::PropertyValueFromString(VariableProperty, LocalVar.DefaultValue, StructData->GetStructMemory());
+						}
+						break;
+					}
+				}
+
+				TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
+				if(BlueprintEditor.IsValid())
+				{
+					TSharedPtr< IDetailsView > DetailsView  = BlueprintEditor.Pin()->GetInspector()->GetPropertyView();
+
+					if(DetailsView.IsValid())
+					{
+						DetailsView->OnFinishedChangingProperties().AddSP(this, &FBlueprintVarActionDetails::OnFinishedChangingProperties, StructData, EntryNode);
+					}
+				}
+
+				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(StructData, VariableProperty->GetFName());
+			}
+			else
+			{
+				// Things are in order, show the property and allow it to be edited
+				TArray<UObject*> ObjectList;
+				ObjectList.Add(Blueprint->GeneratedClass->GetDefaultObject());
+				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+			}
 		}
 
 		TSharedPtr<SToolTip> TransientTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableTransient_Tooltip", "Should this variable not serialize and be zero-filled at load?"), NULL, DocLink, TEXT("Transient"));
@@ -1611,6 +1665,44 @@ EVisibility FBlueprintVarActionDetails::IsTooltipEditVisible() const
 		}
 	}
 	return EVisibility::Collapsed;
+}
+
+void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyChangedEvent& InPropertyChangedEvent, TSharedPtr<FStructOnScope> InStructData, TWeakObjectPtr<UK2Node_EditablePinBase> InEntryNode)
+{
+	check(InPropertyChangedEvent.MemberProperty
+		&& InPropertyChangedEvent.MemberProperty->GetOwnerStruct()
+		&& InPropertyChangedEvent.MemberProperty->GetOwnerStruct()->IsA<UFunction>());
+
+	// Find the top level property that was modified within the UFunction
+	const UProperty* DirectProperty = InPropertyChangedEvent.MemberProperty;
+	while (!Cast<const UFunction>(DirectProperty->GetOuter()))
+	{
+		DirectProperty = CastChecked<const UProperty>(DirectProperty->GetOuter());
+	}
+
+	FString DefaultValueString;
+	bool bDefaultValueSet = false;
+
+	if (InStructData.IsValid())
+	{
+		bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, InStructData->GetStructMemory(), DefaultValueString);
+
+		if(bDefaultValueSet)
+		{
+			UK2Node_FunctionEntry* FuncEntry = Cast<UK2Node_FunctionEntry>(InEntryNode.Get());
+
+			// Search out the correct local variable in the Function Entry Node and set the default value
+			for(auto& LocalVar : FuncEntry->LocalVariables)
+			{
+				if(LocalVar.VarName == DirectProperty->GetFName())
+				{
+					LocalVar.DefaultValue = DefaultValueString;
+					FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
+					break;
+				}
+			}
+		}
+	}
 }
 
 static FDetailWidgetRow& AddRow( TArray<TSharedRef<FDetailWidgetRow> >& OutChildRows )

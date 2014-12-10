@@ -714,14 +714,14 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 	{
 		for (int32 NodeIndex = 0; NodeIndex < ExternalRootPropertyNodes.Num(); ++NodeIndex)
 		{
-			TSharedPtr<FObjectPropertyNode> ObjectNode = ExternalRootPropertyNodes[NodeIndex].Pin();
+			TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex].Pin();
 
-			if (ObjectNode.IsValid())
+			if (PropertyNode.IsValid())
 			{
-				Result = ObjectNode->EnsureDataIsValid();
+				Result = PropertyNode->EnsureDataIsValid();
 				if (Result == FPropertyNode::PropertiesChanged || Result == FPropertyNode::EditInlineNewValueChanged)
 				{
-					RestoreExpandedItems(ObjectNode);
+					RestoreExpandedItems(PropertyNode);
 					UpdatePropertyMap();
 					// Note this will invalidate all the external root nodes so there is no need to continue
 					ExternalRootPropertyNodes.Empty();
@@ -729,7 +729,7 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 				}
 				else if (Result == FPropertyNode::ArraySizeChanged)
 				{
-					RestoreExpandedItems(ObjectNode);
+					RestoreExpandedItems(PropertyNode);
 					UpdateFilteredDetails();
 				}
 			}
@@ -933,12 +933,12 @@ void SDetailsViewBase::UpdateFilteredDetails()
 
 		for (int32 NodeIndex = 0; NodeIndex < ExternalRootPropertyNodes.Num(); ++NodeIndex)
 		{
-			TSharedPtr<FObjectPropertyNode> ObjectNode = ExternalRootPropertyNodes[NodeIndex].Pin();
+			TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex].Pin();
 
-			if (ObjectNode.IsValid())
+			if (PropertyNode.IsValid())
 			{
-				ObjectNode->FilterNodes(CurrentFilter.FilterStrings);
-				ObjectNode->ProcessSeenFlags(true);
+				PropertyNode->FilterNodes(CurrentFilter.FilterStrings);
+				PropertyNode->ProcessSeenFlags(true);
 			}
 		}
 

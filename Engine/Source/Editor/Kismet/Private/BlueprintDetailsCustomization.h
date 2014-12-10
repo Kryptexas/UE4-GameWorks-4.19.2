@@ -79,6 +79,15 @@ private:
 	void OnVarTypeChanged(const FEdGraphPinType& NewPinType);
 	EVisibility IsTooltipEditVisible() const;
 
+	/**
+	 * Callback when changing a local variable property
+	 *
+	 * @param InPropertyChangedEvent	Information on the property changed
+	 * @param InStructData				The struct data where the value of the properties are stored
+	 * @param InEntryNode				Entry node where the default values of local variables are stored
+	 */
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& InPropertyChangedEvent, TSharedPtr<FStructOnScope> InStructData, TWeakObjectPtr<UK2Node_EditablePinBase> InEntryNode);
+
 	/** Callback to decide if the category drop down menu should be enabled */
 	bool GetVariableCategoryChangeEnabled() const;
 

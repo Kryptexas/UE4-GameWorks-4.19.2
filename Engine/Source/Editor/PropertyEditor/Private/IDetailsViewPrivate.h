@@ -91,7 +91,7 @@ public:
 	 *
 	 * @param InExternalRootNode	The node to add
 	 */
-	virtual void AddExternalRootPropertyNode(TSharedRef<FObjectPropertyNode> ExternalRootNode) = 0;
+	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) = 0;
 
 	/**
 	 * Creates the color picker window for this property view.

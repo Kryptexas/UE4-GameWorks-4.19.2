@@ -3613,6 +3613,14 @@ void UEdGraphSchema_K2::TrySetDefaultValue(UEdGraphPin& Pin, const FString& NewD
 		UseDefaultObject = FindObject<UObject>(ANY_PACKAGE, *NewDefaultValue);
 		UseDefaultValue = NULL;
 	}
+	else if(Pin.PinType.PinCategory == PC_Text)
+	{
+		// Set Text pins by string as if it were text.
+		TrySetDefaultText(Pin, FText::FromString(NewDefaultValue));
+		UseDefaultObject = nullptr;
+		UseDefaultValue.Empty();
+		return;
+	}
 	else
 	{
 		UseDefaultObject = NULL;

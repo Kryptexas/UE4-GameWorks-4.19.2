@@ -18,6 +18,7 @@
 #include "DetailPropertyRow.h"
 #include "DetailGroup.h"
 #include "DetailCustomBuilderRow.h"
+#include "StructurePropertyNode.h"
 
 namespace DetailLayoutConstants
 {
@@ -300,6 +301,60 @@ IDetailPropertyRow* FDetailCategoryImpl::AddExternalProperty( const TArray<UObje
 		}
 
 		DetailLayoutBuilder.Pin()->AddExternalRootPropertyNode( RootPropertyNode );
+
+		AddCustomLayout( NewCustomization, bForAdvanced );
+
+		return NewCustomization.PropertyRow.Get();
+	}
+
+	return NULL;
+}
+
+IDetailPropertyRow* FDetailCategoryImpl::AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location/* = EPropertyLocation::Default*/ )
+{
+	TSharedPtr<FStructurePropertyNode> RootPropertyNode( new FStructurePropertyNode );
+
+	//SET
+	RootPropertyNode->SetStructure(StructData);
+
+	FPropertyNodeInitParams InitParams;
+	InitParams.ParentNode = NULL;
+	InitParams.Property = NULL;
+	InitParams.ArrayOffset = 0;
+	InitParams.ArrayIndex = INDEX_NONE;
+	InitParams.bAllowChildren = true;
+	InitParams.bForceHiddenPropertyVisibility = FPropertySettings::Get().ShowHiddenProperties();
+	InitParams.bCreateCategoryNodes = false;
+
+	RootPropertyNode->InitNode(InitParams);
+
+	if( RootPropertyNode.IsValid() )
+	{
+		RootPropertyNode->RebuildChildren();
+
+		FDetailLayoutCustomization NewCustomization;
+
+		for(int32 ChildIdx = 0; ChildIdx < RootPropertyNode->GetNumChildNodes(); ++ChildIdx)
+		{
+			TSharedPtr< FPropertyNode > PropertyNode = RootPropertyNode->GetChildNode(ChildIdx);
+			if(UProperty* Property = PropertyNode->GetProperty())
+			{
+				if(Property->GetFName() == PropertyName)
+				{
+					NewCustomization.PropertyRow = MakeShareable( new FDetailPropertyRow( PropertyNode, AsShared(), RootPropertyNode ) );
+					break;
+				}
+			}
+		}
+
+		bool bForAdvanced = false;
+		if( Location == EPropertyLocation::Advanced )
+		{
+			// Force advanced
+			bForAdvanced = true;
+		}
+
+		DetailLayoutBuilder.Pin()->AddExternalRootPropertyNode( RootPropertyNode.ToSharedRef() );
 
 		AddCustomLayout( NewCustomization, bForAdvanced );
 

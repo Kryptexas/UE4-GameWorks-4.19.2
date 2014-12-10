@@ -147,7 +147,7 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 			check(!Data.IsValid());
 
 			FGameplayEffectContext * NewData = (FGameplayEffectContext*)FMemory::Malloc(ScriptStruct->GetCppStructOps()->GetSize());
-			ScriptStruct->InitializeScriptStruct(NewData);
+			ScriptStruct->InitializeStruct(NewData);
 
 			Data = TSharedPtr<FGameplayEffectContext>(NewData);
 		}

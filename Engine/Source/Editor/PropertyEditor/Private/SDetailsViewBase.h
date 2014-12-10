@@ -454,7 +454,7 @@ protected:
 	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler;
 
 	/** External property nodes which need to validated each tick */
-	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;
+	TArray< TWeakPtr<FPropertyNode> > ExternalRootPropertyNodes;
 
 	/** The tree node that is currently highlighted, may be none: */
 	TWeakPtr< IDetailTreeNode > CurrentlyHighlightedNode;

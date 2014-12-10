@@ -818,6 +818,7 @@ void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetF
 			NewProperty->SetMetaData(TEXT("FriendlyName"), *Variable.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
 			NewProperty->RepNotifyFunc = Variable.RepNotifyFunc;
+			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
 
 			if(!Variable.DefaultValue.IsEmpty())
 			{

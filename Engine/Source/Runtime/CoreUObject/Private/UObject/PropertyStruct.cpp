@@ -395,7 +395,7 @@ void UStructProperty::CopyValuesInternal( void* Dest, void const* Src, int32 Cou
 
 void UStructProperty::InitializeValueInternal( void* InDest ) const
 {
-	Struct->InitializeScriptStruct(InDest, ArrayDim);
+	Struct->InitializeStruct(InDest, ArrayDim);
 }
 
 void UStructProperty::ClearValueInternal( void* Data ) const
@@ -405,7 +405,7 @@ void UStructProperty::ClearValueInternal( void* Data ) const
 
 void UStructProperty::DestroyValueInternal( void* Dest ) const
 {
-	Struct->DestroyScriptStruct(Dest, ArrayDim);
+	Struct->DestroyStruct(Dest, ArrayDim);
 }
 
 /**

@@ -88,7 +88,7 @@ public:
 	 *
 	 * @param InExternalRootNode	The node to add
 	 */
-	void AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> ExternalRootNode );
+	void AddExternalRootPropertyNode( TSharedRef<FPropertyNode> ExternalRootNode );
 	
 	/**
 	 * @return True if a category is hidden by any of the uobject classes currently in view by this details panel

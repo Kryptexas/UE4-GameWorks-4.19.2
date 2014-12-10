@@ -9,7 +9,7 @@
 #include "DetailGroup.h"
 #include "CustomChildBuilder.h"
 
-FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode )
+FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode )
 	: CustomIsEnabledAttrib( true )
 	, PropertyNode( InPropertyNode )
 	, ParentCategory( InParentCategory )

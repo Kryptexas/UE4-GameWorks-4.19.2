@@ -5,7 +5,7 @@
 class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {
 public:
-	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode = NULL);
+	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode = NULL);
 
 	/** IDetailPropertyRow interface */
 	virtual IDetailPropertyRow& DisplayName( const FText& InDisplayName ) override;
@@ -120,7 +120,7 @@ private:
 	/** The category this row resides in */
 	TWeakPtr<FDetailCategoryImpl> ParentCategory;
 	/** Root of the property node if this node comes from an external tree */
-	TSharedPtr<FObjectPropertyNode> ExternalRootNode;
+	TSharedPtr<FPropertyNode> ExternalRootNode;
 	/** Whether or not to show standard property buttons */
 	bool bShowPropertyButtons;
 	/** True to show custom property children */

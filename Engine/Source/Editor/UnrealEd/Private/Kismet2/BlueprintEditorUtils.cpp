@@ -3348,33 +3348,9 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	{
 		NewVar.PropertyFlags |= CPF_BlueprintAssignable | CPF_BlueprintCallable;
 	}
-	else if ((NewVarType.PinCategory == K2Schema->PC_Object) || (NewVarType.PinCategory == K2Schema->PC_Interface))
+	else
 	{
-		if (NewVar.VarType.PinSubCategory == K2Schema->PSC_Self)
-		{
-			NewVar.VarType.PinSubCategory.Empty();
-			NewVar.VarType.PinSubCategoryObject = *Blueprint->GeneratedClass;
-		}
-		else if (!NewVar.VarType.PinSubCategoryObject.IsValid())
-		{
-			// Fall back to UObject if the given type is not valid. This can happen for example if a variable is removed from
-			// a Blueprint parent class along with the variable's type and the user then attempts to recreate the missing variable
-			// through a stale variable node's context menu in a child Blueprint graph.
-			NewVar.VarType.PinSubCategory.Empty();
-			NewVar.VarType.PinSubCategoryObject = UObject::StaticClass();
-		}
-
-		// if it's a PC_Object, then it should have an associated UClass object
-		check(NewVar.VarType.PinSubCategoryObject.IsValid());
-		const UClass* ClassObject = Cast<UClass>(NewVar.VarType.PinSubCategoryObject.Get());
-		check(ClassObject != NULL);
-
-		if (ClassObject->IsChildOf(AActor::StaticClass()))
-		{
-			// prevent Actor variables from having default values (because Blueprint templates are library elements that can 
-			// bridge multiple levels and different levels might not have the actor that the default is referencing).
-			NewVar.PropertyFlags |= CPF_DisableEditOnTemplate;
-		}
+		PostSetupObjectPinType(Blueprint, NewVar);
 	}
 	NewVar.Category = K2Schema->VR_DefaultCategory;
 	NewVar.DefaultValue = DefaultValue;
@@ -3895,6 +3871,8 @@ bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* In
 		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
 		NewVar.Category = K2Schema->VR_DefaultCategory;
 
+		PostSetupObjectPinType(Blueprint, NewVar);
+
 		FunctionEntryNodes[0]->Modify();
 		FunctionEntryNodes[0]->LocalVariables.Add(NewVar);
 
@@ -4159,6 +4137,28 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 
 				// Mark the Blueprint as structurally modified so we can reconstruct the node successfully
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+
+				if ((NewPinType.PinCategory == K2Schema->PC_Object) || (NewPinType.PinCategory == K2Schema->PC_Interface))
+				{
+					// if it's a PC_Object, then it should have an associated UClass object
+					if(NewPinType.PinSubCategoryObject.IsValid())
+					{
+						const UClass* ClassObject = Cast<UClass>(NewPinType.PinSubCategoryObject.Get());
+						check(ClassObject != NULL);
+
+						if (ClassObject->IsChildOf(AActor::StaticClass()))
+						{
+							// prevent Actor variables from having default values (because Blueprint templates are library elements that can 
+							// bridge multiple levels and different levels might not have the actor that the default is referencing).
+							Variable.PropertyFlags |= CPF_DisableEditOnTemplate;
+						}
+						else 
+						{
+							// clear the disable-default-value flag that might have been present (if this was an AActor variable before)
+							Variable.PropertyFlags &= ~(CPF_DisableEditOnTemplate);
+						}
+					}
+				}
 
 				// Reconstruct all local variables referencing the modified one
 				for(UK2Node_Variable* VariableNode : VariableNodes)
@@ -6428,8 +6428,9 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 		}
 		else if( Property->IsA(UClassProperty::StaticClass()) )
 		{
-			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Value);
-			CastChecked<UClassProperty>(Property)->SetPropertyValue_InContainer(DefaultObject, FoundClass);
+			FStringOutputDevice ImportError;
+			const auto EndOfParsedBuff = Property->ImportText(Value.IsEmpty() ? TEXT("()") : *Value, Property->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL, &ImportError);
+			bParseSucceeded = EndOfParsedBuff && ImportError.IsEmpty();
 		}
 		else if( Property->IsA(UObjectPropertyBase::StaticClass()) )
 		{
@@ -6983,6 +6984,39 @@ bool FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(UEdGraph* InGraph)
 
 	TArray<UEdGraph*> InspectedGraphList;
 	return Local::CheckIfGraphHasLatentFunctions(InGraph, InspectedGraphList);
+}
+
+void FBlueprintEditorUtils::PostSetupObjectPinType(UBlueprint* InBlueprint, FBPVariableDescription& InOutVarDesc)
+{
+	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if ((InOutVarDesc.VarType.PinCategory == K2Schema->PC_Object) || (InOutVarDesc.VarType.PinCategory == K2Schema->PC_Interface))
+	{
+		if (InOutVarDesc.VarType.PinSubCategory == K2Schema->PSC_Self)
+		{
+			InOutVarDesc.VarType.PinSubCategory.Empty();
+			InOutVarDesc.VarType.PinSubCategoryObject = *InBlueprint->GeneratedClass;
+		}
+		else if (!InOutVarDesc.VarType.PinSubCategoryObject.IsValid())
+		{
+			// Fall back to UObject if the given type is not valid. This can happen for example if a variable is removed from
+			// a Blueprint parent class along with the variable's type and the user then attempts to recreate the missing variable
+			// through a stale variable node's context menu in a child Blueprint graph.
+			InOutVarDesc.VarType.PinSubCategory.Empty();
+			InOutVarDesc.VarType.PinSubCategoryObject = UObject::StaticClass();
+		}
+
+		// if it's a PC_Object, then it should have an associated UClass object
+		check(InOutVarDesc.VarType.PinSubCategoryObject.IsValid());
+		const UClass* ClassObject = Cast<UClass>(InOutVarDesc.VarType.PinSubCategoryObject.Get());
+		check(ClassObject != NULL);
+
+		if (ClassObject->IsChildOf(AActor::StaticClass()))
+		{
+			// prevent Actor variables from having default values (because Blueprint templates are library elements that can 
+			// bridge multiple levels and different levels might not have the actor that the default is referencing).
+			InOutVarDesc.PropertyFlags |= CPF_DisableEditOnTemplate;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1373,18 +1373,22 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)PaletteAction.Get();
-			UClass* VarClass = CastChecked<UClass>(LocalVarAction->GetVariableScope()->GetOuter());
-			if (bShowClassInTooltip && (VarClass != NULL))
+			// The variable scope can not be found in intermediate graphs
+			if(LocalVarAction->GetVariableScope())
 			{
-				UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VarClass);
-				ClassDisplayName = (Blueprint != NULL) ? Blueprint->GetName() : VarClass->GetName();
-			}
-			else
-			{
-				FString Result;
-				FBlueprintEditorUtils::GetBlueprintVariableMetaData(Blueprint, LocalVarAction->GetVariableName(), LocalVarAction->GetVariableScope(), TEXT("tooltip"), Result);
-				// Only use the variable tooltip if it has been filled out.
-				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), true, true);
+				UClass* VarClass = CastChecked<UClass>(LocalVarAction->GetVariableScope()->GetOuter());
+				if (bShowClassInTooltip && (VarClass != NULL))
+				{
+					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VarClass);
+					ClassDisplayName = (Blueprint != NULL) ? Blueprint->GetName() : VarClass->GetName();
+				}
+				else
+				{
+					FString Result;
+					FBlueprintEditorUtils::GetBlueprintVariableMetaData(Blueprint, LocalVarAction->GetVariableName(), LocalVarAction->GetVariableScope(), TEXT("tooltip"), Result);
+					// Only use the variable tooltip if it has been filled out.
+					ToolTipText = !Result.IsEmpty() ? Result : GetVarType(LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), true, true);
+				}
 			}
 		}
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())

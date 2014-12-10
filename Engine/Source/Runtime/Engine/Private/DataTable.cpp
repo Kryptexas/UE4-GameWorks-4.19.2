@@ -116,7 +116,7 @@ void UDataTable::LoadStructData(FArchive& Ar)
 
 		// Load row data
 		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
-		LoadUsingStruct->InitializeScriptStruct(RowData);
+		LoadUsingStruct->InitializeStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 		LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
 
@@ -220,7 +220,7 @@ void UDataTable::EmptyTable()
 	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
 	{
 		uint8* RowData = RowIt.Value();
-		LoadUsingStruct->DestroyScriptStruct(RowData);
+		LoadUsingStruct->DestroyStruct(RowData);
 		FMemory::Free(RowData);
 	}
 
@@ -579,7 +579,7 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 
 		// Allocate data to store information, using UScriptStruct to know its size
 		uint8* RowData = (uint8*)FMemory::Malloc(RowStruct->PropertiesSize);
-		RowStruct->InitializeScriptStruct(RowData);
+		RowStruct->InitializeStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 
 #if WITH_EDITOR

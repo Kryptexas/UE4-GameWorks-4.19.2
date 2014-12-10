@@ -92,7 +92,7 @@ bool FUdpDeserializedMessage::Deserialize( const FUdpReassembledMessageRef& Reas
 
 	// create message body
 	MessageData = FMemory::Malloc(TypeInfo->PropertiesSize);
-	TypeInfo->InitializeScriptStruct(MessageData);
+	TypeInfo->InitializeStruct(MessageData);
 
 	// deserialize message body
 	FJsonStructDeserializerBackend Backend(MessageReader);
