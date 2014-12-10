@@ -19,6 +19,11 @@ struct ENGINE_API FHighResScreenshotConfig
 	TSharedPtr<class IImageWrapper> ImageCompressorLDR;
 	TSharedPtr<class IImageWrapper> ImageCompressorHDR;
 
+	// Materials used in the editor to help with the capture of highres screenshots
+	UMaterial* HighResScreenshotMaterial;
+	UMaterial* HighResScreenshotMaskMaterial;
+	UMaterial* HighResScreenshotCaptureRegionMaterial;
+
 	FHighResScreenshotConfig();
 
 	/** Initialize the image wrapper modules (required for SaveImage) **/

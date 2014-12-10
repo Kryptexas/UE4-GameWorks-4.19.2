@@ -31,6 +31,23 @@ void FHighResScreenshotConfig::Init()
 		ImageCompressorLDR = ImageWrapperModule->CreateImageWrapper(EImageFormat::PNG);
 		ImageCompressorHDR = ImageWrapperModule->CreateImageWrapper(EImageFormat::EXR);
 	}
+
+	HighResScreenshotMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshot.HighResScreenshot"));
+	HighResScreenshotMaskMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshotMask.HighResScreenshotMask"));
+	HighResScreenshotCaptureRegionMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshotCaptureRegion.HighResScreenshotCaptureRegion"));
+
+	if (HighResScreenshotMaterial)
+	{
+		HighResScreenshotMaterial->AddToRoot();
+	}
+	if (HighResScreenshotMaskMaterial)
+	{
+		HighResScreenshotMaskMaterial->AddToRoot();
+	}
+	if (HighResScreenshotCaptureRegionMaterial)
+	{
+		HighResScreenshotCaptureRegionMaterial->AddToRoot();
+	}
 }
 
 void FHighResScreenshotConfig::ChangeViewport(TWeakPtr<FSceneViewport> InViewport)

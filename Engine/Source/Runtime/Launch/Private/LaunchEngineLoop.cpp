@@ -1689,6 +1689,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+	// Init HighRes screenshot system.
+	GetHighResScreenshotConfig().Init();
 
 #else // WITH_ENGINE
 	EndInitTextLocalization();
@@ -2680,9 +2682,6 @@ bool FEngineLoop::AppInit( )
 	// For platform services that need D3D hooks like Steam
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
-
-	// Init HighRes screenshot system.
-	GetHighResScreenshotConfig().Init();
 #endif
 
 	// Checks.
