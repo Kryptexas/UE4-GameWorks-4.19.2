@@ -280,7 +280,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the immediate instigator that applied this effect */
 	virtual AActor* GetInstigator() const
 	{
-		return Instigator;
+		return Instigator.Get();
 	}
 
 	/** Returns the ability system component of the instigator of this effect */
@@ -292,13 +292,13 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the physical actor tied to the application of this effect */
 	virtual AActor* GetEffectCauser() const
 	{
-		return EffectCauser;
+		return EffectCauser.Get();
 	}
 
 	/** Should always return the original instigator that started the whole chain. Subclasses can override what this does */
 	virtual AActor* GetOriginalInstigator() const
 	{
-		return Instigator;
+		return Instigator.Get();
 	}
 
 	/** Returns the ability system component of the instigator that started the whole chain */
@@ -339,7 +339,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 
 	virtual FString ToString() const
 	{
-		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
+		return Instigator.IsValid() ? Instigator->GetName() : FString(TEXT("NONE"));
 	}
 
 	virtual UScriptStruct* GetScriptStruct() const
@@ -369,11 +369,11 @@ protected:
 
 	/** Instigator actor, the actor that owns the ability system component */
 	UPROPERTY()
-	AActor* Instigator;
+	TWeakObjectPtr<AActor> Instigator;
 
 	/** The physical actor that actually did the damage, can be a weapon or projectile */
 	UPROPERTY()
-	AActor* EffectCauser;
+	TWeakObjectPtr<AActor> EffectCauser;
 
 	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)

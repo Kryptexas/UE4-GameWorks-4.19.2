@@ -405,6 +405,9 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	FGameplayEventData()
 	: Instigator(NULL)
 	, Target(NULL)
+	, Var1(0.f)
+	, Var2(0.f)
+	, Var3(0.f)
 	{
 	}
 	

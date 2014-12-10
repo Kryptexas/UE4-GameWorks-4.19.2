@@ -34,7 +34,7 @@ void FGameplayEffectContext::AddInstigator(class AActor *InInstigator, class AAc
 	InstigatorAbilitySystemComponent = NULL;
 
 	// Cache off his AbilitySystemComponent.
-	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Instigator);
+	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Instigator.Get());
 	if (AbilitySystemInterface)
 	{
 		InstigatorAbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
@@ -84,7 +84,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 				HitResult = TSharedPtr<FHitResult>(new FHitResult());
 			}
 		}
-		AddInstigator(Instigator, EffectCauser); // Just to initialize InstigatorAbilitySystemComponent
+		AddInstigator(Instigator.Get(), EffectCauser.Get()); // Just to initialize InstigatorAbilitySystemComponent
 	}
 
 	if (HasHitResults == 1)
@@ -101,10 +101,10 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 
 bool FGameplayEffectContext::IsLocallyControlled() const
 {
-	APawn* Pawn = Cast<APawn>(Instigator);
+	APawn* Pawn = Cast<APawn>(Instigator.Get());
 	if (!Pawn)
 	{
-		Pawn = Cast<APawn>(EffectCauser);
+		Pawn = Cast<APawn>(EffectCauser.Get());
 	}
 	if (Pawn)
 	{
@@ -121,7 +121,7 @@ void FGameplayEffectContext::AddOrigin(FVector InOrigin)
 
 void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
 {
-	IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator);
+	IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator.Get());
 	if (TagInterface)
 	{
 		TagInterface->GetOwnedGameplayTags(TagContainer);
