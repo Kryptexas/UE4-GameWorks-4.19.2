@@ -2244,7 +2244,7 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*OwningTagContainer, false) &&
 			!Effect.Spec.DynamicGrantedTags.MatchesAny(*OwningTagContainer, false))
 		{
-			// this doesnt match our Tags so bail
+			// this doesn't match our Tags so bail
 			return false;
 		}
 	}	
@@ -2254,7 +2254,17 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 	{
 		if (!Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, false))
 		{
-			// this doesnt match our Tags so bail
+			// this doesn't match our Tags so bail
+			return false;
+		}
+	}
+
+	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
+	if (EffectTagContainer_Rejection)
+	{
+		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer_Rejection, false))
+		{
+			// this matches our Rejection Tags so bail
 			return false;
 		}
 	}

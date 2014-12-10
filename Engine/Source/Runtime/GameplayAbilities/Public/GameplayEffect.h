@@ -1099,12 +1099,16 @@ struct FActiveGameplayEffectQuery
 	FActiveGameplayEffectQuery()
 		: OwningTagContainer(NULL)
 		, EffectTagContainer(NULL)
+		, OwningTagContainer_Rejection(NULL)
+		, EffectTagContainer_Rejection(NULL)
 	{
 	}
 
 	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
 		: OwningTagContainer(InOwningTagContainer)
 		, EffectTagContainer(NULL)
+		, OwningTagContainer_Rejection(NULL)
+		, EffectTagContainer_Rejection(NULL)
 		, ModifyingAttribute(InModifyingAttribute)
 	{
 	}
@@ -1112,6 +1116,26 @@ struct FActiveGameplayEffectQuery
 	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
 		: OwningTagContainer(InOwningTagContainer)
 		, EffectTagContainer(InEffectTagContainer)
+		, OwningTagContainer_Rejection(NULL)
+		, EffectTagContainer_Rejection(NULL)
+		, ModifyingAttribute(InModifyingAttribute)
+	{
+	}
+
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+		: OwningTagContainer(InOwningTagContainer)
+		, EffectTagContainer(InEffectTagContainer)
+		, OwningTagContainer_Rejection(InOwningTagContainer_Rejection)
+		, EffectTagContainer_Rejection(NULL)
+		, ModifyingAttribute(InModifyingAttribute)
+	{
+	}
+
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, const FGameplayTagContainer* InEffectTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+		: OwningTagContainer(InOwningTagContainer)
+		, EffectTagContainer(InEffectTagContainer)
+		, OwningTagContainer_Rejection(InOwningTagContainer_Rejection)
+		, EffectTagContainer_Rejection(InEffectTagContainer_Rejection)
 		, ModifyingAttribute(InModifyingAttribute)
 	{
 	}
@@ -1123,6 +1147,12 @@ struct FActiveGameplayEffectQuery
 
 	/** used to match with InheritableGameplayEffectTags */
 	const FGameplayTagContainer* EffectTagContainer;
+
+	/** used to reject matches with InheritableOwnedTagsContainer */
+	const FGameplayTagContainer* OwningTagContainer_Rejection;
+
+	/** used to reject matches with InheritableGameplayEffectTags */
+	const FGameplayTagContainer* EffectTagContainer_Rejection;
 
 	/** Matches on GameplayEffects which modify given attribute */
 	FGameplayAttribute ModifyingAttribute;
