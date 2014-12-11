@@ -3886,7 +3886,7 @@ FString FNativeClassHeaderGenerator::GetFunctionParameterString(UFunction* Funct
 		}
 
 		auto Dim = GArrayDimensions.Find(Property);
-		Property->ExportCppDeclaration(PropertyText, EExportedDeclaration::Parameter, Dim ? **Dim : NULL);
+		Property->ExportCppDeclaration(PropertyText, EExportedDeclaration::Parameter, Dim ? **Dim : NULL, 0, true);
 		ApplyAlternatePropertyExportText(Property, PropertyText);
 
 		ParameterList += PropertyText;
