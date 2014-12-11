@@ -5,7 +5,8 @@
 #include "ISourceControlState.h" // for FSourceControlStatePtr
 
 // Forward declarations
-class ISourceControlRevision;
+class  ISourceControlRevision;
+struct FRevisionInfo;
 
 /**  */
 namespace EMergeAssetId
