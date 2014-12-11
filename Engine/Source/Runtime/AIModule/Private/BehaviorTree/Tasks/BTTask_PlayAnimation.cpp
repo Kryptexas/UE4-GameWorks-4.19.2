@@ -2,6 +2,8 @@
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_PlayAnimation.h"
+#include "GameFramework/Character.h"
+#include "Animation/AnimationAsset.h"
 
 //----------------------------------------------------------------------//
 // UBTTask_PlayAnimation
