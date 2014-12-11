@@ -183,7 +183,7 @@ void SProjectLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDo
 								[
 									SNew(SImage)
 									.Image(FCoreStyle::Get().GetBrush("EditableComboBox.Add"))
-									.ColorAndOpacity(FSlateColor::UseForeground())
+									.ColorAndOpacity(FSlateColor(FLinearColor::White))
 								]
 							]
 						]
