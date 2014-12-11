@@ -111,7 +111,15 @@ namespace iPhonePackager
 							ApplicationIdentifier = Utilities.GetStringFromPList("CFBundleIdentifier");
 						}
 
-						if (!DeploymentHelper.Get().BackupDocumentsDirectory(ApplicationIdentifier, Config.GetRootBackedUpDocumentsDirectory()))
+						if (Config.FilesForBackup.Count > 0)
+						{
+							if (!DeploymentHelper.Get().BackupFiles(ApplicationIdentifier, Config.FilesForBackup.ToArray()))
+							{
+								Program.Error("Failed to transfer manifest file from device to PC");
+								Program.ReturnCode = (int)ErrorCodes.Error_DeviceBackupFailed;
+							}
+						}
+						else if (!DeploymentHelper.Get().BackupDocumentsDirectory(ApplicationIdentifier, Config.GetRootBackedUpDocumentsDirectory()))
 						{
 							Program.Error("Failed to transfer documents directory from device to PC");
 							Program.ReturnCode = (int)ErrorCodes.Error_DeviceBackupFailed;
@@ -139,7 +147,7 @@ namespace iPhonePackager
 						string IPAPath = GamePath;
 						string AdditionalCommandline = Program.AdditionalCommandline;
 
-						if (!String.IsNullOrEmpty(AdditionalCommandline))
+						if (!String.IsNullOrEmpty(AdditionalCommandline) && !Config.bIterate)
 						{
 							// Read the mobile provision to check for issues
 							FileOperations.ReadOnlyZipFileSystem Zip = new FileOperations.ReadOnlyZipFileSystem(IPAPath);
@@ -192,7 +200,25 @@ namespace iPhonePackager
 							Zip.Close();
 						}
 
-						if (File.Exists(IPAPath))
+						if (Config.bIterate)
+						{
+							string ApplicationIdentifier = RPCCommand;
+							if (String.IsNullOrEmpty(ApplicationIdentifier))
+							{
+								ApplicationIdentifier = Utilities.GetStringFromPList("CFBundleIdentifier");
+							}
+
+							if (!String.IsNullOrEmpty(Config.DeviceId) && !Config.DeviceId.Contains("All_iOS_On"))
+							{
+								DeploymentHelper.Get().DeviceId = Config.DeviceId;
+							}
+							if (!DeploymentHelper.Get().InstallFilesOnDevice(ApplicationIdentifier, Config.DeltaManifest))
+							{
+								Program.Error("Failed to install Files on device");
+								Program.ReturnCode = (int)ErrorCodes.Error_FilesInstallFailed;
+							}
+						}
+						else if (File.Exists(IPAPath))
 						{
 							if (!String.IsNullOrEmpty(Config.DeviceId) && !Config.DeviceId.Contains("All_iOS_On"))
 							{
@@ -249,9 +275,18 @@ namespace iPhonePackager
 		static Process CreateDeploymentServerProcess()
 		{
 			Process NewProcess = new Process();
-			NewProcess.StartInfo.WorkingDirectory = Path.GetFullPath(".");
-			NewProcess.StartInfo.FileName = NewProcess.StartInfo.WorkingDirectory + "\\DeploymentServer.exe";
-			NewProcess.StartInfo.Arguments = "-iphonepackager " + Process.GetCurrentProcess().Id.ToString();
+			if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix)
+			{
+				NewProcess.StartInfo.WorkingDirectory = Path.GetFullPath(".");
+				NewProcess.StartInfo.FileName = "../../../Build/BatchFiles/Mac/RunMono.sh";
+				NewProcess.StartInfo.Arguments = "\"" + NewProcess.StartInfo.WorkingDirectory + "/DeploymentServer.exe\" -iphonepackager " + Process.GetCurrentProcess().Id.ToString();
+			}
+			else
+			{
+				NewProcess.StartInfo.WorkingDirectory = Path.GetFullPath(".");
+				NewProcess.StartInfo.FileName = NewProcess.StartInfo.WorkingDirectory + "\\DeploymentServer.exe";
+				NewProcess.StartInfo.Arguments = "-iphonepackager " + Process.GetCurrentProcess().Id.ToString();
+			}
 			NewProcess.StartInfo.UseShellExecute = false;
 
 			try

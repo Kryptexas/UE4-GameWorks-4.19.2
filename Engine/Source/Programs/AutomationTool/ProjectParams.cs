@@ -243,6 +243,7 @@ namespace AutomationTool
 			this.RunCommandline = InParams.RunCommandline;
 			this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
+			this.IterativeDeploy = InParams.IterativeDeploy;
 			this.Device = InParams.Device;
 			this.ServerDevice = InParams.ServerDevice;
             this.NullRHI = InParams.NullRHI;
@@ -363,7 +364,8 @@ namespace AutomationTool
             bool? OBBinAPK = null,
             bool? Prebuilt = null,
             int? RunTimeoutSeconds = null,
-			string OverrideMinimumOS = null
+			string OverrideMinimumOS = null,
+            bool? IterativeDeploy = null
 			)
 		{
 			//
@@ -491,7 +493,8 @@ namespace AutomationTool
 			this.RunCommandline = ParseParamValueIfNotSpecified(Command, RunCommandline, "addcmdline");
 			this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
-			this.Device = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[]{'\"'});
+			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, "iterativedeploy", "iterate");
+			this.Device = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
 			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Device);
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
 			this.FakeClient = GetParamValueIfNotSpecified(Command, FakeClient, this.FakeClient, "fakeclient");
@@ -929,6 +932,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help( "iterativecooking", "Uses the iterative cooking, command line: -iterativecooking or -iterate" )]
 		public bool IterativeCooking;
+
+		/// <summary>
+		/// Cook: Uses the iterative deploy, command line: -iterativedeploy or -iterate
+		/// </summary>
+		[Help("iterativecooking", "Uses the iterative cooking, command line: -iterativedeploy or -iterate")]
+		public bool IterativeDeploy;
 
 		#endregion
 
@@ -1760,6 +1769,7 @@ namespace AutomationTool
 				CommandUtils.Log("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());
 				CommandUtils.Log("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.Log("IterativeCooking={0}", IterativeCooking);
+				CommandUtils.Log("IterativeDeploy={0}", IterativeDeploy);
 				CommandUtils.Log("LogWindow={0}", LogWindow);
 				CommandUtils.Log("Manifests={0}", Manifests);
 				CommandUtils.Log("MapToRun={0}", MapToRun);

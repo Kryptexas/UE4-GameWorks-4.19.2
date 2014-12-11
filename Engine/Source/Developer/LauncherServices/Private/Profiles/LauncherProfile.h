@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define LAUNCHERSERVICES_ADDEDINCREMENTALDEPLOYVERSION 11
+
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
 */
@@ -423,6 +425,11 @@ public:
 		return true;
 	}
 
+	virtual bool IsDeployingIncrementally( ) const override
+	{
+		return DeployIncremental;
+	}
+
 	virtual bool IsFileServerHidden( ) const override
 	{
 		return HideFileServerWindow;
@@ -477,7 +484,7 @@ public:
 
 		Archive	<< Version;
 
-		if (Version != LAUNCHERSERVICES_PROFILEVERSION)
+		if (Version < LAUNCHERSERVICES_MINPROFILEVERSION)
 		{
 			return false;
 		}
@@ -520,6 +527,11 @@ public:
 				<< BuildGame
                 << ForceClose
                 << Timeout;
+
+		if (Version >= LAUNCHERSERVICES_ADDEDINCREMENTALDEPLOYVERSION)
+		{
+			Archive << DeployIncremental;
+		}
 
 		DefaultLaunchRole->Serialize(Archive);
 
@@ -607,6 +619,7 @@ public:
 		DeployWithUnrealPak = false;
 		DeployedDeviceGroupId = FGuid();
 		HideFileServerWindow = false;
+		DeployIncremental = false;
 
 		// default launch settings
 		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
@@ -758,6 +771,16 @@ public:
 		if (CookIncremental != Incremental)
 		{
 			CookIncremental = Incremental;
+
+			Validate();
+		}
+	}
+
+	virtual void SetIncrementalDeploying( bool Incremental ) override
+	{
+		if (DeployIncremental != Incremental)
+		{
+			DeployIncremental = Incremental;
 
 			Validate();
 		}
@@ -1116,6 +1139,9 @@ private:
 
 	// Holds a flag indicating whether content should be packaged with UnrealPak.
 	bool DeployWithUnrealPak;
+
+	// Holds a flag indicating whether to use incremental deployment
+	bool DeployIncremental;
 
 	// Holds the device group to deploy to.
 	ILauncherDeviceGroupPtr DeployedDeviceGroup;

@@ -126,7 +126,7 @@ namespace Manzana
                 uint ret;
                 ret = 0;
 
-                MobileDevice.AFC.FileRefTell(phone.AFCHandle, handle, ref ret);
+                MobileDevice.DeviceImpl.FileRefTell(phone.AFCHandle, handle, ref ret);
                 return (long)ret;
             }
             set
@@ -141,9 +141,9 @@ namespace Manzana
         /// <param name="value">The new length of the stream.</param>
         public override void SetLength(long value)
         {
-            int ret;
+			//            int ret;
 
-            ret = MobileDevice.AFC.AFCFileRefSetFileSize((IntPtr)phone.AFCHandle, handle, (uint)value);
+			MobileDevice.DeviceImpl.FileRefSetFileSize((IntPtr)phone.AFCHandle, handle, (uint)value);
         }
         #endregion	// Public Properties
 
@@ -158,7 +158,7 @@ namespace Manzana
             {
                 if (handle != 0)
                 {
-                    MobileDevice.AFC.FileRefClose(phone.AFCHandle, handle);
+					MobileDevice.DeviceImpl.FileRefClose(phone.AFCHandle, handle);
                     handle = 0;
                 }
             }
@@ -185,7 +185,7 @@ namespace Manzana
                 temp = new byte[count];
 
             uint len = (uint)count;
-            int ret = MobileDevice.AFC.FileRefRead(phone.AFCHandle, handle, temp, ref len);
+			int ret = MobileDevice.DeviceImpl.FileRefRead(phone.AFCHandle, handle, temp, ref len);
             if (ret != 0)
                 throw new IOException("AFCFileRefRead error = " + ret.ToString());
 
@@ -216,7 +216,7 @@ namespace Manzana
                 Buffer.BlockCopy(buffer, offset, temp, 0, count);
             }
 
-            int ret = MobileDevice.AFC.FileRefWrite(phone.AFCHandle, handle, temp, (uint)count);
+			MobileDevice.DeviceImpl.FileRefWrite(phone.AFCHandle, handle, temp, (uint)count);
         }
 
         /// <summary>
@@ -229,7 +229,7 @@ namespace Manzana
         {
             int ret;
 
-            ret = MobileDevice.AFC.FileRefSeek(phone.AFCHandle, handle, (uint)offset, 0);
+			ret = MobileDevice.DeviceImpl.FileRefSeek(phone.AFCHandle, handle, (uint)offset, 0);
             Console.WriteLine("ret = {0}", ret);
             return offset;
         }
@@ -239,7 +239,7 @@ namespace Manzana
         /// </summary>
         public override void Flush()
         {
-            MobileDevice.AFC.FlushData(phone.AFCHandle, handle);
+			MobileDevice.DeviceImpl.FlushData(phone.AFCHandle, handle);
         }
         #endregion	// Public Methods
 
@@ -267,7 +267,7 @@ namespace Manzana
             }
 
             full_path = phone.FullPath(phone.CurrentDirectory, path);
-            ret = MobileDevice.AFC.FileRefOpen(phone.AFCHandle, full_path, (int)mode, 0, out handle);
+			ret = MobileDevice.DeviceImpl.FileRefOpen(phone.AFCHandle, full_path, (int)mode, 0, out handle);
             if (ret != 0)
             {
                 phone.Reconnect();

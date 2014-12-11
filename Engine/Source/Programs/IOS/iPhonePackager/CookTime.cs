@@ -304,7 +304,7 @@ namespace iPhonePackager
 			// Add all of the payload files, replacing existing files in the stub IPA if necessary (should only occur for icons)
 			{
 				string SourceDir = Path.GetFullPath(ZipSourceDir);
-				string[] PayloadFiles = Directory.GetFiles(SourceDir, "*.*", SearchOption.AllDirectories);
+				string[] PayloadFiles = Directory.GetFiles(SourceDir, "*.*", Config.bIterate ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories);
 				foreach (string Filename in PayloadFiles)
 				{
 					// Get the relative path to the file (this implementation only works because we know the files are all

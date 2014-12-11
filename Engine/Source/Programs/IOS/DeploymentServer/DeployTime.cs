@@ -86,6 +86,13 @@ namespace DeploymentServer
             DeviceTypeMapping.Add("iPad2,3", "iPad 2 (with 3G)"); // CDMA/Verizon
 
             Console.WriteLine("[deploy] Created deployment server.");
+
+			// Initialize the mobile device manager
+			if (!bHaveRegisteredHandlers)
+			{
+				Manzana.MobileDeviceInstanceManager.Initialize(MobileDeviceConnected, MobileDeviceDisconnected);
+				bHaveRegisteredHandlers = true;
+			}
         }
 
         /// <summary>
@@ -166,7 +173,7 @@ namespace DeploymentServer
                     int TotalDurationMS = 5000;
                     while (!MobileDeviceInstanceManager.AreAnyDevicesConnected() && (TotalDurationMS > 0))
                     {
-                        System.Threading.Thread.Sleep(SleepDurationMS);
+						System.Threading.Thread.Sleep(SleepDurationMS);
                         TotalDurationMS -= SleepDurationMS;
                     }
 
@@ -330,30 +337,67 @@ namespace DeploymentServer
             });
         }
 
+		/// <summary>
+		/// Installs an IPA to all connected devices
+		/// </summary>
+		public bool InstallFilesOnDevice(string BundleIdentifier, string Manifest)
+		{
+			// Transfer to all connected devices
+			return PerformActionOnAllDevices(StandardEnumerationDelayMS, delegate(MobileDeviceInstance Device)
+			{
+				bool bResult = false;
+				if (String.IsNullOrEmpty(DeviceId) || Device.DeviceId == DeviceId)
+				{
+					bResult = Device.TryCopy(BundleIdentifier, Manifest);
+					ReportIF.Log("");
+				}
+				return bResult;
+			});
+		}
+
         public bool BackupDocumentsDirectory(string BundleIdentifier, string DestinationDocumentsDirectory)
         {
             return PerformActionOnAllDevices(StandardEnumerationDelayMS, delegate(MobileDeviceInstance Device)
             {
-                string SafeDeviceName = MobileDeviceInstance.SanitizePathNoFilename(Device.DeviceName);
+				bool bResult = false;
+				if (String.IsNullOrEmpty(DeviceId) || Device.DeviceId == DeviceId)
+				{
+					string SafeDeviceName = MobileDeviceInstance.SanitizePathNoFilename(Device.DeviceName);
 
-                // Destination folder
-                string TargetFolder = Path.Combine(DestinationDocumentsDirectory, SafeDeviceName);
+					// Destination folder
+					string TargetFolder = Path.Combine(DestinationDocumentsDirectory, SafeDeviceName);
 
-                // Source folder
-                string SourceFolder = "/Documents/";
+					// Source folder
+					string SourceFolder = "/Documents/";
 
-                bool bResult = Device.TryBackup(BundleIdentifier, SourceFolder, TargetFolder);
+					bResult = Device.TryBackup(BundleIdentifier, SourceFolder, TargetFolder);
 
-                ReportIF.Log("");
-
+					ReportIF.Log("");
+				}
                 return bResult;
             });
         }
+
+		public bool BackupFiles(string BundleIdentifier, string[] DestionationFiles)
+		{
+			return PerformActionOnAllDevices(StandardEnumerationDelayMS, delegate(MobileDeviceInstance Device)
+			{
+				bool bResult = false;
+				if (String.IsNullOrEmpty(DeviceId) || Device.DeviceId == DeviceId)
+				{
+					bResult = Device.TryBackup(BundleIdentifier, DestionationFiles);
+					ReportIF.Log("");
+				}
+
+				return bResult;
+			});
+		}
 
 		public bool ListApplications()
 		{
 			return PerformActionOnAllDevices(StandardEnumerationDelayMS, delegate(MobileDeviceInstance Device)
 			{
+					Console.WriteLine("Device '{0}' has the following applications:", Device.DeviceName);
 				Device.DumpInstalledApplications();
 
 				ReportIF.Log("");

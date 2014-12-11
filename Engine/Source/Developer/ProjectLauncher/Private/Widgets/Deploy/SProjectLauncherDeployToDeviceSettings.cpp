@@ -30,7 +30,7 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 					]
 			]
 
-/*		+ SVerticalBox::Slot()
+		+ SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
@@ -46,9 +46,26 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 							.Padding(8.0f)
 							.BodyContent()
 							[
+								SNew(SVerticalBox)
+
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									// incremental cook check box
+									SNew(SCheckBox)
+									.IsChecked(this, &SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxIsChecked)
+									.OnCheckStateChanged(this, &SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckStateChanged)
+									.Padding(FMargin(4.0f, 0.0f))
+									.ToolTipText(LOCTEXT("IncrementalCheckBoxTooltip", "If checked, only modified content will be deployed, resulting in much faster deploy times. It is recommended to enable this option whenever possible."))
+									.Content()
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("IncrementalCheckBoxText", "Only deploy modified content"))
+									]
+								]
 							]
 					]
-			]*/
+			]
 	];
 }
 
@@ -56,5 +73,31 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 /* SProjectLauncherDeployToDeviceSettings callbacks
  *****************************************************************************/
 
+
+void SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetIncrementalDeploying(NewState == ECheckBoxState::Checked);
+	}
+}
+
+
+ECheckBoxState SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxIsChecked( ) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsDeployingIncrementally())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
 
 #undef LOCTEXT_NAMESPACE

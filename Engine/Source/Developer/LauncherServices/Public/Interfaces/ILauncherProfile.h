@@ -581,6 +581,14 @@ public:
 	virtual bool IsCookingUnversioned( ) const = 0;
 
 	/**
+	 * Checks whether incremental deployment is enabled.
+	 *
+	 * @return true if deploying incrementally, false otherwise.
+	 * @see SetIncrementalDeploying
+	 */
+	virtual bool IsDeployingIncrementally( ) const = 0;
+
+	/**
 	 * Checks whether the file server's console window should be hidden.
 	 *
 	 * @return true if the file server should be hidden, false otherwise.
@@ -810,6 +818,14 @@ public:
 	 * @see IsCookingIncrementally
 	 */
 	virtual void SetIncrementalCooking( bool Incremental ) = 0;
+
+	/**
+	 * Sets incremental deploying.
+	 *
+	 * @param Incremental Whether deploying should be incremental.
+	 * @see IsDeployingIncrementally
+	 */
+	virtual void SetIncrementalDeploying( bool Incremental ) = 0;
 
 	/**
 	 * Sets the launch mode.

@@ -402,6 +402,16 @@ namespace AutomationTool
 			get { return false; }
 		}
 
+		public virtual List<string> GetFilesForCRCCheck()
+		{
+			string CmdLine = "UE4CommandLine.txt";
+			if (DeployLowerCaseFilenames(true))
+			{
+				CmdLine = CmdLine.ToLowerInvariant();
+			}
+			return new List<string>() { CmdLine };
+		}
+
 		#region Hooks
 
 		public virtual void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
@@ -435,6 +445,13 @@ namespace AutomationTool
         {
             return false;
         }
+
+		public virtual bool RetrieveDeployedManifests(ProjectParams Params, DeploymentContext SC, out List<string> UFSManifests, out List<string> NonUFSManifests)
+		{
+			UFSManifests = null;
+			NonUFSManifests = null;
+			return false;
+		}
 
 		#endregion
 

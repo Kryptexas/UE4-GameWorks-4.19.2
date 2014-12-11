@@ -443,56 +443,6 @@ namespace UnrealBuildTool.IOS
 						Log.TraceInformation("Copying binaries back to this device failed.");
 					}
 				}
-
-				// install the provision
-/*				string ProvisionWithPrefix = "../../Engine/Build/IOS/UE4Game.mobileprovision";
-				if (File.Exists(BuildPath + "/" + GameName + ".mobileprovision"))
-				{
-					ProvisionWithPrefix = BuildPath + "/" + GameName + ".mobileprovision";
-				}
-				else
-				{
-					if (File.Exists(BuildPath + "/NotForLicensees/" + GameName + ".mobileprovision"))
-					{
-						ProvisionWithPrefix = BuildPath + "/NotForLicensees/" + GameName + ".mobileprovision";
-					}
-					else if (!File.Exists(ProvisionWithPrefix))
-					{
-						ProvisionWithPrefix = "../../Engine/Build/IOS/NotForLicensees/UE4Game.mobileprovision";
-					}
-				}
-				string LibraryDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/";
-				if (File.Exists(ProvisionWithPrefix))
-				{
-					Directory.CreateDirectory(LibraryDir);
-					File.Copy(ProvisionWithPrefix, LibraryDir + GameName + ".mobileprovision", true);
-					FileInfo DestFileInfo = new FileInfo(LibraryDir + GameName + ".mobileprovision");
-					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-				}
-
-				// install the distribution provision
-				ProvisionWithPrefix = "../../Engine/Build/IOS/UE4Game_Distro.mobileprovision";
-				if (File.Exists(BuildPath + "/" + GameName + "_Distro.mobileprovision"))
-				{
-					ProvisionWithPrefix = BuildPath + "/" + GameName + "_Distro.mobileprovision";
-				}
-				else
-				{
-					if (File.Exists(BuildPath + "/NotForLicensees/" + GameName + "_Distro.mobileprovision"))
-					{
-						ProvisionWithPrefix = BuildPath + "/NotForLicensees/" + GameName + "_Distro.mobileprovision";
-					}
-					else if (!File.Exists(ProvisionWithPrefix))
-					{
-						ProvisionWithPrefix = "../../Engine/Build/IOS/NotForLicensees/UE4Game_Distro.mobileprovision";
-					}
-				}
-				if (File.Exists(ProvisionWithPrefix))
-				{
-					File.Copy(ProvisionWithPrefix, LibraryDir + GameName + "_Distro.mobileprovision", true);
-					FileInfo DestFileInfo = new FileInfo(LibraryDir + GameName + "_Distro.mobileprovision");
-					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-				}*/
 			}
 			return true;
 		}
@@ -516,6 +466,12 @@ namespace UnrealBuildTool.IOS
 			}
 
 			SourceFile.CopyTo(DestinationPath, bOverwrite);
+
+			FileInfo DI2 = new FileInfo(DestinationPath);
+			if (DI2.Exists)
+			{
+				DI2.IsReadOnly = false;
+			}
 		}
 
 		private void CopyFiles(string SourceDirectory, string DestinationDirectory, string TargetFiles, bool bOverwrite = false)

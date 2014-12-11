@@ -183,8 +183,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 {
 	CommandStart = TEXT("");
 	FString UATCommand = TEXT("");
-	FGuid InstanceId(FGuid::NewGuid());
-	FGuid SessionId(FGuid::NewGuid());
+	static FGuid SessionId(FGuid::NewGuid());
 	FString InitialMap = InProfile->GetDefaultLaunchRole()->GetInitialMap();
 	if (InitialMap.IsEmpty() && InProfile->GetCookedMaps().Num() == 1)
 	{
@@ -357,7 +356,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 			if (InProfile->IsCookingIncrementally())
 			{
-				UATCommand += TEXT(" -iterate");
+				UATCommand += TEXT(" -iterativecooking");
 			}
 
 			if (InProfile->IsCookingUnversioned())
@@ -413,6 +412,10 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		break;
 	case ELauncherProfileCookModes::ByTheBookInEditor:
 		UATCommand += MapList;
+		if (InProfile->IsCookingIncrementally())
+		{
+			UATCommand += TEXT(" -iterativecooking");
+		}
 	case ELauncherProfileCookModes::DoNotCook:
 		UATCommand += TEXT(" -skipcook");
 		break;
@@ -448,6 +451,10 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		case ELauncherProfileDeploymentModes::CopyToDevice:
 			{
 				UATCommand += TEXT(" -stage -deploy");
+				if (Profile->IsDeployingIncrementally())
+				{
+					UATCommand += " -iterativedeploy";
+				}
 				UATCommand += CommandLine;
 				UATCommand += StageDirectory;
 				UATCommand += DeviceCommand;
@@ -470,7 +477,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		// run
 		if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
 		{
-			UATCommand += TEXT(" -run");
+			UATCommand += TEXT(" -run -nokill");
 
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherRunDesc", "Launching on {0}"), FText::FromString(DeviceNames.RightChop(1)));

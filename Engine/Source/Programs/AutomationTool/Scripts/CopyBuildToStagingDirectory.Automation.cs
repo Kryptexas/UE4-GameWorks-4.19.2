@@ -284,7 +284,7 @@ public partial class Project : CommandUtils
 					SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Editor/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 				}
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.UsePak(SC.StageTargetPlatform));
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, new string[] {"*.uasset"}, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.UsePak(SC.StageTargetPlatform));
 			}
             foreach (string Culture in CulturesToStage)
             {
@@ -382,14 +382,20 @@ public partial class Project : CommandUtils
 		}
 	}
 
-	public static void DumpTargetManifest(Dictionary<string, string> Mapping, string Filename)
+	public static void DumpTargetManifest(Dictionary<string, string> Mapping, string Filename, string StageDir, List<string> CRCFiles)
 	{
 		if (Mapping.Count > 0)
 		{
 			var Lines = new List<string>();
 			foreach (var Pair in Mapping)
 			{
-				string Dest = Pair.Value;
+				string TimeStamp = File.GetLastWriteTimeUtc(Pair.Key).ToString();
+				if (CRCFiles.Contains(Pair.Value))
+				{
+					byte[] FileData = File.ReadAllBytes(StageDir + "/" + Pair.Value);
+					TimeStamp = BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(FileData)).Replace("-", string.Empty);
+				}
+				string Dest = Pair.Value + "\t" + TimeStamp;
 
 				Lines.Add(Dest);
 			}
@@ -397,7 +403,7 @@ public partial class Project : CommandUtils
 		}
 	}
 
-	public static void CopyManifestFilesToStageDir(Dictionary<string, string> Mapping, string StageDir, string ManifestName)
+	public static void CopyManifestFilesToStageDir(Dictionary<string, string> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
 	{
 		string ManifestPath = "";
 		string ManifestFile = "";
@@ -418,7 +424,7 @@ public partial class Project : CommandUtils
 		}
 		if (!String.IsNullOrEmpty(ManifestPath) && Mapping.Count > 0)
 		{
-			DumpTargetManifest(Mapping, ManifestPath);
+			DumpTargetManifest(Mapping, ManifestPath, StageDir, CRCFiles);
 			if (!FileExists(ManifestPath))
 			{
 				throw new AutomationException("Failed to write manifest {0}", ManifestPath);
@@ -455,17 +461,17 @@ public partial class Project : CommandUtils
 
 	public static void CopyUsingStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
-		CopyManifestFilesToStageDir(SC.NonUFSStagingFiles, SC.StageDirectory, "NonUFSFiles");
+		CopyManifestFilesToStageDir(SC.NonUFSStagingFiles, SC.StageDirectory, "NonUFSFiles", SC.StageTargetPlatform.GetFilesForCRCCheck());
 
 		if (!Params.NoDebugInfo)
 		{
-			CopyManifestFilesToStageDir(SC.NonUFSStagingFilesDebug, SC.StageDirectory, "DebugFiles");
+			CopyManifestFilesToStageDir(SC.NonUFSStagingFilesDebug, SC.StageDirectory, "DebugFiles", SC.StageTargetPlatform.GetFilesForCRCCheck());
 		}
 
         bool bStageUnrealFileSystemFiles = !Params.CookOnTheFly && !ShouldCreatePak(Params) && !Params.FileServer;
 		if (bStageUnrealFileSystemFiles)
 		{
-			CopyManifestFilesToStageDir(SC.UFSStagingFiles, SC.StageDirectory, "UFSFiles");
+			CopyManifestFilesToStageDir(SC.UFSStagingFiles, SC.StageDirectory, "UFSFiles", SC.StageTargetPlatform.GetFilesForCRCCheck());
 		}
 	}
 
@@ -768,7 +774,7 @@ public partial class Project : CommandUtils
 	public static void ApplyStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
 		MaybeConvertToLowerCase(Params, SC);
-		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage)
+		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage && !Params.IterativeDeploy)
 		{
             try
             {
@@ -972,7 +978,11 @@ public partial class Project : CommandUtils
 
 			String ProjectFile = String.Format("{0} ", SC.ProjectArgForCommandLines);
 			Directory.CreateDirectory(GetIntermediateCommandlineDir(SC));
-			string CommandLine = String.Format("{0} {1} {2} {3}\n", ProjectFile, Params.StageCommandline.Trim(new char[] { '\"' }), Params.RunCommandline.Trim(new char[] { '\"' }), FileHostParams);
+			string CommandLine = String.Format("{0} {1} {2} {3}\n", ProjectFile, Params.StageCommandline.Trim(new char[] { '\"' }), Params.RunCommandline.Trim(new char[] { '\"' }), FileHostParams).Trim();
+			if (Params.IterativeDeploy)
+			{
+				CommandLine += " -iterative";
+			}
 			File.WriteAllText(IntermediateCmdLineFile, CommandLine);
 		}
 		else if (!Params.IsCodeBasedProject)
@@ -988,6 +998,133 @@ public partial class Project : CommandUtils
 		// always delete the existing commandline text file, so it doesn't reuse an old one
 		string IntermediateCmdLineFile = CombinePaths(GetIntermediateCommandlineDir(SC), "UE4CommandLine.txt");
 		WriteStageCommandline(IntermediateCmdLineFile, Params, SC);
+	}
+
+	private static Dictionary<string, string> ReadDeployedManifest(ProjectParams Params, DeploymentContext SC, List<string> ManifestList)
+	{
+		Dictionary<string, string> DeployedFiles = new Dictionary<string, string>();
+		List<string> CRCFiles = SC.StageTargetPlatform.GetFilesForCRCCheck();
+
+		// read the manifest
+		bool bContinueSearch = true;
+		foreach (string Manifest in ManifestList)
+		{
+			int FilesAdded = 0;
+			if (bContinueSearch)
+			{
+				string Data = File.ReadAllText (Manifest);
+				string[] Lines = Data.Split ('\n');
+				foreach (string Line in Lines)
+				{
+					string[] Pair = Line.Split ('\t');
+					if (Pair.Length > 1)
+					{
+						string Filename = Pair [0];
+						string TimeStamp = Pair [1];
+						FilesAdded++;
+						if (DeployedFiles.ContainsKey (Filename))
+						{
+							if ((CRCFiles.Contains (Filename) && DeployedFiles [Filename] != TimeStamp) || (!CRCFiles.Contains (Filename) && DateTime.Parse (DeployedFiles [Filename]) > DateTime.Parse (TimeStamp)))
+							{
+								DeployedFiles [Filename] = TimeStamp;
+							}
+						}
+						else
+						{
+							DeployedFiles.Add (Filename, TimeStamp);
+						}
+					}
+				}
+			}
+			File.Delete(Manifest);
+
+			if (FilesAdded == 0 && bContinueSearch)
+			{
+				// no files have been deployed at all to this guy, so remove all previously added files and exit the loop as this means we need to deploy everything
+				DeployedFiles.Clear ();
+				bContinueSearch = false;
+			}
+		}
+
+		return DeployedFiles;
+	}
+
+	protected static Dictionary<string, string> ReadStagedManifest(ProjectParams Params, DeploymentContext SC, string Manifest)
+	{
+		Dictionary <string, string> StagedFiles = new Dictionary<string, string>();
+		List<string> CRCFiles = SC.StageTargetPlatform.GetFilesForCRCCheck();
+
+		// get the staged manifest from staged directory
+		string ManifestFile = SC.StageDirectory + "/" + Manifest;
+		if (File.Exists(ManifestFile))
+		{
+			string Data = File.ReadAllText(ManifestFile);
+			string[] Lines = Data.Split('\n');
+			foreach (string Line in Lines)
+			{
+				string[] Pair = Line.Split('\t');
+				if (Pair.Length > 1)
+				{
+					string Filename = Pair[0];
+					string TimeStamp = Pair[1];
+					if (!StagedFiles.ContainsKey(Filename))
+					{
+						StagedFiles.Add(Filename, TimeStamp);
+					}
+					else if ((CRCFiles.Contains(Filename) && StagedFiles[Filename] != TimeStamp) || (!CRCFiles.Contains(Filename) && DateTime.Parse(StagedFiles[Filename]) > DateTime.Parse(TimeStamp)))
+					{
+						StagedFiles[Filename] = TimeStamp;
+					}
+				}
+			}
+		}
+		return StagedFiles;
+	}
+
+	protected static void WriteDeltaManifest(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> DeployedFiles, Dictionary<string, string> StagedFiles, string DeltaManifest)
+	{
+		List<string> CRCFiles = SC.StageTargetPlatform.GetFilesForCRCCheck();
+		List<string> DeltaFiles = new List<string>();
+		foreach (KeyValuePair<string, string> File in StagedFiles)
+		{
+			bool bNeedsDeploy = true;
+			if (DeployedFiles.ContainsKey(File.Key))
+			{
+				if (CRCFiles.Contains(File.Key))
+				{
+					bNeedsDeploy = (File.Value != DeployedFiles[File.Key]);
+				}
+				else
+				{
+					DateTime Staged = DateTime.Parse(File.Value);
+					DateTime Deployed = DateTime.Parse(DeployedFiles[File.Key]);
+					bNeedsDeploy = (Staged > Deployed);
+				}
+			}
+
+			if (bNeedsDeploy)
+			{
+				DeltaFiles.Add(File.Key);
+			}
+		}
+
+		// add the manifest
+		if (!DeltaManifest.Contains("NonUFS"))
+		{
+			DeltaFiles.Add("Manifest_NonUFSFiles.txt");
+			DeltaFiles.Add("Manifest_UFSFiles.txt");
+		}
+
+		// TODO: determine files which need to be removed
+
+		// write out to the deltamanifest.json
+		string ManifestFile = CombinePaths(SC.StageDirectory, DeltaManifest);
+		StreamWriter Writer = System.IO.File.CreateText(ManifestFile);
+		foreach (string Line in DeltaFiles)
+		{
+			Writer.WriteLine(Line);
+		}
+		Writer.Close();
 	}
 
 	#endregion
@@ -1105,6 +1242,28 @@ public partial class Project : CommandUtils
 					WriteStageCommandline(Params, SC);
 					CreateStagingManifest(Params, SC);
 					ApplyStagingManifest(Params, SC);
+
+					if (Params.IterativeDeploy)
+					{
+						// get the deployed file data
+						Dictionary<string, string> DeployedUFSFiles = new Dictionary<string, string>();
+						Dictionary<string, string> DeployedNonUFSFiles = new Dictionary<string, string>();
+						List<string> UFSManifests;
+						List<string> NonUFSManifests; 
+						if (SC.StageTargetPlatform.RetrieveDeployedManifests(Params, SC, out UFSManifests, out NonUFSManifests))
+						{
+							DeployedUFSFiles = ReadDeployedManifest(Params, SC, UFSManifests);
+							DeployedNonUFSFiles = ReadDeployedManifest(Params, SC, NonUFSManifests);
+						}
+
+						// get the staged file data
+						Dictionary<string, string> StagedUFSFiles = ReadStagedManifest(Params, SC, "Manifest_UFSFiles.txt");
+						Dictionary<string, string> StagedNonUFSFiles = ReadStagedManifest(Params, SC, "Manifest_NonUFSFiles.txt");
+
+						// write out the delta file data
+						WriteDeltaManifest(Params, SC, DeployedUFSFiles, StagedUFSFiles, "Manifest_DeltaUFSFiles.txt");
+						WriteDeltaManifest(Params, SC, DeployedNonUFSFiles, StagedNonUFSFiles, "Manifest_DeltaNonUFSFiles.txt");
+					}
 				}
 			}
 

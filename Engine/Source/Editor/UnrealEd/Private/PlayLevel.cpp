@@ -1210,7 +1210,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 
 static void HandleOutputReceived(const FString& InMessage)
 {
-	UE_LOG(LogPlayLevel, Display, TEXT("%s"), *InMessage);
+	UE_LOG(LogPlayLevel, Log, TEXT("%s"), *InMessage);
 }
 
 static void HandleCancelButtonClicked(ILauncherWorkerPtr LauncherWorker)
@@ -1403,8 +1403,10 @@ void UEditorEngine::PlayUsingLauncher()
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
 		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
 		LauncherProfile->SetCookMode(CanCookByTheBookInEditor() ? ELauncherProfileCookModes::ByTheBookInEditor : ELauncherProfileCookModes::ByTheBook);
+		LauncherProfile->SetIncrementalCooking(true);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
+		LauncherProfile->SetIncrementalDeploying(true);
 		LauncherProfile->SetEditorExe(FUnrealEdMisc::Get().GetExecutableForCommandlets());
 
 		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));

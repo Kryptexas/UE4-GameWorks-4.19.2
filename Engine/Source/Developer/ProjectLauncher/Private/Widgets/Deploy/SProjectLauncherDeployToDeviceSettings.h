@@ -24,9 +24,15 @@ public:
 	 */
 	void Construct(	const FArguments& InArgs, const FProjectLauncherModelRef& InModel, EVisibility InShowAdvanced = EVisibility::Visible );
 
-private:
+protected:
 
 private:
+
+	/** Handles check state changes of the 'Incremental' check box. */
+	void HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState );
+
+	/** Handles determining the checked state of the 'Incremental' check box. */
+	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
 	// Holds a pointer to the data model.
 	FProjectLauncherModelPtr Model;

@@ -18,6 +18,8 @@ static class IOSEnvVarNames
 
 public class IOSPlatform : Platform
 {
+	bool bCreatedIPA = false;
+
 	public IOSPlatform()
 		:base(UnrealTargetPlatform.IOS)
 	{
@@ -152,27 +154,52 @@ public class IOSPlatform : Platform
 			InternalUtils.SafeDeleteDirectory(AppDirectory + "/cookeddata", true);
 			InternalUtils.SafeDeleteFile(AppDirectory + "/ue4commandline.txt", true);
 
-			// copy the Staged files to the AppDirectory
-			string[] StagedFiles = Directory.GetFiles(SC.StageDirectory, "*", SearchOption.AllDirectories);
-			foreach (string Filename in StagedFiles)
+			if (!Params.IterativeDeploy)
 			{
-				string DestFilename = Filename.Replace(SC.StageDirectory, AppDirectory);
-				Directory.CreateDirectory(Path.GetDirectoryName(DestFilename));
-				InternalUtils.SafeCopyFile(Filename, DestFilename, true);
+				// copy the Staged files to the AppDirectory
+				string[] StagedFiles = Directory.GetFiles (SC.StageDirectory, "*", SearchOption.AllDirectories);
+				foreach (string Filename in StagedFiles)
+				{
+					string DestFilename = Filename.Replace (SC.StageDirectory, AppDirectory);
+					Directory.CreateDirectory (Path.GetDirectoryName (DestFilename));
+					InternalUtils.SafeCopyFile (Filename, DestFilename, true);
+				}
+			}
+			else
+			{
+				// copy just the root stage directory files
+				string[] StagedFiles = Directory.GetFiles (SC.StageDirectory, "*", SearchOption.TopDirectoryOnly);
+				foreach (string Filename in StagedFiles)
+				{
+					string DestFilename = Filename.Replace (SC.StageDirectory, AppDirectory);
+					Directory.CreateDirectory (Path.GetDirectoryName (DestFilename));
+					InternalUtils.SafeCopyFile (Filename, DestFilename, true);
+				}
 			}
 		}
 
+		if (SC.StageTargetConfigurations.Count != 1)
+		{
+			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+		}
+		bCreatedIPA = false;
+		bool bNeedsIPA = false;
+		if (Params.IterativeDeploy)
+		{
+			// check to determine if we need to update the IPA
+			if (File.Exists(SC.StageDirectory + "/Manifest_DeltaNonUFSFiles.txt"))
+			{
+				string NonUFSFiles = File.ReadAllText(SC.StageDirectory + "/Manifest_DeltaNonUFSFiles.txt");
+				string[] Lines = NonUFSFiles.Split('\n');
+				bNeedsIPA = Lines.Length > 0 && !string.IsNullOrWhiteSpace(Lines[0]);
+			}
+		}
 
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
-			if (SC.StageTargetConfigurations.Count != 1) 
-			{
-				throw new AutomationException ("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
-			}
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
-
-			var ProjectStub = Path.GetFullPath (Params.ProjectGameExeFilename) + "/" + Params.ShortProjectName + Path.GetExtension(Params.ProjectGameExeFilename);
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
+			var ProjectStub = Path.GetFullPath(Params.ProjectGameExeFilename) + "/" + Params.ShortProjectName + Path.GetExtension(Params.ProjectGameExeFilename);
 
 			// package a .ipa from the now staged directory
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
@@ -184,85 +211,99 @@ public class IOSPlatform : Platform
 
 			bool cookonthefly = Params.CookOnTheFly || Params.SkipCookOnTheFly;
 
-			// delete the .ipa to make sure it was made
-			DeleteFile(ProjectIPA);
-
-			if (RemoteToolChain.bUseRPCUtil)
+			// if we are incremental check to see if we need to even update the IPA
+			if (!Params.IterativeDeploy || !File.Exists(ProjectIPA) || bNeedsIPA)
 			{
-				string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
-				IPPArguments += " -config " + TargetConfiguration.ToString();
+				// delete the .ipa to make sure it was made
+				DeleteFile(ProjectIPA);
 
-				if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
+				bCreatedIPA = true;
+
+				if (RemoteToolChain.bUseRPCUtil)
 				{
-					IPPArguments += " -compress=best";
-				}
+					string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
+					IPPArguments += " -config " + TargetConfiguration.ToString();
 
-				// Determine if we should sign
-				bool bNeedToSign = GetCodeSignDesirability(Params);
-
-				if (!String.IsNullOrEmpty(Params.BundleName))
-				{
-					// Have to sign when a bundle name is specified
-					bNeedToSign = true;
-					IPPArguments += " -bundlename " + Params.BundleName;
-				}
-
-				if (bNeedToSign)
-				{
-					IPPArguments += " -sign";
-					if (Params.Distribution)
+					if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
 					{
-						IPPArguments += " -distribution";
+						IPPArguments += " -compress=best";
 					}
+
+					// Determine if we should sign
+					bool bNeedToSign = GetCodeSignDesirability(Params);
+
+					if (!String.IsNullOrEmpty(Params.BundleName))
+					{
+						// Have to sign when a bundle name is specified
+						bNeedToSign = true;
+						IPPArguments += " -bundlename " + Params.BundleName;
+					}
+
+					if (bNeedToSign)
+					{
+						IPPArguments += " -sign";
+						if (Params.Distribution)
+						{
+							IPPArguments += " -distribution";
+						}
+					}
+
+					IPPArguments += (cookonthefly ? " -cookonthefly" : "");
+					IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
+					IPPArguments += " -project \"" + Params.RawProjectPath + "\"";
+					if (Params.IterativeDeploy)
+					{
+						IPPArguments += " -iterate";
+					}
+
+					RunAndLog(CmdEnv, IPPExe, IPPArguments);
 				}
-
-				IPPArguments += (cookonthefly ? " -cookonthefly" : "");
-				IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
-				IPPArguments += " -project \"" + Params.RawProjectPath + "\"";
-
-				RunAndLog(CmdEnv, IPPExe, IPPArguments);
-			}
-			else
-			{
-				List<string> IPPArguments = new List<string>();
-				IPPArguments.Add("RepackageFromStage");
-				IPPArguments.Add(Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
-				IPPArguments.Add("-config");
-				IPPArguments.Add(TargetConfiguration.ToString());
-
-				if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
+				else
 				{
-					IPPArguments.Add("-compress=best");
-				}
+					List<string> IPPArguments = new List<string>();
+					IPPArguments.Add("RepackageFromStage");
+					IPPArguments.Add(Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
+					IPPArguments.Add("-config");
+					IPPArguments.Add(TargetConfiguration.ToString());
 
-				// Determine if we should sign
-				bool bNeedToSign = GetCodeSignDesirability(Params);
+					if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
+					{
+						IPPArguments.Add("-compress=best");
+					}
 
-				if (!String.IsNullOrEmpty(Params.BundleName))
-				{
-					// Have to sign when a bundle name is specified
-					bNeedToSign = true;
-					IPPArguments.Add("-bundlename");
-					IPPArguments.Add(Params.BundleName);
-				}
+					// Determine if we should sign
+					bool bNeedToSign = GetCodeSignDesirability(Params);
 
-				if (bNeedToSign)
-				{
-					IPPArguments.Add("-sign");
-				}
+					if (!String.IsNullOrEmpty(Params.BundleName))
+					{
+						// Have to sign when a bundle name is specified
+						bNeedToSign = true;
+						IPPArguments.Add("-bundlename");
+						IPPArguments.Add(Params.BundleName);
+					}
 
-				if (cookonthefly)
-				{
-					IPPArguments.Add(" -cookonthefly");
-				}
-				IPPArguments.Add(" -stagedir");
-				IPPArguments.Add(CombinePaths(Params.BaseStageDirectory, "IOS"));
-				IPPArguments.Add(" -project");
-				IPPArguments.Add(Params.RawProjectPath);
+					if (bNeedToSign)
+					{
+						IPPArguments.Add("-sign");
+					}
 
-				if (RunIPP(IPPArguments.ToArray()) != 0)
-				{
-					throw new AutomationException("IPP Failed");
+					if (cookonthefly)
+					{
+						IPPArguments.Add(" -cookonthefly");
+					}
+					IPPArguments.Add(" -stagedir");
+					IPPArguments.Add(CombinePaths(Params.BaseStageDirectory, "IOS"));
+					IPPArguments.Add(" -project");
+					IPPArguments.Add(Params.RawProjectPath);
+					if (Params.IterativeDeploy)
+					{
+						IPPArguments.Add(" -iterate");
+					}
+
+					if (RunIPP(IPPArguments.ToArray()) != 0)
+					{
+						throw new AutomationException("IPP Failed");
+					}
 				}
 			}
 
@@ -290,11 +331,19 @@ public class IOSPlatform : Platform
 		}
 		else
 		{
-			// code sign the app
-			CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution);
+			// create the ipa
+			string IPAName = CombinePaths(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + (SC.StageTargetConfigurations[0] != UnrealTargetConfiguration.Development ? ("-IOS-" + SC.StageTargetConfigurations[0].ToString()) : "") + ".ipa");
 
-			// now generate the ipa
-			PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.StageTargetConfigurations[0], Params.Distribution);
+			if (!Params.IterativeDeploy || !File.Exists(IPAName) || bNeedsIPA)
+			{
+				bCreatedIPA = true;
+
+				// code sign the app
+				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution);
+
+				// now generate the ipa
+				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.StageTargetConfigurations[0], Params.Distribution);
+			}
 		}
 
 		PrintRunTime();
@@ -667,7 +716,7 @@ public class IOSPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+		//		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			// copy the icons/launch screens from the engine
 			{
@@ -750,41 +799,112 @@ public class IOSPlatform : Platform
 		SC.ArchiveFiles(Path.GetDirectoryName(ProjectIPA), Path.GetFileName(ProjectIPA));
 	}
 
+	public override bool RetrieveDeployedManifests(ProjectParams Params, DeploymentContext SC, out List<string> UFSManifests, out List<string> NonUFSManifests)
+	{
+		bool Result = true;
+		UFSManifests = new List<string>();
+		NonUFSManifests = new List<string>();
+		var DeployServer = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/DeploymentServer.exe");
+		try
+		{
+			var TargetConfiguration = SC.StageTargetConfigurations[0];
+			string BundleIdentifier = "";
+			if (File.Exists(Params.BaseStageDirectory + "/IOS/Info.plist"))
+			{
+				string Contents = File.ReadAllText(SC.StageDirectory + "/Info.plist");
+				int Pos = Contents.IndexOf("CFBundleIdentifier");
+				Pos = Contents.IndexOf("<string>", Pos) + 8;
+				int EndPos = Contents.IndexOf("</string>", Pos);
+				BundleIdentifier = Contents.Substring(Pos, EndPos - Pos);
+			}
+			RunAndLog(CmdEnv, DeployServer, "Backup -file \"" + CombinePaths(Params.BaseStageDirectory, "IOS", "Manifest_UFSFiles.txt") + "\" -file \"" + CombinePaths(Params.BaseStageDirectory, "IOS", "Manifest_NonUFSFiles.txt") + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + " -bundle " + BundleIdentifier);
+
+			string[] ManifestFiles = Directory.GetFiles(CombinePaths(Params.BaseStageDirectory, "IOS"), "*_Manifest_UFS*.txt");
+			UFSManifests.AddRange(ManifestFiles);
+
+			ManifestFiles = Directory.GetFiles(CombinePaths(Params.BaseStageDirectory, "IOS"), "*_Manifest_NonUFS*.txt");
+			NonUFSManifests.AddRange(ManifestFiles);
+		}
+		catch (System.Exception)
+		{
+			// delete any files that did get copied
+			string[] Manifests = Directory.GetFiles(CombinePaths(Params.BaseStageDirectory, "IOS"), "*_Manifest_*.txt");
+			foreach (string Manifest in Manifests)
+			{
+				File.Delete(Manifest);
+			}
+			Result = false;
+		}
+
+		return Result;
+	}
+
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
     {
-		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+		if (SC.StageTargetConfigurations.Count != 1)
 		{
-			if (SC.StageTargetConfigurations.Count != 1)
-			{
-				throw new AutomationException ("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
-			}
-			if (Params.Distribution)
-			{
-				throw new AutomationException("iOS cannot deploy a package made for distribution.");
-			}
-			var TargetConfiguration = SC.StageTargetConfigurations[0];
-			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
-			var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
-
-			// verify the .ipa exists
-			if (!FileExists(StagedIPA))
-			{
-				StagedIPA = ProjectIPA;
-				if(!FileExists(StagedIPA))
-				{
-					throw new AutomationException("DEPLOY FAILED - {0} was not found", ProjectIPA);
-				}
-			}
-
-			// Add a commandline for this deploy, if the config allows it.
-			string AdditionalCommandline = (Params.FileServer || Params.CookOnTheFly) ? "" : (" -additionalcommandline " + "\"" + Params.RunCommandline + "\"");
-
-			// deploy the .ipa
-			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
-
-			// check for it in the stage directory
-			RunAndLog(CmdEnv, IPPExe, "Deploy \"" + Path.GetFullPath(StagedIPA) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + AdditionalCommandline);
+			throw new AutomationException ("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
+		if (Params.Distribution)
+		{
+			throw new AutomationException("iOS cannot deploy a package made for distribution.");
+		}
+		var TargetConfiguration = SC.StageTargetConfigurations[0];
+		var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
+		var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
+
+		// verify the .ipa exists
+		if (!FileExists(StagedIPA))
+		{
+			StagedIPA = ProjectIPA;
+			if(!FileExists(StagedIPA))
+			{
+				throw new AutomationException("DEPLOY FAILED - {0} was not found", ProjectIPA);
+			}
+		}
+
+		// if iterative deploy, determine the file delta
+		string BundleIdentifier = "";
+		bool bNeedsIPA = true;
+		if (Params.IterativeDeploy)
+		{
+			if (File.Exists(Params.BaseStageDirectory + "/IOS/Info.plist"))
+			{
+				string Contents = File.ReadAllText(SC.StageDirectory + "/Info.plist");
+				int Pos = Contents.IndexOf("CFBundleIdentifier");
+				Pos = Contents.IndexOf("<string>", Pos) + 8;
+				int EndPos = Contents.IndexOf("</string>", Pos);
+				BundleIdentifier = Contents.Substring(Pos, EndPos - Pos);
+			}
+
+			// check to determine if we need to update the IPA
+			if (File.Exists(SC.StageDirectory + "/Manifest_DeltaNonUFSFiles.txt"))
+			{
+				string NonUFSFiles = File.ReadAllText(SC.StageDirectory + "/Manifest_DeltaNonUFSFiles.txt");
+				string[] Lines = NonUFSFiles.Split('\n');
+				bNeedsIPA = Lines.Length > 0 && !string.IsNullOrWhiteSpace(Lines[0]);
+			}
+		}
+
+		// Add a commandline for this deploy, if the config allows it.
+		string AdditionalCommandline = (Params.FileServer || Params.CookOnTheFly) ? "" : (" -additionalcommandline " + "\"" + Params.RunCommandline + "\"");
+
+		// deploy the .ipa
+		var DeployServer = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/DeploymentServer.exe");
+
+		// check for it in the stage directory
+		string CurrentDir = Directory.GetCurrentDirectory();
+		Directory.SetCurrentDirectory(CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/"));
+		if (!Params.IterativeDeploy || bCreatedIPA || bNeedsIPA)
+		{
+			RunAndLog(CmdEnv, DeployServer, "Install -ipa \"" + Path.GetFullPath(StagedIPA) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + AdditionalCommandline);
+		}
+		if (Params.IterativeDeploy)
+		{
+			// push over the changed files
+			RunAndLog(CmdEnv, DeployServer, "Deploy -manifest \"" + CombinePaths(Params.BaseStageDirectory, "IOS", "Manifest_DeltaUFSFiles.txt") + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + AdditionalCommandline + " -bundle " + BundleIdentifier);
+		}
+		Directory.SetCurrentDirectory (CurrentDir);
         PrintRunTime();
     }
 
@@ -852,7 +972,7 @@ public class IOSPlatform : Platform
 		}
 		else
 		{
-			// get the CFBundleIdentifier and modify the command line
+/*			// get the CFBundleIdentifier and modify the command line
 			int Pos = ClientCmdLine.IndexOf("-Exe=") + 6;
 			int EndPos = ClientCmdLine.IndexOf("-Targetplatform=") - 2;
 			string Exe = ClientCmdLine.Substring(Pos, EndPos - Pos);
@@ -876,7 +996,8 @@ public class IOSPlatform : Platform
 				}
 			}
 
-			return base.RunClient(ClientRunFlags, ClientApp, ClientCmdLine, Params);
+			return base.RunClient(ClientRunFlags, ClientApp, ClientCmdLine, Params);*/
+			return null;
 		}
 	}
 
@@ -890,13 +1011,22 @@ public class IOSPlatform : Platform
 		get { return true; }
 	}
 
+	public override List<string> GetFilesForCRCCheck()
+	{
+		List<string> FileList = base.GetFilesForCRCCheck();
+		FileList.Add("Info.plist");
+		return FileList;
+	}
+
 	#region Hooks
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
-			Agenda.DotNetProjects.Add (@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj");
+			Agenda.DotNetProjects.Add(@"Engine\Source\Programs\IOS\MobileDeviceInterface\MobileDeviceInterface.csproj");
+			Agenda.DotNetProjects.Add(@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj");
+			Agenda.DotNetProjects.Add(@"Engine\Source\Programs\IOS\DeploymentServer\DeploymentServer.csproj");
 		}
 	}
 

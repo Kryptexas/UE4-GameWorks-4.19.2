@@ -661,10 +661,16 @@ FString FIOSPlatformFile::ConvertToIOSPath(const FString& Filename, bool bForWri
 		FString Value;
 		// Cache this value as the command line doesn't change...
 		static bool bHasHostIP = FParse::Value(FCommandLine::Get(), TEXT("filehostip"), Value) || FParse::Value(FCommandLine::Get(), TEXT("streaminghostip"), Value);
+		static bool bIsIterative = FParse::Value(FCommandLine::Get(), TEXT("iterative"), Value);
 		if (bHasHostIP)
 		{
 			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
 			return ReadPathBase + Result;
+		}
+		else if (bIsIterative)
+		{
+			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+			return ReadPathBase + Result.ToLower();
 		}
 		else
 		{

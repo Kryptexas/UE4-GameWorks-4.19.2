@@ -19,6 +19,46 @@ namespace Manzana
     public class CFNumber {  }
     public class CFBoolean { }
 
+	public enum CFStringBuiltInEncodings
+	{
+		kCFStringEncodingMacRoman = 0x00000000,
+		kCFStringEncodingWindowsLatin1 = 0x00000500,
+		kCFStringEncodingISOLatin1 = 0x00000201,
+		kCFStringEncodingNextStepLatin = 0x00000B01,
+		kCFStringEncodingASCII = 0x00000600,
+		kCFStringEncodingUnicode = 0x00000100,
+		kCFStringEncodingUTF8 = 0x08000100,
+		kCFStringEncodingNonLossyASCII = 0x00000BFF
+	};
+
+	public enum CFURLPathStyle
+	{
+		kCFURLPOSIXPathStyle = 0,
+		kCFURLHFSPathStyle = 1,
+		kCFURLWindowsPathStyle = 2
+	};
+
+	public enum CFNumberType
+	{
+		kCFNumberSInt8Type = 1,
+		kCFNumberSInt16Type = 2,
+		kCFNumberSInt32Type = 3,
+		kCFNumberSInt64Type = 4,
+		kCFNumberFloat32Type = 5,
+		kCFNumberFloat64Type = 6,
+		kCFNumberCharType = 7,
+		kCFNumberShortType = 8,
+		kCFNumberIntType = 9,
+		kCFNumberLongType = 10,
+		kCFNumberLongLongType = 11,
+		kCFNumberFloatType = 12,
+		kCFNumberDoubleType = 13,
+		kCFNumberCFIndexType = 14,
+		kCFNumberNSIntegerType = 15,
+		kCFNumberCGFloatType = 16,
+		kCFNumberMaxType = 16
+	};
+
     internal class RequiredWinAPI
     {
         [DllImport("kernel32", CharSet = CharSet.Auto, SetLastError = true)]
@@ -30,6 +70,412 @@ namespace Manzana
         [DllImport("kernel32", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr GetModuleHandle(string lpModuleName);
     }
+
+	internal interface CoreFoundationImpl
+	{
+		TypedPtr<CFString> __CFStringMakeConstantString(byte[] s);
+		TypedPtr<CFURL> CFURLCreateWithFileSystemPath(IntPtr Allocator, TypedPtr<CFString> FilePath, CFURLPathStyle PathStyle, int isDirectory);
+		Boolean CFStringGetCString(TypedPtr<CFString> theString, byte[] buffer, int bufferSize, CFStringBuiltInEncodings encoding);
+		TypedPtr<CFString> CFURLGetString(IntPtr anURL);
+		uint CFGetTypeID(IntPtr FromInstance);
+		uint CFStringGetTypeID();
+		uint CFNumberGetTypeID();
+		uint CFBooleanGetTypeID();
+		uint CFDictionaryGetTypeID();
+		int CFDictionaryGetCount (TypedPtr<CFDictionary> Dict);
+		IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, ref Int32 Value);
+		Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out float Value);
+		Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out double Value);
+		Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out int Value);
+		Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out uint Value);
+		Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out Int64 Value);
+		CFNumberType CFNumberGetType(TypedPtr<CFNumber> Number);
+		void CFPreferencesSetAppValue(IntPtr Key, IntPtr Value, IntPtr ApplicationID);
+		void CFDictionarySetValue(TypedPtr<CFDictionary> Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
+		void CFDictionaryGetKeysAndValues(TypedPtr<CFDictionary> Dict, /*const*/ IntPtr[] Keys, /*const*/ IntPtr[] Values);
+		TypedPtr<CFDictionary> CFDictionaryCreateMutable(
+			/* CFAllocatorRef */ IntPtr allocator,
+			/* CFIndex */ int capacity,
+			/* const CFDictionaryKeyCallBacks* */ IntPtr keyCallBacks,
+			/* const CFDictionaryValueCallBacks* */ IntPtr valueCallBacks
+		);
+	}
+
+	internal class CoreFoundationWin : CoreFoundationImpl
+	{
+
+		public TypedPtr<CFString> __CFStringMakeConstantString(byte[] s)
+		{
+			return CoreFoundation.__CFStringMakeConstantString(s);
+		}
+
+		public TypedPtr<CFURL> CFURLCreateWithFileSystemPath(IntPtr Allocator, TypedPtr<CFString> FilePath, CFURLPathStyle PathStyle, int isDirectory)
+		{
+			return CoreFoundation.CFURLCreateWithFileSystemPath(Allocator, (IntPtr)FilePath, PathStyle, isDirectory);
+		}
+
+		public Boolean CFStringGetCString(TypedPtr<CFString> theString, byte[] buffer, int bufferSize, CFStringBuiltInEncodings encoding)
+		{
+			return CoreFoundation.CFStringGetCString((IntPtr)theString, buffer, bufferSize, encoding);
+		}
+
+		public TypedPtr<CFString> CFURLGetString(IntPtr anURL)
+		{
+			return CoreFoundation.CFURLGetString(anURL);
+		}
+
+		public uint CFGetTypeID(IntPtr FromInstance)
+		{
+			return CoreFoundation.CFGetTypeID(FromInstance);
+		}
+
+		public uint CFStringGetTypeID()
+		{
+			return CoreFoundation.CFStringGetTypeID();
+		}
+
+		public uint CFNumberGetTypeID()
+		{
+			return CoreFoundation.CFNumberGetTypeID();
+		}
+
+		public uint CFBooleanGetTypeID()
+		{
+			return CoreFoundation.CFBooleanGetTypeID();
+		}
+
+		public uint CFDictionaryGetTypeID()
+		{
+			return CoreFoundation.CFDictionaryGetTypeID();
+		}
+
+		public int CFDictionaryGetCount(TypedPtr<CFDictionary> Dict)
+		{
+			return CoreFoundation.CFDictionaryGetCount ((IntPtr)Dict);
+		}
+
+		public IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, ref Int32 Value)
+		{
+			return CoreFoundation.CFNumberCreate(allocator, theType, ref Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out float Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out double Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out int Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out uint Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out Int64 Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public CFNumberType CFNumberGetType(TypedPtr<CFNumber> Number)
+		{
+			return CoreFoundation.CFNumberGetType((IntPtr)Number);
+		}
+
+		public void CFPreferencesSetAppValue(IntPtr Key, IntPtr Value, IntPtr ApplicationID)
+		{
+			CoreFoundation.CFPreferencesSetAppValue(Key, Value, ApplicationID);
+		}
+
+		public void CFDictionarySetValue(TypedPtr<CFDictionary> Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value)
+		{
+			CoreFoundation.CFDictionarySetValue((IntPtr)Dict, Key, Value);
+		}
+
+		public void CFDictionaryGetKeysAndValues(TypedPtr<CFDictionary> Dict, /*const*/ IntPtr[] Keys, /*const*/ IntPtr[] Values)
+		{
+			CoreFoundation.CFDictionaryGetKeysAndValues((IntPtr)Dict, Keys, Values);
+		}
+
+		public TypedPtr<CFDictionary> CFDictionaryCreateMutable(
+			/* CFAllocatorRef */ IntPtr allocator,
+			/* CFIndex */ int capacity,
+			/* const CFDictionaryKeyCallBacks* */ IntPtr keyCallBacks,
+			/* const CFDictionaryValueCallBacks* */ IntPtr valueCallBacks
+		)
+		{
+			return CoreFoundation.CFDictionaryCreateMutable(allocator, capacity, keyCallBacks, valueCallBacks);
+		}
+
+		private class CoreFoundation
+		{
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr __CFStringMakeConstantString(byte[] s);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr/*CFURL*/ CFURLCreateWithFileSystemPath(IntPtr Allocator, IntPtr/*CFString*/ FilePath, CFURLPathStyle PathStyle, int isDirectory);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr/*CFString*/ CFURLGetString(IntPtr anURL);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFGetTypeID(IntPtr FromInstance);
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFStringGetTypeID();
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFNumberGetTypeID();
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFBooleanGetTypeID();
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFDictionaryGetTypeID();
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFDictionaryAddValue(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFDictionarySetValue(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFDictionaryGetKeysAndValues(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr[] Keys, /*const*/ IntPtr[] Values);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr/*CFDictionary*/ CFDictionaryCreateMutable(
+				/* CFAllocatorRef */ IntPtr allocator,
+				/* CFIndex */ int capacity,
+				/* const CFDictionaryKeyCallBacks* */ IntPtr keyCallBacks,
+				/* const CFDictionaryValueCallBacks* */ IntPtr valueCallBacks
+			);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern int CFDictionaryGetCount(IntPtr/*CFDictionary*/ Dict);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFStringGetCString(IntPtr/*CFString*/ theString, byte[] buffer, int bufferSize, CFStringBuiltInEncodings encoding);
+
+			//[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			//public extern static IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, IntPtr valuePtr);
+
+			//@TODO: make this more general
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public extern static IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, ref Int32 Value);
+
+			[DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out float Value);
+
+			[DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out double Value);
+
+			[DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out int Value);
+
+			[DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out uint Value);
+
+			[DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out Int64 Value);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public extern static CFNumberType CFNumberGetType(IntPtr/*CFNumber*/ Number);
+
+			[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFPreferencesSetAppValue(IntPtr Key, IntPtr Value, IntPtr ApplicationID);
+		}
+	}
+
+	internal class CoreFoundationOSX : CoreFoundationImpl
+	{
+
+		public TypedPtr<CFString> __CFStringMakeConstantString(byte[] s)
+		{
+			return CoreFoundation.__CFStringMakeConstantString(s);
+		}
+
+		public TypedPtr<CFURL> CFURLCreateWithFileSystemPath(IntPtr Allocator, TypedPtr<CFString> FilePath, CFURLPathStyle PathStyle, int isDirectory)
+		{
+			return CoreFoundation.CFURLCreateWithFileSystemPath(Allocator, (IntPtr)FilePath, PathStyle, isDirectory);
+		}
+
+		public Boolean CFStringGetCString(TypedPtr<CFString> theString, byte[] buffer, int bufferSize, CFStringBuiltInEncodings encoding)
+		{
+			return CoreFoundation.CFStringGetCString((IntPtr)theString, buffer, bufferSize, encoding);
+		}
+
+		public TypedPtr<CFString> CFURLGetString(IntPtr anURL)
+		{
+			return CoreFoundation.CFURLGetString(anURL);
+		}
+
+		public uint CFGetTypeID(IntPtr FromInstance)
+		{
+			return CoreFoundation.CFGetTypeID(FromInstance);
+		}
+
+		public uint CFStringGetTypeID()
+		{
+			return CoreFoundation.CFStringGetTypeID();
+		}
+
+		public uint CFNumberGetTypeID()
+		{
+			return CoreFoundation.CFNumberGetTypeID();
+		}
+
+		public uint CFBooleanGetTypeID()
+		{
+			return CoreFoundation.CFBooleanGetTypeID();
+		}
+
+		public uint CFDictionaryGetTypeID()
+		{
+			return CoreFoundation.CFDictionaryGetTypeID();
+		}
+
+		public int CFDictionaryGetCount(TypedPtr<CFDictionary> Dict)
+		{
+			return CoreFoundation.CFDictionaryGetCount ((IntPtr)Dict);
+		}
+
+		public IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, ref Int32 Value)
+		{
+			return CoreFoundation.CFNumberCreate(allocator, theType, ref Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out float Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out double Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out int Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out uint Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public Boolean CFNumberGetValue(TypedPtr<CFNumber> Number, CFNumberType TheType, out Int64 Value)
+		{
+			return CoreFoundation.CFNumberGetValue((IntPtr)Number, TheType, out Value);
+		}
+
+		public CFNumberType CFNumberGetType(TypedPtr<CFNumber> Number)
+		{
+			return CoreFoundation.CFNumberGetType((IntPtr)Number);
+		}
+
+		public void CFPreferencesSetAppValue(IntPtr Key, IntPtr Value, IntPtr ApplicationID)
+		{
+			CoreFoundation.CFPreferencesSetAppValue(Key, Value, ApplicationID);
+		}
+
+		public void CFDictionarySetValue(TypedPtr<CFDictionary> Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value)
+		{
+			CoreFoundation.CFDictionarySetValue((IntPtr)Dict, Key, Value);
+		}
+
+		public void CFDictionaryGetKeysAndValues(TypedPtr<CFDictionary> Dict, /*const*/ IntPtr[] Keys, /*const*/ IntPtr[] Values)
+		{
+			CoreFoundation.CFDictionaryGetKeysAndValues((IntPtr)Dict, Keys, Values);
+		}
+
+		public TypedPtr<CFDictionary> CFDictionaryCreateMutable(
+			/* CFAllocatorRef */ IntPtr allocator,
+			/* CFIndex */ int capacity,
+			/* const CFDictionaryKeyCallBacks* */ IntPtr keyCallBacks,
+			/* const CFDictionaryValueCallBacks* */ IntPtr valueCallBacks
+		)
+		{
+			return CoreFoundation.CFDictionaryCreateMutable(allocator, capacity, keyCallBacks, valueCallBacks);
+		}
+
+		private class CoreFoundation
+		{
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr __CFStringMakeConstantString(byte[] s);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr/*CFURL*/ CFURLCreateWithFileSystemPath(IntPtr Allocator, IntPtr/*CFString*/ FilePath, CFURLPathStyle PathStyle, int isDirectory);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr/*CFString*/ CFURLGetString(IntPtr anURL);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFGetTypeID(IntPtr FromInstance);
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFStringGetTypeID();
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFNumberGetTypeID();
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFBooleanGetTypeID();
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern uint CFDictionaryGetTypeID();
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFDictionaryAddValue(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFDictionarySetValue(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFDictionaryGetKeysAndValues(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr[] Keys, /*const*/ IntPtr[] Values);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern IntPtr/*CFDictionary*/ CFDictionaryCreateMutable(
+				/* CFAllocatorRef */ IntPtr allocator,
+				/* CFIndex */ int capacity,
+				/* const CFDictionaryKeyCallBacks* */ IntPtr keyCallBacks,
+				/* const CFDictionaryValueCallBacks* */ IntPtr valueCallBacks
+			);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern int CFDictionaryGetCount(IntPtr/*CFDictionary*/ Dict);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFStringGetCString(IntPtr/*CFString*/ theString, byte[] buffer, int bufferSize, CFStringBuiltInEncodings encoding);
+
+			//[DllImport("CoreFoundation.dylib", CallingConvention = CallingConvention.Cdecl)]
+			//public extern static IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, IntPtr valuePtr);
+
+			//@TODO: make this more general
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public extern static IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, ref Int32 Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out float Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out double Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out int Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out uint Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
+			public extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out Int64 Value);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public extern static CFNumberType CFNumberGetType(IntPtr/*CFNumber*/ Number);
+
+			[DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", CallingConvention = CallingConvention.Cdecl)]
+			public static extern void CFPreferencesSetAppValue(IntPtr Key, IntPtr Value, IntPtr ApplicationID);
+		}
+	}
 
     /// <summary>
     /// Declarations for various methods in Apple's CoreFoundation.dll, needed for interop with the MobileDevice DLL
@@ -43,138 +489,28 @@ namespace Manzana
         public static TypedPtr<CFBoolean> kCFBooleanTrue;
         public static TypedPtr<CFBoolean> kCFBooleanFalse;
 
+		public static CoreFoundationImpl CoreImpl = null;
+
         static void InitializeCoreFoundation()
         {
-            IntPtr CoreFoundation = RequiredWinAPI.GetModuleHandle("CoreFoundation.dll");
+			if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix)
+			{
+				CoreImpl = new CoreFoundationOSX();
+			}
+			else
+			{
+				CoreImpl = new CoreFoundationWin();
 
-            kCFAllocatorDefault = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFAllocatorDefault");
-            kCFTypeDictionaryKeyCallBacks = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFTypeDictionaryKeyCallBacks");
-            kCFTypeDictionaryValueCallBacks = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFTypeDictionaryValueCallBacks");
+				IntPtr CoreFoundation = RequiredWinAPI.GetModuleHandle("CoreFoundation.dll");
 
-            kCFBooleanTrue = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFBooleanTrue");
-            kCFBooleanFalse = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFBooleanFalse");
+				kCFAllocatorDefault = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFAllocatorDefault");
+				kCFTypeDictionaryKeyCallBacks = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFTypeDictionaryKeyCallBacks");
+				kCFTypeDictionaryValueCallBacks = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFTypeDictionaryValueCallBacks");
+
+				kCFBooleanTrue = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFBooleanTrue");
+				kCFBooleanFalse = RequiredWinAPI.GetProcAddress(CoreFoundation, "kCFBooleanFalse");
+			}
         }
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr __CFStringMakeConstantString(byte[] s);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr/*CFURL*/ CFURLCreateWithFileSystemPath(IntPtr Allocator, IntPtr/*CFString*/ FilePath, CFURLPathStyle PathStyle, int isDirectory);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr/*CFString*/ CFURLGetString(IntPtr anURL);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint CFGetTypeID(IntPtr FromInstance);
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint CFStringGetTypeID();
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint CFNumberGetTypeID();
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint CFBooleanGetTypeID();
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint CFDictionaryGetTypeID();
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void CFDictionaryAddValue(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void CFDictionarySetValue(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr Key, /*const*/ IntPtr Value);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void CFDictionaryGetKeysAndValues(IntPtr/*CFDictionary*/ Dict, /*const*/ IntPtr[] Keys, /*const*/ IntPtr[] Values);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr/*CFDictionary*/ CFDictionaryCreateMutable(
-            /* CFAllocatorRef */ IntPtr allocator,
-            /* CFIndex */ int capacity,
-            /* const CFDictionaryKeyCallBacks* */ IntPtr keyCallBacks,
-            /* const CFDictionaryValueCallBacks* */ IntPtr valueCallBacks
-        );
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int CFDictionaryGetCount(IntPtr/*CFDictionary*/ Dict);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private extern static Boolean CFStringGetCString(IntPtr/*CFString*/ theString, byte[] buffer, int bufferSize, CFStringBuiltInEncodings encoding);
-
-        //[DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        //public extern static IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, IntPtr valuePtr);
-
-        //@TODO: make this more general
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private extern static IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, ref Int32 Value);
-
-        [DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
-        private extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out float Value);
-
-        [DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
-        private extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out double Value);
-
-        [DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
-        private extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out int Value);
-
-        [DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
-        private extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out uint Value);
-
-        [DllImport("CoreFoundation.dll", EntryPoint = "CFNumberGetValue", CallingConvention = CallingConvention.Cdecl)]
-        private extern static Boolean CFNumberGetValue(IntPtr/*CFNumber*/ Number, CFNumberType TheType, out Int64 Value);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        private extern static CFNumberType CFNumberGetType(IntPtr/*CFNumber*/ Number);
-
-        [DllImport("CoreFoundation.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void CFPreferencesSetAppValue(IntPtr Key, IntPtr Value, IntPtr ApplicationID);
-
-
-
-
-
-
-        public enum CFStringBuiltInEncodings
-        {
-            kCFStringEncodingMacRoman = 0x00000000,
-            kCFStringEncodingWindowsLatin1 = 0x00000500,
-            kCFStringEncodingISOLatin1 = 0x00000201,
-            kCFStringEncodingNextStepLatin = 0x00000B01,
-            kCFStringEncodingASCII = 0x00000600,
-            kCFStringEncodingUnicode = 0x00000100,
-            kCFStringEncodingUTF8 = 0x08000100,
-            kCFStringEncodingNonLossyASCII = 0x00000BFF
-        };
-
-        public enum CFURLPathStyle
-        {
-            kCFURLPOSIXPathStyle = 0,
-            kCFURLHFSPathStyle = 1,
-            kCFURLWindowsPathStyle = 2
-        };
-
-        public enum CFNumberType
-        {
-            kCFNumberSInt8Type = 1,
-            kCFNumberSInt16Type = 2,
-            kCFNumberSInt32Type = 3,
-            kCFNumberSInt64Type = 4,
-            kCFNumberFloat32Type = 5,
-            kCFNumberFloat64Type = 6,
-            kCFNumberCharType = 7,
-            kCFNumberShortType = 8,
-            kCFNumberIntType = 9,
-            kCFNumberLongType = 10,
-            kCFNumberLongLongType = 11,
-            kCFNumberFloatType = 12,
-            kCFNumberDoubleType = 13,
-            kCFNumberCFIndexType = 14,
-            kCFNumberNSIntegerType = 15,
-            kCFNumberCGFloatType = 16,
-            kCFNumberMaxType = 16
-        };
-
-
-
-
-
 
         private static byte[] StringToCString(string value)
         {
@@ -185,18 +521,18 @@ namespace Manzana
 
         public static TypedPtr<CFString> CFStringMakeConstantString(string s)
         {
-            return __CFStringMakeConstantString(StringToCString(s));
+            return CoreImpl.__CFStringMakeConstantString(StringToCString(s));
         }
 
         public static TypedPtr<CFURL> CFURLCreateWithFileSystemPath(IntPtr Allocator, TypedPtr<CFString> FilePath, CFURLPathStyle PathStyle, int isDirectory)
         {
-            return (TypedPtr<CFURL>)(CFURLCreateWithFileSystemPath(Allocator, FilePath.Handle, PathStyle, isDirectory));
+            return (TypedPtr<CFURL>)(CoreImpl.CFURLCreateWithFileSystemPath(Allocator, FilePath.Handle, PathStyle, isDirectory));
         }
 
         public static string CFStringGetCString(TypedPtr<CFString> InString)
         {
             byte[] bytes = new byte[2048];
-            CFStringGetCString(InString.Handle, bytes, 2048, CFStringBuiltInEncodings.kCFStringEncodingUTF8);
+            CoreImpl.CFStringGetCString(InString.Handle, bytes, 2048, CFStringBuiltInEncodings.kCFStringEncodingUTF8);
 
             int ValidLength = 0;
             foreach (byte b in bytes)
@@ -216,7 +552,7 @@ namespace Manzana
 
         public static string GetStringForUrl(TypedPtr<CFURL> Url)
         {
-            IntPtr cfString = CFURLGetString((IntPtr)Url);
+			TypedPtr<CFString> cfString = CoreImpl.CFURLGetString((IntPtr)Url);
             return CFStringGetCString((IntPtr)cfString);
         }
 
@@ -227,12 +563,12 @@ namespace Manzana
 
         public static TypedPtr<CFNumber> CFNumberCreate(Int32 Value)
         {
-            return CFNumberCreate(kCFAllocatorDefault, CFNumberType.kCFNumberSInt32Type, ref Value);
+			return CoreImpl.CFNumberCreate(kCFAllocatorDefault, CFNumberType.kCFNumberSInt32Type, ref Value);
         }
 
         public static TypedPtr<CFDictionary> CreateCFDictionaryHelper()
         {
-            return CFDictionaryCreateMutable(kCFAllocatorDefault, 0, kCFTypeDictionaryKeyCallBacks, kCFTypeDictionaryValueCallBacks);
+			return CoreImpl.CFDictionaryCreateMutable(kCFAllocatorDefault, 0, kCFTypeDictionaryKeyCallBacks, kCFTypeDictionaryValueCallBacks);
         }
 
         /// <summary>
@@ -248,21 +584,21 @@ namespace Manzana
             }
 
             // Convert based on the type of the source object
-            uint TypeID = CFGetTypeID(Source);
+			uint TypeID = CoreImpl.CFGetTypeID(Source);
 
-            if (TypeID == CFNumberGetTypeID())
+			if (TypeID == CoreImpl.CFNumberGetTypeID())
             {
                 return ConvertCFNumber(Source);
             }
-            else if (TypeID == CFStringGetTypeID())
+			else if (TypeID == CoreImpl.CFStringGetTypeID())
             {
                 return CFStringGetCString(Source);
             }
-            else if (TypeID == CFDictionaryGetTypeID())
+			else if (TypeID == CoreImpl.CFDictionaryGetTypeID())
             {
                 return ConvertCFDictionaryToDictionary(Source);
             }
-            else if (TypeID == CFBooleanGetTypeID())
+			else if (TypeID == CoreImpl.CFBooleanGetTypeID())
             {
                 return (Source == kCFBooleanTrue.Handle);
             }
@@ -275,7 +611,7 @@ namespace Manzana
         /// </summary>
         public static double ConvertCFNumber(TypedPtr<CFNumber> Number)
         {
-            CFNumberType TypeID = CFNumberGetType((IntPtr)Number);
+			CFNumberType TypeID = CoreImpl.CFNumberGetType((IntPtr)Number);
 
             switch (TypeID)
             {
@@ -283,7 +619,7 @@ namespace Manzana
                 case CFNumberType.kCFNumberFloatType:
                     {
                         float Result;
-                        CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberFloat32Type, out Result);
+						CoreImpl.CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberFloat32Type, out Result);
                         return Result;
                     }
 
@@ -292,7 +628,7 @@ namespace Manzana
                 case CFNumberType.kCFNumberCGFloatType:
                     {
                         double Result;
-                        CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberFloat64Type, out Result);
+						CoreImpl.CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberFloat64Type, out Result);
                         return Result;
                     }
 
@@ -306,7 +642,7 @@ namespace Manzana
                 case CFNumberType.kCFNumberCFIndexType:
                     {
                         int Result;
-                        CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberIntType, out Result);
+						CoreImpl.CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberIntType, out Result);
                         return Result;
                     }
 
@@ -315,7 +651,7 @@ namespace Manzana
                 case CFNumberType.kCFNumberNSIntegerType:
                     {
                         Int64 Result;
-                        CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberSInt64Type, out Result);
+						CoreImpl.CFNumberGetValue((IntPtr)Number, CFNumberType.kCFNumberSInt64Type, out Result);
                         return Result;
                     }
 
@@ -335,7 +671,7 @@ namespace Manzana
             IntPtr [] Keys = new IntPtr[NumPairs];
             IntPtr [] Values = new IntPtr[NumPairs];
 
-            CFDictionaryGetKeysAndValues((IntPtr)Dict, Keys, Values);
+			CoreImpl.CFDictionaryGetKeysAndValues((IntPtr)Dict, Keys, Values);
 
             // Convert each key and value to a managed type
             Dictionary<object, object> Result = new Dictionary<object, object>();
@@ -354,7 +690,7 @@ namespace Manzana
             return Result;
         }
 
-        public static Dictionary<string, object> ConvertCFDictionaryToDictionaryStringy(TypedPtr<CFDictionary> Dict)
+        public static Dictionary<string, object> ConvertCFDictionaryToDictionaryString(TypedPtr<CFDictionary> Dict)
         {
             Dictionary<string, object> Result = new Dictionary<string,object>();
             Dictionary<object, object> Temp = ConvertCFDictionaryToDictionary(Dict);
@@ -370,12 +706,12 @@ namespace Manzana
 
         public static int CFDictionaryGetCount(TypedPtr<CFDictionary> Dict)
         {
-            return CFDictionaryGetCount((IntPtr)Dict);
+			return CoreImpl.CFDictionaryGetCount(Dict);
         }
 
         public static void CFDictionaryAddHelper(TypedPtr<CFDictionary> InDict, string Key, string Value)
         {
-            CFDictionarySetValue((IntPtr)InDict, (IntPtr)CFStringMakeConstantString(Key), (IntPtr)CFStringMakeConstantString(Value));
+			CoreImpl.CFDictionarySetValue((IntPtr)InDict, (IntPtr)CFStringMakeConstantString(Key), (IntPtr)CFStringMakeConstantString(Value));
         }
     }
 }
