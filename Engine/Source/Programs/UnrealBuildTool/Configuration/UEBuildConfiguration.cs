@@ -28,7 +28,7 @@ namespace UnrealBuildTool
         public static bool bCompileICU;
 
 		/** Whether to build a stripped down version of the game specifically for dedicated server. */
-		[XmlConfig]
+		[Obsolete("bBuildDedicatedServer has been deprecated and will be removed in future release. Update your code to use TargetInfo.Type instead or your code will not compile.")]
 		public static bool bBuildDedicatedServer;
 
 		/** Whether to compile the editor or not. Only desktop platforms (Windows or Mac) will use this, other platforms force this to false */
@@ -202,7 +202,6 @@ namespace UnrealBuildTool
             bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
 			bCompileICU = true;
-			bBuildDedicatedServer = false;
 			bBuildEditor = true;
 			bBuildRequiresCookedData = false;
 			bBuildWithEditorOnlyData = true;

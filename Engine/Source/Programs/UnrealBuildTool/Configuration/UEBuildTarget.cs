@@ -2263,9 +2263,10 @@ namespace UnrealBuildTool
 		/** 
 		 * @return true if we are building for dedicated server, false otherwise.
 		 */
+		[Obsolete("IsBuildingDedicatedServer() has been deprecated and will be removed in future release. Update your code to use TargetInfo.Type instead or your code will not compile.")]
 		public bool IsBuildingDedicatedServer()
 		{
-			return UEBuildConfiguration.bBuildDedicatedServer;
+			return false;
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../Binaries/Win64/Core-Win64-Debug.lib") */

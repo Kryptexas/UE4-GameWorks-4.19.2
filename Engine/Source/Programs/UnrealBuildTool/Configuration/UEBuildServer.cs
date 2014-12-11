@@ -76,9 +76,6 @@ namespace UnrealBuildTool
 			ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 			)
 		{
-			// Dedicated server
-			UEBuildConfiguration.bBuildDedicatedServer = true;
-
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
 			// Do not include the editor

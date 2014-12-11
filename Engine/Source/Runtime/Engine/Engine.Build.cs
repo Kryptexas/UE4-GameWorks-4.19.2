@@ -171,7 +171,7 @@ public class Engine : ModuleRules
 			}
 		);
 
-		if (!UEBuildConfiguration.bBuildDedicatedServer)
+		if (Target.Type.Value != TargetRules.TargetType.Server)
         {
 		    DynamicallyLoadedModuleNames.AddRange(
 			    new string[] {

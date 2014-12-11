@@ -18,7 +18,7 @@ public class Slate : ModuleRules
 			}
 		);
 
-        if (!UEBuildConfiguration.bBuildDedicatedServer && UEBuildConfiguration.bCompileFreeType)
+		if (Target.Type.Value != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileFreeType)
         {
 			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 			Definitions.Add("WITH_FREETYPE=1");
