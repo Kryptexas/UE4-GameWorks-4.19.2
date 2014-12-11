@@ -47,10 +47,24 @@ FString UInterfaceProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint
 		check(ExportClass);
 		check(ExportClass->HasAnyClassFlags(CLASS_Interface));
 
-		*ExtendedTypeText = FString::Printf(TEXT("<class I%s>"), *ExportClass->GetName());
+		*ExtendedTypeText = FString::Printf(TEXT("<I%s>"), *ExportClass->GetName());
 	}
 
 	return TEXT("TScriptInterface");
+}
+
+FString UInterfaceProperty::GetCPPTypeForwardDeclaration() const
+{
+	checkSlow(InterfaceClass);
+	UClass* ExportClass = InterfaceClass;
+	while (ExportClass && !ExportClass->HasAnyClassFlags(CLASS_Native))
+	{
+		ExportClass = ExportClass->GetSuperClass();
+	}
+	check(ExportClass);
+	check(ExportClass->HasAnyClassFlags(CLASS_Interface));
+
+	return FString::Printf(TEXT("class I%s;"), *ExportClass->GetName());
 }
 
 void UInterfaceProperty::LinkInternal(FArchive& Ar)

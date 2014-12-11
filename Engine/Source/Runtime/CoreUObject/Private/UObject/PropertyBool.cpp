@@ -142,6 +142,12 @@ FString UBoolProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 	}
 	return TEXT("uint32");
 }
+
+FString UBoolProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
 FString UBoolProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
 	check(FieldSize != 0);

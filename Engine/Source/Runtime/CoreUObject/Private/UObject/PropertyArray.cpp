@@ -118,6 +118,12 @@ FString UArrayProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 C
 	}
 	return TEXT("TArray");
 }
+
+FString UArrayProperty::GetCPPTypeForwardDeclaration() const
+{
+	checkSlow(Inner);
+	return Inner->GetCPPTypeForwardDeclaration();
+}
 FString UArrayProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
 	checkSlow(Inner);

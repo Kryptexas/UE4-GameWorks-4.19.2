@@ -9,7 +9,7 @@
 
 FString ULazyObjectProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	return FString::Printf( TEXT("TLazyObjectPtr<class %s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
+	return FString::Printf( TEXT("TLazyObjectPtr<%s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
 }
 FString ULazyObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {

@@ -56,7 +56,7 @@ class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
 
 	// Overriden from UAnimNotifyState to provide custom notify name.
-	virtual FString GetNotifyName_Implementation() const override;
+	FString GetNotifyName_Implementation() const;
 
 private:
 	bool ValidateParameters(USkeletalMeshComponent* MeshComp);

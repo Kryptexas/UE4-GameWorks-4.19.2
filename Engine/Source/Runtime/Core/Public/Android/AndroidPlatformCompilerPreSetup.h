@@ -32,6 +32,15 @@
 		_Pragma ("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 
 	#define PRAGMA_ENABLE_DEPRECATION_WARNINGS \
+		_Pragma ("clang diagnostic push") \
+		_Pragma ("clang diagnostic warning \"-Wdeprecated-declarations\"")
+
+	#define PRAGMA_POP \
 		_Pragma("clang diagnostic pop")
 
 #endif // DISABLE_DEPRECATION
+
+#ifndef EMIT_CUSTOM_WARNING
+#define EMIT_CUSTOM_WARNING(Warning) \
+	_Pragma(PREPROCESSOR_TO_STRING(message(WARNING_LOCATION Warning)))
+#endif // EMIT_CUSTOM_WARNING

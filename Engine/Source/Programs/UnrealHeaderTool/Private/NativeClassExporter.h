@@ -35,7 +35,6 @@ class FModuleClasses;
 struct FNativeClassHeaderGenerator
 {
 private:
-
 	FClass*				CurrentClass;
 	TArray<FClass*>		Classes;
 	FString				API;
@@ -55,6 +54,8 @@ private:
 	FStringOutputDevice FriendText;
 	FStringOutputDevice	GeneratedPackageCPP;
 	FStringOutputDevice	GeneratedHeaderText;
+	FStringOutputDevice	GeneratedHeaderTextBeforeForwardDeclarations;
+	FStringOutputDevice	GeneratedForwardDeclarations;
     /** output generated for a .proto file */
 	FStringOutputDevice GeneratedProtoText;
 	/** output generated for a mcp .java file */
@@ -101,6 +102,9 @@ private:
 
 	/** If true, any change in the generated headers will result in UHT failure. */
 	bool bFailIfGeneratedCodeChanges;
+
+	/** All properties that need to be forward declared. */
+	TArray<UProperty*>	ForwardDeclarations;
 
 	// This exists because it makes debugging much easier on VC2010, since the visualizers can't properly understand templates with templated args
 	struct HeaderDependents : TArray<const FString*>

@@ -22,7 +22,7 @@ static FUObjectAnnotationSparseBool FailedClassesAnnotation;
 enum {MAX_ARRAY_SIZE=2048};
 
 static const FName NAME_ToolTip(TEXT("ToolTip"));
-
+TMap<FClass*, ClassDefinitionRange> ClassDefinitionRanges;
 /**
  * Dirty hack global variable to allow different result codes passed through
  * exceptions. Needs to be fixed in future versions of UHT.
@@ -3840,6 +3840,12 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		{
 			FError::Throwf(TEXT("%s must occur inside the class or interface definition"), Token.Identifier);
 		}
+		if (!ClassDefinitionRanges.Contains(Class))
+		{
+			ClassDefinitionRanges.Add(Class, ClassDefinitionRange());
+		}
+
+		ClassDefinitionRanges[Class].bHasGeneratedBody = true;
 
 		RequireSymbol(TEXT("("), Token.Identifier);
 		RequireSymbol(TEXT(")"), Token.Identifier);
@@ -3942,6 +3948,10 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 	}
 	else if (bEncounteredNewStyleClass_UnmatchedBrackets && Token.Matches(TEXT("}")))
 	{
+		if (ClassDefinitionRanges.Contains(Class))
+		{
+			ClassDefinitionRanges[Class].End = &Input[InputPos];
+		}
 		MatchSemi();
 
 		// Closing brace for class declaration
@@ -4277,7 +4287,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	FString DeclaredClassName;
 	FString RequiredAPIMacroIfPresent;
 	ParseClassNameDeclaration(AllClasses, /*out*/ DeclaredClassName, /*out*/ RequiredAPIMacroIfPresent);
-
+	ClassDefinitionRanges.Add(Class, ClassDefinitionRange(&Input[InputPos], nullptr));
 	// Record that this class is RequiredAPI if the CORE_API style macro was present
 	if (!RequiredAPIMacroIfPresent.IsEmpty())
 	{

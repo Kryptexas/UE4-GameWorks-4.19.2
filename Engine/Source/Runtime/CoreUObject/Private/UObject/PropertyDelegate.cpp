@@ -81,6 +81,10 @@ FString UDelegateProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint3
 	return FString(TEXT("F")) + UnmangledFunctionName;
 }
 
+FString UDelegateProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
 
 void UDelegateProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {

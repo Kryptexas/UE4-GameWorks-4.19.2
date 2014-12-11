@@ -63,6 +63,27 @@ struct FIndexRange
 	int32 Count;
 };
 
+
+struct ClassDefinitionRange
+{
+	ClassDefinitionRange(const TCHAR* InStart, const TCHAR* InEnd)
+		: Start(InStart)
+		, End(InEnd)
+		, bHasGeneratedBody(false)
+	{ }
+
+	ClassDefinitionRange()
+		: Start(nullptr)
+		, End(nullptr)
+		, bHasGeneratedBody(false)
+	{ }
+
+	const TCHAR* Start;
+	const TCHAR* End;
+	bool bHasGeneratedBody;
+};
+
+extern TMap<FClass*, ClassDefinitionRange> ClassDefinitionRanges;
 /////////////////////////////////////////////////////
 // FHeaderParser
 
@@ -548,6 +569,7 @@ private:
 	 */
 	bool TryToMatchConstructorParameterList(FToken Token);
 	void SkipDeprecatedMacroIfNecessary();
+
 };
 
 /////////////////////////////////////////////////////

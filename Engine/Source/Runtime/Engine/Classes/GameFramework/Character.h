@@ -402,8 +402,7 @@ public:
 	/**
 	 * Check if the character can jump in the current state.
 	 *
-	 * The default implementation may be overridden or extended by implementing the custom CanJump event in Blueprints.
-	 * C++ code can override CanJumpInternal_Implementation() for custom behavior.
+	 * The default implementation may be overridden or extended by implementing the custom CanJump event in Blueprints. 
 	 * 
 	 * @Return Whether the character can jump in the current state. 
 	 */
@@ -420,7 +419,6 @@ protected:
 	 * As well as returning true when on the ground, it also returns true when GetMaxJumpTime is more
 	 * than zero and IsJumping returns true.
 	 * 
-	 * (This generates a virtual CanJumpInternal_Implementation function).
 	 *
 	 * @Return Whether the character can jump in the current state. 
 	 */

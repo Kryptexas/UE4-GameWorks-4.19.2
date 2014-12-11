@@ -10,9 +10,14 @@ FString UWeakObjectProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uin
 {
 	if (PropertyFlags & CPF_AutoWeak)
 	{
-		return FString::Printf( TEXT("TAutoWeakObjectPtr<class %s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
+		return FString::Printf( TEXT("TAutoWeakObjectPtr<%s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
 	}
-	return FString::Printf( TEXT("TWeakObjectPtr<class %s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
+	return FString::Printf( TEXT("TWeakObjectPtr<%s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
+}
+
+FString UWeakObjectProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString::Printf(TEXT("class %s%s;"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName());
 }
 
 FString UWeakObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
