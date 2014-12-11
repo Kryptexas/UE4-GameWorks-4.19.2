@@ -10,6 +10,7 @@
 #include "GameFramework/Controller.h"
 #include "Actions/PawnActionsComponent.h"
 #include "Perception/AIPerceptionListenerInterface.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "AIController.generated.h"
 
 class APawn;
@@ -224,6 +225,10 @@ public:
 	/** makes AI use specified BB asset */
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	bool UseBlackboard(UBlackboardData* BlackboardAsset);
+
+	/** does this AIController allow given UBlackboardComponent sync data with it */
+	virtual bool ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const { return true; }
+		
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent)

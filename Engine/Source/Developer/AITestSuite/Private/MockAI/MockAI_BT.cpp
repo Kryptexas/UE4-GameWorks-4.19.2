@@ -27,7 +27,10 @@ bool UMockAI_BT::IsRunning() const
 
 bool UMockAI_BT::RunBT(UBehaviorTree& BTAsset, EBTExecutionMode::Type RunType)
 {
-	BBComp->InitializeBlackboard(BTAsset.BlackboardAsset);
+	if (BTAsset.BlackboardAsset)
+	{
+		BBComp->InitializeBlackboard(*BTAsset.BlackboardAsset);
+	}
 	BBComp->CacheBrainComponent(*BTComp);
 	BTComp->CacheBlackboardComponent(BBComp);
 

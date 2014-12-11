@@ -2,6 +2,8 @@
 #pragma once
 #include "BlackboardKeyType.generated.h"
 
+class UBlackboardComponent;
+
 namespace EBlackboardCompare
 {
 	enum Type
@@ -141,5 +143,11 @@ protected:
 		*((TWeakObjectPtr<T>*)MemoryBlock) = Value;
 
 		return bChanged;
+	}
+
+	friend UBlackboardComponent;
+	void CopyValue(uint8* To, const uint8* From) const
+	{
+		FMemory::Memcpy(To, From, GetValueSize());
 	}
 };

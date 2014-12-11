@@ -61,6 +61,9 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 
 			TSharedPtr<IPropertyHandle> KeyTypeProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, KeyType));
 			DetailCategoryBuilder.AddProperty(KeyTypeProperty);
+
+			TSharedPtr<IPropertyHandle> bInstanceSyncedProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, bInstanceSynced));
+			DetailCategoryBuilder.AddProperty(bInstanceSyncedProperty);
 		}	
 	}
 }

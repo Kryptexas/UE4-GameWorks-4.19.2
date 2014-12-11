@@ -10,6 +10,7 @@ UBlackboardComponent::UBlackboardComponent(const FObjectInitializer& ObjectIniti
 	PrimaryComponentTick.bCanEverTick = false;
 	bWantsInitializeComponent = true;
 	bPausedNotifies = false;
+	bSynchronizedKeyPopulated = false;
 }
 
 void UBlackboardComponent::InitializeComponent()
@@ -28,7 +29,23 @@ void UBlackboardComponent::InitializeComponent()
 		}
 	}
 
-	InitializeBlackboard(BlackboardAsset);
+	if (BlackboardAsset)
+	{
+		InitializeBlackboard(*BlackboardAsset);
+	}
+}
+
+void UBlackboardComponent::UninitializeComponent()
+{
+	if (BlackboardAsset && BlackboardAsset->HasSyncronizedKeys())
+	{
+		UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
+		if (AISystem)
+		{
+			AISystem->UnregisterBlackboardComponent(*BlackboardAsset, *this);
+		}
+	}
+	Super::UninitializeComponent();
 }
 
 void UBlackboardComponent::CacheBrainComponent(UBrainComponent& BrainComponent)
@@ -68,73 +85,128 @@ void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
 	}
 }
 
-bool UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
+bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
 	// in reseting, since we'd loose all the accumulated knowledge
-	if (NewAsset == BlackboardAsset)
+	if (&NewAsset == BlackboardAsset)
 	{
 		return false;
 	}
 
-	BlackboardAsset = NewAsset;
+	UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
+	if (AISystem == nullptr)
+	{
+		return false;
+	}
+
+	if (BlackboardAsset)
+	{
+		AISystem->UnregisterBlackboardComponent(*BlackboardAsset, *this);
+	}
+
+	BlackboardAsset = &NewAsset;
 	ValueMemory.Reset();
 	ValueOffsets.Reset();
+	bSynchronizedKeyPopulated = false;
 
 	bool bSuccess = true;
 	
-	if (BlackboardAsset)
+	if (BlackboardAsset->IsValid())
 	{
-		if (BlackboardAsset->IsValid())
+		InitializeParentChain(BlackboardAsset);
+
+		TArray<FBlackboardInitializationData> InitList;
+		const int32 NumKeys = BlackboardAsset->GetNumKeys();
+		InitList.Reserve(NumKeys);
+		ValueOffsets.AddZeroed(NumKeys);
+
+		for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 		{
-			InitializeParentChain(BlackboardAsset);
-
-			TArray<FBlackboardInitializationData> InitList;
-			const int32 NumKeys = BlackboardAsset->GetNumKeys();
-			InitList.Reserve(NumKeys);
-			ValueOffsets.AddZeroed(NumKeys);
-
-			for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
+			for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 			{
-				for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
+				if (It->Keys[KeyIndex].KeyType)
 				{
-					if (It->Keys[KeyIndex].KeyType)
-					{
-						InitList.Add(FBlackboardInitializationData(KeyIndex + It->GetFirstKeyID(), It->Keys[KeyIndex].KeyType->GetValueSize()));
-					}
+					InitList.Add(FBlackboardInitializationData(KeyIndex + It->GetFirstKeyID(), It->Keys[KeyIndex].KeyType->GetValueSize()));
 				}
 			}
-
-			// sort key values by memory size, so they can be packed better
-			// it still won't protect against structures, that are internally misaligned (-> uint8, uint32)
-			// but since all Engine level keys are good... 
-			InitList.Sort(FBlackboardInitializationData::FMemorySort());
-			uint16 MemoryOffset = 0;
-			for (int32 Index = 0; Index < InitList.Num(); Index++)
-			{
-				ValueOffsets[InitList[Index].KeyID] = MemoryOffset;
-				MemoryOffset += InitList[Index].DataSize;
-			}
-
-			ValueMemory.AddZeroed(MemoryOffset);
-
-			// initialize memory
-			for (int32 Index = 0; Index < InitList.Num(); Index++)
-			{
-				const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[Index].KeyID);
-				uint8* RawData = GetKeyRawData(InitList[Index].KeyID);
-
-				KeyData->KeyType->Initialize(RawData);
-			}
 		}
-		else
+
+		// sort key values by memory size, so they can be packed better
+		// it still won't protect against structures, that are internally misaligned (-> uint8, uint32)
+		// but since all Engine level keys are good... 
+		InitList.Sort(FBlackboardInitializationData::FMemorySort());
+		uint16 MemoryOffset = 0;
+		for (int32 Index = 0; Index < InitList.Num(); Index++)
 		{
-			bSuccess = false;
-			UE_LOG(LogBehaviorTree, Error, TEXT("Blackboard asset (%s) has errors and can't be used!"), *GetNameSafe(BlackboardAsset));
+			ValueOffsets[InitList[Index].KeyID] = MemoryOffset;
+			MemoryOffset += InitList[Index].DataSize;
 		}
+
+		ValueMemory.AddZeroed(MemoryOffset);
+
+		// initialize memory
+		for (int32 Index = 0; Index < InitList.Num(); Index++)
+		{
+			const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[Index].KeyID);
+			uint8* RawData = GetKeyRawData(InitList[Index].KeyID);
+
+			KeyData->KeyType->Initialize(RawData);
+		}
+	
+		// naive initial synchronization with one of already instantiated blackboards using the same BB asset
+		if (BlackboardAsset->HasSyncronizedKeys())
+		{
+			PopulateSynchronizedKeys();
+		}
+	}
+	else
+	{
+		bSuccess = false;
+		UE_LOG(LogBehaviorTree, Error, TEXT("Blackboard asset (%s) has errors and can't be used!"), *GetNameSafe(BlackboardAsset));
 	}
 
 	return bSuccess;
+}
+
+void UBlackboardComponent::PopulateSynchronizedKeys()
+{
+	ensure(bSynchronizedKeyPopulated == false);
+	
+	UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
+	check(AISystem);
+	AISystem->RegisterBlackboardComponent(*BlackboardAsset, *this);
+
+	for (auto Iter = AISystem->CreateBlackboardDataToComponentsIterator(*BlackboardAsset); Iter; ++Iter)
+	{
+		UBlackboardComponent* OtherBlackboard = Iter.Value();
+		if (OtherBlackboard != nullptr && ShouldSyncWithBlackboard(*OtherBlackboard))
+		{
+			for (const auto& Key : BlackboardAsset->Keys)
+			{
+				if (Key.bInstanceSynced)
+				{
+					const int32 KeyID = BlackboardAsset->GetKeyID(Key.EntryName);
+					check(BlackboardAsset->GetKeyID(Key.EntryName) == OtherBlackboard->BlackboardAsset->GetKeyID(Key.EntryName));
+					check(BlackboardAsset->GetKeyType(KeyID) == OtherBlackboard->BlackboardAsset->GetKeyType(KeyID));
+
+					const TSubclassOf<UBlackboardKeyType> ValueType = BlackboardAsset->GetKeyType(KeyID);
+					const UBlackboardKeyType* ValueTypeInstance = GetDefault<UBlackboardKeyType>(*ValueType);
+					ValueTypeInstance->CopyValue(GetKeyRawData(KeyID), OtherBlackboard->GetKeyRawData(KeyID));
+				}
+			}
+			break;
+		}
+	}
+
+	bSynchronizedKeyPopulated = true;
+}
+
+bool UBlackboardComponent::ShouldSyncWithBlackboard(UBlackboardComponent& OtherBlackboardComponent) const
+{
+	return &OtherBlackboardComponent != this && (
+		(BrainComp == nullptr || (BrainComp->GetAIOwner() != nullptr && BrainComp->GetAIOwner()->ShouldSyncBlackboardWith(OtherBlackboardComponent) == true))
+		|| (OtherBlackboardComponent.BrainComp == nullptr || (OtherBlackboardComponent.BrainComp->GetAIOwner() != nullptr && OtherBlackboardComponent.BrainComp->GetAIOwner()->ShouldSyncBlackboardWith(OtherBlackboardComponent) == true)));
 }
 
 UBrainComponent* UBlackboardComponent::GetBrainComponent() const
@@ -160,6 +232,11 @@ FBlackboard::FKey UBlackboardComponent::GetKeyID(const FName& KeyName) const
 TSubclassOf<UBlackboardKeyType> UBlackboardComponent::GetKeyType(FBlackboard::FKey KeyID) const
 {
 	return BlackboardAsset ? BlackboardAsset->GetKeyType(KeyID) : NULL;
+}
+
+bool UBlackboardComponent::IsKeyInstanceSynced(FBlackboard::FKey KeyID) const
+{
+	return BlackboardAsset ? BlackboardAsset->IsKeyInstanceSynced(KeyID) : false;
 }
 
 int32 UBlackboardComponent::GetNumKeys() const
@@ -518,267 +595,109 @@ FRotator UBlackboardComponent::GetValueAsRotator(uint8 KeyID) const
 void UBlackboardComponent::SetValueAsObject(const FName& KeyName, UObject* ObjectValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsObject(KeyID, ObjectValue);
+	SetValue<UBlackboardKeyType_Object>(KeyID, ObjectValue);
 }
 
-void UBlackboardComponent::SetValueAsObject(FBlackboard::FKey KeyID, UObject* ObjectValue)
-{
-	if ( GetKeyType(KeyID) != UBlackboardKeyType_Object::StaticClass() )
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Object::SetValue(RawData, ObjectValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
-}
+//void UBlackboardComponent::SetValueAsObject(FBlackboard::FKey KeyID, UObject* ObjectValue)
+//{
+//	if (GetKeyType(KeyID) != UBlackboardKeyType_Object::StaticClass())
+//	{
+//		return;
+//	}
+//
+//	uint8* RawData = GetKeyRawData(KeyID);
+//	if (RawData)
+//	{
+//		const bool bChanged = UBlackboardKeyType_Object::SetValue(RawData, ObjectValue);
+//		if (bChanged)
+//		{
+//			NotifyObservers(KeyID);
+//			if (bHasSyncedKeys && IsKeyInstanceSynced(KeyID))
+//			{
+//				SynchronizeKeys(KeyID, ObjectValue);
+//			}
+//		}
+//	}
+//}
+//
+////void UBlackboardData::SynchronizeKeys(FBlackboard::FKey KeyID, UObject* ObjectValue)
+////{
+////	check(BlackboardAsset);
+////
+////	if (BrainComp && BrainComp->GetAIOwner())
+////	{
+////		UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
+////		for (auto Iter = AISystem->CreateBlackboardDataToComponentsIterator(*BlackboardAsset); Iter; ++Iter)
+////		{
+////			UBlackboardComponent* OtherBlackboard = Iter.Value();
+////			if (OtherBlackboard && OtherBlackboard != this && OtherBlackboard->BrainComp && OtherBlackboard->BrainComp->GetAIOwner()
+////				&& OtherBlackboard->BrainComp->GetAIOwner()->ShouldInstanceSyncUpdatedBlackboardField(*OtherBlackboard, KeyID, *this, *BrainComp->GetAIOwner()))
+////			{
+////				UBlackboardKeyType_Object::SetValue(OtherBlackboard->GetKeyRawData(KeyID), ObjectValue);
+////				OtherBlackboard->NotifyObservers(KeyID);
+////			}
+////		}
+////	}
+////}
 
 void UBlackboardComponent::SetValueAsClass(const FName& KeyName, UClass* ClassValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsClass(KeyID, ClassValue);
-}
-
-void UBlackboardComponent::SetValueAsClass(FBlackboard::FKey KeyID, UClass* ClassValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Class::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Class::SetValue(RawData, ClassValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Class>(KeyID, ClassValue);
 }
 
 void UBlackboardComponent::SetValueAsEnum(const FName& KeyName, uint8 EnumValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsEnum(KeyID, EnumValue);
-}
-
-void UBlackboardComponent::SetValueAsEnum(FBlackboard::FKey KeyID, uint8 EnumValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Enum::StaticClass() &&
-		GetKeyType(KeyID) != UBlackboardKeyType_NativeEnum::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Enum::SetValue(RawData, EnumValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Enum>(KeyID, EnumValue);
 }
 
 void UBlackboardComponent::SetValueAsInt(const FName& KeyName, int32 IntValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsInt(KeyID, IntValue);
-}
-
-void UBlackboardComponent::SetValueAsInt(FBlackboard::FKey KeyID, int32 IntValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Int::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Int::SetValue(RawData, IntValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Int>(KeyID, IntValue);
 }
 
 void UBlackboardComponent::SetValueAsFloat(const FName& KeyName, float FloatValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsFloat(KeyID, FloatValue);
-}
-
-void UBlackboardComponent::SetValueAsFloat(FBlackboard::FKey KeyID, float FloatValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Float::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Float::SetValue(RawData, FloatValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Float>(KeyID, FloatValue);
 }
 
 void UBlackboardComponent::SetValueAsBool(const FName& KeyName, bool BoolValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsBool(KeyID, BoolValue);
-}
-
-void UBlackboardComponent::SetValueAsBool(FBlackboard::FKey KeyID, bool BoolValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Bool::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Bool::SetValue(RawData, BoolValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Bool>(KeyID, BoolValue);
 }
 
 void UBlackboardComponent::SetValueAsString(const FName& KeyName, FString StringValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsString(KeyID, StringValue);
-}
-
-void UBlackboardComponent::SetValueAsString(FBlackboard::FKey KeyID, const FString& StringValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_String::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_String::SetValue(RawData, StringValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_String>(KeyID, StringValue);
 }
 
 void UBlackboardComponent::SetValueAsName(const FName& KeyName, FName NameValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsName(KeyID, NameValue);
-}
-
-void UBlackboardComponent::SetValueAsName(FBlackboard::FKey KeyID, const FName& NameValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Name::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Name::SetValue(RawData, NameValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Name>(KeyID, NameValue);
 }
 
 void UBlackboardComponent::SetValueAsVector(const FName& KeyName, FVector VectorValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsVector(KeyID, VectorValue);
+	SetValue<UBlackboardKeyType_Vector>(KeyID, VectorValue);
 }
-
-void UBlackboardComponent::SetValueAsVector(FBlackboard::FKey KeyID, const FVector& VectorValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Vector::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Vector::SetValue(RawData, VectorValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
-}
-
 
 void UBlackboardComponent::SetValueAsRotator(const FName& KeyName, FRotator RotatorValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValueAsRotator(KeyID, RotatorValue);
-}
-
-void UBlackboardComponent::SetValueAsRotator(uint8 KeyID, const FRotator& RotatorValue)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Rotator::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Rotator::SetValue(RawData, RotatorValue);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	SetValue<UBlackboardKeyType_Rotator>(KeyID, RotatorValue);
 }
 
 void UBlackboardComponent::ClearValueAsVector(const FName& KeyName)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	ClearValueAsVector(KeyID);
-}
-
-void UBlackboardComponent::ClearValueAsVector(FBlackboard::FKey KeyID)
-{
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Vector::StaticClass())
-	{
-		return;
-	}
-
-	uint8* RawData = GetKeyRawData(KeyID);
-	if (RawData)
-	{
-		const bool bChanged = UBlackboardKeyType_Vector::SetValue(RawData, FAISystem::InvalidLocation);
-		if (bChanged)
-		{
-			NotifyObservers(KeyID);
-		}
-	}
+	ClearValue(KeyID);
 }
 
 bool UBlackboardComponent::IsVectorValueSet(const FName& KeyName) const
@@ -830,17 +749,35 @@ void UBlackboardComponent::ClearValue(const FName& KeyName)
 
 void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
 {
+	check(BlackboardAsset);
+
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
 	{
 		TSubclassOf<UBlackboardKeyType> ValueType = GetKeyType(KeyID);
-		if (ValueType)
+		check(ValueType);
+		
+		const UBlackboardKeyType* ValueTypeInstance = GetDefault<UBlackboardKeyType>(*ValueType);
+
+		const bool bChanged = ValueTypeInstance->Clear(RawData);
+		if (bChanged)
 		{
-			// c-cast is ok here since ValueType is of at least UBlackboardKeyType and it's default object has to be UBlackboardKeyType instance
-			const bool bChanged = GetDefault<UBlackboardKeyType>()->Clear(RawData);
-			if (bChanged)
+			NotifyObservers(KeyID);
+
+			if (BlackboardAsset->HasSyncronizedKeys() && IsKeyInstanceSynced(KeyID))
 			{
-				NotifyObservers(KeyID);
+				// grab the value set and apply the same to synchronized keys
+				// to avoid virtual function call overhead
+				UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
+				for (auto Iter = AISystem->CreateBlackboardDataToComponentsIterator(*BlackboardAsset); Iter; ++Iter)
+				{
+					UBlackboardComponent* OtherBlackboard = Iter.Value();
+					if (OtherBlackboard != nullptr && ShouldSyncWithBlackboard(*OtherBlackboard))
+					{
+						ValueTypeInstance->CopyValue(OtherBlackboard->GetKeyRawData(KeyID), RawData);
+						OtherBlackboard->NotifyObservers(KeyID);
+					}
+				}
 			}
 		}
 	}

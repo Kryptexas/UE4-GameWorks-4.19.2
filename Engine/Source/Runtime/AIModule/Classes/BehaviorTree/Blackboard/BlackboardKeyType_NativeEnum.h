@@ -9,6 +9,8 @@ class AIMODULE_API UBlackboardKeyType_NativeEnum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
+	typedef uint8 FDataType;
+
 	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
 	FString EnumName;
 

@@ -8,6 +8,8 @@ class AIMODULE_API UBlackboardKeyType_Int : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
+	typedef int32 FDataType;
+
 	static int32 GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, int32 Value);
 

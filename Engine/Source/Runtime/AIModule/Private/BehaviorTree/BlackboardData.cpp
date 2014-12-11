@@ -46,6 +46,12 @@ TSubclassOf<UBlackboardKeyType> UBlackboardData::GetKeyType(FBlackboard::FKey Ke
 	return KeyEntry ? KeyEntry->KeyType->GetClass() : NULL;
 }
 
+bool UBlackboardData::IsKeyInstanceSynced(FBlackboard::FKey KeyID) const
+{
+	const FBlackboardEntry* KeyEntry = GetKey(KeyID);
+	return KeyEntry ? KeyEntry->bInstanceSynced : false;
+}
+
 const FBlackboardEntry* UBlackboardData::GetKey(FBlackboard::FKey KeyID) const
 {
 	if (KeyID != FBlackboard::InvalidKey)
@@ -101,31 +107,56 @@ bool UBlackboardData::IsValid() const
 	return true;
 }
 
+void UBlackboardData::UpdateIfHasSynchronizedKeys()
+{
+	bHasSyncronizedKeys = Parent != nullptr && Parent->bHasSyncronizedKeys;
+	for (int32 KeyIndex = 0; KeyIndex < Keys.Num() && bHasSyncronizedKeys == false; ++KeyIndex)
+	{
+		bHasSyncronizedKeys |= Keys[KeyIndex].bInstanceSynced;
+	}
+}
+
 void UBlackboardData::PostLoad()
 {
 	Super::PostLoad();
 
 	UpdateParentKeys();
+	UpdateIfHasSynchronizedKeys();
 }
 
 #if WITH_EDITOR
+void UBlackboardData::PreEditChange(class FEditPropertyChain& PropertyAboutToChange)
+{
+	Super::PreEditChange(PropertyAboutToChange);
+}
 
 void UBlackboardData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	static const FName NAME_Parent = GET_MEMBER_NAME_CHECKED(UBlackboardData, Parent);
+	static const FName NAME_InstanceSynced = GET_MEMBER_NAME_CHECKED(FBlackboardEntry, bInstanceSynced);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UBlackboardData, Parent))
+	if (PropertyChangedEvent.Property)
 	{
-		// look for cycles
-		if (Parent && Parent->HasParent(this))
+		if (PropertyChangedEvent.Property->GetFName() == NAME_Parent)
 		{
-			UE_LOG(LogBehaviorTree, Warning, TEXT("Blackboard asset (%s) has (%s) in parent chain! Clearing value to avoid cycle."),
-				*GetNameSafe(Parent), *GetNameSafe(this));
+			// look for cycles
+			if (Parent && Parent->HasParent(this))
+			{
+				UE_LOG(LogBehaviorTree, Warning, TEXT("Blackboard asset (%s) has (%s) in parent chain! Clearing value to avoid cycle."),
+					*GetNameSafe(Parent), *GetNameSafe(this));
 
-			Parent = NULL;
+				Parent = NULL;
+			}
+
+			UpdateParentKeys();
 		}
 
-		UpdateParentKeys();
+		if (PropertyChangedEvent.Property->GetFName() == NAME_InstanceSynced || PropertyChangedEvent.Property->GetFName() == NAME_Parent)
+		{
+			UpdateIfHasSynchronizedKeys();
+		}
 	}
 }
 

@@ -35,10 +35,14 @@ namespace EBlackboardDescription
 UCLASS()
 class AIMODULE_API UBlackboardComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	UBlackboardComponent(const FObjectInitializer& ObjectInitializer);
 
 	/** BEGIN UActorComponent overrides */
 	virtual void InitializeComponent() override;
+	virtual void UninitializeComponent() override;
 	/** END UActorComponent overrides */
 
 	/** @return name of key */
@@ -50,6 +54,9 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	/** @return class of value for given key */
 	TSubclassOf<UBlackboardKeyType> GetKeyType(FBlackboard::FKey KeyID) const;
 
+	/** @return true if the key is marked as instance synced */
+	bool IsKeyInstanceSynced(FBlackboard::FKey KeyID) const;
+	
 	/** @return number of entries in data asset */
 	int32 GetNumKeys() const;
 
@@ -78,7 +85,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	void CacheBrainComponent(UBrainComponent& BrainComponent);
 
 	/** setup component for using given blackboard asset */
-	bool InitializeBlackboard(UBlackboardData* NewAsset);
+	bool InitializeBlackboard(UBlackboardData& NewAsset);
 	
 	/** @return true if component can be used with specified blackboard asset */
 	bool IsCompatibleWith(UBlackboardData* TestAsset) const;
@@ -125,39 +132,30 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsObject(const FName& KeyName, UObject* ObjectValue);
-	void SetValueAsObject(FBlackboard::FKey KeyID, UObject* ObjectValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsClass(const FName& KeyName, UClass* ClassValue);
-	void SetValueAsClass(FBlackboard::FKey KeyID, UClass* ClassValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsEnum(const FName& KeyName, uint8 EnumValue);
-	void SetValueAsEnum(FBlackboard::FKey KeyID, uint8 EnumValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsInt(const FName& KeyName, int32 IntValue);
-	void SetValueAsInt(FBlackboard::FKey KeyID, int32 IntValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsFloat(const FName& KeyName, float FloatValue);
-	void SetValueAsFloat(FBlackboard::FKey KeyID, float FloatValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsBool(const FName& KeyName, bool BoolValue);
-	void SetValueAsBool(FBlackboard::FKey KeyID, bool BoolValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsString(const FName& KeyName, FString StringValue);
-	void SetValueAsString(FBlackboard::FKey KeyID, const FString& StringValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsName(const FName& KeyName, FName NameValue);
-	void SetValueAsName(FBlackboard::FKey KeyID, const FName& NameValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
-	void SetValueAsVector(FBlackboard::FKey KeyID, const FVector& VectorValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void ClearValueAsVector(const FName& KeyName);
@@ -189,6 +187,9 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category = "AI|Components|Blackboard")
 	void ClearValue(const FName& KeyName);
 	void ClearValue(FBlackboard::FKey KeyID);
+
+	template<class TDataClass>
+	bool SetValue(FBlackboard::FKey KeyID, typename TDataClass::FDataType Value);
 
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }
@@ -238,11 +239,19 @@ protected:
 	/** set when notifies are paused and shouldn't be passed to observers */
 	uint32 bPausedNotifies : 1;
 
+	/** reset to false every time a new BB asset is assigned to this component */
+	uint32 bSynchronizedKeyPopulated : 1;
+
 	/** notifies behavior tree decorators about change in blackboard */
 	void NotifyObservers(FBlackboard::FKey KeyID) const;
 
 	/** initializes parent chain in asset */
 	void InitializeParentChain(UBlackboardData* NewAsset);
+
+	/** populates BB's synchronized entries */
+	void PopulateSynchronizedKeys();
+
+	bool ShouldSyncWithBlackboard(UBlackboardComponent& OtherBlackboardComponent) const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -251,4 +260,40 @@ protected:
 FORCEINLINE bool UBlackboardComponent::HasValidAsset() const
 {
 	return BlackboardAsset && BlackboardAsset->IsValid();
+}
+
+template<class TDataClass>
+bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass::FDataType Value)
+{
+	if (GetKeyType(KeyID) != TDataClass::StaticClass())
+	{
+		return false;
+	}
+
+	uint8* RawData = GetKeyRawData(KeyID);
+	if (RawData)
+	{
+		const bool bChanged = TDataClass::SetValue(RawData, Value);
+		if (bChanged)
+		{
+			NotifyObservers(KeyID);
+			if (BlackboardAsset->HasSyncronizedKeys() && IsKeyInstanceSynced(KeyID))
+			{
+				UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
+				for (auto Iter = AISystem->CreateBlackboardDataToComponentsIterator(*BlackboardAsset); Iter; ++Iter)
+				{
+					UBlackboardComponent* OtherBlackboard = Iter.Value();
+					if (OtherBlackboard != nullptr && ShouldSyncWithBlackboard(*OtherBlackboard))
+					{
+						TDataClass::SetValue(OtherBlackboard->GetKeyRawData(KeyID), Value);
+						OtherBlackboard->NotifyObservers(KeyID);
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }

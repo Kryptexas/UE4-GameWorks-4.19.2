@@ -777,7 +777,7 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, UBlackboardData& BlackboardAsset)
 {
 	check(BlackboardComp.GetOwner() == this);
-	if (BlackboardComp.InitializeBlackboard(&BlackboardAsset))
+	if (BlackboardComp.InitializeBlackboard(BlackboardAsset))
 	{
 		OnUsingBlackBoard(&BlackboardComp, &BlackboardAsset);
 		return true;

@@ -20,7 +20,7 @@ bool UEnvQueryItemType_VectorBase::StoreInBlackboard(FBlackboardKeySelector& Key
 	if (KeySelector.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 	{
 		const FVector MyLocation = GetItemLocation(RawData);
-		Blackboard->SetValueAsVector(KeySelector.GetSelectedKeyID(), MyLocation);
+		Blackboard->SetValue<UBlackboardKeyType_Vector>(KeySelector.GetSelectedKeyID(), MyLocation);
 
 		bStored = true;
 	}
