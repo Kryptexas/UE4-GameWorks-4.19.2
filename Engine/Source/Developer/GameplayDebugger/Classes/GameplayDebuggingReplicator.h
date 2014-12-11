@@ -24,6 +24,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	FString DebugComponentHUDClassName;
 
 	UPROPERTY(config)
+	FString DebugComponentControllerClassName;
+
+	UPROPERTY(config)
 	int32 MaxEQSQueries;
 
 	UPROPERTY(Replicated, Transient)
@@ -135,6 +138,6 @@ private:
 
 	TWeakObjectPtr<UClass> DebugComponentClass;
 	TWeakObjectPtr<UClass> DebugComponentHUDClass;
-
+	TWeakObjectPtr<UClass> DebugComponentControllerClass;
 	TWeakObjectPtr<AGameplayDebuggingHUDComponent>	DebugRenderer;
 };

@@ -372,7 +372,12 @@ void AGameplayDebuggingReplicator::CreateTool()
 		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
 		if (!GDC)
 		{
-			GDC = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+			DebugComponentControllerClass = StaticLoadClass(UGameplayDebuggingControllerComponent::StaticClass(), NULL, *DebugComponentControllerClassName, NULL, LOAD_None, NULL);
+			if (!DebugComponentControllerClass.IsValid())
+			{
+				DebugComponentControllerClass = AGameplayDebuggingHUDComponent::StaticClass();
+			}
+			GDC = ConstructObject<UGameplayDebuggingControllerComponent>(DebugComponentControllerClass.Get(), this);
 			GDC->SetPlayerOwner(LocalPlayerOwner);
 			GDC->RegisterComponent();
 		}
