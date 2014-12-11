@@ -345,6 +345,7 @@ public:
 #if WITH_EDITOR
 	virtual void Destroyed() override;
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void EditorApplyMirror(const FVector& MirrorScale, const FVector& PivotLocation) override;
 	virtual void PostEditMove(bool bFinished) override;
 	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
 	virtual bool ShouldExport() override;
