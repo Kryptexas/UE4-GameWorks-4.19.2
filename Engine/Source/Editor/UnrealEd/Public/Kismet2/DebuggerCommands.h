@@ -66,6 +66,7 @@ public:
 
 	/** Launch on device */
 	TSharedPtr<FUICommandInfo> RepeatLastLaunch;
+	TSharedPtr<FUICommandInfo> OpenProjectLauncher;
 	TSharedPtr<FUICommandInfo> OpenDeviceManager;
 
 protected:

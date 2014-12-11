@@ -81,7 +81,7 @@ public:
 	static bool RepeatLastLaunch_CanExecute();
 	static FText GetRepeatLastLaunchToolTip();
 	static FSlateIcon GetRepeatLastLaunchIcon();
-	static void OpenLauncher_Clicked();
+	static void OpenProjectLauncher_Clicked();
 	static void OpenDeviceManager_Clicked();
 
 	static FSlateIcon GetResumePlaySessionImage();
@@ -245,6 +245,7 @@ void FPlayWorldCommands::RegisterCommands()
 
 	// Launch
 	UI_COMMAND( RepeatLastLaunch, "Launch", "Launches the game on the device as the last session launched from the dropdown next to the Play on Device button on the level editor toolbar", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt | EModifierKey::Shift ) )
+	UI_COMMAND( OpenProjectLauncher, "Project Launcher...", "Open the Project Launcher for advanced packaging, deploying and launching of your projects", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND( OpenDeviceManager, "Device Manager...", "View and manage connected devices.", EUserInterfaceActionType::Button, FInputGesture() );
 }
 
@@ -328,6 +329,10 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		);
 
 	// Launch
+	ActionList.MapAction(Commands.OpenProjectLauncher,
+		FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::OpenProjectLauncher_Clicked)
+		);
+	
 	ActionList.MapAction( Commands.OpenDeviceManager,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::OpenDeviceManager_Clicked )
 		);
@@ -798,6 +803,13 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	// options section
 	MenuBuilder.BeginSection("LevelEditorLaunchOptions");
 	{
+		MenuBuilder.AddMenuEntry(FPlayWorldCommands::Get().OpenProjectLauncher,
+			NAME_None,
+			TAttribute<FText>(),
+			TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon")
+			);
+
 		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().OpenDeviceManager,
 			NAME_None,
 			TAttribute<FText>(),
@@ -1376,18 +1388,15 @@ void FInternalPlayWorldCommandCallbacks::PlayInSettings_Clicked()
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Editor", "LevelEditor", "PlayIn");
 }
 
+void FInternalPlayWorldCommandCallbacks::OpenProjectLauncher_Clicked()
+{
+	FGlobalTabmanager::Get()->InvokeTab(FTabId("ProjectLauncher"));
+}
 
 void FInternalPlayWorldCommandCallbacks::OpenDeviceManager_Clicked()
 {
 	FGlobalTabmanager::Get()->InvokeTab(FTabId("DeviceManager"));
 }
-
-
-void FInternalPlayWorldCommandCallbacks::OpenLauncher_Clicked()
-{
-	//FGlobalTabmanager::Get()->InvokeTab(FName("ProjectLauncher"));
-}
-
 
 void FInternalPlayWorldCommandCallbacks::RepeatLastLaunch_Clicked()
 {
