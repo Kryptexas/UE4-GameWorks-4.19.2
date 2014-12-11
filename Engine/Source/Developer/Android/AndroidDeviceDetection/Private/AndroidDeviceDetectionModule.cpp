@@ -260,7 +260,11 @@ public:
 			return;
 		}
 
+#if PLATFORM_WINDOWS
 		FString ADBPath = FString::Printf(TEXT("%s\\platform-tools\\adb.exe"), AndroidDirectory);
+#else
+		FString ADBPath = FString::Printf(TEXT("%s/platform-tools/adb"), AndroidDirectory);
+#endif
 
 		// if it doesn't exist, no SDK installed, so don't bother creating a thread to look for devices
 		if (!FPaths::FileExists(*ADBPath))

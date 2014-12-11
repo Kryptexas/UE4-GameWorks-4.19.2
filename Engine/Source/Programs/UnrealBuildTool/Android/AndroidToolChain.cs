@@ -134,7 +134,7 @@ namespace UnrealBuildTool
 			if (Target == "latest")
 			{
 				// get a list of NDK platforms
-				string PlatformsDir = Environment.ExpandEnvironmentVariables("%NDKROOT%\\platforms");
+				string PlatformsDir = Environment.ExpandEnvironmentVariables("%NDKROOT%/platforms");
 				if (!Directory.Exists(PlatformsDir))
 				{
 					throw new BuildException("No platforms found in {0}", PlatformsDir);
@@ -195,17 +195,17 @@ namespace UnrealBuildTool
 			string GccVersion = "";
 
 			// prefer clang 3.5, but fall back if needed for now
-			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")))
+			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")))
 			{
 				ClangVersion = "3.5";
 				GccVersion = "4.9";
 			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")))
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")))
 			{
 				ClangVersion = "3.3";
 				GccVersion = "4.8";
 			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
 			{
 				ClangVersion = "3.1";
 				GccVersion = "4.6";
@@ -219,8 +219,10 @@ namespace UnrealBuildTool
 			// Console.WriteLine("Compiling with clang {0}", ClangVersionFloat);
 
             string ArchitecturePath = "";
-            string ArchitecturePathWindows32 = @"prebuilt\windows";
-            string ArchitecturePathWindows64 = @"prebuilt\windows-x86_64";
+            string ArchitecturePathWindows32 = @"prebuilt/windows";
+            string ArchitecturePathWindows64 = @"prebuilt/windows-x86_64";
+			string ArchitecturePathMac = @"prebuilt/darwin-x86_64";
+			string ExeExtension = ".exe";
 
             if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows64)))
             {
@@ -232,6 +234,12 @@ namespace UnrealBuildTool
                 Log.TraceVerbose("        Found Windows 32 bit versions of toolchain");
                 ArchitecturePath = ArchitecturePathWindows32;
             }
+			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathMac)))
+			{
+				Log.TraceVerbose("        Found Mac versions of toolchain");
+				ArchitecturePath = ArchitecturePathMac;
+				ExeExtension = "";
+			}
             else
             {
                 Log.TraceVerbose("        Did not find 32 bit or 64 bit versions of toolchain");
@@ -239,18 +247,18 @@ namespace UnrealBuildTool
             }
 
 			// set up the path to our toolchains
-			ClangPath = Path.Combine(NDKPath, @"toolchains\llvm-" + ClangVersion, ArchitecturePath, @"bin\clang++.exe");
-            ArPathArm = Path.Combine(NDKPath, @"toolchains\arm-linux-androideabi-" + GccVersion, ArchitecturePath, @"bin\arm-linux-androideabi-ar.exe");		//@todo android: use llvm-ar.exe instead?
-            ArPathx86 = Path.Combine(NDKPath, @"toolchains\x86-" + GccVersion, ArchitecturePath, @"bin\i686-linux-android-ar.exe");							//@todo android: verify x86 toolchain
+			ClangPath = Path.Combine(NDKPath, @"toolchains/llvm-" + ClangVersion, ArchitecturePath, @"bin/clang++" + ExeExtension);
+			ArPathArm = Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath, @"bin/arm-linux-androideabi-ar" + ExeExtension);		//@todo android: use llvm-ar.exe instead?
+			ArPathx86 = Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath, @"bin/i686-linux-android-ar" + ExeExtension);							//@todo android: verify x86 toolchain
 
 
 			// toolchain params
 			ToolchainParamsArm = " -target armv7-none-linux-androideabi" +
 								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm") + "\"" +
-                                   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains\arm-linux-androideabi-" + GccVersion, ArchitecturePath) + "\"";
+                                   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath) + "\"";
 			ToolchainParamsx86 = " -target i686-none-linux-android" +
 								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86") + "\"" +
-                                   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains\x86-" + GccVersion, ArchitecturePath) + "\"";
+                                   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath) + "\"";
 
 			// Register this tool chain
 			Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.Android.ToString());

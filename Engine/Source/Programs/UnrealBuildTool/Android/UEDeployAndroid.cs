@@ -72,7 +72,7 @@ namespace UnrealBuildTool.Android
 				if (Target == "latest")
 				{
 					// we expect there to be one, so use the first one
-					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
+					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
 
 					var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
 					ExeInfo.UseShellExecute = false;
@@ -108,7 +108,7 @@ namespace UnrealBuildTool.Android
 			string AntHome = Environment.GetEnvironmentVariable("ANT_HOME");
 			if (!string.IsNullOrEmpty(AntHome) && Directory.Exists(AntHome))
 			{
-				string AntPath = AntHome + "/bin/ant.bat";
+				string AntPath = AntHome + "/bin/ant" + (Utils.IsRunningOnMono ? "" : ".bat");
 				// use it if found
 				if (File.Exists(AntPath))
 				{
@@ -126,7 +126,7 @@ namespace UnrealBuildTool.Android
 				{
 					foreach (string PluginName in Plugins)
 					{
-						string AntPath = PluginName + "/bin/ant.bat";
+						string AntPath = PluginName + "/bin/ant" + (Utils.IsRunningOnMono ? "" : ".bat");
 						// use it if found
 						if (File.Exists(AntPath))
 						{
@@ -440,7 +440,7 @@ namespace UnrealBuildTool.Android
 			}
 			
 			// now update the project for each library
-			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
 			string UpdateCommandLine = "--silent update project --subprojects --name " + ProjectName + " --path . --target " + GetSdkApiLevel();
 			foreach (string Lib in LibsToBeAdded)
 			{
@@ -570,7 +570,7 @@ namespace UnrealBuildTool.Android
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
 			// cache some tools paths
-			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build.cmd");
+			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build" + (Utils.IsRunningOnMono ? "" : ".cmd"));
 
 			// set up some directory info
 			string IntermediateAndroidPath = Path.Combine(ProjectDirectory, "Intermediate/Android/");
@@ -793,7 +793,14 @@ namespace UnrealBuildTool.Android
 						}
 
 						// Use ant to build the .apk file
-						RunCommandLineProgramAndThrowOnError(UE4BuildPath, "cmd.exe", "/c \"" + GetAntPath() + "\" -quiet " + AntBuildType, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
+						if (Utils.IsRunningOnMono)
+						{
+							RunCommandLineProgramAndThrowOnError(UE4BuildPath, "/bin/sh", "-c '\"" + GetAntPath() + "\" -quiet " + AntBuildType + "'", "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
+						}
+						else
+						{
+							RunCommandLineProgramAndThrowOnError(UE4BuildPath, "cmd.exe", "/c \"" + GetAntPath() + "\" -quiet " + AntBuildType, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
+						}
 
 						// make sure destination exists
 						Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));

@@ -101,18 +101,24 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 	FPlatformMisc::GetEnvironmentVariable(TEXT("NDKROOT"), NDKROOT, MAX_PATH);
 
 	// make sure ANDROID_HOME points to the right thing
-	if (ANDROID_HOME[0] == 0 || 
+	if (ANDROID_HOME[0] == 0 ||
+#if PLATFORM_WINDOWS
 		IFileManager::Get().FileSize(*(FString(ANDROID_HOME) / TEXT("platform-tools/adb.exe"))) < 0)
+#else
+		IFileManager::Get().FileSize(*(FString(ANDROID_HOME) / TEXT("platform-tools/adb"))) < 0)
+#endif
 	{
 		return false;
 	}
 
+#if PLATFORM_WINDOWS
 	// make sure that JAVA_HOME points to the right thing
 	if (JAVA_HOME[0] == 0 ||
 		IFileManager::Get().FileSize(*(FString(JAVA_HOME) / TEXT("bin/javac.exe"))) < 0)
 	{
 		return false;
 	}
+#endif
 
 	// now look for ANT_HOME, or the ADT workaround of looking for a plugin
 	if (ANT_HOME[0] == 0)

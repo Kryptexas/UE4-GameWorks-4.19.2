@@ -74,9 +74,9 @@ namespace UnrealBuildTool
             NDKPath = NDKPath.Replace("\"", "");
 
             // need a supported llvm
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")) && 
-				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) &&
-				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
             {
                 return false;
             }
@@ -285,7 +285,7 @@ namespace UnrealBuildTool
 			NDKPath = NDKPath.Replace("\"", "");
 
 			string GccVersion = "4.8";
-			if (!Directory.Exists(Path.Combine(NDKPath, @"sources\cxx-stl\gnu-libstdc++\4.8")))
+			if (!Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
 			{
 				GccVersion = "4.6";
 			}

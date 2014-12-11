@@ -129,7 +129,11 @@ inline bool FAndroidTargetDevice::ExecuteAdbCommand( const FString& CommandLine,
 		return false;
 	}
 
+#if PLATFORM_WINDOWS
 	FString Filename = FString::Printf(TEXT("%s\\platform-tools\\adb.exe"), AndroidDirectory);
+#else
+	FString Filename = FString::Printf(TEXT("%s/platform-tools/adb"), AndroidDirectory);
+#endif
 
 	// execute the command
 	int32 ReturnCode;
