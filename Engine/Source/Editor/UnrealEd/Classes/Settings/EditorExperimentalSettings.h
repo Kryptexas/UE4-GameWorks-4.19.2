@@ -85,10 +85,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Enable Blueprint Merge Tool"))
 	bool bEnableBlueprintMergeTool;
 
-	/** Enables GetContent button in asset browser */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Get Feature Content (Requires content browser reopening)"))
-	bool bGetFeatureContent;
-
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

@@ -186,7 +186,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 							.ToolTipText(LOCTEXT("AddContentTooltip", "Get more content."))
 							.ContentPadding(0)
-							.Visibility(UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->bGetFeatureContent == false ? EVisibility::Collapsed : EVisibility::Visible)
+							.Visibility(EVisibility::Visible)
 							.OnClicked(this, &SContentBrowser::OnAddContentClicked)
 							[
 								SNew(SHorizontalBox)
