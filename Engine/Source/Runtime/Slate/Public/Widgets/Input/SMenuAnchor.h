@@ -136,5 +136,13 @@ protected:
 	/** Method currently being used to show the popup. No value if popup is closed. */
 	TOptional<EPopupMethod> MethodInUse;
 
+	/**
+	 * @todo Slate : Unify geometry so that this is not necessary.
+	 * Stores the local offset of the popup as we have to compute it in OnTick;
+	 * Cannot compute in OnArrangeChildren() because it can be
+	 * called in different spaces (window or desktop.)
+	 */
+	FVector2D LocalPopupPosition;
+
 	TPanelChildren<FSimpleSlot> Children;
 };
