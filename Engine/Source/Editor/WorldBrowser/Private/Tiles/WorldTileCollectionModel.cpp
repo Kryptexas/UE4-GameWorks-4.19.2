@@ -1878,7 +1878,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		LODPackage->Modify();
 		// This is a hack to avoid save file dialog when we will be saving LOD map package
 		LODPackage->FileName = FName(*LODLevelFileName);
-				
+
 		// This is current actors offset from their original position
 		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - GetWorldOriginLocationXY(GetWorld()));
 		if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
@@ -1890,6 +1890,13 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		TArray<FTransform>			AssetsToSpawnTransform;
 		TArray<AActor*>				Actors;
 		TArray<ALandscapeProxy*>	LandscapeActors;
+		TArray<UObject*>			GeneratedAssets;
+		
+		// Where generated assets will be stored
+		UPackage* AssetsOuter = SimplificationDetails.bCreatePackagePerAsset ? nullptr : LODPackage;
+		// In case we don't have outer generated assets should have same path as LOD level
+		const FString AssetsPath = AssetsOuter ? TEXT("") : FPackageName::GetLongPackagePath(LODLevelPackageName) + TEXT("/");
+		
 		// Separate landscape actors from all others
 		for (AActor* Actor : TileModel->GetLevelObject()->Actors)
 		{
@@ -1918,7 +1925,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			FVector OutProxyLocation;
 			FString ProxyPackageName = TEXT("PROXY_") + FPackageName::GetShortName(TileModel->TileDetails->PackageName);
 			// Generate proxy mesh and proxy material assets
-			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, LODPackage, ProxyPackageName, OutAssets, OutProxyLocation);
+			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, OutAssets, OutProxyLocation);
 		
 			if (OutAssets.Num())
 			{
@@ -1928,6 +1935,8 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 					AssetsToSpawn.Add(ProxyMesh);
 					AssetsToSpawnTransform.Add(FTransform(OutProxyLocation - ActorsOffset));
 				}
+
+				GeneratedAssets.Append(OutAssets);
 			}
 		}
 
@@ -1967,7 +1976,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				}
 			}
 								
-			// This is texture resolution for a landscape, probably needs to be calculated using landscape size
+			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
 			const FIntPoint LandscapeTextureSize(1024, 1024);
 			LandscapeFlattenMaterial.DiffuseSize	= LandscapeTextureSize;
 			LandscapeFlattenMaterial.NormalSize		= SimplificationDetails.bGenerateLandscapeNormalMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
@@ -1980,14 +1989,22 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			FString LandscapeBaseAssetName = Landscape->GetName();
 			// Construct landscape material
 			UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
-				LandscapeFlattenMaterial, LODPackage, *LandscapeBaseAssetName, RF_Public|RF_Standalone);
+				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public|RF_Standalone, GeneratedAssets);
 			// Currently landscape exports world space normal map
 			StaticLandscapeMaterial->bTangentSpaceNormal = false;
 			StaticLandscapeMaterial->PostEditChange();
 	
 			// Construct landscape static mesh
 			FString LandscapeMeshAssetName = TEXT("SM_") + LandscapeBaseAssetName;
-			UStaticMesh* StaticMesh = new(LODPackage, *LandscapeMeshAssetName, RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
+			UPackage* MeshOuter = AssetsOuter;
+			if (MeshOuter == nullptr)
+			{
+				MeshOuter = CreatePackage(nullptr, *(AssetsPath + LandscapeMeshAssetName));
+				MeshOuter->FullyLoad();
+				MeshOuter->Modify();
+			}
+					
+			UStaticMesh* StaticMesh = new(MeshOuter, *LandscapeMeshAssetName, RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 			StaticMesh->InitResources();
 			{
 				FString OutputPath = StaticMesh->GetPathName();
@@ -2014,6 +2031,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				StaticMesh->PostEditChange();
 			}
 
+			GeneratedAssets.Add(StaticMesh);
 			AssetsToSpawn.Add(StaticMesh);
 			AssetsToSpawnTransform.Add(FTransform(LandscapeWorldLocation - ActorsOffset));
 
@@ -2027,9 +2045,30 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
 		}
 	
-		// Create new level and spawn generated assets in it
 		if (AssetsToSpawn.Num())
 		{
+			// Save generated assets
+			if (SimplificationDetails.bCreatePackagePerAsset && GeneratedAssets.Num())
+			{							
+				const bool bCheckDirty = false;
+				const bool bPromptToSave = false;
+				TArray<UPackage*> PackagesToSave;
+
+				for (UObject* Asset : GeneratedAssets)
+				{
+					FAssetRegistryModule::AssetCreated(Asset);
+					Editor->BroadcastObjectReimported(Asset);
+					PackagesToSave.Add(Asset->GetOutermost());
+				}
+								
+				FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+
+				// Also notify the content browser that the new assets exists
+				//FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+				//ContentBrowserModule.Get().SyncBrowserToAssets(GeneratedAssets, true);
+			}
+			
+			// Create new level and spawn generated assets in it
 			UWorld* LODWorld = UWorld::FindWorldInPackage(LODPackage);
 			if (LODWorld)
 			{
@@ -2054,6 +2093,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			if (FEditorFileUtils::PromptToCheckoutLevels(false, LODWorld->PersistentLevel))
 			{
 				FEditorFileUtils::SaveLevel(LODWorld->PersistentLevel, *LODLevelFileName);
+				FAssetRegistryModule::AssetCreated(LODWorld->PersistentLevel);
 			}
 			
 			// Destroy the new world we created and collect the garbage

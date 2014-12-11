@@ -602,7 +602,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 	{
 		GWarn->BeginSlowTask( LOCTEXT("MeshProxy_CreatingProxy", "Creating Mesh Proxy"), true);
 		GEditor->BeginTransaction( LOCTEXT( "MeshProxy_Create", "Creating Mesh Proxy" ) );
-
+		
 		FVector ProxyLocation = FVector::ZeroVector;
 		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, AssetsToSync, ProxyLocation);
 
@@ -694,6 +694,11 @@ FText SMeshProxyDialog::GetProxyPackagName() const
 void SMeshProxyDialog::OnPackageNameTextCommited(const FText& InText, ETextCommit::Type InCommitType)
 {
 	ProxyPackageName = InText.ToString();
+
+	if (FPackageName::IsShortPackageName(ProxyPackageName))
+	{
+		ProxyPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) + ProxyPackageName;
+	}
 }
 
 FReply SMeshProxyDialog::OnSelectPackageNameClicked()

@@ -2849,11 +2849,18 @@ namespace MaterialExportUtils
 		return Texture;
 	}
 
-	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags)
+	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets)
 	{
+		// Base name for a new assets
+		// In case outer is null BaseName has to be long package name
+		if (Outer == nullptr && FPackageName::IsShortPackageName(BaseName))
+		{
+			UE_LOG(LogEditorExporters, Warning, TEXT("Invalid long package name: '%s'."), *BaseName);
+			return nullptr;
+		}
+
 		const FString AssetBaseName = FPackageName::GetShortName(BaseName);
-		const FString AssetBasePath = FPackageName::IsShortPackageName(BaseName) ? 
-			FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) : (FPackageName::GetLongPackagePath(BaseName) + TEXT("/"));
+		const FString AssetBasePath = Outer ? TEXT("") : FPackageName::GetLongPackagePath(BaseName) + TEXT("/");
 				
 		// Create material
 		const FString MaterialAssetName = TEXT("M_") + AssetBaseName;
@@ -2868,6 +2875,7 @@ namespace MaterialExportUtils
 		UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), MaterialOuter, FName(*MaterialAssetName), Flags);
 		Material->TwoSided = false;
 		Material->SetShadingModel(MSM_DefaultLit);
+		OutGeneratedAssets.Add(Material);
 
 		int32 MaterialNodeY = -150;
 		int32 MaterialNodeStepY = 180;
@@ -2879,6 +2887,7 @@ namespace MaterialExportUtils
 			const FString AssetLongName = AssetBasePath + AssetName;
 			const bool bSRGB = true;
 			UTexture2D* Texture = CreateTexture(Outer, AssetLongName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
 			
 			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			BasecolorExpression->Texture = Texture;
@@ -2892,12 +2901,12 @@ namespace MaterialExportUtils
 		}
 
 		// Metallic
-		if (InFlattenMaterial.RoughnessSamples.Num() > 1)
+		if (InFlattenMaterial.MetallicSamples.Num() > 1)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_M");
-			const FString AssetLongName = AssetBasePath + AssetName;
 			const bool bSRGB = false;
-			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
 			
 			UMaterialExpressionTextureSample* MetallicExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			MetallicExpression->Texture = Texture;
@@ -2927,9 +2936,9 @@ namespace MaterialExportUtils
 		if (InFlattenMaterial.SpecularSamples.Num() > 1)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
-			const FString AssetLongName = AssetBasePath + AssetName;
 			const bool bSRGB = false;
-			UTexture2D* Texture = CreateTexture(Outer, AssetLongName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
 			
 			UMaterialExpressionTextureSample* SpecularExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			SpecularExpression->Texture = Texture;
@@ -2946,9 +2955,9 @@ namespace MaterialExportUtils
 		if (InFlattenMaterial.RoughnessSamples.Num() > 1)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
-			const FString AssetLongName = AssetBasePath + AssetName;
 			const bool bSRGB = false;
-			UTexture2D* Texture = CreateTexture(Outer, AssetLongName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
 			
 			UMaterialExpressionTextureSample* RoughnessExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			RoughnessExpression->Texture = Texture;
@@ -2978,9 +2987,9 @@ namespace MaterialExportUtils
 		if (InFlattenMaterial.NormalSamples.Num() > 1)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
-			const FString AssetLongName = AssetBasePath + AssetName;
 			const bool bSRGB = false;
-			UTexture2D* Texture = CreateTexture(Outer, AssetLongName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
 			
 			UMaterialExpressionTextureSample* NormalExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			NormalExpression->Texture = Texture;

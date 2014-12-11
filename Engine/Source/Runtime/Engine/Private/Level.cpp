@@ -177,6 +177,7 @@ bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails
 {
 	return
 		DetailsPercentage == Other.DetailsPercentage &&
+		bCreatePackagePerAsset == Other.bCreatePackagePerAsset &&
 		LandscapeExportLOD == Other.LandscapeExportLOD &&
 		bGenerateLandscapeNormalMap == Other.bGenerateLandscapeNormalMap &&
 		bGenerateLandscapeMetallicMap == Other.bGenerateLandscapeMetallicMap &&
