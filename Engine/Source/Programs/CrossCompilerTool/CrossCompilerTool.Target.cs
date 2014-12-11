@@ -55,5 +55,7 @@ public class CrossCompilerToolTarget : TargetRules
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
+
+		//UEBuildConfiguration.bCompileWithStatsWithoutEngine = true;
 	}
 }

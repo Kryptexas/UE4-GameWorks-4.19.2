@@ -87,7 +87,7 @@ namespace CCT
 					}
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s!"), Count++, *File);
 
-					if (!CrossCompiler::Parser::Parse(HLSLShader, File))
+					if (!CrossCompiler::Parser::Parse(HLSLShader, File, false))
 					{
 						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *File);
 						return 1;
@@ -98,11 +98,13 @@ namespace CCT
 			{
 				if (RunInfo.bRunCPP)
 				{
+					//GMalloc->DumpAllocatorStats(*FGenericPlatformOutputDevices::GetLog());
 					if (!Preprocess(RunInfo.InputFile, HLSLShaderSource))
 					{
 						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error during preprocessor on '%s'!"), *RunInfo.InputFile);
 						return 1;
 					}
+					//GMalloc->DumpAllocatorStats(*FGenericPlatformOutputDevices::GetLog());
 				}
 				else
 				{
@@ -118,7 +120,7 @@ namespace CCT
 					return 0;
 				}
 
-				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile))
+				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile, true))
 				{
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);
 					return 1;
@@ -199,5 +201,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		return 1;
 	}
 
-	return CCT::Run(RunInfo);
+	int32 Value = CCT::Run(RunInfo);
+	//FGenericPlatformOutputDevices::GetLog()->Flush();
+	return Value;
 }

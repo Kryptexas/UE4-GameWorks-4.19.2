@@ -66,6 +66,7 @@ namespace CrossCompiler
 		Case,
 		Break,
 		Default,
+		Continue,
 		Goto,
 
 		// Unary
@@ -244,6 +245,7 @@ namespace CrossCompiler
 		UnsignedIntegerConstant,
 		FloatConstant,
 		BoolConstant,
+		StringConstant,	// C-style "string"
 	};
 
 	struct FSourceInfo

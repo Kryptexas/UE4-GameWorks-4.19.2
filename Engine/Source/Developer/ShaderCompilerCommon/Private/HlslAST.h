@@ -8,8 +8,190 @@
 
 #include "HlslLexer.h"
 
+#define USE_UNREAL_ALLOCATOR 0
+
 namespace CrossCompiler
 {
+	struct FLinearAllocator
+	{
+		static const int PageSize = 1024* 1024;
+
+		FLinearAllocator()
+		{
+			auto* Initial = new FPage(PageSize);
+			Pages.Add(Initial);
+		}
+
+		~FLinearAllocator()
+		{
+			for (auto* Page : Pages)
+			{
+				delete Page;
+			}
+		}
+
+		inline void* Alloc(SIZE_T NumBytes)
+		{
+			check(NumBytes <= PageSize);
+			auto* Page = Pages.Last();
+			if (Page->Current + NumBytes > Page->End)
+			{
+				Page = new FPage(PageSize);
+				Pages.Add(Page);
+			}
+
+			void* Ptr = Page->Current;
+			Page->Current += NumBytes;
+			return Ptr;
+		}
+
+		inline void* Alloc(SIZE_T NumBytes, SIZE_T Align)
+		{
+			void* Data = Alloc(NumBytes + Align - 1);
+			UPTRINT Address = (UPTRINT)Data;
+			Address += (Align - (Address % (UPTRINT)Align)) % Align;
+			return (void*)Address;
+		}
+
+		inline TCHAR* Strdup(const TCHAR* String)
+		{
+			if (!String)
+			{
+				return nullptr;
+			}
+
+			auto* Data = (TCHAR*)Alloc(FCString::Strlen(String) + 1);
+			FCString::Strcpy(Data, FCString::Strlen(String) + 1, String);
+			return Data;
+		}
+
+		inline TCHAR* Strdup(const FString& String)
+		{
+			auto* Data = (TCHAR*)Alloc(String.Len() + 1);
+			FCString::Strcpy(Data, String.Len() + 1, *String);
+			return Data;
+		}
+
+		struct FPage
+		{
+			char* Current;
+			char* Begin;
+			char* End;
+
+			FPage(SIZE_T Size)
+			{
+				Begin = new char[Size];
+				End = Begin + Size;
+				Current = Begin;
+			}
+
+			~FPage()
+			{
+				delete [] Begin;
+			}
+		};
+		TArray<FPage*> Pages;
+	};
+
+#if !USE_UNREAL_ALLOCATOR
+	class FLinearAllocatorPolicy
+	{
+	public:
+		// Unreal allocator magic
+		enum { NeedsElementType = false };
+		enum { RequireRangeCheck = true };
+
+		template<typename ElementType>
+		class ForElementType
+		{
+		public:
+
+			/** Default constructor. */
+			ForElementType() :
+				LinearAllocator(nullptr),
+				Data(nullptr)
+			{}
+
+			// FContainerAllocatorInterface
+			/*FORCEINLINE*/ ElementType* GetAllocation() const
+			{
+				return Data;
+			}
+			void ResizeAllocation(int32 PreviousNumElements, int32 NumElements, int32 NumBytesPerElement)
+			{
+				void* OldData = Data;
+				if (NumElements)
+				{
+					// Allocate memory from the stack.
+					Data = (ElementType*)LinearAllocator->Alloc(NumElements * NumBytesPerElement,
+						FMath::Max((uint32)sizeof(void*), (uint32)ALIGNOF(ElementType))
+						);
+
+					// If the container previously held elements, copy them into the new allocation.
+					if (OldData && PreviousNumElements)
+					{
+						const int32 NumCopiedElements = FMath::Min(NumElements, PreviousNumElements);
+						FMemory::Memcpy(Data, OldData, NumCopiedElements * NumBytesPerElement);
+					}
+				}
+			}
+			int32 CalculateSlack(int32 NumElements, int32 NumAllocatedElements, int32 NumBytesPerElement) const
+			{
+				return DefaultCalculateSlack(NumElements, NumAllocatedElements, NumBytesPerElement);
+			}
+
+			int32 GetAllocatedSize(int32 NumAllocatedElements, int32 NumBytesPerElement) const
+			{
+				return NumAllocatedElements * NumBytesPerElement;
+			}
+
+			FLinearAllocator* LinearAllocator;
+
+		private:
+
+			/** A pointer to the container's elements. */
+			ElementType* Data;
+		};
+
+		typedef ForElementType<FScriptContainerElement> ForAnyElementType;
+	};
+
+	class FLinearBitArrayAllocator
+		: public TInlineAllocator<4, FLinearAllocatorPolicy>
+	{
+	};
+
+	class FLinearSparseArrayAllocator
+		: public TSparseArrayAllocator<FLinearAllocatorPolicy, FLinearBitArrayAllocator>
+	{
+	};
+
+	class FLinearSetAllocator
+		: public TSetAllocator<FLinearSparseArrayAllocator, TInlineAllocator<1, FLinearAllocatorPolicy> >
+	{
+	};
+
+	template <typename TType>
+	class TLinearArray : public TArray<TType, FLinearAllocatorPolicy>
+	{
+	public:
+		TLinearArray(FLinearAllocator* Allocator)
+		{
+			TArray<TType, FLinearAllocatorPolicy>::AllocatorInstance.LinearAllocator = Allocator;
+		}
+	};
+
+/*
+	template <typename TType>
+	struct TLinearSet : public TSet<typename TType, DefaultKeyFuncs<typename TType>, FLinearSetAllocator>
+	{
+		TLinearSet(FLinearAllocator* InAllocator)
+		{
+			Elements.AllocatorInstance.LinearAllocator = InAllocator;
+		}
+	};*/
+#endif
+
 	namespace AST
 	{
 		class FNode
@@ -17,9 +199,42 @@ namespace CrossCompiler
 		public:
 			FSourceInfo SourceInfo;
 
+			TLinearArray<struct FAttribute*> Attributes;
+
+			virtual void Dump(int32 Indent) const = 0;
+
+			/* Callers of this ralloc-based new need not call delete. It's
+			* easier to just ralloc_free 'ctx' (or any of its ancestors). */
+			static void* operator new(SIZE_T Size, FLinearAllocator* Allocator)
+			{
+#if USE_UNREAL_ALLOCATOR
+				return FMemory::Malloc(Size);
+#else
+				auto* Ptr = Allocator->Alloc(Size);
+				return Ptr;
+#endif
+			}
+
+			/* If the user *does* call delete, that's OK, we will just
+			* ralloc_free in that case. */
+			static void operator delete(void* Pointer)
+			{
+#if USE_UNREAL_ALLOCATOR
+				FMemory::Free(Pointer);
+#else
+				// Do nothing...
+#endif
+			}
+
+			virtual ~FNode() {}
+
 		protected:
-			FNode();
-			FNode(const FSourceInfo& InInfo);
+			//FNode();
+			FNode(FLinearAllocator* Allocator, const FSourceInfo& InInfo);
+
+			static void DumpIndent(int32 Indent);
+
+			void DumpAttributes() const;
 		};
 
 		/**
@@ -67,13 +282,13 @@ namespace CrossCompiler
 
 			PreInc,
 			PreDec,
-			//Post_inc,
-			//Post_dec,
-			//Field_selection,
-			//Array_index,
+			PostInc,
+			PostDec,
+			FieldSelection,
+			ArrayIndex,
 
-			//Function_call,
-			//Initializer_list,
+			FunctionCall,
+			InitializerList,
 
 			Identifier,
 			//Int_constant,
@@ -83,7 +298,7 @@ namespace CrossCompiler
 
 			//Sequence,
 
-			//Type_cast,
+			TypeCast,
 		};
 
 		inline EOperators TokenToASTOperator(EHlslToken Token)
@@ -190,7 +405,8 @@ namespace CrossCompiler
 
 		struct FExpression : public FNode
 		{
-			FExpression(EOperators InOperator, FExpression* E0, FExpression* E1, FExpression* E2, const FSourceInfo& InInfo);
+			FExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, FExpression* E2, const FSourceInfo& InInfo);
+			~FExpression();
 
 			EOperators Operator;
 			FExpression* SubExpressions[3];
@@ -200,211 +416,354 @@ namespace CrossCompiler
 				uint32 UintConstant;
 				float FloatConstant;
 				bool BoolConstant;
+				struct FTypeSpecifier* TypeSpecifier;
 			};
-			FString Identifier;
+			const TCHAR* Identifier;
+
+			TLinearArray<FExpression*> Expressions;
+
+			void DumpOperator() const;
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FUnaryExpression : public FExpression
 		{
-			FUnaryExpression(EOperators InOperator, FExpression* Expr, const FSourceInfo& InInfo);
+			FUnaryExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* Expr, const FSourceInfo& InInfo);
+
+			virtual void Dump(int32 Indent) const;
 		};
 
 		struct FBinaryExpression : public FExpression
 		{
-			FBinaryExpression(EOperators InOperator, FExpression* E0, FExpression* E1, const FSourceInfo& InInfo);
-		};
-/*
-		class FFunctionExpression : public FExpression
-		{
-		public:
-		private:
+			FBinaryExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, const FSourceInfo& InInfo);
+
+			virtual void Dump(int32 Indent) const;
 		};
 
-		class FInitializerListExpression : public FExpression
+		struct FFunctionExpression : public FExpression
 		{
-		public:
-		private:
+			FFunctionExpression(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, FExpression* Callee);
+
+			virtual void Dump(int32 Indent) const;
 		};
 
-		class FCompoundStatement : public FNode
+		struct FInitializerListExpression : public FExpression
 		{
-		public:
-		private:
+			FInitializerListExpression(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+
+			virtual void Dump(int32 Indent) const;
 		};
 
-		class FDeclaration : public FNode
+		struct FCompoundStatement : public FNode
 		{
-		public:
-		private:
+			FCompoundStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FCompoundStatement();
+
+			TLinearArray<FNode*> Statements;
+
+			virtual void Dump(int32 Indent) const;
 		};
 
-		class FStructSpecifier : public FNode
+		struct FDeclaration : public FNode
 		{
-		public:
-		private:
+			FDeclaration(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FDeclaration();
+
+			virtual void Dump(int32 Indent) const;
+
+			const TCHAR* Identifier;
+
+			const TCHAR* Semantic;
+
+			bool bIsArray;
+			//bool bIsUnsizedArray;
+
+			TLinearArray<FExpression*> ArraySize;
+
+			FExpression* Initializer;
 		};
 
-		class FCBufferDeclaration : public FNode
+		struct FTypeQualifier
 		{
-		public:
-		private:
+			union
+			{
+				struct
+				{
+					uint32 bIsStatic : 1;
+					uint32 bConstant : 1;
+					uint32 bIn : 1;
+					uint32 bOut : 1;
+					uint32 bRowMajor : 1;
+					uint32 bShared : 1;
+				};
+				uint32 Raw;
+			};
+
+			FTypeQualifier();
+
+			void Dump() const;
 		};
 
-		class FTypeSpecifier : public FNode
+		struct FStructSpecifier : public FNode
 		{
-		public:
-		private:
+			FStructSpecifier(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FStructSpecifier();
+
+			virtual void Dump(int32 Indent) const;
+
+			TCHAR* Name;
+			TCHAR* ParentName;
+			TLinearArray<FNode*> Declarations;
 		};
 
-		class FFullySpecifiedType : public FNode
+		struct FCBufferDeclaration : public FNode
 		{
-		public:
-		private:
+			FCBufferDeclaration(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FCBufferDeclaration();
+
+			virtual void Dump(int32 Indent) const;
+
+			const TCHAR* Name;
+			TLinearArray<FNode*> Declarations;
 		};
 
-		class FDeclaratorList : public FNode
+		struct FTypeSpecifier : public FNode
 		{
-		public:
-		private:
+			FTypeSpecifier(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FTypeSpecifier();
+
+			virtual void Dump(int32 Indent) const;
+
+			const TCHAR* TypeName;
+			const TCHAR* InnerType;
+
+			FStructSpecifier* Structure;
+
+			int32 TextureMSNumSamples;
+
+			int32 PatchSize;
+
+			bool bIsArray;
+			//bool bIsUnsizedArray;
+			FExpression* ArraySize;
 		};
 
-		class FParameterDeclarator : public FNode
+		struct FFullySpecifiedType : public FNode
 		{
-		public:
-		private:
+			FFullySpecifiedType(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FFullySpecifiedType();
+
+			virtual void Dump(int32 Indent) const;
+
+			FTypeQualifier Qualifier;
+			FTypeSpecifier* Specifier;
 		};
 
-		class FFunction : public FNode
+		struct FDeclaratorList : public FNode
 		{
-		public:
-		private:
+			FDeclaratorList(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FDeclaratorList();
+
+			virtual void Dump(int32 Indent) const;
+
+			FFullySpecifiedType* Type;
+			TLinearArray<FNode*> Declarations;
 		};
 
-		class FExpressionStatement : public FNode
+		struct FParameterDeclarator : public FNode
 		{
-		public:
-		private:
+			FParameterDeclarator(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FParameterDeclarator();
+
+			static FParameterDeclarator* CreateFromDeclaratorList(FDeclaratorList* List, FLinearAllocator* Allocator);
+
+			virtual void Dump(int32 Indent) const;
+
+			FFullySpecifiedType* Type;
+			const TCHAR* Identifier;
+			const TCHAR* Semantic;
+			bool bIsArray;
+
+			TLinearArray<FExpression*> ArraySize;
+			FExpression* DefaultValue;
 		};
 
-		class FCaseLabel : public FNode
+		struct FFunction : public FNode
 		{
-		public:
-		private:
+			FFunction(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FFunction();
+
+			virtual void Dump(int32 Indent) const;
+
+			FFullySpecifiedType* ReturnType;
+			const TCHAR* Identifier;
+			const TCHAR* ReturnSemantic;
+
+			TLinearArray<FNode*> Parameters;
+
+			bool bIsDefinition;
+
+			//Signature
 		};
 
-		class FCaseLabelList : public FNode
+		struct FExpressionStatement : public FNode
 		{
-		public:
-		private:
-		};
+			FExpressionStatement(FLinearAllocator* InAllocator, FExpression* InExpr, const FSourceInfo& InInfo);
+			~FExpressionStatement();
 
-		class FCaseLabelStatement : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FCaseLabelStatementList : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FSwitchBody : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FSelectionStatement : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FSwitchStatement : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FIterationStatement : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FJumpStatement : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FFunctionDefinition : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FAttributeArgument : public FNode
-		{
-		public:
-		private:
-		};
-
-		class FAttribute : public FNode
-		{
-		public:
-		private:
-		};
-*/
-	/*
-		union UASTUnion
-		{
-			int n;
-			float real;
-			const char *identifier;
-			const char *string_literal;
-
-			struct ast_type_qualifier type_qualifier;
-
-			ast_node *node;
-			ast_type_specifier *type_specifier;
-			ast_fully_specified_type *fully_specified_type;
-			ast_function *function;
-			ast_parameter_declarator *parameter_declarator;
-			ast_function_definition *function_definition;
-			ast_compound_statement *compound_statement;
-			*/
-
-/*
 			FExpression* Expression;
-*/
-/*
-			ast_declarator_list *declarator_list;
-			ast_struct_specifier *struct_specifier;
-			ast_declaration *declaration;
-			ast_switch_body *switch_body;
-			ast_case_label *case_label;
-			ast_case_label_list *case_label_list;
-			ast_case_statement *case_statement;
-			ast_case_statement_list *case_statement_list;
 
-			struct
-			{
-				ast_node *cond;
-				ast_expression *rest;
-			} for_rest_statement;
-
-			struct
-			{
-				ast_node *then_statement;
-				ast_node *else_statement;
-			} selection_rest_statement;
-
-			ast_attribute* attribute;
-			ast_attribute_arg* attribute_arg;
+			virtual void Dump(int32 Indent) const;
 		};
-	*/
+
+		struct FCaseLabel : public FNode
+		{
+			FCaseLabel(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, AST::FExpression* InExpression);
+			~FCaseLabel();
+
+			virtual void Dump(int32 Indent) const;
+
+			FExpression* TestExpression;
+		};
+
+		struct FCaseLabelList : public FNode
+		{
+			FCaseLabelList(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FCaseLabelList();
+
+			virtual void Dump(int32 Indent) const;
+
+			TLinearArray<FCaseLabel*> Labels;
+		};
+
+		struct FCaseStatement : public FNode
+		{
+			FCaseStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, FCaseLabelList* InLabels);
+			~FCaseStatement();
+
+			virtual void Dump(int32 Indent) const;
+
+			FCaseLabelList* Labels;
+			TLinearArray<FNode*> Statements;
+		};
+
+		struct FCaseStatementList : public FNode
+		{
+			FCaseStatementList(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FCaseStatementList();
+
+			virtual void Dump(int32 Indent) const;
+
+			TLinearArray<FCaseStatement*> Cases;
+		};
+
+		struct FSwitchBody : public FNode
+		{
+			FSwitchBody(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FSwitchBody();
+
+			virtual void Dump(int32 Indent) const;
+
+			FCaseStatementList* CaseList;
+		};
+
+		struct FSelectionStatement : public FNode
+		{
+			FSelectionStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FSelectionStatement();
+
+			virtual void Dump(int32 Indent) const;
+
+			FExpression* Condition;
+
+			FNode* ThenStatement;
+			FNode* ElseStatement;
+		};
+
+		struct FSwitchStatement : public FNode
+		{
+			FSwitchStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, FExpression* InCondition, FSwitchBody* InBody);
+			~FSwitchStatement();
+
+			virtual void Dump(int32 Indent) const;
+
+			FExpression* Condition;
+			FSwitchBody* Body;
+		};
+
+		enum class EIterationType
+		{
+			For,
+			While,
+			DoWhile,
+		};
+
+		struct FIterationStatement : public FNode
+		{
+			FIterationStatement(FLinearAllocator* InAllocator, const FSourceInfo& InInfo, EIterationType InType);
+			~FIterationStatement();
+
+			virtual void Dump(int32 Indent) const;
+
+			EIterationType Type;
+
+			AST::FNode* InitStatement;
+			AST::FNode* Condition;
+			FExpression* RestExpression;
+
+			AST::FNode* Body;
+		};
+
+		enum class EJumpType
+		{
+			Continue,
+			Break,
+			Return,
+			//Discard,
+		};
+
+		struct FJumpStatement : public FNode
+		{
+			FJumpStatement(FLinearAllocator* InAllocator, EJumpType InType, const FSourceInfo& InInfo);
+			~FJumpStatement();
+
+			EJumpType Type;
+			FExpression* OptionalExpression;
+
+			virtual void Dump(int32 Indent) const;
+		};
+
+		struct FFunctionDefinition : public FNode
+		{
+			FFunctionDefinition(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FFunctionDefinition();
+
+			FFunction* Prototype;
+			FCompoundStatement* Body;
+
+			virtual void Dump(int32 Indent) const;
+		};
+
+		struct FAttributeArgument : public FNode
+		{
+			FAttributeArgument(FLinearAllocator* InAllocator, const FSourceInfo& InInfo);
+			~FAttributeArgument();
+
+			virtual void Dump(int32 Indent) const;
+
+			const TCHAR* StringArgument;
+			FExpression* ExpressionArgument;
+		};
+
+		struct FAttribute : public FNode
+		{
+			FAttribute(FLinearAllocator* Allocator, const FSourceInfo& InInfo, const TCHAR* InName);
+			~FAttribute();
+
+			virtual void Dump(int32 Indent) const;
+
+			const TCHAR* Name;
+			TLinearArray<FAttributeArgument*> Arguments;
+		};
 	}
 }
