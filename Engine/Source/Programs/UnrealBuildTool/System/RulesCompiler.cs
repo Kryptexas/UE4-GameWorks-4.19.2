@@ -870,8 +870,78 @@ namespace UnrealBuildTool
 		}
 	}
 
+	/// <summary>
+	/// PluginRules contains the rules allowing plugins to hook UBT functionality
+	/// </summary>
+	public abstract class PluginRules
+	{
+		/// <summary>
+		/// Fully qualified type name of the staging rules for this plugin
+		/// </summary>
+		public virtual string StagingRulesTypeName { get { return null; } }
 
-	public class RulesCompiler
+		/// <summary>
+		/// Hook called when determining if generated headers are out of date, allows plugins (mostly script integration ones)
+		/// to customize UHT dependency checking
+		/// </summary>
+		/// <param name="Target">Target being built</param>
+		/// <param name="LastUHTRunTime">Timestamp of last UHT run</param>
+		/// <returns>true UHT products are out of date, false they are not out of date</returns>
+		public virtual bool AreUHTGeneratedFilesOutOfDate(UEBuildTarget Target, DateTime LastUHTRunTime)
+		{
+			return false;
+		}
+
+		/// <summary>
+		/// Hook called after a target has set up its build items
+		/// </summary>
+		/// <param name="Target">Target being built</param>
+		/// <param name="OutputItems">Build items produced by this action</param>
+		/// <returns>Did the plugin succeed in performing its post-build processing?</returns>
+		public virtual ECompilationResult PostBuildTarget(UEBuildTarget Target, List<FileItem> OutputItems)
+		{
+			return ECompilationResult.Succeeded;
+		}
+
+		/// <summary>
+		/// Callback before custom project generation begins. Allows plugin rules to clear any stored state
+		/// </summary>
+		/// <param name="Projects">Game projects that are being generated</param>
+		public virtual void PreGenerateCustomProjects(IEnumerable<UProjectInfo> Projects)
+		{
+
+		}
+		/// <summary>
+		/// Allow plugin to add custom generated projects
+		/// </summary>
+		/// <param name="Generator">Project file generator</param>
+		/// <param name="Project">Game project</param>
+		public virtual void AddCustomGeneratedProjects(ProjectFileGenerator Generator, UProjectInfo Project)
+		{
+
+		}
+
+		/// <summary>
+		/// Callback after project file(s) have been written for a game project
+		/// </summary>
+		/// <param name="Generator">Project file generator</param>
+		/// <param name="Project">Game project</param>
+		public virtual void PostWriteProject(ProjectFileGenerator Generator, UProjectInfo Project)
+		{
+
+		}
+
+		/// <summary>
+		/// Callback after master project file has been written
+		/// </summary>
+		/// <param name="Generator">Project file generator</param>
+		public virtual void PostWriteMasterProject(ProjectFileGenerator Generator)
+		{
+
+		}
+	}
+
+    public class RulesCompiler
 	{
 		/// <summary>
 		/// Helper class to avoid adding extra conditions when getting file extensions and suffixes for
@@ -904,7 +974,11 @@ namespace UnrealBuildTool
 
 			/// *.Automation.csproj files
 			[RulesTypeProperties(Suffix: "Automation", Extension: ".csproj")]
-			AutomationModule
+			AutomationModule,
+
+			/// *.Plugin.cs files
+			[RulesTypeProperties(Suffix: "Plugin", Extension: ".cs")]
+			Plugin
 		}
 
 		class RulesFileCache
@@ -1113,10 +1187,26 @@ namespace UnrealBuildTool
 		/// Maps target names to their actual xxx.Target.cs file on disk
 		private static Dictionary<string, string> TargetNameToTargetFileMap = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
 
+		///  Maps plugin names to their actual xxx.Plugin.cs file on disk
+		private static Dictionary<string, string> PluginNameToPluginFileMap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+
 		/// Map of assembly names we've already compiled and loaded to their list of game folders.  This is used to prevent
 		/// trying to recompile the same assembly when ping-ponging between different types of targets
 		private static Dictionary<Assembly, List<string>> LoadedAssemblyMap = new Dictionary<Assembly, List<string>>();
 
+		///  Helper to initialize a name to file map
+		private static void InitializeNameToRulesFileMap(Dictionary<string, string> FileMap, IEnumerable<string> FileNames)
+		{
+			foreach (var CurFileName in FileNames)
+			{
+				var CleanFileName = Utils.CleanDirectorySeparators(CurFileName);
+				var Name = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(CleanFileName));	// Strip both extensions
+				if (!FileMap.ContainsKey(Name))
+				{
+					FileMap.Add(Name, CurFileName);
+				}
+			}
+		}
 
 		private static void ConditionallyCompileAndLoadRulesAssembly()
 		{
@@ -1205,36 +1295,32 @@ namespace UnrealBuildTool
 				var TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, AdditionalSearchPaths);
 				AssemblySourceFiles.AddRange( TargetFileNames );
 
+				var PluginFileNames = FindAllRulesSourceFiles(RulesFileType.Plugin, AdditionalSearchPaths);
+				AssemblySourceFiles.AddRange(PluginFileNames);
+
 				// Create a path to the assembly that we'll either load or compile
 				string BaseIntermediatePath = UnrealBuildTool.HasUProjectFile() ?
 					Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) : BuildConfiguration.BaseIntermediatePath;
 
 				string OutputAssemblyPath = Path.GetFullPath(Path.Combine(BaseIntermediatePath, "BuildRules", AssemblyName + ".dll"));
 
-				RulesAssembly = DynamicCompilation.CompileAndLoadAssembly( OutputAssemblyPath, AssemblySourceFiles );
+				var ReferencedAssemblies = new List<string>() 
+					{ 
+					"System.dll", 
+					"System.Core.dll", 
+					"System.Xml.dll"
+					};
+				RulesAssembly = DynamicCompilation.CompileAndLoadAssembly(OutputAssemblyPath, AssemblySourceFiles, ReferencedAssemblies);
 
 				{
 					// Setup the module map
-					foreach( var CurModuleFileName in ModuleFileNames )
-					{
-						var CleanFileName = Utils.CleanDirectorySeparators( CurModuleFileName );
-						var ModuleName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
-						if( !ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
-						{
-							ModuleNameToModuleFileMap.Add( ModuleName, CurModuleFileName );
-						}
-					}
+					InitializeNameToRulesFileMap(ModuleNameToModuleFileMap, ModuleFileNames);
 
 					// Setup the target map
-					foreach( var CurTargetFileName in TargetFileNames )
-					{
-						var CleanFileName = Utils.CleanDirectorySeparators( CurTargetFileName );
-						var TargetName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
-						if( !TargetNameToTargetFileMap.ContainsKey( TargetName ) )
-						{
-							TargetNameToTargetFileMap.Add( TargetName, CurTargetFileName );
-						}
-					}
+					InitializeNameToRulesFileMap(TargetNameToTargetFileMap, TargetFileNames);
+
+					// Setup the plugin map
+					InitializeNameToRulesFileMap(PluginNameToPluginFileMap, PluginFileNames);
 				}
 
 				// Remember that we loaded this assembly
@@ -1836,5 +1922,47 @@ namespace UnrealBuildTool
 			return BuildTarget;
 		}
 
+		/// <summary>
+		/// Creates a plugin rules object for the specified plugin name.
+		/// </summary>
+		/// <param name="PluginName">Name of the plugin</param>
+		/// <returns>The build plugin rules for the plugin</returns>
+		public static PluginRules CreatePluginRules(string PluginName)
+		{
+			ConditionallyCompileAndLoadRulesAssembly();
+			var AssemblyFileName = Path.GetFileNameWithoutExtension(RulesAssembly.Location);
+
+			// Make sure the plugin is known
+			if(!PluginNameToPluginFileMap.ContainsKey(PluginName))
+			{
+				// this is not an error because plugin rules are optional
+				return null;
+			}
+
+			var PluginFileName = PluginNameToPluginFileMap[PluginName];
+
+			var PluginTypeName = "UnrealBuildTool.Plugin.Rules." + PluginName;
+			// Because plugins are the same name as modules, we always look in "UnrealBuildTool.Plugin.Rules" namespace. 
+			var RulesObjectType = RulesAssembly.GetType(PluginTypeName);
+
+			if(RulesObjectType == null)
+			{
+				// This is an error, because it means someone defined a plugin.cs file but did not create the proper type
+				throw new BuildException("Expecting to find a type to be declared in a module rules named '{0}' in {1}. This type must derive from 'PluginRules' type defined by Unreal Build Tool and be in the UnrealBuildTool.Plugin.Rules namespace", PluginTypeName, PluginFileName);
+			}
+
+			// Create an instance of the plugin's rules object
+			PluginRules RulesObject;
+			try
+			{
+				RulesObject = (PluginRules)Activator.CreateInstance(RulesObjectType);
+			}
+			catch(Exception Ex)
+			{
+				throw new BuildException(Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'. Unreal Build Tool creates an instance of your plugin's 'Rules' object in order to call your plugin hooks. The CLR exception details may provide more information: {2} ", PluginTypeName, AssemblyFileName, Ex.ToString());
+			}
+
+			return RulesObject;
+		}
 	}
 }

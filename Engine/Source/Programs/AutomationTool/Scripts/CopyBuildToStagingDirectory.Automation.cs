@@ -23,6 +23,14 @@ public partial class Project : CommandUtils
 	#region Utilities
 
 	/// <summary>
+	/// Rules for staging additional plugin files for packaged builds
+	/// </summary>
+	public abstract class PluginStagingRules
+	{
+		public abstract void StagePluginFiles(ProjectParams Params, DeploymentContext SC);
+	}
+
+	/// <summary>
 	/// Writes a pak response file to disk
 	/// </summary>
 	/// <param name="Filename"></param>
@@ -379,6 +387,36 @@ public partial class Project : CommandUtils
 					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL"));
 				}
 			}
+		}
+
+		// Allow plugins to stage necessary files
+		foreach(var PluginRulesObject in SC.ProjectPluginRules)
+		{
+			var StagingRulesTypeName = PluginRulesObject.StagingRulesTypeName;
+
+			if(null != StagingRulesTypeName)
+			{
+				var PluginStagingRulesType = Type.GetType(StagingRulesTypeName);
+				
+				if(null == PluginStagingRulesType)
+				{
+					throw new AutomationException("Excepted to find plugin staging rules type '{0}'", StagingRulesTypeName);
+				}
+
+				if(!typeof(PluginStagingRules).IsAssignableFrom(PluginStagingRulesType))
+				{
+					throw new AutomationException("Expected plugin staging rules type '{0}' to be derived from PluginStagingRules", StagingRulesTypeName);
+				}
+
+				var PluginStagingRulesObject = (PluginStagingRules)Activator.CreateInstance(PluginStagingRulesType);
+				if(null == PluginStagingRulesObject)
+				{
+					throw new AutomationException("Could not create plugin staging rules of type '{0}'", StagingRulesTypeName);
+				}
+
+				PluginStagingRulesObject.StagePluginFiles(Params, SC);
+			}
+
 		}
 	}
 

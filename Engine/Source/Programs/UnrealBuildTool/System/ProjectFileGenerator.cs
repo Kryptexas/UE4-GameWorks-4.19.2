@@ -191,8 +191,19 @@ namespace UnrealBuildTool
 		/// directly from the IDE.
 		bool bGatherThirdPartySource = false;
 
+		private string _MasterProjectName = "UE4";
 		/// Name of the master project file (e.g. base file name for the solution file for Visual Studio, or the Xcode project file on Mac)
-		protected string MasterProjectName = "UE4";
+		public string MasterProjectName
+		{
+			get
+			{
+				return _MasterProjectName;
+			}
+			protected set
+			{
+				_MasterProjectName = value;
+			}
+		}
 
 		/// Maps all module names that were included in generated project files, to actual project file objects.
 		/// @todo projectfiles: Nasty global static list.  This is only really used for IntelliSense, and to avoid extra folder searches for projects we've already cached source files for.
@@ -225,6 +236,17 @@ namespace UnrealBuildTool
 				if (Directory.Exists(GameBuildFolder))
 				{
 					BuildFolders.Add(GameBuildFolder);
+				}
+			}
+
+			// Search in plugin folders
+			foreach(var PluginObject in Plugins.AllPlugins)
+			{
+				var PluginFolder = PluginObject.Directory;
+				var PluginBuildFolder = Path.Combine(PluginFolder, "Build");
+				if(Directory.Exists(PluginBuildFolder))
+				{
+					BuildFolders.Add(PluginBuildFolder);
 				}
 			}
 
@@ -380,7 +402,7 @@ namespace UnrealBuildTool
 			HashSet<ProjectFile> TemplateGameProjects = null;
 			{
 				// Setup buildable projects for all targets
-				AddProjectsForAllTargets( AllGameProjects, out EngineProject, out GameProjects, out ProgramProjects, out TemplateGameProjects );
+				AddProjectsForAllTargets(AllGameProjects, out EngineProject, out GameProjects, out ProgramProjects, out TemplateGameProjects);
 
 				// Add all game projects and game config files
 				AddAllGameProjects(GameProjects, SupportedPlatformNames, RootFolder);
@@ -506,6 +528,9 @@ namespace UnrealBuildTool
                     AddPS4Projects( ProgramsFolder );
                 }
 
+				// Allow plugins to add any custom projects
+				var PerProjectPluginRules = GatherPluginRulesForProjects(AllGameProjects);
+				AddCustomPluginProjects(PerProjectPluginRules);
 
 				// Eliminate all redundant master project folders.  E.g., folders which contain only one project and that project
 				// has the same name as the folder itself.  To the user, projects "feel like" folders already in the IDE, so we
@@ -573,6 +598,8 @@ namespace UnrealBuildTool
 						WriteProjectFiles();
 
 						Log.TraceVerbose( "Project generation complete ({0} generated, {1} imported)", GeneratedProjectFiles.Count, OtherProjectFiles.Count );
+
+						PostWriteProjects(PerProjectPluginRules);
 					}
 					else
 					{
@@ -946,7 +973,79 @@ namespace UnrealBuildTool
 			return AllTargetFiles;
 		}
 
+		Dictionary<UProjectInfo, PluginRules[]> GatherPluginRulesForProjects(List<UProjectInfo> AllGameProjects)
+		{
+			var PerProjectPluginRules = new Dictionary<UProjectInfo, PluginRules[]>();
 
+			foreach(var GameProject in AllGameProjects)
+			{
+				var PluginRulesArray = Plugins.GetPluginRulesForProject(GameProject.FilePath, SupportedPlatforms);
+
+				PerProjectPluginRules[GameProject] = PluginRulesArray;
+			}
+
+			return PerProjectPluginRules;
+		}
+
+		static IEnumerable<PluginRules> GatherUniquePluginRules(Dictionary<UProjectInfo, PluginRules[]> PerProjectPluginRules)
+		{
+			var AllPlugins = new HashSet<PluginRules>();
+
+			foreach (var ProjectPluginRules in PerProjectPluginRules)
+			{
+				foreach (var PluginRulesObject in ProjectPluginRules.Value)
+				{
+					AllPlugins.Add(PluginRulesObject);
+				}
+			}
+
+			return AllPlugins;
+		}
+
+		/// <summary>
+		/// Allow plugins to generate any custom projects
+		/// </summary>
+		/// <param name="PerProjectPluginRules">Plugin rules file per game project</param>
+		void AddCustomPluginProjects(Dictionary<UProjectInfo, PluginRules[]> PerProjectPluginRules)
+		{
+			var GameProjects = PerProjectPluginRules.Keys;
+
+			// first allow any plugin to clear out any state if we're doing multiple project file generation passes
+			foreach(var PluginRulesObject in GatherUniquePluginRules(PerProjectPluginRules))
+			{
+				PluginRulesObject.PreGenerateCustomProjects(GameProjects);
+			}
+
+			foreach(var ProjectPluginRules in PerProjectPluginRules)
+			{
+				foreach(var PluginRulesObject in ProjectPluginRules.Value)
+				{
+					PluginRulesObject.AddCustomGeneratedProjects(this, ProjectPluginRules.Key);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Issue plugin post-write projects callbacks
+		/// </summary>
+		/// <param name="PerProjectPluginRules">Plugin rules file per game project</param>
+		void PostWriteProjects(Dictionary<UProjectInfo, PluginRules[]> PerProjectPluginRules)
+		{
+			// Called once per game project
+			foreach (var ProjectPluginRules in PerProjectPluginRules)
+			{
+				foreach (var PluginRulesObject in ProjectPluginRules.Value)
+				{
+					PluginRulesObject.PostWriteProject(this, ProjectPluginRules.Key);
+				}
+			}
+
+			// now call a final callback for the master project itself
+			foreach(var PluginRulesObject in GatherUniquePluginRules(PerProjectPluginRules))
+			{
+				PluginRulesObject.PostWriteMasterProject(this);
+			}
+		}
 	
 		/// <summary>
 		/// Recursively collapses all sub-folders that are redundant.  Should only be called after we're done adding
@@ -1410,6 +1509,15 @@ namespace UnrealBuildTool
 		/// <param name="bGatherThirdPartySource">True to gather source code from third party projects too</param>
 		protected void AddProjectsForAllModules( List<UProjectInfo> AllGames, Dictionary<string, ProjectFile> ProgramProjects, List<string> AllModuleFiles, bool bGatherThirdPartySource )
 		{
+			// Get all template root directories
+			var TemplateRootPaths = new List<string>();
+
+			// Add engine templates directory
+			TemplateRootPaths.Add(Path.Combine(RootRelativePath, "Templates"));
+
+			// Add plugin templates directories
+			TemplateRootPaths.AddRange(Plugins.AllPluginTemplateDirectories);
+
 			foreach( var CurModuleFile in AllModuleFiles )
 			{
 				Log.TraceVerbose("AddProjectsForAllModules " + CurModuleFile);
@@ -1423,20 +1531,34 @@ namespace UnrealBuildTool
 				// We'll keep track of whether this is an "engine" or "external" module.  This is determined below while loading module rules.
 				bool IsEngineModule = false;
 				bool IsThirdPartyModule = false;
+				bool IsTemplateModule = false;
 
-				// Check to see if this is an Engine module.  That is, the module is located under the "Engine" folder
-				string ModuleFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(CurModuleFile, Path.Combine(EngineRelativePath));
-				if (!ModuleFileRelativeToEngineDirectory.StartsWith( ".." ) && !Path.IsPathRooted( ModuleFileRelativeToEngineDirectory ))
+				// Check to see if this is a template module.
+				foreach (var TemplateRootPath in TemplateRootPaths)
 				{
-					// This is an engine module
-					IsEngineModule = true;
+					if (Utils.IsFileUnderDirectory(CurModuleFile, TemplateRootPath))
+					{
+						IsTemplateModule = true;
+						break;
+					}
 				}
 
-				string ModuleFileRelativeToThirdPartyDirectory = Utils.MakePathRelativeTo(CurModuleFile, Path.Combine(EngineRelativePath, "Source", "ThirdParty" ));
-				if (!ModuleFileRelativeToThirdPartyDirectory.StartsWith( ".." ) && !Path.IsPathRooted( ModuleFileRelativeToThirdPartyDirectory ))
+				if (!IsTemplateModule)
 				{
-					// This is a third partymodule
-					IsThirdPartyModule = true;
+					// Check to see if this is an Engine module.  That is, the module is located under the "Engine" folder
+					string ModuleFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(CurModuleFile, Path.Combine(EngineRelativePath));
+					if (!ModuleFileRelativeToEngineDirectory.StartsWith("..") && !Path.IsPathRooted(ModuleFileRelativeToEngineDirectory))
+					{
+						// This is an engine module
+						IsEngineModule = true;
+					}
+
+					string ModuleFileRelativeToThirdPartyDirectory = Utils.MakePathRelativeTo(CurModuleFile, Path.Combine(EngineRelativePath, "Source", "ThirdParty"));
+					if (!ModuleFileRelativeToThirdPartyDirectory.StartsWith("..") && !Path.IsPathRooted(ModuleFileRelativeToThirdPartyDirectory))
+					{
+						// This is a third partymodule
+						IsThirdPartyModule = true;
+					}
 				}
 
 				bool IncludePrivateSourceCode = true;
@@ -1556,7 +1678,7 @@ namespace UnrealBuildTool
 		/// <param name="GameProjects">Map of game folder name to all of the game projects we created</param>
 		/// <param name="ProgramProjects">Map of program names to all of the program projects we created</param>
 		/// <param name="TemplateGameProjects">Set of template game projects we found.  These will also be in the GameProjects map</param>
-		private void AddProjectsForAllTargets( List<UProjectInfo> AllGames, out ProjectFile EngineProject, out Dictionary<string, ProjectFile> GameProjects, out Dictionary<string, ProjectFile> ProgramProjects, out HashSet<ProjectFile> TemplateGameProjects )
+		private void AddProjectsForAllTargets( List<UProjectInfo> AllGames, out ProjectFile EngineProject, out Dictionary<string, ProjectFile> GameProjects, out Dictionary<string, ProjectFile> ProgramProjects, out HashSet<ProjectFile> TemplateGameProjects)
 		{
 			// As we're creating project files, we'll also keep track of whether we created an "engine" project and return that if we have one
 			EngineProject = null;
@@ -1564,22 +1686,46 @@ namespace UnrealBuildTool
 			ProgramProjects = new Dictionary<string,ProjectFile>( StringComparer.InvariantCultureIgnoreCase );
 			TemplateGameProjects = new HashSet<ProjectFile>();
 
-
 			// Find all of the target files.  This will filter out any modules or targets that don't
 			// belong to platforms we're generating project files for.
 			var AllTargetFiles = DiscoverTargets();
+
+			// Get all template root directories
+			var TemplateRootPaths = new List<string>();
+
+			// Add engine templates directory
+			TemplateRootPaths.Add(Path.Combine(RootRelativePath, "Templates"));
+
+			// Add plugin templates directories
+			TemplateRootPaths.AddRange(Plugins.AllPluginTemplateDirectories);
 
 			foreach( var TargetFilePath in AllTargetFiles )
 			{
 				var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFilePath);		// Remove both ".cs" and ".Target"
 
+				// Check to see if this is a template target.  That is, the target is located under the "Templates" folder
+				bool IsTemplateTarget = false;
+				foreach (var TemplateRootPath in TemplateRootPaths)
+				{
+					string TargetFileRelativeToTemplatesDirectory = Utils.MakePathRelativeTo(TargetFilePath, TemplateRootPath);
+					if (!TargetFileRelativeToTemplatesDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToTemplatesDirectory))
+					{
+						IsTemplateTarget = true;
+						break;
+					}
+
+				}
+
 				// Check to see if this is an Engine target.  That is, the target is located under the "Engine" folder
 				bool IsEngineTarget = false;
-				string TargetFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(TargetFilePath, Path.Combine(EngineRelativePath), AlwaysTreatSourceAsDirectory: false);
-				if (!TargetFileRelativeToEngineDirectory.StartsWith( ".." ) && !Path.IsPathRooted( TargetFileRelativeToEngineDirectory ))
+				if (!IsTemplateTarget)
 				{
-					// This is an engine target
-					IsEngineTarget = true;
+					string TargetFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(TargetFilePath, Path.Combine(EngineRelativePath), AlwaysTreatSourceAsDirectory: false);
+					if (!TargetFileRelativeToEngineDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToEngineDirectory))
+					{
+						// This is an engine target
+						IsEngineTarget = true;
+					}
 				}
 
 				bool WantProjectFileForTarget = true;
@@ -1655,15 +1801,6 @@ namespace UnrealBuildTool
 						ProjectFile.IsGeneratedProject = true;
 						ProjectFile.IsStubProject = false;
 
-						bool IsTemplateTarget = false;
-						{
-							// Check to see if this is a template target.  That is, the target is located under the "Templates" folder
-							string TargetFileRelativeToTemplatesDirectory = Utils.MakePathRelativeTo(TargetFilePath, Path.Combine(RootRelativePath, "Templates"));
-							if (!TargetFileRelativeToTemplatesDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToTemplatesDirectory))
-							{
-								IsTemplateTarget = true;
-							}
-						}
 						string BaseFolder = null;
 						if (IsProgramTarget)
 						{

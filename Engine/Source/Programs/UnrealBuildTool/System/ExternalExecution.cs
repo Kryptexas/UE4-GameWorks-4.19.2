@@ -314,7 +314,7 @@ namespace UnrealBuildTool
 		 * 
 		 * @return					True if the code files are out of date
 		 * */
-		private static bool AreGeneratedCodeFilesOutOfDate(List<UHTModuleInfo> UObjectModules)
+		private static bool AreGeneratedCodeFilesOutOfDate(UEBuildTarget Target, List<UHTModuleInfo> UObjectModules)
 		{
 			bool bIsOutOfDate = false;
 
@@ -402,6 +402,22 @@ namespace UnrealBuildTool
 									{
 										bIsOutOfDate = true;
 										break;
+									}
+								}
+							}
+
+							// Allow plugins a crack at determining if UHT is out of date
+							if(!bIsOutOfDate)
+							{
+								foreach (var PluginObject in Target.BuildPlugins)
+								{
+									if(null != PluginObject.Rules)
+									{
+										if (PluginObject.Rules.AreUHTGeneratedFilesOutOfDate(Target, SavedTimestamp))
+										{
+											bIsOutOfDate = true;
+											break;
+										}
 									}
 								}
 							}
@@ -543,7 +559,7 @@ namespace UnrealBuildTool
 
 
 				// ensure the headers are up to date
-				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(UObjectModules));
+				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules));
 				if( bUHTNeedsToRun || UnrealBuildTool.IsGatheringBuild )
 				{
 					// Since code files are definitely out of date, we'll now finish computing information about the UObject modules for UHT.  We
