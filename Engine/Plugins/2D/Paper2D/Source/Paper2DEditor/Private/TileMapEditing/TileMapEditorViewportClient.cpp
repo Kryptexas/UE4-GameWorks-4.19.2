@@ -31,7 +31,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	WidgetMode = FWidget::WM_Translate;
 	bManipulating = false;
 	bManipulationDirtiedSomething = false;
-	ScopedTransaction = NULL;
+	ScopedTransaction = nullptr;
 
 	bShowPivot = true;
 
@@ -93,7 +93,7 @@ void FTileMapEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& V
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	if (!bIsHitTesting)
 	{
-		Canvas.SetHitProxy(NULL);
+		Canvas.SetHitProxy(nullptr);
 	}
 
 	if (!TileMapEditorPtr.IsValid())
@@ -165,10 +165,10 @@ void FTileMapEditorViewportClient::EndTransaction()
 	
 	bManipulationDirtiedSomething = false;
 
-	if (ScopedTransaction != NULL)
+	if (ScopedTransaction != nullptr)
 	{
 		delete ScopedTransaction;
-		ScopedTransaction = NULL;
+		ScopedTransaction = nullptr;
 	}
 }
 

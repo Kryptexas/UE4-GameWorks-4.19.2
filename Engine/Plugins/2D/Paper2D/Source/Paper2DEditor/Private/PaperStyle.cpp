@@ -14,7 +14,7 @@ FString FPaperStyle::InContent(const FString& RelativePath, const ANSICHAR* Exte
 	return (ContentDir / RelativePath) + Extension;
 }
 
-TSharedPtr< FSlateStyleSet > FPaperStyle::StyleSet = NULL;
+TSharedPtr< FSlateStyleSet > FPaperStyle::StyleSet = nullptr;
 TSharedPtr< class ISlateStyle > FPaperStyle::Get() { return StyleSet; }
 
 void FPaperStyle::Initialize()

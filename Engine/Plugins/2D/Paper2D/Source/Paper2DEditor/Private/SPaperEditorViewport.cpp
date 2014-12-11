@@ -44,7 +44,7 @@ SPaperEditorViewport::~SPaperEditorViewport()
 	// Close viewport
 	if (ViewportClient.IsValid())
 	{
-		ViewportClient->Viewport = NULL;
+		ViewportClient->Viewport = nullptr;
 	}
 
 	Viewport.Reset();
@@ -196,7 +196,7 @@ FReply SPaperEditorViewport::OnMouseButtonDown(const FGeometry& MyGeometry, cons
 		SoftwareCursorPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
 
 		// clear any interpolation when you manually pan
-		//DeferredMovementTargetObject = NULL;
+		//DeferredMovementTargetObject = nullptr;
 
 		return ReplyState;
 	}
@@ -370,7 +370,7 @@ FReply SPaperEditorViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoi
 // 						for (FGraphPanelSelectionSet::TIterator NodeIt(SelectionManager.SelectedNodes); NodeIt; ++NodeIt)
 // 						{
 // 							TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(*NodeIt);
-// 							if (pWidget != NULL)
+// 							if (pWidget != nullptr)
 // 							{
 // 								SNode& Widget = pWidget->Get();
 // 								Widget.MoveTo(Widget.GetPosition() + DeltaPos);

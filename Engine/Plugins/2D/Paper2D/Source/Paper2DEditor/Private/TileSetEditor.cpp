@@ -69,14 +69,14 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	// Can only proceed if we have a valid tile set
 	UPaperTileSet* TileSet = TileSetBeingEdited.Get();
-	if (TileSet == NULL)
+	if (TileSet == nullptr)
 	{
 		return;
 	}
 
 	UTexture2D* Texture = TileSet->TileSheet;
 
-	if (Texture != NULL)
+	if (Texture != nullptr)
 	{
 		const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
 
@@ -130,7 +130,7 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 STileSetSelectorViewport::~STileSetSelectorViewport()
 {
-	TypedViewportClient = NULL;
+	TypedViewportClient = nullptr;
 }
 
 void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, FEdModeTileMap* InTileMapEditor)
@@ -178,7 +178,7 @@ FText STileSetSelectorViewport::GetTitleText() const
 void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview)
 {
 	UPaperTileSet* TileSetBeingEdited = TileSetPtr.Get();
-	if (TileSetBeingEdited == NULL)
+	if (TileSetBeingEdited == nullptr)
 	{
 		return;
 	}

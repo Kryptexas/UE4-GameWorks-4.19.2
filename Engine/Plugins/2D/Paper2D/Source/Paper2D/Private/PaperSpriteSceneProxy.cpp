@@ -71,7 +71,7 @@ void FPaperSpriteSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 							// Differentiate the color based on bBlockNonZeroExtent.  Helps greatly with skimming a level for optimization opportunities.
 							const FColor CollisionColor = FColor(220,149,223,255);
 
-							const bool bUseSeparateColorPerHull = (Owner == NULL);
+							const bool bUseSeparateColorPerHull = (Owner == nullptr);
 							const bool bDrawSolid = false;
 							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, bDrawWireSelected, IsHovered()), CollisionMaterialInstance, bUseSeparateColorPerHull, bDrawSolid, false, ViewIndex, Collector);
 						}

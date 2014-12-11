@@ -84,7 +84,7 @@ public:
 		Extender->AddMenuExtension(
 			"Snapping",
 			EExtensionHook::After,
-			NULL,
+			nullptr,
 			FMenuExtensionDelegate::CreateRaw(this, &FSmartSnappingModule::CreateSnappingOptionsMenu));
 	
 		return Extender;

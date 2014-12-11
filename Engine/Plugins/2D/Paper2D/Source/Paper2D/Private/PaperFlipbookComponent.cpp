@@ -332,7 +332,7 @@ void UPaperFlipbookComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 
 void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 {
-	if (SceneProxy != NULL)
+	if (SceneProxy != nullptr)
 	{
 		UPaperSprite* SpriteToSend = GetSpriteAtCachedIndex();
 
@@ -358,7 +358,7 @@ bool UPaperFlipbookComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
 	{
 		// Don't allow changing the sprite if we are "static".
 		AActor* Owner = GetOwner();
-		if (!IsRegistered() || (Owner == NULL) || (Mobility != EComponentMobility::Static))
+		if (!IsRegistered() || (Owner == nullptr) || (Mobility != EComponentMobility::Static))
 		{
 			SourceFlipbook = NewFlipbook;
 

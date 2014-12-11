@@ -111,7 +111,7 @@ void UPaperTileLayer::PostEditChangeProperty(struct FPropertyChangedEvent& Prope
 {
 	FTileMapLayerReregisterContext ReregisterExistingComponents(this);
 
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileLayer, LayerWidth)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileLayer, LayerHeight)))
 	{

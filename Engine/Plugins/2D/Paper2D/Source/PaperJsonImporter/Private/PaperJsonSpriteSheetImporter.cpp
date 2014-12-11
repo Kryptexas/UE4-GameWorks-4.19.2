@@ -26,13 +26,13 @@ TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& Na
 		else
 		{
 			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
-			return NULL;
+			return nullptr;
 		}
 	}
 	else
 	{
 		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Sprite descriptor file '%s' was empty.  This sprite cannot be imported."), *NameForErrors);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -49,7 +49,7 @@ TSharedPtr<FJsonObject> ParseJSON(FArchive* const Stream, const FString& NameFor
 	else
 	{
 		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -335,7 +335,7 @@ void FPaperJsonSpriteSheetImporter::SetReimportData(const FString& ExistingTextu
 			FStringAssetReference SpriteStringRef = SpriteAssetPtr.ToStringReference();
 			if (!SpriteStringRef.ToString().IsEmpty())
 			{
-				UPaperSprite* LoadedSprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), NULL, *SpriteStringRef.ToString(), NULL, LOAD_None, NULL));
+				UPaperSprite* LoadedSprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
 				if (LoadedSprite != nullptr)
 				{
 					ExistingSprites.Add(ExistingSpriteNames[i], LoadedSprite);
@@ -419,9 +419,9 @@ bool FPaperJsonSpriteSheetImporter::ImportTextures(const FString& LongPackagePat
 		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 		TArray<UObject*> ImportedSheets = AssetToolsModule.Get().ImportAssets(SheetFileNames, TargetSubPath);
 
-		UTexture2D* ImportedTexture = (ImportedSheets.Num() > 0) ? Cast<UTexture2D>(ImportedSheets[0]) : NULL;
+		UTexture2D* ImportedTexture = (ImportedSheets.Num() > 0) ? Cast<UTexture2D>(ImportedSheets[0]) : nullptr;
 
-		if (ImportedTexture == NULL)
+		if (ImportedTexture == nullptr)
 		{
 			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to import sprite sheet image '%s'."), *SourceSheetImageFilename);
 			bLoadedSuccessfully = false;
@@ -475,7 +475,7 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		// Create a package for the frame
 		const FString TargetSubPath = LongPackagePath + TEXT("/Frames");
 
-		UObject* OuterForFrame = NULL; // @TODO: Use this if we don't want them to be individual assets - Flipbook;
+		UObject* OuterForFrame = nullptr; // @TODO: Use this if we don't want them to be individual assets - Flipbook;
 
 		// Create a unique package name and asset name for the frame
 		const FString TentativePackagePath = PackageTools::SanitizePackageName(TargetSubPath + TEXT("/") + Frame.FrameName.ToString());
@@ -485,7 +485,7 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
 
 		// Create a package for the frame
-		OuterForFrame = CreatePackage(NULL, *PackageName);
+		OuterForFrame = CreatePackage(nullptr, *PackageName);
 
 		// Create a frame in the package
 		UPaperSprite* TargetSprite = nullptr;

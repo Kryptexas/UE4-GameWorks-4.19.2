@@ -29,7 +29,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 	bool bEditingActor = false;
 
-	UPaperTileMap* TileMap = NULL;
+	UPaperTileMap* TileMap = nullptr;
 	for (int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
 	{
 		UObject* TestObject = SelectedObjects[ObjectIndex].Get();
@@ -77,7 +77,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	}
 
 	//@TODO: Handle showing layers when multiple tile maps are selected
-	if (TileMap != NULL)
+	if (TileMap != nullptr)
 	{
 		IDetailCategoryBuilder& LayersCategory = DetailLayout.EditCategory("Tile Layers");
 

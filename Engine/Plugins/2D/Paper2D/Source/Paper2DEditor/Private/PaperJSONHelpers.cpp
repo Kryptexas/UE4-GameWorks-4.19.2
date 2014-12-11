@@ -23,7 +23,7 @@ TSharedPtr<class FJsonObject> FPaperJSONHelpers::ReadObject(TSharedPtr<class FJs
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 

@@ -121,7 +121,7 @@ public:
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
 			UTexture2D* SourceTexture = Sprite->GetSourceTexture();
-			const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+			const FVector2D SourceDims = (SourceTexture != nullptr) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
             int XAxis = 0; // -1 = min, 0 = none, 1 = max
             int YAxis = 0; // ditto
             
@@ -192,7 +192,7 @@ public:
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
 			UTexture2D* SourceTexture = Sprite->GetSourceTexture();
-			const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+			const FVector2D SourceDims = (SourceTexture != nullptr) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 			FVector2D BoundsVertex = Sprite->SourceUV;
 			switch (VertexIndex)
 			{

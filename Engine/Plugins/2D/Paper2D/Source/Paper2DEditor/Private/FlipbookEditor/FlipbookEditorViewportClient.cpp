@@ -43,7 +43,7 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	if (!bIsHitTesting)
 	{
-		Canvas.SetHitProxy(NULL);
+		Canvas.SetHitProxy(nullptr);
 	}
 
 	int32 YPos = 42;

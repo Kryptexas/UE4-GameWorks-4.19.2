@@ -50,7 +50,7 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 	
 
 	const FString LongPackagePath = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetPathName());
-	UPaperSpriteSheet* Result = NULL;
+	UPaperSpriteSheet* Result = nullptr;
 	
 	const FString NameForErrors(InName.ToString());
 	const FString FileContent(BufferEnd - Buffer, Buffer);

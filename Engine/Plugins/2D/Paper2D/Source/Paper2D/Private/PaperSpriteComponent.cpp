@@ -76,7 +76,7 @@ FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 
 FBoxSphereBounds UPaperSpriteComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		// Graphics bounds.
 		FBoxSphereBounds NewBounds = SourceSprite->GetRenderBounds().TransformBy(LocalToWorld);
@@ -105,7 +105,7 @@ FBoxSphereBounds UPaperSpriteComponent::CalcBounds(const FTransform& LocalToWorl
 
 void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 {
-	if (SceneProxy != NULL)
+	if (SceneProxy != nullptr)
 	{
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
@@ -125,7 +125,7 @@ void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 
 bool UPaperSpriteComponent::HasAnySockets() const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		return SourceSprite->HasAnySockets();
 	}
@@ -135,7 +135,7 @@ bool UPaperSpriteComponent::HasAnySockets() const
 
 FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		if (FPaperSpriteSocket* Socket = SourceSprite->FindSocket(InSocketName))
 		{
@@ -169,7 +169,7 @@ FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelati
 
 void UPaperSpriteComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		return SourceSprite->QuerySupportedSockets(OutSockets);
 	}
@@ -186,7 +186,7 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 	{
 		// Don't allow changing the sprite if we are "static".
 		AActor* Owner = GetOwner();
-		if (!IsRegistered() || (Owner == NULL) || (Mobility != EComponentMobility::Static))
+		if (!IsRegistered() || (Owner == nullptr) || (Mobility != EComponentMobility::Static))
 		{
 			SourceSprite = NewSprite;
 

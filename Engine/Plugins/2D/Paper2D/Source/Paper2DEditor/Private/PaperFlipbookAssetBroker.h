@@ -21,7 +21,7 @@ public:
 		{
 			UPaperFlipbook* Flipbook = Cast<UPaperFlipbook>(InAsset);
 
-			if ((Flipbook != NULL) || (InAsset == NULL))
+			if ((Flipbook != nullptr) || (InAsset == nullptr))
 			{
 				RenderComp->SetFlipbook(Flipbook);
 				return true;
@@ -37,7 +37,7 @@ public:
 		{
 			return RenderComp->GetFlipbook();
 		}
-		return NULL;
+		return nullptr;
 	}
 };
 

@@ -13,7 +13,7 @@ class UPaperSpriteFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	// Initial texture to create the sprite from (Can be NULL)
+	// Initial texture to create the sprite from (Can be nullptr)
 	class UTexture2D* InitialTexture;
 
 	// Set bUseSourceRegion to get it to use/set initial sourceUV and dimensions

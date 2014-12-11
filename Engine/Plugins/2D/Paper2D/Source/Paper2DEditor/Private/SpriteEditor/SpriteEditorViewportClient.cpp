@@ -78,7 +78,7 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	WidgetMode = FWidget::WM_Translate;
 	bManipulating = false;
 	bManipulationDirtiedSomething = false;
-	ScopedTransaction = NULL;
+	ScopedTransaction = nullptr;
 
 	bShowSourceTexture = false;
 	bShowSockets = true;
@@ -124,7 +124,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	UPaperSprite* TargetSprite = SourceTextureViewComponent->GetSprite();
 	check(TargetSprite);
 
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		if ((SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture()) || (TargetSprite->PixelsPerUnrealUnit != SourceSprite->PixelsPerUnrealUnit))
 		{
@@ -182,7 +182,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	else
 	{
 		// No source sprite, so don't draw the target either
-		TargetSprite->SourceTexture = NULL;
+		TargetSprite->SourceTexture = nullptr;
 	}
 }
 
@@ -317,7 +317,7 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
 
             if (bIsHitTesting)
             {
-                Canvas.SetHitProxy(NULL);
+                Canvas.SetHitProxy(nullptr);
             }
         }
 
@@ -336,7 +336,7 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
 
             if (bIsHitTesting)
             {
-                Canvas.SetHitProxy(NULL);
+                Canvas.SetHitProxy(nullptr);
             }
         }
 	}
@@ -419,7 +419,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 
 				if (bIsHitTesting)
 				{
-					Canvas.SetHitProxy(NULL);
+					Canvas.SetHitProxy(nullptr);
 				}
 			}
 		}
@@ -449,7 +449,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 			
 			if (bIsHitTesting)
 			{
-				Canvas.SetHitProxy(NULL);
+				Canvas.SetHitProxy(nullptr);
 			}
 		}
 	}
@@ -616,7 +616,7 @@ void FSpriteEditorViewportClient::DrawSockets(const FSceneView* View, FPrimitive
 		
 		DrawWireDiamond(PDI, SocketTM, DiamondSize, DiamondColor, SDPG_Foreground);
 		
-		PDI->SetHitProxy(NULL);
+		PDI->SetHitProxy(nullptr);
 	}
 }
 
@@ -671,7 +671,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	if (!bIsHitTesting)
 	{
-		Canvas.SetHitProxy(NULL);
+		Canvas.SetHitProxy(nullptr);
 	}
 
 	if (!SpriteEditorPtr.IsValid())
@@ -1394,7 +1394,7 @@ ECoordSystem FSpriteEditorViewportClient::GetWidgetCoordSystemSpace() const
 
 void FSpriteEditorViewportClient::BeginTransaction(const FText& SessionName)
 {
-	if (ScopedTransaction == NULL)
+	if (ScopedTransaction == nullptr)
 	{
 		ScopedTransaction = new FScopedTransaction(SessionName);
 
@@ -1423,10 +1423,10 @@ void FSpriteEditorViewportClient::EndTransaction()
 	
 	bManipulationDirtiedSomething = false;
 
-	if (ScopedTransaction != NULL)
+	if (ScopedTransaction != nullptr)
 	{
 		delete ScopedTransaction;
-		ScopedTransaction = NULL;
+		ScopedTransaction = nullptr;
 	}
 }
 
@@ -1597,7 +1597,7 @@ FSpritePolygonCollection* FSpriteEditorViewportClient::GetGeometryBeingEdited() 
 	case ESpriteEditorMode::EditRenderingGeomMode:
 		return &(Sprite->RenderGeometry);
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 

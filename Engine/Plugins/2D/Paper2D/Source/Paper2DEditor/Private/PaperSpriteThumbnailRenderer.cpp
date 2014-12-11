@@ -19,10 +19,10 @@ void UPaperSpriteThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint
 
 void UPaperSpriteThumbnailRenderer::DrawGrid(int32 X, int32 Y, uint32 Width, uint32 Height, FCanvas* Canvas)
 {
-	static UTexture2D* GridTexture = NULL;
-	if (GridTexture == NULL)
+	static UTexture2D* GridTexture = nullptr;
+	if (GridTexture == nullptr)
 	{
-		GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);
+		GridTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), nullptr, LOAD_None, nullptr);
 	}
 
 	const bool bAlphaBlend = false;
@@ -43,7 +43,7 @@ void UPaperSpriteThumbnailRenderer::DrawGrid(int32 X, int32 Y, uint32 Width, uin
 
 void UPaperSpriteThumbnailRenderer::DrawFrame(class UPaperSprite* Sprite, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas, FBoxSphereBounds* OverrideRenderBounds)
 {
-	if (const UTexture2D* SourceTexture = (Sprite != NULL) ? Sprite->GetSourceTexture() : NULL)
+	if (const UTexture2D* SourceTexture = (Sprite != nullptr) ? Sprite->GetSourceTexture() : nullptr)
 	{
 		const bool bUseTranslucentBlend = SourceTexture->HasAlphaChannel();
 

@@ -11,7 +11,7 @@ class STimelineHeader : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(STimelineHeader)
 		: _SlateUnitsPerFrame(1)
-		, _FlipbookBeingEdited((class UPaperFlipbook*)NULL)
+		, _FlipbookBeingEdited((class UPaperFlipbook*)nullptr)
 		, _PlayTime(0)
 	{}
 

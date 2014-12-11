@@ -45,7 +45,7 @@ class SFlipbookEditorViewport : public SEditorViewport, public ICommonEditorView
 {
 public:
 	SLATE_BEGIN_ARGS(SFlipbookEditorViewport)
-		: _FlipbookBeingEdited((UPaperFlipbook*)NULL)
+		: _FlipbookBeingEdited((UPaperFlipbook*)nullptr)
 	{}
 
 		SLATE_ATTRIBUTE( UPaperFlipbook*, FlipbookBeingEdited )

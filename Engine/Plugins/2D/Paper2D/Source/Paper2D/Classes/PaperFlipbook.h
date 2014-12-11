@@ -18,7 +18,7 @@ public:
 	int32 FrameRun;
 
 	FPaperFlipbookKeyFrame()
-		: Sprite(NULL)
+		: Sprite(nullptr)
 		, FrameRun(1)
 	{
 	}

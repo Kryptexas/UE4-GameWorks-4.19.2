@@ -157,7 +157,7 @@ public:
 
 FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComponent)
 	: FPrimitiveSceneProxy(InComponent)
-	, Material(NULL)
+	, Material(nullptr)
 	, Owner(InComponent->GetOwner())
 	, BodySetup(const_cast<UPrimitiveComponent*>(InComponent)->GetBodySetup())
 	, bCastShadow(InComponent->CastShadow)
@@ -275,7 +275,7 @@ void FPaperRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 							// wireframe
 							FColor CollisionColor = FColor(157, 149, 223, 255);
 							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, IsSelected(), IsHovered()), NULL, (Owner == NULL), false, UseEditorDepthTest(), ViewIndex, Collector);
+							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, IsSelected(), IsHovered()), nullptr, (Owner == nullptr), false, UseEditorDepthTest(), ViewIndex, Collector);
 						}
 					}
 				}
@@ -285,7 +285,7 @@ void FPaperRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (EngineShowFlags.Paper2DSprites)
 			{
-				RenderBounds(Collector.GetPDI(ViewIndex), EngineShowFlags, GetBounds(), (Owner == NULL) || IsSelected());
+				RenderBounds(Collector.GetPDI(ViewIndex), EngineShowFlags, GetBounds(), (Owner == nullptr) || IsSelected());
 			}
 #endif
 		}
@@ -366,7 +366,7 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 			Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
 
 			Mesh.VertexFactory = VertexFactory;
-			Mesh.LCI = NULL;
+			Mesh.LCI = nullptr;
 			Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
 			Mesh.CastShadow = bCastShadow;
 			Mesh.DepthPriorityGroup = DPG;
@@ -376,8 +376,8 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 
 			// Set up the FMeshBatchElement.
 			FMeshBatchElement& BatchElement = Mesh.Elements[0];
-			BatchElement.IndexBuffer = NULL;
-			BatchElement.DynamicIndexData = NULL;
+			BatchElement.IndexBuffer = nullptr;
+			BatchElement.DynamicIndexData = nullptr;
 			BatchElement.DynamicIndexStride = 0;
 			BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
 			BatchElement.FirstIndex = Batch.VertexOffset;
@@ -458,7 +458,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 			Collector.RegisterOneFrameMaterialProxy(TextureOverrideMaterialProxy);
 
 			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;
-			Mesh.LCI = NULL;
+			Mesh.LCI = nullptr;
 			Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
 			Mesh.CastShadow = false;
 			Mesh.DepthPriorityGroup = DPG;
@@ -467,8 +467,8 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 
 			// Set up the FMeshBatchElement.
 			FMeshBatchElement& BatchElement = Mesh.Elements[0];
-			BatchElement.IndexBuffer = NULL;
-			BatchElement.DynamicIndexData = NULL;
+			BatchElement.IndexBuffer = nullptr;
+			BatchElement.DynamicIndexData = nullptr;
 			BatchElement.DynamicIndexStride = 0;
 			BatchElement.FirstIndex = 0;
 			BatchElement.MinVertexIndex = 0;

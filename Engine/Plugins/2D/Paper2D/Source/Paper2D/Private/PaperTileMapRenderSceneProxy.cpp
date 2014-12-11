@@ -41,7 +41,7 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			// Draw the tile maps
 			//@TODO: RenderThread race condition
-			if (TileMap != NULL)
+			if (TileMap != nullptr)
 			{
 				FColor WireframeColor = FColor(0, 255, 255, 255);
 

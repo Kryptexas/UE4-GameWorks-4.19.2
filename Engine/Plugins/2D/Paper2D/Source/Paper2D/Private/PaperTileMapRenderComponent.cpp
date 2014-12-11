@@ -41,7 +41,7 @@ void UPaperTileMapRenderComponent::PostInitProperties()
 
 FBoxSphereBounds UPaperTileMapRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	if (TileMap != NULL)
+	if (TileMap != nullptr)
 	{
 		// Graphics bounds.
 		FBoxSphereBounds NewBounds = TileMap->GetRenderBounds().TransformBy(LocalToWorld);

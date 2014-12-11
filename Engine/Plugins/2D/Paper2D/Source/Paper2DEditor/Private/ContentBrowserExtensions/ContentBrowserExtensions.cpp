@@ -301,7 +301,7 @@ public:
 			Extender->AddMenuExtension(
 				"GetAssetActions",
 				EExtensionHook::After,
-				NULL,
+				nullptr,
 				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::CreateSpriteActionsSubMenu, SpriteCreatorFunctor, SpriteExtractorFunctor, TextureConfigFunctor));
 		}
 

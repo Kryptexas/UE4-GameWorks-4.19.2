@@ -96,7 +96,7 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 				UPaperSprite* Sprite = nullptr;
 				if (!SpriteStringRef.ToString().IsEmpty())
 				{
-					Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), NULL, *SpriteStringRef.ToString(), NULL, LOAD_None, NULL));
+					Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
 				}
 				if (Sprite != nullptr)
 				{

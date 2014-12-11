@@ -556,7 +556,7 @@ void FSpriteEditor::ExtendToolbar()
 
 void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
 {
-	if ((NewSprite != SpriteBeingEdited) && (NewSprite != NULL))
+	if ((NewSprite != SpriteBeingEdited) && (NewSprite != nullptr))
 	{
 		UPaperSprite* OldSprite = SpriteBeingEdited;
 		SpriteBeingEdited = NewSprite;

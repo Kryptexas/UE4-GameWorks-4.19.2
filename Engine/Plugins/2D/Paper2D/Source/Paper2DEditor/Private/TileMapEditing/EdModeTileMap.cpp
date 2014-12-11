@@ -80,7 +80,7 @@ const FEditorModeID FEdModeTileMap::EM_TileMap(TEXT("EM_TileMap"));
 
 FEdModeTileMap::FEdModeTileMap()
 	: bIsPainting(false)
-	, PaintSourceTileSet(NULL)
+	, PaintSourceTileSet(nullptr)
 	, PaintSourceTopLeft(0, 0)
 	, PaintSourceDimensions(0, 0)
 	, DrawPreviewDimensionsLS(0.0f, 0.0f, 0.0f)
@@ -265,7 +265,7 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 
 	// If this viewport does not support Mode widgets we will not draw it here.
 	FEditorViewportClient* ViewportClient = (FEditorViewportClient*)Viewport->GetClient();
-	if ((ViewportClient != NULL) && !ViewportClient->EngineShowFlags.ModeWidgets)
+	if ((ViewportClient != nullptr) && !ViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		return;
 	}
@@ -293,7 +293,7 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
 {
 	FString InkInfo = FString::Printf(TEXT("Ink: (%d, %d)  %dx%d  %s"), PaintSourceTopLeft.X, PaintSourceTopLeft.Y, PaintSourceDimensions.X, PaintSourceDimensions.Y, 
-		(PaintSourceTileSet.Get() != NULL) ? (*PaintSourceTileSet.Get()->GetName()) : TEXT("(no tile ink selected)"));
+		(PaintSourceTileSet.Get() != nullptr) ? (*PaintSourceTileSet.Get()->GetName()) : TEXT("(no tile ink selected)"));
 
 	FCanvasTextItem Msg(FVector2D(10, 30), FText::FromString(InkInfo), GEngine->GetMediumFont(), FLinearColor::White);
 	Canvas->DrawItem(Msg);
@@ -401,7 +401,7 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 
 	OutTileX = 0;
 	OutTileY = 0;
-	return NULL;
+	return nullptr;
 }
 
 
@@ -434,7 +434,7 @@ bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
 	}
 
 	// If we are using an ink source, validate that it exists
-	UPaperTileSet* InkSource = NULL;
+	UPaperTileSet* InkSource = nullptr;
 	if ( GetActiveLayerPaintingMode() != ETileMapLayerPaintingMode::CollisionLayers )
 	{
 		InkSource = PaintSourceTileSet.Get();
@@ -600,7 +600,7 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 	}
 
 	// If we are using an ink source, validate that it exists
-	UPaperTileSet* InkSource = NULL;
+	UPaperTileSet* InkSource = nullptr;
 	if ( GetActiveLayerPaintingMode() != ETileMapLayerPaintingMode::CollisionLayers )
 	{
 		InkSource = PaintSourceTileSet.Get();

@@ -507,7 +507,7 @@ void FTileMapEditor::ExtendToolbar()
 
 void FTileMapEditor::SetTileMapBeingEdited(UPaperTileMap* NewTileMap)
 {
-	if ((NewTileMap != TileMapBeingEdited) && (NewTileMap != NULL))
+	if ((NewTileMap != TileMapBeingEdited) && (NewTileMap != nullptr))
 	{
 		UPaperTileMap* OldTileMap = TileMapBeingEdited;
 		TileMapBeingEdited = NewTileMap;

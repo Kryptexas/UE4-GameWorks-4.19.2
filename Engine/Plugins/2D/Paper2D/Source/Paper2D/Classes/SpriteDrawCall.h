@@ -27,7 +27,7 @@ public:
 	void BuildFromSprite(const class UPaperSprite* Sprite);
 
 	FSpriteDrawCallRecord()
-		: Texture(NULL)
+		: Texture(nullptr)
 		, Color(FLinearColor::White)
 	{
 	}

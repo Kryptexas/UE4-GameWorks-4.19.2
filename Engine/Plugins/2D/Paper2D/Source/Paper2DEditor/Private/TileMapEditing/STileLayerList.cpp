@@ -176,7 +176,7 @@ FText STileLayerList::GenerateDuplicatedLayerName(const FString& InputNameRaw, U
 
 UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionIndex)
 {
-	UPaperTileLayer* NewLayer = NULL;
+	UPaperTileLayer* NewLayer = nullptr;
 
 	if (UPaperTileMap* TileMap = TileMapPtr.Get())
 	{

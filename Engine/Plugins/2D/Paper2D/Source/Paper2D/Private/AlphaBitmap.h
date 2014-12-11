@@ -18,8 +18,8 @@ struct FAlphaBitmap
 	void ExtractFromTexture(UTexture2D* SourceTexture)
 	{
 		// use the source art if it exists
-		FTextureSource* TextureSource = NULL;
-		if ((SourceTexture != NULL) && SourceTexture->Source.IsValid())
+		FTextureSource* TextureSource = nullptr;
+		if ((SourceTexture != nullptr) && SourceTexture->Source.IsValid())
 		{
 			switch (SourceTexture->Source.GetFormat())
 			{
@@ -32,7 +32,7 @@ struct FAlphaBitmap
 			};
 		}
 
-		if (TextureSource != NULL)
+		if (TextureSource != nullptr)
 		{
 			TArray<uint8> TextureRawData;
 			TextureSource->GetMipData(TextureRawData, 0);

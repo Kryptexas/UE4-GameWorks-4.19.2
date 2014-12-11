@@ -57,7 +57,7 @@ EReimportResult::Type UReimportPaperJsonImporterFactory::Reimport(UObject* Obj)
 	ExistingTexture = SpriteSheet->Texture;
 
 	EReimportResult::Type Result = EReimportResult::Failed;
-	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, NULL, this))
+	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, nullptr, this))
 	{
 		UE_LOG(LogPaperJsonImporter, Log, TEXT("Imported successfully"));
 		// Try to find the outer package so we can dirty it up

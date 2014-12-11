@@ -14,7 +14,7 @@ UPaperTileSet::UPaperTileSet(const FObjectInitializer& ObjectInitializer)
 
 int32 UPaperTileSet::GetTileCount() const
 {
-	if (TileSheet != NULL)
+	if (TileSheet != nullptr)
 	{
 		checkSlow((TileWidth > 0) && (TileHeight > 0));
 		const int32 TextureWidth = TileSheet->GetSizeX();
@@ -33,7 +33,7 @@ int32 UPaperTileSet::GetTileCount() const
 
 int32 UPaperTileSet::GetTileCountX() const
 {
-	if (TileSheet != NULL)
+	if (TileSheet != nullptr)
 	{
 		checkSlow(TileWidth > 0);
 		const int32 TextureWidth = TileSheet->GetSizeX();
@@ -48,7 +48,7 @@ int32 UPaperTileSet::GetTileCountX() const
 
 int32 UPaperTileSet::GetTileCountY() const
 {
-	if (TileSheet != NULL)
+	if (TileSheet != nullptr)
 	{
 		checkSlow(TileHeight > 0);
 		const int32 TextureHeight = TileSheet->GetSizeY();
@@ -64,7 +64,7 @@ int32 UPaperTileSet::GetTileCountY() const
 bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) const
 {
 	//@TODO: Performance: should cache this stuff
-	if (TileSheet != NULL)
+	if (TileSheet != nullptr)
 	{
 		checkSlow((TileWidth > 0) && (TileHeight > 0));
 		const int32 TextureWidth = TileSheet->GetSizeX() - (Margin * 2) + Spacing;
@@ -102,7 +102,7 @@ bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) co
 
 void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	Margin = FMath::Max<int32>(Margin, 0);
 	Spacing = FMath::Max<int32>(Spacing, 0);

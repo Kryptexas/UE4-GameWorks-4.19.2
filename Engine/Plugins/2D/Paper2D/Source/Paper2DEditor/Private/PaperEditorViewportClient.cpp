@@ -42,7 +42,7 @@ USelection* FAssetEditorModeTools::GetSelectedObjects() const
 
 FPaperEditorViewportClient::FPaperEditorViewportClient()
 	: FEditorViewportClient(new FAssetEditorModeTools())
-	, CheckerboardTexture(NULL)
+	, CheckerboardTexture(nullptr)
 {
 	bOwnsModeTools = true;
 	ZoomPos = FVector2D::ZeroVector;
@@ -134,7 +134,7 @@ void FPaperEditorViewportClient::SetupCheckerboardTexture(const FColor& ColorOne
 	CheckerSize = FMath::RoundUpToPowerOfTwo(CheckerSize);
 	const int32 HalfPixelNum = CheckerSize >> 1;
 
-	if (CheckerboardTexture == NULL)
+	if (CheckerboardTexture == nullptr)
 	{
 		// Create the texture
 		CheckerboardTexture = UTexture2D::CreateTransient(CheckerSize, CheckerSize, PF_B8G8R8A8);
@@ -175,6 +175,6 @@ void FPaperEditorViewportClient::DestroyCheckerboardTexture()
 			CheckerboardTexture->ReleaseResource();
 		}
 		CheckerboardTexture->MarkPendingKill();
-		CheckerboardTexture = NULL;
+		CheckerboardTexture = nullptr;
 	}
 }

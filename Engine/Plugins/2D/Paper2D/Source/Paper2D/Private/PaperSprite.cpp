@@ -372,8 +372,8 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	FSpriteReregisterContext ReregisterExistingComponents(this);
 
 	// Look for changed properties
-	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != nullptr) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
 
 	if (PixelsPerUnrealUnit <= 0.0f)
 	{
@@ -1524,7 +1524,7 @@ FPaperSpriteSocket* UPaperSprite::FindSocket(FName SocketName)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
