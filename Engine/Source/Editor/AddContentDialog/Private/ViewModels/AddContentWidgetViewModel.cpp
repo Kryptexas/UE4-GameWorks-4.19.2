@@ -122,6 +122,7 @@ void FAddContentWidgetViewModel::BuildContentSourceViewModels()
 
 	if (Categories.Num() > 0)
 	{
+		Categories.Sort();
 		SelectedCategory = Categories[0];
 	}
 	OnCategoriesChanged.ExecuteIfBound();

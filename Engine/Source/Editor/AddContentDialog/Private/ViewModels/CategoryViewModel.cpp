@@ -38,18 +38,22 @@ void FCategoryViewModel::Initialize()
 	case EContentSourceCategory::BlueprintFeature:
 		Text = LOCTEXT("BlueprintFeature", "Blueprint Feature");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.BlueprintFeatureCategory");
+		SortID = 0;
 		break;
 	case EContentSourceCategory::CodeFeature:
 		Text = LOCTEXT("CodeFeature", "C++ Feature");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.CodeFeatureCategory");
+		SortID = 1;
 		break;
 	case EContentSourceCategory::Content:
 		Text = LOCTEXT("ContentPacks", "Content Packs");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.ContentPacks");
+		SortID = 2;
 		break;
 	default:
 		Text = LOCTEXT("Miscellaneous", "Miscellaneous");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.DefaultCategory");
+		SortID = 3;
 		break;
 	}
 }

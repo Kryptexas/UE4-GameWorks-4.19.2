@@ -15,5 +15,5 @@ public:
 	virtual TSharedRef<FContentSourceProviderManager> GetContentSourceProviderManager() = 0;
 
 	/** Creates a dialog for adding existing content to a project. */
-	virtual TSharedRef<SWindow> CreateDialogWindow() = 0;
+	virtual void ShowDialog(TSharedRef<SWindow> ParentWindow) = 0;
 };

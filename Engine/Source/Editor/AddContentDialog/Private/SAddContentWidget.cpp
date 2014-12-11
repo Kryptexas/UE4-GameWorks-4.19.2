@@ -168,7 +168,7 @@ TSharedRef<ITableRow> SAddContentWidget::CreateContentSourceIconTile(TSharedPtr<
 		[
 			SNew(STextBlock)
 			.Text(ContentSource->GetName())
-			.AutoWrapText(true)
+			.WrapTextAt(64)
 			.Justification(ETextJustify::Center)
 		]
 	];
@@ -229,7 +229,7 @@ TSharedRef<SWidget> SAddContentWidget::CreateScreenshotCarousel(TSharedPtr<FCont
 	.WidgetItemsSource(ContentSource->GetScreenshotBrushes());
 }
 
-void SAddContentWidget::CategoryCheckBoxCheckStateChanged(ESlateCheckBoxState::Type CheckState, FCategoryViewModel Category)
+void SAddContentWidget::CategoryCheckBoxCheckStateChanged(ECheckBoxState CheckState, FCategoryViewModel Category)
 {
 	if (CheckState == ECheckBoxState::Checked)
 	{
@@ -237,7 +237,7 @@ void SAddContentWidget::CategoryCheckBoxCheckStateChanged(ESlateCheckBoxState::T
 	}
 }
 
-ESlateCheckBoxState::Type SAddContentWidget::GetCategoryCheckBoxCheckState(FCategoryViewModel Category) const
+ECheckBoxState SAddContentWidget::GetCategoryCheckBoxCheckState(FCategoryViewModel Category) const
 {
 	return (Category == ViewModel->GetSelectedCategory()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }

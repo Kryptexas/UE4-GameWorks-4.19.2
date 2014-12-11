@@ -21,6 +21,11 @@ public:
 		return Other.Text.EqualTo(Text) && (Other.IconBrush == IconBrush);
 	}
 
+	bool operator<(FCategoryViewModel const& Other) const
+	{
+		return SortID < Other.SortID;
+	}
+
 	uint32 GetTypeHash() const;
 
 private:
@@ -30,6 +35,7 @@ private:
 	EContentSourceCategory Category;
 	FText Text;
 	const FSlateBrush* IconBrush;
+	int SortID;
 };
 
 inline uint32 GetTypeHash(const FCategoryViewModel& CategoryViewModel)

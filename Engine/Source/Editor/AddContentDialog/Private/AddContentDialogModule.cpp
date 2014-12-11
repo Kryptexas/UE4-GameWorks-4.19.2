@@ -32,14 +32,20 @@ public:
 		return ContentSourceProviderManager.ToSharedRef();
 	}
 
-	virtual TSharedRef<SWindow> CreateDialogWindow() override
+	virtual void ShowDialog(TSharedRef<SWindow> ParentWindow) override
 	{
-		return SNew(SAddContentDialog);
+		if (AddContentDialog.IsValid() == false)
+		{
+			TSharedRef<SWindow> Dialog = SNew(SAddContentDialog);
+			FSlateApplication::Get().AddWindowAsNativeChild(Dialog, ParentWindow);
+			AddContentDialog = TWeakPtr<SWindow>(Dialog);
+		}
+		
 	}
 
 private:
 	TSharedPtr<FContentSourceProviderManager> ContentSourceProviderManager;
-
+	TWeakPtr<SWindow> AddContentDialog;
 };
 
 IMPLEMENT_MODULE(FAddContentDialogModule, AddContentDialog);

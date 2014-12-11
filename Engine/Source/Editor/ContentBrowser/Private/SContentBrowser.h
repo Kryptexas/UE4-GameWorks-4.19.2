@@ -376,9 +376,6 @@ private:
 	/** The splitter between the path & collection view */
 	TSharedPtr<SSplitter> PathCollectionSplitterPtr;
 
-	/** A weak pointer to the currently active add content dialog. */
-	TWeakPtr<SWindow> AddContentDialog;
-
 public: 
 
 	/** The section of EditorUserSettings in which to save content browser settings */

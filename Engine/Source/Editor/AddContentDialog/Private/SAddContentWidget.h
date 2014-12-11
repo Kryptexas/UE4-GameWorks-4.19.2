@@ -45,10 +45,10 @@ private:
 
 
 	/** Handles the user clicking on one of the check boxes representing the category tabs. */
-	void CategoryCheckBoxCheckStateChanged(ESlateCheckBoxState::Type CheckState, FCategoryViewModel Category);
+	void CategoryCheckBoxCheckStateChanged(ECheckBoxState CheckState, FCategoryViewModel Category);
 
 	/** Gets the check state for one of the check boxes representing the category tabs. */
-	ESlateCheckBoxState::Type GetCategoryCheckBoxCheckState(FCategoryViewModel Category) const;
+	ECheckBoxState GetCategoryCheckBoxCheckState(FCategoryViewModel Category) const;
 
 	/** Handles the text in the search box changing. */
 	void SearchTextChanged(const FText& SearchText);
