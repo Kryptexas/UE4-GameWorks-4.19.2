@@ -5,6 +5,7 @@
 #include "SContentReference.h"
 #include "ScopedTransaction.h"
 #include "SInlineEditableTextBlock.h"
+#include "PaperStyle.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -15,8 +16,10 @@ void STileLayerItem::Construct(const FArguments& InArgs, class UPaperTileLayer* 
 {
 	MyLayer = InItem;
 
-	EyeClosed = FEditorStyle::GetBrush("Layer.NotVisibleIcon16x");
-	EyeOpened = FEditorStyle::GetBrush("Layer.VisibleIcon16x");
+	static const FName EyeClosedBrushName("TileMapEditor.LayerEyeClosed");
+	static const FName EyeOpenedBrushName("TileMapEditor.LayerEyeOpened");
+	EyeClosed = FPaperStyle::Get()->GetBrush(EyeClosedBrushName);
+	EyeOpened = FPaperStyle::Get()->GetBrush(EyeOpenedBrushName);
 
 	ChildSlot
 	[
