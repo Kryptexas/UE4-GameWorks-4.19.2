@@ -44,5 +44,10 @@ namespace UnrealBuildTool
 			}
 			return InPlatform.ToString();
 		}
+
+		public override bool RequiresVSUserFileGeneration()
+		{
+			return true;
+		}
 	}
 }
