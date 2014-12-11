@@ -28,6 +28,8 @@ PFNGLGETQUERYOBJECTUI64VEXTPROC			glGetQueryObjectui64vEXT = NULL;
 // Offscreen MSAA rendering
 PFNBLITFRAMEBUFFERNVPROC				glBlitFramebufferNV = NULL;
 PFNGLDISCARDFRAMEBUFFEREXTPROC			glDiscardFramebufferEXT = NULL;
+PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXT	glFramebufferTexture2DMultisampleEXT = NULL;
+PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXT	glRenderbufferStorageMultisampleEXT = NULL;
 
 PFNGLPUSHGROUPMARKEREXTPROC				glPushGroupMarkerEXT = NULL;
 PFNGLPOPGROUPMARKEREXTPROC				glPopGroupMarkerEXT = NULL;
@@ -340,6 +342,8 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	}
 
 	glDiscardFramebufferEXT = (PFNGLDISCARDFRAMEBUFFEREXTPROC)((void*)eglGetProcAddress("glDiscardFramebufferEXT"));
+	glFramebufferTexture2DMultisampleEXT = (PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXT)((void*)eglGetProcAddress("glFramebufferTexture2DMultisampleEXT"));
+	glRenderbufferStorageMultisampleEXT = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXT)((void*)eglGetProcAddress("glRenderbufferStorageMultisampleEXT"));
 	glPushGroupMarkerEXT = (PFNGLPUSHGROUPMARKEREXTPROC)((void*)eglGetProcAddress("glPushGroupMarkerEXT"));
 	glPopGroupMarkerEXT = (PFNGLPOPGROUPMARKEREXTPROC)((void*)eglGetProcAddress("glPopGroupMarkerEXT"));
 	glLabelObjectEXT = (PFNGLLABELOBJECTEXTPROC)((void*)eglGetProcAddress("glLabelObjectEXT"));
