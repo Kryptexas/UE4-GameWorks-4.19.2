@@ -163,10 +163,10 @@ private:
 	void CreateAndOpenProject();
 
 	/** Opens the specified project file */
-	bool OpenProject(const FString& ProjectFile, bool bPromptForConfirmation);
+	bool OpenProject(const FString& ProjectFile);
 
 	/** Opens the solution for the specified project */
-	bool OpenCodeIDE(const FString& ProjectFile, bool bPromptForConfirmation);
+	bool OpenCodeIDE(const FString& ProjectFile);
 
 	/** Creates a project with the supplied project filename */
 	bool CreateProject(const FString& ProjectFile);

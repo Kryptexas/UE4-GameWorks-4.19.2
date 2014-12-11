@@ -197,6 +197,9 @@ public:
 	/** Returns the uproject template filename for the default project template. */
 	static FString GetDefaultProjectTemplateFilename();
 
+	/** Compiles a project while showing a progress bar, and offers to open the IDE if it fails. */
+	static bool BuildCodeProject(const FString& ProjectFilename);
+
 	/** Creates code project files for a new game project. On failure, OutFailReason will be populated. */
 	static bool GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason);
 

@@ -22,6 +22,7 @@
 #include "NotificationManager.h"
 #include "GameFramework/GameMode.h"
 #include "HotReloadInterface.h"
+#include "SVerbChoiceDialog.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -1799,6 +1800,41 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 	}
 
 	return true;
+}
+
+bool GameProjectUtils::BuildCodeProject(const FString& ProjectFilename)
+{
+	// Build the project while capturing the log output. Passing GWarn to CompileGameProject will allow Slate to display the progress bar.
+	FStringOutputDevice OutputLog;
+	OutputLog.SetAutoEmitLineTerminator(true);
+	GLog->AddOutputDevice(&OutputLog);
+	bool bCompileSucceeded = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), ProjectFilename, GWarn);
+	GLog->RemoveOutputDevice(&OutputLog);
+
+	// Try to compile the modules
+	if(!bCompileSucceeded)
+	{
+		FText DevEnvName = FSourceCodeNavigation::GetSuggestedSourceCodeIDE( true );
+
+		TArray<FText> CompileFailedButtons;
+		int32 OpenIDEButton = CompileFailedButtons.Add(FText::Format(LOCTEXT("CompileFailedOpenIDE", "Open with {0}"), DevEnvName));
+		int32 ViewLogButton = CompileFailedButtons.Add(LOCTEXT("CompileFailedViewLog", "View build log"));
+		CompileFailedButtons.Add(LOCTEXT("CompileFailedCancel", "Cancel"));
+
+		int32 CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Would you like to open the project in {0}?"), DevEnvName), CompileFailedButtons);
+		if(CompileFailedChoice == ViewLogButton)
+		{
+			CompileFailedButtons.RemoveAt(ViewLogButton);
+			CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Build output is as follows:\n\n{0}"), FText::FromString(OutputLog)), CompileFailedButtons);
+		}
+
+		FText FailReason;
+		if(CompileFailedChoice == OpenIDEButton && !GameProjectUtils::OpenCodeIDE(ProjectFilename, FailReason))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+		}
+	}
+	return bCompileSucceeded;
 }
 
 bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason)

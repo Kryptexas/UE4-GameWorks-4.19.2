@@ -1047,33 +1047,8 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 				}
 
 				// Try to compile the project
-				OutputLog.Empty();
-				GLog->AddOutputDevice(&OutputLog);
-				bool bCompileSucceeded = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), ProjectFile, GWarn);
-				GLog->RemoveOutputDevice(&OutputLog);
-
-				// Try to compile the modules
-				if(!bCompileSucceeded)
+				if(!GameProjectUtils::BuildCodeProject(ProjectFile))
 				{
-					FText DevEnvName = FSourceCodeNavigation::GetSuggestedSourceCodeIDE( true );
-
-					TArray<FText> CompileFailedButtons;
-					int32 OpenIDEButton = CompileFailedButtons.Add(FText::Format(LOCTEXT("CompileFailedOpenIDE", "Open with {0}"), DevEnvName));
-					int32 ViewLogButton = CompileFailedButtons.Add(LOCTEXT("CompileFailedViewLog", "View build log"));
-					CompileFailedButtons.Add(LOCTEXT("CompileFailedCancel", "Cancel"));
-
-					int32 CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Would you like to open the project in {0}?"), DevEnvName), CompileFailedButtons);
-					if(CompileFailedChoice == ViewLogButton)
-					{
-						CompileFailedButtons.RemoveAt(ViewLogButton);
-						CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Build output is as follows:\n\n{0}"), FText::FromString(OutputLog)), CompileFailedButtons);
-					}
-
-					if(CompileFailedChoice == OpenIDEButton && !GameProjectUtils::OpenCodeIDE(ProjectFile, FailReason))
-					{
-						FMessageDialog::Open(EAppMsgType::Ok, FailReason);
-					}
-
 					return false;
 				}
 			}

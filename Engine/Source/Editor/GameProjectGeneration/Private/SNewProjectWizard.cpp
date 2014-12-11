@@ -1462,39 +1462,18 @@ void SNewProjectWizard::CreateAndOpenProject( )
 			// Prevent periodic validity checks. This is to prevent a brief error message about the project already existing while you are exiting.
 			bPreventPeriodicValidityChecksUntilNextChange = true;
 
-			const bool bCodeAdded = GetSelectedTemplateItem()->bGenerateCode;
-			if ( bCodeAdded )
+			// If it's a code project, compile the binaries first.
+			if(!GetSelectedTemplateItem()->bGenerateCode || GameProjectUtils::BuildCodeProject(ProjectFile))
 			{
-				// In non-rocket, the engine executable may need to be built in order to build the game binaries,
-				// just open the code editing ide now instead of automatically building for them since it is not safe to do so.
-				const bool bPromptForConfirmation = FApp::HasGameName(); /** Only prompt for project switching if we are already in a project */
-				OpenCodeIDE( ProjectFile, bPromptForConfirmation );
-			}
-			else
-			{
-				// Successfully created a content only project. Now open it.
-				const bool bPromptForConfirmation = false;
-				OpenProject( ProjectFile, bPromptForConfirmation );
+				OpenProject( ProjectFile );
 			}
 		}
 	}
 }
 
 
-bool SNewProjectWizard::OpenProject( const FString& ProjectFile, bool bPromptForConfirmation )
+bool SNewProjectWizard::OpenProject( const FString& ProjectFile )
 {
-	if ( bPromptForConfirmation )
-	{
-		// Notify the user of the success, and ask to switch projects.
-		FText SuccessMessage = FText::Format( LOCTEXT("NewProjectSuccessful", "Project '{0}' was successfully created. Would you like to open it now?"), FText::FromString(FPaths::GetBaseFilename(ProjectFile)) );
-		if ( FMessageDialog::Open( EAppMsgType::YesNo, SuccessMessage ) == EAppReturnType::No )
-		{
-			// The user opted out of opening the new project. Just close the window.
-			CloseWindowIfAppropriate();
-			return false;
-		}
-	}
-
 	FText FailReason;
 	if ( GameProjectUtils::OpenProject( ProjectFile, FailReason ) )
 	{
@@ -1509,20 +1488,8 @@ bool SNewProjectWizard::OpenProject( const FString& ProjectFile, bool bPromptFor
 }
 
 
-bool SNewProjectWizard::OpenCodeIDE( const FString& ProjectFile, bool bPromptForConfirmation )
+bool SNewProjectWizard::OpenCodeIDE( const FString& ProjectFile )
 {
-	if ( bPromptForConfirmation )
-	{
-		// Notify the user of the success, and ask to switch projects.
-		FText SuccessMessage = FText::Format( LOCTEXT("NewProjectSuccessfulIDE", "Project '{0}' was successfully created. Would you like to open it in {1}?"), FText::FromString(FPaths::GetBaseFilename(ProjectFile)), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() );
-		if ( FMessageDialog::Open( EAppMsgType::YesNo, SuccessMessage ) == EAppReturnType::No )
-		{
-			// The user opted out of opening the new project. Just close the window.
-			CloseWindowIfAppropriate(true);
-			return false;
-		}
-	}
-
 	FText FailReason;
 
 	if ( GameProjectUtils::OpenCodeIDE( ProjectFile, FailReason ) )
