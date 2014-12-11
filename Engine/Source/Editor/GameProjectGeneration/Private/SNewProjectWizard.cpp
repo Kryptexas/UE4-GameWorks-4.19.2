@@ -265,7 +265,7 @@ public:
 				.Padding(FMargin(ThumbnailPadding, 0))
 				[
 					SNew(STextBlock)
-					.AutoWrapText(true)
+					.WrapTextAt(ThumbnailSize)
 					.Justification(ETextJustify::Center)
 					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 					//.HighlightText(this, &SNewProjectWizard::GetItemHighlightText)
