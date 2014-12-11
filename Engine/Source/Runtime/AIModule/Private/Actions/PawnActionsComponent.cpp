@@ -545,3 +545,8 @@ void UPawnActionsComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) cons
 	}
 }
 #endif // ENABLE_VISUAL_LOG
+
+FString UPawnActionsComponent::DescribeEventType(EPawnActionEventType::Type EventType)
+{
+	return GetEventName(EventType);
+}

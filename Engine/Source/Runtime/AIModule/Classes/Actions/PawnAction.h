@@ -181,6 +181,7 @@ public:
 	virtual void HandleAIMessage(UBrainComponent*, const FAIMessage&){};
 
 	void SetActionObserver(const FPawnActionEventDelegate& ActionObserver) { this->ActionObserver = ActionObserver; }
+	bool HasActionObserver() const { return ActionObserver.IsBound(); }
 
 	//----------------------------------------------------------------------//
 	// Blueprint interface

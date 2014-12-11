@@ -54,6 +54,12 @@ class AIMODULE_API UBTTaskNode : public UBTNode
 	/** wrapper for node instancing: TickTask */
 	void WrappedTickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) const;
 
+	/** helper function: finish latent executing */
+	void FinishLatentTask(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type TaskResult) const;
+
+	/** helper function: finishes latent aborting */
+	void FinishLatentAbort(UBehaviorTreeComponent& OwnerComp) const;
+
 protected:
 
 	/** if set, TickTask will be called */
@@ -66,12 +72,6 @@ protected:
 	/** message handler, default implementation will finish latent execution/abortion
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual void OnMessage(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, FName Message, int32 RequestID, bool bSuccess);
-
-	/** helper function: finish latent executing */
-	void FinishLatentTask(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type TaskResult) const;
-
-	/** helper function: finishes latent aborting */
-	void FinishLatentAbort(UBehaviorTreeComponent& OwnerComp) const;
 
 	/** register message observer */
 	void WaitForMessage(UBehaviorTreeComponent& OwnerComp, FName MessageType) const;

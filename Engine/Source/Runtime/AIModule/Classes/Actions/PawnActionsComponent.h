@@ -140,6 +140,8 @@ public:
 	void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
+	static FString DescribeEventType(EPawnActionEventType::Type EventType);
+
 	//----------------------------------------------------------------------//
 	// Debugging-testing purposes 
 	//----------------------------------------------------------------------//
