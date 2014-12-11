@@ -107,7 +107,15 @@ void FAnimationActiveTransitionEntry::Update(const FAnimationUpdateContext& Cont
 			bOutFinished = true;
 		}
 
-		Alpha = CalculateAlpha(ElapsedTime / CrossfadeDuration);
+		if(CrossfadeDuration <= 0.0f)
+		{
+			Alpha = 1.0f;
+		}
+		else
+		{
+			Alpha = CalculateAlpha(ElapsedTime / CrossfadeDuration);
+		}
+
 	}
 }
 
