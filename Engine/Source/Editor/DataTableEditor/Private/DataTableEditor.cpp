@@ -127,6 +127,26 @@ FLinearColor FDataTableEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor( 0.0f, 0.0f, 0.2f, 0.5f );
 }
 
+FSlateColor FDataTableEditor::GetRowColor(FName RowName) const
+{
+	if (RowName == HighlightedRowName)
+	{
+		return FSlateColor(FColorList::Orange);
+	}
+	return FSlateColor::UseForeground();
+}
+
+FReply FDataTableEditor::OnRowClicked(const FGeometry&, const FPointerEvent&, FName RowName)
+{
+	if (HighlightedRowName != RowName)
+	{
+		SetHighlightedRow(RowName);
+		CallbackOnRowHighlighted.ExecuteIfBound(HighlightedRowName);
+	}
+
+	return FReply::Handled();
+}
+
 TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 {
 	TSharedPtr<SUniformGridPanel> GridPanel = SNew(SUniformGridPanel).SlotPadding( FMargin( 2.0f ) );
@@ -152,31 +172,38 @@ TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 		{
 			if (RowsVisibility[i])
 			{
-				bool bIsHeader =  (i == 0);
+				const bool bIsHeader = (i == 0);
+				const FLinearColor RowColor = (RowIndex % 2 == 0) ? FLinearColor::Gray : FLinearColor::Black;
 
-				FLinearColor RowColor = (RowIndex % 2 == 0) ? FLinearColor::Gray : FLinearColor::Black;				
-				if (bIsHeader)
-				{
-					RowColor = FLinearColor::Gray;
-				}
-				
-				TArray<FString>& Row = CachedDataTable[i];				
+				TArray<FString>& Row = CachedDataTable[i];
+				FName RowName(*Row[0]);
+				TAttribute<FSlateColor> ForegroundColor = bIsHeader
+					? FSlateColor::UseForeground()
+					: TAttribute<FSlateColor>::Create(
+					TAttribute<FSlateColor>::FGetter::CreateSP(this, &FDataTableEditor::GetRowColor, RowName));
+
+				auto RowClickCallback = bIsHeader
+					? FPointerEventHandler()
+					: FPointerEventHandler::CreateSP(this, &FDataTableEditor::OnRowClicked, RowName);
+
 				for(int Column = 0;Column<Row.Num();++Column)
 				{
 					GridPanel->AddSlot(Column, RowIndex)
+					[
+						SNew(SBorder)
+						.Padding(1)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						.BorderBackgroundColor(RowColor)
+						.ForegroundColor(ForegroundColor)
+						.OnMouseButtonDown(RowClickCallback)
 						[
-							SNew(SBorder)
-							.Padding(1)
-							.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
-							.BorderBackgroundColor(RowColor)						
-							[
-								SNew(STextBlock)
-								.Text(Row[Column])
-								.ToolTipText(bIsHeader 
-								?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
-								:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
-							]
-						];
+							SNew(STextBlock)
+							.Text(Row[Column])
+							.ToolTipText(bIsHeader 
+							?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
+							:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
+						]
+					];
 				}
 
 				++RowIndex;
@@ -255,7 +282,10 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 
 TSharedRef<SWidget> FDataTableEditor::CreateRowEditorBox()
 {
-	return SNew(SRowEditor, DataTable.Get());
+	auto RowEditor = SNew(SRowEditor, DataTable.Get());
+	RowEditor->RowSelectedCallback.BindSP(this, &FDataTableEditor::SetHighlightedRow);
+	CallbackOnRowHighlighted.BindSP(RowEditor, &SRowEditor::SelectRow);
+	return RowEditor;
 }
 
 TSharedRef<SDockTab> FDataTableEditor::SpawnTab_RowEditor(const FSpawnTabArgs& Args)
@@ -306,5 +336,9 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 		];
 }
 
+void FDataTableEditor::SetHighlightedRow(FName Name)
+{
+	HighlightedRowName = Name;
+}
 
 #undef LOCTEXT_NAMESPACE

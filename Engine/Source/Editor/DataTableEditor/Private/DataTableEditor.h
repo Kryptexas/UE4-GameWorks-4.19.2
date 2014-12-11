@@ -10,6 +10,8 @@
 
 class UDataTable;
 
+DECLARE_DELEGATE_OneParam(FOnRowHighlighted, FName /*Row name*/);
+
 /** Viewer/editor for a DataTable */
 class FDataTableEditor : public IDataTableEditor
 	, public FStructureEditorUtils::INotifyOnStructChanged
@@ -53,6 +55,8 @@ public:
 	virtual void PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 	virtual void PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 
+	void SetHighlightedRow(FName Name);
+
 private:
 
 	void ReloadVisibleData();
@@ -68,6 +72,10 @@ private:
 
 	/**	Spawns the tab with the Row Editor inside */
 	TSharedRef<SDockTab> SpawnTab_RowEditor(const FSpawnTabArgs& Args);
+
+	FSlateColor GetRowColor(FName RowName) const;
+
+	FReply OnRowClicked(const FGeometry&, const FPointerEvent&, FName RowName);
 
 private:
 
@@ -88,6 +96,10 @@ private:
 
 	/* The DataTable that is active in the editor */
 	TAssetPtr<UDataTable> DataTable;
+
+	FName HighlightedRowName;
+
+	FOnRowHighlighted CallbackOnRowHighlighted;
 
 	/**	The tab id for the data table tab */
 	static const FName DataTableTabId;

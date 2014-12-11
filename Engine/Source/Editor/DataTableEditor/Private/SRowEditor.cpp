@@ -175,6 +175,8 @@ void SRowEditor::Restore()
 	{
 		StructureDetailsView->SetStructureData(CurrentRow);
 	}
+
+	RowSelectedCallback.ExecuteIfBound(FinalName);
 }
 
 UScriptStruct* SRowEditor::GetScriptStruct() const
@@ -215,6 +217,23 @@ void SRowEditor::OnSelectionChanged(TSharedPtr<FName> InItem, ESelectInfo::Type 
 
 		Restore();
 	}
+}
+
+void SRowEditor::SelectRow(FName InName)
+{
+	TSharedPtr<FName> NewSelectedName;
+	for (auto Name : CachedRowNames)
+	{
+		if (Name.IsValid() && (*Name == InName))
+		{
+			NewSelectedName = Name;
+		}
+	}
+	if (!NewSelectedName->IsValid())
+	{
+		NewSelectedName = MakeShareable(new FName(InName));
+	}
+	OnSelectionChanged(NewSelectedName, ESelectInfo::Direct);
 }
 
 FReply SRowEditor::OnAddClicked()
@@ -270,7 +289,7 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 
 	RefreshNameList();
 	Restore();
-	
+	const float ButtonWidth = 85.0f;
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -281,44 +300,27 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2)
-			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
-				SNew(STextBlock)
-				.Text(this, &SRowEditor::GetStructureDisplayName)
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(2)
-			[
-				SAssignNew(RowComboBox, SComboBox<TSharedPtr<FName>>)
-				.OptionsSource(&CachedRowNames)
-				.OnSelectionChanged(this, &SRowEditor::OnSelectionChanged)
-				.OnGenerateWidget(this, &SRowEditor::OnGenerateWidget)
-				.Content()
+				SNew(SBox)
+				.MinDesiredWidth(ButtonWidth)
 				[
-					SNew(STextBlock).Text(this, &SRowEditor::GetCurrentNameAsText)
+					SNew(SButton)
+					.OnClicked(this, &SRowEditor::OnAddClicked)
+					.HAlign(EHorizontalAlignment::HAlign_Center)
+					.Text(LOCTEXT("AddRow", "Add"))
 				]
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2)
 			[
-				SNew(SButton)
-				.OnClicked(this, &SRowEditor::OnAddClicked)
-				.Content()
+				SNew(SBox)
+				.MinDesiredWidth(ButtonWidth)
 				[
-					SNew(STextBlock).Text(LOCTEXT("AddRow", "Add"))
-				]
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(2)
-			[
-				SNew(SButton)
-				.OnClicked(this, &SRowEditor::OnRemoveClicked)
-				.Content()
-				[
-					SNew(STextBlock).Text(LOCTEXT("RemoveRow", "Remove"))
+					SNew(SButton)
+					.OnClicked(this, &SRowEditor::OnRemoveClicked)
+					.HAlign(EHorizontalAlignment::HAlign_Center)
+					.Text(LOCTEXT("RemoveRow", "Remove"))
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -326,15 +328,51 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			.Padding(2)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
-				SNew(STextBlock).Text(LOCTEXT("RenameRow", "Rename:"))
+				SNew(SBox)
+				.HAlign(EHorizontalAlignment::HAlign_Right)
+				[
+					SNew(STextBlock).Text(LOCTEXT("RenameRow", "Rename:"))
+				]
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2)
 			[
-				SNew(SEditableTextBox)
-				.Text(this, &SRowEditor::GetCurrentNameAsText)
-				.OnTextCommitted(this, &SRowEditor::OnRowRenamed)
+				SNew(SBox)
+				.WidthOverride(2 * ButtonWidth)
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &SRowEditor::GetCurrentNameAsText)
+					.OnTextCommitted(this, &SRowEditor::OnRowRenamed)
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			.VAlign(EVerticalAlignment::VAlign_Center)
+			[
+				SNew(SBox)
+				.HAlign(EHorizontalAlignment::HAlign_Right)
+				[
+					SNew(STextBlock).Text(LOCTEXT("SelectRow", "Select:"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SBox)
+				.WidthOverride(2 * ButtonWidth)
+				[
+					SAssignNew(RowComboBox, SComboBox<TSharedPtr<FName>>)
+					.OptionsSource(&CachedRowNames)
+					.OnSelectionChanged(this, &SRowEditor::OnSelectionChanged)
+					.OnGenerateWidget(this, &SRowEditor::OnGenerateWidget)
+					.Content()
+					[
+						SNew(STextBlock).Text(this, &SRowEditor::GetCurrentNameAsText)
+					]
+				]
 			]
 		]
 		+ SVerticalBox::Slot()
@@ -344,3 +382,4 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 		]
 	];
 }
+

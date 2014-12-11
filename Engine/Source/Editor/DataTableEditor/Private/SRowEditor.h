@@ -6,6 +6,7 @@
 #include "DataTableEditorUtils.h"
 
 DECLARE_DELEGATE_OneParam(FOnRowModified, FName /*Row name*/);
+DECLARE_DELEGATE_OneParam(FOnRowSelected, FName /*Row name*/);
 
 class SRowEditor : public SCompoundWidget
 	, public FStructureEditorUtils::INotifyOnStructChanged
@@ -25,6 +26,8 @@ public:
 	// INotifyOnDataTableChanged
 	virtual void PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 	virtual void PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
+
+	FOnRowSelected RowSelectedCallback;
 
 private:
 
@@ -56,4 +59,6 @@ private:
 public:
 
 	void Construct(const FArguments& InArgs, UDataTable* Changed);
+
+	void SelectRow(FName Name);
 };
