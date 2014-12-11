@@ -10,10 +10,11 @@ struct FBlueprintMergeData
 	FBlueprintMergeData()
 		: OwningEditor()
 		, BlueprintLocal(NULL)
+		, RevisionLocal(FRevisionInfo::InvalidRevision())
 		, BlueprintBase(NULL)
-		, RevisionBase()
+		, RevisionBase(FRevisionInfo::InvalidRevision())
 		, BlueprintRemote(NULL)
-		, RevisionRemote()
+		, RevisionRemote(FRevisionInfo::InvalidRevision())
 	{
 	}
 
@@ -37,6 +38,8 @@ struct FBlueprintMergeData
 	TWeakPtr<class FBlueprintEditor>	OwningEditor;
 	
 	const class UBlueprint*				BlueprintLocal;
+	FRevisionInfo						RevisionLocal;
+
 	const class UBlueprint*				BlueprintBase;
 	FRevisionInfo						RevisionBase;
 

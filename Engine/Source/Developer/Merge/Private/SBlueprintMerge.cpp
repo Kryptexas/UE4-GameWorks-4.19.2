@@ -13,6 +13,8 @@
 #include "SMergeTreeView.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "SMergeAssetPickerView.h"
+#include "MergeUtils.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
@@ -59,47 +61,24 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 {
 	check( InData.OwningEditor.Pin().IsValid() );
 
+	// reset state
 	Data = InData;
-	OnMergeResolved = InArgs._OnMergeResolved;
-	LocalBackupPath.Empty();
-
-	// we want to make a read only copy of the local blueprint, since we allow 
-	// the user to modify/mutate the merge result (which starts as the local copy)
-	if (InData.BlueprintLocal == GetTargetBlueprint())
+	bIsPickingAssets = InArgs._bForcePickAssets;
+	OnMergeResolved  = InArgs._OnMergeResolved;
+	
+	if (InData.BlueprintRemote != nullptr)
 	{
-		UBlueprint* LocalBlueprint = GetTargetBlueprint();
-		// we use this to suppress blueprint compilation during StaticDuplicateObject()
-		// @TODO: we don't remember exactly why this was needed, but I saw the 
-		//        the blueprint become unplacable and the file become unloadable
-		//        without this, but don't know exactly why
-		TGuardValue<bool> GuardDuplicatingReadOnly(LocalBlueprint->bDuplicatingReadOnly, true);
-
-		UPackage* TransientPackage = GetTransientPackage();
-		Data.BlueprintLocal = Cast<const UBlueprint>( StaticDuplicateObject(LocalBlueprint, TransientPackage,
-			*MakeUniqueObjectName(TransientPackage, LocalBlueprint->GetClass(), LocalBlueprint->GetFName()).ToString()) );
+		RemotePath = InData.BlueprintRemote->GetOutermost()->GetName();
 	}
-
+	if (InData.BlueprintBase != nullptr)
+	{
+		BasePath = InData.BlueprintBase->GetOutermost()->GetName();
+	}
+	if (InData.BlueprintLocal != nullptr)
+	{
+		LocalPath = InData.BlueprintLocal->GetOutermost()->GetName();
+	}
 	BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
-
-	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
-	WriteBackup(*InData.BlueprintRemote->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension());
-	WriteBackup(*InData.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension());
-	LocalBackupPath = WriteBackup(*InData.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
-
-	auto GraphView = SNew(SMergeGraphView, Data);
-	GraphControl.Widget = GraphView;
-	GraphControl.DiffControl = &GraphView.Get();
-	GraphControl.MergeControl = &GraphView.Get();
-
-	auto TreeView = SNew(SMergeTreeView, Data);
-	TreeControl.Widget = TreeView;
-	TreeControl.DiffControl = &TreeView.Get();
-	TreeControl.MergeControl = &TreeView.Get();
-
-	auto DetailsView = SNew(SMergeDetailsView, Data);
-	DetailsControl.Widget = DetailsView;
-	DetailsControl.DiffControl = &DetailsView.Get();
-	DetailsControl.MergeControl = &DetailsView.Get();
 
 	FToolBarBuilder ToolbarBuilder(TSharedPtr< FUICommandList >(), FMultiBoxCustomization::None);
 	ToolbarBuilder.AddToolBarButton( 
@@ -116,6 +95,11 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		, LOCTEXT("NextMergeTooltip", "Go to next difference")
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.NextDiff") 
 	);
+
+	auto IsInPassiveMode = [this]()
+	{
+		return !IsActivelyMerging();
+	};
 
 	// conflict navigation buttons:
 	ToolbarBuilder.AddSeparator();
@@ -137,21 +121,41 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	// buttons for finishing the merge:
 	ToolbarBuilder.AddSeparator(); 
 	ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptRemote))
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SBlueprintMerge::OnStartMerge),
+			FCanExecuteAction::CreateSP(this, &SBlueprintMerge::CanStartMerge),
+			FIsActionChecked(),
+			FIsActionButtonVisible::CreateLambda(IsInPassiveMode))
+		, NAME_None
+		, LOCTEXT("StartMergeLabel", "Start Merge")
+		, LOCTEXT("StartMergeTooltip", "Loads the selected blueprints and switches to an active merge (using your selections for the remote/base/local)")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.StartMerge")
+	);
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptRemote),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SBlueprintMerge::IsActivelyMerging))
 		, NAME_None
 		, LOCTEXT("AcceptRemoteLabel", "Accept Source")
 		, LOCTEXT("AcceptRemoteTooltip", "Complete the merge operation - Replaces the Blueprint with a copy of the remote file.")
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.AcceptSource")
 	);
 	ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptLocal))
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptLocal),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SBlueprintMerge::IsActivelyMerging))
 		, NAME_None
 		, LOCTEXT("AcceptLocalLabel", "Accept Target")
 		, LOCTEXT("AcceptLocalTooltip", "Complete the merge operation - Leaves the target Blueprint unchanged.")
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.AcceptTarget")
 	);
 	ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnFinishMerge))
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SBlueprintMerge::OnFinishMerge), 
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SBlueprintMerge::IsActivelyMerging))
 		, NAME_None
 		, LOCTEXT("FinishMergeLabel", "Finish Merge")
 		, LOCTEXT("FinishMergeTooltip", "Complete the merge operation - saves the blueprint and resolves the conflict with the SCC provider")
@@ -180,9 +184,23 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		+ SVerticalBox::Slot()
 		[
 			SAssignNew(MainView, SBorder)
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+				.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 		]
 	];
+
+	if (IsActivelyMerging())
+	{
+		OnStartMerge();
+	}
+	else
+	{
+		bIsPickingAssets = true;
+
+		auto AssetPickerView = SNew(SMergeAssetPickerView, InData).OnAssetChanged(this, &SBlueprintMerge::OnMergeAssetSelected);
+		AssetPickerControl.Widget = AssetPickerView;
+		AssetPickerControl.DiffControl  = &AssetPickerView.Get();
+		AssetPickerControl.MergeControl = &AssetPickerView.Get();
+	}
 
 	Data.OwningEditor.Pin()->OnModeSet().AddSP( this, &SBlueprintMerge::OnModeChanged );
 	OnModeChanged( Data.OwningEditor.Pin()->GetCurrentMode() );
@@ -233,6 +251,82 @@ bool SBlueprintMerge::HasPrevConflict() const
 	return CurrentMergeControl && CurrentMergeControl->HasPrevConflict();
 }
 
+void SBlueprintMerge::OnStartMerge()
+{
+	if (Data.BlueprintRemote == nullptr)
+	{
+		Data.BlueprintRemote = Cast<UBlueprint>(FMergeToolUtils::LoadRevision(RemotePath, Data.RevisionRemote));
+	}
+	if (Data.BlueprintBase == nullptr)
+	{
+		Data.BlueprintBase = Cast<UBlueprint>(FMergeToolUtils::LoadRevision(BasePath, Data.RevisionBase));
+	}
+	if (Data.BlueprintLocal == nullptr)
+	{
+		Data.BlueprintLocal = Cast<UBlueprint>(FMergeToolUtils::LoadRevision(LocalPath, Data.RevisionLocal));
+	}
+	LocalBackupPath.Empty();
+
+	if ((Data.BlueprintRemote != nullptr) && (Data.BlueprintBase != nullptr) && (Data.BlueprintLocal != nullptr))
+	{
+		// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
+		WriteBackup(*Data.BlueprintRemote->GetOutermost(), BackupSubDir, TEXT("RemoteAsset") + FPackageName::GetAssetPackageExtension());
+		WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension());
+		LocalBackupPath = WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
+
+		// we want to make a read only copy of the local blueprint, since we allow 
+		// the user to modify/mutate the merge result (which starts as the local copy)
+		if (Data.BlueprintLocal == GetTargetBlueprint())
+		{
+			UBlueprint* LocalBlueprint = GetTargetBlueprint();
+			// we use this to suppress blueprint compilation during StaticDuplicateObject()
+			// @TODO: we don't remember exactly why this was needed, but I saw the 
+			//        the blueprint become unplacable and the file become unloadable
+			//        without this, but don't know exactly why
+			TGuardValue<bool> GuardDuplicatingReadOnly(LocalBlueprint->bDuplicatingReadOnly, true);
+
+			UPackage* TransientPackage = GetTransientPackage();
+			Data.BlueprintLocal = Cast<const UBlueprint>(StaticDuplicateObject(LocalBlueprint, TransientPackage,
+				*MakeUniqueObjectName(TransientPackage, LocalBlueprint->GetClass(), LocalBlueprint->GetFName()).ToString()));
+		}
+		else
+		{
+			// since we didn't need to make a copy of the local-blueprint, then
+			// we're most likely using a different asset for "local"; in that 
+			// case, we don't want to use a copy of the file in OnAcceptLocal()
+			// (the name of the blueprint would be all off, etc.)... instead,
+			// we want to just duplicate the Blueprint pointer (like we do for
+			// OnAcceptRemote), so we leverage the emptiness of LocalBackupPath
+			// as a sentinel value (to determine which method we choose)
+			LocalBackupPath.Empty();
+		}
+
+		auto GraphView = SNew(SMergeGraphView, Data);
+		GraphControl.Widget = GraphView;
+		GraphControl.DiffControl = &GraphView.Get();
+		GraphControl.MergeControl = &GraphView.Get();
+
+		auto TreeView = SNew(SMergeTreeView, Data);
+		TreeControl.Widget = TreeView;
+		TreeControl.DiffControl = &TreeView.Get();
+		TreeControl.MergeControl = &TreeView.Get();
+
+		auto DetailsView = SNew(SMergeDetailsView, Data);
+		DetailsControl.Widget = DetailsView;
+		DetailsControl.DiffControl = &DetailsView.Get();
+		DetailsControl.MergeControl = &DetailsView.Get();
+	
+		bIsPickingAssets = false;
+		OnModeChanged(Data.OwningEditor.Pin()->GetCurrentMode());
+	}
+	else
+	{
+		const FText ErrorMessage = LOCTEXT("FailedMergeLoad", "Failed to load asset(s) for merge.");
+		FSlateNotificationManager::Get().AddNotification(FNotificationInfo(ErrorMessage));
+	}
+
+}
+
 void SBlueprintMerge::OnFinishMerge()
 {
 	ResolveMerge(GetTargetBlueprint());
@@ -254,7 +348,13 @@ void SBlueprintMerge::OnCancelClicked()
 
 void SBlueprintMerge::OnModeChanged(FName NewMode)
 {
-	if (NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ||
+	if (!IsActivelyMerging())
+	{
+		MainView->SetContent(AssetPickerControl.Widget.ToSharedRef());
+		CurrentDiffControl = AssetPickerControl.DiffControl;
+		CurrentMergeControl = AssetPickerControl.MergeControl;
+	}
+	else if (NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ||
 		NewMode == FBlueprintEditorApplicationModes::BlueprintMacroMode)
 	{
 		MainView->SetContent( GraphControl.Widget.ToSharedRef() );
@@ -295,37 +395,52 @@ void SBlueprintMerge::OnAcceptRemote()
 
 void SBlueprintMerge::OnAcceptLocal()
 {
+	UBlueprint* NewBlueprint = nullptr;
+
 	UBlueprint* TargetBlueprint = GetTargetBlueprint();
-	UPackage* TargetPackage = TargetBlueprint->GetOutermost();
-
-	FString PackageFilename;
-	if (FPackageName::DoesPackageExist(TargetPackage->GetName(), /*Guid =*/nullptr, &PackageFilename))
+	if (PromptUserIfUndoBufferToBeCleared(TargetBlueprint) == EAppReturnType::Yes)
 	{
-		if (PromptUserIfUndoBufferToBeCleared(TargetBlueprint) == EAppReturnType::Yes)
+		// we use the emptiness of LocalBackupPath as a sentinel value (to 
+		// determine how we should replace the TargetBlueprint)... if 
+		// Data.BlueprintLocal is malformed (and not ok to copy), then 
+		// LocalBackupPath should be valid (and we need to copy the file on disk 
+		// instead)
+		if (LocalBackupPath.IsEmpty())
 		{
-			FString SrcFilename = LocalBackupPath;
-			auto OverwriteBlueprintFile = [TargetBlueprint, &PackageFilename, &SrcFilename](UBlueprint* /*UnloadedBP*/)
-			{
-				if (IFileManager::Get().Copy(*PackageFilename, *SrcFilename) != COPY_OK)
-				{
-					const FText TargetName = FText::FromName(TargetBlueprint->GetFName());
-					const FText ErrorMessage = FText::Format(LOCTEXT("FailedMergeLocalCopy", "Failed to overwrite {0} target file."), TargetName);
-					FSlateNotificationManager::Get().AddNotification(FNotificationInfo(ErrorMessage));
-				}
-			};
-			// we have to wait until the package is unloaded (and the file is 
-			// unlocked) before we can overwrite the file; so we use defer the
-			// copy until then by adding it to the OnBlueprintUnloaded delegate
-			FKismetEditorUtilities::FOnBlueprintUnloaded::FDelegate OnPackageUnloaded = FKismetEditorUtilities::FOnBlueprintUnloaded::FDelegate::CreateLambda(OverwriteBlueprintFile);
-			FKismetEditorUtilities::OnBlueprintUnloaded.Add(OnPackageUnloaded);
-
-
-			if (UBlueprint* NewBlueprint = FKismetEditorUtilities::ReloadBlueprint(TargetBlueprint))
-			{
-				ResolveMerge(NewBlueprint);
-			}
-			FKismetEditorUtilities::OnBlueprintUnloaded.Remove(OnPackageUnloaded);
+			NewBlueprint = FKismetEditorUtilities::ReplaceBlueprint(TargetBlueprint, Data.BlueprintLocal);
 		}
+		else
+		{
+			UPackage* TargetPackage = TargetBlueprint->GetOutermost();
+
+			FString PackageFilename;
+			if (FPackageName::DoesPackageExist(TargetPackage->GetName(), /*Guid =*/nullptr, &PackageFilename))
+			{
+				FString SrcFilename = LocalBackupPath;
+				auto OverwriteBlueprintFile = [TargetBlueprint, &PackageFilename, &SrcFilename](UBlueprint* /*UnloadedBP*/)
+				{
+					if (IFileManager::Get().Copy(*PackageFilename, *SrcFilename) != COPY_OK)
+					{
+						const FText TargetName = FText::FromName(TargetBlueprint->GetFName());
+						const FText ErrorMessage = FText::Format(LOCTEXT("FailedMergeLocalCopy", "Failed to overwrite {0} target file."), TargetName);
+						FSlateNotificationManager::Get().AddNotification(FNotificationInfo(ErrorMessage));
+					}
+				};
+				// we have to wait until the package is unloaded (and the file is 
+				// unlocked) before we can overwrite the file; so we defer the
+				// copy until then by adding it to the OnBlueprintUnloaded delegate
+				FKismetEditorUtilities::FOnBlueprintUnloaded::FDelegate OnPackageUnloaded = FKismetEditorUtilities::FOnBlueprintUnloaded::FDelegate::CreateLambda(OverwriteBlueprintFile);
+					
+				FKismetEditorUtilities::OnBlueprintUnloaded.Add(OnPackageUnloaded);
+				NewBlueprint = FKismetEditorUtilities::ReloadBlueprint(TargetBlueprint);
+				FKismetEditorUtilities::OnBlueprintUnloaded.Remove(OnPackageUnloaded);
+			}
+		}
+	}
+
+	if (NewBlueprint != nullptr)
+	{
+		ResolveMerge(NewBlueprint);
 	}
 }
 
@@ -364,6 +479,45 @@ void SBlueprintMerge::ResolveMerge(UBlueprint* ResultantBlueprint)
 	if (Data.OwningEditor.IsValid())
 	{
 		Data.OwningEditor.Pin()->CloseMergeTool();
+	}
+}
+
+bool SBlueprintMerge::IsActivelyMerging() const
+{
+	return !bIsPickingAssets && (Data.BlueprintRemote != nullptr) &&
+		(Data.BlueprintBase != nullptr) && (Data.BlueprintLocal != nullptr);
+}
+
+bool SBlueprintMerge::CanStartMerge() const
+{
+	return !IsActivelyMerging() && !RemotePath.IsEmpty() && !BasePath.IsEmpty() && !LocalPath.IsEmpty();
+}
+
+void SBlueprintMerge::OnMergeAssetSelected(EMergeAssetId::Type AssetId, const FAssetRevisionInfo& AssetInfo)
+{
+	switch (AssetId)
+	{
+	case EMergeAssetId::MergeRemote:
+		{
+			RemotePath = AssetInfo.AssetName;
+			Data.RevisionRemote  = AssetInfo.Revision;
+			Data.BlueprintRemote = nullptr;
+			break;
+		}
+	case EMergeAssetId::MergeBase:
+		{
+			BasePath = AssetInfo.AssetName;
+			Data.RevisionBase  = AssetInfo.Revision;
+			Data.BlueprintBase = nullptr;
+			break;
+		}
+	case EMergeAssetId::MergeLocal:
+		{
+			LocalPath = AssetInfo.AssetName;
+			Data.RevisionLocal  = AssetInfo.Revision;
+			Data.BlueprintLocal = nullptr;
+			break;
+		}
 	}
 }
 
