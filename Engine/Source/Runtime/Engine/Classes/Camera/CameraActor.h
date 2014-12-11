@@ -1,11 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 #include "CameraActor.generated.h"
 
 /** 
- * A camera that can be placed in a level.
+ * A CameraActor is a camera viewpoint that can be placed in a level.
  */
 UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), showcategories=("Input|MouseInput", "Input|TouchInput"), Blueprintable)
 class ENGINE_API ACameraActor : public AActor

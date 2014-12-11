@@ -5,65 +5,74 @@
  */
 
 #pragma once
+
 #include "Camera/CameraModifier.h"
 #include "CameraModifier_CameraShake.generated.h"
 
-struct FFOscillator;
-
+/** 
+ * A CameraShakeInstance is an active instance of a shake asset. It contains
+ * the necessary state information to smoothly update this shake over time.
+ */
 USTRUCT()
 struct ENGINE_API FCameraShakeInstance
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** source shake */
+	/** The source camera shake data. */
 	UPROPERTY()
 	const class UCameraShake* SourceShake;
 
-	/** Used to identify shakes when single instances are desired */
+	/** Optional name of shake. Used to identify shakes when single instances are desired. */
 	UPROPERTY()
 	FName SourceShakeName;
 
-	/** <0.f means play infinitely. */
+	/** Time remaining for oscillation shakes. Less than 0.f means shake infinitely. */
 	UPROPERTY()
 	float OscillatorTimeRemaining;
 
-	/** blend vars */
+	/** True if this shake is currently blending in. */
 	UPROPERTY()
 	uint32 bBlendingIn:1;
 
+	/** How long this instance has been blending in. */
 	UPROPERTY()
 	float CurrentBlendInTime;
 
+	/** True if this shake is currently blending out. */
 	UPROPERTY()
 	uint32 bBlendingOut:1;
 
+	/** How long this instance has been blending out. */
 	UPROPERTY()
 	float CurrentBlendOutTime;
 
-	/** Current offsets. */
+	/** Current location sinusoidal offset. */
 	UPROPERTY()
 	FVector LocSinOffset;
 
+	/** Current rotational sinusoidal offset. */
 	UPROPERTY()
 	FVector RotSinOffset;
 
+	/** Current FOV sinusoidal offset. */
 	UPROPERTY()
 	float FOVSinOffset;
 
+	/** Overall intensity scale for this shake instance. */
 	UPROPERTY()
 	float Scale;
 
+	/** The playing instance of the CameraAnim-based shake, if any. */
 	UPROPERTY()
 	class UCameraAnimInst* AnimInst;
 
-	/** What space to play the shake in before applying to the camera.  Affects Anim and Oscillation both. */
+	/** What space to play the shake in before applying to the camera.  Affects both Anim and Oscillation shakes. */
 	UPROPERTY()
 	TEnumAsByte<ECameraAnimPlaySpace::Type> PlaySpace;
 
 	/** Matrix defining the playspace, used when PlaySpace == CAPS_UserDefined */
 	UPROPERTY()
 	FMatrix UserPlaySpaceMatrix;
-
 
 	FCameraShakeInstance()
 		: SourceShake(NULL)
@@ -79,43 +88,79 @@ struct ENGINE_API FCameraShakeInstance
 		, AnimInst(NULL)
 		, PlaySpace(0)
 		, UserPlaySpaceMatrix(ForceInit)
-	{
-	}
+	{}
 
 };
 
+//=============================================================================
+/**
+ * A UCameraModifier_CameraShake is a camera modifier that can apply a UCameraShake to 
+ * the owning camera.
+ */
 UCLASS(config=Camera)
 class ENGINE_API UCameraModifier_CameraShake : public UCameraModifier
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Active CameraShakes array */
+public:
+	/** List of active CameraShakes */
 	UPROPERTY()
 	TArray<struct FCameraShakeInstance> ActiveShakes;
 
 protected:
-	/** Scalar applied to all camera shakes in splitscreen. Normally used to dampen, since shakes feel more intense in a smaller viewport. */
+	/** Scaling factor applied to all camera shakes in when in splitscreen mode. Normally used to dampen, since shakes feel more intense in a smaller viewport. */
 	UPROPERTY(EditAnywhere, Category=CameraModifier_CameraShake)
 	float SplitScreenShakeScale;
 
-	/** For situational scaling of individual shakes. */
+	/** @return Returns the current overall scaling factor for this shake. */
 	virtual float GetShakeScale(FCameraShakeInstance const& ShakeInst) const;
+	
+	/** 
+	 * Restarts a playing camerashake from the beginning. 
+	 * @param ShakeInst - The shake instance to restart.
+	 * @param Scale - The base scale to restart at.
+	 */
 	virtual void ReinitShake(FCameraShakeInstance& ShakeInst, float Scale);
 
-public:
-	float InitializeOffset( const FFOscillator& Param );
+	/** @return Returns an initial offset for the given oscillator parameter. */
+	float InitializeOffset( const struct FFOscillator& Param ) const;
 	
-	/** Initialize camera shake structure */
+	/** 
+	 * Internal. Creates a new camera shake instance.
+	 * @param NewShake - The class of camera shake to instantiate.
+	 * @param Scale - The scalar intensity to play the shake.
+	 * @param PlaySpace - Which coordinate system to play the shake in.
+	 * @param UserPlaySpaceRot - Coordinate system to play shake when PlaySpace == CAPS_UserDefined.
+	 * @return Returns the new camera shake instance.
+	 */
 	virtual FCameraShakeInstance InitializeShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	
-	/** Add a new screen shake to the list */
+public:
+	/** 
+	 * Adds a new active screen shake to be applied. 
+	 * @param NewShake - The class of camera shake to instantiate.
+	 * @param Scale - The scalar intensity to play the shake.
+	 * @param PlaySpace - Which coordinate system to play the shake in.
+	 * @param UserPlaySpaceRot - Coordinate system to play shake when PlaySpace == CAPS_UserDefined.
+	 */
 	virtual void AddCameraShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace::Type PlaySpace=ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	
+	/**
+	 * Stops and removes the camera shake of the given class from the camera.
+	 * @param Shake - the camera shake class to remove.
+	 */
 	virtual void RemoveCameraShake(TSubclassOf<class UCameraShake> Shake);
+
+	/** Stops and removes all camera shakes from the camera. */
 	virtual void RemoveAllCameraShakes();
 	
-	/** Update a CameraShake */
-	virtual void UpdateCameraShake(float DeltaTime, FCameraShakeInstance& Shake, struct FMinimalViewInfo& InOutPOV);
+	/** 
+	 * Called per-tick to update a CameraShake.
+	 * @param DeltaTime - Simulation timeslice, in seconds.
+	 * @param ShakeInst - The shake instance to update.
+	 * @param InOutPOV - the POV data to update with the results of the shake.
+	 */
+	virtual void UpdateCameraShake(float DeltaTime, FCameraShakeInstance& ShakeInst, struct FMinimalViewInfo& InOutPOV);
 	
 	// Begin UCameraModifer Interface
 	virtual bool ModifyCamera(APlayerCameraManager* Camera, float DeltaTime, struct FMinimalViewInfo& InOutPOV) override;

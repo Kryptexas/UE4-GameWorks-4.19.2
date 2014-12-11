@@ -1,42 +1,40 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
 #include "CameraModifier.generated.h"
 
+//=============================================================================
+/**
+ * A CameraModifier is a base class for objects that may adjust the final camera properties after
+ * being computed by the APlayerCameraManager (@see ModifyCamera). A CameraModifier
+ * can be stateful, and is associated uniquely with a specific APlayerCameraManager.
+ */
 UCLASS()
 class ENGINE_API UCameraModifier : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 protected:
-	/* Interface class for all camera modifiers applied to
-		a player camera actor. Sub classes responsible for
-		implementing declared functions.
-	*/
-	
-	/* Do not apply this modifier */
+	/** If true, do not apply this modifier to the camera. */
 	UPROPERTY()
 	uint32 bDisabled:1;
 
 public:
-	/* This modifier is still being applied and will disable itself */
+	/** If true, this modifier will disable itself when finished interpolating out. */
 	UPROPERTY()
 	uint32 bPendingDisable:1;
 
-	/** Camera this object is attached to */
+	/** Camera this object is associated with. */
 	UPROPERTY()
 	class APlayerCameraManager* CameraOwner;
 
 protected:
-	/**
-	 * Priority of this modifier - determines where it is added in the modifier list.
-	 * 0 = highest priority, 255 = lowest 
-	 */
+	/** Priority value that determines the order in which modifiers are applied. 0 = highest priority, 255 = lowest. */
 	UPROPERTY()
 	uint8 Priority;
 
-	/** This modifier can only be used exclusively - no modifiers of same priority allowed */
+	/** If true, no other modifiers of same priority allowed. */
 	UPROPERTY()
 	uint32 bExclusive:1;
 
@@ -48,7 +46,7 @@ protected:
 	UPROPERTY()
 	float AlphaOutTime;
 
-	/** Current blend alpha */
+	/** Current blend alpha. */
 	UPROPERTY(transient)
 	float Alpha;
 
@@ -57,22 +55,23 @@ protected:
 	float TargetAlpha;
 
 public:
-	//debug
+	/** If true, enables certain debug visualization features. */
 	UPROPERTY(EditAnywhere, Category=Debug)
 	uint32 bDebug:1;
 
-
 protected:
+	/** @return Returns the ideal blend alpha for this modifier. Interpolation will seek this value. */
 	virtual float GetTargetAlpha(class APlayerCameraManager* Camera);
-public:
-	virtual void GetDebugText(TArray<FString>& Lines) {}
 
-	/** Allow anything to happen right after creation */
+public:
+	/** 
+	 * Allows any custom initialization. Called immediately after creation.
+	 * @param Camera - The camera this modifier should be associated with.
+	 */
 	virtual void Init( APlayerCameraManager* Camera );
 	
 	/**
 	 * Directly modifies variables in the camera actor
-	 *
 	 * @param	Camera		reference to camera actor we are modifying
 	 * @param	DeltaTime	Change in time since last update
 	 * @param	InOutPOV		current Point of View, to be updated.
@@ -80,7 +79,7 @@ public:
 	 */
 	virtual bool ModifyCamera(APlayerCameraManager* Camera, float DeltaTime, struct FMinimalViewInfo& InOutPOV);
 	
-	/** Accessor function to check if modifier is inactive */
+	/** @return Returns true if modifier is disabled, false otherwise. */
 	virtual bool IsDisabled() const;
 	
 	/**
@@ -89,31 +88,38 @@ public:
 	 * adding the same modifier twice.
 	 *
 	 * @param	Camera - reference to camera actor we want add this modifier to
-	 * @return	bool   - true if modifier added to camera's modifier list, false otherwise
+	 * @return	Returns true if modifier added to camera's modifier list, false otherwise.
 	 */
 	virtual bool AddCameraModifier( APlayerCameraManager* Camera );
 	
 	/**
 	 * Camera modifier removes itself from given camera's modifier list
-	 *
-	 * @param	Camera	- reference to camara actor we want to remove this modifier from
-	 * @return	bool	- true if modifier removed successfully, false otherwise
+	 * @param	Camera	- reference to camera actor we want to remove this modifier from
+	 * @return	Returns true if modifier removed successfully, false otherwise.
 	 */
 	virtual bool RemoveCameraModifier( APlayerCameraManager* Camera );
 	
 	/** 
-	 *  Accessor functions for changing disable flag
-	 *  
+	 *  Disables this modifier.
 	 *  @param  bImmediate  - true to disable with no blend out, false (default) to allow blend out
 	 */
 	virtual void DisableModifier(bool bImmediate = false);
+
+	/** Enables this modifier. */
 	virtual void EnableModifier();
+
+	/** Toggled disabled/enabled state of this modifier. */
 	virtual void ToggleModifier();
 	
 	/**
-	 * Allow this modifier a chance to change view rotation and deltarot
+	 * Called to give modifiers a chance to adjust view rotation updates before they are applied.
+	 *
 	 * Default just returns ViewRotation unchanged
-	 * @return	bool - true if should stop looping modifiers to adjust rotation, false otherwise
+	 * @param ViewTarget - Current view target.
+	 * @param DeltaTime - Frame time in seconds.
+	 * @param OutViewRotation - In/out. The view rotation to modify.
+	 * @param OutDeltaRot - In/out. How much the rotation changed this frame.
+	 * @return Return true to prevent subsequent (lower priority) modifiers to further adjust rotation, false otherwise.
 	 */
 	virtual bool ProcessViewRotation(class AActor* ViewTarget, float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot);
 
@@ -125,9 +131,8 @@ public:
 	 */
 	virtual void UpdateAlpha( APlayerCameraManager* Camera, float DeltaTime );
 
-	/** Return a world context */
+	/** @return Returns the appropriate world context for this object. */
 	UWorld* GetWorld() const;
-		
 };
 
 

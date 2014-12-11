@@ -43,7 +43,7 @@ class UCameraAnim : public UObject
 	float BasePostProcessBlendWeight;
 
 protected:
-	// @todo document
+	/** Internal. Computes and stores the local AABB of the camera's motion. */
 	void CalcLocalAABB();
 
 public:
@@ -59,11 +59,12 @@ public:
 	 */
 	ENGINE_API bool CreateFromInterpGroup(class UInterpGroup* SrcGroup, class AMatineeActor* InMatineeActor);
 	
-	// @todo document
-	FBox GetAABB(FVector const& BaseLoc, FRotator const& BaseRot, float Scale) const;
-
-	// @todo document
-	bool InitializeCamera(class UInterpGroup* SrcGroup, class USeqAct_Interp* Interp);
+	/** 
+	 * Gets AABB of the camera's path. Useful for rough testing if you can play an animation at a certain
+	 * location in the world without penetrating geometry.
+	 * @return Returns the local-space axis-aligned bounding box of the entire motion of this animation. 
+	 */
+	ENGINE_API FBox GetAABB(FVector const& BaseLoc, FRotator const& BaseRot, float Scale) const;
 };
 
 

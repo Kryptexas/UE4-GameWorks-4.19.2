@@ -218,7 +218,7 @@ bool UCameraModifier_CameraShake::ModifyCamera(class APlayerCameraManager* Camer
 	return false;
 }
 
-float UCameraModifier_CameraShake::InitializeOffset( const FFOscillator& Param )
+float UCameraModifier_CameraShake::InitializeOffset( const FFOscillator& Param ) const
 {
 	switch( Param.InitialOffset )
 	{

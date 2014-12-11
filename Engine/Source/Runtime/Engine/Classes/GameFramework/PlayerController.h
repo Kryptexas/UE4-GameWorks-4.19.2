@@ -675,7 +675,7 @@ public:
 	 * Play Camera Shake 
 	 * @param Shake - Camera shake animation to play
 	 * @param Scale - Scalar defining how "intense" to play the anim
-	 * @param PlaySpace - Animation play area
+	 * @param PlaySpace - Which coordinate system to play the shake in (used for CameraAnims within the shake).
 	 * @param UserPlaySpaceRot - Matrix used when PlaySpace = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
