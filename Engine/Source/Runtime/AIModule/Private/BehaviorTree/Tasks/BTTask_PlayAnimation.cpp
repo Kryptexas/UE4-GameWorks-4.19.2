@@ -4,6 +4,7 @@
 #include "BehaviorTree/Tasks/BTTask_PlayAnimation.h"
 #include "GameFramework/Character.h"
 #include "Animation/AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
 
 //----------------------------------------------------------------------//
 // UBTTask_PlayAnimation
