@@ -11,6 +11,7 @@ namespace MaterialExportUtils
 		FFlattenMaterial()
 			: DiffuseSize(512, 512)
 			, NormalSize(512, 512)
+			, MetallicSize(0, 0)
 			, RoughnessSize(0, 0)
 			, SpecularSize(0, 0)
 		{}
@@ -19,11 +20,13 @@ namespace MaterialExportUtils
 		
 		FIntPoint		DiffuseSize;
 		FIntPoint		NormalSize;
+		FIntPoint		MetallicSize;	
 		FIntPoint		RoughnessSize;	
 		FIntPoint		SpecularSize;	
 			
 		TArray<FColor>	DiffuseSamples;
 		TArray<FColor>	NormalSamples;
+		TArray<FColor>	MetallicSamples;
 		TArray<FColor>	RoughnessSamples;
 		TArray<FColor>	SpecularSamples;
 	};
@@ -54,10 +57,11 @@ namespace MaterialExportUtils
 	 * Flattens specified landscape material
 	 *
 	 * @param InLandscape			Target landscape
+	 * @param HiddenPrimitives		Primitives to hide while rendering scene to texture
 	 * @param OutFlattenMaterial	Output flattened material
 	 * @return						Whether operation was successful
 	 */
-	UNREALED_API bool ExportMaterial(ALandscapeProxy* InLandscape, FFlattenMaterial& OutFlattenMaterial);
+	UNREALED_API bool ExportMaterial(ALandscapeProxy* InLandscape, const TSet<FPrimitiveComponentId>& HiddenPrimitives, FFlattenMaterial& OutFlattenMaterial);
 
 	/**
 	 * Creates UMaterial object from a flatten material

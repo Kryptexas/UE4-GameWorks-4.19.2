@@ -22,9 +22,9 @@
 #include "Engine/LevelStreaming.h"
 #include "GameFramework/WorldSettings.h"
 #include "Engine/Light.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
-
 
 static const FName HeightmapLayerName = FName("__Heightmap__");
 
@@ -1949,26 +1949,33 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			{
 				VertexPos-= LandscapeWorldLocation;
 			}
+
+			// Filter out primitives for landscape texture flattening
+			TSet<FPrimitiveComponentId> PrimitivesToHide;
+			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+			{
+				UPrimitiveComponent* PrimitiveComp = *It;
+				UObject* PrimitiveOuter = PrimitiveComp->GetOuter();
+				
+				const bool bTargetPrim = 
+					PrimitiveComp->GetOuter() == Landscape || 
+					(SimplificationDetails.bBakeFoliageToLandscape && PrimitiveOuter->IsA(AInstancedFoliageActor::StaticClass()));
+
+				if (!bTargetPrim && PrimitiveComp->IsRegistered() && PrimitiveComp->SceneProxy)
+				{
+					PrimitivesToHide.Add(PrimitiveComp->SceneProxy->GetPrimitiveComponentId());
+				}
+			}
 								
 			// This is texture resolution for a landscape, probably needs to be calculated using landscape size
-			LandscapeFlattenMaterial.DiffuseSize = FIntPoint(1024, 1024);
+			const FIntPoint LandscapeTextureSize(1024, 1024);
+			LandscapeFlattenMaterial.DiffuseSize	= LandscapeTextureSize;
+			LandscapeFlattenMaterial.NormalSize		= SimplificationDetails.bGenerateLandscapeNormalMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.MetallicSize	= SimplificationDetails.bGenerateLandscapeMetallicMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.RoughnessSize	= SimplificationDetails.bGenerateLandscapeRoughnessMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.SpecularSize	= SimplificationDetails.bGenerateLandscapeSpecularMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
 			
-			if (SimplificationDetails.bGenerateLandscapeNormalMap)
-			{
-				LandscapeFlattenMaterial.NormalSize = FIntPoint(1024, 1024);
-			}
-
-			if (SimplificationDetails.bGenerateLandscapeRoughnessMap)
-			{
-				LandscapeFlattenMaterial.RoughnessSize = FIntPoint(1024, 1024);
-			}
-
-			if (SimplificationDetails.bGenerateLandscapeSpecularMap)
-			{
-				LandscapeFlattenMaterial.SpecularSize = FIntPoint(1024, 1024);
-			}
-			
-			ExportMaterial(Landscape, LandscapeFlattenMaterial);
+			ExportMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
 		
 			FString LandscapeBaseAssetName = Landscape->GetName();
 			// Construct landscape material

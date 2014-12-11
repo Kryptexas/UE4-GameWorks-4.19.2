@@ -3604,7 +3604,20 @@ void FMeshUtilities::CreateProxyMesh(
 			UniqueMaterials.Last().DiffuseSize = FIntPoint(1024, 1024);
 			// FIXME: Landscape material exporter currently renders world space normal map, so it can't be merged with other meshes normal maps
 			UniqueMaterials.Last().NormalSize = FIntPoint::ZeroValue;
-			MaterialExportUtils::ExportMaterial(Landscape, UniqueMaterials.Last());
+
+			// Use only landscape primitives for texture flattening
+			TSet<FPrimitiveComponentId> PrimitivesToHide;
+			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+			{
+				UPrimitiveComponent* PrimitiveComp = *It;
+				const bool bTargetPrim = PrimitiveComp->GetOuter() == Landscape;
+				if (!bTargetPrim && PrimitiveComp->IsRegistered() && PrimitiveComp->SceneProxy)
+				{
+					PrimitivesToHide.Add(PrimitiveComp->SceneProxy->GetPrimitiveComponentId());
+				}
+			}
+			
+			MaterialExportUtils::ExportMaterial(Landscape, PrimitivesToHide, UniqueMaterials.Last());
 			
 			//Store the bounds for each component
 			ProxyBounds+= Landscape->GetComponentsBoundingBox(true);

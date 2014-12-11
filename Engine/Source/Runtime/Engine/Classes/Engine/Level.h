@@ -246,6 +246,10 @@ struct ENGINE_API FLevelSimplificationDetails
 	UPROPERTY(Category=Landscape, EditAnywhere)
 	bool bGenerateLandscapeNormalMap;
 
+	// Whether to generate metallic map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeMetallicMap;
+
 	// Whether to generate roughness map for landscape static mesh
 	UPROPERTY(Category=Landscape, EditAnywhere)
 	bool bGenerateLandscapeRoughnessMap;
