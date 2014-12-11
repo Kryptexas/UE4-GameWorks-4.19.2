@@ -19,9 +19,9 @@ class SMergeAssetPickerPanel : public SCompoundWidget
 
 public:
 	SLATE_BEGIN_ARGS(SMergeAssetPickerPanel)
-		: _SelectedAsset(nullptr)
+		: _AssetClass(UBlueprint::StaticClass())
+		, _SelectedAsset(nullptr)
 		, _RevisionInfo(FRevisionInfo::InvalidRevision())
-		, _AssetClass(UBlueprint::StaticClass())
 	{}
 		SLATE_ARGUMENT(TSubclassOf<UBlueprint>, AssetClass)
 		SLATE_ARGUMENT(const UBlueprint*, SelectedAsset)

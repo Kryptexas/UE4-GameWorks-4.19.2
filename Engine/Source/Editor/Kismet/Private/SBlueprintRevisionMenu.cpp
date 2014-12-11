@@ -5,6 +5,8 @@
 #include "SBlueprintRevisionMenu.h"
 #include "Developer/SourceControl/Public/ISourceControlModule.h"
 #include "SThrobber.h"
+#include "BlueprintEditorUtils.h"
+#include "IAssetTypeActions.h"	// for FRevisionInfo
 
 #define LOCTEXT_NAMESPACE "SBlueprintRevisionMenu"
 
