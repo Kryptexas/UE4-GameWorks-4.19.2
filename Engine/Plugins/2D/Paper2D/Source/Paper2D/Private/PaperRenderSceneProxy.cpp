@@ -545,6 +545,11 @@ void FPaperRenderSceneProxy::SetDrawCall_RenderThread(const FSpriteDrawCallRecor
 	Record = NewDynamicData;
 }
 
+void FPaperRenderSceneProxy::SetBodySetup_RenderThread(UBodySetup* NewSetup)
+{
+	BodySetup = NewSetup;
+}
+
 bool FPaperRenderSceneProxy::IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const
 {
 	bDrawSimpleCollision = false;

@@ -24,6 +24,22 @@ public:
 	}
 };
 
+UENUM()
+namespace EFlipbookCollisionMode
+{
+	enum Type
+	{
+		// The flipbook has no collision
+		NoCollision,
+
+		// The flipbook has non-animated collision based on the first frame of the animation
+		FirstFrameCollision,
+
+		// The flipbook changes collision each frame based on the animation (Note: This setting is not recommended and is very expensive, recreating the physics state every frame)
+		EachFrameCollision,
+	};
+}
+
 /**
  * Contains an animation sequence of sprite frames
  */
@@ -45,7 +61,14 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* DefaultMaterial;
 
+	// Collision source
+	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
+	TEnumAsByte<EFlipbookCollisionMode::Type> CollisionSource;
+
 public:
+	// Returns the collision source of this flipbook animation (if any)
+	TEnumAsByte<EFlipbookCollisionMode::Type> GetCollisionSource() const { return CollisionSource; }
+
 	// Returns the nominal frame rate to play this flipbook animation back at
 	float GetFramesPerSecond() const;
 

@@ -50,6 +50,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
 	FLinearColor SpriteColor;
 
+	/** The cached body setup */
+	UPROPERTY(Transient)
+	UBodySetup* CachedBodySetup;
+
 public:
 	/** Event called whenever a non-looping flipbook finishes playing (either reaching the beginning or the end, depending on the play direction) */
 	UPROPERTY(BlueprintAssignable)
@@ -149,6 +153,7 @@ protected:
 	UPaperSprite* GetSpriteAtCachedIndex() const;
 
 	void TickFlipbook(float DeltaTime);
+	void FlipbookChangedPhysicsState();
 
 public:
 	// UObject interface
@@ -181,6 +186,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
+	virtual UBodySetup* GetBodySetup() override;
 	// End of UPrimitiveComponent interface
 };
 

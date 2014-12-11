@@ -98,6 +98,7 @@ public:
 	// End of FPrimitiveSceneProxy interface.
 
 	void SetDrawCall_RenderThread(const FSpriteDrawCallRecord& NewDynamicData);
+	void SetBodySetup_RenderThread(UBodySetup* NewSetup);
 
 	class UMaterialInterface* GetMaterial() const
 	{
