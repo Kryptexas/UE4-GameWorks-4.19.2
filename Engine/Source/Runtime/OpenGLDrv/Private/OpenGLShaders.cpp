@@ -401,7 +401,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		AppendCString(GlslCode, GlslCodeOriginal.GetData());
 
 		const ANSICHAR * GlslCodeString = GlslCode.GetData();
-		int32 GlslCodeLength = GlslCode.Num();
+		int32 GlslCodeLength = GlslCode.Num() - 1;
 		glShaderSource(Resource, 1, (const GLchar**)&GlslCodeString, &GlslCodeLength);
 		glCompileShader(Resource);
 
