@@ -825,6 +825,11 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-nullrhi ";
 		}
+		if (Params.Deploy && SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.PS4)
+		{
+			TempCmdLine += "-deployedbuild ";
+		}
+
 		TempCmdLine += "-CrashForUAT ";
 		TempCmdLine += Params.RunCommandline;
 
