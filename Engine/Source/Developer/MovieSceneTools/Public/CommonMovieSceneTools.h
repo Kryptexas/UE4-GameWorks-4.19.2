@@ -9,7 +9,7 @@ struct FTimeToPixel
 {
 public:
 	FTimeToPixel( const FGeometry& AllottedGeometry, TRange<float> InLocalViewRange )
-		: MaxPixelsPerInput(10000.0f)
+		: MaxPixelsPerInput(1000.0f)
 		, LocalViewRange( InLocalViewRange )
 	{
 		const float ViewRange = LocalViewRange.Size<float>();

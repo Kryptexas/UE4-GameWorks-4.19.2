@@ -114,5 +114,7 @@ void USequencerSnapSettings::SetSnapPlayTimeToInterval(bool InbSnapPlayTimeToInt
 
 float USequencerSnapSettings::SnapToInterval(float InValue) const
 {
-	return FMath::RoundToInt(InValue / SnapInterval) * SnapInterval;
+	return SnapInterval > 0 
+		? FMath::RoundToInt(InValue / SnapInterval) * SnapInterval
+		: InValue;
 }
