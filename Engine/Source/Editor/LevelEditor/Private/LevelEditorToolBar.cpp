@@ -1154,10 +1154,15 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 			true);
 
 		// Only show the compile options on machines with the solution (assuming they can build it)
-		if ( FSourceCodeNavigation::IsCompilerAvailable() && FLevelEditorActionCallbacks::CanShowSourceCodeActions() )
+		if ( FSourceCodeNavigation::IsCompilerAvailable() )
 		{
+			// Since we can always add new code to the project, only hide these buttons if we haven't done so yet
 			ToolbarBuilder.AddToolBarButton(
-				FLevelEditorCommands::Get().RecompileGameCode,
+				FUIAction(
+					FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::RecompileGameCode_Clicked),
+					FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Recompile_CanExecute),
+					FIsActionChecked(),
+					FIsActionButtonVisible::CreateStatic(FLevelEditorActionCallbacks::CanShowSourceCodeActions)),
 				NAME_None,
 				LOCTEXT( "CompileMenuButton", "Compile" ),
 				FLevelEditorCommands::Get().RecompileGameCode->GetDescription(),
@@ -1165,7 +1170,11 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 				);
 
 			ToolbarBuilder.AddComboButton(
-				FUIAction(),
+				FUIAction(
+					FExecuteAction(),
+					FCanExecuteAction(),
+					FIsActionChecked(),
+					FIsActionButtonVisible::CreateStatic(FLevelEditorActionCallbacks::CanShowSourceCodeActions)),
 				FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateCompileMenuContent, InCommandList ),
 				LOCTEXT( "CompileCombo_Label", "Compile Options" ),
 				LOCTEXT( "CompileMenuCombo_ToolTip", "Recompile options" ),

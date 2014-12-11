@@ -21,6 +21,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "GameFramework/GameMode.h"
+#include "HotReloadInterface.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -2844,10 +2845,11 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	SlowTask.MakeDialog();
 
 	SlowTask.EnterProgressFrame();
-
+	
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;
-	if ( !ProjectHasCodeFiles() )
+	bool bDidNotHaveAnyCodeFiles = !ProjectHasCodeFiles();
+	if (bDidNotHaveAnyCodeFiles)
 	{
 		// We always add the basic source code to the root directory, not the potential sub-directory provided by NewClassPath
 		const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
@@ -2926,6 +2928,21 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	OutHeaderFilePath = NewHeaderFilename;
 	OutCppFilePath = NewCppFilename;
+
+	if (bDidNotHaveAnyCodeFiles)
+	{
+		// This is the first time we add code to this project so compile its game DLL
+		const FString GameModuleName = FApp::GetGameName();
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		const bool bReloadAfterCompiling = true;
+		const bool bForceCodeProject = true;
+		const bool bFailIfGeneratedCodeChanges = false;
+		if (!HotReloadSupport.RecompileModule(*GameModuleName, bReloadAfterCompiling, *GWarn, bFailIfGeneratedCodeChanges, bForceCodeProject))
+		{
+			OutFailReason = LOCTEXT("FailedToCompileNewGameModule", "Failed to compile newly created game module.");
+			return false;
+		}
+	}
 
 	return true;
 }

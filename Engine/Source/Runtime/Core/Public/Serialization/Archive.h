@@ -85,7 +85,7 @@ public:
 		}
 	}
 
-	void Serialize( void* Data, int64 Num )
+	virtual void Serialize(void* Data, int64 Num) override
 	{
 		const int64 NumBytesToAdd = Offset + Num - Bytes.Num();
 		if( NumBytesToAdd > 0 )

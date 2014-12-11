@@ -456,6 +456,11 @@ bool FPaths::FileExists(const FString& InPath)
 	return IFileManager::Get().GetTimeStamp(*InPath) > FDateTime::MinValue();
 }
 
+bool FPaths::DirectoryExists(const FString& InPath)
+{
+	return IFileManager::Get().DirectoryExists(*InPath);
+}
+
 bool FPaths::IsDrive(const FString& InPath)
 {
 	FString ConvertedPathString = InPath;

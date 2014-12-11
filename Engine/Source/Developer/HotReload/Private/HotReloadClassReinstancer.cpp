@@ -14,6 +14,12 @@ void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, U
 	bHasReinstanced = false;
 	bSkipGarbageCollection = false;
 	bNeedsReinstancing = true;
+	NewClass = InNewClass;
+
+	// Collect the original CDO property values
+	SerializeCDOProperties(InOldClass->GetDefaultObject(), OriginalCDOProperties);
+	// Collect the property values of the new CDO
+	SerializeCDOProperties(InNewClass->GetDefaultObject(), ReconstructedCDOProperties);
 
 	SaveClassFieldMapping(InOldClass);
 
@@ -48,21 +54,46 @@ void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, U
 	InOldClass->ClassFlags |= CLASS_NewerVersionExists;
 }
 
-void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, TArray<uint8>& OutData)
+void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotReloadClassReinstancer::FCDOPropertyData& OutData)
 {
 	// Creates a mem-comparable CDO data
 	class FCDOWriter : public FMemoryWriter
 	{
 		/** Objects already visited by this archive */
 		TSet<UObject*>& VisitedObjects;
+		FCDOPropertyData& PropertyData;
 
 	public:
 		/** Serializes all script properties of the provided DefaultObject */
-		FCDOWriter(TArray<uint8>& InBytes, UObject* DefaultObject, TSet<UObject*>& InVisitedObjects)
-			: FMemoryWriter(InBytes, /* bIsPersistent = */ false, /* bSetOffset = */ true)
+		FCDOWriter(FCDOPropertyData& InOutData, UObject* DefaultObject, TSet<UObject*>& InVisitedObjects)
+			: FMemoryWriter(InOutData.Bytes, /* bIsPersistent = */ false, /* bSetOffset = */ true)
 			, VisitedObjects(InVisitedObjects)
+			, PropertyData(InOutData)
 		{
+			// Disable delta serialization, we want to serialize everything
+			ArNoDelta = true;
 			DefaultObject->SerializeScriptProperties(*this);
+		}
+		virtual void Serialize(void* Data, int64 Num) override
+		{
+			// Collect serialized properties so we can later update their values on instances if they change
+			auto SerializedProperty = GetSerializedProperty();
+			if (SerializedProperty != nullptr)
+			{
+				FCDOProperty& PropertyInfo = PropertyData.Properties.FindOrAdd(SerializedProperty->GetFName());
+				if (PropertyInfo.Property == nullptr)
+				{
+					PropertyInfo.Property = SerializedProperty;
+					PropertyInfo.SerializedValueOffset = Tell();
+					PropertyInfo.SerializedValueSize = Num;
+					PropertyData.Properties.Add(SerializedProperty->GetFName(), PropertyInfo);
+				}
+				else
+				{
+					PropertyInfo.SerializedValueSize += Num;
+				}
+			}
+			FMemoryWriter::Serialize(Data, Num);
 		}
 		/** Serializes an object. Only name and class for normal references, deep serialization for DSOs */
 		virtual FArchive& operator<<(class UObject*& InObj) override
@@ -80,7 +111,7 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, TArra
 					if (Ar.GetSerializedProperty() && Ar.GetSerializedProperty()->ContainsInstancedObjectProperty())
 					{
 						// Serialize all DSO properties too					
-						FCDOWriter DefaultSubobjectWriter(Bytes, InObj, VisitedObjects);
+						FCDOWriter DefaultSubobjectWriter(PropertyData, InObj, VisitedObjects);
 					}
 				}
 			}
@@ -181,21 +212,19 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	bHasReinstanced = false;
 	bSkipGarbageCollection = false;
 	bNeedsReinstancing = false;
+	NewClass = InOldClass; // The class doesn't change in this case
 
 	// Collect the original property values
-	TArray<uint8> OriginalCDOProperties;
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), OriginalCDOProperties);
 	
 	// Destroy and re-create the CDO, re-running its constructor
 	ReconstructClassDefaultObject(InOldClass);
 
 	// Collect the property values after re-constructing the CDO
-	TArray<uint8> ReconstructedCDOProperties;
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), ReconstructedCDOProperties);
 
 	// We only want to re-instance the old class if its CDO's values have changed or any of its DSOs' property values have changed
-	if (OriginalCDOProperties.Num() != ReconstructedCDOProperties.Num() ||
-		FMemory::Memcmp(OriginalCDOProperties.GetData(), ReconstructedCDOProperties.GetData(), OriginalCDOProperties.Num()))
+	if (DefaultPropertiesHaveChanged())
 	{
 		bNeedsReinstancing = true;
 		SaveClassFieldMapping(InOldClass);
@@ -218,6 +247,8 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 }
 
 FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass)
+	: NewClass(nullptr)
+	, bNeedsReinstancing(false)
 {
 	// If InNewClass is NULL, then the old class has not changed after hot-reload.
 	// However, we still need to check for changes to its constructor code (CDO values).
@@ -236,6 +267,76 @@ FHotReloadClassReinstancer::~FHotReloadClassReinstancer()
 	// Make sure the base class does not remove the DuplicatedClass from root, we not always want it.
 	// For example when we're just reconstructing CDOs. Other cases are handled by HotReloadClassReinstancer.
 	DuplicatedClass = NULL;
+}
+
+void FHotReloadClassReinstancer::UpdateDefaultProperties()
+{
+	struct FPropertyToUpdate
+	{
+		UProperty* Property;
+		uint8* OldSerializedValuePtr;
+		uint8* NewValuePtr;
+		int64 OldSerializedSize;
+	};
+	TArray<FPropertyToUpdate> PropertiesToUpdate;
+	// Collect all properties that have actually changed
+	for (auto& Pair : ReconstructedCDOProperties.Properties)
+	{
+		auto OldPropertyInfo = OriginalCDOProperties.Properties.Find(Pair.Key);
+		if (OldPropertyInfo)
+		{
+			auto& NewPropertyInfo = Pair.Value;
+			if (NewPropertyInfo.Property->GetOuter() == NewClass)
+			{
+				uint8* OldSerializedValuePtr = OriginalCDOProperties.Bytes.GetData() + OldPropertyInfo->SerializedValueOffset;
+				uint8* NewSerializedValuePtr = ReconstructedCDOProperties.Bytes.GetData() + NewPropertyInfo.SerializedValueOffset;
+				if (OldPropertyInfo->SerializedValueSize != NewPropertyInfo.SerializedValueSize ||
+					FMemory::Memcmp(OldSerializedValuePtr, NewSerializedValuePtr, OldPropertyInfo->SerializedValueSize) != 0)
+				{
+					// Property value has changed so add it to the list of properties that need updating on instances
+					FPropertyToUpdate PropertyToUpdate;
+					PropertyToUpdate.Property = NewPropertyInfo.Property;
+					PropertyToUpdate.OldSerializedValuePtr = OldSerializedValuePtr;
+					PropertyToUpdate.NewValuePtr = PropertyToUpdate.Property->ContainerPtrToValuePtr<uint8>(NewClass->GetDefaultObject());
+					PropertyToUpdate.OldSerializedSize = OldPropertyInfo->SerializedValueSize;
+					PropertiesToUpdate.Add(PropertyToUpdate);
+				}
+			}
+		}
+	}
+	if (PropertiesToUpdate.Num())
+	{
+		TArray<uint8> CurrentValueSerializedData;		
+
+		// Update properties on all existing instances of the class
+		for (FObjectIterator It(NewClass); It; ++It)
+		{
+			UObject* ObjectPtr = *It;
+			for (auto& PropertyToUpdate : PropertiesToUpdate)
+			{
+				uint8* InstanceValuePtr = PropertyToUpdate.Property->ContainerPtrToValuePtr<uint8>(ObjectPtr);
+
+				// Serialize current value to a byte array as we don't have the previous CDO to compare against, we only have its serialized property data
+				CurrentValueSerializedData.Empty(CurrentValueSerializedData.Num() + CurrentValueSerializedData.GetSlack());
+				FMemoryWriter CurrentValueWriter(CurrentValueSerializedData);
+				PropertyToUpdate.Property->SerializeItem(CurrentValueWriter, InstanceValuePtr);
+				
+				// Update only when the current value on the instance is identical to the original CDO
+				if (CurrentValueSerializedData.Num() == PropertyToUpdate.OldSerializedSize &&
+					FMemory::Memcmp(CurrentValueSerializedData.GetData(), PropertyToUpdate.OldSerializedValuePtr, CurrentValueSerializedData.Num()) == 0)
+				{
+					// Update with the new value
+					PropertyToUpdate.Property->CopyCompleteValue(InstanceValuePtr, PropertyToUpdate.NewValuePtr);
+				}
+			}
+		}
+	}
+}
+
+void FHotReloadClassReinstancer::ReinstanceObjectsAndUpdateDefaults()
+{
+	ReinstanceObjects();
+	UpdateDefaultProperties();
 }
 
 #endif

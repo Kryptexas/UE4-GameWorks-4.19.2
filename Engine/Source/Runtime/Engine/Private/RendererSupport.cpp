@@ -95,7 +95,9 @@ void RecompileRendererModule()
 		bool bCompiledSuccessfully = false;
 		do 
 		{
-			bCompiledSuccessfully = HotReload->RecompileModule(RendererModuleName, false, *GLog);
+			const bool bForceCodeProject = false;
+			const bool bFailIfGeneratedCodeChanges = true;
+			bCompiledSuccessfully = HotReload->RecompileModule(RendererModuleName, false, *GLog, bFailIfGeneratedCodeChanges, bForceCodeProject);
 
 			if (!bCompiledSuccessfully)
 			{

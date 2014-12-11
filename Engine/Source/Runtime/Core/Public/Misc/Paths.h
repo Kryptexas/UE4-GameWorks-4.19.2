@@ -312,6 +312,9 @@ public:
 	/** @return true if this file was found, false otherwise */
 	static bool FileExists(const FString& InPath);
 
+	/** @return true if this directory was found, false otherwise */
+	static bool DirectoryExists(const FString& InPath);
+
 	/** @return true if this path represents a drive */
 	static bool IsDrive(const FString& InPath);
 

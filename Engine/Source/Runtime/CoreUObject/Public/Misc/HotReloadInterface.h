@@ -41,8 +41,13 @@ public:
 
 	/**
 	 * Recompiles a single module
+	 *
+	 * @param InModuleName Name of the module to compile
+	 * @param bReloadAfterRecompile Should the module be reloaded after recompile
+	 * @param Ar Output device (logging)
+	 * @param bForceCodeProject Even if this is not code-based project compile with game project as the target for UBT (do not use UE4Editor target)
 	 */
-	virtual bool RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar ) = 0;
+	virtual bool RecompileModule(const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar, bool bFailIfGeneratedCodeChanges = true, bool bForceCodeProject = false) = 0;
 
 	/**
 	 * Returns whether modules are currently being compiled
@@ -60,9 +65,9 @@ public:
 	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) = 0;
 
 	/**
-	* Performs hot reload from the editor
+	* Performs hot reload from the editor of all currently loaded game modules.
 	*/
-	virtual void DoHotReloadFromEditor() = 0;
+	virtual ECompilationResult::Type DoHotReloadFromEditor() = 0;
 
 	/**
 	* HotReload: Reloads the DLLs for given packages.
@@ -102,6 +107,6 @@ public:
 	/**
 	 * Checks if there's any game modules currently loaded
 	 */
-	virtual bool IsAnyGameModuleLoaded() const = 0;
+	virtual bool IsAnyGameModuleLoaded() = 0;
 };
 

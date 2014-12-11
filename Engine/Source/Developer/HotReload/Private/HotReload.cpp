@@ -13,16 +13,49 @@ DEFINE_LOG_CATEGORY(LogHotReload);
 
 #define LOCTEXT_NAMESPACE "HotReload"
 
+namespace EThreeStateBool
+{
+	enum Type
+	{
+		False,
+		True,
+		Unknown
+	};
+
+	static bool ToBool(EThreeStateBool::Type Value)
+	{
+		switch (Value)
+		{
+		case EThreeStateBool::False:
+			return false;
+		case EThreeStateBool::True:
+			return true;
+		default:
+			UE_LOG(LogHotReload, Fatal, TEXT("Can't convert EThreeStateBool to bool value because it's Unknown"));			
+			break;
+		}
+		return false;
+	}
+
+	static EThreeStateBool::Type FromBool(bool Value)
+	{
+		return Value ? EThreeStateBool::True : EThreeStateBool::False;
+	}
+};
+
 /**
  * Module for HotReload support
  */
 class FHotReloadModule : public IHotReloadModule, FSelfRegisteringExec
 {
 public:
+
 	FHotReloadModule()
 	{
 		ModuleCompileReadPipe = nullptr;
 		bRequestCancelCompilation = false;
+		bIsAnyGameModuleLoaded = EThreeStateBool::Unknown;
+		bDirectoryWatcherInitialized = false;
 	}
 
 	/** IModuleInterface implementation */
@@ -35,17 +68,17 @@ public:
 	/** IHotReloadInterface implementation */
 	virtual void Tick() override;
 	virtual void SaveConfig() override;
-	virtual bool RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar ) override;
+	virtual bool RecompileModule(const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar, bool bFailIfGeneratedCodeChanges = true, bool bForceCodeProject = false) override;
 	virtual bool IsCurrentlyCompiling() const override { return ModuleCompileProcessHandle.IsValid(); }
 	virtual void RequestStopCompilation() override { bRequestCancelCompilation = true; }
 	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) override;	
 	virtual void RebindPackages(TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) override;
-	virtual void DoHotReloadFromEditor() override;
+	virtual ECompilationResult::Type DoHotReloadFromEditor() override;
 	virtual FHotReloadEvent& OnHotReload() override { return HotReloadEvent; }	
 	virtual FModuleCompilerStartedEvent& OnModuleCompilerStarted() override { return ModuleCompilerStartedEvent; }
 	virtual FModuleCompilerFinishedEvent& OnModuleCompilerFinished() override { return ModuleCompilerFinishedEvent; }
 	virtual FString GetModuleCompileMethod(FName InModuleName) override;
-	virtual bool IsAnyGameModuleLoaded() const override;
+	virtual bool IsAnyGameModuleLoaded() override;
 
 private:
 	/**
@@ -195,8 +228,9 @@ private:
 	 *
 	 * @param ModuleNames List of modules to recompile, including the module name and optional file suffix.
 	 * @param Ar Output device for logging compilation status.
+	 * @param bForceCodeProject Even if it's a non-code project, treat it as code-based project
 	 */
-	bool RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar );
+	bool RecompileModuleDLLs(const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar, bool bFailIfGeneratedCodeChanges, bool bForceCodeProject);
 
 	/** Returns arguments to pass to UnrealBuildTool when compiling modules */
 	static FString MakeUBTArgumentsForModuleCompiling();
@@ -210,11 +244,12 @@ private:
 	 *	@param Ar
 	 *	@param bInFailIfGeneratedCodeChanges If true, fail the compilation if generated headers change.
 	 *	@param InAdditionalCmdLineArgs Additional arguments to pass to UBT.
+	 *  @param bForceCodeProject Compile as code-based project even if there's no game modules loaded
 	 *	@return true if successful, false otherwise.
 	 */
 	bool StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
 		const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
-		const FString& InAdditionalCmdLineArgs = FString() );
+		const FString& InAdditionalCmdLineArgs, bool bForceCodeProject);
 
 	/** Launches UnrealBuildTool with the specified command line parameters */
 	bool InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar);
@@ -236,6 +271,9 @@ private:
 
 	/** Checks if the specified array of modules to recompile contains only game modules */
 	bool ContainsOnlyGameModules(const TArray< FModuleToRecompile >& ModuleNames) const;
+
+	/** Callback registered with ModuleManager to know if any new modules have been loaded */
+	void ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange);
 
 	/** FTicker delegate (hot-reload from IDE) */
 	FTickerDelegate TickerDelegate;
@@ -295,6 +333,12 @@ private:
 
 	/** true if we should attempt to cancel the current async compilation */
 	bool bRequestCancelCompilation;
+
+	/** Tracks the validity of the game module existance */
+	EThreeStateBool::Type bIsAnyGameModuleLoaded;
+
+	/** True if the directory watcher has been successfully initialized */
+	bool bDirectoryWatcherInitialized;
 };
 
 namespace HotReloadDefs
@@ -328,6 +372,8 @@ void FHotReloadModule::StartupModule()
 	// Register hot-reload from IDE ticker
 	TickerDelegate = FTickerDelegate::CreateRaw(this, &FHotReloadModule::Tick);
 	FTicker::GetCoreTicker().AddTicker(TickerDelegate);
+
+	FModuleManager::Get().OnModulesChanged().AddRaw(this, &FHotReloadModule::ModulesChangedCallback);
 }
 
 void FHotReloadModule::ShutdownModule()
@@ -350,7 +396,9 @@ bool FHotReloadModule::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 			{
 				const FName ModuleName( *ModuleNameStr );
 				const bool bReloadAfterRecompile = true;
-				RecompileModule( ModuleName, bReloadAfterRecompile, Ar);
+				const bool bForceCodeProject = false;
+				const bool bFailIfGeneratedCodeChanges = true;
+				RecompileModule( ModuleName, bReloadAfterRecompile, Ar, bFailIfGeneratedCodeChanges, bForceCodeProject);
 			}
 
 			return true;
@@ -405,7 +453,7 @@ FString FHotReloadModule::GetModuleCompileMethod(FName InModuleName)
 	}
 }
 
-bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
+bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar, bool bFailIfGeneratedCodeChanges, bool bForceCodeProject)
 {
 #if WITH_HOT_RELOAD
 	UE_LOG(LogHotReload, Log, TEXT("Recompiling module %s..."), *InModuleName.ToString());
@@ -453,7 +501,7 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 		ModuleToRecompile.NewModuleFilename = UniqueModuleFileName;
 		ModulesToRecompile.Add( ModuleToRecompile );
 		ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(UniqueModuleFileName));
-		bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );		
+		bWasSuccessful = RecompileModuleDLLs(ModulesToRecompile, Ar, bFailIfGeneratedCodeChanges, bForceCodeProject);		
 	}
 
 	if( bWasSuccessful )
@@ -470,24 +518,34 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 			// Try to recompile the DLL
 			TArray< FModuleToRecompile > ModulesToRecompile;
 			FModuleToRecompile ModuleToRecompile;
-			ModuleToRecompile.ModuleName = InModuleName.ToString();
-			ModulesToRecompile.Add( ModuleToRecompile );
+			ModuleToRecompile.ModuleName = InModuleName.ToString();			
 			if (FModuleManager::Get().IsModuleLoaded(InModuleName))
 			{
 				ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetModuleFilename(InModuleName)));
 			}
-			bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );
+			else
+			{
+				ModuleToRecompile.NewModuleFilename = FModuleManager::Get().GetGameBinariesDirectory() / FModuleManager::GetCleanModuleFilename(InModuleName, true);
+				ModulesRecentlyCompiledInTheEditor.Add(FPaths::ConvertRelativePathToFull(ModuleToRecompile.NewModuleFilename));
+			}
+			ModulesToRecompile.Add( ModuleToRecompile );
+			bWasSuccessful = RecompileModuleDLLs(ModulesToRecompile, Ar, bFailIfGeneratedCodeChanges, bForceCodeProject);
 		}
 
 		// Reload the module if it was loaded before we recompiled
-		if( bWasSuccessful && bWasModuleLoaded && bReloadAfterRecompile )
+		if( bWasSuccessful && (bWasModuleLoaded || bForceCodeProject) && bReloadAfterRecompile )
 		{
 			Ar.Logf( TEXT( "Reloading module after successful compile." ) );
 			bWasSuccessful = FModuleManager::Get().LoadModuleWithCallback( InModuleName, Ar );
 		}
 	}
 
-	bIsHotReloadingFromEditor = false;
+	if (bForceCodeProject && bWasSuccessful)
+	{
+		BroadcastHotReload(false);
+	}
+
+	bIsHotReloadingFromEditor = false;	
 
 	return bWasSuccessful;
 #else
@@ -514,13 +572,20 @@ void FHotReloadModule::AddHotReloadFunctionRemap(Native NewFunctionPointer, Nati
 	HotReloadFunctionRemap.Add(OldFunctionPointer, NewFunctionPointer);
 }
 
-void FHotReloadModule::DoHotReloadFromEditor()
+ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor()
 {
+	// Get all game modules we want to compile
 	TArray<FString> GameModuleNames;
+	GetGameModules(GameModuleNames);
+	
+	// Don't wait -- we want compiling to happen asynchronously
+	const bool bWaitForCompletion = false;
+
 	TArray<UPackage*> PackagesToRebind;
 	TArray<FName> DependentModules;
-	GetGameModules(GameModuleNames);
+	
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
+	
 	// Analytics
 	double Duration = 0.0;
 
@@ -528,14 +593,14 @@ void FHotReloadModule::DoHotReloadFromEditor()
 	{
 		FScopedDurationTimer Timer(Duration);
 
-
 		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
 
-		const bool bWaitForCompletion = false;	// Don't wait -- we want compiling to happen asynchronously
 		Result = RebindPackagesInternal(PackagesToRebind, DependentModules, bWaitForCompletion, *GLog);
 	}
 
 	RecordAnalyticsEvent(TEXT("Editor"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
+
+	return Result;
 }
 
 void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
@@ -767,7 +832,7 @@ void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass)
 	if (ReinstanceHelper.ClassNeedsReinstancing())
 	{
 		UE_LOG(LogHotReload, Log, TEXT("Re-instancing %s after hot-reload."), NewClass ? *NewClass->GetName() : *OldClass->GetName());
-		ReinstanceHelper.ReinstanceObjects();
+		ReinstanceHelper.ReinstanceObjectsAndUpdateDefaults();
 	}
 }
 #endif
@@ -843,8 +908,11 @@ void FHotReloadModule::InitHotReloadWatcher()
 	{
 		// Watch the game binaries folder for new files
 		FString BinariesPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Binaries") / FPlatformProcess::GetBinariesSubdirectory());
-		BinariesFolderChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FHotReloadModule::OnHotReloadBinariesChanged);
-		DirectoryWatcher->RegisterDirectoryChangedCallback(BinariesPath, BinariesFolderChangedDelegate);
+		if (FPaths::DirectoryExists(BinariesPath))
+		{
+			BinariesFolderChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FHotReloadModule::OnHotReloadBinariesChanged);
+			bDirectoryWatcherInitialized = DirectoryWatcher->RegisterDirectoryChangedCallback(BinariesPath, BinariesFolderChangedDelegate);
+		}
 	}
 }
 
@@ -995,7 +1063,8 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 	// Kick off compilation!
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
 	const bool bFailIfGeneratedCodeChanges = false;
-	bool bWasSuccessful = StartCompilingModuleDLLs( FApp::GetGameName(), ModulesToRecompile, InRecompileModulesCallback, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments );
+	const bool bForceCodeProject = false;
+	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetGameName(), ModulesToRecompile, InRecompileModulesCallback, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
 	if (bWasSuccessful)
 	{
 		// Go ahead and check for completion right away.  This is really just so that we can handle the case
@@ -1044,12 +1113,12 @@ void FHotReloadModule::OnModuleCompileSucceeded(FName ModuleName, const FString&
 #endif
 }
 
-bool FHotReloadModule::RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar )
+bool FHotReloadModule::RecompileModuleDLLs(const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar, bool bFailIfGeneratedCodeChanges, bool bForceCodeProject)
 {
 	bool bCompileSucceeded = false;
 #if WITH_HOT_RELOAD
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
-	if( StartCompilingModuleDLLs( FApp::GetGameName(), ModuleNames, FRecompileModulesCallback(), Ar, true, AdditionalArguments ) )
+	if (StartCompilingModuleDLLs(FApp::GetGameName(), ModuleNames, FRecompileModulesCallback(), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
 	{
 		const bool bWaitForCompletion = true;	// Always wait
 		bool bCompileStillInProgress = false;
@@ -1088,7 +1157,7 @@ FString FHotReloadModule::MakeUBTArgumentsForModuleCompiling()
 
 bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
 	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
-	const FString& InAdditionalCmdLineArgs )
+	const FString& InAdditionalCmdLineArgs, bool bForceCodeProject)
 {
 #if WITH_HOT_RELOAD
 	// Keep track of what we're compiling
@@ -1147,7 +1216,7 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 #if WITH_EDITOR
 	// If there are no game modules loaded, then it's not a code-based project and the target
 	// for UBT should be the editor.
-	if (!IsAnyGameModuleLoaded())
+	if (!bForceCodeProject && !IsAnyGameModuleLoaded())
 	{
 		TargetName = TEXT("UE4Editor");
 	}
@@ -1475,25 +1544,30 @@ bool FHotReloadModule::GetModuleFileTimeStamp(FName ModuleName, FDateTime& OutFi
 	return false;
 }
 
-bool FHotReloadModule::IsAnyGameModuleLoaded() const
+bool FHotReloadModule::IsAnyGameModuleLoaded()
 {
-	// Ask the module manager for a list of currently-loaded gameplay modules
-	TArray< FModuleStatus > ModuleStatuses;
-	FModuleManager::Get().QueryModules(ModuleStatuses);
-
-	for (auto ModuleStatusIt = ModuleStatuses.CreateConstIterator(); ModuleStatusIt; ++ModuleStatusIt)
+	if (bIsAnyGameModuleLoaded == EThreeStateBool::Unknown)
 	{
-		const FModuleStatus& ModuleStatus = *ModuleStatusIt;
+		bool bGameModuleFound = false;
+		// Ask the module manager for a list of currently-loaded gameplay modules
+		TArray< FModuleStatus > ModuleStatuses;
+		FModuleManager::Get().QueryModules(ModuleStatuses);
 
-		// We only care about game modules that are currently loaded
-		if (ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule)
+		for (auto ModuleStatusIt = ModuleStatuses.CreateConstIterator(); ModuleStatusIt; ++ModuleStatusIt)
 		{
-			// There is at least one loaded game module.
-			return true;
-		}
-	}
+			const FModuleStatus& ModuleStatus = *ModuleStatusIt;
 
-	return false;
+			// We only care about game modules that are currently loaded
+			if (ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule)
+			{
+				// There is at least one loaded game module.
+				bGameModuleFound = true;
+				break;
+			}
+		}
+		bIsAnyGameModuleLoaded = EThreeStateBool::FromBool(bGameModuleFound);
+	}
+	return EThreeStateBool::ToBool(bIsAnyGameModuleLoaded);
 }
 
 bool FHotReloadModule::ContainsOnlyGameModules(const TArray<FModuleToRecompile>& ModulesToCompile) const
@@ -1510,6 +1584,18 @@ bool FHotReloadModule::ContainsOnlyGameModules(const TArray<FModuleToRecompile>&
 		}
 	}
 	return bOnlyGameModules;
+}
+
+void FHotReloadModule::ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
+{
+	// Force update game modules state on the next call to IsAnyGameModuleLoaded
+	bIsAnyGameModuleLoaded = EThreeStateBool::Unknown;
+	
+	// If the hot reload directory watcher hasn't been initialized yet (because the binaries directory did not exist) try to initialize it now
+	if (!bDirectoryWatcherInitialized)
+	{
+		InitHotReloadWatcher();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -746,7 +746,13 @@ FString FModuleManager::GetModuleFilename(FName ModuleName) const
 
 void FModuleManager::SetModuleFilename(FName ModuleName, const FString& Filename)
 {
-	Modules.FindChecked(ModuleName)->Filename = Filename;
+	auto& Module = Modules.FindChecked(ModuleName);
+	Module->Filename = Filename;
+	// If it's a new module then also update its OriginalFilename
+	if (Module->OriginalFilename.IsEmpty())
+	{
+		Module->OriginalFilename = Filename;
+	}
 }
 
 
@@ -976,6 +982,14 @@ void FModuleManager::SetGameBinariesDirectory(const TCHAR* InDirectory)
 #endif
 }
 
+FString FModuleManager::GetGameBinariesDirectory() const
+{
+	if (GameBinariesDirectories.Num())
+	{
+		return GameBinariesDirectories[0];
+	}
+	return FString();
+}
 
 bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 {

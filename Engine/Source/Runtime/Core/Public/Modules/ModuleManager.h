@@ -360,6 +360,11 @@ public:
 	void SetGameBinariesDirectory(const TCHAR* InDirectory);
 
 	/**
+	*	Gets the game binaries directory
+	*/
+	FString GetGameBinariesDirectory() const;
+
+	/**
 	 * Checks to see if the specified module exists and is compatible with the current engine version. 
 	 *
 	 * @param InModuleName The base name of the module file.
