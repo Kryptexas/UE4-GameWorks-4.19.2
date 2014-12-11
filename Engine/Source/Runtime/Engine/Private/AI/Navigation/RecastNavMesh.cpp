@@ -1754,7 +1754,7 @@ void ARecastNavMesh::ConstructGenerator()
 	NavDataGenerator.Reset();
 	if (SupportsRuntimeGeneration())
 	{
-		NavDataGenerator.Reset(new FRecastNavMeshGenerator(this));
+		NavDataGenerator.Reset(new FRecastNavMeshGenerator(*this));
 	}
 }
 

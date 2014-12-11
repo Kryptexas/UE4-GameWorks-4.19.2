@@ -10,6 +10,7 @@
 
 #define MAX_VERTS_PER_POLY	6
 
+class ARecastNavMesh;
 class FNavigationOctree;
 class FNavMeshBuildContext;
 class FRecastNavMeshGenerator;
@@ -130,16 +131,12 @@ struct FRecastAreaNavModifierElement
  */
 class ENGINE_API FRecastTileGenerator : public FNonAbandonableTask
 {
+	friend FRecastNavMeshGenerator;
+
 public:
-	FRecastTileGenerator(
-		FRecastNavMeshGenerator* ParentGenerator,
-		const int32 X, 
-		const int32 Y,
-		TArray<FBox> DirtyAreas
-	);
+	FRecastTileGenerator(const FRecastNavMeshGenerator& ParentGenerator, const FIntPoint& Location);
 		
 	void DoWork();
-	static const TCHAR *Name();
 
 	FORCEINLINE int32 GetTileX() const { return TileX; }
 	FORCEINLINE int32 GetTileY() const { return TileY; }
@@ -158,18 +155,20 @@ public:
 	// Memory amount used to construct generator 
 	uint32 UsedMemoryOnStartup;
 	
-private:
+protected:
 	/** Does the actual tile generations. 
 	 *	@note always trigger tile generation only via TriggerAsyncBuild. This is a worker function
 	 *	@return true if new tile navigation data has been generated and is ready to be added to navmesh instance, 
 	 *	false if failed or no need to generate (still valid)
 	 */
 	bool GenerateTile();
+
+	void Setup(const FRecastNavMeshGenerator& ParentGenerator, const TArray<FBox>& DirtyAreas);
 	
-	void GatherGeometry(const FRecastNavMeshGenerator* ParentGenerator, bool bGeometryChanged);
+	void GatherGeometry(const FRecastNavMeshGenerator& ParentGenerator, bool bGeometryChanged);
 
 	/** builds CompressedLayers array (geometry + modifiers) */
-	bool GenerateCompressedLayers(FNavMeshBuildContext& BuildContext);
+	virtual bool GenerateCompressedLayers(FNavMeshBuildContext& BuildContext);
 
 	/** builds NavigationData array (layers + obstacles) */
 	bool GenerateNavigationData(FNavMeshBuildContext& BuildContext);
@@ -225,7 +224,28 @@ protected:
 	TArray<FSimpleLinkNavModifier> OffmeshLinks;
 };
 
-typedef FAsyncTask<FRecastTileGenerator> FRecastTileGeneratorTask;
+struct ENGINE_API FRecastTileGeneratorWrapper : public FNonAbandonableTask
+{
+	TSharedRef<FRecastTileGenerator> TileGenerator;
+
+	FRecastTileGeneratorWrapper(TSharedRef<FRecastTileGenerator> InTileGenerator)
+		: TileGenerator(InTileGenerator)
+	{
+	}
+	
+	void DoWork()
+	{
+		TileGenerator->DoWork();
+	}
+
+	static const TCHAR *Name()
+	{
+		return TEXT("FRecastTileGenerator");
+	}
+};
+
+typedef FAsyncTask<FRecastTileGeneratorWrapper> FRecastTileGeneratorTask;
+//typedef FAsyncTask<FRecastTileGenerator> FRecastTileGeneratorTask;
 
 struct FPendingTileElement
 {
@@ -305,10 +325,10 @@ struct FTileTimestamp
 /**
  * Class that handles generation of the whole Recast-based navmesh.
  */
-class FRecastNavMeshGenerator : public FNavDataGenerator
+class ENGINE_API FRecastNavMeshGenerator : public FNavDataGenerator
 {
 public:
-	FRecastNavMeshGenerator(class ARecastNavMesh* InDestNavMesh);
+	FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh);
 	virtual ~FRecastNavMeshGenerator();
 
 private:
@@ -361,8 +381,8 @@ public:
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
 
 	/** Transfers ownership if tile cache data to the caller */
-	TArray<FNavMeshTileData> TakeIntermediateLayersData(FIntPoint GridCoord);
-
+	TArray<FNavMeshTileData> TakeIntermediateLayersData(FIntPoint GridCoord) const;
+	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const;
 #endif
@@ -375,8 +395,8 @@ public:
 
 	static void ExportRigidBodyGeometry(UBodySetup& BodySetup, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& LocalToWorld = FTransform::Identity);
 	static void ExportRigidBodyGeometry(UBodySetup& BodySetup, TNavStatArray<FVector>& OutTriMeshVertexBuffer, TNavStatArray<int32>& OutTriMeshIndexBuffer, TNavStatArray<FVector>& OutConvexVertexBuffer, TNavStatArray<int32>& OutConvexIndexBuffer, TNavStatArray<int32>& OutShapeBuffer, const FTransform& LocalToWorld = FTransform::Identity);
-
-private:
+	
+protected:
 	// Performs initial setup of member variables so that generator is ready to do its thing from this point on
 	void Init();
 
@@ -406,6 +426,8 @@ private:
 	
 	/** Blocks until build for specified list of tiles is complete and discard results */
 	void DiscardCurrentBuildingTasks();
+
+	virtual TSharedRef<FRecastTileGenerator> CreateTileGenerator(const FIntPoint& Coord, const TArray<FBox>& DirtyAreas);
 
 	//----------------------------------------------------------------------//
 	// debug
@@ -445,7 +467,7 @@ private:
 	FRecastNavMeshCachedData AdditionalCachedData;
 
 	/** Compressed layers data, can be reused for tiles generation */
-	TMap<FIntPoint, TArray<FNavMeshTileData>> IntermediateLayerDataMap;
+	mutable TMap<FIntPoint, TArray<FNavMeshTileData>> IntermediateLayerDataMap;
 
 	/** */
 	TMapBase<const AActor*, FBox, false> ActorToAreaMap;
