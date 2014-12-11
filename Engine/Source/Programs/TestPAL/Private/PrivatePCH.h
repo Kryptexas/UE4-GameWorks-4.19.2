@@ -5,5 +5,10 @@
 // other modules' headers
 #include "Core.h"
 
+#define ARG_PROC_TEST						"proc"
+#define ARG_PROC_TEST_CHILD					"proc-child"
+#define ARG_CASE_SENSITIVITY_TEST			"case"
+
+
 // this module headers
 #include "Parent.h"

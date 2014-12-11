@@ -231,19 +231,208 @@ FString FLinuxPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
 	return Filename;
 }
 
+/**
+ * A class to handle case insensitive file opening. This is a band-aid, non-performant approach,
+ * without any caching.
+ */
+class FLinuxFileMapper
+{
+	/** Max path component */
+	int MaxPathComponents;
+
+public:
+
+	FLinuxFileMapper()
+		:	MaxPathComponents(-1)
+	{
+	}
+
+	FString GetPathComponent(const FString & Filename, int NumPathComponent)
+	{
+		// skip over empty part
+		int StartPosition = (Filename[0] == TEXT('/')) ? 1 : 0;
+		
+		for (int ComponentIdx = 0; ComponentIdx < NumPathComponent; ++ComponentIdx)
+		{
+			int FoundAtIndex = Filename.Find(TEXT("/"), ESearchCase::CaseSensitive,
+											 ESearchDir::FromStart, StartPosition);
+			
+			if (FoundAtIndex == INDEX_NONE)
+			{
+				checkf(false, TEXT("Asked to get %d-th path component, but filename '%s' doesn't have that many!"), 
+					   NumPathComponent, *Filename);
+				break;
+			}
+			
+			StartPosition = FoundAtIndex + 1;	// skip the '/' itself
+		}
+
+		// now return the 
+		int NextSlash = Filename.Find(TEXT("/"), ESearchCase::CaseSensitive,
+									  ESearchDir::FromStart, StartPosition);
+		if (NextSlash == INDEX_NONE)
+		{
+			// just return the rest of the string
+			return Filename.RightChop(StartPosition);
+		}
+		else if (NextSlash == StartPosition)
+		{
+			return TEXT("");	// encountered an invalid path like /foo/bar//baz
+		}
+		
+		return Filename.Mid(StartPosition, NextSlash - StartPosition);
+	}
+
+	int32 CountPathComponents(const FString & Filename)
+	{
+		if (Filename.Len() == 0)
+		{
+			return 0;
+		}
+
+		// if the first character is not a separator, it's part of a distinct component
+		int NumComponents = (Filename[0] != TEXT('/')) ? 1 : 0;
+		for (const auto & Char : Filename)
+		{
+			if (Char == TEXT('/'))
+			{
+				++NumComponents;
+			}
+		}
+
+		// cannot be 0 components if path is non-empty
+		return FMath::Max(NumComponents, 1);
+	}
+
+	/**
+	 * Tries to recursively find (using case-insensitive comparison) and open the file.
+	 * The first file found will be opened.
+	 * 
+	 * @param Filename Original file path as requested (absolute)
+	 * @param PathComponentToLookFor Part of path we are currently trying to find.
+	 * @param ConstructedPath The real (absolute) path that we have found so far
+	 * 
+	 * @return a handle opened with open()
+	 */
+	int32 TryOpenRecursively(const FString & Filename, int PathComponentToLookFor, FString & ConstructedPath)
+	{
+		// get the directory without the last path component
+		FString BaseDir = ConstructedPath;
+
+		// get the path component to compare
+		FString PathComponent = GetPathComponent(Filename, PathComponentToLookFor);
+		FString PathComponentLower = PathComponent.ToLower();
+
+		int32 Handle = -1;
+
+		// see if we can open this (we should)
+		DIR* DirHandle = opendir(TCHAR_TO_UTF8(*BaseDir));
+		if (DirHandle)
+		{
+			struct dirent *Entry;
+			while ((Entry = readdir(DirHandle)) != nullptr)
+			{
+				FString DirEntry = UTF8_TO_TCHAR(Entry->d_name);
+				if (DirEntry.ToLower() == PathComponentLower)
+				{
+					if (PathComponentToLookFor < MaxPathComponents - 1)
+					{
+						// make sure this is a directory
+						bool bIsDirectory = Entry->d_type == DT_DIR;
+						if(Entry->d_type == DT_UNKNOWN)
+						{
+							struct stat StatInfo;
+							if(stat(TCHAR_TO_UTF8(*(BaseDir / Entry->d_name)), &StatInfo) == 0)
+							{
+								bIsDirectory = S_ISDIR(StatInfo.st_mode);
+							}
+						}
+
+						if (bIsDirectory)
+						{
+							// recurse with the new filename
+							FString NewConstructedPath = ConstructedPath;
+							NewConstructedPath /= DirEntry;
+
+							Handle = TryOpenRecursively(Filename, PathComponentToLookFor + 1, NewConstructedPath);
+							if (Handle != -1)
+							{
+								ConstructedPath = NewConstructedPath;
+								break;
+							}
+						}
+					}
+					else
+					{
+						// last level, try opening directly
+						FString ConstructedFilename = ConstructedPath;
+						ConstructedFilename /= DirEntry;
+
+						Handle = open(TCHAR_TO_UTF8(*ConstructedFilename), O_RDONLY);
+						if (Handle != -1)
+						{
+							ConstructedPath = ConstructedFilename;
+							break;
+						}
+					}
+				}
+			}
+			closedir(DirHandle);
+		}
+
+		return Handle;
+	}
+	
+	/**
+	 * Opens a file for reading, disregarding the case.
+	 * 
+	 * @param Filename absolute filename
+	 */
+	int32 OpenCaseInsensitiveRead(const FString & Filename)
+	{
+		// try opening right away
+		int32 Handle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY);
+		if (Handle == -1)
+		{
+			// log non-standard errors only
+			if (ENOENT != errno)
+			{
+				int ErrNo = errno;
+				UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "open('%s', ORDONLY) failed: errno=%d (%s)" ), *Filename, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+			}
+			else
+			{
+				// perform a case-insensitive search
+				// make sure we get the absolute filename
+				checkf(Filename[0] == TEXT('/'), TEXT("Filename '%s' given to OpenCaseInsensitiveRead is not absolute!"), *Filename);
+				
+				MaxPathComponents = CountPathComponents(Filename);
+				if (MaxPathComponents > 0)
+				{
+					FString FoundFilename(TEXT("/"));	// start with root
+					Handle = TryOpenRecursively(Filename, 0, FoundFilename);
+
+					if (Handle != -1)
+					{
+						UE_LOG(LogLinuxPlatformFile, Log, TEXT("Mapped '%s' to '%s'"), *Filename, *FoundFilename);
+					}
+				}
+			}
+		}
+		return Handle;
+	}
+};
+
+
 IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename)
 {
-	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), O_RDONLY);
+	FLinuxFileMapper CaseInsensMapper;
+	int32 Handle = CaseInsensMapper.OpenCaseInsensitiveRead(TCHAR_TO_UTF8(*NormalizeFilename(Filename)));
 	if (Handle != -1)
 	{
 		return new FFileHandleLinux(Handle);
 	}
-	// log non-standard errors only
-	if (ENOENT != errno)
-	{
-		UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "open('%s', ORDONLY) failed: errno=%d (%s)" ), *NormalizeFilename(Filename), errno, ANSI_TO_TCHAR(strerror(errno)));
-	}
-	return NULL;
+	return nullptr;
 }
 
 IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)

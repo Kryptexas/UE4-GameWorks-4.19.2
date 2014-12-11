@@ -17,7 +17,7 @@ FProcHandle FParent::Launch()
 
 	uint32 WorkerId = 0;
 	FString WorkerName = FPlatformProcess::ExecutableName(false);
-	FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*WorkerName, TEXT("-child"), true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
+	FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*WorkerName, TEXT("proc-child"), true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
 	if (!WorkerHandle.IsValid())
 	{
 		// If this doesn't error, the app will hang waiting for jobs that can never be completed
