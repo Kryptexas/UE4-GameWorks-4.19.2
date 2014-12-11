@@ -196,7 +196,9 @@ FMallocCrash::FMallocCrash( FMalloc* MainMalloc ) :
 	}
 
 	InitializeSmallPools();
+#if	_DEBUG
 	FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "FMallocCrash overhead is %u bytes\n" ), LargeMemoryPoolSize+GetSmallPoolTotalSize() );
+#endif // _DEBUG
 }
 
 FMallocCrash::~FMallocCrash()
