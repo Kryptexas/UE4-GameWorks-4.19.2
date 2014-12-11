@@ -52,7 +52,7 @@ class FAndroid_PVRTCTargetPlatform
 
 	virtual float GetVariantPriority() const override
 	{
-		return 0.9f;
+		return 0.8f;
 	}
 };
 

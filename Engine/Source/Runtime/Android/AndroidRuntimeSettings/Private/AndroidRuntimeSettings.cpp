@@ -22,5 +22,11 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 	{
 		bBuildForArmV7 = true;
 	}
+
+	// Ensure that at least one GPU architecture is supported
+	if (!bBuildForES2 && !bBuildForES31)
+	{
+		bBuildForES2 = true;
+	}
 }
 #endif

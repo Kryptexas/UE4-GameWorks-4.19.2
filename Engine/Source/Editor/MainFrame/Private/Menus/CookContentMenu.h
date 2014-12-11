@@ -78,6 +78,12 @@ protected:
 	 */
 	static void AddPlatformToMenu(FMenuBuilder& MenuBuilder, const PlatformInfo::FPlatformInfo& PlatformInfo)
 	{
+		// don't add sub-platforms that are disabled in rocket
+		if (!PlatformInfo.bEnabledInBinary && FRocketSupport::IsRocket())
+		{
+			return;
+		}
+
 		IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
 
 		FUIAction Action(

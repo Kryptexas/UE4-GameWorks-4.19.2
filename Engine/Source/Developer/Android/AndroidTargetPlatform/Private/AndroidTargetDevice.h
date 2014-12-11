@@ -124,14 +124,8 @@ public:
 
 	virtual FString GetName() const override
 	{
-		if (AndroidVariant.IsEmpty())
-		{
-			//return DeviceName;
-			return Model;			
-		}
-
-		//return FString::Printf(TEXT("%s (%s)"), *DeviceName, *AndroidVariant);
-		return FString::Printf(TEXT("%s (%s)"), *Model, *AndroidVariant);
+		// we need a unique name for all devices, so use human usable model name and the unique id
+		return FString::Printf(TEXT("%s (%s)"), *Model, *SerialNumber);
 	}
 
 	virtual FString GetOperatingSystemName() override;

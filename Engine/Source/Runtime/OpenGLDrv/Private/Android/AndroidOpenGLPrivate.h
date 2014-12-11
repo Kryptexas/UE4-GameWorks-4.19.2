@@ -40,8 +40,13 @@ private:
 		if (!EGL->IsInitialized())
 		{
 			FAndroidAppEntry::PlatformInit();
+#if PLATFORM_ANDROIDES31
+			EGL->InitSurface(true);
+#endif
 		}
+#if !PLATFORM_ANDROIDES31
 		EGL->InitSurface(true);
+#endif
 		EGL->SetCurrentSharedContext();
 
 		// get extensions

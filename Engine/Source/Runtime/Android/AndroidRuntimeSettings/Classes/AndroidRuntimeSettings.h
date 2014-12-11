@@ -126,9 +126,20 @@ public:
 //	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86_64 [aka x64]"))
 //	bool bBuildForX8664;
 
+	// Enable ES2 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES2"))
+	bool bBuildForES2;
+
+	// Enable ES31 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES31 + AEP"))
+	bool bBuildForES31;
+
 	// If selected, the checked architectures will be split into separate .apk files [CURRENTLY FOR FULL SOURCE GAMES ONLY]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
-	bool bSplitIntoSeparateApks;
+	// @todo android fat binary: Currently, there isn't much utility in merging multiple .so's into a single .apk except for debugging,
+	// but we can't properly handle multiple GPU architectures in a single .apk, so we are disabling the feature for now
+	// The user will need to manually select the apk to run in their Visual Studio debugger settings (see Override APK in TADP, for instance)
+// 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+// 	bool bSplitIntoSeparateApks;
 
 	// Should Google Play support be enabled?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)

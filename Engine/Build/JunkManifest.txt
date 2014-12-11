@@ -49,5 +49,3 @@ Engine\Plugins\Script\ScriptPlugin\Binaries\Win32\*
 Engine\Plugins\Script\ScriptPlugin\Binaries\Win64\*
 Engine\Plugins\Experimental\Paper2D\Binaries
 Engine\Plugins\Experimental\Paper2D\Intermediate
-REM @todo es31: Take this out in for ES31 support
-Engine\Binaries\Win64\Android\*ES31*

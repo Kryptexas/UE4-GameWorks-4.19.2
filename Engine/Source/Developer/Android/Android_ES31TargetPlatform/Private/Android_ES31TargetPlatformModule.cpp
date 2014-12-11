@@ -22,7 +22,7 @@ class FAndroid_ES31TargetPlatform
 
 	virtual FText DisplayName( ) const override
 	{
-		return LOCTEXT("Android_ES31", "Android (ES 3.1)");
+		return LOCTEXT("Android_ES31", "Android (ES 3.1 + AEP)");
 	}
 
 	virtual FString PlatformName() const override
@@ -43,8 +43,18 @@ class FAndroid_ES31TargetPlatform
 
 	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override
 	{
-		// GL_EXT_tessellation_shader implies ES3.1
-		return (ExtensionsString.Contains(TEXT("GL_EXT_tessellation_shader")));
+		// look for the AEP extension
+		return ExtensionsString.Contains(TEXT("GL_ANDROID_extension_pack_es31a")) && ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
+	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return LOCTEXT("Android_31_ShortName", "ES 3.1 + AEP");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.9f;
 	}
 
 	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override

@@ -444,7 +444,7 @@ namespace UnrealBuildTool.Android
 			string UpdateCommandLine = "--silent update project --subprojects --name " + ProjectName + " --path . --target " + GetSdkApiLevel();
 			foreach (string Lib in LibsToBeAdded)
 			{
-				UpdateCommandLine += " --library " + Lib;
+				string LocalUpdateCommandLine = UpdateCommandLine + " --library " + Lib;
 
 				// make sure each library has a build.xml - --subprojects doesn't create build.xml files, but it will create project.properties
 				// and later code needs each lib to have a build.xml
@@ -452,9 +452,9 @@ namespace UnrealBuildTool.Android
 				{
 					RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(), "");
 				}
+				RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, LocalUpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
 			}
 
-			RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, UpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
 		}
 
 
@@ -735,7 +735,7 @@ namespace UnrealBuildTool.Android
 					}
 
 					// now do final stuff per apk (or after all .so's for a shared .apk)
-					if (bMakeSeparateApks || ArchIndex == NumArches - 1)
+					if (bMakeSeparateApks || (ArchIndex == Arches.Length - 1 && GPUArchIndex == GPUArchitectures.Length - 1))
 					{
 						// always delete libs up to this point so fat binaries and incremental builds work together (otherwise we might end up with multiple
 						// so files in an apk that doesn't want them)
@@ -870,19 +870,34 @@ namespace UnrealBuildTool.Android
 		{
 			// we need to strip architecture from any of the output paths
 			string BaseSoName = AndroidToolChain.RemoveArchName(InTarget.OutputPaths[0]);
-			// this always makes a merged .apk since for debugging, there's no way to know which one to run
-			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution:false, CookFlavor:"", bMakeSeparateApks:false, bIncrementalPackage:true);
+
+			// make an apk at the end of compiling, so that we can run without packaging (debugger, cook on the fly, etc)
+			MakeApk(InTarget.AppName, InTarget.ProjectDirectory, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "", bMakeSeparateApks:ShouldMakeSeparateApks(), bIncrementalPackage:true);
+
+			// if we made any non-standard .apk files, the generated debugger settings may be wrong
+			if (ShouldMakeSeparateApks() && (InTarget.OutputPaths.Length > 1 || !InTarget.OutputPaths[0].Contains("-armv7-es2")))
+			{
+				Console.WriteLine("================================================================================================================================");
+				Console.WriteLine("Non-default apk(s) have been made: If you are debugging, you will need to manually select one to run in the debugger properties!");
+				Console.WriteLine("================================================================================================================================");
+			}
 			return true;
 		}
 
 		public static bool ShouldMakeSeparateApks()
 		{
+			// @todo android fat binary: Currently, there isn't much utility in merging multiple .so's into a single .apk except for debugging,
+			// but we can't properly handle multiple GPU architectures in a single .apk, so we are disabling the feature for now
+			// The user will need to manually select the apk to run in their Visual Studio debugger settings (see Override APK in TADP, for instance)
+			// If we change this, pay attention to <OverrideAPKPath> in AndroidProjectGenerator
+			return true;
+			
 			// check to see if the project wants separate apks
-			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
-			bool bSeparateApks = false;
-			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSplitIntoSeparateApks", out bSeparateApks);
-
-			return bSeparateApks;
+// 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+// 			bool bSeparateApks = false;
+// 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSplitIntoSeparateApks", out bSeparateApks);
+// 
+// 			return bSeparateApks;
 		}
 
 		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor)

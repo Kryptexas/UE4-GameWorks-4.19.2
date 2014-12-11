@@ -31,6 +31,8 @@ public class Android_ES31TargetPlatform : ModuleRules
 			PrivateIncludePathModuleNames.Add("TextureCompressor");		//@todo android: AndroidTargetPlatform.Build
 		}
 
+		Definitions.Add("WITH_OGGVORBIS=1");
+
 		PrivateIncludePaths.AddRange(
 			new string[]
 			{

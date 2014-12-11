@@ -70,6 +70,10 @@ namespace UnrealBuildTool
 
 			// Parse selected GPU architectures
 			List<string> ProjectGPUArches = new List<string>();
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild)
+			{
+				ProjectGPUArches.Add("-es2");
+			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild)
 			{
 				ProjectGPUArches.Add("-es31");
@@ -78,7 +82,7 @@ namespace UnrealBuildTool
 			{
 				ProjectGPUArches.Add("-gl4");
 			}
-			if (ProjectGPUArches.Count == 0 || (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild))
+			if (ProjectGPUArches.Count == 0)
 			{
 				ProjectGPUArches.Add("-es2");
 			}
@@ -931,8 +935,11 @@ namespace UnrealBuildTool
 		public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
-			string ApkFile = Path.ChangeExtension(RemoveArchName(Binary.Config.OutputFilePaths[0]), ".apk");
-			Manifest.AddFileName(ApkFile);
+			foreach (string BinaryPath in Binary.Config.OutputFilePaths)
+			{
+				string ApkFile = Path.ChangeExtension(BinaryPath, ".apk");
+				Manifest.AddFileName(ApkFile);
+			}
 		}
 
 		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)

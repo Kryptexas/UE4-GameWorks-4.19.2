@@ -364,7 +364,7 @@ public class AndroidPlatform : Platform
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
 	{
 		string DeviceArchitecture = GetBestDeviceArchitecture(Params);
-		string GPUArchitecture = "";
+		string GPUArchitecture = GetBestGPUArchitecture(Params);
 
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
@@ -650,10 +650,10 @@ public class AndroidPlatform : Platform
 		string[] AppArchitectures = AndroidToolChain.GetAllArchitectures();
 
 		// ask the device
-		ProcessResult Result = RunAdbCommand(Params, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
+		ProcessResult ABIResult = RunAdbCommand(Params, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
 
 		// the output is just the architecture
-		string DeviceArch = UnrealBuildTool.Android.UEDeployAndroid.GetUE4Arch(Result.Output.Trim());
+		string DeviceArch = UnrealBuildTool.Android.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
 
 		// if the architecture wasn't built, look for a backup
 		if (Array.IndexOf(AppArchitectures, DeviceArch) == -1)
@@ -700,11 +700,35 @@ public class AndroidPlatform : Platform
 		return DeviceArch;
 	}
 
+	private string GetBestGPUArchitecture(ProjectParams Params)
+	{
+		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
+		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
+		if (!bMakeSeparateApks)
+		{
+			return "";
+		}
+
+		string[] AppGPUArchitectures = AndroidToolChain.GetAllArchitectures();
+
+		// get the device extensions
+		ProcessResult ExtensionsResult = RunAdbCommand(Params, "shell dumpsys SurfaceFlinger");
+		string Extensions = ExtensionsResult.Output.Trim();
+
+		Console.WriteLine("Extensions: {0}", Extensions);
+		// look for AEP support
+		if (Extensions.Contains("GL_ANDROID_extension_pack_es31a") && Extensions.Contains("GL_EXT_color_buffer_half_float") && AppGPUArchitectures.Contains("-es31"))
+		{
+			return "-es31";
+		}
+
+		return "-es2";
+	}
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		string DeviceArchitecture = GetBestDeviceArchitecture(Params);
-		string GPUArchitecture = "";
+		string GPUArchitecture = GetBestGPUArchitecture(Params); ;
 
 		string ApkName = ClientApp + DeviceArchitecture + ".apk";
 		if (!File.Exists(ApkName))
