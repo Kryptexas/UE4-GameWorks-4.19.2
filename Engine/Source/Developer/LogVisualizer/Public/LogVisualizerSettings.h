@@ -13,6 +13,9 @@ class LOGVISUALIZER_API ULogVisualizerSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:
+	DECLARE_EVENT_OneParam(ULogVisualizerSettings, FSettingChangedEvent, FName /*PropertyName*/);
+	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
+
 	/**Whether to show trivial logs, i.e. the ones with only one entry.*/
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bIgnoreTrivialLogs;
@@ -21,20 +24,17 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger", meta = (EditCondition = "bIgnoreTrivialLogs", ClampMin = "0", ClampMax = "10", UIMin = "0", UIMax = "10"))
 	int32 TrivialLogsThreshold;
 
-	/**Whether to show the recent data or not.*/
-	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	/**Whether to show the recent data or not. Property disabled for now.*/
+	UPROPERTY(VisibleAnywhere, config, Category = "VisualLogger")
 	bool bStickToRecentData;
 
-	/**Whether to show histogram labels inside graph or outside.*/
-	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	/**Whether to show histogram labels inside graph or outside. Property disabled for now.*/
+	UPROPERTY(VisibleAnywhere, config, Category = "VisualLogger")
 	bool bShowHistogramLabelsOutside;
 
 	/** Camera distance used to setup location during reaction on log item double click */
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger", meta = (ClampMin = "10", ClampMax = "1000", UIMin = "10", UIMax = "1000"))
 	float DefaultCameraDistance;
-
-	DECLARE_EVENT_OneParam(ULogVisualizerSettings, FSettingChangedEvent, FName /*PropertyName*/);
-	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
 
 	/**Whether to search/filter categories or to get text vlogs into account too */
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")

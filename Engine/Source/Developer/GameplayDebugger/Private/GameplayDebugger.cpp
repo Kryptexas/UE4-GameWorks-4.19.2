@@ -14,8 +14,6 @@
 #include "LevelEditor.h"
 #endif // WITH_EDITOR
 
-#define ADD_LEVEL_EDITOR_EXTENSIONS 0
-
 #define LOCTEXT_NAMESPACE "FGameplayDebugger"
 FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator)
 {
@@ -39,7 +37,7 @@ public:
 	TSharedRef<FExtender> OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList);
 	void CreateSnappingOptionsMenu(FMenuBuilder& Builder);
 	void CreateSettingSubMenu(FMenuBuilder& Builder);
-	void HandleExperimentalSettingChanged(FName PropertyName);
+	void HandleSettingChanged(FName PropertyName);
 #endif
 
 	TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& GetAllReplicators(UWorld* InWorld);
@@ -76,8 +74,6 @@ void FGameplayDebugger::StartupModule()
 		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebugger::OnLevelActorAdded);
 		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebugger::OnLevelActorDeleted);
 
-		UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebugger::HandleExperimentalSettingChanged);
-
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
 		{
@@ -87,8 +83,12 @@ void FGameplayDebugger::StartupModule()
 				UGameplayDebuggerSettings::StaticClass()->GetDefaultObject()
 				);
 		}
+
+		UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebugger::HandleSettingChanged);
+
 #	if ADD_LEVEL_EDITOR_EXTENSIONS
-		if (!IsRunningCommandlet())
+		const bool bExtendViewportMenu = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->bExtendViewportMenu;
+		if (!IsRunningCommandlet() && bExtendViewportMenu)
 		{
 			// Register the extension with the level editor
 			{
@@ -106,6 +106,41 @@ void FGameplayDebugger::StartupModule()
 #endif
 }
 
+#if WITH_EDITOR
+void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
+{
+#if ADD_LEVEL_EDITOR_EXTENSIONS
+	const bool bExtendViewportMenu = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->bExtendViewportMenu;
+	if (PropertyName == TEXT("bExtendViewportMenu"))
+	{
+		if (bExtendViewportMenu)
+		{
+			// Register the extension with the level editor
+			{
+				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebugger::OnExtendLevelEditorViewMenu);
+				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
+				if (LevelEditor)
+				{
+					LevelEditor->GetAllLevelViewportOptionsMenuExtenders().Add(ViewMenuExtender);
+				}
+			}
+		}
+		else
+		{
+			// Unregister the level editor extensions
+			{
+				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
+				if (LevelEditor)
+				{
+					LevelEditor->GetAllLevelViewportOptionsMenuExtenders().Remove(ViewMenuExtender);
+				}
+			}
+		}
+	}
+#endif
+}
+#endif
+
 // This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 // we call this function before unloading the module.
 void FGameplayDebugger::ShutdownModule()
@@ -119,7 +154,7 @@ void FGameplayDebugger::ShutdownModule()
 		GEngine->OnLevelActorAdded().RemoveAll(this);
 		GEngine->OnLevelActorDeleted().RemoveAll(this);
 
-		UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
+		UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->OnSettingChanged().RemoveAll(this);
 
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
@@ -146,36 +181,6 @@ void FGameplayDebugger::ShutdownModule()
 }
 
 #if WITH_EDITOR
-
-void FGameplayDebugger::HandleExperimentalSettingChanged(FName PropertyName)
-{
-	if (PropertyName == TEXT("bGameplayDebugger"))
-	{
-		if (UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->bGameplayDebugger == false)
-		{
-			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-			if (SettingsModule != nullptr)
-			{
-				SettingsModule->UnregisterSettings("Editor", "General", "GameplayDebugger");
-			}
-		}
-		else
-		{
-			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-			if (SettingsModule != nullptr)
-			{
-				SettingsModule->RegisterSettings("Editor", "General", "GameplayDebugger",
-					LOCTEXT("AIToolsSettingsName", "Gameplay Debugger"),
-					LOCTEXT("AIToolsSettingsDescription", "General settings for UE4 AI Tools."),
-					UGameplayDebuggerSettings::StaticClass()->GetDefaultObject()
-					);
-			}
-		}
-	}
-	//FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
-	//TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
-	//LevelEditorTabManager->UpdateMainMenu(true);
-}
 
 void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
 {
@@ -212,17 +217,20 @@ void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 
 TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EDITOR
 	TSharedRef<FExtender> Extender(new FExtender());
+	if (GEditor && GEditor->bIsSimulatingInEditor)
+	{
 
-	Extender->AddMenuExtension(
-		"LevelViewportLayouts",
-		EExtensionHook::After,
-		NULL,
-		FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebugger::CreateSnappingOptionsMenu));
+		Extender->AddMenuExtension(
+			"LevelViewportLayouts",
+			EExtensionHook::After,
+			NULL,
+			FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebugger::CreateSnappingOptionsMenu));
 
-	return Extender;
+	}
 #endif
+	return Extender;
 }
 #endif
 

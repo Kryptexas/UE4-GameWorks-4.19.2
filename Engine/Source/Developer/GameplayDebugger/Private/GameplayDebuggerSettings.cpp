@@ -36,6 +36,11 @@ UGameplayDebuggerSettings::UGameplayDebuggerSettings(const FObjectInitializer& O
 		GConfig->GetBool(TEXT("GameplayDebuggerSettings"), TEXT("GameView3"), GameView3, GEngineIni);
 		GConfig->GetBool(TEXT("GameplayDebuggerSettings"), TEXT("GameView4"), GameView4, GEngineIni);
 		GConfig->GetBool(TEXT("GameplayDebuggerSettings"), TEXT("GameView5"), GameView5, GEngineIni);
+
+#if ADD_LEVEL_EDITOR_EXTENSIONS
+		bExtendViewportMenu = false;
+		GConfig->GetBool(TEXT("GameplayDebuggerSettings"), TEXT("bExtendViewportMenu"), bExtendViewportMenu, GEngineIni);
+#endif
 	}
 }
 
@@ -88,5 +93,7 @@ void UGameplayDebuggerSettings::PostEditChangeProperty(FPropertyChangedEvent& Pr
 #undef UPDATE_GAMEVIEW_DISPLAYNAME
 
 	GEditor->SaveEditorUserSettings();
+
+	SettingChangedEvent.Broadcast(Name);
 }
 #endif

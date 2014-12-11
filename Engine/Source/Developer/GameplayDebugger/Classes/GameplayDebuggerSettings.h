@@ -8,6 +8,8 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 
 #include "GameplayDebuggerSettings.generated.h"
 
+#define ADD_LEVEL_EDITOR_EXTENSIONS 0
+
 USTRUCT()
 struct FGDTCustomViewNames
 {
@@ -41,7 +43,10 @@ public:
 	// End UObject Interface
 #endif
 
-	uint32 GetSettings() 
+	DECLARE_EVENT_OneParam(UGameplayDebuggerSettings, FSettingChangedEvent, FName /*PropertyName*/);
+	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
+
+	uint32 GetSettings()
 	{
 		uint32 Settings = 0;
 		Settings = OverHead ? Settings | (1 << EAIDebugDrawDataView::OverHead) : Settings & ~(1 << EAIDebugDrawDataView::OverHead);
@@ -59,6 +64,12 @@ public:
 	}
 
 	const FGDTCustomViewNames& GetCustomViewNames() { return CustomViewNames; }
+
+#if ADD_LEVEL_EDITOR_EXTENSIONS
+	/** Experimental setting to extend viewport menu in Simulate, to have quick access to GameplayDebugger settings. */
+	UPROPERTY(EditAnywhere, config, Category = "GameplayDebugger")
+	bool bExtendViewportMenu;
+#endif
 
 protected:
 	UPROPERTY(EditAnywhere, config, Category = "GameplayDebugger")
@@ -99,4 +110,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, config, Category = "GameplayDebugger")
 	bool GameView5;
+
+	// Holds an event delegate that is executed when a setting has changed.
+	FSettingChangedEvent SettingChangedEvent;
 };
