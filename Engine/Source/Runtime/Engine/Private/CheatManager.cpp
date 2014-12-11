@@ -1118,23 +1118,4 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 #endif // ALLOW_DEBUG_FILES
 }
 
-#if WITH_EDITOR
-#include "Developer/LogVisualizer/Public/LogVisualizerModule.h"
-static class FOldLogVisualizerExec : private FSelfRegisteringExec
-{
-public:
-	/** Console commands, see embeded usage statement **/
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
-	{
-		if (FParse::Command(&Cmd, TEXT("OLDVISLOG")))
-		{
-			FLogVisualizerModule::Get()->SummonUI(InWorld);
-			return true;
-		}
-		return false;
-	}
-} OldLogVisualizerExec;
-#endif
-
-
 #undef LOCTEXT_NAMESPACE

@@ -85,10 +85,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Enable Blueprint Merge Tool"))
 	bool bEnableBlueprintMergeTool;
 
-	/** Enables Visual Logger visualizer/viewer */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Visual Logger"))
-	bool bVisualLogger;
-
 	/** Enables Gameplay Debugger */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Gameplay Debugger"))
 	bool bGameplayDebugger;

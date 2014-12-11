@@ -123,9 +123,6 @@ public class Engine : ModuleRules
 				PrivateDependencyModuleNames.Add("CollisionAnalyzer");
 				CircularlyReferencedDependentModules.Add("CollisionAnalyzer");
 
-                PrivateDependencyModuleNames.Add("LogVisualizer");
-                CircularlyReferencedDependentModules.Add("LogVisualizer");
-            
                 PrivateDependencyModuleNames.Add("NewLogVisualizer");
                 CircularlyReferencedDependentModules.Add("NewLogVisualizer");
             }

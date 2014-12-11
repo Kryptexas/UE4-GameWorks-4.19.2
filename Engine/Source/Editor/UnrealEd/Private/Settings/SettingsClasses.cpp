@@ -59,7 +59,6 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {
 	static const FName NAME_EQS = GET_MEMBER_NAME_CHECKED(UEditorExperimentalSettings, bEQSEditor);
-	static const FName NAME_VISUAL_LOGGER = GET_MEMBER_NAME_CHECKED(UEditorExperimentalSettings, bVisualLogger);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -74,13 +73,6 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 		if (bEQSEditor)
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
-		}
-	}
-	else if (Name == NAME_VISUAL_LOGGER)
-	{
-		if (bVisualLogger)
-		{
-			FModuleManager::Get().LoadModule(TEXT("NewLogVisualizer"));
 		}
 	}
 

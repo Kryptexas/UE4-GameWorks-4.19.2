@@ -10,6 +10,7 @@
 #include "Editor/EditorEngine.h"
 #include "ISettingsModule.h"
 #include "LevelEditor.h"
+#include "WorkspaceMenuStructureModule.h"
 #endif // WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "FLogVisualizerModule"
@@ -25,12 +26,14 @@ void FNewLogVisualizerModule::StartupModule()
 	FVisualLoggerCommands::Register();
 	IModularFeatures::Get().RegisterModularFeature(VisualLoggerTabName, this);
 
-	// This is still experimental in the editor, so it'll be invoked specifically in FMainMenu if the experimental settings flag is set.
-	// When no longer experimental, switch to the nomad spawner registration below
-	FGlobalTabmanager::Get()->RegisterTabSpawner(VisualLoggerTabName, FOnSpawnTab::CreateRaw(this, &FNewLogVisualizerModule::SpawnLogVisualizerTab));
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+		VisualLoggerTabName, 
+		FOnSpawnTab::CreateRaw(this, &FNewLogVisualizerModule::SpawnLogVisualizerTab))
+		.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory())
+		.SetDisplayName(NSLOCTEXT("LogVisualizerApp", "TabTitle", "Visual Logger"))
+		.SetTooltipText(NSLOCTEXT("LogVisualizerApp", "TooltipText", "Opens Visual Logger tool."))
+		.SetIcon(FSlateIcon(FLogVisualizerStyle::GetStyleSetName(), "LogVisualizerApp.TabIcon"));
 
-	UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &FNewLogVisualizerModule::HandleExperimentalSettingChanged);
-	
 	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if (SettingsModule != nullptr)
 	{
@@ -48,8 +51,6 @@ void FNewLogVisualizerModule::ShutdownModule()
 	FVisualLoggerCommands::Unregister();
 	IModularFeatures::Get().UnregisterModularFeature(VisualLoggerTabName, this);
 	
-	//UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
-
 	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if (SettingsModule != nullptr)
 	{
@@ -58,36 +59,6 @@ void FNewLogVisualizerModule::ShutdownModule()
 
 	FLogVisualizerStyle::Shutdown();
 }
-
-#if WITH_EDITOR
-
-void FNewLogVisualizerModule::HandleExperimentalSettingChanged(FName PropertyName)
-{
-	if (PropertyName == TEXT("bVisualLogger"))
-	{
-		if (UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->bVisualLogger == false)
-		{
-			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-			if (SettingsModule != nullptr)
-			{
-				SettingsModule->UnregisterSettings("Editor", "General", "VisualLogger");
-			}
-		}
-		else
-		{
-			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-			if (SettingsModule != nullptr)
-			{
-				SettingsModule->RegisterSettings("Editor", "General", "VisualLogger",
-					LOCTEXT("AIToolsSettingsName", "Visual Logger"),
-					LOCTEXT("AIToolsSettingsDescription", "General settings for UE4 AI Tools."),
-					ULogVisualizerSettings::StaticClass()->GetDefaultObject()
-					);
-			}
-		}
-	}
-}
-#endif
 
 TSharedRef<SDockTab> FNewLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs)
 {
@@ -103,7 +74,7 @@ TSharedRef<SDockTab> FNewLogVisualizerModule::SpawnLogVisualizerTab(const FSpawn
 	return MajorTab;
 }
 
-void FNewLogVisualizerModule::OnTabClosed(TSharedRef<SDockTab>)
+void FNewLogVisualizerModule::OnTabClosed(TSharedRef<SDockTab> DockTab)
 {
 	UWorld* World = NULL;
 #if WITH_EDITOR
@@ -121,6 +92,9 @@ void FNewLogVisualizerModule::OnTabClosed(TSharedRef<SDockTab>)
 
 		World = GEngine->GetWorld();
 	}
+
+	TSharedRef<SVisualLogger> VisualLoggerTab = StaticCastSharedRef<SVisualLogger>(DockTab->GetContent());
+	VisualLoggerTab->OnTabLosed();
 
 	if (World == NULL)
 	{

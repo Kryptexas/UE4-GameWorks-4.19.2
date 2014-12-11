@@ -173,10 +173,9 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		bool bMessagingDebugger = GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger;
 		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
 		bool bTranslationEditor = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor;
-		bool bVisualLogger = GetDefault<UEditorExperimentalSettings>()->bVisualLogger;
 
 		// Make sure at least one is enabled before creating the section
-		if (bProjectLauncher || bMessagingDebugger || bBlutility || bTranslationEditor || bVisualLogger)
+		if (bProjectLauncher || bMessagingDebugger || bBlutility || bTranslationEditor)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{
@@ -199,17 +198,6 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 						LOCTEXT("MessagingDebuggerToolTip", "The Messaging Debugger provides a visual utility for debugging the messaging system."),
 						FSlateIcon(), // Icon lives in the plugin dir for the debugger
 						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenMessagingDebugger))
-						);
-				}
-
-				// Visual Logger visualizer
-				if (bVisualLogger)
-				{
-					MenuBuilder.AddMenuEntry(
-						LOCTEXT("VisualLoggerLabel", "Visual Logger"),
-						LOCTEXT("VisualLoggerToolTip", "Enables Visual Logger visualizer and viewer."),
-						FSlateIcon(), // Icon lives in the plugin dir for the debugger
-						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenVisualLogger))
 						);
 				}
 

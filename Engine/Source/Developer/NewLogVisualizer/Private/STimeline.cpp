@@ -231,28 +231,3 @@ const FSlateBrush* STimeline::GetBorder() const
 		return FLogVisualizerStyle::Get().GetBrush("ToolBar.Button.Normal");
 	}
 }
-
-void STimeline::AddEntry(const FVisualLogDevice::FVisualLogEntryItem& NewEntry) 
-{ 
-	if (Entries.Num())
-	{
-		FVisualLogDevice::FVisualLogEntryItem& LastEntry = Entries[Entries.Num() - 1];
-		if (LastEntry.Entry.TimeStamp == NewEntry.Entry.TimeStamp && LastEntry.Entry.Status.Num() == NewEntry.Entry.Status.Num())
-		{
-			LastEntry.Entry.Events.Append(NewEntry.Entry.Events);
-			LastEntry.Entry.LogLines.Append(NewEntry.Entry.LogLines);
-			LastEntry.Entry.ElementsToDraw.Append(NewEntry.Entry.ElementsToDraw);
-			LastEntry.Entry.HistogramSamples.Append(NewEntry.Entry.HistogramSamples);
-			LastEntry.Entry.DataBlocks.Append(NewEntry.Entry.DataBlocks);
-			//LastEntry.Entry.Status should be the same for the same timestamp;
-		}
-		else
-		{
-			Entries.Add(NewEntry);
-		}
-	}
-	else
-	{
-		Entries.Add(NewEntry);
-	}
-}

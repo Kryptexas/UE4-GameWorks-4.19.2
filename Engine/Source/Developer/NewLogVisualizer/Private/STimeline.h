@@ -33,7 +33,7 @@ public:
 	void UpdateVisibility();
 	void UpdateVisibilityForItems();
 
-	void AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry);
+	void AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry) { Entries.Add(Entry); }
 	const TArray<FVisualLogDevice::FVisualLogEntryItem>& GetEntries() { return Entries; }
 	FName GetName() { return Name; }
 	void HandleLogVisualizerSettingChanged(FName Name);

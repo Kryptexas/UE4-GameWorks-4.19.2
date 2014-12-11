@@ -149,6 +149,11 @@ SVisualLogger::SVisualLogger() : SCompoundWidget(), CommandList(MakeShareable(ne
 
 SVisualLogger::~SVisualLogger()
 {
+
+}
+
+void SVisualLogger::OnTabLosed()
+{
 	UDebugDrawService::Unregister(FDebugDrawDelegate::CreateRaw(VisualLoggerCanvasRenderer.Get(), &FVisualLoggerCanvasRenderer::DrawOnCanvas));
 	VisualLoggerCanvasRenderer = NULL;
 
