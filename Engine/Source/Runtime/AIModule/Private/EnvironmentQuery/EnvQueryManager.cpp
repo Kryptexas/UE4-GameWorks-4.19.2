@@ -364,14 +364,6 @@ namespace EnvQueryTestSort
 				{
 					return true;
 				}
-
-				// conditions with weights before pure conditions
-				const bool bNoWeightA = (TestA.WeightModifier >= EEnvTestWeight::Constant);
-				const bool bNoWeightB = (TestB.WeightModifier >= EEnvTestWeight::Constant);
-				if (!bNoWeightA && bNoWeightB)
-				{
-					return true;
-				}
 			}
 			else
 			{
@@ -574,6 +566,23 @@ UEnvQueryContext* UEnvQueryManager::PrepareLocalContext(TSubclassOf<UEnvQueryCon
 	}
 
 	return LocalContext;
+}
+
+float UEnvQueryManager::FindNamedParam(int32 QueryId, FName ParamName) const
+{
+	float ParamValue = 0.0f;
+
+	for (int32 QueryIndex = 0; QueryIndex < RunningQueries.Num(); QueryIndex++)
+	{
+		const TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[QueryIndex];
+		if (QueryInstance->QueryID == QueryId)
+		{
+			ParamValue = QueryInstance->NamedParams.FindRef(ParamName);
+			break;
+		}
+	}
+
+	return ParamValue;
 }
 
 

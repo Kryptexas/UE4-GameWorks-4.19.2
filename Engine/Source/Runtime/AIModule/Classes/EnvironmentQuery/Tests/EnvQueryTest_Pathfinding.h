@@ -32,15 +32,26 @@ class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 
 	/** pathfinding direction */
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding)
-	FEnvBoolParam PathToItem;
+	FAIDataProviderBoolValue PathFromContext;
 
 	/** if set, items with failed path will be invalidated (PathCost, PathLength) */
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding, AdvancedDisplay)
-	FEnvBoolParam DiscardUnreachable;
+	FAIDataProviderBoolValue SkipUnreachable;
 
 	/** if set, hierarchical (faster) pathfinding will be used */
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding, AdvancedDisplay)
+	FAIDataProviderBoolValue UseHierarchicalPathfinding;
+
+	// BEGIN: deprecated properties 
+	UPROPERTY()
+	FEnvBoolParam PathToItem;
+
+	UPROPERTY()
+	FEnvBoolParam DiscardUnreachable;
+
+	UPROPERTY()
 	FEnvBoolParam HierarchicalPathfinding;
+	// END: deprecated properties
 
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 

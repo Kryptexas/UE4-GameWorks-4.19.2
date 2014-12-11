@@ -16,7 +16,8 @@ UEnvQueryTest_GameplayTags::UEnvQueryTest_GameplayTags(const FObjectInitializer&
 }
 
 bool UEnvQueryTest_GameplayTags::SatisfiesTest(IGameplayTagAssetInterface* ItemGameplayTagAssetInterface) const
-{	// Currently we're requiring that the test only be run on items that implement the interface.  In theory, we could
+{
+	// Currently we're requiring that the test only be run on items that implement the interface.  In theory, we could
 	// (instead of checking) support correctly passing or failing on items that don't implement the interface or
 	// just have a NULL item by testing them as though they have the interface with no gameplay tags.  However, that
 	// seems potentially confusing, since certain tests could actually pass.
@@ -51,11 +52,8 @@ bool UEnvQueryTest_GameplayTags::SatisfiesTest(IGameplayTagAssetInterface* ItemG
 
 void UEnvQueryTest_GameplayTags::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	bool bWantsValid = true;
-	if (!QueryInstance.GetParamValue(BoolFilter, bWantsValid, TEXT("BoolFilter")))
-	{
-		return;
-	}
+	BoolValue.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	bool bWantsValid = BoolValue.GetValue();
 
 	// loop through all items
 	for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
@@ -84,5 +82,5 @@ FString UEnvQueryTest_GameplayTags::GetDescriptionTitle() const
 
 FText UEnvQueryTest_GameplayTags::GetDescriptionDetails() const
 {
-	return GameplayTags.ToMatchingText(TagsToMatch, !BoolFilter.Value);
+	return GameplayTags.ToMatchingText(TagsToMatch, !BoolValue.DefaultValue);
 }

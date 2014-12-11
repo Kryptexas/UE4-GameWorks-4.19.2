@@ -15,34 +15,36 @@ UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const FObjectInitializer& O
 	Cost = EEnvTestCost::High;
 	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 	TestMode = EEnvTestPathfinding::PathExist;
+	PathFromContext.DefaultValue = true;
+	SkipUnreachable.DefaultValue = true;
+	UseHierarchicalPathfinding.DefaultValue = true;
+	FloatValueMin.DefaultValue = 1000.0f;
+	FloatValueMax.DefaultValue = 1000.0f;
+
+	// keep deprecated properties initialized
 	PathToItem.Value = true;
-	FloatFilter.Value = 1000.0f;
 	DiscardUnreachable.Value = true;
 	HierarchicalPathfinding.Value = true;
+	FloatFilterMin.Value = 1000.0f;
+	FloatFilterMax.Value = 1000.0f;
 }
 
 void UEnvQueryTest_Pathfinding::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	bool bWantsPath = false;
-	bool bPathToItem = false;
-	bool bHierarchical = false;
-	bool bDiscardFailed = false;
-// 	float UseThreshold = 0.0f;
-	float MinThresholdValue = 0.0f;
-	float MaxThresholdValue = 0.0f;
+	UObject* DataOwner = QueryInstance.Owner.Get();
+	BoolValue.BindData(DataOwner, QueryInstance.QueryID);
+	PathFromContext.BindData(DataOwner, QueryInstance.QueryID);
+	SkipUnreachable.BindData(DataOwner, QueryInstance.QueryID);
+	UseHierarchicalPathfinding.BindData(DataOwner, QueryInstance.QueryID);
+	FloatValueMin.BindData(DataOwner, QueryInstance.QueryID);
+	FloatValueMax.BindData(DataOwner, QueryInstance.QueryID);
 
-	if (!QueryInstance.GetParamValue(BoolFilter, bWantsPath, TEXT("BoolFilter")) ||
-		!QueryInstance.GetParamValue(PathToItem, bPathToItem, TEXT("PathToItem")) ||
-		!QueryInstance.GetParamValue(HierarchicalPathfinding, bHierarchical, TEXT("HierarchicalPathfinding")) ||
-		!QueryInstance.GetParamValue(DiscardUnreachable, bDiscardFailed, TEXT("DiscardUnreachable")) ||
-// 		!QueryInstance.GetParamValue(FloatFilter, UseThreshold, TEXT("FloatFilter")) ||
-		!QueryInstance.GetParamValue(FloatFilterMax, MaxThresholdValue, TEXT("FloatFilterMax")) ||
-		!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin"))
-	   )
-
-	{
-		return;
-	}
+	bool bWantsPath = BoolValue.GetValue();
+	bool bPathToItem = PathFromContext.GetValue();
+	bool bHierarchical = UseHierarchicalPathfinding.GetValue();
+	bool bDiscardFailed = SkipUnreachable.GetValue();
+	float MinThresholdValue = FloatValueMin.GetValue();
+	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	UNavigationSystem* NavSys = QueryInstance.World->GetNavigationSystem();
 	ANavigationData* NavData = FindNavigationData(NavSys, QueryInstance.Owner.Get());
@@ -118,71 +120,52 @@ FString UEnvQueryTest_Pathfinding::GetDescriptionTitle() const
 {
 	FString ModeDesc[] = { TEXT("PathExist"), TEXT("PathCost"), TEXT("PathLength") };
 
-	FString DirectionDesc = PathToItem.IsNamedParam() ?
-		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *UEnvQueryTypes::DescribeBoolParam(PathToItem)) :
-		FString::Printf(TEXT("%s %s"), PathToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
+	FString DirectionDesc = PathFromContext.IsDynamic() ?
+		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *PathFromContext.ToString()) :
+		FString::Printf(TEXT("%s %s"), PathFromContext.DefaultValue ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
 	return FString::Printf(TEXT("%s: %s"), *ModeDesc[TestMode], *DirectionDesc);
 }
 
 FText UEnvQueryTest_Pathfinding::GetDescriptionDetails() const
 {
-	FText AdditionalDesc;
-	if (HierarchicalPathfinding.IsNamedParam())
+	FText HPathDesc = LOCTEXT("HierarchicalPathfinding", "hierarchical pathfinding");
+	FText Desc1;
+	if (UseHierarchicalPathfinding.IsDynamic())
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("PathName"), FText::FromString(HierarchicalPathfinding.ParamName.ToString()));
-		AdditionalDesc = FText::Format(LOCTEXT("HierarchicalPathfindingWithName", "Hierarchical pathfinding: {PathName}"), Args);
+		Desc1 = FText::Format(FText::FromString("{0}: {1}"), HPathDesc, FText::FromString(UseHierarchicalPathfinding.ToString()));
 	}
-	else if (HierarchicalPathfinding.Value)
+	else if (UseHierarchicalPathfinding.DefaultValue)
 	{
-		AdditionalDesc = LOCTEXT("UseHierarchicalPathfinding", "Use hierarchical pathfinding");
-	}
-
-	if (DiscardUnreachable.IsNamedParam())
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Description"), AdditionalDesc);
-		Args.Add(TEXT("UnreachableParamName"), FText::FromName(DiscardUnreachable.ParamName));
-
-		if(AdditionalDesc.IsEmpty())
-		{
-			AdditionalDesc = FText::Format(LOCTEXT("DiscardUnreachableWithParam", "Discard unreachable: {UnreachableParamName}"), Args);
-		}
-		else
-		{
-			AdditionalDesc = FText::Format(LOCTEXT("DescWithUnreachableAndParam", "{Description}, discard unreachable: {UnreachableParamName}"), Args);
-		}
-	}
-	else if (DiscardUnreachable.Value)
-	{
-		if(AdditionalDesc.IsEmpty())
-		{
-			AdditionalDesc = LOCTEXT("DiscardUnreachable", "Discard unreachable");
-		}
-		else
-		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("Description"), AdditionalDesc);
-			AdditionalDesc = FText::Format(LOCTEXT("DescWithUnreachable", "{Description}, discard unreachable"), Args);
-		}
+		Desc1 = HPathDesc;
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("Description"), AdditionalDesc);
-
-	if (GetWorkOnFloatValues())
+	FText DiscardDesc = LOCTEXT("DiscardUnreachable", "discard unreachable");
+	FText Desc2;
+	if (SkipUnreachable.IsDynamic())
 	{
-		Args.Add(TEXT("FloatParamsDescription"), DescribeFloatTestParams());
-		AdditionalDesc = FText::Format(LOCTEXT("DescriptionWithDescribedFloatParams", "{Description}\n{FloatParamsDescription}"), Args);
+		Desc2 = FText::Format(FText::FromString("{0}: {1}"), DiscardDesc, FText::FromString(SkipUnreachable.ToString()));
 	}
-	else
+	else if (SkipUnreachable.DefaultValue)
 	{
-		Args.Add(TEXT("BoolParamsDescription"), DescribeBoolTestParams("existing path"));
-		AdditionalDesc = FText::Format(LOCTEXT("DescriptionWithDescribedBoolParams", "{Description}\n{BoolParamsDescription}"), Args);
+		Desc2 = DiscardDesc;
 	}
 
-	return AdditionalDesc;
+	FText TestParamDesc = GetWorkOnFloatValues() ? DescribeFloatTestParams() : DescribeBoolTestParams("existing path");
+	if (!Desc1.IsEmpty() && !Desc2.IsEmpty())
+	{
+		return FText::Format(FText::FromString("{0}, {1}\n{2}"), Desc1, Desc2, TestParamDesc);
+	}
+	else if (!Desc1.IsEmpty())
+	{
+		return FText::Format(FText::FromString("{0}\n{1}"), Desc1, TestParamDesc);
+	}
+	else if (!Desc2.IsEmpty())
+	{
+		return FText::Format(FText::FromString("{0}\n{1}"), Desc2, TestParamDesc);
+	}
+
+	return TestParamDesc;
 }
 
 #if WITH_EDITOR
@@ -192,13 +175,19 @@ void UEnvQueryTest_Pathfinding::PostEditChangeProperty(FPropertyChangedEvent& Pr
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UEnvQueryTest_Pathfinding,TestMode))
 	{
 		SetWorkOnFloatValues(TestMode != EEnvTestPathfinding::PathExist);
-		Condition = EEnvTestCondition::NoCondition;
 	}
 }
 #endif
 
 void UEnvQueryTest_Pathfinding::PostLoad()
 {
+	if (VerNum < EnvQueryTestVersion::DataProviders)
+	{
+		PathToItem.Convert(this, PathFromContext);
+		DiscardUnreachable.Convert(this, SkipUnreachable);
+		HierarchicalPathfinding.Convert(this, UseHierarchicalPathfinding);
+	}
+
 	Super::PostLoad();
 	
 	SetWorkOnFloatValues(TestMode != EEnvTestPathfinding::PathExist);

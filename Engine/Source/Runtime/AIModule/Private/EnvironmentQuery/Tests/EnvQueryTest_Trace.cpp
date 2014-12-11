@@ -14,28 +14,21 @@ UEnvQueryTest_Trace::UEnvQueryTest_Trace(const FObjectInitializer& ObjectInitial
 	SetWorkOnFloatValues(false);
 	
 	Context = UEnvQueryContext_Querier::StaticClass();
-	TraceToItem.Value = false;
-	ItemOffsetZ.Value = 0.0f;
-	ContextOffsetZ.Value = 0.0f;
-
 	TraceData.SetGeometryOnly();
 }
 
 void UEnvQueryTest_Trace::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	bool bWantsHit = false;
-	bool bTraceToItem = false;
-	float ItemZ = 0.0f;
-	float ContextZ = 0.0f;
+	UObject* DataOwner = QueryInstance.Owner.Get();
+	BoolValue.BindData(DataOwner, QueryInstance.QueryID);
+	TraceFromContext.BindData(DataOwner, QueryInstance.QueryID);
+	ItemHeightOffset.BindData(DataOwner, QueryInstance.QueryID);
+	ContextHeightOffset.BindData(DataOwner, QueryInstance.QueryID);
 
-	if (!QueryInstance.GetParamValue(BoolFilter, bWantsHit, TEXT("BoolFilter")) ||
-		!QueryInstance.GetParamValue(TraceToItem, bTraceToItem, TEXT("TraceToItem")) ||
-		!QueryInstance.GetParamValue(ItemOffsetZ, ItemZ, TEXT("ItemOffsetZ")) ||
-		!QueryInstance.GetParamValue(ContextOffsetZ, ContextZ, TEXT("ContextOffsetZ"))
-		)
-	{
-		return;
-	}
+	bool bWantsHit = BoolValue.GetValue();
+	bool bTraceToItem = TraceFromContext.GetValue();
+	float ItemZ = ItemHeightOffset.GetValue();
+	float ContextZ = ContextHeightOffset.GetValue();
 
 	TArray<FVector> ContextLocations;
 	if (!QueryInstance.PrepareContext(Context, ContextLocations))
@@ -100,9 +93,9 @@ FString UEnvQueryTest_Trace::GetDescriptionTitle() const
 	UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
 	FString ChannelDesc = ChannelEnum->GetEnumText(TraceData.TraceChannel).ToString();
 
-	FString DirectionDesc = TraceToItem.IsNamedParam() ?
-		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *UEnvQueryTypes::DescribeBoolParam(TraceToItem)) :
-		FString::Printf(TEXT("%s %s"), TraceToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
+	FString DirectionDesc = TraceFromContext.IsDynamic() ?
+		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *TraceFromContext.ToString()) :
+		FString::Printf(TEXT("%s %s"), TraceFromContext.DefaultValue ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
 	return FString::Printf(TEXT("%s: %s on %s"), 
 		*Super::GetDescriptionTitle(), *DirectionDesc, *ChannelDesc);
@@ -110,11 +103,8 @@ FString UEnvQueryTest_Trace::GetDescriptionTitle() const
 
 FText UEnvQueryTest_Trace::GetDescriptionDetails() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("TraceData"),  TraceData.ToText(FEnvTraceData::Detailed));
-	Args.Add(TEXT("TestParams"),  DescribeBoolTestParams("hit"));
-	
-	return LOCTEXT("TraceDescription", "{TraceData}\n{TestParams}");
+	return FText::Format(FText::FromString("{0}\n{1}"),
+		TraceData.ToText(FEnvTraceData::Detailed), DescribeBoolTestParams("hit"));
 }
 
 bool UEnvQueryTest_Trace::RunLineTraceTo(const FVector& ItemPos, const FVector& ContextPos, AActor* ItemActor, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent)
@@ -187,6 +177,18 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceFrom(const FVector& ItemPos, const FVec
 
 	const bool bHit = World->SweepTest(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
 	return bHit;
+}
+
+void UEnvQueryTest_Trace::PostLoad()
+{
+	if (VerNum < EnvQueryTestVersion::DataProviders)
+	{
+		TraceToItem.Convert(this, TraceFromContext);
+		ItemOffsetZ.Convert(this, ItemHeightOffset);
+		ContextOffsetZ.Convert(this, ContextHeightOffset);
+	}
+
+	Super::PostLoad();
 }
 
 #undef LOCTEXT_NAMESPACE

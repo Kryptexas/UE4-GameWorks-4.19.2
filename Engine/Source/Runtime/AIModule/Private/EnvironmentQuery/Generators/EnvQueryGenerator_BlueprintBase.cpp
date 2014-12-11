@@ -16,7 +16,6 @@ UEnvQueryGenerator_BlueprintBase::UEnvQueryGenerator_BlueprintBase(const FObject
 {
 	Context = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Actor::StaticClass();
-	Radius.Value = 1000.0f;
 	GeneratedItemType = UEnvQueryItemType_Actor::StaticClass();
 }
 
@@ -33,12 +32,6 @@ UWorld* UEnvQueryGenerator_BlueprintBase::GetWorld() const
 
 void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
-	float RadiusValue = 0.f;
-	if (QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) == false)
-	{
-		return;
-	}
-
 	TArray<FVector> ContextLocations;
 	QueryInstance.PrepareContext(Context, ContextLocations);
 

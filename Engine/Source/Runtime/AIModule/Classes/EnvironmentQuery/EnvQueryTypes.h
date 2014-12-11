@@ -3,6 +3,7 @@
 #pragma once
 
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "DataProviders/AIDataProvider.h"
 #include "EnvQueryTypes.generated.h"
 
 class ARecastNavMesh;
@@ -57,18 +58,6 @@ namespace EEnvTestFilterType
 }
 
 UENUM()
-namespace EEnvTestCondition
-{
-	enum Type
-	{
-		NoCondition		UMETA(DisplayName="Always pass"),
-		AtLeast			UMETA(DisplayName="At least"),
-		UpTo			UMETA(DisplayName="Up to"),
-		Match,
-	};
-}
-
-UENUM()
 namespace EEnvTestScoreEquation
 {
 	enum Type
@@ -99,7 +88,7 @@ namespace EEnvTestWeight
 		None,
 		Square,
 		Inverse,
-		Absolute,	// Removed after discussion with EGP folks
+		Unused			UMETA(Hidden),
 		Constant,
 		Skip			UMETA(DisplayName = "Do not weight"),
 	};
@@ -195,17 +184,11 @@ namespace EEnvQueryTestClamping
 	};
 }
 
+// DEPRECATED, will be removed soon - use AI Data Providers instead 
 USTRUCT()
 struct AIMODULE_API FEnvFloatParam
 {
 	GENERATED_USTRUCT_BODY();
-
-	typedef float FValueType;
-
-	FEnvFloatParam() :
-		Value(0.f)
-	{
-	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -216,19 +199,14 @@ struct AIMODULE_API FEnvFloatParam
 	FName ParamName;
 
 	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider);
 };
 
+// DEPRECATED, will be removed soon - use AI Data Providers instead 
 USTRUCT()
 struct AIMODULE_API FEnvIntParam
 {
 	GENERATED_USTRUCT_BODY();
-
-	typedef int32 FValueType;
-
-	FEnvIntParam() :
-		Value(0)
-	{
-	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -239,19 +217,14 @@ struct AIMODULE_API FEnvIntParam
 	FName ParamName;
 
 	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider);
 };
 
+// DEPRECATED, will be removed soon - use AI Data Providers instead 
 USTRUCT()
 struct AIMODULE_API FEnvBoolParam
 {
 	GENERATED_USTRUCT_BODY();
-
-	typedef bool FValueType;
-
-	FEnvBoolParam() :
-		Value(false)
-	{
-	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -262,6 +235,7 @@ struct AIMODULE_API FEnvBoolParam
 	FName ParamName;
 
 	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider);
 };
 
 USTRUCT(BlueprintType)
@@ -668,30 +642,6 @@ public:
 	/** check if current test can batch its calculations */
 	bool CanBatchTest() const { return !IsInSingleItemFinalSearch(); }
 
-	/** access named params */
-	template<typename TEQSParam>
-	FORCEINLINE bool GetParamValue(const TEQSParam& Param, typename TEQSParam::FValueType& OutValue, const FString& ParamDesc)
-	{
-		if (Param.ParamName != NAME_None)
-		{
-			FNamedParamValueType* PtrValue = NamedParams.Find(Param.ParamName);
-			if (PtrValue == NULL)
-			{
-				EQSHEADERLOG(FString::Printf(TEXT("Query [%s] is missing param [%s] for [%s] property!"), *QueryName, *Param.ParamName.ToString(), *ParamDesc));				
-				MarkAsMissingParam();
-				return false;
-			}
-
-			OutValue = *((typename TEQSParam::FValueType*)PtrValue);
-		}
-		else
-		{
-			OutValue = Param.Value;
-		}
-
-		return true;
-	}
-
 	/** raw data operations */
 	void ReserveItemData(int32 NumAdditionalItems);
 
@@ -828,12 +778,14 @@ public:
 			}
 
 			if (bPassedTest)
-			{	// If we passed the test, either we really did, or we're only scoring, so we can't truly "fail".	
+			{
+				// If we passed the test, either we really did, or we're only scoring, so we can't truly "fail".	
 				ItemScore += Score;
 				NumPartialScores++;
 			}
 			else
-			{	// We are ONLY filtering, and we failed
+			{
+				// We are ONLY filtering, and we failed
 				bPassed = false;
 			}
 		}
@@ -931,14 +883,12 @@ public:
 	protected:
 
 		FEnvQueryInstance* Instance;
-		//UEnvQueryTest* Test;
 		int32 CurrentItem;
 		int32 NumPartialScores;
 		double Deadline;
 		float ItemScore;
 		uint32 bPassed : 1;
 		uint32 bSkipped : 1;
-		uint32 bDiscardFailed : 1;
 
 		void InitItemScore()
 		{
@@ -987,9 +937,5 @@ public:
 	static float SkippedItemValue;
 
 	static FText GetShortTypeName(const UObject* Ob);
-
 	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
-	static FString DescribeIntParam(const FEnvIntParam& Param);
-	static FString DescribeFloatParam(const FEnvFloatParam& Param);
-	static FString DescribeBoolParam(const FEnvBoolParam& Param);
 };

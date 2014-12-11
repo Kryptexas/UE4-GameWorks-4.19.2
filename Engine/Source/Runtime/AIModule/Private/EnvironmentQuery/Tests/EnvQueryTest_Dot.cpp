@@ -22,17 +22,11 @@ UEnvQueryTest_Dot::UEnvQueryTest_Dot(const FObjectInitializer& ObjectInitializer
 
 void UEnvQueryTest_Dot::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	float MinThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin")))
-	{
-		return;
-	}
+	FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float MinThresholdValue = FloatValueMin.GetValue();
 
-	float MaxThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilterMax, MaxThresholdValue, TEXT("FloatFilterMax")))
-	{
-		return;
-	}
+	FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	// gather all possible directions: for contexts different than Item
 	TArray<FVector> LineADirs;

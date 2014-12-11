@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "DataProviders/AIDataProvider.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvQueryTest.generated.h"
 
@@ -11,6 +12,14 @@ class UEnvQueryContext;
 struct FPropertyChangedEvent;
 #endif // WITH_EDITOR
 
+namespace EnvQueryTestVersion
+{
+	const int32 Initial = 0;
+	const int32 DataProviders = 1;
+
+	const int32 Latest = DataProviders;
+}
+
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTest : public UObject
 {
@@ -20,75 +29,58 @@ class AIMODULE_API UEnvQueryTest : public UObject
 	UPROPERTY()
 	int32 TestOrder;
 
-	UPROPERTY(EditDefaultsOnly, Category=Test,
-		Meta=(ToolTip="The purpose of this test.  Should it be used for filtering possible results, scoring them, or both?"))
+	/** Versioning for updating deprecated properties */
+	UPROPERTY()
+	int32 VerNum;
+
+	/** The purpose of this test.  Should it be used for filtering possible results, scoring them, or both? */
+	UPROPERTY(EditDefaultsOnly, Category=Test)
 	TEnumAsByte<EEnvTestPurpose::Type> TestPurpose;
 	
-	UPROPERTY(EditDefaultsOnly, Category=Filter,
-		Meta=(ToolTip="Does this test filter out results that are below a lower limit, above an upper limit, or both?  Or does it just look for a matching value?"))
+	/** Does this test filter out results that are below a lower limit, above an upper limit, or both?  Or does it just look for a matching value? */
+	UPROPERTY(EditDefaultsOnly, Category=Filter)
 	TEnumAsByte<EEnvTestFilterType::Type> FilterType;
 
 	/** Boolean value that must be matched in order for scoring to occur or filtering test to pass. */
-	UPROPERTY(EditDefaultsOnly, Category=Filter,
-		Meta=(ToolTip="Boolean value that must be matched in order for scoring to occur or filtering test to pass."))
-	FEnvBoolParam BoolFilter;
+	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	FAIDataProviderBoolValue BoolValue;
 
-	// TODO: REMOVE, Deprecated!
-	/** filter for test value; currently this is the ONLY value, because we can only filter in one direction. */
-	UPROPERTY()
-	FEnvFloatParam FloatFilter;
+	/** Minimum limit (inclusive) of valid values for the raw test value. Lower values will be discarded as invalid. */
+	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	FAIDataProviderFloatValue FloatValueMin;
 
-	UPROPERTY(EditDefaultsOnly, Category=Filter,
-		Meta=(ToolTip="Minimum limit (inclusive) of valid values for the raw test value.  Lower values will be discarded as invalid."))
-	FEnvFloatParam FloatFilterMin;
-
-	UPROPERTY(EditDefaultsOnly, Category=Filter,
-		Meta=(ToolTip="Maximum limit (inclusive) of valid values for the raw test value.  Higher values will be discarded as invalid."))
-	FEnvFloatParam FloatFilterMax;
-
-	// Using this property just as a way to do file version conversion without having to up the version number!
-	UPROPERTY()
-	bool bFormatUpdated;
-
-	// TODO: REMOVE, Deprecated!
-	/** Condition for discarding item */
-	UPROPERTY()
-	TEnumAsByte<EEnvTestCondition::Type> Condition;
-
-	// TODO: REMOVE, Deprecated!
-	/** Weight modifier */
-	UPROPERTY()
-	TEnumAsByte<EEnvTestWeight::Type> WeightModifier;
+	/** Maximum limit (inclusive) of valid values for the raw test value. Higher values will be discarded as invalid. */
+	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	FAIDataProviderFloatValue FloatValueMax;
 
 	/** Cost of test */
 	TEnumAsByte<EEnvTestCost::Type> Cost;
 
-	UPROPERTY(EditDefaultsOnly, Category=Score,
-		Meta=(ToolTip="How should the lower bound for normalization of the raw test value before applying the scoring formula be determined?  Should it use the lowest value found (tested), the lower threshold for filtering, or a separate specified normalization minimum?"))
+	/** How should the lower bound for normalization of the raw test value before applying the scoring formula be determined?
+	    Should it use the lowest value found (tested), the lower threshold for filtering, or a separate specified normalization minimum? */
+	UPROPERTY(EditDefaultsOnly, Category=Score)
 	TEnumAsByte<EEnvQueryTestClamping::Type> ClampMinType;
 
-	UPROPERTY(EditDefaultsOnly, Category=Score,
-		Meta=(ToolTip="How should the upper bound for normalization of the raw test value before applying the scoring formula be determined?  Should it use the highes value found (tested), the upper threshold for filtering, or a separate specified normalization maximum?"))
+	/** How should the upper bound for normalization of the raw test value before applying the scoring formula be determined?
+	    Should it use the highest value found (tested), the upper threshold for filtering, or a separate specified normalization maximum? */
+	UPROPERTY(EditDefaultsOnly, Category=Score)
 	TEnumAsByte<EEnvQueryTestClamping::Type> ClampMaxType;
 
-	UPROPERTY(EditDefaultsOnly, Category=Score,
-		Meta=(ToolTip="Minimum value to use to normalize the raw test value before applying scoring formula."))
-	FEnvFloatParam ScoreClampingMin;
+	/** Minimum value to use to normalize the raw test value before applying scoring formula. */
+	UPROPERTY(EditDefaultsOnly, Category=Score)
+	FAIDataProviderFloatValue ScoreClampMin;
 
-	UPROPERTY(EditDefaultsOnly, Category=Score,
-		Meta=(ToolTip="Maximum value to use to normalize the raw test value before applying scoring formula."))
-	FEnvFloatParam ScoreClampingMax;
+	/** Maximum value to use to normalize the raw test value before applying scoring formula. */
+	UPROPERTY(EditDefaultsOnly, Category=Score)
+	FAIDataProviderFloatValue ScoreClampMax;
 
-	UPROPERTY(EditDefaultsOnly, Category=Score,
-		Meta=(ToolTip="The shape of the curve equation to apply to the normalized score before multiplying by Weight."))
+	/** The shape of the curve equation to apply to the normalized score before multiplying by factor. */
+	UPROPERTY(EditDefaultsOnly, Category=Score)
 	TEnumAsByte<EEnvTestScoreEquation::Type> ScoringEquation;
 
-	// For now, I'm keeping "Weight".  TODO: Reconsider Weight vs. "Scoring Factor", Constant, Power, etc. once we have a final plan for what properties are available.
-	/** Weight of test */
-	UPROPERTY(EditDefaultsOnly, Category=Score,
-		Meta=(ToolTip="The weight (factor) by which to multiply the normalized score after the scoring equation is applied.",
-			  ClampMin="0.001", UIMin="0.001"))
-	FEnvFloatParam Weight;
+	/** The weight (factor) by which to multiply the normalized score after the scoring equation is applied. */
+	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(ClampMin="0.001", UIMin="0.001"))
+	FAIDataProviderFloatValue ScoringFactor;
 
 	/** Validation: item type that can be used with this test */
 	TSubclassOf<UEnvQueryItemType> ValidItemType;
@@ -103,9 +95,25 @@ class AIMODULE_API UEnvQueryTest : public UObject
 					|| (ScoringEquation == EEnvTestScoreEquation::Constant));	// We are giving a constant score value for passing.
 	}
 
-	// TODO: REMOVE, Deprecated!
-	/** Normalize test result starting from 0 */
-	uint32 bNormalizeFromZero : 1;
+	// BEGIN: deprecated properties, do not use them
+	UPROPERTY()
+	FEnvBoolParam BoolFilter;
+
+	UPROPERTY()
+	FEnvFloatParam FloatFilterMin;
+
+	UPROPERTY()
+	FEnvFloatParam FloatFilterMax;
+
+	UPROPERTY()
+	FEnvFloatParam ScoreClampingMin;
+
+	UPROPERTY()
+	FEnvFloatParam ScoreClampingMax;
+
+	UPROPERTY()
+	FEnvFloatParam Weight;
+	// END: deprecated properties, do not use them
 
 private:
 	/** When set, test operates on float values (e.g. distance, with AtLeast, UpTo conditions),
@@ -114,10 +122,6 @@ private:
 	uint32 bWorkOnFloatValues : 1;
 
 public:
-	// TODO: REMOVE, Deprecated!
-	/** If set, items not passing filter condition will be removed from query, otherwise they will receive score 0 */
-	UPROPERTY()
-	uint32 bDiscardFailedItems : 1;
 
 	/** Function that does the actual work */
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
@@ -140,8 +144,8 @@ public:
 	/** normalize scores in range */
 	void NormalizeItemScores(FEnvQueryInstance& QueryInstance);
 
-	FORCEINLINE bool IsScoring() const { return (TestPurpose != EEnvTestPurpose::Filter); } // ((TestPurpose == EEnvTestPurpose::Score) || (TestPurpose == EEnvTestPurpose::FilterAndScore));
-	FORCEINLINE bool IsFiltering() const { return (TestPurpose != EEnvTestPurpose::Score); } // ((TestPurpose == EEnvTestPurpose::Filter) || (TestPurpose == EEnvTestPurpose::FilterAndScore));
+	FORCEINLINE bool IsScoring() const { return (TestPurpose != EEnvTestPurpose::Filter); } 
+	FORCEINLINE bool IsFiltering() const { return (TestPurpose != EEnvTestPurpose::Score); }
 
 	/** get description of test */
 	virtual FString GetDescriptionTitle() const;

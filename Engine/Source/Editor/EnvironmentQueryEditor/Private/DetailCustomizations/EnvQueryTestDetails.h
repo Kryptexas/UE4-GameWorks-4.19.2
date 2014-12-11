@@ -27,16 +27,15 @@ protected:
 		FStringIntPair(FString InStr, int32 InInt) : Str(InStr), Int(InInt) {}
 	};
 
-	TSharedPtr<IPropertyHandle> ConditionHandle;
 	TSharedPtr<IPropertyHandle> FilterTypeHandle;
 	TSharedPtr<IPropertyHandle> ScoreEquationHandle;
 	TSharedPtr<IPropertyHandle> TestPurposeHandle;
 	TSharedPtr<IPropertyHandle> ClampMinTypeHandle;
 	TSharedPtr<IPropertyHandle> ClampMaxTypeHandle;
-	TSharedPtr<IPropertyHandle> ScoreClampingMinHandle;
-	TSharedPtr<IPropertyHandle> FloatFilterMinHandle;
-	TSharedPtr<IPropertyHandle> ScoreClampingMaxHandle;
-	TSharedPtr<IPropertyHandle> FloatFilterMaxHandle;
+	TSharedPtr<IPropertyHandle> ScoreClampMinHandle;
+	TSharedPtr<IPropertyHandle> FloatValueMinHandle;
+	TSharedPtr<IPropertyHandle> ScoreClampMaxHandle;
+	TSharedPtr<IPropertyHandle> FloatValueMaxHandle;
 	TSharedPtr<IPropertyHandle> ScoreHandle;
 
 	bool IsFiltering() const;
@@ -45,14 +44,11 @@ protected:
 	bool UsesFilterMin() const;
 	bool UsesFilterMax() const;
 
-	void BuildConditionValues();
-	void OnConditionComboChange(int32 Index);
-	TSharedRef<SWidget> OnGetConditionContent();
-	FString GetCurrentConditionDesc() const;
 	FString GetCurrentFilterTestDesc() const;
 	FString GetScoreEquationInfo() const;
 
  	EVisibility GetScoreVisibility() const;
+	EVisibility GetClampingVisibility() const;
 
 	TSharedRef<SWidget> OnGetFilterTestContent();
 	void BuildFilterTestValues();
@@ -84,15 +80,14 @@ protected:
 	EVisibility GetFloatScoreVisibility() const;
 	
 	EVisibility GetTestPreviewVisibility() const;
-	EVisibility GetVisibilityOfFloatFilterMin() const;
-	EVisibility GetVisibilityOfFloatFilterMax() const;
-	EVisibility GetVisibilityOfFilterMinForScoreClamping() const;
-	EVisibility GetVisibilityOfFilterMaxForScoreClamping() const;
-	EVisibility GetBoolFilterVisibilityForScoring() const;
-	EVisibility GetBoolFilterVisibility() const;
-	EVisibility GetDiscardFailedVisibility() const;
-	EVisibility GetVisibilityOfScoreClampingMinimum() const;
-	EVisibility GetVisibilityOfScoreClampingMaximum() const;
+	EVisibility GetVisibilityOfFloatValueMin() const;
+	EVisibility GetVisibilityOfFloatValueMax() const;
+	EVisibility GetVisibilityOfValueMinForScoreClamping() const;
+	EVisibility GetVisibilityOfValueMaxForScoreClamping() const;
+	EVisibility GetBoolValueVisibilityForScoring() const;
+	EVisibility GetBoolValueVisibility() const;
+	EVisibility GetVisibilityOfScoreClampMinimum() const;
+	EVisibility GetVisibilityOfScoreClampMaximum() const;
 
 	void BuildScoreClampingTypeValues(bool bBuildMinValues, TArray<FStringIntPair>& ClampTypeValues) const;
 	
@@ -100,7 +95,6 @@ protected:
 	void FillEquationSamples(uint8 EquationType, bool bInversed, TArray<float>& Samples) const;
 	TSharedPtr<STestFunctionWidget> PreviewWidget;
 
-	TArray<FStringIntPair> ConditionValues;
 
 	TArray<FStringIntPair> FilterTestValues;
 

@@ -13,9 +13,26 @@ UEnvQueryGenerator_PathingGrid::UEnvQueryGenerator_PathingGrid(const FObjectInit
 {
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
+	MaxDistance.DefaultValue = 100.0f;
+	SpaceBetween.DefaultValue = 10.0f;
+	PathToItem.DefaultValue = true;
+
+	// keep deprecated properties initialized
 	MaxPathDistance.Value = 100.0f;
 	Density.Value = 10.0f;
 	PathFromContext.Value = true;
+}
+
+void UEnvQueryGenerator_PathingGrid::PostLoad()
+{
+	if (VerNum < EnvQueryGeneratorVersion::DataProviders)
+	{
+		MaxPathDistance.Convert(this, MaxDistance);
+		Density.Convert(this, SpaceBetween);
+		PathFromContext.Convert(this, PathToItem);
+	}
+
+	Super::PostLoad();
 }
 
 void UEnvQueryGenerator_PathingGrid::GenerateItems(FEnvQueryInstance& QueryInstance) const
@@ -27,15 +44,14 @@ void UEnvQueryGenerator_PathingGrid::GenerateItems(FEnvQueryInstance& QueryInsta
 		return;
 	}
 
-	float PathDistanceValue = 0.0f;
-	float DensityValue = 0.0f;
-	bool bFromContextValue = true;
-	if (!QueryInstance.GetParamValue(MaxPathDistance, PathDistanceValue, TEXT("MaxPathDistance")) ||
-		!QueryInstance.GetParamValue(Density, DensityValue, TEXT("Density")) ||
-		!QueryInstance.GetParamValue(PathFromContext, bFromContextValue, TEXT("PathFromContext")))
-	{
-		return;
-	}
+	UObject* BindOwner = QueryInstance.Owner.Get();
+	MaxDistance.BindData(BindOwner, QueryInstance.QueryID);
+	SpaceBetween.BindData(BindOwner, QueryInstance.QueryID);
+	PathToItem.BindData(BindOwner, QueryInstance.QueryID);
+
+	float PathDistanceValue = MaxDistance.GetValue();
+	float DensityValue = SpaceBetween.GetValue();
+	bool bFromContextValue = PathToItem.GetValue();
 
 	const int32 ItemCount = FPlatformMath::TruncToInt((PathDistanceValue * 2.0f / DensityValue) + 1);
 	const int32 ItemCountHalf = ItemCount / 2;
@@ -88,21 +104,14 @@ void UEnvQueryGenerator_PathingGrid::GenerateItems(FEnvQueryInstance& QueryInsta
 
 FText UEnvQueryGenerator_PathingGrid::GetDescriptionTitle() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
-	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(GenerateAround));
-
-	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{DescriptionTitle}: generate around {DescribeContext}"), Args);
+	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{0}: generate around {1}"),
+		Super::GetDescriptionTitle(), UEnvQueryTypes::DescribeContext(GenerateAround));
 };
 
 FText UEnvQueryGenerator_PathingGrid::GetDescriptionDetails() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("MaxPathDistance"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(MaxPathDistance)));
-	Args.Add(TEXT("Density"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Density)));
-	Args.Add(TEXT("PathFromContext"), FText::FromString(UEnvQueryTypes::DescribeBoolParam(PathFromContext)));
-
-	return FText::Format(LOCTEXT("DescriptionDetailsPathingGrid", "max distance: {MaxPathDistance}, density: {Density}, path from context: {PathFromContext}"), Args);
+	return FText::Format(LOCTEXT("DescriptionDetailsPathingGrid", "max distance: {0}, space between: {1}, path to item: {2}"),
+		FText::FromString(MaxDistance.ToString()), FText::FromString(SpaceBetween.ToString()), FText::FromString(PathToItem.ToString()));
 }
 
 #if WITH_RECAST

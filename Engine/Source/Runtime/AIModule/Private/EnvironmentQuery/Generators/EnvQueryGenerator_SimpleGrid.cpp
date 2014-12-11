@@ -12,20 +12,33 @@ UEnvQueryGenerator_SimpleGrid::UEnvQueryGenerator_SimpleGrid(const FObjectInitia
 {
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
+	GridSize.DefaultValue = 500.0f;
+	SpaceBetween.DefaultValue = 100.0f;
+
+	// keep deprecated properties initialized
 	Radius.Value = 500.0f;
-	Density.Value = 100.0f;
+	Density.Value = 500.0f;
+}
+
+void UEnvQueryGenerator_SimpleGrid::PostLoad()
+{
+	if (VerNum < EnvQueryGeneratorVersion::DataProviders)
+	{
+		Radius.Convert(this, GridSize);
+		Density.Convert(this, SpaceBetween);
+	}
+
+	Super::PostLoad();
 }
 
 void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
-	float RadiusValue = 0.0f;
-	float DensityValue = 0.0f;
+	UObject* BindOwner = QueryInstance.Owner.Get();
+	GridSize.BindData(BindOwner, QueryInstance.QueryID);
+	SpaceBetween.BindData(BindOwner, QueryInstance.QueryID);
 
-	if (!QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) ||
-		!QueryInstance.GetParamValue(Density, DensityValue, TEXT("Density")) )
-	{
-		return;
-	}
+	float RadiusValue = GridSize.GetValue();
+	float DensityValue = SpaceBetween.GetValue();
 
 	const bool bProjectToNavigation = (ProjectionData.TraceMode == EEnvQueryTrace::Navigation);
 #if WITH_RECAST
@@ -82,20 +95,14 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstan
 
 FText UEnvQueryGenerator_SimpleGrid::GetDescriptionTitle() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
-	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(GenerateAround));
-
-	return FText::Format(LOCTEXT("DescriptionGenerateSimpleGridAroundContext", "{DescriptionTitle}: generate around {DescribeContext}"), Args);
+	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{0}: generate around {1}"),
+		Super::GetDescriptionTitle(), UEnvQueryTypes::DescribeContext(GenerateAround));
 };
 
 FText UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("Radius"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Radius)));
-	Args.Add(TEXT("Density"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Density)));
-
-	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "radius: {Radius}, density: {Density}"), Args);
+	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "size: {0}, space between: {1}"),
+		FText::FromString(GridSize.ToString()), FText::FromString(SpaceBetween.ToString()));
 
 	FText ProjDesc = ProjectionData.ToText(FEnvTraceData::Brief);
 	if (!ProjDesc.IsEmpty())

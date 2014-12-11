@@ -14,10 +14,6 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 {
 	GENERATED_UCLASS_BODY()
 
-	/** max distance of between point and context */
-	UPROPERTY(EditDefaultsOnly, Category = Generator)
-	FEnvFloatParam Radius; 
-
 	/** A short description of what test does, like "Generate pawn named Joe" */
 	UPROPERTY(EditAnywhere, Category = Generator)
 	FText GeneratorsActionDescription;

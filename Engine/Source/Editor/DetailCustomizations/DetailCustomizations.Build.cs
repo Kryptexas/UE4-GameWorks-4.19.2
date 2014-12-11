@@ -41,7 +41,8 @@ public class DetailCustomizations : ModuleRules
 				"RHI",
                 "MediaAssets",
                 "HardwareTargeting",
-				"SharedSettingsWidgets"
+				"SharedSettingsWidgets",
+                "AIModule"
 			}
 		);
 

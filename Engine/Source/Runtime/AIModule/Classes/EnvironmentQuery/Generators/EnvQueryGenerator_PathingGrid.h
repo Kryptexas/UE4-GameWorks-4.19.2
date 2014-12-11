@@ -23,15 +23,15 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam MaxPathDistance;
+	FAIDataProviderFloatValue MaxDistance;
 
 	/** generation density */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Density;
+	FAIDataProviderFloatValue SpaceBetween;
 
 	/** path direction switch: set = path from context to points, clear = path from points to context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvBoolParam PathFromContext;
+	FAIDataProviderBoolValue PathToItem;
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
@@ -41,7 +41,19 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
 	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
 
+	// BEGIN: deprecated properties
+	UPROPERTY()
+	FEnvFloatParam MaxPathDistance;
+
+	UPROPERTY()
+	FEnvFloatParam Density;
+
+	UPROPERTY()
+	FEnvBoolParam PathFromContext;
+	// END: deprecated properties
+
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
+	virtual void PostLoad() override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

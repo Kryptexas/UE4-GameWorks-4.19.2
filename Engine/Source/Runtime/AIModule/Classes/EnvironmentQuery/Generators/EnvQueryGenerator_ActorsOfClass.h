@@ -14,7 +14,7 @@ class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Radius;
+	FAIDataProviderFloatValue SearchRadius;
 
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
 	TSubclassOf<AActor> SearchedActorClass;
@@ -23,7 +23,12 @@ class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TSubclassOf<UEnvQueryContext> SearchCenter;
 
+	// DEPRECATED
+	UPROPERTY()
+	FEnvFloatParam Radius;
+
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
+	virtual void PostLoad() override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

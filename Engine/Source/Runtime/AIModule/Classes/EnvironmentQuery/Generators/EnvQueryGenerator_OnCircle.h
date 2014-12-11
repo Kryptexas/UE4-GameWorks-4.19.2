@@ -6,28 +6,6 @@
 
 struct FEnvQueryInstance;
 
-class FVectorAndDataContainer
-{
-public:
-	virtual ~FVectorAndDataContainer() {}
-
-	virtual void Reset() { Locations.Empty(); }
-
-	FORCEINLINE int32 GetNumEntries() const { return Locations.Num(); }
-	FORCEINLINE FVector GetVector(int32 Index) const { return Locations[Index]; }
-
-	FORCEINLINE TArray<FVector>& GetLocationArray() { return Locations; }
-
-protected:
-	// TODO: Make inline non-virtual and turn this into the base class?  If so, we wouldn't have to allocate this class
-	// We'd only have to fill in a parallel array if/when needed.
-	
-	// virtual FVectorAdditionalData& GetAdditionalData(int32 Index);
-
-private:
-	TArray<FVector> Locations;
-};
-
 UCLASS()	
 class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 {
@@ -35,11 +13,11 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Radius;
+	FAIDataProviderFloatValue CircleRadius;
 
 	/** items will be generated on a circle this much apart */
-	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam ItemSpacing;
+	UPROPERTY(EditDefaultsOnly, Category = Generator)
+	FAIDataProviderFloatValue SpaceBetween;
 
 	/** If you generate items on a piece of circle you define direction of Arc cut here */
 	UPROPERTY(EditDefaultsOnly, Category=Generator, meta=(EditCondition="bDefineArc"))
@@ -47,7 +25,7 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 
 	/** If you generate items on a piece of circle you define angle of Arc cut here */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Angle;
+	FAIDataProviderFloatValue ArcAngle;
 	
 	UPROPERTY()
 	mutable float AngleRadians;
@@ -63,6 +41,17 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 	UPROPERTY()
 	uint32 bDefineArc:1;
 
+	// BEGIN: deprecated properties
+	UPROPERTY()
+	FEnvFloatParam Radius;
+
+	UPROPERTY()
+	FEnvFloatParam ItemSpacing;
+
+	UPROPERTY()
+	FEnvFloatParam Angle;
+	// END: deprecated properties
+
 	virtual void PostLoad() override;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
@@ -77,20 +66,10 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 protected:
 	FVector CalcDirection(FEnvQueryInstance& QueryInstance) const;
 
-	// For derived classes that need to store additional data associated with the FVector, override these two functions:
-	virtual void PrepareGeneratorContext(FEnvQueryInstance& QueryInstance,
-										 TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates) const;
+	void GenerateItemsForCircle(uint8* ContextRawData, UEnvQueryItemType* ContextItemType,
+		const FVector& CenterLocation, const FVector& StartDirection,
+		int32 StepsCount, float AngleStep, FEnvQueryInstance& OutQueryInstance) const;
 
-	virtual void AddItemDataForCircle(const TArray<FVector>& ItemCandidates,
-									  TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates,
-									  int32 CenterLocationCandidateIndex,
-									  FEnvQueryInstance& OutQueryInstance) const;
-
-private:
-	void GenerateItemsForCircle(TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates,
-								int32 CenterLocationCandidateIndex,
-								const FVector& CenterLocation,
-								const FVector& StartDirection,
-								int32 StepsCount, float AngleStep,
-								FEnvQueryInstance& OutQueryInstance) const;
+	virtual void AddItemDataForCircle(uint8* ContextRawData, UEnvQueryItemType* ContextItemType, 
+		const TArray<FVector>& Locations, FEnvQueryInstance& OutQueryInstance) const;
 };

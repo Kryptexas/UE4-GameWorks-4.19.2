@@ -30,61 +30,25 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	}
 
 	// Initialize all handles
-	ConditionHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, Condition));
 	FilterTypeHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FilterType));
 	ScoreEquationHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoringEquation));
 	TestPurposeHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, TestPurpose));
-	ScoreHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, Weight));
+	ScoreHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoringFactor));
 
 	ClampMinTypeHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ClampMinType));
 	ClampMaxTypeHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ClampMaxType));
 
-	ScoreClampingMinHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoreClampingMin));
-	FloatFilterMinHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilterMin));
+	ScoreClampMinHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoreClampMin));
+	FloatValueMinHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatValueMin));
 
-	ScoreClampingMaxHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoreClampingMax));
-	FloatFilterMaxHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilterMax));
+	ScoreClampMaxHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoreClampMax));
+	FloatValueMaxHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatValueMax));
 
 	// Build combo box data values
-	BuildConditionValues();
 	BuildFilterTestValues();
 	BuildScoreEquationValues();
 	BuildScoreClampingTypeValues(true, ClampMinTypeValues);
 	BuildScoreClampingTypeValues(false, ClampMaxTypeValues);
-
-// 	// dynamic Condition combo
-// 	IDetailCategoryBuilder& DeprecatedFilterCategory = DetailLayout.EditCategory("Deprecated Filter and Score");
-// 	IDetailPropertyRow& ConditionRow = DeprecatedFilterCategory.AddProperty(ConditionHandle);
-// 	ConditionRow.CustomWidget()
-// 		.NameContent()
-// 		[
-// 			ConditionHandle->CreatePropertyNameWidget()
-// 		]
-// 		.ValueContent()
-// 		[
-// 			SNew(SComboButton)
-// 			.OnGetMenuContent(this, &FEnvQueryTestDetails::OnGetConditionContent)
-// 			.ContentPadding(FMargin( 2.0f, 2.0f ))
-// 			.ButtonContent()
-// 			[
-// 				SNew(STextBlock) 
-// 				.Text(this, &FEnvQueryTestDetails::GetCurrentConditionDesc)
-// 				.Font(IDetailLayoutBuilder::GetDetailFont())
-// 			]
-// 		];
-// 	ConditionRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
-// 
-// 	// TODO: Remove!
-// 	IDetailPropertyRow& DiscardFailedRow = DeprecatedFilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, bDiscardFailedItems)));
-// 	DiscardFailedRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
-// 
-// 	// DEPRECATED!  Remove as soon as testing is complete!
-// 	IDetailPropertyRow& FloatFilterRow = DeprecatedFilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilter)));
-// 	FloatFilterRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatFilterVisibility)));
-// 	FloatFilterRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
-// 
-// 	IDetailPropertyRow& WeightModiferRow = DeprecatedFilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, WeightModifier)));
-// 	WeightModiferRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
 	
 	IDetailCategoryBuilder& TestCategory = DetailLayout.EditCategory("Test");
 	IDetailPropertyRow& TestPurposeRow = TestCategory.AddProperty(TestPurposeHandle);
@@ -112,16 +76,18 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
   	FilterTypeRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatFilterVisibility)));
 
 	// filters
-	IDetailPropertyRow& FloatFilterMinRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilterMin)));
-	FloatFilterMinRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFloatFilterMin)));
+	IDetailPropertyRow& FloatValueMinRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatValueMin)));
+	FloatValueMinRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFloatValueMin)));
 
-	IDetailPropertyRow& FloatFilterMaxRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilterMax)));
-	FloatFilterMaxRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFloatFilterMax)));
+	IDetailPropertyRow& FloatValueMaxRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatValueMax)));
+	FloatValueMaxRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFloatValueMax)));
 
-	IDetailPropertyRow& BoolFilterRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, BoolFilter)));
-	BoolFilterRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetBoolFilterVisibility)));
+	IDetailPropertyRow& BoolValueRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, BoolValue)));
+	BoolValueRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetBoolValueVisibility)));
 
+	// required when it's created for "scoring only" tests
 	IDetailGroup& HackToEnsureFilterCategoryIsVisible = FilterCategory.AddGroup("HackForVisibility", FText::GetEmpty());
+	HackToEnsureFilterCategoryIsVisible.HeaderRow().Visibility(EVisibility::Hidden);
 
 	// Scoring
 	IDetailCategoryBuilder& ScoreCategory = DetailLayout.EditCategory("Score");
@@ -129,6 +95,13 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	//----------------------------
 	// BEGIN Scoring: Clamping
 	IDetailGroup& ClampingGroup = ScoreCategory.AddGroup("Clamping", LOCTEXT("ClampingLabel", "Clamping"));
+	ClampingGroup.HeaderRow()
+	[
+		SNew(STextBlock)
+		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetClampingVisibility)))
+		.Text(FText::FromString("Clamping"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	];
 	
 	// Drop-downs for setting type of lower and upper bound normalization
 	IDetailPropertyRow& ClampMinTypeRow = ClampingGroup.AddPropertyRow(ClampMinTypeHandle.ToSharedRef());
@@ -152,16 +125,16 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	ClampMinTypeRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatScoreVisibility)));
 
 	// Lower Bound for normalization of score if specified independently of filtering.
-	IDetailPropertyRow& ScoreClampingMinRow = ClampingGroup.AddPropertyRow(ScoreClampingMinHandle.ToSharedRef());
-	ScoreClampingMinRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampingMinimum)));
+	IDetailPropertyRow& ScoreClampMinRow = ClampingGroup.AddPropertyRow(ScoreClampMinHandle.ToSharedRef());
+	ScoreClampMinRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampMinimum)));
 
 	// Lower Bound for scoring when tied to filter minimum.
-	if (FloatFilterMinHandle->IsValidHandle())
+	if (FloatValueMinHandle->IsValidHandle())
 	{
-		IDetailPropertyRow& FloatFilterMinForClampingRow = ClampingGroup.AddPropertyRow(FloatFilterMinHandle.ToSharedRef());
-		FloatFilterMinForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFilterMinForScoreClamping)));
-		FloatFilterMinForClampingRow.ToolTip(LOCTEXT("FloatFilterMinForClampingRowToolTip", "See Filter Thresholds under the Filter tab.  Values lower than this (before clamping) cause the item to be thrown out as invalid.  Values are normalized with this value as the minimum, so items with this value will have a normalized score of 0."));
-		FloatFilterMinForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
+		IDetailPropertyRow& FloatValueMinForClampingRow = ClampingGroup.AddPropertyRow(FloatValueMinHandle.ToSharedRef());
+		FloatValueMinForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfValueMinForScoreClamping)));
+		FloatValueMinForClampingRow.ToolTip(LOCTEXT("FloatFilterMinForClampingRowToolTip", "See Filter Thresholds under the Filter tab.  Values lower than this (before clamping) cause the item to be thrown out as invalid.  Values are normalized with this value as the minimum, so items with this value will have a normalized score of 0."));
+		FloatValueMinForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
 	}
 
 	if (ClampMaxTypeHandle->IsValidHandle())
@@ -188,27 +161,28 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	}
 
 	// Upper Bound for normalization of score if specified independently of filtering.
-	if (ScoreClampingMaxHandle->IsValidHandle())
+	if (ScoreClampMaxHandle->IsValidHandle())
 	{
-		IDetailPropertyRow& ScoreClampingMaxRow = ClampingGroup.AddPropertyRow(ScoreClampingMaxHandle.ToSharedRef());
-		ScoreClampingMaxRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampingMaximum)));
+		IDetailPropertyRow& ScoreClampMaxRow = ClampingGroup.AddPropertyRow(ScoreClampMaxHandle.ToSharedRef());
+		ScoreClampMaxRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampMaximum)));
 	}
 	
-	if (FloatFilterMaxHandle->IsValidHandle())
+	if (FloatValueMaxHandle->IsValidHandle())
 	{
 		// Upper Bound for scoring when tied to filter maximum.
-		IDetailPropertyRow& FloatFilterMaxForClampingRow = ClampingGroup.AddPropertyRow(FloatFilterMaxHandle.ToSharedRef());
-		FloatFilterMaxForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFilterMaxForScoreClamping)));
-		FloatFilterMaxForClampingRow.ToolTip(LOCTEXT("FloatFilterMaxForClampingRowToolTip", "See Filter Thresholds under the Filter tab.  Values higher than this (before normalization) cause the item to be thrown out as invalid.  Values are normalized with this value as the maximum, so items with this value will have a normalized score of 1."));
-		FloatFilterMaxForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
+		IDetailPropertyRow& FloatValueMaxForClampingRow = ClampingGroup.AddPropertyRow(FloatValueMaxHandle.ToSharedRef());
+		FloatValueMaxForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfValueMaxForScoreClamping)));
+		FloatValueMaxForClampingRow.ToolTip(LOCTEXT("FloatFilterMaxForClampingRowToolTip", "See Filter Thresholds under the Filter tab.  Values higher than this (before normalization) cause the item to be thrown out as invalid.  Values are normalized with this value as the maximum, so items with this value will have a normalized score of 1."));
+		FloatValueMaxForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
 	}
+
 	// END Scoring: Clamping, continue Scoring
 	//----------------------------
 
-	IDetailPropertyRow& BoolScoreTestRow = ScoreCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, BoolFilter)));
-	BoolScoreTestRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetBoolFilterVisibilityForScoring)));
+	IDetailPropertyRow& BoolScoreTestRow = ScoreCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, BoolValue)));
+	BoolScoreTestRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetBoolValueVisibilityForScoring)));
 	BoolScoreTestRow.DisplayName(LOCTEXT("BoolMatchLabel", "Bool Match"));
-	BoolScoreTestRow.ToolTip(LOCTEXT("BoolMatchToolTip", "Boolean value to match in order to grant score of 'Weight'.  Not matching this value will not change score."));
+	BoolScoreTestRow.ToolTip(LOCTEXT("BoolMatchToolTip", "Boolean value to match in order to grant score of 'ScoringFactor'.  Not matching this value will not change score."));
 
 // 	IDetailPropertyRow& ScoreMirrorNormalizedScoreRow = ScoreCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, bMirrorNormalizedScore)));
 // 	ScoreMirrorNormalizedScoreRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatScoreVisibility)));
@@ -249,8 +223,8 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 		];
 	ScoreEquationTypeRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatScoreVisibility)));
 
-	IDetailPropertyRow& ScoreWeightRow = ScoreCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, Weight)));
-	ScoreWeightRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetScoreVisibility)));
+	IDetailPropertyRow& ScoreFactorRow = ScoreCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoringFactor)));
+	ScoreFactorRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetScoreVisibility)));
 
 	// scoring & filter function preview
 	IDetailCategoryBuilder& PreviewCategory = DetailLayout.EditCategory("Preview");
@@ -316,39 +290,10 @@ void FEnvQueryTestDetails::BuildScoreEquationValues()
 	}
 }
 
-void FEnvQueryTestDetails::BuildConditionValues()
-{
-	UEnum* TestConditionEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEnvTestCondition"));
-	check(TestConditionEnum);
-
-	ConditionValues.Reset();
-	ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::NoCondition).ToString(), EEnvTestCondition::NoCondition));
-
-	const UEnvQueryTest* EditedTest = Cast<const UEnvQueryTest>(MyTest.Get());
-	if (EditedTest)
-	{
-		if (EditedTest->GetWorkOnFloatValues())
-		{
-			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::AtLeast).ToString(), EEnvTestCondition::AtLeast));
-			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::UpTo).ToString(), EEnvTestCondition::UpTo));
-		}
-		else
-		{
-			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::Match).ToString(), EEnvTestCondition::Match));
-		}
-	}
-}
-
 void FEnvQueryTestDetails::OnFilterTestChange(int32 Index)
 {
 	uint8 EnumValue = Index;
 	FilterTypeHandle->SetValue(EnumValue);
-}
-
-void FEnvQueryTestDetails::OnConditionComboChange(int32 Index)
-{
-	uint8 EnumValue = Index;
-	ConditionHandle->SetValue(EnumValue);
 }
 
 void FEnvQueryTestDetails::OnScoreEquationChange(int32 Index)
@@ -511,20 +456,6 @@ FString FEnvQueryTestDetails::GetCurrentFilterTestDesc() const
 	return FString();
 }
 
-TSharedRef<SWidget> FEnvQueryTestDetails::OnGetConditionContent()
-{
-	BuildConditionValues();
-	FMenuBuilder MenuBuilder(true, NULL);
-
-	for (int32 i = 0; i < ConditionValues.Num(); i++)
-	{
-		FUIAction ItemAction( FExecuteAction::CreateSP( this, &FEnvQueryTestDetails::OnConditionComboChange, ConditionValues[i].Int ) );
-		MenuBuilder.AddMenuEntry( FText::FromString( ConditionValues[i].Str ), TAttribute<FText>(), FSlateIcon(), ItemAction);
-	}
-
-	return MenuBuilder.MakeWidget();
-}
-
 TSharedRef<SWidget> FEnvQueryTestDetails::OnGetEquationValuesContent()
 {
 	BuildScoreEquationValues();
@@ -539,22 +470,6 @@ TSharedRef<SWidget> FEnvQueryTestDetails::OnGetEquationValuesContent()
 	return MenuBuilder.MakeWidget();
 }
 
-FString FEnvQueryTestDetails::GetCurrentConditionDesc() const
-{
-	uint8 EnumValue;
-	ConditionHandle->GetValue(EnumValue);
-
-	for (int32 i = 0; i < ConditionValues.Num(); i++)
-	{
-		if (ConditionValues[i].Int == EnumValue)
-		{
-			return ConditionValues[i].Str;
-		}
-	}
-
-	return FString();
-}
-
 FString FEnvQueryTestDetails::GetScoreEquationInfo() const
 {
 	uint8 EnumValue;
@@ -563,16 +478,16 @@ FString FEnvQueryTestDetails::GetScoreEquationInfo() const
 	switch (EnumValue)
 	{
 		case EEnvTestScoreEquation::Linear:
-			return LOCTEXT("Linear","Final score = Weight * NormalizedItemValue").ToString();
+			return LOCTEXT("Linear","Final score = ScoringFactor * NormalizedItemValue").ToString();
 
 		case EEnvTestScoreEquation::Square:
-			return LOCTEXT("Square","Final score = Weight * (NormalizedItemValue * NormalizedItemValue)\nBias towards items with big values.").ToString();
+			return LOCTEXT("Square","Final score = ScoringFactor * (NormalizedItemValue * NormalizedItemValue)\nBias towards items with big values.").ToString();
 
 		case EEnvTestScoreEquation::InverseLinear:
-			return LOCTEXT("Inverse","Final score = Weight * (1.0 - NormalizedItemValue)\nBias towards items with values close to zero.  (Linear, but flipped from 1 to 0 rather than 0 to 1.").ToString();
+			return LOCTEXT("Inverse","Final score = ScoringFactor * (1.0 - NormalizedItemValue)\nBias towards items with values close to zero.  (Linear, but flipped from 1 to 0 rather than 0 to 1.").ToString();
 
 		case EEnvTestScoreEquation::Constant:
-			return LOCTEXT("Constant", "Final score (for values that 'pass') = Weight\nNOTE: In this case, the score is normally EITHER the Weight value or zero.\nThe score will be zero if the Normalized Test Value is zero (or if the test value is false for a boolean query).\nOtherwise, score will be the Weight.").ToString();
+			return LOCTEXT("Constant", "Final score (for values that 'pass') = ScoringFactor\nNOTE: In this case, the score is normally EITHER the ScoringFactor value or zero.\nThe score will be zero if the Normalized Test Value is zero (or if the test value is false for a boolean query).\nOtherwise, score will be the ScoringFactor.").ToString();
 
 		default:
 			break;
@@ -581,7 +496,7 @@ FString FEnvQueryTestDetails::GetScoreEquationInfo() const
 	return TEXT("");
 }
 
-EVisibility FEnvQueryTestDetails::GetVisibilityOfFilterMinForScoreClamping() const
+EVisibility FEnvQueryTestDetails::GetVisibilityOfValueMinForScoreClamping() const
 {
 	if (GetFloatScoreVisibility() == EVisibility::Visible)
 	{
@@ -595,7 +510,7 @@ EVisibility FEnvQueryTestDetails::GetVisibilityOfFilterMinForScoreClamping() con
 	return EVisibility::Collapsed;
 }
 
-EVisibility FEnvQueryTestDetails::GetVisibilityOfFilterMaxForScoreClamping() const
+EVisibility FEnvQueryTestDetails::GetVisibilityOfValueMaxForScoreClamping() const
 {
 	if (GetFloatScoreVisibility() == EVisibility::Visible)
 	{
@@ -609,7 +524,7 @@ EVisibility FEnvQueryTestDetails::GetVisibilityOfFilterMaxForScoreClamping() con
 	return EVisibility::Collapsed;
 }
 
-EVisibility FEnvQueryTestDetails::GetVisibilityOfScoreClampingMinimum() const
+EVisibility FEnvQueryTestDetails::GetVisibilityOfScoreClampMinimum() const
 {
 	if (GetFloatScoreVisibility() == EVisibility::Visible)
 	{
@@ -623,7 +538,7 @@ EVisibility FEnvQueryTestDetails::GetVisibilityOfScoreClampingMinimum() const
 	return EVisibility::Collapsed;
 }
 
-EVisibility FEnvQueryTestDetails::GetVisibilityOfScoreClampingMaximum() const
+EVisibility FEnvQueryTestDetails::GetVisibilityOfScoreClampMaximum() const
 {
 	if (GetFloatScoreVisibility() == EVisibility::Visible)
 	{
@@ -694,6 +609,20 @@ EVisibility FEnvQueryTestDetails::GetScoreVisibility() const
 	return EVisibility::Collapsed;
 }
 
+EVisibility FEnvQueryTestDetails::GetClampingVisibility() const
+{
+	if (IsScoring())
+	{
+		const UEnvQueryTest* MyTestOb = Cast<const UEnvQueryTest>(MyTest.Get());
+		if (MyTestOb && MyTestOb->GetWorkOnFloatValues())
+		{
+			return EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
+
 EVisibility FEnvQueryTestDetails::GetFloatScoreVisibility() const
 {
 	if (IsScoring())
@@ -726,7 +655,7 @@ bool FEnvQueryTestDetails::UsesFilterMax() const
 	return ((EnumValue == EEnvTestFilterType::Maximum) || (EnumValue == EEnvTestFilterType::Range));
 }
 
-EVisibility FEnvQueryTestDetails::GetVisibilityOfFloatFilterMin() const
+EVisibility FEnvQueryTestDetails::GetVisibilityOfFloatValueMin() const
 {
 	if (IsFiltering())
 	{
@@ -744,7 +673,7 @@ EVisibility FEnvQueryTestDetails::GetVisibilityOfFloatFilterMin() const
 	return EVisibility::Collapsed;
 }
 
-EVisibility FEnvQueryTestDetails::GetVisibilityOfFloatFilterMax() const
+EVisibility FEnvQueryTestDetails::GetVisibilityOfFloatValueMax() const
 {
 	if (IsFiltering())
 	{
@@ -783,7 +712,7 @@ bool FEnvQueryTestDetails::IsMatchingBoolValue() const
 	return false;
 }
 
-EVisibility FEnvQueryTestDetails::GetBoolFilterVisibilityForScoring() const
+EVisibility FEnvQueryTestDetails::GetBoolValueVisibilityForScoring() const
 {
 	if (!IsFiltering())
 	{
@@ -796,7 +725,7 @@ EVisibility FEnvQueryTestDetails::GetBoolFilterVisibilityForScoring() const
 	return EVisibility::Collapsed;
 }
 
-EVisibility FEnvQueryTestDetails::GetBoolFilterVisibility() const
+EVisibility FEnvQueryTestDetails::GetBoolValueVisibility() const
 {
 	if (IsFiltering())
 	{
@@ -807,14 +736,6 @@ EVisibility FEnvQueryTestDetails::GetBoolFilterVisibility() const
 	}
 
 	return EVisibility::Collapsed;
-}
-
-EVisibility FEnvQueryTestDetails::GetDiscardFailedVisibility() const
-{
-	uint8 EnumValue;
-	ConditionHandle->GetValue(EnumValue);
-
-	return (EnumValue == EEnvTestCondition::NoCondition) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 EVisibility FEnvQueryTestDetails::GetTestPreviewVisibility() const

@@ -14,17 +14,11 @@ UEnvQueryTest_Random::UEnvQueryTest_Random(const FObjectInitializer& ObjectIniti
 
 void UEnvQueryTest_Random::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	float MinThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin")))
-	{
-		return;
-	}
+	FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float MinThresholdValue = FloatValueMin.GetValue();
 
-	float MaxThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilterMax, MaxThresholdValue, TEXT("FloatFilterMax")))
-	{
-		return;
-	}
+	FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	// loop through all items
 	for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)

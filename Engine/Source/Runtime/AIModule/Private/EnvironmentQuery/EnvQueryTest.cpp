@@ -14,20 +14,19 @@
 UEnvQueryTest::UEnvQueryTest(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	TestPurpose = EEnvTestPurpose::FilterAndScore;
-	FilterType = EEnvTestFilterType::Range;
-	BoolFilter.Value = true;
-	bFormatUpdated = false;
-	Condition = EEnvTestCondition::NoCondition;	// DEPRECATED
-	Weight.Value = 1.0f;						// DEPRECATED
-	WeightModifier = EEnvTestWeight::None;		// DEPRECATED
 	Cost = EEnvTestCost::Low;
+	FilterType = EEnvTestFilterType::Range;
+	ScoringEquation = EEnvTestScoreEquation::Linear;
 	ClampMinType = EEnvQueryTestClamping::None;
 	ClampMaxType = EEnvQueryTestClamping::None;
-	ScoringEquation = EEnvTestScoreEquation::Linear;
-	
-	bNormalizeFromZero = false;					// DEPRECATED
+	BoolValue.DefaultValue = true;
+	ScoringFactor.DefaultValue = 1.0f;
+
 	bWorkOnFloatValues = true;
-	bDiscardFailedItems = true;					// DEPRECATED
+
+	// keep deprecated properties initialized
+	BoolFilter.Value = true;
+	Weight.Value = 1.0f;
 }
 
 void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
@@ -37,47 +36,32 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 		return;
 	}
 
-	float WeightValue = 0.0f;
-	if (!QueryInstance.GetParamValue(Weight, WeightValue, TEXT("Weight")))
-	{
-		return;
-	}
+	ScoringFactor.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float ScoringFactorValue = ScoringFactor.GetValue();
 
 	float MinScore = 0;
 	float MaxScore = -BIG_NUMBER;
 
 	if (ClampMinType == EEnvQueryTestClamping::FilterThreshold)
 	{
-		bool bSuccess = QueryInstance.GetParamValue(FloatFilterMin, MinScore, TEXT("FloatFilterMin"));
-		if (!bSuccess)
-		{
-			UE_LOG(LogEQS, Warning, TEXT("Unable to get FloatFilterMin parameter value from EnvQueryInstance %s"), FloatFilterMin.IsNamedParam() ? *FloatFilterMin.ParamName.ToString() : TEXT("<No name specified>"));
-		}
+		FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		MinScore = FloatValueMin.GetValue();
 	}
 	else if (ClampMinType == EEnvQueryTestClamping::SpecifiedValue)
 	{
-		bool bSuccess = QueryInstance.GetParamValue(ScoreClampingMin, MinScore, TEXT("ScoreClampingMin"));
-		if (!bSuccess)
-		{
-			UE_LOG(LogEQS, Warning, TEXT("Unable to get ClampMinType parameter value from EnvQueryInstance %s"), ScoreClampingMin.IsNamedParam() ? *ScoreClampingMin.ParamName.ToString() : TEXT("<No name specified>"));
-		}
+		ScoreClampMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		MinScore = ScoreClampMin.GetValue();
 	}
 
 	if (ClampMaxType == EEnvQueryTestClamping::FilterThreshold)
 	{
-		bool bSuccess = QueryInstance.GetParamValue(FloatFilterMax, MaxScore, TEXT("FloatFilterMax"));
-		if (!bSuccess)
-		{
-			UE_LOG(LogEQS, Warning, TEXT("Unable to get FloatFilterMax parameter value from EnvQueryInstance %s"), FloatFilterMax.IsNamedParam() ? *FloatFilterMax.ParamName.ToString() : TEXT("<No name specified>"));
-		}
+		FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		MaxScore = FloatValueMax.GetValue();
 	}
 	else if (ClampMaxType == EEnvQueryTestClamping::SpecifiedValue)
 	{
-		bool bSuccess = QueryInstance.GetParamValue(ScoreClampingMax, MaxScore, TEXT("ScoreClampingMax"));
-		if (!bSuccess)
-		{
-			UE_LOG(LogEQS, Warning, TEXT("Unable to get ScoreClampingMax parameter value from EnvQueryInstance %s"), ScoreClampingMax.IsNamedParam() ? *ScoreClampingMax.ParamName.ToString() : TEXT("<No name specified>"));
-		}
+		ScoreClampMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		MaxScore = ScoreClampMax.GetValue();
 	}
 
 	FEnvQueryItemDetails* DetailInfo = QueryInstance.ItemDetails.GetData();
@@ -109,10 +93,6 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 	}
 
 	DetailInfo = QueryInstance.ItemDetails.GetData();
-	if (bNormalizeFromZero && MinScore > 0.0f)
-	{
-		MinScore = 0.0f;
-	}
 
 	if (MinScore != MaxScore)
 	{
@@ -135,7 +115,7 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 				switch (ScoringEquation)
 				{
 					case EEnvTestScoreEquation::Linear:
-						WeightedScore = WeightValue * NormalizedScoreForEquation;
+						WeightedScore = ScoringFactorValue * NormalizedScoreForEquation;
 						break;
 
 					case EEnvTestScoreEquation::InverseLinear:
@@ -145,17 +125,17 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 						// to add that flag later, we'll need to remove this option, since it should just be "mirror
 						// curve" plus "Linear".
 						float InverseNormalizedScore = (1.0f - NormalizedScoreForEquation);
-						WeightedScore = WeightValue * InverseNormalizedScore;
+						WeightedScore = ScoringFactorValue * InverseNormalizedScore;
 						break;
 					}
 
 					case EEnvTestScoreEquation::Square:
-						WeightedScore = WeightValue * (NormalizedScoreForEquation * NormalizedScoreForEquation);
+						WeightedScore = ScoringFactorValue * (NormalizedScoreForEquation * NormalizedScoreForEquation);
 						break;
 
 					case EEnvTestScoreEquation::Constant:
 						// I know, it's not "constant".  It's "Constant, or zero".  The tooltip should explain that.
-						WeightedScore = (NormalizedScoreForEquation > 0) ? WeightValue : 0.0f;
+						WeightedScore = (NormalizedScoreForEquation > 0) ? ScoringFactorValue : 0.0f;
 						break;
 						
 					default:
@@ -216,83 +196,14 @@ void UEnvQueryTest::PostLoad()
 {
 	Super::PostLoad();
 
-	if (bFormatUpdated)
+	if (VerNum < EnvQueryTestVersion::DataProviders)
 	{
-		// Backwards compatibility already handled.
-		return;
-	}
-
-	switch (Condition)
-	{
-		case EEnvTestCondition::AtLeast:
-			FloatFilterMin = FloatFilter;
-			FilterType = EEnvTestFilterType::Minimum;
-			break;
-		
-		case EEnvTestCondition::UpTo:
-			FloatFilterMax = FloatFilter;
-			FilterType = EEnvTestFilterType::Maximum;
-			break;
-		
-		case EEnvTestCondition::NoCondition:
-			TestPurpose = EEnvTestPurpose::Score;
-			break;
-
-		case EEnvTestCondition::Match:
-			FilterType = EEnvTestFilterType::Match;
-			break;
-
-		default:
-			UE_LOG(LogEQS, Error, TEXT("Invalid Condition type in UEnvQueryTest::PostLoad!"));
-			break;
-	}
-
-	if ((WeightModifier != EEnvTestWeight::Skip) && !Weight.IsNamedParam() && (Weight.Value == 0.f))
-	{	// We ought to be skipping the test if weight is 0!  Zero makes it pointless!
-		WeightModifier = EEnvTestWeight::Skip;
-	}
-
-	if (WeightModifier != EEnvTestWeight::Skip && !bWorkOnFloatValues)
-	{
-		// Working on booleans, so MUST use constant value!
-		WeightModifier = EEnvTestWeight::Constant;
-	}
-
-	switch (WeightModifier)
-	{
-		case EEnvTestWeight::None:
-			ScoringEquation = EEnvTestScoreEquation::Linear;
-			break;
-
-		case EEnvTestWeight::Constant:
-			ScoringEquation = EEnvTestScoreEquation::Constant;
-			break;
-
-		case EEnvTestWeight::Inverse:
-			ScoringEquation = EEnvTestScoreEquation::InverseLinear;
-			break;
-
-		case EEnvTestWeight::Square:
-			ScoringEquation = EEnvTestScoreEquation::Square;
-			break;
-
-		case EEnvTestWeight::Absolute:
-			UE_LOG(LogEQS, Warning, TEXT("Absolute weight is no longer supported!  Sticking with default weighting."));
-			// falling back to Linear
-			ScoringEquation = EEnvTestScoreEquation::Linear;
-			break;
-
-		case EEnvTestWeight::Skip:
-			TestPurpose = EEnvTestPurpose::Filter;
-			if (Condition == EEnvTestCondition::NoCondition)
-			{
-				UE_LOG(LogEQS, Warning, TEXT("Test was set to neither filter nor score!  Now setting to filter!"));	
-			}
-			break;
-
-		default:
-			UE_LOG(LogEQS, Warning, TEXT("Invalid Weight Modifier type in UEnvQueryTest::PostLoad!"));
-			break;
+		BoolFilter.Convert(this, BoolValue);
+		FloatFilterMin.Convert(this, FloatValueMin);
+		FloatFilterMax.Convert(this, FloatValueMax);
+		ScoreClampingMin.Convert(this, ScoreClampMin);
+		ScoreClampingMax.Convert(this, ScoreClampMax);
+		Weight.Convert(this, ScoringFactor);
 	}
 
 	UpdateTestVersion();
@@ -300,7 +211,7 @@ void UEnvQueryTest::PostLoad()
 
 void UEnvQueryTest::UpdateTestVersion()
 {
-	bFormatUpdated = true;
+	VerNum = EnvQueryTestVersion::Latest;
 }
 
 #if WITH_EDITOR && USE_EQS_DEBUGGER
@@ -315,108 +226,97 @@ void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 FText UEnvQueryTest::DescribeFloatTestParams() const
 {
-	FText ParamDesc;
-
-	if (Condition != EEnvTestCondition::NoCondition)
+	FText FilterDesc;
+	if (IsFiltering())
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Filter"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(FloatFilter)));
+		switch (FilterType)
+		{
+		case EEnvTestFilterType::Minimum:
+			FilterDesc = FText::Format(LOCTEXT("FilterAtLeast", "at least {0}"), FText::FromString(FloatValueMin.ToString()));
+			break;
 
-		FText InvalidConditionDesc = LOCTEXT("InvalidCondition", "invalid condition");
-		ParamDesc =
-			(Condition == EEnvTestCondition::AtLeast) ? FText::Format(LOCTEXT("AtLeastFiltered", "at least {Filter}"), Args) :
-			(Condition == EEnvTestCondition::UpTo) ? FText::Format(LOCTEXT("UpToFiltered", "up to {Filter}"), Args) :
-			InvalidConditionDesc;
+		case EEnvTestFilterType::Maximum:
+			FilterDesc = FText::Format(LOCTEXT("FilterUpTo", "up to {0}"), FText::FromString(FloatValueMax.ToString()));
+			break;
+
+		case EEnvTestFilterType::Range:
+			FilterDesc = FText::Format(LOCTEXT("FilterBetween", "between {0} and {1}"),
+				FText::FromString(FloatValueMin.ToString()), FText::FromString(FloatValueMax.ToString()));
+			break;
+
+		default:
+			break;
+		}
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ParmDesc"), ParamDesc);
+	FNumberFormattingOptions NumberFormattingOptions;
+	NumberFormattingOptions.MaximumFractionalDigits = 2;
 
+	FText ScoreDesc;
 	if (!IsScoring())
 	{
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
+		ScoreDesc = LOCTEXT("DontScore", "don't score");
 	}
 	else if (ScoringEquation == EEnvTestScoreEquation::Constant)
 	{
-		FText WeightDesc = Weight.IsNamedParam() ? FText::FromName(Weight.ParamName) : FText::Format( LOCTEXT("ConstantWeightDescPattern", "x{0}"), FText::AsNumber(FMath::Abs(Weight.Value)) );
-		Args.Add(TEXT("WeightDesc"), WeightDesc);
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithConstantWeight", "{ParmDesc}, constant weight [{WeightDesc}]"), Args);
+		FText FactorDesc = ScoringFactor.IsDynamic() ?
+			FText::FromString(ScoringFactor.ToString()) :
+			FText::Format(FText::FromString("x{0}"), FText::AsNumber(FMath::Abs(ScoringFactor.DefaultValue), &NumberFormattingOptions));
+
+		ScoreDesc = FText::Format(FText::FromString("{0} [{1}]"), LOCTEXT("ScoreConstant", "constant score"), FactorDesc);
 	}
-	else if (Weight.IsNamedParam())
+	else if (ScoringFactor.IsDynamic())
 	{
-		Args.Add(TEXT("WeightName"), FText::FromName(Weight.ParamName));
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithWeight", "{ParmDesc}, weight: {WeightName}"), Args);
+		ScoreDesc = FText::Format(FText::FromString("{0}: {1}"), LOCTEXT("ScoreFactor", "score factor"), FText::FromString(ScoringFactor.ToString()));
 	}
 	else
 	{
-		FNumberFormattingOptions NumberFormattingOptions;
-		NumberFormattingOptions.MaximumFractionalDigits = 2;
-
-		Args.Add(TEXT("WeightCondition"), (Weight.Value > 0) ? LOCTEXT("Greater", "greater") : LOCTEXT("Lesser", "lesser"));
-		Args.Add(TEXT("WeightValue"), FText::AsNumber(FMath::Abs(Weight.Value), &NumberFormattingOptions));
-		ParamDesc = FText::Format(LOCTEXT("DescriptionPreferWeightValue", "{ParmDesc}, prefer {WeightCondition} [x{WeightValue}]"), Args);
+		FText ScoreSignDesc = (ScoringFactor.DefaultValue > 0) ? LOCTEXT("Greater", "greater") : LOCTEXT("Lesser", "lesser");
+		FText ScoreValueDesc = FText::AsNumber(FMath::Abs(ScoringFactor.DefaultValue), &NumberFormattingOptions);
+		ScoreDesc = FText::Format(FText::FromString("{0} {1} [x{2}]"), LOCTEXT("ScorePrefer", "prefer"), ScoreSignDesc, ScoreValueDesc);
 	}
 
-	return ParamDesc;
+	return FilterDesc.IsEmpty() ? ScoreDesc : FText::Format(FText::FromString("{0}, {1}"), FilterDesc, ScoreDesc);
 }
 
 FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 {
-	FText ParamDesc;
-
-	if (Condition != EEnvTestCondition::NoCondition)
+	FText FilterDesc;
+	if (IsFiltering() && FilterType == EEnvTestFilterType::Match)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ConditionDesc"), FText::FromString(ConditionDesc));
-
-		if(BoolFilter.IsNamedParam())
-		{
-			Args.Add(TEXT("Filter"), FText::FromString(UEnvQueryTypes::DescribeBoolParam(BoolFilter)));
-		}
-		else
-		{
-			Args.Add(TEXT("Filter"), BoolFilter.Value ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not "));
-		}
-		FText InvalidConditionDesc = LOCTEXT("InvalidCondition", "invalid condition");
-		ParamDesc =
-			(Condition == EEnvTestCondition::Match) ?
-				(BoolFilter.IsNamedParam() ?
-					FText::Format(LOCTEXT("RequiresCondition", "require {ConditionDesc}: {Filter}"), Args) :
-					FText::Format(LOCTEXT("RequiresFilter", "require {Filter}{ConditionDesc}%s"), Args)
-				) :
-			InvalidConditionDesc;
+		FilterDesc = BoolValue.IsDynamic() ?
+			FText::Format(FText::FromString("{0} {1}: {2}"), LOCTEXT("FilterRequire", "require"), FText::FromString(ConditionDesc), FText::FromString(BoolValue.ToString())) :
+			FText::Format(FText::FromString("{0} {1}{2}"), LOCTEXT("FilterRequire", "require"), BoolValue.DefaultValue ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not "), FText::FromString(ConditionDesc));
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ParmDesc"), ParamDesc);
+	FNumberFormattingOptions NumberFormattingOptions;
+	NumberFormattingOptions.MaximumFractionalDigits = 2;
 
+	FText ScoreDesc;
 	if (!IsScoring())
 	{
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
+		ScoreDesc = LOCTEXT("DontScore", "don't score");
 	}
 	else if (ScoringEquation == EEnvTestScoreEquation::Constant)
 	{
-		FText WeightDesc = Weight.IsNamedParam() ? FText::FromName(Weight.ParamName) : FText::Format(LOCTEXT("ConstantWeightDescPattern", "x{0}"), FText::AsNumber(FMath::Abs(Weight.Value)));
-		Args.Add(TEXT("WeightDesc"), WeightDesc);
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithConstantWeight", "{ParmDesc}, constant weight [{WeightDesc}]"), Args);
+		FText FactorDesc = ScoringFactor.IsDynamic() ?
+			FText::FromString(ScoringFactor.ToString()) :
+			FText::Format(FText::FromString("x{0}"), FText::AsNumber(FMath::Abs(ScoringFactor.DefaultValue), &NumberFormattingOptions));
+
+		ScoreDesc = FText::Format(FText::FromString("{0} [{1}]"), LOCTEXT("ScoreConstant", "constant score"), FactorDesc);
 	}
-	else if (Weight.IsNamedParam())
+	else if (ScoringFactor.IsDynamic())
 	{
-		Args.Add(TEXT("WeightName"), FText::FromName(Weight.ParamName));
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithWeight", "{ParmDesc}, weight: {WeightName}"), Args);
+		ScoreDesc = FText::Format(FText::FromString("{0}: {1}"), LOCTEXT("ScoreFactor", "score factor"), FText::FromString(ScoringFactor.ToString()));
 	}
 	else
 	{
-		FNumberFormattingOptions NumberFormattingOptions;
-		NumberFormattingOptions.MaximumFractionalDigits = 2;
-
-		Args.Add(TEXT("ConditionDesc"), FText::FromString(ConditionDesc));
-		Args.Add(TEXT("WeightCondition"), (Weight.Value > 0) ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not "));
-		Args.Add(TEXT("WeightValue"), FText::AsNumber(FMath::Abs(Weight.Value), &NumberFormattingOptions));
-		ParamDesc = FText::Format(LOCTEXT("ParmDescWithPreference", "{ParmDesc}, prefer {WeightCondition}{ConditionDesc} [x{WeightValue}]"), Args);
+		FText ScoreSignDesc = (ScoringFactor.DefaultValue > 0) ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not ");
+		FText ScoreValueDesc = FText::AsNumber(FMath::Abs(ScoringFactor.DefaultValue), &NumberFormattingOptions);
+		ScoreDesc = FText::Format(FText::FromString("{0} {1}{2} [x{3}]"), LOCTEXT("ScorePrefer", "prefer"), ScoreSignDesc, FText::FromString(ConditionDesc), ScoreValueDesc);
 	}
 
-	return ParamDesc;
+	return FilterDesc.IsEmpty() ? ScoreDesc : FText::Format(FText::FromString("{0}, {1}"), FilterDesc, ScoreDesc);
 }
 
 void UEnvQueryTest::SetWorkOnFloatValues(bool bWorkOnFloats)

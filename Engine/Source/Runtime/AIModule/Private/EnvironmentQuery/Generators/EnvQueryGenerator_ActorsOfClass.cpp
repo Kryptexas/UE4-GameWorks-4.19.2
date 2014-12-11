@@ -13,19 +13,20 @@ UEnvQueryGenerator_ActorsOfClass::UEnvQueryGenerator_ActorsOfClass(const FObject
 {
 	SearchCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Actor::StaticClass();
-	Radius.Value = 500.0f;
+	SearchRadius.DefaultValue = 500.0f;
 	SearchedActorClass = AActor::StaticClass();
+
+	// keep deprecated properties initialized
+	Radius.Value = 500.0f;
 }
 
 void UEnvQueryGenerator_ActorsOfClass::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
-	float RadiusValue = 0.0f;
-	float DensityValue = 0.0f;
+	SearchRadius.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float RadiusValue = SearchRadius.GetValue();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(QueryInstance.Owner.Get());
-	// @TODO add some logging here
-	if (World == NULL || QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) == false
-		|| SearchedActorClass == NULL)
+	if (World == NULL || SearchedActorClass == NULL)
 	{
 		return;
 	}
@@ -61,11 +62,21 @@ FText UEnvQueryGenerator_ActorsOfClass::GetDescriptionTitle() const
 FText UEnvQueryGenerator_ActorsOfClass::GetDescriptionDetails() const
 {
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("Radius"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Radius)));
+	Args.Add(TEXT("Radius"), FText::FromString(SearchRadius.ToString()));
 
 	FText Desc = FText::Format(LOCTEXT("ActorsOfClassDescription", "radius: {Radius}"), Args);
 
 	return Desc;
+}
+
+void UEnvQueryGenerator_ActorsOfClass::PostLoad()
+{
+	if (VerNum < EnvQueryGeneratorVersion::DataProviders)
+	{
+		Radius.Convert(this, SearchRadius);
+	}
+
+	Super::PostLoad();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -17,21 +17,33 @@ class UEnvQueryTest_Trace : public UEnvQueryTest
 
 	/** trace direction */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	FEnvBoolParam TraceToItem;
+	FAIDataProviderBoolValue TraceFromContext;
 
 	/** Z offset from item */
 	UPROPERTY(EditDefaultsOnly, Category=Trace, AdvancedDisplay)
-	FEnvFloatParam ItemOffsetZ;
+	FAIDataProviderFloatValue ItemHeightOffset;
 
 	/** Z offset from querier */
 	UPROPERTY(EditDefaultsOnly, Category=Trace, AdvancedDisplay)
-	FEnvFloatParam ContextOffsetZ;
+	FAIDataProviderFloatValue ContextHeightOffset;
 
 	/** context: other end of trace test */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
 	TSubclassOf<UEnvQueryContext> Context;
 
+	// BEGIN: deprecated properties 
+	UPROPERTY()
+	FEnvBoolParam TraceToItem;
+
+	UPROPERTY()
+	FEnvFloatParam ItemOffsetZ;
+
+	UPROPERTY()
+	FEnvFloatParam ContextOffsetZ;
+	// END: deprecated properties
+
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
+	virtual void PostLoad() override;
 
 	virtual FString GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

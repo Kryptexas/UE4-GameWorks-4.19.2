@@ -141,6 +141,9 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** creates local context object */
 	UEnvQueryContext* PrepareLocalContext(TSubclassOf<UEnvQueryContext> ContextClass);
 
+	/** find value of named param stored with active query */
+	float FindNamedParam(int32 QueryId, FName ParamName) const;
+
 	/** execute query */
 	bool AbortQuery(int32 RequestID);
 

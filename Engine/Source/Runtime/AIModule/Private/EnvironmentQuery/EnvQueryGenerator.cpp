@@ -8,6 +8,11 @@ UEnvQueryGenerator::UEnvQueryGenerator(const FObjectInitializer& ObjectInitializ
 {
 }
 
+void UEnvQueryGenerator::UpdateGeneratorVersion()
+{
+	VerNum = EnvQueryGeneratorVersion::Latest;
+}
+
 FText UEnvQueryGenerator::GetDescriptionTitle() const
 {
 	return UEnvQueryTypes::GetShortTypeName(this);
@@ -27,3 +32,9 @@ void UEnvQueryGenerator::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 #endif
 }
 #endif //WITH_EDITOR && USE_EQS_DEBUGGER
+
+void UEnvQueryGenerator::PostLoad()
+{
+	Super::PostLoad();
+	UpdateGeneratorVersion();
+}
