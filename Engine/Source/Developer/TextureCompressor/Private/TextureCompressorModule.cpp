@@ -1116,7 +1116,7 @@ static void GenerateAngularFilteredMips(TArray<FImage>& InOutMipChain, int32 Num
 ------------------------------------------------------------------------------*/
 
 /**
- * Adjusts the colors of the image using the specified settings (alpha channel will not be modified.)
+ * Adjusts the colors of the image using the specified settings
  *
  * @param	Image		Image to adjust
  * @param	InParams	Color adjustment parameters
