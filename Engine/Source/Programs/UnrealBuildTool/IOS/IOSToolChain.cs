@@ -1299,18 +1299,8 @@ namespace UnrealBuildTool
 
 					// now that 
 					Process StubGenerateProcess = new Process();
-
-					if (RemoteToolChain.bUseRPCUtil)
-					{
-						StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET\\IOS");
-						StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
-					}
-					else
-					{
-						// UAT wants the working directory to be the root (or does it matter?)
-						StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET");
-						StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "AutomationTool.exe");
-					}
+					StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET\\IOS");
+					StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
 
 					string Arguments = "";
 						
@@ -1358,18 +1348,19 @@ namespace UnrealBuildTool
 						Arguments += " -architecture " + Architecture.Substring(1);
 					}
 
+					if (!bUseRPCUtil )
+					{
+						Arguments += " -usessh";
+						Arguments += " -sshexe \"" + ResolvedSSHExe + "\"";
+						Arguments += " -sshauth \"" + ResolvedSSHAuthentication + "\"";
+						Arguments += " -sshuser \"" + ResolvedRSyncUsername + "\"";
+						Arguments += " -rsyncexe \"" + ResolvedRSyncExe + "\"";
+						Arguments += " -overridedevroot \"" + UserDevRootMac + "\"";
+					}
+
 					// programmers that use Xcode packaging mode should use the following commandline instead, as it will package for Xcode on each compile
 					//				Arguments = "PackageApp " + GameName + " " + Configuration;
-
-					if (RemoteToolChain.bUseRPCUtil)
-					{
-						StubGenerateProcess.StartInfo.Arguments = Arguments;
-					}
-					else
-					{
-						Arguments = Arguments.Replace("\"", "\\\"");
-						StubGenerateProcess.StartInfo.Arguments = "IPhonePackager -cmd=\"" + Arguments + "\" -nocompile";
-					}
+					StubGenerateProcess.StartInfo.Arguments = Arguments;
 
 					StubGenerateProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
 					StubGenerateProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
@@ -1448,13 +1439,11 @@ namespace UnrealBuildTool
 
 		public override string GetPlatformVersion()
 		{
-			ParseProjectSettings();
 			return RunTimeIOSVersion;
 		}
 
 		public override string GetPlatformDevices()
 		{
-			ParseProjectSettings();
 			return RunTimeIOSDevices;
 		}
 

@@ -50,6 +50,16 @@ namespace iPhonePackager
 		public static string DeviceId = "";
 
 		/// <summary>
+		/// Determine whether to use RPC Util or not
+		/// </summary>
+		public static bool bUseRPCUtil = true;
+
+		/// <summary>
+		/// Optional override for the dev root on the target mac for remote builds.
+		/// </summary>
+		public static string OverrideDevRoot = null;
+
+		/// <summary>
 		/// The local build directory (on PC)
 		/// </summary>
 		public static string BuildDirectory

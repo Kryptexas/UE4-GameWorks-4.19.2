@@ -254,18 +254,23 @@ namespace iPhonePackager
 
 		static public bool BatchUploadFolder(string MacName, string SourceFolder, string DestFolder, bool bDeleteTarget)
 		{
-			if (!ConditionalInitRemoting(MacName))
+			if (Config.bUseRPCUtil)
 			{
-				return false;
+
+				if (!ConditionalInitRemoting(MacName))
+				{
+					return false;
+				}
+
+
+				if (bDeleteTarget)
+				{
+					// tell Mac to delete target if requested
+					RPCUtility.CommandHelper.RemoveDirectory(RPCSocket, DestFolder);
+				}
 			}
 
 			Program.Log(" ... '" + SourceFolder + "' -> '" + DestFolder + "'");
-
-			if (bDeleteTarget)
-			{
-				// tell Mac to delete target if requested
-				RPCUtility.CommandHelper.RemoveDirectory(RPCSocket, DestFolder);
-			}
 
 			DirectoryInfo SourceFolderInfo = new DirectoryInfo(SourceFolder);
 			if (!SourceFolderInfo.Exists)
@@ -278,20 +283,36 @@ namespace iPhonePackager
 			List<string> FilesToUpload = new List<string>();
 			RecursiveBatchUploadFolder(SourceFolderInfo, DestFolder, FilesToUpload);
 
-			// send them off!
-			RPCUtility.CommandHelper.RPCBatchUpload(RPCSocket, FilesToUpload.ToArray());
+			if (Config.bUseRPCUtil)
+			{
+				// send them off!
+				RPCUtility.CommandHelper.RPCBatchUpload(RPCSocket, FilesToUpload.ToArray());
+			}
+			else
+			{
+				SSHCommandHelper.BatchUpload(MacName, FilesToUpload.ToArray());
+			}
 
 			return true;
 		}
 
 		static public bool DownloadFile(string MacName, string SourceFilename, string DestFilename)
 		{
-			if (!ConditionalInitRemoting(MacName))
-			{
-				return false;
-			}
+			Hashtable Results = null;
 
-			Hashtable Results = RPCUtility.CommandHelper.RPCDownload(RPCSocket, SourceFilename, DestFilename);
+			if (Config.bUseRPCUtil)
+			{
+				if (!ConditionalInitRemoting(MacName))
+				{
+					return false;
+				}
+
+				Results = RPCUtility.CommandHelper.RPCDownload(RPCSocket, SourceFilename, DestFilename);
+			}
+			else
+			{
+				Results = SSHCommandHelper.DownloadFile(MacName, SourceFilename, DestFilename);
+			}
 
 			// success if exitcode is 0 or unspecified
 			if (Results["ExitCode"] != null)

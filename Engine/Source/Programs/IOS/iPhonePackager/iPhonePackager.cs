@@ -307,6 +307,11 @@ namespace iPhonePackager
 						MainRPCCommand = Arguments[ArgIndex];
 					}
 				}
+				
+				if(!SSHCommandHelper.ParseSSHProperties(Arguments))
+				{
+					return false;
+				}
 			}
 	
 			return ( true );

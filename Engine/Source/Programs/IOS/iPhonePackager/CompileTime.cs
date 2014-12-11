@@ -3,6 +3,7 @@
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -97,7 +98,7 @@ namespace iPhonePackager
 
 			// MacName=%ue4.iPhone_SigningServerName%
 			MacName = Config.OverrideMacName != null ? Config.OverrideMacName : Utilities.GetEnvironmentVariable( "ue.IOSSigningServer", "a1487" );
-			iPhone_SigningDevRootMac = "/UE4/Builds";
+			iPhone_SigningDevRootMac = Config.OverrideDevRoot != null ? Config.OverrideDevRoot : "/UE4/Builds";
 
 			// get the path to mirror into on the Mac
 			string BinariesDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, @"..\.."));
@@ -273,8 +274,6 @@ namespace iPhonePackager
 			string WorkingFolder = "";
 			string DisplayCommandLine = "";
 
-			Program.Log( "Running RPC on " + MacName + " ... " );
-
 			switch (RPCCommand.ToLowerInvariant())
 			{
 			case "deletemacstagingfiles":
@@ -405,36 +404,49 @@ namespace iPhonePackager
 			Program.Log( " ... " + DisplayCommandLine );
 			Program.Log(" ... full command: " +  MacName + " " + CommandLine);
 
-			Process RPCUtil = new Process();
-			RPCUtil.StartInfo.FileName = @"..\RPCUtility.exe";
-			RPCUtil.StartInfo.UseShellExecute = false;
-			RPCUtil.StartInfo.Arguments = MacName + " " + CommandLine;
-			RPCUtil.StartInfo.RedirectStandardOutput = true;
-			RPCUtil.StartInfo.RedirectStandardError = true;
-			RPCUtil.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
-			RPCUtil.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
-
-			RPCUtil.Start();
-			
-			RPCUtil.BeginOutputReadLine();
-			RPCUtil.BeginErrorReadLine();
-
-			RPCUtil.WaitForExit();
-
-			if (RPCUtil.ExitCode != 0)
+			bool bSuccess = false;
+			if( Config.bUseRPCUtil )
 			{
-				Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, RPCUtil.ExitCode);
-				switch (RPCCommand.ToLowerInvariant())
+				Program.Log( "Running RPC on " + MacName + " ... " );
+
+				Process RPCUtil = new Process();
+				RPCUtil.StartInfo.FileName = @"..\RPCUtility.exe";
+				RPCUtil.StartInfo.UseShellExecute = false;
+				RPCUtil.StartInfo.Arguments = MacName + " " + CommandLine;
+				RPCUtil.StartInfo.RedirectStandardOutput = true;
+				RPCUtil.StartInfo.RedirectStandardError = true;
+				RPCUtil.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
+				RPCUtil.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
+
+				RPCUtil.Start();
+
+				RPCUtil.BeginOutputReadLine();
+				RPCUtil.BeginErrorReadLine();
+
+				RPCUtil.WaitForExit();
+
+				bSuccess = (RPCUtil.ExitCode == 0);
+				if (bSuccess == false)
 				{
-					case "installprovision":
-						Program.Error("Ensure your access permissions for '~/Library/MobileDevice/Provisioning Profiles' are set correctly.");
-						break;
-					default:
-						break;
+					Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, RPCUtil.ExitCode);
+					switch (RPCCommand.ToLowerInvariant())
+					{
+						case "installprovision":
+							Program.Error("Ensure your access permissions for '~/Library/MobileDevice/Provisioning Profiles' are set correctly.");
+							break;
+						default:
+							break;
+					}
 				}
 			}
+			else
+			{
+				Program.Log("Running SSH on " + MacName + " ... ");
+				bSuccess = SSHCommandHelper.Command(MacName, DisplayCommandLine, WorkingFolder);
+			}
 
-			return (RPCUtil.ExitCode == 0);
+
+			return bSuccess;
 		}
 
 
@@ -515,7 +527,6 @@ namespace iPhonePackager
 
 		static public void ExecuteRemoteCommand(string RemoteCommand)
 		{
-			Program.Log("Running RPC on " + MacName + " ... ");
 			RunRPCUtilty(RemoteCommand);
 		}
 
