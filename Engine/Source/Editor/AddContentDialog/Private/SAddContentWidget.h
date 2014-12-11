@@ -43,13 +43,6 @@ private:
 	/** Creates the widget the displays a screenshot in the screenshot carousel. */
 	TSharedRef<SWidget> CreateScreenshotWidget(TSharedPtr<FSlateBrush> ScreenshotBrush);
 
-	/** Creates a list view representing content which the user has selected for addition to the project. */
-	TSharedRef<SWidget> CreateAddListView();
-	
-	/** Creates a row for the list view representing content selected for addition to the project */
-	TSharedRef<ITableRow> CreateAddContentSourceRow(TSharedPtr<FContentSourceViewModel> ContentSource, const TSharedRef<STableViewBase>& OwnerTable);
-
-
 
 	/** Handles the user clicking on one of the check boxes representing the category tabs. */
 	void CategoryCheckBoxCheckStateChanged(ESlateCheckBoxState::Type CheckState, FCategoryViewModel Category);
@@ -63,12 +56,8 @@ private:
 	/** Handles the selection in the content source tile view changing */
 	void ContentSourceTileViewSelectionChanged(TSharedPtr<FContentSourceViewModel> SelectedContentSource, ESelectInfo::Type SelectInfo);
 
-	/** Handles an item from the content source tile view being dragged. */
-	FReply ContentSourceTileDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-
-	/** Handles the remove button being pressed on a row in the list of content selected for addition to the project. */
-	FReply RemoveAddedContentSourceClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
-
+	/** Handles the add content to project button being clicked. */
+	FReply AddButtonClicked();
 
 
 	/** Handles the available categories changing on the view model. */
@@ -79,9 +68,6 @@ private:
 
 	/** Handles the selected content source changing on the view model. */
 	void SelectedContentSourceChanged();
-
-	/** Handles the list of items selected for addition to the project changing on the view model. */
-	void AddListChanged();
 
 private:
 	/** The view model which represents the current data of the UI. */
@@ -95,9 +81,6 @@ private:
 
 	/** The placeholder widget which holds the detail view for the currently selected content source. */
 	TSharedPtr<SBox> ContentSourceDetailContainer;
-
-	/** The list view which displays the content sources currently selected for addition to the project. */
-	TSharedPtr<SListView<TSharedPtr<FContentSourceViewModel>>> AddListView;
 
 	/** The content sources which the user has selected for addition to the project. */
 	TArray<TSharedPtr<IContentSource>> ContentSourcesToAdd;

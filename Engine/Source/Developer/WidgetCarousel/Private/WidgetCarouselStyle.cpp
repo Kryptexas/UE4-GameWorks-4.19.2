@@ -113,7 +113,7 @@ TSharedRef< FSlateStyleSet > FWidgetCarouselModuleStyle::Create()
 		.SetHovered(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
 			.SetPressed(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), PrimaryCallToActionColorPressed))));
 
-	Style->Set("Black .6", FLinearColor(0, 0, 0, 0.6f));
+	Style->Set("WidgetBackground", new FSlateColorBrush(FLinearColor(0, 0, 0, 0.6f)));
 
 	return Style;
 }

@@ -1,5 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+#include "DirectoryWatcherModule.h"
+
 #pragma once
 
 /** A content source provider for available content upacks. */
@@ -13,6 +15,28 @@ public:
 	virtual ~FFeaturePackContentSourceProvider();
 
 private:
+	/** Starts the directory watcher for the feature pack directory. */
+	void StartUpDirectoryWatcher();
+
+	/** Shuts down the directory watcher for the feature pack directory. */
+	void ShutDownDirectoryWatcher();
+
+	/** Delegate to handle whenever the feature pack directory changes on disk. */
+	void OnFeaturePackDirectoryChanged( const TArray<FFileChangeData>& FileChanges );
+
+	/** Rebuilds the feature pack array and calls the change notification delegate. */
+	void RefreshFeaturePacks();
+
+	/** The path on disk to the directory containing the feature packs. */
+	FString FeaturePackPath;
+
+	/** The delegate which gets called when the feature pack directory changes. This reference
+		is kept so that it can be unregistered correctly. */
+	IDirectoryWatcher::FDirectoryChanged DirectoryChangedDelegate;
+
+	/** A delegate which gets called whenever the array of content sources changes. */
 	FOnContentSourcesChanged OnContentSourcesChanged;
+
+	/** An array of the available content sources. */
 	TArray<TSharedRef<IContentSource>> ContentSources;
 };

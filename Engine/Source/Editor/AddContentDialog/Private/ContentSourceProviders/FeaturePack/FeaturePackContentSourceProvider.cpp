@@ -5,6 +5,8 @@
 #include "FeaturePackContentSourceProvider.h"
 #include "FeaturePackContentSource.h"
 
+#include "ModuleManager.h"
+
 class FFillArrayDirectoryVisitor : public IPlatformFile::FDirectoryVisitor
 {
 public:
@@ -27,19 +29,9 @@ public:
 
 FFeaturePackContentSourceProvider::FFeaturePackContentSourceProvider()
 {
-	//TODO: Add a directory watcher?
-	FString FeaturePackPath = FPaths::Combine(*FPaths::RootDir(), TEXT("FeaturePacks"), TEXT("Packed"));
-	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-	FFillArrayDirectoryVisitor DirectoryVisitor;
-	PlatformFile.IterateDirectory(*FeaturePackPath, DirectoryVisitor);
-	for (auto FeaturePackFile : DirectoryVisitor.Files)
-	{
-		TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FeaturePackFile);
-		if(NewContentSource->IsDataValid())
-		{
-			ContentSources.Add(MakeShareable(NewContentSource.Release()));
-		}
-	}
+	FeaturePackPath = FPaths::Combine(*FPaths::RootDir(), TEXT("FeaturePacks"), TEXT("Packed"));
+	StartUpDirectoryWatcher();
+	RefreshFeaturePacks();
 }
 
 const TArray<TSharedRef<IContentSource>> FFeaturePackContentSourceProvider::GetContentSources()
@@ -52,6 +44,52 @@ void FFeaturePackContentSourceProvider::SetContentSourcesChanged(FOnContentSourc
 	OnContentSourcesChanged = OnContentSourcesChangedIn;
 }
 
+void FFeaturePackContentSourceProvider::StartUpDirectoryWatcher()
+{
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+	if (DirectoryWatcher)
+	{
+		// If the path doesn't exist on disk, make it so the watcher will work.
+		IFileManager::Get().MakeDirectory(*FeaturePackPath);
+		DirectoryChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FFeaturePackContentSourceProvider::OnFeaturePackDirectoryChanged);
+		DirectoryWatcher->RegisterDirectoryChangedCallback(FeaturePackPath, DirectoryChangedDelegate);
+	}
+}
+
+void FFeaturePackContentSourceProvider::ShutDownDirectoryWatcher()
+{
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>( TEXT( "DirectoryWatcher" ) );
+	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+	if ( DirectoryWatcher )
+	{
+		DirectoryWatcher->UnregisterDirectoryChangedCallback(FeaturePackPath, DirectoryChangedDelegate);
+	}
+}
+
+void FFeaturePackContentSourceProvider::OnFeaturePackDirectoryChanged( const TArray<FFileChangeData>& FileChanges )
+{
+	RefreshFeaturePacks();
+}
+
+void FFeaturePackContentSourceProvider::RefreshFeaturePacks()
+{
+	ContentSources.Empty();
+	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	FFillArrayDirectoryVisitor DirectoryVisitor;
+	PlatformFile.IterateDirectory( *FeaturePackPath, DirectoryVisitor );
+	for ( auto FeaturePackFile : DirectoryVisitor.Files )
+	{
+		TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>( FeaturePackFile );
+		if ( NewContentSource->IsDataValid() )
+		{
+			ContentSources.Add( MakeShareable( NewContentSource.Release() ) );
+		}
+	}
+	OnContentSourcesChanged.ExecuteIfBound();
+}
+
 FFeaturePackContentSourceProvider::~FFeaturePackContentSourceProvider()
 {
+	ShutDownDirectoryWatcher();
 }

@@ -1364,12 +1364,17 @@ FReply SContentBrowser::OnSaveClicked()
 
 FReply SContentBrowser::OnAddContentClicked()
 {
-	IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");
-	TSharedRef<SWindow> AddContentDialog = AddContentDialogModule.CreateDialogWindow();
+	if (AddContentDialog.IsValid() == false)
+	{
+		IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");
+		TSharedRef<SWindow> Dialog = AddContentDialogModule.CreateDialogWindow();
 
-	FWidgetPath WidgetPath;
-	FSlateApplication::Get().GeneratePathToWidgetChecked(AsShared(), WidgetPath);
-	FSlateApplication::Get().AddWindowAsNativeChild(AddContentDialog, WidgetPath.GetWindow());
+		FWidgetPath WidgetPath;
+		FSlateApplication::Get().GeneratePathToWidgetChecked(AsShared(), WidgetPath);
+		FSlateApplication::Get().AddWindowAsNativeChild(Dialog, WidgetPath.GetWindow());
+
+		AddContentDialog = TWeakPtr<SWindow>(Dialog);
+	}
 
 	return FReply::Handled();
 }

@@ -9,7 +9,6 @@ public:
 	DECLARE_DELEGATE(FOnCategoriesChanged)
 	DECLARE_DELEGATE(FOnContentSourcesChanged);
 	DECLARE_DELEGATE(FOnSelectedContentSourceChanged);
-	DECLARE_DELEGATE(FOnAddListChanged);
 
 	typedef TTextFilter<TSharedPtr<FContentSourceViewModel>> ContentSourceTextFilter;
 
@@ -50,18 +49,6 @@ public:
 	/** Sets the delegate which should be executed when the selected content source changes. */
 	void SetOnSelectedContentSourceChanged(FOnSelectedContentSourceChanged OnSelectedContentSourceChangedIn);
 
-	/** Gets the array of content sources which the user has selected for addition to the project. */
-	const TArray<TSharedPtr<FContentSourceViewModel>>* GetAddList();
-
-	/** Adds a content source to the array of content sources which the user has selected for addition to the project. */
-	void AppendToAddList(TSharedPtr<FContentSourceViewModel> ContentSourceToAppend);
-
-	/** Removes a content source from the array of content sources which the user has selected for addition to the project. */
-	void RemoveFromAddList(TSharedPtr<FContentSourceViewModel> ContentSourceToRemove);
-
-	/** Sets the delegate which should be executed when the contents of the array returned by GetAddList changes. */
-	void SetOnAddListChanged(FOnAddListChanged OnAddListChangedIn);
-
 private:
 	FAddContentWidgetViewModel();
 	void Initialize();
@@ -91,9 +78,6 @@ private:
 	/** A filtered array of content sources based on the currently selected category and the search text. */
 	TArray<TSharedPtr<FContentSourceViewModel>> FilteredContentSourceViewModels;
 
-	/** An array of the content sources which the user has selected for addition to the project. */
-	TArray<TSharedPtr<FContentSourceViewModel>> AddList;
-
 	/** A map which keeps track of the currently selected content source for each category. */
 	TMap<FCategoryViewModel, TSharedPtr<FContentSourceViewModel>> CategoryToSelectedContentSourceMap;
 
@@ -111,10 +95,6 @@ private:
 
 	/** The delegate which is executed when the currently selected content source changes. */
 	FOnSelectedContentSourceChanged OnSelectedContentSourceChanged;
-
-	/** The delegate which is executed when the contents of the array of content souces to add
-		changes. */
-	FOnAddListChanged OnAddListChanged;
 
 	/** The filter which is used to filter the content sources based on the search text. */
 	TSharedPtr<ContentSourceTextFilter> ContentSourceFilter;

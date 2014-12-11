@@ -50,7 +50,7 @@ public:
 					.VAlign(VAlign_Center)
 					[
 						SNew(SBorder)
-						.BorderImage(FWidgetCarouselModuleStyle::Get().GetBrush("Black .6"))
+						.BorderImage(FWidgetCarouselModuleStyle::Get().GetBrush("WidgetBackground"))
 						.Padding(0)
 						[
 							SNew(SScaleBox)

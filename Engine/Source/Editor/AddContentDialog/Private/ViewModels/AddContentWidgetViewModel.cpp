@@ -156,28 +156,3 @@ void FAddContentWidgetViewModel::ContentSourcesChanged()
 {
 	BuildContentSourceViewModels();
 }
-
-void FAddContentWidgetViewModel::AppendToAddList(TSharedPtr<FContentSourceViewModel> ContentSourceToAppend)
-{
-	if (AddList.Contains(ContentSourceToAppend) == false)
-	{
-		AddList.Add(ContentSourceToAppend);
-		OnAddListChanged.ExecuteIfBound();
-	}
-}
-
-void FAddContentWidgetViewModel::RemoveFromAddList(TSharedPtr<FContentSourceViewModel> ContentSourceToRemove)
-{
-	AddList.Remove(ContentSourceToRemove);
-	OnAddListChanged.ExecuteIfBound();
-}
-
-const TArray<TSharedPtr<FContentSourceViewModel>>* FAddContentWidgetViewModel::GetAddList()
-{
-	return &AddList;
-}
-
-void FAddContentWidgetViewModel::SetOnAddListChanged(FOnAddListChanged OnAddListChangedIn)
-{
-	OnAddListChanged = OnAddListChangedIn;
-}

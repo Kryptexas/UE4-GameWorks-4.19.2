@@ -9,6 +9,8 @@
 
 const FString DefaultLanguageCode = "en";
 
+uint32 FContentSourceViewModel::ImageID = 0;
+
 FContentSourceViewModel::FContentSourceViewModel(TSharedPtr<IContentSource> ContentSourceIn)
 {
 	ContentSource = ContentSourceIn;
@@ -59,16 +61,16 @@ TArray<TSharedPtr<FSlateBrush>>* FContentSourceViewModel::GetScreenshotBrushes()
 void FContentSourceViewModel::SetupBrushes()
 {
 	FString IconBrushName = GetName().ToString() + "_" + ContentSource->GetIconData()->GetName();
-	IconBrush = CreateBrushFromRawData(FName(*IconBrushName), *ContentSource->GetIconData()->GetData());
+	IconBrush = CreateBrushFromRawData(IconBrushName, *ContentSource->GetIconData()->GetData());
 
 	for (TSharedPtr<FImageData> ScreenshotData : ContentSource->GetScreenshotData())
 	{
 		FString ScreenshotBrushName = GetName().ToString() + "_" + ScreenshotData->GetName();
-		ScreenshotBrushes.Add(CreateBrushFromRawData(FName(*ScreenshotBrushName), *ScreenshotData->GetData()));
+		ScreenshotBrushes.Add(CreateBrushFromRawData(ScreenshotBrushName, *ScreenshotData->GetData()));
 	}
 }
 
-TSharedPtr<FSlateDynamicImageBrush> FContentSourceViewModel::CreateBrushFromRawData(FName ResourceName, const TArray< uint8 >& RawData) const
+TSharedPtr<FSlateDynamicImageBrush> FContentSourceViewModel::CreateBrushFromRawData(FString ResourceNamePrefix, const TArray< uint8 >& RawData) const
 {
 	TSharedPtr< FSlateDynamicImageBrush > Brush;
 
@@ -96,7 +98,8 @@ TSharedPtr<FSlateDynamicImageBrush> FContentSourceViewModel::CreateBrushFromRawD
 
 	if (bSucceeded)
 	{
-		Brush = FSlateDynamicImageBrush::CreateWithImageData(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()), DecodedImage);
+		FString UniqueResourceName = ResourceNamePrefix + "_" + FString::FromInt(ImageID++);
+		Brush = FSlateDynamicImageBrush::CreateWithImageData(FName(*UniqueResourceName), FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()), DecodedImage);
 	}
 
 	return Brush;

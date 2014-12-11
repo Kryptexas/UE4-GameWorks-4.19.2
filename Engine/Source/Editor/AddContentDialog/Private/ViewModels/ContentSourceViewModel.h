@@ -31,8 +31,8 @@ private:
 	/** Sets up brushes from the images data supplied by the IContentSource. */
 	void SetupBrushes();
 
-	/** Creates a slate brush from raw binary PNG formatted image data and the supplied FName. */
-	TSharedPtr<FSlateDynamicImageBrush> CreateBrushFromRawData(FName ResourceName, const TArray<uint8>& RawData) const;
+	/** Creates a slate brush from raw binary PNG formatted image data and the supplied prefix. */
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrushFromRawData(FString ResourceNamePrefix, const TArray<uint8>& RawData) const;
 
 	/** Selects an FLocalizedText from an array which matches either the supplied language code, or the default language code. */
 	FLocalizedText ChooseLocalizedText(TArray<FLocalizedText> Choices, FString LanguageCode);
@@ -57,4 +57,9 @@ private:
 	/** The FLocalizedText representing the description of the content source, in the language which was active
 		the last time it was requested, or the default language if a translation was not available. */
 	FLocalizedText DescriptionText;
+
+	/** Keeps track of a unique increasing id which is appended to each brush name.  This avoids an issue
+		where two brushes are created with the same name, and then both brushes texture data gets deleted
+		when either brush is destructed. */
+	static uint32 ImageID;
 };
