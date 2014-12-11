@@ -9,7 +9,7 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 #include "LogVisualizerSessionSettings.generated.h"
 
 UCLASS()
-class NEWLOGVISUALIZER_API ULogVisualizerSessionSettings : public UObject
+class LOGVISUALIZER_API ULogVisualizerSessionSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:

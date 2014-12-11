@@ -11,7 +11,7 @@
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
 
 UCLASS(config = Engine, NotBlueprintable, Transient)
-class NEWLOGVISUALIZER_API AVisualLoggerRenderingActor : public AActor
+class LOGVISUALIZER_API AVisualLoggerRenderingActor : public AActor
 {
 public:
 	GENERATED_UCLASS_BODY()

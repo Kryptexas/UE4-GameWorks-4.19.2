@@ -188,7 +188,7 @@ FCustomVersionRegistration GVisualLoggerVersion(EVisualLoggerVersion::GUID, EVis
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-#include "Developer/NewLogVisualizer/Public/LogVisualizerModule.h"
+#include "Developer/LogVisualizer/Public/LogVisualizerModule.h"
 #if WITH_EDITOR
 #include "SlateBasics.h"
 #endif
@@ -200,7 +200,7 @@ public:
 	{
 		if (FParse::Command(&Cmd, TEXT("VISLOG")))
 		{
-			if (FModuleManager::Get().LoadModulePtr<IModuleInterface>("NewLogVisualizer") != nullptr)
+			if (FModuleManager::Get().LoadModulePtr<IModuleInterface>("LogVisualizer") != nullptr)
 			{
 #if ENABLE_VISUAL_LOG
 				FString Command = FParse::Token(Cmd, 0);

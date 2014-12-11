@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class NewLogVisualizer : ModuleRules
+public class LogVisualizer : ModuleRules
 {
-	public NewLogVisualizer(TargetInfo Target)
+	public LogVisualizer(TargetInfo Target)
 	{
         PrivateIncludePathModuleNames.AddRange(
 			new string[] {

@@ -614,7 +614,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		}
 
 
-		FModuleManager::Get().LoadModule(TEXT("NewLogVisualizer"));
+		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 	}
 
