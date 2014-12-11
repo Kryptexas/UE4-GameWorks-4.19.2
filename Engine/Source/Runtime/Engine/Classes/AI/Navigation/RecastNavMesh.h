@@ -786,6 +786,9 @@ public:
 	/** Returns nearest navmesh polygon to Loc, or INVALID_NAVMESHREF if Loc is not on the navmesh. */
 	NavNodeRef FindNearestPoly(FVector const& Loc, FVector const& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
 
+	/** Finds the distance to the closest wall, limited to MaxDistance */
+	float FindDistanceToWall(const FVector& StartLoc, TSharedPtr<const FNavigationQueryFilter> Filter = nullptr, float MaxDistance = FLT_MAX) const;
+
 	/** Retrieves center of the specified polygon. Returns false on error. */
 	bool GetPolyCenter(NavNodeRef PolyID, FVector& OutCenter) const;
 
