@@ -2,12 +2,12 @@
 
 #pragma once
 
-class FSlateApplication;
+#include "IInputProcessor.h"
 
 /**
  * A class that simulates a cursor driven by an analog stick.
  */
-class SLATE_API FAnalogCursor
+class SLATE_API FAnalogCursor : public IInputProcessor
 {
 public:
 	FAnalogCursor();
@@ -16,11 +16,11 @@ public:
 	virtual ~FAnalogCursor()
 	{}
 
-	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor);
+	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override;
 
-	bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
-	bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
-	bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent);
+	virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override;
+	virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override;
+	virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) override;
 
 protected:
 

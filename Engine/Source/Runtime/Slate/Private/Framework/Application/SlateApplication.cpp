@@ -8,7 +8,7 @@
 #include "IWidgetReflector.h"
 #include "GenericCommands.h"
 #include "NotificationManager.h"
-#include "AnalogCursor.h"
+#include "IInputProcessor.h"
 
 
 class FEventRouter
@@ -1125,9 +1125,9 @@ void FSlateApplication::FinishedInputThisFrame()
 {
 	const float DeltaTime = GetDeltaTime();
 
-	if (AnalogCursor.IsValid() && PlatformApplication->Cursor.IsValid())
+	if (InputPreProcessor.IsValid() && PlatformApplication->Cursor.IsValid())
 	{
-		AnalogCursor->Tick(DeltaTime, *this, PlatformApplication->Cursor.ToSharedRef());
+		InputPreProcessor->Tick(DeltaTime, *this, PlatformApplication->Cursor.ToSharedRef());
 	}
 
 	// All the input events have been processed.
@@ -3068,15 +3068,15 @@ void FSlateApplication::SetDragTriggerDistnace( float ScreenPixels )
 	DragTriggerDistnace = ScreenPixels;
 }
 
-void FSlateApplication::SetAnalogCursorEnable(bool bEnable, TSharedPtr<class FAnalogCursor> OptionalNewAnalogCursor)
+void FSlateApplication::SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor)
 {
-	if (bEnable && !AnalogCursor.IsValid())
+	if (bEnable && NewInputProcessor.IsValid())
 	{
-		AnalogCursor = OptionalNewAnalogCursor.IsValid() ? OptionalNewAnalogCursor : MakeShareable(new FAnalogCursor);
+		InputPreProcessor = NewInputProcessor;
 	}
 	else
 	{
-		AnalogCursor.Reset();
+		InputPreProcessor.Reset();
 	}
 }
 
@@ -3525,7 +3525,7 @@ bool FSlateApplication::OnKeyDown( const int32 KeyCode, const uint32 CharacterCo
 bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 {
 	// Analog cursor gets first chance at the input
-	if (AnalogCursor.IsValid() && AnalogCursor->HandleKeyDownEvent(*this, InKeyEvent))
+	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleKeyDownEvent(*this, InKeyEvent))
 	{
 		return true;
 	}
@@ -3610,7 +3610,7 @@ bool FSlateApplication::OnKeyUp( const int32 KeyCode, const uint32 CharacterCode
 bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 {
 	// Analog cursor gets first chance at the input
-	if (AnalogCursor.IsValid() && AnalogCursor->HandleKeyUpEvent(*this, InKeyEvent))
+	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleKeyUpEvent(*this, InKeyEvent))
 	{
 		return true;
 	}
@@ -3642,7 +3642,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInputEvent)
 {
 	// Analog cursor gets first chance at the input
-	if (AnalogCursor.IsValid() && AnalogCursor->HandleAnalogInputEvent(*this, InAnalogInputEvent))
+	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleAnalogInputEvent(*this, InAnalogInputEvent))
 	{
 		return true;
 	}

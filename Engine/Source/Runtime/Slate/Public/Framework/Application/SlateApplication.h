@@ -15,7 +15,7 @@ class FHittestGrid;
 struct FPopupTransitionEffect;
 class FMenuStack;
 class IWidgetReflector;
-class FAnalogCursor;
+class IInputProcessor;
 
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
@@ -958,7 +958,7 @@ public:
 	void SetDragTriggerDistnace( float ScreenPixels );
 	
 	/** Set the analog cursor to be enabled or disabled. */
-	void SetAnalogCursorEnable(bool bEnable, TSharedPtr<class FAnalogCursor> OptionalNewAnalogCursor = nullptr);
+	void SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor = nullptr);
 
 	/** Sets the hit detection radius of the cursor */
 	void SetCursorRadius(float NewRadius);
@@ -1313,7 +1313,8 @@ private:
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;
 
-	TSharedPtr<FAnalogCursor> AnalogCursor;
+	/** An input preprocessor, gets an opportunity to parse input before anything else. */
+	TSharedPtr<IInputProcessor> InputPreProcessor;
 	
 	/** The cursor widget and window to render that cursor for the current software cursor.*/
 	TWeakPtr<SWindow> CursorWindowPtr;
