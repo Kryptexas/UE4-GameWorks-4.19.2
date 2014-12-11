@@ -158,34 +158,8 @@ bool USelection::IsSelected(const UObject* InObject) const
 }
 
 
-void USelection::RefreshObjectFlags()
-{
-	for( int32 Index = 0 ; Index < SelectedObjects.Num() ; ++Index )
-	{
-		if ( GetSelectedObject(Index) )
-		{
-			GSelectedAnnotation.Set(GetSelectedObject(Index));
-		}
-	}
-}
-
-
 void USelection::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 	Ar << SelectedObjects;
 }
-
-
-void RefreshSelectionSets()
-{
-	// Make a list of all selection sets and refresh RF_EdSelectedFlags.
-	GSelectedAnnotation.ClearAll();
-	for ( TObjectIterator<USelection> It ; It ; ++It )
-	{
-		It->RefreshObjectFlags();
-	}
-}
-
-
-

@@ -283,11 +283,6 @@ public:
 		return SelectedClasses[ InIndex ];
 	}
 
-	/**
-	 * Sync's all objects' RF_EdSelected flag based on the current selection list.
-	 */
-	void RefreshObjectFlags();
-
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -440,9 +435,3 @@ private:
 	USelection&	Selection;
 	int32			Index;
 };
-
-
-/**
- * Ensures that only selected objects are marked with what was the RF_EdSelected flag.
- */
-void RefreshSelectionSets();
