@@ -100,6 +100,12 @@ public class BuildCommonTools : BuildCommand
 			Agenda.AddTarget("PS4MapFileUtil", UnrealBuildTool.UnrealTargetPlatform.Win64, UnrealBuildTool.UnrealTargetConfiguration.Development);
 		}
 		
+		// Xbox One binaries
+		if(Platforms.Contains(UnrealBuildTool.UnrealTargetPlatform.XboxOne))
+		{
+			Agenda.AddTarget("XboxOnePDBFileUtil", UnrealBuildTool.UnrealTargetPlatform.Win64, UnrealBuildTool.UnrealTargetConfiguration.Development);
+		}
+		
 		return Agenda;
 	}
 }

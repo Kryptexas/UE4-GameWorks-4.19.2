@@ -1328,6 +1328,15 @@ public class GUBP : BuildCommand
                 }
                 AddDependency(SingleToolsNode.StaticGetFullName(HostPlatform, PS4MapFileUtil));
             }
+			if (TargetPlatform == UnrealTargetPlatform.XboxOne)
+			{
+				var XboxOnePDBFileUtil = bp.Branch.FindProgram("XboxOnePDBFileUtil");
+				if (XboxOnePDBFileUtil.Rules == null)
+				{
+					throw new AutomationException("XboxOnePDBFileUtil is not is this branch, but is required to build Xbox One monolithics");
+				}
+				AddDependency(SingleToolsNode.StaticGetFullName(HostPlatform, XboxOnePDBFileUtil));
+			}
             if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
             {
                 AddPseudodependency(EditorGameNode.StaticGetFullName(InHostPlatform, GameProj));
