@@ -9,6 +9,7 @@
 
 #include "STileLayerList.h"
 #include "ScopedTransaction.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -24,6 +25,8 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 {
 	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
 	
+	FNotifyHook* NotifyHook = DetailLayout.GetPropertyUtilities()->GetNotifyHook();
+
 	bool bEditingActor = false;
 
 	UPaperTileMap* TileMap = NULL;
@@ -80,7 +83,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 		LayersCategory.AddCustomRow(LOCTEXT("TileLayerList", "Tile layer list"))
 		[
-			SNew(STileLayerList, TileMap)
+			SNew(STileLayerList, TileMap, NotifyHook)
 		];
 	}
 

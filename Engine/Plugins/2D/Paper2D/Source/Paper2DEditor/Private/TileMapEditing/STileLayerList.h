@@ -11,7 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(STileLayerList) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap);
+	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap, FNotifyHook* InNotifyHook);
 
 protected:
 	typedef SListView<class UPaperTileLayer*> SPaperLayerListView;
@@ -20,7 +20,7 @@ protected:
 	TSharedPtr<SPaperLayerListView> ListViewWidget;
 	TSharedPtr<class FUICommandList> CommandList;
 	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
-
+	FNotifyHook* NotifyHook;
 protected:
 	TSharedRef<ITableRow> OnGenerateLayerListRow(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable);
 
@@ -53,4 +53,7 @@ protected:
 
 	void OnSelectionChanged(UPaperTileLayer* ItemChangingState, ESelectInfo::Type SelectInfo);
 	TSharedPtr<SWidget> OnConstructContextMenu();
+
+	// Called after edits are finished
+	void PostEditNotfications();
 };
