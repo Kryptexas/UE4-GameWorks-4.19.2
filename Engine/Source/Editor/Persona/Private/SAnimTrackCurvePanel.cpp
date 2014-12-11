@@ -764,6 +764,8 @@ void SAnimTrackCurvePanel::ToggleEditability(ECheckBoxState NewType, USkeleton::
 			Curve->SetCurveTypeFlag(ACF_Editable, bEdit);
 		}
 	}
+
+	UpdatePanel();
 }
 
 FReply		SAnimTrackCurvePanel::RefreshPanel()
