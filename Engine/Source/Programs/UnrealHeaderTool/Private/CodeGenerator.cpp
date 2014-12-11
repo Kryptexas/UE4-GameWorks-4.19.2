@@ -958,8 +958,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(UPackage* Packa
 	TheFlagAudit.Add(Package, TEXT("PackageFlags"), Package->PackageFlags);
 	{
 		FGuid Guid;
-		Guid.A = FCrc::StrCrc_DEPRECATED(*GeneratedFunctionText        .ToUpper());
-		Guid.B = FCrc::StrCrc_DEPRECATED(*GeneratedFunctionDeclarations.ToUpper());
+		Guid.A = GenerateTextCRC(*GeneratedFunctionText        .ToUpper());
+		Guid.B = GenerateTextCRC(*GeneratedFunctionDeclarations.ToUpper());
 		GeneratedFunctionText.Logf(TEXT("            FGuid Guid;\r\n"));
 		GeneratedFunctionText.Logf(TEXT("            Guid.A = 0x%08X;\r\n"), Guid.A);
 		GeneratedFunctionText.Logf(TEXT("            Guid.B = 0x%08X;\r\n"), Guid.B);
@@ -1050,7 +1050,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 
 		GeneratedFunctionText += GeneratedEnumRegisterFunctionText;
 
-		uint32 EnumCrc = FCrc::MemCrc32(*GeneratedEnumRegisterFunctionText, GeneratedEnumRegisterFunctionText.Len() * sizeof(TCHAR));		
+		uint32 EnumCrc = GenerateTextCRC(*GeneratedEnumRegisterFunctionText);
 		GGeneratedCodeCRCs.Add(Enum, EnumCrc);
 		CallSingletons.Logf(TEXT("                OuterClass->LinkChild(%s); // %u\r\n"), *SingletonName, EnumCrc);
 	}
@@ -1143,7 +1143,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		GeneratedStructRegisterFunctionText.Logf(TEXT("        return ReturnStruct;\r\n"));
 		GeneratedStructRegisterFunctionText.Logf(TEXT("    }\r\n"));
 		
-		uint32 StructCrc = FCrc::MemCrc32(*GeneratedStructRegisterFunctionText, GeneratedStructRegisterFunctionText.Len() * sizeof(TCHAR));
+		uint32 StructCrc = GenerateTextCRC(*GeneratedStructRegisterFunctionText);
 		GGeneratedCodeCRCs.Add(ScriptStruct, StructCrc);
 
 		GeneratedFunctionText += GeneratedStructRegisterFunctionText;
@@ -1273,7 +1273,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 
 		GeneratedFunctionText += CurrentFunctionText;
 
-		uint32 FunctionCrc = FCrc::MemCrc32(*CurrentFunctionText, CurrentFunctionText.Len() * sizeof(TCHAR));
+		uint32 FunctionCrc = GenerateTextCRC(*CurrentFunctionText);
 		GGeneratedCodeCRCs.Add(Function, FunctionCrc);
 	}
 
@@ -1418,7 +1418,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			ClassNameCPP, *SingletonName, ClassNameCPP);
 		
 		// Calculate generated class initialization code CRC so that we know when it changes after hot-reload
-		uint32 ClassCrc = FCrc::MemCrc32(*GeneratedClassRegisterFunctionText, GeneratedClassRegisterFunctionText.Len() * sizeof(TCHAR));
+		uint32 ClassCrc = GenerateTextCRC(*GeneratedClassRegisterFunctionText);
 		// Emit the IMPLEMENT_CLASS macro to go in the generated cpp file.
 		GeneratedPackageCPP.Logf(TEXT("    IMPLEMENT_CLASS(%s, %u);\r\n"), ClassNameCPP, ClassCrc);
 	}
