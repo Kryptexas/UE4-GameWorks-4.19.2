@@ -94,7 +94,7 @@ protected:
 	bool IsTileMapEditModeActive() const;
 
 public:
-	UPaperTileMapRenderComponent* FindSelectedComponent() const;
+	UPaperTileMapComponent* FindSelectedComponent() const;
 
 protected:
 	bool bIsPainting;

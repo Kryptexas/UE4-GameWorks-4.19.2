@@ -67,7 +67,7 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 	BindCommands();
 
 	// Try to determine a good default tile set based on the current selection set
-	if (UPaperTileMapRenderComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
+	if (UPaperTileMapComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
 	{
 		if (TargetComponent->TileMap != nullptr)
 		{
@@ -157,7 +157,7 @@ void FTileMapEdModeToolkit::OnChangeTileSet(UObject* NewAsset)
 			}
 
 			// Save the newly selected tile set in the asset so it can be restored next time we edit it
-			if (UPaperTileMapRenderComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
+			if (UPaperTileMapComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
 			{
 				if (TargetComponent->TileMap != nullptr)
 				{

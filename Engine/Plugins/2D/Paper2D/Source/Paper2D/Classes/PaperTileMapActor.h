@@ -10,7 +10,7 @@
  * An instance of a UPaperTileMap in a level.
  *
  * This actor is created when you drag a tile map asset from the content browser into the level, and
- * it is just a thin wrapper around a UPaperTileMapRenderComponent that actually references the asset.
+ * it is just a thin wrapper around a UPaperTileMapComponent that actually references the asset.
  */
 UCLASS()
 class PAPER2D_API APaperTileMapActor : public AActor
@@ -19,7 +19,7 @@ class PAPER2D_API APaperTileMapActor : public AActor
 
 private:
 	UPROPERTY(Category=TileMapActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess="true"))
-	class UPaperTileMapRenderComponent* RenderComponent;
+	class UPaperTileMapComponent* RenderComponent;
 public:
 
 	// AActor interface
@@ -29,5 +29,5 @@ public:
 	// End of AActor interface
 
 	/** Returns RenderComponent subobject **/
-	FORCEINLINE class UPaperTileMapRenderComponent* GetRenderComponent() const { return RenderComponent; }
+	FORCEINLINE class UPaperTileMapComponent* GetRenderComponent() const { return RenderComponent; }
 };

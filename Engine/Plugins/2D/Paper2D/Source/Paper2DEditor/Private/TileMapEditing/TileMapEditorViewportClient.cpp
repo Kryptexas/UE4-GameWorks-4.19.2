@@ -42,7 +42,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 
 	// Create a render component for the tile map being edited
 	{
-		RenderTileMapComponent = NewObject<UPaperTileMapRenderComponent>();
+		RenderTileMapComponent = NewObject<UPaperTileMapComponent>();
 		UPaperTileMap* TileMap = GetTileMapBeingEdited();
 		RenderTileMapComponent->TileMap = TileMap;
 		GSelectedAnnotation.Set(RenderTileMapComponent);
@@ -131,7 +131,7 @@ void FTileMapEditorViewportClient::Tick(float DeltaSeconds)
 		FIntPoint Size = Viewport->GetSizeXY();
 		if (bDeferZoomToTileMap && (Size.X > 0) && (Size.Y > 0))
 		{
-			UPaperTileMapRenderComponent* ComponentToFocusOn = RenderTileMapComponent;
+			UPaperTileMapComponent* ComponentToFocusOn = RenderTileMapComponent;
 			FocusViewportOnBox(ComponentToFocusOn->Bounds.GetBox(), true);
 			bDeferZoomToTileMap = false;
 		}		

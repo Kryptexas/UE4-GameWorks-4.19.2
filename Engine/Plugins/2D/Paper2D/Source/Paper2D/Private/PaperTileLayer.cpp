@@ -76,7 +76,7 @@ public:
 	FTileMapLayerReregisterContext(UPaperTileLayer* TargetAsset)
 	{
 		// Look at tile map components
-		for (TObjectIterator<UPaperTileMapRenderComponent> MapIt; MapIt; ++MapIt)
+		for (TObjectIterator<UPaperTileMapComponent> MapIt; MapIt; ++MapIt)
 		{
 			if (UPaperTileMap* TestMap = (*MapIt)->TileMap)
 			{

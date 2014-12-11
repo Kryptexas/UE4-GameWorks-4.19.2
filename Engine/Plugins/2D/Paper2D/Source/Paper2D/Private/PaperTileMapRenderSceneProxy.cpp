@@ -8,11 +8,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FPaperTileMapRenderSceneProxy
 
-FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMapRenderComponent* InComponent)
+FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMapComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
 	, TileMap(nullptr)
 {
-	if (const UPaperTileMapRenderComponent* InTileComponent = Cast<const UPaperTileMapRenderComponent>(InComponent))
+	if (const UPaperTileMapComponent* InTileComponent = Cast<const UPaperTileMapComponent>(InComponent))
 	{
 		TileMap = InTileComponent->TileMap;
 		Material = (TileMap != nullptr) ? TileMap->Material : nullptr;

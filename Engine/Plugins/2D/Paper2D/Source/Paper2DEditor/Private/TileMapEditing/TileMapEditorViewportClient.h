@@ -51,7 +51,7 @@ private:
 	TWeakPtr<FTileMapEditor> TileMapEditorPtr;
 
 	// Render component for the tile map being edited
-	UPaperTileMapRenderComponent* RenderTileMapComponent;
+	UPaperTileMapComponent* RenderTileMapComponent;
 
 	// Widget mode
 	FWidget::EWidgetMode WidgetMode;

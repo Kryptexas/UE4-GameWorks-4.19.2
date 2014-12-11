@@ -35,14 +35,14 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 		UObject* TestObject = SelectedObjects[ObjectIndex].Get();
 		if (AActor* CurrentActor = Cast<AActor>(TestObject))
 		{
-			if (UPaperTileMapRenderComponent* CurrentComponent = CurrentActor->FindComponentByClass<UPaperTileMapRenderComponent>())
+			if (UPaperTileMapComponent* CurrentComponent = CurrentActor->FindComponentByClass<UPaperTileMapComponent>())
 			{
 				bEditingActor = true;
 				TileMap = CurrentComponent->TileMap;
 				break;
 			}
 		}
-		else if (UPaperTileMapRenderComponent* TestComponent = Cast<UPaperTileMapRenderComponent>(TestObject))
+		else if (UPaperTileMapComponent* TestComponent = Cast<UPaperTileMapComponent>(TestObject))
 		{
 			TileMap = TestComponent->TileMap;
 			break;

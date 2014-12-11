@@ -97,7 +97,7 @@ bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) co
 
 #if WITH_EDITOR
 
-#include "PaperTileMapRenderComponent.h"
+#include "PaperTileMapComponent.h"
 #include "ComponentReregisterContext.h"
 
 void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

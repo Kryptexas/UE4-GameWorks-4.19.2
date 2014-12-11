@@ -8,9 +8,9 @@
 #define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
-// UPaperTileMapRenderComponent
+// UPaperTileMapComponent
 
-UPaperTileMapRenderComponent::UPaperTileMapRenderComponent(const FObjectInitializer& ObjectInitializer)
+UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -24,7 +24,7 @@ UPaperTileMapRenderComponent::UPaperTileMapRenderComponent(const FObjectInitiali
 	Material_DEPRECATED = DefaultMaterial.Object;
 }
 
-FPrimitiveSceneProxy* UPaperTileMapRenderComponent::CreateSceneProxy()
+FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()
 {
 	FPaperTileMapRenderSceneProxy* Proxy = new FPaperTileMapRenderSceneProxy(this);
 	RebuildRenderData(Proxy);
@@ -32,14 +32,14 @@ FPrimitiveSceneProxy* UPaperTileMapRenderComponent::CreateSceneProxy()
 	return Proxy;
 }
 
-void UPaperTileMapRenderComponent::PostInitProperties()
+void UPaperTileMapComponent::PostInitProperties()
 {
 	TileMap = NewObject<UPaperTileMap>(this);
 	TileMap->SetFlags(RF_Transactional);
 	Super::PostInitProperties();
 }
 
-FBoxSphereBounds UPaperTileMapRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
+FBoxSphereBounds UPaperTileMapComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if (TileMap != nullptr)
 	{
@@ -68,21 +68,21 @@ FBoxSphereBounds UPaperTileMapRenderComponent::CalcBounds(const FTransform& Loca
 	}
 }
 
-void UPaperTileMapRenderComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UPaperTileMapComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	// Indicate we need to send new dynamic data.
 	MarkRenderDynamicDataDirty();
 }
 
 #if WITH_EDITORONLY_DATA
-void UPaperTileMapRenderComponent::Serialize(FArchive& Ar)
+void UPaperTileMapComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
 }
 
-void UPaperTileMapRenderComponent::PostLoad()
+void UPaperTileMapComponent::PostLoad()
 {
 	Super::PostLoad();
 
@@ -117,12 +117,12 @@ void UPaperTileMapRenderComponent::PostLoad()
 }
 #endif
 
-UBodySetup* UPaperTileMapRenderComponent::GetBodySetup()
+UBodySetup* UPaperTileMapComponent::GetBodySetup()
 {
 	return (TileMap != nullptr) ? TileMap->BodySetup : nullptr;
 }
 
-const UObject* UPaperTileMapRenderComponent::AdditionalStatObject() const
+const UObject* UPaperTileMapComponent::AdditionalStatObject() const
 {
 	if (TileMap != nullptr)
 	{
@@ -135,7 +135,7 @@ const UObject* UPaperTileMapRenderComponent::AdditionalStatObject() const
 	return nullptr;
 }
 
-void UPaperTileMapRenderComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Proxy)
+void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Proxy)
 {
 	TArray<FSpriteDrawCallRecord> BatchedSprites;
 	
@@ -318,7 +318,7 @@ void UPaperTileMapRenderComponent::RebuildRenderData(FPaperTileMapRenderScenePro
 	Proxy->SetBatchesHack(BatchedSprites);
 }
 
-bool UPaperTileMapRenderComponent::OwnsTileMap() const
+bool UPaperTileMapComponent::OwnsTileMap() const
 {
 	return (TileMap != nullptr) && (TileMap->GetOuter() == this);
 }

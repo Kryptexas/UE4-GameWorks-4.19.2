@@ -34,7 +34,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 
 #if WITH_EDITOR
 
-#include "PaperTileMapRenderComponent.h"
+#include "PaperTileMapComponent.h"
 #include "ComponentReregisterContext.h"
 
 void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -42,7 +42,7 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	//@TODO: Determine when these are really needed, as they're seriously expensive!
-	TComponentReregisterContext<UPaperTileMapRenderComponent> ReregisterStaticComponents;
+	TComponentReregisterContext<UPaperTileMapComponent> ReregisterStaticComponents;
 
 	ValidateSelectedLayerIndex();
 

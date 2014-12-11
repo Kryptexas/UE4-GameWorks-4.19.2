@@ -419,7 +419,7 @@ void STileLayerList::PostEditNotfications()
 
 	if (NotifyHook != nullptr)
 	{
-		UProperty* TileMapProperty = FindFieldChecked<UProperty>(UPaperTileMapRenderComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(UPaperTileMapRenderComponent, TileMap));
+		UProperty* TileMapProperty = FindFieldChecked<UProperty>(UPaperTileMapComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(UPaperTileMapComponent, TileMap));
 		NotifyHook->NotifyPreChange(TileMapProperty);
 		NotifyHook->NotifyPostChange(FPropertyChangedEvent(TileMapProperty), TileMapProperty);
 	}

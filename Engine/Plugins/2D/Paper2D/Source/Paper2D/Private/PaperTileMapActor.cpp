@@ -8,7 +8,7 @@
 APaperTileMapActor::APaperTileMapActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTileMapRenderComponent>(this, TEXT("RenderComponent"));
+	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTileMapComponent>(this, TEXT("RenderComponent"));
 
 	RootComponent = RenderComponent;
 }

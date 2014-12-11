@@ -10,7 +10,7 @@
 class FPaperTileMapRenderSceneProxy : public FPaperRenderSceneProxy
 {
 public:
-	FPaperTileMapRenderSceneProxy(const UPaperTileMapRenderComponent* InComponent);
+	FPaperTileMapRenderSceneProxy(const UPaperTileMapComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface.
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;

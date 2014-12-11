@@ -314,16 +314,16 @@ bool FEdModeTileMap::UsesTransformWidget() const
 	return false;
 }
 
-UPaperTileMapRenderComponent* FEdModeTileMap::FindSelectedComponent() const
+UPaperTileMapComponent* FEdModeTileMap::FindSelectedComponent() const
 {
-	UPaperTileMapRenderComponent* TileMapComponent = nullptr;
+	UPaperTileMapComponent* TileMapComponent = nullptr;
 
 	USelection* SelectedActors = Owner->GetSelectedActors();
 	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = CastChecked<AActor>(*Iter);
 
-		TileMapComponent = Actor->FindComponentByClass<UPaperTileMapRenderComponent>();
+		TileMapComponent = Actor->FindComponentByClass<UPaperTileMapComponent>();
 		if (TileMapComponent != nullptr)
 		{
 			break;
@@ -336,7 +336,7 @@ UPaperTileMapRenderComponent* FEdModeTileMap::FindSelectedComponent() const
 		for (FSelectionIterator Iter(*SelectedObjects); Iter; ++Iter)
 		{
 			UObject* Foo = *Iter;
-			TileMapComponent = Cast<UPaperTileMapRenderComponent>(Foo);
+			TileMapComponent = Cast<UPaperTileMapComponent>(Foo);
 
 			if (TileMapComponent != nullptr)
 			{
@@ -355,7 +355,7 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 
 	const bool bCollisionPainting = (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers);
 
-	UPaperTileMapRenderComponent* TileMapComponent = FindSelectedComponent();
+	UPaperTileMapComponent* TileMapComponent = FindSelectedComponent();
 
 	if (TileMapComponent != nullptr)
 	{

@@ -4,10 +4,10 @@
 
 #include "PaperSprite.h"
 
-#include "PaperTileMapRenderComponent.generated.h"
+#include "PaperTileMapComponent.generated.h"
 
 UCLASS(hideCategories=Object, ClassGroup=Paper2D, Experimental, meta=(BlueprintSpawnableComponent))
-class PAPER2D_API UPaperTileMapRenderComponent : public UPrimitiveComponent
+class PAPER2D_API UPaperTileMapComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -70,3 +70,7 @@ public:
 	// Does this component own the tile map (is it instanced instead of being an asset reference)?
 	bool OwnsTileMap() const;
 };
+
+// Allow the old name to continue to work for one release
+DEPRECATED(4.7, "UPaperTileMapRenderComponent has been renamed to UPaperTileMapComponent")
+typedef UPaperTileMapComponent UPaperTileMapRenderComponent;
