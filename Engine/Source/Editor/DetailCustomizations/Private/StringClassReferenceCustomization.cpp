@@ -4,27 +4,25 @@
 #include "StringClassReferenceCustomization.h"
 #include "EditorClassUtils.h"
 
-void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	StructPropertyHandle = InStructPropertyHandle;
+	PropertyHandle = InPropertyHandle;
 
-	ClassNamePropertyHandle = InStructPropertyHandle->GetChildHandle("AssetLongPathname");
-	check(ClassNamePropertyHandle.IsValid());
+	const FString& MetaClassName = PropertyHandle->GetMetaData("MetaClass");
+	const FString& RequiredInterfaceName = PropertyHandle->GetMetaData("RequiredInterface");
+	const bool bAllowAbstract = PropertyHandle->GetBoolMetaData("AllowAbstract");
+	const bool bIsBlueprintBaseOnly = PropertyHandle->GetBoolMetaData("IsBlueprintBaseOnly");
+	const bool bAllowNone = !(PropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
 
-	const FString& MetaClassName = StructPropertyHandle->GetMetaData("MetaClass");
-	const FString& RequiredInterfaceName = StructPropertyHandle->GetMetaData("RequiredInterface");
-	const bool bAllowAbstract = StructPropertyHandle->GetBoolMetaData("AllowAbstract");
-	const bool bIsBlueprintBaseOnly = StructPropertyHandle->GetBoolMetaData("IsBlueprintBaseOnly");
-	const bool bAllowNone = !(StructPropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
-
-	check(!MetaClassName.IsEmpty());
-	const UClass* const MetaClass = FEditorClassUtils::GetClassFromString(MetaClassName);
+	const UClass* const MetaClass = !MetaClassName.IsEmpty()
+		? FEditorClassUtils::GetClassFromString(MetaClassName)
+		: UClass::StaticClass();
 	const UClass* const RequiredInterface = FEditorClassUtils::GetClassFromString(RequiredInterfaceName);
 
 	HeaderRow
 	.NameContent()
 	[
-		InStructPropertyHandle->CreatePropertyNameWidget()
+		InPropertyHandle->CreatePropertyNameWidget()
 	]
 	.ValueContent()
 	.MinDesiredWidth(250.0f)
@@ -49,7 +47,7 @@ void FStringClassReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyH
 const UClass* FStringClassReferenceCustomization::OnGetClass() const
 {
 	FString ClassName;
-	ClassNamePropertyHandle->GetValueAsFormattedString(ClassName);
+	PropertyHandle->GetValueAsFormattedString(ClassName);
 
 	// Do we have a valid cached class pointer?
 	const UClass* Class = CachedClassPtr.Get();
@@ -63,7 +61,7 @@ const UClass* FStringClassReferenceCustomization::OnGetClass() const
 
 void FStringClassReferenceCustomization::OnSetClass(const UClass* NewClass)
 {
-	if(ClassNamePropertyHandle->SetValueFromFormattedString((NewClass) ? NewClass->GetPathName() : "None") == FPropertyAccess::Result::Success)
+	if (PropertyHandle->SetValueFromFormattedString((NewClass) ? NewClass->GetPathName() : "None") == FPropertyAccess::Result::Success)
 	{
 		CachedClassPtr = NewClass;
 	}
