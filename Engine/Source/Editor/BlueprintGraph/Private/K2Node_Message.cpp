@@ -133,6 +133,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		// First, create an internal cast-to-interface node
 		UK2Node_DynamicCast* CastToInterfaceNode = CompilerContext.SpawnIntermediateNode<UK2Node_DynamicCast>(this, SourceGraph);
 		CastToInterfaceNode->TargetType = MessageNodeFunction->GetOuterUClass();
+		CastToInterfaceNode->SetPurity(false);
 		CastToInterfaceNode->AllocateDefaultPins();
 
 		UEdGraphPin* CastToInterfaceResultPin = CastToInterfaceNode->GetCastResultPin();

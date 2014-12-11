@@ -48,7 +48,7 @@ public:
 	bool bFlattenFavoritesMenus;
 
 	/** If enabled, then placed cast nodes will default to their "pure" form (meaning: without execution pins). */
-	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Default to Using Pure Cast Nodes"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=Experimental, meta=(DisplayName="Default to Using Pure Cast Nodes"))
 	bool bFavorPureCastNodes;
 
 	/** If set, then the new refactored menu system will be replaced with the old (legacy) system (as a fallback, in case the new system has unforeseen problems)*/
