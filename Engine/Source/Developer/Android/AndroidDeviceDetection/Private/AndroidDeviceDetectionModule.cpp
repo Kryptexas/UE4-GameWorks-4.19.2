@@ -255,6 +255,56 @@ public:
 		TCHAR AndroidDirectory[32768] = { 0 };
 		FPlatformMisc::GetEnvironmentVariable(TEXT("ANDROID_HOME"), AndroidDirectory, 32768);
 
+#if PLATFORM_MAC
+		TCHAR AntDirectory[32768] = { 0 };
+		TCHAR NDKDirectory[32768] = { 0 };
+		FPlatformMisc::GetEnvironmentVariable(TEXT("ANT_HOME"), AntDirectory, 32768);
+		FPlatformMisc::GetEnvironmentVariable(TEXT("NDKROOT"), NDKDirectory, 32768);
+
+		if (AndroidDirectory[0] == 0 || AntDirectory[0] == 0 || NDKDirectory[0] == 0)
+		{
+			FArchive* FileReader = IFileManager::Get().CreateFileReader(*FString([@"~/.bash_profile" stringByExpandingTildeInPath]));
+			if (FileReader)
+			{
+				const int64 FileSize = FileReader->TotalSize();
+				ANSICHAR* AnsiContents = (ANSICHAR*)FMemory::Malloc(FileSize);
+				FileReader->Serialize(AnsiContents, FileSize);
+				FileReader->Close();
+				delete FileReader;
+
+				TArray<FString> Lines;
+				FString(ANSI_TO_TCHAR(AnsiContents)).ParseIntoArrayLines(&Lines);
+				FMemory::Free(AnsiContents);
+
+				for (int32 Index = 0; Index < Lines.Num(); Index++)
+				{
+					if (AndroidDirectory[0] == 0 && Lines[Index].StartsWith(TEXT("export ANDROID_HOME=")))
+					{
+						FString Directory;
+						Lines[Index].Split(TEXT("="), NULL, &Directory);
+						Directory = Directory.Replace(TEXT("\""), TEXT(""));
+						FCString::Strcpy(AndroidDirectory, *Directory);
+						setenv("ANDROID_HOME", TCHAR_TO_ANSI(AndroidDirectory), 1);
+					}
+					else if (AntDirectory[0] == 0 && Lines[Index].StartsWith(TEXT("export ANT_HOME=")))
+					{
+						FString Directory;
+						Lines[Index].Split(TEXT("="), NULL, &Directory);
+						Directory = Directory.Replace(TEXT("\""), TEXT(""));
+						setenv("ANT_HOME", TCHAR_TO_ANSI(*Directory), 1);
+					}
+					else if (NDKDirectory[0] == 0 && Lines[Index].StartsWith(TEXT("export NDKROOT=")))
+					{
+						FString Directory;
+						Lines[Index].Split(TEXT("="), NULL, &Directory);
+						Directory = Directory.Replace(TEXT("\""), TEXT(""));
+						setenv("NDKROOT", TCHAR_TO_ANSI(*Directory), 1);
+					}
+				}
+			}
+		}
+#endif
+
 		if (AndroidDirectory[0] == 0)
 		{
 			return;

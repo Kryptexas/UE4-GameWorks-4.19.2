@@ -64,6 +64,35 @@ namespace UnrealBuildTool
         private bool HasAnySDK()
         {
             string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			bool bNeedsNDKPath = string.IsNullOrEmpty(NDKPath);
+			bool bNeedsAndroidHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANDROID_HOME"));
+			bool bNeedsAntHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANT_HOME"));
+
+			if (Utils.IsRunningOnMono && (bNeedsNDKPath || bNeedsAndroidHome || bNeedsAntHome))
+			{
+				// Try reading env variables we need from .bash_profile
+				string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+				string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+				foreach (string Line in BashProfileContents)
+				{
+					if (bNeedsAndroidHome && Line.StartsWith("export ANDROID_HOME="))
+					{
+						string PathVar = Line.Split('=')[1].Replace("\"", "");
+						Environment.SetEnvironmentVariable("ANDROID_HOME", PathVar);
+					}
+					else if (bNeedsNDKPath && Line.StartsWith("export NDKROOT="))
+					{
+						string PathVar = Line.Split('=')[1].Replace("\"", "");
+						Environment.SetEnvironmentVariable("NDKROOT", PathVar);
+						NDKPath = PathVar;
+					}
+					else if (bNeedsAntHome && Line.StartsWith("export ANT_HOME="))
+					{
+						string PathVar = Line.Split('=')[1].Replace("\"", "");
+						Environment.SetEnvironmentVariable("ANT_HOME", PathVar);
+					}
+				}
+			}
 
             // we don't have an NDKROOT specified
             if (String.IsNullOrEmpty(NDKPath))

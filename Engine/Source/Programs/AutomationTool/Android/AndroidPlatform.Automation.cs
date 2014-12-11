@@ -18,6 +18,21 @@ public class AndroidPlatform : Platform
 	public AndroidPlatform()
 		: base(UnrealTargetPlatform.Android)
 	{
+		bool bNeedsAndroidHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANDROID_HOME"));
+		if (Utils.IsRunningOnMono && bNeedsAndroidHome)
+		{
+			// Try reading env variable we need from .bash_profile
+			string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+			string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+			foreach (string Line in BashProfileContents)
+			{
+				if (Line.StartsWith("export ANDROID_HOME="))
+				{
+					string PathVar = Line.Split('=')[1].Replace("\"", "");
+					Environment.SetEnvironmentVariable("ANDROID_HOME", PathVar);
+				}
+			}
+		}
 	}
 
 	private static string GetSONameWithoutArchitecture(ProjectParams Params, string DecoratedExeName)
