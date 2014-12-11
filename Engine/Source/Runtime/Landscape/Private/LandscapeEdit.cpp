@@ -3391,7 +3391,7 @@ void ALandscapeProxy::PostEditImport()
 		}
 	}
 
-	ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), true);
+	GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 }
 
 void ALandscape::PostEditMove(bool bFinished)
