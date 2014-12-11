@@ -169,6 +169,11 @@ class ENGINE_API URendererSettings
 		ToolTip="Allow translucency to be rendered to a separate render targeted and composited after depth of field. Prevents translucency from appearing out of focus."))
 	uint32 bSeparateTranslucency:1;
 
+	UPROPERTY(config, EditAnywhere, Category=Translucency, meta=(
+		ConsoleVariable="r.TranslucentSortPolicy",DisplayName="Translucent Sort Policy",
+		ToolTip="The sort mode for translucent primitives, affecting how they are ordered and how they change order as the camera moves."))
+	TEnumAsByte<ETranslucentSortPolicy::Type> TranslucentSortPolicy;
+
 	UPROPERTY(config, EditAnywhere, Category=Postprocessing, meta=(
 		ConsoleVariable="r.CustomDepth",DisplayName="Custom Depth Pass",
 		ToolTip="Whether the custom depth pass for tagging primitives for postprocessing passes is enabled. Enabling it on demand can save memory but may cause a hitch the first time the feature is used."))

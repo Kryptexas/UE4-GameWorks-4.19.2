@@ -421,6 +421,12 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// into world oriented z.
 	InvDeviceZToWorldZTransform = CreateInvDeviceZToWorldZTransform(ProjectionMatrixUnadjustedForRHI);
 
+	static TConsoleVariableData<int32>* SortPolicyCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TranslucentSortPolicy"));
+	TranslucentSortPolicy = static_cast<ETranslucentSortPolicy::Type>(SortPolicyCvar->GetValueOnAnyThread());
+
+	//@TODO: PAPER2D: Should come from the config value if/when axis switching is allowed
+	TranslucentSortAxis = FVector(0.0f, -1.0f, 0.0f);
+
 	// As the world is only accessable from the game thread, bIsGameView should be explicitly
 	// set on any other thread.
 	if(IsInGameThread())

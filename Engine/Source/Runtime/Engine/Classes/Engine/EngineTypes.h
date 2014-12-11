@@ -123,6 +123,25 @@ enum ETranslucencyLightingMode
 	TLM_MAX,
 };
 
+/**
+ * Enumerates available options for the translucency sort policy.
+ */
+UENUM()
+namespace ETranslucentSortPolicy
+{
+	enum Type
+	{
+		// Sort based on distance from camera centerpoint to bounding sphere centerpoint. (default, best for 3D games)
+		SortByDistance = 0,
+
+		// Sort based on the post-projection Z distance to the camera.
+		SortByProjectedZ = 1,
+
+		// Sort based on the projection onto a fixed axis. (best for 2D games)
+		SortAlongAxis = 2,
+	};
+}
+
 /** Controls the way that the width scale property affects anim trails */
 UENUM()
 enum ETrailWidthMode

@@ -450,6 +450,12 @@ public:
 	 **/
 	FIntRect CameraConstrainedViewRect;
 
+	/** Sort axis for when TranslucentSortPolicy is SortAlongAxis */
+	FVector TranslucentSortAxis;
+
+	/** Translucent sort mode */
+	TEnumAsByte<ETranslucentSortPolicy::Type> TranslucentSortPolicy;
+	
 #if WITH_EDITOR
 	/** The set of (the first 64) groups' visibility info for this view */
 	uint64 EditorViewBitflag;

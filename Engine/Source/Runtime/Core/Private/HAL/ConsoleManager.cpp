@@ -1619,6 +1619,14 @@ static TAutoConsoleVariable<int32> CVarSimpleDynamicLighting(
 	TEXT("0:off, 1:on"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarTranslucentSortPolicy(
+	TEXT("r.TranslucentSortPolicy"),
+	0,
+	TEXT("0: Sort based on distance from camera centerpoint to bounding sphere centerpoint. (default, best for 3D games)\n")
+	TEXT("1: Sort based on projected distance to camera.")
+	TEXT("2: Sort based on the projection onto a fixed axis. (best for 2D games)"),
+	ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarMobileHDR(
 	TEXT("r.MobileHDR"),
 	1,

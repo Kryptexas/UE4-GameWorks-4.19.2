@@ -700,6 +700,31 @@ void FTranslucentPrimSet::RenderPrimitive(
 	}
 }
 
+inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo)
+{
+	float SortKey = 0.0f;
+	if (ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortByDistance)
+	{
+		//sort based on distance to the view position, view rotation is not a factor
+		SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
+		// UE4_TODO: also account for DPG in the sort key.
+	}
+	else if (ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortAlongAxis)
+	{
+		// Sort based on enforced orthogonal distance
+		const FVector CameraToObject = PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin;
+		SortKey = FVector::DotProduct(CameraToObject, ViewInfo.TranslucentSortAxis);
+	}
+	else
+	{
+		// Sort based on projected Z distance
+		check(ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortByProjectedZ);
+		SortKey = ViewInfo.ViewMatrices.ViewMatrix.TransformPosition(PrimitiveSceneInfo->Proxy->GetBounds().Origin).Z;
+	}
+
+	return SortKey;
+}
+
 /**
 * Add a new primitive to the list of sorted prims
 * @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
@@ -707,10 +732,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 */
 void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency)
 {
-	float SortKey=0.f;
-	//sort based on distance to the view position, view rotation is not a factor
-	SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
-	// UE4_TODO: also account for DPG in the sort key.
+	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 
@@ -738,10 +760,7 @@ void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNo
 
 void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
 {
-	float SortKey=0.f;
-	//sort based on distance to the view position, view rotation is not a factor
-	SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
-	// UE4_TODO: also account for DPG in the sort key.
+	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 
