@@ -1551,13 +1551,16 @@ public:
 	/** Returns an iterator for the controller list. */
 	FConstControllerIterator GetControllerIterator() const;
 
-	/** Returns an iterator for the pawn list. */
+	/** @return Returns an iterator for the pawn list. */
 	FConstPawnIterator GetPawnIterator() const;
 	
-	/** Returns an iterator for the player controller list. */
+	/** @return Returns the number of Pawns. */
+	int32 GetNumPawns() const;
+
+	/** @return Returns an iterator for the player controller list. */
 	FConstPlayerControllerIterator GetPlayerControllerIterator() const;
 	
-	/** Get the first player controller, or NULL if there is not one. */	
+	/** @return Returns the first player controller, or NULL if there is not one. */	
 	APlayerController* GetFirstPlayerController() const;
 
 	/*

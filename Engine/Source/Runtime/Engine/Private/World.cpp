@@ -3076,6 +3076,11 @@ FConstPawnIterator UWorld::GetPawnIterator() const
 	return PawnList.CreateConstIterator();
 }
 
+int32 UWorld::GetNumPawns() const
+{
+	return PawnList.Num();
+}
+
 void UWorld::AddPawn( APawn* Pawn )
 {
 	check( Pawn );
