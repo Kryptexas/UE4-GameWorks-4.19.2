@@ -725,7 +725,7 @@ namespace UnrealBuildTool
 			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
 			foreach (string GameFolder in GameFolders)
 			{
-				if (GameFolder.EndsWith(Target.TargetName))
+				if (File.Exists(Path.Combine(GameFolder, Target.TargetName+".uproject")))
 				{
 					IsAGame = true;
 					GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
