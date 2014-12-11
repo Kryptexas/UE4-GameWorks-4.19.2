@@ -209,6 +209,11 @@ void STileLayerList::ChangeLayerOrdering(int32 OldIndex, int32 NewIndex)
 			TileMap->TileLayers.RemoveAt(OldIndex);
 			TileMap->TileLayers.Insert(LayerToMove, NewIndex);
 
+			if (TileMap->SelectedLayerIndex == OldIndex)
+			{
+				TileMap->SelectedLayerIndex = NewIndex;
+			}
+
 			PostEditNotfications();
 		}
 	}
