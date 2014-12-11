@@ -1283,7 +1283,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void OnOwnerTagChange(FGameplayTag TagChange, int32 NewCount);
 
-	bool CheckApplicationImmunity(const FGameplayEffectSpec& SpecToApply) const;
+	bool HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply) const;
 
 private:
 

@@ -436,12 +436,12 @@ void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithT
 
 void UAbilitySystemComponent::BlockAbilitiesWithTags(const FGameplayTagContainer Tags)
 {
-	BlockedAbilityTags.UpdateTagMap(Tags, 1);
+	BlockedAbilityTags.UpdateTagCount(Tags, 1);
 }
 
 void UAbilitySystemComponent::UnBlockAbilitiesWithTags(const FGameplayTagContainer Tags)
 {
-	BlockedAbilityTags.UpdateTagMap(Tags, -1);
+	BlockedAbilityTags.UpdateTagCount(Tags, -1);
 }
 
 void UAbilitySystemComponent::BlockAbilityByInputID(int32 InputID)
@@ -551,7 +551,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	}
 
 	// Check if any of this ability's tags are currently blocked
-	if (BlockedAbilityTags.HasAnyMatchingGameplayTags(Ability->AbilityTags, EGameplayTagMatchType::IncludeParentTags, false))
+	if (Ability->AbilityTags.MatchesAny(BlockedAbilityTags.GetExplicitGameplayTags(), false))
 	{
 		return false;
 	}

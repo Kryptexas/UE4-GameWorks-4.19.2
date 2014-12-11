@@ -40,6 +40,6 @@ void UAbilityTask_WaitDelay::OnTimeFinish()
 
 FString UAbilityTask_WaitDelay::GetDebugString() const
 {
-	float TimeLeft = GetWorld()->GetTimeSeconds() - TimeStarted;
+	float TimeLeft = Time - GetWorld()->TimeSince(TimeStarted);
 	return FString::Printf(TEXT("WaitDelay. Time: %.2f. TimeLeft: %.2f"), Time, TimeLeft);
 }

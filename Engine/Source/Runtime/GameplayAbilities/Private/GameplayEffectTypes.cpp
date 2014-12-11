@@ -217,111 +217,111 @@ FString EGameplayEffectStackingPolicyToString(int32 Type)
 	return e->GetEnum(Type).ToString();
 }
 
-bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const
+bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
 {
-	if (TagMatchType == EGameplayTagMatchType::Explicit)
-	{
-		// Search for TagToCheck
-		const int32* Count = GameplayTagCountMap.Find(TagToCheck);
-		if (Count && *Count > 0)
-		{
-			return true;
-		}
-	}
-	else if (TagMatchType == EGameplayTagMatchType::IncludeParentTags)
-	{
-		// Search for TagToCheck or any of its parent tags
-		FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(TagToCheck);
-		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
-		{
-			const int32* Count = GameplayTagCountMap.Find(*TagIt);
-			if (Count && *Count > 0)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
+	return ExplicitTags.HasTag(TagToCheck, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
 }
 
-bool FGameplayTagCountContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch) const
+bool FGameplayTagCountContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	if (TagContainer.Num() == 0)
-		return bCountEmptyAsMatch;
-
-	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
-	{
-		if (!HasMatchingGameplayTag(*It, TagMatchType))
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return ExplicitTags.MatchesAll(TagContainer, bCountEmptyAsMatch);
 }
 
 
-bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch) const
+bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	if (TagContainer.Num() == 0)
-		return bCountEmptyAsMatch;
-
-	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
-	{
-		if (HasMatchingGameplayTag(*It, TagMatchType))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return ExplicitTags.MatchesAny(TagContainer, bCountEmptyAsMatch);
 }
 
-void FGameplayTagCountContainer::UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta)
+void FGameplayTagCountContainer::UpdateTagCount(const struct FGameplayTag& Tag, int32 CountDelta)
 {
-	if (TagContainerType == EGameplayTagMatchType::Explicit)
+	if (CountDelta != 0)
 	{
-		// Update count of BaseTag
 		UpdateTagMap_Internal(Tag, CountDelta);
 	}
-	else if (TagContainerType == EGameplayTagMatchType::IncludeParentTags)
+}
+
+void FGameplayTagCountContainer::UpdateTagCount(const struct FGameplayTagContainer& Container, int32 CountDelta)
+{	
+	if (CountDelta != 0)
 	{
-		// Update count of BaseTag and all of its parent tags
-		FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
-		for (auto ParentTagIt = TagAndParentsContainer.CreateConstIterator(); ParentTagIt; ++ParentTagIt)
+		for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
 		{
-			UpdateTagMap_Internal(*ParentTagIt, CountDelta);
+			UpdateTagMap_Internal(*TagIt, CountDelta);
 		}
 	}
 }
 
-void FGameplayTagCountContainer::UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta)
+FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGameplayTagEvent(const FGameplayTag& Tag)
 {
-	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
-	{
-		const FGameplayTag& BaseTag = *TagIt;
-		UpdateTagMap(BaseTag, CountDelta);
-	}
+	return GameplayTagEventMap.FindOrAdd(Tag);
+}
+
+FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGenericGameplayEvent()
+{
+	return OnAnyTagChangeDelegate;
+}
+
+const FGameplayTagContainer& FGameplayTagCountContainer::GetExplicitGameplayTags() const
+{
+	return ExplicitTags;
 }
 
 void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
 {
-	// Update count of Tag
-	int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
+	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);
 
-	bool WasZero = Count == 0;
-	Count = FMath::Max(Count + CountDelta, 0);
-
-	// If we went from 0->1 or 1->0
-	if (WasZero || Count == 0)
+	// Need special case handling to maintain the explicit tag list correctly, adding the tag to the list if it didn't previously exist and a
+	// positive delta comes in, and removing it from the list if it did exist and a negative delta comes in.
+	if (!bTagAlreadyExplicitlyExists)
 	{
-		OnAnyTagChangeDelegate.Broadcast(Tag, Count);
-
-		FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
-		if (Delegate)
+		// Brand new tag with a positive delta needs to be explicitly added
+		if (CountDelta > 0)
 		{
-			Delegate->Broadcast(Tag, Count);
+			ExplicitTags.AddTag(Tag);
+		}
+		// Block attempted reduction of non-explicit tags, as they were never truly added to the container directly
+		else
+		{
+			ABILITY_LOG(Warning, TEXT("Attempted to remove tag: %s from tag count container, but it is not explicitly in the container!"), *Tag.ToString());
+			return;
+		}
+	}
+	else if (CountDelta < 0)
+	{
+		// Existing tag with a negative delta that would cause a complete removal needs to be explicitly removed; Count will be updated correctly below,
+		// so that part is skipped for now
+		int32& ExistingCount = GameplayTagCountMap.FindOrAdd(Tag);
+		if ((ExistingCount + CountDelta) <= 0)
+		{
+			ExplicitTags.RemoveTag(Tag);
+		}
+	}
+
+	// Check if change delegates are required to fire for the tag or any of its parents based on the count change
+	FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+	for (auto CompleteTagIt = TagAndParentsContainer.CreateConstIterator(); CompleteTagIt; ++CompleteTagIt)
+	{
+		const FGameplayTag& CurTag = *CompleteTagIt;
+
+		// Get the current count of the specified tag. NOTE: Stored as a reference, so subsequent changes propogate to the map.
+		int32& TagCount = GameplayTagCountMap.FindOrAdd(CurTag);
+
+		const int32 OldCount = TagCount;
+
+		// Apply the delta to the count in the map
+		TagCount = FMath::Max(TagCount + CountDelta, 0);
+
+		// If a significant change (new addition or total removal) occurred, trigger related delegates
+		if (OldCount == 0 || TagCount == 0)
+		{
+			OnAnyTagChangeDelegate.Broadcast(CurTag, TagCount);
+
+			FOnGameplayEffectTagCountChanged* CountChangeDelegate = GameplayTagEventMap.Find(CurTag);
+			if (CountChangeDelegate)
+			{
+				CountChangeDelegate->Broadcast(CurTag, TagCount);
+			}
 		}
 	}
 }

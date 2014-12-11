@@ -19,6 +19,6 @@ DEFINE_STAT(STAT_InitAttributeSetDefaults);
 DEFINE_STAT(STAT_TickAbilityTasks);
 DEFINE_STAT(STAT_FindAbilitySpecFromHandle);
 DEFINE_STAT(STAT_AggregatorEvaluate);
-DEFINE_STAT(STAT_CheckApplicationImmunity);
+DEFINE_STAT(STAT_HasApplicationImmunityToSpec);
 
 

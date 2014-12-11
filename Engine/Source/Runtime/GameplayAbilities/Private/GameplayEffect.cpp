@@ -1665,8 +1665,8 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, 1);
 
-	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, 1);
-	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, 1);
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
 
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
@@ -1799,8 +1799,8 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
 
-	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, -1);
-	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, -1);
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, -1);
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, -1);
 
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
 
@@ -1848,24 +1848,25 @@ void FActiveGameplayEffectsContainer::OnOwnerTagChange(FGameplayTag TagChange, i
 	}
 }
 
-bool FActiveGameplayEffectsContainer::CheckApplicationImmunity(const FGameplayEffectSpec& SpecToApply) const
+bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_CheckApplicationImmunity)
+	SCOPE_CYCLE_COUNTER(STAT_HasApplicationImmunityToSpec)
 
-	const FGameplayTagContainer* Tags = SpecToApply.CapturedSourceTags.GetAggregatedTags();
-	if (!ensure(Tags))
+	const FGameplayTagContainer* AggregatedSourceTags = SpecToApply.CapturedSourceTags.GetAggregatedTags();
+	if (!ensure(AggregatedSourceTags))
+	{
 		return false;
-	
+	}
 
 	// Quick map test
-	if (!ApplicationImmunityGameplayTagCountContainer.HasAnyMatchingGameplayTags(*Tags, EGameplayTagMatchType::IncludeParentTags, false))
+	if (!AggregatedSourceTags->MatchesAny(ApplicationImmunityGameplayTagCountContainer.GetExplicitGameplayTags(), false))
 	{
 		return false;
 	}
 
 	for (const FActiveGameplayEffect& Effect : GameplayEffects)
 	{
-		if (Effect.Spec.Def->GrantedApplicationImmunityTags.IsEmpty() == false && Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *Tags ))
+		if (Effect.Spec.Def->GrantedApplicationImmunityTags.IsEmpty() == false && Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *AggregatedSourceTags ))
 		{
 			return true;
 		}

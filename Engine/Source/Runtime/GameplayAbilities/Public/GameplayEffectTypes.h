@@ -677,11 +677,11 @@ namespace EGameplayCueEvent
 
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32 );
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32);
 
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float, const FGameplayEffectModCallbackData*);
 
 DECLARE_DELEGATE_RetVal(FGameplayTagContainer, FGetGameplayTags);
 
@@ -689,38 +689,97 @@ DECLARE_DELEGATE_RetVal_OneParam(FOnGameplayEffectTagCountChanged&, FRegisterGam
 
 // -----------------------------------------------------------
 
-/** 
- *	Structure that contains a counted set of GameplayTags. Can optionally include parent tags
- *	
+/**
+ * Struct that tracks the number/count of tag applications within it. Explicitly tracks the tags added or removed,
+ * while simultaneously tracking the count of parent tags as well. Events/delegates are fired whenever the tag counts
+ * of any tag (explicit or parent) are modified.
  */
 struct FGameplayTagCountContainer
 {
+	// Constructor
 	FGameplayTagCountContainer()
-	: TagContainerType(EGameplayTagMatchType::Explicit)
-	{ }
+	{}
 
-	FGameplayTagCountContainer(EGameplayTagMatchType::Type InTagContainerType)
-	: TagContainerType(InTagContainerType)
-	{ }
+	/**
+	 * Check if the count container has a gameplay tag that matches against the specified tag (expands to include parents of asset tags)
+	 * 
+	 * @param TagToCheck	Tag to check for a match
+	 * 
+	 * @return True if the count container has a gameplay tag that matches, false if not
+	 */
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
 
-	bool HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const;
-	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
-	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
-	void UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta);
-	void UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta);
+	/**
+	 * Check if the count container has gameplay tags that matches against all of the specified tags (expands to include parents of asset tags)
+	 * 
+	 * @param TagContainer			Tag container to check for a match
+	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching, even if it's empty
+	 * 
+	 * @return True if the count container matches all of the gameplay tags
+	 */
+	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+	
+	/**
+	 * Check if the count container has gameplay tags that matches against any of the specified tags (expands to include parents of asset tags)
+	 * 
+	 * @param TagContainer			Tag container to check for a match
+	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching, even if it's empty
+	 * 
+	 * @return True if the count container matches any of the gameplay tags
+	 */
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+	
+	/**
+	 * Update the specified container of tags by the specified delta, potentially causing an additional or removal from the explicit tag list
+	 * 
+	 * @param Container		Container of tags to update
+	 * @param CountDelta	Delta of the tag count to apply
+	 */
+	void UpdateTagCount(const FGameplayTagContainer& Container, int32 CountDelta);
+	
+	/**
+	 * Update the specified tag by the specified delta, potentially causing an additional or removal from the explicit tag list
+	 * 
+	 * @param Tag			Tag to update
+	 * @param CountDelta	Delta of the tag count to apply
+	 */
+	void UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta);
 
-	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
-	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
+	/**
+	 * Return delegate that can be bound to for when the specific tag's count changes to or off of zero
+	 *
+	 * @param Tag	Tag to get a delegate for
+	 * 
+	 * @return Delegate for when the specified tag's count changes to or off of zero
+	 */
+	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(const FGameplayTag& Tag);
+	
+	/**
+	 * Return delegate that can be bound to for when the any tag's count changes to or off of zero
+	 * 
+	 * @return Delegate for when any tag's count changes to or off of zero
+	 */
+	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayEvent();
 
-	/** This is called when any tag is added new or removed completely (going too or from 0 count). Not called for other count increases (e.g, going from 2-3 count) */
-	FOnGameplayEffectTagCountChanged	OnAnyTagChangeDelegate;
-
-	EGameplayTagMatchType::Type TagContainerType;
+	/** Simple accessor to the explicit gameplay tag list */
+	const FGameplayTagContainer& GetExplicitGameplayTags() const;
 
 private:
 
-	// Fixme: This may not be adding tag parents correctly. The TagContainer version of this function properly adds parent tags
-	void UpdateTagMap_Internal(const struct FGameplayTag& Tag, int32 CountDelta);
+	/** Map of tag to delegate that will be fired when the count for the key tag changes to or away from zero */
+	TMap<FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+
+	/** Map of tag to active count of that tag */
+	TMap<FGameplayTag, int32> GameplayTagCountMap;
+
+	/** Delegate fired whenever any tag's count changes to or away from zero */
+	FOnGameplayEffectTagCountChanged OnAnyTagChangeDelegate;
+
+	/** Container of tags that were explicitly added */
+	FGameplayTagContainer ExplicitTags;
+
+	/** Internal helper function to adjust the explicit tag list & corresponding maps/delegates/etc. as necessary */
+	void UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta);
 };
 
 // -----------------------------------------------------------

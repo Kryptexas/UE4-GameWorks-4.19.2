@@ -32,7 +32,7 @@ static FAutoConsoleVariableRef CVarDebugGameplayCues(
 
 UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, GameplayTagCountContainer(EGameplayTagMatchType::IncludeParentTags)
+	, GameplayTagCountContainer()
 {
 	bWantsInitializeComponent = true;
 
@@ -339,12 +339,12 @@ void UAbilitySystemComponent::CaptureAttributeForGameplayEffect(OUT FGameplayEff
 
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag)
 {
-	return GameplayTagCountContainer.GameplayTagEventMap.FindOrAdd(Tag);
+	return GameplayTagCountContainer.RegisterGameplayTagEvent(Tag);
 }
 
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGenericGameplayTagEvent()
 {
-	return GameplayTagCountContainer.OnAnyTagChangeDelegate;
+	return GameplayTagCountContainer.RegisterGenericGameplayEvent();
 }
 
 FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
@@ -383,30 +383,24 @@ const FGameplayEffectAttributeCaptureDefinition& UAbilitySystemComponent::GetInc
 void UAbilitySystemComponent::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetOwnedTags);
-	for (auto It = GameplayTagCountContainer.GameplayTagCountMap.CreateConstIterator(); It; ++It)
-	{
-		if (It.Value() > 0)
-		{
-			TagContainer.AddTagFast(It.Key());
-		}
-	}
+	TagContainer.AppendTags(GameplayTagCountContainer.GetExplicitGameplayTags());
 }
 
 bool UAbilitySystemComponent::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
 {
-	return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck, EGameplayTagMatchType::Explicit);
+	return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck);
 }
 
 bool UAbilitySystemComponent::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAllTags);
-	return GameplayTagCountContainer.HasAllMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
+	return GameplayTagCountContainer.HasAllMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
 }
 
 bool UAbilitySystemComponent::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
-	return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
+	return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
 }
 
 void UAbilitySystemComponent::AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count)
@@ -433,12 +427,12 @@ void UAbilitySystemComponent::RemoveLooseGameplayTags(const FGameplayTagContaine
 
 void UAbilitySystemComponent::UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta)
 {
-	GameplayTagCountContainer.UpdateTagMap(BaseTag, CountDelta);
+	GameplayTagCountContainer.UpdateTagCount(BaseTag, CountDelta);
 }
 
 void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
 {
-	GameplayTagCountContainer.UpdateTagMap(Container, CountDelta);
+	GameplayTagCountContainer.UpdateTagCount(Container, CountDelta);
 }
 
 // ------------------------------------------------------------------------
@@ -472,7 +466,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}
 
 	// Are we currently immune to this? (ApplicationImmunity)
-	if (ActiveGameplayEffects.CheckApplicationImmunity(Spec))
+	if (ActiveGameplayEffects.HasApplicationImmunityToSpec(Spec))
 	{
 		return FActiveGameplayEffectHandle();
 	}
