@@ -2634,7 +2634,7 @@ namespace MaterialExportUtils
 			RenderTargetDiffuse->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			RenderTargetDiffuse->InitCustomFormat(
 				OutFlattenMaterial.DiffuseSize.X, 
-				OutFlattenMaterial.DiffuseSize.Y, PF_B8G8R8A8, true);
+				OutFlattenMaterial.DiffuseSize.Y, PF_B8G8R8A8, false);
 			
 			//
 			OutFlattenMaterial.DiffuseSamples.Empty(OutFlattenMaterial.DiffuseSize.X * OutFlattenMaterial.DiffuseSize.Y);
