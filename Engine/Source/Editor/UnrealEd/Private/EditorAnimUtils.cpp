@@ -180,7 +180,9 @@ namespace EditorAnimUtils
 				EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
 
 				// clear transform curves since those curves won't work in new skeleton
+				// since we're deleting curves, mark this rebake flag off
 				AssetToRetarget->RawCurveData.TransformCurves.Empty();
+				AssetToRetarget->bNeedsRebake = false;
 				// I can't copy transform curves yet because transform curves need retargeting. 
 				//EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
 			}	

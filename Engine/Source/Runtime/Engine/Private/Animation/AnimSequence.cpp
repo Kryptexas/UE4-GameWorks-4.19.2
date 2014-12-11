@@ -575,6 +575,17 @@ void UAnimSequence::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		PostProcessSequence();
 	}
 }
+
+void UAnimSequence::PostDuplicate(bool bDuplicateForPIE)
+{
+	// if transform curve exists, mark as bake
+	if (DoesContainTransformCurves())
+	{
+		bNeedsRebake = true;
+	}
+
+	Super::PostDuplicate(bDuplicateForPIE);
+}
 #endif // WITH_EDITOR
 
 // @todo DB: Optimize!
@@ -3351,6 +3362,11 @@ bool UAnimSequence::CreateAnimation(UAnimSequence * Sequence)
 		Notifies = Sequence->Notifies;
 		AnimNotifyTracks = Sequence->AnimNotifyTracks;
 		RawCurveData = Sequence->RawCurveData;
+
+		if (DoesContainTransformCurves())
+		{
+			bNeedsRebake = true;
+		}
 
 		// refresh TrackToskeletonMapIndex
 		RefreshTrackMapFromAnimTrackNames();
