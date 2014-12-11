@@ -458,6 +458,8 @@ public:
 	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true);
 	/** Add a torque to this body */
 	void AddTorque(const FVector& Torque, bool bAllowSubstepping = true);
+	/** Add a rotational impulse to this body */
+	void AddAngularImpulse(const FVector& Impulse, bool bVelChange);
 	/** Add an impulse to this body */
 	void AddImpulse(const FVector& Impulse, bool bVelChange);
 	/** Add an impulse to this body and a particular world position */

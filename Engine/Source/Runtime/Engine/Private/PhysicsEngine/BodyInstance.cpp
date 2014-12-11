@@ -3155,6 +3155,29 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 #endif
 }
 
+void FBodyInstance::AddAngularImpulse(const FVector& AngularImpulse, bool bVelChange)
+{
+#if WITH_PHYSX
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
+	{
+		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
+		PRigidBody->addTorque(U2PVector(AngularImpulse), Mode, true);
+	}
+#endif // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr)
+	{
+		if (!AngularImpulse.IsNearlyZero())
+		{
+			const float AngularImpulse2D = FPhysicsIntegration2D::ConvertUnrealTorqueToBox(AngularImpulse);
+			BodyInstancePtr->ApplyAngularImpulse(AngularImpulse2D, /*wake=*/ true);
+		}
+	}
+#endif
+}
+
 void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
 {
 #if WITH_PHYSX

@@ -673,6 +673,16 @@ public:
 	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
 
 	/**
+	*	Add an angular impulse to a single rigid body. Good for one time instant burst.
+	*
+	*	@param	AngularImpulse	Magnitude and direction of impulse to apply. Direction is axis of rotation.
+	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply angular impulse to. 'None' indicates root body.
+	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no affect).
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void AddAngularImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
+
+	/**
 	 *	Add an impulse to a single rigid body at a specific location. 
 	 *
 	 *	@param	Impulse		Magnitude and direction of impulse to apply.

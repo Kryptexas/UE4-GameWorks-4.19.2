@@ -175,6 +175,14 @@ void UPrimitiveComponent::AddImpulse(FVector Impulse, FName BoneName, bool bVelC
 	}
 }
 
+void UPrimitiveComponent::AddAngularImpulse(FVector Impulse, FName BoneName, bool bVelChange)
+{
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
+	{
+		BI->AddAngularImpulse(Impulse, bVelChange);
+	}
+}
+
 void UPrimitiveComponent::AddImpulseAtLocation(FVector Impulse, FVector Location, FName BoneName)
 {
 	FBodyInstance* BI = GetBodyInstance(BoneName);
