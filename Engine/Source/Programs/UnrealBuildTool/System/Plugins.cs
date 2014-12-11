@@ -60,21 +60,6 @@ namespace UnrealBuildTool
 		// Where does this plugin live?
 		public LoadedFromType LoadedFrom;
 
-		private PluginRules _Rules = null;
-		private bool InitializedRules = false;
-		public PluginRules Rules
-		{
-			get
-			{
-				if(!InitializedRules)
-				{
-					_Rules = RulesCompiler.CreatePluginRules(Name);
-					InitializedRules = true;
-				}
-				return _Rules;
-			}
-		}
-
 		public override string ToString()
 		{
 			return Path.Combine(Directory, Name + ".uplugin");
@@ -486,25 +471,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Discovers all plugin template directories
-		/// </summary>
-		private static void DiscoverAllPluginTemplateDirectories()
-		{
-			if (AllPluginTemplateDirectoriesVar == null)
-			{
-				AllPluginTemplateDirectoriesVar = new List<string>();
-
-				foreach (var CurPluginInfo in AllPlugins)
-				{
-					string PluginTemplatePath = Path.Combine(CurPluginInfo.Directory, "Templates");
-					if(Directory.Exists(PluginTemplatePath))
-					{
-						AllPluginTemplateDirectoriesVar.Add(PluginTemplatePath);
-					}
-				}
-			}
-		}
 
 		/// <summary>
 		/// Returns true if the specified module name is part of a plugin
@@ -535,42 +501,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Gets all the applicable UBT plugin rules for the specified uproject
-		/// </summary>
-		/// <param name="ProjectFilePath">Path to uproject file</param>
-		/// <param name="SupportedPlatforms">Platforms we're interested in</param>
-		/// <returns></returns>
-		public static PluginRules[] GetPluginRulesForProject(string ProjectFilePath, IEnumerable<UnrealTargetPlatform> SupportedPlatforms)
-		{
-			var EnabledPluginNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-
-			// add in engine plugins
-			foreach (var PluginObject in Plugins.AllPlugins)
-			{
-				if (PluginObject.bEnabledByDefault)
-				{
-					EnabledPluginNames.Add(PluginObject.Name);
-				}
-			}
-
-			foreach (var Platform in SupportedPlatforms)
-			{
-				var FilterPluginNames = UProjectInfo.GetEnabledPlugins(ProjectFilePath, new List<string>(), Platform);
-
-				foreach (var PluginName in FilterPluginNames)
-				{
-					EnabledPluginNames.Add(PluginName);
-				}
-			}
-
-			var EnabledPlugins = Plugins.AllPlugins.Where(x => EnabledPluginNames.Contains(x.Name));
-
-			return (from EnabledPlugin in EnabledPlugins
-					where EnabledPlugin.Rules != null
-					select EnabledPlugin.Rules).ToArray();
-
-		}
 	
 		/// Access the list of all plugins.  We'll scan for plugins when this is called the first time.
 		public static List< PluginInfo > AllPlugins
@@ -592,24 +522,12 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// Access all plugin template directories
-		public static List<string> AllPluginTemplateDirectories
-		{
-			get
-			{
-				DiscoverAllPluginTemplateDirectories();
-				return AllPluginTemplateDirectoriesVar;
-			}
-		}
+	
 
 		/// List of all plugins we've found so far in this session
 		private static List< PluginInfo > AllPluginsVar = null;
 
 		/// Maps plugin modules to the plugin that owns them
 		private static Dictionary< string, PluginInfo > ModulesToPluginMapVar = null;
-
-		/// List of all plugin template directories
-		private static List<string> AllPluginTemplateDirectoriesVar = null;
-
 	}
 }

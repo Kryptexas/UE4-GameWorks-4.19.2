@@ -135,22 +135,10 @@ namespace AutomationTool
 					BuildFolders.Add(GameBuildFolder);
 				}
 			}
-
 			RemappedAdditionalScriptFolders.AddRange(BuildFolders);
 
 			Log.TraceVerbose("Discovering game folders.");
 			UnrealBuildTool.RulesCompiler.SetAssemblyNameAndGameFolders("UnrealAutomationToolRules", AllGameFolders);
-
-			// Search in plugin folders
-			foreach (var PluginObject in Plugins.AllPlugins)
-			{
-				var PluginFolder = PluginObject.Directory;
-				var PluginBuildFolder = Path.Combine(PluginFolder, "Build");
-				if (Directory.Exists(PluginBuildFolder))
-				{
-					RemappedAdditionalScriptFolders.Add(PluginBuildFolder);
-				}
-			}
 
 			var DiscoveredModules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, RemappedAdditionalScriptFolders);
 			var ModulesToCompile = new List<string>(DiscoveredModules.Count);

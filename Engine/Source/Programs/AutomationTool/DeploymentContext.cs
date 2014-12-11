@@ -186,21 +186,6 @@ public class DeploymentContext //: ProjectParams
 	/// </summary>
 	public string ShortProjectName;
 
-	private PluginRules[] _CachedPluginRules = null;
-	/// <summary>
-	/// UBT plugin rules which apply to this project
-	/// </summary>
-	public PluginRules[] ProjectPluginRules
-	{
-		get
-		{
-			if(_CachedPluginRules == null)
-			{
-				_CachedPluginRules = Plugins.GetPluginRulesForProject(RawProjectPath, new UnrealTargetPlatform[] { StageTargetPlatform.PlatformType });
-			}
-			return _CachedPluginRules;
-		}
-	}
 
 	public DeploymentContext(
 		string RawProjectPathOrName,

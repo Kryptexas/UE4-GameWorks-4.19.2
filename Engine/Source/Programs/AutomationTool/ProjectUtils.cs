@@ -327,16 +327,9 @@ namespace AutomationTool
 					CommandUtils.LogVerbose("  {0}", Filename);
 				}
 
-				var AssemblySourceFiles = new List<string>();
-				AssemblySourceFiles.AddRange(TargetScripts);
-
-				// Add UBT plugins
-				var PluginSourceFiles = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Plugin, ExtraSearchPaths);
-				AssemblySourceFiles.AddRange(PluginSourceFiles);
-
 				// Check if the scripts require compilation
 				bool DoNotCompile = false;
-				if (!CommandUtils.IsBuildMachine && !CheckIfScriptAssemblyIsOutOfDate(TargetsDllFilename, AssemblySourceFiles))
+				if (!CommandUtils.IsBuildMachine && !CheckIfScriptAssemblyIsOutOfDate(TargetsDllFilename, TargetScripts))
 				{
 					Log.TraceInformation("Targets DLL {0} is up to date.", TargetsDllFilename);
 					DoNotCompile = true;
@@ -350,7 +343,7 @@ namespace AutomationTool
 					}
 				}
 
-				CompileAndLoadTargetsAssembly(Properties, TargetsDllFilename, DoNotCompile, AssemblySourceFiles);
+				CompileAndLoadTargetsAssembly(Properties, TargetsDllFilename, DoNotCompile, TargetScripts);
 			}
 		}
 
@@ -377,7 +370,7 @@ namespace AutomationTool
 			foreach (Type TargetType in AllCompiledTypes)
 			{
 				// Find TargetRules but skip all "UE4Editor", "UE4Game" targets.
-				if (typeof(TargetRules).IsAssignableFrom(TargetType) && !TargetType.IsAbstract)
+				if (typeof(TargetRules).IsAssignableFrom(TargetType))
 				{
 					// Create an instance of this type
 					CommandUtils.LogVerbose("Creating target rules object: {0}", TargetType.Name);

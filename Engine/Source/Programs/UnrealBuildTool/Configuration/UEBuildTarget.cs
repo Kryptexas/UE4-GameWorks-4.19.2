@@ -1569,23 +1569,6 @@ namespace UnrealBuildTool
 				OutputItems.AddRange(Binary.Build(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
-			// Run post-build plugin hook for enabled plugins
-			foreach (var Plugin in BuildPlugins)
-			{
-				if(null != Plugin.Rules)
-				{
-					var PluginOutputItems = new List<FileItem>();
-					ECompilationResult PluginResult = Plugin.Rules.PostBuildTarget(this, PluginOutputItems);
-					if(ECompilationResult.Succeeded != PluginResult)
-					{
-						var TargetName = !String.IsNullOrEmpty( GameName ) ? GameName : AppName;
-						Log.TraceInformation("Plugin {0} post build failed for target '{1}' (platform: {2})", Plugin.Name, TargetName, Platform.ToString());
-						return PluginResult;
-					}
-					OutputItems.AddRange(PluginOutputItems);
-				}
-			}
-
 			return ECompilationResult.Succeeded;
 		}
 
@@ -2845,13 +2828,7 @@ namespace UnrealBuildTool
 					if (ModuleType == UEBuildModuleType.Unknown)
 					{
 						// not a plugin, see if it is a game module 
-						// If it starts with ".."
-						if (ModuleFileRelativeToEngineDirectory.StartsWith("..")
-							// or an absolute path
-							|| Path.IsPathRooted(ModuleFileRelativeToEngineDirectory)
-							// or is in a engine Plugin Templates directory
-							|| (ModuleFileRelativeToEngineDirectory.StartsWith("Plugins" + Path.DirectorySeparatorChar)  
-								&& -1 != ModuleFileRelativeToEngineDirectory.IndexOf(Path.DirectorySeparatorChar + "Templates" + Path.DirectorySeparatorChar)))
+						if (ModuleFileRelativeToEngineDirectory.StartsWith("..") || Path.IsPathRooted(ModuleFileRelativeToEngineDirectory))
 						{
 							ApplicationOutputPath = ModuleFileName;
 							int SourceIndex = ApplicationOutputPath.LastIndexOf(Path.DirectorySeparatorChar + "Source" + Path.DirectorySeparatorChar);
