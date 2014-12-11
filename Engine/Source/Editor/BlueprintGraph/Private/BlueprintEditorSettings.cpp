@@ -16,7 +16,6 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bShowContextualFavorites(false)
 	, bFlattenFavoritesMenus(true)
 	, bFavorPureCastNodes(false)
-	, bAutoCastObjectConnections(false)
 	, bUseLegacyMenuingSystem(false)
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
