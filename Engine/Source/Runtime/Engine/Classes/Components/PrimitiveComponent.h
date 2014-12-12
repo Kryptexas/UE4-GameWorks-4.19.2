@@ -396,6 +396,8 @@ public:
 
 protected:
 
+	virtual void UpdateNavigationData() override;
+
 	/** Returns true if all descendant components that we can possibly collide with use relative location and rotation. */
 	virtual bool AreAllCollideableDescendantsRelative(bool bAllowCachedValue = true) const;
 

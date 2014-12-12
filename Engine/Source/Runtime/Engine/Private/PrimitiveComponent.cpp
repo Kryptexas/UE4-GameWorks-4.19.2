@@ -2063,6 +2063,15 @@ void UPrimitiveComponent::GetOverlappingComponents(TArray<UPrimitiveComponent*>&
 }
 
 
+void UPrimitiveComponent::UpdateNavigationData()
+{
+	if (bNavigationRelevant)
+	{
+		Super::UpdateNavigationData();
+	}
+}
+
+
 bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCachedValue) const
 {
 	UPrimitiveComponent* MutableThis = const_cast<UPrimitiveComponent*>(this);

@@ -779,7 +779,7 @@ protected:
 	virtual void OnChildDetached(USceneComponent* ChildComponent) {}
 
 	/** Called after changing transform, tries to update navigation octree */
-	void UpdateNavigationData();
+	virtual void UpdateNavigationData();
 };
 
 
