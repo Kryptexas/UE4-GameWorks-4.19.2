@@ -18,7 +18,7 @@ EBTNodeResult::Type UBTTask_PushPawnAction::ExecuteTask(UBehaviorTreeComponent& 
 		return EBTNodeResult::Failed;
 	}
 
-	return PushAction(OwnerComp, ActionCopy);
+	return PushAction(OwnerComp, *ActionCopy);
 }
 
 FString UBTTask_PushPawnAction::GetStaticDescription() const
