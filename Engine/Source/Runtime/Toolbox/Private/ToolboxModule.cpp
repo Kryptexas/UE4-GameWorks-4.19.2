@@ -1,10 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "Toolbox.h"
+#include "ToolboxModule.h"
+#include "SlateBasics.h"
 #include "ModuleManager.h"
 #include "GammaUI.h"
 #include "ModuleUIInterface.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "SDockTab.h"
@@ -13,8 +13,8 @@
 #include "STestSuite.h"
 #include "ISlateReflectorModule.h"
 
-IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 
+static bool bTabsRegistered = false;
 
 static bool CanShowModulesTab()
 {
@@ -160,33 +160,66 @@ TSharedRef<SDockTab> CreateModulesTab( const FSpawnTabArgs& Args )
 
 
 
-void FToolboxModule::StartupModule()
+class FToolboxModule : public IToolboxModule
 {
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
-
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( "DebugTools", FOnSpawnTab::CreateStatic( &CreateDebugToolsTab ) )
-		.SetDisplayName( NSLOCTEXT("Toolbox", "DebugTools", "Debug Tools") )
-		.SetTooltipText( NSLOCTEXT("Toolbox", "DebugToolsTooltipText", "Open the Debug Tools tab.") )
-		.SetGroup( MenuStructure.GetDeveloperToolsDebugCategory() )
-		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "DebugTools.TabIcon") );
-	if ( CanShowModulesTab() )
+	void StartupModule()
 	{
-		FGlobalTabmanager::Get()->RegisterNomadTabSpawner( "ModulesTab", FOnSpawnTab::CreateStatic( &CreateModulesTab ) )
-			.SetDisplayName( NSLOCTEXT("Toolbox", "Modules", "Modules") )
-			.SetTooltipText( NSLOCTEXT("Toolbox", "ModulesTooltipText", "Open the Modules tab.") )
-			.SetGroup( MenuStructure.GetDeveloperToolsMiscCategory() )
-			.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "Modules.TabIcon") );
+
 	}
-}
 
-void FToolboxModule::ShutdownModule()
-{
-	if (FSlateApplication::IsInitialized())
+	void ShutdownModule()
 	{
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("DebugTools");
-		if (CanShowModulesTab())
+		bTabsRegistered = false;
+
+		if (FSlateApplication::IsInitialized())
 		{
-			FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("ModulesTab");
+			FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("DebugTools");
+			if (CanShowModulesTab())
+			{
+				FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("ModulesTab");
+			}
 		}
 	}
-}
+
+	virtual void RegisterSpawners(const TSharedPtr<FWorkspaceItem>& DebugToolsTabCategory, const TSharedPtr<FWorkspaceItem>& ModulesTabCategory) override
+	{
+		if (!bTabsRegistered)
+		{
+			bTabsRegistered = true;
+			{
+				FTabSpawnerEntry& Spawner = FGlobalTabmanager::Get()->RegisterNomadTabSpawner("DebugTools", FOnSpawnTab::CreateStatic(&CreateDebugToolsTab))
+					.SetDisplayName(NSLOCTEXT("Toolbox", "DebugTools", "Debug Tools"))
+					.SetTooltipText(NSLOCTEXT("Toolbox", "DebugToolsTooltipText", "Open the Debug Tools tab."))
+					.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "DebugTools.TabIcon"));
+
+				if (DebugToolsTabCategory.IsValid())
+				{
+					Spawner.SetGroup(DebugToolsTabCategory.ToSharedRef());
+				}
+			}
+
+			if (CanShowModulesTab())
+			{
+				FTabSpawnerEntry& Spawner = FGlobalTabmanager::Get()->RegisterNomadTabSpawner("ModulesTab", FOnSpawnTab::CreateStatic(&CreateModulesTab))
+					.SetDisplayName(NSLOCTEXT("Toolbox", "Modules", "Modules"))
+					.SetTooltipText(NSLOCTEXT("Toolbox", "ModulesTooltipText", "Open the Modules tab."))
+					.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Modules.TabIcon"));
+
+				if (ModulesTabCategory.IsValid())
+				{
+					Spawner.SetGroup(ModulesTabCategory.ToSharedRef());
+				}
+			}
+		}
+	}
+
+	virtual void SummonToolbox() override
+	{
+		RegisterSpawners(nullptr, nullptr);
+		FGlobalTabmanager::Get()->InvokeTab(FTabId("DebugTools"));
+	}
+};
+
+
+IMPLEMENT_MODULE(FToolboxModule, Toolbox);
+

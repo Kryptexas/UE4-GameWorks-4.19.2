@@ -53,6 +53,7 @@ public class MainFrame : ModuleRules
 				"SuperSearch",
 				"Settings",
 				"SourceCodeAccess",
+                "Toolbox",
 			}
 		);
 

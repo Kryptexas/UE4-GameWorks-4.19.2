@@ -9,6 +9,7 @@
 #include "GenericCommands.h"
 #include "NotificationManager.h"
 #include "IInputProcessor.h"
+#include "ToolboxModule.h"
 
 
 class FEventRouter
@@ -3556,8 +3557,18 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 					Reply = FReply::Handled();
 
 					return Reply.IsEventHandled();
-				}
 			}
+		}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Ctrl+Shift+~ summons the Toolbox.
+		if (InKeyEvent.GetKey() == EKeys::Tilde && InKeyEvent.IsControlDown() && InKeyEvent.IsShiftDown())
+		{
+			IToolboxModule& ToolboxModule = FModuleManager::LoadModuleChecked<IToolboxModule>("Toolbox");
+			ToolboxModule.SummonToolbox();
+		}
+
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 		// Bubble the keyboard event
 		FWidgetPath EventPath = UserFocusEntries[InKeyEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
