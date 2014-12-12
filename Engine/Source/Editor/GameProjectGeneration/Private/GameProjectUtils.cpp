@@ -15,6 +15,7 @@
 #include "TargetPlatform.h"
 
 #include "ClassIconFinder.h"
+#include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 
 #include "UProjectInfo.h"
 #include "DesktopPlatformModule.h"
@@ -23,6 +24,7 @@
 #include "GameFramework/GameMode.h"
 #include "HotReloadInterface.h"
 #include "SVerbChoiceDialog.h"
+
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
