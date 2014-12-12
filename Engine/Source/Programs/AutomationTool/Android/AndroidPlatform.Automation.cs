@@ -23,13 +23,16 @@ public class AndroidPlatform : Platform
 		{
 			// Try reading env variable we need from .bash_profile
 			string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
-			string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
-			foreach (string Line in BashProfileContents)
+			if(File.Exists(BashProfilePath))
 			{
-				if (Line.StartsWith("export ANDROID_HOME="))
+				string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+				foreach (string Line in BashProfileContents)
 				{
-					string PathVar = Line.Split('=')[1].Replace("\"", "");
-					Environment.SetEnvironmentVariable("ANDROID_HOME", PathVar);
+					if (Line.StartsWith("export ANDROID_HOME="))
+					{
+						string PathVar = Line.Split('=')[1].Replace("\"", "");
+						Environment.SetEnvironmentVariable("ANDROID_HOME", PathVar);
+					}
 				}
 			}
 		}
