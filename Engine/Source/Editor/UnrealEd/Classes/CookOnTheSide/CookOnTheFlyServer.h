@@ -171,6 +171,13 @@ public:
 
 		FFilePlatformRequest() { }
 
+
+		FFilePlatformRequest( const FName& InFileName, const FName& InPlatformName ) : Filename( InFileName )
+		{
+			Platformnames.Add( InPlatformName );
+		}
+
+
 		FFilePlatformRequest( const FName& InFilename, const TArray<FName>& InPlatformname ) : Filename( InFilename )
 		{
 			Platformnames = InPlatformname;
@@ -616,7 +623,6 @@ private:
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
-
 	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
 	FFilenameQueue CookRequests; // list of requested files
 	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
@@ -636,16 +642,11 @@ private:
 	// used by GetCached * Filename functions
 	mutable TMap<FName, FCachedPackageFilename> PackageFilenameCache; // filename cache (only process the string operations once)
 
-
 	// declared mutable as it's used purely as a cache and don't want to have to declare all the functions as non const just because of this cache
 	// used by IniSettingsOutOfDate and GetCurrentIniStrings 
 	mutable TMap<FName, TArray<FString>> CachedIniVersionStringsMap;
 
 public:
-
-	// void WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames);
-
-	
 
 	enum ECookOnTheSideResult
 	{
@@ -876,6 +877,16 @@ private:
 	bool ShouldCook(const FString& InFileName, const FName& InPlatformName);
 
 	/**
+	 * Initialize the sandbox 
+	 */
+	void InitializeSandbox();
+
+	/**
+	 * Clean up the sandbox
+	 */
+	void TermSandbox();
+
+	/**
 	 * GetDependencies
 	 * 
 	 * @param Packages List of packages to use as the root set for dependency checking
@@ -1023,7 +1034,10 @@ private:
 	FString GetOutputDirectoryOverride() const;
 
 	/** Cleans sandbox folders for all target platforms */
-	void CleanSandbox(const TArray<ITargetPlatform*>& Platforms);
+	void CleanSandbox( const bool bIterative );
+
+	/** Populate the cooked packages list from the on disk content using time stamps and dependencies to figure out if they are ok */
+	void PopulateCookedPackagesFromDisk( const TArray<ITargetPlatform*>& Platforms );
 
 	/** Generates asset registry */
 	void GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms);
