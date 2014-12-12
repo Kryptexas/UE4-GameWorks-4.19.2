@@ -840,11 +840,6 @@ void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagCont
 	RemoveActiveEffects(FActiveGameplayEffectQuery(&Tags));
 }
 
-void UAbilitySystemComponent::RemoveActiveEffects(FGameplayTagContainer OwningTags, FGameplayTagContainer EffectTags, FGameplayTagContainer OwningTags_Rejection, FGameplayTagContainer EffectTags_Rejection)
-{
-	return ActiveGameplayEffects.RemoveActiveEffects(FActiveGameplayEffectQuery(&OwningTags, &EffectTags, &OwningTags_Rejection, &EffectTags_Rejection));
-}
-
 void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query)
 {
 	return ActiveGameplayEffects.RemoveActiveEffects(Query);
