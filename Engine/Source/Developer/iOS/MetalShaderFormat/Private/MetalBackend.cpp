@@ -2077,41 +2077,28 @@ protected:
 		}
 	}
 
-	bool PrintPackedUniforms(bool bPrintArrayType, char ArrayType, _mesa_glsl_parse_state::TUniformList& Uniforms, bool bFlattenUniformBuffers, bool NeedsComma)
-		{
+	void PrintImages(_mesa_glsl_parse_state::TUniformList& Uniforms)
+	{
 		bool bPrintHeader = true;
+		bool bNeedsComma = false;
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Uniforms.begin(); Iter != Uniforms.end(); ++Iter)
 		{
 			glsl_packed_uniform& Uniform = *Iter;
-			if (!bFlattenUniformBuffers || Uniform.CB_PackedSampler.empty())
-			{
-				if (bPrintArrayType && bPrintHeader)
-				{
-					ralloc_asprintf_append(buffer, "%s%c[",
-						NeedsComma ? "," : "",
-						ArrayType);
-					bPrintHeader = false;
-					NeedsComma = false;
-				}
-				ralloc_asprintf_append(
-					buffer,
-					"%s%s(%u:%u)",
-					NeedsComma ? "," : "",
-					Uniform.Name.c_str(),
-					Uniform.offset,
-					Uniform.num_components
-					);
-				NeedsComma = true;
-				}
-			}
-
-		if (bPrintArrayType && !bPrintHeader)
-			{
-			ralloc_asprintf_append(buffer, "]");
-			}
-
-		return NeedsComma;
+			ANSICHAR Name[32];
+			FCStringAnsi::Sprintf(Name, "%si%d", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
+			int32 Offset = Buffers.GetIndex(Name);
+			check(Offset != -1);
+			ralloc_asprintf_append(
+				buffer,
+				"%s%s(%u:%u)",
+				bNeedsComma ? "," : "",
+				Uniform.Name.c_str(),
+				Offset,
+				Uniform.num_components
+				);
+			bNeedsComma = true;
 		}
+	}
 
 	void PrintPackedGlobals(_mesa_glsl_parse_state* State)
 	{
@@ -2404,13 +2391,7 @@ protected:
 			if (!state->GlobalPackedArraysMap[EArrayType_Image].empty())
 			{
 				ralloc_asprintf_append(buffer, "// @UAVs: ");
-				PrintPackedUniforms(
-					false,
-					EArrayType_Image,
-					state->GlobalPackedArraysMap[EArrayType_Image],
-					false,
-					false
-					);
+				PrintImages(state->GlobalPackedArraysMap[EArrayType_Image]);
 				ralloc_asprintf_append(buffer, "\n");
 			}
 		}

@@ -53,6 +53,20 @@ struct FBuffers
 		return -1;
 	}
 
+	int GetIndex(const std::string& Name)
+	{
+		for (int i = 0, n = Buffers.Num(); i < n; ++i)
+		{
+			auto* Var = Buffers[i] ? Buffers[i]->as_variable() : nullptr;
+			if (Var && Var->name && Var->name == Name)
+			{
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
 	void SortBuffers()
 	{
 		TArray<class ir_instruction*> AllBuffers;
