@@ -7,6 +7,7 @@
 #include "SlateDelegates.h"
 #include "SlateApplicationBase.h"
 
+
 class SToolTip;
 class SViewport;
 class SWindow;
@@ -17,6 +18,7 @@ class FMenuStack;
 class IWidgetReflector;
 class IInputProcessor;
 
+
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
 
@@ -26,6 +28,7 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 
 extern SLATE_API const FName NAME_UnrealOS;
 
+
 /**
  * Design constraints for Slate applications
  */
@@ -34,6 +37,7 @@ namespace SlateApplicationDefs
 	/** How many users can we support at once? */
 	static const int32 MaxUsers = 8;
 }
+
 
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
 class SLATE_API FPopupSupport
@@ -95,10 +99,8 @@ class SLATE_API FSlateApplication
 {
 public:
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~FSlateApplication( );
+	/** Virtual destructor. */
+	virtual ~FSlateApplication();
 
 public:
 
@@ -212,34 +214,22 @@ public:
 	 */
 	void SetCursorPos( const FVector2D& MouseCoordinate );
 
-	/**
-	 * Polls game devices for input
-	 */
+	/** Polls game devices for input */
 	void PollGameDeviceState();
 
-	/**
-	 * Occurs before Tick(), after all pointer and keyboard input has been processed.
-	 */
+	/** Occurs before Tick(), after all pointer and keyboard input has been processed. */
 	void FinishedInputThisFrame();
 
-	/**
-	 * Ticks this application
-	 */
+	/** Ticks this application */
 	void Tick();
 
-	/**
-	 * Pumps OS messages when a modal window or intra-frame debugging session exists
-	 */
+	/** Pumps OS messages when a modal window or intra-frame debugging session exists */
 	void PumpMessages();
 
-	/**
-	 * Returns true if this slate application is ready to open modal windows
-	 */
+	/** Returns true if this slate application is ready to open modal windows */
 	bool CanAddModalWindow() const;
 
-	/**
-	 * Returns true if this slate application is ready to display windows.
-	 */
+	/** Returns true if this slate application is ready to display windows. */
 	bool CanDisplayWindows() const;
 	
 	/**
@@ -290,9 +280,7 @@ public:
 	/** @return	Returns true if there are any pop-up menus summoned */
 	bool AnyMenusVisible() const;
 
-	/**
-	 * Dismisses any open menus
-	 */
+	/** Dismisses any open menus */
 	void DismissAllMenus();
 
 	/**
@@ -322,13 +310,13 @@ public:
 	 * Disable Slate components when an external, non-slate, modal window is brought up.  In the case of multiple
 	 * external modal windows, we will only increment our tracking counter.
 	 */
-	void ExternalModalStart( );
+	void ExternalModalStart();
 
 	/**
 	 * Re-enable disabled Slate components when a non-slate modal window is dismissed.  Slate components
 	 * will only be re-enabled when all tracked external modal windows have been dismissed.
 	 */
-	void ExternalModalStop( );
+	void ExternalModalStop();
 
 	/** 
 	 * Removes references to FViewportRHI's.  
@@ -432,14 +420,14 @@ public:
 	 * Mouse capture
 	 */
 
-	/** returning platform-specific value designating window that captures mouse, or NULL if mouse isn't captured */
+	/** returning platform-specific value designating window that captures mouse, or nullptr if mouse isn't captured */
 	virtual void* GetMouseCaptureWindow( void ) const;
 
 
 	/** Releases the mouse capture from whatever it currently is on. */
 	void ReleaseMouseCapture();
 
-	/** @return The active modal window or NULL if there is no modal window. */
+	/** @return The active modal window or nullptr if there is no modal window. */
 	TSharedPtr<SWindow> GetActiveModalWindow() const;
 
 	/**
@@ -475,7 +463,6 @@ public:
 	 * Finds the window that the provided widget resides in
 	 * 
 	 * @param InWidget		The widget to find the window for
-	 *
 	 * @return The window where the widget resides, or null if the widget wasn't found.  Remember, a widget might not be found simply because its parent decided not to report the widget in ArrangeChildren.
 	 */
 	TSharedPtr<SWindow> FindWidgetWindow( TSharedRef< const SWidget > InWidget ) const;
@@ -485,7 +472,6 @@ public:
 	 * 
 	 * @param InWidget		The widget to find the window for
 	 * @param OutWidgetPath Full widget path generated 
-	 *
 	 * @return The window where the widget resides, or null if the widget wasn't found.  Remember, a widget might not be found simply because its parent decided not to report the widget in ArrangeChildren.
 	 */
 	TSharedPtr<SWindow> FindWidgetWindow( TSharedRef< const SWidget > InWidget, FWidgetPath& OutWidgetPath) const;
@@ -681,11 +667,8 @@ protected:
 	friend class FEventRouter;
 
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
-
 	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const override;
-
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
-
 	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 
 	/** 
@@ -695,15 +678,13 @@ protected:
 	 */
 	void TickWindowAndChildren( TSharedRef<SWindow> WindowToTick );
 
-	/**
-	 * Draws Slate windows.  Should only be called by the application's main loop or renderer.
-	 */
+	/** Draws Slate windows. Should only be called by the application's main loop or renderer. */
 	void DrawWindows();
 
 	/**
 	 * Draws slate windows, optionally only drawing the passed in window
 	 */
-	void PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWindow = NULL );
+	void PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWindow = nullptr );
 
 	/**
 	 * Pre-pass step before drawing windows to compute geometry size and reshape autosized windows
@@ -731,7 +712,6 @@ public:
 	 *
 	 * @param  InMouseEvent  Mouse event
 	 * @param  bIsSynthetic  True when the even is synthesized by slate.
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool bIsSynthetic = false );
@@ -742,7 +722,6 @@ public:
 	 * @param  PlatformWindow  The platform window the event originated from, used to set focus at the platform level. 
 	 *                         If Invalid the Mouse event will work but there will be no effect on the platform.
 	 * @param  InMouseEvent    Mouse event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessMouseButtonDownEvent(const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InMouseEvent);
@@ -751,7 +730,6 @@ public:
 	 * Called by the native application in response to a mouse button release. Routs the event to Slate Widgets.
 	 *
 	 * @param  InMouseEvent  Mouse event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent );
@@ -760,7 +738,6 @@ public:
 	 * Called by the native application in response to a mouse release. Routs the event to Slate Widgets.
 	 *
 	 * @param  InMouseEvent  Mouse event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InMouseEvent );
@@ -770,7 +747,6 @@ public:
 	 *
 	 * @param  InWheelEvent    Mouse wheel event details
 	 * @param  InGestureEvent  Optional gesture event details
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent );
@@ -779,7 +755,6 @@ public:
 	 * Called when a character is entered
 	 *
 	 * @param  InCharacterEvent  Character event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent );
@@ -788,7 +763,6 @@ public:
 	 * Called when a key is pressed
 	 *
 	 * @param  InKeyEvent  Keyb event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessKeyDownEvent( FKeyEvent& InKeyEvent );
@@ -797,7 +771,6 @@ public:
 	 * Called when a key is released
 	 *
 	 * @param  InKeyEvent  Key event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessKeyUpEvent( FKeyEvent& InKeyEvent );
@@ -806,7 +779,6 @@ public:
 	 * Called when a analog input values change
 	 *
 	 * @param  InAnalogInputEvent Analog input event
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInputEvent);
@@ -816,7 +788,6 @@ public:
 	 *
 	 * @param WindowEntered  The window that was entered by the drag and drop
 	 * @param DragDropEvent  Describes the mouse state (position, pressed buttons, etc) and associated payload
-	 *
 	 * @return true if the drag enter was handled and can be processed by some widget in this window; false otherwise
 	 */
 	bool ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered, FDragDropEvent& DragDropEvent );
@@ -853,7 +824,6 @@ public:
 	 * Called by the native application in response to an activation or deactivation. 
 	 *
 	 * @param ActivateEvent Information about the window activation/deactivation
-	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
 	bool ProcessWindowActivatedEvent( const FWindowActivateEvent& ActivateEvent );
@@ -888,9 +858,7 @@ public:
 	 */
 	void ProcessReply(const FWidgetPath& CurrentEventPath, const FReply TheReply, const FWidgetPath* WidgetsUnderMouse, const FPointerEvent* InMouseEvent, uint32 UserIndex = 0);
 	
-	/**
-	 * Bubble a request for which cursor to display for widgets under the mouse or the widget that captured the mouse.
-	 */
+	/** Bubble a request for which cursor to display for widgets under the mouse or the widget that captured the mouse. */
 	void QueryCursor();
 
 	/**
@@ -908,9 +876,7 @@ public:
 	 */
 	void SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, const FVector2D& InSpawnLocation );
 
-	/**
-	 * Closes the open tool-tip, if a tool-tip is open
-	 */
+	/** Closes the open tool-tip, if a tool-tip is open */
 	void CloseToolTip();
 
 	/**
@@ -982,153 +948,98 @@ public:
 		return FSlateWindowHelper::FindPathToWidget(GetInteractiveTopLevelWindows(), InWidget, OutWidgetPath, VisibilityFilter);
 	}
 
-	virtual const double GetCurrentTime( ) const override
+	virtual const double GetCurrentTime() const override
 	{
 		return CurrentTime;
 	}
 
-	virtual TSharedPtr<SWindow> GetActiveTopLevelWindow( ) const override;
+	virtual TSharedPtr<SWindow> GetActiveTopLevelWindow() const override;
+	virtual const FSlateBrush* GetAppIcon() const override;
 
-	virtual const FSlateBrush* GetAppIcon( ) const override;
-
-	virtual float GetApplicationScale( ) const override
+	virtual float GetApplicationScale() const override
 	{
 		return Scale;
 	}
 
-	virtual FVector2D GetCursorPos( ) const override;
+	virtual FVector2D GetCursorPos() const override;
+	virtual FVector2D GetLastCursorPos() const override;
+	virtual FVector2D GetCursorSize() const override;	
 
-	virtual FVector2D GetLastCursorPos( ) const override;
-
-	virtual FVector2D GetCursorSize( ) const override;	
-
-	virtual bool GetSoftwareCursorAvailable( ) const override
+	virtual bool GetSoftwareCursorAvailable() const override
 	{
 		return bSoftwareCursorAvailable;
 	}
 
-	virtual EVisibility GetSoftwareCursorVis( ) const override;	
-	
-	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const override;
+	virtual EVisibility GetSoftwareCursorVis() const override;	
+	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget() const override;
 
 protected:
+
 	virtual TSharedPtr< SWidget > GetMouseCaptorImpl() const override;
 
 public:
-	virtual bool HasAnyMouseCaptor( ) const override;
 
-	virtual FSlateRect GetPreferredWorkArea( ) const override;
+	// FSlateApplicationBase interface
 
+	virtual bool HasAnyMouseCaptor() const override;
+	virtual FSlateRect GetPreferredWorkArea() const override;
 	virtual bool HasFocusedDescendants( const TSharedRef<const SWidget>& Widget ) const override;
-
-	virtual bool IsExternalUIOpened() override
-	{
-		return bIsExternalUIOpened;
-	}
-
+	virtual bool IsExternalUIOpened() override;
 	virtual FWidgetPath LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray<TSharedRef<SWindow>>& Windows, bool bIgnoreEnabledStatus = false ) override;
-
 	virtual bool IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const override;
-
 	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const override;
-
 	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const override;
-
 	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) override;
-
 	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FText>& ToolTipText ) override;
-
 	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) override;
-
 	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) override;
-
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) override;
-
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
-
-	// End FSlateApplicationBase interface
 
 public:
 
-	// Begin FGenericApplicationMessageHandler interface
+	// FGenericApplicationMessageHandler interface
 
 	virtual bool ShouldProcessUserInputMessages( const TSharedPtr< FGenericWindow >& PlatformWindow ) const override;
-
 	virtual bool OnKeyChar( const TCHAR Character, const bool IsRepeat ) override;
-
 	virtual bool OnKeyDown( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
-
 	virtual bool OnKeyUp( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
-
 	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
-
 	virtual bool OnMouseUp( const EMouseButtons::Type Button ) override;
-
 	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
-
 	virtual bool OnMouseWheel( const float Delta ) override;
-
 	virtual bool OnMouseMove() override;
-
 	virtual bool OnRawMouseMove( const int32 X, const int32 Y ) override;
-
 	virtual bool OnCursorSet() override;
-
 	virtual bool OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue ) override;
-
 	virtual bool OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
-
 	virtual bool OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
-
 	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta ) override;
-	
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
-
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
-
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
-
 	virtual bool OnMotionDetected(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId) override;
-
 	virtual bool OnSizeChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 Width, const int32 Height, bool bWasMinimized = false ) override;
-
 	virtual void OnOSPaint( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
-
 	virtual FWindowSizeLimits GetSizeLimitsForWindow(const TSharedRef<FGenericWindow>& Window) const override;
-
 	virtual void OnResizingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
-
 	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
-
 	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
-
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
-
 	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) override;
-
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
-
 	virtual bool OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode) override;
-
 	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
-
 	virtual void OnWindowClose( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
-
 	virtual EDropEffect::Type OnDragEnterText( const TSharedRef< FGenericWindow >& Window, const FString& Text ) override;
-
 	virtual EDropEffect::Type OnDragEnterFiles( const TSharedRef< FGenericWindow >& Window, const TArray< FString >& Files ) override;
 
 	EDropEffect::Type OnDragEnter( const TSharedRef< SWindow >& Window, const TSharedRef<FExternalDragOperation>& DragDropOperation );
 
 	virtual EDropEffect::Type OnDragOver( const TSharedPtr< FGenericWindow >& Window ) override;
-
 	virtual void OnDragLeave( const TSharedPtr< FGenericWindow >& Window ) override;
-
 	virtual EDropEffect::Type OnDragDrop( const TSharedPtr< FGenericWindow >& Window ) override;
-
 	virtual bool OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType ) override;
-
-	// End FGenericApplicationMessageHandler interface
 
 private:
 
@@ -1159,9 +1070,6 @@ private:
 	int32 GetUserIndexForController(int32 ControllerId) const;
 
 private:
-	//
-	// Cursor Lock
-	// 
 
 	/** Lock the cursor such that it cannot leave the bounds of the specified widget. Null widget implies no cursor lock. */
 	void LockCursor(const TSharedPtr<SWidget>& Widget);
@@ -1215,7 +1123,7 @@ private:
 	/** Application-wide scale for supporting monitors of varying pixel density */
 	float Scale;
 
-	/** The deadzone distance in virtual desktop pixels (a.k.a screen pixels) that the user has to move their finder before it is considered a drag.*/
+	/** The dead zone distance in virtual desktop pixels (a.k.a screen pixels) that the user has to move their finder before it is considered a drag.*/
 	float DragTriggerDistnace;
 
 	/** All the top-level windows owned by this application; they are tracked here in a platform-agnostic way. */
@@ -1307,7 +1215,7 @@ private:
 		/** Call the OnMouseCaptureLost() handler for the widget captured by the specific pointer index */
 		void InformCurrentCaptorOfCaptureLoss(uint32 PointerIndex) const;
 
-		/** A map of pointer idices to weak widget paths for the active mouse captures */
+		/** A map of pointer indices to weak widget paths for the active mouse captures */
 		TMap<uint32, FWeakWidgetPath> PointerIndexToMouseCaptorWeakPathMap;
 	};
 	/** The current mouse captor for the application, if any. */
@@ -1369,7 +1277,7 @@ private:
 		FKey DetectDragButton;
 	} DragDetector;
 
-	/** Support for auto-dismissing popups */
+	/** Support for auto-dismissing pop-ups */
 	FPopupSupport PopupSupport;
 	
 	/** Pointer to the currently registered game viewport widget if any */
