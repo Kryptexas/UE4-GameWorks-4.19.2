@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "BlackboardData.generated.h"
 
 class UBlackboardData;
