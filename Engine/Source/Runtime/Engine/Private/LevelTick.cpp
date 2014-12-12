@@ -51,6 +51,7 @@ DEFINE_STAT(STAT_TeleportToTime);
 DEFINE_STAT(STAT_MoveComponentTime);
 DEFINE_STAT(STAT_UpdateOverlaps);
 DEFINE_STAT(STAT_UpdatePhysicsVolume);
+DEFINE_STAT(STAT_EndScopedMovementUpdate);
 
 DEFINE_STAT(STAT_PostTickComponentLW);
 DEFINE_STAT(STAT_PostTickComponentRecreate);

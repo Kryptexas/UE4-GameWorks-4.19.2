@@ -193,6 +193,7 @@ void USceneComponent::BeginScopedMovementUpdate(class FScopedMovementUpdate& Sco
 
 void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& CompletedScope)
 {
+	SCOPE_CYCLE_COUNTER(STAT_EndScopedMovementUpdate);
 	checkSlow(IsInGameThread());
 
 	// Special case when shutting down
