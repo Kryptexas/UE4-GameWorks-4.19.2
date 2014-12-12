@@ -3,27 +3,8 @@
 #pragma once
 
 
-/**
- * Delegate type for determining whether a session can be selected.
- *
- * The first parameter is the session to be selected (or NULL if the selection is being cleared).
- * The second parameter is a Boolean out parameter allowing the callee to indicate whether the selection can take place (true by default).
- */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnCanSelectSession, const ISessionInfoPtr&, bool&)
-
-/**
- * Delegate type for instance selection changes.
- *
- * The first parameter is the newly selected session (or NULL if none was selected).
- */
-DECLARE_MULTICAST_DELEGATE(FOnSessionInstanceSelectionChanged)
-
-/**
- * Delegate type for session selection changes.
- *
- * The first parameter is the newly selected session (or NULL if none was selected).
- */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectedSessionChanged, const ISessionInfoPtr&)
+class ISessionInfo;
+class ISessionInstanceInfo;
 
 
 /**
@@ -45,28 +26,28 @@ public:
 	  *
 	  * @param OutInstances Will hold the selected instances.
 	  */
-	virtual void GetSelectedInstances( TArray<ISessionInstanceInfoPtr>& OutInstances) const = 0;
+	virtual void GetSelectedInstances( TArray<TSharedPtr<ISessionInstanceInfo>>& OutInstances) const = 0;
 
 	/**
 	 * Get the selected session - as chosen in the session browser
 	 *
 	 * @return The session ID selected
 	 */
-	virtual const ISessionInfoPtr& GetSelectedSession() const = 0;
+	virtual const TSharedPtr<ISessionInfo>& GetSelectedSession() const = 0;
 
 	/**
 	 * Gets the list of all discovered sessions.
 	 *
 	 * @param OutSessions Will hold the collection of sessions.
 	 */
-	virtual void GetSessions( TArray<ISessionInfoPtr>& OutSessions ) const = 0;
+	virtual void GetSessions( TArray<TSharedPtr<ISessionInfo>>& OutSessions ) const = 0;
 
 	/**
 	 * Checks whether the given instance is currently selected.
 	 *
 	 * @return true if the instance is selected, false otherwise.
 	 */
-	virtual bool IsInstanceSelected( const ISessionInstanceInfoRef& Instance ) const = 0;
+	virtual bool IsInstanceSelected( const TSharedRef<ISessionInstanceInfo>& Instance ) const = 0;
 
 	/**
 	 * Removes an owner whose sessions we are no longer interested in
@@ -81,7 +62,7 @@ public:
 	 * @param Session The session to the select (can be NULL to select none).
 	 * @return true if the session was selected, false otherwise.
 	 */
-	virtual bool SelectSession( const ISessionInfoPtr& Session ) = 0;
+	virtual bool SelectSession( const TSharedPtr<ISessionInfo>& Session ) = 0;
 
 	/**
 	 * Marks the specified item as selected or unselected.
@@ -90,7 +71,7 @@ public:
 	 * @param Selected Whether the instance should be selected (true) or unselected (false).
 	 * @return true if the instance was selected, false otherwise.
 	 */
-	virtual bool SetInstanceSelected( const ISessionInstanceInfoPtr& Instance, bool Selected ) = 0;
+	virtual bool SetInstanceSelected( const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected ) = 0;
 
 public:
 
@@ -99,28 +80,32 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnCanSelectSession& OnCanSelectSession() = 0;
+	DECLARE_EVENT_TwoParams(ISessionManager, FCanSelectSessionEvent, const TSharedPtr<ISessionInfo>& /*Session*/, bool& /*OutCanSelect*/)
+	virtual FCanSelectSessionEvent& OnCanSelectSession() = 0;
 
 	/**
 	 * Returns a delegate that is executed when an instance changes its selection state.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionInstanceSelectionChanged& OnInstanceSelectionChanged() = 0;
+	DECLARE_EVENT(ISessionManager, FInstanceSelectionChangedEvent)
+	virtual FInstanceSelectionChangedEvent& OnInstanceSelectionChanged() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the selected session received a log message from one of its instances.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionLogReceived& OnLogReceived() = 0;
+	DECLARE_EVENT_ThreeParams(ISessionManager, FLogReceivedEvent, const TSharedRef<ISessionInfo>& /*OwnerSession*/, const TSharedRef<ISessionInstanceInfo>& /*SessionInstance*/, const TSharedRef<FSessionLogMessage>& /*LogMessage*/);
+	virtual FLogReceivedEvent& OnLogReceived() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the selected session changed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSelectedSessionChanged& OnSelectedSessionChanged() = 0;
+	DECLARE_EVENT_OneParam(ISessionManager, FSelectedSessionChangedEvent, const TSharedPtr<ISessionInfo>& /*SelectedSession*/)
+	virtual FSelectedSessionChangedEvent& OnSelectedSessionChanged() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the list of sessions has changed.

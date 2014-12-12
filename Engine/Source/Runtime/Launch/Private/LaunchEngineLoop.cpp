@@ -46,6 +46,8 @@
 	#include "ContentStreaming.h"
 	#include "HighResScreenshot.h"
 	#include "HotReloadInterface.h"
+	#include "ISessionService.h"
+	#include "ISessionServicesModule.h"
 
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"

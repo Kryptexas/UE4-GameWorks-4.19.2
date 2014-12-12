@@ -3,6 +3,11 @@
 #pragma once
 
 
+// forward declarations
+class ISessionManager;
+class ISessionService;
+
+
 /**
  * Interface for session core modules.
  */
@@ -16,14 +21,14 @@ public:
 	 *
 	 * @return The session manager.
 	 */
-	virtual ISessionManagerRef GetSessionManager() = 0;
+	virtual TSharedRef<ISessionManager> GetSessionManager() = 0;
 
 	/** 
 	 * Gets the session service.
 	 *
 	 * @return The session service.
 	 */
-	virtual ISessionServiceRef GetSessionService() = 0;
+	virtual TSharedRef<ISessionService> GetSessionService() = 0;
 
 public:
 

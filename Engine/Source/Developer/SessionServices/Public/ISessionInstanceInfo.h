@@ -3,20 +3,8 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IGameInstanceInfo. */
-typedef TSharedPtr<class ISessionInstanceInfo> ISessionInstanceInfoPtr;
-
-/** Type definition for shared references to instances of IGameInstanceInfo. */
-typedef TSharedRef<class ISessionInstanceInfo> ISessionInstanceInfoRef;
-
-
-/**
- * Delegate type for received log entries.
- *
- * The first parameter is the engine instance that generated the log.
- * The second parameter is the new log message.
- */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionInstanceLogReceived, const ISessionInstanceInfoRef&, const FSessionLogMessageRef&);
+class ISessionInfo;
+struct FSessionLogMessage;
 
 
 /**
@@ -38,21 +26,21 @@ public:
 	 *
 	 * @return The build date string.
 	 */
-	virtual const FString GetBuildDate() const = 0;
+	virtual const FString& GetBuildDate() const = 0;
 
 	/**
 	 * Gets the name of the level that the instance is currently running.
 	 *
 	 * @return The name of the level.
 	 */
-	virtual const FString GetCurrentLevel() const = 0;
+	virtual const FString& GetCurrentLevel() const = 0;
 
 	/**
 	 * Gets the name of the device that this instance is running on.
 	 *
 	 * @return The device name string.
 	 */
-	virtual const FString GetDeviceName() const = 0;
+	virtual const FString& GetDeviceName() const = 0;
 
 	/**
 	 * Gets the instance's engine version number.
@@ -66,42 +54,42 @@ public:
 	 *
 	 * @return Instance identifier.
 	 */
-	virtual const FGuid GetInstanceId() const = 0;
+	virtual const FGuid& GetInstanceId() const = 0;
 
 	/**
 	 * Gets the name of this instance.
 	 *
 	 * @return The instance name string.
 	 */
-	virtual const FString GetInstanceName() const = 0;
+	virtual const FString& GetInstanceName() const = 0;
 
 	/**
 	 * Gets the instance type (i.e. Editor or Game).
 	 *
 	 * @return The game instance type string.
 	 */
-	virtual const FString GetInstanceType() const = 0;
+	virtual const FString& GetInstanceType() const = 0;
 
 	/**
 	 * Gets the time at which the last update was received from this instance.
 	 *
 	 * @return The receive time.
 	 */
-	virtual FDateTime GetLastUpdateTime() = 0;
+	virtual const FDateTime& GetLastUpdateTime() const = 0;
 
 	/**
 	 * Gets the collection of log entries received from this instance.
 	 *
 	 * @return Log entries.
 	 */
-	virtual const TArray<FSessionLogMessagePtr>& GetLog() = 0;
+	virtual const TArray<TSharedPtr<FSessionLogMessage>>& GetLog() = 0;
 
 	/**
 	 * Gets a reference to the session that owns this instance.
 	 *
 	 * @return Owner session.
 	 */
-	virtual TSharedPtr<class ISessionInfo> GetOwnerSession() = 0;
+	virtual TSharedPtr<ISessionInfo> GetOwnerSession() = 0;
 
 	/**
 	 * Gets the name of the platform that the instance is running on.
@@ -131,22 +119,28 @@ public:
 	 */
 	virtual bool PlayHasBegun() const = 0;
 
-	/**
-	 * Terminates the instance.
-	 */
+	/** Terminates the instance. */
 	virtual void Terminate() = 0;
 
 public:
 
 	/**
-	 * Returns a delegate that is executed when a new log message has been received.
+	 * Gets an event delegate that is executed when a new log message has been received.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionInstanceLogReceived& OnLogReceived() = 0;
+	DECLARE_EVENT_TwoParams(ISessionInstanceInfo, FLogReceivedEvent, const TSharedRef<ISessionInstanceInfo>&, const TSharedRef<FSessionLogMessage>&);
+	virtual FLogReceivedEvent& OnLogReceived() = 0;
 
 public:
 
 	/** Virtual destructor. */
 	virtual ~ISessionInstanceInfo() { }
 };
+
+
+/** Type definition for shared pointers to instances of IGameInstanceInfo. */
+typedef TSharedPtr<ISessionInstanceInfo> ISessionInstanceInfoPtr;
+
+/** Type definition for shared references to instances of IGameInstanceInfo. */
+typedef TSharedRef<ISessionInstanceInfo> ISessionInstanceInfoRef;

@@ -2,11 +2,9 @@
 
 #pragma once
 
-#if WITH_ENGINE
-	#include "ISessionService.h"
-#endif
 
 class FEngineService;
+class ISessionService;
 
 
 /**
@@ -147,7 +145,7 @@ private:
 	FEngineService* EngineService;
 
 	/** Holds the application session service. */
-	ISessionServicePtr SessionService;
+	TSharedPtr<ISessionService> SessionService;
 
 #endif // WITH_ENGINE
 };

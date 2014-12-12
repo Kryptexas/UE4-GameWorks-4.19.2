@@ -1,12 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerClientManager.h: Declares the FProfilerClientManager class.
-=============================================================================*/
-
 #pragma once
 
+
 #define PROFILER_THREADED_LOAD 1
+
 
 /** Helper struct containing all of the data and operations associated with a service connection */
 struct FServiceConnection
@@ -144,36 +142,26 @@ public:
 	/**
 	 * Default constructor
 	 *
-	 * @param InMessageBus - The message bus to use.
+	 * @param InMessageBus The message bus to use.
 	 */
 	FProfilerClientManager( const IMessageBusRef& InMessageBus );
 
-	/**
-	 * Default destructor
-	 */
+	/** Default destructor */
 	~FProfilerClientManager();
 
 public:
 
-	// Begin IProfileClient Interface
+	// IProfilerClient Interface
+
 	virtual void Subscribe( const FGuid& Session ) override;
-
 	virtual void Track( const FGuid& Instance ) override;
-
-	virtual void Track( const TArray<ISessionInstanceInfoPtr>& Instances ) override;
-
+	virtual void Track( const TArray<TSharedPtr<ISessionInstanceInfo>>& Instances ) override;
 	virtual void Untrack( const FGuid& Instance ) override;
-
 	virtual void Unsubscribe() override;
-
 	virtual void SetCaptureState( const bool bRequestedCaptureState, const FGuid& InstanceId = FGuid() ) override;
-
 	virtual void SetPreviewState( const bool bRequestedPreviewState, const FGuid& InstanceId = FGuid() ) override;
-
 	virtual void LoadCapture( const FString& DataFilepath, const FGuid& ProfileId ) override;
-
 	virtual void RequestMetaData() override;
-
 	virtual void RequestLastCapturedFile( const FGuid& InstanceId = FGuid() ) override;
 
 	virtual const FStatMetaData& GetStatMetaData( const FGuid& InstanceId ) const override
@@ -221,7 +209,6 @@ public:
 	{
 		return ProfilerLoadedMetaDataDelegate;
 	}
-	// End IAutomationControllerModule Interface
 
 	static const int32 MaxFramesPerTick = 60;
 

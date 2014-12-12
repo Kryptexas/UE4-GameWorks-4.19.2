@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of FLauncherLogMessage. */
-typedef TSharedPtr<struct FSessionLogMessage> FSessionLogMessagePtr;
-
-/** Type definition for shared references to instances of FLauncherLogMessage. */
-typedef TSharedRef<struct FSessionLogMessage> FSessionLogMessageRef;
-
-
 /**
  * Structure for log messages.
  */
@@ -65,9 +58,16 @@ public:
 	 */
 	struct TimeComparer
 	{
-		bool operator () (const FSessionLogMessagePtr& A, const FSessionLogMessagePtr& B) const
+		bool operator()(const TSharedPtr<FSessionLogMessage>& A, const TSharedPtr<FSessionLogMessage>& B) const
 		{
 			return A->Time < B->Time;
 		}
 	};
 };
+
+
+/** Type definition for shared pointers to instances of FLauncherLogMessage. */
+typedef TSharedPtr<FSessionLogMessage> FSessionLogMessagePtr;
+
+/** Type definition for shared references to instances of FLauncherLogMessage. */
+typedef TSharedRef<FSessionLogMessage> FSessionLogMessageRef;

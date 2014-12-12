@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ISessionService. */
-typedef TSharedPtr<class ISessionService> ISessionServicePtr;
-
-/** Type definition for shared references to instances of ISessionService. */
-typedef TSharedRef<class ISessionService> ISessionServiceRef;
-
-
 /**
  * Interface for application session services.
  */
@@ -21,6 +14,7 @@ public:
 	 * Checks whether the service is running.
 	 *
 	 * @return true if the service is running, false otherwise.
+	 * @see Start, Stop
 	 */
 	virtual bool IsRunning() = 0;
 
@@ -28,13 +22,14 @@ public:
 	 * Starts the service.
 	 *
 	 * @return true if the service was started, false otherwise.
-	 * @see Stop
+	 * @see IsRunning, Stop
 	 */
 	virtual bool Start() = 0;
 
 	/**
 	 * Stops the service.
-	 * @see Start
+	 *
+	 * @see IsRunning, Start
 	 */
 	virtual void Stop() = 0;
 
@@ -43,3 +38,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~ISessionService() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISessionService. */
+typedef TSharedPtr<ISessionService> ISessionServicePtr;
+
+/** Type definition for shared references to instances of ISessionService. */
+typedef TSharedRef<ISessionService> ISessionServiceRef;

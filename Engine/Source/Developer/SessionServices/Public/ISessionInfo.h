@@ -3,29 +3,8 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ISessionInfo. */
-typedef TSharedPtr<class ISessionInfo> ISessionInfoPtr;
-
-/** Type definition for shared references to instances of ISessionInfo. */
-typedef TSharedRef<class ISessionInfo> ISessionInfoRef;
-
-
-/**
- * Delegate type for discovered session instances.
- *
- * The first parameter is the session that discovered an instance.
- * The second parameter is the discovered instance.
- */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionInstanceDiscovered, const ISessionInfoRef&, const ISessionInstanceInfoRef&)
-
-/**
- * Delegate type for received session log entries.
- *
- * The first parameter is the session that the log belongs to.
- * The second parameter is the engine instance that generated the log.
- * The third parameter is the new log message.
- */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionLogReceived, const ISessionInfoRef&, const ISessionInstanceInfoRef&, const FSessionLogMessageRef&);
+class ISessionInstanceInfo;
+struct FSessionLogMessage;
 
 
 /**
@@ -40,14 +19,14 @@ public:
 	 *
 	 * @param OutInstances Will hold the collection of instances.
 	 */
-	virtual void GetInstances( TArray<ISessionInstanceInfoPtr>& OutInstances ) const = 0;
+	virtual void GetInstances( TArray<TSharedPtr<ISessionInstanceInfo>>& OutInstances ) const = 0;
 
 	/**
 	 * Gets the time at which the last update was received from this instance.
 	 *
 	 * @return The receive time.
 	 */
-	virtual FDateTime GetLastUpdateTime() = 0;
+	virtual const FDateTime& GetLastUpdateTime() const = 0;
 
 	/**
 	 * Gets the number of engine instances that are part of the session.
@@ -94,21 +73,30 @@ public:
 public:
 
 	/**
-	 * Returns a delegate that is executed when a new instance has been discovered.
+	 * A delegate that is executed when a new instance has been discovered.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered() = 0;
+	DECLARE_EVENT_TwoParams(ISessionInfo, FInstanceDiscoveredEvent, const TSharedRef<ISessionInfo>& /*OwnerSession*/, const TSharedRef<ISessionInstanceInfo>& /*DiscoveredInstance*/)
+	virtual FInstanceDiscoveredEvent& OnInstanceDiscovered() = 0;
 
 	/**
-	 * Returns a delegate that is executed when a new log message has been received.
+	 * A delegate that is executed when a new log message has been received.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionLogReceived& OnLogReceived() = 0;
+	DECLARE_EVENT_ThreeParams(ISessionInfo, FLogReceivedEvent, const TSharedRef<ISessionInfo>& /*OwnerSession*/, const TSharedRef<ISessionInstanceInfo>& /*SessionInstance*/, const TSharedRef<FSessionLogMessage>& /*LogMessage*/);
+	virtual FLogReceivedEvent& OnLogReceived() = 0;
 
 public:
 
 	/** Virtual destructor. */
 	virtual ~ISessionInfo() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISessionInfo. */
+typedef TSharedPtr<ISessionInfo> ISessionInfoPtr;
+
+/** Type definition for shared references to instances of ISessionInfo. */
+typedef TSharedRef<ISessionInfo> ISessionInfoRef;

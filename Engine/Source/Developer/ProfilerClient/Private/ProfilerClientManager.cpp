@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "ProfilerClientPrivatePCH.h"
+#include "ISessionInstanceInfo.h"
 #include "SecureHash.h"
 #include "StatsData.h"
 #include "StatsFile.h"
@@ -134,7 +135,7 @@ void FProfilerClientManager::Track( const FGuid& Instance )
 #endif
 }
 
-void FProfilerClientManager::Track( const TArray<ISessionInstanceInfoPtr>& Instances )
+void FProfilerClientManager::Track( const TArray<TSharedPtr<ISessionInstanceInfo>>& Instances )
 {
 #if STATS
 	if (MessageEndpoint.IsValid() && ActiveSessionId.IsValid())
