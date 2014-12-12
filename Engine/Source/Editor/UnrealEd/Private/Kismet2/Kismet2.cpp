@@ -1359,8 +1359,9 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintUsingAsset(UObject* Asset, bo
 			// Add node to the SCS
 			NewBP->SimpleConstructionScript->AddNode(NewNode);
 
-			// Recompile skeleton because of the new component we added
-			FKismetEditorUtilities::GenerateBlueprintSkeleton(NewBP, true);
+			// Recompile skeleton because of the new component we added (and 
+			// broadcast the change to those that care, like the BP node database)
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(NewBP);
 
 			// Open in BP editor if desired
 			if(bOpenInEditor)
