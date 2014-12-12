@@ -83,12 +83,6 @@ struct FTimerHandle
 
 	}
 
-	FTimerHandle(int32 InHandle)
-		: Handle(InHandle)
-	{
-
-	}
-
 	bool IsValid() const
 	{
 		return Handle != INDEX_NONE;
