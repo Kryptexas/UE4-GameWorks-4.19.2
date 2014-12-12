@@ -371,6 +371,11 @@ EReimportResult::Type UPaperTiledImporterFactory::Reimport(UObject* Obj)
 	return EReimportResult::Failed;
 }
 
+int32 UPaperTiledImporterFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 UObject* UPaperTiledImporterFactory::CreateNewAsset(UClass* AssetClass, const FString& TargetPath, const FString& DesiredName, EObjectFlags Flags)
 {

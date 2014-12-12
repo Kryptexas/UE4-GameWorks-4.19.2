@@ -44,7 +44,7 @@ UTrueTypeFontFactory::UTrueTypeFontFactory(const FObjectInitializer& ObjectIniti
 	bCreateNew = true;
 	bEditorImport = false;
 	bEditAfterNew = true;
-	AutoPriority = -1;
+	ImportPriority = -1;
 	LODGroup = TEXTUREGROUP_UI;
 }
 
@@ -224,6 +224,11 @@ EReimportResult::Type UTrueTypeFontFactory::Reimport( UObject* InObject )
 	}
 
 	return bSuccess ? EReimportResult::Succeeded : EReimportResult::Failed;
+}
+
+int32 UTrueTypeFontFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 

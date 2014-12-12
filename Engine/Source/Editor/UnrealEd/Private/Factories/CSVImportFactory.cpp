@@ -637,6 +637,11 @@ EReimportResult::Type UReimportDataTableFactory::Reimport( UObject* Obj )
 	return Result;
 }
 
+int32 UReimportDataTableFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 //
 UReimportCurveTableFactory::UReimportCurveTableFactory(const FObjectInitializer& ObjectInitializer)
@@ -673,6 +678,11 @@ EReimportResult::Type UReimportCurveTableFactory::Reimport( UObject* Obj )
 	return EReimportResult::Failed;
 }
 
+int32 UReimportCurveTableFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 //
 UReimportCurveFactory::UReimportCurveFactory(const FObjectInitializer& ObjectInitializer)
@@ -707,6 +717,11 @@ EReimportResult::Type UReimportCurveFactory::Reimport( UObject* Obj )
 		return UCSVImportFactory::ReimportCSV(Obj) ? EReimportResult::Succeeded : EReimportResult::Failed;
 	}
 	return EReimportResult::Failed;
+}
+
+int32 UReimportCurveFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 

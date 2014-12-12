@@ -2507,6 +2507,13 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 		bool bShowNotification = true;
 		bool bValidSourceFilename = false;
 		TArray<FString> SourceFilenames;
+		
+		struct FCompareReimportHandlerPriority
+		{
+			// Use > operator because we want higher priorities earlier in the list
+			FORCEINLINE bool operator()(const FReimportHandler& A, const FReimportHandler& B) const { return A.GetPriority() > B.GetPriority(); }
+		};
+		Handlers.Sort(FCompareReimportHandlerPriority());
 		for( int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex )
 		{
 			SourceFilenames.Empty();

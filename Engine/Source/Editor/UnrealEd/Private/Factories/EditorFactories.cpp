@@ -1949,6 +1949,11 @@ EReimportResult::Type UReimportSoundFactory::Reimport( UObject* Obj )
 	return EReimportResult::Succeeded;
 }
 
+int32 UReimportSoundFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 /*-----------------------------------------------------------------------------
 	USoundSurroundFactory.
@@ -2343,6 +2348,11 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 	EditorErrors.Notify(LOCTEXT("SurroundWarningDescription", "Some files could not be reimported."), EMessageSeverity::Warning);
 
 	return bSourceReimported ? EReimportResult::Succeeded : EReimportResult::Failed;
+}
+
+int32 UReimportSoundSurroundFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 
@@ -5539,6 +5549,11 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 	return EReimportResult::Succeeded;
 }
 
+int32 UReimportTextureFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 /*-----------------------------------------------------------------------------
 UReimportFbxStaticMeshFactory.
@@ -5723,6 +5738,11 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	}
 }
 
+int32 UReimportFbxStaticMeshFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 
 /*-----------------------------------------------------------------------------
@@ -5880,6 +5900,11 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	}
 }
 
+int32 UReimportFbxSkeletalMeshFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 /*-----------------------------------------------------------------------------
 UReimportFbxAnimSequenceFactory
 -----------------------------------------------------------------------------*/ 
@@ -6024,6 +6049,11 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	Importer->ReleaseScene(); 
 
 	return EReimportResult::Succeeded;
+}
+
+int32 UReimportFbxAnimSequenceFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 
@@ -6798,6 +6828,11 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	}
 
 	return EReimportResult::Succeeded;
+}
+
+int32 UReimportDestructibleMeshFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 #endif // #if WITH_APEX
