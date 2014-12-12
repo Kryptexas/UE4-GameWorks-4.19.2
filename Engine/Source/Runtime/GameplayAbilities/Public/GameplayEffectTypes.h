@@ -791,11 +791,11 @@ struct FGameplayTagRequirements
 	GENERATED_USTRUCT_BODY()
 
 	/** All of these tags must be present */
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	UPROPERTY(EditAnywhere, Category = GameplayModifier)
 	FGameplayTagContainer RequireTags;
 
 	/** None of these tags may be present */
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	UPROPERTY(EditAnywhere, Category = GameplayModifier)
 	FGameplayTagContainer IgnoreTags;
 
 	bool	RequirementsMet(const FGameplayTagContainer& Container) const;

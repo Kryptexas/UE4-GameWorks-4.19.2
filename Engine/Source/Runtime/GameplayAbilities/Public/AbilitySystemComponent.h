@@ -271,12 +271,26 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 * @param OutCaptureSpec	[OUT] Capture spec to populate with captured data
 	 */
 	void CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec);
-
-	// Delegates (these need to be at the UObject level so we can safetly bind, rather than binding to raw at the ActiveGameplayEffect/Container level which is unsafe if the AbilitySystemComponent were killed).
+	
+	// --------------------------------------------
+	// Callbacks / Notifies
+	// (these need to be at the UObject level so we can safetly bind, rather than binding to raw at the ActiveGameplayEffect/Container level which is unsafe if the AbilitySystemComponent were killed).
+	// --------------------------------------------
 
 	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
 
 	void OnMagnitudeDependancyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAggregator);
+
+	/** This ASC has successfully applied a GE to something (potentially itself) */
+	void OnGameplayEffectAppliedToTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);
+
+	void OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);
+
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGameplayEffectAppliedDelegate, UAbilitySystemComponent*, const FGameplayEffectSpec&, FActiveGameplayEffectHandle);
+
+	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToSelf;
+
+	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToTarget;
 
 	// --------------------------------------------
 	// Tags
@@ -331,7 +345,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 
 	// --------------------------------------------
-	// Possibly useful but not primary API functions:
+	// Additional Helper Functions
 	// --------------------------------------------
 	
 	FOnActiveGameplayEffectRemoved* OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle);

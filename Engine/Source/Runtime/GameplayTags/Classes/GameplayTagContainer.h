@@ -256,16 +256,15 @@ protected:
 	*/
 	bool DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const;
 
+	/** Array of gameplay tags */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayTags)
+	TArray<FGameplayTag> GameplayTags;
 
 private:
 
 	/** Array of gameplay tags */
 	UPROPERTY()
 	TArray<FName> Tags_DEPRECATED;
-
-	/** Array of gameplay tags */
-	UPROPERTY(VisibleAnywhere, Category=GameplayTags)
-	TArray<FGameplayTag> GameplayTags;
 
 	/**
 	 * DO NOT USE DIRECTLY

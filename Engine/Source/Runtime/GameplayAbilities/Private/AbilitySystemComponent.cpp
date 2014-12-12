@@ -516,7 +516,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	FActiveGameplayEffectHandle	MyHandle;
 	bool bInvokeGameplayCueApplied = UGameplayEffect::INSTANT_APPLICATION != Spec.GetDuration(); // Cache this now before possibly modifying predictive instant effect to infinite duration effect.
 
-	FGameplayEffectSpec* OurCopyOfSpec = NULL;
+	FGameplayEffectSpec* OurCopyOfSpec = nullptr;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
 	float Duration = bTreatAsInfiniteDuration ? UGameplayEffect::INFINITE_DURATION : Spec.GetDuration();
 	{
@@ -597,6 +597,18 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		{
 			ApplyGameplayEffectSpecToSelf(*TargetSpec.Data.Get(), PredictionKey);
 		}
+	}
+
+	UAbilitySystemComponent* InstigatorASC = Spec.GetContext().GetInstigatorAbilitySystemComponent();
+
+	// Send ourselves a callback	
+	OnGameplayEffectAppliedToSelf(InstigatorASC, *OurCopyOfSpec, MyHandle);
+
+	// Send the instigator a callback
+	
+	if (InstigatorASC)
+	{
+		InstigatorASC->OnGameplayEffectAppliedToTarget(this, *OurCopyOfSpec, MyHandle);
 	}
 
 	return MyHandle;
@@ -997,6 +1009,18 @@ void UAbilitySystemComponent::OnMagnitudeDependancyChange(FActiveGameplayEffectH
 {
 	ActiveGameplayEffects.OnMagnitudeDependancyChange(Handle, ChangedAggregator);
 }
+
+void UAbilitySystemComponent::OnGameplayEffectAppliedToTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle)
+{
+	OnGameplayEffectAppliedDelegateToTarget.Broadcast(Target, SpecApplied, ActiveHandle);
+}
+
+void UAbilitySystemComponent::OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle)
+{
+	OnGameplayEffectAppliedDelegateToSelf.Broadcast(Source, SpecApplied, ActiveHandle);
+}
+
+// ------------------------------------------------------------------------
 
 FString ASC_CleanupName(FString Str)
 {
