@@ -135,6 +135,7 @@ class ENGINE_API FRecastTileGenerator : public FNonAbandonableTask
 
 public:
 	FRecastTileGenerator(const FRecastNavMeshGenerator& ParentGenerator, const FIntPoint& Location);
+	virtual ~FRecastTileGenerator();
 		
 	void DoWork();
 

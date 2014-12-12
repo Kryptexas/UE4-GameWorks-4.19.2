@@ -1443,6 +1443,10 @@ FRecastTileGenerator::FRecastTileGenerator(const FRecastNavMeshGenerator& Parent
 	AdditionalCachedData = ParentGenerator.GetAdditionalCachedData();
 }
 
+FRecastTileGenerator::~FRecastTileGenerator()
+{
+}
+
 void FRecastTileGenerator::Setup(const FRecastNavMeshGenerator& ParentGenerator, const TArray<FBox>& DirtyAreas)
 {
 	const FVector NavMeshOrigin = FVector::ZeroVector;
