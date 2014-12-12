@@ -9,6 +9,7 @@ class AIMODULE_API UBlackboardKeyType_Enum : public UBlackboardKeyType
 	GENERATED_UCLASS_BODY()
 
 	typedef uint8 FDataType;
+	static const FDataType InvalidValue;
 
 	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
 	UEnum* EnumType;

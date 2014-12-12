@@ -123,7 +123,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsObject(UBTNode* NodeOwner, const FB
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsObject(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Object>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -133,7 +133,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsClass(UBTNode* NodeOwner, const FBl
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsClass(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Class>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -143,7 +143,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsEnum(UBTNode* NodeOwner, const FBla
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsEnum(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Enum>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -153,7 +153,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsInt(UBTNode* NodeOwner, const FBlac
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsInt(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Int>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -163,7 +163,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsFloat(UBTNode* NodeOwner, const FBl
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsFloat(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Float>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -173,7 +173,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsBool(UBTNode* NodeOwner, const FBla
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsBool(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Bool>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -183,7 +183,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsString(UBTNode* NodeOwner, const FB
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsString(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_String>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -193,7 +193,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsName(UBTNode* NodeOwner, const FBla
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsName(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Name>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -203,7 +203,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsVector(UBTNode* NodeOwner, const FB
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsVector(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Vector>(Key.SelectedKeyName, Value);
 	}
 }
 
@@ -213,7 +213,7 @@ void UBTFunctionLibrary::ClearBlackboardValueAsVector(UBTNode* NodeOwner, const 
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->ClearValueAsVector(Key.SelectedKeyName);
+		BlackboardComp->ClearValue(Key.SelectedKeyName);
 	}
 }
 
@@ -223,7 +223,7 @@ void UBTFunctionLibrary::SetBlackboardValueAsRotator(UBTNode* NodeOwner, const F
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
 	{
-		BlackboardComp->SetValueAsRotator(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValue<UBlackboardKeyType_Rotator>(Key.SelectedKeyName, Value);
 	}
 }
 

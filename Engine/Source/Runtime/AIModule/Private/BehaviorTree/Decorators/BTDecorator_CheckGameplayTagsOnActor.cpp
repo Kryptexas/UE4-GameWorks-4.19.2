@@ -29,7 +29,7 @@ bool UBTDecorator_CheckGameplayTagsOnActor::CalculateRawConditionValue(UBehavior
 		return false;
 	}
 
-	IGameplayTagAssetInterface* GameplayTagAssetInterface = Cast<IGameplayTagAssetInterface>(BlackboardComp->GetValueAsObject(ActorToCheck.GetSelectedKeyID()));
+	IGameplayTagAssetInterface* GameplayTagAssetInterface = Cast<IGameplayTagAssetInterface>(BlackboardComp->GetValue<UBlackboardKeyType_Object>(ActorToCheck.GetSelectedKeyID()));
 	if (GameplayTagAssetInterface == NULL)
 	{
 		return false;

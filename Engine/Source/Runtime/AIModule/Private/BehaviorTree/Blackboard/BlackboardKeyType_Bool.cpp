@@ -3,6 +3,8 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
 
+const UBlackboardKeyType_Bool::FDataType UBlackboardKeyType_Bool::InvalidValue = false;
+
 UBlackboardKeyType_Bool::UBlackboardKeyType_Bool(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(uint8);

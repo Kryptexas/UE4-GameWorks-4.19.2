@@ -15,6 +15,7 @@
 #include "BehaviorTreeTypes.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardData.h"
+#include "AISystem.h"
 #include "BlackboardComponent.generated.h"
 
 class UBlackboardData;
@@ -92,47 +93,37 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	UObject* GetValueAsObject(const FName& KeyName) const;
-	UObject* GetValueAsObject(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	UClass* GetValueAsClass(const FName& KeyName) const;
-	UClass* GetValueAsClass(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	uint8 GetValueAsEnum(const FName& KeyName) const;
-	uint8 GetValueAsEnum(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	int32 GetValueAsInt(const FName& KeyName) const;
-	int32 GetValueAsInt(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	float GetValueAsFloat(const FName& KeyName) const;
-	float GetValueAsFloat(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetValueAsBool(const FName& KeyName) const;
-	bool GetValueAsBool(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FString GetValueAsString(const FName& KeyName) const;
-	FString GetValueAsString(FBlackboard::FKey KeyID) const;
 	
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FName GetValueAsName(const FName& KeyName) const;
-	FName GetValueAsName(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FVector GetValueAsVector(const FName& KeyName) const;
-	FVector GetValueAsVector(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FRotator GetValueAsRotator(const FName& KeyName) const;
-	FRotator GetValueAsRotator(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsObject(const FName& KeyName, UObject* ObjectValue);
-
+	
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsClass(const FName& KeyName, UClass* ClassValue);
 
@@ -157,23 +148,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
 
-	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
-	void ClearValueAsVector(const FName& KeyName);
-	void ClearValueAsVector(FBlackboard::FKey KeyID);
+	UFUNCTION(BlueprintCallable, Category = "AI|Components|Blackboard")
+	void SetValueAsRotator(const FName& KeyName, FRotator VectorValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard", Meta=(
 		Tooltip="If the vector value has been set (and not cleared), this function returns true (indicating that the value should be valid).  If it's not set, the vector value is invalid and this function will return false.  (Also returns false if the key specified does not hold a vector.)"))
 	bool IsVectorValueSet(const FName& KeyName) const;
 	bool IsVectorValueSet(FBlackboard::FKey KeyID) const;
-
-	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
-	void SetValueAsRotator(const FName& KeyName, FRotator VectorValue);
-	void SetValueAsRotator(FBlackboard::FKey KeyID, const FRotator& VectorValue);
-
-	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
-	void ClearValueAsRotator(const FName& KeyName);
-	void ClearValueAsRotator(FBlackboard::FKey KeyID);
-
+		
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const;
@@ -189,7 +171,16 @@ public:
 	void ClearValue(FBlackboard::FKey KeyID);
 
 	template<class TDataClass>
+	bool SetValue(const FName& KeyName, typename TDataClass::FDataType Value);
+
+	template<class TDataClass>
 	bool SetValue(FBlackboard::FKey KeyID, typename TDataClass::FDataType Value);
+
+	template<class TDataClass>
+	typename TDataClass::FDataType GetValue(const FName& KeyName) const;
+
+	template<class TDataClass>
+	typename TDataClass::FDataType GetValue(FBlackboard::FKey KeyID) const;
 
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }
@@ -213,7 +204,57 @@ public:
 	/** prepare blackboard snapshot for logs */
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif
-	
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
+	DEPRECATED(4.7, "This function is deprecated. Please use ClearValue() instead.")
+	void ClearValueAsRotator(FBlackboard::FKey KeyID);
+	DEPRECATED(4.7, "This function is deprecated. Please use ClearValue() instead.")
+	void ClearValueAsVector(FBlackboard::FKey KeyID);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Object>() instead.")
+	void SetValueAsObject(FBlackboard::FKey KeyID, UObject* ObjectValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Class>() instead.")
+	void SetValueAsClass(FBlackboard::FKey KeyID, UClass* ClassValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Enum>() instead.")
+	void SetValueAsEnum(FBlackboard::FKey KeyID, uint8 EnumValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Int>() instead.")
+	void SetValueAsInt(FBlackboard::FKey KeyID, int32 IntValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Float>() instead.")
+	void SetValueAsFloat(FBlackboard::FKey KeyID, float FloatValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Bool>() instead.")
+	void SetValueAsBool(FBlackboard::FKey KeyID, bool BoolValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_String>() instead.")
+	void SetValueAsString(FBlackboard::FKey KeyID, FString StringValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Name>() instead.")
+	void SetValueAsName(FBlackboard::FKey KeyID, FName NameValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use SetValue<UBlackboardKeyType_Vector>() instead.")
+	void SetValueAsVector(FBlackboard::FKey KeyID, FVector VectorValue);
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Object>() instead.")
+	UObject* GetValueAsObject(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Class>() instead.")
+	UClass* GetValueAsClass(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Enum>() instead.")
+	uint8 GetValueAsEnum(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Int>() instead.")
+	int32 GetValueAsInt(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Float>() instead.")
+	float GetValueAsFloat(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Bool>() instead.")
+	bool GetValueAsBool(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_String>() instead.")
+	FString GetValueAsString(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Name>() instead.")
+	FName GetValueAsName(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Vector>() instead.")
+	FVector GetValueAsVector(FBlackboard::FKey KeyID) const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetValue<UBlackboardKeyType_Rotator>() instead.")
+	FRotator GetValueAsRotator(FBlackboard::FKey KeyID) const;
+	UFUNCTION(BlueprintCallable, Category = "AI|Components|Blackboard", Meta = (DeprecatedFunction, DeprecationMessage = "Please use ClearValue instead"))
+	void ClearValueAsVector(const FName& KeyName);
+	UFUNCTION(BlueprintCallable, Category = "AI|Components|Blackboard", Meta = (DeprecatedFunction, DeprecationMessage = "Please use ClearValue instead"))
+	void ClearValueAsRotator(const FName& KeyName);
+
 protected:
 
 	/** cached behavior tree component */
@@ -263,6 +304,13 @@ FORCEINLINE bool UBlackboardComponent::HasValidAsset() const
 }
 
 template<class TDataClass>
+bool UBlackboardComponent::SetValue(const FName& KeyName, typename TDataClass::FDataType Value)
+{
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
+	return SetValue<TDataClass>(KeyID, Value);
+}
+
+template<class TDataClass>
 bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass::FDataType Value)
 {
 	if (GetKeyType(KeyID) != TDataClass::StaticClass())
@@ -296,4 +344,20 @@ bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass
 	}
 
 	return false;
+}
+
+template<class TDataClass>
+typename TDataClass::FDataType UBlackboardComponent::GetValue(const FName& KeyName) const
+{
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
+	return (GetKeyType(KeyID) != TDataClass::StaticClass())
+		? TDataClass::InvalidValue
+		: GetValue<TDataClass>(KeyID);
+}
+
+template<class TDataClass>
+typename TDataClass::FDataType UBlackboardComponent::GetValue(FBlackboard::FKey KeyID) const
+{
+	const uint8* RawData = GetKeyRawData(KeyID);
+	return RawData ? TDataClass::GetValue(RawData) : TDataClass::InvalidValue;
 }

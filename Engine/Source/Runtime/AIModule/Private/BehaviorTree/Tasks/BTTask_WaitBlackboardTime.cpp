@@ -24,7 +24,7 @@ EBTNodeResult::Type UBTTask_WaitBlackboardTime::ExecuteTask(UBehaviorTreeCompone
 	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
 	if (MyBlackboard && BlackboardKey.SelectedKeyType == UBlackboardKeyType_Float::StaticClass())
 	{
-		WaitTime = MyBlackboard->GetValueAsFloat(BlackboardKey.GetSelectedKeyID());
+		WaitTime = MyBlackboard->GetValue<UBlackboardKeyType_Float>(BlackboardKey.GetSelectedKeyID());
 	}
 	
 	return Super::ExecuteTask(OwnerComp, NodeMemory);

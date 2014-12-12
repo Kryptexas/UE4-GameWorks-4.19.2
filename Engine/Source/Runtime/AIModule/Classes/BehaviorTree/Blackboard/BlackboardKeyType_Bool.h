@@ -9,6 +9,7 @@ class AIMODULE_API UBlackboardKeyType_Bool : public UBlackboardKeyType
 	GENERATED_UCLASS_BODY()
 
 	typedef bool FDataType;
+	static const FDataType InvalidValue;
 
 	static bool GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, bool bValue);

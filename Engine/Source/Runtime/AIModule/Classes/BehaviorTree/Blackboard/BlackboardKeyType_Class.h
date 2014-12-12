@@ -9,6 +9,7 @@ class AIMODULE_API UBlackboardKeyType_Class : public UBlackboardKeyType
 	GENERATED_UCLASS_BODY()
 
 	typedef UClass* FDataType;
+	static const FDataType InvalidValue;
 
 	UPROPERTY(Category=Blackboard, EditDefaultsOnly, meta=(AllowAbstract="1"))
 	UClass* BaseClass;

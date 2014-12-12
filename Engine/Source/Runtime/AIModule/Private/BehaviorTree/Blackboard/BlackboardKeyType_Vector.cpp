@@ -3,6 +3,8 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
+const UBlackboardKeyType_Vector::FDataType UBlackboardKeyType_Vector::InvalidValue = FAISystem::InvalidLocation;
+
 UBlackboardKeyType_Vector::UBlackboardKeyType_Vector(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FVector);

@@ -60,7 +60,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 
 	if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
-		UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
+		UObject* KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Object>(BlackboardKey.GetSelectedKeyID());
 		AActor* ActorValue = Cast<AActor>(KeyValue);
 
 		if (ActorValue != NULL)
@@ -83,7 +83,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 	}
 	else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 	{
-		const FVector KeyValue = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
+		const FVector KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
 		
 		if (FAISystem::IsValidLocation(KeyValue))
 		{
@@ -104,7 +104,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 	}
 	else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Rotator::StaticClass())
 	{
-		const FRotator KeyValue = MyBlackboard->GetValueAsRotator(BlackboardKey.GetSelectedKeyID());
+		const FRotator KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Rotator>(BlackboardKey.GetSelectedKeyID());
 
 		if (FAISystem::IsValidRotation(KeyValue))
 		{

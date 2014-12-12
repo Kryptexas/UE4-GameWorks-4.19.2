@@ -9,6 +9,7 @@ class AIMODULE_API UBlackboardKeyType_Vector : public UBlackboardKeyType
 	GENERATED_UCLASS_BODY()
 
 	typedef FVector FDataType; 
+	static const FDataType InvalidValue;
 	
 	static FVector GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, const FVector& Value);
