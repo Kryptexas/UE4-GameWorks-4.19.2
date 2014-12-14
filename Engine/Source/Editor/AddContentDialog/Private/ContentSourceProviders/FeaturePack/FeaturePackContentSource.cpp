@@ -72,8 +72,15 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	// Load image data
 	FString IconFilename = ManifestObject->GetStringField("Thumbnail");
 	TSharedPtr<TArray<uint8>> IconImageData = MakeShareable(new TArray<uint8>());
-	LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("Media"), *IconFilename), *IconImageData);
-	IconData = MakeShareable(new FImageData(IconFilename, IconImageData));
+	FString ThumbnailFile = FPaths::Combine(*MountPoint, TEXT("Media"), *IconFilename);
+	if( LoadPakFileToBuffer(PakPlatformFile, ThumbnailFile, *IconImageData) == true)
+	{
+		IconData = MakeShareable(new FImageData(IconFilename, IconImageData));
+	}
+	else
+	{
+		UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Cannot find thumbnail %s."), *InFeaturePackPath, *ThumbnailFile );
+	}
 
 	const TArray<TSharedPtr<FJsonValue>> ScreenshotFilenameArray = ManifestObject->GetArrayField("Screenshots");
 	for (const TSharedPtr<FJsonValue> ScreenshotFilename : ScreenshotFilenameArray)
