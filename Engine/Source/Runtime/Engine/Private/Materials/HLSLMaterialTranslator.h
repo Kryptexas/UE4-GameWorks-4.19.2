@@ -51,6 +51,19 @@ EMaterialValueType GetVectorType(uint32 NumComponents)
 	};
 }
 
+static inline int32 SwizzleComponentToIndex(TCHAR Component)
+{
+	switch (Component)
+	{
+	case TCHAR('x'): case TCHAR('X'): case TCHAR('r'): case TCHAR('R'): return 0;
+	case TCHAR('y'): case TCHAR('Y'): case TCHAR('g'): case TCHAR('G'): return 1;
+	case TCHAR('z'): case TCHAR('Z'): case TCHAR('b'): case TCHAR('B'): return 2;
+	case TCHAR('w'): case TCHAR('W'): case TCHAR('a'): case TCHAR('A'): return 3;
+	default:
+		return -1;
+	}
+}
+
 struct FShaderCodeChunk
 {
 	/** 
@@ -414,6 +427,19 @@ public:
 			for(int32 ExpressionIndex = 0;ExpressionIndex < CustomExpressionImplementations.Num();ExpressionIndex++)
 			{
 				ResourcesString += CustomExpressionImplementations[ExpressionIndex] + "\r\n\r\n";
+			}
+
+			// Per frame expressions
+			{
+				for (int32 Index = 0, Num = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformScalarExpressions.Num(); Index < Num; ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("float UE_Material_PerFrameScalarExpression%u;"), Index) + "\r\n\r\n";
+				}
+
+				for (int32 Index = 0, Num = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.Num(); Index < Num; ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("float4 UE_Material_PerFrameVectorExpression%u;"), Index) + "\r\n\r\n";
+				}
 			}
 
 			for(uint32 PropertyId = 0; PropertyId < MP_MAX; ++PropertyId)
@@ -935,9 +961,9 @@ protected:
 			}
 		}
 
-		int32		BufferSize		= 256;
+		int32	BufferSize		= 256;
 		TCHAR*	FormattedCode	= NULL;
-		int32		Result			= -1;
+		int32	Result			= -1;
 
 		while(Result == -1)
 		{
@@ -976,14 +1002,21 @@ protected:
 		TCHAR FormattedCode[MAX_SPRINTF]=TEXT("");
 		if(CodeChunk.Type == MCT_Float)
 		{
-			const static TCHAR IndexToMask[] = {'x', 'y', 'z', 'w'};
-			const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
-			// Update the above FMemory::Malloc if this FCString::Sprintf grows in size, e.g. %s, ...
-			FCString::Sprintf(FormattedCode, TEXT("Material.ScalarExpressions[%u].%c"), ScalarInputIndex / 4, IndexToMask[ScalarInputIndex % 4]);
+			if (CodeChunk.UniformExpression->IsChangingPerFrame())
+			{
+				const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
+				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameScalarExpression%u"), ScalarInputIndex);
+			}
+			else
+			{
+				const static TCHAR IndexToMask[] = {'x', 'y', 'z', 'w'};
+				const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
+				// Update the above FMemory::Malloc if this FCString::Sprintf grows in size, e.g. %s, ...
+				FCString::Sprintf(FormattedCode, TEXT("Material.ScalarExpressions[%u].%c"), ScalarInputIndex / 4, IndexToMask[ScalarInputIndex % 4]);
+			}
 		}
 		else if(CodeChunk.Type & MCT_Float)
 		{
-			const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
 			const TCHAR* Mask;
 			switch(CodeChunk.Type)
 			{
@@ -994,10 +1027,20 @@ protected:
 			default: Mask = TEXT(""); break;
 			};
 
-			FCString::Sprintf(FormattedCode, TEXT("Material.VectorExpressions[%u]%s"), VectorInputIndex, Mask);
+			if (CodeChunk.UniformExpression->IsChangingPerFrame())
+			{
+				const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameVectorExpression%u%s"), VectorInputIndex, Mask);
+			}
+			else
+			{
+				const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+				FCString::Sprintf(FormattedCode, TEXT("Material.VectorExpressions[%u]%s"), VectorInputIndex, Mask);
+			}
 		}
 		else if(CodeChunk.Type & MCT_Texture)
 		{
+			check(!CodeChunk.UniformExpression->IsChangingPerFrame());
 			int32 TextureInputIndex = INDEX_NONE;
 			const TCHAR* BaseName = TEXT("");
 			switch(CodeChunk.Type)
