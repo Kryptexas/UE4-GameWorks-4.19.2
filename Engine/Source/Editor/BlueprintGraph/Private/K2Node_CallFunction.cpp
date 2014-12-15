@@ -509,10 +509,13 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 			// class (the blueprint has not be compiled with it yet), so let's 
 			// check the skeleton class as well, see if we can pull pin data 
 			// from there...
-			UBlueprint* FunctionBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
-			if (UFunction* SkelFunction = FindField<UFunction>(FunctionBlueprint->SkeletonGeneratedClass, FunctionReference.GetMemberName()))
+			UBlueprint* FunctionBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy, ECastCheckedType::NullAllowed);
+			if (FunctionBlueprint)
 			{
-				Function = SkelFunction;
+				if (UFunction* SkelFunction = FindField<UFunction>(FunctionBlueprint->SkeletonGeneratedClass, FunctionReference.GetMemberName()))
+				{
+					Function = SkelFunction;
+				}
 			}
 		}
 	}
@@ -622,7 +625,10 @@ UEdGraphPin* UK2Node_CallFunction::CreateSelfPin(const UFunction* Function)
 	// that represent the same type)... this here could lead to a compiler 
 	// warning (the GeneratedClass could not have the function yet), but in
 	// that, the user would be reminded to compile the other blueprint
-	FunctionClass = FunctionClass->GetAuthoritativeClass();
+	if (FunctionClass->ClassGeneratedBy)
+	{
+		FunctionClass = FunctionClass->GetAuthoritativeClass();
+	}
 
 	UEdGraphPin* SelfPin = NULL;
 	if (FunctionClass == GetBlueprint()->GeneratedClass)
