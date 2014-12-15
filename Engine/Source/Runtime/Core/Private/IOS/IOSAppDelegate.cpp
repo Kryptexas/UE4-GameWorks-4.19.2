@@ -431,9 +431,13 @@ void InstallSignalHandlers()
 	}
 	else
 	{
-		if (MainFrame.size.height == 320 && !self.bDeviceInPortraitMode)
+		if (MainFrame.size.height == 320 && MainFrame.size.width != 480 && !self.bDeviceInPortraitMode)
 		{
 			[ImageString appendString:@"-568h"];
+			orient = UIImageOrientationLeft;
+		}
+		else if (MainFrame.size.height == 320 && MainFrame.size.width == 480 && !self.bDeviceInPortraitMode)
+		{
 			orient = UIImageOrientationLeft;
 		}
 		else if (MainFrame.size.height == 568)
