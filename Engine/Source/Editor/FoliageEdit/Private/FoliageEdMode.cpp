@@ -485,6 +485,16 @@ struct FPotentialInstance
 			Inst.Location = Inst.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Inst.ZOffset));
 		}
 
+		UModelComponent* ModelComponent = Cast<UModelComponent>(HitComponent);
+		if (ModelComponent)
+		{
+			ABrush* BrushActor = ModelComponent->GetModel()->FindBrush(HitLocation);
+			if (BrushActor)
+			{
+				HitComponent = BrushActor->GetBrushComponent();
+			}
+		}
+
 		Inst.Base = HitComponent;
 
 		return bSkipCollision || CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation, InWorld, InIFA);
