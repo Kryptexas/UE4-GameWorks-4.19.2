@@ -156,6 +156,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 
 		UEdGraphPin* CastToInterfaceSourceObjectPin = CastToInterfaceNode->GetCastSourcePin();
 		CompilerContext.MovePinLinksToIntermediate(*MessageSelfPin, *CastToInterfaceSourceObjectPin);
+		CastToInterfaceNode->PinConnectionListChanged(CastToInterfaceSourceObjectPin);
 
 		// Next, create the function call node
 		UK2Node_CallFunction* FunctionCallNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
