@@ -419,7 +419,9 @@ UObject* UPackFactory::FactoryCreateBinary
 					PackFactoryHelper::ExtractFileToString(Entry, PakReader, Buffer, PersistentCompressionBuffer, SourceContents);
 
 					FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-					SourceContents = SourceContents.Replace(TEXT("%MODULE_INCLUDE_PATH%"), *GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename), ESearchCase::CaseSensitive);
+					FString StringToReplace = *ConfigParameters.Find("GameName");
+					StringToReplace += ".h";
+					SourceContents = SourceContents.Replace(*StringToReplace, *GameProjectModule.Get().DetermineModuleIncludePath(SourceModuleInfo, DestFilename), ESearchCase::CaseSensitive);
 
 					if (FFileHelper::SaveStringToFile(SourceContents, *DestFilename))
 					{

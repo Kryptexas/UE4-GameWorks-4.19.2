@@ -1211,7 +1211,7 @@ void SNewProjectWizard::FindTemplateProjects()
 					const bool bGenerateCode = TemplateDefs->GeneratesCode(Root);
 
 					TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
-					const FString ThumbnailPNGFile = FPaths::GetBaseFilename(ProjectFilename, false) + TEXT(".png");
+					const FString ThumbnailPNGFile = (Root + TEXT("/Media/") + FoundProjectFiles[0]).Replace(TEXT(".uproject"), TEXT(".png"));
 					if ( FPlatformFileManager::Get().GetPlatformFile().FileExists(*ThumbnailPNGFile) )
 					{
 						const FName BrushName = FName(*ThumbnailPNGFile);
@@ -1219,7 +1219,7 @@ void SNewProjectWizard::FindTemplateProjects()
 					}
 
 					TSharedPtr<FSlateDynamicImageBrush> PreviewBrush;
-					const FString PreviewPNGFile = FPaths::GetBaseFilename(ProjectFilename, false) + TEXT("_Preview.png");
+					const FString PreviewPNGFile = (Root + TEXT("/Media/") + FoundProjectFiles[0]).Replace(TEXT(".uproject"), TEXT("_Preview.png"));
 					if ( FPlatformFileManager::Get().GetPlatformFile().FileExists(*PreviewPNGFile) )
 					{
 						const FName BrushName = FName(*PreviewPNGFile);
