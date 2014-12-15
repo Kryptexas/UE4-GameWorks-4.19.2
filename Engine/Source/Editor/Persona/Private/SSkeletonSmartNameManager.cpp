@@ -405,7 +405,7 @@ void SCurveNameManager::OnDeleteNameClicked()
 			}
 
 			TArray<FString> ParsedStringUids;
-			CurveDataCopy.ParseIntoArray(&ParsedStringUids, &USkeleton::CurveTagDelimiter, true);
+			CurveDataCopy.ParseIntoArray(&ParsedStringUids, *USkeleton::CurveTagDelimiter, true);
 
 			for(const FString& UidString : ParsedStringUids)
 			{

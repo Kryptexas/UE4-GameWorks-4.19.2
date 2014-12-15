@@ -16,10 +16,10 @@
 
 #if WITH_EDITOR
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
-const TCHAR USkeleton::AnimNotifyTagDelimiter = TEXT(';');
+const FString USkeleton::AnimNotifyTagDelimiter = TEXT(";");
 
 const FName USkeleton::CurveTag = FName(TEXT("CurveUIDList"));
-const TCHAR USkeleton::CurveTagDelimiter = TEXT(';');
+const FString USkeleton::CurveTagDelimiter = TEXT(";");
 
 const FName USkeleton::RigTag = FName(TEXT("Rig"));
 #endif 
@@ -703,7 +703,7 @@ void USkeleton::CollectAnimationNotifies()
 			if (const FString* Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
 			{
 				TArray<FString> NotifyList;
-				Value->ParseIntoArray(&NotifyList, &AnimNotifyTagDelimiter, true);
+				Value->ParseIntoArray(&NotifyList, *USkeleton::AnimNotifyTagDelimiter, true);
 				for (auto NotifyIter = NotifyList.CreateConstIterator(); NotifyIter; ++NotifyIter)
 				{
 					FString NotifyName = *NotifyIter;

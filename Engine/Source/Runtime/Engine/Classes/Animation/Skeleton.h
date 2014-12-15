@@ -658,11 +658,11 @@ public:
 
 	// Asset registry information for animation notifies
 	static const FName AnimNotifyTag;
-	static const TCHAR AnimNotifyTagDelimiter;
+	static const FString AnimNotifyTagDelimiter;
 
 	// Asset registry information for animation curves
 	ENGINE_API static const FName CurveTag;
-	ENGINE_API static const TCHAR CurveTagDelimiter;
+	ENGINE_API static const FString CurveTagDelimiter;
 
 	// rig Configs
 	ENGINE_API static const FName RigTag;
