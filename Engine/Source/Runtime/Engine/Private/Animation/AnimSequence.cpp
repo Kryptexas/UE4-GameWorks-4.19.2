@@ -745,7 +745,7 @@ FTransform UAnimSequence::ExtractRootTrackTransform(float Pos, const FBoneContai
 	// If we don't have a RequiredBones array, get root bone from default skeleton.
 	if( !RequiredBones &&  MySkeleton )
 	{
-		const FReferenceSkeleton RefSkeleton = MySkeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
 		if( RefSkeleton.GetNum() > 0 )
 		{
 			return RefSkeleton.GetRefBonePose()[0];
