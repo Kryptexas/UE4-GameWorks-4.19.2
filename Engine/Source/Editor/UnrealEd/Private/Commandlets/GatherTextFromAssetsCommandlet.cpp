@@ -503,10 +503,6 @@ void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >
 					UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("%s - Invalid generated class!"), *Blueprint->GetFullName());
 				}
 			}
-			else if ( Object->IsA( UUserDefinedStruct::StaticClass() ) )
-			{
-				int x = 0;
-			}
 			else if ( Object->IsA( UDataTable::StaticClass() ) )
 			{
 				UDataTable* DataTable = Cast<UDataTable>(Object);
