@@ -2671,6 +2671,43 @@ bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 }
 #endif // WITH_HOT_RELOAD
 
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static void DumpHelp(UWorld* InWorld)
+{
+	UE_LOG(LogEngine, Display, TEXT("Console Help:"));
+	UE_LOG(LogEngine, Display, TEXT("============="));
+	UE_LOG(LogEngine, Display, TEXT(" "));
+	UE_LOG(LogEngine, Display, TEXT("A console variable is a engine wide key value pair. The key is a string usually starting with the subsystem prefix followed"));
+	UE_LOG(LogEngine, Display, TEXT("by '.' e.g. r.BloomQuality. The value can be of different tpe (e.g. float, int, string). A console command has no state associated with"));
+	UE_LOG(LogEngine, Display, TEXT("and gets executed immediately."));
+	UE_LOG(LogEngine, Display, TEXT(" "));
+	UE_LOG(LogEngine, Display, TEXT("Console variables can be put into ini files (e.g. ConsoleVariables.ini or BaseEngine.ini) with this syntax:"));
+	UE_LOG(LogEngine, Display, TEXT("<Console variable> = <value>"));
+	UE_LOG(LogEngine, Display, TEXT(" "));
+	UE_LOG(LogEngine, Display, TEXT("DumpConsoleCommands         Lists all console variables and commands that are registered (Some are not registered)"));
+	UE_LOG(LogEngine, Display, TEXT("<Console variable>          Get the console variable state"));
+	UE_LOG(LogEngine, Display, TEXT("<Console variable> ?        Get the console variable help text"));
+	UE_LOG(LogEngine, Display, TEXT("<Console variable> <value>  Set the console variable value"));
+	UE_LOG(LogEngine, Display, TEXT("<Console command> [Params]  Execute the console command with optional parameters"));
+
+	UE_LOG(LogEngine, Display, TEXT(" "));
+
+	FString FilePath = FPaths::GameSavedDir() + TEXT("ConsoleHelp.html");
+
+	UE_LOG(LogEngine, Display, TEXT("To browse console variables open this: '%s'"), *FilePath);
+	UE_LOG(LogEngine, Display, TEXT(" "));
+
+	ConsoleCommandLibrary_DumpLibraryHTML(InWorld, *GEngine, FilePath);
+}
+static FAutoConsoleCommandWithWorld GConsoleCommandHelp(
+	TEXT("help"),
+	TEXT("Outputs some helptext to the console and the log"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(DumpHelp)
+	);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+
 bool UEngine::HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 	Ar.Logf(TEXT("DumpConsoleCommands: %s*"), Cmd);
