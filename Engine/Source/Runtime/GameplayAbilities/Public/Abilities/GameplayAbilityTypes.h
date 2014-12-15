@@ -441,7 +441,7 @@ struct FGameplayAbiliyInputBinds
 	/** Defines command string that will be bound to Cancel Targeting */
 	FString CancelTargetCommand;
 
-	/** Returns enum to use for ability bings. E.g., "Ability1"-"Ability8" input commands will be bound to ability activations inside the AbiltiySystemComponent */
+	/** Returns enum to use for ability binds. E.g., "Ability1"-"Ability9" input commands will be bound to ability activations inside the AbiltiySystemComponent */
 	FString	EnumName;
 
 	UEnum* GetBindEnum() { return FindObject<UEnum>(ANY_PACKAGE, *EnumName); }
