@@ -57,8 +57,8 @@ public:
 	virtual int32 Constant3(float X,float Y,float Z) = 0;
 	virtual int32 Constant4(float X,float Y,float Z,float W) = 0;
 
-	virtual int32 GameTime(bool bPeriodic, float Period) = 0;
-	virtual int32 RealTime(bool bPeriodic, float Period) = 0;
+	virtual int32 GameTime() = 0;
+	virtual int32 RealTime() = 0;
 	virtual int32 PeriodicHint(int32 PeriodicCode) { return PeriodicCode; }
 
 	virtual int32 Sine(int32 X) = 0;
@@ -216,8 +216,8 @@ public:
 	virtual int32 Constant3(float X,float Y,float Z) override { return Compiler->Constant3(X,Y,Z); }
 	virtual int32 Constant4(float X,float Y,float Z,float W) override { return Compiler->Constant4(X,Y,Z,W); }
 
-	virtual int32 GameTime(bool bPeriodic, float Period) override { return Compiler->GameTime(bPeriodic, Period); }
-	virtual int32 RealTime(bool bPeriodic, float Period) override { return Compiler->RealTime(bPeriodic, Period); }
+	virtual int32 GameTime() override { return Compiler->GameTime(); }
+	virtual int32 RealTime() override { return Compiler->RealTime(); }
 
 	virtual int32 PeriodicHint(int32 PeriodicCode) override { return Compiler->PeriodicHint(PeriodicCode); }
 
