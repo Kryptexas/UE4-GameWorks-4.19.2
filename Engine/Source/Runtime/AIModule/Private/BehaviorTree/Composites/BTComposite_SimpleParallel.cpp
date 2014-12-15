@@ -134,6 +134,11 @@ bool UBTComposite_SimpleParallel::CanPushSubtree(UBehaviorTreeComponent& OwnerCo
 	return (ChildIdx != EBTParallelChild::MainTask);
 }
 
+void UBTComposite_SimpleParallel::SetChildOverride(FBehaviorTreeSearchData& SearchData, int8 Index) const
+{
+	// don't allow any external mechanic to change child execution order (e.g. loop decorators)
+}
+
 FString UBTComposite_SimpleParallel::DescribeFinishMode(EBTParallelMode::Type Mode)
 {
 	static FString FinishDesc[] = { TEXT("AbortBackground"), TEXT("WaitForBackground") };
