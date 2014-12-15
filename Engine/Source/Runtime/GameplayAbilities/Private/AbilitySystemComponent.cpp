@@ -312,11 +312,6 @@ int32 UAbilitySystemComponent::GetNumActiveGameplayEffect() const
 	return ActiveGameplayEffects.GetNumGameplayEffects();
 }
 
-bool UAbilitySystemComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const
-{
-	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
-}
-
 const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
 {
 	return ActiveGameplayEffects.GetGameplayEffectSourceTagsFromHandle(Handle);
@@ -522,12 +517,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
-			// recalculating stacking needs to come before creating the new effect
-			if (Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
-			{
-				ActiveGameplayEffects.StacksNeedToRecalculate();
-			}
-
 			FActiveGameplayEffect& NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, PredictionKey);
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
@@ -852,11 +841,6 @@ void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagCont
 void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query)
 {
 	return ActiveGameplayEffects.RemoveActiveEffects(Query);
-}
-
-void UAbilitySystemComponent::OnRestackGameplayEffects()
-{
-	ActiveGameplayEffects.RecalculateStacking();
 }
 
 // ---------------------------------------------------------------------------------------

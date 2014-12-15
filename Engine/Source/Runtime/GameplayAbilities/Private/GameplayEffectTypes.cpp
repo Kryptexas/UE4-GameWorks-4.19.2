@@ -205,18 +205,6 @@ FString EGameplayModEffectToString(int32 Type)
 	return e->GetEnum(Type).ToString();
 }
 
-FString EGameplayEffectCopyPolicyToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayEffectCopyPolicy"));
-	return e->GetEnum(Type).ToString();
-}
-
-FString EGameplayEffectStackingPolicyToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayEffectStackingPolicy"));
-	return e->GetEnum(Type).ToString();
-}
-
 bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
 {
 	return ExplicitTags.HasTag(TagToCheck, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);

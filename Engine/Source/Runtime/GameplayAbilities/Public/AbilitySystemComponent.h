@@ -244,9 +244,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
-	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
-
 	/**
 	 * Get the source tags from the gameplay spec represented by the specified handle, if possible
 	 * 

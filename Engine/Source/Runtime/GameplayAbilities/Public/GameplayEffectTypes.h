@@ -28,10 +28,6 @@ FString EGameplayModToString(int32 Type);
 
 FString EGameplayModEffectToString(int32 Type);
 
-FString EGameplayEffectCopyPolicyToString(int32 Type);
-
-FString EGameplayEffectStackingPolicyToString(int32 Type);
-
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
@@ -47,38 +43,6 @@ namespace EGameplayModOp
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-/**
- * Tells us how to handle copying gameplay effect when it is applied.
- *	Default means to use context - e.g, OutgoingGE is are always snapshots, IncomingGE is always Link
- *	AlwaysSnapshot vs AlwaysLink let mods themselves override
- */
-UENUM(BlueprintType)
-namespace EGameplayEffectCopyPolicy
-{
-	enum Type
-	{
-		Default = 0			UMETA(DisplayName="Default"),
-		AlwaysSnapshot		UMETA(DisplayName="AlwaysSnapshot"),
-		AlwaysLink			UMETA(DisplayName="AlwaysLink")
-	};
-}
-
-UENUM(BlueprintType)
-namespace EGameplayEffectStackingPolicy
-{
-	enum Type
-	{
-		Unlimited = 0		UMETA(DisplayName = "NoRule"),
-		Highest				UMETA(DisplayName = "Strongest"),
-		Lowest				UMETA(DisplayName = "Weakest"),
-		Replaces			UMETA(DisplayName = "MostRecent"),
-		Callback			UMETA(DisplayName = "Custom"),
-
-		// This must always be at the end
-		Max					UMETA(DisplayName = "Invalid")
 	};
 }
 

@@ -48,10 +48,6 @@ void CopyInfoFromDataGE(const UGameplayEffect& InGE, UGameplayEffect& OutGE)
 
 	OutGE.Description = InGE.Description;
 
-	OutGE.StackingPolicy = InGE.StackingPolicy;
-	OutGE.StackedAttribName = InGE.StackedAttribName;
-	OutGE.StackingExtension = InGE.StackingExtension;
-
 	OutGE.UpdateInheritedTagProperties();
 }
 

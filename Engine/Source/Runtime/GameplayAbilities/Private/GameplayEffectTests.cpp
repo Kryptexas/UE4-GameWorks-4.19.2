@@ -9,8 +9,6 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension_LifestealTest.h"
 #include "GameplayEffectExtension_ShieldTest.h"
-#include "GameplayEffectStackingExtension_CappedNumberTest.h"
-#include "GameplayEffectStackingExtension_DiminishingReturnsTest.h"
 
 #define SKILL_TEST_TEXT( Format, ... ) FString::Printf(TEXT("%s - %d: %s"), TEXT(__FILE__) , __LINE__ , *FString::Printf(TEXT(Format), ##__VA_ARGS__) )
 

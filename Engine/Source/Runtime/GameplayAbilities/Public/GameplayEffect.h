@@ -19,15 +19,6 @@ class UAbilitySystemComponent;
 class UGameplayModMagnitudeCalculation;
 class UGameplayEffectExecutionCalculation;
 
-USTRUCT()
-struct FGameplayEffectStackingCallbacks
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category = GEStack)
-	TArray<TSubclassOf<class UGameplayEffectStackingExtension> >	ExtensionClasses;
-};
-
 /** Enumeration outlining the possible gameplay effect magnitude calculation policies */
 UENUM()
 enum class EGameplayEffectMagnitudeCalculation : uint8
@@ -574,20 +565,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Display)
 	FText Description;
 
-	// ----------------------------------------------
-
-	/** Specifies the rule used to stack this GameplayEffect with other GameplayEffects. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
-	TEnumAsByte<EGameplayEffectStackingPolicy::Type>	StackingPolicy;
-
-	/** An identifier for the stack. Both names and stacking policy must match for GameplayEffects to stack with each other. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
-	FName StackedAttribName;
-
-	/** Specifies a custom stacking rule if one is needed. */
-	UPROPERTY(EditDefaultsOnly, Category = Stacking)
-	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
-
 	// ----------------------------------------------------------------------
 	//	Tag Containers
 	// ----------------------------------------------------------------------
@@ -856,7 +833,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 		, Period(UGameplayEffect::NO_PERIOD)
 		, ChanceToApplyToTarget(1.f)
 		, ChanceToExecuteOnGameplayEffect(1.f)
-		, bTopOfStack(false)
 		, Level(UGameplayEffect::INVALID_LEVEL)
 	{
 
@@ -902,8 +878,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	float GetChanceToExecuteOnGameplayEffect() const;
 	float GetMagnitude(const FGameplayAttribute &Attribute) const;
 
-	EGameplayEffectStackingPolicy::Type GetStackingType() const;
-
 	/** other effects that need to be applied to the target if this effect is successful */
 	TArray< FGameplayEffectSpecHandle > TargetEffectSpecs;
 
@@ -940,11 +914,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	UPROPERTY()
 	float ChanceToExecuteOnGameplayEffect;
-
-	// This should only be true if this is a stacking effect and at the top of its stack
-	// (FIXME: should this be part of the spec or FActiveGameplayEffect?)
-	UPROPERTY()
-	bool bTopOfStack;
 
 	// Captured Source Tags on GameplayEffectSpec creation.	
 	UPROPERTY(NotReplicated)
@@ -1070,8 +1039,6 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	void CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, struct FActiveGameplayEffectsContainer& OwningContainer);
 
-	bool CanBeStacked(const FActiveGameplayEffect& Other) const;
-
 	void PrintAll() const;
 
 	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
@@ -1175,7 +1142,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	friend struct FActiveGameplayEffect;
 	friend class UAbilitySystemComponent;
 
-	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false) {};
+	FActiveGameplayEffectsContainer() {};
 
 	UAbilitySystemComponent* Owner;
 
@@ -1199,10 +1166,6 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
-
-	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
-	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
-	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle, bool IncludeEffectsBlockedByStackingRules = false) const;
 
 	void SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue);
 
@@ -1243,19 +1206,12 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void CheckDuration(FActiveGameplayEffectHandle Handle);
 
-	void StacksNeedToRecalculate();
-
-	// recalculates all of the stacks in the current container
-	void RecalculateStacking();
-
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects, DeltaParms, *this);
 	}
 
-	void PreDestroy();
-
-	bool bNeedToRecalculateStacks;
+	void PreDestroy();	
 
 	// ------------------------------------------------
 
@@ -1286,8 +1242,6 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	bool HasApplicationImmunityToSpec(const FGameplayEffectSpec& SpecToApply) const;
 
 private:
-
-	FTimerHandle StackHandle;
 
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
 	
