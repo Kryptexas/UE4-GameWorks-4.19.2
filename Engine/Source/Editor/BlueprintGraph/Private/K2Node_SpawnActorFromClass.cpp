@@ -62,7 +62,7 @@ void UK2Node_SpawnActorFromClass::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
+void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass, TArray<UEdGraphPin*>& OutClassPins)
 {
 	check(InClass != NULL);
 
@@ -87,7 +87,8 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
-			
+			OutClassPins.Add(Pin);
+
 			if( ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
 				FString DefaultValueAsString;
@@ -111,7 +112,7 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 
 UClass* UK2Node_SpawnActorFromClass::GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch /*=NULL*/) const
 {
-	UClass* UseSpawnClass = NULL;
+	UClass* UseSpawnClass = nullptr;
 	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
 
 	UEdGraphPin* ClassPin = GetClassPin(PinsToSearch);
@@ -122,7 +123,7 @@ UClass* UK2Node_SpawnActorFromClass::GetClassToSpawn(const TArray<UEdGraphPin*>*
 	else if (ClassPin && (1 == ClassPin->LinkedTo.Num()))
 	{
 		auto SourcePin = ClassPin->LinkedTo[0];
-		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : NULL;
+		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : nullptr;
 	}
 
 	return UseSpawnClass;
@@ -135,9 +136,23 @@ void UK2Node_SpawnActorFromClass::ReallocatePinsDuringReconstruction(TArray<UEdG
 	UClass* UseSpawnClass = GetClassToSpawn(&OldPins);
 	if( UseSpawnClass != NULL )
 	{
-		CreatePinsForClass(UseSpawnClass);
+		TArray<UEdGraphPin*> ClassPins;
+		CreatePinsForClass(UseSpawnClass, ClassPins);
 	}
 }
+
+void UK2Node_SpawnActorFromClass::PostPlacedNewNode()
+{
+	Super::PostPlacedNewNode();
+
+	UClass* UseSpawnClass = GetClassToSpawn();
+	if( UseSpawnClass != NULL )
+	{
+		TArray<UEdGraphPin*> ClassPins;
+		CreatePinsForClass(UseSpawnClass, ClassPins);
+	}
+}
+
 bool UK2Node_SpawnActorFromClass::IsSpawnVarPin(UEdGraphPin* Pin)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -163,7 +178,7 @@ bool UK2Node_SpawnActorFromClass::IsSpawnVarPin(UEdGraphPin* Pin)
 
 void UK2Node_SpawnActorFromClass::OnClassPinChanged()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+ 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// Because the archetype has changed, we break the output link as the output pin type will change
 	UEdGraphPin* ResultPin = GetResultPin();
@@ -171,24 +186,33 @@ void UK2Node_SpawnActorFromClass::OnClassPinChanged()
 
 	// Remove all pins related to archetype variables
 	TArray<UEdGraphPin*> OldPins = Pins;
+	TArray<UEdGraphPin*> OldClassPins;
+
 	for (int32 i = 0; i < OldPins.Num(); i++)
 	{
 		UEdGraphPin* OldPin = OldPins[i];
 		if (IsSpawnVarPin(OldPin))
 		{
-			OldPin->BreakAllPinLinks();
 			Pins.Remove(OldPin);
+			OldClassPins.Add(OldPin);
 		}
 	}
 
 	CachedNodeTitle.MarkDirty();
 
 	UClass* UseSpawnClass = GetClassToSpawn();
+	TArray<UEdGraphPin*> NewClassPins;
 	if (UseSpawnClass != NULL)
 	{
-		CreatePinsForClass(UseSpawnClass);
+		CreatePinsForClass(UseSpawnClass, NewClassPins);
 	}
 	K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"), ResultPin->PinToolTip);
+
+	// Rewire the old pins to the new pins so connections are maintained if possible
+	RewireOldPinsToNewPins(OldClassPins, NewClassPins);
+
+	// Destroy the old pins
+	DestroyPinList(OldClassPins);
 
 	// Refresh the UI for the graph so the pin changes show up
 	UEdGraph* Graph = GetGraph();

@@ -22,6 +22,7 @@ class UK2Node_SpawnActorFromClass : public UK2Node
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.SpawnActor_16x"); }
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
+	virtual void PostPlacedNewNode() override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
@@ -34,8 +35,13 @@ class UK2Node_SpawnActorFromClass : public UK2Node
 	// End UK2Node interface
 
 
-	/** Create new pins to show properties on archetype */
-	void CreatePinsForClass(UClass* InClass);
+	/**
+	 * Create new pins to show properties on archetype
+	 *
+	 * @param InClass		Class to make pins for
+	 * @param OutClassPins	Any pins created through this function will be added to thist list
+	 */
+	void CreatePinsForClass(UClass* InClass, TArray<UEdGraphPin*>& OutClassPins);
 	/** See if this is a spawn variable pin, or a 'default' pin */
 	BLUEPRINTGRAPH_API bool IsSpawnVarPin(UEdGraphPin* Pin);
 

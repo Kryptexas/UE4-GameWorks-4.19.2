@@ -366,47 +366,13 @@ void UK2Node::ReconstructNode()
 	}
 	else
 	{
-		// Rewire any connection to pins that are matched by name (O(N^2) right now)
-		//@TODO: Can do moderately smart things here if only one pin changes name by looking at it's relative position, etc...,
-		// rather than just failing to map it and breaking the links
-		for (int32 OldPinIndex = 0; OldPinIndex < OldPins.Num(); ++OldPinIndex)
-		{
-			UEdGraphPin* OldPin = OldPins[OldPinIndex];
-
-			for (int32 NewPinIndex = 0; NewPinIndex < Pins.Num(); ++NewPinIndex)
-			{
-				UEdGraphPin* NewPin = Pins[NewPinIndex];
-
-				const ERedirectType RedirectType = DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-				if (RedirectType != ERedirectType_None)
-				{
-					ReconstructSinglePin(NewPin, OldPin, RedirectType);
-					break;
-				}
-			}
-		}
+		RewireOldPinsToNewPins(OldPins, Pins);
 	}
 
 
 	if (bDestroyOldPins)
 	{
-		// Throw away the original pins
-		for (int32 OldPinIndex = 0; OldPinIndex < OldPins.Num(); ++OldPinIndex)
-		{
-			UEdGraphPin* OldPin = OldPins[OldPinIndex];
-			OldPin->Modify();
-			OldPin->BreakAllPinLinks();
-			
-			// just in case this pin was set to watch (don't want to save PinWatches with dead pins)
-			Blueprint->PinWatches.Remove(OldPin);
-#if 0
-			UEdGraphNode::ReturnPinToPool(OldPin);
-#else
-			OldPin->Rename(NULL, GetTransientPackage(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None));
-			OldPin->RemoveFromRoot();
-			OldPin->MarkPendingKill();
-#endif
-		}
+		DestroyPinList(OldPins);
 	}
 
 	// Let subclasses do any additional work
@@ -622,6 +588,50 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 	}
 
 	OldPin->Rename(NULL, GetTransientPackage(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
+}
+
+void UK2Node::RewireOldPinsToNewPins(TArray<UEdGraphPin*>& InOldPins, TArray<UEdGraphPin*>& InNewPins)
+{
+	// Rewire any connection to pins that are matched by name (O(N^2) right now)
+	//@TODO: Can do moderately smart things here if only one pin changes name by looking at it's relative position, etc...,
+	// rather than just failing to map it and breaking the links
+	for (int32 OldPinIndex = 0; OldPinIndex < InOldPins.Num(); ++OldPinIndex)
+	{
+		UEdGraphPin* OldPin = InOldPins[OldPinIndex];
+
+		for (int32 NewPinIndex = 0; NewPinIndex < InNewPins.Num(); ++NewPinIndex)
+		{
+			UEdGraphPin* NewPin = InNewPins[NewPinIndex];
+
+			const ERedirectType RedirectType = DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
+			if (RedirectType != ERedirectType_None)
+			{
+				ReconstructSinglePin(NewPin, OldPin, RedirectType);
+				break;
+			}
+		}
+	}
+}
+
+void UK2Node::DestroyPinList(TArray<UEdGraphPin*>& InPins)
+{
+	UBlueprint* Blueprint = GetBlueprint();
+	// Throw away the original pins
+	for (UEdGraphPin* Pin : InPins)
+	{
+		Pin->Modify();
+		Pin->BreakAllPinLinks();
+
+		// just in case this pin was set to watch (don't want to save PinWatches with dead pins)
+		Blueprint->PinWatches.Remove(Pin);
+#if 0
+		UEdGraphNode::ReturnPinToPool(Pin);
+#else
+		Pin->Rename(NULL, GetTransientPackage(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None));
+		Pin->RemoveFromRoot();
+		Pin->MarkPendingKill();
+#endif
+	}
 }
 
 bool UK2Node::AllowSplitPins() const

@@ -381,6 +381,12 @@ protected:
 	// Handles the actual reconstruction (copying data, links, name, etc...) from two pins that have already been matched together
 	BLUEPRINTGRAPH_API void ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERedirectType RedirectType);
 
+	// Helper function to rewire old pins to new pins during node reconstruction (or other regeneration of pins)
+	BLUEPRINTGRAPH_API void RewireOldPinsToNewPins(TArray<UEdGraphPin*>& InOldPins, TArray<UEdGraphPin*>& InNewPins);
+
+	// Helper function to properly destroy a set of pins
+	BLUEPRINTGRAPH_API void DestroyPinList(TArray<UEdGraphPin*>& InPins);
+
 	/** Allows the custom transformation of a param's value when redirecting a matched pin; called only when DoPinsMatchForReconstruction returns ERedirectType_Custom **/
 	BLUEPRINTGRAPH_API virtual void CustomMapParamValue(UEdGraphPin& Pin);
 
