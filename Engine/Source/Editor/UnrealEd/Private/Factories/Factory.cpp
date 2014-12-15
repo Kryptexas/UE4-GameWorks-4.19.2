@@ -226,12 +226,28 @@ UObject* UFactory::StaticImportObject
 			}
 		}
 
-		struct FCompareUFactoryImportPriority
+		Factories.Sort([](const UFactory& A, const UFactory& B) -> bool
 		{
-			// Use > operator because we want higher priorities earlier in the list
-			FORCEINLINE bool operator()(const UFactory& A, const UFactory& B) const { return A.ImportPriority > B.ImportPriority; }
-		};
-		Factories.Sort( FCompareUFactoryImportPriority() );
+			// First sort so that higher priorities are earlier in the list
+			if( A.ImportPriority > B.ImportPriority )
+			{
+				return true;
+			}
+			else if( A.ImportPriority < B.ImportPriority )
+			{
+				return false;
+			}
+
+			// Then sort so that factories that only create new assets are tried after those that actually import the file data (when they have an equivalent priority)
+			const bool bFactoryAImportsFiles = !A.CanCreateNew();
+			const bool bFactoryBImportsFiles = !B.CanCreateNew();
+			if( bFactoryAImportsFiles && !bFactoryBImportsFiles )
+			{
+				return true;
+			}
+
+			return false;
+		});
 	}
 
 	bool bLoadedFile = false;
@@ -243,12 +259,9 @@ UObject* UFactory::StaticImportObject
 		UObject* Result = NULL;
 		if( Factory->CanCreateNew() )
 		{
-			if( FCString::Stricmp(Filename,TEXT(""))==0 )
-			{
-				UE_LOG(LogFactory, Log,  TEXT("FactoryCreateNew: %s with %s (%i %i %s)"), *Class->GetName(), *Factories[i]->GetClass()->GetName(), Factory->bCreateNew, Factory->bText, Filename );
-				Factory->ParseParms( Parms );
-				Result = Factory->FactoryCreateNew( Class, InOuter, Name, Flags, NULL, Warn );
-			}
+			UE_LOG(LogFactory, Log,  TEXT("FactoryCreateNew: %s with %s (%i %i %s)"), *Class->GetName(), *Factories[i]->GetClass()->GetName(), Factory->bCreateNew, Factory->bText, Filename );
+			Factory->ParseParms( Parms );
+			Result = Factory->FactoryCreateNew( Class, InOuter, Name, Flags, NULL, Warn );
 		}
 		else if( FCString::Stricmp(Filename,TEXT(""))!=0 )
 		{
