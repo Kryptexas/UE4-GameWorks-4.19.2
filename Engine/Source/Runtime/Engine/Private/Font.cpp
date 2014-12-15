@@ -301,7 +301,7 @@ void UFont::GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Wi
 		}
 
 		TotalWidth += TmpWidth + CharKerning;
-		TotalHeight += TmpHeight;
+		TotalHeight = FMath::Max( TotalHeight, TmpHeight );
 
 		PrevChar = Text++;
 	}
