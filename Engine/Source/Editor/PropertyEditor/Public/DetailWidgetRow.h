@@ -34,13 +34,13 @@ public:
 		return *this;
 	}
 
-	FDetailWidgetDecl& MinDesiredWidth( float InMinWidth )
+	FDetailWidgetDecl& MinDesiredWidth( TOptional<float> InMinWidth )
 	{
 		MinWidth = InMinWidth;
 		return *this;
 	}
 
-	FDetailWidgetDecl& MaxDesiredWidth( float InMaxWidth )
+	FDetailWidgetDecl& MaxDesiredWidth( TOptional<float> InMaxWidth )
 	{
 		MaxWidth = InMaxWidth;
 		return *this;
@@ -49,8 +49,8 @@ public:
 	TSharedRef<SWidget> Widget;
 	EHorizontalAlignment HorizontalAlignment;
 	EVerticalAlignment VerticalAlignment;
-	float MinWidth;
-	float MaxWidth;
+	TOptional<float> MinWidth;
+	TOptional<float> MaxWidth;
 private:
 	class FDetailWidgetRow& ParentDecl;
 };
