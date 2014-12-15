@@ -4660,15 +4660,14 @@ void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 	if (MotionEvent.GetUserIndex() < ARRAY_COUNT(UserFocusEntries) && UserFocusEntries[MotionEvent.GetUserIndex()].WidgetPath.IsValid())
 	{
 		/* Get the controller focus target for this user */
-		FWidgetPath PathToWidget = UserFocusEntries[MotionEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
-		FArrangedWidget& ArrangedWidget = PathToWidget.Widgets.Last();
-
-		/* Switch worlds for widgets in the current path */
+		const FWidgetPath PathToWidget = UserFocusEntries[MotionEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
+		
 		FScopedSwitchWorldHack SwitchWorld(PathToWidget);
 
-		/* Send the message to the widget */
-		FReply Reply = ArrangedWidget.Widget->OnMotionDetected(ArrangedWidget.Geometry, MotionEvent).SetHandler(ArrangedWidget.Widget);
-		ProcessReply(PathToWidget, Reply, nullptr, nullptr, MotionEvent.GetUserIndex());
+		FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(PathToWidget), MotionEvent, [] (const FArrangedWidget& SomeWidget, const FMotionEvent& MotionEvent)
+		{
+			return SomeWidget.Widget->OnMotionDetected(SomeWidget.Geometry, MotionEvent);
+		});
 	}
 }
 
