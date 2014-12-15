@@ -3,6 +3,8 @@
 #include "Landscape.h"
 #include "LandscapeModule.h"
 #include "LandscapeComponent.h"
+#include "UObjectHash.h"
+#include "Engine/World.h"
 
 class FLandscapeModule : public IModuleInterface
 {
