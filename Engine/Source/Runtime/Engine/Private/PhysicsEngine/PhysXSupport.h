@@ -31,6 +31,7 @@ public:
 	FPhysXSceneReadLock(PxScene* PInScene)
 		: PScene(PInScene)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
 		if(PScene)
 		{
 			PScene->lockRead();
@@ -39,6 +40,7 @@ public:
 
 	~FPhysXSceneReadLock()
 	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
 		if(PScene)
 		{
 			PScene->unlockRead();
@@ -56,6 +58,7 @@ public:
 	FPhysXSceneWriteLock(PxScene* PInScene)
 		: PScene(PInScene)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
 		if(PScene)
 		{
 			PScene->lockWrite();
@@ -64,6 +67,7 @@ public:
 
 	~FPhysXSceneWriteLock()
 	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
 		if(PScene)
 		{
 			PScene->unlockWrite();

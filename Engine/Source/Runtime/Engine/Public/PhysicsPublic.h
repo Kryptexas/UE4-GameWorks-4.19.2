@@ -23,6 +23,17 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("SyncComponentsToBodies"), STAT_SyncComponentsToBodies, STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body"), STAT_InitBody, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Debug"), STAT_InitBodyDebug, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Scene Interaction"), STAT_InitBodySceneInteraction, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Post Add to Scene"), STAT_InitBodyPostAdd, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Term Body"), STAT_TermBody, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials"), STAT_UpdatePhysMats, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials Scene Interaction"), STAT_UpdatePhysMatsSceneInteraction, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update"), STAT_UpdatePhysFilter, STATGROUP_Physics, );
+
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Bulk Body Init"), STAT_BulkInit, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Bulk Body Scene Add"), STAT_BulkSceneAdd, STATGROUP_Physics, );
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics, );

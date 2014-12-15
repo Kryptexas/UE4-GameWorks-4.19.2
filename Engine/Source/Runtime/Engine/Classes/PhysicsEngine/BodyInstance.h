@@ -29,6 +29,7 @@ namespace physx
 	class PxRigidDynamic;
 	class PxGeometry;
 	class PxShape;
+	class PxMaterial;
 	class PxTransform;
 	struct PxContactPair;
 }
@@ -351,13 +352,48 @@ public:
 #endif
 
 #if UE_WITH_PHYSICS
+	/** Initialise a single rigid body (this FBodyInstance) for the given body setup
+	 *	@param Setup The setup to use to create the body
+	 *	@param Transform Transform of the body
+	 *	@param PrimComp The owning component
+	 *	@param InRBScene The physics scene to place the body into
+	 *	@param InAggregate An aggregate to place the body into
+	 */
 	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
-#endif	//WITH_PHYSX
+
+	/** Initialise multiple rigid bodies 
+	 *	@param Bodies List of body instances to initialise
+	 *	@param Transforms List of transforms to use for the bodies
+	 *	@param BodySetup The setup to use for the bodies
+	 *	@param PrimitiveComp The owning component
+	 *	@param InRBScene The physics scene to put the bodies into
+	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
+	 */
+	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+
+	/** Initialises one or more rigid bodies
+	 *	@param Bodies First body instance to initialise
+	 *	@param Transforms First transform to use
+	 *	@param NumBodies Number of bodies to iterate
+	 *	@param BodySetup Setup to use for bodies
+	 *	@param PrimitiveComp The owning component for the bodies
+	 *	@param InRBScene Scene to place the bodies into
+	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
+	 */
+	static void InitBodies(FBodyInstance** Bodies, FTransform* Transforms, int32 NumBodies, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+
+	void InitBody_Legacy(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+
+	/** Validate a body transform, outputting debug info
+	 *	@param Transform Transform to debug
+	 *	@param DebugName Name of the instance for logging
+	 *	@param Setup Body setup for this instance
+	 */
+	static bool ValidateTransform(const FTransform &Transform, FString& DebugName, UBodySetup* Setup);
+
+#endif	//UE_WITH_PHYSICS
 
 	void TermBody();
-
-
-
 
 	/** 
 	 * Takes two body instances and welds them together to create a single simulated rigid body. Returns true if success.
@@ -560,6 +596,12 @@ public:
 
 	/** Update the instance's material properties (friction, restitution) */
 	void UpdatePhysicalMaterials();
+
+#if WITH_PHYSX
+	static void ApplyMaterialToShape(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats);
+
+	void ApplyMaterialToInstanceShapes(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*> ComplexPhysMats);
+#endif
 
 	/** Update the instances collision filtering data */
 	void UpdatePhysicsFilterData(bool bForceSimpleAsComplex = false);
