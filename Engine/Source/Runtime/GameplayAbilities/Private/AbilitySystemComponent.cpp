@@ -776,6 +776,14 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 	}
 }
 
+void UAbilitySystemComponent::RemoveAllGameplayCues()
+{
+	for (int32 i = (ActiveGameplayCues.GameplayCues.Num() - 1); i >= 0; --i)
+	{
+		RemoveGameplayCue(ActiveGameplayCues.GameplayCues[i].GameplayCueTag);
+	}
+}
+
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
 {
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)

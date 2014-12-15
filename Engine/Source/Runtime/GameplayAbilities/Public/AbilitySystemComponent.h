@@ -415,6 +415,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	
 	void RemoveGameplayCue(const FGameplayTag GameplayCueTag);
 
+	/** Removes any GameplayCue added on its own, i.e. not as part of a GameplayEffect. */
+	void RemoveAllGameplayCues();
+
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
