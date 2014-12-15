@@ -11,9 +11,14 @@ class SDisappearingBar : public SCompoundWidget
 {
 public:
 
-	SLATE_BEGIN_ARGS(SDisappearingBar) {}
+	SLATE_BEGIN_ARGS(SDisappearingBar)
+	{
+		_Visibility = EVisibility::HitTestInvisible;
+	}
+
 		/** Slot for this designers content (optional) */
 		SLATE_DEFAULT_SLOT(FArguments, Content)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
