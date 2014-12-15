@@ -6,9 +6,9 @@
 #include "Editor/EditorEngine.h"
 #include "EngineUtils.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#include "Editor/UnrealEd/Public/Editor.h"
 #include "Editor/UnrealEd/Public/FileHelpers.h"
 #include "AssetRegistryModule.h"
-
 
 extern UNREALED_API class UEditorEngine* GEditor;
 #endif // WITH_EDITOR
