@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnActionsComponent.h"
+#include "Actions/PawnAction_Sequence.h"
 
 //----------------------------------------------------------------------//
 // helpers
@@ -223,6 +224,42 @@ void UPawnActionsComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 	}
 }
 
+bool UPawnActionsComponent::HasActiveActionOfType(EAIRequestPriority::Type Priority, TSubclassOf<UPawnAction> PawnActionClass) const
+{
+	TArray<UPawnAction*> ActionsToTest;
+	ActionsToTest.Add(GetActiveAction(Priority));
+
+	while (ActionsToTest.Num() > 0)
+	{
+		UPawnAction* ActiveActionIter = ActionsToTest[0];
+
+		if (ActiveActionIter)
+		{
+			if (ActiveActionIter->GetClass()->IsChildOf(*PawnActionClass))
+			{
+				return true;
+			}	
+			else
+			{
+				UPawnAction_Sequence* PawnActionSequence = Cast<UPawnAction_Sequence>(ActiveActionIter);
+
+				if (PawnActionSequence)
+				{
+					for (int32 PawnActionSequenceCount = 0; PawnActionSequenceCount < PawnActionSequence->ActionSequence.Num(); ++PawnActionSequenceCount)
+					{
+						ActionsToTest.Add(PawnActionSequence->ActionSequence[PawnActionSequenceCount]);
+					}
+				}
+			}
+		}
+
+		ActionsToTest.RemoveAt(0);
+	}
+
+	// Didn't find one.
+	return false;
+}
+
 void UPawnActionsComponent::UpdateCurrentAction()
 {
 	UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Picking new current actions. Old CurrentAction %s")
@@ -272,6 +309,11 @@ void UPawnActionsComponent::UpdateCurrentAction()
 		if (CurrentAction == NULL)
 		{
 			UpdateAILogicLock();
+		}
+		else if (CurrentAction->IsFinished())
+		{
+			UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("Re-running same action"));
+			CurrentAction->Activate();
 		}
 		else
 		{ 
@@ -402,7 +444,7 @@ bool UPawnActionsComponent::K2_PushAction(UPawnAction* NewAction, EAIRequestPrio
 
 bool UPawnActionsComponent::PushAction(UPawnAction& NewAction, EAIRequestPriority::Type Priority, UObject* Instigator)
 {
-	if (NewAction.HasBeenStarted() == false)
+	if (NewAction.HasBeenStarted() == false || NewAction.IsFinished() == true)
 	{
 		NewAction.ExecutionPriority = Priority;
 		NewAction.SetOwnerComponent(this);

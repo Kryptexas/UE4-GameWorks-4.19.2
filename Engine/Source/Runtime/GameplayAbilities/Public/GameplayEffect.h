@@ -243,7 +243,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
 	FScalableFloat ScalableFloatMagnitude;
 
-	/** Magnitude value represented by an attribute-based float */
+	/** Magnitude value represented by an attribute-based float
+	(Coefficient * (PreMultiplyAdditiveValue + [Eval'd Attribute Value According to Policy])) + PostMultiplyAdditiveValue */
 	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
 	FAttributeBasedFloat AttributeBasedMagnitude;
 
@@ -1068,45 +1069,51 @@ struct FActiveGameplayEffectQuery
 		, EffectTagContainer(NULL)
 		, OwningTagContainer_Rejection(NULL)
 		, EffectTagContainer_Rejection(NULL)
+		, EffectSource(NULL)
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
 		: OwningTagContainer(InOwningTagContainer)
 		, EffectTagContainer(NULL)
 		, OwningTagContainer_Rejection(NULL)
 		, EffectTagContainer_Rejection(NULL)
 		, ModifyingAttribute(InModifyingAttribute)
+		, EffectSource(InEffectSource)
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
 		: OwningTagContainer(InOwningTagContainer)
 		, EffectTagContainer(InEffectTagContainer)
 		, OwningTagContainer_Rejection(NULL)
 		, EffectTagContainer_Rejection(NULL)
 		, ModifyingAttribute(InModifyingAttribute)
+		, EffectSource(InEffectSource)
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
 		: OwningTagContainer(InOwningTagContainer)
 		, EffectTagContainer(InEffectTagContainer)
 		, OwningTagContainer_Rejection(InOwningTagContainer_Rejection)
 		, EffectTagContainer_Rejection(NULL)
 		, ModifyingAttribute(InModifyingAttribute)
+		, EffectSource(InEffectSource)
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, const FGameplayTagContainer* InEffectTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InOwningTagContainer, const FGameplayTagContainer* InEffectTagContainer, const FGameplayTagContainer* InOwningTagContainer_Rejection, const FGameplayTagContainer* InEffectTagContainer_Rejection, FGameplayAttribute InModifyingAttribute = FGameplayAttribute(), const UObject* InEffectSource = NULL)
 		: OwningTagContainer(InOwningTagContainer)
 		, EffectTagContainer(InEffectTagContainer)
 		, OwningTagContainer_Rejection(InOwningTagContainer_Rejection)
 		, EffectTagContainer_Rejection(InEffectTagContainer_Rejection)
 		, ModifyingAttribute(InModifyingAttribute)
+		, EffectSource(InEffectSource)
 	{
 	}
 
+	// Returns true if Effect matches the criteria of this query. Returns false otherwise.
 	bool Matches(const FActiveGameplayEffect& Effect) const;
 
 	/** used to match with InheritableOwnedTagsContainer */
@@ -1121,8 +1128,11 @@ struct FActiveGameplayEffectQuery
 	/** used to reject matches with InheritableGameplayEffectTags */
 	const FGameplayTagContainer* EffectTagContainer_Rejection;
 
-	/** Matches on GameplayEffects which modify given attribute */
+	// Matches on GameplayEffects which modify given attribute
 	FGameplayAttribute ModifyingAttribute;
+
+	// Matches on GameplayEffects which come from this source
+	const UObject* EffectSource;
 };
 
 

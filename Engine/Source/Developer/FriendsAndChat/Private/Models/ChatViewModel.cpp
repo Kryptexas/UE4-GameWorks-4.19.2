@@ -54,7 +54,7 @@ public:
 	{
 		bInGame = bIsInGame;
 
-		if (OnNetworkMessageSentEvent().IsBound())
+		if (OnNetworkMessageSentEvent().IsBound() &&  FFriendsAndChatManager::Get()->IsInGameSession())
 		{
 			SetViewChannel(EChatMessageType::Party);
 		}

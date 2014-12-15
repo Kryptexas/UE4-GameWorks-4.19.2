@@ -174,6 +174,13 @@ namespace EBTDescriptionVerbosity
 	};
 }
 
+enum class EBTNodeRelativePriority : uint8
+{
+	Lower,
+	Same,
+	Higher
+};
+
 /** debugger data about subtree instance */
 struct FBehaviorTreeDebuggerInstance
 {

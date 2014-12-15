@@ -123,6 +123,9 @@ public:
 	/** unregister all aux nodes less important than given index */
 	void UnregisterAuxNodesUpTo(const FBTNodeIndex& Index);
 
+	/** unregister all aux nodes in branch of tree */
+	void UnregisterAuxNodesInBranch(const UBTCompositeNode* Node);
+
 	/** BEGIN UActorComponent overrides */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	/** END UActorComponent overrides */
@@ -297,6 +300,8 @@ protected:
 
 	/** update runtime description of given task node in latest debugger's snapshot */
 	void UpdateDebuggerAfterExecution(const UBTTaskNode* TaskNode, uint16 InstanceIdx) const;
+
+	EBTNodeRelativePriority CalculateRelativePriority(const UBTNode* NodeA, const UBTNode* NodeB) const;
 
 	friend UBTNode;
 	friend UBTCompositeNode;

@@ -82,11 +82,6 @@ TArray<TSubclassOf<UEnvQueryItemType> > UEnvQueryManager::RegisteredItemTypes;
 
 UEnvQueryManager::UEnvQueryManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
-	{
-		FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UEnvQueryManager::OnPreLoadMap);
-	}
-
 	NextQueryID = 0;
 }
 
@@ -300,21 +295,23 @@ void UEnvQueryManager::Tick(float DeltaTime)
 	}
 }
 
-void UEnvQueryManager::OnPreLoadMap()
+void UEnvQueryManager::OnWorldCleanup()
 {
 	if (RunningQueries.Num() > 0)
 	{
-		for (int32 Index = 0; Index < RunningQueries.Num(); Index++)
+		// @todo investigate if this is even needed. We should be fine with just removing all queries
+		TArray<TSharedPtr<FEnvQueryInstance> > RunningQueriesCopy = RunningQueries;
+		RunningQueries.Reset();
+
+		for (int32 Index = 0; Index < RunningQueriesCopy.Num(); Index++)
 		{
-			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
+			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueriesCopy[Index];
 			if (QueryInstance->IsFinished() == false)
 			{
 				QueryInstance->MarkAsFailed();
 				QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
 			}
 		}
-
-		RunningQueries.Reset();
 	}
 }
 

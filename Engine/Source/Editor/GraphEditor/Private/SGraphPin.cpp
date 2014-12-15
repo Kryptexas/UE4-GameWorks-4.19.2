@@ -955,7 +955,7 @@ FString SGraphPin::GetTooltip() const
 	FString HoverText;
 
 	check(GraphPinObj != nullptr);
-	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNode();
+	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked();
 	if (GraphNode != nullptr)
 	{
 		GraphNode->GetPinHoverText(*GraphPinObj, /*out*/ HoverText);

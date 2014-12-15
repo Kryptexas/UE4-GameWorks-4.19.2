@@ -52,6 +52,7 @@ namespace EFriendsDisplayLists
 		FriendRequestsDisplay,			// Friend request display
 		OutgoingFriendInvitesDisplay,	// Outgoing friends invites
 		GameInviteDisplay,				// GameInviteDisplay
+		MAX_None
 	};
 
 	inline const FText ToFText(EFriendsDisplayLists::Type EnumVal)

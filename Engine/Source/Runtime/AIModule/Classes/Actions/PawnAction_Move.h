@@ -9,6 +9,7 @@ class AAIController;
 class UNavigationQueryFilter;
 struct FAIMessage;
 
+UENUM()
 namespace EPawnActionMoveMode
 {
 	enum Type
@@ -71,7 +72,7 @@ public:
 	virtual void HandleAIMessage(UBrainComponent*, const FAIMessage&) override;
 
 	void SetPath(FNavPathSharedRef InPath);
-	void OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event);
+	virtual void OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event);
 
 	void SetAcceptableRadius(float NewAcceptableRadius) { AcceptableRadius = NewAcceptableRadius; }
 	void SetFinishOnOverlap(bool bNewFinishOnOverlap) { bFinishOnOverlap = bNewFinishOnOverlap; }

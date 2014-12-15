@@ -978,7 +978,11 @@ public class GUBP : BuildCommand
                 {
 					Agenda.SwarmProject = CombinePaths(@"Engine\Source\Programs\UnrealSwarm\UnrealSwarm.sln");
 				}
-                Agenda.IOSDotNetProjects.AddRange(
+				
+				bool WithIOS = !bp.BranchOptions.PlatformsToRemove.Contains(UnrealTargetPlatform.IOS);
+				if ( WithIOS )
+				{
+					Agenda.IOSDotNetProjects.AddRange(
                         new string[]
 						{
 							CombinePaths(@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj"),
@@ -987,6 +991,7 @@ public class GUBP : BuildCommand
 							CombinePaths(@"Engine\Source\Programs\IOS\DeploymentInterface\DeploymentInterface.csproj"),
 						}
                     );
+				}
             }
 
             string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
@@ -6746,10 +6751,14 @@ public class GUBP : BuildCommand
                         throw new AutomationException("Node {0} was not processed yet3?  Processing {1}", Dep, NodeToDo);
                     }
                 }
-                foreach (var DepDep in GUBPNodes[Dep].AllDependencies)
-                {
-                    GUBPNodes[NodeToDo].AddAllDependent(DepDep);
-                }
+                else
+				{
+					foreach (var DepDep in GUBPNodes[Dep].AllDependencies)
+					{
+						GUBPNodes[NodeToDo].AddAllDependent(DepDep);
+					}
+				}
+				
                 if (GUBPNodes[Dep].BuildProducts == null)
                 {
                     if (!bOnlyNode)

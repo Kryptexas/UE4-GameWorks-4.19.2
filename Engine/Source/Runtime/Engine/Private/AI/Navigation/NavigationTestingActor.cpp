@@ -347,11 +347,15 @@ void ANavigationTestingActor::SearchPathTo(ANavigationTestingActor* Goal)
 	bPathSearchOutOfNodes = bPathExist ? Result.Path->DidSearchReachedLimit() : false;
 	LastPath = Result.Path;
 	PathCost = bPathExist ? Result.Path->GetCost() : 0.0f;
-	LastPath->AddObserver(PathObserver);
 
-	if (OffsetFromCornersDistance > 0.0f)
+	if (bPathExist)
 	{
-		((FNavMeshPath*)LastPath.Get())->OffsetFromCorners(OffsetFromCornersDistance);
+		LastPath->AddObserver(PathObserver);
+
+		if (OffsetFromCornersDistance > 0.0f)
+		{
+			((FNavMeshPath*)LastPath.Get())->OffsetFromCorners(OffsetFromCornersDistance);
+		}
 	}
 
 #if WITH_RECAST && WITH_EDITORONLY_DATA

@@ -711,6 +711,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 				dtVcopy(&con->pos[0], &offMeshCon.vertsA0[0]);
 				dtVcopy(&con->pos[3], &offMeshCon.vertsB0[0]);
 				con->rad = offMeshCon.snapRadius;
+				con->height = offMeshCon.snapHeight;
 				con->setFlags(offMeshCon.type);
 				con->side = offMeshConClass[i*2+1] == 0xff ? DT_CONNECTION_INTERNAL : offMeshConClass[i*2+1];
 				if (offMeshCon.userID)
@@ -726,6 +727,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 				dtVcopy(con->endB, &offMeshCon.vertsB1[0]);
 
 				con->rad = offMeshCon.snapRadius;
+				con->height = offMeshCon.snapHeight;
 				con->setFlags(offMeshCon.type);
 				if (offMeshCon.userID)
 					con->userId = offMeshCon.userID;

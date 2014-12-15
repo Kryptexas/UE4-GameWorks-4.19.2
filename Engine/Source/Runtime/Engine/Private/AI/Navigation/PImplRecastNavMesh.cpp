@@ -1306,7 +1306,10 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 		{
 			// one last step required due to recast's BVTree imprecision
 			const FVector& UnrealClosestPoint = Recast2UnrVector(ClosestPoint);			
-			if (FVector::DistSquared(UnrealClosestPoint, Point) <= Extent.SizeSquared())
+			const FVector ClosestPointDelta = UnrealClosestPoint - Point;
+			if (FMath::Abs(ClosestPointDelta.X) <= Extent.X &&
+				FMath::Abs(ClosestPointDelta.Y) <= Extent.Y &&
+				FMath::Abs(ClosestPointDelta.Z) <= Extent.Z)
 			{
 				bSuccess = true;
 				Result = FNavLocation(UnrealClosestPoint, PolyRef);

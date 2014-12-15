@@ -1839,7 +1839,7 @@ static TAutoConsoleVariable<int32> CVarMSAACompositingSampleCount(
 	TEXT(" 2: 2x MSAA, medium quality (medium GPU memory consumption)\n")
 	TEXT(" 4: 4x MSAA, high quality (high GPU memory consumption)\n")
 	TEXT(" 8: 8x MSAA, very high quality (insane GPU memory consumption)"),
-	ECVF_RenderThreadSafe);
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<FString> CVarNetPackageMapDebugObject(
 	TEXT("net.PackageMap.DebugObject"),

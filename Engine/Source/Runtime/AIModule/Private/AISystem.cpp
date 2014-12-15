@@ -24,9 +24,10 @@ UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer) : Super(Object
 	}
 }
 
-UAISystem::~UAISystem()
+void UAISystem::BeginDestroy()
 {
 	CleanupWorld(true, true, NULL);
+	Super::BeginDestroy();
 }
 
 void UAISystem::PostInitProperties()
@@ -64,7 +65,11 @@ void UAISystem::WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVec
 
 void UAISystem::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* NewWorld)
 {
-
+	if (EnvironmentQueryManager)
+	{
+		EnvironmentQueryManager->OnWorldCleanup();
+		EnvironmentQueryManager = nullptr;
+	}
 }
 
 void UAISystem::AIIgnorePlayers()

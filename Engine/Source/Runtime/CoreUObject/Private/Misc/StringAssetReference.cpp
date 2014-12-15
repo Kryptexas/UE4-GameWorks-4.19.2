@@ -86,6 +86,15 @@ bool FStringAssetReference::ImportTextItem( const TCHAR*& Buffer, int32 PortFlag
 			}
 		}
 	}
+
+#if WITH_EDITOR
+	// Consider this a load, so Config string asset references get cooked
+	if (FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
+	{
+		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
+	}
+#endif // WITH_EDITOR
+
 	return true;
 }
 

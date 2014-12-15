@@ -336,10 +336,8 @@ namespace UnrealBuildTool
             {
                 Result += " -Wno-unused-value";
 
-                // in shipping, strip as much info as possible
-                Result += " -g0";
-                Result += " -fomit-frame-pointer";
-                Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
+				// Not stripping debug info in Shipping @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
+				Result += " -fomit-frame-pointer";
             }
             else if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
             {
@@ -355,7 +353,8 @@ namespace UnrealBuildTool
                 Result += " -fstack-protector";
                 //Result += " -fsanitize=address";  // Preferred clang tool for detecting address based errors but unusable for some reason with Module.Engine.7_of_42.cpp
             }
-            else if (CompileEnvironment.Config.Target.Configuration < CPPTargetConfiguration.Shipping)
+			// Applying to all configurations, including Shipping @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
+			else
             {
                 Result += " -gline-tables-only"; // include debug info for meaningful callstacks
             }
@@ -439,15 +438,10 @@ namespace UnrealBuildTool
             string Result = "";
 
             // debugging symbols
-            if (LinkEnvironment.Config.Target.Configuration < CPPTargetConfiguration.Shipping)
-            {
-                Result += " -rdynamic";   // needed for backtrace_symbols()...
-            }
-            else
-            {
-                Result += " -s"; // Strip binaries in Shipping
-            }
-            if (LinkEnvironment.Config.bIsBuildingDLL)
+			// Applying to all configurations @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
+            Result += " -rdynamic";   // needed for backtrace_symbols()...
+
+			if (LinkEnvironment.Config.bIsBuildingDLL)
             {
                 Result += " -shared";
             }

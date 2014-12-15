@@ -479,7 +479,7 @@ public:
 	/** Event fired when the character has just started jumping */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	void OnJumped();
-	void OnJumped_Implementation();
+	virtual void OnJumped_Implementation();
 
 	/** Called when the character's movement enters falling */
 	virtual void Falling() {}

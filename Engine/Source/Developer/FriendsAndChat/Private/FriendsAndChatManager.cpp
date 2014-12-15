@@ -709,6 +709,7 @@ bool FFriendsAndChatManager::Tick( float Delta )
 			SetState(EFriendsAndManagerState::RequestGameInviteRefresh);
 		}
 	}
+
 	return true;
 }
 

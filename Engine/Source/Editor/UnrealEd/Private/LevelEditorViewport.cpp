@@ -1890,7 +1890,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 		else if( Actor->GetRootComponent() != NULL )
 		{
 			// No attachment, so just use the relative location, so that we don't need to
-			// convert from a quaternion, which looses winding information.
+			// convert from a quaternion, which loses winding information.
 			SetViewLocation( Actor->GetRootComponent()->RelativeLocation );
 			SetViewRotation( Actor->GetRootComponent()->RelativeRotation );
 		}

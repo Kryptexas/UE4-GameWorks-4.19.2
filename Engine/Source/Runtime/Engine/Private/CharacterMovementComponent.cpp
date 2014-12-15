@@ -207,11 +207,13 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	PendingLaunchVelocity = FVector::ZeroVector;
 	DefaultWaterMovementMode = MOVE_Swimming;
 	DefaultLandMovementMode = MOVE_Walking;
+	GroundMovementMode = MOVE_Walking;
 	bForceNextFloorCheck = true;
 	bForceBraking_DEPRECATED = false;
 	bShrinkProxyCapsule = true;
 	bCanWalkOffLedges = true;
 	bCanWalkOffLedgesWhenCrouching = false;
+	bWantsToLeaveNavWalking = false;
 
 	bEnablePhysicsInteraction = true;
 	StandingDownwardForceScale = 1.0f;
@@ -651,12 +653,35 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 		return;
 	}
 
+	// Update collision settings if needed
+	if (MovementMode == MOVE_NavWalking)
+	{
+		SetNavWalkingPhysics(true);
+	}
+	else if (PreviousMovementMode == MOVE_NavWalking)
+	{
+		if (MovementMode == DefaultLandMovementMode)
+		{
+			const bool bCanSwitchMode = TryToLeaveNavWalking();
+			if (!bCanSwitchMode)
+			{
+				SetMovementMode(MOVE_NavWalking);
+				return;
+			}
+		}
+		else
+		{
+			SetNavWalkingPhysics(false);
+		}
+	}
+
 	// React to changes in the movement mode.
 	if (MovementMode == MOVE_Walking)
-	{	
+	{
 		// Walking uses only XY velocity, and must be on a walkable floor, with a Base.
 		Velocity.Z = 0.f;
 		bCrouchMaintainsBaseLocation = true;
+		GroundMovementMode = MovementMode;
 
 		// make sure we update our new floor/base on initial entry of the walking physics
 		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
@@ -690,28 +715,38 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 
 uint8 UCharacterMovementComponent::PackNetworkMovementMode() const
 {
+	const uint32 GroundShift = FMath::FloorLog2(MOVE_MAX) + 1;
+	const uint8 CustomModeThr = 2 * (1 << GroundShift);
+
 	if (MovementMode != MOVE_Custom)
 	{
-		return uint8(MovementMode.GetValue());
+		return uint8(MovementMode.GetValue()) | (GroundMovementMode.GetValue() << GroundShift);
 	}
 	else
 	{
-		return CustomMovementMode + uint8(MOVE_MAX);
+		return CustomMovementMode + CustomModeThr;
 	}
 }
 
 
-void UCharacterMovementComponent::UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode) const
+void UCharacterMovementComponent::UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode, TEnumAsByte<EMovementMode>& OutGroundMode) const
 {
-	if (ReceivedMode < uint8(MOVE_MAX))
+	const uint32 GroundShift = FMath::FloorLog2(MOVE_MAX) + 1;
+	const uint8 CustomModeThr = 2 * (1 << GroundShift);
+
+	if (ReceivedMode < CustomModeThr)
 	{
-		OutMode = TEnumAsByte<EMovementMode>(ReceivedMode);
+		const uint8 GroundMask = (1 << GroundShift) - 1;
+
+		OutMode = TEnumAsByte<EMovementMode>(ReceivedMode & GroundMask);
 		OutCustomMode = 0;
+		OutGroundMode = TEnumAsByte<EMovementMode>(ReceivedMode >> GroundShift);
 	}
 	else
 	{
 		OutMode = MOVE_Custom;
-		OutCustomMode = ReceivedMode - uint8(MOVE_MAX);
+		OutCustomMode = ReceivedMode - CustomModeThr;
+		OutGroundMode = DefaultLandMovementMode;
 	}
 }
 
@@ -719,9 +754,11 @@ void UCharacterMovementComponent::UnpackNetworkMovementMode(const uint8 Received
 void UCharacterMovementComponent::ApplyNetworkMovementMode(const uint8 ReceivedMode)
 {
 	TEnumAsByte<EMovementMode> NetMovementMode(MOVE_None);
+	TEnumAsByte<EMovementMode> NetGroundMode(MOVE_None);
 	uint8 NetCustomMode(0);
-	UnpackNetworkMovementMode(ReceivedMode, NetMovementMode, NetCustomMode);
+	UnpackNetworkMovementMode(ReceivedMode, NetMovementMode, NetCustomMode, NetGroundMode);
 
+	GroundMovementMode = NetGroundMode;
 	SetMovementMode(NetMovementMode, NetCustomMode);
 }
 
@@ -1116,7 +1153,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 
 		// if simulated gravity, find floor and check if falling
 		const bool bEnableFloorCheck = (!CharacterOwner->bSimGravityDisabled || !bIsSimulatedProxy);
-		if (bEnableFloorCheck && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
+		if (bEnableFloorCheck && (IsMovingOnGround() || MovementMode == MOVE_Falling))
 		{
 			const FVector CollisionCenter = UpdatedComponent->GetComponentLocation();
 			if (StepDownResult.bComputedFloor)
@@ -1141,7 +1178,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 			else
 			{
 				// Walkable floor
-				if (MovementMode == MOVE_Walking)
+				if (IsMovingOnGround())
 				{
 					AdjustFloorHeight();
 					SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
@@ -1416,6 +1453,11 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		else if (bWantsToCrouch && bAllowedToCrouch && !IsCrouching()) 
 		{
 			Crouch(false);
+		}
+
+		if (MovementMode == MOVE_NavWalking && bWantsToLeaveNavWalking)
+		{
+			TryToLeaveNavWalking();
 		}
 
 		// Character::LaunchCharacter() has been deferred until now.
@@ -1825,6 +1867,9 @@ void UCharacterMovementComponent::StartNewPhysics(float deltaTime, int32 Iterati
 	case MOVE_Walking:
 		PhysWalking(deltaTime, Iterations);
 		break;
+	case MOVE_NavWalking:
+		PhysNavWalking(deltaTime, Iterations);
+		break;
 	case MOVE_Falling:
 		PhysFalling(deltaTime, Iterations);
 		break;
@@ -1860,6 +1905,7 @@ float UCharacterMovementComponent::GetMaxSpeed() const
 	switch(MovementMode)
 	{
 	case MOVE_Walking:
+	case MOVE_NavWalking:
 		return IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
 	case MOVE_Falling:
 		return MaxWalkSpeed;
@@ -2088,7 +2134,7 @@ bool UCharacterMovementComponent::IsMovingOnGround() const
 		return false;
 	}
 
-	return MovementMode == MOVE_Walking;
+	return (MovementMode == MOVE_Walking) || (MovementMode == MOVE_NavWalking);
 }
 
 
@@ -2327,7 +2373,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 
 	//Adjust velocity only if we're in "Walking" mode. We should also check if we're dazed, being knocked around, maybe off-navmesh, etc.
 	UCapsuleComponent *OurCapsule = GetCharacterOwner()->GetCapsuleComponent();
-	if (!Velocity.IsZero() && MovementMode == MOVE_Walking && OurCapsule)
+	if (!Velocity.IsZero() && IsMovingOnGround() && OurCapsule)
 	{
 		//See if we're doing a locked avoidance move already, and if so, skip the testing and just do the move.
 		if (AvoidanceLockTimer > 0.0f)
@@ -3671,6 +3717,103 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 	}
 }
 
+void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iterations)
+{
+	if (deltaTime < MIN_TICK_TIME)
+	{
+		return;
+	}
+
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys == NULL)
+	{
+		// can't find navigation system, switch to regular walking
+		SetMovementMode(MOVE_Walking);
+		return;
+	}
+
+	const ANavigationData* NavData = NULL;
+	INavAgentInterface* MyNavAgent = Cast<INavAgentInterface>(CharacterOwner);
+	float SearchRadius = 0.0f;
+	float SearchHeight = 100.0f;
+	if (MyNavAgent)
+	{
+		const FNavAgentProperties& AgentProps = MyNavAgent->GetNavAgentProperties();
+		NavData = NavSys->GetNavDataForProps(AgentProps);
+		SearchRadius = AgentProps.AgentRadius * 2.0f;
+		SearchHeight = AgentProps.AgentHeight * 0.5f;
+	}
+	if (NavData == NULL)
+	{
+		NavData = NavSys->GetMainNavData();
+	}
+
+	const ARecastNavMesh* NavMeshData = Cast<const ARecastNavMesh>(NavData);
+	if (NavMeshData == NULL)
+	{
+		// can't find navigation data for owning character, switch to regular walking
+		SetMovementMode(MOVE_Walking);
+		return;
+	}
+
+	if ((!CharacterOwner || !CharacterOwner->Controller) && !bRunPhysicsWithNoController && !HasRootMotion())
+	{
+		Acceleration = FVector::ZeroVector;
+		Velocity = FVector::ZeroVector;
+		return;
+	}
+
+	// Ensure velocity is horizontal.
+	MaintainHorizontalGroundVelocity();
+	checkf(!Velocity.ContainsNaN(), TEXT("PhysNavWalking: Velocity contains NaN before CalcVelocity (%s: %s)\n%s"), *GetPathNameSafe(this), *GetPathNameSafe(GetOuter()), *Velocity.ToString());
+
+	//bound acceleration
+	Acceleration.Z = 0.f;
+	if (!HasRootMotion())
+	{
+		CalcVelocity(deltaTime, GroundFriction, false, BrakingDecelerationWalking);
+		checkf(!Velocity.ContainsNaN(), TEXT("PhysNavWalking: Velocity contains NaN after CalcVelocity (%s: %s)\n%s"), *GetPathNameSafe(this), *GetPathNameSafe(GetOuter()), *Velocity.ToString());
+	}
+
+	Iterations++;
+
+	FVector DesiredMove = Velocity;
+	DesiredMove.Z = 0.f;
+
+	const FVector OldLocation = GetActorFeetLocation();
+	const FVector DeltaMove = DesiredMove * deltaTime;
+
+	FVector AdjustedDest = OldLocation + DeltaMove;
+	FNavLocation DestNavLocation;
+
+	if (DeltaMove.IsNearlyZero() &&
+		CachedNavLocation.NodeRef != INVALID_NAVNODEREF &&
+		CachedNavLocation.Location.Equals(OldLocation))
+	{
+		DestNavLocation = CachedNavLocation;
+	}
+	else
+	{
+		// scope for projection perf test
+		NavData->ProjectPoint(AdjustedDest, DestNavLocation, FVector(SearchRadius, SearchRadius, SearchHeight));
+		CachedNavLocation = DestNavLocation;
+	}
+
+	if (DestNavLocation.NodeRef != INVALID_NAVNODEREF)
+	{
+		const FVector ActorLoc = GetActorLocation();
+		FVector AdjustedDelta = FVector(AdjustedDest.X, AdjustedDest.Y, DestNavLocation.Location.Z) - OldLocation;
+
+		if (!AdjustedDelta.IsNearlyZero())
+		{
+			MoveUpdatedComponent(AdjustedDelta, CharacterOwner->GetActorRotation(), true);
+		}
+	}
+	else
+	{
+		StartFalling(Iterations, deltaTime, deltaTime, DeltaMove, OldLocation);
+	}
+}
 
 void UCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
 {
@@ -3777,12 +3920,66 @@ void UCharacterMovementComponent::SetPostLandedPhysics(const FHitResult& Hit)
 		{
 			const FVector PreImpactAccel = Acceleration + (IsFalling() ? FVector(0.f, 0.f, GetGravityZ()) : FVector::ZeroVector);
 			const FVector PreImpactVelocity = Velocity;
-			SetMovementMode(MOVE_Walking);
+			SetMovementMode(GroundMovementMode);
 			ApplyImpactPhysicsForces(Hit, PreImpactAccel, PreImpactVelocity);
 		}
 	}
 }
 
+void UCharacterMovementComponent::SetNavWalkingPhysics(bool bEnable)
+{
+	if (UpdatedComponent)
+	{
+		if (bEnable)
+		{
+			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
+			UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+		}
+		else
+		{
+			UPrimitiveComponent* DefaultCapsule = nullptr;
+			if (CharacterOwner && CharacterOwner->GetCapsuleComponent() == UpdatedComponent)
+			{
+				ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
+				DefaultCapsule = DefaultCharacter ? DefaultCharacter->GetCapsuleComponent() : nullptr;
+			}
+
+			if (DefaultCapsule)
+			{
+				UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldStatic, DefaultCapsule->GetCollisionResponseToChannel(ECC_WorldStatic));
+				UpdatedComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, DefaultCapsule->GetCollisionResponseToChannel(ECC_WorldDynamic));
+			}
+			else
+			{
+				UE_LOG(LogCharacterMovement, Warning, TEXT("Can't revert NavWalking collision settings for %s.%s"),
+					*GetNameSafe(CharacterOwner), *GetNameSafe(UpdatedComponent));
+			}
+		}
+	}
+}
+
+bool UCharacterMovementComponent::TryToLeaveNavWalking()
+{
+	SetNavWalkingPhysics(false);
+
+	bool bCanTeleport = true;
+	if (CharacterOwner)
+	{
+		FVector CollisionFreeLocation = CharacterOwner->GetActorLocation();
+		const bool bCanTeleport = GetWorld()->FindTeleportSpot(CharacterOwner, CollisionFreeLocation, CharacterOwner->GetActorRotation());
+		if (bCanTeleport)
+		{
+			CharacterOwner->SetActorLocation(CollisionFreeLocation);
+		}
+		else
+		{
+			SetNavWalkingPhysics(true);
+		}
+	}
+
+	bWantsToLeaveNavWalking = !bCanTeleport;
+	return bCanTeleport;
+}
 
 void UCharacterMovementComponent::OnTeleported()
 {
@@ -4990,6 +5187,7 @@ FString UCharacterMovementComponent::GetMovementName()
 	{
 		case MOVE_None:				return TEXT("NULL"); break;
 		case MOVE_Walking:			return TEXT("Walking"); break;
+		case MOVE_NavWalking:		return TEXT("NavWalking"); break;
 		case MOVE_Falling:			return TEXT("Falling"); break;
 		case MOVE_Swimming:			return TEXT("Swimming"); break;
 		case MOVE_Flying:			return TEXT("Flying"); break;

@@ -227,7 +227,7 @@ void FDataTableEditor::OnSearchTextChanged(const FText& SearchText)
 
 			for (int32 i = 0; i < CachedDataTable[RowIdx].Num(); ++i)
 			{
-				if (SearchFor.Len() < CachedDataTable[RowIdx][i].Len())
+				if (SearchFor.Len() <= CachedDataTable[RowIdx][i].Len())
 				{
 					if (CachedDataTable[RowIdx][i].Contains(SearchFor))
 					{

@@ -186,7 +186,7 @@ bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails
 		bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape;
 }
 
-TMap<FName, UWorld*> ULevel::StreamedLevelsOwningWorld;
+TMap<FName, TWeakObjectPtr<UWorld> > ULevel::StreamedLevelsOwningWorld;
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	:   UObject( ObjectInitializer )
@@ -514,7 +514,7 @@ void ULevel::PostLoad()
 
 	// Ensure that the level is pointed to the owning world.  For streamed levels, this will be the world of the P map
 	// they are streamed in to which we cached when the package loading was invoked
-	OwningWorld = ULevel::StreamedLevelsOwningWorld.FindRef(GetOutermost()->GetFName());
+	OwningWorld = ULevel::StreamedLevelsOwningWorld.FindRef(GetOutermost()->GetFName()).Get();
 	if (OwningWorld == NULL)
 	{
 		OwningWorld = CastChecked<UWorld>(GetOuter());

@@ -346,7 +346,7 @@ bool UK2Node_LatentAbilityCall::ValidateActorSpawning(class FKismetCompilerConte
 	FName ProxyPostpawnArrayFunctionName = *FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName;
 	UFunction* PostSpawnArrayFunction = ProxyFactoryClass->FindFunctionByName(ProxyPostpawnArrayFunctionName);
 
-	bool HasClassParameter = GetClassToSpawn() != nullptr;
+	bool HasClassParameter = GetClassPin() != nullptr;
 	bool HasPreSpawnFunc = PreSpawnFunction != nullptr;
 	bool HasPostSpawnFunc = PostSpawnFunction != nullptr;
 	bool HasPreSpawnArrayFunc = PreSpawnArrayFunction != nullptr;
@@ -566,8 +566,8 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 	bool validatedActorSpawn = ValidateActorSpawning(CompilerContext, false);
 	bool validatedActorArraySpawn = ValidateActorArraySpawning(CompilerContext, false);
 
-	UClass* ClassToSpawn = GetClassToSpawn();
-	if (ClassToSpawn == nullptr)
+	UEdGraphPin* ClassPin = GetClassPin();
+	if (ClassPin == nullptr)
 	{
 		// Nothing special about this task, just call super
 		Super::ExpandNode(CompilerContext, SourceGraph);
@@ -603,7 +603,7 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 			// NEW: if no DestPin, assume it is a Class Spawn PRoperty - not an error
 			if (DestPin)
 			{
-				bIsErrorFree &= DestPin && CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
+				bIsErrorFree &= CompilerContext.CopyPinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
 			}
 		}
 	}
@@ -695,7 +695,7 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 			UEdGraphPin* DestPin = CallPrespawnProxyObjectNode->FindPin(CurrentPin->PinName);
 			if (DestPin)
 			{
-				bIsErrorFree &= DestPin && CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
+				bIsErrorFree &= CompilerContext.CopyPinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
 			}
 		}
 	}		
@@ -728,7 +728,8 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 
 	LastThenPin = BranchNode->GetThenPin();
 
-	if (validatedActorArraySpawn)
+	UClass* ClassToSpawn = GetClassToSpawn();
+	if (validatedActorArraySpawn && ClassToSpawn)
 	{
 		//Branch for main loop control
 		UK2Node_IfThenElse* Branch = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
@@ -801,7 +802,7 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 	//  Borrowed heavily from FKismetCompilerUtilities::GenerateAssignmentNodes
 	// -------------------------------------------
 	
-	if (validatedActorSpawn)
+	if (validatedActorSpawn && ClassToSpawn)
 	{
 		bIsErrorFree &= ConnectSpawnProperties(ClassToSpawn, Schema, CompilerContext, SourceGraph, LastThenPin, SpawnedActorReturnPin);
 	}
@@ -831,7 +832,7 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 			UEdGraphPin* DestPin = CallPostSpawnnProxyObjectNode->FindPin(CurrentPin->PinName);
 			if (DestPin)
 			{
-				bIsErrorFree &= DestPin && CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
+				bIsErrorFree &= CompilerContext.CopyPinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
 			}
 		}
 	}

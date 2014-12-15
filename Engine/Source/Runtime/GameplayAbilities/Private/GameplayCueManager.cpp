@@ -45,9 +45,10 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 	if (Ptr)
 	{
 		int32 DataIdx = *Ptr;
-		HandleGameplayCueNotify_Internal(TargetActor, DataIdx, EventType, Parameters);
+		HandleGameplayCueNotify_Internal(TargetActor, DataIdx, EventType, Parameters);	
 	}
 
+	// Use the interface even if it's not in the map
 	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(TargetActor);
 	if (GameplayCueInterface)
 	{

@@ -2405,7 +2405,6 @@ bool FBlueprintEditorUtils::IsDelegateSignatureGraph(const UEdGraph* Graph)
 		{
 			return (NULL != Blueprint->DelegateSignatureGraphs.FindByKey(Graph));
 		}
-
 	}
 	return false;
 }
@@ -4959,7 +4958,10 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 			UEdGraph* EventGraph = EventNode->GetGraph();
 			// we've already implemented this interface function as an event (which we need to replace)
 			UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(EventGraph->GetSchema()->CreateSubstituteNode(EventNode, EventGraph, NULL));
-			check(CustomEventNode != NULL);			
+			if (CustomEventNode == NULL)
+			{
+				continue;
+			}
 
 			// grab the function's name before we delete the node
 			FName const FunctionName = EventNode->EventSignatureName;

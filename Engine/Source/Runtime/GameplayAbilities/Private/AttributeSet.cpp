@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "HAL/OutputDevices.h"
 #include "AbilitySystemGlobals.h"
+#include "VisualLogger.h"
 
 #include "ComponentReregisterContext.h"
 
@@ -18,8 +19,22 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
 	void* ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
+	float OldValue = *static_cast<float*>(ValuePtr);
 	Dest->PreAttributeChange(*this, NewValue);
 	NumericProperty->SetFloatingPointPropertyValue(ValuePtr, NewValue);
+
+	// draw a graph of the changes to the attribute in the visual logger
+	AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
+	if (OwnerActor)
+	{
+		static const FName GraphName("Attribute Graph");
+		const FName LineName(*GetName());
+		float CurrentTime = OwnerActor->GetWorld()->GetTimeSeconds();
+		FVector2D OldPt(CurrentTime, OldValue);
+		FVector2D NewPt(CurrentTime, NewValue);
+		UE_VLOG_HISTOGRAM(OwnerActor, LogAbilitySystem, Log, GraphName, LineName, OldPt);
+		UE_VLOG_HISTOGRAM(OwnerActor, LogAbilitySystem, Log, GraphName, LineName, NewPt);
+	}
 }
 
 float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const

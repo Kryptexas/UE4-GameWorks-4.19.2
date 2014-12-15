@@ -967,20 +967,32 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 		return Super::DoesIntersectBox(Box, StartingIndex, IntersectingSegmentIndex);
 	}
 	
+	bool bParametersValid = true;
 	FVector StartLocation = PathPoints[0].Location;
 	
-	if (StartingIndex > 0)
+	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
+	if (StartingIndex < uint32(CorridorEdges.Num()))
 	{
-		const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
 		StartLocation = CorridorEdges[StartingIndex].Right + (CorridorEdges[StartingIndex].Left - CorridorEdges[StartingIndex].Right) / 2;
 		++StartingIndex;
 	}
+	else if (StartingIndex > uint32(CorridorEdges.Num()))
+	{
+		bParametersValid = false;
+	}
+	// else will be handled by DoesPathIntersectBoxImplementation
 
-	return DoesPathIntersectBoxImplementation(Box, StartLocation, StartingIndex, IntersectingSegmentIndex);
+	return bParametersValid && DoesPathIntersectBoxImplementation(Box, StartLocation, StartingIndex, IntersectingSegmentIndex);
 }
 
 bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
 {
+	// trivial scenario check:
+	if (Box.IsInside(AgentLocation))
+	{
+		return true;
+	}
+
 	if (IsStringPulled())
 	{
 		return Super::DoesIntersectBox(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex);

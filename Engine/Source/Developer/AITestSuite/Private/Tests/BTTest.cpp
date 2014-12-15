@@ -506,6 +506,35 @@ struct FAITest_BTAbortToInactiveParallel : public FAITest_SimpleBT
 };
 IMPLEMENT_AI_LATENT_TEST(FAITest_BTAbortToInactiveParallel, "Engine.AI.Behavior Trees.Abort: observer in inactive parallel")
 
+struct FAITest_BTAbortDuringLatentAbort : public FAITest_SimpleBT
+{
+	FAITest_BTAbortDuringLatentAbort()
+	{
+		UBTCompositeNode& CompNode = FBTBuilder::AddSelector(*BTAsset);
+		{
+			FBTBuilder::AddTaskLatentFlags(CompNode, EBTNodeResult::Succeeded,
+				1, TEXT("Bool1"), 1, 2,
+				1, TEXT("Bool2"), 3, 4);
+			{
+				FBTBuilder::WithDecoratorBlackboard(CompNode, EBasicKeyOperation::NotSet, EBTFlowAbortMode::Self, TEXT("Bool1"));
+			}
+
+			FBTBuilder::AddTask(CompNode, 5, EBTNodeResult::Succeeded);
+			{
+				FBTBuilder::WithDecoratorBlackboard(CompNode, EBasicKeyOperation::Set, EBTFlowAbortMode::LowerPriority, TEXT("Bool2"));
+			}
+
+			FBTBuilder::AddTask(CompNode, 6, EBTNodeResult::Succeeded);
+		}
+
+		ExpectedResult.Add(1);
+		ExpectedResult.Add(3);
+		ExpectedResult.Add(4);
+		ExpectedResult.Add(5);
+	}
+};
+IMPLEMENT_AI_LATENT_TEST(FAITest_BTAbortDuringLatentAbort, "Engine.AI.Behavior Trees.Abort: during latent task abort")
+
 struct FAITest_BTSubtreeSimple : public FAITest_SimpleBT
 {
 	FAITest_BTSubtreeSimple()

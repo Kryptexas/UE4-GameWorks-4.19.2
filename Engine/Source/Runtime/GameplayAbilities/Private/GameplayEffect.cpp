@@ -378,7 +378,13 @@ void FGameplayEffectExecutionDefinition::GetAttributeCaptureDefinitions(OUT TArr
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level)
-: Def(InDef)
+	: Def(InDef)
+	, Duration(UGameplayEffect::INSTANT_APPLICATION)
+	, Period(UGameplayEffect::NO_PERIOD)
+	, ChanceToApplyToTarget(1.f)
+	, ChanceToExecuteOnGameplayEffect(1.f)
+	, bTopOfStack(false)
+	, Level(UGameplayEffect::INVALID_LEVEL)
 {
 	check(Def);	
 	SetLevel(Level);
@@ -1377,9 +1383,17 @@ void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute A
 
 bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Spec, FGameplayModifierEvaluatedData& ModEvalData)
 {
+	check(Owner);
+
 	bool bExecuted = false;
 
-	UAttributeSet* AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(ModEvalData.Attribute.GetAttributeSetClass()));
+	UAttributeSet* AttributeSet = nullptr;
+	UClass* AttributeSetClass = ModEvalData.Attribute.GetAttributeSetClass();
+	if (AttributeSetClass && AttributeSetClass->IsChildOf(UAttributeSet::StaticClass()))
+	{
+		AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(AttributeSetClass));
+	}
+
 	if (AttributeSet)
 	{
 		ABILITY_LOG_SCOPE(TEXT("Executing Attribute Mod %s"), *ModEvalData.ToSimpleString());
@@ -1833,7 +1847,8 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 			// Make sure that this effect should really be destroyed now
 			float Duration = Effect.GetDuration();
 			float CurrentTime = GetWorldTime();
-			if (Duration > 0.f && (Effect.StartWorldTime + Duration) < CurrentTime)
+
+			if (Duration > 0.f && (((Effect.StartWorldTime + Duration) < CurrentTime) || FMath::IsNearlyZero(CurrentTime - Duration - Effect.StartWorldTime, KINDA_SMALL_NUMBER)))
 			{
 				// This gameplay effect has hit its duration. Check if it needs to execute one last time before removing it.
 				if (Effect.PeriodHandle.IsValid() && TimerManager.TimerExists(Effect.PeriodHandle))
@@ -1883,6 +1898,10 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 		// It only makes sense to check additive operators
 		if (ModDef.ModifierOp == EGameplayModOp::Additive)
 		{
+			if (!ModDef.Attribute.IsValid())
+			{
+				continue;
+			}
 			const UAttributeSet* Set = Owner->GetAttributeSubobject(ModDef.Attribute.GetAttributeSetClass());
 			float CurrentValue = ModDef.Attribute.GetNumericValueChecked(Set);
 			float CostValue = ModSpec.GetEvaluatedMagnitude();
@@ -2055,8 +2074,11 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*OwningTagContainer, true) &&
 			!Effect.Spec.DynamicGrantedTags.MatchesAny(*OwningTagContainer, false))
 		{
-			// this doesn't match our Tags so bail
-			return false;
+			// if the GameplayEffect didn't match check the spec for tags that were added when this effect was created
+			if (!Effect.Spec.CapturedSourceTags.GetSpecTags().MatchesAny(*OwningTagContainer, false))
+			{
+				return false;
+			}
 		}
 	}	
 	
@@ -2102,6 +2124,16 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 		}
 	}
 
+	// check source object
+	if (EffectSource)
+	{
+		if (Effect.Spec.GetEffectContext().GetSourceObject() != EffectSource)
+		{
+			return false;
+		}
+	}
+
+	// passed all the checks
 	return true;
 }
 

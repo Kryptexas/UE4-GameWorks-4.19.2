@@ -298,7 +298,7 @@ public:
 	TTransArray<AActor*> Actors;
 
 	/** Set before calling LoadPackage for a streaming level to ensure that OwningWorld is correct on the Level */
-	ENGINE_API static TMap<FName, UWorld*> StreamedLevelsOwningWorld;
+	ENGINE_API static TMap<FName, TWeakObjectPtr<UWorld> > StreamedLevelsOwningWorld;
 		
 	/** 
 	 * The World that has this level in its Levels array. 

@@ -159,6 +159,8 @@ public:
 
 	void SetNavigableGeometryStoringMode(ENavGeometryStoringMode NavGeometryMode);
 
+	const FNavigationRelevantData* GetDataForID(const FOctreeElementId& Id) const;
+
 protected:
 
 	uint32 bGatherGeometry : 1;

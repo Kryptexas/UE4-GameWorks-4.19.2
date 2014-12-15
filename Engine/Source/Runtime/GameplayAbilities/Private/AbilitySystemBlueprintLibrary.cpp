@@ -2,6 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
@@ -18,6 +19,20 @@ UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const FObjectInit
 UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AActor *Actor)
 {
 	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
+}
+
+void UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload)
+{
+	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Actor);
+	if (AbilitySystemInterface != NULL)
+	{
+		UAbilitySystemComponent* AbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
+		if (AbilitySystemComponent != NULL)
+		{
+			FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
+			AbilitySystemComponent->HandleGameplayEvent(EventTag, &Payload);
+		}
+	}
 }
 
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd)
@@ -271,6 +286,51 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 
 // -------------------------------------------------------------------------------------
 
+
+bool UAbilitySystemBlueprintLibrary::EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext)
+{
+	return EffectContext.IsLocallyControlled();
+}
+
+FHitResult UAbilitySystemBlueprintLibrary::EffectContextGetHitResult(FGameplayEffectContextHandle EffectContext)
+{
+	if (EffectContext.GetHitResult())
+	{
+		return *EffectContext.GetHitResult();
+	}
+
+	return FHitResult();
+}
+
+bool UAbilitySystemBlueprintLibrary::EffectContextHasHitResult(FGameplayEffectContextHandle EffectContext)
+{
+	return EffectContext.GetHitResult() != NULL;
+}
+
+AActor*	UAbilitySystemBlueprintLibrary::EffectContextGetInstigatorActor(FGameplayEffectContextHandle EffectContext)
+{
+	return EffectContext.GetInstigator();
+}
+
+AActor*	UAbilitySystemBlueprintLibrary::EffectContextGetOriginalInstigatorActor(FGameplayEffectContextHandle EffectContext)
+{
+	return EffectContext.GetOriginalInstigator();
+}
+
+AActor*	UAbilitySystemBlueprintLibrary::EffectContextGetEffectCauser(FGameplayEffectContextHandle EffectContext)
+{
+	return EffectContext.GetEffectCauser();
+}
+
+FVector UAbilitySystemBlueprintLibrary::EffectContextGetOrigin(FGameplayEffectContextHandle EffectContext)
+{
+	if (EffectContext.HasOrigin())
+	{
+		return EffectContext.GetOrigin();
+	}
+
+	return FVector::ZeroVector;
+}
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {

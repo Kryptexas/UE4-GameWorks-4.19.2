@@ -861,10 +861,28 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 		bInterrupted = bInterrupt;
 	}
 
-	// It is already stopped, but if BlendOut < BlendTime, that means 
-	// we need to readjust BlendTime, we don't want old animation to blend longer than
-	// new animation
-	if (DesiredWeight == 0.f)
+	if (DesiredWeight > 0.f)
+	{
+		DesiredWeight = 0.f;
+
+		if (Montage)
+		{
+
+			// do not use default Montage->BlendOut  Time
+			// depending on situation, the BlendOut time changes
+			// check where this function gets called and see how we calculate BlendTime
+			BlendTime = BlendOut;
+
+			if (UAnimInstance* Inst = AnimInstance.Get())
+			{
+				// Let AnimInstance know we are being stopped.
+				Inst->OnMontageInstanceStopped(*this);
+				Inst->OnMontageBlendingOut.Broadcast(Montage, bInterrupt);
+			}
+			OnMontageBlendingOutStarted.ExecuteIfBound(Montage, bInterrupted);
+		}
+	}
+	else
 	{
 		// it is already stopped, but new montage blendtime is shorter than what 
 		// I'm blending out, that means this needs to readjust blendtime
@@ -873,30 +891,9 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 		{
 			BlendTime = BlendOut;
 		}
-
-		return;
 	}
 
-	DesiredWeight = 0.f;
-
-	if( Montage )
-	{
-		
-		// do not use default Montage->BlendOut  Time
-		// depending on situation, the BlendOut time changes
-		// check where this function gets called and see how we calculate BlendTime
-		BlendTime = BlendOut;
-
-		if (UAnimInstance* Inst = AnimInstance.Get())
-		{
-			// Let AnimInstance know we are being stopped.
-			Inst->OnMontageInstanceStopped(*this);
-			Inst->OnMontageBlendingOut.Broadcast(Montage, bInterrupt);
-		}
-		OnMontageBlendingOutStarted.ExecuteIfBound(Montage, bInterrupted);
-	}
-
-	if (BlendTime == 0.0f)
+	if (BlendTime <= 0.0f)
 	{
 		bPlaying = false;
 	}

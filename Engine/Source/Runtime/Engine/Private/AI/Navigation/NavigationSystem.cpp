@@ -1256,7 +1256,7 @@ ANavigationData* UNavigationSystem::GetMainNavData(FNavigationSystem::ECreateIfE
 		}
 #endif // WITH_RECAST
 		// either way make sure it's registered. Registration stores unique
-		// navmeshes, so we have nothing to loose
+		// navmeshes, so we have nothing to lose
 		RegisterNavData(MainNavData);
 	}
 
@@ -2173,6 +2173,20 @@ void UNavigationSystem::RemoveNavOctreeElementId(const FOctreeElementId& Element
 		AddDirtyArea(ElementData.Bounds.GetBox(), DirtyFlag);
 		NavOctree->RemoveNode(ElementId);
 	}
+}
+
+const FNavigationRelevantData* UNavigationSystem::GetDataForObject(const UObject& Object) const
+{
+	check(NavOctree);
+
+	const FOctreeElementId* OctreeID = GetObjectsNavOctreeId(&Object);
+
+	if (OctreeID != nullptr && OctreeID->IsValidId() == true)
+	{
+		return NavOctree->GetDataForID(*OctreeID);
+	}
+
+	return nullptr;
 }
 
 void UNavigationSystem::UpdateNavOctree(AActor* Actor)

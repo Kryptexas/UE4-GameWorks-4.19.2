@@ -260,6 +260,7 @@ struct FRecastDebugGeometry
 		uint8	Direction;
 		uint8	ValidEnds;
 		float	Radius;
+		float	Height;
 		FColor	Color;
 	};
 

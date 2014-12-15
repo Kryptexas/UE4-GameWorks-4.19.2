@@ -99,6 +99,11 @@ void FGameplayAbilityActivationInfo::SetPredicting(FPredictionKey PredictionKey)
 	PredictionKeyWhenActivated = PredictionKey;
 }
 
+void FGameplayAbilityActivationInfo::ServerSetActivationPredictionKey(FPredictionKey PredictionKey)
+{
+	PredictionKeyWhenActivated = PredictionKey;
+}
+
 void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 {
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
@@ -108,5 +113,22 @@ void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 
 bool FGameplayAbilitySpec::IsActive() const
 {
-	return ActiveCount > 0;
+	// If ability hasn't replicated yet we're not active
+	return Ability != nullptr && ActiveCount > 0;
+}
+
+UGameplayAbility* FGameplayAbilitySpec::GetPrimaryInstance() const
+{
+	if (Ability && Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
+	{
+		if (NonReplicatedInstances.Num() > 0)
+		{
+			return NonReplicatedInstances[0];
+		}
+		if (ReplicatedInstances.Num() > 0)
+		{
+			return ReplicatedInstances[0];
+		}
+	}
+	return nullptr;
 }

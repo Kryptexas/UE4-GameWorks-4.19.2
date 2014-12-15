@@ -46,6 +46,9 @@ namespace CrowdDebugDrawing
 	bool bDrawDebugVelocityObstacles = true;
 	bool bDrawDebugPathOptimization = true;
 	bool bDrawDebugNeighbors = true;
+	
+	/** debug flags, don't depend on agent */
+	bool bDrawDebugBoundaries = false;
 
 	const FVector Offset(0, 0, 20);
 
@@ -1002,6 +1005,28 @@ void UCrowdManager::DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const
 	}
 }
 
+void UCrowdManager::DrawDebugSharedBoundary() const
+{
+	UWorld* World = GetWorld();
+	FColor Colors[] = { FColorList::Red, FColorList::Orange };
+
+	const dtSharedBoundary* sharedBounds = DetourCrowd->getSharedBoundary();
+	for (int32 Idx = 0; Idx < sharedBounds->Data.Num(); Idx++)
+	{
+		FColor Color = Colors[Idx % ARRAY_COUNT(Colors)];
+		const FVector Center = Recast2UnrealPoint(sharedBounds->Data[Idx].Center);
+		DrawDebugCylinder(World, Center - CrowdDebugDrawing::Offset, Center, sharedBounds->Data[Idx].Radius, 32, Color);
+
+		for (int32 WallIdx = 0; WallIdx < sharedBounds->Data[Idx].Edges.Num(); WallIdx++)
+		{
+			const FVector WallV0 = Recast2UnrealPoint(sharedBounds->Data[Idx].Edges[WallIdx].v0) + CrowdDebugDrawing::Offset;
+			const FVector WallV1 = Recast2UnrealPoint(sharedBounds->Data[Idx].Edges[WallIdx].v1) + CrowdDebugDrawing::Offset;
+
+			DrawDebugLine(World, WallV0, WallV1, Color);
+		}
+	}
+}
+
 #endif // WITH_RECAST
 
 #if WITH_EDITOR
@@ -1056,6 +1081,11 @@ void UCrowdManager::DebugTick() const
 		{
 			DrawDebugNeighbors(SelectedAgent);
 		}
+	}
+
+	if (CrowdDebugDrawing::bDrawDebugBoundaries)
+	{
+		DrawDebugSharedBoundary();
 	}
 
 	// vislog debugging

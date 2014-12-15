@@ -122,7 +122,7 @@ public:
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const;
 
 	/** Returns true if this ability can be triggered right now. Has no side effects */
-	virtual bool ShouldAbilityRespondToEvent(FGameplayTag EventTag, const FGameplayEventData* Payload) const;
+	virtual bool ShouldAbilityRespondToEvent(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayEventData* Payload) const;
 	
 	/** Returns the time in seconds remaining on the currently active cooldown. */
 	virtual float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const;
@@ -178,7 +178,7 @@ public:
 	FGameplayAbilitySpec* GetCurrentAbilitySpec() const;
 
 	/** Returns an effect context, given a specified actor info */
-	virtual FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilityActorInfo *ActorInfo) const;
+	virtual FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
 
 	virtual UWorld* GetWorld() const override
 	{
@@ -209,9 +209,11 @@ public:
 	/** Callback for when this ability has been confirmed by the server */
 	FGenericAbilityDelegate	OnConfirmDelegate;
 
-	void TaskStarted(UAbilityTask* NewTask);
+	/** Called by an ability task, originating from this ability, when it starts */
+	virtual void TaskStarted(UAbilityTask* NewTask);
 
-	void TaskEnded(UAbilityTask* Task);
+	/** Called by an ability task, originating from this ability, when it ends */
+	virtual void TaskEnded(UAbilityTask* Task);
 
 	/** Is this ability triggered from TriggerData (or is it triggered explicitly through input/game code) */
 	bool IsTriggered() const;
@@ -232,9 +234,9 @@ protected:
 
 	/** Returns true if this ability can be activated right now. Has no side effects */
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ShouldAbilityRespondToEvent")
-	virtual bool K2_ShouldAbilityRespondToEvent(FGameplayTag EventTag, FGameplayEventData Payload) const;
+	virtual bool K2_ShouldAbilityRespondToEvent(FGameplayAbilityActorInfo ActorInfo, FGameplayEventData Payload) const;
 
-	bool HasBlueprintShouldAbilityRespondToEvent;
+	bool bHasBlueprintShouldAbilityRespondToEvent;
 		
 	// --------------------------------------
 	//	CanActivate
@@ -244,7 +246,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName="CanActivateAbility")
 	virtual bool K2_CanActivateAbility(FGameplayAbilityActorInfo ActorInfo, FGameplayTagContainer& RelevantTags) const;
 
-	bool HasBlueprintCanUse;
+	bool bHasBlueprintCanUse;
 
 	// --------------------------------------
 	//	ActivateAbility
@@ -262,13 +264,17 @@ protected:
 	 *  
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ActivateAbility")
-	virtual void K2_ActivateAbility();	
+	virtual void K2_ActivateAbility();
 
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ActivateAbilityFromEvent")
+	virtual void K2_ActivateAbilityFromEvent(const FGameplayEventData& EventData);
 
-	bool HasBlueprintActivate;
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData);
 
-	void CallActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr);
+	bool bHasBlueprintActivate;
+	bool bHasBlueprintActivateFromEvent;
+
+	void CallActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr, const FGameplayEventData* TriggerEventData = nullptr);
 
 	/** Called on a predictive ability when the server confirms its execution */
 	virtual void ConfirmActivateSucceed();
@@ -362,9 +368,8 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "OnEndAbility")
 	virtual void K2_OnEndAbility();
 
-	/** Native function, called if an ability ends normally or abnormally */
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-	virtual void EndAbility();		//Convenience function for calling with default parameters
+	/** Native function, called if an ability ends normally or abnormally. If bReplicate is set to true, try to replicate the ending to the client/server */
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility);
 
 	// -------------------------------------
 	//	GameplayEffects
@@ -491,6 +496,20 @@ public:
 	/** Call to set/get the current montage from a montage task. Set to allow hooking up montage events to ability events */
 	void SetCurrentMontage(class UAnimMontage* InCurrentMontage);
 
+	/** Returns true if this ability can be canceled */
+	virtual bool CanBeCanceled() const;
+
+	/** Sets rather the ability should ignore cancel requests. Only valid on instanced abilities */
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	virtual void SetCanBeCanceled(bool bCanBeCanceled);
+
+	/** Returns true if this ability is blocking other abilities */
+	virtual bool IsBlockingOtherAbilities() const;
+
+	/** Sets rather ability block flags are enabled or disabled. Only valid on instanced abilities */
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	virtual void SetShouldBlockOtherAbilities(bool bShouldBlockAbilities);
+
 protected:
 
 	bool IsSupportedForNetworking() const override;
@@ -528,6 +547,9 @@ protected:
 	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authoring, confirmed, etc. */
 	UPROPERTY(BlueprintReadOnly, Category = Ability)
 	FGameplayAbilityActivationInfo	CurrentActivationInfo;
+
+	UPROPERTY(BlueprintReadOnly, Category = Ability)
+	FGameplayEventData CurrentEventData;
 
 	UPROPERTY(EditDefaultsOnly, Category=Advanced)
 	TEnumAsByte<EGameplayAbilityNetExecutionPolicy::Type> NetExecutionPolicy;
@@ -571,6 +593,19 @@ protected:
 	/** Abilities with these tags are blocked while this ability is active */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer BlockAbilitiesWithTag;
+
+	/** Tags to apply to activating owner while this ability is active */
+	UPROPERTY(EditDefaultsOnly, Category = Tags)
+	FGameplayTagContainer ActivationOwnedTags;
+
+	/** This ability can only be activated if the activating actor/component has all of these tags */
+	UPROPERTY(EditDefaultsOnly, Category = Tags)
+	FGameplayTagContainer ActivationRequiredTags;
+
+	/** This ability is blocked if the activating actor/component has any of these tags */
+	UPROPERTY(EditDefaultsOnly, Category = Tags)
+	FGameplayTagContainer ActivationBlockedTags;
+
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -650,5 +685,14 @@ protected:
 	class UAnimMontage* CurrentMontage;
 
 	/** True if the ability is currently active. For instance per owner abilities */
+	UPROPERTY()
 	bool bIsActive;
+
+	/** True if the ability is currently cancelable, if not will only be canceled by hard EndAbility calls */
+	UPROPERTY()
+	bool bIsCancelable;
+
+	/** True if the ability block flags are currently enabled */
+	UPROPERTY()
+	bool bIsBlockingOtherAbilities;
 };

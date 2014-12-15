@@ -50,8 +50,8 @@ protected:
 	FBlackboardDataToComponentsMap BlackboardDataToComponentsMap;
 	
 public:
-	virtual ~UAISystem();
-
+	virtual void BeginDestroy() override;
+	
 	virtual void PostInitProperties() override;
 
 	// IAISystemInterface begin		

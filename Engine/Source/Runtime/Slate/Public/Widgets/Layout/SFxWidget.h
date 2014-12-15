@@ -17,6 +17,8 @@ public:
 	, _VisualOffset( FVector2D::ZeroVector )
 	, _IgnoreClipping( true )
 	, _ColorAndOpacity( FLinearColor::White )
+	, _HAlign( HAlign_Center )
+	, _VAlign( VAlign_Center )
 	, _Content()
 	{}
 	/** Scale the visuals of this widget. Geometry is not affected. */
@@ -37,12 +39,18 @@ public:
 	/** Multiply the contents of the SFxWidget by this color and opacity when drawing */
 	SLATE_ATTRIBUTE( FLinearColor, ColorAndOpacity )
 
+	/** The horizontal alignment of the child widget */
+	SLATE_ATTRIBUTE( EHorizontalAlignment, HAlign )
+
+	/** The vertical alignment of the child widget */
+	SLATE_ATTRIBUTE( EVerticalAlignment, VAlign )
+
 	/** The content that should be modified. */
 	SLATE_DEFAULT_SLOT( FArguments, Content )
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs );
+	virtual void Construct( const FArguments& InArgs );
 
 	/** @see VisualOffset */
 	void SetVisualOffset( const TAttribute<FVector2D>& InOffset );
@@ -74,4 +82,6 @@ protected:
 	TAttribute<float> LayoutScale;
 	TAttribute<FVector2D> VisualOffset;
 	TAttribute<bool> bIgnoreClipping;
+	TAttribute<EHorizontalAlignment> HAlign;
+	TAttribute<EVerticalAlignment> VAlign;
 };

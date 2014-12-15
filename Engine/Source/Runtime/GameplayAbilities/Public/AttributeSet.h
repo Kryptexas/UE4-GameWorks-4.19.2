@@ -97,7 +97,7 @@ public:
 	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data) { }
 
 	/**
-	 *	An "On Aggregator Change" type of event could go here, and that could be called when active gamepaly effects are added or removed to an attribute aggregator.
+	 *	An "On Aggregator Change" type of event could go here, and that could be called when active gameplay effects are added or removed to an attribute aggregator.
 	 *	It is difficult to give all the information in these cases though - aggregators can change for many reasons: being added, being removed, being modified, having a modifier change, immunity, stacking rules, etc.
 	 */
 
@@ -110,16 +110,6 @@ public:
 	 *	NewValue is a mutable reference so you are able to clamp the newly applied value as well.
 	 */
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) { }
-
-	/** 
-	 * Called to determine the set of gameplay attributes that the specified attribute requires as pre-requisites in order to accurately compute
-	 * the value of an attribute modification to the specified attribute. As an example, if you had a custom, complex implementation of a damage formula
-	 * and the damage relied on other attributes to perform its calculation (such as crit %, etc.), they would be output by this function.
-	 * 
-	 * @param AttributeToBeModified	Attribute that is being considered for modification and requires pre-requisites computed
-	 * @param OutPrereqs			[OUT] Pre-requisite attributes whose values/modifiers must be known prior to resolving a computation of the specified attribute
-	 */
-	virtual void GetPrerequisiteAttributesForAttributeModification(const FGameplayAttribute& AttributeToBeModified, OUT TArray<FGameplayAttribute>& OutPrereqs) const {}
 
 	/** This signifies the attribute set can be ID'd by name over the network. */
 	void SetNetAddressable();

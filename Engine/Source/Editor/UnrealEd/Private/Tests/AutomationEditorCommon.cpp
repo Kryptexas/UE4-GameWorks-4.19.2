@@ -831,7 +831,9 @@ void FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UClass * Cla
 	//Generating the list of assets.
 	//This list is being filtered by the game folder and class type.  The results are placed into the ObjectList variable.
 	AssetFilter.ClassNames.Add(Class->GetFName());
-	AssetFilter.PackagePaths.Add("/Game");
+
+	//removed path as a filter as it causes two large lists to be sorted.  Filtering on "game" directory on iteration
+	//AssetFilter.PackagePaths.Add("/Game");
 	AssetFilter.bRecursiveClasses = bRecursiveClass;
 	AssetFilter.bRecursivePaths = true;
 	AssetRegistryModule.Get().GetAssets(AssetFilter, ObjectList);
@@ -841,13 +843,17 @@ void FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UClass * Cla
 	{
 		const FAssetData& Asset = *ObjIter;
 		FString Filename = Asset.ObjectPath.ToString();
-		//convert to full paths
-		Filename = FPackageName::LongPackageNameToFilename(Filename);
-		if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+
+		if (Filename.StartsWith("/Game"))
 		{
-			FString BeautifiedFilename = Asset.AssetName.ToString();
-			OutBeautifiedNames.Add(BeautifiedFilename);
-			OutTestCommands.Add(Asset.ObjectPath.ToString());
+			//convert to full paths
+			Filename = FPackageName::LongPackageNameToFilename(Filename);
+			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			{
+				FString BeautifiedFilename = Asset.AssetName.ToString();
+				OutBeautifiedNames.Add(BeautifiedFilename);
+				OutTestCommands.Add(Asset.ObjectPath.ToString());
+			}
 		}
 	}
 }

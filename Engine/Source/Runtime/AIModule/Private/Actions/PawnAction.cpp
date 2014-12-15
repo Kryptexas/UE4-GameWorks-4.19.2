@@ -413,3 +413,8 @@ FString UPawnAction::GetPriorityName() const
 	check(Enum);
 	return Enum->GetEnumName(GetPriority());
 }
+
+FString UPawnAction::GetDisplayName() const
+{
+	return GetClass()->GetName();
+}

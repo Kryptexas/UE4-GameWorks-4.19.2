@@ -147,8 +147,8 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** execute query */
 	bool AbortQuery(int32 RequestID);
 
-	/** fail all running queries on changing persistent map */
-	virtual void OnPreLoadMap();
+	/** fail all running queries on cleaning the world */
+	virtual void OnWorldCleanup();
 
 	/** cleanup hooks for map loading */
 	virtual void FinishDestroy() override;

@@ -43,7 +43,7 @@ public:
 
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
 
-	/** note that it results in loosing all area cost setup. Call it before setting anything else */
+	/** note that it results in losing all area cost setup. Call it before setting anything else */
 	void SetIsVirtual(bool bIsVirtual);
 };
 

@@ -1044,8 +1044,9 @@ void FAudioDevice::UpdatePassiveSoundMixModifiers(TArray<FWaveInstance*>& WaveIn
 	}
 
 	// Pop SoundMixes that are no longer active
-	for (USoundMix* PrevPassiveSoundMixModifier : PrevPassiveSoundMixModifiers)
+	for (int32 MixIdx = PrevPassiveSoundMixModifiers.Num() - 1; MixIdx >= 0; MixIdx--)
 	{
+		USoundMix* PrevPassiveSoundMixModifier = PrevPassiveSoundMixModifiers[MixIdx];
 		if (CurrPassiveSoundMixModifiers.Find(PrevPassiveSoundMixModifier) == INDEX_NONE)
 		{
 			PopSoundMixModifier(PrevPassiveSoundMixModifier, true);

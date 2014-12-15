@@ -134,7 +134,7 @@ void FActiveGameplayCueContainer::RemoveCue(const FGameplayTag& Tag)
 		{
 			GameplayCues.RemoveAt(idx);
 			MarkArrayDirty();
-			Owner->UpdateTagMap(Tag, -11);
+			Owner->UpdateTagMap(Tag, -1);
 			return;
 		}
 	}

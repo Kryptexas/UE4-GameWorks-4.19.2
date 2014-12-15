@@ -696,6 +696,9 @@ public:
 	/** Accesses an octree element by ID. */
 	ElementType& GetElementById(FOctreeElementId ElementId);
 
+	/** Accesses an octree element by ID. */
+	const ElementType& GetElementById(FOctreeElementId ElementId) const;
+
 	/** Checks if given ElementId represents a valid Octree element */
 	bool IsValidElementId(FOctreeElementId ElementId) const;
 

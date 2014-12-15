@@ -81,16 +81,19 @@ public:
 		for(int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )
 		{
 			const SScrollBox::FSlot& ThisSlot = Children[SlotIndex];
-			const FVector2D ChildDesiredSize = ThisSlot.GetWidget()->GetDesiredSize();
-			if (Orientation == Orient_Vertical)
+			if (ThisSlot.GetWidget()->GetVisibility() != EVisibility::Collapsed)
 			{
-				ThisDesiredSize.X = FMath::Max(ChildDesiredSize.X, ThisDesiredSize.X);
-				ThisDesiredSize.Y += ChildDesiredSize.Y + ThisSlot.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();
-			}
-			else
-			{
-				ThisDesiredSize.X += ChildDesiredSize.X + ThisSlot.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>();
-				ThisDesiredSize.Y = FMath::Max(ChildDesiredSize.Y, ThisDesiredSize.Y);
+				const FVector2D ChildDesiredSize = ThisSlot.GetWidget()->GetDesiredSize();
+				if (Orientation == Orient_Vertical)
+				{
+					ThisDesiredSize.X = FMath::Max(ChildDesiredSize.X, ThisDesiredSize.X);
+					ThisDesiredSize.Y += ChildDesiredSize.Y + ThisSlot.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();
+				}
+				else
+				{
+					ThisDesiredSize.X += ChildDesiredSize.X + ThisSlot.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>();
+					ThisDesiredSize.Y = FMath::Max(ChildDesiredSize.Y, ThisDesiredSize.Y);
+				}
 			}
 		}
 

@@ -17,6 +17,8 @@ UPawnAction_Move::UPawnAction_Move(const FObjectInitializer& ObjectInitializer)
 	{
 		PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UPawnAction_Move::OnPathUpdated);
 	}
+
+	bShouldPauseMovement = true;
 }
 
 void UPawnAction_Move::BeginDestroy()

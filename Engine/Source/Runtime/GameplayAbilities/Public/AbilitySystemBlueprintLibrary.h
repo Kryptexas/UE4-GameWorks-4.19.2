@@ -23,6 +23,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintPure, Category = Ability)
 	static UAbilitySystemComponent* GetAbilitySystemComponent(AActor *Actor);
 
+	// NOTE: The Actor passed in must implement IAbilitySystemInterface! or else this function will silently fail to
+	// send the event.  The actor needs the interface to find the UAbilitySystemComponent, and if the component isn't
+	// found, the event will not be sent.
+	UFUNCTION(BlueprintCallable, Category = Ability, Meta = (Tooltip = "This function can be used to trigger an ability on the actor in question with useful payload data."))
+	static void SendGameplayEventToActor(AActor* Actor, FGameplayTag EventTag, FGameplayEventData Payload);
+
 	// -------------------------------------------------------------------------------
 	//		TargetData
 	// -------------------------------------------------------------------------------
@@ -83,6 +89,35 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	static FVector GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
 
 	// -------------------------------------------------------------------------------
+	//		GameplayEffectContext
+	// -------------------------------------------------------------------------------
+
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "IsInstigatorLocallyControlled"))
+	static bool EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetHitResult"))
+	static FHitResult EffectContextGetHitResult(FGameplayEffectContextHandle EffectContext);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "HasHitResult"))
+	static bool EffectContextHasHitResult(FGameplayEffectContextHandle EffectContext);
+
+	/** Gets the location the effect originated from */
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetOrigin"))
+	static FVector EffectContextGetOrigin(FGameplayEffectContextHandle EffectContext);
+
+	/** Gets the instigating actor (that holds the ability system component) of the EffectContext */
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetInstigatorActor"))
+	static AActor* EffectContextGetInstigatorActor(FGameplayEffectContextHandle EffectContext);
+
+	/** Gets the original instigator actor that started the chain of events to cause this effect */
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetOriginalInstigatorActor"))
+	static AActor* EffectContextGetOriginalInstigatorActor(FGameplayEffectContextHandle EffectContext);
+
+	/** Gets the physical actor that caused the effect, possibly a projectile or weapon */
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetEffectCauser"))
+	static AActor* EffectContextGetEffectCauser(FGameplayEffectContextHandle EffectContext);
+
+	// -------------------------------------------------------------------------------
 	//		GameplayCue
 	// -------------------------------------------------------------------------------
 	
@@ -105,7 +140,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayCue")
 	static void ForwardGameplayCueToTarget(TScriptInterface<IGameplayCueInterface> TargetCueInterface, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
-	/** Gets the instigating actor (Pawn/Avatar) of the GameplayCue */
+	/** Gets the instigating actor (that holds the ability system component) of the GameplayCue */
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static AActor* GetInstigatorActor(FGameplayCueParameters Parameters);
 

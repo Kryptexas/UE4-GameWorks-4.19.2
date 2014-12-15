@@ -16,9 +16,22 @@ public class MacPlatform : Platform
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
 	{
-		const string ClientCookPlatform = "MacNoEditor";
+		const string NoEditorCookPlatform = "MacNoEditor";
 		const string ServerCookPlatform = "MacServer";
-		return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
+		const string ClientCookPlatform = "MacClient";
+
+		if (bDedicatedServer)
+		{
+			return ServerCookPlatform;
+		}
+		else if (bIsClientOnly)
+		{
+			return ClientCookPlatform;
+		}
+		else
+		{
+			return NoEditorCookPlatform;
+		}
 	}
 
 	public override string GetEditorCookPlatform()

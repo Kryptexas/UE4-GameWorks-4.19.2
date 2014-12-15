@@ -2762,7 +2762,7 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
 		FThreadLevelData& ThreadLevelData = LevelData->Value;
 		ThreadLevelData.bRemove = true;
 
-		// Mark all textures with a timestamp. They're about to loose their location-based heuristic and we don't want them to
+		// Mark all textures with a timestamp. They're about to lose their location-based heuristic and we don't want them to
 		// start using LastRenderTime heuristic for a few seconds until they are garbage collected!
 		for( TMap<UTexture2D*,TArray<FStreamableTextureInstance> >::TIterator It(Level->TextureToInstancesMap); It; ++It )
 		{
@@ -2976,7 +2976,7 @@ void FStreamingManagerTexture::NotifyPrimitiveDetached( const UPrimitiveComponen
 }
 
 /**
- * Mark the textures instances with a timestamp. They're about to loose their location-based heuristic and we don't want them to
+ * Mark the textures instances with a timestamp. They're about to lose their location-based heuristic and we don't want them to
  * start using LastRenderTime heuristic for a few seconds until they are garbage collected!
  *
  * @param PrimitiveData		Our data structure for the spawned primitive that is being detached.

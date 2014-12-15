@@ -82,7 +82,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float MinimumDesiredWidth;
 
-	/** Workaround as we loose focus when the auto completion closes. */
+	/** Workaround as we lose focus when the auto completion closes. */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool IsCaretMovedWhenGainFocus;
 

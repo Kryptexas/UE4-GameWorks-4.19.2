@@ -321,5 +321,6 @@ protected:
 	void DrawDebugVelocityObstacles(const dtCrowdAgent* CrowdAgent) const;
 	void DrawDebugPathOptimization(const dtCrowdAgent* CrowdAgent) const;
 	void DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugSharedBoundary() const;
 #endif
 };

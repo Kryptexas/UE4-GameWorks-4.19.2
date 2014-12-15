@@ -25,6 +25,7 @@
 #include "DetourNavMeshQuery.h"
 #include "DetourObstacleAvoidance.h"
 #include "DetourLocalBoundary.h"
+#include "DetourSharedBoundary.h"
 #include "DetourPathCorridor.h"
 #include "DetourProximityGrid.h"
 #include "DetourPathQueue.h"
@@ -221,6 +222,7 @@ class NAVMESH_API dtCrowd
 	dtCrowdAgentAnimation* m_agentAnims;
 	
 	dtPathQueue m_pathq;
+	dtSharedBoundary m_sharedBoundary;
 
 	dtObstacleAvoidanceParams m_obstacleQueryParams[DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS];
 	dtObstacleAvoidanceQuery* m_obstacleQuery;
@@ -486,6 +488,9 @@ public:
 
 	/// Gets the query object used by the crowd.
 	const dtNavMeshQuery* getNavMeshQuery() const { return m_navquery; }
+
+	/// Gets shared boundary cache
+	const dtSharedBoundary* getSharedBoundary() const { return &m_sharedBoundary; }
 
 	/// Gets all cached active agents 
 	dtCrowdAgent** getActiveAgents() const { return m_activeAgents; }

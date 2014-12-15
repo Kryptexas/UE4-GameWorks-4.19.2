@@ -30,6 +30,7 @@ class FNavigationOctree;
 class ANavMeshBoundsVolume;
 class FNavDataGenerator;
 class AWorldSettings;
+struct FNavigationRelevantData;
 #if WITH_EDITOR
 class FEdMode;
 #endif // WITH_EDITOR
@@ -501,6 +502,8 @@ public:
 	FORCEINLINE	void RemoveObjectsNavOctreeId(UObject* Object) { ObjectToOctreeId.Remove(Object); }
 	void RemoveNavOctreeElementId(const FOctreeElementId& ElementId, int32 UpdateFlags);
 
+	const FNavigationRelevantData* GetDataForObject(const UObject& Object) const;
+
 	/** find all elements in navigation octree within given box (intersection) */
 	void FindElementsInNavOctree(const FBox& QueryBox, const struct FNavigationOctreeFilter& Filter, TArray<struct FNavigationOctreeElement>& Elements);
 
@@ -568,7 +571,7 @@ public:
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
-	void OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume);
+	virtual void OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume);
 	void OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume);
 
 	/** Used to display "navigation building in progress" notify */

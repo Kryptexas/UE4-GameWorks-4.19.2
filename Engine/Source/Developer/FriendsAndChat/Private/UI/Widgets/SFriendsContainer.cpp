@@ -23,6 +23,11 @@ public:
 		this->ViewModel = ViewModel;
 		FriendStyle = *InArgs._FriendStyle;
 
+		for (int32 ListIndex = 0; ListIndex < EFriendsDisplayLists::MAX_None; ListIndex++)
+		{
+			ListViewModels.Add(ViewModel->GetFriendListViewModel((EFriendsDisplayLists::Type)ListIndex));
+		}
+
 		// Set up titles
 		const FText SearchStringLabel = LOCTEXT( "FriendList_SearchLabel", "[Enter Display Name]" );
 
@@ -122,31 +127,31 @@ public:
 					.ScrollBarThickness(FVector2D(4, 4))
 					+SScrollBox::Slot()
 					[
-						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::GameInviteDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
 					]
 					+SScrollBox::Slot()
 					[
-						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::FriendRequestsDisplay))
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
 					]
 					+SScrollBox::Slot()
 					[
-						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::DefaultDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
 					]
 					+SScrollBox::Slot()
 					[
-						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::RecentPlayersDisplay))
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
 					]
 					+SScrollBox::Slot()
 					[
-						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::OutgoingFriendInvitesDisplay))
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
 					]
@@ -192,10 +197,25 @@ private:
 		return ViewModel->IsPerformingAction() ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
+	EVisibility NoFriendsNoticeVisibility() const
+	{
+		for (auto& ListViewModel : ListViewModels)
+		{
+			if (ListViewModel->GetListVisibility() == EVisibility::Visible)
+			{
+				return EVisibility::Collapsed;
+			}
+		}
+		return EVisibility::Visible;
+	}
+
 private:
 
 	// Holds the Friends List view model
 	TSharedPtr<FFriendsViewModel> ViewModel;
+
+	// Holds the Friends Sub-List view models
+	TArray<TSharedPtr<class FFriendListViewModel>> ListViewModels;
 
 	// Holds the menu method - Full screen requires use owning window or crashes.
 	EPopupMethod MenuMethod;

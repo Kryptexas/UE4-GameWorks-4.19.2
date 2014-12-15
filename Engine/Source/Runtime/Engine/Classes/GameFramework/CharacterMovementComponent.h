@@ -545,6 +545,10 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultWaterMovementMode;
 
+	/** Ground movement mode to switch to after falling */
+	UPROPERTY(Transient)
+	TEnumAsByte<enum EMovementMode> GroundMovementMode;
+
 	/**
 	 * If true, walking movement always maintains horizontal velocity when moving up ramps, which causes movement up ramps to be faster parallel to the ramp surface.
 	 * If false, then walking movement maintains velocity magnitude parallel to the ramp surface.
@@ -633,13 +637,14 @@ public:
 	UPROPERTY()
 	uint32 bPerformingJumpOff:1;
 
+	/** Used to safely leave NavWalking movement mode */
+	UPROPERTY()
+	uint32 bWantsToLeaveNavWalking:1;
+
 	/** If set, component will use RVO avoidance */
 	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
 	uint32 bUseRVOAvoidance:1;
 
-	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
-	float AvoidanceConsiderationRadius;
-	
 	/**
 	 * Should use acceleration for path following?
 	 * If true, acceleration is applied when path following to reach the target velocity.
@@ -678,6 +683,9 @@ protected:
 
 public:
 
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly)
+	float AvoidanceConsiderationRadius;
+
 	/**
 	 * Velocity requested by path following.
 	 * @see RequestDirectMove()
@@ -715,6 +723,9 @@ public:
 	UPROPERTY()
 	FVector PendingLaunchVelocity;
 
+	/** last known location projected on navmesh, used by NavWalking mode */
+	FNavLocation CachedNavLocation;
+
 	/** Change avoidance state and registers in RVO manager if needed */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	void SetAvoidanceEnabled(bool bEnable);
@@ -740,7 +751,7 @@ protected:
 public:
 
 	uint8 PackNetworkMovementMode() const;
-	void UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode) const;
+	void UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode, TEnumAsByte<EMovementMode>& OutGroundMode) const;
 	virtual void ApplyNetworkMovementMode(const uint8 ReceivedMode);
 
 	//Begin UActorComponent Interface
@@ -1088,6 +1099,16 @@ protected:
 	/** Use new physics after landing. Defaults to swimming if in water, walking otherwise. */
 	virtual void SetPostLandedPhysics(const FHitResult& Hit);
 
+	/** Switch collision settings for NavWalking mode (ignore world collisions) */
+	virtual void SetNavWalkingPhysics(bool bEnable);
+
+	/** 
+	 * Tries to switch to DefaultLandMovementMode
+	 * Restores collision settings and adjusts character location to avoid getting stuck in geometry.
+	 * If it's not possible, MovementMode change will be delayed until character reach collision free spot.
+	 * @return True if movement mode was successfully changed
+	 */
+	virtual bool TryToLeaveNavWalking();
 
 public:
 
@@ -1241,6 +1262,9 @@ public:
 protected:
 	/** @note Movement update functions should only be called through StartNewPhysics()*/
 	virtual void PhysWalking(float deltaTime, int32 Iterations);
+
+	/** @note Movement update functions should only be called through StartNewPhysics()*/
+	virtual void PhysNavWalking(float deltaTime, int32 Iterations);
 
 	/** @note Movement update functions should only be called through StartNewPhysics()*/
 	virtual void PhysFlying(float deltaTime, int32 Iterations);

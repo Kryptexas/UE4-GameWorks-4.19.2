@@ -910,7 +910,7 @@ bool UTexture2D::IsFullyStreamedIn()
 	{
 		// Calculate maximum number of mips potentially being resident based on LOD settings and device max texture count.
 		int32 MaxResidentMips = FMath::Max( 1, FMath::Min( GetNumMips() - GetCachedLODBias(), GMaxTextureMipCount ) );
-		// >= as LOD settings can change dynamically and we consider a texture that is about to loose miplevels to still
+		// >= as LOD settings can change dynamically and we consider a texture that is about to lose miplevels to still
 		// be fully streamed.
 		bIsFullyStreamedIn = ResidentMips >= MaxResidentMips;
 	}

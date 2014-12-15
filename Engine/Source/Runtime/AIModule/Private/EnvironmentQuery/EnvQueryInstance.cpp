@@ -165,15 +165,19 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<AActor*>& Data)
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = ContextData.RawData.GetData();
 
-		Data.Init(ContextData.NumValues);
+		Data.Reserve(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[ValueIndex] = DefTypeOb->GetActor(RawData);
+			AActor* Actor = DefTypeOb->GetActor(RawData);
+			if (Actor)
+			{
+				Data.Add(Actor);
+			}
 			RawData += DefTypeValueSize;
 		}
 	}
 
-	return bSuccess;
+	return Data.Num() > 0;
 }
 
 void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)

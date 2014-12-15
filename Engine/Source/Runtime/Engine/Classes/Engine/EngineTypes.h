@@ -250,6 +250,9 @@ enum EMovementMode
 	/** Walking on a surface. */
 	MOVE_Walking	UMETA(DisplayName="Walking"),
 
+	/** Simplified walking on navigation data (e.g. navmesh) */
+	MOVE_NavWalking	UMETA(DisplayName="Navmesh Walking"),
+
 	/** Falling under the effects of gravity, such as after jumping or walking off the edge of a surface. */
 	MOVE_Falling	UMETA(DisplayName="Falling"),
 

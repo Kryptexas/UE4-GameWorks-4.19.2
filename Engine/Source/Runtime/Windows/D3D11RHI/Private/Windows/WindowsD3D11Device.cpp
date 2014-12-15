@@ -711,7 +711,10 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 
 	// get the description of the adapter
 	DXGI_ADAPTER_DESC AdapterDesc;
-	VERIFYD3D11RESULT(Adapter->GetDesc(&AdapterDesc));
+	if( FAILED(Adapter->GetDesc(&AdapterDesc)) )
+	{
+		return false;
+	}
 
 	int32 CurrentOutput = 0;
 	do 

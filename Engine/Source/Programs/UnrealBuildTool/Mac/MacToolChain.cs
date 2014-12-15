@@ -965,7 +965,7 @@ namespace UnrealBuildTool
 						}
 						else
 						{
-							Log.TraceWarning("Found {0} Target.cs files for {1}", TargetFiles.Length, GameName);
+							Log.TraceWarning("Found {0} Target.cs files for {1} in alldir search of directory {2}", TargetFiles.Length, GameName, Directory.GetCurrentDirectory());
 						}
 					}
 					else

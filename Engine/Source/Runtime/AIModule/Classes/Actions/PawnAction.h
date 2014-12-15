@@ -40,7 +40,7 @@ namespace EPawnActionFailHandling
  *	Things to remember:
  *	* Actions are created paused
  */
-UCLASS(abstract)
+UCLASS(abstract, EditInlineNew)
 class AIMODULE_API UPawnAction : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -87,15 +87,21 @@ protected:
 
 	/** if this is FALSE and we're trying to push a new instance of a given class,
 	 *	but the top of the stack is already an instance of that class ignore the attempted push */
-	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = PawnAction, EditDefaultsOnly, BlueprintReadOnly)
 	uint32 bAllowNewSameClassInstance : 1;
 
 	/** if this is TRUE, when we try to push a new instance of an action who has the
 	 *	same class as the action on the top of the stack, pop the one on the stack, and push the new one
 	 *	NOTE: This trumps bAllowNewClassInstance (e.g. if this is true and bAllowNewClassInstance
 	 *	is false the active instance will still be replaced) */
-	UPROPERTY(Category = AIAction, EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category = PawnAction, EditDefaultsOnly, BlueprintReadWrite)
 	uint32 bReplaceActiveSameClassInstance : 1;
+
+	/** this is a temporary solution to allow having movement action running in background while there's 
+	 *	another action on top doing its thing
+	 *	@note should go away once AI resource locking comes on-line */
+	UPROPERTY(Category = PawnAction, EditDefaultsOnly, BlueprintReadWrite)
+	uint32 bShouldPauseMovement : 1;
 
 private:
 	/** indicates whether action is in the process of abortion, and if so on what state */
@@ -134,6 +140,8 @@ public:
 	FORCEINLINE bool IsBeingAborted() const { return AbortState != EPawnActionAbortState::NotBeingAborted; }
 	FORCEINLINE bool IsFinished() const { return FinishResult > EPawnActionResult::InProgress; }
 	FORCEINLINE bool WantsTick() const { return bWantsTick; }
+
+	FORCEINLINE bool ShouldPauseMovement() const { return bShouldPauseMovement; }
 
 protected:
 	FORCEINLINE void TickAction(float DeltaTime)
@@ -197,6 +205,7 @@ public:
 	//----------------------------------------------------------------------//
 	FString GetStateDescription() const;
 	FString GetPriorityName() const;
+	virtual FString GetDisplayName() const;
 
 protected:
 

@@ -906,7 +906,12 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 static bool BlueprintActionDatabaseImpl::IsObjectValidForDatabase(UObject const* Object)
 {
 	bool bReturn = false;
-	if(Object->IsAsset())
+	if(Object->GetOutermost()->PackageFlags & PKG_PlayInEditor)
+	{
+		// Do not keep track of any PIE objects as we may prevent them from being cleaned up when ending PIE
+		bReturn = false;
+	}
+	else if(Object->IsAsset())
 	{
 		bReturn = true;
 	}

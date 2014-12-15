@@ -458,6 +458,8 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	if (dtStatusFailed(m_navquery->init(nav, MAX_COMMON_NODES)))
 		return false;
 	
+	m_sharedBoundary.Initialize();
+
 	return true;
 }
 
@@ -1256,6 +1258,8 @@ void dtCrowd::updateStepProximityData(const float dt, dtCrowdAgentDebugInfo*)
 		m_grid->addItem((unsigned short)i, p[0] - r, p[2] - r, p[0] + r, p[2] + r);
 	}
 
+	m_sharedBoundary.Tick(dt);
+
 	// Get nearby navmesh segments and agents to collide with.
 	for (int i = 0; i < m_numActiveAgents; ++i)
 	{
@@ -1264,6 +1268,18 @@ void dtCrowd::updateStepProximityData(const float dt, dtCrowdAgentDebugInfo*)
 			continue;
 
 		m_navquery->updateLinkFilter(ag->params.linkFilter.Get());
+		int sharedDataIdx = -1;
+		if (m_raycastSingleArea)
+		{
+			unsigned char allowedArea = DT_WALKABLE_AREA;
+			m_navquery->getAttachedNavMesh()->getPolyArea(ag->corridor.getFirstPoly(), &allowedArea);
+
+			sharedDataIdx = m_sharedBoundary.CacheData(ag->npos, ag->params.collisionQueryRange, ag->corridor.getFirstPoly(), m_navquery, allowedArea);
+		}
+		else
+		{
+			sharedDataIdx = m_sharedBoundary.CacheData(ag->npos, ag->params.collisionQueryRange, ag->corridor.getFirstPoly(), m_navquery, &m_filters[ag->params.filter]);
+		}
 
 		// Update the collision boundary after certain distance has been passed or
 		// if it has become invalid.
@@ -1278,15 +1294,6 @@ void dtCrowd::updateStepProximityData(const float dt, dtCrowdAgentDebugInfo*)
 			const float* removePos = useForcedRemove ? &ag->cornerVerts[(ag->ncorners - 1) * 3] : 0;
 			const float removeRadius = m_linkRemovalRadius;
 
-			// UE4: prepare filter containing only current area
-			// boundary update will take all corner polys and include them in local neighborhood
-			unsigned char allowedArea = DT_WALKABLE_AREA;
-			if (m_raycastSingleArea)
-			{
-				m_navquery->getAttachedNavMesh()->getPolyArea(ag->corridor.getFirstPoly(), &allowedArea);
-				m_raycastFilter.setAreaCost(allowedArea, 1.0f);
-			}
-
 			// UE4: move dir for segment scoring
 			float moveDir[3] = { 0.0f };
 			if (ag->ncorners)
@@ -1299,13 +1306,10 @@ void dtCrowd::updateStepProximityData(const float dt, dtCrowdAgentDebugInfo*)
 			}
 			dtVnormalize(moveDir);
 
-			ag->boundary.update(ag->corridor.getFirstPoly(), ag->npos, ag->params.collisionQueryRange,
+			ag->boundary.update(&m_sharedBoundary, sharedDataIdx, ag->npos, ag->params.collisionQueryRange,
 				removePos, removeRadius, useForcedRemove,
 				ag->corridor.getPath(), ag->corridor.getPathCount(),
-				moveDir,
-				m_navquery, m_raycastSingleArea ? &m_raycastFilter : &m_filters[ag->params.filter]);
-
-			m_raycastFilter.setAreaCost(allowedArea, DT_UNWALKABLE_POLY_COST);
+				moveDir, m_navquery, &m_filters[ag->params.filter]);
 		}
 		// Query neighbour agents
 		ag->nneis = getNeighbours(ag->npos, ag->params.height, ag->params.collisionQueryRange,

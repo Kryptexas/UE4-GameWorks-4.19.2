@@ -3559,7 +3559,6 @@ static bool containsPolyRef(const dtPolyRef testRef, const dtPolyRef* path, cons
 /// 
 dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float* centerPos, const float radius,
 												const dtQueryFilter* filter,
-												const dtPolyRef* forceIncludePath, const int forceIncludePathCount,
 												dtPolyRef* resultRef, dtPolyRef* resultParent,
 												int* resultCount, const int maxResult) const
 {
@@ -3650,9 +3649,7 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 			// Do not advance if the polygon is excluded by the filter.
 			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly) || !passLinkFilterByRef(neighbourTile, neighbourRef))
 			{
-				// UE4: forceIncludePath support
-				if (!containsPolyRef(neighbourRef, forceIncludePath, forceIncludePathCount))
-					continue;
+				continue;
 			}
 			
 			// Find edge and calc distance to the edge.
@@ -3785,7 +3782,6 @@ static void insertInterval(dtSegInterval* ints, int& nints, const int maxInts,
 /// maximum segments per polygon of the source navigation mesh.
 /// 
 dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter* filter,
-											 const dtPolyRef* forceIncludePath, const int forceIncludePathCount,
 											 float* segmentVerts, dtPolyRef* segmentRefs, int* segmentCount,
 											 const int maxSegments) const
 {
@@ -3803,7 +3799,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 	dtSegInterval ints[MAX_INTERVAL];
 	int nints;
 	
-	const bool storePortals = segmentRefs != 0;
+	const bool storePortals = false;// segmentRefs != 0;
 	
 	dtStatus status = DT_SUCCESS;
 	
@@ -3827,8 +3823,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 						const dtMeshTile* neiTile = 0;
 						const dtPoly* neiPoly = 0;
 						m_nav->getTileAndPolyByRefUnsafe(link.ref, &neiTile, &neiPoly);
-						if ((filter->passFilter(link.ref, neiTile, neiPoly) && passLinkFilterByRef(neiTile, link.ref)) ||
-							containsPolyRef(link.ref, forceIncludePath, forceIncludePathCount))
+						if (filter->passFilter(link.ref, neiTile, neiPoly) && passLinkFilterByRef(neiTile, link.ref))
 						{
 							insertInterval(ints, nints, MAX_INTERVAL, link.bmin, link.bmax, link.ref);
 						}
@@ -3846,8 +3841,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 				neiRef = m_nav->getPolyRefBase(tile) | idx;
 				if (!filter->passFilter(neiRef, tile, &tile->polys[idx]) || !passLinkFilter(tile, idx))
 				{
-					if (!containsPolyRef(neiRef, forceIncludePath, forceIncludePathCount))
-						neiRef = 0;
+					neiRef = 0;
 				}
 			}
 
@@ -3931,6 +3925,176 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 	
 	return status;
 }
+
+static void storeWallSegment(const dtMeshTile* tile, const dtPoly* poly, int edge,
+	dtPolyRef ref0, dtPolyRef ref1, const float* centerPos, const float radiusSqr,
+	float* resultWalls, dtPolyRef* resultRefs, int* resultCount, const int maxResult)
+{
+	if (*resultCount < maxResult)
+	{
+		const float* va = &tile->verts[poly->verts[edge] * 3];
+		const float* vb = &tile->verts[poly->verts[(edge + 1) % poly->vertCount] * 3];
+
+		float tseg;
+		float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);
+		if (distSqr <= radiusSqr)
+		{
+			dtVcopy(&resultWalls[*resultCount * 6 + 0], va);
+			dtVcopy(&resultWalls[*resultCount * 6 + 3], vb);
+			resultRefs[*resultCount * 2 + 0] = ref0;
+			resultRefs[*resultCount * 2 + 1] = ref1;
+
+			*resultCount += 1;
+		}
+	}
+}
+
+dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const float* centerPos, const float radius,
+												  const dtQueryFilter* filter,
+												  dtPolyRef* neiRefs, int* neiCount, const int maxNei,
+												  float* resultWalls, dtPolyRef* resultRefs, int* resultCount, const int maxResult) const
+{
+	*resultCount = 0;
+	*neiCount = 0;
+
+	// Validate input
+	if (!startRef || !m_nav->isValidPolyRef(startRef))
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	m_tinyNodePool->clear();
+
+	static const int MAX_STACK = 48;
+	dtNode* stack[MAX_STACK];
+	int nstack = 0;
+
+	dtNode* startNode = m_tinyNodePool->getNode(startRef);
+	startNode->pidx = 0;
+	startNode->id = startRef;
+	startNode->flags = DT_NODE_CLOSED;
+	stack[nstack++] = startNode;
+
+	dtStatus status = DT_SUCCESS;
+	const float radiusSqr = dtSqr(radius);
+
+	int n = 0;
+	if (n < maxNei)
+	{
+		neiRefs[n] = startNode->id;
+		++n;
+	}
+	else
+	{
+		status |= DT_BUFFER_TOO_SMALL;
+	}
+
+	while (nstack)
+	{
+		// Pop front.
+		dtNode* curNode = stack[0];
+		for (int i = 0; i < nstack - 1; ++i)
+			stack[i] = stack[i + 1];
+		nstack--;
+		
+		// Get poly and tile.
+		// The API input has been cheked already, skip checking internal data.
+		const dtPolyRef curRef = curNode->id;
+		const dtMeshTile* curTile = 0;
+		const dtPoly* curPoly = 0;
+		m_nav->getTileAndPolyByRefUnsafe(curRef, &curTile, &curPoly);
+
+		unsigned int i = curPoly->firstLink;
+		while (i != DT_NULL_LINK)
+		{
+			const dtLink& link = m_nav->getLink(curTile, i);
+			i = link.next;
+
+			dtPolyRef neighbourRef = link.ref;
+			// Skip invalid neighbours.
+			if (!neighbourRef)
+			{
+				// store wall segment
+				storeWallSegment(curTile, curPoly, link.edge, 
+					curRef, neighbourRef, centerPos, radiusSqr, 
+					resultWalls, resultRefs, resultCount, maxResult);
+				continue;
+			}
+
+			// Skip if cannot alloca more nodes.
+			dtNode* neighbourNode = m_tinyNodePool->getNode(neighbourRef);
+			if (!neighbourNode)
+				continue;
+			// Skip visited.
+			if (neighbourNode->flags & DT_NODE_CLOSED)
+				continue;
+
+			// Expand to neighbour
+			const dtMeshTile* neighbourTile = 0;
+			const dtPoly* neighbourPoly = 0;
+			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
+
+			// Skip off-mesh connections.
+			if (neighbourPoly->getType() != DT_POLYTYPE_GROUND)
+				continue;
+
+			// Do not advance if the polygon is excluded by the filter.
+			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly) || !passLinkFilterByRef(neighbourTile, neighbourRef))
+			{
+				// store wall segment
+				storeWallSegment(curTile, curPoly, link.edge, 
+					curRef, neighbourRef, centerPos, radiusSqr,
+					resultWalls, resultRefs, resultCount, maxResult);
+				continue;
+			}
+
+			// Find edge and calc distance to the edge.
+			float va[3], vb[3];
+			if (!getPortalPoints(curRef, curPoly, curTile, neighbourRef, neighbourPoly, neighbourTile, va, vb))
+				continue;
+
+			// If the circle is not touching the next polygon, skip it.
+			float tseg;
+			float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);
+			if (distSqr > radiusSqr)
+				continue;
+
+			// Mark node visited, this is done before the overlap test so that
+			// we will not visit the poly again if the test fails.
+			neighbourNode->flags |= DT_NODE_CLOSED;
+			neighbourNode->pidx = m_tinyNodePool->getNodeIdx(curNode);			
+
+			// This poly is fine, store and advance to the poly.
+			if (n < maxNei)
+			{
+				neiRefs[n] = neighbourRef;
+				++n;
+			}
+			else
+			{
+				status |= DT_BUFFER_TOO_SMALL;
+			}
+
+			if (nstack < MAX_STACK)
+			{
+				stack[nstack++] = neighbourNode;
+			}
+		}
+
+		// add hard edges of poly
+		for (int i = 0; i < curPoly->vertCount; i++)
+		{
+			if (curPoly->neis[i] == 0)
+			{
+				storeWallSegment(curTile, curPoly, i, 
+					curRef, 0, centerPos, radiusSqr, 
+					resultWalls, resultRefs, resultCount, maxResult);
+			}
+		}
+	}
+
+	*neiCount = n;
+	return status;
+}
+
 
 /// @par
 ///

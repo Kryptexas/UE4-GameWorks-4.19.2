@@ -88,7 +88,7 @@ void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
 bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
-	// in reseting, since we'd loose all the accumulated knowledge
+	// in reseting, since we'd lose all the accumulated knowledge
 	if (&NewAsset == BlackboardAsset)
 	{
 		return false;

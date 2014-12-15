@@ -3775,7 +3775,15 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FStringOutputDevice& RPCWr
 			}
 			else
 			{
-				ParamName = FString::Printf(TEXT("(TEnumAsByte<%s>&)(%s)"), *ByteProp->Enum->CppType, *ParamName);
+				if (ByteProp->Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
+				{
+					// If we're an enum class don't require the wrapper
+					ParamName = FString::Printf(TEXT("(%s&)(%s)"), *ByteProp->Enum->CppType, *ParamName);
+				}
+				else
+				{
+					ParamName = FString::Printf(TEXT("(TEnumAsByte<%s>&)(%s)"), *ByteProp->Enum->CppType, *ParamName);
+				}
 			}
 		}
 

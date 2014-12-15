@@ -246,6 +246,9 @@ struct dtOffMeshSegmentConnection
 	/// The radius of the endpoints. [Limit: >= 0]
 	float rad;
 
+	/// The snap height of endpoints (less than 0 = use step height)
+	float height;
+
 	/// The id of the offmesh connection. (User assigned when the navigation mesh is built.)
 	unsigned int userId;	
 	
@@ -277,6 +280,9 @@ struct dtOffMeshConnection
 
 	/// The radius of the endpoints. [Limit: >= 0]
 	float rad;		
+
+	/// The snap height of endpoints (less than 0 = use step height)
+	float height;
 
 	/// The id of the offmesh connection. (User assigned when the navigation mesh is built.)
 	unsigned int userId;

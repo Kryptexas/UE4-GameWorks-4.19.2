@@ -89,7 +89,10 @@
 
 // helper macros
 #define TEXT_EMPTY TEXT("")
-
+#define TEXT_NULL TEXT("NULL")
+#define TEXT_TRUE TEXT("TRUE")
+#define TEXT_FALSE TEXT("FALSE")
+#define TEXT_CONDITION(Condition) ((Condition) ? TEXT_TRUE : TEXT_FALSE)
 
 #if ENABLE_VISUAL_LOG
 

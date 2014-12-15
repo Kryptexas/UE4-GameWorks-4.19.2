@@ -136,6 +136,7 @@ void FNavLinkRenderingProxy::StorePointLinks(const FTransform& LocalToWorld, con
 		LinkDrawing.Direction = Link->Direction;
 		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
 		LinkDrawing.SnapRadius = Link->SnapRadius;
+		LinkDrawing.SnapHeight = Link->bUseSnapHeight ? Link->SnapHeight : -1.0f;
 		LinkDrawing.SupportedAgentsBits = Link->SupportedAgentsBits;
 		OffMeshPointLinks.Add(LinkDrawing);
 	}
@@ -154,6 +155,7 @@ void FNavLinkRenderingProxy::StoreSegmentLinks(const FTransform& LocalToWorld, c
 		LinkDrawing.Direction = Link->Direction;
 		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
 		LinkDrawing.SnapRadius = Link->SnapRadius;
+		LinkDrawing.SnapHeight = Link->bUseSnapHeight ? Link->SnapHeight : -1.0f;
 		LinkDrawing.SupportedAgentsBits = Link->SupportedAgentsBits;
 		OffMeshSegmentLinks.Add(LinkDrawing);
 	}
@@ -233,10 +235,18 @@ void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMes
 		}
 
 		// draw snap-spheres on both ends
-		for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+		if (Link.SnapHeight < 0)
 		{
-			GetCylinderMesh(Link.Right, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
-			GetCylinderMesh(Link.Left, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+			{
+				GetCylinderMesh(Link.Right, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+				GetCylinderMesh(Link.Left, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			}
+		}
+		else
+		{
+			GetCylinderMesh(Link.Right, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			GetCylinderMesh(Link.Left, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
 		}
 	}
 
@@ -274,12 +284,22 @@ void FNavLinkRenderingProxy::GetLinkMeshes(const TArray<FNavLinkDrawing>& OffMes
 		}
 
 		// draw snap-spheres on both ends
-		for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+		if (Link.SnapHeight < 0)
 		{
-			GetCylinderMesh(Link.RightStart, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
-			GetCylinderMesh(Link.RightEnd, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
-			GetCylinderMesh(Link.LeftStart, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
-			GetCylinderMesh(Link.LeftEnd, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+			{
+				GetCylinderMesh(Link.RightStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+				GetCylinderMesh(Link.RightEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+				GetCylinderMesh(Link.LeftStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+				GetCylinderMesh(Link.LeftEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			}
+		}
+		else
+		{
+			GetCylinderMesh(Link.RightStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			GetCylinderMesh(Link.RightEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			GetCylinderMesh(Link.LeftStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
+			GetCylinderMesh(Link.LeftEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World, ViewIndex, Collector);
 		}
 	}
 }
@@ -323,10 +343,18 @@ void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNav
 		}
 
 		// draw snap-spheres on both ends
-		for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+		if (Link.SnapHeight < 0)
 		{
-			DrawCylinder(PDI, Link.Right, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
-			DrawCylinder(PDI, Link.Left, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+			for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+			{
+				DrawCylinder(PDI, Link.Right, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+				DrawCylinder(PDI, Link.Left, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+			}
+		}
+		else
+		{
+			DrawCylinder(PDI, Link.Right, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World);
+			DrawCylinder(PDI, Link.Left, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World);
 		}
 	}
 
@@ -365,12 +393,22 @@ void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNav
 		}
 
 		// draw snap-spheres on both ends
-		for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+		if (Link.SnapHeight < 0)
 		{
-			DrawCylinder(PDI, Link.RightStart, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
-			DrawCylinder(PDI, Link.RightEnd, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
-			DrawCylinder(PDI, Link.LeftStart, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
-			DrawCylinder(PDI, Link.LeftEnd, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+			for (int32 StepHeightIndex = 0; StepHeightIndex < StepHeights.Num(); ++StepHeightIndex)
+			{
+				DrawCylinder(PDI, Link.RightStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+				DrawCylinder(PDI, Link.RightEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+				DrawCylinder(PDI, Link.LeftStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+				DrawCylinder(PDI, Link.LeftEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, StepHeights[StepHeightIndex], 10, MeshColorInstance, SDPG_World);
+			}
+		}
+		else
+		{
+			DrawCylinder(PDI, Link.RightStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World);
+			DrawCylinder(PDI, Link.RightEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World);
+			DrawCylinder(PDI, Link.LeftStart, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World);
+			DrawCylinder(PDI, Link.LeftEnd, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Link.SnapRadius, Link.SnapHeight, 10, MeshColorInstance, SDPG_World);
 		}
 	}
 }

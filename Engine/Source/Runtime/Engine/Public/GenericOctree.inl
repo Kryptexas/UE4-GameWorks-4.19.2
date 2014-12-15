@@ -269,6 +269,14 @@ ElementType& TOctree<ElementType,OctreeSemantics>::GetElementById(FOctreeElement
 	return ElementIdNode->Elements[ElementId.ElementIndex];
 }
 
+template<typename ElementType, typename OctreeSemantics>
+const ElementType& TOctree<ElementType, OctreeSemantics>::GetElementById(FOctreeElementId ElementId) const
+{
+	check(ElementId.IsValidId());
+	FNode* ElementIdNode = (FNode*)ElementId.Node;
+	return ElementIdNode->Elements[ElementId.ElementIndex];
+}
+
 template<typename ElementType,typename OctreeSemantics> 
 bool TOctree<ElementType,OctreeSemantics>::IsValidElementId(FOctreeElementId ElementId) const
 {

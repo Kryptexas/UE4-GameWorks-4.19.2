@@ -1205,7 +1205,7 @@ protected:
 //END: Thread-safe functions and data
 
 	/**
-	 * Mark the textures instances with a timestamp. They're about to loose their location-based heuristic and we don't want them to
+	 * Mark the textures instances with a timestamp. They're about to lose their location-based heuristic and we don't want them to
 	 * start using LastRenderTime heuristic for a few seconds until they are garbage collected!
 	 *
 	 * @param PrimitiveData		Our data structure for the spawned primitive that is being detached.

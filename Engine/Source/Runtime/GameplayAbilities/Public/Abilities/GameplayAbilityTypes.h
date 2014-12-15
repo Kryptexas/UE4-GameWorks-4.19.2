@@ -241,7 +241,11 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	void SetActivationConfirmed();
 
+	/** Called on client to set this as a predicted ability */
 	void SetPredicting(FPredictionKey PredictionKey);
+
+	/** Called on the server to set the key used by the client to predict this ability */
+	void ServerSetActivationPredictionKey(FPredictionKey PredictionKey);
 
 	FPredictionKey GetActivationPredictionKey() { return PredictionKeyWhenActivated; }
 
@@ -249,6 +253,7 @@ private:
 
 	// This was the prediction key used to activate this ability. It does not get updated
 	// if new prediction keys are generated over the course of the ability.
+	UPROPERTY()
 	FPredictionKey PredictionKeyWhenActivated;
 	
 };
@@ -276,7 +281,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	UPROPERTY()
 	FGameplayAbilitySpecHandle Handle;
 	
-	/** Ability of the spec (either CDO or instanced) */
+	/** Ability of the spec (Always the CDO. This should be const but too many things modify it currently) */
 	UPROPERTY()
 	UGameplayAbility* Ability;
 	
@@ -312,6 +317,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	UPROPERTY()
 	TArray<UGameplayAbility*> ReplicatedInstances;
 
+	/** Returns the primary instance, used for instance once abilities */
+	UGameplayAbility* GetPrimaryInstance() const;
+
+	/** Returns all instances, which can include instance per execution abilities */
 	TArray<UGameplayAbility*> GetAbilityInstances() const
 	{
 		TArray<UGameplayAbility*> Abilities;
@@ -320,6 +329,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 		return Abilities;
 	}
 
+	/** Returns true if this ability is active in any way */
 	bool IsActive() const;
 };
 
@@ -405,22 +415,50 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	FGameplayEventData()
 	: Instigator(NULL)
 	, Target(NULL)
-	, Var1(0.f)
-	, Var2(0.f)
-	, Var3(0.f)
+	, OptionalObject(NULL)
+	, EventMagnitude(0.f)
 	{
 	}
 	
+	// Tag of the event that triggered this
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	AActor* Instigator;
+	FGameplayTag EventTag;
+
+	// The instigator of the event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	AActor* Target;
+	const AActor* Instigator;
+
+	// The target of the event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	float Var1;
+	const AActor* Target;
+
+	// An optional ability-specific object to be passed though the event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	float Var2;
+	UObject* OptionalObject;
+
+	// Polymorphic context information
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	float Var3;
+	FGameplayEffectContextHandle ContextHandle;
+
+	// Tags that the instigator has
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	FGameplayTagContainer InstigatorTags;
+
+	// Tags that the target has
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	FGameplayTagContainer TargetTags;
+
+	// The magnitude of the triggering event
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	float EventMagnitude;
+
+	// DEPRECATED
+	UPROPERTY()
+	float Var1_DEPRECATED;
+	UPROPERTY()
+	float Var2_DEPRECATED;
+	UPROPERTY()
+	float Var3_DEPRECATED;
 };
 
 /** 

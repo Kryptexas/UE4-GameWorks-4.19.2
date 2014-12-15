@@ -1068,8 +1068,8 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 		
 		const dtLink& targetLink = getLink(target, targetPoly->firstLink);
 		const dtPolyRef targetLandPoly = targetLink.ref;
-		const float ext[3] = { targetCon->rad, target->header->walkableClimb, targetCon->rad };
-		
+		const float ext[3] = { targetCon->rad, (targetCon->height < 0) ? target->header->walkableClimb : targetCon->height, targetCon->rad };
+
 		// Find polygon to connect to.
 		const float* p = &targetCon->pos[3];
 		float nearestPt[3];
@@ -1182,7 +1182,7 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 		dtOffMeshConnection* con = &tile->offMeshCons[i];
 		dtPoly* poly = &tile->polys[con->poly];
 	
-		const float ext[3] = { con->rad, tile->header->walkableClimb, con->rad };
+		const float ext[3] = { con->rad, (con->height < 0) ? tile->header->walkableClimb : con->height, con->rad };
 		
 		// Find polygon to connect to.
 		const float* p = &con->pos[0]; // First vertex

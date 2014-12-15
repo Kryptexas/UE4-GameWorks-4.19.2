@@ -199,7 +199,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
 	 */
 	friend uint32 GetTypeHash(const FGameplayEffectAttributeCaptureDefinition& CaptureDef)
 	{
-		return FCrc::MemCrc32(&CaptureDef, sizeof(FGameplayEffectAttributeCaptureDefinition));
+		uint32 Hash = 0;
+		Hash = HashCombine(Hash, GetTypeHash(CaptureDef.AttributeToCapture));
+		Hash = HashCombine(Hash, GetTypeHash(static_cast<uint8>(CaptureDef.AttributeSource)));
+		Hash = HashCombine(Hash, GetTypeHash(CaptureDef.bSnapshot));
+		return Hash;
 	}
 
 	FString ToSimpleString() const;
@@ -218,6 +222,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	FGameplayEffectContext()
 		: Instigator(NULL)
 		, EffectCauser(NULL)
+		, SourceObject(NULL)
 		, InstigatorAbilitySystemComponent(NULL)
 		, bHasWorldOrigin(false)
 	{
@@ -226,6 +231,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
 		: Instigator(NULL)
 		, EffectCauser(NULL)
+		, SourceObject(NULL)
 		, InstigatorAbilitySystemComponent(NULL)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
@@ -269,6 +275,18 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	virtual UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
 	{
 		return InstigatorAbilitySystemComponent;
+	}
+
+	/** Sets the object this effect was created from. */
+	virtual void AddSourceObject(const UObject* NewSourceObject)
+	{
+		SourceObject = NewSourceObject;
+	}
+
+	/** Returns the object this effect was created from. */
+	virtual const UObject* GetSourceObject() const
+	{
+		return SourceObject;
 	}
 
 	virtual void AddActors(TArray<TWeakObjectPtr<AActor>> InActor, bool bReset = false);
@@ -338,6 +356,10 @@ protected:
 	/** The physical actor that actually did the damage, can be a weapon or projectile */
 	UPROPERTY()
 	TWeakObjectPtr<AActor> EffectCauser;
+
+	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
+	UPROPERTY()
+	const UObject* SourceObject;
 
 	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)
@@ -474,6 +496,25 @@ struct FGameplayEffectContextHandle
 		if (IsValid())
 		{
 			return Data->GetOriginalInstigatorAbilitySystemComponent();
+		}
+		return NULL;
+	}
+
+	/** Sets the object this effect was created from. */
+	void AddSourceObject(const UObject* NewSourceObject)
+	{
+		if (IsValid())
+		{
+			Data->AddSourceObject(NewSourceObject);
+		}
+	}
+
+	/** Returns the object this effect was created from. */
+	const UObject* GetSourceObject() const
+	{
+		if (IsValid())
+		{
+			return Data->GetSourceObject();
 		}
 		return NULL;
 	}
@@ -617,12 +658,15 @@ struct FGameplayCueParameters
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	float RawMagnitude;
 
-	UPROPERTY()
+	/** Effect context, contains information about hit reslt, etc */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FGameplayEffectContextHandle EffectContext;
 
+	/** The tag name that matched this specific gameplay cue handler */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FName MatchedTagName;
 
+	/** The original tag of the gameplay cue */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FGameplayTag OriginalTag;
 };

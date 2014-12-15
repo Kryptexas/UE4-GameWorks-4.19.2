@@ -153,7 +153,7 @@ protected:
 	 * @param		InOject		ActionListType to check for pending actions.
 	 *
 	 */	
-	const FActionList* GetActionListForObject(UObject* InObject) const
+	const FActionList* GetActionListForObject(const TWeakObjectPtr<UObject>& InObject) const
 	{
 		auto ObjectActionListPtr = ObjectToActionListMap.Find(InObject);
 		return ObjectActionListPtr ? ObjectActionListPtr->Get() : NULL;
@@ -165,7 +165,7 @@ protected:
 	 * @param		InOject		ActionListType to check for pending actions.
 	 *
 	 */	
-	FActionList* GetActionListForObject(UObject* InObject)
+	FActionList* GetActionListForObject(const TWeakObjectPtr<UObject>& InObject)
 	{
 		auto ObjectActionListPtr = ObjectToActionListMap.Find(InObject);
 		return ObjectActionListPtr ? ObjectActionListPtr->Get() : NULL;

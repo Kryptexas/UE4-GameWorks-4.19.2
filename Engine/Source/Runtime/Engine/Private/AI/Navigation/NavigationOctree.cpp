@@ -102,6 +102,22 @@ void FNavigationOctree::RemoveNode(const FOctreeElementId& Id)
 	RemoveElement(Id);
 }
 
+const FNavigationRelevantData* FNavigationOctree::GetDataForID(const FOctreeElementId& Id) const
+{
+	if (Id.IsValidId() == false)
+	{
+		return nullptr;
+	}
+
+	const FNavigationOctreeElement& OctreeElement = GetElementById(Id);
+
+	return &OctreeElement.Data;
+}
+
+//----------------------------------------------------------------------//
+// FNavigationRelevantData
+//----------------------------------------------------------------------//
+
 bool FNavigationRelevantData::HasPerInstanceTransforms() const
 {
 	return NavDataPerInstanceTransformDelegate.IsBound();
@@ -122,6 +138,9 @@ void FNavigationRelevantData::Shrink()
 	Modifiers.Shrink();
 }
 
+//----------------------------------------------------------------------//
+// FNavigationOctreeSemantics
+//----------------------------------------------------------------------//
 #if NAVSYS_DEBUG
 FORCENOINLINE
 #endif // NAVSYS_DEBUG

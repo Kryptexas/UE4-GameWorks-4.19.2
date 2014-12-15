@@ -37,7 +37,7 @@ static TAutoConsoleVariable<float> CVarSSSScale(
 	TEXT("<1: scale scatter radius down (for testing)\n")
 	TEXT(" 1: use given radius form the Subsurface scattering asset (default)\n")
 	TEXT(">1: scale scatter radius up (for testing)"),
-	ECVF_RenderThreadSafe);
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 {

@@ -561,8 +561,8 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FName& InPackageName, UPacka
 				//         ... it means the specified package name was explicit and we will just load from another file.
 
 				FName OldDesiredPackageName = InPackageName;
-				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
-				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
+				TWeakObjectPtr<UWorld>* OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
+				UWorld* OwningWorld = OwningWorldPtr ? OwningWorldPtr->Get() : NULL;
 				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
 
 				// Try again with the destination package to load.

@@ -92,7 +92,7 @@ private:
 	explicit FGameplayTag(FName InTagName);
 
 	/** This Tags Name */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category = GameplayTags)
 	FName TagName;
 
 	friend class UGameplayTagsManager;

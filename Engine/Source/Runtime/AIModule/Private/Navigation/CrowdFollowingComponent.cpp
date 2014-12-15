@@ -329,6 +329,10 @@ void UCrowdFollowingComponent::ResumeMove(FAIRequestID RequestID)
 			const bool bHasMoved = HasMovedDuringPause();
 			CrowdManager->ResumeAgent(this, bHasMoved);
 		}
+
+		// reset cached direction, will be set again after velocity update
+		// but before it happens do not change actor's focus point (rotation)
+		CrowdAgentMoveDirection = FVector::ZeroVector;
 	}
 
 	Super::ResumeMove(RequestID);

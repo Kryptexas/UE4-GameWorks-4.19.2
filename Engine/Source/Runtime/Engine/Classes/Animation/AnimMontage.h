@@ -438,7 +438,7 @@ public:
 	 * It will break down the range into steps if needed to handle looping animations, or different animations.
 	 * These steps will be processed sequentially, and output the RootMotion transform in component space.
 	 */
-	FTransform ExtractRootMotionFromTrackRange(float StartTrackPosition, float EndTrackPosition) const;
+	ENGINE_API FTransform ExtractRootMotionFromTrackRange(float StartTrackPosition, float EndTrackPosition) const;
 
 	/** Get the Montage's Group Name. This is the group from the first slot.  */
 	ENGINE_API FName GetGroupName() const;

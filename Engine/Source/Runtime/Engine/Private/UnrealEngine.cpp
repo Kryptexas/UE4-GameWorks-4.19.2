@@ -5374,7 +5374,8 @@ bool UEngine::HandleConfigHashCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			Ar.Log( TEXT("Files map:") );
 			for ( FConfigCacheIni::TIterator It(*GConfig); It; ++It )
 			{
-				Ar.Logf(TEXT("FileName: %s"), *It.Key());
+				// base filename is what Dump() compares against
+				Ar.Logf(TEXT("FileName: %s (%s)"), *FPaths::GetBaseFilename(It.Key()), *It.Key());
 			}
 		}
 		else

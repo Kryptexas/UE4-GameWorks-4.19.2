@@ -62,6 +62,11 @@ namespace ETextKeyOperation
 	};
 }
 
+namespace BlackboardKeyUtils
+{
+	bool CalculateComparisonResult(EArithmeticKeyOperation::Type Operator, float A, float B);
+}
+
 UCLASS(EditInlineNew, Abstract, CollapseCategories, AutoExpandCategories=(Blackboard))
 class AIMODULE_API UBlackboardKeyType : public UObject
 {

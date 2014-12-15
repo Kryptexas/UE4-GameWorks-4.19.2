@@ -156,7 +156,6 @@ private:
 				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
 				.OnClicked(this, &SFriendItemImpl::HandleActionClicked, FriendAction)
 				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[

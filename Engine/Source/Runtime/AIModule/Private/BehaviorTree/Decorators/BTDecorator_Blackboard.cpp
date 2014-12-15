@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Decorators/BTDecorator_Blackboard.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
@@ -71,6 +72,11 @@ void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent& Bla
 				(!bIsExecutingBranch && bPass))
 			{
 				BehaviorComp->RequestExecution(this);
+			}
+			else if (!bIsExecutingBranch && !bPass && GetParentNode() && GetParentNode()->Children.IsValidIndex(GetChildIndex()))
+			{
+				const UBTCompositeNode* BranchRoot = GetParentNode()->Children[GetChildIndex()].ChildComposite;
+				BehaviorComp->UnregisterAuxNodesInBranch(BranchRoot);
 			}
 		}
 		else

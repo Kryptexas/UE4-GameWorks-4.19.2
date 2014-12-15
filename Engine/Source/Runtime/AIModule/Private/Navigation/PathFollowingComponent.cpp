@@ -21,7 +21,7 @@ DEFINE_LOG_CATEGORY(LogPathFollowing);
 //----------------------------------------------------------------------//
 // Life cycle                                                        
 //----------------------------------------------------------------------//
-uint32 UPathFollowingComponent::NextRequestId = 0;
+uint32 UPathFollowingComponent::NextRequestId = 1;
 const float UPathFollowingComponent::DefaultAcceptanceRadius = -1.f;
 UPathFollowingComponent::FRequestCompletedSignature UPathFollowingComponent::UnboundRequestDelegate;
 

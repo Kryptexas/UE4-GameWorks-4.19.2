@@ -118,7 +118,10 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 		
 		for (auto It(GameplayTagTables.CreateIterator()); It; It++)
 		{
-			PopulateTreeFromDataTable(*It);
+			if (*It)
+			{
+				PopulateTreeFromDataTable(*It);
+			}
 		}
 
 		if (ShouldImportTagsFromINI())
@@ -265,6 +268,35 @@ int32 UGameplayTagsManager::GetBestTagCategoryDescription(FString Tag, FText& Ou
 }
 
 #if WITH_EDITOR
+
+static void RecursiveRootTagSearch(const FString& InFilterString, const TArray<TSharedPtr<FGameplayTagNode> >& GameplayRootTags, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray)
+{
+	FString CurrentFilter, RestOfFilter;
+	if (!InFilterString.Split(TEXT("."), &CurrentFilter, &RestOfFilter))
+	{
+		CurrentFilter = InFilterString;
+	}
+
+	for (int32 iTag = 0; iTag < GameplayRootTags.Num(); ++iTag)
+	{
+		FString RootTagName = GameplayRootTags[iTag].Get()->GetSimpleTag().ToString();
+
+		if (RootTagName.Equals(CurrentFilter) == true)
+		{
+			if (RestOfFilter.IsEmpty())
+			{
+				// We've reached the end of the filter, add tags
+				OutTagArray.Add(GameplayRootTags[iTag]);
+			}
+			else
+			{
+				// Recurse into our children
+				RecursiveRootTagSearch(RestOfFilter, GameplayRootTags[iTag]->GetChildTagNodes(), OutTagArray);
+			}
+		}		
+	}
+}
+
 void UGameplayTagsManager::GetFilteredGameplayRootTags( const FString& InFilterString, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray )
 {
 	TArray<FString> Filters;
@@ -273,18 +305,10 @@ void UGameplayTagsManager::GetFilteredGameplayRootTags( const FString& InFilterS
 	OutTagArray.Empty();
 	if( InFilterString.ParseIntoArray( &Filters, TEXT( "," ), true ) > 0 )
 	{
-		for( int32 iTag = 0; iTag < GameplayRootTags.Num(); ++iTag )
+		// Check all filters in the list
+		for (int32 iFilter = 0; iFilter < Filters.Num(); ++iFilter)
 		{
-			FString RootTagName = GameplayRootTags[iTag].Get()->GetSimpleTag().ToString();
-
-			// Check if this Tag is in the filter list
-			for( int32 iFilter = 0; iFilter < Filters.Num(); ++iFilter )
-			{
-				if( RootTagName.Equals( Filters[iFilter] ) == true )
-				{
-					OutTagArray.Add( GameplayRootTags[iTag] );
-				}
-			}
+			RecursiveRootTagSearch(Filters[iFilter], GameplayRootTags, OutTagArray);
 		}
 	}
 	else
@@ -353,7 +377,7 @@ FGameplayTag UGameplayTagsManager::RequestGameplayTagDirectParent(const FGamepla
 	return FGameplayTag();
 }
 
-bool UGameplayTagsManager::AddLeafTagToContainer(FGameplayTagContainer& TagContainer, FGameplayTag& Tag)
+bool UGameplayTagsManager::AddLeafTagToContainer(FGameplayTagContainer& TagContainer, const FGameplayTag& Tag)
 {
 	// Check tag is not already in container
 	if (TagContainer.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))

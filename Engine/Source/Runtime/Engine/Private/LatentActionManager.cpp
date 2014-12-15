@@ -37,7 +37,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 	{
 		for (const auto Key : ObjectsToRemove)
 		{
-			FActionList* const ObjectActionList = GetActionListForObject(InObject);
+			FActionList* const ObjectActionList = GetActionListForObject(Key);
 			if (ObjectActionList)
 			{
 				for (TMultiMap<int32, FPendingLatentAction*>::TConstIterator It(*ObjectActionList); It; ++It)

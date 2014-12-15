@@ -21,7 +21,7 @@ FAutoConsoleVariableRef CVarDistanceFieldShadowing(
 	TEXT("r.DistanceFieldShadowing"),
 	GDistanceFieldShadowing,
 	TEXT("Whether the distance field shadowing feature is allowed."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
 int32 GShadowScatterTileCulling = 1;

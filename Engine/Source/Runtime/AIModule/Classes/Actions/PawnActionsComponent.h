@@ -55,8 +55,8 @@ public:
 	 *	and if found action will be popped along with all it's siblings */
 	void PopAction(UPawnAction& ActionToPop);
 	
-	FORCEINLINE UPawnAction* GetTop() { return TopAction; }
-	FORCEINLINE const UPawnAction* GetTop() const { return TopAction; }
+	FORCEINLINE UPawnAction* GetTop() const { return TopAction; }
+
 	FORCEINLINE bool IsEmpty() const { return TopAction == NULL; }
 
 	//----------------------------------------------------------------------//
@@ -134,7 +134,8 @@ public:
 	
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
-	FORCEINLINE UPawnAction* GetActiveAction(EAIRequestPriority::Type Priority) { return ActionStacks[Priority].GetTop(); }
+	FORCEINLINE UPawnAction* GetActiveAction(EAIRequestPriority::Type Priority) const { return ActionStacks[Priority].GetTop(); }
+	bool HasActiveActionOfType(EAIRequestPriority::Type Priority, TSubclassOf<UPawnAction> PawnActionClass) const;
 
 #if ENABLE_VISUAL_LOG
 	void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;

@@ -62,7 +62,7 @@ private:
 	/**
 	 * Sets the selected object(s) rotation (relative)
 	 *
-	 * @param CommitInfo	Whether or not this was committed from pressing enter or loosing focus
+	 * @param CommitInfo	Whether or not this was committed from pressing enter or losing focus
 	 * @param Axis			The axis of rotation which changed.  0 = Roll, 1 = Pitch, 2 = Yaw
 	 * @param NewValue		The new rotation value for the axis
 	 */

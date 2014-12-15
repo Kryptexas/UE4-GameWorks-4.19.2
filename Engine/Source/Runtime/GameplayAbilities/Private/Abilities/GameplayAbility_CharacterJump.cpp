@@ -16,7 +16,7 @@ UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const FObjectInit
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
 }
 
-void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))

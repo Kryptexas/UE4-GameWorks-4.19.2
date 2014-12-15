@@ -543,18 +543,31 @@ void SGameplayTagWidget::OnExpansionChanged( TSharedPtr<FGameplayTagNode> InItem
 
 void SGameplayTagWidget::SetContainer(FGameplayTagContainer* OriginalContainer, FGameplayTagContainer* EditedContainer, UObject* OwnerObj)
 {
-	if (PropertyHandle.IsValid())
+	if (PropertyHandle.IsValid() && bMultiSelect)
 	{
+		// Case for a tag container 
 		OwnerObj->PreEditChange(PropertyHandle->GetProperty());
 		PropertyHandle->SetValueFromFormattedString(EditedContainer->ToString());
+		OwnerObj->PostEditChange();
+	}
+	else if (PropertyHandle.IsValid() && !bMultiSelect)
+	{
+		// Case for a single Tag		
+		OwnerObj->PreEditChange(PropertyHandle->GetProperty());
+		FString FormattedString = TEXT("(TagName=\"");
+		FormattedString += EditedContainer->First().GetTagName().ToString();
+		FormattedString += TEXT("\")");
+		PropertyHandle->SetValueFromFormattedString(FormattedString);
+		OwnerObj->PostEditChange();
 	}
 	else
 	{
-		OwnerObj->PreEditChange(NULL);
+		// Not sure if we should get here, means the property handle hasnt been setup which could be right or wrong.
+		OwnerObj->PreEditChange(PropertyHandle.IsValid() ? PropertyHandle->GetProperty() : NULL);
 		*OriginalContainer = *EditedContainer;
-	}
-	OwnerObj->PostEditChange();
-	OnTagChanged.ExecuteIfBound();
+		OwnerObj->PostEditChange();
+		OnTagChanged.ExecuteIfBound();
+	}	
 }
 
 #undef LOCTEXT_NAMESPACE

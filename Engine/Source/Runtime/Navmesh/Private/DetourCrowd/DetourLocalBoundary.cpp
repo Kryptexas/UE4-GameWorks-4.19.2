@@ -107,7 +107,7 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 	
 	// First query non-overlapping polygons.
 	navquery->findLocalNeighbourhood(ref, pos, collisionQueryRange,
-									 filter, path, npath, m_polys, 0, &m_npolys, MAX_LOCAL_POLYS);
+									 filter, m_polys, 0, &m_npolys, MAX_LOCAL_POLYS);
 	
 	// [UE4] include direction to segment in score
 	float closestPt[3] = { 0.0f };
@@ -119,7 +119,7 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 	int nsegs = 0;
 	for (int j = 0; j < m_npolys; ++j)
 	{
-		navquery->getPolyWallSegments(m_polys[j], filter, path, npath, segs, 0, &nsegs, MAX_SEGS_PER_POLY);
+		navquery->getPolyWallSegments(m_polys[j], filter, segs, 0, &nsegs, MAX_SEGS_PER_POLY);
 		for (int k = 0; k < nsegs; ++k)
 		{
 			const float* s = &segs[k*6];
@@ -147,6 +147,58 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 
 			addSegment(score, s);
 		}
+	}
+}
+
+void dtLocalBoundary::update(const dtSharedBoundary* sharedData, const int sharedIdx,
+	const float* pos, const float collisionQueryRange,
+	const float* forcedRemovePos, float forcedRemoveRadius, bool useForcedRemove,
+	const dtPolyRef* path, const int npath, const float* moveDir,
+	dtNavMeshQuery* navquery, const dtQueryFilter* filter)
+{
+	if (!sharedData || !sharedData->Data.IsValidIndex(sharedIdx))
+	{
+		return;
+	}
+
+	const dtSharedBoundaryData& Data = sharedData->Data[sharedIdx];
+	m_npolys = FMath::Min(Data.Polys.Num(), MAX_LOCAL_POLYS);
+	for (int32 Idx = 0; Idx < m_npolys; Idx++)
+	{
+		m_polys[Idx] = Data.Polys[Idx];
+	}
+
+	float closestPt[3] = { 0.0f };
+	float dirToSeg[3] = { 0.0f };
+	float s[6];
+
+	m_nsegs = 0;
+	for (int32 Idx = 0; Idx < Data.Edges.Num(); Idx++)
+	{
+		float tseg = 0.0f;
+		const float distSqr = dtDistancePtSegSqr2D(pos, Data.Edges[Idx].v0, Data.Edges[Idx].v1, tseg);
+		if (distSqr > dtSqr(collisionQueryRange))
+			continue;
+
+		// remove segments too close to requested position
+		if (useForcedRemove)
+		{
+			float tseg2;
+			const float dist2 = dtDistancePtSegSqr2D(forcedRemovePos, Data.Edges[Idx].v0, Data.Edges[Idx].v1, tseg2);
+			if (dist2 < dtSqr(forcedRemoveRadius))
+				continue;
+		}
+
+		// include direction to segment in score
+		dtVmad(closestPt, Data.Edges[Idx].v0, Data.Edges[Idx].v1, tseg);
+		dtVsub(dirToSeg, closestPt, pos);
+		dtVnormalize(dirToSeg);
+		const float dseg = dtVdot2D(dirToSeg, moveDir);
+		const float score = distSqr * ((1.0f - dseg) * 0.5f);
+
+		dtVcopy(s, Data.Edges[Idx].v0);
+		dtVcopy(s + 3, Data.Edges[Idx].v1);
+		addSegment(score, s);
 	}
 }
 

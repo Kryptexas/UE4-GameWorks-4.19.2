@@ -190,7 +190,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * 
 	 * @return True if tag was added
 	 */
-	bool AddLeafTagToContainer(FGameplayTagContainer& TagContainer, FGameplayTag& Tag);
+	bool AddLeafTagToContainer(FGameplayTagContainer& TagContainer, const FGameplayTag& Tag);
 
 	/**
 	 * Gets a Tag Container for the supplied tag and all its parents

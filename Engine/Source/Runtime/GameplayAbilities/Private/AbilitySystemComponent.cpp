@@ -13,6 +13,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "DisplayDebugHelpers.h"
+#include "VisualLogger.h"
 
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
@@ -112,7 +113,7 @@ const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobject(const TSubcl
 
 bool UAbilitySystemComponent::HasAttributeSetForAttribute(FGameplayAttribute Attribute) const
 {
-	return (Attribute.IsSystemAttribute() || GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr);
+	return (Attribute.IsValid() && (Attribute.IsSystemAttribute() || GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr));
 }
 
 void UAbilitySystemComponent::OnRegister()
@@ -307,7 +308,7 @@ FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemoved
 	return nullptr;
 }
 
-int32 UAbilitySystemComponent::GetNumActiveGameplayEffect() const
+int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
 {
 	return ActiveGameplayEffects.GetNumGameplayEffects();
 }
@@ -410,12 +411,12 @@ void UAbilitySystemComponent::AddLooseGameplayTags(const FGameplayTagContainer& 
 
 void UAbilitySystemComponent::RemoveLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count)
 {
-	UpdateTagMap(GameplayTag, Count);
+	UpdateTagMap(GameplayTag, -Count);
 }
 
 void UAbilitySystemComponent::RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count)
 {
-	UpdateTagMap(GameplayTags, Count);
+	UpdateTagMap(GameplayTags, -Count);
 }
 
 // These are functionally redundant but are called by GEs and GameplayCues that add tags that are not 'loose' (but are handled the same way in practice)
@@ -520,6 +521,34 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			FActiveGameplayEffect& NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, PredictionKey);
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
+
+			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Applied %s"), *OurCopyOfSpec->Def->GetFName().ToString());
+
+			for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
+			{
+				float Magnitude = 0.f;
+				FString Op;
+				switch (Modifier.ModifierOp)
+				{
+				case EGameplayModOp::Additive:
+					Op = "Add";
+					break;
+				case EGameplayModOp::Multiplicitive:
+					Op = "Multiply";
+					break;
+				case EGameplayModOp::Division:
+					Op = "Divide";
+					break;
+				case EGameplayModOp::Override:
+					Op = "Override";
+					break;
+				default:
+					Op = "Unknown Operation";
+				}
+
+				Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
+				UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+			}
 		}
 
 		if (!OurCopyOfSpec)
@@ -606,7 +635,39 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle)
 {
-	ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
+	FActiveGameplayEffect* GameplayEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (GameplayEffect)
+	{
+		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Executed Periodic Effect %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
+
+		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
+		{
+			float Magnitude = 0.f;
+			FString Op;
+			switch (Modifier.ModifierOp)
+			{
+			case EGameplayModOp::Additive:
+				Op = "Add";
+				break;
+			case EGameplayModOp::Multiplicitive:
+				Op = "Multiply";
+				break;
+			case EGameplayModOp::Division:
+				Op = "Divide";
+				break;
+			case EGameplayModOp::Override:
+				Op = "Override";
+				break;
+			default:
+				Op = "Unknown Operation";
+			}
+
+			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
+			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+		}
+
+		ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
+	}
 }
 
 void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
@@ -614,7 +675,34 @@ void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, F
 	// Should only ever execute effects that are instant application or periodic application
 	// Effects with no period and that aren't instant application should never be executed
 	check( (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD) );
+
+	UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Executed %s"), *Spec.Def->GetFName().ToString());
 	
+	for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
+	{
+		float Magnitude = 0.f;
+		FString Op;
+		switch (Modifier.ModifierOp)
+		{
+		case EGameplayModOp::Additive:
+			Op = "Add";
+			break;
+		case EGameplayModOp::Multiplicitive:
+			Op = "Multiply";
+			break;
+		case EGameplayModOp::Division:
+			Op = "Divide";
+			break;
+		case EGameplayModOp::Override:
+			Op = "Override";
+			break;
+		default:
+			Op = "Unknown Operation";
+		}
+		Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
+		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+	}
+
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, PredictionKey);
 }
 
@@ -625,6 +713,38 @@ void UAbilitySystemComponent::CheckDurationExpired(FActiveGameplayEffectHandle H
 
 bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
+	FActiveGameplayEffect* GameplayEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (GameplayEffect)
+	{
+		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Removed %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
+
+		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
+		{
+			float Magnitude = 0.f;
+			FString Op;
+			switch (Modifier.ModifierOp)
+			{
+			case EGameplayModOp::Additive:
+				Op = "Add";
+				break;
+			case EGameplayModOp::Multiplicitive:
+				Op = "Multiply";
+				break;
+			case EGameplayModOp::Division:
+				Op = "Divide";
+				break;
+			case EGameplayModOp::Override:
+				Op = "Override";
+				break;
+			default:
+				Op = "Unknown Operation";
+			}
+
+			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
+			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+		}
+	}
+
 	return ActiveGameplayEffects.RemoveActiveGameplayEffect(Handle);
 }
 
@@ -776,7 +896,7 @@ void UAbilitySystemComponent::RemoveAllGameplayCues()
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.Current > ReplicatedPredictionKey.Current)
 	{
 		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
 	}
@@ -784,7 +904,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Im
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.Current > ReplicatedPredictionKey.Current)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
 	}
@@ -792,7 +912,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementat
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.Current > ReplicatedPredictionKey.Current)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
 	}
@@ -800,7 +920,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueRemoved_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.Current > ReplicatedPredictionKey.Current)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
@@ -840,7 +960,7 @@ void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagCont
 
 void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query)
 {
-	return ActiveGameplayEffects.RemoveActiveEffects(Query);
+	ActiveGameplayEffects.RemoveActiveEffects(Query);
 }
 
 // ---------------------------------------------------------------------------------------

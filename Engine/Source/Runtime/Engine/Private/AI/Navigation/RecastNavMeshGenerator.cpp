@@ -1175,6 +1175,7 @@ struct FOffMeshData
 
 			NewInfo.type = DT_OFFMESH_CON_POINT | (Link.Direction == ENavLinkDirection::BothWays ? DT_OFFMESH_CON_BIDIR : 0);
 			NewInfo.snapRadius = Link.SnapRadius;
+			NewInfo.snapHeight = Link.bUseSnapHeight ? Link.SnapHeight : -1.0f;
 			NewInfo.userID = Link.UserId;
 
 			const int32* AreaID = AreaClassToIdMap->Find(Link.AreaClass ? Link.AreaClass : UNavigationSystem::GetDefaultWalkableArea());
@@ -1214,6 +1215,7 @@ struct FOffMeshData
 
 			NewInfo.type = DT_OFFMESH_CON_SEGMENT | (Link.Direction == ENavLinkDirection::BothWays ? DT_OFFMESH_CON_BIDIR : 0);
 			NewInfo.snapRadius = Link.SnapRadius;
+			NewInfo.snapHeight = Link.bUseSnapHeight ? Link.SnapHeight : -1.0f;
 			NewInfo.userID = Link.UserId;
 
 			const int32* AreaID = AreaClassToIdMap->Find(Link.AreaClass);
@@ -2671,12 +2673,12 @@ static int32 CaclulateMaxTilesCount(const TNavStatArray<FBox>& NavigableAreas, f
 //----------------------------------------------------------------------//
 
 FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
-	: NumActiveTiles(0),
-	  MaxTileGeneratorTasks(1),
-	  AvgLayersPerTile(8.0f),
-	  DestNavMesh(&InDestNavMesh),
-	  bInitialized(false),
-	  Version(0)
+	: NumActiveTiles(0)
+	, MaxTileGeneratorTasks(1)
+	, AvgLayersPerTile(8.0f)
+	, DestNavMesh(&InDestNavMesh)
+	, bInitialized(false)
+	, Version(0)
 {
 	INC_DWORD_STAT_BY(STAT_NavigationMemory, sizeof(*this));
 
@@ -2704,11 +2706,13 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 
 	if (bRecreateNavmesh)
 	{
+		// recreate navmesh from scratch if no data was loaded
 		ConstructTiledNavMesh();
 		InDestNavMesh.MarkAsNeedingUpdate();
 	}
 	else
 	{
+		// otherwise just update generator params
 		int32 MaxTiles = 0;
 		CalcNavMeshProperties(MaxTiles, Config.MaxPolysPerTile);
 		NumActiveTiles = GetTilesCountHelper(DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh);
