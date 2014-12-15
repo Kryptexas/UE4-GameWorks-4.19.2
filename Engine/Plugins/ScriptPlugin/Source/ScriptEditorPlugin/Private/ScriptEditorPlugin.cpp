@@ -45,16 +45,19 @@ public:
 /**
 * Script blueprint module
 */
-class FScriptEditorPlugin : public IScriptEditorPlugin
+class FScriptEditorPlugin : public IScriptEditorPlugin, IBlueprintCompiler
 {
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-private:
+public:
 
-	/** Callback for the script compiler */
-	FReply CompileScript(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded);
+	virtual bool CanCompile(const UBlueprint* Blueprint) override;
+
+	virtual void PreCompile(UBlueprint* Blueprint) override;
+	virtual void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded) override;
+	virtual void PostCompile(UBlueprint* Blueprint) override;
 };
 
 IMPLEMENT_MODULE(FScriptEditorPlugin, ScriptEditorPlugin)
@@ -66,25 +69,34 @@ void FScriptEditorPlugin::StartupModule()
 
 	// Register blueprint compiler
 	IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
-	FBlueprintCompileDelegate CompileDelegate;
-	CompileDelegate.BindRaw(this, &FScriptEditorPlugin::CompileScript);
-	KismetCompilerModule.GetCompilers().Add(CompileDelegate);
+	KismetCompilerModule.GetCompilers().Add(this);
 }
 
 void FScriptEditorPlugin::ShutdownModule()
 {
 }
 
-FReply FScriptEditorPlugin::CompileScript(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+bool FScriptEditorPlugin::CanCompile(const UBlueprint* Blueprint)
 {
-	if (UScriptBlueprint* ScriptBlueprint = Cast<UScriptBlueprint>(Blueprint))
+	return Cast<UScriptBlueprint>(Blueprint) != nullptr;
+}
+
+void FScriptEditorPlugin::PreCompile(UBlueprint* Blueprint)
+{
+
+}
+
+void FScriptEditorPlugin::Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+{
+	if ( UScriptBlueprint* ScriptBlueprint = Cast<UScriptBlueprint>(Blueprint) )
 	{
 		FScriptBlueprintCompiler Compiler(ScriptBlueprint, Results, CompileOptions, ObjLoaded);
 		Compiler.Compile();
 		check(Compiler.NewClass);
-
-		return FReply::Handled();
 	}
+}
 
-	return FReply::Unhandled();
+void FScriptEditorPlugin::PostCompile(UBlueprint* Blueprint)
+{
+
 }

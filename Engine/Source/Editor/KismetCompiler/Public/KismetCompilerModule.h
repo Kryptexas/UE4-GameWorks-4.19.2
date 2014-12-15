@@ -12,7 +12,16 @@ class UBlueprint;
 //////////////////////////////////////////////////////////////////////////
 // IKismetCompilerInterface
 
-DECLARE_DELEGATE_RetVal_FourParams(FReply, FBlueprintCompileDelegate, UBlueprint* /*Blueprint*/, const FKismetCompilerOptions& /*CompileOptions*/, FCompilerResultsLog& /*Results*/, TArray<UObject*>* /*ObjLoaded*/);
+class IBlueprintCompiler
+{
+public:
+	virtual void PreCompile(UBlueprint* Blueprint) = 0;
+
+	virtual bool CanCompile(const UBlueprint* Blueprint) = 0;
+	virtual void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded) = 0;
+	
+	virtual void PostCompile(UBlueprint* Blueprint) = 0;
+};
 
 class IKismetCompilerInterface : public IModuleInterface
 {
@@ -51,7 +60,7 @@ public:
 	/**
 	 * Gets a list of all compilers for blueprints.  You can register new compilers through this list.
 	 */
-	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() = 0;
+	virtual TArray<IBlueprintCompiler*>& GetCompilers() = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -68,11 +77,11 @@ public:
 	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) override;
 	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) override;
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
-	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() override { return Compilers; }
+	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded);
 
-	TArray<FBlueprintCompileDelegate> Compilers;
+	TArray<IBlueprintCompiler*> Compilers;
 };
 
