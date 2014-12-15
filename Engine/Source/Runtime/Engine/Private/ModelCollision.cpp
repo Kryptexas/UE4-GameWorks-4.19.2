@@ -122,6 +122,106 @@ float UModel::FindNearestVertex
 }
 
 /*---------------------------------------------------------------------------------------
+	Find Brush Actor
+---------------------------------------------------------------------------------------*/
+//
+// ClipNode - return the node containing a specified location from a number of coplanar nodes.
+//
+int32 ClipNode(const UModel& Model, int32 iNode, const FVector& HitLocation)
+{
+	while (iNode != INDEX_NONE)
+	{
+		const FBspNode& Node = Model.Nodes[iNode];
+		int32 NumVertices = Node.NumVertices;
+
+		// Only consider this node if it has some vertices.
+		if (NumVertices > 0)
+		{
+			int32 iVertPool = Node.iVertPool;
+
+			FVector PrevPt = Model.Points[Model.Verts[iVertPool + NumVertices - 1].pVertex];
+			FVector Normal = Model.Surfs[Node.iSurf].Plane;
+			float PrevDot = 0.f;
+
+			for (int32 i = 0; i<NumVertices; i++)
+			{
+				FVector Pt = Model.Points[Model.Verts[iVertPool + i].pVertex];
+				float Dot = FPlane(Pt, Normal ^ (Pt - PrevPt)).PlaneDot(HitLocation);
+				// Check for sign change
+				if ((Dot < 0.f && PrevDot > 0.f) || (Dot > 0.f && PrevDot < 0.f))
+				{
+					goto TryNextNode;
+				}
+				PrevPt = Pt;
+				PrevDot = Dot;
+			}
+
+			return iNode;
+		}
+
+	TryNextNode:;
+		iNode = Node.iPlane;
+	}
+	return INDEX_NONE;
+}
+
+//
+// Find the iSurf for node the point lies upon. Returns INDEX_NONE if the point does not lie on a surface.
+//
+static int32 FindSurf(const UModel &Model, const FVector &SourcePoint, int32 iNode, float Tolerance)
+{
+	while (iNode != INDEX_NONE)
+	{
+		const FBspNode	*Node = &Model.Nodes[iNode];
+		const int32	    iBack = Node->iBack;
+		const float PlaneDist = Node->Plane.PlaneDot(SourcePoint);
+		if (PlaneDist >= -Tolerance && Node->iFront != INDEX_NONE)
+		{
+			// Check front.
+			int32 Front = FindSurf(Model, SourcePoint, Node->iFront, Tolerance);
+			if (Front != INDEX_NONE)
+			{
+				return Front;
+			}
+		}
+		if (PlaneDist > -Tolerance && PlaneDist <= Tolerance)
+		{
+			iNode = ClipNode(Model, iNode, SourcePoint);
+			if (iNode != INDEX_NONE)
+			{
+				return Model.Nodes[iNode].iSurf;
+			}
+			else
+			{
+				return Tolerance;
+			}
+		}
+		if (PlaneDist > KINDA_SMALL_NUMBER)
+		{
+			break;
+		}
+		iNode = iBack;
+	}
+	return INDEX_NONE;
+}
+
+//
+// Find the brush actor associated with this point, or NULL if the point does not lie on a BSP surface.
+//
+ABrush* UModel::FindBrush(const FVector	&SourcePoint) const
+{
+	if (Nodes.Num())
+	{
+		int32 iSurf = FindSurf(*this, SourcePoint, 0, 0.1f);
+		if (iSurf != INDEX_NONE)
+		{
+			return Surfs[iSurf].Actor;
+		}
+	}
+	return nullptr;
+}
+
+/*---------------------------------------------------------------------------------------
    Bound filter precompute.
 ---------------------------------------------------------------------------------------*/
 

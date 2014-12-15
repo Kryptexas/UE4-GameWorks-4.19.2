@@ -1212,8 +1212,9 @@ FVector AInstancedFoliageActor::GetSelectionLocation()
 
 void AInstancedFoliageActor::MapRebuild()
 {
-	// Map rebuilt - this may have modified the BSP components and thrown the previous ones away - if so we need to migrate the foliage across.
-	UE_LOG(LogInstancedFoliage, Log, TEXT("Map Rebuilt - Update all BSP painted foliage!"));
+	// Map rebuild may have modified the BSP's ModelComponents and thrown the previous ones away.
+	// Most BSP-painted foliage is attached to a Brush's UModelComponent which persist across rebuilds,
+	// but any foliage attached directly to the level BSP's ModelComponents will need to try to find a new base.
 
 	TMap<UFoliageType*, TArray<FFoliageInstance>> NewInstances;
 	TArray<UModelComponent*> RemovedModelComponents;
@@ -1232,7 +1233,8 @@ void AInstancedFoliageActor::MapRebuild()
 		{
 			// BSP components are UModelComponents - they are the only ones we need to change
 			UModelComponent* TargetComponent = Cast<UModelComponent>(ComponentFoliagePair.Key);
-			if (TargetComponent)
+			// Check if it's part of a brush. We only need to fix up model components that are part of the level BSP.
+			if (TargetComponent && Cast<ABrush>(TargetComponent->GetOuter()) == nullptr)
 			{
 				// Delete its instances later
 				RemovedModelComponents.Add(TargetComponent);
@@ -1242,7 +1244,7 @@ void AInstancedFoliageActor::MapRebuild()
 				// We have to test each instance to see if we can migrate it across
 				for (int32 InstanceIdx : FoliageInfo.Instances)
 				{
-					// Use a line test against the world, similar to FoliageEditMode.
+					// Use a line test against the world. This is not very reliable as we don't know the original trace direction.
 					check(MeshInfo.Instances.IsValidIndex(InstanceIdx));
 					FFoliageInstance const& Instance = MeshInfo.Instances[InstanceIdx];
 

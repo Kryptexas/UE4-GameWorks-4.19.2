@@ -523,6 +523,8 @@ public:
 		const FPlane	&Sphere
 	);
 
+	/* Find the source brush actor associated with this point, or NULL if the point does not lie on a BSP surface. */
+	ENGINE_API ABrush* FindBrush(const FVector &SourcePoint) const;
 
 	/**
 	 * Creates a bounding box for the passed in node
