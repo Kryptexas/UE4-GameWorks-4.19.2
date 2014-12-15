@@ -220,7 +220,7 @@ void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 
 uint32 FLinuxPlatformMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
 {
-	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
+	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, false);
 }
 
 void FLinuxPlatformMisc::LowLevelOutputDebugString(const TCHAR *Message)
