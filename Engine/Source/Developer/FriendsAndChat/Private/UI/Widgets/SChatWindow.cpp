@@ -279,6 +279,8 @@ private:
 
 	TSharedRef<ITableRow> MakeChatWidget(TSharedRef<FChatItemViewModel> ChatMessage, const TSharedRef<STableViewBase>& OwnerTable)
 	{
+		bAutoScroll = ChatMessage == ViewModel->GetFilteredChatList().Last() ? true : false;
+
 		return SNew(STableRow< TSharedPtr<SWidget> >, OwnerTable)
 		[
 			SNew(SButton)
@@ -493,7 +495,10 @@ private:
 		if(ViewModel->GetFilteredChatList().Num())
 		{
 			ChatList->RequestListRefresh();
-			ChatList->RequestScrollIntoView(ViewModel->GetFilteredChatList().Last());
+			if(bAutoScroll)
+			{
+				ChatList->RequestScrollIntoView(ViewModel->GetFilteredChatList().Last());
+			}
 		}
 	}
 
@@ -649,6 +654,9 @@ private:
 
 	// Holds the menu method - Full screen requires use owning window or crashes.
 	EPopupMethod MenuMethod;
+
+	// Should AutoScroll
+	bool bAutoScroll;
 
 	// Holds the time transparency.
 	float TimeTransparency;
