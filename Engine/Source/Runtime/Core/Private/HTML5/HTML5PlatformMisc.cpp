@@ -34,7 +34,7 @@ GenericApplication* FHTML5Misc::CreateApplication()
 
 uint32 FHTML5Misc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
 {
-	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
+	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, false);
 }
 
 uint32 FHTML5Misc::GetKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
