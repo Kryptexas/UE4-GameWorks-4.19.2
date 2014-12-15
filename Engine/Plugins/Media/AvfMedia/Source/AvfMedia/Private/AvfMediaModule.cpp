@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "AVFMediaPrivatePCH.h"
+#include "AvfMediaPrivatePCH.h"
 #include "IMediaModule.h"
 #include "IMediaPlayerFactory.h"
 #include "ModuleInterface.h"
