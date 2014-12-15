@@ -107,19 +107,27 @@ enum ETranslucencyLightingMode
 	 * Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.
 	 * This is the cheapest lighting method, however the material normal is not taken into account.
 	 */
-	TLM_VolumetricNonDirectional,
+	TLM_VolumetricNonDirectional UMETA(DisplayName="Volumetric Non Directional"),
 
 	 /** 
 	 * Lighting will be calculated for a volume, with directionality so that the normal of the material is taken into account. 
 	 * Note that the default particle tangent space is facing the camera, so enable bGenerateSphericalParticleNormals to get a more useful tangent space.
 	 */
-	TLM_VolumetricDirectional,
+	TLM_VolumetricDirectional UMETA(DisplayName="Volumetric Directional"),
 
 	/** 
-	 * Lighting will be calculated for a surface.
-	 * Use this on translucent surfaces like glass and water.
+	 * Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry
+	 * (fixed resolution), limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water.
 	 */
-	TLM_Surface,
+	TLM_Surface UMETA(DisplayName="Surface TranslucencyVolume"),
+
+	/** 
+	 * Lighting will be calculated for a surface. Use this on translucent surfaces like glass and water.
+	 * Higher quality than Surface but more expensive (loops through point lights with some basic culling, only inverse square, expensive, no shadow support yet)
+	 * Requires 'r.ForwardLighting' to be 1
+	 */
+	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface PerPixel (experimental, limited features)"),
+
 	TLM_MAX,
 };
 

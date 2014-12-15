@@ -1,0 +1,68 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	ForEachLight.usf: Common code for dynamic forward lighting
+=============================================================================*/
+
+#ifndef __FOR_EACH_LIGHT_COMMON__
+#define __FOR_EACH_LIGHT_COMMON__
+
+#include "DeferredLightingCommon.usf"	// FSimpleDeferredLightData and GetSimpleDynamicLighting() 
+Buffer<uint> LightGrid;
+
+// greatly reduces shadow mapping artifacts
+float BiasedNDotL(float NDotLWithoutSaturate )
+{
+	return saturate(NDotLWithoutSaturate * 1.08f - 0.08f);
+}
+
+float3 SimplePointLightDiffuse( FScreenSpaceData ScreenSpaceData )
+{
+	return Diffuse_Lambert(ScreenSpaceData.GBuffer.DiffuseColor);
+}
+
+float3 LightingForOneLight(FMaterialPixelParameters Parameters, FSimpleDeferredLightData LightData, FScreenSpaceData ScreenSpaceData)
+{
+	// At the moment we only support very simple lighting (no shadows, phong, no area lights, basic attenuation).
+	// Later we can extend this function.
+	return GetSimpleDynamicLighting(Parameters.WorldPosition, Parameters.CameraVector, ScreenSpaceData, LightData);
+}
+
+// @param WorldNormal is not assumed to be normalized
+float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, float3 DiffuseColor, float Roughness, float3 SpecularColor)
+{
+	float3 Ret = 0;
+
+	// Which tile we are?
+	int2 Tile = int2((Parameters.SVPosition.xy - View.ViewRectMin.xy) * ForwardLightData.InvTileSize);
+
+	// Get bitmask from CPU for this tile
+	uint culling = LightGrid[Tile.x + Tile.y * ForwardLightData.TileCountX];
+
+	FScreenSpaceData ScreenSpaceData = (FScreenSpaceData)0;
+	ScreenSpaceData.GBuffer.WorldNormal = normalize(Parameters.WorldNormal);
+	ScreenSpaceData.GBuffer.Roughness = Roughness;
+	ScreenSpaceData.GBuffer.SpecularColor = SpecularColor;
+	ScreenSpaceData.GBuffer.DiffuseColor = DiffuseColor;
+	ScreenSpaceData.AmbientOcclusion = 1;
+
+	// todo: support more than 32 lights
+
+	// loop through all lights specified by this bitmask
+	[allow_uav_condition] while(culling != 0)
+	{
+		uint LightIndex = firstbitlow(culling);
+
+		culling &= ~(1 << LightIndex);
+
+		FSimpleDeferredLightData LightData = (FSimpleDeferredLightData)0;
+		LightData.LightPositionAndInvRadius = ForwardLightData.LightPositionAndInvRadius[LightIndex];
+		LightData.LightColorAndFalloffExponent = ForwardLightData.LightColorAndFalloffExponent[LightIndex];
+		LightData.bInverseSquared = true;
+
+		Ret += LightingForOneLight(Parameters, LightData, ScreenSpaceData);
+	}
+	return Ret;
+}
+
+#endif // __FOR_EACH_LIGHT_COMMON__

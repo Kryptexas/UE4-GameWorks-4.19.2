@@ -504,6 +504,9 @@ public:
 	/** Gets the eye adaptation render target for this view. */
 	IPooledRenderTarget* GetEyeAdaptation() const;
 
+	/** Create acceleration data structure and information to do forward lighting with dynamic branching. */
+	void CreateLightGrid();
+
 private:
 
 	/** Initialization that is common to the constructors. */
@@ -514,6 +517,9 @@ private:
 
 	/** Sets the sky SH irradiance map coefficients. */
 	void SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradianceEnvironmentMap) const;
+
+	/** All light sources available for forward shading. Can be indexed in the shader.*/
+	void CreateForwardLightDataUniformBuffer(FForwardLightData& Out) const;
 };
 
 

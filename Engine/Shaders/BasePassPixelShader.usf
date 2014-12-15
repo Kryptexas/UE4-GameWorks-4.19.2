@@ -50,7 +50,7 @@ float4 PointSkyBentNormal;
 #define EDITOR_ALPHA2COVERAGE (EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
 
 
-#if TRANSLUCENCY_LIGHTING_SURFACE
+#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	/** Prenormalized capture of the scene that's closest to the object being rendered, used for reflection environment on translucency. */
@@ -104,6 +104,10 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	return SpecularIBL.rgb * SpecularColor;
 }
 
+#endif
+
+#if TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
+	#include "ForEachLight.usf"
 #endif
 
 /** Calculates lighting for translucency. */
@@ -175,6 +179,10 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		// Determine lighting if no self shadowing is applied
 		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
 
+	#elif TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
+
+		InterpolatedLighting = AccumulateForwardLights(MaterialParameters, DiffuseColor, Roughness, SpecularColor);
+
 	#endif
 
 	#if (TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE) && TRANSLUCENT_SELF_SHADOWING
@@ -236,7 +244,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 	#endif
 
-	#if TRANSLUCENCY_LIGHTING_SURFACE
+	#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, Roughness, SpecularColor, IndirectIrradiance);
 	#endif
 
@@ -447,7 +455,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	}
 	else
 	{
-	#if TRANSLUCENCY_LIGHTING_SURFACE && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+	#if (TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL) && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1);
 		float4 DiffuseIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.WorldNormal, CubemapArrayIndex, DiffuseMip);
 		

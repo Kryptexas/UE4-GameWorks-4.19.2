@@ -1487,6 +1487,117 @@ bool FMath::SegmentPlaneIntersection(const FVector& StartPoint, const FVector& E
 	return false;
 }
 
+
+/**
+ * Compute the screen bounds of a point light along one axis.
+ * Based on http://www.gamasutra.com/features/20021011/lengyel_06.htm
+ * and http://sourceforge.net/mailarchive/message.php?msg_id=10501105
+ */
+static bool ComputeProjectedSphereShaft(
+	float LightX,
+	float LightZ,
+	float Radius,
+	const FMatrix& ProjMatrix,
+	const FVector& Axis,
+	float AxisSign,
+	int32& InOutMinX,
+	int32& InOutMaxX
+	)
+{
+	float ViewX = InOutMinX;
+	float ViewSizeX = InOutMaxX - InOutMinX;
+
+	// Vertical planes: T = <Nx, 0, Nz, 0>
+	float Discriminant = (FMath::Square(LightX) - FMath::Square(Radius) + FMath::Square(LightZ)) * FMath::Square(LightZ);
+	if(Discriminant >= 0)
+	{
+		float SqrtDiscriminant = FMath::Sqrt(Discriminant);
+		float InvLightSquare = 1.0f / (FMath::Square(LightX) + FMath::Square(LightZ));
+
+		float Nxa = (Radius * LightX - SqrtDiscriminant) * InvLightSquare;
+		float Nxb = (Radius * LightX + SqrtDiscriminant) * InvLightSquare;
+		float Nza = (Radius - Nxa * LightX) / LightZ;
+		float Nzb = (Radius - Nxb * LightX) / LightZ;
+		float Pza = LightZ - Radius * Nza;
+		float Pzb = LightZ - Radius * Nzb;
+
+		// Tangent a
+		if(Pza > 0)
+		{
+			float Pxa = -Pza * Nza / Nxa;
+			FVector4 P = ProjMatrix.TransformFVector4(FVector4(Axis.X * Pxa,Axis.Y * Pxa,Pza,1));
+			float X = (Dot3(P,Axis) / P.W + 1.0f * AxisSign) / 2.0f * AxisSign;
+			if(FMath::IsNegativeFloat(Nxa) ^ FMath::IsNegativeFloat(AxisSign))
+			{
+				InOutMaxX = FMath::Min<int64>(FMath::CeilToInt(ViewSizeX * X + ViewX),InOutMaxX);
+			}
+			else
+			{
+				InOutMinX = FMath::Max<int64>(FMath::FloorToInt(ViewSizeX * X + ViewX),InOutMinX);
+			}
+		}
+
+		// Tangent b
+		if(Pzb > 0)
+		{
+			float Pxb = -Pzb * Nzb / Nxb;
+			FVector4 P = ProjMatrix.TransformFVector4(FVector4(Axis.X * Pxb,Axis.Y * Pxb,Pzb,1));
+			float X = (Dot3(P,Axis) / P.W + 1.0f * AxisSign) / 2.0f * AxisSign;
+			if(FMath::IsNegativeFloat(Nxb) ^ FMath::IsNegativeFloat(AxisSign))
+			{
+				InOutMaxX = FMath::Min<int64>(FMath::CeilToInt(ViewSizeX * X + ViewX),InOutMaxX);
+			}
+			else
+			{
+				InOutMinX = FMath::Max<int64>(FMath::FloorToInt(ViewSizeX * X + ViewX),InOutMinX);
+			}
+		}
+	}
+
+	return InOutMinX <= InOutMaxX;
+}
+
+uint32 FMath::ComputeProjectedSphereScissorRect(FIntRect& InOutScissorRect, FVector SphereOrigin, float Radius, FVector ViewOrigin, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix)
+{
+	// Calculate a scissor rectangle for the light's radius.
+	if((SphereOrigin - ViewOrigin).Size() > Radius)
+	{
+		FVector LightVector = ViewMatrix.TransformPosition(SphereOrigin);
+
+		if(!ComputeProjectedSphereShaft(
+			LightVector.X,
+			LightVector.Z,
+			Radius,
+			ProjMatrix,
+			FVector(+1,0,0),
+			+1,
+			InOutScissorRect.Min.X,
+			InOutScissorRect.Max.X))
+		{
+			return 0;
+		}
+
+		if(!ComputeProjectedSphereShaft(
+			LightVector.Y,
+			LightVector.Z,
+			Radius,
+			ProjMatrix,
+			FVector(0,+1,0),
+			-1,
+			InOutScissorRect.Min.Y,
+			InOutScissorRect.Max.Y))
+		{
+			return 0;
+		}
+
+		return 1;
+	}
+	else
+	{
+		return 2;
+	}
+}
+
 bool FMath::PlaneAABBIntersection(const FPlane& P, const FBox& AABB)
 {
 	// find diagonal most closely aligned with normal of plane

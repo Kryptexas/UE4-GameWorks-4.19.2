@@ -16,6 +16,7 @@
 #include "SceneViewExtension.h"
 #include "PostProcessBusyWait.h"
 #include "SceneUtils.h"
+#include "LightGrid.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -23,6 +24,8 @@
 
 extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
 extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
+
+TGlobalResource<FLightGridVertexBuffer> GLightGridVertexBuffer;
 
 /**
  * Console variable controlling whether or not occlusion queries are allowed.
@@ -40,6 +43,16 @@ static TAutoConsoleVariable<float> CVarDemosaicVposOffset(
 	TEXT("This offset is added to the rasterized position used for demosaic in the ES2 tonemapping shader. It exists to workaround driver bugs on some Android devices that have a half-pixel offset."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarForwardLighting(
+	TEXT("r.ForwardLighting"),
+	0,
+	TEXT("Experimental dynamic forward lighting for translucency. Can be the base for opaque forward lighting which will allow\n")
+	TEXT("more lighting models or rendering without a GBuffer.\n")
+	TEXT("The current implementation is limited to 32 lights, coarse 2d culling (on CPU), no shadows and simple shading (no area lights, phong).\n")
+	TEXT("Enabled with the new TranslucencyLightingMode SurfacePerPixelLighting\n")
+	TEXT("0: off (default)\n")
+	TEXT("1: on (some CPU setup cost on GPU and extra per pixel cost)"),
+	ECVF_RenderThreadSafe);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
@@ -619,6 +632,108 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
+void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwardLightData) const
+{
+	uint32 LightIndex = 0;
+	// todo: we should do this only once before rendering, not late after GBuffer pass
+
+	FScene* Scene = (FScene*)(Family->Scene);
+
+	if(Scene)
+	{
+		// Build a list of visible lights.
+		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+		{
+			const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+			const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+
+			if(!LightSceneInfoCompact.Color.IsAlmostBlack()
+				// Only render lights with dynamic lighting or unbuilt static lights
+				&& (!LightSceneInfo->Proxy->HasStaticLighting() || !LightSceneInfo->bPrecomputedLightingIsValid)
+				// Reflection override skips direct specular because it tends to be blindingly bright with a perfectly smooth surface
+				&& !Family->EngineShowFlags.ReflectionOverride
+				&& LightSceneInfoCompact.LightType == LightType_Point)		// for now we only handle point lights
+			{
+				// Check if the light is visible in this view.
+				if(LightSceneInfo->ShouldRenderLight(*this))
+				{
+					FVector4 BoundingSphereVector = *(FVector4*)&LightSceneInfoCompact.BoundingSphereVector;
+
+					float InvRadius = 1.0f / BoundingSphereVector.W;
+
+					OutForwardLightData.LightPositionAndInvRadius[LightIndex] = FVector4(FVector(BoundingSphereVector), InvRadius);
+					OutForwardLightData.LightColorAndFalloffExponent[LightIndex] = LightSceneInfoCompact.Color;
+					++LightIndex;
+
+					if(LightIndex >= GMaxNumForwardLights)
+					{
+						// we cannot handle more lights this way
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	OutForwardLightData.LightCount = LightIndex;
+}
+
+void FViewInfo::CreateLightGrid()
+{
+	// This constant affects performance, power of two makes sense, too small costs more CPU and upload data, too large culls less efficiently.
+	const int32 TileSize = 16;
+
+	uint32 TileCountX = FMath::DivideAndRoundUp(ViewRect.Width(), TileSize);
+	uint32 TileCountY = FMath::DivideAndRoundUp(ViewRect.Height(), TileSize);
+
+	//@todo - creating a new uniform buffer is expensive, only do this when the vertex factory needs an accurate view matrix (particle sprites)
+	FForwardLightData LocalForwardLightData;
+
+	CreateForwardLightDataUniformBuffer(LocalForwardLightData);
+
+	LocalForwardLightData.TileSize = TileSize;
+	LocalForwardLightData.TileCountX = TileCountX;
+	LocalForwardLightData.InvTileSize = 1.0f / TileSize;
+
+	ForwardLightData = TUniformBufferRef<FForwardLightData>::CreateUniformBufferImmediate(LocalForwardLightData, UniformBuffer_SingleFrame);
+	// todo: temp data should be released when possible (after lighting)
+
+	{
+		GLightGridVertexBuffer.CPUData.SetNumUninitialized(TileCountX * TileCountY);
+
+		FMemory::Memset(&GLightGridVertexBuffer.CPUData[0], 0, TileCountX * TileCountY * sizeof(uint32));
+
+		for(uint32 i = 0, Count = LocalForwardLightData.LightCount; i < Count; ++i)
+		{
+			if(Count > 31)
+			{
+				// todo: currently we don't support more
+				break;
+			}
+
+			const FVector4 PosAndRadius = LocalForwardLightData.LightPositionAndInvRadius[i];
+
+			FIntRect LocalPixelRect = ViewRect;
+			if(FMath::ComputeProjectedSphereScissorRect(LocalPixelRect, FVector(PosAndRadius), 1.0f / PosAndRadius.W, ViewMatrices.ViewOrigin, ViewMatrices.ViewMatrix, ViewMatrices.ProjMatrix) > 0)
+			{
+				FIntRect LocalTileRect = FIntRect::DivideAndRoundUp(LocalPixelRect, TileSize);
+
+				for(int32 y = LocalTileRect.Min.Y; y < LocalTileRect.Max.Y; ++y)
+				{
+					for(int32 x = LocalTileRect.Min.X; x < LocalTileRect.Max.X; ++x)
+					{
+						uint32& Tile = GLightGridVertexBuffer.CPUData[x + y * TileCountX];
+
+						Tile |= 1 << i;
+					}
+				}
+			}
+		}
+
+		GLightGridVertexBuffer.UpdateGPUFromCPUData();
+	}
+}
+
 void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo)
 {
 	FBox VolumeBounds[TVC_MAX];
@@ -643,6 +758,11 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 	for(int32 ResourceIndex = 0;ResourceIndex < DynamicResources.Num();ResourceIndex++)
 	{
 		DynamicResources[ResourceIndex]->InitPrimitiveResource();
+	}
+
+	if(CVarForwardLighting.GetValueOnRenderThread())
+	{
+		CreateLightGrid();
 	}
 }
 

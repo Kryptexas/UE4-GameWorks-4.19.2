@@ -8,6 +8,7 @@
 
 #include "LightMapRendering.h"
 #include "ShaderBaseClasses.h"
+#include "LightGrid.h"
 
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
@@ -321,6 +322,7 @@ public:
 		MSAASampleCount.Bind(Initializer.ParameterMap,TEXT("MSAASampleCount"));
 		FilteredSceneDepthTexture.Bind(Initializer.ParameterMap,TEXT("FilteredSceneDepthTexture"));
 		FilteredSceneDepthTextureSampler.Bind(Initializer.ParameterMap,TEXT("FilteredSceneDepthTextureSampler"));
+		LightGrid.Bind(Initializer.ParameterMap,TEXT("LightGrid"));
 	}
 	TBasePassPixelShaderBaseType() {}
 
@@ -342,6 +344,22 @@ public:
 			if (IsTranslucentBlendMode(BlendMode))
 			{
 				TranslucentLightingParameters.Set(RHICmdList, this, View);
+
+				// Experimental dynamic forward lighting for translucency. Can be the base for opaque forward lighting which will allow more lighting models or rendering without a GBuffer
+				if(BlendMode == BLEND_Translucent && MaterialResource.GetTranslucencyLightingMode() == TLM_SurfacePerPixelLighting)
+				{
+					check(GetUniformBufferParameter<FForwardLightData>().IsInitialized());
+
+					if(GetUniformBufferParameter<FForwardLightData>().IsBound())
+					{
+						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(),View->ForwardLightData);
+					}
+
+					if(LightGrid.IsBound())
+					{
+						RHICmdList.SetShaderResourceViewParameter(ShaderRHI, LightGrid.GetBaseIndex(), GLightGridVertexBuffer.VertexBufferSRV);
+					}
+				}
 			}
 		}
 
@@ -402,6 +420,7 @@ public:
 		Ar << MSAASampleCount;
 		Ar << FilteredSceneDepthTexture;
 		Ar << FilteredSceneDepthTextureSampler;
+		Ar << LightGrid;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -413,6 +432,7 @@ private:
 	/** Parameter for reading filtered depth values */
 	FShaderResourceParameter FilteredSceneDepthTexture; 
 	FShaderResourceParameter FilteredSceneDepthTextureSampler; 
+	FShaderResourceParameter LightGrid; 
 };
 
 /** The concrete base pass pixel shader type. */
