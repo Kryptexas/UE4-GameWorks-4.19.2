@@ -572,6 +572,10 @@ public:
 	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces);
 
 protected:
+
+	/** Track whether we still need to flip to recently modified buffer */
+	bool bNeedToFlipSpaceBaseBuffers;
+
 	/**
 	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
 	*/

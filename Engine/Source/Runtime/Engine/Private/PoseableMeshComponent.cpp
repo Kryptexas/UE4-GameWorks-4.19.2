@@ -35,6 +35,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 		}
 
 		FillSpaceBases();
+		FlipEditableSpaceBases();
 
 		return true;
 	}
@@ -62,6 +63,7 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	// We need the mesh space bone transforms now for renderer to get delta from ref pose:
 	FillSpaceBases();
+	FlipEditableSpaceBases();
 
 	MarkRenderDynamicDataDirty();
 }
@@ -117,6 +119,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 		checkSlow(GetEditableSpaceBases()[BoneIndex].IsRotationNormalized());
 		checkSlow(!GetEditableSpaceBases()[BoneIndex].ContainsNaN());
 	}
+	bNeedToFlipSpaceBaseBuffers = true;
 }
 
 void UPoseableMeshComponent::SetBoneTransformByName(FName BoneName, const FTransform& InTransform, EBoneSpaces::Type BoneSpace)
