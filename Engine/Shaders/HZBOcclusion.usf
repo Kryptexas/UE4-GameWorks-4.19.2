@@ -11,10 +11,10 @@ void HZBBuildPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV[4];
 
-	UV[0] = InUV + float2(-0.5f, -0.5f) * InvSize;
-	UV[1] = InUV + float2( 0.5f, -0.5f) * InvSize;
-	UV[2] = InUV + float2(-0.5f,  0.5f) * InvSize;
-	UV[3] = InUV + float2( 0.5f,  0.5f) * InvSize;
+	UV[0] = InUV + float2(-0.25f, -0.25f) * InvSize;
+	UV[1] = InUV + float2( 0.25f, -0.25f) * InvSize;
+	UV[2] = InUV + float2(-0.25f,  0.25f) * InvSize;
+	UV[3] = InUV + float2( 0.25f,  0.25f) * InvSize;
 
 #if STAGE == 0
 	// Inverted Z buffer
@@ -99,7 +99,7 @@ void HZBTestPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 #endif
 
 	// FIXME assumes DX
-	float4 Rect = saturate( float4( RectMin.xy, RectMax.xy ) * float2( 0.5, -0.5 ).xyxy + 0.5 );
+	float4 Rect = saturate( float4( RectMin.xy, RectMax.xy ) * float2( 0.5, -0.5 ).xyxy + 0.5 ).xwzy;
 	float4 RectPixels = Rect * HZBSize.xyxy;
 	float2 RectSize = ( RectPixels.zw - RectPixels.xy ) * 0.5;	// 0.5 for 4x4
 	float Level = ceil( log2( max( RectSize.x, RectSize.y ) ) );
