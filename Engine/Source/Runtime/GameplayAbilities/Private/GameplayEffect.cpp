@@ -383,7 +383,6 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	, Period(UGameplayEffect::NO_PERIOD)
 	, ChanceToApplyToTarget(1.f)
 	, ChanceToExecuteOnGameplayEffect(1.f)
-	, bTopOfStack(false)
 	, Level(UGameplayEffect::INVALID_LEVEL)
 {
 	check(Def);	
