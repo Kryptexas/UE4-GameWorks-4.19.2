@@ -34,6 +34,7 @@ void FSlateChildSizeCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> P
 		PropertyHandle->CreatePropertyNameWidget()
 	]
 	.ValueContent()
+	.MaxDesiredWidth(TOptional<float>())
 	[
 		SNew(SHorizontalBox)
 
@@ -85,11 +86,6 @@ void FSlateChildSizeCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> P
 				SNew( SNumericEntryBox<float> )
 				.LabelVAlign(VAlign_Center)
 				.Visibility(this, &FSlateChildSizeCustomization::GetValueVisiblity, RuleHandle)
-				//.Label()
-				//[
-				//	SNew(STextBlock)
-				//	.Text(LOCTEXT("Fill", "Fill"))
-				//]
 				.Value(this, &FSlateChildSizeCustomization::GetValue, ValueHandle)
 				.OnValueCommitted(this, &FSlateChildSizeCustomization::HandleValueComitted, ValueHandle)
 				.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values") )

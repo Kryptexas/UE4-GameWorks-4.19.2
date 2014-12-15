@@ -318,16 +318,10 @@ void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr
 	EVerticalAlignment VerticalAlignment = VAlign_Center;
 	EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
 
-	float MinWidth = 0.0f;
-	float MaxWidth = 0.0f;
-
 	if( InCustomRow.IsValid() )
 	{
 		VerticalAlignment = InCustomRow->NameWidget.VerticalAlignment;
 		HorizontalAlignment = InCustomRow->NameWidget.HorizontalAlignment;
-
-		MinWidth = InCustomRow->NameWidget.MinWidth;
-		MaxWidth = InCustomRow->NameWidget.MaxWidth;
 	}
 
 	TAttribute<bool> IsEnabledAttrib = CustomIsEnabledAttrib;
@@ -385,8 +379,8 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 	EVerticalAlignment VerticalAlignment = VAlign_Center;
 	EHorizontalAlignment HorizontalAlignment = HAlign_Left;
 
-	float MinWidth = 0.0f;
-	float MaxWidth = 0.0f;
+	TOptional<float> MinWidth;
+	TOptional<float> MaxWidth;
 
 	if( InCustomRow.IsValid() )
 	{

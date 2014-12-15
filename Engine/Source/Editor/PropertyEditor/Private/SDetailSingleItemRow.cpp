@@ -17,12 +17,12 @@ class SConstrainedBox : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SConstrainedBox )
-		: _MinWidth(0)
-		, _MaxWidth(0)
+		: _MinWidth()
+		, _MaxWidth()
 	{}
 		SLATE_DEFAULT_SLOT( FArguments, Content )
-		SLATE_ATTRIBUTE( float, MinWidth )
-		SLATE_ATTRIBUTE( float, MaxWidth )
+		SLATE_ATTRIBUTE( TOptional<float>, MinWidth )
+		SLATE_ATTRIBUTE( TOptional<float>, MaxWidth )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
@@ -38,10 +38,10 @@ public:
 
 	virtual FVector2D ComputeDesiredSize() const override
 	{
-		const float MinWidthVal = MinWidth.Get();
-		const float MaxWidthVal = MaxWidth.Get();
+		const float MinWidthVal = MinWidth.Get().Get(0.0f);
+		const float MaxWidthVal = MaxWidth.Get().Get(0.0f);
 
-		if( MinWidthVal == 0.0f && MaxWidthVal == 0.0f )
+		if ( MinWidthVal == 0.0f && MaxWidthVal == 0.0f )
 		{
 			return SCompoundWidget::ComputeDesiredSize();
 		}
@@ -59,8 +59,8 @@ public:
 		}
 	}
 private:
-	TAttribute<float> MinWidth;
-	TAttribute<float> MaxWidth;
+	TAttribute< TOptional<float> > MinWidth;
+	TAttribute< TOptional<float> > MaxWidth;
 };
 
 
