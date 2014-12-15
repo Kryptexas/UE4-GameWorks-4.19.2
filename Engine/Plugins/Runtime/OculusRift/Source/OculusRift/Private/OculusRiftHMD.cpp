@@ -1938,10 +1938,7 @@ bool FOculusRiftHMD::InitDevice()
 		UpdateStereoRenderingParams();
 		UpdateHmdCaps();
 	}
-	else
-	{
-		UE_LOG(LogHMD, Warning, TEXT("No Oculus HMD detected! Is Oculus Run-Time installed and service is running?"));
-	}
+
 	return Hmd != nullptr;
 }
 
