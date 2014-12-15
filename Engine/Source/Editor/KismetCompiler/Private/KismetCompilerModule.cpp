@@ -57,20 +57,19 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 	else
 	{
 		// Loop through all external compiler delegates attempting to compile the blueprint.
-		FReply Handled = FReply::Unhandled();
-		for ( FBlueprintCompileDelegate& Compiler : Compilers )
+		bool Compiled = false;
+		for ( IBlueprintCompiler* Compiler : Compilers )
 		{
-			Handled = Compiler.Execute(Blueprint, CompileOptions, Results, ObjLoaded);
-
-			// Don't allow any other compiler to handle it if they reported it was handled.
-			if ( Handled.IsEventHandled() )
+			if ( Compiler->CanCompile(Blueprint) )
 			{
+				Compiled = true;
+				Compiler->Compile(Blueprint, CompileOptions, Results, ObjLoaded);
 				break;
 			}
 		}
 
 		// if no one handles it, then use the default blueprint compiler.
-		if ( !Handled.IsEventHandled() )
+		if ( !Compiled )
 		{
 			if ( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint) )
 			{
@@ -107,6 +106,11 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	Results.SetSourceName(Blueprint->GetName());
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
+
+	for ( IBlueprintCompiler* Compiler : Compilers )
+	{
+		Compiler->PreCompile(Blueprint);
+	}
 
 	if ((CompileOptions.CompileType != EKismetCompileType::BytecodeOnly) && (CompileOptions.CompileType != EKismetCompileType::Cpp))
 	{
@@ -180,6 +184,11 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 				StubReinstancer.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 			}
 		}
+	}
+
+	for ( IBlueprintCompiler* Compiler : Compilers )
+	{
+		Compiler->PostCompile(Blueprint);
 	}
 
 	UPackage* Package = Blueprint->GetOutermost();

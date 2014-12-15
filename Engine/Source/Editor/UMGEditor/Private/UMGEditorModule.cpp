@@ -21,12 +21,13 @@
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
-class FUMGEditorModule : public IUMGEditorModule
+class FUMGEditorModule : public IUMGEditorModule, public IBlueprintCompiler
 {
 public:
 	/** Constructor, set up console commands and variables **/
 	FUMGEditorModule()
 	{
+		ReRegister = nullptr;
 	}
 
 	/** Called right after the module DLL has been loaded and the module object has been created */
@@ -44,9 +45,7 @@ public:
 
 		// Register widget blueprint compiler we do this no matter what.
 		IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
-		FBlueprintCompileDelegate sd;
-		sd.BindRaw(this, &FUMGEditorModule::CompileWidgetBlueprint);
-		KismetCompilerModule.GetCompilers().Add(sd);
+		KismetCompilerModule.GetCompilers().Add(this);
 
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -76,27 +75,34 @@ public:
 		CreatedAssetTypeActions.Empty();
 	}
 
-	FReply CompileWidgetBlueprint(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+	bool CanCompile(const UBlueprint* Blueprint)
 	{
-		if ( UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint) )
+		return Cast<UWidgetBlueprint>(Blueprint) != nullptr;
+	}
+
+	void PreCompile(UBlueprint* Blueprint)
+	{
+		ReRegister = new TComponentReregisterContext<UWidgetComponent>();
+	}
+
+	void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+	{
+		if ( UWidgetBlueprint* WidgetBlueprint = CastChecked<UWidgetBlueprint>(Blueprint) )
 		{
-			{
-				TComponentReregisterContext<UWidgetComponent> ComponentReregisterContext;
-
-				FWidgetBlueprintCompiler Compiler(WidgetBlueprint, Results, CompileOptions, ObjLoaded);
-				Compiler.Compile();
-				check(Compiler.NewClass);
-			}
-
-			if ( GIsEditor && GEditor )
-			{
-				GEditor->RedrawAllViewports(true);
-			}
-
-			return FReply::Handled();
+			FWidgetBlueprintCompiler Compiler(WidgetBlueprint, Results, CompileOptions, ObjLoaded);
+			Compiler.Compile();
+			check(Compiler.NewClass);
 		}
+	}
 
-		return FReply::Unhandled();
+	void PostCompile(UBlueprint* Blueprint)
+	{
+		delete ReRegister;
+		
+		if ( GIsEditor && GEditor )
+		{
+			GEditor->RedrawAllViewports(true);
+		}
 	}
 
 	/** Gets the extensibility managers for outside entities to extend gui page editor's menus and toolbars */
@@ -116,6 +122,8 @@ private:
 
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
+
+	TComponentReregisterContext<UWidgetComponent>* ReRegister;
 };
 
 IMPLEMENT_MODULE(FUMGEditorModule, UMGEditor);
