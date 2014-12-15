@@ -645,7 +645,9 @@ namespace EMouseCaptureMode
 		/** Capture the mouse permanently when the viewport is clicked */
 		CapturePermanently,
 		/** Capture the mouse during a mouse down, releases on mouse up */
-		CaptureDuringMouseDown
+		CaptureDuringMouseDown,
+		/** Capture only when the right mouse button is down, not any of the other mouse buttons */
+		CaptureDuringRightMouseDown,
 	};
 }
 
