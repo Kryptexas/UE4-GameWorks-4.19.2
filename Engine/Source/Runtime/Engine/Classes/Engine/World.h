@@ -2642,7 +2642,22 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldInitializationEvent, UWorld* /*World*/, const UWorld::InitializationValues /*IVS*/);
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldCleanupEvent, UWorld* /*World*/, bool /*bSessionEnded*/, bool /*bCleanupResources*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FWorldEvent, UWorld* /*World*/);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/);
+
+	/**
+	 * Post UWorld duplicate event.
+	 *
+	 * Sometimes there is a need to duplicate additional element after
+	 * duplicating UWorld. If you do this using this event you need also fill
+	 * ReplacementMap and ObjectsToFixReferences in order to properly fix
+	 * duplicated objects references.
+	 */
+	typedef TMap<UObject*, UObject*> FReplacementMap; // Typedef needed so the macro below can properly digest comma in template parameters.
+	DECLARE_MULTICAST_DELEGATE_FourParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/, FReplacementMap& /*ReplacementMap*/, TArray<UObject*>& /*ObjectsToFixReferences*/);
+
+#if WITH_EDITOR
+	DECLARE_MULTICAST_DELEGATE_FiveParams(FWorldRenameEvent, UWorld* /*World*/, const TCHAR* /*InName*/, UObject* /*NewOuter*/, ERenameFlags /*Flags*/, bool& /*bShouldFailRename*/);
+#endif // WITH_EDITOR
+
 	// Delegate type for level change events
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLevelChanged, ULevel*, UWorld*);
 
@@ -2654,6 +2669,11 @@ public:
 	
 	// Callback for world initialization (post)
 	static FWorldInitializationEvent OnPostWorldInitialization;
+
+#if WITH_EDITOR
+	// Callback for world rename event (pre)
+	static FWorldRenameEvent OnPreWorldRename;
+#endif // WITH_EDITOR
 
 	// Post duplication event.
 	static FWorldPostDuplicateEvent OnPostDuplicate;

@@ -925,18 +925,6 @@ private:
 	EObjectFlags							ApplyFlags;
 
 	/**
-	 * A pointer to source package, i.e. to the package the object being
-	 * duplicated is comming from.
-	 */
-	UPackage								*SourcePackage;
-
-	/**
-	 * A pointer to destination package, i.e. to the package the new object
-	 * should be created in.
-	 */
-	UPackage								*DestPackage;
-
-	/**
 	 * This is used to prevent object & component instancing resulting from the calls to StaticConstructObject(); instancing subobjects and components is pointless,
 	 * since we do that manually and replace the current value with our manually created object anyway.
 	 */
@@ -1002,10 +990,11 @@ public:
 	 * Returns a pointer to the duplicate of a given object, creating the duplicate object if necessary.
 	 * 
 	 * @param	Object	the object to find a duplicate for
+	 * @param	bCreateIfMissing Create the duplicated object if it's missing.
 	 *
 	 * @return	a pointer to the duplicate of the specified object
 	 */
-	UObject* GetDuplicatedObject(UObject* Object);
+	UObject* GetDuplicatedObject(UObject* Object, bool bCreateIfMissing = true);
 
 	/**
 	 * Constructor

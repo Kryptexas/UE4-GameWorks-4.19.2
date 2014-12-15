@@ -1315,8 +1315,15 @@ void ULandscapeHeightfieldCollisionComponent::PreSave()
 	{
 #if WITH_EDITOR
 		static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
-		GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(PhysicsFormatName, false, HeightfieldGuid), CookedCollisionData);
-		GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(PhysicsFormatName, true, HeightfieldGuid), CookedCollisionDataEd);
+		if (CookedCollisionData.Num())
+		{
+			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(PhysicsFormatName, false, HeightfieldGuid), CookedCollisionData);
+		}
+
+		if (CookedCollisionDataEd.Num())
+		{
+			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(PhysicsFormatName, true, HeightfieldGuid), CookedCollisionDataEd);
+		}
 #endif// WITH_EDITOR
 	}
 }
