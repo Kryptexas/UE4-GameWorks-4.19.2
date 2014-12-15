@@ -979,7 +979,7 @@ namespace UnrealBuildTool
 			if (!bGeneratingRocketProjectFiles)
 			{
 				// Add UnrealBuildTool to the master project
-				string ProjectPath = System.IO.Path.Combine(System.IO.Path.Combine(EngineRelativePath, "Source"), "Programs", "UnrealBuildTool", "UnrealBuildTool_Mono.csproj");
+				string ProjectPath = System.IO.Path.Combine(System.IO.Path.Combine(EngineRelativePath, "Source"), "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
 				AddPreGeneratedProject(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups, ProjectPath);
 			}
 		}

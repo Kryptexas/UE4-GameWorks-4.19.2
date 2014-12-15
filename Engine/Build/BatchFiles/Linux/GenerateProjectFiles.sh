@@ -19,12 +19,12 @@ echo Setting up Unreal Engine 4 project files...
 echo
 
 set -x
-xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool_Mono.csproj \
+xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj \
   /verbosity:quiet /nologo \
   /p:TargetFrameworkVersion=v4.0 \
   /p:Configuration="Development"
 
-xbuild Source/Programs/AutomationTool/AutomationTool_Mono.csproj \
+xbuild Source/Programs/AutomationTool/AutomationTool.csproj \
   /verbosity:quiet /nologo \
   /p:TargetFrameworkVersion=v4.0 \
   /p:Platform="AnyCPU" \

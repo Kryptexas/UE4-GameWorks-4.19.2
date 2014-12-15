@@ -109,7 +109,7 @@ namespace AutomationTool
 
 		public override string UBTProjectName
 		{
-			get { return "UnrealBuildTool_Mono"; }
+			get { return "UnrealBuildTool"; }
 		}
 
 		public override UnrealTargetPlatform HostEditorPlatform

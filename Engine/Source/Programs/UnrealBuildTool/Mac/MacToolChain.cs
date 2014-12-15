@@ -1285,7 +1285,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			string XBuildArgs = "/verbosity:quiet /nologo /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU " + Path.GetFileName(ProjectFileName) + " /property:TargetFrameworkVersion=v4.5 /tv:4.0";
+			string XBuildArgs = "/verbosity:quiet /nologo /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU " + Path.GetFileName(ProjectFileName);
 
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
