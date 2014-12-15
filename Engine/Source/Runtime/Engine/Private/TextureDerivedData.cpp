@@ -1763,6 +1763,11 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 			Ar << PixelFormatName;
 		}
 	}
+
+	if( Ar.IsLoading() )
+	{
+		LODBias = 0;
+	}
 }
 
 int32 UTexture2D::GMinTextureResidentMipCount = NUM_INLINE_DERIVED_MIPS;
