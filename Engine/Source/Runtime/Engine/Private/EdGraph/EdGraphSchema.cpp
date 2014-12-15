@@ -440,6 +440,7 @@ FPinConnectionResponse UEdGraphSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UE
 	TArray<UEdGraphPin*> CurrentLinks = MoveFromPin.LinkedTo;
 	// Then break all links at pin we are moving from
 	MoveFromPin.BreakAllPinLinks();
+	MoveFromPin.GetOwningNode()->PinConnectionListChanged(&MoveFromPin);
 	// Try and make each new connection
 	for (int32 i=0; i<CurrentLinks.Num(); i++)
 	{
@@ -453,11 +454,13 @@ FPinConnectionResponse UEdGraphSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UE
 		{
 			FinalResponse = Response;
 		}
+		NewLink->GetOwningNode()->PinConnectionListChanged(NewLink);
 	}
 	// Move over the default values
 	MoveToPin.DefaultValue = MoveFromPin.DefaultValue;
 	MoveToPin.DefaultObject = MoveFromPin.DefaultObject;
 	MoveToPin.DefaultTextValue = MoveFromPin.DefaultTextValue;
+	MoveToPin.GetOwningNode()->PinConnectionListChanged(&MoveToPin);
 	return FinalResponse;
 }
 

@@ -43,7 +43,7 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 	}
 
 	// Input - Source type Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, K2Schema->PN_ObjectToCast);
+	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), UObject::StaticClass(), false, false, K2Schema->PN_ObjectToCast);
 
 	// Output - Data Pin
 	if (TargetType != NULL)
@@ -141,6 +141,13 @@ void UK2Node_DynamicCast::GetContextMenuActions(const FGraphNodeContextMenuBuild
 		);
 	}
 	Context.MenuBuilder->EndSection();
+}
+
+void UK2Node_DynamicCast::PostReconstructNode()
+{
+	Super::PostReconstructNode();
+	// update the pin name (to "Interface" if an interface is connected)
+	NotifyPinConnectionListChanged(GetCastSourcePin());
 }
 
 void UK2Node_DynamicCast::PostPlacedNewNode()
@@ -278,6 +285,107 @@ FBlueprintNodeSignature UK2Node_DynamicCast::GetSignature() const
 	NodeSignature.AddSubObject(TargetType);
 
 	return NodeSignature;
+}
+
+bool UK2Node_DynamicCast::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	bool bIsDisallowed = Super::IsConnectionDisallowed(MyPin, OtherPin, OutReason);
+
+	if (MyPin == GetCastSourcePin())
+	{
+		const FEdGraphPinType& OtherPinType = OtherPin->PinType;
+		const FText OtherPinName = OtherPin->PinFriendlyName.IsEmpty() ? FText::FromString(OtherPin->PinName) : OtherPin->PinFriendlyName;
+
+		if (OtherPinType.bIsArray)
+		{
+			bIsDisallowed = true;
+			OutReason = LOCTEXT("CannotArrayCast", "You cannot cast arrays of objects.").ToString();
+		}
+		else if (TargetType == nullptr)
+		{
+			bIsDisallowed = true;
+			OutReason = LOCTEXT("BadCastNode", "This cast has an invalid target type (was the class deleted without a redirect?).").ToString();
+		}
+		else if ((OtherPinType.PinCategory == UEdGraphSchema_K2::PC_Interface) || TargetType->HasAnyClassFlags(CLASS_Interface))
+		{
+			// allow all interface casts
+		}
+		else if (OtherPinType.PinCategory == UEdGraphSchema_K2::PC_Object)
+		{
+			UClass* ObjectClass = Cast<UClass>(OtherPinType.PinSubCategoryObject.Get());
+			if ((ObjectClass == nullptr) && (OtherPinType.PinSubCategory == UEdGraphSchema_K2::PSC_Self))
+			{
+				if (UK2Node* K2Node = Cast<UK2Node>(OtherPin->GetOwningNode()))
+				{
+					ObjectClass = K2Node->GetBlueprint()->GeneratedClass;
+				}
+			}
+			// if the ObjectClass is still null, assume it is a UObject, which 
+			// will work with everything (so don't disallow it)
+			
+			if (ObjectClass != nullptr)
+			{
+				
+				if (ObjectClass == TargetType)
+				{
+					bIsDisallowed = true;
+					OutReason = FText::Format(LOCTEXT("EqualObjectCast", "'{0}' is already a '{1}', you don't need the cast."),
+						OtherPinName, TargetType->GetDisplayNameText()).ToString();
+				}
+				else if (ObjectClass->IsChildOf(TargetType))
+				{
+					bIsDisallowed = true;
+					OutReason = FText::Format(LOCTEXT("UnneededObjectCast", "'{0}' is already a '{1}' (which inherits from '{2}'), so you don't need the cast."),
+						OtherPinName, ObjectClass->GetDisplayNameText(), TargetType->GetDisplayNameText()).ToString();
+				}
+				else if (!TargetType->IsChildOf(ObjectClass))
+				{
+					bIsDisallowed = true;
+					OutReason = FText::Format(LOCTEXT("DisallowedObjectCast", "'{0}' does not inherit from '{1}' (the cast would always fail)."),
+						TargetType->GetDisplayNameText(), ObjectClass->GetDisplayNameText()).ToString();
+				}
+			}
+		}
+		else
+		{
+			bIsDisallowed = true;
+			OutReason = LOCTEXT("NonObjectCast", "You can only cast objects/interfaces.").ToString();
+		}
+	}
+	return bIsDisallowed;
+}
+
+void UK2Node_DynamicCast::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
+{
+	Super::NotifyPinConnectionListChanged(Pin);
+
+	if (Pin == GetCastSourcePin())
+	{
+		Pin->PinFriendlyName = FText::GetEmpty();
+
+		FEdGraphPinType& InputPinType = Pin->PinType;
+		if (Pin->LinkedTo.Num() == 0)
+		{
+			InputPinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+			InputPinType.PinSubCategory.Empty();
+			InputPinType.PinSubCategoryObject = nullptr;
+		}
+		else
+		{
+			const FEdGraphPinType& ConnectedPinType = Pin->LinkedTo[0]->PinType;
+			if (ConnectedPinType.PinCategory == UEdGraphSchema_K2::PC_Interface)
+			{
+				Pin->PinFriendlyName = LOCTEXT("InterfaceInputName", "Interface");
+				InputPinType.PinCategory = UEdGraphSchema_K2::PC_Interface;
+				InputPinType.PinSubCategoryObject = ConnectedPinType.PinSubCategoryObject;
+			}
+			else if (ConnectedPinType.PinCategory == UEdGraphSchema_K2::PC_Object)
+			{
+				InputPinType.PinCategory = UEdGraphSchema_K2::PC_Object;
+				InputPinType.PinSubCategoryObject = UObject::StaticClass();
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -9,7 +9,7 @@
 #include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"
 #include "ComponentAssetBroker.h"
-
+#include "BlueprintEditorSettings.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "KismetCompiler.h"
@@ -2236,11 +2236,14 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 
 	if (!bCanConvert && InputPin && OutputPin)
 	{
+		FEdGraphPinType const& InputType  = InputPin->PinType;
+		FEdGraphPinType const& OutputType = OutputPin->PinType;
+
 		// CHECK BYTE TO ENUM CAST
-		UEnum* Enum = Cast<UEnum>(InputPin->PinType.PinSubCategoryObject.Get());
-		const bool bInoputMatch = !InputPin->PinType.bIsArray && (PC_Byte == InputPin->PinType.PinCategory) && Enum;
-		const bool bOutputMatch = !OutputPin->PinType.bIsArray && (PC_Byte == OutputPin->PinType.PinCategory);
-		if(bOutputMatch && bInoputMatch)
+		UEnum* Enum = Cast<UEnum>(InputType.PinSubCategoryObject.Get());
+		const bool bInputIsEnum = !InputType.bIsArray && (PC_Byte == InputType.PinCategory) && Enum;
+		const bool bOutputIsByte = !OutputType.bIsArray && (PC_Byte == OutputType.PinCategory);
+		if (bInputIsEnum && bOutputIsByte)
 		{
 			bCanConvert = true;
 			if(bCreateNode)
@@ -2249,6 +2252,32 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 				CastByteToEnum->Enum = Enum;
 				CastByteToEnum->bSafe = true;
 				TargetNode = CastByteToEnum;
+			}
+		}
+		else
+		{
+			UClass* InputClass  = Cast<UClass>(InputType.PinSubCategoryObject.Get());
+			UClass* OutputClass = Cast<UClass>(InputType.PinSubCategoryObject.Get());
+
+			if ((OutputType.PinCategory == PC_Interface) && (InputType.PinCategory == PC_Object))
+			{
+				bCanConvert = (InputClass && OutputClass) && (InputClass->ImplementsInterface(OutputClass) || OutputClass->IsChildOf(InputClass));
+			}
+			else if (OutputType.PinCategory == PC_Object)
+			{
+				UBlueprintEditorSettings const* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+				if ((InputType.PinCategory == PC_Object) && BlueprintSettings->bAutoCastObjectConnections)
+				{
+					bCanConvert = (InputClass && OutputClass) && InputClass->IsChildOf(OutputClass);
+				}
+			}
+
+			if (bCanConvert && bCreateNode)
+			{
+				UK2Node_DynamicCast* DynCastNode = NewObject<UK2Node_DynamicCast>();
+				DynCastNode->TargetType = InputClass;
+				DynCastNode->SetPurity(true);
+				TargetNode = DynCastNode;
 			}
 		}
 	}
@@ -3434,18 +3463,6 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		}
 
 		return true;
-	}
-	else if ((Output.PinCategory == PC_Interface) && (Input.PinCategory == PC_Object))
-	{
-		UClass const* InterfaceClass = Cast<UClass const>(Output.PinSubCategoryObject.Get());
-		UClass const* InputClass     = Cast<UClass const>(Input.PinSubCategoryObject.Get());
-
-		if ((InputClass == nullptr) && (Input.PinSubCategory == PSC_Self))
-		{
-			InputClass = CallingContext;
-		}
-
-		return InputClass && (InputClass->ImplementsInterface(InterfaceClass) || InterfaceClass->IsChildOf(InputClass));
 	}
 	else if ((Output.PinCategory == PC_Object) && (Input.PinCategory == PC_Interface))
 	{
