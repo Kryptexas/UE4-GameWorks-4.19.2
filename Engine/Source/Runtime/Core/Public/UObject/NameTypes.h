@@ -939,7 +939,7 @@ private:
 	friend FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext, bool bIsPureAnsi );
 
 	/**
-	 * Shared initialization code (between two constructors)
+	 * Initialization from a wide string
 	 * 
 	 * @param InName String name of the name/number pair
 	 * @param InNumber Number part of the name/number pair
@@ -950,23 +950,27 @@ private:
 	void Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName=true, int32 HardcodeIndex = -1);
 
 	/**
-	 * Non-optimized initialization code for ansi names.
+	 * Initialization from an ANSI string
 	 * 
 	 * @param InName		String name of the name/number pair
 	 * @param InNumber		Number part of the name/number pair
 	 * @param FindType		Operation to perform on names
 	 * @param bSplitName	If true, this function will attempt to split a number off of the string portion (turning Rocket_17 to Rocket and number 17)
+	 * @param HardcodeIndex If >= 0, this represents a hardcoded FName and so automatically gets this index
 	 */
-	void Init(const ANSICHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName=true, int32 HardcodeIndex = -1)
-	{
-		Init(StringCast<WIDECHAR>(InName).Get(), InNumber, FindType, bSplitName, HardcodeIndex);
-	}
+	void Init(const ANSICHAR* InName, int32 InNumber, EFindName FindType, bool bSplitName=true, int32 HardcodeIndex = -1);
+
+	template <typename TCharType>
+	void InitInternal(const TCharType* InName, int32 InNumber, const EFindName FindType, const bool bSplitName, const int32 HardcodeIndex);
 
 	template <typename TCharType>
 	static bool InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, int32& OutComparisonIndex, int32& OutDisplayIndex);
 
 	template <typename TCharType>
 	static bool InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, int32& OutIndex);
+
+	template <typename TCharType>
+	static bool SplitNameWithCheckImpl(const TCharType* OldName, TCharType* NewName, int32 NewNameLen, int32& NewNumber);
 
 	FORCEINLINE NAME_INDEX GetComparisonIndexFast() const
 	{
