@@ -37,6 +37,7 @@ private:
 	TSharedPtr<class IStructureDetailsView> StructureDetailsView;
 	TSharedPtr<FName> SelectedName;
 	TSharedPtr<SComboBox<TSharedPtr<FName>>> RowComboBox;
+	TSharedPtr<SEditableTextBox> RenameTextBox;
 
 	void RefreshNameList();
 	void CleanBeforeChange();
