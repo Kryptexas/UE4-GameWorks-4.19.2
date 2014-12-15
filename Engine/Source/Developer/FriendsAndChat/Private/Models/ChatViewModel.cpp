@@ -264,6 +264,10 @@ public:
 				break;
 			}
 		}
+		else if(bInGame && GetEntryBarVisibility() == EVisibility::Visible)
+		{
+			SetEntryBarVisibility(EVisibility::Collapsed);
+		}
 		// Callback to let some UI know to stay active
 		OnChatMessageCommitted().Broadcast();
 		return bSuccess;
@@ -382,11 +386,7 @@ private:
 		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
 		FFriendsAndChatManager::Get()->OnChatFriendSelected().AddSP(this, &FChatViewModelImpl::HandleChatFriendSelected);
 		MessageManager.Pin()->OnChatMessageRecieved().AddSP(this, &FChatViewModelImpl::HandleMessageReceived);
-
-		for( const auto& Message : MessageManager.Pin()->GetMessageList())
-		{
-			HandleMessageReceived(Message);
-		}
+		FilterChatList();
 	}
 
 	void FilterChatList()
