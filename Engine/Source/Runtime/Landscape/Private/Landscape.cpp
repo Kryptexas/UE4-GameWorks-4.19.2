@@ -580,11 +580,6 @@ ULevel* ULandscapeComponent::GetLevel() const
 
 void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObject*>& OutTexturesAndMaterials) const
 {
-	for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC && CurrentMIC->IsA<ULandscapeMaterialInstanceConstant>(); CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
-	{
-		OutTexturesAndMaterials.Add(CurrentMIC);
-	}
-
 	if (HeightmapTexture)
 	{
 		OutTexturesAndMaterials.Add(HeightmapTexture);
@@ -598,6 +593,32 @@ void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObjec
 	if (XYOffsetmapTexture)
 	{
 		OutTexturesAndMaterials.Add(XYOffsetmapTexture);
+	}
+
+	for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC && CurrentMIC->IsA<ULandscapeMaterialInstanceConstant>(); CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
+	{
+		OutTexturesAndMaterials.Add(CurrentMIC);
+
+		// Sometimes weight map is not registered in the WeightmapTextures, so
+		// we need to get it from here.
+		if (CurrentMIC->IsA<ULandscapeMaterialInstanceConstant>())
+		{
+			auto* LandscapeMIC = Cast<ULandscapeMaterialInstanceConstant>(CurrentMIC);
+
+			auto* WeightmapPtr = LandscapeMIC->TextureParameterValues.FindByPredicate(
+				[](const FTextureParameterValue& ParamValue)
+				{
+					static const FName WeightmapParamName("Weightmap0");
+					return ParamValue.ParameterName == WeightmapParamName;
+				}
+			);
+
+			if (WeightmapPtr != nullptr &&
+				!OutTexturesAndMaterials.Contains(WeightmapPtr->ParameterValue))
+			{
+				OutTexturesAndMaterials.Add(WeightmapPtr->ParameterValue);
+			}
+		}
 	}
 }
 

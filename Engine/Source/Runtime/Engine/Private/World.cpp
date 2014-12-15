@@ -91,6 +91,9 @@ TMap<FName, EWorldType::Type> UWorld::WorldTypePreLoadMap;
 FWorldDelegates::FWorldEvent FWorldDelegates::OnPostWorldCreation;
 FWorldDelegates::FWorldInitializationEvent FWorldDelegates::OnPreWorldInitialization;
 FWorldDelegates::FWorldInitializationEvent FWorldDelegates::OnPostWorldInitialization;
+#if WITH_EDITOR
+FWorldDelegates::FWorldRenameEvent FWorldDelegates::OnPreWorldRename;
+#endif // WITH_EDITOR
 FWorldDelegates::FWorldPostDuplicateEvent FWorldDelegates::OnPostDuplicate;
 FWorldDelegates::FWorldCleanupEvent FWorldDelegates::OnWorldCleanup;
 FWorldDelegates::FWorldEvent FWorldDelegates::OnPreWorldFinishDestroy;
@@ -257,21 +260,12 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 		}
 	}
 
-	// UWorld rename is also renaming package, so move all direct children
-	// of the old package.
+	bool bShouldFail = false;
+	FWorldDelegates::OnPreWorldRename.Broadcast(this, InName, NewOuter, Flags, bShouldFail);
 
-	UPackage* PersistentLevelPackage = PersistentLevel->GetOutermost();
-	if (PersistentLevelPackage != NewOuter)
+	if (bShouldFail)
 	{
-		TArray<UObject*> ReferencedObjects;
-		GetObjectsWithOuter(PersistentLevelPackage, ReferencedObjects, false);
-		for (auto* ReferencedObject : ReferencedObjects)
-		{
-			if (ReferencedObject != this && !ReferencedObject->Rename(nullptr, NewOuter, Flags))
-			{
-				return false;
-			}
-		}
+		return false;
 	}
 
 	// Rename the world itself
@@ -332,6 +326,9 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
 
+	TArray<UObject*> ObjectsToFixReferences;
+	TMap<UObject*, UObject*> ReplacementMap;
+
 	// If we are not duplicating for PIE, fix up objects that travel with the world.
 	// Note that these objects should really be inners of the world, so if they become inners later, most of this code should not be necessary
 	if ( !bDuplicateForPIE )
@@ -354,9 +351,68 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 
 		// Make sure PKG_ContainsMap is set
 		MyPackage->ThisContainsMap();
+
+#if WITH_EDITOR
+		// Add the world to the list of objects in which to fix up references.
+		ObjectsToFixReferences.Add(this);
+
+		// Gather the textures
+		TArray<UTexture2D*> LightMapsAndShadowMaps;
+		GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+
+		// Duplicate the textures, if any
+		for (auto* Tex : LightMapsAndShadowMaps)
+		{
+			if (Tex && Tex->GetOutermost() != MyPackage)
+			{
+				UObject* NewTex = StaticDuplicateObject(Tex, MyPackage, *Tex->GetName());
+				ReplacementMap.Add(Tex, NewTex);
+			}
+		}
+
+		// Duplicate the level script blueprint generated classes as well
+		const bool bDontCreate = true;
+		UBlueprint* LevelScriptBlueprint = PersistentLevel->GetLevelScriptBlueprint(bDontCreate);
+		if (LevelScriptBlueprint)
+		{
+			UObject* OldGeneratedClass = LevelScriptBlueprint->GeneratedClass;
+			if (OldGeneratedClass)
+			{
+				UObject* NewGeneratedClass = StaticDuplicateObject(OldGeneratedClass, MyPackage, *OldGeneratedClass->GetName());
+				ReplacementMap.Add(OldGeneratedClass, NewGeneratedClass);
+
+				// The class may have referenced a lightmap or landscape resource that is also being duplicated. Add it to the list of objects that need references fixed up.
+				ObjectsToFixReferences.Add(NewGeneratedClass);
+			}
+
+			UObject* OldSkeletonClass = LevelScriptBlueprint->SkeletonGeneratedClass;
+			if (OldSkeletonClass)
+			{
+				UObject* NewSkeletonClass = StaticDuplicateObject(OldSkeletonClass, MyPackage, *OldSkeletonClass->GetName());
+				ReplacementMap.Add(OldSkeletonClass, NewSkeletonClass);
+
+				// The class may have referenced a lightmap or landscape resource that is also being duplicated. Add it to the list of objects that need references fixed up.
+				ObjectsToFixReferences.Add(NewSkeletonClass);
+			}
+		}
+#endif // WITH_EDITOR
 	}
 
-	FWorldDelegates::OnPostDuplicate.Broadcast(this, bDuplicateForPIE);
+	FWorldDelegates::OnPostDuplicate.Broadcast(this, bDuplicateForPIE, ReplacementMap, ObjectsToFixReferences);
+
+#if WITH_EDITOR
+	// Now replace references from the old textures/classes to the new ones, if any were duplicated
+	if (ReplacementMap.Num() > 0)
+	{
+		const bool bNullPrivateRefs = false;
+		const bool bIgnoreOuterRef = true;
+		const bool bIgnoreArchetypeRef = false;
+		for (auto* Obj : ObjectsToFixReferences)
+		{
+			FArchiveReplaceObjectRef<UObject> ReplaceAr(Obj, ReplacementMap, bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
+		}
+	}
+#endif // WITH_EDITOR
 }
 
 void UWorld::FinishDestroy()
@@ -2073,7 +2129,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
-	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, *EditorLevelWorld->GetName(), RF_AllFlags, NULL, SDO_DuplicateForPie));
+	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, *EditorLevelWorld->GetName(), RF_AllFlags, nullptr, SDO_DuplicateForPie));
 	
 	// Clean up string asset reference fixups
 	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
