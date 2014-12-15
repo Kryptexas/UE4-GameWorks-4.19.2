@@ -19,7 +19,7 @@
  *	
  */
 
-UCLASS(Blueprintable,meta=(ShowWorldContextPin))
+UCLASS(Blueprintable, meta = (ShowWorldContextPin), hidecategories = (Replication))
 class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 {
 	GENERATED_UCLASS_BODY()
