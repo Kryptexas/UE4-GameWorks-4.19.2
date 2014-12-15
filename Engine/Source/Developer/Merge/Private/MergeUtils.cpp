@@ -5,6 +5,8 @@
 #include "ISourceControlModule.h"
 #include "SourceControlHelpers.h"
 #include "NotificationManager.h"
+#include "Developer/AssetTools/Public/IAssetTypeActions.h"
+#include "Runtime/Slate/Public/Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "MergeToolUtils"
 
