@@ -5,6 +5,7 @@
 #include "LandscapeComponent.h"
 #include "UObjectHash.h"
 #include "Engine/World.h"
+#include "Engine/Level.h"
 
 class FLandscapeModule : public IModuleInterface
 {
