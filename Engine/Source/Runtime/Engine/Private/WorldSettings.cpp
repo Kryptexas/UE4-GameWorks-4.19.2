@@ -83,6 +83,7 @@ void AWorldSettings::PreInitializeComponents()
 				FActorSpawnParameters SpawnParameters;
 				SpawnParameters.Owner = this;
 				SpawnParameters.Instigator = Instigator;
+				SpawnParameters.ObjectFlags |= RF_Transient;	// We never want to save particle event managers into a map
 				World->MyParticleEventManager = World->SpawnActor<AParticleEventManager>(ParticleEventManagerClass, SpawnParameters );
 			}
 		}

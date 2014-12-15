@@ -418,6 +418,7 @@ void AController::InitPlayerState()
 			SpawnInfo.Owner = this;
 			SpawnInfo.Instigator = Instigator;
 			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.ObjectFlags |= RF_Transient;	// We never want player states to save into a map
 			PlayerState = World->SpawnActor<APlayerState>(GameMode->PlayerStateClass, SpawnInfo );
 	
 			// force a default player name if necessary

@@ -152,6 +152,7 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 	UClass* const SessionClass = GetGameSessionClass();
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save game sessions into a map
 	GameSession = World->SpawnActor<AGameSession>(SessionClass, SpawnInfo);
 	GameSession->InitOptions(Options);
 
@@ -403,6 +404,7 @@ void AGameMode::PreInitializeComponents()
 	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameMode::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save game states or network managers into a map
 
 	// Fallback to default GameState if none was specified.
 	if (GameStateClass == NULL)
@@ -1282,6 +1284,7 @@ APlayerController* AGameMode::SpawnPlayerController(FVector const& SpawnLocation
 {
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;	
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save player controllers into a map
 	return GetWorld()->SpawnActor<APlayerController>(PlayerControllerClass, SpawnLocation, SpawnRotation, SpawnInfo );
 }
 
@@ -1299,6 +1302,7 @@ APawn* AGameMode::SpawnDefaultPawnFor(AController* NewPlayer, AActor* StartSpot)
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;	
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save default player pawns into a map
 	APawn* ResultPawn = GetWorld()->SpawnActor<APawn>(GetDefaultPawnClassForController(NewPlayer), StartLocation, StartRotation, SpawnInfo );
 	if ( ResultPawn == NULL )
 	{

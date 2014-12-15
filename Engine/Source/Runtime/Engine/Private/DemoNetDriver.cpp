@@ -805,7 +805,9 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 		return;
 	}
 
-	APlayerController* Controller = World->SpawnActor<APlayerController>( C );
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want these to save into a map
+	APlayerController* Controller = World->SpawnActor<APlayerController>( C, SpawnInfo );
 
 	if ( Controller == NULL )
 	{
