@@ -98,7 +98,12 @@ void UButton::SetBackgroundColor(FLinearColor Color)
 
 bool UButton::IsPressed() const
 {
-	return MyButton->IsPressed();
+	if ( MyButton.IsValid() )
+	{
+		return MyButton->IsPressed();
+	}
+
+	return false;
 }
 
 void UButton::PostLoad()
