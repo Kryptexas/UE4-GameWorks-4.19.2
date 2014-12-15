@@ -25,101 +25,101 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 	{}
 
 	// gets value stored by SetMaterialProperty()
-	virtual EShaderFrequency GetCurrentShaderFrequency() const override
+	virtual EShaderFrequency GetCurrentShaderFrequency() const
 	{
 		// not used by Lightmass
 		return SF_Pixel;
 	}
 
-	virtual int32 ParticleMacroUV() override
+	virtual int32 ParticleMacroUV()
 	{
 		return Compiler->ParticleMacroUV();
 	}
 
-	virtual int32 ParticleRelativeTime() override
+	virtual int32 ParticleRelativeTime()
 	{
 		return Compiler->Constant(0.0f);
 	}
 
-	virtual int32 ParticleMotionBlurFade() override
+	virtual int32 ParticleMotionBlurFade()
 	{
 		return Compiler->Constant(1.0f);
 	}
 
-	virtual int32 ParticleDirection() override
+	virtual int32 ParticleDirection()
 	{
 		return Compiler->Constant3(0.0f, 0.0f, 0.0f);
 	}
 
-	virtual int32 ParticleSpeed() override
+	virtual int32 ParticleSpeed()
 	{
 		return Compiler->Constant(0.0f);
 	}
 	
-	virtual int32 ParticleSize() override
+	virtual int32 ParticleSize()
 	{
 		return Compiler->Constant2(0.0f,0.0f);
 	}
 
-	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
+	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets)
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered WorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 ObjectWorldPosition() override
+	virtual int32 ObjectWorldPosition() 
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ObjectWorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 ObjectRadius() override
+	virtual int32 ObjectRadius() 
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ObjectRadius... Forcing constant 500.0f."));
 		return Compiler->Constant(500);
 	}
 
-	virtual int32 ObjectBounds() override
+	virtual int32 ObjectBounds() 
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ObjectBounds... Forcing constant (0,0,0)."));
 		return Compiler->Constant3(0,0,0);
 	}
 
-	virtual int32 DistanceCullFade() override
+	virtual int32 DistanceCullFade() 
 	{
 		return Compiler->Constant(1.0f);
 	}
 
-	virtual int32 ActorWorldPosition() override
+	virtual int32 ActorWorldPosition() 
 	{
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 CameraWorldPosition() override
+	virtual int32 CameraWorldPosition()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered CameraWorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 CameraVector() override
+	virtual int32 CameraVector()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered CameraVector... Forcing constant (0.0f,0.0f,1.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,1.0f);
 	}
 
-	virtual int32 LightVector() override
+	virtual int32 LightVector()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered LightVector... Forcing constant (1.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(1.0f,0.0f,0.0f);
 	}
 
-	virtual int32 ReflectionVector() override
+	virtual int32 ReflectionVector()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ReflectionVector... Forcing constant (0.0f,0.0f,-1.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,-1.0f);
 	}
 
-	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal) override
+	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal)
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ReflectionAboutCustomNormalVector... Forcing constant (0.0f,0.0f,-1.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,-1.0f);
@@ -128,7 +128,7 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 	/**
 	 *	Generate shader code for transforming a vector
 	 */
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
+	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A)
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered TransformVector... Passing thru source vector untouched."));
 		return A;
@@ -140,33 +140,33 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 	 *	@param	CoordType - type of transform to apply. see EMaterialExpressionTransformPosition 
 	 *	@param	A - index for input vector parameter's code
 	 */
-	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
+	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A)
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered TransformPosition... Passing thru source vector untouched."));
 		return A;
 	}
 
-	virtual int32 VertexColor() override
+	virtual int32 VertexColor()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered VertexColor... Forcing constant (1.0f,1.0f,1.0f,1.0f)."));
 		return Compiler->Constant4(1.0f,1.0f,1.0f,1.0f);
 	}
 
-	virtual int32 RealTime(bool bPeriodic, float Period) override
+	virtual int32 RealTime()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered RealTime... Forcing constant 0.0f."));
 		return Compiler->Constant(0.0f);
 	}
 
-	virtual int32 GameTime(bool bPeriodic, float Period) override
+	virtual int32 GameTime()
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered GameTime... Forcing constant 0.0f."));
 		return Compiler->Constant(0.0f);
 	}
 
-	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Lightmass; }
+	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) { return Lightmass; }
 
-	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) override { return StaticIndirect; }
+	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) { return StaticIndirect; }
 };
 
 /**

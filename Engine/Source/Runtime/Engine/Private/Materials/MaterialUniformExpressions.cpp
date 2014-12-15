@@ -88,11 +88,6 @@ void FUniformExpressionSet::Serialize(FArchive& Ar)
 	Ar << UniformScalarExpressions;
 	Ar << Uniform2DTextureExpressions;
 	Ar << UniformCubeTextureExpressions;
-	if (Ar.UE4Ver() >= VER_UE4_PERFRAME_MATERIAL_UNIFORM_EXPRESSIONS)
-	{
-		Ar << PerFrameUniformScalarExpressions;
-		Ar << PerFrameUniformVectorExpressions;
-	}
 
 	Ar << ParameterCollections;
 
@@ -109,8 +104,6 @@ bool FUniformExpressionSet::IsEmpty() const
 		&& UniformScalarExpressions.Num() == 0
 		&& Uniform2DTextureExpressions.Num() == 0
 		&& UniformCubeTextureExpressions.Num() == 0
-		&& PerFrameUniformScalarExpressions.Num() == 0
-		&& PerFrameUniformVectorExpressions.Num() == 0
 		&& ParameterCollections.Num() == 0;
 }
 
@@ -120,8 +113,6 @@ bool FUniformExpressionSet::operator==(const FUniformExpressionSet& ReferenceSet
 	|| UniformScalarExpressions.Num() != ReferenceSet.UniformScalarExpressions.Num()
 	|| Uniform2DTextureExpressions.Num() != ReferenceSet.Uniform2DTextureExpressions.Num()
 	|| UniformCubeTextureExpressions.Num() != ReferenceSet.UniformCubeTextureExpressions.Num()
-	|| PerFrameUniformScalarExpressions.Num() != ReferenceSet.PerFrameUniformScalarExpressions.Num()
-	|| PerFrameUniformVectorExpressions.Num() != ReferenceSet.PerFrameUniformVectorExpressions.Num()
 	|| ParameterCollections.Num() != ReferenceSet.ParameterCollections.Num())
 	{
 		return false;
@@ -159,22 +150,6 @@ bool FUniformExpressionSet::operator==(const FUniformExpressionSet& ReferenceSet
 		}
 	}
 
-	for (int32 i = 0; i < PerFrameUniformScalarExpressions.Num(); i++)
-	{
-		if (!PerFrameUniformScalarExpressions[i]->IsIdentical(ReferenceSet.PerFrameUniformScalarExpressions[i]))
-		{
-			return false;
-		}
-	}
-
-	for (int32 i = 0; i < PerFrameUniformVectorExpressions.Num(); i++)
-	{
-		if (!PerFrameUniformVectorExpressions[i]->IsIdentical(ReferenceSet.PerFrameUniformVectorExpressions[i]))
-		{
-			return false;
-		}
-	}
-
 	for (int32 i = 0; i < ParameterCollections.Num(); i++)
 	{
 		if (ParameterCollections[i] != ReferenceSet.ParameterCollections[i])
@@ -188,13 +163,11 @@ bool FUniformExpressionSet::operator==(const FUniformExpressionSet& ReferenceSet
 
 FString FUniformExpressionSet::GetSummaryString() const
 {
-	return FString::Printf(TEXT("(%u vectors, %u scalars, %u 2d tex, %u cube tex, %u scalars/frame, %u vectors/frame, %u collections)"),
+	return FString::Printf(TEXT("(%u vectors, %u scalars, %u 2d tex, %u cube tex, %u collections)"),
 		UniformVectorExpressions.Num(), 
 		UniformScalarExpressions.Num(),
 		Uniform2DTextureExpressions.Num(),
 		UniformCubeTextureExpressions.Num(),
-		PerFrameUniformScalarExpressions.Num(),
-		PerFrameUniformVectorExpressions.Num(),
 		ParameterCollections.Num()
 		);
 }
@@ -492,7 +465,6 @@ IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionMin);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionMax);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionClamp);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSaturate);
-IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionComponentSwizzle);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFloor);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionCeil);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFrac);
