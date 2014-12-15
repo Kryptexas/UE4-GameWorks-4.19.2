@@ -232,6 +232,7 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
         TickAnimation(0.f); 
 
 		RefreshBoneTransforms();
+		FlipEditableSpaceBases();
 		UpdateComponentToWorld();
 	}
 }
@@ -1026,6 +1027,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		}
 		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
 	}
+	bNeedToFlipSpaceBaseBuffers = true;
 
 	// Transforms updated, cached local bounds are now out of date.
 	InvalidateCachedBounds();

@@ -1836,14 +1836,18 @@ void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRender
 
 void USkinnedMeshComponent::FlipEditableSpaceBases()
 {
-	if (bDoubleBufferedBlendSpaces)
+	if (bNeedToFlipSpaceBaseBuffers)
 	{
-		CurrentReadSpaceBases = CurrentEditableSpaceBases;
-		CurrentEditableSpaceBases = 1 - CurrentEditableSpaceBases;
-	}
-	else
-	{
-		CurrentReadSpaceBases = CurrentEditableSpaceBases = 0;
+		bNeedToFlipSpaceBaseBuffers = false;
+		if (bDoubleBufferedBlendSpaces)
+		{
+			CurrentReadSpaceBases = CurrentEditableSpaceBases;
+			CurrentEditableSpaceBases = 1 - CurrentEditableSpaceBases;
+		}
+		else
+		{
+			CurrentReadSpaceBases = CurrentEditableSpaceBases = 0;
+		}
 	}
 }
 
