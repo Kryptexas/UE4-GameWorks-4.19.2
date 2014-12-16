@@ -445,8 +445,6 @@ bool USkeleton::RecreateBoneTree(USkeletalMesh* InSkelMesh)
 					AnimAsset->ValidateSkeleton();
 				}
 			}
-			
-			return bResult;
 		}
 		
 		return bResult;
