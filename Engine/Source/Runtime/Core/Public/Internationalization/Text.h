@@ -123,7 +123,6 @@ public:
 
 	static const FText& GetEmpty()
 	{
-		static const FText StaticEmptyText = FText();
 		return StaticEmptyText;
 	}
 
@@ -298,6 +297,10 @@ public:
 
 private:
 
+	/** Special constructor used to create StaticEmptyText without also allocating a history object */
+	enum class EInitToEmptyString : uint8 { Value };
+	explicit FText( EInitToEmptyString );
+
 	explicit FText( FString InSourceString );
 
 	explicit FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags=0 );
@@ -355,6 +358,8 @@ private:
 	static bool bSuppressWarnings;
 
 public:
+	static const FText StaticEmptyText;
+
 	//Some error text formats
 	static const FText UnusedArgumentsError;
 	static const FText CommentStartError;

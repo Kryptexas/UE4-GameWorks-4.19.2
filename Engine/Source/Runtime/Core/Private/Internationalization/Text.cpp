@@ -221,6 +221,8 @@ FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value)
 bool FText::bEnableErrorCheckingResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS;
 bool FText::bSuppressWarnings = false;
 
+const FText FText::StaticEmptyText = FText(FText::EInitToEmptyString::Value);
+
 //Some error text formats
 const FText FText::UnusedArgumentsError = LOCTEXT("Error_UnusedArguments", "ERR: The following arguments were unused ({0}).");
 const FText FText::CommentStartError = LOCTEXT("Error_CommentDoesntStartWithQMark", "ERR: The Comment for Arg Block {0} does not start with a '?'.");
@@ -233,6 +235,12 @@ const FText FText::UnEscapedCloseBraceOutsideOfArgumentBlock = LOCTEXT("Error_Un
 const FText FText::SerializationFailureError = LOCTEXT("Error_SerializationFailure", "ERR: Transient text cannot be serialized \"{0}\".");
 
 FText::FText()
+	: DisplayString( StaticEmptyText.DisplayString )
+	, Flags(0)
+{
+}
+
+FText::FText( EInitToEmptyString )
 	: DisplayString( new FString() )
 	, Flags(0)
 {
