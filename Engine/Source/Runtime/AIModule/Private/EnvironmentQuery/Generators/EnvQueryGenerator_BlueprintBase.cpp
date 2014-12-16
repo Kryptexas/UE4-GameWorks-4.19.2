@@ -50,14 +50,12 @@ void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryIns
 void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector)
 {
 	check(CachedQueryInstance);
-	ensure(ItemType->GetClass()->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()));
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(Vector);
 }
 
 void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor)
 {
 	check(CachedQueryInstance);
-	//ensure(ItemType->GetClass()->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()));
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Actor>(Actor);
 }
 

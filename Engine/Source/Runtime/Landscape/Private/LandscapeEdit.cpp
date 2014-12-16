@@ -4780,6 +4780,11 @@ struct FMobileLayerAllocation
 {
 	FWeightmapLayerAllocationInfo Allocation;
 
+	FMobileLayerAllocation(const FWeightmapLayerAllocationInfo& InAllocation)
+		: Allocation(InAllocation)
+	{
+	}
+
 	friend bool operator<(const FMobileLayerAllocation& lhs, const FMobileLayerAllocation& rhs)
 	{
 		if (!lhs.Allocation.LayerInfo && !rhs.Allocation.LayerInfo) return false; // equally broken :P
@@ -4811,7 +4816,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	MobileLayerAllocations.Reserve(WeightmapLayerAllocations.Num());
 	for (const auto& Allocation : WeightmapLayerAllocations)
 	{
-		MobileLayerAllocations.Add(FMobileLayerAllocation{ Allocation });
+		MobileLayerAllocations.Emplace(Allocation);
 	}
 	MobileLayerAllocations.StableSort();
 

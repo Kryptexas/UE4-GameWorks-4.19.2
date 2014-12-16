@@ -1340,6 +1340,10 @@ FLightMap2D* FLightMap2D::AllocateInstancedLightMap(UInstancedStaticMeshComponen
 				}
 			}
 		}
+
+		// Save new requantized Scale/Add
+		FMemory::Memcpy(SourceQuantizedData->Scale, Scale, sizeof(Scale));
+		FMemory::Memcpy(SourceQuantizedData->Add, Add, sizeof(Add));
 	}
 
 	FLightMapAllocationGroup AllocationGroup = FLightMapAllocationGroup();

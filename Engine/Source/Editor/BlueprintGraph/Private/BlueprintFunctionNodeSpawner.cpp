@@ -385,7 +385,7 @@ UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 	// bound nodes get positioned properly
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;
 
-	return Super::SpawnNode(SpawnClass, ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
+	return Super::SpawnNode<UEdGraphNode>(SpawnClass, ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------
@@ -405,8 +405,8 @@ bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCa
 	bool const bNodeTypeMatches = (NodeClass == UK2Node_CallFunction::StaticClass());
 	bool bClassOwnerMatches = false;
 
-	UClass* BindingClass = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate);
-	if (UClass const* FuncOwner = Function->GetOwnerClass())
+	UClass* BindingClass = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate)->GetAuthoritativeClass();
+	if (UClass const* FuncOwner = Function->GetOwnerClass()->GetAuthoritativeClass())
 	{
 		bClassOwnerMatches = BindingClass->IsChildOf(FuncOwner);
 	}

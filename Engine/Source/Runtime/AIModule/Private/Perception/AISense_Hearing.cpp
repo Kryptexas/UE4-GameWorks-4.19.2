@@ -18,7 +18,15 @@ FAINoiseEvent::FAINoiseEvent(AActor* InInstigator, const FVector& InNoiseLocatio
 UAISense_Hearing::UAISense_Hearing(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		static bool bMakeNoiseInterceptionSetUp = false;
+		if (bMakeNoiseInterceptionSetUp == false)
+		{
+			AActor::SetMakeNoiseDelegate(FMakeNoiseDelegate::CreateStatic(&UAIPerceptionSystem::MakeNoiseImpl));
+			bMakeNoiseInterceptionSetUp = true;
+		}
+	}
 }
 
 float UAISense_Hearing::Update()

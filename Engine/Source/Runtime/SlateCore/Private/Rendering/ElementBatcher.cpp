@@ -525,7 +525,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 	float LineX = 0;
 
-	const FCharacterEntry* PreviousCharEntry = nullptr;
+	FCharacterEntry PreviousCharEntry;
 
 	int32 Kerning = 0;
 
@@ -575,9 +575,9 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
 
-			if( !bIsWhitespace && CharIndex > 0 )
+			if( !bIsWhitespace && PreviousCharEntry.IsValidEntry() )
 			{
-				Kerning = CharacterList.GetKerning( *PreviousCharEntry, Entry );
+				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry );
 			}
 			else
 			{
@@ -585,7 +585,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 			}
 
 			LineX += Kerning;
-			PreviousCharEntry = &Entry;
+			PreviousCharEntry = Entry;
 
 			if( !bIsWhitespace )
 			{

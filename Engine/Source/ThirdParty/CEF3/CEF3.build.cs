@@ -13,7 +13,7 @@ public class CEF3 : ModuleRules
 
 		Type = ModuleType.External;
 
-		if (Target.Platform == UnrealTargetPlatform.Win64)
+		if (Target.Platform == UnrealTargetPlatform.Win64 && WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2012)
 		{
 			CEFPlatform = "windows64";
 		}
