@@ -2883,7 +2883,8 @@ void FConfigCacheIni::LoadConsoleVariablesFromINI()
 				else
 				{
 					// Create a dummy that is used when someone registers the variable later on.
-					IConsoleManager::Get().RegisterConsoleVariable(*KeyString, *ValueString, TEXT("IAmNoRealVariable"), (uint32)ECVF_Unregistered | (uint32)ECVF_CreatedFromIni);
+					IConsoleManager::Get().RegisterConsoleVariable(*KeyString, *ValueString, TEXT("IAmNoRealVariable"),
+						(uint32)ECVF_Unregistered | (uint32)ECVF_CreatedFromIni | (uint32)ECVF_SetByConsoleVariablesIni);
 				}
 			}
 			bFoundSection = true;
