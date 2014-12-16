@@ -4,12 +4,87 @@
 
 #include "ReflectionMetadata.h"
 
-#include "TextBinding.h"
-#include "FloatBinding.h"
-#include "BoolBinding.h"
-#include "BrushBinding.h"
-#include "ColorBinding.h"
-#include "Int32Binding.h"
+/**
+* Interface for tool tips.
+*/
+class FDelegateToolTip : public IToolTip
+{
+public:
+
+	/**
+	* Gets the widget that this tool tip represents.
+	*
+	* @return The tool tip widget.
+	*/
+	virtual TSharedRef<class SWidget> AsWidget()
+	{
+		return GetContentWidget();
+	}
+
+	/**
+	* Gets the tool tip's content widget.
+	*
+	* @return The content widget.
+	*/
+	virtual TSharedRef<SWidget> GetContentWidget()
+	{
+		if ( CachedToolTip.IsValid() )
+		{
+			return CachedToolTip.ToSharedRef();
+		}
+
+		UWidget* Widget = ToolTipWidgetDelegate.Execute();
+		if ( Widget )
+		{
+			CachedToolTip = Widget->TakeWidget();
+			return CachedToolTip.ToSharedRef();
+		}
+
+		return SNullWidget::NullWidget;
+	}
+
+	/**
+	* Sets the tool tip's content widget.
+	*
+	* @param InContentWidget The new content widget to set.
+	*/
+	virtual void SetContentWidget(const TSharedRef<SWidget>& InContentWidget)
+	{
+		CachedToolTip = InContentWidget;
+	}
+
+	/**
+	* Checks whether this tool tip has no content to display right now.
+	*
+	* @return true if the tool tip has no content to display, false otherwise.
+	*/
+	virtual bool IsEmpty() const
+	{
+		return !ToolTipWidgetDelegate.IsBound();
+	}
+
+	/**
+	* Checks whether this tool tip can be made interactive by the user (by holding Ctrl).
+	*
+	* @return true if it is an interactive tool tip, false otherwise.
+	*/
+	virtual bool IsInteractive() const
+	{
+		return false;
+	}
+
+	virtual void OnClosed() override
+	{
+		CachedToolTip.Reset();
+	}
+
+public:
+	UWidget::FGetWidget ToolTipWidgetDelegate;
+
+private:
+	TSharedPtr<SWidget> CachedToolTip;
+};
+
 
 /////////////////////////////////////////////////////
 // UWidget
@@ -145,6 +220,31 @@ void UWidget::SetToolTipText(const FText& InToolTipText)
 	if (SafeWidget.IsValid())
 	{
 		return SafeWidget->SetToolTipText(InToolTipText);
+	}
+}
+
+void UWidget::SetToolTip(UWidget* InToolTipWidget)
+{
+	ToolTipWidget = InToolTipWidget;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		if ( ToolTipWidget )
+		{
+			TSharedRef<SToolTip> ToolTip = SNew(SToolTip)
+				.TextMargin(FMargin(0))
+				.BorderImage(nullptr)
+				[
+					ToolTipWidget->TakeWidget()
+				];
+
+			SafeWidget->SetToolTip(ToolTip);
+		}
+		else
+		{
+			SafeWidget->SetToolTip(TSharedPtr<IToolTip>());
+		}
 	}
 }
 
@@ -479,7 +579,24 @@ void UWidget::SynchronizeProperties()
 	UpdateRenderTransform();
 	SafeWidget->SetRenderTransformPivot(RenderTransformPivot);
 
-	if ( !ToolTipText.IsEmpty() )
+	if ( ToolTipWidgetDelegate.IsBound() && !IsDesignTime() )
+	{
+		TSharedRef<FDelegateToolTip> ToolTip = MakeShareable(new FDelegateToolTip());
+		ToolTip->ToolTipWidgetDelegate = ToolTipWidgetDelegate;
+		SafeWidget->SetToolTip(ToolTip);
+	}
+	else if ( ToolTipWidget != nullptr )
+	{
+		TSharedRef<SToolTip> ToolTip = SNew(SToolTip)
+			.TextMargin(FMargin(0))
+			.BorderImage(nullptr)
+			[
+				ToolTipWidget->TakeWidget()
+			];
+
+		SafeWidget->SetToolTip(ToolTip);
+	}
+	else if ( !ToolTipText.IsEmpty() || ToolTipTextDelegate.IsBound() )
 	{
 		SafeWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
 	}
@@ -497,6 +614,8 @@ void UWidget::SynchronizeProperties()
 	}
 
 #if WITH_EDITOR
+	// In editor builds we add metadata to the widget so that once hit with the widget reflector it can report
+	// where it comes from, what blueprint, what the name of the widget was...etc.
 	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy)));
 #endif
 }

@@ -45,7 +45,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ECheckBoxState, FGetCheckBoxState);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetContent);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetWidget);
 
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetForString, FString, Item);
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetForObject, UObject*, Item);
@@ -72,7 +72,7 @@ public:
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Behavior")
 	bool bIsEnabled;
 
 	/** A bindable delegate for bIsEnabled */
@@ -80,19 +80,27 @@ public:
 	FGetBool bIsEnabledDelegate;
 
 	/** Tooltip text to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Behavior")
 	FText ToolTipText;
 
 	/** A bindable delegate for ToolTipText */
 	UPROPERTY()
 	FGetText ToolTipTextDelegate;
 
+	/** Tooltip widget to show when the user hovers over the widget with the mouse */
+	UPROPERTY(EditDefaultsOnly, Category="Behavior", AdvancedDisplay)
+	UWidget* ToolTipWidget;
+
+	/** A bindable delegate for ToolTipWidget */
+	UPROPERTY()
+	FGetWidget ToolTipWidgetDelegate;
+
 	/** The visibility of the widget */
 	UPROPERTY()
 	TEnumAsByte<ESlateVisibility> Visiblity_DEPRECATED;
 
 	/** The visibility of the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category="Behavior")
 	ESlateVisibility Visibility;
 
 	/** A bindable delegate for Visibility */
@@ -100,7 +108,7 @@ public:
 	FGetSlateVisibility VisibilityDelegate;
 
 	/** The cursor to show when the mouse is over the widget */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	/** A bindable delegate for Cursor */
@@ -176,6 +184,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetToolTipText(const FText& InToolTipText);
 
+	/** Sets a custom widget as the tooltip of the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetToolTip(UWidget* Widget);
+
 	/** @return true if the widget is Visible, HitTestInvisible or SelfHitTestInvisible. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsVisible() const;
@@ -188,7 +200,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetVisibility(ESlateVisibility InVisibility);
 
-	/** Gets if the button is currently being hovered by the mouse */
+	/** @return true if the widget is currently being hovered by a pointer device */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsHovered() const;
 
@@ -270,12 +282,6 @@ public:
 	 * @return true if this widget is a child of the PossibleParent
 	 */
 	bool IsChildOf(UWidget* PossibleParent);
-
-	///**
-	// * Allows binding to properties of other objects at runtime.
-	// */
-	//UFUNCTION(BlueprintCallable, Category="Widget")
-	//bool BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty);
 
 	/**  */
 	bool AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath);

@@ -25,7 +25,7 @@ public:
 
 	/** Called when the menu content is requested to allow a more customized handling over what to display */
 	UPROPERTY(EditDefaultsOnly, Category="Events")
-	FGetContent OnGetMenuContentEvent;
+	FGetWidget OnGetMenuContentEvent;
 	
 	/** The placement location of the summoned widget. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Menu")
