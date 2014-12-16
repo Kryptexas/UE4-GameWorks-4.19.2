@@ -249,6 +249,8 @@ public:
 
 	virtual FModifierKeysState GetModifierKeys() const override;
 
+	virtual bool IsCursorDirectlyOverSlateWindow() const override;
+
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
 	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const override;

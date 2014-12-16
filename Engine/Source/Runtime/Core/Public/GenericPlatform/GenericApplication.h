@@ -401,6 +401,9 @@ public:
 
 	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState(); }
 
+	/** @return true if the system cursor is currently directly over a slate window. */
+	virtual bool IsCursorDirectlyOverSlateWindow() const { return true; }
+
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) { };
 
 	virtual bool IsUsingHighPrecisionMouseMode() const { return false; }

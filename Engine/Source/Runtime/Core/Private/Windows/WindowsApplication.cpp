@@ -272,6 +272,33 @@ FModifierKeysState FWindowsApplication::GetModifierKeys() const
 	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
 }
 
+
+static TSharedPtr< FWindowsWindow > FindWindowByHWND(const TArray< TSharedRef< FWindowsWindow > >& WindowsToSearch, HWND HandleToFind)
+{
+	for (int32 WindowIndex = 0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
+	{
+		TSharedRef< FWindowsWindow > Window = WindowsToSearch[WindowIndex];
+		if (Window->GetHWnd() == HandleToFind)
+		{
+			return Window;
+		}
+	}
+
+	return TSharedPtr< FWindowsWindow >(NULL);
+}
+
+
+bool FWindowsApplication::IsCursorDirectlyOverSlateWindow() const
+{
+	POINT CursorPos;
+	::GetCursorPos(&CursorPos);
+	HWND hWnd = ::WindowFromPoint(CursorPos);
+	
+	TSharedPtr< FWindowsWindow > SlatWindowUnderCursor = FindWindowByHWND(Windows, hWnd);
+	return SlatWindowUnderCursor.IsValid();
+}
+
+
 void FWindowsApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWindow )
 {
 	if ( InWindow.IsValid() )
@@ -579,21 +606,6 @@ EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
 
 	return EWindowTitleAlignment::Left;
 }
-
-static TSharedPtr< FWindowsWindow > FindWindowByHWND( const TArray< TSharedRef< FWindowsWindow > >& WindowsToSearch, HWND HandleToFind )
-{
-	for (int32 WindowIndex=0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
-	{
-		TSharedRef< FWindowsWindow > Window = WindowsToSearch[ WindowIndex ];
-		if ( Window->GetHWnd() == HandleToFind )
-		{
-			return Window;
-		}
-	}
-
-	return TSharedPtr< FWindowsWindow >( NULL );
-}
-
 
 /** All WIN32 messages sent to our app go here; this method simply passes them on */
 LRESULT CALLBACK FWindowsApplication::AppWndProc(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam)

@@ -799,31 +799,35 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 	bool bPrevWindowWasModal = false;
 	FArrangedChildren OutWidgetPath(EVisibility::Visible);
 
-	for( int32 WindowIndex=Windows.Num()-1; WindowIndex >= 0 && OutWidgetPath.Num() == 0; --WindowIndex )
+	if (PlatformApplication->IsCursorDirectlyOverSlateWindow())
 	{
-		const TSharedRef<SWindow>& Window = Windows[ WindowIndex ];
 
-		// Hittest the window's children first.
-		FWidgetPath ResultingPath = LocateWindowUnderMouse( ScreenspaceMouseCoordinate, Window->GetChildWindows(), bIgnoreEnabledStatus );
-		if ( ResultingPath.IsValid() )
+		for (int32 WindowIndex = Windows.Num() - 1; WindowIndex >= 0 && OutWidgetPath.Num() == 0; --WindowIndex)
 		{
-			return ResultingPath;
-		}
+			const TSharedRef<SWindow>& Window = Windows[WindowIndex];
 
-		// If none of the children were hit, hittest the parent.
-
-		// Only accept input if the current window accepts input and the current window is not under a modal window or an interactive tooltip
-		
-		if (!bPrevWindowWasModal)
-		{
-			FWidgetPath PathToLocatedWidget = LocateWidgetInWindow(ScreenspaceMouseCoordinate, Window, bIgnoreEnabledStatus);
-			if (PathToLocatedWidget.IsValid())
+			// Hittest the window's children first.
+			FWidgetPath ResultingPath = LocateWindowUnderMouse(ScreenspaceMouseCoordinate, Window->GetChildWindows(), bIgnoreEnabledStatus);
+			if (ResultingPath.IsValid())
 			{
-				return PathToLocatedWidget;
+				return ResultingPath;
+			}
+
+			// If none of the children were hit, hittest the parent.
+
+			// Only accept input if the current window accepts input and the current window is not under a modal window or an interactive tooltip
+
+			if (!bPrevWindowWasModal)
+			{
+				FWidgetPath PathToLocatedWidget = LocateWidgetInWindow(ScreenspaceMouseCoordinate, Window, bIgnoreEnabledStatus);
+				if (PathToLocatedWidget.IsValid())
+				{
+					return PathToLocatedWidget;
+				}
 			}
 		}
 	}
-
+	
 	return FWidgetPath();
 }
 
