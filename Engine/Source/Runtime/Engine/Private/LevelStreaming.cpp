@@ -2,7 +2,6 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
-#include "Engine/LevelStreamingBounds.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/LevelBounds.h"
@@ -770,17 +769,17 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 	}
 }
 
-bool ULevelStreaming::ShouldBeLoaded( const FVector& ViewLocation )
+bool ULevelStreaming::ShouldBeLoaded()
 {
 	return true;
 }
 
-bool ULevelStreaming::ShouldBeVisible( const FVector& ViewLocation )
+bool ULevelStreaming::ShouldBeVisible()
 {
 	if( GetWorld()->IsGameWorld() )
 	{
 		// Game and play in editor viewport codepath.
-		return bShouldBeVisible && ShouldBeLoaded( ViewLocation );
+		return bShouldBeVisible && ShouldBeLoaded();
 	}
 	else
 	{
@@ -925,12 +924,12 @@ void ULevelStreamingKismet::PostLoad()
 	}
 }
 
-bool ULevelStreamingKismet::ShouldBeVisible( const FVector& ViewLocation )
+bool ULevelStreamingKismet::ShouldBeVisible()
 {
 	return bShouldBeVisible || (bShouldBeVisibleInEditor && !FApp::IsGame());
 }
 
-bool ULevelStreamingKismet::ShouldBeLoaded( const FVector& ViewLocation )
+bool ULevelStreamingKismet::ShouldBeLoaded()
 {
 	return bShouldBeLoaded;
 }
@@ -944,36 +943,9 @@ ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const FObjectInitialize
 	bShouldBeVisible = true;
 }
 
-bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )
+bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded()
 {
 	return true;
-}
-
-/*-----------------------------------------------------------------------------
-	ULevelStreamingBounds implementation.
------------------------------------------------------------------------------*/
-ULevelStreamingBounds::ULevelStreamingBounds(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-bool ULevelStreamingBounds::ShouldBeVisible( const FVector& ViewLocation )
-{
-	bShouldBeVisible = ShouldBeLoaded(ViewLocation);
-	return bShouldBeVisible;
-}
-
-bool ULevelStreamingBounds::ShouldBeLoaded( const FVector& ViewLocation )
-{
-	bShouldBeLoaded = false;
-	
-	UWorld* MyWorld = Cast<UWorld>(GetOuter());
-	if (MyWorld && MyWorld->PersistentLevel->LevelBoundsActor.IsValid())
-	{
-		return MyWorld->PersistentLevel->LevelBoundsActor.Get()->GetComponentsBoundingBox().IsInside(ViewLocation);
-	}
-	
-	return bShouldBeLoaded;
 }
 
 #undef LOCTEXT_NAMESPACE

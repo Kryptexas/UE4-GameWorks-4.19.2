@@ -2179,151 +2179,113 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	return PIELevelWorld;
 }
 
-void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamily* ViewFamily )
+void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 {
-	// Iterate over level collection to find out whether we need to load/ unload any levels.
-	for (int32 LevelIndex = 0; LevelIndex < StreamingLevels.Num(); LevelIndex++)
+	check(StreamingLevel != nullptr);
+		
+	// Don't bother loading sub-levels in PIE for levels that aren't visible in editor
+	if (IsPlayInEditor() && GEngine->OnlyLoadEditorVisibleLevelsInPIE())
 	{
-		ULevelStreaming* StreamingLevel	= StreamingLevels[LevelIndex];
-		if( !StreamingLevel )
+		if (!StreamingLevel->bShouldBeVisibleInEditor)
 		{
-			// This can happen when manually adding a new level to the array via the property editing code.
-			continue;
+			return;
 		}
+	}
+
+	// Work performed to make a level visible is spread across several frames and we can't unload/ hide a level that is currently pending
+	// to be made visible, so we fulfill those requests first.
+	bool bHasVisibilityRequestPending	= StreamingLevel->GetLoadedLevel() && StreamingLevel->GetLoadedLevel() == CurrentLevelPendingVisibility;
 		
-		// Don't bother loading sub-levels in PIE for levels that aren't visible in editor
-		if( PersistentWorld->IsPlayInEditor() && GEngine->OnlyLoadEditorVisibleLevelsInPIE() )
-		{
-			// create a new streaming level helper object
-			if( !StreamingLevel->bShouldBeVisibleInEditor )
-			{
-				continue;
-			}
-		}
+	// Figure out whether level should be loaded, visible and block on load if it should be loaded but currently isn't.
+	bool bShouldBeLoaded	= bHasVisibilityRequestPending || (!GEngine->bUseBackgroundLevelStreaming && !bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval);
+	bool bShouldBeVisible	= bHasVisibilityRequestPending || bShouldForceVisibleStreamingLevels;
+	bool bShouldBlockOnLoad	= StreamingLevel->bShouldBlockOnLoad;
 
-		// Work performed to make a level visible is spread across several frames and we can't unload/ hide a level that is currently pending
-		// to be made visible, so we fulfill those requests first.
-		bool bHasVisibilityRequestPending	= StreamingLevel->GetLoadedLevel() && StreamingLevel->GetLoadedLevel() == PersistentWorld->CurrentLevelPendingVisibility;
+	// Don't update if the code requested this level object to be unloaded and removed.
+	if(!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
+	{
+		bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded();
+		bShouldBeVisible	= bShouldBeVisible || (bShouldBeLoaded && StreamingLevel->ShouldBeVisible());
+	}
+
+	// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
+	// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
+	// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
+	// async loading in general is active. E.g. normal package streaming would delay loading in this case. This is done
+	// on purpose as well so the GC code has a chance to execute between consecutive loads of maps.
+	//
+	// NOTE: AllowLevelLoadRequests not an invariant as streaming might affect the result, do NOT pulled out of the loop.
+	bool bAllowLevelLoadRequests =	AllowLevelLoadRequests() || bShouldBlockOnLoad;
+
+	// Figure out whether there are any levels we haven't collected garbage yet.
+	bool bAreLevelsPendingPurge	=	FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
+	// Request a 'soft' GC if there are levels pending purge and there are levels to be loaded. In the case of a blocking
+	// load this is going to guarantee GC firing first thing afterwards and otherwise it is going to sneak in right before
+	// kicking off the async load.
+	if (bAreLevelsPendingPurge)
+	{
+		ForceGarbageCollection( false );
+	}
+
+	// See whether level is already loaded
+	if (bShouldBeLoaded)
+	{
+		const bool bBlockOnLoad = (!IsGameWorld() || !GEngine->bUseBackgroundLevelStreaming || bShouldBlockOnLoad);
+		// Request to load or duplicate existing level
+		StreamingLevel->RequestLevel(this, bAllowLevelLoadRequests, bBlockOnLoad);
+	}
 		
-		// Figure out whether level should be loaded, visible and block on load if it should be loaded but currently isn't.
-		bool bShouldBeLoaded				= bHasVisibilityRequestPending || (!GEngine->bUseBackgroundLevelStreaming && !PersistentWorld->bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval);
-		bool bShouldBeVisible				= bHasVisibilityRequestPending || PersistentWorld->bShouldForceVisibleStreamingLevels;
-		bool bShouldBlockOnLoad				= StreamingLevel->bShouldBlockOnLoad;
+	// Cache pointer for convenience. This cannot happen before this point as e.g. flushing async loaders
+	// or such will modify StreamingLevel->LoadedLevel.
+	ULevel* Level = StreamingLevel->GetLoadedLevel();
 
-		// Don't update if the code requested this level object to be unloaded and removed.
-		if( !PersistentWorld->bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval )
+	// See whether we have a loaded level.
+	if (Level)
+	{
+		// Update loaded level visibility
+		if (bShouldBeVisible)
 		{
-			// Take all views into account if any were passed in.
-			if( ViewFamily && ViewFamily->Views.Num() > 0 )
+			// Add loaded level to a world if it's not there yet
+			if (!Level->bIsVisible)
 			{
-				// Iterate over all views in collection.
-				for( int32 ViewIndex=0; ViewIndex<ViewFamily->Views.Num(); ViewIndex++ )
-				{
-					const FSceneView* View		= ViewFamily->Views[ViewIndex];
-					const FVector& ViewLocation	= View->ViewMatrices.ViewOrigin;
-					bShouldBeLoaded	= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded(ViewLocation);
-					bShouldBeVisible= bShouldBeVisible || ( bShouldBeLoaded && StreamingLevel->ShouldBeVisible(ViewLocation) );
-				}
-			}
-			// Or default to view location of 0,0,0
-			else
-			{
-				FVector ViewLocation(0,0,0);
-				bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded(ViewLocation);
-				bShouldBeVisible	= bShouldBeVisible || ( bShouldBeLoaded && StreamingLevel->ShouldBeVisible(ViewLocation) );
-			}
-		}
-
-		// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
-		// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
-		// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
-		// async loading in general is active. E.g. normal package streaming would delay loading in this case. This is done
-		// on purpose as well so the GC code has a chance to execute between consecutive loads of maps.
-		//
-		// NOTE: AllowLevelLoadRequests not an invariant as streaming might affect the result, do NOT pulled out of the loop.
-		bool bAllowLevelLoadRequests =	PersistentWorld->AllowLevelLoadRequests() || bShouldBlockOnLoad;
-
-		// Figure out whether there are any levels we haven't collected garbage yet.
-		bool bAreLevelsPendingPurge	=	FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
-		// Request a 'soft' GC if there are levels pending purge and there are levels to be loaded. In the case of a blocking
-		// load this is going to guarantee GC firing first thing afterwards and otherwise it is going to sneak in right before
-		// kicking off the async load.
-		if (bAreLevelsPendingPurge)
-		{
-			PersistentWorld->ForceGarbageCollection( false );
-		}
-
-		// See whether level is already loaded
-		if (bShouldBeLoaded)
-		{
-			const bool bBlockOnLoad = (!IsGameWorld() || !GEngine->bUseBackgroundLevelStreaming || bShouldBlockOnLoad);
-			// Request to load or duplicate existing level
-			StreamingLevel->RequestLevel(PersistentWorld, bAllowLevelLoadRequests, bBlockOnLoad);
-		}
-		
-		// Cache pointer for convenience. This cannot happen before this point as e.g. flushing async loaders
-		// or such will modify StreamingLevel->LoadedLevel.
-		ULevel* Level = StreamingLevel->GetLoadedLevel();
-
-		// See whether we have a loaded level.
-		if (Level)
-		{
-			// Update loaded level visibility
-			if (bShouldBeVisible)
-			{
-				// Add loaded level to a world if it's not there yet
-				if (!Level->bIsVisible)
-				{
-					PersistentWorld->AddToWorld(Level, StreamingLevel->LevelTransform);
-				}
-
-				// In case we have finished making level visible
-				// immediately discard previous level
-				if (Level->bIsVisible)
-				{
-					StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
-				}
-			}
-			else
-			{
-				// Discard previous LOD level
-				StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
-				// Hide loaded level
-				if (Level->bIsVisible)
-				{
-					PersistentWorld->RemoveFromWorld(Level);
-				}
+				AddToWorld(Level, StreamingLevel->LevelTransform);
 			}
 
-			if (!bShouldBeLoaded)
+			// In case we have finished making level visible
+			// immediately discard previous level
+			if (Level->bIsVisible)
 			{
-				if (!Level->bIsVisible && !PersistentWorld->IsVisibilityRequestPending())
-				{
-					StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
-					StreamingLevel->ClearLoadedLevel();
-					StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
-				}
+				StreamingLevel->DiscardPendingUnloadLevel(this);
 			}
 		}
 		else
 		{
-			StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
-		}
-								
-		// If requested, remove this level from iterated over array once it is unloaded.
-		if (StreamingLevel->bIsRequestingUnloadAndRemoval)
-		{
-			if (StreamingLevel->HasLoadedLevel() == false && 
-				StreamingLevel->bHasLoadRequestPending == false)
+			// Discard previous LOD level
+			StreamingLevel->DiscardPendingUnloadLevel(this);
+			// Hide loaded level
+			if (Level->bIsVisible)
 			{
-				// The -- is required as we're forward iterating over the StreamingLevels array.
-				StreamingLevels.RemoveAt( LevelIndex-- );
+				RemoveFromWorld(Level);
 			}
-		}	
+		}
+
+		if (!bShouldBeLoaded)
+		{
+			if (!Level->bIsVisible && !IsVisibilityRequestPending())
+			{
+				StreamingLevel->DiscardPendingUnloadLevel(this);
+				StreamingLevel->ClearLoadedLevel();
+				StreamingLevel->DiscardPendingUnloadLevel(this);
+			}
+		}
+	}
+	else
+	{
+		StreamingLevel->DiscardPendingUnloadLevel(this);
 	}
 }
 
-void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
+void UWorld::UpdateLevelStreaming()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateLevelStreamingTime);
 	// do nothing if level streaming is frozen
@@ -2332,22 +2294,29 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 		return;
 	}
 
-	// Store current count of pending unload levels
+	// Store current number of pending unload levels, it may change in loop bellow
 	const int32 NumLevelsPendingPurge = FLevelStreamingGCHelper::GetNumLevelsPendingPurge();
-	// Store current count of async loading packages
-	const int32	NumAsyncLoadingPackages = GetNumAsyncPackages(); 
 	
-	// Update level streaming objects state
-	UpdateLevelStreamingInner(this, ViewFamily);
-	
-	// Force initial loading to be "bShouldBlockOnLoad".
-	const bool bLevelsHaveLoadRequestPending = NumAsyncLoadingPackages < GetNumAsyncPackages();
-	if (bLevelsHaveLoadRequestPending && (!HasBegunPlay() || bWorldWasLoadedThisTick ))
+	for (int32 LevelIndex = 0; LevelIndex < StreamingLevels.Num(); LevelIndex++)
 	{
-		// Block till all async requests are finished.
-		FlushAsyncLoading( NAME_None );
+		ULevelStreaming* StreamingLevel = StreamingLevels[LevelIndex];
+		if (StreamingLevel)
+		{
+			UpdateLevelStreamingInner(StreamingLevel);
+
+			// If requested, remove this level from iterated over array once it is unloaded.
+			if (StreamingLevel->bIsRequestingUnloadAndRemoval)
+			{
+				if (StreamingLevel->HasLoadedLevel() == false && 
+					StreamingLevel->bHasLoadRequestPending == false)
+				{
+					// The -- is required as we're forward iterating over the StreamingLevels array.
+					StreamingLevels.RemoveAt(LevelIndex--);
+				}
+			}	
+		}
 	}
-	
+			
 	// In case more levels has been requested to unload, force GC on next tick 
 	if (NumLevelsPendingPurge < FLevelStreamingGCHelper::GetNumLevelsPendingPurge())
 	{
@@ -2355,20 +2324,20 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	}
 }
 
-void UWorld::FlushLevelStreaming(FSceneViewFamily* ViewFamily, EFlushLevelStreamingType FlushType, FName ExcludeType)
+void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName ExcludeType)
 {
 	AWorldSettings* WorldSettings = GetWorldSettings();
 
 	TGuardValue<EFlushLevelStreamingType> FlushingLevelStreamingGuard(FlushLevelStreamingType, FlushType);
 
 	// Update internals with current loaded/ visibility flags.
-	UpdateLevelStreaming(ViewFamily);
+	UpdateLevelStreaming();
 
 	// Make sure all outstanding loads are taken care of, other than ones associated with the excluded type
 	FlushAsyncLoading(ExcludeType);
 
 	// Kick off making levels visible if loading finished by flushing.
-	UpdateLevelStreaming(ViewFamily);
+	UpdateLevelStreaming();
 
 	// Making levels visible is spread across several frames so we simply loop till it is done.
 	bool bLevelsPendingVisibility = true;
@@ -2387,12 +2356,12 @@ void UWorld::FlushLevelStreaming(FSceneViewFamily* ViewFamily, EFlushLevelStream
 			}
 	
 			// Update level streaming.
-			UpdateLevelStreaming( ViewFamily );
+			UpdateLevelStreaming();
 		}
 	}
 	
 	// Update level streaming one last time to make sure all RemoveFromWorld requests made it.
-	UpdateLevelStreaming( ViewFamily );
+	UpdateLevelStreaming();
 
 	// we need this, or the traces will be abysmally slow
 	EnsureCollisionTreeIsBuilt();
@@ -4511,7 +4480,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 		else
 		{
 			// Make sure there are no pending visibility requests.
-			CurrentWorld->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
+			CurrentWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 
 			if (CurrentWorld->GameState)
 			{

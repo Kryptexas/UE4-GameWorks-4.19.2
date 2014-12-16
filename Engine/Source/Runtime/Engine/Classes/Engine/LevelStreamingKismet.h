@@ -29,8 +29,8 @@ class ULevelStreamingKismet : public ULevelStreaming
 	// End UObject Interface
 
 	// Begin ULevelStreaming Interface
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) override;
-	virtual bool ShouldBeVisible( const FVector& ViewLocation ) override;
+	virtual bool ShouldBeLoaded() override;
+	virtual bool ShouldBeVisible() override;
 	// End ULevelStreaming Interface
 };
 

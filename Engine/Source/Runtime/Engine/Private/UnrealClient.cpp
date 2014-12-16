@@ -938,34 +938,8 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		// if this is a game viewport, and game rendering is disabled, then we don't want to actually draw anything
 		if ( World && World->IsGameWorld() && !bIsGameRenderingEnabled)
 		{
-			// since we aren't drawing the viewport, we still need to update streaming, which needs valid view info
-			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( this, World->Scene, FEngineShowFlags(ESFIM_Game)) );
-			for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
-			{
-				APlayerController* PlayerController = *Iterator;
-				if( PlayerController )
-				{
-					ULocalPlayer* Player = Cast<ULocalPlayer>(PlayerController->Player);
-					if(Player)
-					{
-						// Calculate the player's view information.
-						FVector		ViewLocation;
-						FRotator	ViewRotation;
-						FSceneView* View = Player->CalcSceneView( &ViewFamily, ViewLocation, ViewRotation, this);
-
-						// if we have a valid view, use it for resource streaming
-						if(View)
-						{
-							// Add view information for resource streaming.
-							IStreamingManager::Get().AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
-							World->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
-						}
-					}
-				}
-			}
-	
-			// Update level streaming.
-			World->UpdateLevelStreaming( &ViewFamily );
+			// since we aren't drawing the viewport, we still need to update streaming
+			World->UpdateLevelStreaming();
 		}
 		else
 		{

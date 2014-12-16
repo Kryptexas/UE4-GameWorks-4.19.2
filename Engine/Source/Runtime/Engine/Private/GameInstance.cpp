@@ -184,7 +184,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		}
 		
 		// Make sure "always loaded" sub-levels are fully loaded
-		PlayWorld->FlushLevelStreaming(nullptr, EFlushLevelStreamingType::Visibility);
+		PlayWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 
 		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
 		PlayWorld->CreateAISystem();

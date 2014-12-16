@@ -570,32 +570,25 @@ void UWorldComposition::UpdateStreamingState()
 	}
 	
 	int32 NumPlayers = GEngine->GetNumGamePlayers(PlayWorld);
-	if (NumPlayers == 0 || GEngine->GameViewport == nullptr)
+	if (NumPlayers == 0)
 	{
 		return;
 	}
 
 	// calculate centroid location using local players views
-	FSceneViewFamilyContext ViewFamily(
-		FSceneViewFamily::ConstructionValues(GEngine->GameViewport->Viewport, PlayWorld->Scene, GEngine->GameViewport->EngineShowFlags).SetRealtimeUpdate(true));
-
 	int32 NumViews = 0;
 	FVector CentroidLocation = FVector::ZeroVector;
 	
 	for (int32 PlayerIndex = 0; PlayerIndex < NumPlayers; ++PlayerIndex)
 	{
 		ULocalPlayer* Player = GEngine->GetGamePlayer(PlayWorld, PlayerIndex);
-		if (Player && 
-			Player->ViewportClient && 
-			Player->PlayerController)
+		if (Player && Player->PlayerController)
 		{
 			FVector ViewLocation;
 			FRotator ViewRotation;
-			if (Player->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, Player->ViewportClient->Viewport))
-			{
-				CentroidLocation+= ViewLocation;
-				NumViews++;
-			}
+			Player->PlayerController->GetActorEyesViewPoint(ViewLocation, ViewRotation);
+			CentroidLocation+= ViewLocation;
+			NumViews++;
 		}
 	}
 

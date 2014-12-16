@@ -1852,19 +1852,12 @@ public:
 	void RemoveFromWorld( ULevel* Level );
 
 	/**
-	 * Updates the all the visible worlds based on the current view location of the player and sets level LODs accordingly.	 
-	 *
-	 * @param ViewFamily	Optional collection of views to take into account
+	 * Updates sub-levels (load/unload/show/hide) using streaming levels current state
 	 */
-	void UpdateLevelStreaming( FSceneViewFamily* ViewFamily = NULL );
+	void UpdateLevelStreaming();
 
 private:
-	/**
-	 * Updates the world based on the current view location of the player and sets level LODs accordingly.	 
-	 * @param PersistentWorld	Persistent world
-	 * @param ViewFamily		Optional collection of views to take into account
-	 */
-	void UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamily* ViewFamily );
+	void UpdateLevelStreamingInner( ULevelStreaming* StreamingLevel );
 
 public:
 	/**
@@ -1872,11 +1865,10 @@ public:
 	 * so further calls to UpdateLevelStreaming won't do any work unless state changes. Basically blocks
 	 * on all async operation like updating components.
 	 *
-	 * @param ViewFamily				Optional collection of views to take into account
 	 * @param FlushType					Whether to only flush level visibility operations (optional)
 	 * @param ExcludeType				Exclude packages of this type from flushing
 	 */
-	void FlushLevelStreaming( FSceneViewFamily* ViewFamily = NULL, EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None );
+	void FlushLevelStreaming(EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None);
 
 	/**
 	 * Triggers a call to ULevel::BuildStreamingData(this,NULL,NULL) within a few seconds.

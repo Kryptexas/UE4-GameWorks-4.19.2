@@ -219,7 +219,7 @@ void APlayerController::ClientFlushLevelStreaming_Implementation()
 	if (GEngine->ShouldCommitPendingMapChange(GetWorld()))
 	{
 		// request level streaming be flushed next frame
-		GetWorld()->UpdateLevelStreaming(NULL);
+		GetWorld()->UpdateLevelStreaming();
 		GetWorld()->bRequestedBlockOnAsyncLoading = true;
 		// request GC as soon as possible to remove any unloaded levels from memory
 		GetWorld()->ForceGarbageCollection();
