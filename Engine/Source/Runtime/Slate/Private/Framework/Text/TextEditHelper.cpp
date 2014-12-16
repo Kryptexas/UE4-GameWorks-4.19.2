@@ -55,7 +55,7 @@ FReply FTextEditHelper::OnKeyChar( const FCharacterEvent& InCharacterEvent, cons
 		break;
 
 
-		// Newline (Ctrl+Enter - handled correctly outside this function)
+		// Newline (Ctrl+Enter), we handle adding new lines via SMultiLineEditableText::OnEnter rather than processing \n characters
 	case TCHAR( '\n' ):
 		{
 			Reply = FReply::Handled();
