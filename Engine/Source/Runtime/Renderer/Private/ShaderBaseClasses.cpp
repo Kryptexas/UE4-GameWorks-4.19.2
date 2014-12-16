@@ -103,9 +103,11 @@ void FMaterialShader::SetParameters(
 	check(Material.GetRenderingThreadShaderMap()->IsValidForRendering());
 	check(Material.GetFeatureLevel() == FeatureLevel);
 
-#if NO_LOGGING == 0
 	// Validate that the shader is being used for a material that matches the uniform expression set the shader was compiled for.
 	const FUniformExpressionSet& MaterialUniformExpressionSet = Material.GetRenderingThreadShaderMap()->GetUniformExpressionSet();
+
+#if NO_LOGGING == 0
+	
 	const bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
 		|| UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap();
 
