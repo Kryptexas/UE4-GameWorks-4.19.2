@@ -22,8 +22,10 @@ UAnimGraphNode_UseCachedPose::UAnimGraphNode_UseCachedPose(const FObjectInitiali
 {
 }
 
-void UAnimGraphNode_UseCachedPose::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+void UAnimGraphNode_UseCachedPose::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::EarlyValidation(MessageLog);
+	
 	bool bRefreshSavCachedPoseNode = true;
 
 	// Check to see the current cached node is still valid (and not deleted, by checking pin connections)

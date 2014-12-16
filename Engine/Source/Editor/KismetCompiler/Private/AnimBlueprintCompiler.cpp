@@ -387,6 +387,12 @@ void FAnimBlueprintCompiler::ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* 
 {
 	bool bSuccessful = false;
 
+	// if compiling only skeleton, we don't have to worry about linking save node
+	if (CompileOptions.CompileType == EKismetCompileType::SkeletonOnly)
+	{
+		return;
+	}
+
 	// Link to the saved cached pose
 	if(UseCachedPose->SaveCachedPoseNode.IsValid())
 	{
