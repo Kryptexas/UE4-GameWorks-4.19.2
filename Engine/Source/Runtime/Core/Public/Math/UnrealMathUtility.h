@@ -112,6 +112,12 @@ struct FMath : public FPlatformMath
 		return InMin + (InMax - InMin) * FRand();
 	}
 
+	/** Util to generate a random boolean. */
+	static FORCEINLINE bool RandBool()
+	{
+		return (RandRange(0,1) == 1) ? true : false;
+	}
+
 	/** Return a uniformly distributed random unit length vector = point on the unit sphere surface. */
 	static FVector VRand();
 	

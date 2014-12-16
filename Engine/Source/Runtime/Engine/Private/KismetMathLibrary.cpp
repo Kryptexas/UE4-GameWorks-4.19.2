@@ -33,7 +33,7 @@ UKismetMathLibrary::UKismetMathLibrary(const FObjectInitializer& ObjectInitializ
 
 bool UKismetMathLibrary::RandomBool()
 {
-	return (FMath::RandRange(0,1) == 1) ? true : false;
+	return FMath::RandBool();
 }
 
 bool UKismetMathLibrary::Not_PreBool(bool A)
