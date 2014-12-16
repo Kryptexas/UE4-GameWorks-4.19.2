@@ -1106,7 +1106,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 
 			if( !bIsWhitespace && PreviousCharEntry.IsValidEntry() )
 			{
-				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry );
+				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry ) * Scale.X;
 			}
 			else
 			{

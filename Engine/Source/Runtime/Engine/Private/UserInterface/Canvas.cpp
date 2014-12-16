@@ -1158,7 +1158,7 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 			float CharSpacing = DefaultCharIncrement;
 			if ( pPrevPos )
 			{
-				CharSpacing += Parameters.DrawFont->GetCharKerning( *pPrevPos, Ch );
+				CharSpacing += Parameters.DrawFont->GetCharKerning( *pPrevPos, Ch ) * ScaleX;
 			}
 
 			CharWidth *= ScaleX;
