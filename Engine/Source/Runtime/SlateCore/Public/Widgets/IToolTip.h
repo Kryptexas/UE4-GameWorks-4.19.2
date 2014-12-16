@@ -45,6 +45,11 @@ public:
 	 */
 	virtual bool IsInteractive( ) const = 0;
 
+	/**
+	 * Called when the tooltip widget is closed and the tooltip is no longer needed.
+	 */
+	virtual void OnClosed( ) = 0;
+
 public:
 
 	/** Virtual destructor. */

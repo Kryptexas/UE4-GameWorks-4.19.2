@@ -70,6 +70,8 @@ public:
 
 	virtual bool IsEmpty( ) const override;
 	virtual bool IsInteractive( ) const override;
+	virtual void OnClosed() override { }
+
 
 	virtual const FText& GetTextTooltip() const
 	{

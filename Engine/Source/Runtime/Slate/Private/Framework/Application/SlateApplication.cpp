@@ -2597,6 +2597,12 @@ void FSlateApplication::CloseToolTip()
 			SourceWidget->OnToolTipClosing();
 		}
 
+		TSharedPtr<IToolTip> StableActiveToolTip = ActiveToolTip.Pin();
+		if ( StableActiveToolTip.IsValid() )
+		{
+			StableActiveToolTip->OnClosed();
+		}
+
 		// Hide the tool tip window.  We don't destroy the window, because we want to reuse it for future tool tips.
 		PinnedToolTipWindow->HideWindow();
 
