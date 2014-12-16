@@ -11,6 +11,7 @@
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
+#include "PhysicsPublic.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
@@ -228,7 +229,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
+void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -246,8 +247,21 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransfo
 		return;
 	}
 
+	// Get the scene, and do nothing if we can't get one.
+	FPhysScene* PhysScene = nullptr;
+	if (GetWorld() != nullptr)
+	{
+		PhysScene = GetWorld()->GetPhysicsScene();
+	}
+
+	if(PhysScene == nullptr)
+	{
+		return;
+	}
+
 	const FTransform& CurrentLocalToWorld = ComponentToWorld;
 
+	// Gracefully handle NaN
 	if(CurrentLocalToWorld.ContainsNaN())
 	{
 		return;
@@ -272,9 +286,10 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransfo
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if( !MeshScale3D.IsUniform() )
 	{
-		UE_LOG(LogPhysics, Log, TEXT("USkeletalMeshComponent::UpdateKinematicBonesToPhysics : Non-uniform scale factor (%s) can cause physics to mismatch for %s  SkelMesh: %s"), *MeshScale3D.ToString(), *GetFullName(), SkeletalMesh ? *SkeletalMesh->GetFullName() : TEXT("NULL"));
+		UE_LOG(LogPhysics, Log, TEXT("USkeletalMeshComponent::UpdateKinematicBonesToAnim : Non-uniform scale factor (%s) can cause physics to mismatch for %s  SkelMesh: %s"), *MeshScale3D.ToString(), *GetFullName(), SkeletalMesh ? *SkeletalMesh->GetFullName() : TEXT("NULL"));
 	}
 #endif
+
 
 	if (bEnablePerPolyCollision == false)
 	{
@@ -288,6 +303,19 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransfo
 				UE_LOG(LogPhysics, Warning, TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
 					*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->BodySetup.Num(), Bodies.Num());
 				return;
+			}
+#endif
+
+#if WITH_PHYSX
+			// Lock the scenes we need (flags set in InitArticulated)
+			if(bHasBodiesInSyncScene)
+			{
+				SCENE_LOCK_WRITE(PhysScene->GetPhysXScene(PST_Sync))
+			}
+
+			if (bHasBodiesInAsyncScene)
+			{
+				SCENE_LOCK_WRITE(PhysScene->GetPhysXScene(PST_Async))
 			}
 #endif
 
@@ -311,11 +339,26 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransfo
 					}
 					else
 					{
+#if WITH_PHYSX
 						// update bone transform to world
-						FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
+						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
+						ensure(!BoneTransform.ContainsNaN());
 
-						// move body
-						BodyInst->SetBodyTransform(BoneTransform, bTeleport);
+						// If kinematic and not teleporting, set kinematic target
+						PxRigidDynamic* PRigidDynamic = BodyInst->GetPxRigidDynamic();
+						if (!IsRigidBodyNonKinematic(PRigidDynamic) && !bTeleport)
+						{
+							PhysScene->SetKinematicTarget(BodyInst, BoneTransform, true);
+						}
+						// Otherwise, set global pose
+						else
+						{
+							const PxTransform PNewPose = U2PTransform(BoneTransform);
+							ensure(PNewPose.isValid());
+							PRigidDynamic->setGlobalPose(PNewPose);
+						}
+#endif
+
 
 						// now update scale
 						// if uniform, we'll use BoneTranform
@@ -346,6 +389,19 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransfo
 					}
 				}
 			}
+
+#if WITH_PHYSX
+			// Unlock the scenes 
+			if (bHasBodiesInSyncScene)
+			{
+				SCENE_UNLOCK_WRITE(PhysScene->GetPhysXScene(PST_Sync))
+			}
+
+			if (bHasBodiesInAsyncScene)
+			{
+				SCENE_UNLOCK_WRITE(PhysScene->GetPhysXScene(PST_Async))
+			}
+#endif
 		}
 	}
 	else

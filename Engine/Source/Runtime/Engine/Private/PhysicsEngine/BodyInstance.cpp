@@ -2836,32 +2836,6 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 
 	if (RigidActor != nullptr)
 	{
-		// Do nothing if already in correct place
-		{
-			SCOPED_SCENE_READ_LOCK(RigidActor->getScene());
-			if (PRigidDynamic && !IsRigidBodyNonKinematic(PRigidDynamic) && !bTeleport)
-			{
-				const PxScene* PScene = PRigidDynamic->getScene();
-				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-				FTransform CurrentTarget;
-				if (PhysScene->GetKinematicTarget(this, CurrentTarget))
-				{
-					if (CurrentTarget.Equals(NewTransform))
-					{
-						return;
-					}
-				}
-			}
-			else
-			{
-				const PxTransform PCurrentPose = RigidActor->getGlobalPose();
-				if (NewTransform.Equals(P2UTransform(PCurrentPose)))
-				{
-					return;
-				}
-			}
-		}
-
 		const PxTransform PNewPose = U2PTransform(NewTransform);
 
 		if (!PNewPose.isValid())

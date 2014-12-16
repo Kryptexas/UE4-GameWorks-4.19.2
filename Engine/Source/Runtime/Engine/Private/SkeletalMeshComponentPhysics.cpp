@@ -793,6 +793,16 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			FTransform BoneTransform = GetBoneTransform( BoneIndex );
 			BodyInst->InitBody( BodySetup, BoneTransform, this, PhysScene, Aggregate);
 #endif //WITH_PHYSX
+
+			// Remember if we have bodies in sync/async scene, so we know which scene(s) to lock when moving bodies
+			if(BodyInst->UseAsyncScene())
+			{
+				bHasBodiesInAsyncScene = true;
+			}
+			else
+			{
+				bHasBodiesInSyncScene = true;
+			}
 		}
 	}
 
@@ -902,6 +912,10 @@ void USkeletalMeshComponent::TermArticulated()
 		Aggregate = NULL;
 	}
 #endif //WITH_PHYSX
+
+	// Reset bools for scenes
+	bHasBodiesInAsyncScene = false;
+	bHasBodiesInSyncScene = false;
 }
 
 void USkeletalMeshComponent::TermBodiesBelow(FName ParentBoneName)
@@ -1291,9 +1305,9 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	Super::OnUpdateTransform(true);
 
 	// Always send new transform to physics
-	if(bPhysicsStateCreated && !bSkipPhysicsMove )
+	if(bPhysicsStateCreated && !bSkipPhysicsMove)
 	{
-		UpdateKinematicBonesToPhysics(GetSpaceBases(), false, false, true);
+		UpdateKinematicBonesToAnim(GetSpaceBases(), false, false, true);
 	}
 
 #if WITH_APEX_CLOTHING
@@ -1304,12 +1318,6 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	}
 #endif //#if WITH_APEX_CLOTHING
 }
-
-void USkeletalMeshComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
-{
-		UPrimitiveComponent::UpdateOverlaps(PendingOverlaps, bDoNotifies, OverlapsAtEndLocation);
-	}
-
 
 void USkeletalMeshComponent::CreatePhysicsState()
 {
@@ -1326,8 +1334,6 @@ void USkeletalMeshComponent::CreatePhysicsState()
 		BodySetup->CreatePhysicsMeshes();
 		Super::CreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
 	}
-
-	
 }
 
 
