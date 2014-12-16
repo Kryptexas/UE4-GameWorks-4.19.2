@@ -3,8 +3,7 @@
 #pragma once
 
 
-class FHittestGrid;
-
+class FHitTesting;
 
 /**
  * Interface for window title bars.
@@ -16,6 +15,29 @@ public:
 	virtual void Flash( ) = 0;
 };
 
+class FSlateApplicationBase;
+
+
+/**
+ * Private interface to control which classes are allowed to perform hit-testing.
+ */
+class FHitTesting
+{
+public:
+	FHitTesting(FSlateApplicationBase* InSlateApplication)
+		: SlateApp(InSlateApplication)
+	{
+	}
+
+private:
+	// SWindow must be able to test which part of the window is being moused-over
+	friend class SWindow;
+	
+private:	
+	FSlateApplicationBase* SlateApp;
+	// @see FSlateApplicationBase::LocateWidgetInWindow
+	FWidgetPath LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordinate, const TSharedRef<SWindow>& Window, bool bIgnoreEnabledStatus) const;
+};
 
 /**
  * Base class for Slate applications.
@@ -27,6 +49,8 @@ class SLATECORE_API FSlateApplicationBase
 {
 	friend class SWidget;
 public:
+
+	FSlateApplicationBase();
 
 	/**
 	 * Gets the renderer being used to draw this application.
@@ -208,6 +232,10 @@ public:
 	 */
 	virtual bool IsExternalUIOpened( ) = 0;
 
+	/** @return a hittesting object that can perform hittests agains widgets. Only certain classes can make use of FHitTesting */
+	friend class FHitTesting;
+	const FHitTesting& GetHitTesting() const;
+
 	/** 
 	 * Given the screen-space coordinate of the mouse cursor, searches for a string of widgets that are under the mouse.
 	 *
@@ -347,10 +375,16 @@ protected:
 	 */
 	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
 
+	/** Given a window, locate a widget under the cursor in it; returns an invalid path if cursor is not over this window. */
+	virtual FWidgetPath LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordinate, const TSharedRef<SWindow>& Window, bool bIgnoreEnabledStatus) const = 0;
+
 protected:
 
 	// Holds the Slate renderer used to render this application.
 	TSharedPtr<FSlateRenderer> Renderer;
+
+	// Private interface for select entities that are allowed to perform hittesting
+	FHitTesting HitTesting;
 
 protected:
 
@@ -360,3 +394,4 @@ protected:
 	// Holds a pointer to the platform application.
 	static TSharedPtr<class GenericApplication> PlatformApplication;
 };
+

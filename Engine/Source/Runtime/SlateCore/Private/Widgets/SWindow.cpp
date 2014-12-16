@@ -1693,12 +1693,7 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 		if (InZone == EWindowZone::ClientArea)
 		{
 			// Hittest to see if the widget under the mouse should be treated as a title bar (i.e. should move the window)
-			TArray< TSharedRef<SWindow> > ThisWindow;
-			{
-				ThisWindow.Add( SharedThis(this) );
-			}
-
-			FWidgetPath HitTestResults = FSlateApplicationBase::Get().LocateWindowUnderMouse(FSlateApplicationBase::Get().GetCursorPos(), ThisWindow);
+			FWidgetPath HitTestResults = FSlateApplicationBase::Get().GetHitTesting().LocateWidgetInWindow(FSlateApplicationBase::Get().GetCursorPos(), SharedThis(this), false);
 			if( HitTestResults.Widgets.Num() > 0 )
 			{
 				const EWindowZone::Type ZoneOverride = HitTestResults.Widgets.Last().Widget->GetWindowZoneOverride();

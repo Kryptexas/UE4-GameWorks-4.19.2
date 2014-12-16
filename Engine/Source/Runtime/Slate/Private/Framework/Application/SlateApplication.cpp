@@ -16,9 +16,15 @@ class FEventRouter
 {
 
 // @todo slate : making too many event copies when translating events( i.e. Translate<EventType>::PointerEvent ).
+
+
+
 // @todo slate : Widget Reflector should log: (1) Every process reply (2) Every time the event is handled and by who.
+
 // @todo slate : Remove remaining [&]-style mass captures.
+
 // @todo slate : Eliminate all ad-hoc uses of SetEventPath()
+
 // @todo slate : Remove CALL_WIDGET_FUNCTION
 
 public:
@@ -808,12 +814,13 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 
 		// Only accept input if the current window accepts input and the current window is not under a modal window or an interactive tooltip
 		
-		const bool AcceptsInput = Window->AcceptsInput() || IsWindowHousingInteractiveTooltip(Window);
-
-		if ( Window->IsVisible() && AcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate) && !bPrevWindowWasModal )
+		if (!bPrevWindowWasModal)
 		{
-			const TArray<FWidgetAndPointer> WidgetsAndCursors = Window->GetHittestGrid()->GetBubblePath(ScreenspaceMouseCoordinate, GetCursorRadius(), bIgnoreEnabledStatus);
-			return FWidgetPath( WidgetsAndCursors );
+			FWidgetPath PathToLocatedWidget = LocateWidgetInWindow(ScreenspaceMouseCoordinate, Window, bIgnoreEnabledStatus);
+			if (PathToLocatedWidget.IsValid())
+			{
+				return PathToLocatedWidget;
+			}
 		}
 	}
 
@@ -1390,6 +1397,20 @@ void FSlateApplication::ThrottleApplicationBasedOnMouseMovement()
 			// Disengage throttling
 			FSlateThrottleManager::Get().LeaveResponsiveMode( UserInteractionResponsivnessThrottle );
 		}
+	}
+}
+
+FWidgetPath FSlateApplication::LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordinate, const TSharedRef<SWindow>& Window, bool bIgnoreEnabledStatus) const
+{
+	const bool bAcceptsInput = Window->IsVisible() && (Window->AcceptsInput() || IsWindowHousingInteractiveTooltip(Window));
+	if (bAcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate))
+	{
+		const TArray<FWidgetAndPointer> WidgetsAndCursors = Window->GetHittestGrid()->GetBubblePath(ScreenspaceMouseCoordinate, GetCursorRadius(), bIgnoreEnabledStatus);
+		return FWidgetPath(WidgetsAndCursors);
+	}
+	else
+	{
+		return FWidgetPath();
 	}
 }
 
