@@ -550,7 +550,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 			else
 			{
 				FRotator ViewRotation(0,0,0);
-				PlayerActor->GetPlayerViewPoint( ViewLocation, ViewRotation );
+				PlayerActor->GetActorEyesViewPoint( ViewLocation, ViewRotation );
 			}
 
 			TMap<AVolume*,bool> VolumeMap;

@@ -239,7 +239,6 @@
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
-#include "Engine/LevelStreamingBounds.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "Lightmass/LightmappedSurfaceCollection.h"

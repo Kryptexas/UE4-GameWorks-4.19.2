@@ -16,7 +16,7 @@ class ULevelStreamingAlwaysLoaded : public ULevelStreaming
 	GENERATED_UCLASS_BODY()
 
 	// Begin ULevelStreaming Interface
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) override;
+	virtual bool ShouldBeLoaded() override;
 	virtual bool ShouldBeAlwaysLoaded() const override { return true; } 
 	// End ULevelStreaming Interface
 };

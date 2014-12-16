@@ -17,11 +17,11 @@ class ULevelStreamingPersistent : public ULevelStreaming
 
 
 	// Begin ULevelStreaming Interface
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) override
+	virtual bool ShouldBeLoaded() override
 	{
 		return true;
 	}
-	virtual bool ShouldBeVisible( const FVector& ViewLocation ) override
+	virtual bool ShouldBeVisible() override
 	{
 		return true;
 	}

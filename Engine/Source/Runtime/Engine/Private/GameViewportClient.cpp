@@ -912,7 +912,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	// Update level streaming.
-	GetWorld()->UpdateLevelStreaming( &ViewFamily );
+	GetWorld()->UpdateLevelStreaming();
 
 	// Draw the player views.
 	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0)
