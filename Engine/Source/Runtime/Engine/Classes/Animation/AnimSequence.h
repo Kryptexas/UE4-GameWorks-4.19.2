@@ -827,7 +827,7 @@ private:
 	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, FAnimSequenceTrackContainer * RiggingAnimationData) const;
 
 	/** Verify Track Map is valid, if not, fix up */
-	void VerifyTrackMap();
+	void VerifyTrackMap(USkeleton* MySkeleton=NULL);
 	/** Reset Animation Data. Called before Creating new Animation data **/
 	void ResetAnimation();
 	/** Refresh Track Map from Animation Track Names **/
