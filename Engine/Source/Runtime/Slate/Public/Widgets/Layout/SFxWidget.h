@@ -40,17 +40,17 @@ public:
 	SLATE_ATTRIBUTE( FLinearColor, ColorAndOpacity )
 
 	/** The horizontal alignment of the child widget */
-	SLATE_ATTRIBUTE( EHorizontalAlignment, HAlign )
+	SLATE_ARGUMENT( EHorizontalAlignment, HAlign )
 
 	/** The vertical alignment of the child widget */
-	SLATE_ATTRIBUTE( EVerticalAlignment, VAlign )
+	SLATE_ARGUMENT( EVerticalAlignment, VAlign )
 
 	/** The content that should be modified. */
 	SLATE_DEFAULT_SLOT( FArguments, Content )
 
 	SLATE_END_ARGS()
 
-	virtual void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs );
 
 	/** @see VisualOffset */
 	void SetVisualOffset( const TAttribute<FVector2D>& InOffset );
@@ -82,6 +82,4 @@ protected:
 	TAttribute<float> LayoutScale;
 	TAttribute<FVector2D> VisualOffset;
 	TAttribute<bool> bIgnoreClipping;
-	TAttribute<EHorizontalAlignment> HAlign;
-	TAttribute<EVerticalAlignment> VAlign;
 };

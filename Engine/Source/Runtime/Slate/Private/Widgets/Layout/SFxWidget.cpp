@@ -11,12 +11,10 @@ void SFxWidget::Construct( const FArguments& InArgs )
 	VisualOffset = InArgs._VisualOffset;
 	bIgnoreClipping = InArgs._IgnoreClipping;
 	ColorAndOpacity = InArgs._ColorAndOpacity;
-	HAlign = InArgs._HAlign;
-	VAlign = InArgs._VAlign;
 	
 	this->ChildSlot
-	.HAlign(HAlign.Get())
-	.VAlign(VAlign.Get())
+	.HAlign(InArgs._HAlign)
+	.VAlign(InArgs._VAlign)
 	[
 		InArgs._Content.Widget
 	];
