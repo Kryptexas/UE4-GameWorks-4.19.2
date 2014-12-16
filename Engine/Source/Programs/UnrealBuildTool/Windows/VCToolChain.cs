@@ -126,14 +126,7 @@ namespace UnrealBuildTool
 			// with Windows XP (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
 			if( WindowsPlatform.SupportWindowsXP )
 			{
-				if( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 )
-				{
-					Arguments.Append(" /D_USING_V120_SDK71_");
-				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-				{
-					Arguments.Append(" /D_USING_V110_SDK71_");
-				}
+				Arguments.Append(" /D_USING_V110_SDK71_");
 			}
 
 
@@ -1078,14 +1071,7 @@ namespace UnrealBuildTool
 				// with Windows XP (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
 				if (WindowsPlatform.SupportWindowsXP)
 				{
-					if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-					{
-						CompileAction.CommandArguments += " /D_USING_V120_SDK71_";
-					}
-					else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-					{
-						CompileAction.CommandArguments += " /D_USING_V110_SDK71_";
-					}
+					CompileAction.CommandArguments += " /D_USING_V110_SDK71_";
 				}
 
 				// Language
