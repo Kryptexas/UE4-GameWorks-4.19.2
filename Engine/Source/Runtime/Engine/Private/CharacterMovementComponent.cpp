@@ -24,6 +24,21 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 
+/**
+ * Character stats
+ */
+DECLARE_STATS_GROUP(TEXT("Character"), STATGROUP_Character, STATCAT_Advanced);
+
+DECLARE_CYCLE_STAT(TEXT("Char Movement Tick"), STAT_CharacterMovementTick, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char Movement Authority Time"), STAT_CharacterMovementAuthority, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char Movement Simulated Time"), STAT_CharacterMovementSimulated, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char Physics Interation"), STAT_CharPhysicsInteraction, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("StepUp"), STAT_CharStepUp, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char Update Acceleration"), STAT_CharUpdateAcceleration, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("Char MoveUpdateDelegate"), STAT_CharMoveUpdateDelegate, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("PhysWalking"), STAT_CharPhysWalking, STATGROUP_Character);
+DECLARE_CYCLE_STAT(TEXT("PhysFalling"), STAT_CharPhysFalling, STATGROUP_Character);
+
 // MAGIC NUMBERS
 const float MAX_STEP_SIDE_Z = 0.08f;	// maximum z value for the normal on the vertical side of steps
 const float SWIMBOBSPEED = -80.f;
@@ -822,6 +837,8 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementTick);
+
 	const FVector InputVector = ConsumeInputVector();
 	if (!HasValidData() || ShouldSkipUpdate(DeltaTime) || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -855,13 +872,17 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 		// Allow root motion to move characters that have no controller.
 		if( CharacterOwner->IsLocallyControlled() || (!CharacterOwner->Controller && bRunPhysicsWithNoController) || (!CharacterOwner->Controller && CharacterOwner->IsPlayingRootMotion()) )
 		{
-			// We need to check the jump state before adjusting input acceleration, to minimize latency
-			// and to make sure acceleration respects our potentially new falling state.
-			CharacterOwner->CheckJumpInput(DeltaTime);
+			{
+				SCOPE_CYCLE_COUNTER(STAT_CharUpdateAcceleration);
 
-			// apply input to acceleration
-			Acceleration = ScaleInputAcceleration(ConstrainInputAcceleration(InputVector));
-			AnalogInputModifier = ComputeAnalogInputModifier();
+				// We need to check the jump state before adjusting input acceleration, to minimize latency
+				// and to make sure acceleration respects our potentially new falling state.
+				CharacterOwner->CheckJumpInput(DeltaTime);
+
+				// apply input to acceleration
+				Acceleration = ScaleInputAcceleration(ConstrainInputAcceleration(InputVector));
+				AnalogInputModifier = ComputeAnalogInputModifier();
+			}
 
 			if (CharacterOwner->Role == ROLE_Authority)
 			{
@@ -891,6 +912,8 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 	if (bEnablePhysicsInteraction)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_CharPhysicsInteraction);
+
 		if (CurrentFloor.HitResult.IsValidBlockingHit())
 		{
 			// Apply downwards force when walking on top of physics objects
@@ -963,6 +986,7 @@ void UCharacterMovementComponent::AdjustProxyCapsuleSize()
 
 void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharacterMovement);
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementSimulated);
 
 	// If we are playing a RootMotion AnimMontage.
@@ -974,6 +998,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 		// Tick animations before physics.
 		if( CharacterOwner->GetMesh() )
 		{
+			SCOPE_CYCLE_COUNTER(STAT_CharacterMovement);
 			TickCharacterPose(DeltaSeconds);
 
 			// Make sure animation didn't trigger an event that destroyed us
@@ -1414,6 +1439,7 @@ void UCharacterMovementComponent::DisableMovement()
 
 void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharacterMovement);
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementAuthority);
 
 	if (!HasValidData())
@@ -1582,6 +1608,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 
 void UCharacterMovementComponent::CallMovementUpdateDelegate(float DeltaTime, const FVector& OldLocation, const FVector& OldVelocity)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharMoveUpdateDelegate);
+
 	// Update component velocity in case events want to read it
 	UpdateComponentVelocity();
 
@@ -2935,6 +2963,8 @@ float UCharacterMovementComponent::BoostAirControl(float DeltaTime, float TickAi
 
 void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharPhysFalling);
+
 	if (deltaTime < MIN_TICK_TIME)
 	{
 		return;
@@ -3510,6 +3540,9 @@ void UCharacterMovementComponent::MaintainHorizontalGroundVelocity()
 
 void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharPhysWalking);
+
+
 	if (deltaTime < MIN_TICK_TIME)
 	{
 		return;
@@ -4867,6 +4900,9 @@ bool UCharacterMovementComponent::CanStepUp(const FHitResult& Hit) const
 
 bool UCharacterMovementComponent::StepUp(const FVector& InGravDir, const FVector& Delta, const FHitResult &InHit, FStepDownResult* OutStepDownResult)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CharStepUp);
+
+
 	if (!CanStepUp(InHit))
 	{
 		return false;

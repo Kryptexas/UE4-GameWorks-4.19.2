@@ -16,6 +16,10 @@ static const PxQueryHit InvalidQueryHit;
 // Forward declare, I don't want to move the entire function right now or we lose change history.
 static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat);
 
+DECLARE_CYCLE_STAT(TEXT("ConvertQueryHit"), STAT_ConvertQueryImpactHit, STATGROUP_Collision);
+DECLARE_CYCLE_STAT(TEXT("ConvertOverlapToHit"), STAT_CollisionConvertOverlapToHit, STATGROUP_Collision);
+DECLARE_CYCLE_STAT(TEXT("ConvertOverlap"), STAT_CollisionConvertOverlap, STATGROUP_Collision);
+
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 /* Validate Normal of OutResult. We're on hunt for invalid normal */
@@ -333,6 +337,8 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 
 void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
+	SCOPE_CYCLE_COUNTER(STAT_ConvertQueryImpactHit);
+
 	checkSlow(PHit.flags & PxHitFlag::eDISTANCE);
 	if (Geom != NULL && PHit.hadInitialOverlap())
 	{
@@ -623,6 +629,8 @@ static bool ComputeInflatedMTD(const float MtdInflation, const PxLocationHit& PH
 /** Util to convert an overlapped shape into a sweep hit result, returns whether it was a blocking hit. */
 static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CollisionConvertOverlapToHit);
+
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;
 
@@ -792,6 +800,8 @@ static void AddUniqueOverlap(TArray<FOverlapResult>& OutOverlaps, const FOverlap
 
 bool ConvertOverlapResults(int32 NumOverlaps, PxOverlapHit* POverlapResults, const PxFilterData& QueryFilter, TArray<FOverlapResult>& OutOverlaps)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CollisionConvertOverlap);
+
 	OutOverlaps.Reserve(NumOverlaps);
 	bool bBlockingFound = false;
 
