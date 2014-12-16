@@ -14,11 +14,11 @@
 AAtmosphericFog::AAtmosphericFog(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	AtmosphericFogComponent = ObjectInitializer.CreateDefaultSubobject<UAtmosphericFogComponent>(this, TEXT("AtmosphericFogComponent0"));
+	AtmosphericFogComponent = CreateDefaultSubobject<UAtmosphericFogComponent>(TEXT("AtmosphericFogComponent0"));
 	RootComponent = AtmosphericFogComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{

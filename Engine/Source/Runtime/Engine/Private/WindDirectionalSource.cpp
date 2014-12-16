@@ -7,11 +7,11 @@
 AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	Component = ObjectInitializer.CreateDefaultSubobject<UWindDirectionalSourceComponent>(this, TEXT("WindDirectionalSourceComponent0"));
+	Component = CreateDefaultSubobject<UWindDirectionalSourceComponent>(TEXT("WindDirectionalSourceComponent0"));
 	RootComponent = Component;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{

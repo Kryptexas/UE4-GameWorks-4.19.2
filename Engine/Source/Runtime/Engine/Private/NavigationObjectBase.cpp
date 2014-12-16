@@ -10,7 +10,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogNavigationPoint, Log, All);
 ANavigationObjectBase::ANavigationObjectBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCapsule"));
+	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CollisionCapsule"));
 	CapsuleComponent->ShapeColor = FColor(255, 138, 5, 255);
 	CapsuleComponent->bDrawOnlyIfSelected = true;
 	CapsuleComponent->InitCapsuleSize(50.0f, 50.0f);
@@ -21,9 +21,9 @@ ANavigationObjectBase::ANavigationObjectBase(const FObjectInitializer& ObjectIni
 	RootComponent = CapsuleComponent;
 	bCollideWhenPlacing = true;
 
-	GoodSprite = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	GoodSprite = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 
-	BadSprite = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite2"));
+	BadSprite = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite2"));
 
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())

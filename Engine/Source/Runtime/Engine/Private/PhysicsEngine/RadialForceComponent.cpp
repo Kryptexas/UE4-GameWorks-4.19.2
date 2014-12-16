@@ -180,10 +180,10 @@ void URadialForceComponent::UpdateCollisionObjectQueryParams()
 ARadialForceActor::ARadialForceActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ForceComponent = ObjectInitializer.CreateDefaultSubobject<URadialForceComponent>(this, TEXT("ForceComponent0"));
+	ForceComponent = CreateDefaultSubobject<URadialForceComponent>(TEXT("ForceComponent0"));
 
 #if WITH_EDITOR
-	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		// Structure to hold one-time initialization

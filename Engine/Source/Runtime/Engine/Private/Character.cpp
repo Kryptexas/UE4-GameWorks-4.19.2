@@ -46,7 +46,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = true;
 
-	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
+	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
 
 	static FName CollisionProfileName(TEXT("Pawn"));
@@ -62,7 +62,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	JumpMaxHoldTime = 0.0f;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
+	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = FColor(150, 200, 255);
@@ -74,14 +74,14 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	CharacterMovement = ObjectInitializer.CreateDefaultSubobject<UCharacterMovementComponent>(this, ACharacter::CharacterMovementComponentName);
+	CharacterMovement = CreateDefaultSubobject<UCharacterMovementComponent>(ACharacter::CharacterMovementComponentName);
 	if (CharacterMovement)
 	{
 		CharacterMovement->UpdatedComponent = CapsuleComponent;
 		CrouchedEyeHeight = CharacterMovement->CrouchedHalfHeight * 0.80f;
 	}
 
-	Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, ACharacter::MeshComponentName);
+	Mesh = CreateOptionalDefaultSubobject<USkeletalMeshComponent>(ACharacter::MeshComponentName);
 	if (Mesh)
 	{
 		Mesh->AlwaysLoadOnClient = true;

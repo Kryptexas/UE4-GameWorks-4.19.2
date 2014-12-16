@@ -18,7 +18,7 @@ AStaticMeshActor::AStaticMeshActor(const FObjectInitializer& ObjectInitializer)
 {
 	bCanBeDamaged = false;
 
-	StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	StaticMeshComponent->Mobility = EComponentMobility::Static;
 	StaticMeshComponent->bGenerateOverlapEvents = false;

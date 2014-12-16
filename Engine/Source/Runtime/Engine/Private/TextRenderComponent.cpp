@@ -10,11 +10,11 @@
 ATextRenderActor::ATextRenderActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	TextRender = ObjectInitializer.CreateDefaultSubobject<UTextRenderComponent>(this, TEXT("NewTextRenderComponent"));
+	TextRender = CreateDefaultSubobject<UTextRenderComponent>(TEXT("NewTextRenderComponent"));
 	RootComponent = TextRender;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{

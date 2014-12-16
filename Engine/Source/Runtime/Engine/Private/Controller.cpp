@@ -34,7 +34,7 @@ AController::AController(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 	bOnlyRelevantToOwner = true;
 
-	TransformComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
+	TransformComponent = CreateDefaultSubobject<USceneComponent>(TEXT("TransformComponent0"));
 	RootComponent = TransformComponent;
 
 	bCanBeDamaged = false;

@@ -63,10 +63,10 @@ void UWorld::UpdateAllReflectionCaptures()
 AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	CaptureComponent = ObjectInitializer.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
+	CaptureComponent = CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(TEXT("NewReflectionComponent"));
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization
@@ -113,14 +113,14 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 	}
 #endif	//WITH_EDITORONLY_DATA
 
-	UDrawSphereComponent* DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	UDrawSphereComponent* DrawInfluenceRadius = CreateDefaultSubobject<UDrawSphereComponent>(TEXT("DrawRadius0"));
 	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	DrawCaptureRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius1"));
+	DrawCaptureRadius = CreateDefaultSubobject<UDrawSphereComponent>(TEXT("DrawRadius1"));
 	DrawCaptureRadius->AttachParent = GetCaptureComponent();
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
@@ -162,7 +162,7 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 		GetSpriteComponent()->AttachParent = BoxComponent;
 	}
 #endif	//WITH_EDITORONLY_DATA
-	UBoxComponent* DrawInfluenceBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	UBoxComponent* DrawInfluenceBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox0"));
 	DrawInfluenceBox->AttachParent = GetCaptureComponent();
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
@@ -170,7 +170,7 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	DrawInfluenceBox->InitBoxExtent(FVector(1, 1, 1));
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
 
-	UBoxComponent* DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	UBoxComponent* DrawCaptureBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox1"));
 	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
@@ -192,7 +192,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 		GetSpriteComponent()->AttachParent = PlaneComponent;
 	}
 #endif	//#if WITH_EDITORONLY_DATA
-	UDrawSphereComponent* DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	UDrawSphereComponent* DrawInfluenceRadius = CreateDefaultSubobject<UDrawSphereComponent>(TEXT("DrawRadius0"));
 	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
@@ -200,7 +200,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	UBoxComponent* DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	UBoxComponent* DrawCaptureBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox1"));
 	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;

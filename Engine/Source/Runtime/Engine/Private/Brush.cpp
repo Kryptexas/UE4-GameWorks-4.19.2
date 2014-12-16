@@ -23,7 +23,7 @@ TArray< TWeakObjectPtr< ULevel > > ABrush::LevelsToRebuild;
 ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent = ObjectInitializer.CreateDefaultSubobject<UBrushComponent>(this, TEXT("BrushComponent0"));
+	BrushComponent = CreateDefaultSubobject<UBrushComponent>(TEXT("BrushComponent0"));
 	BrushComponent->Mobility = EComponentMobility::Static;
 	BrushComponent->bGenerateOverlapEvents = false;
 	BrushComponent->bCanEverAffectNavigation = false;

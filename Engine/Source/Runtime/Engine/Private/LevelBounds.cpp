@@ -10,7 +10,7 @@ static const FVector DefaultLevelSize = FVector(1000.f);
 ALevelBounds::ALevelBounds(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	UBoxComponent* BoxComponent = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxComponent0"));
+	UBoxComponent* BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent0"));
 	RootComponent = BoxComponent;
 	RootComponent->Mobility = EComponentMobility::Static;
 	RootComponent->RelativeScale3D = DefaultLevelSize;

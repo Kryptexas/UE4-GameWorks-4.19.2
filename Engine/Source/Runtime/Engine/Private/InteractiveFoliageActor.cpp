@@ -15,7 +15,7 @@ AInteractiveFoliageActor::AInteractiveFoliageActor(const FObjectInitializer& Obj
 	FoliageMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	FoliageMeshComponent->Mobility = EComponentMobility::Static;
 
-	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
+	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CollisionCylinder"));
 	CapsuleComponent->InitCapsuleSize(60.0f, 200.0f);
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);

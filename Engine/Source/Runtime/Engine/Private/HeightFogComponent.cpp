@@ -149,7 +149,7 @@ void UExponentialHeightFogComponent::SetStartDistance(float Value)
 AExponentialHeightFog::AExponentialHeightFog(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	Component = ObjectInitializer.CreateDefaultSubobject<UExponentialHeightFogComponent>(this, TEXT("HeightFogComponent0"));
+	Component = CreateDefaultSubobject<UExponentialHeightFogComponent>(TEXT("HeightFogComponent0"));
 	RootComponent = Component;
 
 	bHidden = false;

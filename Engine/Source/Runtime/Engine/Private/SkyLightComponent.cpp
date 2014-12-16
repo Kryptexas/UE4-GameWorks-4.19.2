@@ -497,7 +497,7 @@ void USkyLightComponent::RecaptureSky()
 ASkyLight::ASkyLight(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	LightComponent = ObjectInitializer.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
+	LightComponent = CreateDefaultSubobject<USkyLightComponent>(TEXT("SkyLightComponent0"));
 	RootComponent = LightComponent;
 
 #if WITH_EDITORONLY_DATA

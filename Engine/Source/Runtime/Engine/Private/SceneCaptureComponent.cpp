@@ -16,7 +16,7 @@
 ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	MeshComp = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("CamMesh0"));
+	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CamMesh0"));
 
 	MeshComp->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
@@ -30,12 +30,12 @@ ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 ASceneCapture2D::ASceneCapture2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DrawFrustum = ObjectInitializer.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
+	DrawFrustum = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
 	DrawFrustum->AttachParent = GetMeshComp();
 
-	CaptureComponent2D = ObjectInitializer.CreateDefaultSubobject<USceneCaptureComponent2D>(this, TEXT("NewSceneCaptureComponent2D"));
+	CaptureComponent2D = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("NewSceneCaptureComponent2D"));
 	CaptureComponent2D->AttachParent = GetMeshComp();
 }
 
@@ -86,12 +86,12 @@ void ASceneCapture2D::PostActorCreated()
 ASceneCaptureCube::ASceneCaptureCube(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DrawFrustum = ObjectInitializer.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
+	DrawFrustum = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
 	DrawFrustum->AttachParent = GetMeshComp();
 
-	CaptureComponentCube = ObjectInitializer.CreateDefaultSubobject<USceneCaptureComponentCube>(this, TEXT("NewSceneCaptureComponentCube"));
+	CaptureComponentCube = CreateDefaultSubobject<USceneCaptureComponentCube>(TEXT("NewSceneCaptureComponentCube"));
 	CaptureComponentCube->AttachParent = GetMeshComp();
 }
 
