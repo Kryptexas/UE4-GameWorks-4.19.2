@@ -1,11 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include "NetworkMessage.h"
-#include "ServerTOC.h"
 #include "NetworkPlatformFile.h"
 
+
 DECLARE_LOG_CATEGORY_EXTERN(LogStreamingPlatformFile, Log, All);
+
 
 #if 0
 /**
@@ -14,6 +16,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogStreamingPlatformFile, Log, All);
 class STREAMINGFILE_API FStreamingLocalTimestampVisitor : public IPlatformFile::FDirectoryVisitor
 {
 private:
+
 	/** The file interface to use for any file operations */
 	IPlatformFile& FileInterface;
 
@@ -27,6 +30,7 @@ private:
 	TArray<FString> DirectoriesToNotRecurse;
 
 public:
+
 	/** Relative paths to local files and their timestamps */
 	TMap<FString, FDateTime> FileTimes;
 	
@@ -110,10 +114,12 @@ public:
 };
 #endif
 
+
 /**
  * Wrapper to redirect the low level file system to a server
  */
-class STREAMINGFILE_API FStreamingNetworkPlatformFile : public FNetworkPlatformFile
+class STREAMINGFILE_API FStreamingNetworkPlatformFile
+	: public FNetworkPlatformFile
 {
 	friend class FAsyncFileSync;
 
@@ -122,70 +128,18 @@ class STREAMINGFILE_API FStreamingNetworkPlatformFile : public FNetworkPlatformF
 
 public:
 
+	/** Default Constructor */
+	FStreamingNetworkPlatformFile() { };
+
+	/** Virtual destructor */
+	virtual ~FStreamingNetworkPlatformFile();
+
+public:
+
 	static const TCHAR* GetTypeName()
 	{
 		return TEXT("StreamingFile");
 	}
-
-	/** Constructor */
-	FStreamingNetworkPlatformFile() {};
-
-	/** Destructor */
-	virtual ~FStreamingNetworkPlatformFile();
-
-	// need to override what FNetworkPlatformFile does here
-	void InitializeAfterSetActive() override { }
-
-	// Begin IPlatformFile Interface 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
-
-	virtual IPlatformFile* GetLowerLevel() override
-	{
-		return NULL;
-	}
-
-	virtual const TCHAR* GetName() const override
-	{
-		return FStreamingNetworkPlatformFile::GetTypeName();
-	}
-	virtual bool		DeleteFile(const TCHAR* Filename) override;
-	virtual bool		IsReadOnly(const TCHAR* Filename) override
-	{
-		FFileInfo Info;
-		GetFileInfo(Filename, Info);
-		return Info.ReadOnly;
-	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override;
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override;
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
-	{
-		FFileInfo Info;
-		GetFileInfo(Filename, Info);
-		return Info.TimeStamp;
-	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override;
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
-	{
-		FFileInfo Info;
-		GetFileInfo(Filename, Info);
-		return Info.AccessTimeStamp;
-	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override;
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) override;
-	virtual bool		DirectoryExists(const TCHAR* Directory) override;
-	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override;
-	virtual bool		CreateDirectory(const TCHAR* Directory) override;
-	virtual bool		DeleteDirectory(const TCHAR* Directory) override;
-
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override;
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override;
-
-	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
-	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
-
-	// End IPlatformFile Interface
 
 	/** Sends Open message to the server and creates a new file handle if successful. */
 	class FStreamingNetworkFileHandle* SendOpenMessage(const FString& Filename, bool bIsWriting, bool bAppend, bool bAllowRead);
@@ -201,18 +155,52 @@ public:
 
 	/** Sends Close message to the server. */
 	bool SendCloseMessage(uint64 HandleId);
-	
+
+public:
+
+	// need to override what FNetworkPlatformFile does here
+	void InitializeAfterSetActive() override { }
+
+	// IPlatformFile interface
+
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
+
+	virtual IPlatformFile* GetLowerLevel() override
+	{
+		return nullptr;
+	}
+
+	virtual const TCHAR* GetName() const override
+	{
+		return FStreamingNetworkPlatformFile::GetTypeName();
+	}
+
+	virtual bool DeleteFile(const TCHAR* Filename) override;
+	virtual bool IsReadOnly(const TCHAR* Filename) override;
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override;
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override;
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override;
+	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override;
+	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override;
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) override;
+	virtual bool DirectoryExists(const TCHAR* Directory) override;
+	virtual bool CreateDirectoryTree(const TCHAR* Directory) override;
+	virtual bool CreateDirectory(const TCHAR* Directory) override;
+	virtual bool DeleteDirectory(const TCHAR* Directory) override;
+	virtual bool IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) override;
+	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) override;
+	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
+	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
+
 private:
 
-	// Begin FNetworkPlatformFile interface
+	// FNetworkPlatformFile interface
 
 	virtual void PerformHeartbeat() override;
-
 	virtual void GetFileInfo(const TCHAR* Filename, FFileInfo& Info) override;
-
-	// End FNetworkPlatformFile interface
-
-
 
 private:
 
@@ -222,7 +210,3 @@ private:
 	/** Stored information about the files we have already cached */
 	TMap<FString, FFileInfo> CachedFileInfo;
 };
-
-
-
-
