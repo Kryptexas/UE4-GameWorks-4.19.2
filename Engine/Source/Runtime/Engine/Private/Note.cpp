@@ -41,6 +41,7 @@ ANote::ANote(const FObjectInitializer& ObjectInitializer)
 			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Notes;
 			ArrowComponent->Mobility = EComponentMobility::Static;
 			ArrowComponent->bIsScreenSizeScaled = true;
+			ArrowComponent->AttachParent = RootComponent;
 		}
 
 		if (SpriteComponent)
