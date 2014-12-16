@@ -57,7 +57,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 
 	// Specify path to sub process exe
 #if PLATFORM_WINDOWS
-	FString SubProcessPath(TEXT("UnrealCEFSubProcess.exe"));
+	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/Win64/UnrealCEFSubProcess.exe")));
 #elif PLATFORM_MAC
 	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/Mac/UnrealCEFSubProcess.app/Contents/MacOS/UnrealCEFSubProcess")));
 #else // @todo Linux

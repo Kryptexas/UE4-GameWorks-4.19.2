@@ -25,7 +25,7 @@ FWebBrowserWindow::~FWebBrowserWindow()
 {
 	CloseBrowser();
 
-	if (FSlateApplication::Get().GetRenderer().IsValid() && UpdatableTexture != nullptr)
+	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid() && UpdatableTexture != nullptr)
 	{
 		FSlateApplication::Get().GetRenderer()->ReleaseUpdatableTexture(UpdatableTexture);
 	}
