@@ -72,6 +72,14 @@ public:
 		UpdateMetaDataEntry(MetaData, Right, EUINavigation::Right);
 	}
 
+	bool IsDefault() const
+	{
+		return Up.Rule == EUINavigationRule::Escape &&
+			Down.Rule == EUINavigationRule::Escape &&
+			Left.Rule == EUINavigationRule::Escape &&
+			Right.Rule == EUINavigationRule::Escape;
+	}
+
 private:
 
 	void UpdateMetaDataEntry(TSharedRef<FNavigationMetaData> MetaData, const FWidgetNavigationData & NavData, EUINavigation Nav)
