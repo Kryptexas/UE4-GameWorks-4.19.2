@@ -5115,18 +5115,6 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			]
 		];
 	}
-	else if (TabIdentifier == FName(TEXT("WidgetGalleryTab")))
-	{
-		return SNew(SDockTab)
-			. Label( LOCTEXT("WidgetGalleryTab", "Widget Gallery") )
-			. ToolTipText( LOCTEXT( "WidgetGalleryTabTextToolTip", "Switch to the widget gallery." ) )
-		[
-			SNew(SScissorRectBox)
-			[
-				MakeWidgetGallery()
-			]
-		];
-	}
 	else if (TabIdentifier == FName(TEXT("ColorPickerTestTab")))
 	{
 		return SNew(SDockTab)
@@ -5185,6 +5173,21 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		return SNew(SDockTab);
 	}
 }
+
+TSharedRef<SDockTab> SpawnResponsiveGrid(const FSpawnTabArgs& Args)
+{
+	TSharedRef<SDockTab> ResponsiveGridTab =
+		SNew(SDockTab)
+		.Label(LOCTEXT("ResponsiveGridTabLabel", "Responsive Grid"))
+		.ToolTipText(LOCTEXT("ResponsiveGridTabToolTip", ""));
+
+	ResponsiveGridTab->SetContent
+		(
+		SNew(SResponsiveGridPanelTestWidget)
+		);
+
+	return ResponsiveGridTab;
+}
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
@@ -5227,7 +5230,7 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 				FTabManager::NewStack()
 				->SetSizeCoefficient(0.25f)
 				->AddTab("MultiBoxTestTab", ETabState::OpenedTab)
-				->AddTab("WidgetGalleryTab", ETabState::OpenedTab)
+				->AddTab("ResponsiveGrid", ETabState::OpenedTab)
 				// The DocTest tab will be closed by default.
 				->AddTab("DocTest", ETabState::ClosedTab)
 			)
@@ -5301,9 +5304,8 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "LayoutRoundingTab", "Layout Rounding") )
 		.SetGroup(TestSuiteMenu::SuiteTabs);
 
-	TestSuite1TabManager->RegisterTabSpawner( "WidgetGalleryTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("WidgetGalleryTab") ) )
-		.SetDisplayName( NSLOCTEXT("TestSuite1", "WidgetGalleryTab", "Widget Gallery") )
-		.SetGroup(TestSuiteMenu::NestedCategory);
+	TestSuite1TabManager->RegisterTabSpawner("ResponsiveGrid", FOnSpawnTab::CreateStatic(&SpawnResponsiveGrid))
+		.SetGroup(TestSuiteMenu::SuiteTabs);
 
 	TestSuite1TabManager->RegisterTabSpawner( "MultiBoxTestTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("MultiBoxTestTab") ) )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "MultiBoxTestTab", "MultiBox Test") )
@@ -5437,20 +5439,18 @@ TSharedRef<SDockTab> SpawnRenderTransformManipulator( const FSpawnTabArgs& Args 
 	return RenderTransformManipulatorTab;
 }
 
-TSharedRef<SDockTab> SpawnResponsiveGrid(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> SpawnWidgetGallery(const FSpawnTabArgs& Args)
 {
-	TSharedRef<SDockTab> ResponsiveGridTab =
-		SNew(SDockTab)
-		.TabRole(ETabRole::MajorTab)
-		.Label(LOCTEXT("ResponsiveGridTabLabel", "Responsive Grid"))
-		.ToolTipText(LOCTEXT("ResponsiveGridTabToolTip", ""));
-
-	ResponsiveGridTab->SetContent
-	(
-		SNew(SResponsiveGridPanelTestWidget)
-	);
-
-	return ResponsiveGridTab;
+	return SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		.Label(LOCTEXT("WidgetGalleryTab", "Widget Gallery"))
+		.ToolTipText(LOCTEXT("WidgetGalleryTabTextToolTip", "Switch to the widget gallery."))
+		[
+			SNew(SScissorRectBox)
+			[
+				MakeWidgetGallery()
+			]
+		];
 }
 
 void RestoreSlateTestSuite()
@@ -5460,8 +5460,10 @@ void RestoreSlateTestSuite()
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite1", FOnSpawnTab::CreateStatic( &SpawnTestSuite1 ) );
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite2", FOnSpawnTab::CreateStatic( &SpawnTestSuite2 ) );
 	FGlobalTabmanager::Get()->RegisterTabSpawner("RenderTransformManipulator", FOnSpawnTab::CreateStatic(&SpawnRenderTransformManipulator));
-	FGlobalTabmanager::Get()->RegisterTabSpawner("ResponsiveGrid", FOnSpawnTab::CreateStatic(&SpawnResponsiveGrid));
-
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("WidgetGalleryTab", FOnSpawnTab::CreateStatic(&SpawnWidgetGallery))
+		.SetDisplayName(LOCTEXT("WidgetGalleryTab", "Widget Gallery"))
+		.SetGroup(TestSuiteMenu::MenuRoot);
+	
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "SlateTestSuite_Layout" )
 	->AddArea
 	(
@@ -5473,7 +5475,7 @@ void RestoreSlateTestSuite()
 			->AddTab( "TestSuite2", ETabState::OpenedTab )
 			->AddTab( "TestSuite1", ETabState::OpenedTab )
 			->AddTab("RenderTransformManipulator", ETabState::OpenedTab)
-			->AddTab("ResponsiveGrid", ETabState::OpenedTab)
+			->AddTab("WidgetGalleryTab", ETabState::OpenedTab)
 		)		
 	)
 	#if PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
