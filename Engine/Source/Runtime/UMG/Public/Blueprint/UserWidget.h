@@ -677,7 +677,7 @@ private:
 template< class T >
 T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 {
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	if ( World == nullptr || !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
 		return nullptr;
@@ -697,7 +697,7 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 template< class T >
 T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 {
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	if ( OwningPlayer == nullptr || !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
 		return nullptr;
@@ -709,6 +709,27 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
 	
 	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
+	NewWidget->Initialize();
+
+	return Cast<T>(NewWidget);
+}
+
+template< class T >
+T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass)
+{
+	if ( OwningGame == nullptr || !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	{
+		// TODO UMG Error?
+		return nullptr;
+	}
+
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningGame);
+
+	if ( APlayerController* PC = OwningGame->GetFirstLocalPlayerController() )
+	{
+		NewWidget->SetPlayerContext(FLocalPlayerContext(PC));
+	}
+	
 	NewWidget->Initialize();
 
 	return Cast<T>(NewWidget);
