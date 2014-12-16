@@ -48,6 +48,8 @@ public:
 
 	virtual FModifierKeysState GetModifierKeys() const override;
 
+	virtual bool IsCursorDirectlyOverSlateWindow() const override;
+
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override

@@ -316,6 +316,14 @@ static TSharedPtr< FMacWindow > FindWindowByNSWindow( const TArray< TSharedRef< 
 	return TSharedPtr< FMacWindow >( NULL );
 }
 
+bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
+{
+	SCOPED_AUTORELEASE_POOL;
+	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
+	NSWindow* const Window = [NSApp windowWithWindowNumber:WindowNumber];
+	return Window && [Window isKindOfClass:[FCocoaWindow class]];
+}
+
 void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 {
 	// Must have an event
