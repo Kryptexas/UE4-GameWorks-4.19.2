@@ -4383,7 +4383,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 			if (!SurfaceCacheResources.bClearedResources 
 				|| !GAOReuseAcrossFrames 
 				// Drop records that will have uninitialized Irradiance if switching from AO only to AO + GI
-				|| bUseDistanceFieldGI && !SurfaceCacheResources.bHasIrradiance)
+				|| (bUseDistanceFieldGI && !SurfaceCacheResources.bHasIrradiance))
 			{
 				// Reset the number of active cache records to 0
 				for (int32 DepthLevel = GAOMaxLevel; DepthLevel >= GAOMinLevel; DepthLevel--)

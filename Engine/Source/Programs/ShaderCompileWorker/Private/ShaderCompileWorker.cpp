@@ -633,6 +633,8 @@ IMPLEMENT_APPLICATION(ShaderCompileWorker, "ShaderCompileWorker")
 
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
+	// FPlatformProcess::OpenProcess only implemented for windows atm
+#if PLATFORM_WINDOWS
 	if (ArgC == 4 && FCString::Strcmp(ArgV[1], TEXT("-xgemonitor")) == 0)
 	{
 		// Open handles to the two processes
@@ -658,7 +660,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		}
 		return 0;
 	}
-
+#endif
 	if(ArgC < 6)
 	{
 		printf("ShaderCompileWorker is called by UE4, it requires specific command like arguments.\n");
