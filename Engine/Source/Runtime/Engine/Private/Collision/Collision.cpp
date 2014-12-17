@@ -133,11 +133,23 @@ void FCollisionQueryParams::AddIgnoredActor(const AActor* InIgnoreActor)
 {
 	if (InIgnoreActor)
 	{
-		TArray<UPrimitiveComponent*> PrimComponents;
+		TInlineComponentArray<UPrimitiveComponent*> PrimComponents;
 		InIgnoreActor->GetComponents(PrimComponents);
-		for (UPrimitiveComponent* PrimComponent : PrimComponents)
+
+		if (IgnoreComponents.Num() == 0)
 		{
-			IgnoreComponents.AddUnique(PrimComponent->GetUniqueID());
+			// Don't need to AddUnique if we start empty, as GetComponents should never contain duplicate components.
+			for (UPrimitiveComponent* PrimComponent : PrimComponents)
+			{
+				IgnoreComponents.Add(PrimComponent->GetUniqueID());
+			}
+		}
+		else
+		{
+			for (UPrimitiveComponent* PrimComponent : PrimComponents)
+			{
+				IgnoreComponents.AddUnique(PrimComponent->GetUniqueID());
+			}
 		}
 	}
 }

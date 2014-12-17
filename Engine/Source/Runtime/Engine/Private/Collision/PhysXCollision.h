@@ -74,13 +74,20 @@ PxGeometry * GetGeometryFromShape(GeometryFromShapeStorage & LocalStorage, const
 
 // FILTER
 
+/** TArray typedef of components to ignore. */
+typedef TArray<uint32, TInlineAllocator<NumInlinedActorComponents>> FilterIgnoreComponentsArrayType;
+
+
 /** Unreal PhysX scene query filter callback object */
 class FPxQueryFilterCallback : public PxSceneQueryFilterCallback
 {
 public:
+
 	/** List of ActorIds for this query to ignore */
-	TArray<uint32, TInlineAllocator<1> >	IgnoreComponents;
-	PxSceneQueryHitType::Enum				PrefilterReturnValue;
+	FilterIgnoreComponentsArrayType IgnoreComponents;
+	
+	/** Result of PreFilter callback. */
+	PxSceneQueryHitType::Enum PrefilterReturnValue;
 
 	/** Whether this is a raycastSingle or sweepSingle, because in 3.3 you can't return eTOUCH for single queries */
 	bool bSingleQuery;
@@ -92,7 +99,7 @@ public:
 		bSingleQuery = false;
 	}
 
-	FPxQueryFilterCallback(const TArray<uint32, TInlineAllocator<1> > InIgnoreComponents)
+	FPxQueryFilterCallback(const FilterIgnoreComponentsArrayType& InIgnoreComponents)
 	{
 		PrefilterReturnValue = PxSceneQueryHitType::eNONE;
 		
@@ -126,7 +133,7 @@ class FPxQueryFilterCallbackSweep : public FPxQueryFilterCallback
 public:
 	bool DiscardInitialOverlaps;
 
-	FPxQueryFilterCallbackSweep(const TArray<uint32, TInlineAllocator<1> > InIgnoreComponents)
+	FPxQueryFilterCallbackSweep(const FilterIgnoreComponentsArrayType& InIgnoreComponents)
 		: FPxQueryFilterCallback(InIgnoreComponents)
 	{
 		DiscardInitialOverlaps = false;
