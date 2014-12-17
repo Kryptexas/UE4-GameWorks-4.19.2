@@ -63,7 +63,7 @@ public:
 	 * @return Looped lerp value.
 	 * @see GetLerp
 	 */
-	DEPRECATED(4.7, "FCurveHandle::GetLerpLooping() is deprecated. Use GetLerp() instead. To play a sequence on a loop, pass \"true\" as the second parameter to FCurveSequence::Play / ::PlayReverse.")
+	DEPRECATED(4.8, "FCurveHandle::GetLerpLooping() is deprecated. Use GetLerp() instead. To play a sequence on a loop, pass \"true\" as the second parameter to FCurveSequence::Play / ::PlayReverse.")
 	float GetLerpLooping( ) const;
 	/** Shell to avoid generating internal deprecated warnings. Do not call. Will be removed when GetLerpLooping() is removed. */
 	float DEPRECATED_GetLerpLooping() const;
