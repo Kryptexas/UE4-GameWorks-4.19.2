@@ -52,6 +52,9 @@ protected:
 
 	uint32 ClassToReinstanceDefaultValuesCRC;
 
+	/** Objects that should keep reference to old class */
+	TSet<UObject*> ObjectsThatShouldUseOldStuff;
+
 public:
 	virtual ~FBlueprintCompileReinstancer();
 
@@ -71,7 +74,7 @@ public:
 	void UpdateBytecodeReferences();
 
 	/** Worker function to replace all instances of OldClass with a new instance of NewClass */
-	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL);
+	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL);
 	
 	/** Verify that all instances of the duplicated class have been replaced and collected */
 	void VerifyReplacement();

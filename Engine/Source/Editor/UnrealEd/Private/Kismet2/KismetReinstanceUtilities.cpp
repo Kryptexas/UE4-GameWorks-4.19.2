@@ -90,6 +90,12 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 						{
 							ReparentChild(ChildClass);
 						}
+
+						//TODO: some stronger condition would be nice
+						if (!bClassIsDirectlyGeneratedByTheBlueprint)
+						{
+							ObjectsThatShouldUseOldStuff.Add(ChildClass);
+						}
 					}
 					// If this is a direct child, change the parent and relink so the property chain is valid for reinstancing
 					else if( !ChildBP->HasAnyFlags(RF_NeedLoad) )
@@ -230,7 +236,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 
 		if (bShouldReinstance)
 		{
-			ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO);
+			ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO, &ObjectsThatShouldUseOldStuff);
 		}
 	
 		{ 
@@ -489,7 +495,7 @@ void FActorReplacementHelper::AttachChildActors(USceneComponent* RootComponent)
 	}
 }
 
-void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject*	OriginalCDO)
+void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject*	OriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff)
 {
 	USelection* SelectedActors;
 	bool bSelectionChanged = false;
@@ -682,7 +688,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 		TFindObjectReferencers<UObject> Referencers(SourceObjects, NULL, false);
 		for (TFindObjectReferencers<UObject>::TIterator It(Referencers); It; ++It)
 		{
-			Targets.Add(It.Value());
+			UObject* Referencer = It.Value();
+			if (!ObjectsThatShouldUseOldStuff || !ObjectsThatShouldUseOldStuff->Contains(Referencer))
+			{
+				Targets.Add(Referencer);
+			}
 		}
 	}
 
