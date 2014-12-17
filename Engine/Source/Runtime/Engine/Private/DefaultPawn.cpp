@@ -36,7 +36,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 
 	RootComponent = CollisionComponent;
 
-	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(ADefaultPawn::MovementComponentName);
+	MovementComponent = CreateDefaultSubobject<UPawnMovementComponent, UFloatingPawnMovement>(ADefaultPawn::MovementComponentName);
 	MovementComponent->UpdatedComponent = CollisionComponent;
 
 	// Structure to hold one-time initialization
