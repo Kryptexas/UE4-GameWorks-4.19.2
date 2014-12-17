@@ -160,6 +160,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
 	bScrollToEnd = false;
+	bIsActiveTickRegistered = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -340,7 +341,7 @@ void SScrollBox::ClearChildren()
 
 bool SScrollBox::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace() && this->ScrollBar->IsNeeded();
+	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistance() && this->ScrollBar->IsNeeded();
 }
 
 float SScrollBox::GetScrollOffset()
@@ -432,21 +433,33 @@ void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
 	ScrollBar->SetThickness(InThickness);
 }
 
-void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
-	if ( !IsRightClickScrolling() )
-	{
-		this->InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
+	InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
 
-		const float ScrollVelocity = this->InertialScrollManager.GetScrollVelocity();
-		if ( ScrollVelocity != 0.f )
+	if (bIsScrolling)
+	{
+		const float ScrollVelocity = InertialScrollManager.GetScrollVelocity();
+		if (ScrollVelocity != 0.f)
 		{
-			this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, true);
+			ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, true);
 		}
+
+		return EActiveTickReturnType::KeepTicking;
 	}
 
+	// Clear the scroll velocity so there isn't any delayed minuscule movement
+	InertialScrollManager.ClearScrollVelocity();
+
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
+}
+
+void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	CachedGeometry = AllottedGeometry;
+
 	const FGeometry ScrollPanelGeometry = FindChildGeometry( AllottedGeometry, ScrollPanel.ToSharedRef() );
-	
 	const float ContentSize = GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());
 
 	if ( bScrollToEnd )
@@ -461,7 +474,7 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	
 	// Update the scrollbar with the clamped version of the offset
 	const float TargetPhysicalOffset = GetScrollComponentFromVector(ViewOffset*ScrollPanel->GetDesiredSize());
-	bIsScrolling = !FMath::IsNearlyEqual(TargetPhysicalOffset, ScrollPanel->PhysicalOffset, 0.001f);	
+	bIsScrolling = !FMath::IsNearlyEqual(TargetPhysicalOffset, ScrollPanel->PhysicalOffset, 0.001f);
 	ScrollPanel->PhysicalOffset = (bAnimateScroll)
 		? FMath::FInterpTo(ScrollPanel->PhysicalOffset, TargetPhysicalOffset, InDeltaTime, 15.f)
 		: TargetPhysicalOffset;
@@ -471,6 +484,12 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	{
 		// We cannot scroll, so ensure that there is no offset.
 		ScrollPanel->PhysicalOffset = 0.0f;
+	}
+	else if (bIsScrolling && !bIsActiveTickRegistered)
+	{
+		// If scrolling and the scrollbar is needed, make sure the active tick is registered (possible b/c we may need to scroll when our geometry changes)
+		bIsActiveTickRegistered = true;
+		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 	}
 }
 
@@ -498,6 +517,15 @@ FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
+		if (!bIsActiveTickRegistered && IsRightClickScrolling())
+		{
+			// Register the active tick to handle the inertial scrolling
+			CachedGeometry = MyGeometry;
+			bIsScrolling = true;
+			bIsActiveTickRegistered = true;
+			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+		}
+
 		AmountScrolledWhileRightMouseDown = 0;
 
 		FReply Reply = FReply::Handled().ReleaseMouseCapture();
@@ -575,9 +603,18 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 	if (ScrollBar->IsNeeded())
 	{
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
-		this->InertialScrollManager.ClearScrollVelocity();
+		InertialScrollManager.ClearScrollVelocity();
 
 		const bool bScrollWasHandled = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount );
+
+		if (bScrollWasHandled && !bIsActiveTickRegistered)
+		{
+			// Register the active tick to handle the inertial scrolling
+			CachedGeometry = MyGeometry;
+			bIsScrolling = true;
+			bIsActiveTickRegistered = true;
+			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+		}
 
 		return bScrollWasHandled ? FReply::Handled() : FReply::Unhandled();
 	}
