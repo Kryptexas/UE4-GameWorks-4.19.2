@@ -748,11 +748,8 @@ public:
 	/**
 	 * Called when the recompile buttons are clicked.
 	 */
-	static void RecompileLevelEditor_Clicked();
-	static void ReloadLevelEditor_Clicked();
 	static void RecompileGameCode_Clicked();
 	static bool Recompile_CanExecute();
-	static bool Reload_CanExecute();
 
 	/**
 	 * Called when the FindInContentBrowser command is executed

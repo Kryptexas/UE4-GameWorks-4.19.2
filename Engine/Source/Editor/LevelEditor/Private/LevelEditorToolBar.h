@@ -54,13 +54,6 @@ protected:
 	 *
 	 * @return	Menu content widget
 	 */
-	static TSharedRef< SWidget > GenerateCompileMenuContent( TSharedRef<FUICommandList> InCommandList );
-
-	/**
-	 * Generates menu content for the compile combo button drop down menu
-	 *
-	 * @return	Menu content widget
-	 */
 	static TSharedRef< SWidget > GenerateOpenBlueprintMenuContent( TSharedRef<FUICommandList> InCommandList, TWeakPtr< SLevelEditor > InLevelEditor );
 
 	/**

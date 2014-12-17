@@ -1168,18 +1168,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 				FLevelEditorCommands::Get().RecompileGameCode->GetDescription(),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Recompile")
 				);
-
-			ToolbarBuilder.AddComboButton(
-				FUIAction(
-					FExecuteAction(),
-					FCanExecuteAction(),
-					FIsActionChecked(),
-					FIsActionButtonVisible::CreateStatic(FLevelEditorActionCallbacks::CanShowSourceCodeActions)),
-				FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateCompileMenuContent, InCommandList ),
-				LOCTEXT( "CompileCombo_Label", "Compile Options" ),
-				LOCTEXT( "CompileMenuCombo_ToolTip", "Recompile options" ),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Recompile"),
-				true);
 		}
 	}
 	ToolbarBuilder.EndSection();
@@ -1693,39 +1681,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 	return MenuBuilder.MakeWidget();
 }
 
-TSharedRef< SWidget > FLevelEditorToolBar::GenerateCompileMenuContent( TSharedRef<FUICommandList> InCommandList )
-{
-#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
-
-	// Get all menu extenders for this context menu from the level editor module
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-	TArray<FLevelEditorModule::FLevelEditorMenuExtender> MenuExtenderDelegates = LevelEditorModule.GetAllLevelEditorToolbarCompileMenuExtenders();
-
-	TArray<TSharedPtr<FExtender>> Extenders;
-	for (int32 i = 0; i < MenuExtenderDelegates.Num(); ++i)
-	{
-		if (MenuExtenderDelegates[i].IsBound())
-		{
-			Extenders.Add(MenuExtenderDelegates[i].Execute(InCommandList));
-		}
-	}
-	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
-
-	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList, MenuExtender );
-
-	if (LevelEditorModule.CanBeRecompiled())
-	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().RecompileLevelEditor );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ReloadLevelEditor );
-	}
-
-	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().RecompileGameCode );
-
-#undef LOCTEXT_NAMESPACE
-
-	return MenuBuilder.MakeWidget();
-}
 
 TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSharedRef<FUICommandList> InCommandList, TWeakPtr< SLevelEditor > InLevelEditor )
 {

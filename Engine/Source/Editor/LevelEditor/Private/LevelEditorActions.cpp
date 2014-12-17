@@ -900,16 +900,6 @@ bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 	return HotReloadSupport.IsAnyGameModuleLoaded();
 }
 
-void FLevelEditorActionCallbacks::RecompileLevelEditor_Clicked()
-{
-	GEngine->DeferredCommands.Add( TEXT( "Module Recompile LevelEditor" ) );
-}
-
-void FLevelEditorActionCallbacks::ReloadLevelEditor_Clicked()
-{
-	GEngine->DeferredCommands.Add( TEXT( "Module Reload LevelEditor" ) );
-}
-
 void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 {
 	// Don't allow a recompile while already compiling!
@@ -926,13 +916,6 @@ bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
-}
-
-bool FLevelEditorActionCallbacks::Reload_CanExecute()
-{
-	// We're not able to reload if a compile is already in progress!
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
-	return !HotReloadSupport.IsCurrentlyCompiling();
 }
 
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
@@ -2647,13 +2630,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SceneStats, "Open Scene Stats", "Opens the Scene Stats viewer", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( TextureStats, "Open Texture Stats", "Opens the Texture Stats viewer", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( MapCheck, "Open Map Check", "Checks map for errors", EUserInterfaceActionType::Button, FInputGesture() );
-
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
-	if (LevelEditorModule.CanBeRecompiled())
-	{
-		UI_COMMAND( RecompileLevelEditor, "Recompile Level Editor", "Recompiles and reloads C++ code for the Level Editor on the fly", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( ReloadLevelEditor, "Reload Level Editor", "Reloads C++ code for the Level Editor on the fly", EUserInterfaceActionType::Button, FInputGesture() );
-	}
 
 	UI_COMMAND( RecompileGameCode, "Recompile Game Code", "Recompiles and reloads C++ code for game systems on the fly", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt | EModifierKey::Control | EModifierKey::Shift ) );
 
