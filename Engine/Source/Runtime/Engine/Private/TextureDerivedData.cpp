@@ -34,7 +34,8 @@ enum
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID and set this new
 // guid as version
 
-#define TEXTURE_DERIVEDDATA_VER		TEXT("75F87CE100B546AAB8A1C4132AF9DB17")
+#define TEXTURE_DERIVEDDATA_VER		TEXT("814DCC3DC72143F49509781513CB9855")
+
 
 /*------------------------------------------------------------------------------
 	Timing of derived data operations.
@@ -111,6 +112,7 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 	uint32 TempUint32;
 	float TempFloat;
 	uint8 TempByte;
+	FColor TempColor;
 
 	TempFloat = Settings.ColorAdjustment.AdjustBrightness; Ar << TempFloat;
 	TempFloat = Settings.ColorAdjustment.AdjustBrightnessCurve; Ar << TempFloat;
@@ -139,18 +141,12 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 	TempByte = Settings.bApplyKernelToTopMip; Ar << TempByte;
 	TempByte = Settings.CompositeTextureMode; Ar << TempByte;
 	TempFloat = Settings.CompositePower; Ar << TempFloat;
-	// Preserve DDC key for existing content without customized MaxTextureResolution 
-	if (Settings.bLongLatSource)
-	{
-		if (Settings.MaxTextureResolution != 512) // default value for long/lat source
-		{
-			TempUint32 = Settings.MaxTextureResolution; Ar << TempUint32;
-		}
-	}
-	else if (Settings.MaxTextureResolution != TNumericLimits<uint32>::Max())
-	{
-		TempUint32 = Settings.MaxTextureResolution; Ar << TempUint32;
-	}
+	TempUint32 = Settings.MaxTextureResolution; Ar << TempUint32;
+	TempByte = Settings.PowerOfTwoMode; Ar << TempByte;
+	TempColor = Settings.PaddingColor; Ar << TempColor;
+	TempByte = Settings.bChromaKeyTexture; Ar << TempByte;
+	TempColor = Settings.ChromaKeyColor; Ar << TempColor;
+	TempFloat = Settings.ChromaKeyThreshold; Ar << TempFloat;
 }
 
 /**
@@ -353,6 +349,11 @@ static void GetTextureBuildSettings(
 	OutBuildSettings.CompositePower = Texture.CompositePower;
 	OutBuildSettings.LODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
 	OutBuildSettings.bStreamable = !Texture.NeverStream && (Texture.LODGroup != TEXTUREGROUP_UI) && (Cast<const UTexture2D>(&Texture) != NULL);
+	OutBuildSettings.PowerOfTwoMode = Texture.PowerOfTwoMode;
+	OutBuildSettings.PaddingColor = Texture.PaddingColor;
+	OutBuildSettings.ChromaKeyColor = Texture.ChromaKeyColor;
+	OutBuildSettings.bChromaKeyTexture = Texture.bChromaKeyTexture;
+	OutBuildSettings.ChromaKeyThreshold = Texture.ChromaKeyThreshold;
 }
 
 /**

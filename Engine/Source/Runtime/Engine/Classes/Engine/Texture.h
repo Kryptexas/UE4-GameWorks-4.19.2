@@ -60,6 +60,10 @@ enum ECompositeTextureMode
 	// CompositingTexture needs to be a normal map with the same or larger size
 	CTM_NormalRoughnessToAlpha UMETA(DisplayName="Add Normal Roughness To Alpha"),
 	CTM_MAX,
+
+	// Note: These are serialized as as raw values in the texture DDC key, so additional entries
+	// should be added at the bottom; reordering or removing entries will require changing the GUID
+	// in the texture compressor DDC key
 };
 
 UENUM()
@@ -408,6 +412,26 @@ public:
 	/** For DXT1 textures, setting this will cause the texture to be twice the size, but better looking, on iPhone */
 	UPROPERTY()
 	uint32 bForcePVRTC4:1;
+
+	/** How to pad the texture to a power of 2 size (if necessary) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture)
+	TEnumAsByte<enum ETexturePowerOfTwoSetting::Type> PowerOfTwoMode;
+
+	/** The color used to pad the texture out if it is resized due to PowerOfTwoMode */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture)
+	FColor PaddingColor;
+
+	/** Whether to chroma key the image, replacing any pixels that match ChromaKeyColor with transparent black */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments)
+	bool bChromaKeyTexture;
+
+	/** The threshold that components have to match for the texel to be considered equal to the ChromaKeyColor when chroma keying (<=, set to 0 to require a perfect exact match) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(EditCondition="bChromaKeyTexture", ClampMin="0"))
+	float ChromaKeyThreshold;
+
+	/** The color that will be replaced with transparent black if chroma keying is enabled */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(EditCondition="bChromaKeyTexture"))
+	FColor ChromaKeyColor;
 
 	/** Per asset specific setting to define the mip-map generation properties like sharpening and kernel size. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail)

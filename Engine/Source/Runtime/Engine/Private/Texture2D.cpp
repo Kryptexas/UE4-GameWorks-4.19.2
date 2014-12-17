@@ -230,7 +230,7 @@ void UTexture2D::PostEditUndo()
 void UTexture2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 #if WITH_EDITORONLY_DATA
-	if (!Source.IsPowerOfTwo())
+	if (!Source.IsPowerOfTwo() && (PowerOfTwoMode == ETexturePowerOfTwoSetting::None))
 	{
 		// Force NPT textures to have no mipmaps.
 		MipGenSettings = TMGS_NoMipmaps;

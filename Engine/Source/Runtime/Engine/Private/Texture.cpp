@@ -54,6 +54,10 @@ UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
 	MipGenSettings = TMGS_FromTextureGroup;
 	CompositeTextureMode = CTM_NormalRoughnessToAlpha;
 	CompositePower = 1.0f;
+
+	PaddingColor = FColor::Black;
+	ChromaKeyColor = FColorList::Magenta;
+	ChromaKeyThreshold = 1.0f / 255.0f;
 #endif // #if WITH_EDITORONLY_DATA
 
 	if (FApp::CanEverRender() && !IsTemplate())

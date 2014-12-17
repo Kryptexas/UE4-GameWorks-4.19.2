@@ -1118,11 +1118,12 @@ static void GenerateAngularFilteredMips(TArray<FImage>& InOutMipChain, int32 Num
 /**
  * Adjusts the colors of the image using the specified settings
  *
- * @param	Image		Image to adjust
- * @param	InParams	Color adjustment parameters
+ * @param	Image			Image to adjust
+ * @param	InBuildSettings	Image build settings
  */
-static void AdjustImageColors( FImage& Image, const FColorAdjustmentParameters& InParams )
+static void AdjustImageColors( FImage& Image, const FTextureBuildSettings& InBuildSettings )
 {
+	const FColorAdjustmentParameters& InParams = InBuildSettings.ColorAdjustment;
 	check( Image.SizeX > 0 && Image.SizeY > 0 );
 
 	if( !FMath::IsNearlyEqual( InParams.AdjustBrightness, 1.0f, (float)KINDA_SMALL_NUMBER ) ||
@@ -1132,14 +1133,23 @@ static void AdjustImageColors( FImage& Image, const FColorAdjustmentParameters& 
 		!FMath::IsNearlyEqual( InParams.AdjustRGBCurve, 1.0f, (float)KINDA_SMALL_NUMBER ) ||
 		!FMath::IsNearlyEqual( InParams.AdjustHue, 0.0f, (float)KINDA_SMALL_NUMBER ) ||
 		!FMath::IsNearlyEqual( InParams.AdjustMinAlpha, 0.0f, (float)KINDA_SMALL_NUMBER ) ||
-		!FMath::IsNearlyEqual( InParams.AdjustMaxAlpha, 1.0f, (float)KINDA_SMALL_NUMBER ) )
+		!FMath::IsNearlyEqual( InParams.AdjustMaxAlpha, 1.0f, (float)KINDA_SMALL_NUMBER ) ||
+		InBuildSettings.bChromaKeyTexture )
 	{
+		const FLinearColor ChromaKeyTarget = InBuildSettings.ChromaKeyColor;
+		const float ChromaKeyThreshold = InBuildSettings.ChromaKeyThreshold + SMALL_NUMBER;
 		const int32 NumPixels = Image.SizeX * Image.SizeY * Image.NumSlices;
 		FLinearColor* ImageColors = Image.AsRGBA32F();
 		const bool bIsSRGB = Image.bSRGB;
 		for( int32 CurPixelIndex = 0; CurPixelIndex < NumPixels; ++CurPixelIndex )
 		{
-			const FLinearColor OriginalColor = ImageColors[ CurPixelIndex ];
+			const FLinearColor OriginalColorRaw = ImageColors[ CurPixelIndex ];
+
+			FLinearColor OriginalColor = OriginalColorRaw;
+			if (InBuildSettings.bChromaKeyTexture && (OriginalColor.Equals(ChromaKeyTarget, ChromaKeyThreshold)))
+			{
+				OriginalColor = FLinearColor::Transparent;
+			}
 
 			// Convert to HSV
 			FLinearColor HSVColor = OriginalColor.LinearRGBToHSV();
@@ -1719,7 +1729,86 @@ private:
 			NumSourceMips = 1;
 		}
 
-		// Check our source can be exported by our current compressor.
+		TArray<FImage> PaddedSourceMips;
+
+		{
+			const FImage& FirstSourceMipImage = InSourceMips[0];
+			int32 TargetTextureSizeX = FirstSourceMipImage.SizeX;
+			int32 TargetTextureSizeY = FirstSourceMipImage.SizeY;
+			bool bPadOrStretchTexture = false;
+
+			const int32 PowerOfTwoTextureSizeX = FMath::RoundUpToPowerOfTwo(TargetTextureSizeX);
+			const int32 PowerOfTwoTextureSizeY = FMath::RoundUpToPowerOfTwo(TargetTextureSizeY);
+			switch (static_cast<const ETexturePowerOfTwoSetting::Type>(BuildSettings.PowerOfTwoMode))
+			{
+			case ETexturePowerOfTwoSetting::None:
+				break;
+
+			case ETexturePowerOfTwoSetting::PadToPowerOfTwo:
+				bPadOrStretchTexture = true;
+				TargetTextureSizeX = PowerOfTwoTextureSizeX;
+				TargetTextureSizeY = PowerOfTwoTextureSizeY;
+				break;
+
+			case ETexturePowerOfTwoSetting::PadToSquarePowerOfTwo:
+				bPadOrStretchTexture = true;
+				TargetTextureSizeX = TargetTextureSizeY = FMath::Max<int32>(PowerOfTwoTextureSizeX, PowerOfTwoTextureSizeY);
+				break;
+
+			default:
+				checkf(false, TEXT("Unknown entry in ETexturePowerOfTwoSetting::Type"));
+				break;
+			}
+
+			if (bPadOrStretchTexture)
+			{
+				// Want to stretch or pad the texture
+				bool bSuitableFormat = FirstSourceMipImage.Format == ERawImageFormat::RGBA32F;
+
+				FImage Temp;
+				if (!bSuitableFormat)
+				{
+					// convert to RGBA32F
+					FirstSourceMipImage.CopyTo(Temp, ERawImageFormat::RGBA32F, false);
+				}
+
+				// space for one source mip and one destination mip
+				const FImage& SourceImage = bSuitableFormat ? FirstSourceMipImage : Temp;
+				FImage& TargetImage = *new (PaddedSourceMips) FImage(TargetTextureSizeX, TargetTextureSizeY, SourceImage.NumSlices, SourceImage.Format);
+				FLinearColor FillColor = BuildSettings.PaddingColor;
+
+				FLinearColor* TargetPtr = (FLinearColor*)TargetImage.RawData.GetData();
+				FLinearColor* SourcePtr = (FLinearColor*)SourceImage.RawData.GetData();
+				check(SourceImage.GetBytesPerPixel() == sizeof(FLinearColor));
+				check(TargetImage.GetBytesPerPixel() == sizeof(FLinearColor));
+
+				const int32 SourceBytesPerLine = SourceImage.SizeX * SourceImage.GetBytesPerPixel();
+				const int32 DestBytesPerLine = TargetImage.SizeX * TargetImage.GetBytesPerPixel();
+				for (int32 SliceIndex = 0; SliceIndex < SourceImage.NumSlices; ++SliceIndex)
+				{
+					for (int32 Y = 0; Y < TargetTextureSizeY; ++Y)
+					{
+						int32 XStart = 0;
+						if (Y < SourceImage.SizeY)
+						{
+							XStart = SourceImage.SizeX;
+							FMemory::Memcpy(TargetPtr, SourcePtr, SourceImage.SizeX * sizeof(FLinearColor));
+							SourcePtr += SourceImage.SizeX;
+							TargetPtr += SourceImage.SizeX;
+						}
+
+						for (int32 XPad = XStart; XPad < TargetImage.SizeX; ++XPad)
+						{
+							*TargetPtr++ = FillColor;
+						}
+					}
+				}
+			}
+		}
+
+		const TArray<FImage>& PostOptionalUpscaleSourceMips = (PaddedSourceMips.Num() > 0) ? PaddedSourceMips : InSourceMips;
+
+		// See if the smallest provided mip image is still too large for the current compressor.
 		int32 LevelsToUsableSource = FMath::Max(0, MaxSourceMipCount - MaxDestMipCount);
 		int32 StartMip = FMath::Max(0, LevelsToUsableSource);
 		bool bBuildSourceImage = StartMip > (NumSourceMips - 1);
@@ -1729,8 +1818,8 @@ private:
 		{			
 			// the source is larger than the compressor allows and no mip image exists to act as a smaller source.
 			// We must generate a suitable source image:
-			bool bSuitableFormat = InSourceMips.Last().Format == ERawImageFormat::RGBA32F;
-			const FImage& BaseImage = InSourceMips.Last();
+			bool bSuitableFormat = PostOptionalUpscaleSourceMips.Last().Format == ERawImageFormat::RGBA32F;
+			const FImage& BaseImage = PostOptionalUpscaleSourceMips.Last();
 
 			if (BaseImage.SizeX != FMath::RoundUpToPowerOfTwo(BaseImage.SizeX) || BaseImage.SizeY != FMath::RoundUpToPowerOfTwo(BaseImage.SizeY))
 			{
@@ -1763,7 +1852,7 @@ private:
 			StartMip--;
 		}
 
-		const TArray<FImage>& SourceMips = bBuildSourceImage ? GeneratedSourceMips : InSourceMips;
+		const TArray<FImage>& SourceMips = bBuildSourceImage ? GeneratedSourceMips : PostOptionalUpscaleSourceMips;
 
 		OutMipChain.Empty(NumOutputMips);
 		// Copy over base mips.
@@ -1812,7 +1901,7 @@ private:
 			}
 
 			// Apply color adjustments
-			AdjustImageColors(*Mip, BuildSettings.ColorAdjustment);
+			AdjustImageColors(*Mip, BuildSettings);
 			if (BuildSettings.bComputeBokehAlpha)
 			{
 				// To get the occlusion in the BokehDOF shader working for all Bokeh textures.
