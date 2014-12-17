@@ -2712,12 +2712,20 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 			TooltipVisualizerPtr.Pin()->OnVisualizeTooltip( nullptr );
 		}
 
+		// Notify the new tooltip that it's about to be opened.
+		if ( NewToolTip.IsValid() )
+		{
+			NewToolTip->OnOpening();
+		}
+
+		TSharedPtr<SWidget> NewToolTipWidget = NewToolTip.IsValid() ? NewToolTip->AsWidget() : TSharedPtr<SWidget>();
+
 		bool bOnVisualizeTooltipHandled = false;
 		// Some widgets might want to provide an alternative Tooltip Handler.
 		for ( int32 WidgetIndex=WidgetsToQueryForToolTip.Widgets.Num()-1; !bOnVisualizeTooltipHandled && WidgetIndex >= 0; --WidgetIndex )
 		{
 			const FArrangedWidget& CurWidgetGeometry = WidgetsToQueryForToolTip.Widgets[WidgetIndex];
-			bOnVisualizeTooltipHandled = CurWidgetGeometry.Widget->OnVisualizeTooltip( NewToolTip.IsValid() ? NewToolTip->AsWidget() : TSharedPtr<SWidget>() );
+			bOnVisualizeTooltipHandled = CurWidgetGeometry.Widget->OnVisualizeTooltip( NewToolTipWidget );
 			if (bOnVisualizeTooltipHandled)
 			{
 				// Someone is taking care of visualizing this tooltip

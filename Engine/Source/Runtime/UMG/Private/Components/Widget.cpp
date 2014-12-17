@@ -78,6 +78,10 @@ public:
 		CachedToolTip.Reset();
 	}
 
+	virtual void OnOpening() override
+	{
+	}
+
 public:
 	UWidget::FGetWidget ToolTipWidgetDelegate;
 
