@@ -37,6 +37,10 @@ public partial class Project : CommandUtils
 
 		if (Params.CookOnTheFly && !Params.SkipServer)
 		{
+            if (Params.HasDLCName)
+            {
+                throw new AutomationException("Cook on the fly doesn't support cooking dlc");
+            }
 			if (Params.ClientTargetPlatforms.Count > 0)
 			{
 				var LogFolderOutsideOfSandbox = GetLogFolderOutsideOfSandbox();
@@ -117,24 +121,24 @@ public partial class Project : CommandUtils
 			}
 
             try
-			{
-				var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
-				if (Params.UseDebugParamForEditorExe)
-				{
-					CommandletParams += " -debug";
-				}
-				if (Params.Manifests)
-				{
-					CommandletParams += " -manifests";
-				}
-				if (Params.IterativeCooking)
-				{
-					CommandletParams += " -iterate";
-				}
+            {
+                var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
+                if (Params.UseDebugParamForEditorExe)
+                {
+                    CommandletParams += " -debug";
+                }
+                if (Params.Manifests)
+                {
+                    CommandletParams += " -manifests";
+                }
+                if (Params.IterativeCooking)
+                {
+                    CommandletParams += " -iterate";
+                }
                 if (Params.NewCook)
                 {
                     CommandletParams += " -newcook";
-                } 
+                }
                 if (Params.HasCreateReleaseVersion)
                 {
                     CommandletParams += " -createreleaseversion=" + Params.CreateReleaseVersion;
@@ -143,13 +147,17 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -basedonreleaseversion=" + Params.BasedOnReleaseVersion;
                 }
+                if (Params.HasDLCName)
+                {
+                    CommandletParams += " -dlcname=" + Params.DLCName;
+                }
                 if (Params.HasAdditionalCookerOptions)
                 {
-                    string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] {'\"', ' ' } ).TrimEnd(new char[] {'\"', ' ' } );
+                    string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] { '\"', ' ' }).TrimEnd(new char[] { '\"', ' ' });
                     CommandletParams += FormatedAdditionalCookerParams;
                 }
                 CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
-			}
+            }
 			catch (Exception Ex)
 			{
 				// Delete cooked data (if any) as it may be incomplete / corrupted.
