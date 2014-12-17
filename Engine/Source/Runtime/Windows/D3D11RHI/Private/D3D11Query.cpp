@@ -91,6 +91,8 @@ void FD3D11DynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	DYNAMIC_CAST_D3D11RESOURCE(OcclusionQuery,Query);
 #if PLATFORM_SUPPORTS_RHI_THREAD
 	Query->bResultIsCached = false; // for occlusion queries, this is redundant with the one in begin
+#elif PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	#error "PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult requires PLATFORM_SUPPORTS_RHI_THREAD"
 #endif
 	Direct3DDeviceIMContext->End(Query->Resource);
 
