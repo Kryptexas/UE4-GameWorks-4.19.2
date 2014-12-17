@@ -651,4 +651,44 @@ bool UK2Node_Variable::CanPasteHere(const UEdGraph* TargetGraph) const
 	return true;
 }
 
+void UK2Node_Variable::PostPasteNode()
+{
+	Super::PostPasteNode();
+
+	UBlueprint* Blueprint = GetBlueprint();
+	bool bInvalidateVariable = false;
+
+	if (VariableReference.ResolveMember<UProperty>(Blueprint) == nullptr)
+	{
+		bInvalidateVariable = true;
+	}
+	else if (VariableReference.IsLocalScope())
+	{
+		// Local scoped variables should always validate whether they are being placed in the same graph as their scope
+		// ResolveMember will not return nullptr when the graph changes but the Blueprint remains the same.
+		UEdGraph* ScopeGraph = FBlueprintEditorUtils::FindScopeGraph(Blueprint, VariableReference.GetMemberScope(this));
+		if(ScopeGraph != GetGraph())
+		{
+			bInvalidateVariable = true;
+		}
+	}
+		
+	if (bInvalidateVariable)
+	{
+		// This invalidates the local scope
+		VariableReference.InvalidateScope();
+
+		// If the current graph is a Function graph, look to see if there is a compatible local variable (same name)
+		if (GetGraph()->GetSchema()->GetGraphType(GetGraph()) == GT_Function)
+		{
+			FBPVariableDescription* VariableDescription = FBlueprintEditorUtils::FindLocalVariable(Blueprint, GetGraph(), VariableReference.GetMemberName());
+			if(VariableDescription)
+			{
+				VariableReference.SetLocalMember(VariableReference.GetMemberName(), GetGraph()->GetName(), VariableReference.GetMemberGuid());
+			}
+		}
+		// If no variable was found, ResolveMember should automatically find a member variable with the same name in the current Blueprint and hook up to it as expected
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

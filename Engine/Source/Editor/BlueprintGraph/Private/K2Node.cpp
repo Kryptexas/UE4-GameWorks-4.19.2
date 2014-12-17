@@ -1342,11 +1342,18 @@ void FMemberReference::SetLocalMember(FName InMemberName, FString InScopeName, c
 	bSelfContext = false;
 }
 
-void FMemberReference::InvalidateSelfScope()
+void FMemberReference::InvalidateScope()
 {
 	if( IsSelfContext() )
 	{
 		MemberParentClass = NULL;
+	}
+	else if(IsLocalScope())
+	{
+		MemberScope.Empty();
+
+		// Make it into a member reference since we are clearing the local context
+		bSelfContext = true;
 	}
 }
 

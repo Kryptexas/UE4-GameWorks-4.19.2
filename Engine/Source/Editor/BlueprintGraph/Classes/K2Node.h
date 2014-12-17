@@ -532,8 +532,8 @@ public:
 	/** Only intended for backwards compat! */
 	BLUEPRINTGRAPH_API void SetDirect(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, bool bIsConsideredSelfContext);
 
-	/** Invalidate the current MemberParentClass, if this is a self scope.  Intended for PostDuplication fixups */
-	BLUEPRINTGRAPH_API void InvalidateSelfScope();
+	/** Invalidate the current MemberParentClass, if this is a self scope, or the MemberScope if it is not (and set).  Intended for PostDuplication fixups */
+	BLUEPRINTGRAPH_API void InvalidateScope();
 
 	/** Get the name of this member */
 	FName GetMemberName() const

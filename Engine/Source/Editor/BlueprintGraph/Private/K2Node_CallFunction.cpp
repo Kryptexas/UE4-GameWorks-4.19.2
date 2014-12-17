@@ -1567,7 +1567,7 @@ void UK2Node_CallFunction::PostDuplicate(bool bDuplicateForPIE)
 	Super::PostDuplicate(bDuplicateForPIE);
 	if (!bDuplicateForPIE && (!this->HasAnyFlags(RF_Transient)))
 	{
-		FunctionReference.InvalidateSelfScope();
+		FunctionReference.InvalidateScope();
 		EnsureFunctionIsInBlueprint();
 	}
 }
