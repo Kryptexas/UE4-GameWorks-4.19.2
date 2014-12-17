@@ -46,6 +46,13 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	/**
+	 * Load the specified URL
+	 * 
+	 * @param NewURL New URL to load
+	 */
+	void LoadURL(FString NewURL);
+
+	/**
 	 * Get the current title of the web page
 	 */
 	FText GetTitleText() const;

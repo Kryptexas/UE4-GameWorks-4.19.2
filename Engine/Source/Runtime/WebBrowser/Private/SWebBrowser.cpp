@@ -105,6 +105,14 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 	}
 }
 
+void SWebBrowser::LoadURL(FString NewURL)
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->LoadURL(NewURL);
+	}
+}
+
 FText SWebBrowser::GetTitleText() const
 {
 	if (BrowserWindow.IsValid())

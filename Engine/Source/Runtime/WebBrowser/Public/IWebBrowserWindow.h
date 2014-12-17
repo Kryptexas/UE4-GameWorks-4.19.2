@@ -18,6 +18,13 @@ class IWebBrowserWindow
 {
 public:
 	/**
+	 * Load the specified URL
+	 *
+	 * @param NewURL New URL to load
+	 */
+	virtual void LoadURL(FString NewURL) = 0;
+
+	/**
 	 * Set the desired size of the web browser viewport
 	 * 
 	 * @param WindowSize Desired viewport size

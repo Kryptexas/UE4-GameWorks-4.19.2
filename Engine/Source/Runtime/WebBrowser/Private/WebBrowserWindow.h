@@ -40,6 +40,7 @@ public:
 	virtual ~FWebBrowserWindow();
 
 	// IWebBrowserWindow Interface
+	virtual void LoadURL(FString NewURL) override;
 	virtual void SetViewportSize(FVector2D WindowSize) override;
 	virtual FSlateShaderResource* GetTexture() override;
 	virtual bool IsValid() const override;

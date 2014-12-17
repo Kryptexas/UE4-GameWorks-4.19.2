@@ -15,7 +15,7 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize)
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
 
-	if (FSlateApplication::Get().GetRenderer().IsValid())
+	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
 	{
 		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(ViewportSize.X, ViewportSize.Y);
 	}
@@ -30,6 +30,19 @@ FWebBrowserWindow::~FWebBrowserWindow()
 		FSlateApplication::Get().GetRenderer()->ReleaseUpdatableTexture(UpdatableTexture);
 	}
 	UpdatableTexture = nullptr;
+}
+
+void FWebBrowserWindow::LoadURL(FString NewURL)
+{
+	if (IsValid())
+	{
+		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
+		if (MainFrame.get() != nullptr)
+		{
+			CefString URL = *NewURL;
+			MainFrame->LoadURL(URL);
+		}
+	}
 }
 
 void FWebBrowserWindow::SetViewportSize(FVector2D WindowSize)
