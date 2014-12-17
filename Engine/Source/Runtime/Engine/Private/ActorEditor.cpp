@@ -145,7 +145,7 @@ void AActor::PostEditMove(bool bFinished)
 
 bool AActor::ReregisterComponentsWhenModified() const
 {
-	return !IsTemplate() && ( GetOutermost()->PackageFlags & PKG_PlayInEditor ) == 0;
+	return !IsTemplate() && ( GetOutermost()->PackageFlags & PKG_PlayInEditor ) == 0 && GetWorld() != nullptr;
 }
 
 void AActor::DebugShowComponentHierarchy(  const TCHAR* Info, bool bShowPosition )
