@@ -239,7 +239,6 @@ namespace UnrealBuildTool
 				{
 					switch (Arguments[ArgumentIndex].ToUpperInvariant())
 					{
-						// @todo ubtmake: How does this work with UBTMake?  Do we even need to support it anymore?
 						case "-MODULE":
 							// Specifies a module to recompile.  Can be specified more than once on the command-line to compile multiple specific modules.
 							{
@@ -1135,10 +1134,9 @@ namespace UnrealBuildTool
 
 				// Delete the UBT makefile
 				{
-					// Figure out what to call our action graph based on everything we're building
+					// @todo ubtmake: Does not yet support cleaning Makefiles that were generated for multiple targets (that code path is currently not used though.)
+
 					var TargetDescs = new List<TargetDescriptor>();
-					
-					// @todo ubtmake: Only supports cleaning one target at a time :(
 					TargetDescs.Add( new TargetDescriptor
 						{
 							TargetName = GetTargetName(),
@@ -1146,13 +1144,28 @@ namespace UnrealBuildTool
 							Configuration = this.Configuration
 						} );
 
-					var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
-					if (File.Exists(UBTMakefilePath))
-					{
-						Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
-						CleanFile(UBTMakefilePath);
+					// Normal makefile
+					{					
+						var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
+						if (File.Exists(UBTMakefilePath))
+						{
+							Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
+							CleanFile(UBTMakefilePath);
+						}
 					}
-				}
+
+					// Hot reload makefile
+					{					
+						UEBuildConfiguration.bHotReloadFromIDE = true;
+						var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
+						if (File.Exists(UBTMakefilePath))
+						{
+							Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
+							CleanFile(UBTMakefilePath);
+						}
+						UEBuildConfiguration.bHotReloadFromIDE = false;
+					}
+			}
 
 				// Delete the action history
 				{
@@ -1540,7 +1553,7 @@ namespace UnrealBuildTool
 					Trace.TraceInformation( "UObject discovery time: " + UObjectDiscoveryTime + "s" );
 				}
 
-				// @todo ubtmake: Even in Gather mode, we need to run UHT to make sure the files exist for the static action graph to be setup correctly.  This is because UHT generates .cpp
+				// NOTE: Even in Gather mode, we need to run UHT to make sure the files exist for the static action graph to be setup correctly.  This is because UHT generates .cpp
 				// files that are injected as top level prerequisites.  If UHT only emitted included header files, we wouldn't need to run it during the Gather phase at all.
 				if( UObjectModules.Count > 0 )
 				{
@@ -1849,7 +1862,7 @@ namespace UnrealBuildTool
 					FilteredBinaries.Add(DLLBinary);
 					AnyBinariesAdded = true;
 				}
-				}
+			}
 
 			if (!AnyBinariesAdded)
 			{
