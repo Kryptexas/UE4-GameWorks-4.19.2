@@ -20,6 +20,7 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 	{
 		NextChildIdx = EBTParallelChild::MainTask;
 		MyMemory->MainTaskResult = EBTNodeResult::Failed;
+		MyMemory->bRepeatMainTask = false;
 	}
 	else if ((MyMemory->bMainTaskIsActive || MyMemory->bForceBackgroundTree) && !SearchData.OwnerComp.IsRestartPending())
 	{
@@ -27,12 +28,18 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 		// unless search is from abort from background tree - return to parent (and break from search when node gets deactivated)
 		NextChildIdx = EBTParallelChild::BackgroundTree;
 		MyMemory->bForceBackgroundTree = false;
+	}
+	else if (MyMemory->bRepeatMainTask)
+	{
+		UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Repeating main task of %s"), *UBehaviorTreeTypes::DescribeNodeHelper(this));
+		NextChildIdx = EBTParallelChild::MainTask;
+		MyMemory->bRepeatMainTask = false;
+	}
 
-		if ((PrevChild == EBTParallelChild::BackgroundTree) && (MyMemory->LastSearchId == SearchData.SearchId))
-		{
-			// going to background tree again within the same search - possible infinite loop
-			NextChildIdx = BTSpecialChild::PostponeSearch;
-		}
+	if ((PrevChild == NextChildIdx) && (MyMemory->LastSearchId == SearchData.SearchId))
+	{
+		// retrying the same branch again within the same search - possible infinite loop
+		NextChildIdx = BTSpecialChild::PostponeSearch;
 	}
 
 	MyMemory->LastSearchId = SearchData.SearchId;
@@ -67,7 +74,7 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent& O
 			const int32 MyInstanceIdx = OwnerComp.FindInstanceContainingNode(this);
 
 			OwnerComp.UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, MyInstanceIdx);
-			if (NodeResult != EBTNodeResult::Aborted)
+			if (NodeResult != EBTNodeResult::Aborted && !MyMemory->bRepeatMainTask)
 			{
 				// check if subtree should be aborted when task finished with success/failed result
 				if (FinishMode == EBTParallelMode::AbortBackground)
@@ -144,7 +151,15 @@ bool UBTComposite_SimpleParallel::CanPushSubtree(UBehaviorTreeComponent& OwnerCo
 
 void UBTComposite_SimpleParallel::SetChildOverride(FBehaviorTreeSearchData& SearchData, int8 Index) const
 {
-	// don't allow any external mechanic to change child execution order (e.g. loop decorators)
+	// store information about repeating main task and use it when possible
+	// ignore changes to other child indices = background tree, as it's already being auto repeated
+	if (Index == EBTParallelChild::MainTask)
+	{
+		FBTParallelMemory* MyMemory = GetNodeMemory<FBTParallelMemory>(SearchData);
+		MyMemory->bRepeatMainTask = true;
+
+		UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Log, TEXT("Main task of %s will be repeated."), *UBehaviorTreeTypes::DescribeNodeHelper(this));
+	}
 }
 
 FString UBTComposite_SimpleParallel::DescribeFinishMode(EBTParallelMode::Type Mode)

@@ -336,5 +336,5 @@ FORCEINLINE uint16 UBehaviorTreeComponent::GetActiveInstanceIdx() const
 
 FORCEINLINE bool UBehaviorTreeComponent::IsRestartPending() const
 {
-	return ExecutionRequest.ExecuteNode && ExecutionRequest.bIsRestart;
+	return ExecutionRequest.ExecuteNode && !ExecutionRequest.bTryNextChild;
 }

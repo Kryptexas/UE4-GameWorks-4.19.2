@@ -13,7 +13,6 @@ namespace EBTParallelChild
 	{
 		MainTask,
 		BackgroundTree,
-		SearchIndicator,
 	};
 }
 
@@ -41,6 +40,9 @@ struct FBTParallelMemory : public FBTCompositeMemory
 
 	/** try running background tree task even if main task has finished */
 	uint8 bForceBackgroundTree : 1;
+
+	/** set when main task needs to be repeated */
+	uint8 bRepeatMainTask : 1;
 };
 
 /**
