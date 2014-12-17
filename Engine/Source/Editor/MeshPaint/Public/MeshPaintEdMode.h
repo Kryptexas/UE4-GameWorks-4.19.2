@@ -485,15 +485,15 @@ public:
 	 */	
 	void CommitAllPaintedTextures();
 
-	/** Clears all texture overrides for this static mesh. */
-	void ClearStaticMeshTextureOverrides(UStaticMeshComponent* InStaticMeshComponent);
+	/** Clears all texture overrides for this component. */
+	void ClearStaticMeshTextureOverrides(UMeshComponent* InMeshComponent);
 
 	/** Clears all texture overrides, removing any pending texture paint changes */
 	void ClearAllTextureOverrides();
 
-	void SetAllTextureOverrides(UStaticMeshComponent* InStaticMeshComponent);
+	void SetAllTextureOverrides(UMeshComponent* InMeshComponent);
 
-	void SetSpecificTextureOverrideForMesh(UStaticMeshComponent* InStaticMeshComponent, UTexture* Texture);
+	void SetSpecificTextureOverrideForMesh(UMeshComponent* InMeshComponent, UTexture* Texture);
 
 	/** Used to tell the texture paint system that we will need to restore the rendertargets */
 	void RestoreRenderTargets();
