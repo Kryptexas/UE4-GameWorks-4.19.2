@@ -12,6 +12,9 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "LandscapeComponent.h"
+#include "LandscapeLayerInfoObject.h"
 
 #include "LandscapeProxy.generated.h"
 
@@ -187,10 +190,64 @@ namespace ELandscapeLODFalloff
 	};
 }
 
+struct FCachedLandscapeFoliage
+{
+	struct FPerLayer
+	{
+		TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
+		TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
+
+		FPerLayer(UHierarchicalInstancedStaticMeshComponent* InFoliage, ULandscapeLayerInfoObject* InLayer)
+			: Foliage(InFoliage)
+			, Layer(InLayer)
+		{
+		}
+	};
+	struct FPerComponent
+	{
+		TWeakObjectPtr<ULandscapeComponent> BasedOn;
+		TArray<FPerLayer> Layers;
+		FPerComponent(ULandscapeComponent* InBasedOn)
+			: BasedOn(InBasedOn)
+		{
+		}
+	};
+	TArray<FPerComponent> PerComponent;
+
+	void ClearCache()
+	{
+		PerComponent.Empty();
+	}
+};
+
+class FAsyncGrassTask : public FNonAbandonableTask
+{
+public:
+	struct FAsyncGrassBuilder* Builder;
+	TWeakObjectPtr<ULandscapeComponent> BasedOn;
+	TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
+	TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
+
+	FAsyncGrassTask(struct FAsyncGrassBuilder* InBuilder, ULandscapeComponent* InBasedOn, UHierarchicalInstancedStaticMeshComponent* InFoliage, ULandscapeLayerInfoObject* InLayer)
+		: Builder(InBuilder)
+		, BasedOn(InBasedOn)
+		, Foliage(InFoliage)
+		, Layer(InLayer)
+	{
+	}
+	void DoWork();
+	static const TCHAR *Name()
+	{
+		return TEXT("FAsyncGrassTask");
+	}
+};
+
 UCLASS(NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
 class ALandscapeProxy : public AActor
 {
 	GENERATED_UCLASS_BODY()
+
+	virtual ~ALandscapeProxy();
 
 	UPROPERTY()
 	ULandscapeSplinesComponent* SplineComponent;
@@ -248,6 +305,14 @@ public:
 	/** Array of LandscapeHeightfieldCollisionComponent */
 	UPROPERTY()
 	TArray<ULandscapeHeightfieldCollisionComponent*> CollisionComponents;
+
+	UPROPERTY(transient, duplicatetransient)
+	TArray<UHierarchicalInstancedStaticMeshComponent*> FoliageComponents;
+
+	/** A transient data structure for tracking the grass */
+	FCachedLandscapeFoliage FoliageCache;
+	/** A transient data structure for tracking the grass tasks*/
+	TArray<FAsyncTask<FAsyncGrassTask>* > AsyncFoliageTasks;
 
 	/**
 	 *	The resolution to cache lighting at, in texels/quad in one axis
@@ -342,6 +407,13 @@ public:
 	virtual void RegisterAllComponents() override;
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return true; }
+	virtual void Tick(float DeltaSeconds) override;
+	virtual bool ShouldTickIfViewportsOnly() const override
+	{
+		return true;
+	}
+
+
 #if WITH_EDITOR
 	virtual void Destroyed() override;
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
@@ -355,6 +427,9 @@ public:
 
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
 	virtual ALandscape* GetLandscapeActor();
+
+	/** Flush the foliage cache */
+	LANDSCAPE_API void FlushFoliageComponents();
 
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;

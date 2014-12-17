@@ -16,11 +16,6 @@ LandscapeDataAccess.h: Classes for the editor to access to Landscape data
 #define LANDSCAPE_XYOFFSET_SCALE	(1.0f/256.f)
 #define LANDSCAPE_INV_XYOFFSET_SCALE	256.f
 
-#if WITH_EDITOR
-
-class ULandscapeComponent;
-class ULandscapeLayerInfoObject;
-
 namespace LandscapeDataAccess
 {
 	const int32 MaxValue = 65535;
@@ -38,6 +33,11 @@ namespace LandscapeDataAccess
 		return FMath::Clamp<float>(Height * LANDSCAPE_INV_ZSCALE + MidValue, 0.f, MaxValue);
 	}
 };
+
+#if WITH_EDITOR
+
+class ULandscapeComponent;
+class ULandscapeLayerInfoObject;
 
 //
 // FLandscapeDataInterface

@@ -10,7 +10,6 @@
 #include "InstancedStaticMesh.h"
 #include "NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
-#include "../../Renderer/Private/ScenePrivate.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),
@@ -207,7 +206,7 @@ public:
 		, InstBox(InInstBox)
 		, Result(nullptr)
 	{
-		BranchingFactor = CVarFoliageSplitFactor.GetValueOnGameThread();
+		BranchingFactor = CVarFoliageSplitFactor.GetValueOnAnyThread();
 
 		Exchange(Transforms, InTransforms);
 		SortIndex.AddUninitialized(Num);
@@ -261,6 +260,15 @@ public:
 		TArray<int32> NodesPerLevel;
 		NodesPerLevel.Add(NumRoots);
 		int32 LOD = 0;
+
+		TArray<int32> InverseSortIndex;
+		TArray<int32> RemapSortIndex;
+		TArray<int32> InverseInstanceIndex;
+		TArray<int32> OldInstanceIndex;
+		TArray<int32> LevelStarts;
+		TArray<int32> InverseChildIndex;
+		TArray<FClusterNode> OldNodes;
+
 		while (NumRoots > 1)
 		{
 			SortIndex.Reset();
@@ -275,7 +283,7 @@ public:
 			}
 			Split(NumRoots);
 
-			TArray<int32> InverseSortIndex;
+			InverseSortIndex.Reset();
 			InverseSortIndex.AddUninitialized(NumRoots);
 			for (int32 Index = 0; Index < NumRoots; Index++)
 			{
@@ -284,7 +292,7 @@ public:
 
 			{
 				// rearrange the instances to match the new order of the old roots
-				TArray<int32> RemapSortIndex;
+				RemapSortIndex.Reset();
 				RemapSortIndex.AddUninitialized(Num);
 				int32 OutIndex = 0;
 				for (int32 Index = 0; Index < NumRoots; Index++)
@@ -295,7 +303,7 @@ public:
 						RemapSortIndex[OutIndex++] = InstanceIndex;
 					}
 				}
-				TArray<int32> InverseInstanceIndex;
+				InverseInstanceIndex.Reset();
 				InverseInstanceIndex.AddUninitialized(Num);
 				for (int32 Index = 0; Index < Num; Index++)
 				{
@@ -307,7 +315,7 @@ public:
 					Node.FirstInstance = InverseInstanceIndex[Node.FirstInstance];
 					Node.LastInstance = InverseInstanceIndex[Node.LastInstance];
 				}
-				TArray<int32> OldInstanceIndex;
+				OldInstanceIndex.Reset();
 				Exchange(OldInstanceIndex, SortedInstances);
 				SortedInstances.AddUninitialized(Num);
 				for (int32 Index = 0; Index < Num; Index++)
@@ -317,11 +325,11 @@ public:
 			}
 			{
 				// rearrange the nodes to match the new order of the old roots
-				TArray<int32> RemapSortIndex;
+				RemapSortIndex.Reset();
 				int32 NewNum = Result->Nodes.Num() + Clusters.Num();
 				// RemapSortIndex[new index] == old index
 				RemapSortIndex.AddUninitialized(NewNum);
-				TArray<int32> LevelStarts;
+				LevelStarts.Reset();
 				LevelStarts.Add(Clusters.Num());
 				for (int32 Index = 0; Index < NodesPerLevel.Num() - 1; Index++)
 				{
@@ -360,7 +368,7 @@ public:
 					}
 				}
 				check(LevelStarts[LevelStarts.Num() - 1] == NewNum);
-				TArray<int32> InverseChildIndex;
+				InverseChildIndex.Reset();
 				// InverseChildIndex[old index] == new index
 				InverseChildIndex.AddUninitialized(NewNum);
 				for (int32 Index = Clusters.Num(); Index < NewNum; Index++)
@@ -377,7 +385,7 @@ public:
 					}
 				}
 				{
-					TArray<FClusterNode> OldNodes = Result->Nodes;
+					Exchange(OldNodes, Result->Nodes);
 					Result->Nodes.Empty(NewNum);
 					for (int32 Index = 0; Index < Clusters.Num(); Index++)
 					{
@@ -1272,18 +1280,21 @@ FBoxSphereBounds UHierarchicalInstancedStaticMeshComponent::CalcBounds(const FTr
 		// @todo: Level error or something to let LDs know this
 		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
 
-	if (ClusterTree.Num() > 0 && bMeshIsValid)
+	if ((ClusterTree.Num() || UnbuiltInstanceBounds.IsValid) && bMeshIsValid)
 	{
-		FBoxSphereBounds Result = FBox(ClusterTree[0].BoundMin, ClusterTree[0].BoundMax);
-		for (int32 Index = 1; Index < ClusterTree.Num(); Index++)
+		FBoxSphereBounds Result;
+		if (ClusterTree.Num())
 		{
-			Result = Result + FBox(ClusterTree[Index].BoundMin, ClusterTree[Index].BoundMax);
+			Result = FBox(ClusterTree[0].BoundMin, ClusterTree[0].BoundMax);
+			// Include any unbuilt instances
+			if (UnbuiltInstanceBounds.IsValid)
+			{
+				Result = Result + UnbuiltInstanceBounds;
+			}
 		}
-
-		// Include any unbuilt instances
-		if (UnbuiltInstanceBounds.IsValid)
+		else
 		{
-			Result = Result + UnbuiltInstanceBounds;
+			Result = UnbuiltInstanceBounds;
 		}
 
 		return Result.TransformBy(BoundTransform);
@@ -1435,6 +1446,15 @@ void UHierarchicalInstancedStaticMeshComponent::ClearInstances()
 	Super::ClearInstances();
 }
 
+bool UHierarchicalInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
+{
+	if (bDisableCollision)
+	{
+		return false;
+	}
+	return Super::ShouldCreatePhysicsState();
+}
+
 void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 {
 	// Verify that the mesh is valid before using it.
@@ -1450,7 +1470,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 
 	if(bMeshIsValid)
 	{
-		double StartTime = FPlatformTime::Seconds();
+		//double StartTime = FPlatformTime::Seconds();
 		// If we don't have a random seed for this instanced static mesh component yet, then go ahead and
 		// generate one now.  This will be saved with the static mesh component and used for future generation
 		// of random numbers for this component's instances. (Used by the PerInstanceRandom material expression)
@@ -1479,9 +1499,169 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		
 		FlushAccumulatedNavigationUpdates();
 				
-		UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d elements in %.1fs."), PerInstanceSMData.Num(), float(FPlatformTime::Seconds() - StartTime));
+		//UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d elements in %.1fs."), PerInstanceSMData.Num(), float(FPlatformTime::Seconds() - StartTime));
 	}
 }
+
+void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
+	const TArray<FInstancedStaticMeshInstanceData>& PerInstanceSMData, 
+	const FBox& MeshBox,
+	TArray<FClusterNode>& OutClusterTree,
+	TArray<int32>& OutSortedInstances,
+	TArray<int32>& OutInstanceReorderTable
+	)
+{
+	TArray<FMatrix> InstanceTransforms;
+	InstanceTransforms.AddUninitialized(PerInstanceSMData.Num());
+	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
+	{
+		InstanceTransforms[Index] = PerInstanceSMData[Index].Transform;
+	}
+
+	TUniquePtr<FClusterBuilder> Builder(new FClusterBuilder(InstanceTransforms, MeshBox));
+	Builder->Build();
+
+	Exchange(OutClusterTree, Builder->Result->Nodes);
+	Exchange(OutInstanceReorderTable, Builder->Result->InstanceReorderTable);
+	Exchange(OutSortedInstances, Builder->Result->SortedInstances);
+
+}
+
+void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(
+	TArray<FClusterNode>& InClusterTree,
+	TArray<int32>& InSortedInstances,
+	TArray<int32>& InInstanceReorderTable
+	)
+{
+	NumBuiltInstances = PerInstanceSMData.Num();
+	UnbuiltInstanceBounds.Init();
+	RemovedInstances.Empty();
+	ClusterTree.Empty();
+	InstanceReorderTable.Empty();
+	SortedInstances.Empty();
+
+	// Verify that the mesh is valid before using it.
+	const bool bMeshIsValid = 
+		// make sure we have instances
+		PerInstanceSMData.Num() > 0 &&
+		// make sure we have an actual staticmesh
+		StaticMesh &&
+		StaticMesh->HasValidRenderData() &&
+		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
+		// @todo: Level error or something to let LDs know this
+		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+
+	if(bMeshIsValid)
+	{
+		//double StartTime = FPlatformTime::Seconds();
+		// If we don't have a random seed for this instanced static mesh component yet, then go ahead and
+		// generate one now.  This will be saved with the static mesh component and used for future generation
+		// of random numbers for this component's instances. (Used by the PerInstanceRandom material expression)
+		while( InstancingRandomSeed == 0 )
+		{
+			InstancingRandomSeed = FMath::Rand();
+		}
+
+		Exchange(ClusterTree, InClusterTree);
+		Exchange(InstanceReorderTable, InInstanceReorderTable);
+		Exchange(SortedInstances, InSortedInstances);
+
+		FlushAccumulatedNavigationUpdates();
+
+	}
+	MarkRenderStateDirty();
+}
+
+void UHierarchicalInstancedStaticMeshComponent::BuildFlatTree(const TArray<int32>& LeafInstanceCounts)
+{
+	// Verify that the mesh is valid before using it.
+	const bool bMeshIsValid = 
+		// make sure we have instances
+		PerInstanceSMData.Num() > 0 &&
+		// make sure we have an actual staticmesh
+		StaticMesh &&
+		StaticMesh->HasValidRenderData() &&
+		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
+		// @todo: Level error or something to let LDs know this
+		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+
+	if(bMeshIsValid)
+	{
+		//double StartTime = FPlatformTime::Seconds();
+		// If we don't have a random seed for this instanced static mesh component yet, then go ahead and
+		// generate one now.  This will be saved with the static mesh component and used for future generation
+		// of random numbers for this component's instances. (Used by the PerInstanceRandom material expression)
+		while( InstancingRandomSeed == 0 )
+		{
+			InstancingRandomSeed = FMath::Rand();
+		}
+
+		NumBuiltInstances = PerInstanceSMData.Num();
+		UnbuiltInstanceBounds.Init();
+		RemovedInstances.Empty();
+
+		const FBox InstBox = StaticMesh->GetBounds().GetBox();
+
+		ClusterTree.Empty(LeafInstanceCounts.Num() + 1);
+		FClusterNode Root;
+		Root.FirstChild = 1;
+		Root.LastChild = LeafInstanceCounts.Num();
+		Root.FirstInstance = 0;
+		Root.LastInstance = PerInstanceSMData.Num() - 1;
+		ClusterTree.Add(Root);
+		FBox RootBox(ForceInit);
+
+		int32 InstIndex = 0;
+		for (auto Count : LeafInstanceCounts)
+		{
+			FClusterNode Leaf;
+			Leaf.FirstChild = -1;
+			Leaf.LastChild = -1;
+			Leaf.FirstInstance = InstIndex;
+			Leaf.LastInstance = InstIndex + Count - 1;
+			check(Count);
+
+
+			FBox LeafBox(ForceInit);
+			for (int32 SubIndex = 0; SubIndex < Count; SubIndex++)
+			{
+				const FMatrix& ThisInstTrans = PerInstanceSMData[InstIndex + SubIndex].Transform;
+				const FBox ThisInstBox = InstBox.TransformBy(ThisInstTrans);
+				LeafBox += ThisInstBox;
+			}
+			Leaf.BoundMin = LeafBox.Min;
+			Leaf.BoundMax = LeafBox.Max;
+			ClusterTree.Add(Leaf);
+			RootBox += LeafBox;
+			InstIndex += Count;
+		}
+		check(InstIndex == PerInstanceSMData.Num()); // else you botched your counts
+		ClusterTree[0].BoundMin = RootBox.Min;
+		ClusterTree[0].BoundMax = RootBox.Max;
+
+		if (ClusterTree.Num() == 2)
+		{
+			// no point in having two levels if the second level only has one node
+			ClusterTree.RemoveAt(1);
+			ClusterTree[0].FirstChild = -1;
+			ClusterTree[0].LastChild = -1;
+		}
+
+		InstanceReorderTable.Empty(PerInstanceSMData.Num());
+		SortedInstances.Empty(PerInstanceSMData.Num());
+
+		for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
+		{
+			InstanceReorderTable.Add(Index);
+			SortedInstances.Add(Index);
+		}
+
+		FlushAccumulatedNavigationUpdates();
+
+//		UE_LOG(LogStaticMesh, Display, TEXT("Built a flat foliage hierarchy with %d elements in %.2fms."), PerInstanceSMData.Num(), float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
+	}
+}
+
 
 void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, TSharedRef<FClusterBuilder, ESPMode::ThreadSafe> Builder, double StartTime)
 {

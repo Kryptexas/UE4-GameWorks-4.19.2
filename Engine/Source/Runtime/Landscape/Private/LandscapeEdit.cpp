@@ -1491,15 +1491,15 @@ float ULandscapeComponent::GetLayerWeightAtLocation(const FVector& InLocation, U
 	}
 
 	// Fill the cache if necessary
-	if (LayerCache->Num() == 0)
-	{
-		FLandscapeComponentDataInterface CDI(this);
-		if (!CDI.GetWeightmapTextureData(LayerInfo, *LayerCache))
+		if (LayerCache->Num() == 0)
 		{
-			// no data for this layer for this component.
-			return 0.f;
+		FLandscapeComponentDataInterface CDI(this);
+			if (!CDI.GetWeightmapTextureData(LayerInfo, *LayerCache))
+			{
+				// no data for this layer for this component.
+				return 0.f;
+			}
 		}
-	}
 
 	// Find location
 	// TODO: Root landscape isn't always loaded, would Proxy suffice?
@@ -1528,14 +1528,14 @@ float ULandscapeComponent::GetLayerWeightAtLocation(const FVector& InLocation, U
 	float Sample12 = (float)((*LayerCache)[IdxX1 + Stride*IdxY2]) / 255.f;
 	float Sample22 = (float)((*LayerCache)[IdxX2 + Stride*IdxY2]) / 255.f;
 
-	int32 LerpX = FMath::Fractional(TestX);
-	int32 LerpY = FMath::Fractional(TestY);
+	float LerpX = FMath::Fractional(TestX);
+	float LerpY = FMath::Fractional(TestY);
 
-	// Bilinear interpolate
+		// Bilinear interpolate
 	return FMath::Lerp(
-		FMath::Lerp(Sample11, Sample21, LerpX),
-		FMath::Lerp(Sample12, Sample22, LerpX),
-		LerpY);
+			FMath::Lerp(Sample11, Sample21, LerpX),
+			FMath::Lerp(Sample12, Sample22, LerpX),
+			LerpY);
 }
 
 void ULandscapeComponent::GetComponentExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const
@@ -3410,6 +3410,12 @@ ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const FObjectInitializer& O
 	: Super(ObjectInitializer)
 {
 	Hardness = 0.5f;
+	GrassDensity = 400;
+	StartCullDistance = 10000.0f;
+	EndCullDistance = 10000.0f;
+	PlacementJitter = 1.0f;
+	RandomRotation = true;
+	AlignToSurface = true;
 #if WITH_EDITORONLY_DATA
 	bNoWeightBlend = false;
 #endif // WITH_EDITORONLY_DATA
@@ -3420,6 +3426,12 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 {
 	static const FName NAME_Hardness = FName(TEXT("Hardness"));
 	static const FName NAME_PhysMaterial = FName(TEXT("PhysMaterial"));
+	static const FName NAME_GrassMesh = FName(TEXT("GrassMesh"));
+	static const FName NAME_GrassDensity = FName(TEXT("GrassDensity"));
+	static const FName NAME_PlacementJitter = FName(TEXT("PlacementJitter"));
+	static const FName NAME_EndCullDistance = FName(TEXT("EndCullDistance"));
+	static const FName NAME_RandomRotation = FName(TEXT("RandomRotation"));
+	static const FName NAME_AlignToSurface = FName(TEXT("AlignToSurface"));
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -3445,6 +3457,33 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 						if (Info->Layers[i].LayerInfoObj == this)
 						{
 							Proxy->ChangedPhysMaterial();
+							break;
+						}
+					}
+				}
+			}
+		}
+		else if (
+			PropertyName == NAME_GrassMesh ||
+			PropertyName == NAME_GrassDensity ||
+			PropertyName == NAME_PlacementJitter ||
+			PropertyName == NAME_EndCullDistance ||
+			PropertyName == NAME_AlignToSurface ||
+			PropertyName == NAME_RandomRotation
+			)
+		{
+			// Only care current world object
+			for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
+			{
+				ALandscapeProxy* Proxy = *It;
+				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
+				if (Info)
+				{
+					for (int32 i = 0; i < Info->Layers.Num(); ++i)
+					{
+						if (Info->Layers[i].LayerInfoObj == this)
+						{
+							Proxy->FlushFoliageComponents();
 							break;
 						}
 					}
@@ -3496,6 +3535,9 @@ void ALandscapeProxy::RemoveXYOffsets()
 
 void ALandscapeProxy::RecreateCollisionComponents()
 {
+	// We can assume these are all junk; they recreate as needed
+	FlushFoliageComponents();
+
 	// Clear old CollisionComponent containers
 	CollisionComponents.Empty();
 

@@ -1666,7 +1666,7 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 		// Add view information for perspective viewports.
 		if( InViewportClient->IsPerspective() )
 		{
-			GWorld->ViewLocationsRenderedLastFrame.Add(InViewportClient->GetViewLocation());
+			InViewportClient->GetWorld()->ViewLocationsRenderedLastFrame.Add(InViewportClient->GetViewLocation());
 	
 			// If we're currently simulating in editor, then we'll need to make sure that sub-levels are streamed in.
 			// When using PIE, this normally happens by UGameViewportClient::Draw().  But for SIE, we need to do
@@ -1674,7 +1674,7 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 			if( PlayWorld != NULL && bIsSimulatingInEditor && InViewportClient->IsSimulateInEditorViewport() )
 			{
 				// Update level streaming.
-				GWorld->UpdateLevelStreaming();
+				InViewportClient->GetWorld()->UpdateLevelStreaming();
 
 				// Also make sure hit proxies are refreshed for SIE viewports, as the user may be trying to grab an object or widget manipulator that's moving!
 				if( InViewportClient->IsRealtime() )
