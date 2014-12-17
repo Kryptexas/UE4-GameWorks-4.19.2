@@ -35,6 +35,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	int32 GetChildIndex(UWidget* Content) const;
 
+	/** @return true if panel contains this widget */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
+	bool HasChild(UWidget* Content) const;
+
 	/** Removes a child by it's index. */
 	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	bool RemoveChildAt(int32 Index);
