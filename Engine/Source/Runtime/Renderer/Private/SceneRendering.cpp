@@ -372,7 +372,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 		// CVar setting is pixels/tri which is nice and intuitive.  But we want pixels/tessellated edge.  So use a heuristic.
 		float TessellationAdaptivePixelsPerEdge = FMath::Sqrt(2.f * CVarTessellationAdaptivePixelsPerTriangle.GetValueOnRenderThread());
 
-		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * float(ViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
+		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * ViewMatrices.ProjMatrix.M[1][1] * float(ViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
 	}
 
 	//white texture should act like a shadowmap cleared to the farplane.
