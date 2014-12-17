@@ -682,6 +682,14 @@ ULocalPlayer* UUserWidget::GetOwningLocalPlayer() const
 	return PC ? Cast<ULocalPlayer>(PC->Player) : nullptr;
 }
 
+void UUserWidget::SetOwningLocalPlayer(ULocalPlayer* LocalPlayer)
+{
+	if ( LocalPlayer )
+	{
+		PlayerContext = FLocalPlayerContext(LocalPlayer);
+	}
+}
+
 APlayerController* UUserWidget::GetOwningPlayer() const
 {
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;

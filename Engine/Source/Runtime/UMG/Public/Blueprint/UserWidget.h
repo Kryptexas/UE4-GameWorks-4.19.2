@@ -195,6 +195,13 @@ public:
 	class ULocalPlayer* GetOwningLocalPlayer() const;
 
 	/**
+	 * Sets the local player associated with this UI.
+	 * @param LocalPlayer The local player you want to be the conceptual owner of this UI.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
+	void SetOwningLocalPlayer(ULocalPlayer* LocalPlayer);
+
+	/**
 	 * Gets the player controller associated with this UI.
 	 * @return The player controller that owns the UI.
 	 */
@@ -734,7 +741,7 @@ T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass)
 
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningGame);
 
-	if ( ULocalPlayer* Player = OwningGame->GetFirstLocalPlayerController() )
+	if ( ULocalPlayer* Player = OwningGame->GetFirstGamePlayer() )
 	{
 		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
 	}
