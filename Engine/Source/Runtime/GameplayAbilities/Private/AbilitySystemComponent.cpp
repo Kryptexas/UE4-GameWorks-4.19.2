@@ -565,7 +565,14 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Execute if this is an instant application effect
 	if (Duration == UGameplayEffect::INSTANT_APPLICATION)
 	{
-		ExecuteGameplayEffect(*OurCopyOfSpec, PredictionKey);
+		if (OurCopyOfSpec->Def->OngoingTagRequirements.IsEmpty())
+		{
+			ExecuteGameplayEffect(*OurCopyOfSpec, PredictionKey);
+		}
+		else
+		{
+			ABILITY_LOG(Warning, TEXT("%s is instant but has tag requirements. Tag requirements can only be used with gameplay effects that have a duration. This gameplay effect will be ignored."), *Spec.Def->GetPathName());
+		}
 	}
 	else if (bTreatAsInfiniteDuration)
 	{
