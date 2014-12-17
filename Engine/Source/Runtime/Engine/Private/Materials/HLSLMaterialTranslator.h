@@ -1511,14 +1511,44 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,Y,Z,W),MCT_Float4),MCT_Float4,TEXT("MaterialFloat4(%0.8f,%0.8f,%0.8f,%0.8f)"),X,Y,Z,W);
 	}
 
-	virtual int32 GameTime() override
+	virtual int32 GameTime(bool bPeriodic, float Period) override
 	{
-		return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
+		if (!bPeriodic)
+		{
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
+		}
+		else if (Period == 0.0f)
+		{
+			return Constant(0.0f);
+		}
+
+		return AddUniformExpression(
+			new FMaterialUniformExpressionFmod(
+				new FMaterialUniformExpressionTime(),
+				new FMaterialUniformExpressionConstant(FLinearColor(Period, Period, Period, Period), MCT_Float)
+				),
+			MCT_Float, TEXT("")
+			);
 	}
 
-	virtual int32 RealTime() override
+	virtual int32 RealTime(bool bPeriodic, float Period) override
 	{
-		return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
+		if (!bPeriodic)
+		{
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
+		}
+		else if (Period == 0.0f)
+		{
+			return Constant(0.0f);
+		}
+
+		return AddUniformExpression(
+			new FMaterialUniformExpressionFmod(
+				new FMaterialUniformExpressionRealTime(),
+				new FMaterialUniformExpressionConstant(FLinearColor(Period, Period, Period, Period), MCT_Float)
+				),
+			MCT_Float, TEXT("")
+			);
 	}
 
 	virtual int32 PeriodicHint(int32 PeriodicCode) override
@@ -2861,15 +2891,36 @@ protected:
 			return Errorf(TEXT("Couldn't determine result type of component mask %u%u%u%u"),R,G,B,A);
 		};
 
-		return AddInlinedCodeChunk(
-			ResultType,
-			TEXT("%s.%s%s%s%s"),
-			*GetParameterCode(Vector),
+		FString MaskString = FString::Printf(TEXT("%s%s%s%s"),
 			R ? TEXT("r") : TEXT(""),
 			// If VectorType is set to MCT_Float which means it could be any of the float types, assume it is a float1
 			G ? (VectorType == MCT_Float ? TEXT("r") : TEXT("g")) : TEXT(""),
 			B ? (VectorType == MCT_Float ? TEXT("r") : TEXT("b")) : TEXT(""),
 			A ? (VectorType == MCT_Float ? TEXT("r") : TEXT("a")) : TEXT("")
+			);
+
+		auto* Expression = GetParameterUniformExpression(Vector);
+		if (Expression)
+		{
+			int8 Mask[4] = {-1, -1, -1, -1};
+			for (int32 Index = 0; Index < MaskString.Len(); ++Index)
+			{
+				Mask[Index] = SwizzleComponentToIndex(MaskString[Index]);
+			}
+			return AddUniformExpression(
+				new FMaterialUniformExpressionComponentSwizzle(Expression, Mask[0], Mask[1], Mask[2], Mask[3]),
+				ResultType,
+				TEXT("%s.%s"),
+				*GetParameterCode(Vector),
+				*MaskString
+				);
+		}
+
+		return AddInlinedCodeChunk(
+			ResultType,
+			TEXT("%s.%s"),
+			*GetParameterCode(Vector),
+			*MaskString
 			);
 	}
 
