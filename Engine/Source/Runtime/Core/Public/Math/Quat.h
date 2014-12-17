@@ -325,7 +325,7 @@ public:
 	FORCEINLINE FVector GetAxisZ( ) const;
 
 	/** @return rotator representation of this quaternion */
-	FRotator Rotator( ) const;
+	CORE_API FRotator Rotator( ) const;
 
 	/** @return Vector of the axis of the quaternion */
 	FORCEINLINE FVector GetRotationAxis( ) const;
@@ -574,64 +574,6 @@ FORCEINLINE bool DebugRotatorEquals(const FRotator& R1, const FRotator& R2, floa
 }
 #endif
 
-
-inline FRotator FQuat::Rotator() const
-{
-#if USE_MATRIX_ROTATOR 
-	// if you think this function is problem, you can undo previous matrix rotator by returning RotatorFromMatrix
-	FRotator RotatorFromMatrix = FQuatRotationTranslationMatrix( *this, FVector::ZeroVector ).Rotator();
-	checkSlow (IsNormalized());
-#endif
-
-	static float RAD_TO_DEG = 180.f/PI;
-
-	FRotator RotatorFromQuat;
-	float SingularityTest = Z*X-W*Y;
-	float Pitch = FMath::Asin(2*(SingularityTest));
-
-	RotatorFromQuat.Yaw = FMath::Atan2(2.f*(W*Z+X*Y), (1-2.f*(FMath::Square(Y) + FMath::Square(Z))))*RAD_TO_DEG;
-
-	// reference 
-	// http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
-
-// this value was found from experience, the above websites recommend different values
-// but that isn't the case for us, so I went through different testing, and finally found the case 
-// where both of world lives happily. 
-#define SINGULARITY_THRESHOLD	0.4999995f
-
-	if ( SingularityTest < -SINGULARITY_THRESHOLD )
-	{
-		RotatorFromQuat.Roll = -RotatorFromQuat.Yaw - 2.f* FMath::Atan2(X, W) * RAD_TO_DEG;
-		RotatorFromQuat.Pitch = 270.f;
-	}
-	else if ( SingularityTest > SINGULARITY_THRESHOLD )
-	{
-		RotatorFromQuat.Roll = RotatorFromQuat.Yaw - 2.f* FMath::Atan2(X, W) * RAD_TO_DEG;
-		RotatorFromQuat.Pitch = 90.f;
-	}
-	else
-	{
-		RotatorFromQuat.Roll = FMath::Atan2(-2.f*(W*X+Y*Z), (1-2.f*(FMath::Square(X) + FMath::Square(Y))))*RAD_TO_DEG;
-		RotatorFromQuat.Pitch = FRotator::ClampAxis(Pitch*RAD_TO_DEG); //clamp it so within 360 - this is for if below
-	}
-
-	RotatorFromQuat.Normalize();
-
-#if USE_MATRIX_ROTATOR
-	RotatorFromMatrix = RotatorFromMatrix.Clamp();
-
-	// this Euler is degree, so less 1 is negligible
-	if (!DebugRotatorEquals(RotatorFromQuat, RotatorFromMatrix, 0.1f))
-	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("WRONG: (Singularity: %.9f) RotationMatrix (%s), RotationQuat(%s)"), SingularityTest, *RotatorFromMatrix.ToString(), *RotatorFromQuat.ToString());
-	}
-
-	return RotatorFromMatrix;
-#else
-	return RotatorFromQuat;
-#endif
-}
 
 
 /* FQuat inline functions
