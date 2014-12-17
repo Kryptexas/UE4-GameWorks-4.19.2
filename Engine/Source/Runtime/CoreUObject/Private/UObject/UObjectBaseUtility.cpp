@@ -7,6 +7,8 @@
 #include "CoreUObjectPrivate.h"
 #include "Interface.h"
 
+DEFINE_STAT(STAT_UObjectIsA);
+
 /***********************/
 /******** Names ********/
 /***********************/
@@ -249,6 +251,7 @@ bool UObjectBaseUtility::RootPackageHasAnyFlags( uint32 CheckFlagMask ) const
  */
 bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_UObjectIsA);
 	UE_CLOG(!SomeBase, LogObj, Fatal, TEXT("IsA(NULL) cannot yield meaningful results"));
 
 	for ( UClass* TempClass=GetClass(); TempClass; TempClass=TempClass->GetSuperClass() )
