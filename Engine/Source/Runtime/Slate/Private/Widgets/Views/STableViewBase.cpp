@@ -664,8 +664,7 @@ void STableViewBase::ClearWidgets()
  */
 float STableViewBase::GetItemWidth() const
 {
-	// Casting to a STilePanel here because we constructed it in Construct()
-	return ItemsPanel->GetItemWidth() + ItemsPanel->GetItemPadding(PanelGeometryLastTick);
+	return ItemsPanel->GetItemWidth(PanelGeometryLastTick) + ItemsPanel->GetItemPadding(PanelGeometryLastTick);
 }
 
 /**

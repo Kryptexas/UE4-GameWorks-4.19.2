@@ -30,6 +30,9 @@ enum class EListItemAlignment : uint8
 
 	/** Items are center aligned on the row (any extra space is halved and added to the left of the items) */
 	CenterAligned,
+
+	/** Items are evenly horizontally stretched to distribute any extra space */
+	Fill,
 };
 
 
