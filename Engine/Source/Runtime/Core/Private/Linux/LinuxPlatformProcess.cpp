@@ -801,11 +801,17 @@ bool FLinuxPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, 
 
 			if (WIFEXITED(status))
 			{
-				*OutReturnCode = WEXITSTATUS(status);
+				if(OutReturnCode)
+				{
+					*OutReturnCode = WEXITSTATUS(status);
+				}
 			}
 			else if (WIFSIGNALED(status))
 			{
-				*OutReturnCode = WTERMSIG(status);
+				if(OutReturnCode)
+				{
+					*OutReturnCode = WTERMSIG(status);
+				}
 			}
 
 		} while (!WIFEXITED(status) && !WIFSIGNALED(status));

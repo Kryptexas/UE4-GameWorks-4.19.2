@@ -353,6 +353,9 @@ struct CORE_API FGenericPlatformProcess
 	/**
 	 * Executes a process, returning the return code, stdout, and stderr. This
 	 * call blocks until the process has returned.
+	 * @param OutReturnCode may be 0
+	 * @param OutStdOut may be 0
+	 * @param OutStdErr may be 0
 	 */
 	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
 

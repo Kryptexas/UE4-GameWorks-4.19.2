@@ -220,8 +220,14 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	
 	if(LaunchPath == NULL)
 	{
-		*OutReturnCode = ENOENT;
-		*OutStdErr = TEXT("No such executable");
+		if(OutReturnCode)
+		{
+			*OutReturnCode = ENOENT;
+		}
+		if(OutStdErr)
+		{
+			*OutStdErr = TEXT("No such executable");
+		}
 		return false;
 	}
 	
@@ -311,8 +317,14 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 		}
 		@catch (NSException* Exc)
 		{
-			*OutReturnCode = ENOENT;
-			*OutStdErr = FString([Exc reason]);
+			if(OutReturnCode)
+			{
+				*OutReturnCode = ENOENT;
+			}
+			if(OutStdErr)
+			{
+				*OutStdErr = FString([Exc reason]);
+			}
 			return false;
 		}
 	}

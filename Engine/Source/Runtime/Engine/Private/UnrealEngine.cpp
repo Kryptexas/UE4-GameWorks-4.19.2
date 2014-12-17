@@ -97,6 +97,8 @@
 #include "Components/BrushComponent.h"
 #include "GameFramework/GameUserSettings.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -2699,6 +2701,28 @@ static void DumpHelp(UWorld* InWorld)
 	UE_LOG(LogEngine, Display, TEXT(" "));
 
 	ConsoleCommandLibrary_DumpLibraryHTML(InWorld, *GEngine, FilePath);
+
+	// Notification in editor
+	{
+		auto Message = NSLOCTEXT("UnrealEd", "ConsoleHelpExported", "ConsoleHelp.html was saved as");
+		FNotificationInfo Info(Message);
+		Info.bFireAndForget = true;
+		Info.ExpireDuration = 5.0f;
+		Info.bUseSuccessFailIcons = false;
+		Info.bUseLargeFont = false;
+
+		const FString HyperLinkText = FPaths::ConvertRelativePathToFull(FilePath);
+		Info.Hyperlink = FSimpleDelegate::CreateStatic([](FString SourceFilePath) 
+		{
+			// open default browser, usually internet explorer (bit slower than Chrome)
+//			FPlatformProcess::LaunchURL(*SourceFilePath, TEXT(""), 0);
+			// open folder, you can choose the browser yourself
+			FPlatformProcess::ExploreFolder(*(FPaths::GetPath(SourceFilePath)));
+		}, HyperLinkText);
+		Info.HyperlinkText = FText::FromString(HyperLinkText);
+
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
 }
 static FAutoConsoleCommandWithWorld GConsoleCommandHelp(
 	TEXT("help"),
