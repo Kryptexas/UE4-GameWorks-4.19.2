@@ -80,7 +80,6 @@ private:
 
 	UObject* GetObjectFromSingleSelectedNode() const;
 	bool HasExactlyOneNodeSelected() const;
-	bool IsSingleSelectedItemValidObject() const;
 
 	void OnInitialAssetRegistrySearchComplete();
 private:
