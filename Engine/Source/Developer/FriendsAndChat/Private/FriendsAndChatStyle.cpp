@@ -308,9 +308,9 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListWidth(const float InFr
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatListWidth(const float InChatListWidth)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatListPadding(const float InChatListPadding)
 {
-	ChatListWidth = InChatListWidth;
+	ChatListPadding = InChatListPadding;
 	return *this;
 }
 

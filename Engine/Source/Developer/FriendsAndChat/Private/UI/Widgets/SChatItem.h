@@ -9,6 +9,7 @@ public:
 	{ }
 	SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
 	SLATE_ARGUMENT(EPopupMethod, Method)
+	SLATE_ARGUMENT(float, ChatWidth)
 	SLATE_END_ARGS()
 
 	/**

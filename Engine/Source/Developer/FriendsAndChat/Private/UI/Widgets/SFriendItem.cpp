@@ -266,17 +266,17 @@ private:
 
 	FReply HandleActionClicked(const EFriendActionType::Type FriendAction)
 	{
-		Anchor->SetIsOpen(false);
+		Anchor->SetIsOpen(false, false);
 
 		if (FriendAction == EFriendActionType::RemoveFriend || FriendAction == EFriendActionType::JoinGame)
 		{
 			PendingAction = FriendAction;
+			FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 		}
 		else
 		{
 			ViewModel->PerformAction(FriendAction);
 		}
-		FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 		return FReply::Handled();
 	}
 
@@ -292,7 +292,7 @@ private:
 
 	FReply HandleItemClicked()
 	{
-		Anchor->SetIsOpen(true);
+		Anchor->SetIsOpen(true, false);
 		OpenTime = 0.2f;
 		return FReply::Handled();
 	}
@@ -315,7 +315,7 @@ private:
 				OpenTime -= InDeltaTime;
 				if (OpenTime < 0 || MenuMethod != EPopupMethod::CreateNewWindow)
 				{
-					Anchor->SetIsOpen(false);
+					Anchor->SetIsOpen(false, false);
 				}
 			}
 		}

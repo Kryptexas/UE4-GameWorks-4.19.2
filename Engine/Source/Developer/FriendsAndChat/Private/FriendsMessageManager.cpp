@@ -336,6 +336,9 @@ private:
 			ChatItem->MessageRef = ChatMessage;
 			WhisperMessagesCount++;
 			AddMessage(ChatItem.ToSharedRef());
+
+			// Inform listers that we have received a chat message
+			FFriendsAndChatManager::Get()->SendChatMessageReceivedEvent();
 		}
 	}
 

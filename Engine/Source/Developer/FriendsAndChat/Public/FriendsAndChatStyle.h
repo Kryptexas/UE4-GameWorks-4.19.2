@@ -276,8 +276,8 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetFriendsListWidth(const float FriendsListLength);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	float ChatListWidth;
-	FFriendsAndChatStyle& SetChatListWidth(const float ChatListWidth);
+	float ChatListPadding;
+	FFriendsAndChatStyle& SetChatListPadding(const float ChatListPadding);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatBackgroundBrush;

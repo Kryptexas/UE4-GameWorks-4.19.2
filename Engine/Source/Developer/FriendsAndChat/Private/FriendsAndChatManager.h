@@ -126,8 +126,8 @@ public:
 	virtual void Login() override;
 	virtual bool IsLoggedIn() override;
 	virtual void SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
-	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle ) override;
-	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, TSharedPtr<SWindow> Parent) override;
+	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle) override;
+	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
@@ -271,6 +271,9 @@ public:
 	/** Send a game invite notification. */
 	void SendGameInviteNotification(const TSharedPtr<IFriendItem>& FriendItem);
 
+	/** Broadcast when a chat message is received - opens the chat window in the launcher. */
+	void SendChatMessageReceivedEvent();
+
 	/**
 	 * Find a user ID.
 	 *
@@ -335,6 +338,12 @@ public:
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() override
 	{
 		return FriendsJoinGameEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FChatMessageReceivedEvent, FChatMessageReceivedEvent);
+	virtual FChatMessageReceivedEvent& OnChatMessageRecieved() override
+	{
+		return ChatMessageReceivedEvent;
 	}
 
 	virtual FAllowFriendsJoinGame& AllowFriendsJoinGame() override
@@ -687,6 +696,8 @@ private:
 	FOnInviteRejectedDelegate	OnFriendInviteRejected;
 	// Delegate for friend invite accepted
 	FOnInviteAcceptedDelegate	OnFriendInviteAccepted;
+	// Delegate for chat message received
+	FChatMessageReceivedEvent OnChatmessageRecieved;
 
 	// Holds the Friends list notification delegate
 	FOnFriendsNotificationEvent FriendsListNotificationDelegate;
@@ -696,6 +707,8 @@ private:
 	FOnFriendsUserSettingsUpdatedEvent FriendsUserSettingsUpdatedDelegate;
 	// Holds the join game request delegate
 	FOnFriendsJoinGameEvent FriendsJoinGameEvent;
+	// Holds the chat message received delegate
+	FChatMessageReceivedEvent ChatMessageReceivedEvent;
 	// Delegate callback for determining if joining games functionality should be allowed
 	FAllowFriendsJoinGame AllowFriendsJoinGameDelegate;
 

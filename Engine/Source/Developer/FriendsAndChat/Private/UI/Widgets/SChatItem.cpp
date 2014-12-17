@@ -15,6 +15,7 @@ public:
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		MenuMethod = InArgs._Method;
+		float WindowWidth = InArgs._ChatWidth;
 		this->ViewModel = InViewModel;
 		this->OwnerViewModel = InOwnerViewModel;
 
@@ -59,24 +60,23 @@ public:
 				.Image(this, &SChatItemImpl::GetChatIcon)
 			]
 			+SHorizontalBox::Slot()
-			.AutoWidth()
 			.VAlign(VAlign_Top)
 			.HAlign(HAlign_Fill)
 			.Padding(FMargin(5, 1, 2, 1))
-			.MaxWidth(FriendStyle.ChatListWidth)
 			[
 				SNew( SRichTextBlock )
 				.Visibility(this, &SChatItemImpl::GetTextVisibility)
 				.Text(DisplayText)
 				.TextStyle(&TextStyle)
 				.DecoratorStyleSet(&FFriendsAndChatModuleStyle::Get())
-				.WrapTextAt(FriendStyle.ChatListWidth - 10)
+				.WrapTextAt(WindowWidth - FriendStyle.ChatListPadding)
 				+ SRichTextBlock::HyperlinkDecorator(TEXT( "UserName" ), this, &SChatItemImpl::HandleNameClicked)
 			]
 			+SHorizontalBox::Slot()
 			.HAlign(HAlign_Right)
-			.Padding(FMargin(5,1))
 			.VAlign(VAlign_Top)
+			.Padding(FMargin(5,1))
+			.AutoWidth()
 			[
 				SNew(STextBlock)
 				.Text(ViewModel->GetMessageTime())

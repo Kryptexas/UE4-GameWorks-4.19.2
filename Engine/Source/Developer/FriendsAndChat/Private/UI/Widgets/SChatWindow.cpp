@@ -24,8 +24,7 @@ public:
 
 		TimeTransparency = 0.0f;
 
-		TSharedRef<SScrollBar> ExternalScrollbar =
-		SNew(SScrollBar)
+		ExternalScrollbar = SNew(SScrollBar)
 		.Thickness(FVector2D(4, 4))
 		.Style(&FriendStyle.ScrollBarStyle)
 		.AlwaysShowScrollbar(true);
@@ -51,17 +50,14 @@ public:
 						.BorderBackgroundColor(FLinearColor::Transparent)
 						.ColorAndOpacity(this, &SChatWindowImpl::GetTimedFadeColor)
 						[
-							ExternalScrollbar
+							ExternalScrollbar.ToSharedRef()
 						]
 					]
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Fill)
 			 		[
-						SAssignNew(ChatList, SListView<TSharedRef<FChatItemViewModel>>)
-						.ListItemsSource(&ViewModel->GetFilteredChatList())
-						.SelectionMode(ESelectionMode::None)
-						.OnGenerateRow(this, &SChatWindowImpl::MakeChatWidget)
-						.ExternalScrollbar(ExternalScrollbar)
+						SAssignNew(ChatListContainer, SBorder)
+						.BorderBackgroundColor(FLinearColor::Transparent)
 					]
 				]
 				+SVerticalBox::Slot()
@@ -70,7 +66,7 @@ public:
 				.VAlign(VAlign_Bottom)
 				.HAlign(HAlign_Fill)
 				[
-					SAssignNew(ChatBox, SHorizontalBox)
+					SNew(SHorizontalBox)
 					.Visibility(this, &SChatWindowImpl::GetActionVisibility)
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -229,17 +225,18 @@ public:
 			]
 		]);
 
-		if(ViewModel->GetFilteredChatList().Num())
-		{
-			ChatList->RequestScrollIntoView(ViewModel->GetFilteredChatList().Last());
-		}
-		bUserHasScrolled = false;
-		bAutoScroll = true;
+		RegenerateChatList();
 	}
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
 	{
 		SUserWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+		int32 NewWindowWidth = FMath::FloorToInt(AllottedGeometry.GetLocalSize().X);
+		if(NewWindowWidth != WindowWidth)
+		{
+			WindowWidth = NewWindowWidth;
+			RegenerateChatList();
+		}
 
 		static const float BlendSpeed = 2.0f;
 
@@ -310,6 +307,7 @@ private:
 				SNew(SChatItem, ChatMessage, ViewModel.ToSharedRef())
 				.FriendStyle(&FriendStyle)
 				.Method(MenuMethod)
+				.ChatWidth(WindowWidth)
 			]
 		];
 	}
@@ -648,13 +646,36 @@ private:
 		return Color;
 	}
 
+	void RegenerateChatList()
+	{
+		ChatListContainer->ClearContent();
+		ChatListContainer->SetContent(
+			SAssignNew(ChatList, SListView<TSharedRef<FChatItemViewModel>>)
+			.ListItemsSource(&ViewModel->GetFilteredChatList())
+			.SelectionMode(ESelectionMode::None)
+			.OnGenerateRow(this, &SChatWindowImpl::MakeChatWidget)
+			.ExternalScrollbar(ExternalScrollbar.ToSharedRef())
+		);
+
+		if(ViewModel->GetFilteredChatList().Num())
+		{
+			ChatList->RequestScrollIntoView(ViewModel->GetFilteredChatList().Last());
+		}
+		
+		bUserHasScrolled = false;
+		bAutoScroll = true;
+	}
+
 private:
 
 	// Holds the chat list
 	TSharedPtr<SListView<TSharedRef<FChatItemViewModel> > > ChatList;
 
-	// Holds the chat box
-	TSharedPtr<SHorizontalBox> ChatBox;
+	// Holds the chat list
+	TSharedPtr<SBorder> ChatListContainer;
+
+	// Holds the scroll bar
+	TSharedPtr<SScrollBar> ExternalScrollbar;
 
 	// Holds the chat list display
 	TSharedPtr<SEditableTextBox> ChatTextBox;
@@ -682,6 +703,9 @@ private:
 
 	// Holds the time transparency.
 	float TimeTransparency;
+
+	// Holds the window width
+	float WindowWidth;
 };
 
 TSharedRef<SChatWindow> SChatWindow::New()

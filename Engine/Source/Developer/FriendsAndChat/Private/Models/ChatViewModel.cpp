@@ -165,6 +165,7 @@ public:
 		bHasActionPending = false;
 		SelectedChatChannel = NewOption;
 		SelectedFriend.Reset();
+		OnChatListSetFocus().Broadcast();
 	}
 
 	virtual void SetWhisperChannel(const TSharedPtr<FSelectedFriend> InFriend) override
@@ -177,6 +178,7 @@ public:
 		}
 		SelectedFriend->MessageType = EChatMessageType::Whisper;
 		bHasActionPending = false;
+		OnChatListSetFocus().Broadcast();
 	}
 
 	virtual void SetViewChannel(const EChatMessageType::Type NewOption) override
@@ -185,6 +187,7 @@ public:
 		SelectedChatChannel = NewOption;
 		FilterChatList();
 		bHasActionPending = false;
+		OnChatListSetFocus().Broadcast();
 	}
 
 	virtual void SetChannelUserClicked(const TSharedRef<FChatItemViewModel> ChatItemSelected) override
@@ -444,6 +447,10 @@ private:
 		if(ChatFriend.IsValid())
 		{
 			SetWhisperChannel(GetRecentFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID()));
+		}
+		else
+		{
+			OnChatListSetFocus().Broadcast();
 		}
 	}
 
