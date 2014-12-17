@@ -151,7 +151,7 @@ void FEdModeMeshPaint::Enter()
 	
 	if (!Toolkit.IsValid())
 	{
-		Toolkit = MakeShareable(new FMeshPaintToolKit);
+		Toolkit = MakeShareable(new FMeshPaintToolKit(this));
 		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
@@ -460,7 +460,7 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 			if (HitProxy && HitProxy->IsA(HActor::StaticGetType()))
 			{
 				const AActor* ClickedActor = (static_cast<const HActor*>(HitProxy))->Actor;
-				USelection& SelectedActors = *GEditor->GetSelectedActors();
+				USelection& SelectedActors = *Owner->GetSelectedActors();
 				if (SelectedActors.IsSelected(ClickedActor))
 				{
 					// Clicked actor is currently selected, start painting.
@@ -935,7 +935,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 		const FVector TraceEnd( InRayOrigin + InRayDirection * HALF_WORLD_MAX );
 
 		// Iterate over selected actors looking for static meshes
-		USelection& SelectedActors = *GEditor->GetSelectedActors();
+		USelection& SelectedActors = *Owner->GetSelectedActors();
 		TArray< AActor* > ValidSelectedActors;
 		for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 		{
@@ -2785,16 +2785,14 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 	}
 }
 
-
-
 // @TODO MeshPaint: Cache selected static mesh components each time selection change
 /** Returns valid StaticMesheComponents in the current selection */
-TArray<UStaticMeshComponent*> GetValidStaticMeshComponents()
+TArray<UStaticMeshComponent*> FEdModeMeshPaint::GetValidStaticMeshComponents() const
 {
 	TArray<UStaticMeshComponent*> SMComponents;
 
 	// Iterate over selected actors looking for static meshes
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* CurActor = CastChecked< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -3621,7 +3619,7 @@ void FEdModeMeshPaint::RemoveInstanceVertexColors() const
 {
 	FScopedTransaction Transaction( LOCTEXT( "MeshPaintMode_VertexPaint_TransactionRemoveInstColors", "Remove Instance Vertex Colors" ) );
 
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		RemoveInstanceVertexColors( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -3654,7 +3652,7 @@ void FEdModeMeshPaint::CopyInstanceVertexColors()
 {
 	CopiedColorsByComponent.Empty();
 
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	if( SelectedActors.Num() != 1 )
 	{
 		// warning - works only with 1 actor selected..!
@@ -3736,7 +3734,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 	FScopedTransaction Transaction( LOCTEXT( "MeshPaintMode_VertexPaint_TransactionPasteInstColors", "Paste Instance Vertex Colors" ) );
 
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 
 	TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
 
@@ -3861,7 +3859,7 @@ bool FEdModeMeshPaint::RequiresInstanceVertexColorsFixup() const
 	bool bRequiresFixup = false;
 
 	// Find each static mesh component of any selected actors
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -3889,7 +3887,7 @@ bool FEdModeMeshPaint::RequiresInstanceVertexColorsFixup() const
 void FEdModeMeshPaint::FixupInstanceVertexColors() const
 {
 	// Find each static mesh component of any selected actors
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -3911,7 +3909,7 @@ void FEdModeMeshPaint::FixupInstanceVertexColors() const
 
 void FEdModeMeshPaint::ForceBestLOD()
 {
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -3939,7 +3937,7 @@ void FEdModeMeshPaint::ForceBestLOD(UStaticMeshComponent* StaticMeshComponent)
 
 void FEdModeMeshPaint::ClearForcedLOD()
 {
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -3968,7 +3966,7 @@ void FEdModeMeshPaint::ClearForcedLOD(UStaticMeshComponent* StaticMeshComponent)
 void FEdModeMeshPaint::ApplyVertexColorsToAllLODs()
 {	
 	// Find each static mesh component of any selected actors
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -4100,7 +4098,7 @@ void FEdModeMeshPaint::CreateInstanceMaterialAndTexture() const
 /** Removes instance of paintable material/texture for the selected mesh */
 void FEdModeMeshPaint::RemoveInstanceMaterialAndTexture() const
 {
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -4130,7 +4128,7 @@ bool FEdModeMeshPaint::GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes,
 
 	int32 NumValidMeshes = 0;
 
-	USelection& SelectedActors = *GEditor->GetSelectedActors();
+	USelection& SelectedActors = *Owner->GetSelectedActors();
 	for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 	{
 		AActor* SelectedActor = Cast< AActor >( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
@@ -4255,7 +4253,7 @@ void FImportVertexTextureHelper::PickVertexColorFromTex(FColor& NewVertexColor, 
 }
 
 
-void FImportVertexTextureHelper::ImportVertexColors(const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask)
+void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools, const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask)
 {
 	FMessageLog EditorErrors("EditorErrors");
 	EditorErrors.NewPage(LOCTEXT("MeshPaintImportLogLabel", "Mesh Paint: Import Vertex Colors"));
@@ -4268,7 +4266,7 @@ void FImportVertexTextureHelper::ImportVertexColors(const FString& Filename, int
 	}
 
 	TArray<UStaticMeshComponent*> Components;
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	for ( FSelectionIterator It( *ModeTools->GetSelectedActors() ) ; It ; ++It )
 	{
 		AActor* Actor = Cast<AActor>( *It );
 		if(Actor)

@@ -39,6 +39,8 @@ namespace EMeshPaintWriteColorChannels
 class FMeshPaintToolKit : public FModeToolkit
 {
 public:
+	FMeshPaintToolKit(class FEdModeMeshPaint* InOwningMode);
+
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
@@ -54,6 +56,9 @@ public:
 private:
 	/** Geometry tools widget */
 	TSharedPtr<class SMeshPaint> MeshPaintWidgets;
+
+	/** Owning editor mode */
+	class FEdModeMeshPaint* MeshPaintEdMode;
 };
 
 /**
@@ -68,14 +73,14 @@ public:
 	~SMeshPaint();
 
 	/** SCompoundWidget functions */
-	void Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKit> InParentToolkit);
+	void Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKit> InParentToolkit, class FEdModeMeshPaint* InOwningMode);
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:
 
 	/** Gets a reference to the mesh paint editor mode if it is active */
-	FEdMode* GetEditorMode() const;
+	class FEdModeMeshPaint* GetEditorMode() const;
 
 	/** Returns the visibility state of vertices only property controls */
 	EVisibility GetResourceTypeVerticesVisibility() const;

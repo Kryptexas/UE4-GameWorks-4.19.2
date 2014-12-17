@@ -726,6 +726,8 @@ private:
 	/** Caches the currently selected actors info into CurrentlySelectedActorsMaterialInfo */
 	void CacheActorInfo();
 
+	/** Returns valid StaticMesheComponents in the current selection */
+	TArray<UStaticMeshComponent*> GetValidStaticMeshComponents() const;
 private:
 
 	/** Whether we're currently painting */
@@ -853,11 +855,12 @@ public:
 	/**
 	 * Imports Vertex Color data from texture scanning thought uv vertex coordinates for selected actors.  
 	 *
+	 * @param ModeTools the mode tools for the current editor
 	 * @param Filename path for loading TGA file.
 	 * @param UVIndex Coordinate index.
 	 * @param ImportLOD LOD level to work with.
 	 * @param Tex Texture info.
 	 * @param ColorMask Mask for filtering which colors to use.
 	 */
-	void ImportVertexColors(const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
+	void ImportVertexColors(FEditorModeTools* ModeTools, const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
 };
