@@ -2,6 +2,13 @@
 
 #pragma once
 
+enum class EFriendActionLevel
+{
+	Action,			// A normal action
+	Emphasis,		// An important action to be shown with emphasis
+	Critical,		// A critical action
+};
+
 // Enum holding the state of the Friends manager
 namespace EFriendActionType
 {
@@ -19,6 +26,7 @@ namespace EFriendActionType
 		SendFriendRequest,			// Send a friend request
 		Updating,					// Updating;
 		Chat,						// Chat
+		MAX_None,
 	};
 
 	inline FText ToText(EFriendActionType::Type State)
@@ -39,6 +47,22 @@ namespace EFriendActionType
 			case Chat: return NSLOCTEXT("FriendsList","Chat", "Chat");
 
 			default: return FText::GetEmpty();
+		}
+	}
+
+	inline EFriendActionLevel ToActionLevel(EFriendActionType::Type State)
+	{
+		switch (State)
+		{
+			case AcceptFriendRequest:
+			case RejectGame:
+			case SendFriendRequest:
+				return EFriendActionLevel::Emphasis;
+			case BlockFriend:
+			case RemoveFriend:
+				return EFriendActionLevel::Critical;
+			default:
+				return EFriendActionLevel::Action;
 		}
 	}
 };

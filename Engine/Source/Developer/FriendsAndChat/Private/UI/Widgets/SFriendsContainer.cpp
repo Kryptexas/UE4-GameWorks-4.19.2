@@ -126,6 +126,16 @@ public:
 					SNew(SScrollBox)
 					.ScrollBarStyle(&FriendStyle.ScrollBarStyle)
 					.ScrollBarThickness(FVector2D(4, 4))
+					+ SScrollBox::Slot()
+					.HAlign(HAlign_Center)
+					.Padding(10)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("NoFriendsNotice", "Press the Plus Button to add friends."))
+						.Font(FriendStyle.FriendsFontStyleBold)
+						.ColorAndOpacity(FLinearColor::White)
+						.Visibility(this, &SFriendsContainerImpl::NoFriendsNoticeVisibility)
+					]
 					+SScrollBox::Slot()
 					[
 						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::GameInviteDisplay].ToSharedRef())

@@ -83,7 +83,7 @@ public:
 						.OnGetMenuContent(this, &SChatWindowImpl::GetMenuContent)
 						[
 							SNew(SButton)
-							.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+							.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 							.ContentPadding(FMargin(2, 2.5))
 							.OnClicked(this, &SChatWindowImpl::HandleActionDropDownClicked)
 							.VAlign(VAlign_Center)
@@ -129,7 +129,7 @@ public:
 									[
 										SNew(SButton)
 										.Visibility(this, &SChatWindowImpl::GetFriendActionVisibility)
-										.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+										.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 										.ContentPadding(FMargin(-2,3))
 										.OnClicked(this, &SChatWindowImpl::HandleFriendActionDropDownClicked)
 										[
@@ -181,7 +181,7 @@ public:
 								.Padding(0, 0, 5, 0)
 								[
 									SNew(SButton)
-									.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+									.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 									.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::SendFriendRequest)
 									.ContentPadding(5)
 									.VAlign(VAlign_Center)
@@ -200,7 +200,7 @@ public:
 								[
 									SNew(SButton)
 									.Visibility(ViewModelPtr, &FChatViewModel::GetInviteToGameVisibility)
-									.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+									.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 									.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::InviteToGame)
 									.ContentPadding(5)
 									.VAlign(VAlign_Center)

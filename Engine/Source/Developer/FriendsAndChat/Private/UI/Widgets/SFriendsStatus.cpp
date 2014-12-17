@@ -50,6 +50,7 @@ public:
 							+SHorizontalBox::Slot()
 							.HAlign(HAlign_Left)
 							.VAlign(VAlign_Center)
+							.Padding(FMargin(10, 0, 4, 0))
 							.AutoWidth()
 							[
 								SNew(SImage)
@@ -58,20 +59,12 @@ public:
 							+ SHorizontalBox::Slot()
 							.VAlign(VAlign_Center)
 							.AutoWidth()
-							.Padding(FMargin(5,2))
+							.Padding(FMargin(0, 2, 0, 0))
 							[
 								SNew(STextBlock)
 								.Text(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
 								.Font(FriendStyle.FriendsFontStyleBold)
 								.ColorAndOpacity(FLinearColor::White)
-							]
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							[
-								SNew(SImage)
-								.ColorAndOpacity(FLinearColor::White)
-								.Image(&FriendStyle.FriendsComboDropdownImageBrush)
 							]
 						]
 					]

@@ -50,10 +50,15 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle FriendListStatusButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListStatusButtonStyle(const FButtonStyle& ButtonStyle);
 
+	/** Friends General Purpose Button style */
+	UPROPERTY()
+	FButtonStyle FriendGeneralButtonStyle;
+	FFriendsAndChatStyle& SetFriendGeneralButtonStyle(const FButtonStyle& ButtonStyle);
+
 	/** Friends List Action Button style */
 	UPROPERTY()
 	FButtonStyle FriendListActionButtonStyle;
-	FFriendsAndChatStyle& SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle);
+	FFriendsAndChatStyle& SetFriendListActionButtonStyle(const FButtonStyle& ButtonStyle);
 
 	/** Friends List Critical Button style */
 	UPROPERTY()
@@ -92,6 +97,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY()
 	FButtonStyle AddFriendButtonStyle;
 	FFriendsAndChatStyle& SetAddFriendButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Friend action dropdown menu button style */
+	UPROPERTY()
+	FButtonStyle FriendActionDropdownButtonStyle;
+	FFriendsAndChatStyle& SetFriendActionDropdownButtonStyle(const FButtonStyle& ButtonStyle);
 
 	/** Optional content for the Add Friend button */
 	UPROPERTY()

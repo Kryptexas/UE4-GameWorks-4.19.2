@@ -30,6 +30,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonStyle(const FButto
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendActionDropdownButtonStyle(const FButtonStyle& InButtonStyle)
+{
+	FriendActionDropdownButtonStyle = InButtonStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle)
 {
 	AddFriendButtonContentBrush = BrushStyle;
@@ -42,7 +48,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListStatusButtonStyle(cons
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendGeneralButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendGeneralButtonStyle = ButtonStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendListActionButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListActionButtonStyle = ButtonStyle;
 	return *this;

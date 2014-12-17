@@ -2,6 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SInviteItem.h"
+#include "SFriendsList.h"
 #include "FriendViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SInviteItem"
@@ -18,33 +19,42 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
-			.AutoWidth()
+			SNew(SButton)
+			.ButtonStyle(&FriendStyle.FriendListItemButtonSimpleStyle)
+			.ContentPadding(9.0f)
 			[
-				SNew(SImage)
-				.Image(&FriendStyle.FriendImageBrush)
-			]
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Fill)
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(3)
-				[
-					SNew(STextBlock)
-					.Font(FriendStyle.FriendsFontStyleSmallBold)
-					.Text(ViewModel->GetFriendName())
-				]
-				+ SVerticalBox::Slot()
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Left)
-				.AutoHeight()
+				.Padding(10, 0)
+				.AutoWidth()
 				[
-					SAssignNew(OptionContainer, SUniformGridPanel)
+					SNew(SImage)
+					.Image(&FriendStyle.FriendImageBrush)
+				]
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				.Padding(0, 3, 0, 0)
+				[
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Top)
+					[
+						SNew(STextBlock)
+						.Font(FriendStyle.FriendsFontStyleBold)
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+						.Text(ViewModel->GetFriendName())
+					]
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Bottom)
+					.Padding(0, 0, 5, 0)
+					[
+						SAssignNew(OptionContainer, SUniformGridPanel)
+					]
 				]
 			]
 		]);
@@ -69,13 +79,13 @@ private:
 					SNew(SButton)
 					.IsEnabled(this, &SInviteItemImpl::IsActionEnabled, FriendAction)
 					.OnClicked(this, &SInviteItemImpl::PerformAction, FriendAction)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.ButtonStyle(SFriendsList::GetActionButtonStyle(FriendStyle, EFriendActionType::ToActionLevel(FriendAction)))
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
 					[
 						SNew(STextBlock)
 						.ColorAndOpacity(FriendStyle.DefaultFontColor)
-						.Font(FriendStyle.FriendsFontStyle)
+						.Font(FriendStyle.FriendsFontStyleSmallBold)
 						.Text(EFriendActionType::ToText(FriendAction))
 					]
 				]
@@ -91,7 +101,7 @@ private:
 
 	bool IsActionEnabled(EFriendActionType::Type FriendAction) const
 	{
-		return ViewModel->CanPerformAction(FriendAction);
+		return bIsHovered && ViewModel->CanPerformAction(FriendAction);
 	}
 
 private:
