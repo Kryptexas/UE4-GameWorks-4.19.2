@@ -2335,7 +2335,10 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				}
 			}
 
-			SetPhysicsVolume(BestVolume, bTriggerNotifiers);
+			if (BestVolume != PhysicsVolume)
+			{
+				SetPhysicsVolume(BestVolume, bTriggerNotifiers);
+			}
 		}
 		else
 		{
