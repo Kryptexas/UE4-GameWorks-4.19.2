@@ -148,6 +148,13 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 		}
 		else
 		{
+			// Save any imported assets.
+			TArray<UPackage*> ToSave;
+			for (auto ImportedObject : ImportedObjects)
+			{
+				ToSave.AddUnique(ImportedObject->GetOutermost());
+			}
+			FEditorFileUtils::PromptForCheckoutAndSave( ToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false );
 			bResult = true;
 		}
 	}
