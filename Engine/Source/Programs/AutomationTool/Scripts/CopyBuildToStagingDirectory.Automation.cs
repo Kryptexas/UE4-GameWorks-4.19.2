@@ -197,7 +197,6 @@ public partial class Project : CommandUtils
         if (Params.HasDLCName)
         {
             string DLCName = Params.DLCName;
-            string StagedBuildsDirectory = CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "StagedBuilds");
 
             // Making a plugin, grab the binaries too
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName), "*.uplugin", true, null, null, true);
