@@ -1877,12 +1877,18 @@ void FBodyInstance::InitBodies(FBodyInstance** Bodies, FTransform* Transforms, i
 		else
 		{
 			SCOPED_SCENE_WRITE_LOCK(PSceneSync);
-			PSceneSync->addActors(PhysXSyncActors.GetData(), PhysXSyncActors.Num());
+			for(PxActor* Actor : PhysXSyncActors)
+			{
+				PSceneSync->addActor(*Actor);
+			}
 
 			if(PSceneAsync)
 			{
 				SCOPED_SCENE_WRITE_LOCK(PSceneAsync);
-				PSceneAsync->addActors(PhysXAsyncActors.GetData(), PhysXAsyncActors.Num());
+				for (PxActor* Actor : PhysXAsyncActors)
+				{
+					PSceneAsync->addActor(*Actor);
+				}
 			}
 		}
 	}
