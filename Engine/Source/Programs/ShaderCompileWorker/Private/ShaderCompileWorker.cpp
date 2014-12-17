@@ -18,6 +18,13 @@ const int32 ShaderCompileWorkerOutputVersion = 1;
 
 double LastCompileTime = 0.0;
 
+static bool GShaderCompileUseXGE = false;
+static void WriteXGESuccessFile(const TCHAR* WorkingDirectory)
+{
+	// To signal compilation completion, create a zero length file in the working directory.
+	delete IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/Success"), WorkingDirectory), FILEWRITE_EvenIfReadOnly);
+}
+
 const TArray<const IShaderFormat*>& GetShaderFormats()
 {
 	static bool bInitialized = false;
@@ -178,6 +185,15 @@ public:
 				LastConnectionTime = FPlatformTime::Seconds();
 			}
 #endif	// PLATFORM_SUPPORTS_NAMED_PIPES
+
+			if (GShaderCompileUseXGE)
+			{
+				// To signal compilation completion, create a zero length file in the working directory.
+				WriteXGESuccessFile(*WorkingDirectory);
+
+				// We only do one pass per process when using XGE.
+				break;
+			}
 		}
 
 		UE_LOG(LogShaders, Log, TEXT("Exiting job loop"));
@@ -311,16 +327,22 @@ private:
 			const double StartTime = FPlatformTime::Seconds();
 			bool bResult = false;
 
-			do 
+			// It seems XGE does not support deleting files.
+			// Don't delete the input file if we are running under Incredibuild.
+			// Instead, we signal completion by creating a zero byte "Success" file after the output file has been fully written.
+			if (!GShaderCompileUseXGE)
 			{
-				// Remove the input file so that it won't get processed more than once
-				bResult = IFileManager::Get().Delete(*InputFilePath);
-			} 
-			while (!bResult && (FPlatformTime::Seconds() - StartTime < 2));
+				do 
+				{
+					// Remove the input file so that it won't get processed more than once
+					bResult = IFileManager::Get().Delete(*InputFilePath);
+				} 
+				while (!bResult && (FPlatformTime::Seconds() - StartTime < 2));
 
-			if (!bResult)
-			{
-				UE_LOG(LogShaders, Fatal,TEXT("Couldn't delete input file %s, is it readonly?"), *InputFilePath);
+				if (!bResult)
+				{
+					UE_LOG(LogShaders, Fatal,TEXT("Couldn't delete input file %s, is it readonly?"), *InputFilePath);
+				}
 			}
 
 #if PLATFORM_MAC || PLATFORM_LINUX
@@ -518,11 +540,11 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 
 	FString InCommunicating = argv[6];
 #if PLATFORM_SUPPORTS_NAMED_PIPES
-	const bool bThroughFile = (InCommunicating == FString(TEXT("-communicatethroughfile")));
+	const bool bThroughFile = GShaderCompileUseXGE || (InCommunicating == FString(TEXT("-communicatethroughfile")));
 	const bool bThroughNamedPipe = (InCommunicating == FString(TEXT("-communicatethroughnamedpipe")));
 	const bool bThroughNamedPipeOnce = (InCommunicating == FString(TEXT("-communicatethroughnamedpipeonce")));
 #else
-	const bool bThroughFile = true;
+	const bool bThroughFile = GShaderCompileUseXGE;
 	const bool bThroughNamedPipe = false;
 	const bool bThroughNamedPipeOnce = false;
 #endif
@@ -538,6 +560,10 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 
 int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile)
 {
+	// We need to know whether we are using XGE now, in case an exception
+	// is thrown before we parse the command line inside GuardedMain.
+	GShaderCompileUseXGE = FCString::Strcmp(ArgV[6], TEXT("-xge")) == 0;
+
 	int32 ReturnCode = 0;
 #if PLATFORM_WINDOWS
 	if (FPlatformMisc::IsDebuggerPresent())
@@ -579,6 +605,12 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile
 
 			// Close the output file.
 			delete &OutputFile;
+
+			if (GShaderCompileUseXGE)
+			{
+				ReturnCode = 1;
+				WriteXGESuccessFile(ArgV[1]);
+			}
 		}
 	}
 #endif
@@ -601,6 +633,32 @@ IMPLEMENT_APPLICATION(ShaderCompileWorker, "ShaderCompileWorker")
 
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
+	if (ArgC == 4 && FCString::Strcmp(ArgV[1], TEXT("-xgemonitor")) == 0)
+	{
+		// Open handles to the two processes
+		FProcHandle EngineProc = FPlatformProcess::OpenProcess(FCString::Atoi(ArgV[2]));
+		FProcHandle BuildProc = FPlatformProcess::OpenProcess(FCString::Atoi(ArgV[3]));
+
+		if (EngineProc.IsValid() && BuildProc.IsValid())
+		{
+			// Whilst the build is still in progress
+			while (FPlatformProcess::IsProcRunning(BuildProc))
+			{
+				// Check that the engine is still alive.
+				if (!FPlatformProcess::IsProcRunning(EngineProc))
+				{
+					// The engine has shutdown before the build was stopped.
+					// Kill off the build process
+					FPlatformProcess::TerminateProc(BuildProc);
+					break;
+				}
+
+				FPlatformProcess::Sleep(0.01f);
+			}
+		}
+		return 0;
+	}
+
 	if(ArgC < 6)
 	{
 		printf("ShaderCompileWorker is called by UE4, it requires specific command like arguments.\n");

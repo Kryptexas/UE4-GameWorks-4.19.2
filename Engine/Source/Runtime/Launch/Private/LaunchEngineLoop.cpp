@@ -2750,6 +2750,9 @@ void FEngineLoop::AppPreExit( )
 	if ( GShaderCompilingManager )
 	{
 		GShaderCompilingManager->Shutdown();
+
+		delete GShaderCompilingManager;
+		GShaderCompilingManager = nullptr;
 	}
 #endif
 }

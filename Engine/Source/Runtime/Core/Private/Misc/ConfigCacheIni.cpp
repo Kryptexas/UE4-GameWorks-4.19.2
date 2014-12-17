@@ -2774,7 +2774,10 @@ bool FConfigCacheIni::LoadGlobalIniFile(FString& FinalIniFilename, const TCHAR* 
 	NewConfigFile.Name = BaseIniName;
 
 	// don't write anything to disk in cooked builds - we will always use re-generated INI files anyway.
-	if (!FPlatformProperties::RequiresCookedData() || bAllowGeneratedIniWhenCooked)
+	if ((!FPlatformProperties::RequiresCookedData() || bAllowGeneratedIniWhenCooked)
+			// We shouldn't save config files when in multiprocess mode,
+			// otherwise we get file contention in XGE shader builds.
+			&& !FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")))
 	{
 		// Check the config system for any changes made to defaults and propagate through to the saved.
 		NewConfigFile.ProcessSourceAndCheckAgainstBackup();

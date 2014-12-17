@@ -122,7 +122,7 @@ public:
 	static FSemaphore* NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks = 1);
 	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 	static bool Daemonize();
-
+	static FProcHandle OpenProcess(uint32 ProcessID);
 protected:
 
 	/**

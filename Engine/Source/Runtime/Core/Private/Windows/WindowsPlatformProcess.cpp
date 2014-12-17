@@ -443,7 +443,7 @@ bool FWindowsPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32
 bool FWindowsPlatformProcess::GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage)
 {
 	bool bSuccess = false;
-	HANDLE ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, ProcessId);
+	HANDLE ProcessHandle = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, ProcessId);
 
 	if (ProcessHandle != NULL)
 	{
@@ -464,7 +464,7 @@ bool FWindowsPlatformProcess::GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T
 bool FWindowsPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 {
 	bool bApplicationRunning = true;
-	HANDLE ProcessHandle = OpenProcess(SYNCHRONIZE, false, ProcessId);
+	HANDLE ProcessHandle = ::OpenProcess(SYNCHRONIZE, false, ProcessId);
 	if (ProcessHandle == NULL)
 	{
 		bApplicationRunning = false;
@@ -517,7 +517,7 @@ bool FWindowsPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 FString FWindowsPlatformProcess::GetApplicationName( uint32 ProcessId )
 {
 	FString Output = TEXT("");
-	HANDLE ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION, false, ProcessId);
+	HANDLE ProcessHandle = ::OpenProcess(PROCESS_QUERY_INFORMATION, false, ProcessId);
 	if (ProcessHandle != NULL)
 	{
 		const int32 ProcessNameBufferSize = 4096;
@@ -1213,6 +1213,11 @@ bool FWindowsPlatformProcess::Daemonize()
 {
 	// TODO: implement
 	return true;
+}
+
+FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
+{
+	return FProcHandle(::OpenProcess(PROCESS_ALL_ACCESS, 0, ProcessID));
 }
 
 #include "HideWindowsPlatformTypes.h"
