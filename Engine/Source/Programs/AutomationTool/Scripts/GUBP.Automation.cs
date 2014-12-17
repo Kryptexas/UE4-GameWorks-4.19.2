@@ -114,13 +114,17 @@ public class GUBP : BuildCommand
     public bool bFake = false;
     public static bool bNoIOSOnPC = false;
     public static bool bBuildRocket = false;
+	public static bool bPostedRocketBuild = false;
+	public static bool bBuildOnlySamples = false;
+	public static List<string> Samples = new List<string>();
+	public static string RocketBuild;	
     public static bool bForceIncrementalCompile = false;
     public static string ECProject = null;
     public string EmailHint;
     static public bool bPreflightBuild = false;
     public int PreflightShelveCL = 0;
     static public string PreflightMangleSuffix = "";
-    public GUBPBranchHacker.BranchOptions BranchOptions = null;
+    public GUBPBranchHacker.BranchOptions BranchOptions = null;	
 
     Dictionary<string, GUBPNode> GUBPNodes;
     Dictionary<string, bool> GUBPNodesCompleted;
@@ -144,11 +148,16 @@ public class GUBP : BuildCommand
 
     public string RocketUBTArgs(bool bUseRocketInsteadOfBuildRocket = false)
     {
+		string Args = "";
         if (bBuildRocket)
         {
-            return " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
+            Args = " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
+			if(bPostedRocketBuild && bUseRocketInsteadOfBuildRocket)
+			{
+				Args += " -PostedRocket";
+			}
         }
-        return "";
+        return Args;
     }
 
     public abstract class GUBPNodeAdder
@@ -264,7 +273,7 @@ public class GUBP : BuildCommand
         if(EmailHint == null)
         {
             EmailHint = "";
-        }
+        }			
         if (EmailHackers == null)
         {
             EmailHackers = new List<GUBPEmailHacker>();
@@ -361,7 +370,7 @@ public class GUBP : BuildCommand
         public List<string> BuildProducts = null;
 		public List<string> DependentPromotions = new List<string>();
         public List<string> AllDependencyBuildProducts = null;
-        public List<string> AllDependencies = null;
+        public List<string> AllDependencies = null;		
         public string AgentSharingGroup = "";
         public int ComputedDependentCISFrequencyQuantumShift = -1;
 
@@ -417,6 +426,14 @@ public class GUBP : BuildCommand
 		public virtual bool IsSeparatePromotable()
 		{
 			return false;
+		}
+		public virtual bool IsRocketSample()
+		{
+			return false;
+		}
+		public virtual string NodeHostPlatform()
+		{
+			return "";
 		}
         public virtual int AgentMemoryRequirement(GUBP bp)
         {
@@ -1265,11 +1282,11 @@ public class GUBP : BuildCommand
         public EditorGameNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
             : base(InHostPlatform)
         {
-            AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(InHostPlatform);
+            AgentSharingGroup = "Editor" + (bBuildRocket ? "" : "Rocket") + StaticGetHostPlatformSuffix(InHostPlatform);
             GameProj = InGameProj;
-            AddDependency(RootEditorNode.StaticGetFullName(InHostPlatform));
-        }
-
+			AddDependency(RootEditorNode.StaticGetFullName(InHostPlatform));						
+		}
+		
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
         {
             return InGameProj.GameName + "_EditorGame" + StaticGetHostPlatformSuffix(InHostPlatform);
@@ -1281,7 +1298,7 @@ public class GUBP : BuildCommand
         public override string GameNameIfAnyForTempStorage()
         {
             return GameProj.GameName;
-        }
+        }		
         public override float Priority()
         {
             float Result = base.Priority();
@@ -2061,7 +2078,7 @@ public class GUBP : BuildCommand
         {
             return !bLabelPromoted;
         }
-    }    
+    }   	
 
     public class LabelPromotableNode : GUBPNode
     {
@@ -4708,8 +4725,7 @@ public class GUBP : BuildCommand
         if (ECProject == null)
         {
             ECProject = "";
-        }
-
+        }		
         HostPlatforms = new List<UnrealTargetPlatform>();
         if (!ParseParam("NoPC"))
         {
@@ -4742,15 +4758,36 @@ public class GUBP : BuildCommand
 			HostPlatforms.Add(UnrealTargetPlatform.Linux);
 		}
 
-		bBuildRocket = ParseParam("BuildRocket");
+		bBuildRocket = ParseParam("BuildRocket");		
+		string Sample = ParseParamValue("Sample");		
+		if (Sample != null)
+		{
+			Samples = new List<string>(Sample.Split('+'));
+			bBuildOnlySamples = true;
+		}
+		else
+		{
+			bBuildOnlySamples = ParseParam("OnlySamples");
+		}
         bForceIncrementalCompile = ParseParam("ForceIncrementalCompile");
         bool bNoAutomatedTesting = ParseParam("NoAutomatedTesting") || BranchOptions.bNoAutomatedTesting;		
         StoreName = ParseParamValue("Store");
         string StoreSuffix = ParseParamValue("StoreSuffix", "");
+
         if (bBuildRocket)
         {
             StoreSuffix = StoreSuffix + "-Rkt";
+			if (ParseParam("UsePostedRocket"))
+			{
+				bPostedRocketBuild = true;
+				RocketBuild = ParseParamValue("RocketBuild");
+				if (RocketBuild == null)
+				{
+					RocketBuild = FEngineVersionSupport.FromVersionFile(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Runtime\Launch\Resources\Version.h")).ToString();
+				}
+			}
         }
+		
         if (bPreflightBuild)
         {
             int PreflightUID = ParseParamInt("PreflightUID", 0);
@@ -5864,7 +5901,12 @@ public class GUBP : BuildCommand
             {
                 // rocket is the shared promotable plus some other stuff and nothing else
                 bRelatedToNode = true;
-                NodeSpec = "Rocket_Aggregate";
+                NodeSpec = "";
+				if(!bBuildOnlySamples)
+				{
+					NodeSpec = "Rocket_Aggregate+";
+				}
+				NodeSpec = NodeSpec + "Sample_Aggregate";
                 if (!ParseParam("RocketValidate"))
                 {
                     //build a full promotable NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + NodeSpec;
@@ -6097,6 +6139,20 @@ public class GUBP : BuildCommand
 					All += Dep;
 				}
 				FullNodeDependentPromotions.Add(NodeToDo, All);				
+			}
+		}
+		if(bBuildRocket)
+		{
+			foreach(var NodeToDo in NodesToDo)
+			{
+				if(GUBPNodes[NodeToDo].GetFullName().Contains("EditorGame"))
+				{
+					GUBPNodes[NodeToDo].AgentSharingGroup = "SampleEditors";
+					if(GUBPNodes[NodeToDo].GetFullName().Contains("OnMac"))
+					{
+						GUBPNodes[NodeToDo].AgentSharingGroup = "SampleEditors_OnMac";
+					}					
+				}
 			}
 		}
 		if (TimeIndex != 0)
@@ -6417,7 +6473,7 @@ public class GUBP : BuildCommand
             if (LastSticky == "" && bHaveECNodes)
             {
                 // if we don't have any sticky nodes and we have other nodes, we run a fake noop just to release the resource 
-                string Args = String.Format("{0}, subprocedure => 'GUBP_UAT_Node', parallel => '0', jobStepName => 'Noop', actualParameter => [{{actualParameterName => 'NodeName', value => 'Noop'}}, {{actualParametername => 'Sticky', value =>'1' }}], releaseMode => 'release'", BaseArgs);
+                string Args = String.Format("{0}, subprocedure => 'GUBP_UAT_Node', parallel => '0', jobStepName => 'Noop', actualParameter => [{{actualParameterName => 'NodeName', value => 'Noop'}}, {{actualParameterName => 'Sticky', value =>'1' }}], releaseMode => 'release'}});", BaseArgs);
                 StepList.Add(Args);
                 bHasNoop = true;
             }
@@ -6732,7 +6788,7 @@ public class GUBP : BuildCommand
         }
 
         var BuildProductToNodeMap = new Dictionary<string, string>();
-        foreach (var NodeToDo in OrdereredToDo)
+		foreach (var NodeToDo in OrdereredToDo)
         {
             if (GUBPNodes[NodeToDo].BuildProducts != null || GUBPNodes[NodeToDo].AllDependencyBuildProducts != null)
             {
@@ -6787,6 +6843,7 @@ public class GUBP : BuildCommand
             
             string GameNameIfAny = GUBPNodes[NodeToDo].GameNameIfAnyForTempStorage();
             string StorageRootIfAny = GUBPNodes[NodeToDo].RootIfAnyForTempStorage();
+					
             if (bFake)
             {
                 StorageRootIfAny = ""; // we don't rebase fake runs since those are entirely "records of success", which are always in the logs folder
@@ -6835,8 +6892,14 @@ public class GUBP : BuildCommand
                         GUBPNodes[NodeToDo].DoFakeBuild(this);
                     }
                     else
-                    {
-                        Log("***** Building GUBP Node {0} for {1}", NodeToDo, NodeStoreName);
+                    {                        
+						if(GUBPNodes[NodeToDo].IsRocketSample() && bPostedRocketBuild)
+						{
+
+							Log("***** Retrieving Build {0} for {1}", RocketBuild, GUBPNodes[NodeToDo].NodeHostPlatform());
+							RetrieveFromPermanentStorage(CmdEnv, "Rocket\\Automated", RocketBuild, GUBPNodes[NodeToDo].NodeHostPlatform());
+						}
+						Log("***** Building GUBP Node {0} for {1}", NodeToDo, NodeStoreName);
                         GUBPNodes[NodeToDo].DoBuild(this);
                     }
                     if (!GUBPNodes[NodeToDo].IsAggregate())
@@ -6850,11 +6913,12 @@ public class GUBP : BuildCommand
                                 try
                                 {
                                     bool WasLocal;
-                                    RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
-                                    if (!WasLocal)
-                                    {
-                                        throw new AutomationException("Retrieve was not local?");
-                                    }
+									RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
+									if (!WasLocal)
+									{
+										throw new AutomationException("Retrieve was not local?");
+									}
+																	                                    
                                 }
                                 catch(Exception Ex)
                                 {

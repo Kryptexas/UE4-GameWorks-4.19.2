@@ -58,7 +58,7 @@ namespace AutomationTool
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/RPCUtility.pdb");
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/AutomationTool.exe");
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/UnrealBuildTool.exe");
-                    bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/UnrealBuildTool.exe.config");
+                    bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/UnrealBuildTool.exe.config");					
 
                     // Lets just allow all mac warnings to be slient
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || Name.Contains("Engine/Binaries/Mac");
@@ -812,7 +812,31 @@ namespace AutomationTool
             }
 
         }
-
+		public static void RetrieveFromPermanentStorage(CommandEnvironment Env, string NetworkRoot, string Build, string Platform)
+		{
+			var LocalManifest = LocalTempStorageManifestFilename(Env, Build);
+			if (!FileExists_NoExceptions(LocalManifest))
+			{
+				string BaseFolder = CombinePaths(Env.LocalRoot, "Rocket", "TempInst", Platform);
+				string Root = RootSharedTempStorageDirectory();
+				string SrcFolder = CombinePaths(Root, NetworkRoot, Build, Platform);
+				var SourceFiles = FindFiles_NoExceptions("*", true, SrcFolder);
+				foreach (var File in SourceFiles)
+				{
+					var DestFile = File.Replace(SrcFolder, "");
+					DestFile = CombinePaths(BaseFolder, DestFile);
+					CopyFile_NoExceptions(File, DestFile);
+				}
+				if(!DirectoryExists(Path.GetDirectoryName(LocalManifest)))
+				{
+					CreateDirectory(Path.GetDirectoryName(LocalManifest));
+				}
+				XmlDocument Local = new XmlDocument();
+				XmlElement RootElement = Local.CreateElement("permstorage");
+				Local.AppendChild(RootElement);
+				Local.Save(LocalManifest);
+			}
+		}
         public static List<string> RetrieveFromTempStorage(CommandEnvironment Env, string StorageBlockName, out bool WasLocal, string GameFolder = "", string BaseFolder = "")
         {
             if (String.IsNullOrEmpty(BaseFolder))
