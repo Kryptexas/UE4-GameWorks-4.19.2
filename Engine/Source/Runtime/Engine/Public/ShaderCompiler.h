@@ -166,11 +166,11 @@ private:
 		FString InputFileNameAndPath;
 		
 		FShaderBatch(const FString& InDirectoryBase, const FString& InInputFileName, const FString& InSuccessFileName, const FString& InOutputFileName, int32 InDirectoryIndex, int32 InBatchIndex)
-			: DirectoryBase(InDirectoryBase)
+			: bTransferFileWritten(false)
+			, DirectoryBase(InDirectoryBase)
 			, InputFileName(InInputFileName)
 			, SuccessFileName(InSuccessFileName)
 			, OutputFileName(InOutputFileName)
-			, bTransferFileWritten(false)
 		{
 			SetIndices(InDirectoryIndex, InBatchIndex);
 		}

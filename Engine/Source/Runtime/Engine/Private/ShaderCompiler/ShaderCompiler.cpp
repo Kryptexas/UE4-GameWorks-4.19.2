@@ -2511,7 +2511,7 @@ bool FShaderCompileXGEThreadRunnable::IsSupported()
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
 		bool bFound = false;
-		for (int PathIndex = 0; PathIndex < ARRAYSIZE(Paths); PathIndex++)
+		for (int PathIndex = 0; PathIndex < ARRAY_COUNT(Paths); PathIndex++)
 		{
 			if (PlatformFile.FileExists(Paths[PathIndex]))
 			{
@@ -2535,12 +2535,12 @@ bool FShaderCompileXGEThreadRunnable::IsSupported()
 FShaderCompileXGEThreadRunnable::FShaderCompileXGEThreadRunnable(class FShaderCompilingManager* InManager)
 	: FShaderCompileThreadRunnableBase(InManager)
 	, BuildProcessID(INDEX_NONE)
+	, XGEWorkingDirectory(InManager->AbsoluteShaderBaseWorkingDirectory / TEXT("XGE"))
+	, XGEDirectoryIndex(0)
 	, LastAddTime(0)
 	, StartTime(0)
-	, BatchIndexToFill(0)
 	, BatchIndexToCreate(0)
-	, XGEDirectoryIndex(0)
-	, XGEWorkingDirectory(InManager->AbsoluteShaderBaseWorkingDirectory / TEXT("XGE"))
+	, BatchIndexToFill(0)
 {
 }
 
@@ -2749,7 +2749,7 @@ static void WriteScriptFileFooter(FArchive* ScriptFile)
 			"\t</Project>\r\n"
 		"</BuildSet>\r\n";
 
-	ScriptFile->Serialize((void*)HeaderFooter, sizeof(ANSICHAR) * (ARRAYSIZE(HeaderFooter) - 1));
+	ScriptFile->Serialize((void*)HeaderFooter, sizeof(ANSICHAR) * (ARRAY_COUNT(HeaderFooter) - 1));
 }
 
 void FShaderCompileXGEThreadRunnable::GatherResultsFromXGE()
