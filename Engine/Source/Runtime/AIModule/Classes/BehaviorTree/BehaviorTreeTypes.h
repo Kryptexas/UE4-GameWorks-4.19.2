@@ -51,6 +51,7 @@ namespace BTSpecialChild
 {
 	const int32 NotInitialized = -1;	// special value for child indices: needs to be initialized
 	const int32 ReturnToParent = -2;	// special value for child indices: return to parent node
+	const int32 PostponeSearch = -3;	// special value for child indices: search again in next tick
 }
 
 UENUM(BlueprintType)

@@ -27,8 +27,15 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 		// unless search is from abort from background tree - return to parent (and break from search when node gets deactivated)
 		NextChildIdx = EBTParallelChild::BackgroundTree;
 		MyMemory->bForceBackgroundTree = false;
+
+		if ((PrevChild == EBTParallelChild::BackgroundTree) && (MyMemory->LastSearchId == SearchData.SearchId))
+		{
+			// going to background tree again within the same search - possible infinite loop
+			NextChildIdx = BTSpecialChild::PostponeSearch;
+		}
 	}
 
+	MyMemory->LastSearchId = SearchData.SearchId;
 	return NextChildIdx;
 }
 
@@ -37,6 +44,8 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent& O
 	FBTParallelMemory* MyMemory = (FBTParallelMemory*)NodeMemory;
 	if (ChildIdx == EBTParallelChild::MainTask)
 	{
+		MyMemory->MainTaskResult = NodeResult;
+
 		if (NodeResult == EBTNodeResult::InProgress)
 		{
 			EBTTaskStatus::Type Status = OwnerComp.GetTaskStatus(Children[EBTParallelChild::MainTask].ChildTask);
@@ -53,7 +62,6 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent& O
 		}
 		else if (MyMemory->bMainTaskIsActive)
 		{
-			MyMemory->MainTaskResult = NodeResult;
 			MyMemory->bMainTaskIsActive = false;
 
 			const int32 MyInstanceIdx = OwnerComp.FindInstanceContainingNode(this);

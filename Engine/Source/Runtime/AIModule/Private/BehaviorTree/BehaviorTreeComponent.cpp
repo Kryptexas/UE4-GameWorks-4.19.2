@@ -885,6 +885,7 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 
 	const uint16 PrevActiveInstanceIdx = ActiveInstanceIdx;
 	bool bIsSearchValid = true;
+	bool bResetRequest = true;
 
 	EBTNodeResult::Type NodeResult = ExecutionRequest.ContinueWithResult;
 	UBTTaskNode* NextTask = NULL;
@@ -984,7 +985,16 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 					TestNode->OnChildDeactivation(SearchData, *ChildNode, NodeResult);
 				}
 			}
-			else
+			else if (ChildBranchIdx == BTSpecialChild::PostponeSearch)
+			{
+				// break out of current search loop
+				TestNode = NULL;
+				bIsSearchValid = false;
+
+				// keep current request for next tick
+				bResetRequest = false;
+			}
+			else if (TestNode->Children.IsValidIndex(ChildBranchIdx))
 			{
 				// was new task found?
 				NextTask = TestNode->Children[ChildBranchIdx].ChildTask;
@@ -1022,7 +1032,15 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		// finish timer scope
 	}
 
-	ExecutionRequest = FBTNodeExecutionInfo();
+	if (bResetRequest)
+	{
+		ExecutionRequest = FBTNodeExecutionInfo();
+	}
+	else
+	{
+		ScheduleExecutionUpdate();
+	}
+
 	if (bIsSearchValid)
 	{
 		// abort task if needed

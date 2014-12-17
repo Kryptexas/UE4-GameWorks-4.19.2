@@ -30,6 +30,9 @@ namespace EBTParallelMode
 
 struct FBTParallelMemory : public FBTCompositeMemory
 {
+	/** last Id of search, detect infinite loops when there isn't any valid task in background tree */
+	int32 LastSearchId;
+
 	/** finish result of main task */
 	TEnumAsByte<EBTNodeResult::Type> MainTaskResult;
 
