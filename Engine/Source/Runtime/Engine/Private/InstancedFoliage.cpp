@@ -182,7 +182,8 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	bCastDynamicShadow = true;
 	bCastStaticShadow = true;
 	bAffectDynamicIndirectLighting = false;
-	bAffectDistanceFieldLighting = true;
+	// Most of the high instance count foliage like grass causes performance problems with distance field lighting
+	bAffectDistanceFieldLighting = false;
 	bCastShadowAsTwoSided = false;
 	bReceivesDecals = false;
 
