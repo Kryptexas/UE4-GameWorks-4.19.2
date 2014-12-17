@@ -49,10 +49,19 @@ public:
 		FMargin AdjustedDefaultHeaderContentPadding = DefaultHeaderContentPadding;
 
 		TAttribute< FText > LabelText = Column.DefaultText;
+		TAttribute< FText > TooltipText = Column.DefaultTooltip;
 
-		if (Column.HeaderContent.Widget == SNullWidget::NullWidget && !Column.DefaultText.IsBound() && Column.DefaultText.Get().IsEmpty())
+		if (Column.HeaderContent.Widget == SNullWidget::NullWidget)
 		{
-			LabelText = FText::FromString( Column.ColumnId.ToString() + TEXT("[LabelMissing]") );
+			if (!Column.DefaultText.IsBound() && Column.DefaultText.Get().IsEmpty())
+			{
+				LabelText = FText::FromString( Column.ColumnId.ToString() + TEXT("[LabelMissing]") );
+			}
+
+			if (!Column.DefaultTooltip.IsBound() && Column.DefaultTooltip.Get().IsEmpty())
+			{
+				TooltipText = LabelText;
+			}
 		}
 
 		TSharedPtr< SHorizontalBox > Box;
@@ -73,7 +82,7 @@ public:
 				[
 					SNew(STextBlock)
 					.Text( LabelText )
-					.ToolTipText( LabelText )
+					.ToolTipText( TooltipText )
 				];
 		}
 

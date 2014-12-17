@@ -722,9 +722,6 @@ private:
 	/** When in columns view, this is the name of the asset type which is most commonly found in the recent results */
 	FName MajorityAssetType;
 
-	/** The map of Tag names to display names in column headers. If a tag is not found in this map, it will use the string version of the name, which is fine most of the time */
-	TMap<FName, FString> TagColumnRenames;
-
 	/** The manager responsible for sorting assets in the view */
 	FAssetViewSortManager SortManager;
 

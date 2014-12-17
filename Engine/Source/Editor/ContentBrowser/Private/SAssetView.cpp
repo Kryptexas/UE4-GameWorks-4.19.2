@@ -190,8 +190,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bPendingFocusOnSync = false;
 	bWereItemsRecursivelyFiltered = false;
 
-	TagColumnRenames.Add("ResourceSize", TEXT("Size (kb)"));
-
 	FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::LoadModuleChecked<FEditorWidgetsModule>("EditorWidgets");
 	TSharedRef<SWidget> AssetDiscoveryIndicator = EditorWidgetsModule.CreateAssetDiscoveryIndicator(EAssetDiscoveryIndicatorScaleMode::Scale_Vertical);
 
@@ -1700,15 +1698,31 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 
 							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, Tag) )
 							{
-								const FString* DisplayNamePtr = TagColumnRenames.Find(Tag);
+								// Get tag metadata
+								TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;
+								CDO->GetAssetRegistryTagMetadata(MetadataMap);
+								const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(Tag);
+
 								FText DisplayName;
-								if ( DisplayNamePtr )
+								if (Metadata != nullptr && !Metadata->DisplayName.IsEmpty())
 								{
-									DisplayName = FText::FromString(*DisplayNamePtr);
+									DisplayName = Metadata->DisplayName;
 								}
 								else
 								{
 									DisplayName = FText::FromName(Tag);
+								}
+
+								FText TooltipText;
+								if (Metadata != nullptr && !Metadata->TooltipText.IsEmpty())
+								{
+									TooltipText = Metadata->TooltipText;
+								}
+								else
+								{
+									// If the tag name corresponds to a property name, use the property tooltip
+									UProperty* Property = FindField<UProperty>(TypeClass, Tag);
+									TooltipText = (Property != nullptr) ? Property->GetToolTipText() : FText::FromString(FName::NameToDisplayString(Tag.ToString(), false));
 								}
 
 								ColumnView->GetHeaderRow()->AddColumn(
@@ -1717,6 +1731,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, Tag)))
 										.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 										.DefaultLabel( DisplayName )
+										.DefaultTooltip( TooltipText )
 										.HAlignCell( (TagIt->Type == UObject::FAssetRegistryTag::TT_Numerical) ? HAlign_Right : HAlign_Left )
 										.FillWidth(180)
 									);

@@ -143,14 +143,6 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 
 	AssetItem->OnAssetDataChanged.AddSP(this, &SAssetViewItem::OnAssetDataChanged);
 
-	TMap<FName, FString> ImportantStaticMeshTags;
-	ImportantStaticMeshTags.Add("CollisionPrims", TEXT("0"));
-	ImportantTagMap.Add("StaticMesh", ImportantStaticMeshTags);
-
-	TMap<FName, FString> ImportantSkelMeshTags;
-	ImportantSkelMeshTags.Add("PhysicsAsset", TEXT("None"));
-	ImportantTagMap.Add("SkeletalMesh", ImportantSkelMeshTags);
-
 	AssetDirtyBrush = FEditorStyle::GetBrush("ContentBrowser.ContentDirty");
 	SCCStateBrush = nullptr;
 
@@ -467,9 +459,12 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPath", "Path"), FText::FromName(AssetData.PackagePath), false );
 
 			// If we are using a loaded class, find all the hidden tags so we don't display them
+			TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;
 			TSet<FName> ShownTags;
 			if ( AssetClass != NULL && AssetClass->GetDefaultObject() != NULL )
 			{
+				AssetClass->GetDefaultObject()->GetAssetRegistryTagMetadata(MetadataMap);
+
 				TArray<UObject::FAssetRegistryTag> Tags;
 				AssetClass->GetDefaultObject()->GetAssetRegistryTags(Tags);
 
@@ -482,9 +477,6 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 				}
 			}
 
-			// Get the list of important tags for this class
-			TMap<FName, FString> ImportantTags = ImportantTagMap.FindRef(AssetData.AssetClass);
-
 			// If an asset class could not be loaded we cannot determine hidden tags so display no tags.  
 			if( AssetClass != NULL )
 			{
@@ -494,8 +486,9 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 					// Skip tags that are set to be hidden
 					if ( ShownTags.Contains(TagIt.Key()) )
 					{
-						const FString* ImportantValue = ImportantTags.Find(TagIt.Key());
-						const bool bImportant = (ImportantValue && (*ImportantValue) == TagIt.Value());
+						const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(TagIt.Key());
+
+						const bool bImportant = (Metadata != nullptr && !Metadata->ImportantValue.IsEmpty() && Metadata->ImportantValue == TagIt.Value());
 
 						// Since all we have at this point is a string, we can't be very smart here.
 						// We need to strip some noise off class paths in some cases, but can't load the asset to inspect its UPROPERTYs manually due to performance concerns.
@@ -536,6 +529,13 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 							DisplayName = FText::FromString(FName::NameToDisplayString(TagIt.Key().ToString(), bIsBool));
 						}
 					
+						// Add suffix to the value string, if one is defined for this tag
+						if (Metadata != nullptr && !Metadata->Suffix.IsEmpty())
+						{
+							ValueString += TEXT(" ");
+							ValueString += Metadata->Suffix.ToString();
+						}
+
 						AddToToolTipInfoBox(InfoBox, DisplayName, FText::FromString(ValueString), bImportant);
 					}
 				}

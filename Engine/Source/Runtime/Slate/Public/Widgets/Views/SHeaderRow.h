@@ -82,6 +82,7 @@ public:
 		HACK_SLATE_SLOT_ARGS(FColumn)
 			: _ColumnId()
 			, _DefaultLabel()
+			, _DefaultTooltip()
 			, _FillWidth( 1.0f )
 			, _FixedWidth()
 			, _OnWidthChanged()
@@ -98,6 +99,7 @@ public:
 			{}
 			SLATE_ARGUMENT( FName, ColumnId )
 			SLATE_TEXT_ATTRIBUTE( DefaultLabel )
+			SLATE_TEXT_ATTRIBUTE( DefaultTooltip )
 			SLATE_ATTRIBUTE( float, FillWidth )
 			SLATE_ARGUMENT( TOptional< float >, FixedWidth )
 			SLATE_EVENT( FOnWidthChanged, OnWidthChanged )
@@ -120,6 +122,7 @@ public:
 		FColumn( const FArguments& InArgs )
 			: ColumnId( InArgs._ColumnId )
 			, DefaultText( InArgs._DefaultLabel )
+			, DefaultTooltip( InArgs._DefaultTooltip )
 			, Width( 1.0f )
 			, DefaultWidth( 1.0f )
 			, OnWidthChanged( InArgs._OnWidthChanged)
@@ -174,6 +177,9 @@ public:
 
 		/** Default text to use if no widget is passed in. */
 		TAttribute< FText > DefaultText;
+
+		/** Default tooltip to use if no widget is passed in */
+		TAttribute< FText > DefaultTooltip;
 
 		/** A column width in Slate Units */
 		TAttribute< float > Width;

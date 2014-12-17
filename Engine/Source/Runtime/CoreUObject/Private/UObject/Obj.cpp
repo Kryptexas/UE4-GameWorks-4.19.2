@@ -1181,6 +1181,18 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(this, OutTags);
 }
 
+#if WITH_EDITOR
+void UObject::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const
+{
+	OutMetadata.Add("ResourceSize",
+		FAssetRegistryTagMetadata()
+			.SetDisplayName(NSLOCTEXT("UObject", "Size", "Size"))
+			.SetSuffix(NSLOCTEXT("UObject", "KilobytesSuffix", "Kb"))
+			.SetTooltip(NSLOCTEXT("UObject", "SizeTooltip", "The size of the asset in kilobytes"))
+		);
+}
+#endif
+
 bool UObject::IsAsset () const
 {
 	// Assets are not transient or CDOs. They must be public.

@@ -519,6 +519,50 @@ public:
 	};
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 
+#if WITH_EDITOR
+	/**
+	 * Additional data pertaining to asset registry tags used by the editor
+	 */
+	struct FAssetRegistryTagMetadata
+	{
+		FText DisplayName;
+		FText TooltipText;
+		FText Suffix;
+		FString ImportantValue;
+
+		/** Set override display name */
+		FAssetRegistryTagMetadata& SetDisplayName(const FText& InDisplayName)
+		{
+			DisplayName = InDisplayName;
+			return *this;
+		}
+
+		/** Set tooltip text pertaining to the asset registry tag in the column view header */
+		FAssetRegistryTagMetadata& SetTooltip(const FText& InTooltipText)
+		{
+			TooltipText = InTooltipText;
+			return *this;
+		}
+
+		/** Set suffix appended to the tag value */
+		FAssetRegistryTagMetadata& SetSuffix(const FText& InSuffix)
+		{
+			Suffix = InSuffix;
+			return *this;
+		}
+
+		/** Set value deemed to be 'important' for this registry tag */
+		FAssetRegistryTagMetadata& SetImportantValue(const FString& InImportantValue)
+		{
+			ImportantValue = InImportantValue;
+			return *this;
+		}
+	};
+
+	/** Gathers a collection of asset registry tag metadata */
+	virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const;
+#endif
+
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
 

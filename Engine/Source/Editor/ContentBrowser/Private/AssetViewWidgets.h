@@ -233,13 +233,6 @@ protected:
 	/** The substring to be highlighted in the name and tooltip path */
 	TAttribute<FText> HighlightText;
 
-	/**
-	 * A map of class names to their important asset registry tags and values.
-	 * Important tags will be featured in the tooltip if the value matches.
-	 * An empty string is interpreted as indicating that any value is always important.
-	 */
-	TMap< FName, TMap<FName, FString> > ImportantTagMap;
-
 	/** Cached brushes for the dirty state */
 	const FSlateBrush* AssetDirtyBrush;
 
