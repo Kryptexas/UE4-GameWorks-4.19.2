@@ -77,7 +77,7 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	// Shader complexity requires depth only pass to display masked material cost correctly
 	if (ViewFamily.EngineShowFlags.ShaderComplexity)
 	{
-		EarlyZPassMode = DDM_AllOccluders;
+		EarlyZPassMode = DDM_AllOpaque;
 	}
 
 	// developer override, good for profiling, can be useful as project setting
@@ -90,6 +90,7 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 			case 0: EarlyZPassMode = DDM_None; break;
 			case 1: EarlyZPassMode = DDM_NonMaskedOnly; break;
 			case 2: EarlyZPassMode = DDM_AllOccluders; break;
+			case 3: EarlyZPassMode = DDM_AllOpaque; break;
 		}
 	}
 }
@@ -1042,7 +1043,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 			const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
 			bool bShouldUseAsOccluder = true;
 
-			if (EarlyZPassMode != DDM_AllOccluders)
+			if (EarlyZPassMode < DDM_AllOccluders)
 			{
 				extern float GMinScreenRadiusForDepthPrepass;
 				//@todo - move these proxy properties into FMeshBatchAndRelevance so we don't have to dereference the proxy in order to reject a mesh
