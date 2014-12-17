@@ -1569,6 +1569,14 @@ namespace UnrealBuildTool
 				OutputItems.AddRange(Binary.Build(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
+			if( BuildConfiguration.bPrintPerformanceInfo )
+			{
+				foreach( var SharedPCH in GlobalCompileEnvironment.SharedPCHHeaderFiles )
+				{
+					Log.TraceInformation( "Shared PCH '" + SharedPCH.Module.Name + "': Used " + SharedPCH.NumModulesUsingThisPCH + " times" );
+				}
+			}
+
 			return ECompilationResult.Succeeded;
 		}
 

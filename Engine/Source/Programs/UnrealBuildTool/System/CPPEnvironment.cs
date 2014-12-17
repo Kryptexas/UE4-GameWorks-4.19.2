@@ -299,6 +299,9 @@ namespace UnrealBuildTool
 
 		/// All dependent modules
 		public Dictionary<string, UEBuildModule> Dependencies;
+
+		/// Performance diagnostics: The number of modules using this shared PCH header
+		public int NumModulesUsingThisPCH = 0;
 	}
 
 

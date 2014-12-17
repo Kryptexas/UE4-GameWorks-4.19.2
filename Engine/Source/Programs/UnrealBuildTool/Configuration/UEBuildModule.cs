@@ -1322,6 +1322,11 @@ namespace UnrealBuildTool
 						{
 							throw new BuildException( "Module {0} doesn't use a Shared PCH!  Please add a dependency on a Shared PCH module to this module's dependency list", this.Name);
 						}
+
+						// Keep track of how many modules make use of this PCH for performance diagnostics
+						var LargestSharedPCHHeader = GlobalCompileEnvironment.SharedPCHHeaderFiles[ LargestSharedPCHHeaderFileIndex ];
+						++LargestSharedPCHHeader.NumModulesUsingThisPCH;
+
 					}
 					else
 					{
