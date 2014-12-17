@@ -351,6 +351,11 @@ void FMacPlatformSplash::Hide()
 	}
 }
 
+bool FMacPlatformSplash::IsShown()
+{
+	return (GSplashWindow != NULL);
+}
+
 void FMacPlatformSplash::SetSplashText(const SplashTextType::Type InType, const TCHAR* InText)
 {
 	// We only want to bother drawing startup progress in the editor, since this information is

@@ -1287,6 +1287,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Initialize shader types before loading any shaders
 		InitializeShaderTypes();
 
+		SlowTask.EnterProgressFrame(30);
+	
 		// Load the global shaders.
 		if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == NULL && GIsRequestingExit)
 		{
@@ -1298,6 +1300,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// package names from ini files and register them with FPackageName system.
 		FPackageName::RegisterShortPackageNamesForUObjectModules();
 
+		SlowTask.EnterProgressFrame(5);
 
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
@@ -1309,7 +1312,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
 
-	SlowTask.EnterProgressFrame(10);
+	SlowTask.EnterProgressFrame(5);
 
 	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
@@ -1377,7 +1380,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
         // do any post appInit processing, before the render thread is started.
         FPlatformMisc::PlatformPostInit(true);
     }
-	SlowTask.EnterProgressFrame(10);
+	SlowTask.EnterProgressFrame(5);
 
 	if (GUseThreadedRendering)
 	{
@@ -1407,7 +1410,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
 
-	SlowTask.EnterProgressFrame(50);
+	SlowTask.EnterProgressFrame(5);
 
 	if (!bHasEditorToken)
 	{
@@ -1702,6 +1705,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	//run automation smoke tests now that everything is setup to run
 	FAutomationTestFramework::GetInstance().RunSmokeTests();
 
+	// Note we still have 20% remaining on the slow task: this will be used by the Editor/Engine initialization next
 	return 0;
 }
 
@@ -1751,19 +1755,24 @@ void FEngineLoop::LoadPreInitModules()
 
 bool FEngineLoop::LoadStartupCoreModules()
 {
+	FScopedSlowTask SlowTask(100);
+
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Startup Modules"), STAT_StartupModules, STATGROUP_LoadTime);
 
 	bool bSuccess = true;
 
 	// Load all Runtime modules
+	SlowTask.EnterProgressFrame(10);
 	{
 		FModuleManager::Get().LoadModule(TEXT("Core"));
 		FModuleManager::Get().LoadModule(TEXT("Networking"));
 	}
 
+	SlowTask.EnterProgressFrame(10);
 	FPlatformMisc::LoadStartupModules();
 
 	// initialize messaging
+	SlowTask.EnterProgressFrame(10);
 	if (FPlatformProcess::SupportsMultithreading())
 	{
 		FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
@@ -1777,11 +1786,13 @@ bool FEngineLoop::LoadStartupCoreModules()
 		EngineService = new FEngineService();
 	}
 
+	SlowTask.EnterProgressFrame(10);
 #if WITH_EDITOR
 		FModuleManager::LoadModuleChecked<IEditorStyleModule>("EditorStyle");
 #endif //WITH_EDITOR
 
 	// Load all Development modules
+	SlowTask.EnterProgressFrame(30);
 	if (!IsRunningDedicatedServer())
 	{
 		FModuleManager::Get().LoadModule("Slate");
@@ -1798,6 +1809,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule("FunctionalTesting");
 #endif	//WITH_UNREAL_DEVELOPER_TOOLS
 
+	SlowTask.EnterProgressFrame(30);
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 	// HACK: load BT editor as early as possible for statically initialized assets (non cooked BT assets needs it)
 	// cooking needs this module too
@@ -1839,18 +1851,23 @@ bool FEngineLoop::LoadStartupCoreModules()
 
 bool FEngineLoop::LoadStartupModules()
 {
+	FScopedSlowTask SlowTask(3);
+
+	SlowTask.EnterProgressFrame(1);
 	// Load any modules that want to be loaded before default modules are loaded up.
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault))
 	{
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame(1);
 	// Load modules that are configured to load in the default phase
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::Default) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::Default))
 	{
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame(1);
 	// Load any modules that want to be loaded after default modules are loaded up.
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostDefault))
 	{

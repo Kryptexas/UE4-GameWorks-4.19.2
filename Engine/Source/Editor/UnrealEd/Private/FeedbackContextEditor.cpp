@@ -475,16 +475,26 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 				break;
 			}
 		}
+	}
 
-		if (!DisplayMessage.IsEmpty() && TotalProgressInterp > 0)
+	if (FPlatformSplash::IsShown())
+	{
+		if (!DisplayMessage.IsEmpty())
 		{
-            FFormatOrderedArguments Args;
-            Args.Add(DisplayMessage);
-            Args.Add(int(TotalProgressInterp * 100.f));
+			// Animate a dot to show progress
+			FFormatOrderedArguments Args;
+			Args.Add(DisplayMessage);
+			Args.Add(int(TotalProgressInterp * 100.f));
 
-            DisplayMessage = FText::Format(NSLOCTEXT("FeedbackContextEditor", "ProgressDisplayText", "{0} ({1}%)"), Args);
+			double CurrentTime = FPlatformTime::Seconds() / 5.0;
+			int32 Progress = static_cast<int32>((CurrentTime - FMath::FloorToDouble(CurrentTime)) * 5.0);
+			static const TCHAR Spaces[] = TEXT("     ");
+			FString Dots = FString(Progress, Spaces) + TEXT(".") + FString(5 - Progress, Spaces);
+			Args.Add(FText::FromString(Dots));
+			DisplayMessage = FText::Format(NSLOCTEXT("FeedbackContextEditor", "ProgressDisplayText", "{0}{2} ({1}%)"), Args);
 		}
-		FPlatformSplash::SetSplashText( SplashTextType::StartupProgress, *DisplayMessage.ToString() );
+
+		FPlatformSplash::SetSplashText(SplashTextType::StartupProgress, *DisplayMessage.ToString());
 	}
 }
 
