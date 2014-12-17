@@ -580,7 +580,10 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 	if(NewActorComp != nullptr)
 	{
 		// Keep track of the new component during UCS execution
-		FUCSComponentManager::Get().AddComponent(this, NewActorComp);
+		if(bRunningUserConstructionScript)
+		{
+			FUCSComponentManager::Get().AddComponent(this, NewActorComp);
+		}
 
 		// The user has the option of doing attachment manually where they have complete control or via the automatic rule
 		// that the first component added becomes the root component, with subsequent components attached to the root.
