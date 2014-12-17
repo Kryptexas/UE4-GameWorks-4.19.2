@@ -214,10 +214,11 @@ public:
 	/** True if this mode uses a toolkit mode (eventually they all should) */
 	virtual bool UsesToolkits() const;
 
-	UWorld* GetWorld() const
-	{
-		return GEditor->GetEditorWorldContext().World();
-	}
+	/** Returns the world this toolkit is editing */
+	UWorld* GetWorld() const;
+
+	/** Returns the owning mode manager for this mode */
+	class FEditorModeTools* GetModeManager() const;
 
 	// Property Widgets
 

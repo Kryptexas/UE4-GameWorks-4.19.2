@@ -121,6 +121,11 @@ class USelection* FEditorModeTools::GetSelectedObjects() const
 	return GEditor->GetSelectedObjects();
 }
 
+UWorld* FEditorModeTools::GetWorld() const
+{
+	return GEditor->GetEditorWorldContext().World();
+}
+
 void FEditorModeTools::OnEditorSelectionChanged(UObject* NewSelection)
 {
 	// If selecting an actor, move the pivot location.

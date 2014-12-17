@@ -931,6 +931,16 @@ bool FEdMode::UsesToolkits() const
 	return false;
 }
 
+UWorld* FEdMode::GetWorld() const
+{
+	return Owner->GetWorld();
+}
+
+class FEditorModeTools* FEdMode::GetModeManager() const
+{
+	return Owner;
+}
+
 bool FEdMode::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	bool bResult = false;
