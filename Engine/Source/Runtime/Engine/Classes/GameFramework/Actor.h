@@ -564,7 +564,7 @@ public:
 	FVector GetInputVectorAxisValue(const FKey InputAxisKey) const;
 
 	/** Returns the instigator for this actor, or NULL if there is none. */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true"), Category="Game|Damage")
+	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true"), Category="Game")
 	APawn* GetInstigator() const;
 
 	/**
@@ -575,7 +575,7 @@ public:
 	T* GetInstigator() const { return Cast<T>(Instigator); };
 
 	/** Returns the instigator's controller for this actor, or NULL if there is none. */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true"), Category="Game|Damage")
+	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true"), Category="Game")
 	AController* GetInstigatorController() const;
 
 
@@ -979,18 +979,18 @@ public:
 	virtual void BeginPlay();
 
 	/** Event when this actor takes ANY damage */
-	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "AnyDamage"), Category="Damage")
+	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "AnyDamage"), Category="Game|Damage")
 	virtual void ReceiveAnyDamage(float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 	
 	/** 
 	 * Event when this actor takes RADIAL damage 
 	 * @todo Pass it the full array of hits instead of just one?
 	 */
-	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "RadialDamage"), Category="Damage")
+	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "RadialDamage"), Category="Game|Damage")
 	virtual void ReceiveRadialDamage(float DamageReceived, const class UDamageType* DamageType, FVector Origin, const struct FHitResult& HitInfo, class AController* InstigatedBy, AActor* DamageCauser);
 
 	/** Event when this actor takes POINT damage */
-	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "PointDamage"), Category="Damage")
+	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "PointDamage"), Category="Game|Damage")
 	virtual void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser);
 
 	/** Event called every frame */
