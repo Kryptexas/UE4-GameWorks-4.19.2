@@ -266,6 +266,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	OnTextChanged = InArgs._OnTextChanged;
 	OnTextCommitted = InArgs._OnTextCommitted;
 	OnCursorMoved = InArgs._OnCursorMoved;
+	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
+	OnVScrollBarUserScrolled = InArgs._OnVScrollBarUserScrolled;
 
 	Marshaller = InArgs._Marshaller;
 	if (!Marshaller.IsValid())
@@ -456,11 +458,13 @@ void SMultiLineEditableText::ForceRefreshTextLayout(const FText& CurrentText)
 void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
 {
 	ScrollOffset.X = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().X;
+	OnHScrollBarUserScrolled.ExecuteIfBound(InScrollOffsetFraction);
 }
 
 void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFraction)
 {
 	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().Y;
+	OnVScrollBarUserScrolled.ExecuteIfBound(InScrollOffsetFraction);
 }
 
 FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
@@ -2347,7 +2351,12 @@ FReply SMultiLineEditableText::OnMouseWheel( const FGeometry& MyGeometry, const 
 		const float ScrollMax = ContentSize - MyGeometry.Size.Y;
 		ScrollOffset.Y = FMath::Clamp(ScrollOffset.Y, ScrollMin, ScrollMax);
 
-		return (PreviousScrollOffset != ScrollOffset.Y) ? FReply::Handled() : FReply::Unhandled();
+		if (PreviousScrollOffset != ScrollOffset.Y)
+		{
+			const float ScrollbarOffset = (ScrollMax != 0.0f) ? ScrollOffset.Y / ScrollMax : 0.0f;
+			OnVScrollBarUserScrolled.ExecuteIfBound(ScrollbarOffset);
+			return FReply::Handled();
+		}
 	}
 
 	return FReply::Unhandled();

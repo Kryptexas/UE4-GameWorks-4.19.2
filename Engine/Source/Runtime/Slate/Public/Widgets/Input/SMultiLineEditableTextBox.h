@@ -109,6 +109,12 @@ public:
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 		SLATE_EVENT( FOnTextCommitted, OnTextCommitted )
 
+		/** Called whenever the horizontal scrollbar is moved by the user */
+		SLATE_EVENT( FOnUserScrolled, OnHScrollBarUserScrolled )
+
+		/** Called whenever the vertical scrollbar is moved by the user */
+		SLATE_EVENT( FOnUserScrolled, OnVScrollBarUserScrolled )
+
 		/** Called when the cursor is moved within the text area */
 		SLATE_EVENT( SMultiLineEditableText::FOnCursorMoved, OnCursorMoved )
 

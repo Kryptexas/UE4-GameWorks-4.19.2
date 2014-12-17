@@ -172,6 +172,11 @@ private:
 	void OnClearLog();
 
 	/**
+	 * Called when the user scrolls the log window vertically
+	 */
+	void OnUserScrolled(float ScrollOffset);
+
+	/**
 	 * Called to determine whether delete all is currently a valid command
 	 */
 	bool CanClearLog() const;
@@ -187,4 +192,7 @@ private:
 
 	/** The editable text showing all log messages */
 	TSharedPtr< SMultiLineEditableTextBox > MessagesTextBox;
+
+	/** True if the user has scrolled the window upwards */
+	bool bIsUserScrolled;
 };
