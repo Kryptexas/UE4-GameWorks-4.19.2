@@ -2121,8 +2121,17 @@ public:
 		return (T*)FindComponentByClass(T::StaticClass());
 	}
 
-	template<class T>
-	void GetComponents(TArray<T*>& OutComponents) const
+	/**
+	 * Get all components derived from class 'T' and fill in the OutComponents array with the result.
+	 * It's recommended to use TArrays with a TInlineAllocator to potentially avoid memory allocation costs.
+	 * TInlineComponentArray is defined to make this easier, for example:
+	 * {
+	 * 	   TInlineComponentArray<UPrimitiveComponent*> PrimComponents;
+	 *     Actor->GetComponents(PrimComponents);
+	 * }
+	 */
+	template<class T, class AllocatorType = FDefaultAllocator>
+	void GetComponents(TArray<T*, AllocatorType>& OutComponents) const
 	{
 		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from ActorComponent");
 
@@ -2140,8 +2149,9 @@ public:
 		}
 	}
 
-	// UActorComponent specialization to avoid unnecessary casts
-	void GetComponents(TArray<UActorComponent*>& OutComponents) const
+	/** UActorComponent specialization of GetComponents() to avoid unnecessary casts. */
+	template<class AllocatorType = FDefaultAllocator>
+	void GetComponents(TArray<UActorComponent*, AllocatorType>& OutComponents) const
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
 
