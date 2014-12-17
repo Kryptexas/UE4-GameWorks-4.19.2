@@ -62,6 +62,9 @@ public:
 	// Deletes the instances attached to a component
 	ENGINE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
 
+	// Deletes the instances spawned by a component
+	ENGINE_API void DeleteInstancesForSpawner(UActorComponent* InComponent);
+
 	// Finds a mesh entry
 	ENGINE_API FFoliageMeshInfo* FindMesh(UFoliageType* InType);
 
