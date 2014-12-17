@@ -163,8 +163,8 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 	MenuBuilder.BeginSection("Actions");
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT( "EditBlueprint_Label", "Edit Blueprint..." ),
-			LOCTEXT( "EditBlueprint_Tooltip", "Open the selected widget blueprint(s) for edit." ),
+			LOCTEXT( "EditBlueprint_Label", "Edit Widget Blueprint..." ),
+			LOCTEXT( "EditBlueprint_Tooltip", "Open the selected Widget Blueprint(s) for edit." ),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateStatic( &FWidgetBlueprintEditorUtils::ExecuteOpenSelectedWidgetsForEdit, Widgets ),
