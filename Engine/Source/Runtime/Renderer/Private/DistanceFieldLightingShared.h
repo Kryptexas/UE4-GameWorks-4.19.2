@@ -13,6 +13,7 @@ const int32 GDistanceFieldAOTileSizeX = 16;
 const int32 GDistanceFieldAOTileSizeY = 16;
 /** Base downsample factor that all distance field AO operations are done at. */
 const int32 GAODownsampleFactor = 2;
+/** Must match usf */
 static const int32 GMaxNumObjectsPerTile = 512;
 extern uint32 UpdateObjectsGroupSize;
 
@@ -61,6 +62,9 @@ public:
 		ObjectBounds.Bind(ParameterMap, TEXT("ObjectBounds"));
 		ObjectData.Bind(ParameterMap, TEXT("ObjectData"));
 		NumSceneObjects.Bind(ParameterMap, TEXT("NumSceneObjects"));
+		DistanceFieldTexture.Bind(ParameterMap, TEXT("DistanceFieldTexture"));
+		DistanceFieldSampler.Bind(ParameterMap, TEXT("DistanceFieldSampler"));
+		DistanceFieldAtlasTexelSize.Bind(ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
 	}
 
 	template<typename TParamRef>
@@ -69,6 +73,21 @@ public:
 		ObjectBounds.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.Bounds);
 		ObjectData.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.Data);
 		SetShaderValue(RHICmdList, ShaderRHI, NumSceneObjects, NumObjectsValue);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			DistanceFieldTexture,
+			DistanceFieldSampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			GDistanceFieldVolumeTextureAtlas.VolumeTextureRHI
+			);
+
+		const int32 NumTexelsOneDimX = GDistanceFieldVolumeTextureAtlas.GetSizeX();
+		const int32 NumTexelsOneDimY = GDistanceFieldVolumeTextureAtlas.GetSizeY();
+		const int32 NumTexelsOneDimZ = GDistanceFieldVolumeTextureAtlas.GetSizeZ();
+		const FVector InvTextureDim(1.0f / NumTexelsOneDimX, 1.0f / NumTexelsOneDimY, 1.0f / NumTexelsOneDimZ);
+		SetShaderValue(RHICmdList, ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
 	}
 
 	template<typename TParamRef>
@@ -80,7 +99,7 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar, FDistanceFieldObjectBufferParameters& P)
 	{
-		Ar << P.ObjectBounds << P.ObjectData << P.NumSceneObjects;
+		Ar << P.ObjectBounds << P.ObjectData << P.NumSceneObjects << P.DistanceFieldTexture << P.DistanceFieldSampler << P.DistanceFieldAtlasTexelSize;
 		return Ar;
 	}
 
@@ -88,6 +107,9 @@ private:
 	FRWShaderParameter ObjectBounds;
 	FRWShaderParameter ObjectData;
 	FShaderParameter NumSceneObjects;
+	FShaderResourceParameter DistanceFieldTexture;
+	FShaderResourceParameter DistanceFieldSampler;
+	FShaderParameter DistanceFieldAtlasTexelSize;
 };
 
 class FDistanceFieldCulledObjectBuffers
@@ -265,7 +287,7 @@ public:
 		TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 2, PF_R32_UINT, BUF_Static);
 
 		//@todo - handle max exceeded
-		TileArrayData.Initialize(sizeof(uint16), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y, PF_R16_UINT, BUF_Static);
+		TileArrayData.Initialize(sizeof(uint32), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y, PF_R32_UINT, BUF_Static);
 	}
 
 	void Release()
@@ -279,3 +301,14 @@ public:
 	FRWBuffer TileHeadDataUnpacked;
 	FRWBuffer TileArrayData;
 };
+
+extern void CullDistanceFieldObjectsForLight(
+	FRHICommandListImmediate& RHICmdList,
+	const FViewInfo& View,
+	const FLightSceneProxy* LightSceneProxy, 
+	const FMatrix& WorldToShadowValue, 
+	int32 NumPlanes, 
+	const FPlane* PlaneData, 
+	const FVector4& ShadowBoundingSphereValue,
+	float ShadowBoundingRadius,
+	TScopedPointer<class FLightTileIntersectionResources>& TileIntersectionResources);

@@ -116,7 +116,7 @@ void ComputeDistanceFieldNormalPS(
 	float3 WorldNormal = GBufferData.WorldNormal;
 	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
 	// Note: Encoding whether the pixel has a distance field representation in the sign bit of the alpha
-	OutColor = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
+	OutColor = float4(WorldNormal, DepthSign * SceneDepth);
 }
 
 RWTexture2D<float4> RWDistanceFieldNormal;
@@ -133,7 +133,7 @@ void ComputeDistanceFieldNormalCS(
 
 	float3 WorldNormal = GBufferData.WorldNormal;
 	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
-	float4 OutValue = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
+	float4 OutValue = float4(WorldNormal, DepthSign * SceneDepth);
 	RWDistanceFieldNormal[DispatchThreadId.xy] = OutValue;
 }
 
@@ -170,11 +170,6 @@ struct FIrradianceCacheSplatVertexOutput
 
 Buffer<uint> CompactedRedirect;
 Buffer<uint> IrradianceCacheUsed;
-Buffer<float4> IrradianceCachePositionRadius;
-Buffer<float> IrradianceCacheOccluderRadius;
-Buffer<float4> IrradianceCacheNormal;
-Buffer<float4> IrradianceCacheBentNormal;
-Buffer<float4> IrradianceCacheIrradiance;
 float InterpolationRadiusScale;
 float2 NormalizedOffsetToPixelCenter;
 float HackExpand;
@@ -227,7 +222,7 @@ void IrradianceCacheSplatVS(
 	VirtualRadius += HackExpand * ViewToCenterLength * 4;
 #endif
 
-	float3 RecordNormal = DecodeNormalForAO(IrradianceCacheNormal.Load(JobIndex).xyz);
+	float3 RecordNormal = IrradianceCacheNormal.Load(JobIndex).xyz;
 
 	float2 CornerUVs = InUV;
 	float3 CornerPosition = VirtualPosition + (View.ViewRight * CornerUVs.x + View.ViewUp * CornerUVs.y) * VirtualRadius;
@@ -245,9 +240,11 @@ void IrradianceCacheSplatVS(
 	Output.Normal = RecordNormal;
 
 #if FINAL_INTERPOLATION_PASS
-	Output.BentNormal = DecodeNormalForAO(IrradianceCacheBentNormal.Load(JobIndex).xyz);
+	Output.BentNormal = IrradianceCacheBentNormal.Load(JobIndex).xyz;
 	#if SUPPORT_IRRADIANCE
-		Output.Irradiance = IrradianceCacheIrradiance.Load(JobIndex).xyz;
+		float ViewDistance = length(View.ViewOrigin.xyz - PositionAndRadius.xyz);
+		float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - ViewDistance));
+		Output.Irradiance = IrradianceCacheIrradiance.Load(JobIndex).xyz * FadeAlpha;
 	#endif
 #endif
 } 
@@ -295,7 +292,7 @@ void IrradianceCacheSplatPS(
 	BRANCH
 	if (DistanceError < 1 && SceneW < AOMaxViewDistance)
 	{ 
-		float3 WorldNormal = DecodeNormalForAO(DistanceFieldNormalValue.xyz);
+		float3 WorldNormal = DistanceFieldNormalValue.xyz;
 		float NormalError = InterpolationAngleNormalization * sqrt(saturate(1 - dot(WorldNormal, Input.Normal)));
 
 		// Don't use a lighting record if it's in front of the query point.
@@ -589,6 +586,7 @@ void UpdateHistoryPS(
 	}
 
 	OutBentNormal.rgb = lerp(NewValue.rgb, HistoryValue.rgb, EffectiveHistoryWeight);
+	//OutBentNormal.rgb = HistoryValue.rgb + (NewValue.rgb - HistoryValue.rgb) * (1 - exp(-DeltaTime * EffectiveHistoryWeight));
 
 #if SUPPORT_IRRADIANCE
 	float3 NewIrradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, DistanceFieldUVs, 0).xyz;
@@ -612,6 +610,7 @@ void AOUpsamplePS(
 {
 	// Distance field AO was computed at 0,0 regardless of viewrect min
 	float2 DistanceFieldUVs = UVAndScreenPos.xy - View.ViewRectMin.xy * View.ViewSizeAndSceneTexelSize.zw;
+	float3 Irradiance = 0;
 
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE
@@ -655,7 +654,7 @@ void AOUpsamplePS(
 		float4 IrradianceValues01 = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, Corner00UV + float2(0, LowResTexelSize.y), 0);
 		float4 IrradianceValues11 = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, Corner00UV + LowResTexelSize, 0);
 
-		float3 Irradiance = 
+		Irradiance = 
 			(FinalWeights.x * IrradianceValues00.xyz 
 			+ FinalWeights.y * IrradianceValues10.xyz
 			+ FinalWeights.z * IrradianceValues01.xyz 
@@ -665,7 +664,10 @@ void AOUpsamplePS(
 
 #else
 	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, DistanceFieldUVs, 0).xyz;
-	float3 Irradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, DistanceFieldUVs, 0).xyz;
+
+	#if SUPPORT_IRRADIANCE
+		Irradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, DistanceFieldUVs, 0).xyz;
+	#endif
 #endif
 
 #if OUTPUT_BENT_NORMAL
@@ -674,7 +676,13 @@ void AOUpsamplePS(
 		OutIrradiance = float4(Irradiance, 1);
 	#endif
 #else
-	OutBentNormal = float4(length(BentNormal).xxx, 1);
+
+	// Output to RT0 to visualize Irradiance or BentNormal
+	#if SUPPORT_IRRADIANCE
+		OutBentNormal = float4(Irradiance, 1);
+	#else
+		OutBentNormal = float4(length(BentNormal).xxx, 1);
+	#endif
 #endif
 }
 
@@ -692,7 +700,7 @@ groupshared uint IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS];
 
 groupshared uint NumIntersectingObjects;
 
-void RayTraceThroughDistanceFields(float3 WorldRayStart, float3 WorldRayEnd, float MaxRayTime, out float MinRayTime, out float TotalStepsTaken)
+void RayTraceThroughTileCulledDistanceFields(float3 WorldRayStart, float3 WorldRayEnd, float MaxRayTime, out float MinRayTime, out float TotalStepsTaken)
 {
 	MinRayTime = MaxRayTime;
 	TotalStepsTaken = 0;
@@ -801,7 +809,11 @@ void VisualizeMeshDistanceFieldCS(
 		{
 			uint ListIndex;
 			InterlockedAdd(NumIntersectingObjects, 1U, ListIndex);
-			IntersectingObjectIndices[ListIndex] = ObjectIndex; 
+
+			if (ListIndex < MAX_INTERSECTING_OBJECTS)
+			{
+				IntersectingObjectIndices[ListIndex] = ObjectIndex; 
+			}
 		}
 	}
 
@@ -811,13 +823,13 @@ void VisualizeMeshDistanceFieldCS(
 	float TotalStepsTaken;
 
 	// Trace once to find the distance to first intersection
-	RayTraceThroughDistanceFields(WorldRayStart, WorldRayEnd, TraceDistance, MinRayTime, TotalStepsTaken);
+	RayTraceThroughTileCulledDistanceFields(WorldRayStart, WorldRayEnd, TraceDistance, MinRayTime, TotalStepsTaken);
 
 	float TempMinRayTime;
 	// Recompute the ray end point
 	WorldRayEnd = WorldRayStart + UnitWorldRayDirection * MinRayTime;
 	// Trace a second time to only accumulate steps taken before the first intersection, improves visualization
-	RayTraceThroughDistanceFields(WorldRayStart, WorldRayEnd, MinRayTime, TempMinRayTime, TotalStepsTaken);
+	RayTraceThroughTileCulledDistanceFields(WorldRayStart, WorldRayEnd, MinRayTime, TempMinRayTime, TotalStepsTaken);
 
 	float3 Result = saturate(TotalStepsTaken / 200.0f);
 

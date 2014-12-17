@@ -18,7 +18,7 @@ public:
 	float OcclusionMaxDistance;
 	float Contrast;
 
-	FDistanceFieldAOParameters(float InOcclusionMaxDistance = 600.0f, float InContrast = 0)
+	FDistanceFieldAOParameters(float InOcclusionMaxDistance, float InContrast = 0)
 	{
 		Contrast = FMath::Clamp(InContrast, .01f, 2.0f);
 		OcclusionMaxDistance = FMath::Clamp(InOcclusionMaxDistance, 200.0f, 3000.0f);
@@ -47,7 +47,7 @@ public:
 			Irradiance.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 			ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
-			TileCoordinate.Initialize(sizeof(uint16)* 2, MaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
+			TileCoordinate.Initialize(sizeof(uint16) * 2, MaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
 		}
 	}
 
@@ -91,6 +91,7 @@ public:
 
 		MinLevel = 100;
 		MaxLevel = 0;
+		bHasIrradiance = false;
 	}
 
 	~FSurfaceCacheResources()
@@ -181,6 +182,7 @@ public:
 	FRefinementLevelResources* TempResources;
 
 	bool bClearedResources;
+	bool bHasIrradiance;
 
 private:
 
@@ -270,3 +272,86 @@ private:
 	FShaderParameter AOMaxViewDistance;
 };
 
+inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
+{
+	return Platform == SP_PCD3D_SM5;
+}
+
+inline float GetMaxAOViewDistance()
+{
+	extern float GAOMaxViewDistance;
+	// Scene depth stored in fp16 alpha, must fade out before it runs out of range
+	// The fade extends past GAOMaxViewDistance a bit
+	return FMath::Min(GAOMaxViewDistance, 65000.0f);
+}
+
+class FMaxSizedRWBuffers : public FRenderResource
+{
+public:
+	FMaxSizedRWBuffers()
+	{
+		MaxSize = 0;
+	}
+
+	virtual void InitDynamicRHI()
+	{
+		check(0);
+	}
+
+	virtual void ReleaseDynamicRHI()
+	{
+		check(0);
+	}
+
+	void AllocateFor(int32 InMaxSize)
+	{
+		bool bReallocate = false;
+
+		if (InMaxSize > MaxSize)
+		{
+			MaxSize = InMaxSize;
+			bReallocate = true;
+		}
+
+		if (!IsInitialized())
+		{
+			InitResource();
+		}
+		else if (bReallocate)
+		{
+			UpdateRHI();
+		}
+	}
+
+	int32 GetMaxSize() const { return MaxSize; }
+
+protected:
+	int32 MaxSize;
+};
+
+// Must match usf
+const int32 RecordConeDataStride = 10;
+
+/**  */
+class FTemporaryIrradianceCacheResources : public FMaxSizedRWBuffers
+{
+public:
+
+	virtual void InitDynamicRHI()
+	{
+		if (MaxSize > 0)
+		{
+			ConeVisibility.Initialize(sizeof(float), MaxSize * NumConeSampleDirections, PF_R32_FLOAT, BUF_Static);
+			ConeData.Initialize(sizeof(float), MaxSize * NumConeSampleDirections * RecordConeDataStride, PF_R32_FLOAT, BUF_Static);
+		}
+	}
+
+	virtual void ReleaseDynamicRHI()
+	{
+		ConeVisibility.Release();
+		ConeData.Release();
+	}
+
+	FRWBuffer ConeVisibility;
+	FRWBuffer ConeData;
+};

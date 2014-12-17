@@ -27,6 +27,7 @@ void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
 	UNROLL
 	for (uint VectorIndex = 0; VectorIndex < CULLED_OBJECT_DATA_STRIDE; VectorIndex++)
 	{
+		// Note: only copying the first CULLED_OBJECT_DATA_STRIDE of the original object data
 		RWCulledObjectData[DestIndex * CULLED_OBJECT_DATA_STRIDE + VectorIndex] = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + VectorIndex);
 	}
 
@@ -47,10 +48,10 @@ void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
 	float3 MinViewSpacePosition = float3(2000000, 2000000, 2000000);
 	float3 MaxViewSpacePosition = float3(-2000000, -2000000, -2000000);
 
-	float4 M0 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 8);
-	float4 M1 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 9);
-	float4 M2 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 10);
-	float4 M3 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 11);
+	float4 M0 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 11);
+	float4 M1 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 12);
+	float4 M2 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 13);
+	float4 M3 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 14);
 
 	float4x4 LocalToWorld = float4x4(M0, M1, M2, M3);
 
@@ -111,12 +112,9 @@ void CullObjectsForShadowCS(
 
 	if (DispatchThreadId.x == 0)
 	{
+		// RWObjectIndirectArguments is zeroed by a clear before this shader, only need to set things that are non-zero (and are not read by this shader as that would be a race condition)
 		// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
 		RWObjectIndirectArguments[0] = ObjectBoundingGeometryIndexCount;
-		RWObjectIndirectArguments[1] = 0;
-		RWObjectIndirectArguments[2] = 0;
-		RWObjectIndirectArguments[3] = 0;
-		RWObjectIndirectArguments[4] = 0;
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -143,9 +141,6 @@ void CullObjectsForShadowCS(
 		// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
 		RWObjectIndirectArguments[0] = ObjectBoundingGeometryIndexCount;
 		RWObjectIndirectArguments[1] = NumSceneObjects;
-		RWObjectIndirectArguments[2] = 0;
-		RWObjectIndirectArguments[3] = 0;
-		RWObjectIndirectArguments[4] = 0;
 	}
 
 	uint SourceIndex = ObjectIndex;
@@ -163,8 +158,8 @@ bool RayHitSphere(float3 RayOrigin, float3 UnitRayDirection, float RayLength, fl
 	return dot(CenterToRay, CenterToRay) <= Square(SphereRadius) && DistanceAlongRay > -SphereRadius && DistanceAlongRay - SphereRadius < RayLength;
 }
 
-RWBuffer<uint> RWTileHeadDataUnpacked;
-RWBuffer<uint> RWTileArrayData;
+RWBuffer<uint> RWShadowTileHeadDataUnpacked;
+RWBuffer<uint> RWShadowTileArrayData;
 
 float2 NumGroups;
 
@@ -176,8 +171,8 @@ void ClearTilesCS(
 {
     uint TileIndex = DispatchThreadId.y * NumGroups.x + DispatchThreadId.x;
 	
-	RWTileHeadDataUnpacked[TileIndex * 2 + 0] = TileIndex;
-	RWTileHeadDataUnpacked[TileIndex * 2 + 1] = 0;
+	RWShadowTileHeadDataUnpacked[TileIndex * 2 + 0] = TileIndex;
+	RWShadowTileHeadDataUnpacked[TileIndex * 2 + 1] = 0;
 }
 
 struct FShadowObjectCullVertexOutput
@@ -275,12 +270,12 @@ void ShadowObjectCullPS(
 		if (all(MinProjections < 1) && all(MaxProjections > -1))
 		{
 			uint ArrayIndex;
-			InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 2 + 1], 1U, ArrayIndex);
+			InterlockedAdd(RWShadowTileHeadDataUnpacked[TileIndex * 2 + 1], 1U, ArrayIndex);
 
 			if (ArrayIndex < MAX_OBJECTS_PER_TILE)
 			{
 				uint DataIndex = (ArrayIndex * (uint)(NumGroups.x * NumGroups.y + .5f) + TileIndex);
-				RWTileArrayData[DataIndex] = Input.ObjectIndex;
+				RWShadowTileArrayData[DataIndex] = Input.ObjectIndex;
 			}
 		}
 	}
@@ -288,12 +283,12 @@ void ShadowObjectCullPS(
 #else
 	{
 		uint ArrayIndex;
-		InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 2 + 1], 1U, ArrayIndex);
+		InterlockedAdd(RWShadowTileHeadDataUnpacked[TileIndex * 2 + 1], 1U, ArrayIndex);
 
 		if (ArrayIndex < MAX_OBJECTS_PER_TILE)
 		{
 			uint DataIndex = (ArrayIndex * (uint)(NumGroups.x * NumGroups.y + .5f) + TileIndex);
-			RWTileArrayData[DataIndex] = Input.ObjectIndex;
+			RWShadowTileArrayData[DataIndex] = Input.ObjectIndex;
 		}
 	}
 #endif
@@ -307,23 +302,6 @@ float4 LightPositionAndInvRadius;
 float LightSourceRadius;
 float2 TanLightAngleAndNormalThreshold;
 int4 ScissorRectMinAndSize;
-
-#if SCATTER_TILE_CULLING
-
-Buffer<uint> TileHeadDataUnpacked;
-Buffer<uint> TileArrayData;
-uint2 TileListGroupSize;
-
-uint2 GetTileHead(uint2 TileCoordinate)
-{
-	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
-
-	return uint2(
-		TileHeadDataUnpacked[TileIndex * 2 + 0], 
-		min(TileHeadDataUnpacked[TileIndex * 2 + 1], (uint)MAX_OBJECTS_PER_TILE)); 
-}
-
-#else // SCATTER_TILE_CULLING
 
 /** Min and Max depth for this tile. */
 groupshared uint IntegerTileMinZ;
@@ -339,8 +317,6 @@ groupshared uint TileNumObjects1;
 
 #define MAX_INTERSECTING_OBJECTS 256
 groupshared uint IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * 2];
-
-#endif
 
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void DistanceFieldShadowingCS(
@@ -377,9 +353,9 @@ void DistanceFieldShadowingCS(
 	float2 NormalizedShadowPosition = HomogeneousShadowPosition.xy * .5f + .5f;
 	NormalizedShadowPosition.y = 1 - NormalizedShadowPosition.y;
 	// Quantize the shadow position to get our tile position
-	uint2 TilePosition = (uint2)(NormalizedShadowPosition * TileListGroupSize);
+	uint2 TilePosition = (uint2)(NormalizedShadowPosition * ShadowTileListGroupSize);
 	// Fetch the tile head information
-	uint2 TileHead = GetTileHead(TilePosition);
+	uint2 TileHead = GetShadowTileHead(TilePosition);
 	NumIntersectingObjects = TileHead.y;
 
 #else
@@ -577,7 +553,7 @@ void DistanceFieldShadowingCS(
 			{
 				#if USE_CULLING
 					#if SCATTER_TILE_CULLING
-						uint ObjectIndex = TileArrayData.Load(ListObjectIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x);
+						uint ObjectIndex = ShadowTileArrayData.Load(ListObjectIndex * ShadowTileListGroupSize.x * ShadowTileListGroupSize.y + TileHead.x);
 					#else
 						uint ObjectIndex = IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * GroupIndex + ListObjectIndex];
 					#endif

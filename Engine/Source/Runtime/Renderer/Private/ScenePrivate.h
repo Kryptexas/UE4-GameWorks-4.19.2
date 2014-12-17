@@ -548,6 +548,8 @@ public:
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
 
+	class FVPLTileIntersectionResources* VPLTileIntersectionResources;
+
 	// Is DOFHistoryRT set from Bokeh DOF?
 	bool bBokehDOFHistory;
 	bool bBokehDOFHistory2;

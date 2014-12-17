@@ -10,7 +10,7 @@
 #include "GCObject.h"
 
 // DDC key for distance field data, must be changed when modifying the generation code or data format
-#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798763B445A9543C94442EA899D")
+#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9543C94442EA899D")
 
 /** Represents a distance field volume texture for a single UStaticMesh. */
 class FDistanceFieldVolumeTexture

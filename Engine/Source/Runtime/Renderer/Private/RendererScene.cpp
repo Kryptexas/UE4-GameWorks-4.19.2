@@ -59,6 +59,7 @@ FSceneViewState::FSceneViewState()
 	TemporalAASampleIndex = 0;
 	TemporalAASampleCount = 1;
 	AOTileIntersectionResources = NULL;
+	VPLTileIntersectionResources = NULL;
 	bBokehDOFHistory = true;
 	bBokehDOFHistory2 = true;
 

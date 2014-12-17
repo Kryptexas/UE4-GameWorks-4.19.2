@@ -1443,4 +1443,17 @@ private:
 
 };
 
+/** A transform the remaps depth and potentially projects onto some plane. */
+struct FShadowProjectionMatrix: FMatrix
+{
+	FShadowProjectionMatrix(float MinZ,float MaxZ,const FVector4& WAxis):
+		FMatrix(
+		FPlane(1,	0,	0,													WAxis.X),
+		FPlane(0,	1,	0,													WAxis.Y),
+		FPlane(0,	0,	(WAxis.Z * MaxZ + WAxis.W) / (MaxZ - MinZ),			WAxis.Z),
+		FPlane(0,	0,	-MinZ * (WAxis.Z * MaxZ + WAxis.W) / (MaxZ - MinZ),	WAxis.W)
+		)
+	{}
+};
+
 #endif

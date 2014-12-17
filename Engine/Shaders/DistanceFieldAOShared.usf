@@ -86,16 +86,6 @@ float2 AOBufferSize;
 int DownsampleFactorToBaseLevel;
 float2 BaseLevelTexelSize;
 
-float3 EncodeNormalForAO(float3 InNormal)
-{
-	return InNormal.xyz;
-}
-
-float3 DecodeNormalForAO(float3 InNormal)
-{
-	return InNormal.xyz;
-}
-
 bool SphereIntersectCone(float4 SphereCenterAndRadius, float3 ConeVertex, float3 ConeAxis, float ConeAngleCos, float ConeAngleSin)
 {
 	float3 U = ConeVertex - (SphereCenterAndRadius.w / ConeAngleSin) * ConeAxis;

@@ -376,7 +376,7 @@ private:
 	}
 
 	// Computes a shadow culling volume (convex hull) based on a set of 8 vertices and a light direction
-	void ComputeShadowCullingVolume( const FVector *CascadeFrustumVerts, const FVector& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut ) const
+	void ComputeShadowCullingVolume(const FVector* CascadeFrustumVerts, const FVector& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) const
 	{
 		// Pairs of plane indices from SubFrustumPlanes whose intersections
 		// form the edges of the frustum.
@@ -500,51 +500,14 @@ private:
 		return ShadowNear + ComputeAccumulatedScale(CascadeDistributionExponent, SplitIndex, NumCascades) * (FarDistance - ShadowNear);
 	}
 
-	virtual FSphere GetShadowSplitBounds(const FSceneView& View, int32 SplitIndex, FShadowCascadeSettings* OutCascadeSettings) const
+	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const
 	{
-		// this checks for WholeSceneDynamicShadowRadius and DynamicShadowCascades
-		int32 NumCascades = GetNumViewDependentWholeSceneShadows(View);
-
-		const bool bHasRayTracedCascade = ShouldCreateRayTracedCascade(View.GetFeatureLevel());
-		const bool bIsRayTracedCascade = bHasRayTracedCascade && SplitIndex == NumCascades - 1;
-
 		const FMatrix ViewMatrix = View.ShadowViewMatrices.ViewMatrix;
 		const FMatrix ProjectionMatrix = View.ShadowViewMatrices.ProjMatrix;
 		const FVector4 ViewOrigin = View.ShadowViewMatrices.ViewOrigin;
 
 		const FVector CameraDirection = ViewMatrix.GetColumn(2);
 		const FVector LightDirection = -GetDirection();
-
-		// Determine start and end distances to the current cascade's split planes
-		// Presence of the ray traced cascade does not change depth ranges for the shadow-mapped cascades
-		float SplitNear = GetSplitDistance(View, SplitIndex, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
-		float SplitFar = GetSplitDistance(View, SplitIndex + 1, NumCascades, View.NearClippingDistance, bHasRayTracedCascade && !bIsRayTracedCascade);
-		float FadePlane = SplitFar;
-
-		float LocalCascadeTransitionFraction = CascadeTransitionFraction * GetShadowTransitionScale();
-
-		float FadeExtension = (SplitFar - SplitNear) * LocalCascadeTransitionFraction;
-
-		// Add the fade region to the end of the subfrustum, if this is not the last cascade.
-		if (SplitIndex < (NumCascades - 1))
-		{
-			SplitFar += FadeExtension;			
-		}
-
-		if(OutCascadeSettings)
-		{
-			OutCascadeSettings->SplitFarFadeRegion = FadeExtension;
-
-			OutCascadeSettings->SplitNearFadeRegion = 0.0f;
-			if(SplitIndex >= 1)
-			{
-				// todo: optimize
-				float BeforeSplitNear = GetSplitDistance(View, SplitIndex - 1, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
-				float BeforeSplitFar = GetSplitDistance(View, SplitIndex, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
-
-				OutCascadeSettings->SplitNearFadeRegion = (BeforeSplitFar - BeforeSplitNear) * LocalCascadeTransitionFraction;
-			}
-		}
 
 		// Get FOV and AspectRatio from the view's projection matrix.
 		float AspectRatio = ProjectionMatrix.M[1][1] / ProjectionMatrix.M[0][0];
@@ -555,7 +518,7 @@ private:
 		const FVector StartCameraRightOffset = ViewMatrix.GetColumn(0) * StartHorizontalLength;
 		const float StartVerticalLength = StartHorizontalLength / AspectRatio;
 		const FVector StartCameraUpOffset = ViewMatrix.GetColumn(1) * StartVerticalLength;
-		
+
 		const float EndHorizontalLength = SplitFar * FMath::Tan(HalfFOV);
 		const FVector EndCameraRightOffset = ViewMatrix.GetColumn(0) * EndHorizontalLength;
 		const float EndVerticalLength = EndHorizontalLength / AspectRatio;
@@ -603,15 +566,60 @@ private:
 
 		if (OutCascadeSettings)
 		{
+			// this function is needed, since it's also called by the LPV code.
+			ComputeShadowCullingVolume(CascadeFrustumVerts, LightDirection, OutCascadeSettings->ShadowBoundsAccurate, OutCascadeSettings->NearFrustumPlane, OutCascadeSettings->FarFrustumPlane);
+		}
+
+		return CascadeSphere;
+	}
+
+	virtual FSphere GetShadowSplitBounds(const FSceneView& View, int32 SplitIndex, FShadowCascadeSettings* OutCascadeSettings) const
+	{
+		// this checks for WholeSceneDynamicShadowRadius and DynamicShadowCascades
+		int32 NumCascades = GetNumViewDependentWholeSceneShadows(View);
+
+		const bool bHasRayTracedCascade = ShouldCreateRayTracedCascade(View.GetFeatureLevel());
+		const bool bIsRayTracedCascade = bHasRayTracedCascade && SplitIndex == NumCascades - 1;
+
+		// Determine start and end distances to the current cascade's split planes
+		// Presence of the ray traced cascade does not change depth ranges for the shadow-mapped cascades
+		float SplitNear = GetSplitDistance(View, SplitIndex, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
+		float SplitFar = GetSplitDistance(View, SplitIndex + 1, NumCascades, View.NearClippingDistance, bHasRayTracedCascade && !bIsRayTracedCascade);
+		float FadePlane = SplitFar;
+
+		float LocalCascadeTransitionFraction = CascadeTransitionFraction * GetShadowTransitionScale();
+
+		float FadeExtension = (SplitFar - SplitNear) * LocalCascadeTransitionFraction;
+
+		// Add the fade region to the end of the subfrustum, if this is not the last cascade.
+		if (SplitIndex < (NumCascades - 1))
+		{
+			SplitFar += FadeExtension;			
+		}
+
+		if(OutCascadeSettings)
+		{
+			OutCascadeSettings->SplitFarFadeRegion = FadeExtension;
+
+			OutCascadeSettings->SplitNearFadeRegion = 0.0f;
+
+			if(SplitIndex >= 1)
+			{
+				// todo: optimize
+				float BeforeSplitNear = GetSplitDistance(View, SplitIndex - 1, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
+				float BeforeSplitFar = GetSplitDistance(View, SplitIndex, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
+
+				OutCascadeSettings->SplitNearFadeRegion = (BeforeSplitFar - BeforeSplitNear) * LocalCascadeTransitionFraction;
+			}
+
 			// Pass out the split settings
 			OutCascadeSettings->SplitFar = SplitFar;
 			OutCascadeSettings->SplitNear = SplitNear;
 			OutCascadeSettings->FadePlaneOffset = FadePlane;
 			OutCascadeSettings->FadePlaneLength = SplitFar - FadePlane;
-
-			// this function is needed, since it's also called by the LPV code.
- 			ComputeShadowCullingVolume( CascadeFrustumVerts, LightDirection, OutCascadeSettings->ShadowBoundsAccurate, OutCascadeSettings->NearFrustumPlane, OutCascadeSettings->FarFrustumPlane );
 		}
+
+		const FSphere CascadeSphere = FDirectionalLightSceneProxy::GetShadowSplitBoundsDepthRange(View, SplitNear, SplitFar, OutCascadeSettings);
 
 		return CascadeSphere;
 	}

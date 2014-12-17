@@ -208,6 +208,7 @@ struct FEngineShowFlags
 		SetSnap(false);
 		SetVisualizeMeshDistanceFields(false);
 		SetVisualizeDistanceFieldAO(false);
+		SetVisualizeDistanceFieldGI(false);
 		SetVisualizeSSR(false);
 		SetForceGBuffer(false);
 		SetVisualizeSSS(false);
@@ -250,6 +251,7 @@ struct FEngineShowFlags
 		SetHMDDistortion(false);
 		SetStereoRendering(false);
 		SetDistanceFieldAO(false);
+		SetDistanceFieldGI(false);
 
 		SetForceGBuffer(true);
 	}

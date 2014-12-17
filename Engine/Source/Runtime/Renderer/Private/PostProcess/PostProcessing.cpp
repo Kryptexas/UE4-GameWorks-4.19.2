@@ -809,6 +809,7 @@ bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeature
 	return View.Family->EngineShowFlags.PostProcessing 
 		&& FeatureLevel >= ERHIFeatureLevel::SM4 
 		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldAO
+		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldGI
 		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields;
 }
 

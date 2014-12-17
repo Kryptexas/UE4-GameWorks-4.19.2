@@ -272,13 +272,14 @@ private:
 void FMeshDistanceFieldAsyncTask::DoWork()
 {
 	FMeshBuildDataProvider kDOPDataProvider(*kDopTree);
-	const FVector4 DistanceFieldVoxelSize(VolumeBounds.GetSize() / FVector(VolumeDimensions.X, VolumeDimensions.Y, VolumeDimensions.Z));
+	const FVector DistanceFieldVoxelSize(VolumeBounds.GetSize() / FVector(VolumeDimensions.X, VolumeDimensions.Y, VolumeDimensions.Z));
+	const float VoxelDiameter = DistanceFieldVoxelSize.Size();
 
 	for (int32 YIndex = 0; YIndex < VolumeDimensions.Y; YIndex++)
 	{
 		for (int32 XIndex = 0; XIndex < VolumeDimensions.X; XIndex++)
 		{
-			const FVector4 VoxelPosition = FVector4(XIndex + .5f, YIndex + .5f, ZIndex + .5f) * DistanceFieldVoxelSize + VolumeBounds.Min;
+			const FVector VoxelPosition = FVector(XIndex + .5f, YIndex + .5f, ZIndex + .5f) * DistanceFieldVoxelSize + VolumeBounds.Min;
 			const int32 Index = (ZIndex * VolumeDimensions.Y * VolumeDimensions.X + YIndex * VolumeDimensions.X + XIndex);
 
 			float MinDistance = VolumeMaxDistance;
@@ -288,15 +289,14 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 			for (int32 SampleIndex = 0; SampleIndex < SampleDirections->Num(); SampleIndex++)
 			{
 				const FVector RayDirection = (*SampleDirections)[SampleIndex];
-				const FVector ReflectedRayDirection = RayDirection;
 
-				if (FMath::LineBoxIntersection(VolumeBounds, VoxelPosition, VoxelPosition + ReflectedRayDirection * VolumeMaxDistance, ReflectedRayDirection))
+				if (FMath::LineBoxIntersection(VolumeBounds, VoxelPosition, VoxelPosition + RayDirection * VolumeMaxDistance, RayDirection))
 				{
 					FkHitResult Result;
 
 					TkDOPLineCollisionCheck<const FMeshBuildDataProvider,uint32> kDOPCheck(
 						VoxelPosition,
-						VoxelPosition + ReflectedRayDirection * VolumeMaxDistance,
+						VoxelPosition + RayDirection * VolumeMaxDistance,
 						true,
 						kDOPDataProvider,
 						&Result);
@@ -309,7 +309,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 
 						const FVector HitNormal = kDOPCheck.GetHitNormal();
 
-						if (FVector::DotProduct(ReflectedRayDirection, HitNormal) > 0 
+						if (FVector::DotProduct(RayDirection, HitNormal) > 0 
 							// MaterialIndex on the build triangles was set to 1 if two-sided, or 0 if one-sided
 							&& kDOPCheck.Result->Item == 0)
 						{
@@ -326,8 +326,17 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 				}
 			}
 
+			const float UnsignedDistance = MinDistance;
+
 			// Consider this voxel 'inside' an object if more than 50% of the rays hit back faces
 			MinDistance *= (Hit == 0 || HitBack < SampleDirections->Num() * .5f) ? 1 : -1;
+
+			// If we are very close to a surface and nearly all of our rays hit backfaces, treat as inside
+			// This is important for one sided planes
+			if (UnsignedDistance < VoxelDiameter && HitBack > .95f * Hit)
+			{
+				MinDistance = -UnsignedDistance;
+			}
 
 			const float VolumeSpaceDistance = MinDistance / VolumeBounds.GetExtent().GetMax();
 

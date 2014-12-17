@@ -141,6 +141,12 @@ bool FShaderParameterMap::FindParameterAllocation(const TCHAR* ParameterName,uin
 		OutBufferIndex = Allocation->BufferIndex;
 		OutBaseIndex = Allocation->BaseIndex;
 		OutSize = Allocation->Size;
+
+		if (Allocation->bBound)
+		{
+			UE_LOG(LogShaders, Warning, TEXT("Parameter %s was bound multiple times. Code error?"), ParameterName);
+		}
+
 		Allocation->bBound = true;
 		return true;
 	}
