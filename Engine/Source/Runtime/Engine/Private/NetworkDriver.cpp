@@ -2726,9 +2726,8 @@ void UNetDriver::ResetGameWorldState()
 
 void UNetDriver::CleanPackageMaps()
 {
-	if ( IsServer() && GuidCache.IsValid()  )
+	if ( GuidCache.IsValid() )
 	{ 
-		// Only the server makes this call initially, client will call when the GuidSequence increments on their end
 		GuidCache->CleanReferences();
 	}
 }

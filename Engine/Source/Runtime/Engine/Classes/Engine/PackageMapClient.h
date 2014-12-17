@@ -27,7 +27,7 @@
 class FNetGuidCacheObject
 {
 public:
-	FNetGuidCacheObject() : GuidSequence( 0 ), InitialQueryTime( -1.0f ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
+	FNetGuidCacheObject() : ReadOnlyTimestamp( 0 ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
 	{
 	}
 
@@ -36,10 +36,9 @@ public:
 	// These fields are set when this guid is static
 	FNetworkGUID				OuterGUID;
 	FName						PathName;
-	int32						GuidSequence;				// We remember the guid sequence this net guid was generated on so we can tell how old it is
 	FGuid						PackageGuid;				// If this is a package, this is the guid to expect
 
-	float						InitialQueryTime;
+	double						ReadOnlyTimestamp;			// Time in second when we should start timing out after going read only
 
 	uint8						bNoLoad				: 1;	// Don't load this, only do a find
 	uint8						bIgnoreWhenMissing	: 1;	// Don't warn when this asset can't be found or loaded
@@ -76,7 +75,6 @@ public:
 	TMap< TWeakObjectPtr< UObject >, FNetworkGUID >	NetGUIDLookup;
 	int32											UniqueNetIDs[2];
 
-	int32											GuidSequence;
 	bool											IsExportingNetGUIDBunch;
 
 	UNetDriver *									Driver;
