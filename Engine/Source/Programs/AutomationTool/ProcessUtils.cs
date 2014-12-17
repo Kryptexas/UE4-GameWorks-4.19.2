@@ -228,7 +228,10 @@ namespace AutomationTool
 			Source = LogName;
 			AllowSpew = bAllowSpew;
 			this.SpewVerbosity = SpewVerbosity;
-			Proc.EnableRaisingEvents = false;
+			if (Proc != null)
+			{
+				Proc.EnableRaisingEvents = false;
+			}
 		}
 
         ~ProcessResult()
