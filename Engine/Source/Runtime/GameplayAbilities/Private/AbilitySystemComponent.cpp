@@ -527,27 +527,8 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
 			{
 				float Magnitude = 0.f;
-				FString Op;
-				switch (Modifier.ModifierOp)
-				{
-				case EGameplayModOp::Additive:
-					Op = "Add";
-					break;
-				case EGameplayModOp::Multiplicitive:
-					Op = "Multiply";
-					break;
-				case EGameplayModOp::Division:
-					Op = "Divide";
-					break;
-				case EGameplayModOp::Override:
-					Op = "Override";
-					break;
-				default:
-					Op = "Unknown Operation";
-				}
-
 				Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
-				UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+				UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 			}
 		}
 
@@ -643,27 +624,8 @@ void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	
 		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
 		{
 			float Magnitude = 0.f;
-			FString Op;
-			switch (Modifier.ModifierOp)
-			{
-			case EGameplayModOp::Additive:
-				Op = "Add";
-				break;
-			case EGameplayModOp::Multiplicitive:
-				Op = "Multiply";
-				break;
-			case EGameplayModOp::Division:
-				Op = "Divide";
-				break;
-			case EGameplayModOp::Override:
-				Op = "Override";
-				break;
-			default:
-				Op = "Unknown Operation";
-			}
-
 			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
-			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 		}
 
 		ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
@@ -681,26 +643,8 @@ void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, F
 	for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
 	{
 		float Magnitude = 0.f;
-		FString Op;
-		switch (Modifier.ModifierOp)
-		{
-		case EGameplayModOp::Additive:
-			Op = "Add";
-			break;
-		case EGameplayModOp::Multiplicitive:
-			Op = "Multiply";
-			break;
-		case EGameplayModOp::Division:
-			Op = "Divide";
-			break;
-		case EGameplayModOp::Override:
-			Op = "Override";
-			break;
-		default:
-			Op = "Unknown Operation";
-		}
 		Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
-		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 	}
 
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, PredictionKey);
@@ -721,27 +665,8 @@ bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHa
 		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
 		{
 			float Magnitude = 0.f;
-			FString Op;
-			switch (Modifier.ModifierOp)
-			{
-			case EGameplayModOp::Additive:
-				Op = "Add";
-				break;
-			case EGameplayModOp::Multiplicitive:
-				Op = "Multiply";
-				break;
-			case EGameplayModOp::Division:
-				Op = "Divide";
-				break;
-			case EGameplayModOp::Override:
-				Op = "Override";
-				break;
-			default:
-				Op = "Unknown Operation";
-			}
-
 			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
-			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *Op, Magnitude);
+			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 		}
 	}
 

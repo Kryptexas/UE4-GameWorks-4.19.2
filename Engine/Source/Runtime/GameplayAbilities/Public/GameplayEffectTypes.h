@@ -22,11 +22,11 @@ class UGameplayEffect;
 struct FGameplayEffectSpec;
 struct FGameplayEffectModCallbackData;
 
-FString EGameplayModOpToString(int32 Type);
+GAMEPLAYABILITIES_API FString EGameplayModOpToString(int32 Type);
 
-FString EGameplayModToString(int32 Type);
+GAMEPLAYABILITIES_API FString EGameplayModToString(int32 Type);
 
-FString EGameplayModEffectToString(int32 Type);
+GAMEPLAYABILITIES_API FString EGameplayModEffectToString(int32 Type);
 
 UENUM(BlueprintType)
 namespace EGameplayModOp

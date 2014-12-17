@@ -143,23 +143,7 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 				.Text(GameplayEffect->Modifiers[Idx].Attribute.GetName())
 			];
 
-		FString ModOpString;
-		switch (GameplayEffect->Modifiers[Idx].ModifierOp)
-		{
-		case EGameplayModOp::Additive:
-			ModOpString = "Add";
-			break;
-		case EGameplayModOp::Multiplicitive:
-			ModOpString = "Multiply";
-			break;
-		case EGameplayModOp::Division:
-			ModOpString = "Divide";
-			break;
-		default:
-			ModOpString = "Other";
-			break;
-		}
-		FString ModString = FString::Printf(TEXT("%s: %f"), *ModOpString, GameplayEffect->Modifiers[Idx].Magnitude.Value);
+		FString ModString = FString::Printf(TEXT("%s: %f"), *EGameplayModOpToString(GameplayEffect->Modifiers[Idx].ModifierOp), GameplayEffect->Modifiers[Idx].Magnitude.Value);
 
 		RightNodeBox->AddSlot()
 			.VAlign(VAlign_Center)
