@@ -685,10 +685,13 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 
 	// Assign the outer to the game instance if it exists, otherwise use the world
 	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
-	ULocalPlayer* Player = World->GetFirstLocalPlayerFromController();
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
 
-	NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
+	if ( ULocalPlayer* Player = World->GetFirstLocalPlayerFromController() )
+	{
+		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
+	}
+
 	NewWidget->Initialize();
 
 	return Cast<T>(NewWidget);
@@ -700,6 +703,12 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 	if ( OwningPlayer == nullptr || !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
+		return nullptr;
+	}
+
+	if ( !OwningPlayer->IsLocalPlayerController() )
+	{
+		//Don't create widgets for proxies of the Player Controller, only the actual local player.
 		return nullptr;
 	}
 
@@ -725,9 +734,9 @@ T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass)
 
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningGame);
 
-	if ( APlayerController* PC = OwningGame->GetFirstLocalPlayerController() )
+	if ( ULocalPlayer* Player = OwningGame->GetFirstLocalPlayerController() )
 	{
-		NewWidget->SetPlayerContext(FLocalPlayerContext(PC));
+		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
 	}
 	
 	NewWidget->Initialize();
