@@ -245,6 +245,12 @@ private:
 
 	FOnGraphChanged::FDelegate MyRegisteredGraphChangedDelegate;
 private:
+	/** Called when PIE begins */
+	void OnBeginPIE( const bool bIsSimulating );
+
+	/** Called when PIE ends */
+	void OnEndPIE( const bool bIsSimulating );
+
 	/** Called when watched graph changes */
 	void OnGraphChanged( const FEdGraphEditAction& InAction );
 

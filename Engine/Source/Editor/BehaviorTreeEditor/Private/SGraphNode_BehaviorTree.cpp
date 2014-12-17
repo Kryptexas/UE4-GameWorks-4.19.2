@@ -559,7 +559,7 @@ EVisibility SGraphNode_BehaviorTree::GetDebuggerSearchFailedMarkerVisibility() c
 
 void SGraphNode_BehaviorTree::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SGraphNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SGraphNode::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 	CachedPosition = AllottedGeometry.AbsolutePosition / AllottedGeometry.Scale;
 
 	if (bIsMouseDown)

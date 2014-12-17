@@ -65,6 +65,7 @@ void SEditorTutorials::HandleCloseClicked()
 	OnCloseClicked.ExecuteIfBound();
 	OnTutorialClosed.ExecuteIfBound();
 
+	OverlayContent.Reset();
 	ContentBox->ClearChildren();
 	OnTutorialExited.ExecuteIfBound();
 }

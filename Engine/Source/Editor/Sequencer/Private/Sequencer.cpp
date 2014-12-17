@@ -158,6 +158,57 @@ FSequencer::~FSequencer()
 	SequencerWidget.Reset();
 }
 
+void FSequencer::Tick(float InDeltaTime)
+{
+	if (bNeedTreeRefresh)
+	{
+		// @todo - Sequencer Will be called too often
+		UpdateRuntimeInstances();
+
+		SequencerWidget->UpdateLayoutTree();
+		bNeedTreeRefresh = false;
+	}
+
+	float NewTime = GetGlobalTime() + InDeltaTime;
+	if (PlaybackState == EMovieScenePlayerStatus::Playing ||
+		PlaybackState == EMovieScenePlayerStatus::Recording)
+	{
+		TRange<float> TimeBounds = GetTimeBounds();
+		if (!TimeBounds.IsEmpty())
+		{
+			if (NewTime > TimeBounds.GetUpperBoundValue())
+			{
+				if (bLoopingEnabled)
+				{
+					NewTime -= TimeBounds.Size<float>();
+				}
+				else
+				{
+					NewTime = TimeBounds.GetUpperBoundValue();
+					PlaybackState = EMovieScenePlayerStatus::Stopped;
+				}
+			}
+
+			if (NewTime < TimeBounds.GetLowerBoundValue())
+			{
+				NewTime = TimeBounds.GetLowerBoundValue();
+			}
+
+			SetGlobalTime(NewTime);
+		}
+		else
+		{
+			// no bounds at all, stop playing
+			PlaybackState = EMovieScenePlayerStatus::Stopped;
+		}
+	}
+
+	// Tick all the tools we own as well
+	for (int32 EditorIndex = 0; EditorIndex < TrackEditors.Num(); ++EditorIndex)
+	{
+		TrackEditors[EditorIndex]->Tick(InDeltaTime);
+	}
+}
 
 TArray< UMovieScene* > FSequencer::GetMovieScenesBeingEdited()
 {
@@ -610,52 +661,6 @@ void FSequencer::RemoveMovieSceneInstance( UMovieSceneSection& MovieSceneSection
 	MovieSceneSectionToInstanceMap.Remove( &MovieSceneSection );
 }
 
-void FSequencer::Tick(const float InDeltaTime)
-{
-	if( bNeedTreeRefresh )
-	{
-		// @todo - Sequencer Will be called too often
-		UpdateRuntimeInstances();
-
-		SequencerWidget->UpdateLayoutTree();
-		bNeedTreeRefresh = false;
-	}
-
-	float NewTime = GetGlobalTime() + InDeltaTime;
-	if (PlaybackState == EMovieScenePlayerStatus::Playing ||
-		PlaybackState == EMovieScenePlayerStatus::Recording)
-	{
-		TRange<float> TimeBounds = GetTimeBounds();
-		if (!TimeBounds.IsEmpty())
-		{
-			if (NewTime > TimeBounds.GetUpperBoundValue())
-			{
-				if (bLoopingEnabled)
-				{
-					NewTime -= TimeBounds.Size<float>();
-				}
-				else
-				{
-					NewTime = TimeBounds.GetUpperBoundValue();
-					PlaybackState = EMovieScenePlayerStatus::Stopped;
-				}
-			}
-			
-			if (NewTime < TimeBounds.GetLowerBoundValue())
-			{
-				NewTime = TimeBounds.GetLowerBoundValue();
-			}
-
-			SetGlobalTime(NewTime);
-		}
-		else
-		{
-			// no bounds at all, stop playing
-			PlaybackState = EMovieScenePlayerStatus::Stopped;
-		}
-	}
-}
-
 void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	for( int32 MovieSceneIndex = 0; MovieSceneIndex < MovieSceneStack.Num(); ++MovieSceneIndex )
@@ -694,7 +699,6 @@ void FSequencer::DestroySpawnablesForAllMovieScenes()
 	}
 }
 
-
 FReply FSequencer::OnPlay()
 {
 	if( PlaybackState == EMovieScenePlayerStatus::Playing ||
@@ -715,6 +719,9 @@ FReply FSequencer::OnPlay()
 				SetGlobalTime(TimeBounds.GetLowerBoundValue());
 			}
 			PlaybackState = EMovieScenePlayerStatus::Playing;
+			
+			// Make sure Slate ticks during playback
+			SequencerWidget->RegisterActiveTickForPlayback();
 		}
 	}
 
@@ -726,6 +733,9 @@ FReply FSequencer::OnRecord()
 	if (PlaybackState != EMovieScenePlayerStatus::Recording)
 	{
 		PlaybackState = EMovieScenePlayerStatus::Recording;
+		
+		// Make sure Slate ticks during playback
+		SequencerWidget->RegisterActiveTickForPlayback();
 
 		// @todo sequencer livecapture: Ideally we would support fixed timestep capture from simulation
 		//			Basically we need to run the PIE world at a fixed time step, capturing key frames every frame. 
@@ -849,7 +859,7 @@ void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, bool bSmoothZoo
 			{
 				LastViewRange = TargetViewRange;
 
-				ZoomAnimation.Play();
+				ZoomAnimation.Play( SequencerWidget.ToSharedRef() );
 			}
 			TargetViewRange = NewViewRange;
 		}
@@ -1253,11 +1263,11 @@ void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieS
 
 	if (!bWasPreviouslyFiltering && bIsNowFiltering)
 	{
-		OverlayAnimation.Play();
+		OverlayAnimation.Play( SequencerWidget.ToSharedRef() );
 	}
 	else if (bWasPreviouslyFiltering && !bIsNowFiltering) 
 	{
-		OverlayAnimation.PlayReverse();
+		OverlayAnimation.PlayReverse( SequencerWidget.ToSharedRef() );
 	}
 
 	if( bZoomToShotBounds )

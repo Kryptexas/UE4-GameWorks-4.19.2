@@ -59,7 +59,7 @@ void SSpriteList::RebuildWidget(UTexture2D* NewTextureFilter)
 	];
 }
 
-void SSpriteList::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SSpriteList::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	TSharedPtr<FSpriteEditor> SpriteEditor = SpriteEditorPtr.Pin();
 	if (SpriteEditor.IsValid())
@@ -72,8 +72,6 @@ void SSpriteList::Tick(const FGeometry& AllottedGeometry, const double InCurrent
 			RebuildWidget(CurrentTexture);
 		}
 	}
-
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 void SSpriteList::OnSpriteSelected(const FAssetData& AssetData)

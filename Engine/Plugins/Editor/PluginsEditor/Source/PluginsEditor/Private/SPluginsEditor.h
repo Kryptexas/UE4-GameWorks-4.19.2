@@ -82,9 +82,8 @@ private:
 	/** Called to refresh the breadcrumb trail immediately */
 	void RefreshBreadcrumbTrail();
 
-	/** SWidget overrides */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
+	/** One-off active tick to trigger a refresh of the breadcrumb trail as needed */
+	EActiveTickReturnType TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime);
 
 private:
 
@@ -99,9 +98,6 @@ private:
 
 	/** Breadcrumb trail widget for the currently selected category */
 	TSharedPtr< SPluginCategoryBreadcrumbTrail > BreadcrumbTrail;
-
-	/** True if the breadcrumb trail needs to be refreshed */
-	bool bBreadcrumbNeedsRefresh;
 
 };
 

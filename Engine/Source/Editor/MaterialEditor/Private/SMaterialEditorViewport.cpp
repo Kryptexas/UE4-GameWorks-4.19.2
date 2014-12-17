@@ -230,11 +230,6 @@ void SMaterialEditorViewport::RefreshViewport()
 	SceneViewport->InvalidateDisplay();
 }
 
-void SMaterialEditorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-}
-
 bool SMaterialEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
 {
 	// Only permit the use of a skeletal mesh if the material has bUsedWithSkeltalMesh.

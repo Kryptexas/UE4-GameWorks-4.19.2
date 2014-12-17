@@ -866,11 +866,11 @@ void SDockingTabStack::SetTabWellHidden( bool bShouldHideTabWell )
 {
 	if (bShouldHideTabWell)
 	{
-		ShowHideTabWell.PlayReverse();
+		ShowHideTabWell.PlayReverse( this->AsShared() );
 	}
 	else
 	{
-		ShowHideTabWell.Play();
+		ShowHideTabWell.Play( this->AsShared() );
 	}
 }
 

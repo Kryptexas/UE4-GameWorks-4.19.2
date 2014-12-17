@@ -63,6 +63,8 @@ void SColorPicker::Construct( const FArguments& InArgs )
 	DisplayGamma = InArgs._DisplayGamma;
 	bClosedViaOkOrCancel = false;
 
+	RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SColorPicker::AnimatePostConstruct ) );
+
 	// We need a parent window to set the close callback
 	if (ParentWindowPtr.IsValid())
 	{
@@ -570,35 +572,36 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 	
 	HideSmallTrash();
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-
-void SColorPicker::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SColorPicker::AnimatePostConstruct( double InCurrentTime, float InDeltaTime )
 {
-	// animate the wheel and all the sliders
-	static const float AnimationTime = 0.2f;
-	if (CurrentTime < AnimationTime)
+	static const float AnimationTime = 0.25f;
+
+	EActiveTickReturnType TickReturnVal = EActiveTickReturnType::KeepTicking;
+	if ( CurrentTime < AnimationTime )
 	{
-		CurrentColorHSV = FMath::Lerp(ColorBegin, ColorEnd, CurrentTime / AnimationTime);
-		if (CurrentColorHSV.R < 0.f)
+		CurrentColorHSV = FMath::Lerp( ColorBegin, ColorEnd, CurrentTime / AnimationTime );
+		if ( CurrentColorHSV.R < 0.f )
 		{
 			CurrentColorHSV.R += 360.f;
 		}
-		else if (CurrentColorHSV.R > 360.f)
+		else if ( CurrentColorHSV.R > 360.f )
 		{
 			CurrentColorHSV.R -= 360.f;
 		}
 
 		CurrentTime += InDeltaTime;
-		if (CurrentTime >= AnimationTime)
+		if ( CurrentTime >= AnimationTime )
 		{
 			CurrentColorHSV = ColorEnd;
+			TickReturnVal = EActiveTickReturnType::StopTicking;
 		}
 
 		CurrentColorRGB = CurrentColorHSV.HSVToLinearRGB();
 	}
-}
 
+	return TickReturnVal;
+}
 
 void SColorPicker::GenerateInlineColorPickerContent()
 {

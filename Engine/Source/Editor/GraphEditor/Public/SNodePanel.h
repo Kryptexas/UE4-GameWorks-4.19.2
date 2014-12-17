@@ -538,7 +538,7 @@ public:
 	// End of SPanel interface
 
 	// SWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -582,7 +582,10 @@ public:
 		return 16.f;
 	}
 
-	// Zooms out to fit either all nodes or only the selected ones
+	/** 
+	 * Zooms out to fit either all nodes or only the selected ones.
+	 * @param bOnlySelection Whether to zoom to fit around only the current selection (if false, will zoom to the extents of all nodes)
+	 */
 	void ZoomToFit(bool bOnlySelection);
 
 	/** Get the bounding area for the currently selected nodes 
@@ -610,6 +613,13 @@ public:
 protected:
 	/** Initialize members */
 	void Construct();
+
+	/**
+	 * Zooms to the specified target rect
+	 * @param TopLeft The top left corner of the target rect
+	 * @param BottomRight The bottom right corner of the target rect
+	 */
+	void ZoomToTarget(const FVector2D& TopLeft, const FVector2D& BottomRight);
 
 	/** Update the new view offset location  */
 	void UpdateViewOffset(const FGeometry& MyGeometry, const FVector2D& TargetPosition);
@@ -795,15 +805,8 @@ protected:
 	/** Deferred zoom to node extents */
 	bool bDeferredZoomToNodeExtents;
 
-	/** Are we currently zooming to fit? */
-	bool bDeferredZoomingToFit;
-
 	/** Zoom selection padding */
 	float ZoomPadding;
-
-	/** Zoom target rectangle */
-	FVector2D ZoomTargetTopLeft;
-	FVector2D ZoomTargetBottomRight;
 
 	/** Allow continous zoom interpolation? */
 	bool bAllowContinousZoomInterpolation;
@@ -843,4 +846,19 @@ protected:
 
 	/** The current transaction for undo/redo */
 	TSharedPtr<FScopedTransaction> ScopedTransactionPtr;
+
+private:
+	/** Active tick that handles deferred zooming until the target zoom is reached */
+	EActiveTickReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
+
+private:
+	/** The handle to the active tick */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+
+	/** Cached geometry for use within the active tick */
+	FGeometry CachedGeometry;
+
+	/** Zoom target rectangle */
+	FVector2D ZoomTargetTopLeft;
+	FVector2D ZoomTargetBottomRight;
 };

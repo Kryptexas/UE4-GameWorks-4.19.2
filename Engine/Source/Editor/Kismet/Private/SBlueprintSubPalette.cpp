@@ -256,15 +256,10 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 }
 
 //------------------------------------------------------------------------------
-void SBlueprintSubPalette::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SBlueprintSubPalette::TriggerRefreshActionsList(double InCurrentTime, float InDeltaTime)
 {
-	SGraphPalette::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	if(bNeedsRefresh)
-	{
-		bNeedsRefresh = false;
-		RefreshActionsList(/*bPreserveExpansion =*/true);
-	}
+	RefreshActionsList(true);
+	return EActiveTickReturnType::StopTicking;
 }
 
 //------------------------------------------------------------------------------
@@ -395,7 +390,7 @@ void SBlueprintSubPalette::GenerateContextMenuEntries(FMenuBuilder& MenuBuilder)
 //------------------------------------------------------------------------------
 void SBlueprintSubPalette::RequestRefreshActionsList()
 {
-	bNeedsRefresh = true;
+	RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SBlueprintSubPalette::TriggerRefreshActionsList));
 }
 
 //------------------------------------------------------------------------------

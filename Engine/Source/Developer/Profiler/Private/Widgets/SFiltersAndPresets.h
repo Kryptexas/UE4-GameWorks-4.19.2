@@ -284,15 +284,6 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-	/**
-	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
-	 *
-	 * @param  AllottedGeometry The space allotted for this widget
-	 * @param  InCurrentTime  Current absolute real time
-	 * @param  InDeltaTime  Real time passed since last tick
-	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 protected:
 	/** Called when the filter and presets widget should be updated with the latest data. */
 	void ProfilerManager_OnRequestFilterAndPresetsUpdate();
@@ -415,12 +406,19 @@ protected:
 	/** How we sort the metadata?. */
 	EStatGroupingOrSortingMode::Type SortingMode;
 
-	/** If true, an update should occur on the next tick. */
-	bool bUpdateOnNextTick;
-
 	/** If true, the expanded nodes have been saved before applying a text filter. */
 	bool bExpansionSaved;
 
 	/** Holds the visibility of each stat type. */
 	bool bStatTypeIsVisible[EProfilerSampleTypes::InvalidOrMax];
+
+private:
+	/** Registers the active tick to trigger an update if not done already */
+	void RegisterForUpdate();
+
+	/** Simple one-off active tick to update the group and stat trees */
+	EActiveTickReturnType UpdateData(double InCurrentTime, float InDeltaTime);
+
+	/** Whether the active tick has already been registered this frame */
+	bool bIsActiveTickRegistered;
 };

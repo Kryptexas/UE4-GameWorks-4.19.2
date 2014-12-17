@@ -240,3 +240,16 @@ namespace ESelectInfo
 		Direct
 	};
 }
+
+/** 
+ * Return type for FWidgetActiveTickDelegate.
+ * Don't expose to blueprints.
+ */
+enum EActiveTickReturnType : uint8
+{
+	/** If this value is returned, the widget will be unregistered for tick automatically. No need to call UnRegisterActiveTick. */
+	StopTicking,
+	/** If this value is returns, the widget will continue to have it's tick delegate called on it. */
+	KeepTicking,
+};
+

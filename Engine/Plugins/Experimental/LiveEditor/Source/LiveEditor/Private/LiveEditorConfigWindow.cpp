@@ -195,8 +195,6 @@ public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
-		SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
 		bool success = FLiveEditorManager::Get().GetDeviceData( *DeviceID.Get(), DeviceData );
 		check(success);
 	}

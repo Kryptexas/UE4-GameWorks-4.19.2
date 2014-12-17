@@ -135,12 +135,10 @@ void SNiagaraEffectEditorViewport::RefreshViewport()
 	SceneViewport->InvalidateDisplay();
 }
 
-void SNiagaraEffectEditorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SNiagaraEffectEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SEditorViewport::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
-
-
 
 void SNiagaraEffectEditorViewport::SetPreviewEffect(FNiagaraEffectInstance *InPreviewEffect)
 {

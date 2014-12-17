@@ -42,6 +42,9 @@ public:
 		OnCancelClickedDelegate = InArgs._OnCancelClickedDelegate;
 		ScopeStack = InArgs._ScopeStack;
 
+		// This is a temporary widget that needs to be updated over its entire lifespan => has an active tick registered for its entire lifespan
+		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SSlowTaskWidget::UpdateProgress ) );
+
 		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox)
 
 			// Construct the main progress bar and text
@@ -131,12 +134,15 @@ public:
 		UpdateDynamicProgressBars();
 	}
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+private:
+
+	/** Active tick to update the progress bars */
+	EActiveTickReturnType UpdateProgress(double InCurrentTime, float InDeltaTime)
 	{
 		UpdateDynamicProgressBars();
-	}
 
-private:
+		return EActiveTickReturnType::KeepTicking;
+	}
 
 	/** Updates the dynamic progress bars for this widget */
 	void UpdateDynamicProgressBars()

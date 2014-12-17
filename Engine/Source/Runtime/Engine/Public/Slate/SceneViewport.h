@@ -117,7 +117,7 @@ public:
 	/**
 	 * Ticks the viewport
 	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime ) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float InDeltaTime ) override;
 
 	/**
 	 * Performs a resize when in swapping viewports while viewing the play world.

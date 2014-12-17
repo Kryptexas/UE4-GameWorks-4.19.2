@@ -34,7 +34,7 @@ public:
 
 	// SWidget Interface
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 
@@ -104,10 +104,8 @@ void SAutomationHistoryCell::RebuildContentArea()
 		];
 	}
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-
-void SAutomationHistoryCell::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SAutomationHistoryCell::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	const TArray<TSharedPtr<FAutomationHistoryItem>> TestHistory = HistoryItem->GetHistory();
 

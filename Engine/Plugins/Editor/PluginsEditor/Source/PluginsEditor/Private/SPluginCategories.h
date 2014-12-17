@@ -55,10 +55,6 @@ private:
 	/** Rebuilds the category tree from scratch */
 	void RebuildAndFilterCategoryTree();
 
-	/** SWidget overrides */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
-
 private:
 
 	/** Weak pointer back to its owner */
@@ -69,9 +65,5 @@ private:
 
 	/** Root list of categories */
 	TArray< FPluginCategoryTreeItemPtr > RootPluginCategories;
-
-	/** True if something has changed with either our filtering or the loaded plugin set, and we need to
-	    do a full refresh */
-	bool bNeedsRefresh;
 };
 

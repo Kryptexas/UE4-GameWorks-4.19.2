@@ -136,6 +136,6 @@ private:
 	TAttribute<FVector2D> BorderPadding;
 
 	/** Curve sequence to drive progress bar animation */
-	FCurveSequence CurveSequence;
+	FCurveSequence MarqueeAnimation;
 };
 

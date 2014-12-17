@@ -339,7 +339,7 @@ public:
 	 * @param  InCurrentTime  Current absolute real time.
 	 * @param  InDeltaTime  Real time passed since last tick.
 	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		if ( bTreeItemsAreDirty )
 		{

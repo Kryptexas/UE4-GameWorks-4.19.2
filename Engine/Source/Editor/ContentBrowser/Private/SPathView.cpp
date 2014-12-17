@@ -28,15 +28,19 @@ SPathView::~SPathView()
 
 void SPathView::Construct( const FArguments& InArgs )
 {
-	bNeedsRepopulate = true;
+	RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
 
 	OnPathSelected = InArgs._OnPathSelected;
 	bAllowContextMenu = InArgs._AllowContextMenu;
 	OnGetFolderContextMenu = InArgs._OnGetFolderContextMenu;
 	OnGetPathContextMenuExtender = InArgs._OnGetPathContextMenuExtender;
-	bPendingFocusNextFrame = InArgs._FocusSearchBoxWhenOpened;
 	bAllowClassesFolder = InArgs._AllowClassesFolder;
 	PreventTreeItemChangedDelegateCount = 0;
+
+	if ( InArgs._FocusSearchBoxWhenOpened )
+	{
+		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SPathView::SetFocusPostConstruct ) );
+	}
 
 	// Listen for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SPathView::HandleSettingChanged);
@@ -616,22 +620,19 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 	}
 }
 
-void SPathView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SPathView::SetFocusPostConstruct( double InCurrentTime, float InDeltaTime )
 {
-	if ( bPendingFocusNextFrame )
-	{
-		FWidgetPath WidgetToFocusPath;
-		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
-		bPendingFocusNextFrame = false;
-	}
+	FWidgetPath WidgetToFocusPath;
+	FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
+	FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	return EActiveTickReturnType::StopTicking;
+}
 
-	if( bNeedsRepopulate )
-	{
-		Populate();
-	}
+EActiveTickReturnType SPathView::TriggerRepopulate(double InCurrentTime, float InDeltaTime)
+{
+	Populate();
+	return EActiveTickReturnType::StopTicking;
 }
 
 TSharedPtr<SWidget> SPathView::MakePathViewContextMenu()
@@ -973,8 +974,6 @@ void SPathView::Populate()
 	}
 
 	TreeViewPtr->RequestTreeRefresh();
-
-	bNeedsRepopulate = false;
 }
 
 void SPathView::PopulateFolderSearchStrings( const FString& FolderName, OUT TArray< FString >& OutSearchStrings ) const
@@ -1337,7 +1336,7 @@ void SPathView::OnAssetRegistrySearchCompleted()
 void SPathView::OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FilesystemPath )
 {
 	// A new content path has appeared, so we should refresh out root set of paths
-	bNeedsRepopulate = true;
+	RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
 }
 
 void SPathView::HandleSettingChanged(FName PropertyName)

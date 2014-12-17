@@ -131,8 +131,6 @@ public:
 		//	FCanExecuteAction::CreateSP(this, &SWorldCompositionGrid::AreAnyItemsSelected));
 
 		//
-		BounceCurve.AddCurve(0.0f, 1.0f);
-		BounceCurve.Play();
 		WorldModel = InArgs._InWorldModel;
 		bUpdatingSelection = false;
 	
@@ -183,7 +181,7 @@ public:
 	}
 		
 	/**  SWidget interface */
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 	{
 		SNodePanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
@@ -206,7 +204,7 @@ public:
 	
 		WorldModel->UpdateStreamingPreview(WorldMouseLocation, bShowPotentiallyVisibleLevels);
 			
-		// deffered scroll and zooming requests
+		// deferred scroll and zooming requests
 		if (bHasScrollToRequest || bHasScrollByRequest)
 		{
 			// zoom to
@@ -423,7 +421,7 @@ public:
 					// Update the amount to pan panel
 					UpdateViewOffset(MyGeometry, MouseEvent.GetScreenSpacePosition());
 
-					const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
+					const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistance();
 
 					if ( NodeBeingDragged.IsValid() )
 					{
@@ -896,8 +894,7 @@ private:
 
 	/** Geometry cache */
 	mutable FVector2D						CachedAllottedGeometryScaledSize;
-	/** Bouncing curve */
-	FCurveSequence							BounceCurve;
+
 	bool									bUpdatingSelection;
 	TArray<FIntRect>						OccupiedCells;
 	const TSharedRef<FUICommandList>		CommandList;

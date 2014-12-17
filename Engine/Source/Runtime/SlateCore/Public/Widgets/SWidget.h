@@ -35,7 +35,6 @@ public:
 	}
 };
 
-
 /**
  * Abstract base class for Slate widgets.
  *
@@ -63,6 +62,8 @@ class SLATECORE_API SWidget
 	: public FSlateControlledConstruction,
 	  public TSharedFromThis<SWidget>		// Enables 'this->AsShared()'
 {
+	friend struct FCurveSequence;
+
 public:
 	
 	/**
@@ -117,7 +118,7 @@ public:
 	int32 Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const { return 0; }
 
 	/**
-	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
+	 * Ticks this widget with Geometry.  Override in derived classes, but always call the parent implementation.
 	 *
 	 * @param  AllottedGeometry The space allotted for this widget
 	 * @param  InCurrentTime  Current absolute real time
@@ -858,7 +859,48 @@ private:
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const = 0;
 
 protected:
-	
+	/**
+	 * Registers a delegate for "active tick" at the specified frequency. Will not call TickFunction until the specified interval has elapsed once.
+	 * A widget can register as many delegates as it needs. Be careful when registering to avoid duplicate active ticks.
+	 * 
+	 * An active tick can be UnRegistered in one of three ways:
+	 *   1. Call UnRegisterActiveTick using the active tick handle that is returned here.
+	 *   2. Have your delegate return ETickWidgetReturnType::StopTicking.
+	 *   3. Destroying the widget
+	 * 
+	 * Active Ticking
+	 * --------------
+	 * Slate may go to sleep when there is no user interaction for some time to save power.
+	 * However, some UI elements may need to drive the UI even when the user is not providing any input
+	 * (ie, animations, viewport rendering, async polling, etc). A widget notifies Slate of this by
+	 * registering for "Active Tick", basically saying it needs to be ticked at some frequency to drive the UI.
+	 * In this way, slate can go to sleep, but still tick any widgets that are driving the UI at the interval they specify.
+	 * When any active tick needs to fire, all of Slate will do a Tick and Paint pass.
+	 * 
+	 * @param TickPeriod maximum frequency to tick the widget in seconds. Pass zero to tick once per frame. 
+	 *                      If an interval is missed, the delegate is NOT called more than once.
+	 * @param TickFunction delegate to call every TickFrequency seconds.
+	 * @return an active tick handle that can be used to UnRegister later.
+	 */
+	TSharedRef<FActiveTickHandle> RegisterActiveTick( float TickPeriod, FWidgetActiveTickDelegate TickFunction );
+
+	/**
+	 * Unregisters an active tick handle. This is optional, as the delegate can UnRegister itself by returning ETickWidgetReturnType::StopTicking.
+	 */
+	void UnRegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle );
+
+private:
+
+	/** Iterates over the active tick handles on the widget and executes them if their interval has elapsed. */
+	void ExecuteActiveTicks(double CurrentTime, float DeltaTime);
+
+	/** The list of active tick handles for this widget. */
+	TArray<TSharedRef<FActiveTickHandle>> ActiveTicks;
+
+protected:
+	/** Dtor ensures that active tick handles are UnRegistered with the SlateApplication. */
+	~SWidget();
+
 	//	DEBUG INFORMATION
 	// @todo Slate: Should compile out in final release builds?
 	FName TypeOfWidget;

@@ -107,7 +107,7 @@ private:
 /**
  * Utility class for keeping track of, rendering, and recycling thumbnails rendered in Slate              
  */
-class FAssetThumbnailPool
+class FAssetThumbnailPool : public FTickableEditorObject
 {
 public:
 
@@ -124,10 +124,16 @@ public:
 	/** Destructor to free all remaining resources */
 	UNREALED_API ~FAssetThumbnailPool();
 
-	/**
-	 * Ticks the pool, rendering new thumbnails as needed
-	 */
-	UNREALED_API void Tick( float DeltaTime );
+	// Begin FTickableObject interface
+	UNREALED_API virtual TStatId GetStatId() const override;
+
+	/** Checks if any new thumbnails are queued */
+	UNREALED_API virtual bool IsTickable() const override;
+
+	/** Ticks the pool, rendering new thumbnails as needed */
+	UNREALED_API virtual void Tick( float DeltaTime ) override;
+
+	// End FTickableObject interface
 
 	/**
 	 * Releases all rendering resources held by the pool

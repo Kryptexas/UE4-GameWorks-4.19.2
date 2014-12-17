@@ -349,8 +349,6 @@ void SAnimationScrubPanel::Tick( const FGeometry& AllottedGeometry, const double
 			bSliderBeingDragged = false;
 		}
 	}
-
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 class UAnimSingleNodeInstance* SAnimationScrubPanel::GetPreviewInstance() const

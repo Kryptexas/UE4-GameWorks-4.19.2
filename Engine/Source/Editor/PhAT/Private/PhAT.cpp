@@ -520,7 +520,7 @@ void FPhAT::RefreshHierachyTree()
 
 		// Force the tree to refresh now instead of next tick
 		const FGeometry Stub;
-		Hierarchy->Tick(Stub, 0.0, 0.0f);
+		Hierarchy->Tick( Stub, 0.0f, 0.0f );
 
 		if (!InsideSelChanged && (Hierarchy->GetNumItemsSelected() > 0))
 		{

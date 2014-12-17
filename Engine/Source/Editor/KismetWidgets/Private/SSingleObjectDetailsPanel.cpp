@@ -39,7 +39,7 @@ UObject* SSingleObjectDetailsPanel::GetObjectToObserve() const
 	return NULL;
 }
 
-void SSingleObjectDetailsPanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SSingleObjectDetailsPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (bAutoObserveObject)
 	{
@@ -57,8 +57,6 @@ void SSingleObjectDetailsPanel::Tick(const FGeometry& AllottedGeometry, const do
 			SetPropertyWindowContents(SelectedObjects);
 		}
 	}
-
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 void SSingleObjectDetailsPanel::SetPropertyWindowContents(TArray<UObject*> Objects)

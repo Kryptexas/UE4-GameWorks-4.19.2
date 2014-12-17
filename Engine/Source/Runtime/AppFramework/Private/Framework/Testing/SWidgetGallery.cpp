@@ -66,7 +66,7 @@ public:
 			TextComboBoxOptions.Add(MakeShareable(new FString(TEXT("Option iii"))));
 
 			ProgressCurve = FCurveSequence(0.0f,15.0f);
-			ProgressCurve.Play();
+			ProgressCurve.Play(this->AsShared());
 		}
 		
 		ChildSlot
@@ -993,7 +993,7 @@ private:
 	TOptional<float> HandleProgressBarPercent( ) const
 	{
 		// Show some marquee, some progress and some 100% filled state.
-		const float Progress = ProgressCurve.GetLerpLooping();
+		const float Progress = ProgressCurve.GetLerp();
 		const float MarqueeTimeFraction = 0.5f;
 
 		return (Progress < MarqueeTimeFraction)

@@ -177,7 +177,9 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	SetStartupResolution();
 
 	ResolutionTextFade = FCurveSequence(0.0f, 1.0f);
-	ResolutionTextFade.Play();
+	ResolutionTextFade.Play(this->AsShared());
+
+	HoveredWidgetOutlineFade = FCurveSequence(0.0f, 0.15f);
 
 	bMovingExistingWidget = false;
 
@@ -294,6 +296,8 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	);
 
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SDesignerView::OnEditorSelectionChanged);
+	BlueprintEditor.Pin()->OnHoveredWidgetSet.AddRaw(this, &SDesignerView::SetHoveredWidget);
+	BlueprintEditor.Pin()->OnHoveredWidgetCleared.AddRaw(this, &SDesignerView::ClearHoveredWidget);
 
 	ZoomToFit(/*bInstantZoom*/ true);
 }
@@ -520,7 +524,10 @@ SDesignerView::~SDesignerView()
 
 	if ( BlueprintEditor.IsValid() )
 	{
-		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
+		auto PinnedEditor = BlueprintEditor.Pin();
+		PinnedEditor->OnSelectedWidgetsChanged.RemoveAll(this);
+		PinnedEditor->OnHoveredWidgetSet.RemoveAll(this);
+		PinnedEditor->OnHoveredWidgetCleared.RemoveAll(this);
 	}
 
 	if ( GEditor )
@@ -723,9 +730,23 @@ void SDesignerView::OnEditorSelectionChanged()
 	CreateExtensionWidgetsForSelection();
 }
 
+void SDesignerView::SetHoveredWidget(const FWidgetReference& InHoveredWidget)
+{
+	if (InHoveredWidget != HoveredWidget)
+	{
+		HoveredWidget = InHoveredWidget;
+		HoveredWidgetOutlineFade.Play(this->AsShared());
+	}
+}
+
+void SDesignerView::ClearHoveredWidget()
+{
+	HoveredWidget = FWidgetReference();
+}
+
 FGeometry SDesignerView::GetDesignerGeometry() const
 {
-	return CachedDesignerGeometry;
+	return CachedGeometry;
 }
 
 void SDesignerView::MarkDesignModifed(bool bRequiresRecompile)
@@ -857,8 +878,8 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 
 		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry_RelativeToDesigner) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry_RelativeToDesigner) )
 		{
-			SelectedWidgetGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedDesignerGeometry.AbsolutePosition)));
-			SelectedWidgetParentGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedDesignerGeometry.AbsolutePosition)));
+			SelectedWidgetGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedGeometry.AbsolutePosition)));
+			SelectedWidgetParentGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedGeometry.AbsolutePosition)));
 
 			const FVector2D WidgetPostion_DesignerSpace = SelectedWidgetGeometry_RelativeToDesigner.AbsolutePosition;
 			const FVector2D WidgetSize = SelectedWidgetGeometry_RelativeToDesigner.Size * GetPreviewScale();
@@ -1162,7 +1183,11 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 	FWidgetHitResult HitResult;
 	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, HitResult) )
 	{
-		BlueprintEditor.Pin()->SetHoveredWidget(HitResult.Widget);
+		SetHoveredWidget(HitResult.Widget);
+	}
+	else if (HoveredWidget.IsValid())
+	{
+		ClearHoveredWidget();
 	}
 
 	return FReply::Unhandled();
@@ -1172,14 +1197,14 @@ void SDesignerView::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEven
 {
 	SDesignSurface::OnMouseEnter(MyGeometry, MouseEvent);
 
-	BlueprintEditor.Pin()->ClearHoveredWidget();
+	ClearHoveredWidget();
 }
 
 void SDesignerView::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	SDesignSurface::OnMouseLeave(MouseEvent);
 
-	BlueprintEditor.Pin()->ClearHoveredWidget();
+	ClearHoveredWidget();
 }
 
 FReply SDesignerView::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
@@ -1242,8 +1267,7 @@ int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArg
 	static const FName SelectionOutlineName("UMGEditor.SelectionOutline");
 
 	static const FLinearColor SelectedTint(0, 1, 0);
-	const FLinearColor HoveredTint(0, 0.5, 1, FMath::Clamp(BlueprintEditor.Pin()->GetHoveredWidgetTime() / HoveredAnimationTime, 0.0f, 1.0f)); // Azure = 0x007FFF
-
+	
 	const FSlateBrush* SelectionOutlineBrush = FEditorStyle::Get().GetBrush(SelectionOutlineName);
 	FVector2D SelectionBrushInflationAmount = FVector2D(16, 16) * FVector2D(SelectionOutlineBrush->Margin.Left, SelectionOutlineBrush->Margin.Top) * ( 1.0f / GetPreviewScale() );
 
@@ -1273,12 +1297,14 @@ int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArg
 		}
 	}
 
-	FWidgetReference HoveredWidget = BlueprintEditor.Pin()->GetHoveredWidget();
 	TSharedPtr<SWidget> HoveredSlateWidget = HoveredWidget.GetPreviewSlate();
 
 	// Don't draw the hovered effect if it's also the selected widget
 	if ( HoveredSlateWidget.IsValid() && !SelectedWidgets.Contains(HoveredWidget) )
 	{
+		//const FLinearColor HoveredTint(0, 0.5, 1, FMath::Clamp(BlueprintEditor.Pin()->GetHoveredWidgetTime() / HoveredAnimationTime, 0.0f, 1.0f)); // Azure = 0x007FFF
+		const FLinearColor HoveredTint(0, 0.5, 1, HoveredWidgetOutlineFade.GetLerp()); // Azure = 0x007FFF
+
 		TSharedRef<SWidget> Widget = HoveredSlateWidget.ToSharedRef();
 
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
@@ -1344,9 +1370,10 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 	}
 }
 
-void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SDesignerView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	CachedDesignerGeometry = AllottedGeometry;
+	// Tick the parent first to update CachedGeometry
+	SDesignSurface::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	const bool bForceUpdate = false;
 	UpdatePreviewWidget(bForceUpdate);
@@ -1398,8 +1425,6 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		TopRuler->SetCursor(TOptional<FVector2D>());
 		SideRuler->SetCursor(TOptional<FVector2D>());
 	}
-
-	SDesignSurface::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -1430,7 +1455,7 @@ void SDesignerView::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEven
 {
 	SDesignSurface::OnDragEnter(MyGeometry, DragDropEvent);
 
-	BlueprintEditor.Pin()->ClearHoveredWidget();
+	ClearHoveredWidget();
 
 	//@TODO UMG Drop Feedback
 }
@@ -1439,7 +1464,7 @@ void SDesignerView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
 	SDesignSurface::OnDragLeave(DragDropEvent);
 
-	BlueprintEditor.Pin()->ClearHoveredWidget();
+	ClearHoveredWidget();
 
 	TSharedPtr<FDecoratedDragDropOp> DecoratedDragDropOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
 	if ( DecoratedDragDropOp.IsValid() )
@@ -1526,7 +1551,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( TemplateDragDropOp.IsValid() )
 	{
-		BlueprintEditor.Pin()->SetHoveredWidget(HitResult.Widget);
+		SetHoveredWidget(HitResult.Widget);
 
 		TemplateDragDropOp->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
@@ -1660,7 +1685,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 		}
 
 		FWidgetReference TargetReference = bIsPreview ? BlueprintEditor.Pin()->GetReferenceFromPreview(Target) : BlueprintEditor.Pin()->GetReferenceFromTemplate(Target);
-		BlueprintEditor.Pin()->SetHoveredWidget(TargetReference);
+		SetHoveredWidget(TargetReference);
 
 		// If the widget being hovered over is a panel, attempt to place it into that panel.
 		if ( Target && Target->IsA(UPanelWidget::StaticClass()) )
@@ -1927,7 +1952,7 @@ void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, 
 		MarkDesignModifed(/*bRequiresRecompile*/ false);
 	}
 
-	ResolutionTextFade.Play();
+	ResolutionTextFade.Play( this->AsShared() );
 }
 
 bool SDesignerView::HandleIsCommonResolutionSelected(int32 Width, int32 Height) const

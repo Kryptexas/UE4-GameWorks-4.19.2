@@ -25,11 +25,10 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	bTutorialAvailable = false;
 	bTutorialCompleted = false;
 	bTutorialDismissed = false;
-	bDeferTutorialOpen = true;
 	AlertStartTime = 0.0f;
 
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
-	PulseAnimation.Play();
+	RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &STutorialButton::OpenTutorialPostConstruct ) );
 
 	ChildSlot
 	[
@@ -47,31 +46,32 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	];
 }
 
-void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType STutorialButton::OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime )
 {
-	if (bDeferTutorialOpen)
+	// Begin playing the pulse animation on a loop
+	PulseAnimation.Play(this->AsShared(), true);
+
+	RefreshStatus();
+
+	if ( bTutorialAvailable && CachedAttractTutorial != nullptr && !bTutorialDismissed && !bTutorialCompleted )
 	{
-		RefreshStatus();
-
-		if (bTutorialAvailable && CachedAttractTutorial != nullptr && !bTutorialDismissed && !bTutorialCompleted)
-		{
-			// kick off the attract tutorial if the user hasn't dismissed it and hasn't completed it
-			FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-			const bool bRestart = true;
-			IntroTutorials.LaunchTutorial(CachedAttractTutorial, bRestart, ContextWindow);
-		}
-
-		if(ShouldShowAlert())
-		{
-			AlertStartTime = FPlatformTime::Seconds();
-		}
-
-		if(CachedLaunchTutorial != nullptr)
-		{
-			TutorialTitle = CachedLaunchTutorial->Title;
-		}
+		// kick off the attract tutorial if the user hasn't dismissed it and hasn't completed it
+		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>( TEXT( "IntroTutorials" ) );
+		const bool bRestart = true;
+		IntroTutorials.LaunchTutorial( CachedAttractTutorial, bRestart, ContextWindow );
 	}
-	bDeferTutorialOpen = false;
+
+	if ( ShouldShowAlert() )
+	{
+		AlertStartTime = FPlatformTime::Seconds();
+	}
+
+	if ( CachedLaunchTutorial != nullptr )
+	{
+		TutorialTitle = CachedLaunchTutorial->Title;
+	}
+
+	return EActiveTickReturnType::StopTicking;
 }
 
 static void GetAnimationValues(float InAnimationProgress, float& OutAlphaFactor0, float& OutPulseFactor0, float& OutAlphaFactor1, float& OutPulseFactor1)
@@ -90,13 +90,13 @@ int32 STutorialButton::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 {
 	LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1000;
 
-	if (ShouldShowAlert())
+	if ( PulseAnimation.IsPlaying() )
 	{
 		float AlphaFactor0 = 0.0f;
 		float AlphaFactor1 = 0.0f;
 		float PulseFactor0 = 0.0f;
 		float PulseFactor1 = 0.0f;
-		GetAnimationValues(PulseAnimation.GetLerpLooping(), AlphaFactor0, PulseFactor0, AlphaFactor1, PulseFactor1);
+		GetAnimationValues(PulseAnimation.GetLerp(), AlphaFactor0, PulseFactor0, AlphaFactor1, PulseFactor1);
 
 		const FSlateBrush* PulseBrush = FEditorStyle::Get().GetBrush(TEXT("TutorialLaunch.Circle"));
 		const FLinearColor PulseColor = FEditorStyle::Get().GetColor(TEXT("TutorialLaunch.Circle.Color"));
@@ -285,6 +285,15 @@ void STutorialButton::RefreshStatus()
 	bTutorialCompleted = (CachedLaunchTutorial != nullptr) && GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(CachedLaunchTutorial);
 	bTutorialDismissed = ((CachedAttractTutorial != nullptr) && GetDefault<UTutorialStateSettings>()->IsTutorialDismissed(CachedAttractTutorial)) ||
 						 ((CachedLaunchTutorial != nullptr) && GetDefault<UTutorialStateSettings>()->IsTutorialDismissed(CachedLaunchTutorial));
+
+	if (ShouldShowAlert())
+	{
+		PulseAnimation.Resume();
+	}
+	else
+	{
+		PulseAnimation.Pause();
+	}
 }
 
 void STutorialButton::HandleTutorialExited()

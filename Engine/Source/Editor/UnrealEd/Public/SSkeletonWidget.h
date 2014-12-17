@@ -283,8 +283,6 @@ private:
 	class UDebugSkelMeshComponent* PreviewComponent;
 
 	bool IsVisible() const;
-
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 };
 
 /////////////////////////////////////////////

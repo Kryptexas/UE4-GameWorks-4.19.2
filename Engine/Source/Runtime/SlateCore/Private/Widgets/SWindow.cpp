@@ -531,11 +531,6 @@ void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 {
 	if( Morpher.bIsActive )
 	{
-		if(Morpher.bIsPendingPlay)
-		{
-			Morpher.Sequence.Play();
-			Morpher.bIsPendingPlay = false;
-		}
 		if ( Morpher.Sequence.IsPlaying() )
 		{
 			const float InterpAlpha = Morpher.Sequence.GetLerp();
@@ -549,7 +544,7 @@ void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 					this->ReshapeWindow( WindowRect );
 				}
 			}
-			else
+			else // if animating position
 			{
 				const FVector2D StartPosition( Morpher.StartingMorphShape.Left, Morpher.StartingMorphShape.Top );
 				const FVector2D TargetPosition( Morpher.TargetMorphShape.Left, Morpher.TargetMorphShape.Top );
@@ -565,6 +560,7 @@ void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 		}
 		else
 		{
+			// The animation is complete, so just make sure the target size/position and opacity are reached
 			if( Morpher.bIsAnimatingWindowSize )
 			{
 				if( Morpher.TargetMorphShape != GetRectInScreen() )
@@ -573,7 +569,7 @@ void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 					this->ReshapeWindow( Morpher.TargetMorphShape );
 				}
 			}
-			else
+			else // if animating position
 			{
 				const FVector2D TargetPosition( Morpher.TargetMorphShape.Left, Morpher.TargetMorphShape.Top );
 				if( TargetPosition != this->GetPositionInScreen() )
@@ -846,9 +842,13 @@ void SWindow::StartMorph()
 {
 	Morpher.StartingOpacity = GetOpacity();
 	Morpher.StartingMorphShape = FSlateRect( this->ScreenPosition.X, this->ScreenPosition.Y, this->ScreenPosition.X + this->Size.X, this->ScreenPosition.Y + this->Size.Y );
-	Morpher.bIsPendingPlay = true;
 	Morpher.bIsActive = true;
 	Morpher.Sequence.JumpToStart();
+
+	if ( !ActiveTickHandle.IsValid() )
+	{
+		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SWindow::TriggerPlayMorphSequence ) );
+	}
 }
 
 const FSlateBrush* SWindow::GetWindowBackground() const
@@ -1856,3 +1856,9 @@ EVisibility SWindow::GetWindowContentVisibility() const
 	// in which case the full window overlay content is visible but nothing under it
 	return (bShouldShowWindowContentDuringOverlay == true || !FullWindowOverlayWidget.IsValid()) ? EVisibility::SelfHitTestInvisible : EVisibility::Hidden;
 };
+
+EActiveTickReturnType SWindow::TriggerPlayMorphSequence( double InCurrentTime, float InDeltaTime )
+{
+	Morpher.Sequence.Play( this->AsShared() );
+	return EActiveTickReturnType::StopTicking;
+}

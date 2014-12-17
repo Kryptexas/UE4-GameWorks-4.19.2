@@ -134,9 +134,9 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 
 	if(IsSelected.IsBound())
 	{
-		if(IsSelected.Execute() && !bIsReadOnly.Get())
+		if(IsSelected.Execute() && !bIsReadOnly.Get() && !ActiveTickHandle.IsValid())
 		{
-			DoubleSelectDelay = 0.5f;
+			RegisterActiveTick(0.5f, FWidgetActiveTickDelegate::CreateSP(this, &SInlineEditableTextBlock::TriggerEditMode));
 		}
 	}
 	else
@@ -156,27 +156,28 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 FReply SInlineEditableTextBlock::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Cancel during a drag over event, otherwise the widget may enter edit mode.
-	DoubleSelectDelay = 0.0f;
+	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
+	if (PinnedActiveTickHandle.IsValid())
+	{
+		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+	}
 	return FReply::Unhandled();
 }
 
 FReply SInlineEditableTextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	DoubleSelectDelay = 0.0f;
+	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
+	if (PinnedActiveTickHandle.IsValid())
+	{
+		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+	}
 	return FReply::Unhandled();
 }
 
-void SInlineEditableTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SInlineEditableTextBlock::TriggerEditMode(double InCurrentTime, float InDeltaTime)
 {
-	if(DoubleSelectDelay > 0.0f && IsSelected.IsBound())
-	{
-		DoubleSelectDelay -= InDeltaTime;
-
-		if(DoubleSelectDelay <= 0.0f && IsSelected.Execute())
-		{
-			EnterEditingMode();
-		}
-	}
+	EnterEditingMode();
+	return EActiveTickReturnType::StopTicking;
 }
 
 FReply SInlineEditableTextBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )

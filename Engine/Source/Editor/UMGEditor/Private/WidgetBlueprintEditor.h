@@ -17,6 +17,9 @@ class UUserWidget;
 class FWidgetBlueprintEditor : public FBlueprintEditor
 {
 public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHoveredWidgetSet, const FWidgetReference&)
+	DECLARE_MULTICAST_DELEGATE(FOnHoveredWidgetCleared);
+
 	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanging)
 	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanged)
 
@@ -111,15 +114,19 @@ public:
 
 	void ClearHoveredWidget();
 
-	FWidgetReference GetHoveredWidget() const;
-
-	float GetHoveredWidgetTime() const;
+	//FWidgetReference GetHoveredWidget() const;
 
 	void AddPostDesignerLayoutAction(TFunction<void()> Action);
 
 	TArray< TFunction<void()> >& GetQueuedDesignerActions();
 
 public:
+	/** Fires whenever a new widget is being hovered over */
+	FOnHoveredWidgetSet OnHoveredWidgetSet;
+
+	/** Fires when there is no longer any widget being hovered over */
+	FOnHoveredWidgetCleared OnHoveredWidgetCleared;	
+
 	/** Fires whenever the selected set of widgets changing */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
 
@@ -200,12 +207,6 @@ private:
 
 	/** The widget references out in the ether that may need to be updated after being issued. */
 	TArray< TWeakPtr<FWidgetHandle> > WidgetHandlePool;
-
-	/** The wall clock time the user has been hovering over a single widget */
-	float HoverTime;
-
-	/** The current widget being hovered */
-	FWidgetReference HoveredWidget;
 
 	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
 	bool bPreviewInvalidated;

@@ -95,24 +95,33 @@ FReply SDockTab::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 
 void SDockTab::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	// Start the drag timer
-	DragTimer = SDockTabDefs::DragTimerActivate;
+	// Register to activate the tab after a delay
+	if ( !ActiveTickHandle.IsValid() )
+	{
+		ActiveTickHandle = RegisterActiveTick( SDockTabDefs::DragTimerActivate, FWidgetActiveTickDelegate::CreateSP( this, &SDockTab::TriggerActivateTab ) );
+	}
 
 	SBorder::OnDragEnter( MyGeometry, DragDropEvent );
 }
 
 void SDockTab::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	// Stop the drag timer
-	DragTimer = 0.0f;
+	// Unregister the activation timer if it hasn't fired yet
+	if ( ActiveTickHandle.IsValid() )
+	{
+		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+	}
 
 	SBorder::OnDragLeave( DragDropEvent );
 }
 
 FReply SDockTab::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	// Stop the drag timer
-	DragTimer = 0.0f;
+	// Unregister the activation timer if it hasn't fired yet
+	if ( ActiveTickHandle.IsValid() )
+	{
+		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+	}
 
 	return SBorder::OnDrop( MyGeometry, DragDropEvent );
 }
@@ -304,7 +313,6 @@ SDockTab::SDockTab()
 	, ContentAreaPadding( 2 )
 	, bShouldAutosize(false)
 	, TabColorScale(FLinearColor(0,0,0,0))
-	, DragTimer( 0.0f )
 {
 
 }
@@ -370,13 +378,13 @@ void SDockTab::ProvideDefaultIcon( const FSlateBrush* InDefaultIcon )
 
 void SDockTab::PlaySpawnAnim()
 {
-	SpawnAnimCurve.Play();
+	SpawnAnimCurve.Play( this->AsShared() );
 }
 
 void SDockTab::FlashTab()
 {
 	FlashTabCurve = FCurveSequence(0, SDockTabDefs::TabFlashDuration, ECurveEaseFunction::Linear);
-	FlashTabCurve.Play();
+	FlashTabCurve.Play( this->AsShared() );
 }
 
 float SDockTab::GetFlashValue() const
@@ -529,19 +537,10 @@ void SDockTab::Construct( const FArguments& InArgs )
 	);
 }
 
-void SDockTab::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SDockTab::TriggerActivateTab( double InCurrentTime, float InDeltaTime )
 {
-	SBorder::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
-	// Check to see if the window needs to activate because the user has dragged something to it
-	if ( DragTimer > 0.0f )
-	{
-		DragTimer -= InDeltaTime;
-		if ( DragTimer <= 0.0f )
-		{
-			ActivateInParent(ETabActivationCause::UserClickedOnTab);
-		}
-	}
+	ActivateInParent( ETabActivationCause::UserClickedOnTab );
+	return EActiveTickReturnType::StopTicking;
 }
 
 const FDockTabStyle& SDockTab::GetCurrentStyle() const

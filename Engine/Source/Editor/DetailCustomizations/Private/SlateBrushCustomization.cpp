@@ -985,7 +985,7 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 		];
 	}
 
-	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 	{
 		TArray<void*> RawData;
 		ResourceObjectProperty->AccessRawData(RawData);

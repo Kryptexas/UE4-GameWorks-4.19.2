@@ -16,7 +16,7 @@ FSlateShaderResource* FWebBrowserViewport::GetViewportRenderTargetTexture() cons
 	return WebBrowserWindow->GetTexture();
 }
 
-void FWebBrowserViewport::Tick(const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime)
+void FWebBrowserViewport::Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
 {
 	WebBrowserWindow->SetViewportSize(AllottedGeometry.GetLocalSize());
 }

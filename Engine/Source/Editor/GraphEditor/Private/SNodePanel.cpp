@@ -132,7 +132,7 @@ void FGraphSelectionManager::SetSelectionSet(FGraphPanelSelectionSet& NewSet)
 
 void FGraphSelectionManager::SetNodeSelection(SelectedItemType Node, bool bSelect)
 {
-	ensureMsg(Node != NULL, TEXT("Node is invalid"));
+	ensureMsg(Node != nullptr, TEXT("Node is invalid"));
 	if (bSelect)
 	{
 		SelectedNodes.Add(Node);
@@ -293,7 +293,6 @@ void SNodePanel::Construct()
 	TotalMouseDelta = 0;
 	TotalMouseDeltaY = 0;
 	bDeferredZoomToSelection = false;
-	bDeferredZoomingToFit = false;
 	bDeferredZoomToNodeExtents = false;
 
 	ZoomTargetTopLeft = FVector2D::ZeroVector;
@@ -304,17 +303,17 @@ void SNodePanel::Construct()
 	bTeleportInsteadOfScrollingWhenZoomingToFit = false;
 
 	DeferredSelectionTargetObjects.Empty();
-	DeferredMovementTargetObject = NULL;
+	DeferredMovementTargetObject = nullptr;
 
 	bIsPanning = false;
 	bIsZoomingWithTrackpad = false;
 	IsEditable.Set(true);
 
 	ZoomLevelFade = FCurveSequence( 0.0f, 1.0f );
-	ZoomLevelFade.Play();
+	ZoomLevelFade.Play( this->AsShared() );
 
 	ZoomLevelGraphFade = FCurveSequence( 0.0f, 0.5f );
-	ZoomLevelGraphFade.Play();
+	ZoomLevelGraphFade.Play( this->AsShared() );
 
 	PastePosition = FVector2D::ZeroVector;
 
@@ -409,9 +408,35 @@ void SNodePanel::OnEndNodeInteraction(const TSharedRef<SNode>& InNodeToDrag)
 {
 }
 
-// Ticks this widget.  Override in derived classes, but always call the parent implementation.
-void SNodePanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float InDeltaTime)
 {
+	const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
+	const bool bDoneScrolling = ScrollToLocation(CachedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
+	bool bDoneZooming = ZoomToLocation(CachedGeometry.Size, ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
+
+	if (bDoneZooming && bDoneScrolling)
+	{
+		// One final push to make sure we centered in the end
+		ViewOffset = DesiredViewCenter - ( 0.5f * CachedGeometry.Scale * CachedGeometry.Size / GetZoomAmount() );
+		
+		// Reset ZoomPadding
+		ZoomPadding = NodePanelDefs::DefaultZoomPadding;
+		ZoomTargetTopLeft = FVector2D::ZeroVector;
+		ZoomTargetBottomRight = FVector2D::ZeroVector;
+
+		DeferredMovementTargetObject = nullptr;
+
+		return EActiveTickReturnType::StopTicking;
+	}
+
+	return EActiveTickReturnType::KeepTicking;
+}
+
+void SNodePanel::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	CachedGeometry = AllottedGeometry;
+	bool bWasActiveTickRegisteredThisFrame = false;
+
 	if(DeferredSelectionTargetObjects.Num() > 0)
 	{
 		FGraphPanelSelectionSet NewSelectionSet;
@@ -436,11 +461,14 @@ void SNodePanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 			bDeferredZoomToNodeExtents = false;
 		}
 	}
-	else if(DeferredMovementTargetObject != NULL && GetBoundsForNodes(true, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
+	else if(DeferredMovementTargetObject != nullptr && GetBoundsForNodes(true, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
 	{
-		// Zoom to fit the target node
-		bDeferredZoomingToFit = true;
-		DeferredMovementTargetObject = NULL;
+		DeferredMovementTargetObject = nullptr;
+		if (!ActiveTickHandle.IsValid())
+		{
+			ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+			bWasActiveTickRegisteredThisFrame = true;
+		}
 	}
 	
 	// Zoom to node extents
@@ -451,27 +479,11 @@ void SNodePanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 		if( GetBoundsForNodes(bDeferredZoomToSelection, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
 		{
 			bDeferredZoomToSelection = false;
-			bDeferredZoomingToFit = true;
-		}
-	}
-
-	if (bDeferredZoomingToFit)
-	{
-		const FVector2D DesiredViewCenter = (ZoomTargetTopLeft + ZoomTargetBottomRight) * 0.5f;
-		const bool bDoneScrolling = ScrollToLocation(AllottedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
-		bool bDoneZooming = ZoomToLocation(AllottedGeometry.Size, ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
-
-		if (bDoneZooming && bDoneScrolling)
-		{	
-			// One final push to make sure we centered in the end
-			ViewOffset = DesiredViewCenter - (0.5f * AllottedGeometry.Scale * AllottedGeometry.Size / GetZoomAmount());
-			// Reset ZoomPadding
-			ZoomPadding = NodePanelDefs::DefaultZoomPadding;
-			ZoomTargetTopLeft = FVector2D::ZeroVector;
-			ZoomTargetBottomRight = FVector2D::ZeroVector;
-
-			bDeferredZoomingToFit = false;
-			DeferredMovementTargetObject = NULL;
+			if (!ActiveTickHandle.IsValid())
+			{
+				ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+				bWasActiveTickRegisteredThisFrame = true;
+			}
 		}
 	}
 
@@ -493,7 +505,7 @@ void SNodePanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 	OldZoomAmount = GetZoomAmount();
 	OldViewOffset = ViewOffset;
 
-	SPanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SPanel::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 // The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
@@ -514,7 +526,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 		ReplyState.CaptureMouse( SharedThis(this) );
 		ReplyState.UseHighPrecisionMouseMovement( SharedThis(this) );
 
-		DeferredMovementTargetObject = NULL; // clear any interpolation when you manually zoom
+		DeferredMovementTargetObject = nullptr; // clear any interpolation when you manually zoom
 		TotalMouseDeltaY = 0;
 
 		if (!FSlateApplication::Get().IsUsingTrackpad()) // on trackpad we don't know yet if user wants to zoom or bring up the context menu
@@ -571,7 +583,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 		SoftwareCursorPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
 
-		DeferredMovementTargetObject = NULL; // clear any interpolation when you manually pan
+		DeferredMovementTargetObject = nullptr; // clear any interpolation when you manually pan
 
 		// RIGHT BUTTON is for dragging and Context Menu.
 		return ReplyState;
@@ -683,7 +695,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 				// Update the amount to pan panel
 				UpdateViewOffset(MyGeometry, MouseEvent.GetScreenSpacePosition());
 
-				const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
+				const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistance();
 
 				if ( NodeBeingDragged.IsValid() )
 				{
@@ -717,7 +729,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 							for (FGraphPanelSelectionSet::TIterator NodeIt(SelectionManager.SelectedNodes); NodeIt; ++NodeIt)
 							{
 								TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(*NodeIt);
-								if (pWidget != NULL)
+								if (pWidget != nullptr)
 								{
 									SNode& Widget = pWidget->Get();
 									FDefferedNodePosition NodePosition = { &Widget, Widget.GetPosition() + DeltaPos };
@@ -780,7 +792,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 	// Did the user move the cursor sufficiently far, or is it in a dead zone?
 	// In Dead zone     - implies actions like summoning context menus and general clicking.
 	// Out of Dead Zone - implies dragging actions like moving nodes and marquee selection.
-	const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
+	const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistance();
 
 	// Set to true later if we need to finish with the software cursor
 	bool bRemoveSoftwareCursor = false;
@@ -1057,6 +1069,13 @@ void SNodePanel::SelectAndCenterObject(const UObject* ObjectToSelect, bool bCent
 	{
 		DeferredMovementTargetObject = ObjectToSelect;
 	}
+
+	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
+	if (PinnedActiveTickHandle.IsValid())
+	{
+		// Stop zooming for now and let the a new zoom target be established
+		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+	}
 }
 
 /** Add a slot to the CanvasPanel dynamically */
@@ -1099,7 +1118,7 @@ void SNodePanel::PopulateVisibleChildren(const FGeometry& AllottedGeometry)
 // Is the given node being observed by a widget in this panel?
 bool SNodePanel::Contains(UObject* Node) const
 {
-	return NodeToWidgetLookup.Find(Node) != NULL;
+	return NodeToWidgetLookup.Find(Node) != nullptr;
 }
 
 void SNodePanel::RestoreViewSettings(const FVector2D& InViewOffset, float InZoomAmount)
@@ -1115,8 +1134,13 @@ void SNodePanel::RestoreViewSettings(const FVector2D& InViewOffset, float InZoom
 	else
 	{
 		ZoomLevel = ZoomLevels->GetNearestZoomLevel(InZoomAmount);
-		bDeferredZoomingToFit = false;
 		bDeferredZoomToNodeExtents = false;
+
+		auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
+		if (PinnedActiveTickHandle.IsValid())
+		{
+			UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+		}
 	}
 
 	PostChangedZoom();
@@ -1369,7 +1393,7 @@ bool SNodePanel::GetBoundsForNodes(bool bSelectionSetOnly, FVector2D& MinCorner,
 		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectionManager.GetSelectedNodes()); NodeIt; ++NodeIt)
 		{
 			TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(*NodeIt);
-			if (pWidget != NULL)
+			if (pWidget != nullptr)
 			{
 				SNode& Widget = pWidget->Get();
 				const FVector2D Lower = Widget.GetPosition();
@@ -1455,7 +1479,7 @@ bool SNodePanel::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, const F
 			// Animate to it
 			PreviousZoomLevel = ZoomLevel;
 			ZoomLevel = FMath::Clamp(DesiredZoom, 0, NumZoomLevels-1);
-			ZoomLevelGraphFade.Play();
+			ZoomLevelGraphFade.Play( this->AsShared() );
 			return false;
 		}
 		else
@@ -1465,7 +1489,7 @@ bool SNodePanel::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, const F
 			{
 				// Zooming out; do it instantly
 				ZoomLevel = PreviousZoomLevel = DesiredZoom;
-				ZoomLevelFade.Play();
+				ZoomLevelFade.Play( this->AsShared() );
 			}
 			else
 			{
@@ -1473,7 +1497,7 @@ bool SNodePanel::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, const F
 				if (bDoneScrolling)
 				{
 					ZoomLevel = PreviousZoomLevel = DesiredZoom;
-					ZoomLevelFade.Play();
+					ZoomLevelFade.Play( this->AsShared() );
 				}
 			}
 		}
@@ -1486,11 +1510,22 @@ bool SNodePanel::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, const F
 
 void SNodePanel::ZoomToFit(bool bOnlySelection)
 {
-	// Deferred zoom/pan action
-	bDeferredZoomingToFit = true;
 	bDeferredZoomToNodeExtents = true;
 	bDeferredZoomToSelection = bOnlySelection;
 	ZoomPadding = NodePanelDefs::DefaultZoomPadding;
+}
+
+void SNodePanel::ZoomToTarget(const FVector2D& TopLeft, const FVector2D& BottomRight)
+{
+	bDeferredZoomToNodeExtents = false;
+
+	ZoomTargetTopLeft = TopLeft;
+	ZoomTargetBottomRight = BottomRight;
+
+	if (!ActiveTickHandle.IsValid())
+	{
+		ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+	}
 }
 
 void SNodePanel::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& WidgetSpaceZoomOrigin, bool bOverrideZoomLimiting)
@@ -1525,7 +1560,7 @@ void SNodePanel::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& WidgetSp
 	}
 
 	// Note: This happens even when maxed out at a stop; so the user sees the animation and knows that they're at max zoom in/out
-	ZoomLevelFade.Play();
+	ZoomLevelFade.Play( this->AsShared() );
 
 	// Re-center the screen so that it feels like zooming around the cursor.
 	this->ViewOffset = PointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
@@ -1551,7 +1586,7 @@ FVector2D SNodePanel::GetPastePosition() const
 
 bool SNodePanel::HasDeferredObjectFocus() const
 {
-	return DeferredMovementTargetObject != NULL;
+	return DeferredMovementTargetObject != nullptr;
 }
 
 void SNodePanel::PostChangedZoom()

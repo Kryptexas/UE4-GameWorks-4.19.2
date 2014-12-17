@@ -41,7 +41,7 @@ void FMenuPanel::Tick(float Delta)
 	}
 }
 
-void FMenuPanel::ClosePanel()
+void FMenuPanel::ClosePanel(TSharedRef<SWidget> OwnerWidget)
 {
 	if ((CurrentState != EPanelState::Closed) && (CurrentState != EPanelState::Closing))
 	{
@@ -51,7 +51,7 @@ void FMenuPanel::ClosePanel()
 		}
 		else
 		{
-			AnimationSequence.PlayReverse();
+			AnimationSequence.PlayReverse(OwnerWidget);
 		}
 		CurrentState = EPanelState::Closing;
 	}
@@ -68,7 +68,7 @@ void FMenuPanel::ClosePanel()
 	}
 }
 
-void FMenuPanel::OpenPanel()
+void FMenuPanel::OpenPanel(TSharedRef<SWidget> OwnerWidget)
 {
 	if ((CurrentState != EPanelState::Open) && (CurrentState != EPanelState::Opening) )
 	{
@@ -78,7 +78,7 @@ void FMenuPanel::OpenPanel()
 		}
 		else
 		{
-			AnimationSequence.Play();
+			AnimationSequence.Play(OwnerWidget);
 		}
 		CurrentState = EPanelState::Opening;
 	}
@@ -329,8 +329,8 @@ void SGameMenuPageWidget::HideMenu()
 {
 	if (!bMenuHiding)
 	{
-		MainMenuPanel.ClosePanel();
-		SubMenuPanel.ClosePanel();
+		MainMenuPanel.ClosePanel(this->AsShared());
+		SubMenuPanel.ClosePanel(this->AsShared());
 		PendingMainMenu.Reset();
 		PendingSubMenu.Reset();
 		bMenuHiding = true;
@@ -461,7 +461,7 @@ void SGameMenuPageWidget::EnterSubMenu(TSharedPtr<class FGameMenuPage> InSubMenu
 	{
 		MenuHistory.Push(CurrentMenu);
 		CurrentMenu->SelectedIndex = SelectedIndex;
-		MainMenuPanel.ClosePanel();
+		MainMenuPanel.ClosePanel(this->AsShared());
 		PendingMainMenu = InSubMenu;
 		FSlateApplication::Get().PlaySound(MenuStyle->MenuEnterSound);
 	}
@@ -474,7 +474,7 @@ void SGameMenuPageWidget::MenuGoBack(bool bIsCancel)
 		TSharedPtr< FGameMenuPage > MenuInfo = MenuHistory.Pop();
 		if (MainMenuPanel.CurrentState == EPanelState::Closing)
 		{
-			MainMenuPanel.OpenPanel();
+			MainMenuPanel.OpenPanel(this->AsShared());
 			PendingMainMenu.Reset();
 			PendingSubMenu.Reset();
 		}
@@ -485,7 +485,7 @@ void SGameMenuPageWidget::MenuGoBack(bool bIsCancel)
 			{
 				// single menu layout - close this panel and replace with prev menu
 				PendingMainMenu = MenuInfo;
-				MainMenuPanel.ClosePanel();
+				MainMenuPanel.ClosePanel(this->AsShared());
 			}
 			else
 			{
@@ -572,7 +572,7 @@ void SGameMenuPageWidget::OpenMainPanel(TSharedPtr< class FGameMenuPage > InMenu
 	BuildPanelButtons(CurrentMenu, MainPanel, PreviousIndex);
 	CurrentMenuTitle = InMenu->MenuTitle;
 
-	MainMenuPanel.OpenPanel();
+	MainMenuPanel.OpenPanel(this->AsShared());
 	CurrentMenu->MenuOpening();
 
 	OpenPendingSubMenu();	
@@ -622,14 +622,11 @@ void SGameMenuPageWidget::OnSubPanelStateChange(bool bWasOpened)
 	}
 }
 
-void SGameMenuPageWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SGameMenuPageWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	//Always tick the super
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	//ugly code seeing if the console is open
-	UConsole* ViewportConsole = (GEngine->GameViewport != NULL) ? GEngine->GameViewport->ViewportConsole : NULL;
-	if (ViewportConsole != NULL && (ViewportConsole->ConsoleState == "Typing" || ViewportConsole->ConsoleState == "Open"))
+	UConsole* ViewportConsole = ( GEngine->GameViewport != nullptr ) ? GEngine->GameViewport->ViewportConsole : nullptr;
+	if ( ViewportConsole != nullptr && ( ViewportConsole->ConsoleState == "Typing" || ViewportConsole->ConsoleState == "Open" ) )
 	{
 		if (!bConsoleVisible)
 		{
@@ -648,7 +645,7 @@ void SGameMenuPageWidget::Tick(const FGeometry& AllottedGeometry, const double I
 
 	if (GEngine && GEngine->GameViewport )
 	{
-		if (GEngine->GameViewport->ViewportFrame != NULL )
+		if ( GEngine->GameViewport->ViewportFrame != nullptr )
 		{
 			FViewport* Viewport = GEngine->GameViewport->ViewportFrame->GetViewport();
 			if (Viewport)
@@ -866,7 +863,7 @@ FReply SGameMenuPageWidget::SelectionChanged(int32 SelectionIndex)
 		}
 		if ((SubMenuPanel.CurrentState == EPanelState::Open) || (SubMenuPanel.CurrentState == EPanelState::Opening))
 		{
-			SubMenuPanel.ClosePanel();
+			SubMenuPanel.ClosePanel(this->AsShared());
 		}
 		else
 		{
@@ -884,7 +881,7 @@ FReply SGameMenuPageWidget::SelectionChanged(int32 SelectionIndex)
 void SGameMenuPageWidget::FadeIn()
 {
 	//Start the menu widget playing
-	MenuWidgetAnimation.Play();
+	MenuWidgetAnimation.Play(this->AsShared());
 	SetTitleAnimation(true);
 
 	//Go into UI mode
@@ -1002,11 +999,11 @@ void SGameMenuPageWidget::SetTitleAnimation(bool bShowTitle)
 	{
 		if (bShowTitle == true)
 		{
-			TitleWidgetAnimation.Play();
+			TitleWidgetAnimation.Play(this->AsShared());
 		}
 		else
 		{
-			TitleWidgetAnimation.PlayReverse();
+			TitleWidgetAnimation.PlayReverse(this->AsShared());
 		}		
 	}
 	else
@@ -1017,7 +1014,7 @@ void SGameMenuPageWidget::SetTitleAnimation(bool bShowTitle)
 		}
 		else
 		{
-			TitleWidgetAnimation.PlayReverse();
+			TitleWidgetAnimation.PlayReverse(this->AsShared());
 		}
 	}
 }
@@ -1032,7 +1029,7 @@ void SGameMenuPageWidget::OpenPendingSubMenu()
 	if( (PendingSubMenu.IsValid() ) && ( MenuStyle->LayoutType == GameMenuLayoutType::SideBySide ) )
 	{
 		BuildPanelButtons(PendingSubMenu, SubPanel, INDEX_NONE);		
-		SubMenuPanel.OpenPanel();
+		SubMenuPanel.OpenPanel(this->AsShared());
 		NextMenu = PendingSubMenu;
 		NextMenu->MenuOpening();
 		PendingSubMenu.Reset();

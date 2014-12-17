@@ -45,14 +45,11 @@ class STutorialsBrowser : public SCompoundWidget
 
 	void Construct(const FArguments& Args);
 
-	/** Set the current filter string. Filters are used to only show the specifed category of tutorials (e.g. only Blueprint tutorials) */
+	/** Set the current filter string. Filters are used to only show the specified category of tutorials (e.g. only Blueprint tutorials) */
 	void SetFilter(const FString& InFilter);
 
 	/** Reload all tutorials that we know about */
 	void ReloadTutorials();
-
-	/** SWidget implementation */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:
 	/** Handle generating a table row in the browser */
@@ -101,6 +98,9 @@ protected:
 	void HandleAssetAdded(const FAssetData& InAssetData);
 
 private:
+
+	/** Triggers a reload of the tutorials */
+	EActiveTickReturnType TriggerReloadTutorials( double InCurrentTime, float InDeltaTime );
 
 	/** Root entry of the tutorials tree */
 	TSharedPtr<FTutorialListEntry_Category> RootEntry;

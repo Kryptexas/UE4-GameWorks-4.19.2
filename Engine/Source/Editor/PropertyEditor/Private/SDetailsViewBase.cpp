@@ -642,7 +642,7 @@ FReply SDetailsViewBase::OnFocusReceived(const FGeometry& MyGeometry, const FFoc
 }
 
 /** Ticks the property view.  This function performs a data consistency check */
-void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	for (int32 i = 0; i < CustomizationClassInstancesPendingDelete.Num(); ++i)
 	{
@@ -740,11 +740,6 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 				--NodeIndex;
 			}
 		}
-	}
-
-	if (ThumbnailPool.IsValid())
-	{
-		ThumbnailPool->Tick(InDeltaTime);
 	}
 
 	if (DetailLayout.IsValid())

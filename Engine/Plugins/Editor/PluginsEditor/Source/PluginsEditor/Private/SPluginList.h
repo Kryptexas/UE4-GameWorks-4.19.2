@@ -45,9 +45,8 @@ private:
 	/** Rebuilds the list of plugins from scratch and applies filtering. */
 	void RebuildAndFilterPluginList();
 
-	/** SWidget overrides */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
+	/** One-off active tick to trigger a full refresh when something has changed with either our filtering or the loaded plugin set */
+	EActiveTickReturnType TriggerListRebuild(double InCurrentTime, float InDeltaTime);
 
 private:
 
@@ -60,9 +59,7 @@ private:
 	/** List of everything that we want to display in the plugin list */
 	TArray< FPluginListItemPtr > PluginListItems;
 
-	/** True if something has changed with either our filtering or the loaded plugin set, and we need to
-	    do a full refresh */
-	bool bNeedsRefresh;
-
+	/** Whether the active tick to refresh the list is registered */
+	bool bIsActiveTickRegistered;
 };
 

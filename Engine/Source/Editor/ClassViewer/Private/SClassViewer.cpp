@@ -2962,9 +2962,7 @@ void SClassViewer::Refresh()
 }
 
 void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-	
+{	
 	// Will populate the class hierarchy as needed.
 	ClassViewer::Helpers::PopulateClassHierarchy();
 

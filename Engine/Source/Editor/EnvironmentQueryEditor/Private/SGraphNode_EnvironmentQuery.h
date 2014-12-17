@@ -22,6 +22,7 @@ public:
 	virtual FReply OnMouseMove(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual void SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel) override;
+
 	// End of SGraphNode interface
 
 	/** handle mouse down on the node */

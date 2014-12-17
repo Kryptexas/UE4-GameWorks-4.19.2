@@ -63,6 +63,9 @@ public:
 		/** Called when an asset item is about to show a tooltip */
 		SLATE_EVENT( FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip )
 
+		/** Called when an asset item's tooltip is closing */
+		SLATE_EVENT(FOnAssetToolTipClosing, OnAssetToolTipClosing)
+
 		/** The warning text to display when there are no assets to show */
 		SLATE_ATTRIBUTE( FText, AssetShowWarningText )
 
@@ -513,7 +516,7 @@ private:
 	/** Handler for when a column header is clicked */
 	void OnSortColumnHeader(const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type NewSortMode);
 
-	/** Returns the state of the is working progress bar */
+	/** @return The state of the is working progress bar */
 	TOptional< float > GetIsWorkingProgressBarState() const;
 
 	/** Creates an asset from a temporary asset
@@ -669,7 +672,10 @@ private:
 
 	/** Called when a custom asset item is about to show a tooltip */
 	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
-	
+
+	/** Called when a custom asset item's tooltip is closing */
+	FOnAssetToolTipClosing OnAssetToolTipClosing;
+
 	/** When true, filtered list items will be sorted next tick. Provided another sort hasn't happened recently or we are renaming an asset */
 	bool bPendingSortFilteredItems;
 	double CurrentTime;
@@ -765,7 +771,7 @@ private:
 	double TotalAmortizeTime;
 
 	/** Whether the asset view is currently working on something and should display a cue to the user */
-	bool IsWorking;
+	bool bIsWorking;
 
 	/** The text to highlight on the assets */
 	TAttribute< FText > HighlightedText;

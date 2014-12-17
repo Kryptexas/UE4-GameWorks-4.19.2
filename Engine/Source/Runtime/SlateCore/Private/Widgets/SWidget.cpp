@@ -3,6 +3,7 @@
 #include "SlateCorePrivatePCH.h"
 #include "Widgets/SWidget.h"
 #include "Input/Events.h"
+#include "ActiveTickHandle.h"
 
 DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
@@ -341,13 +342,14 @@ void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 {
 }
 
-TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 1, TEXT("Controls whether invisible widgets are ticked."));
+TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
 
 void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	INC_DWORD_STAT(STAT_SlateNumTickedWidgets);
 
-	// Tick this widget
+	// Execute any pending active ticks for this widget, followed by the passive tick
+	ExecuteActiveTicks( InCurrentTime, InDeltaTime );
 	Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
@@ -632,6 +634,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 		TickGeometry.AppendTransform( FSlateLayoutTransform(Args.GetWindowToDesktopTransform()) );
 
 		SWidget* MutableThis = const_cast<SWidget*>(this);
+		MutableThis->ExecuteActiveTicks( Args.GetCurrentTime(), Args.GetDeltaTime() );
 		MutableThis->Tick( TickGeometry, Args.GetCurrentTime(), Args.GetDeltaTime() );
 	}
 
@@ -669,3 +672,43 @@ void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildr
 	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 }
 
+TSharedRef<FActiveTickHandle> SWidget::RegisterActiveTick(float TickPeriod, FWidgetActiveTickDelegate TickFunction)
+{
+	TSharedRef<FActiveTickHandle> ActiveTickHandle = MakeShareable(new FActiveTickHandle(TickPeriod, TickFunction, FSlateApplicationBase::Get().GetCurrentTime() + TickPeriod));
+	FSlateApplicationBase::Get().RegisterActiveTick(ActiveTickHandle);
+	ActiveTicks.Add(ActiveTickHandle);
+	return ActiveTickHandle;
+}
+
+void SWidget::UnRegisterActiveTick(const TSharedRef<FActiveTickHandle>& ActiveTickHandle)
+{
+	FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTickHandle);
+	ActiveTicks.Remove(ActiveTickHandle);
+}
+
+void SWidget::ExecuteActiveTicks(double CurrentTime, float DeltaTime)
+{
+	// loop over the registered tick handles and execute them, removing them if necessary.
+	for (int32 i = 0; i < ActiveTicks.Num();)
+	{
+		EActiveTickReturnType Result = ActiveTicks[i]->ExecuteIfPending( CurrentTime, DeltaTime );
+		if (Result == EActiveTickReturnType::KeepTicking)
+		{
+			++i;
+		}
+		else
+		{
+			FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTicks[i]);
+			ActiveTicks.RemoveAt(i);
+		}
+	}
+}
+
+SWidget::~SWidget()
+{
+	// Unregister all ActiveTicks so they aren't left stranded in the Application's list.
+	for (const auto& ActiveTickHandle : ActiveTicks)
+	{
+		FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTickHandle);
+	}
+}

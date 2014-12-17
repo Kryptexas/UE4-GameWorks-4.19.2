@@ -131,23 +131,17 @@ void SDeviceProcesses::Construct( const FArguments& InArgs, const FDeviceManager
 	Model->OnSelectedDeviceServiceChanged().AddRaw(this, &SDeviceProcesses::HandleModelSelectedDeviceServiceChanged);
 
 	ReloadProcessList(true);
+
+	// Register for an active update every 2.5 seconds
+	RegisterActiveTick( 2.5f, FWidgetActiveTickDelegate::CreateSP( this, &SDeviceProcesses::UpdateProcessList ) );
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-
-/* SCompoundWidget overrides
- *****************************************************************************/
-
-void SDeviceProcesses::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SDeviceProcesses::UpdateProcessList( double InCurrentTime, float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	ReloadProcessList( true );
 
-	if (LastProcessListRefreshTime + FTimespan::FromSeconds(2.5) < FDateTime::UtcNow())
-	{
-		ReloadProcessList(true);
-	}
+	return EActiveTickReturnType::KeepTicking;
 }
-
 
 /* SDeviceDetails implementation
  *****************************************************************************/

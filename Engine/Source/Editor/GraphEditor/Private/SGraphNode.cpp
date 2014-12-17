@@ -35,10 +35,8 @@ void SNodeTitle::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
 	RebuildWidget();
 }
 
-void SNodeTitle::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SNodeTitle::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	// Checks to see if the cached string is valid, and if not, updates it.
 	if (TitleText.Get().CompareTo(CachedTitle) != 0)
 	{
@@ -1085,7 +1083,7 @@ TSharedPtr<SGraphPin> SGraphNode::FindWidgetForPin( UEdGraphPin* ThePin ) const
 
 void SGraphNode::PlaySpawnEffect()
 {
-	SpawnAnim.Play();
+	SpawnAnim.Play( this->AsShared() );
 }
 
 FVector2D SGraphNode::GetContentScale() const

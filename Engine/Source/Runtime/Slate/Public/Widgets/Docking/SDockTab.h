@@ -78,8 +78,6 @@ public:
 	/** Construct the widget from the declaration. */
 	void Construct( const FArguments& InArgs );
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -238,7 +236,7 @@ public:
 	bool HasSiblingTab(const FTabId& SiblingTabId, const bool TreatIndexNoneAsWildcard = true) const;
 
 protected:
-
+	
 	/** Gets the dock tab stack this dockable tab resides within, if any */
 	TSharedPtr<SDockingTabStack> GetParentDockTabStack() const;
 
@@ -274,6 +272,13 @@ protected:
 
 	/** @return if the close button should be visible. */
 	EVisibility HandleIsCloseButtonVisible() const;
+
+private:
+	/** Activates the tab in its tab well */
+	EActiveTickReturnType TriggerActivateTab( double InCurrentTime, float InDeltaTime );
+
+	/** The handle to the active tab activation tick */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
 
 protected:
 
@@ -329,11 +334,13 @@ protected:
 
 	/** @return the scaling of the tab based on the opening/closing animation */
 	FVector2D GetAnimatedScale() const;
+
 	/** Animation that shows the tab opening up */
 	FCurveSequence SpawnAnimCurve;
 
 	/** Animation that causes the tab to flash */
 	FCurveSequence FlashTabCurve;
+
 	/** Get the desired color of tab. These change during flashing. */
 	float GetFlashValue() const;
 
@@ -342,10 +349,7 @@ protected:
 
 	/** Widget used to show the label on the tab */
 	TSharedPtr<STextBlock> LabelWidget;
+	
 	/** Widget used to show the icon on the tab */
 	TSharedPtr<SImage> IconWidget;
-
-
-	/** The amount of time spent until we bring this tab to the front */
-	float DragTimer;
 };

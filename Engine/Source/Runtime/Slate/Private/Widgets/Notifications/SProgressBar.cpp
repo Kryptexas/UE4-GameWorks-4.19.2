@@ -6,11 +6,12 @@
 void SProgressBar::Construct( const FArguments& InArgs )
 {
 	check(InArgs._Style);
+
+	MarqueeAnimation = FCurveSequence(0.0f, 0.5f);
 	
 	Style = InArgs._Style;
 
-	Percent = InArgs._Percent;
-
+	SetPercent(InArgs._Percent);
 	BarFillType = InArgs._BarFillType;
 	
 	BackgroundImage = InArgs._BackgroundImage;
@@ -19,14 +20,25 @@ void SProgressBar::Construct( const FArguments& InArgs )
 	
 	FillColorAndOpacity = InArgs._FillColorAndOpacity;
 	BorderPadding = InArgs._BorderPadding;
-
-	CurveSequence = FCurveSequence(0.0f, 0.5f);
-	CurveSequence.Play();
 }
 
 void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
 {
 	Percent = InPercent;
+
+	if ( InPercent.Get().IsSet() )
+	{
+		// No need for the marquee animation
+		MarqueeAnimation.JumpToEnd();
+	}
+	else
+	{
+		// Kick off the marquee animation
+		if ( !MarqueeAnimation.IsPlaying() )
+		{
+			MarqueeAnimation.Play(this->AsShared(), true);
+		}
+	}
 }
 
 void SProgressBar::SetStyle(const FProgressBarStyle* InStyle)
@@ -217,7 +229,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 		const FSlateBrush* CurrentMarqueeImage = GetMarqueeImage();
 		
 		// Draw Marquee
-		const float MarqueeAnimOffset = CurrentMarqueeImage->ImageSize.X * CurveSequence.GetLerpLooping();
+		const float MarqueeAnimOffset = CurrentMarqueeImage->ImageSize.X * MarqueeAnimation.GetLerp();
 		const float MarqueeImageSize = CurrentMarqueeImage->ImageSize.X;
 
 		FSlateDrawElement::MakeBox(

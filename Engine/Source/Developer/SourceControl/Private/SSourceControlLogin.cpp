@@ -55,6 +55,8 @@ private:
 	TWeakPtr<SWindow> ParentWindowPtr;
 };
 
+const float SSourceControlLogin::RefreshFrequency = 0.5f;
+
 void SSourceControlLogin::Construct(const FArguments& InArgs)
 {
 	ParentWindowPtr = InArgs._ParentWindow;
@@ -211,6 +213,12 @@ FReply SSourceControlLogin::OnAcceptSettings()
 {
 	ConnectionState = ELoginConnectionState::Connecting;
 
+	//Increase the tick frequency during login if needed
+	if ( ParentWindowPtr.IsValid() && ( FSlateApplication::Get().GetActiveModalWindow() == ParentWindowPtr.Pin() ) )
+	{
+		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SSourceControlLogin::TickSourceControlModule ) );
+	}
+
 	FSourceControlModule& SourceControlModule = FSourceControlModule::Get();
 	if(!SourceControlModule.GetProvider().Login(FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateSP(this, &SSourceControlLogin::SourceControlOperationComplete)))
 	{
@@ -255,7 +263,7 @@ void SSourceControlLogin::SourceControlOperationComplete(const FSourceControlOpe
 	}
 }
 
-void SSourceControlLogin::DisplayConnectionError(const FText& InErrorText) const
+void SSourceControlLogin::DisplayConnectionError(const FText& InErrorText)
 {
 	FMessageLog SourceControlLog("SourceControl");
 	if(InErrorText.IsEmpty())
@@ -268,6 +276,13 @@ void SSourceControlLogin::DisplayConnectionError(const FText& InErrorText) const
 	}
 	
 	SourceControlLog.Notify();
+
+	// Suspend the active tick until there's another login attempt
+	auto PinnedActiveTick = ActiveTickHandle.Pin();
+	if ( PinnedActiveTick.IsValid() )
+	{
+		UnRegisterActiveTick( PinnedActiveTick.ToSharedRef() );
+	}
 }
 
 void SSourceControlLogin::DisplayConnectionSuccess() const
@@ -307,19 +322,11 @@ EVisibility SSourceControlLogin::GetDisabledTextVisibility() const
 	return SourceControlModule.GetProvider().GetName() == "None" ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SSourceControlLogin::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SSourceControlLogin::TickSourceControlModule( double InCurrentTime, float InDeltaTime )
 {
-	// if we are modal then we need to tick the source control module
-	TSharedPtr<SWindow> ParentWindow = ParentWindowPtr.Pin();
-	if(ParentWindow.IsValid())
-	{
-		if(FSlateApplication::Get().GetActiveModalWindow() == ParentWindow)
-		{
-			FSourceControlModule& SourceControlModule = FSourceControlModule::Get();
-			SourceControlModule.Tick();
-		}
-	}
-};
+	FSourceControlModule::Get().Tick();
+	return EActiveTickReturnType::KeepTicking;
+}
 
 #undef LOCTEXT_NAMESPACE
 

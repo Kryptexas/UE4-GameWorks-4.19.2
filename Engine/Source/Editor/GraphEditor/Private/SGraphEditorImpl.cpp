@@ -87,19 +87,21 @@ void SGraphEditorImpl::NotifyGraphChanged()
 
 void SGraphEditorImpl::OnGraphChanged(const FEdGraphEditAction& InAction)
 {
-	if (!bNeedsRefresh)
+	if ( !bIsActiveTickRegistered )
 	{
 		// Remove the old user interface nodes
 		GraphPanel->PurgeVisualRepresentation();
+
+		// Trigger the refresh
+		bIsActiveTickRegistered = true;
+		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SGraphEditorImpl::TriggerRefresh ) );
 	}
-
-	bNeedsRefresh = true;
 }
 
-void SGraphEditorImpl::GraphEd_OnPanelUpdated()
-{
-	bNeedsRefresh = false;
-}
+//void SGraphEditorImpl::GraphEd_OnPanelUpdated()
+//{
+//	
+//}
 
 const TSet<class UObject*>& SGraphEditorImpl::GetSelectedNodes() const
 {
@@ -156,6 +158,8 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 	OnNavigateHistoryForward = InArgs._OnNavigateHistoryForward;
 	OnNodeSpawnedByKeymap = InArgs._GraphEvents.OnNodeSpawnedByKeymap;
 
+	bIsActiveTickRegistered = false;
+
 	// Make sure that the editor knows about what kinds
 	// of commands GraphEditor can do.
 	FGraphEditorCommands::Register();
@@ -188,8 +192,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 
 	GraphPinForMenu = NULL;
 	EdGraphObj = InArgs._GraphToEdit;
-	bNeedsRefresh = false;
-		
+
 	OnFocused = InArgs._GraphEvents.OnFocused;
 	OnCreateActionMenu = InArgs._GraphEvents.OnCreateActionMenu;
 	
@@ -241,7 +244,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.OnVerifyTextCommit( InArgs._GraphEvents.OnVerifyTextCommit )
 			.OnTextCommitted( InArgs._GraphEvents.OnTextCommitted )
 			.OnSpawnNodeByShortcut( InArgs._GraphEvents.OnSpawnNodeByShortcut )
-			.OnUpdateGraphPanel( this, &SGraphEditorImpl::GraphEd_OnPanelUpdated )
+			//.OnUpdateGraphPanel( this, &SGraphEditorImpl::GraphEd_OnPanelUpdated )
 			.OnDisallowedPinConnection( InArgs._GraphEvents.OnDisallowedPinConnection )
 			.ShowGraphStateOverlay(InArgs._ShowGraphStateOverlay)
 		]
@@ -372,12 +375,6 @@ SGraphEditorImpl::~SGraphEditorImpl()
 
 void SGraphEditorImpl::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if (bNeedsRefresh)
-	{
-		bNeedsRefresh = false;
-		GraphPanel->Update();
-	}	
-
 	// If locked to another graph editor, and our panel has moved, synchronise the locked graph editor accordingly
 	if ((EdGraphObj != NULL) && GraphPanel.IsValid())
 	{
@@ -386,6 +383,14 @@ void SGraphEditorImpl::Tick( const FGeometry& AllottedGeometry, const double InC
 			FocusLockedEditorHere();
 		}
 	}
+}
+
+EActiveTickReturnType SGraphEditorImpl::TriggerRefresh( double InCurrentTime, float InDeltaTime )
+{
+	GraphPanel->Update();
+
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
 }
 
 void SGraphEditorImpl::OnClosedActionMenu()

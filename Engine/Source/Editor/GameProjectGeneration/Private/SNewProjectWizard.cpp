@@ -823,8 +823,6 @@ FText SNewProjectWizard::GetStarterContentWarningTooltip() const
 
 void SNewProjectWizard::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	// Every few seconds, the project file path is checked for validity in case the disk contents changed and the location is now valid or invalid.
 	// After project creation, periodic checks are disabled to prevent a brief message indicating that the project you created already exists.
 	// This feature is re-enabled if the user did not restart and began editing parameters again.

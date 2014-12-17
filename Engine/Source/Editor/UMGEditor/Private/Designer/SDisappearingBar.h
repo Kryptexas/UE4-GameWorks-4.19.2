@@ -23,11 +23,11 @@ public:
 
 	void Construct(const FArguments& InArgs);
 	
-	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 
 private:
 	FLinearColor GetFadeColorAndOpacity() const;
 
-	bool bDisappear;
 	FCurveSequence FadeCurve;
 };

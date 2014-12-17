@@ -36,7 +36,7 @@ struct FSequencerInitParams
 /**
  * Sequencer is the editing tool for MovieScene assets
  */
-class FSequencer : public ISequencer, public FGCObject, public FEditorUndoClient
+class FSequencer : public ISequencer, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 { 
 
 public:
@@ -58,6 +58,11 @@ public:
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
+	// FTickableEditorObject interface
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override { return true; }
+	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSequencer, STATGROUP_Tickables); };
+	// End FTickableEditorObject interface
 
 	/** ISequencer interface */
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
@@ -119,9 +124,6 @@ public:
 	 * @return Movie scene tools used by the sequencer
 	 */
 	const TArray< TSharedPtr<FMovieSceneTrackEditor> >& GetTrackEditors() const { return TrackEditors; }
-
-	/** Ticks the sequencer by InDeltaTime */
-	void Tick( const float InDeltaTime );
 
 	/**
 	 * Attempts to add a new spawnable to the MovieScene for the specified asset or class

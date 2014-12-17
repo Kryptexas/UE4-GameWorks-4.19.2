@@ -728,8 +728,6 @@ void SGraphPin::Tick( const FGeometry& AllottedGeometry, const double InCurrentT
 {
 	CachedNodeOffset = AllottedGeometry.AbsolutePosition/AllottedGeometry.Scale - OwnerNodePtr.Pin()->GetUnscaledPosition();
 	CachedNodeOffset.Y += AllottedGeometry.Size.Y * 0.5f;
-
-	SBorder::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 UEdGraphPin* SGraphPin::GetPinObj() const

@@ -24,7 +24,7 @@ void STranslationPickerFloatingWindow::Construct(const FArguments& InArgs)
 	];
 }
 
-void STranslationPickerFloatingWindow::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	PickedTexts.Empty();
 	TranslationInfoPreviewText = FText::GetEmpty();

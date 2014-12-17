@@ -39,7 +39,6 @@ public:
 	void Construct( const FArguments& InArgs, TSharedRef<FAssetDeleteModel> InDeleteModel );
 
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 	TSharedRef<SWidget> CreateThumbnailWidget();
@@ -52,6 +51,8 @@ private:
 	TSharedRef<SWidget> BuildDeleteDialog();
 
 private:
+	/** Active tick to tick the delete model until it reaches a "Finished" state */
+	EActiveTickReturnType TickDeleteModel( double InCurrentTime, float InDeltaTime );
 
 	void HandleDeleteModelStateChanged( FAssetDeleteModel::EState NewState );
 
@@ -118,6 +119,9 @@ private:
 	TSharedRef<ITableRow> HandleGenerateAssetRow( TSharedPtr<FPendingDelete> InItem, const TSharedRef<STableViewBase>& OwnerTable );
 
 private:
+
+	/** Whether the active tick is currently registered */
+	bool bIsActiveTickRegistered;
 
 	/** The model used for deleting assets */
 	TSharedPtr<FAssetDeleteModel> DeleteModel;

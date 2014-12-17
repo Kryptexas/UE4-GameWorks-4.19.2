@@ -62,12 +62,6 @@ public:
 
 	void Construct( const FArguments& InArgs );
 
-public:
-
-	// SWidget overrides
-
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 private:
 
 	/** Callback for changes in the editable text box. */
@@ -77,6 +71,9 @@ private:
 	void HandleTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
 
 private:
+
+	/** Fires the text changed delegate on a delay */
+	EActiveTickReturnType TriggerOnTextChanged( double InCurrentTime, float InDeltaTime );
 
 	/** @return should we show the X to clear search? */
 	EVisibility GetXVisibility() const;
@@ -91,6 +88,13 @@ private:
 
 	/** Invoked to get the font to use for the editable text box */
 	FSlateFontInfo GetWidgetFont() const;
+
+private:
+	/** The amount of time to delay filtering after the user types */
+	static const double FilterDelayAfterTyping;
+
+	/** Handle to the active trigger text changed timer */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
 
 	/** Delegate that is invoked when the user does next or previous */
 	FOnSearch OnSearchDelegate;
@@ -107,12 +111,9 @@ private:
 	/** Fonts that specify how to render search text when inactive, and active */
 	FSlateFontInfo ActiveFont, InactiveFont;
 
-	/** When true, the user is typing in the search box. This is used to delay the actual filter until the user is done typing. */
-	double CurrentTime;
-	double LastTypeTime;
-	double FilterDelayAfterTyping;
-	bool bTypingFilterText;
 	FText LastPendingTextChangedValue;
+
+	bool bIsActiveTickRegistered : 1;
 };
 
 

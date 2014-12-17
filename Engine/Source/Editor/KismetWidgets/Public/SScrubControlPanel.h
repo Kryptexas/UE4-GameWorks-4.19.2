@@ -9,9 +9,8 @@
 class KISMETWIDGETS_API SScrubControlPanel : public SCompoundWidget
 {
 public:
-
-	SLATE_BEGIN_ARGS(SScrubControlPanel)
-		: _Value(0)
+	SLATE_BEGIN_ARGS( SScrubControlPanel )
+		: _Value( 0 )
 		, _NumOfKeys()
 		, _SequenceLength()
 		, _OnValueChanged()
@@ -31,6 +30,7 @@ public:
 		, _ViewInputMax()
 		, _OnSetInputViewRange()
 		, _OnCropAnimSequence()
+		, _OnTickPlayback()
 	{}
 		SLATE_ATTRIBUTE( float, Value )
 		SLATE_ATTRIBUTE( uint32, NumOfKeys )
@@ -66,7 +66,9 @@ public:
 		SLATE_ATTRIBUTE( bool, IsRealtimeStreamingMode )
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )
-		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag)
+		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag )
+		/** Called each frame during playback */
+		SLATE_EVENT( FOnTickPlayback, OnTickPlayback )
 	SLATE_END_ARGS()
 
 	/**
@@ -75,6 +77,9 @@ public:
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
 	void Construct( const FArguments& InArgs );
+
+	virtual ~SScrubControlPanel() {}
+
 protected:
 	EVisibility GetRealtimeControlVisibility(bool bIsControlForRealtimeStreamingMode) const;
 

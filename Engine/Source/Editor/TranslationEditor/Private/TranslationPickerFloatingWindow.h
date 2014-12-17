@@ -17,7 +17,7 @@ class STranslationPickerFloatingWindow : public SCompoundWidget
 	void Construct(const FArguments& InArgs);
 
 private:
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** Pull the FText reference out of an SWidget */
 	FText GetTextDescription(TSharedRef<SWidget> Widget);

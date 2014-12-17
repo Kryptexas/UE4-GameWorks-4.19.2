@@ -274,8 +274,17 @@ private:
 	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
 	bool CanUseInertialScroll( float ScrollAmount ) const;
 
-	/** Called every tick to update and perform the inertial scroll */
-	void TickInertialScroll( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
+	/** Active tick to update the inertial scroll */
+	EActiveTickReturnType UpdateInertialScroll(double InCurrentTime, float InDeltaTime);
+
+	/** One-off active tick to refresh the contents of the table as needed */
+	EActiveTickReturnType EnsureTickToRefresh(double InCurrentTime, float InDeltaTime);
+
+	/** Whether the active tick to update the inertial scrolling is currently registered */
+	bool bIsScrollingActiveTickRegistered;
+
+	/** Cached geometry for use by the active tick */
+	FGeometry CachedGeometry;
 
 protected:
 

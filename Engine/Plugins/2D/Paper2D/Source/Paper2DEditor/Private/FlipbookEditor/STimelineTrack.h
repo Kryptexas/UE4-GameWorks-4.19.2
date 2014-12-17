@@ -109,10 +109,8 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList);
 
-	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
-		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
 		int32 NewNumKeyframes = (Flipbook != nullptr) ? Flipbook->GetNumKeyFrames() : 0;
 		if (NewNumKeyframes != NumKeyframesFromLastRebuild)

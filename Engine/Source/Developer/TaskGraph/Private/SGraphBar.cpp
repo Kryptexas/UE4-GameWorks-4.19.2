@@ -115,8 +115,6 @@ void SGraphBar::Tick( const FGeometry& AllottedGeometry, const double InCurrentT
 			LastGeometry = AllottedGeometry;
 		}
 	}
-
-	SLeafWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 FReply SGraphBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

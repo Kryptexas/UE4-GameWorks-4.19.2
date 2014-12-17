@@ -117,7 +117,6 @@ public:
 	}
 	
 	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	// End of SWidget interface
@@ -129,7 +128,7 @@ public:
 	bool OnTabClose();
 
 private:
-
+	
 	/** An internal array holding parsed data from a loaded plist file */
 	TArray<TSharedPtr<IPListNode> > PListNodes;
 	/** The list widget, needed so we can request refreshes when we change the list's contents */
@@ -233,11 +232,14 @@ public:
 	void MarkDirty();
 
 private:
+	/** Displays queued notifications */
+	EActiveTickReturnType DisplayDeferredNotifications( double InCurrentTime, float InDeltaTime );
+	/** Helper method to display queued notifications */
+	void PerformDisplayNotifications();
+
 
 	/** Helper method to parse through and load an Xml tree into an internal intermediate format for Slate */
 	bool ParseXmlTree(FXmlFile& Doc, FString& OutError);
-	/** Helper method to display queued notifications */
-	void PerformDisplayNotifications();
 	/** Helper method to write out the contents of PListNodes using a valid FileWriter */
 	void SerializePListNodes(FArchive* Writer);
 	/** Helper function to check if PListNodes is valid (every element being valid) */

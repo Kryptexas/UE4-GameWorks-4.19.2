@@ -920,10 +920,10 @@ public:
 	double GetLastUserInteractionTime() const { return LastUserInteractionTime; }
 
 	/** @return the deadzone size for dragging in screen pixels (aka virtual desktop pixels) */
-	float GetDragTriggerDistnace() const;
+	float GetDragTriggerDistance() const;
 
 	/** Set the size of the deadzone for dragging in screen pixels */
-	void SetDragTriggerDistnace( float ScreenPixels );
+	void SetDragTriggerDistance( float ScreenPixels );
 	
 	/** Set the analog cursor to be enabled or disabled. */
 	void SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor = nullptr);
@@ -1126,7 +1126,7 @@ private:
 	float Scale;
 
 	/** The dead zone distance in virtual desktop pixels (a.k.a screen pixels) that the user has to move their finder before it is considered a drag.*/
-	float DragTriggerDistnace;
+	float DragTriggerDistance;
 
 	/** All the top-level windows owned by this application; they are tracked here in a platform-agnostic way. */
 	TArray< TSharedRef<SWindow> > SlateWindows;
@@ -1262,6 +1262,9 @@ private:
 
 	/** Subset of LastUserInteractionTime that is used only when considering when to throttle */
 	double LastUserInteractionTimeForThrottling;
+
+	/** Used when considering whether to put Slate to sleep */
+	double LastMouseMoveTime;
 
 	/** Helper for detecting when a drag should begin */
 	struct FDragDetector

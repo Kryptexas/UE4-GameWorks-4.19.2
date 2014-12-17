@@ -43,7 +43,7 @@ public:
 		{
 			CompletionStateAnimation = FCurveSequence();
 			GlowCurve = CompletionStateAnimation.AddCurve(0.f, 0.75f);
-			CompletionStateAnimation.Play();
+			CompletionStateAnimation.Play( this->AsShared() );
 		}
 	}
 
@@ -54,7 +54,7 @@ public:
 		FadeAnimation.AddCurve(FadeOutDuration.Get(), ExpireDuration.Get());
 		// Add the actual fade curve
 		FadeCurve = FadeAnimation.AddCurve(0.f, FadeOutDuration.Get());
-		FadeAnimation.PlayReverse();
+		FadeAnimation.PlayReverse(this->AsShared());
 	}
 
 	/** Begins the fadein of this message */
@@ -66,14 +66,14 @@ public:
 		// Play Fadein animation
 		FadeAnimation = FCurveSequence();
 		FadeCurve = FadeAnimation.AddCurve(0.f, FadeInDuration.Get());
-		FadeAnimation.Play();
+		FadeAnimation.Play( this->AsShared() );
 
 		// Scale up/flash animation
 		IntroAnimation = FCurveSequence();
 		ScaleCurveX = IntroAnimation.AddCurve(0.2f, 0.3f, ECurveEaseFunction::QuadOut);
 		ScaleCurveY = IntroAnimation.AddCurve(0.f, 0.2f);
 		GlowCurve = IntroAnimation.AddCurve(0.5f, 0.55f, ECurveEaseFunction::QuadOut);
-		IntroAnimation.Play();
+		IntroAnimation.Play( this->AsShared() );
 
 		// When a fade in occurs, we need a high framerate for the animation to look good
 		if( FadeInDuration.Get() > KINDA_SMALL_NUMBER && bAllowThrottleWhenFrameRateIsLow && !ThrottleHandle.IsValid() )
@@ -91,7 +91,7 @@ public:
 		// Start fade animation
 		FadeAnimation = FCurveSequence();
 		FadeCurve = FadeAnimation.AddCurve(0.f, FadeOutDuration.Get());
-		FadeAnimation.PlayReverse();
+		FadeAnimation.PlayReverse(this->AsShared());
 	}
 
 	/** Sets the ExpireDuration */
@@ -114,8 +114,6 @@ public:
 
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
-		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 		const bool bIsFadingOut = FadeAnimation.IsInReverse();
 		const bool bIsCurrentlyPlaying = FadeAnimation.IsPlaying();
 		const bool bIsIntroPlaying = IntroAnimation.IsPlaying();

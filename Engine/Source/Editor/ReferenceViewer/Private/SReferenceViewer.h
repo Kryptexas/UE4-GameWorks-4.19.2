@@ -22,10 +22,6 @@ public:
 	/** Sets a new root package name */
 	void SetGraphRootPackageNames(const TArray<FName>& NewGraphRootPackageNames);
 
-	// SWidget implementation
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	// End SWidget implementation
-
 private:
 
 	void OnNodeDoubleClicked(class UEdGraphNode* Node);

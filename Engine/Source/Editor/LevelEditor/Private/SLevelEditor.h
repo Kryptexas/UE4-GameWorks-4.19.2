@@ -121,8 +121,6 @@ public:
 		return true;
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 	// Tab Management
 	TSharedRef<FTabManager> GetTabManager() const;
 	

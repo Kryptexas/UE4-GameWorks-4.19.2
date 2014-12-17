@@ -74,7 +74,7 @@ struct FCarouselDisplayItem : public TSharedFromThis<FCarouselDisplayItem>
 		if (!bTransition)
 		{
 			SlideInCurve.JumpToEnd();
-			SlideInCurve.PlayReverse();
+			SlideInCurve.PlayReverse(FXWidget.ToSharedRef());
 			bPeak = true;
 			bFade = FadeRate != 0;
 			switch (ScrollDirection)
@@ -143,7 +143,7 @@ struct FCarouselDisplayItem : public TSharedFromThis<FCarouselDisplayItem>
 			if (FMath::Abs(BlendDif) > PeakDistance + (float)FLOAT_NORMAL_THRESH)
 			{
 				SlideInCurve.JumpToEnd();
-				SlideInCurve.PlayReverse();
+				SlideInCurve.PlayReverse(FXWidget.ToSharedRef());
 			}
 			float Lerp = FMath::Max(SlideInCurve.GetLerp(), 0.1f);
 			DesiredBlendSpeed = Speed * Lerp * DeltaTime;

@@ -11,6 +11,9 @@ namespace ListConstants
 
 void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
 {
+	bItemsNeedRefresh = true;
+	//RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
+
 	HeaderRow = InHeaderRow;
 
 	// If the user provided a scrollbar, we do not need to make one of our own.
@@ -148,57 +151,75 @@ static FEndOfListResult ComputeOffsetForEndOfList( const FGeometry& ListPanelGeo
 	return FEndOfListResult( OffsetFromEndOfList, ItemsAboveView );
 }
 
-void STableViewBase::TickInertialScroll( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType STableViewBase::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
-	if ( IsRightClickScrolling() )
+	bool bKeepTicking = false;
+	if (ItemsPanel.IsValid())
 	{
-		// We sample for the inertial scroll on tick rather than on mouse/touch move so
-		// that we still get samples even if the mouse has not moved.
-		if ( CanUseInertialScroll(TickScrollDelta) )
+		if (IsRightClickScrolling())
 		{
-			this->InertialScrollManager.AddScrollSample(TickScrollDelta, InCurrentTime);
-		}
-	}
-	else
-	{
-		// If we are not right click scrolling then we can perform inertial scroll
-		this->InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
-		const float ScrollVelocity = this->InertialScrollManager.GetScrollVelocity();
+			bKeepTicking = true;
 
-		if ( ScrollVelocity != 0.f )
-		{
-			if ( CanUseInertialScroll(ScrollVelocity) )
+			// We sample for the inertial scroll on tick rather than on mouse/touch move so
+			// that we still get samples even if the mouse has not moved.
+			if (CanUseInertialScroll(TickScrollDelta))
 			{
-				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll);
-			}
-			else
-			{
-				this->InertialScrollManager.ClearScrollVelocity();
+				InertialScrollManager.AddScrollSample(TickScrollDelta, InCurrentTime);
 			}
 		}
+		else
+		{
+			InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
+			const float ScrollVelocity = InertialScrollManager.GetScrollVelocity();
+
+			if (ScrollVelocity != 0.f)
+			{
+				if (CanUseInertialScroll(ScrollVelocity))
+				{
+					bKeepTicking = true;
+					ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll);
+				}
+				else
+				{
+					InertialScrollManager.ClearScrollVelocity();
+				}
+			}
+
+			if (AllowOverscroll == EAllowOverscroll::Yes)
+			{
+				// If we are currently in overscroll, the list will need refreshing.
+				// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
+				if (Overscroll.GetOverscroll() != 0.0f)
+				{
+					bKeepTicking = true;
+					RequestListRefresh();
+				}
+
+				Overscroll.UpdateOverscroll(InDeltaTime);
+			}
+		}
+
+		TickScrollDelta = 0.f;
 	}
 
-	TickScrollDelta = 0.f;
+	bIsScrollingActiveTickRegistered = bKeepTicking;
+	return bKeepTicking ? EActiveTickReturnType::KeepTicking : EActiveTickReturnType::StopTicking;
+}
+
+EActiveTickReturnType STableViewBase::EnsureTickToRefresh(double InCurrentTime, float InDeltaTime)
+{
+	// Actual refresh isn't implemented here as it can be needed in response to changes in the panel geometry.
+	// Since that isn't known until Tick (called after this when registered), refreshing here could result in two refreshes in one frame.
+
+	return EActiveTickReturnType::StopTicking;
 }
 
 void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	CachedGeometry = AllottedGeometry;
+
 	if (ItemsPanel.IsValid())
 	{
-		TickInertialScroll(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-		if ( !IsRightClickScrolling() && AllowOverscroll == EAllowOverscroll::Yes)
-		{
-			// If we are currently in overscroll, the list will need refreshing.
-			// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
-			if ( Overscroll.GetOverscroll() != 0.0f )
-			{
-				this->RequestListRefresh();
-			}
-
-			Overscroll.UpdateOverscroll( InDeltaTime );
-		}
-
 		FGeometry PanelGeometry = FindChildGeometry( AllottedGeometry, ItemsPanel.ToSharedRef() );
 		if ( bItemsNeedRefresh || PanelGeometryLastTick.Size != PanelGeometry.Size)
 		{
@@ -361,6 +382,13 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		// the mouse and dragging the view?
 		if( IsRightClickScrolling() )
 		{
+			// Make sure the active tick is registered to update the inertial scroll
+			if (!bIsScrollingActiveTickRegistered)
+			{
+				bIsScrollingActiveTickRegistered = true;
+				RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &STableViewBase::UpdateInertialScroll));
+			}
+
 			TickScrollDelta -= ScrollByAmount;
 
 			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, AllowOverscroll );
@@ -460,7 +488,7 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
 		TickScrollDelta -= ScrollByAmount;
 
-		if (AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistnace())
+		if (AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistance())
 		{
 			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
@@ -508,7 +536,7 @@ TSharedPtr<SHeaderRow> STableViewBase::GetHeaderRow() const
 
 bool STableViewBase::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace() &&
+	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistance() &&
 		(this->ScrollBar->IsNeeded() || AllowOverscroll == EAllowOverscroll::Yes);
 }
 
@@ -520,7 +548,12 @@ bool STableViewBase::IsUserScrolling() const
 
 void STableViewBase::RequestListRefresh()
 {
-	bItemsNeedRefresh = true;
+	//bItemsNeedRefresh = true;
+	if (!bItemsNeedRefresh)
+	{
+		bItemsNeedRefresh = true;
+		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
+	}
 	ItemsPanel->SetRefreshPending(true);
 }
 
@@ -564,7 +597,8 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, bShowSoftwareCursor( false )
 	, Overscroll()
 	, AllowOverscroll(EAllowOverscroll::Yes)
-	, bItemsNeedRefresh( true )	
+	, bItemsNeedRefresh( false )	
+	, bIsScrollingActiveTickRegistered(false)
 {
 }
 
@@ -676,6 +710,8 @@ void STableViewBase::OnRightMouseButtonUp(const FVector2D& SummonLocation)
 		{
 			bShowSoftwareCursor = false;
 			FSlateApplication::Get().PushMenu( AsShared(), MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+
+
 		}
 	}
 

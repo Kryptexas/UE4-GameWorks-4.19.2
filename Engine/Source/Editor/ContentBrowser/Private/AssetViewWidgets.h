@@ -88,6 +88,9 @@ public:
 		/** Delegate for when an item is about to show a tool tip */
 		SLATE_EVENT( FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
 
+		/** Delegate for when an item's tooltip is about to close */
+		SLATE_EVENT( FOnAssetToolTipClosing, OnAssetToolTipClosing )
+
 	SLATE_END_ARGS()
 
 	/** Virtual destructor */
@@ -115,8 +118,11 @@ public:
 	/** Delegate handling when an asset is loaded */
 	void HandleAssetLoaded(UObject* InAsset) const;
 
-	/* About to show a tool tip */
+	/** About to show a tool tip */
 	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) override;
+
+	/** Tooltip is closing */
+	virtual void OnToolTipClosing() override;
 
 protected:
 	/** Handles starting a name change */
@@ -220,6 +226,9 @@ protected:
 
 	/** Called if bound when about to show a tooltip */
 	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
+
+	/** Called if bound when a tooltip is closing */
+	FOnAssetToolTipClosing OnAssetToolTipClosing;
 
 	/** The geometry last frame. Used when telling popup messages where to appear. */
 	FGeometry LastGeometry;
@@ -336,6 +345,9 @@ public:
 		/* Delegate to signal when the item is about to show a tooltip */
 		SLATE_EVENT(FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
 
+		/** Delegate for when an item's tooltip is about to close */
+		SLATE_EVENT( FOnAssetToolTipClosing, OnAssetToolTipClosing )
+
 	SLATE_END_ARGS()
 
 	/** Destructor */
@@ -439,6 +451,9 @@ public:
 		/* Delegate to signal when the item is about to show a tooltip */
 		SLATE_EVENT(FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
 
+		/** Delegate for when an item's tooltip is about to close */
+		SLATE_EVENT( FOnAssetToolTipClosing, OnAssetToolTipClosing )
+
 	SLATE_END_ARGS()
 
 	/** Destructor */
@@ -474,7 +489,7 @@ private:
 	float ThumbnailPadding;
 };
 
-/** An item in the asset tile view */
+/** An item in the asset column view */
 class SAssetColumnItem : public SAssetViewItem
 {
 public:
@@ -512,6 +527,9 @@ public:
 
 		/* Delegate to signal when the item is about to show a tooltip */
 		SLATE_EVENT( FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
+
+		/** Delegate for when an item's tooltip is about to close */
+		SLATE_EVENT( FOnAssetToolTipClosing, OnAssetToolTipClosing )
 
 	SLATE_END_ARGS()
 
@@ -581,8 +599,6 @@ public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
-		SMultiColumnTableRow< TSharedPtr<FAssetViewItem> >::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 		this->AssetColumnItem->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	}
 

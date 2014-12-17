@@ -650,6 +650,9 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 {
 	FEditorViewportClient::Tick(DeltaSeconds);
 
+	UWorld* World = SharedData->PreviewScene.GetWorld();
+	World->Tick(LEVELTICK_All, DeltaSeconds);
+
 	if (SharedData->bRunningSimulation)
 	{
 		// check if PIE disabled the realtime viewport and quit sim if so
@@ -660,7 +663,6 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 			Invalidate();
 		}
 
-		UWorld* World = SharedData->PreviewScene.GetWorld();
 		AWorldSettings* Setting = World->GetWorldSettings();
 		Setting->WorldGravityZ = SharedData->bNoGravitySimulation ? 0.0f : UPhysicsSettings::Get()->DefaultGravityZ*SharedData->EditorSimOptions->GravScale;
 		Setting->bWorldGravitySet = true;

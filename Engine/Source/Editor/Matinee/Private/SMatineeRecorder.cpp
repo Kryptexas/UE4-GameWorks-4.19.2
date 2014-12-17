@@ -32,11 +32,6 @@ SMatineeRecorder::~SMatineeRecorder()
 	LevelViewportClient.Reset();
 }
 
-void SMatineeRecorder::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-}
-
 void SMatineeRecorder::RefreshViewport()
 {
 	Viewport->InvalidateDisplay();

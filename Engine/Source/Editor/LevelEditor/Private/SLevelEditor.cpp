@@ -1410,14 +1410,6 @@ UWorld* SLevelEditor::GetWorld() const
 	return World;
 }
 
-void SLevelEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	if(ThumbnailPool.IsValid())
-	{
-		ThumbnailPool->Tick( InDeltaTime );
-	}
-}
-
 void SLevelEditor::HandleEditorMapChange( uint32 MapChangeFlags )
 {
 	ResetViewportTabInfo();

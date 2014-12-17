@@ -48,7 +48,7 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
@@ -107,6 +107,12 @@ private:
 	void ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	void OnEditorSelectionChanged();
+
+	/** Establishes the new hovered widget and restarts the outline fade */
+	void SetHoveredWidget(const FWidgetReference& InHoveredWidget);
+
+	/** Clears the hovered widget reference */
+	void ClearHoveredWidget();
 
 	/** Gets the blueprint being edited by the designer */
 	UWidgetBlueprint* GetBlueprint() const;
@@ -246,6 +252,12 @@ private:
 	/** Curve to handle fading of the resolution */
 	FCurveSequence ResolutionTextFade;
 
+	/** Curve to handle the fade-in of the border around the hovered widget */
+	FCurveSequence HoveredWidgetOutlineFade;
+
+	/** The widget currently being hovered over */
+	FWidgetReference HoveredWidget;
+
 	/**  */
 	FWeakWidgetPath SelectedWidgetPath;
 
@@ -263,7 +275,4 @@ private:
 
 	/**  */
 	TMap<TSharedRef<SWidget>, FArrangedWidget> CachedWidgetGeometry;
-
-	/**  */
-	FGeometry CachedDesignerGeometry;
 };

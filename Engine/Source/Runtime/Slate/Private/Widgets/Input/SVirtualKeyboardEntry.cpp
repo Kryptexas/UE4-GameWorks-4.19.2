@@ -117,9 +117,6 @@ bool SVirtualKeyboardEntry::GetIsReadOnly() const
  */
 void SVirtualKeyboardEntry::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	// Call parent implementation.
-	SLeafWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
 	if(bNeedsUpdate)
 	{
 		// Let outsiders know that the text content has been changed

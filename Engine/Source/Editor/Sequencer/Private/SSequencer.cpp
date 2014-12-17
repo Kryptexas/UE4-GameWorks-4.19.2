@@ -46,7 +46,7 @@ public:
 		Sequencer = InSequencer;
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		if (Sequencer.Pin()->IsShotFilteringOn())
 		{
@@ -143,6 +143,7 @@ private:
 void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
+	bIsActiveTickRegistered = false;
 
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
@@ -373,15 +374,28 @@ SSequencer::~SSequencer()
 {
 }
 
-void SSequencer::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+void SSequencer::RegisterActiveTickForPlayback()
 {
-	Sequencer.Pin()->Tick(InDeltaTime);
-
-	const TArray< TSharedPtr<FMovieSceneTrackEditor> >& TrackEditors = Sequencer.Pin()->GetTrackEditors();
-	for (int32 EditorIndex = 0; EditorIndex < TrackEditors.Num(); ++EditorIndex)
+	if (!bIsActiveTickRegistered)
 	{
-		TrackEditors[EditorIndex]->Tick(InCurrentTime);
+		bIsActiveTickRegistered = true;
+		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SSequencer::EnsureSlateTickDuringPlayback));
 	}
+}
+
+EActiveTickReturnType SSequencer::EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime)
+{
+	if (Sequencer.IsValid())
+	{
+		auto PlaybackStatus = Sequencer.Pin()->GetPlaybackStatus();
+		if (PlaybackStatus == EMovieScenePlayerStatus::Playing || PlaybackStatus == EMovieScenePlayerStatus::Recording)
+		{
+			return EActiveTickReturnType::KeepTicking;
+		}
+	}
+
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
 }
 
 void SSequencer::UpdateLayoutTree()

@@ -14,6 +14,8 @@ void SCreditsScreen::Construct(const FArguments& InArgs)
 	ScrollPixelsPerSecond = 50.0f;
 	bIsPlaying = true;
 
+	ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SCreditsScreen::RollCredits ) );
+
 	const FString Version = GEngineVersion.ToString(FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch);
 
 	FString CreditsText;
@@ -67,19 +69,33 @@ void SCreditsScreen::Construct(const FArguments& InArgs)
 	];
 }
 
-void SCreditsScreen::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SCreditsScreen::RollCredits( double InCurrentTime, float InDeltaTime )
 {
-	if ( bIsPlaying )
-	{
-		float NewPixelOffset = ( ScrollPixelsPerSecond * InDeltaTime );
-		ScrollBox->SetScrollOffset(ScrollBox->GetScrollOffset() + NewPixelOffset);
-		PreviousScrollPosition = ScrollBox->GetScrollOffset();
-	}
+	float NewPixelOffset = ( ScrollPixelsPerSecond * InDeltaTime );
+	ScrollBox->SetScrollOffset( ScrollBox->GetScrollOffset() + NewPixelOffset );
+	PreviousScrollPosition = ScrollBox->GetScrollOffset();
+
+	return EActiveTickReturnType::KeepTicking;
 }
 
 FReply SCreditsScreen::HandleTogglePlayPause()
 {
-	bIsPlaying = !bIsPlaying;
+	if ( bIsPlaying )
+	{
+		bIsPlaying = false;
+		if ( ActiveTickHandle.IsValid() )
+		{
+			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		}
+	}
+	else
+	{
+		bIsPlaying = true;
+		if ( !ActiveTickHandle.IsValid() )
+		{
+			ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SCreditsScreen::RollCredits ) );
+		}
+	}
 
 	return FReply::Handled();
 }
@@ -90,6 +106,10 @@ void SCreditsScreen::HandleUserScrolled(float ScrollOffset)
 	if ( bIsPlaying && ScrollOffset < PreviousScrollPosition )
 	{
 		bIsPlaying = false;
+		if ( ActiveTickHandle.IsValid() )
+		{
+			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		}
 	}
 
 	PreviousScrollPosition = ScrollOffset;

@@ -26,6 +26,7 @@ void SScrubControlPanel::Construct( const SScrubControlPanel::FArguments& InArgs
 	TransportControlArgs.OnToggleLooping = InArgs._OnClickedToggleLoop;
 	TransportControlArgs.OnGetLooping = InArgs._OnGetLooping;
 	TransportControlArgs.OnGetPlaybackMode = InArgs._OnGetPlaybackMode;
+	TransportControlArgs.OnTickPlayback = InArgs._OnTickPlayback;
 	
 	FTransportControlArgs TransportControlArgsForRealtimeStreamingMode;
 	TransportControlArgsForRealtimeStreamingMode.OnForwardPlay = TransportControlArgs.OnForwardPlay;

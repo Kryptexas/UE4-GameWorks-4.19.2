@@ -187,9 +187,7 @@ private:
 
 void SSCSEditorViewport::Construct(const FArguments& InArgs)
 {
-	// Initialize
-	bPreviewNeedsUpdating = false;
-	bResetCameraOnNextPreviewUpdate = false;
+	bIsActiveTickRegistered = false;
 
 	// Save off the Blueprint editor reference, we'll need this later
 	BlueprintEditorPtr = InArgs._BlueprintEditor;
@@ -306,10 +304,10 @@ void SSCSEditorViewport::RequestRefresh(bool bResetCamera, bool bRefreshNow)
 	else
 	{
 		// Defer the update until the next tick. This way we don't accidentally spawn the preview actor in the middle of a transaction, for example.
-		bPreviewNeedsUpdating = true;
-		if(bResetCamera)
+		if (!bIsActiveTickRegistered)
 		{
-			bResetCameraOnNextPreviewUpdate = true;
+			bIsActiveTickRegistered = true;
+			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SSCSEditorViewport::DeferredUpdatePreview, bResetCamera));
 		}
 	}
 }
@@ -330,19 +328,15 @@ bool SSCSEditorViewport::GetIsSimulateEnabled()
 	return ViewportClient->GetIsSimulateEnabled();
 }
 
-void SSCSEditorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SSCSEditorViewport::DeferredUpdatePreview(double InCurrentTime, float InDeltaTime, bool bResetCamera)
 {
-	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	// If the preview scene is no longer valid (i.e. all actors have destroyed themselves), then attempt to recreate the scene. This way we can "loop" certain "finite" Blueprints that might destroy themselves.
-	if(ViewportClient.IsValid() && (bPreviewNeedsUpdating || !ViewportClient->IsPreviewSceneValid()))
+	if (ViewportClient.IsValid())
 	{
-		ViewportClient->InvalidatePreview(bResetCameraOnNextPreviewUpdate);
-
-		// Reset for next update
-		bPreviewNeedsUpdating = false;
-		bResetCameraOnNextPreviewUpdate = false;
+		ViewportClient->InvalidatePreview(bResetCamera);
 	}
+
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
 }
 
 AActor* SSCSEditorViewport::GetPreviewActor() const

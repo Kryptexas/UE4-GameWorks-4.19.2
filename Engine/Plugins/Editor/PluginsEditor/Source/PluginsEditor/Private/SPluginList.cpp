@@ -19,7 +19,7 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginsE
 	// Find out when the plugin text filter changes
 	Owner->GetPluginTextFilter().OnChanged().AddSP( this, &SPluginList::OnPluginTextFilterChanged );
 
-	bNeedsRefresh = false;
+	bIsActiveTickRegistered = false;
 	RebuildAndFilterPluginList();
 
 	// @todo plugedit: Have optional compact version with only plugin icon + name + version?  Only expand selected?
@@ -129,22 +129,15 @@ void SPluginList::RebuildAndFilterPluginList()
 	{
 		PluginListView->RequestListRefresh();
 	}
-
-	bNeedsRefresh = false;
 }
 
-
-void SPluginList::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SPluginList::TriggerListRebuild(double InCurrentTime, float InDeltaTime)
 {
-	// Call parent implementation
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
+	RebuildAndFilterPluginList();
 
-	if( bNeedsRefresh )
-	{
-		RebuildAndFilterPluginList();
-	}
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
 }
-
 
 void SPluginList::OnPluginTextFilterChanged()
 {
@@ -154,7 +147,11 @@ void SPluginList::OnPluginTextFilterChanged()
 
 void SPluginList::SetNeedsRefresh()
 {
-	bNeedsRefresh = true;
+	if (!bIsActiveTickRegistered)
+	{
+		bIsActiveTickRegistered = true;
+		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPluginList::TriggerListRebuild));
+	}
 }
 
 

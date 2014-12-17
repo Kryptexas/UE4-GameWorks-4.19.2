@@ -5,7 +5,7 @@
 
 DECLARE_CYCLE_STAT( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STATGROUP_Slate );
 
-/* SViewport structors
+/* SViewport constructors
  *****************************************************************************/
 
 SViewport::SViewport()
@@ -121,7 +121,6 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 	return Layer;
 }
-
 
 void SViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {

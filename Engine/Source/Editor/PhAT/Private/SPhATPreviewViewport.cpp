@@ -72,13 +72,6 @@ void SPhATPreviewViewport::RefreshViewport()
 	Viewport->InvalidateDisplay();
 }
 
-void SPhATPreviewViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	ViewportClient->GetScene()->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
-}
-
 bool SPhATPreviewViewport::IsVisible() const
 {
 	return ViewportWidget.IsValid() && (!ParentTab.IsValid() || ParentTab.Pin()->IsForeground());

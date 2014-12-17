@@ -69,12 +69,12 @@ public:
 
 	// SCompoundWidget interface
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 
-	/** Holds a timer for checking whether the device profile configuration file needs to be checked out. */
-	float DefaultConfigCheckOutTimer;
+	/** Holds the last time checking whether the device profile configuration file needs to be checked out. */
+	double LastDefaultConfigCheckOutTime;
 
 	/** Holds a flag indicating whether the section's configuration file needs to be checked out. */
 	bool bIsDefaultConfigCheckOutNeeded;
@@ -132,7 +132,7 @@ bool SDeviceProfileSourceControl::IsCheckOutAvailable() const
 
 void SDeviceProfileSourceControl::Construct(const FArguments& InArgs)
 {
-	DefaultConfigCheckOutTimer = 0.0f;
+	LastDefaultConfigCheckOutTime = 0.0;
 	bIsDefaultConfigCheckOutNeeded = true;
 
 	const FString RelativeConfigFilePath = FString::Printf(TEXT("%sDefault%ss.ini"), *FPaths::SourceConfigDir(), *UDeviceProfile::StaticClass()->GetName());
@@ -212,18 +212,14 @@ void SDeviceProfileSourceControl::Construct(const FArguments& InArgs)
 }
 
 
-void SDeviceProfileSourceControl::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SDeviceProfileSourceControl::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	// cache selected settings object's configuration file state
-	DefaultConfigCheckOutTimer += InDeltaTime;
-
-	if(DefaultConfigCheckOutTimer >= 1.0f)
+	if(InCurrentTime - LastDefaultConfigCheckOutTime >= 1.0f)
 	{
 		bIsDefaultConfigCheckOutNeeded = (FPaths::FileExists(AbsoluteConfigFilePath) && IFileManager::Get().IsReadOnly(*AbsoluteConfigFilePath));
 
-		DefaultConfigCheckOutTimer = 0.0f;
+		LastDefaultConfigCheckOutTime = InCurrentTime;
 	}
 }
 

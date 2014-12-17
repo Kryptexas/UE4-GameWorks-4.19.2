@@ -226,7 +226,6 @@ void SDataGraph::Construct( const FArguments& InArgs )
 
 void SDataGraph::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry,InCurrentTime,InDeltaTime);
 	ThisGeometry = AllottedGeometry;
 
 	UpdateState();
@@ -1175,7 +1174,7 @@ FReply SDataGraph::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 	return FReply::Handled();
 }
 
-const FEventGraphDataHandlerRef SDataGraph::PrepareEventGraphDataHandler( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition )
+const FEventGraphDataHandlerRef SDataGraph::PrepareEventGraphDataHandler( const FVector2D& ScreenSpacePosition )
 {
 	const FGraphDescription* GraphDescription = GetFirstGraph();
 
@@ -1282,7 +1281,7 @@ void SDataGraph::ShowContextMenu( const FVector2D& ScreenSpacePosition )
 	const FProfilerActionManager& ProfilerActionManager = FProfilerManager::GetActionManager();
 
 	// Build data required for opening event graph(s).
-	const FEventGraphDataHandlerRef EventGraphDataHandler = PrepareEventGraphDataHandler( ThisGeometry, ScreenSpacePosition );
+	const FEventGraphDataHandlerRef EventGraphDataHandler = PrepareEventGraphDataHandler( ScreenSpacePosition );
 
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, ProfilerCommandList );

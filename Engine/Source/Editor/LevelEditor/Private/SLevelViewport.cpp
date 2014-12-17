@@ -815,11 +815,9 @@ FReply SLevelViewport::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SEditorViewport::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
 	const bool bContainsFocus = HasFocusedDescendants();
-
-	LastTickTime = FPlatformTime::Seconds();
 
 	// When we have focus we update the 'Allow Throttling' option in slate to be disabled so that interactions in the
 	// viewport with Slate widgets that are part of the game, don't throttle.
@@ -848,7 +846,7 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 	// user could miss part of the animation, or even the whole thing!
 	if( bViewTransitionAnimPending )
 	{
-		ViewTransitionAnim.Play();
+		ViewTransitionAnim.Play(this->AsShared());
 		bViewTransitionAnimPending = false;
 	}
 
@@ -861,19 +859,19 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 			if(PIEOverlaySlotIndex)
 			{
 				PIEOverlayAnim = FCurveSequence(0.0f, SLevelViewportPIEAnimation::MouseControlLabelFadeout, ECurveEaseFunction::CubicInOut);
-				PIEOverlayAnim.Play();
+				PIEOverlayAnim.Play(this->AsShared());
 			}
 		}
 		ViewTransitionType = EViewTransition::None;
 		ViewTransitionAnim = FCurveSequence( 0.0f, 0.25f, ECurveEaseFunction::QuadOut );
-		ViewTransitionAnim.PlayReverse();
+		ViewTransitionAnim.PlayReverse(this->AsShared());
 	}
 
 	if(IsPlayInEditorViewportActive() && bPIEHasFocus != ActiveViewport->HasMouseCapture())
 	{
 		bPIEHasFocus = ActiveViewport->HasMouseCapture();
 		PIEOverlayAnim = FCurveSequence(0.0f, SLevelViewportPIEAnimation::MouseControlLabelFadeout, ECurveEaseFunction::CubicInOut);
-		PIEOverlayAnim.Play();
+		PIEOverlayAnim.Play(this->AsShared());
 	}
 
 	// Update actor preview viewports, if we have any
@@ -2640,7 +2638,7 @@ void SActorPreview::Construct( const FArguments& InArgs )
 		FadeSequence = FCurveSequence( TimeBeforeFadingIn, FadeTime );
 
 		// Start fading in!
-		FadeSequence.Play( TimeBeforeFadingIn );	// Skip the initial time delay and just fade straight in
+		FadeSequence.Play(this->AsShared(), false, TimeBeforeFadingIn);	// Skip the initial time delay and just fade straight in
 	}
 
 	HighlightSequence = FCurveSequence(0.f, 0.5f, ECurveEaseFunction::Linear);
@@ -2720,7 +2718,7 @@ void SActorPreview::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEve
 		}
 		else
 		{
-			FadeSequence.PlayReverse();
+			FadeSequence.PlayReverse(this->AsShared());
 		}
 	}
 }
@@ -2743,7 +2741,7 @@ void SActorPreview::OnMouseLeave( const FPointerEvent& MouseEvent )
 		}
 		else
 		{
-			FadeSequence.Play();
+			FadeSequence.Play(this->AsShared());
 		}
 	}
 
@@ -2785,7 +2783,7 @@ void SActorPreview::OnActorSelected(UObject* InActor)
 void SActorPreview::Highlight()
 {
 	HighlightSequence.JumpToStart();
-	HighlightSequence.Play();
+	HighlightSequence.Play(this->AsShared());
 }
 
 FSlateColor SActorPreview::GetBorderColorAndOpacity() const

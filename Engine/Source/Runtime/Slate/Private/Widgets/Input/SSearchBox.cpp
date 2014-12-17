@@ -3,11 +3,13 @@
 #include "SlatePrivatePCH.h"
 #include "SSearchBox.h"
 
+const double SSearchBox::FilterDelayAfterTyping = 0.25f;
 
 void SSearchBox::Construct( const FArguments& InArgs )
 {
 	check(InArgs._Style);
 
+	bIsActiveTickRegistered = false;
 	OnSearchDelegate = InArgs._OnSearch;
 	OnTextChangedDelegate = InArgs._OnTextChanged;
 	OnTextCommittedDelegate = InArgs._OnTextCommitted;
@@ -15,10 +17,6 @@ void SSearchBox::Construct( const FArguments& InArgs )
 
 	InactiveFont = InArgs._Style->TextBoxStyle.Font;
 	ActiveFont = InArgs._Style->ActiveFontInfo;
-
-	bTypingFilterText = false;
-	LastTypeTime = 0;
-	FilterDelayAfterTyping = 0.25f;
 
 	SEditableTextBox::Construct( SEditableTextBox::FArguments()
 		.Style( &InArgs._Style->TextBoxStyle )
@@ -111,15 +109,13 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	];
 }
 
-void SSearchBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SSearchBox::TriggerOnTextChanged( double InCurrentTime, float InDeltaTime )
 {
-	CurrentTime = InCurrentTime;
+	// Reset the flag first in case the delegate winds up triggering HandleTextChanged
+	bIsActiveTickRegistered = false;
 
-	if ( bTypingFilterText && InCurrentTime > LastTypeTime + FilterDelayAfterTyping)
-{
 	OnTextChangedDelegate.ExecuteIfBound( LastPendingTextChangedValue );
-		bTypingFilterText = false;
-	}
+	return EActiveTickReturnType::StopTicking;
 }
 
 void SSearchBox::HandleTextChanged(const FText& NewText)
@@ -127,8 +123,14 @@ void SSearchBox::HandleTextChanged(const FText& NewText)
 	if ( DelayChangeNotificationsWhileTyping.Get() )
 	{
 		LastPendingTextChangedValue = NewText;
-		LastTypeTime = CurrentTime;
-		bTypingFilterText = true;
+
+		// Remove the existing registered tick if necessary
+		if ( ActiveTickHandle.IsValid() )
+		{
+			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		}
+		bIsActiveTickRegistered = true;
+		ActiveTickHandle = RegisterActiveTick( FilterDelayAfterTyping, FWidgetActiveTickDelegate::CreateSP( this, &SSearchBox::TriggerOnTextChanged ) );
 	}
 	else
 	{
@@ -138,7 +140,12 @@ void SSearchBox::HandleTextChanged(const FText& NewText)
 
 void SSearchBox::HandleTextCommitted(const FText& NewText, ETextCommit::Type CommitType)
 {
-	bTypingFilterText = false;
+	if ( bIsActiveTickRegistered && ActiveTickHandle.IsValid() )
+	{
+		bIsActiveTickRegistered = false;
+		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+	}
+
 	OnTextCommittedDelegate.ExecuteIfBound( NewText, CommitType );
 }
 

@@ -161,7 +161,10 @@ void SWorldTileItem::Construct(const FArguments& InArgs)
 	SetToolTip(CreateToolTipWidget());
 
 	CurveSequence = FCurveSequence(0.0f, 0.5f);
-	CurveSequence.Play();
+	if (TileModel->IsLoading())
+	{
+		CurveSequence.Play( this->AsShared(), true );
+	}
 }
 
 void SWorldTileItem::RequestRefresh()
@@ -358,6 +361,18 @@ FVector2D SWorldTileItem::ComputeDesiredSize() const
 	return TileModel->GetLevelSize2D();
 }
 
+void SWorldTileItem::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	if ( TileModel->IsLoading() && !CurveSequence.IsPlaying() )
+	{
+		CurveSequence.Play( this->AsShared() );
+	}
+	else if ( !TileModel->IsLoading() && CurveSequence.IsPlaying() )
+	{
+		CurveSequence.JumpToEnd();
+	}
+}
+
 int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bIsVisible = FSlateRect::DoRectanglesIntersect(AllottedGeometry.GetClippingRect(), ClippingRect);
@@ -400,7 +415,7 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		// Draw progress bar if level is currently loading
 		if (TileModel->IsLoading())
 		{
-			const float ProgressBarAnimOffset = ProgressBarImage->ImageSize.X * CurveSequence.GetLerpLooping();
+			const float ProgressBarAnimOffset = ProgressBarImage->ImageSize.X * CurveSequence.GetLerp();
 			const float ProgressBarImageSize = ProgressBarImage->ImageSize.X;
 			const float ProgressBarImageHeight = ProgressBarImage->ImageSize.Y;
 			const FVector2D ProggresBarOffset = FVector2D(ProgressBarAnimOffset - ProgressBarImageSize, 0);

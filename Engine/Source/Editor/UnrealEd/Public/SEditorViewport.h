@@ -17,7 +17,7 @@ public:
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	
 	/**
 	 * @return True if the viewport is being updated in realtime
@@ -155,14 +155,26 @@ protected:
 
 protected:
 	TSharedPtr<SOverlay> ViewportOverlay;
+
 	/** Viewport that renders the scene provided by the viewport client */
 	TSharedPtr<class FSceneViewport> SceneViewport;
+	
 	/** Widget where the scene viewport is drawn in */
 	TSharedPtr<SViewport> ViewportWidget;
+	
 	/** The client responsible for setting up the scene */
 	TSharedPtr<FEditorViewportClient> Client;
+	
 	/** Commandlist used in the viewport (Maps commands to viewport specific actions) */
 	TSharedPtr<FUICommandList> CommandList;
+	
 	/** The last time the viewport was ticked (for visibility determination) */
 	double LastTickTime;
+
+private:
+	/** Ensures the viewport is ticked actively when realtime is enabled */
+	EActiveTickReturnType EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime );
+
+	/** The handle to the active tick */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
 };

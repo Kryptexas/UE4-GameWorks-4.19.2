@@ -300,8 +300,6 @@ bool SVirtualJoystick::HandleTouch(int32 ControlIndex, const FVector2D& LocalCoo
 
 void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SLeafWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	if (State == State_WaitForStart || State == State_CountingDownToStart)
 	{
 		CurrentOpacity = 0.f;

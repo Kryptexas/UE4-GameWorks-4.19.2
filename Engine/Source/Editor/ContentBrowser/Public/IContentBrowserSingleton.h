@@ -80,8 +80,11 @@ struct FAssetPickerConfig
 	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
 
-	/** Fired when an asset item is about to show it's tool tip */
+	/** Fired when an asset item is about to show its tool tip */
 	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
+
+	/** Fired when an asset item's tooltip is closing */
+	FOnAssetToolTipClosing OnAssetToolTipClosing;
 
 	/** If more detailed filtering is required than simply Filter, this delegate will get fired for every asset to determine if it should be culled. */
 	FOnShouldFilterAsset OnShouldFilterAsset;

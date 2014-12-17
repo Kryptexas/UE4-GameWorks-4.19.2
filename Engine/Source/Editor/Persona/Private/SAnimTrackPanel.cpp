@@ -131,7 +131,7 @@ FReply SAnimTrackPanel::OnMouseMove( const FGeometry& InMyGeometry, const FPoint
 		if( !bPanning )
 		{
 			PanningDistance += FMath::Abs(InMouseEvent.GetCursorDelta().X);
-			if ( PanningDistance > FSlateApplication::Get().GetDragTriggerDistnace() )
+			if ( PanningDistance > FSlateApplication::Get().GetDragTriggerDistance() )
 			{
 				bPanning = true;
 				UE_LOG(LogAnimation, Log, TEXT("MouseMove (Capturing Mouse) %d, %0.5f"), bPanning, PanningDistance);

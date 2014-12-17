@@ -96,7 +96,7 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	//virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	 
 	/** Switches the widget to editing mode */
 	void EnterEditingMode();
@@ -156,4 +156,11 @@ protected:
 
 	/** Attribute to look up if the widget is read-only */
 	TAttribute< bool > bIsReadOnly;
+
+private:
+	/** Active tick to trigger entry into edit mode after a delay */
+	EActiveTickReturnType TriggerEditMode(double InCurrentTime, float InDeltaTime);
+
+	/** The handle to the active tick */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
 };

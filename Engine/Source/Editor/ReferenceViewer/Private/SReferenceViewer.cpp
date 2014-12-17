@@ -253,16 +253,6 @@ void SReferenceViewer::SetGraphRootPackageNames(const TArray<FName>& NewGraphRoo
 	HistoryManager.AddHistoryData();
 }
 
-void SReferenceViewer::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	if ( GraphObj && GraphObj->GetAssetThumbnailPool().IsValid() )
-	{
-		GraphObj->GetAssetThumbnailPool()->Tick(InDeltaTime);
-	}
-}
-
 void SReferenceViewer::OnNodeDoubleClicked(UEdGraphNode* Node)
 {
 	TSet<UObject*> Nodes;

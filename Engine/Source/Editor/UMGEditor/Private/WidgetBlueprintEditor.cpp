@@ -28,7 +28,6 @@
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(nullptr)
-	, HoverTime(0)
 	, bIsSimulateEnabled(false)
 	, bIsRealTime(true)
 {
@@ -349,8 +348,6 @@ void FWidgetBlueprintEditor::PasteWidgets()
 void FWidgetBlueprintEditor::Tick(float DeltaTime)
 {
 	FBlueprintEditor::Tick(DeltaTime);
-
-	HoverTime += DeltaTime;
 
 	// Tick the preview scene world.
 	if ( !GIntraFrameDebuggingGameThread )
@@ -686,29 +683,13 @@ FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 
 void FWidgetBlueprintEditor::ClearHoveredWidget()
 {
-	HoveredWidget = FWidgetReference();
-	HoverTime = 0;
+	OnHoveredWidgetCleared.Broadcast();
 }
 
 void FWidgetBlueprintEditor::SetHoveredWidget(FWidgetReference& InHoveredWidget)
 {
-	if ( !( InHoveredWidget == HoveredWidget ) )
-	{
-		HoveredWidget = InHoveredWidget;
-		HoverTime = 0;
-	}
+	OnHoveredWidgetSet.Broadcast(InHoveredWidget);
 }
-
-FWidgetReference FWidgetBlueprintEditor::GetHoveredWidget() const
-{
-	return HoveredWidget;
-}
-
-float FWidgetBlueprintEditor::GetHoveredWidgetTime() const
-{
-	return HoverTime;
-}
-
 void FWidgetBlueprintEditor::AddPostDesignerLayoutAction(TFunction<void()> Action)
 {
 	QueuedDesignerActions.Add(Action);

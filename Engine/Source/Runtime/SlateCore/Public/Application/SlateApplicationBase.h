@@ -320,6 +320,27 @@ public:
 	 */
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
 
+private:
+	/**
+	 * Implementation for active tick registration. See SWidget::RegisterActiveTick.
+	 */
+	void RegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle );
+
+	/**
+	 * Implementation for active tick registration. See SWidget::UnRegisterActiveTick.
+	 */
+	void UnRegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle );
+
+	/** The list of active tick handles. */
+	TArray<TWeakPtr<FActiveTickHandle>> ActiveTickHandles;
+
+protected:
+	/**
+	 * Used to determine if any active tick handles are ready to fire.
+	 * Means we need to tick slate even if no user interaction.
+	 */
+	bool AnyActiveTicksArePending();
+
 public:
 	const static uint32 CursorPointerIndex;
 

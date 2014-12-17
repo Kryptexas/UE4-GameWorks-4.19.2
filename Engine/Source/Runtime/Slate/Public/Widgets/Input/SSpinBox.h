@@ -275,7 +275,7 @@ public:
 			}
 
 			bDragging = false;
-			if ( DistanceDragged < FSlateApplication::Get().GetDragTriggerDistnace() )
+			if ( DistanceDragged < FSlateApplication::Get().GetDragTriggerDistance() )
 			{
 				EnterTextMode();
 				return FReply::Handled().ReleaseMouseCapture().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::SetDirectly).SetMousePos(CachedMousePosition);
@@ -304,7 +304,7 @@ public:
 			if (!bDragging)
 			{
 				DistanceDragged += FMath::Abs(MouseEvent.GetCursorDelta().X);
-				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistnace() )
+				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistance() )
 				{
 					ExitTextMode();
 					bDragging = true;

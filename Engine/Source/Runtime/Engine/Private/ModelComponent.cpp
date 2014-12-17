@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/ModelComponent.h"
 #include "Model.h"
 #include "LightMap.h"
 #include "ShadowMap.h"

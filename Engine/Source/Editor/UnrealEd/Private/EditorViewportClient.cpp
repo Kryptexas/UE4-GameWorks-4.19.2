@@ -90,7 +90,7 @@ public:
 
 
 FViewportCameraTransform::FViewportCameraTransform()
-	: TransitionCurve( new FCurveSequence( 0.0f, FocusConstants::TransitionTime, ECurveEaseFunction::CubicOut ) )
+	: TransitionStartTime(0)
 	, ViewLocation( FVector::ZeroVector )
 	, ViewRotation( FRotator::ZeroRotator )
 	, DesiredLocation( FVector::ZeroVector )
@@ -110,14 +110,14 @@ void FViewportCameraTransform::TransitionToLocation( const FVector& InDesiredLoc
 	if( bInstant )
 	{
 		SetLocation( InDesiredLocation );
-		TransitionCurve->JumpToEnd();
+		TransitionStartTime = FSlateApplication::Get().GetCurrentTime() - FocusConstants::TransitionTime;
 	}
 	else
 	{
 		DesiredLocation = InDesiredLocation;
 		StartLocation = ViewLocation;
 
-		TransitionCurve->Play();
+		TransitionStartTime = FSlateApplication::Get().GetCurrentTime();
 	}
 }
 
@@ -125,10 +125,12 @@ void FViewportCameraTransform::TransitionToLocation( const FVector& InDesiredLoc
 bool FViewportCameraTransform::UpdateTransition()
 {
 	bool bIsAnimating = false;
-	if( TransitionCurve->IsPlaying() || ViewLocation != DesiredLocation )
+	double TransitionProgress = FMath::Clamp( (FSlateApplication::Get().GetCurrentTime() - TransitionStartTime) / FocusConstants::TransitionTime, 0.0, 1.0);
+	if( TransitionProgress < 1.0 || ViewLocation != DesiredLocation )
 	{
-		float LerpWeight = TransitionCurve->GetLerp();
-		
+		const float Offset = (float)TransitionProgress - 1.0f;
+		float LerpWeight = Offset * Offset * Offset + 1.0f;
+
 		if( LerpWeight == 1.0f )
 		{
 			// Failsafe for the value not being exact on lerps

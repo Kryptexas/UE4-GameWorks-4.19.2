@@ -54,7 +54,7 @@ void SGraphNodeComment::Construct(const FArguments& InArgs, UEdGraphNode* InNode
 	bUserIsDragging = false;
 }
 
-void SGraphNodeComment::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SGraphNodeComment::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	SGraphNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 

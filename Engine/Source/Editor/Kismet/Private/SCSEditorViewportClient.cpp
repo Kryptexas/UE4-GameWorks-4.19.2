@@ -182,6 +182,10 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 			}
 		}
 	}
+	else
+	{
+		InvalidatePreview(false);
+	}
 
 	// Tick the preview scene world.
 	if (!GIntraFrameDebuggingGameThread)

@@ -20,10 +20,6 @@ public:
 
 	~SFoliageEdit();
 
-	// SWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	// End of SWidget interface
-
 	/** Creates the thumbnail for the passed in Static Mesh. Used by the MeshListView items. */
 	TSharedPtr<FAssetThumbnail> CreateThumbnail(UStaticMesh* InStaticMesh);
 

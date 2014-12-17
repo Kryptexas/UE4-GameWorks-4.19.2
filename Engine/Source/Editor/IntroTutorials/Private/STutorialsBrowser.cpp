@@ -21,7 +21,7 @@ DECLARE_DELEGATE_OneParam(FOnCategorySelected, const FString& /* InCategory */);
 
 namespace TutorialBrowserConstants
 {
-	const float RefreshTimerInterval = 0.25f;
+	const float RefreshTimerInterval = 1.0f;
 
 	const float ProgressUpdateInterval = 0.5f;
 }
@@ -497,6 +497,8 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().OnAssetAdded().AddSP(this, &STutorialsBrowser::HandleAssetAdded);
 
+	RegisterActiveTick( TutorialBrowserConstants::RefreshTimerInterval, FWidgetActiveTickDelegate::CreateSP( this, &STutorialsBrowser::TriggerReloadTutorials ) );
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -577,16 +579,15 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 	RebuildCrumbs();
 }
 
-void STutorialsBrowser::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType STutorialsBrowser::TriggerReloadTutorials( double InCurrentTime, float InDeltaTime )
 {
-	RefreshTimer -= InDeltaTime;
-
-	if(bNeedsRefresh && RefreshTimer <= 0.0f)
+	if (bNeedsRefresh)
 	{
-		ReloadTutorials();
 		bNeedsRefresh = false;
-		RefreshTimer = TutorialBrowserConstants::RefreshTimerInterval;
+		ReloadTutorials();
 	}
+	
+	return EActiveTickReturnType::KeepTicking;
 }
 
 void STutorialsBrowser::SetFilter(const FString& InFilter)

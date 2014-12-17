@@ -33,7 +33,7 @@ void STutorialRoot::MaybeAddOverlay(TSharedRef<SWindow> InWindow)
 {
 	if(InWindow->HasOverlay())
 	{
-		// check we dont already have a widget overlay for this window
+		// check we don't already have a widget overlay for this window
 		TWeakPtr<SEditorTutorials>* FoundWidget = TutorialWidgets.Find(InWindow);
 		if(FoundWidget == nullptr)
 		{
@@ -72,7 +72,7 @@ void STutorialRoot::MaybeAddOverlay(TSharedRef<SWindow> InWindow)
 	}
 }
 
-void STutorialRoot::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void STutorialRoot::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	TArray<TSharedRef<SWindow>> Windows = FSlateApplication::Get().GetInteractiveTopLevelWindows();
 	for(auto& Window : Windows)

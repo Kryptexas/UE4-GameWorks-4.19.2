@@ -71,6 +71,9 @@ public:
 
 private:
 	
+	/** Ticks the level viewport tab */
+	EActiveTickReturnType ActiveTick( double InCurrentTime, float InDeltaTime );
+
 	/** Reference to the owning level viewport tab */
 	TSharedPtr<FLevelViewportTabContent> LevelViewportTab;
 
@@ -86,6 +89,9 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 {
 	const TSharedRef<SWidget>& ContentWidget = InArgs._Content.Widget;
 	LevelViewportTab = InArgs._LevelViewportTab;
+
+	//RegisterActiveTick( 0.f, FTickWidgetDelegate::CreateSP( this, &SViewportsOverlay::ActiveTick ) );
+
 	ChildSlot
 		[
 			SAssignNew( OverlayWidget, SOverlay )
@@ -94,6 +100,12 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 				ContentWidget
 			]
 		];
+}
+
+EActiveTickReturnType SViewportsOverlay::ActiveTick( double InCurrentTime, float InDeltaTime )
+{
+	// Exists to ensure slate is ticked
+	return EActiveTickReturnType::KeepTicking;
 }
 
 void SViewportsOverlay::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -354,6 +366,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 		// Update state
 		bWasMaximized = bIsMaximized;
 		bWasImmersive = bIsImmersive;
+
 		bIsMaximized = bWantMaximize;
 		bIsImmersive = bWantImmersive;
 
@@ -374,7 +387,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 			// the current state of bIsMaximized, we'll transition to either a maximized state or a "restored" state
 			MaximizeAnimation = FCurveSequence();
 			MaximizeAnimation.AddCurve( 0.0f, ViewportLayoutDefs::RestoreTransitionTime, ECurveEaseFunction::CubicIn );
-			MaximizeAnimation.PlayReverse();
+			MaximizeAnimation.PlayReverse( ViewportsOverlayWidget->AsShared() );
 			
 			if( bWasImmersive && !bIsImmersive )
 			{
@@ -427,7 +440,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 			// Play the "maximize" transition
 			MaximizeAnimation = FCurveSequence();
 			MaximizeAnimation.AddCurve( 0.0f, ViewportLayoutDefs::MaximizeTransitionTime, ECurveEaseFunction::CubicOut );
-			MaximizeAnimation.Play();
+			MaximizeAnimation.Play( ViewportsOverlayWidget->AsShared() );
 		}
 
 
@@ -568,7 +581,7 @@ bool FLevelViewportLayout::IsViewportImmersive( const SLevelViewport& InViewport
 EVisibility FLevelViewportLayout::OnGetNonMaximizedVisibility() const
 {
 	// The non-maximized viewports are not visible if there is a maximized viewport on top of them
-	return (!bIsQueryingLayoutMetrics && MaximizedViewport.IsValid() && !bIsTransitioning && DeferredMaximizeCommands.Num() == 0) ? EVisibility::Collapsed : EVisibility::Visible;
+	return ( !bIsQueryingLayoutMetrics && MaximizedViewport.IsValid() && !bIsTransitioning && DeferredMaximizeCommands.Num() == 0 ) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
@@ -698,5 +711,5 @@ void FLevelViewportLayout::Tick( float DeltaTime )
 
 bool FLevelViewportLayout::IsTickable() const
 {
-	return DeferredMaximizeCommands.Num() > 0 || (bIsTransitioning && !MaximizeAnimation.IsPlaying());
+	return DeferredMaximizeCommands.Num() > 0 || ( bIsTransitioning && !MaximizeAnimation.IsPlaying() );
 }

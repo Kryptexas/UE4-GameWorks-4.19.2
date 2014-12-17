@@ -1180,26 +1180,23 @@ SBlendSpaceEditorBase::~SBlendSpaceEditorBase()
 
 void SBlendSpaceEditorBase::Construct(const FArguments& InArgs)
 {
+	bIsActiveTickRegistered = false;
 	BlendSpace = InArgs._BlendSpace;
 	PersonaPtr = InArgs._Persona;
 	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
 }
 
-/**
-* Ticks this widget.  Override in derived classes, but always call the parent implementation.
-*
-* @param  AllottedGeometry The space allotted for this widget
-* @param  InCurrentTime  Current absolute real time
-* @param  InDeltaTime  Real time passed since last tick
-*/
-void SBlendSpaceEditorBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SBlendSpaceEditorBase::UpdatePreview( double InCurrentTime, float InDeltaTime )
 {
-	BlendSpaceWidget->bPreviewOn = IsPreviewOn()==ECheckBoxState::Checked;
+	// Update the preview as long as its enabled
 	if (BlendSpaceWidget->bPreviewOn)
 	{
 		UpdatePreviewParameter();
+		return EActiveTickReturnType::KeepTicking;
 	}
-	SWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
 }
 
 void SBlendSpaceEditorBase::PostUndo()
@@ -1288,12 +1285,20 @@ ECheckBoxState SBlendSpaceEditorBase::IsPreviewOn() const
 
 void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ECheckBoxState NewValue )
 {
-	bool bPreviewOn = (NewValue != ECheckBoxState::Unchecked);
+	bool bPreviewEnabled = (NewValue != ECheckBoxState::Unchecked);
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
 	if ( Component != NULL )
 	{
-		Component->EnablePreview(bPreviewOn, BlendSpace, NULL);
+		Component->EnablePreview( bPreviewEnabled, BlendSpace, NULL );
+
+		BlendSpaceWidget->bPreviewOn = bPreviewEnabled;
+
+		if ( bPreviewEnabled && !bIsActiveTickRegistered )
+		{
+			bIsActiveTickRegistered = true;
+			RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SBlendSpaceEditorBase::UpdatePreview ) );
+		}
 	}
 }
 
@@ -1309,7 +1314,7 @@ void SBlendSpaceEditorBase::UpdatePreviewParameter() const
 {
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
-	if (Component != NULL && Component->IsPreviewOn())
+	if (Component != nullptr && Component->IsPreviewOn())
 	{
 		if (Component->PreviewInstance->CurrentAsset == BlendSpace)
 		{

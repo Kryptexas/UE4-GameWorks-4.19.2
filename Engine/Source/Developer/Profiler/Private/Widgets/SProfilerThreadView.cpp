@@ -60,8 +60,6 @@ void SProfilerThreadView::Reset()
 
 void SProfilerThreadView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
 	if( AllottedGeometry.Size.X > 0.0f )
 	{
 		if( ThisGeometry.Size.X != AllottedGeometry.Size.X )

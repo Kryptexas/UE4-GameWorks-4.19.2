@@ -332,8 +332,6 @@ void SGraphNodeDocumentation::Tick( const FGeometry& AllottedGeometry, const dou
 		GraphNode->NodeHeight = 0.f;
 		UpdateGraphNode();
 	}
-
-	SGraphNodeResizable::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 /////////////////////////////////////////////////////

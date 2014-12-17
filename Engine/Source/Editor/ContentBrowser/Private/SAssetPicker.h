@@ -21,11 +21,13 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// SWidget implementation
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	// End of SWidget implementation
 
 private:
+	/** Focuses the search box post-construct */
+	EActiveTickReturnType SetFocusPostConstruct( double InCurrentTime, float InDeltaTime );
+
 	void FolderEntered(const FString& FolderPath);
 
 	/** Called when the editable text needs to be set or cleared */

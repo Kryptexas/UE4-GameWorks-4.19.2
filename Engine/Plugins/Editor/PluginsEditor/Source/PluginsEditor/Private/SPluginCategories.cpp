@@ -15,7 +15,6 @@ void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPl
 {
 	OwnerWeak = Owner;
 
-	bNeedsRefresh = false;
 	RebuildAndFilterCategoryTree();
 
 	PluginCategoryTreeView =
@@ -179,22 +178,7 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 	{
 		PluginCategoryTreeView->RequestTreeRefresh();
 	}
-
-	bNeedsRefresh = false;
 }
-
-
-void SPluginCategories::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	// Call parent implementation
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
-	if( bNeedsRefresh )
-	{
-		RebuildAndFilterCategoryTree();
-	}
-}
-
 
 TSharedRef<ITableRow> SPluginCategories::PluginCategoryTreeView_OnGenerateRow( FPluginCategoryTreeItemPtr Item, const TSharedRef<STableViewBase>& OwnerTable )
 {

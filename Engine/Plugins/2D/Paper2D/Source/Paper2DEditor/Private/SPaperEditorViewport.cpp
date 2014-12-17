@@ -123,16 +123,16 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 	bIsPanning = false;
 
 	ZoomLevelFade = FCurveSequence( 0.0f, 0.75f );
-	ZoomLevelFade.Play();
+	ZoomLevelFade.Play(this->AsShared());
 
 	ZoomLevelGraphFade = FCurveSequence( 0.0f, 0.5f );
-	ZoomLevelGraphFade.Play();
+	ZoomLevelGraphFade.Play(this->AsShared());
 
 	DeferredPanPosition = FVector2D::ZeroVector;
 	bRequestDeferredPan = false;
 }
 
-void SPaperEditorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SPaperEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	// Handle any deferred panning
 	if (bRequestDeferredPan)
@@ -147,8 +147,7 @@ void SPaperEditorViewport::Tick(const FGeometry& AllottedGeometry, const double 
 		bIsPanning = false;
 	}
 
-
-	ViewportClient->SetZoomPos(ViewOffset, GetZoomAmount());
+	ViewportClient->SetZoomPos( ViewOffset, GetZoomAmount() );
 	ViewportClient->bNeedsRedraw = true;
 
 	bool bSelectionModified = false;
@@ -177,9 +176,6 @@ void SPaperEditorViewport::Tick(const FGeometry& AllottedGeometry, const double 
 		ViewportClient->Tick(InDeltaTime);
 		GEditor->UpdateSingleViewportClient(ViewportClient.Get(), /*bInAllowNonRealtimeViewportToDraw=*/ true, /*bLinkedOrthoMovement=*/ false);
 	}
-
-	//
-	SWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 FReply SPaperEditorViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -223,7 +219,7 @@ FReply SPaperEditorViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const 
 	// Did the user move the cursor sufficiently far, or is it in a dead zone?
 	// In Dead zone     - implies actions like summoning context menus and general clicking.
 	// Out of Dead Zone - implies dragging actions like moving nodes and marquee selection.
-	const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
+	const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistance();
 
 	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
@@ -345,7 +341,7 @@ FReply SPaperEditorViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoi
 			// Update the amount to pan panel
 			UpdateViewOffset(MyGeometry, MouseEvent.GetScreenSpacePosition());
 
-			const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
+			const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistance();
 
 // 			if (NodeBeingDragged.IsValid())
 // 			{
@@ -425,7 +421,7 @@ FReply SPaperEditorViewport::OnMouseWheel(const FGeometry& MyGeometry, const FPo
 		ZoomLevel = FMath::Clamp( ZoomLevel + ZoomLevelDelta, 0, DefaultZoomLevel );
 	}
 
-	ZoomLevelFade.Play();
+	ZoomLevelFade.Play(this->AsShared());
 
 
 	// Re-center the screen so that it feels like zooming around the cursor.
@@ -505,7 +501,7 @@ FVector2D SPaperEditorViewport::ComputeEdgePanAmount(const FGeometry& MyGeometry
 	// Never pan slower than this, it's just unpleasant.
 	static const float MinPanSpeed = 5.0f;
 
-	// Start panning before we rech the edge of the graph panel.
+	// Start panning before we reach the edge of the graph panel.
 	static const float EdgePanForgivenessZone = 30.0f;
 
 	const FVector2D LocalCursorPos = MyGeometry.AbsoluteToLocal( TargetPosition );

@@ -1092,35 +1092,33 @@ SFindInBlueprints::~SFindInBlueprints()
 	}
 }
 
-void SFindInBlueprints::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentTime, float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	if(StreamSearch.IsValid())
+	if ( StreamSearch.IsValid() )
 	{
 		bool bShouldShutdownThread = false;
 		bShouldShutdownThread = StreamSearch->IsComplete();
 
 		TArray<FSearchResult> BackgroundItemsFound;
 
-		StreamSearch->GetFilteredItems(BackgroundItemsFound);
-		if(BackgroundItemsFound.Num())
+		StreamSearch->GetFilteredItems( BackgroundItemsFound );
+		if ( BackgroundItemsFound.Num() )
 		{
-			for(auto& Item : BackgroundItemsFound)
+			for ( auto& Item : BackgroundItemsFound )
 			{
-				Item->ExpandAllChildren(TreeView);
-				ItemsFound.Add(Item);
+				Item->ExpandAllChildren( TreeView );
+				ItemsFound.Add( Item );
 			}
 			TreeView->RequestTreeRefresh();
 		}
 
 		// If the thread is complete, shut it down properly
-		if(bShouldShutdownThread)
+		if ( bShouldShutdownThread )
 		{
-			if(ItemsFound.Num() == 0)
+			if ( ItemsFound.Num() == 0 )
 			{
 				// Insert a fake result to inform user if none found
-				ItemsFound.Add(FSearchResult(new FFindInBlueprintsResult(LOCTEXT("BlueprintSearchNoResults", "No Results found"))));
+				ItemsFound.Add( FSearchResult( new FFindInBlueprintsResult( LOCTEXT( "BlueprintSearchNoResults", "No Results found" ) ) ) );
 				TreeView->RequestTreeRefresh();
 			}
 
@@ -1128,6 +1126,8 @@ void SFindInBlueprints::Tick( const FGeometry& AllottedGeometry, const double In
 			StreamSearch.Reset();
 		}
 	}
+
+	return StreamSearch.IsValid() ? EActiveTickReturnType::KeepTicking : EActiveTickReturnType::StopTicking;
 }
 
 void SFindInBlueprints::RegisterCommands()
@@ -1299,6 +1299,11 @@ void SFindInBlueprints::LaunchStreamThread(const TArray<FString>& InTokens)
 	{
 		StreamSearch->Stop();
 		StreamSearch->EnsureCompletion();
+	}
+	else
+	{
+		// If the stream search wasn't already running, register the active tick
+		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SFindInBlueprints::UpdateSearchResults ) );
 	}
 
 	StreamSearch = MakeShareable(new FStreamSearch(InTokens));

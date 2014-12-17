@@ -571,8 +571,8 @@ protected:
 SFiltersAndPresets::SFiltersAndPresets()
 	: GroupingMode( EStatGroupingOrSortingMode::GroupName )
 	, SortingMode( EStatGroupingOrSortingMode::StatName )
-	, bUpdateOnNextTick( false )
 	, bExpansionSaved( false )
+	, bIsActiveTickRegistered( false )
 {
 	FMemory::MemSet( bStatTypeIsVisible, 1 );
 }
@@ -755,21 +755,24 @@ void SFiltersAndPresets::Construct( const FArguments& InArgs )
 
 void SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate()
 {
-	bUpdateOnNextTick = true;
+	RegisterForUpdate();
 }
 
-void SFiltersAndPresets::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+void SFiltersAndPresets::RegisterForUpdate()
 {
-	if( bUpdateOnNextTick )
+	if (!bIsActiveTickRegistered)
 	{
-		for( auto It = FProfilerManager::Get()->GetProfilerInstancesIterator(); It; ++It )
-		{
-			UpdateGroupAndStatTree( It.Value() );
-			break;
-		}
-
-		bUpdateOnNextTick = false;
+		bIsActiveTickRegistered = true;
+		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SFiltersAndPresets::UpdateData));
 	}
+}
+
+EActiveTickReturnType SFiltersAndPresets::UpdateData(double InCurrentTime, float InDeltaTime)
+{
+	auto It = FProfilerManager::Get()->GetProfilerInstancesIterator();
+	UpdateGroupAndStatTree(It.Value());
+
+	return EActiveTickReturnType::StopTicking;
 }
 
 void SFiltersAndPresets::UpdateGroupAndStatTree( const FProfilerSessionPtr InProfilerSession )

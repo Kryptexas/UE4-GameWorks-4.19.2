@@ -340,11 +340,6 @@ SFoliageEdit::~SFoliageEdit()
 	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 }
 
-void SFoliageEdit::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	AssetThumbnailPool->Tick(InDeltaTime);
-}
-
 TSharedPtr<FAssetThumbnail> SFoliageEdit::CreateThumbnail(UStaticMesh* InStaticMesh)
 {
 	return MakeShareable(new FAssetThumbnail(InStaticMesh, 80, 80, AssetThumbnailPool));

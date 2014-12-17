@@ -51,9 +51,6 @@ private:
 
 	UEdGraphPin* GraphPinForMenu;
 
-	/** Do we need to refresh next tick? */
-	bool bNeedsRefresh;
-
 	/** Info on the appearance */
 	TAttribute<FGraphAppearanceInfo> Appearance;
 
@@ -108,7 +105,7 @@ public:
 
 	FActionMenuContent GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo);
 
-	void GraphEd_OnPanelUpdated();
+	//void GraphEd_OnPanelUpdated();
 
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
@@ -157,7 +154,11 @@ protected:
 	// SGraphEditor interface
 	virtual void OnGraphChanged( const FEdGraphEditAction& InAction ) override;
 	// End of SGraphEditorInterface
+
 private:
+	/** One-off active tick to ensure the graph is refreshes as needed */
+	EActiveTickReturnType TriggerRefresh( double InCurrentTime, float InDeltaTime );
+
 	FText GetZoomText() const;
 
 	FSlateColor GetZoomTextColorAndOpacity() const;
@@ -165,5 +166,8 @@ private:
 	bool IsGraphEditable() const;
 
 	bool IsLocked() const;
+
+private:
+	bool bIsActiveTickRegistered;
 };
 

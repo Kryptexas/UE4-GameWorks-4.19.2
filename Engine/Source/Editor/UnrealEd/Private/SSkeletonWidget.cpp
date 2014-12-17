@@ -1093,13 +1093,24 @@ public:
 	}
 
 
-	// FlEditorViewportClient interface
-	virtual FSceneInterface* GetScene() const
+	// FEditorViewportClient interface
+	virtual void Tick(float DeltaTime) override
+	{
+		if (PreviewScene)
+		{
+			PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaTime);
+		}
+	}
+
+	virtual FSceneInterface* GetScene() const override
 	{
 		return PreviewScene->GetScene();
 	}
 
-	virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::White; }
+	virtual FLinearColor GetBackgroundColor() const override 
+	{ 
+		return FLinearColor::White; 
+	}
 
 	// End of FEditorViewportClient
 
@@ -1118,6 +1129,8 @@ public:
 // SBasePoseViewport
 void SBasePoseViewport::Construct(const FArguments& InArgs)
 {
+	//RegisterActiveTick( 0.f, FTickWidgetDelegate::CreateSP( this, &SBasePoseViewport::TickViewport ) );
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -1221,13 +1234,6 @@ SBasePoseViewport::SBasePoseViewport()
 bool SBasePoseViewport::IsVisible() const
 {
 	return true;
-}
-
-void SBasePoseViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	PreviewScene.GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
-	LevelViewportClient->Tick(InDeltaTime);
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 #undef LOCTEXT_NAMESPACE 
 

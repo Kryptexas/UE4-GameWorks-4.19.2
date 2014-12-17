@@ -303,11 +303,6 @@ void SCollectionView::LoadSettings(const FString& IniFilename, const FString& In
 	}
 }
 
-void SCollectionView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-}
-
 FReply SCollectionView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if( Commands->ProcessCommandBindings( InKeyEvent ) )

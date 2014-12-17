@@ -60,7 +60,7 @@ SAssetView::~SAssetView()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAssetView::Construct( const FArguments& InArgs )
 {
-	IsWorking = false;
+	bIsWorking = false;
 	TotalAmortizeTime = 0;
 	AmortizeStartTime = 0;
 	MaxSecondsPerFrame = 0.015;
@@ -158,6 +158,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	OnAssetTagWantsToBeDisplayed = InArgs._OnAssetTagWantsToBeDisplayed;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
+	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
 	HighlightedText = InArgs._HighlightedText;
 	ThumbnailLabel = InArgs._ThumbnailLabel;
 	AllowThumbnailHintLabel = InArgs._AllowThumbnailHintLabel;
@@ -213,7 +214,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 			SNew( SBox )
 			.HeightOverride( 2 )
 			[
-				SNew(SProgressBar)
+				SNew( SProgressBar )
 				.Percent( this, &SAssetView::GetIsWorkingProgressBarState )
 				.Style( FEditorStyle::Get(), "WorkingBar" )
 				.BorderPadding( FVector2D(0,0) )
@@ -379,7 +380,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 TOptional< float > SAssetView::GetIsWorkingProgressBarState() const
 {
-	return IsWorking ? TOptional< float >() : 0.0; 
+	return bIsWorking ? TOptional< float >() : 0.0f; 
 }
 
 void SAssetView::SetSourcesData(const FSourcesData& InSourcesData)
@@ -780,10 +781,8 @@ void SAssetView::ProcessRecentlyLoadedOrChangedAssets()
 	}
 }
 
-void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	CalculateFillScale( AllottedGeometry );
 
 	CurrentTime = InCurrentTime;
@@ -829,7 +828,7 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 		if ( AmortizeStartTime == 0 )
 		{
 			AmortizeStartTime = FPlatformTime::Seconds();
-			IsWorking = true;
+			bIsWorking = true;
 		}
 
 		ProcessQueriedItems( TickStartTime );
@@ -838,7 +837,7 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 		{
 			TotalAmortizeTime += FPlatformTime::Seconds() - AmortizeStartTime;
 			AmortizeStartTime = 0;
-			IsWorking = false;
+			bIsWorking = false;
 		}
 	}
 
@@ -896,8 +895,6 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 	// create any assets & folders we need to now
 	DeferredCreateNewAsset();
 	DeferredCreateNewFolder();
-
-	AssetThumbnailPool->Tick(InDeltaTime);
 
 	// Do quick-jump last as the Tick function might have canceled it
 	if(QuickJumpData.bHasChangedSinceLastTick)
@@ -970,7 +967,7 @@ void SAssetView::CalculateThumbnailHintColorAndOpacity()
 		}
 		else if ( ThumbnailHintFadeInSequence.IsAtEnd() ) 
 		{
-			ThumbnailHintFadeInSequence.PlayReverse();
+			ThumbnailHintFadeInSequence.PlayReverse(this->AsShared());
 		}
 	}
 	else 
@@ -984,7 +981,7 @@ void SAssetView::CalculateThumbnailHintColorAndOpacity()
 		}
 		else if ( ThumbnailHintFadeInSequence.IsAtStart() ) 
 		{
-			ThumbnailHintFadeInSequence.Play();
+			ThumbnailHintFadeInSequence.Play(this->AsShared());
 		}
 	}
 
@@ -2663,7 +2660,8 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
 			.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
-			.OnVisualizeAssetToolTip(OnVisualizeAssetToolTip);
+			.OnVisualizeAssetToolTip(OnVisualizeAssetToolTip)
+			.OnAssetToolTipClosing(OnAssetToolTipClosing);
 
 		TableRowWidget->SetContent(Item);
 
@@ -2750,7 +2748,8 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
 			.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
-			.OnVisualizeAssetToolTip(OnVisualizeAssetToolTip);
+			.OnVisualizeAssetToolTip( OnVisualizeAssetToolTip )
+			.OnAssetToolTipClosing( OnAssetToolTipClosing );
 
 		TableRowWidget->SetContent(Item);
 
@@ -2782,7 +2781,8 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 				.OnPathsDragDropped(this, &SAssetView::OnPathsDragDropped)
 				.OnFilesDragDropped(this, &SAssetView::OnFilesDragDropped)
 				.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
-				.OnVisualizeAssetToolTip(OnVisualizeAssetToolTip)
+				.OnVisualizeAssetToolTip( OnVisualizeAssetToolTip )
+				.OnAssetToolTipClosing( OnAssetToolTipClosing )
 		);
 }
 

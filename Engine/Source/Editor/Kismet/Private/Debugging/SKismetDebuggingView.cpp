@@ -1158,9 +1158,6 @@ void SKismetDebuggingView::Tick( const FGeometry& AllottedGeometry, const double
 
 	// Refresh the list
 	DebugTreeView->RequestTreeRefresh();
-
-
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 

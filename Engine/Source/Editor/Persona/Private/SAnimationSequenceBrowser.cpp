@@ -401,6 +401,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	CurrentAssetHistoryIndex = INDEX_NONE;
 	bTriedToCacheOrginalAsset = false;
 
+	bIsActiveTickRegistered = false;
+	bToolTipVisualizedThisFrame = false;
+	bToolTipClosedThisFrame = false;
+
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	CreateAssetTooltipResources();
@@ -438,6 +442,7 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
+	Config.OnAssetToolTipClosing = FOnAssetToolTipClosing::CreateSP( this, &SAnimationSequenceBrowser::OnAssetToolTipClosing );
 
 	TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
 	TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;	
@@ -903,7 +908,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 				PreviewComponent->SetSkeletalMesh(MeshToUse);
 			}
 
-			PreviewComponent->EnablePreview(true, Asset, NULL);
+			PreviewComponent->EnablePreview(true, Asset, nullptr);
 			PreviewComponent->PreviewInstance->PlayAnim(true);
 
 			float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
@@ -913,6 +918,14 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 			ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
 
 			ViewportWidget->SetVisibility(EVisibility::Visible);
+			
+			// Update the preview as long as the tooltip is visible
+			if ( !bIsActiveTickRegistered )
+			{
+				bIsActiveTickRegistered = true;
+				RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SAnimationSequenceBrowser::UpdateTootipPreview));
+			}
+			bToolTipVisualizedThisFrame = true;
 		}
 		else
 		{
@@ -923,6 +936,15 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 	// We return false here as we aren't visualizing the tooltip - just detecting when it is about to be shown.
 	// We still want slate to draw it.
 	return false;
+}
+
+void SAnimationSequenceBrowser::OnAssetToolTipClosing()
+{
+	// Make sure that the tooltip isn't about to preview another animation
+	if (!bToolTipVisualizedThisFrame)
+	{
+		ViewportWidget->SetVisibility(EVisibility::Hidden);
+	}
 }
 
 void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Component)
@@ -939,15 +961,21 @@ void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Co
 	}
 }
 
-void SAnimationSequenceBrowser::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SAnimationSequenceBrowser::UpdateTootipPreview( double InCurrentTime, float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	if(PreviewComponent && ViewportWidget->GetVisibility() == EVisibility::Visible)
+	bToolTipVisualizedThisFrame = false;
+	if ( PreviewComponent && IsToolTipPreviewVisible() )
 	{
 		// Tick the world to update preview viewport for tooltips
-		PreviewComponent->GetScene()->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+		PreviewComponent->GetScene()->GetWorld()->Tick( LEVELTICK_All, InDeltaTime );
 	}
+	else
+	{
+		bIsActiveTickRegistered = false;
+		return EActiveTickReturnType::StopTicking;
+	}
+
+	return EActiveTickReturnType::KeepTicking;
 }
 
 bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()

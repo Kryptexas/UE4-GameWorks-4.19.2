@@ -70,8 +70,8 @@ public:
 	*/
 	FMatrix ComputeOrbitMatrix() const;
 private:
-	/** Curve for animating between locations */
-	TSharedPtr<struct FCurveSequence> TransitionCurve;
+	/** The time when a transition to the desired location began */
+	double TransitionStartTime;
 	/** Current viewport Position. */
 	FVector	ViewLocation;
 	/** Current Viewport orientation; valid only for perspective projections. */

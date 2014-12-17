@@ -58,6 +58,16 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 // Compile all the RichText and MultiLine editable text?
 #define WITH_FANCY_TEXT 1
 
+/* Forward declarations
+ *****************************************************************************/
+class FActiveTickHandle;
+enum EActiveTickReturnType : uint8;
+
+/* Delegates
+ *****************************************************************************/
+
+/** Delegate used for registering a widget for tick services. */
+DECLARE_DELEGATE_RetVal_TwoParams(EActiveTickReturnType, FWidgetActiveTickDelegate, double /*InCurrentTime*/, float /*InDeltaTime*/);
 
 /* Includes
  *****************************************************************************/

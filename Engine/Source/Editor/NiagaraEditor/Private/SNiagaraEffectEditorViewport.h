@@ -21,7 +21,8 @@ public:
 	
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+
 	void RefreshViewport();
 	
 	void SetPreviewEffect(FNiagaraEffectInstance* InEffect);

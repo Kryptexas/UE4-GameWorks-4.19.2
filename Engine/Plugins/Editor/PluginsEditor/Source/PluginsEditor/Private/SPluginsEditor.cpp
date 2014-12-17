@@ -26,7 +26,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 
 	// @todo plugedit: Should we save/restore category selection and other view settings?  Splitter position, etc.
 
-	bBreadcrumbNeedsRefresh = true;
+	RegisterActiveTick (0.f, FWidgetActiveTickDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
 
 	// Setup text filtering
 	PluginTextFilter = MakeShareable( new FPluginTextFilter( FPluginTextFilter::FItemToStringArray::CreateStatic( &Local::PluginStatusToStringArray ) ) );
@@ -159,21 +159,14 @@ void SPluginsEditor::OnCategorySelectionChanged()
 	}
 
 	// Breadcrumbs will need to be refreshed
-	bBreadcrumbNeedsRefresh = true;
+	RegisterActiveTick (0.f, FWidgetActiveTickDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
 }
 
-
-void SPluginsEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+EActiveTickReturnType SPluginsEditor::TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime)
 {
-	// Call parent implementation
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
-	if( bBreadcrumbNeedsRefresh )
-	{
-		RefreshBreadcrumbTrail();
-	}
+	RefreshBreadcrumbTrail();
+	return EActiveTickReturnType::StopTicking;
 }
-
 
 void SPluginsEditor::RefreshBreadcrumbTrail()
 {
@@ -202,8 +195,6 @@ void SPluginsEditor::RefreshBreadcrumbTrail()
 			BreadcrumbTrail->PushCrumb( Category->GetCategoryDisplayName(), NewBreadcrumb );
 		}
 	}
-
-	bBreadcrumbNeedsRefresh = false;
 }
 
 

@@ -89,7 +89,9 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 	}
 
 	BounceCurve.AddCurve(0.0f, 1.0f);
-	BounceCurve.Play();
+
+	FEditorDelegates::BeginPIE.AddRaw( this, &SGraphPanel::OnBeginPIE );
+	FEditorDelegates::EndPIE.AddRaw( this, &SGraphPanel::OnEndPIE );
 
 	// Register for notifications
 	MyRegisteredGraphChangedDelegate = FOnGraphChanged::FDelegate::CreateSP(this, &SGraphPanel::OnGraphChanged);
@@ -100,6 +102,9 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 
 SGraphPanel::~SGraphPanel()
 {
+	FEditorDelegates::BeginPIE.RemoveAll( this );
+	FEditorDelegates::EndPIE.RemoveAll( this );
+
 	this->GraphObj->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
 }
 
@@ -264,8 +269,8 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 							{
 								FPaintGeometry BouncedGeometry = CurWidget.Geometry.ToPaintGeometry(OverlayInfo.OverlayOffset, OverlayBrush->ImageSize, 1.f);
 
-								// Handle bouncing
-								const float BounceValue = FMath::Sin(2.0f * PI * BounceCurve.GetLerpLooping());
+								// Handle bouncing during PIE
+								const float BounceValue = FMath::Sin(2.0f * PI * BounceCurve.GetLerp());
 								BouncedGeometry.DrawPosition += (OverlayInfo.AnimationEnvelope * BounceValue * ZoomFactor);
 
 								CurWidgetsMaxLayerId++;
@@ -1061,27 +1066,25 @@ bool SGraphPanel::IsRectVisible(const FVector2D &TopLeft, const FVector2D &Botto
 
 bool SGraphPanel::JumpToRect(const FVector2D &TopLeft, const FVector2D &BottomRight)
 {
-	ZoomTargetTopLeft = TopLeft;
-	ZoomTargetBottomRight = BottomRight;
-	bDeferredZoomingToFit = true;
+	ZoomToTarget(TopLeft, BottomRight);
+
 	return true;
 }
 
 void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
 {
-	bDeferredZoomingToFit = false;
-
-	if (JumpToMe != NULL)
+	if (JumpToMe != nullptr)
 	{
 		if (bRequestRename)
 		{
 			TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(JumpToMe);
-			if (pWidget != NULL)
+			if (pWidget != nullptr)
 			{
 				TSharedRef<SGraphNode> GraphNode = StaticCastSharedRef<SGraphNode>(*pWidget);
 				GraphNode->RequestRename();
 			}
 		}
+
 		// Select this node, and request that we jump to it.
 		SelectAndCenterObject(JumpToMe, true);
 	}
@@ -1089,10 +1092,22 @@ void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
 
 void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 {
-	if (JumpToMe != NULL)
+	if (JumpToMe != nullptr)
 	{
 		JumpToNode(JumpToMe->GetOwningNode(), false);
 	}
+}
+
+void SGraphPanel::OnBeginPIE( const bool bIsSimulating )
+{
+	// Play the bounce curve on a continuous loop during PIE
+	BounceCurve.Play( this->AsShared(), true );
+}
+
+void SGraphPanel::OnEndPIE( const bool bIsSimulating )
+{
+	// Stop the bounce curve
+	BounceCurve.JumpToEnd();
 }
 
 void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)

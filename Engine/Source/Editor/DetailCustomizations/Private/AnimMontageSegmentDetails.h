@@ -43,10 +43,13 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	void RefreshViewport();
 
 private:
+
+	/** Called to tick the preview during playback */
+	void OnTickPreview( double InCurrentTime, float InDeltaTime );
 
 	void InitSkeleton();
 
@@ -102,13 +105,14 @@ public:
 	{}
 		/** If you'd like to lock to one asset for this scrub control, give this**/
 		SLATE_ARGUMENT(UAnimSequenceBase*, LockedSequence)
-		SLATE_ATTRIBUTE(class UAnimSingleNodeInstance*, PreviewInstance);
+		SLATE_ATTRIBUTE(class UAnimSingleNodeInstance*, PreviewInstance)
 		/** View Input range **/
 		SLATE_ATTRIBUTE( float, ViewInputMin )
 		SLATE_ATTRIBUTE( float, ViewInputMax )
 		SLATE_ARGUMENT( bool, bAllowZoom )
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )
-		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag)
+		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag )
+		SLATE_EVENT( FOnTickPlayback, OnTickPlayback )
 	SLATE_END_ARGS()
 	
 	void Construct( const FArguments& InArgs );

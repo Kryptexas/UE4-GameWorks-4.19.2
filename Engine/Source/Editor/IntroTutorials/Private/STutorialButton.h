@@ -17,9 +17,11 @@ class STutorialButton : public SCompoundWidget
 
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-
+	
 private:
+	/** Opens the tutorial post-construct */
+	EActiveTickReturnType OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime );
+
 	/** Handle clicking the tutorial button */
 	FReply HandleButtonClicked();
 
@@ -48,9 +50,7 @@ private:
 	void HandleTutorialExited();
 
 private:
-	/** Flag to defer tutorial open until the first Tick() */
-	bool bDeferTutorialOpen;
-
+	
 	/** Whether we have a tutorial for this context */
 	bool bTutorialAvailable;
 

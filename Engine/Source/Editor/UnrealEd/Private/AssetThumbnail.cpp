@@ -220,8 +220,6 @@ public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
-		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 		if ( WidthLastFrame != AllottedGeometry.Size.X )
 		{
 			WidthLastFrame = AllottedGeometry.Size.X;
@@ -403,7 +401,7 @@ private:
 		if ( !bHasRenderedThumbnail && AssetData == AssetThumbnail->GetAssetData() && ShouldRender() )
 		{
 			OnRenderedThumbnailChanged( true );
-			ViewportFadeAnimation.Play();
+			ViewportFadeAnimation.Play( this->AsShared() );
 		}
 	}
 
@@ -827,6 +825,16 @@ void FAssetThumbnailPool::ReleaseResources()
 			ensureMsgf(0, TEXT("Thumbnail info for '%s' is still referenced by '%d' other objects"), *Thumb->AssetData.ObjectPath.ToString(), Thumb.GetSharedReferenceCount());
 		}
 	}
+}
+
+TStatId FAssetThumbnailPool::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT( FAssetThumbnailPool, STATGROUP_Tickables );
+}
+
+bool FAssetThumbnailPool::IsTickable() const
+{
+	return RecentlyLoadedAssets.Num() > 0 || ThumbnailsToRenderStack.Num() > 0 || RealTimeThumbnails.Num() > 0;
 }
 
 void FAssetThumbnailPool::Tick( float DeltaTime )

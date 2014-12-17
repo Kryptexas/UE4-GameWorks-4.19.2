@@ -942,8 +942,6 @@ void SPlacementModeTools::RefreshPlaceables()
 
 void SPlacementModeTools::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
 	if ( bPlaceablesRefreshRequested || bPlaceablesFullRefreshRequested )
 	{
 		RefreshPlaceables();

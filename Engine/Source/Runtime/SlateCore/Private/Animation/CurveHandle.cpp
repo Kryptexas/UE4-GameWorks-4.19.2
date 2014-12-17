@@ -6,7 +6,7 @@
 #define LOCTEXT_NAMESPACE "FCurveHandle"
 
 
-/* FCurveHandle structors
+/* FCurveHandle constructors
  *****************************************************************************/
 
 FCurveHandle::FCurveHandle( const struct FCurveSequence* InOwnerSequence, int32 InCurveIndex )
@@ -37,8 +37,11 @@ float FCurveHandle::GetLerp( ) const
 	return ApplyEasing(Time, TheCurve.EaseFunction);
 }
 
-
-float FCurveHandle::GetLerpLooping( ) const
+float FCurveHandle::GetLerpLooping() const
+{
+	return DEPRECATED_GetLerpLooping();
+}
+float FCurveHandle::DEPRECATED_GetLerpLooping() const
 {
 	if (OwnerSequence == nullptr)
 	{
@@ -46,7 +49,7 @@ float FCurveHandle::GetLerpLooping( ) const
 	}
 
 	// How far we've played through the curve sequence so far.
-	const float CurSequenceTime = OwnerSequence->GetSequenceTimeLooping();
+	const float CurSequenceTime = OwnerSequence->DEPRECATED_GetSequenceTimeLooping();
 
 	const FCurveSequence::FSlateCurve& TheCurve = OwnerSequence->GetCurve(CurveIndex);
 	const float TimeSinceStarted = CurSequenceTime - TheCurve.StartTime;

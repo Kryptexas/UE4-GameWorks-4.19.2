@@ -269,11 +269,6 @@ FString SAnimationEditorViewportTabBody::GetDisplayString() const
 	}
 }
 
-void SAnimationEditorViewportTabBody::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-}
-
 void SAnimationEditorViewportTabBody::RefreshViewport()
 {
 	LevelViewportClient->Invalidate();

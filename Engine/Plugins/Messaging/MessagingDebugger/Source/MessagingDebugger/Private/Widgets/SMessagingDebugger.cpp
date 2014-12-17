@@ -224,7 +224,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 
 void SMessagingDebugger::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	MessageTracer->Tick(InDeltaTime);
+	MessageTracer->Tick( InDeltaTime );
 }
 
 

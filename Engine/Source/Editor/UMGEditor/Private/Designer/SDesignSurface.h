@@ -22,7 +22,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	// SWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -88,12 +88,6 @@ protected:
 	// The interface for mapping ZoomLevel values to actual node scaling values
 	TScopedPointer<FZoomLevelsContainer> ZoomLevels;
 
-	// A flag noting if we have a pending zoom to fit operation to perform next tick.
-	bool bDeferredZoomingToFit;
-
-	// A flag noting if we have a pending zoom to extents operation to perform next tick.
-	bool bDeferredZoomToExtents;
-
 	bool bAllowContinousZoomInterpolation;
 
 	bool bTeleportInsteadOfScrollingWhenZoomingToFit;
@@ -104,4 +98,17 @@ protected:
 
 	/** Does the user need to press Control in order to over-zoom. */
 	bool bRequireControlToOverZoom;
+
+	/** Cached geometry for use within the active tick */
+	FGeometry CachedGeometry;
+
+private:
+	/** Active tick that handles deferred zooming until the target zoom is reached */
+	EActiveTickReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
+
+	/** The handle to the active tick */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+
+	// A flag noting if we have a pending zoom to extents operation to perform next tick.
+	bool bDeferredZoomToExtents;
 };

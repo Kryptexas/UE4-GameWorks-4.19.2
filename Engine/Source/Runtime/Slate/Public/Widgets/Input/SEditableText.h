@@ -463,6 +463,12 @@ protected:
 	void OnWindowClosed(const TSharedRef<SWindow>&);
 
 private:
+	/** Animates the caret and highlight selection springs */
+	EActiveTickReturnType AnimateSpringsWhileFocused(double InCurrentTime, float InDeltaTime);
+	
+	/** @return Whether the editable text should appear focused */
+	bool ShouldAppearFocused() const;
+
 	/** 
 	 * @return whether there is anything in the clipboard
 	 */
@@ -607,6 +613,10 @@ private:
 	/** The type of virtual keyboard to use for editing this text on mobile */
 	TAttribute<EKeyboardType> VirtualKeyboardType;
 
-	/** Whether the text has been changed by a virtual keyboard */
+	/** True if the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
+
+	/** True if a spring animation is currently in progress */
+	bool bIsSpringing;
+
 };

@@ -135,6 +135,7 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
+	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
 
 	bDraggedOver = false;
 
@@ -164,8 +165,6 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 
 void SAssetViewItem::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	const float PrevSizeX = LastGeometry.Size.X;
 
 	LastGeometry = AllottedGeometry;
@@ -941,6 +940,11 @@ bool SAssetViewItem::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 	return false;
 }
 
+void SAssetViewItem::OnToolTipClosing()
+{
+	OnAssetToolTipClosing.ExecuteIfBound();
+}
+
 ///////////////////////////////
 // SAssetListItem
 ///////////////////////////////
@@ -967,6 +971,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
+		.OnAssetToolTipClosing( InArgs._OnAssetToolTipClosing )
 		);
 
 	AssetThumbnail = InArgs._AssetThumbnail;
@@ -1172,6 +1177,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
+		.OnAssetToolTipClosing( InArgs._OnAssetToolTipClosing )
 		);
 
 	AssetThumbnail = InArgs._AssetThumbnail;
@@ -1366,6 +1372,49 @@ FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
 // SAssetColumnItem
 ///////////////////////////////
 
+/** Custom box for the Name column of an asset */
+class SAssetColumnItemNameBox : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS( SAssetColumnItemNameBox ) {}
+
+		/** The color of the asset  */
+		SLATE_ATTRIBUTE( FMargin, Padding )
+
+		/** The widget content presented in the box */
+		SLATE_DEFAULT_SLOT(FArguments, Content)
+
+	SLATE_END_ARGS()
+
+	~SAssetColumnItemNameBox() {}
+
+	void Construct( const FArguments& InArgs, const TSharedRef<SAssetColumnItem>& InOwnerAssetColumnItem )
+	{
+		OwnerAssetColumnItem = InOwnerAssetColumnItem;
+
+		ChildSlot
+		[
+			SNew(SBox)
+			.Padding(InArgs._Padding)
+			[
+				InArgs._Content.Widget
+			]
+		];
+	}
+
+	/** Forward the event to the view item that this name box belongs to */
+	virtual void OnToolTipClosing() override
+	{
+		if ( OwnerAssetColumnItem.IsValid() )
+		{
+			OwnerAssetColumnItem.Pin()->OnToolTipClosing();
+		}
+	}
+
+private:
+	TWeakPtr<SAssetViewItem> OwnerAssetColumnItem;
+};
+
 void SAssetColumnItem::Construct( const FArguments& InArgs )
 {
 	SAssetViewItem::Construct( SAssetViewItem::FArguments()
@@ -1380,6 +1429,7 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
+		.OnAssetToolTipClosing(InArgs._OnAssetToolTipClosing)
 		);
 	
 	HighlightText = InArgs._HighlightText;
@@ -1389,6 +1439,9 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& ColumnName, FIsSelected InIsSelected )
 {
 	TSharedPtr<SWidget> Content;
+
+	// A little right padding so text from this column does not run directly into text from the next.
+	static const FMargin ColumnItemPadding( 0, 0, 6, 0 );
 
 	if ( ColumnName == "Name" )
 	{
@@ -1476,6 +1529,13 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		{
 			AssetItem->RenamedRequestEvent.BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 		}
+
+		return SNew( SAssetColumnItemNameBox, SharedThis(this) )
+			.Padding( ColumnItemPadding )
+			.ToolTip( CreateToolTipWidget() )
+			[
+				Content.ToSharedRef()
+			];
 	}
 	else if ( ColumnName == "Class" )
 	{
@@ -1499,8 +1559,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 	}
 
 	return SNew(SBox)
-		.Padding(FMargin(0, 0, 6, 0)) // Add a little right padding so text from this column does not run directly into text from the next.
-		.ToolTip(CreateToolTipWidget())
+		.Padding( ColumnItemPadding )
 		[
 			Content.ToSharedRef()
 		];
@@ -1520,8 +1579,6 @@ void SAssetColumnItem::OnAssetDataChanged()
 	{
 		PathText->SetText( GetAssetPathText() );
 	}
-
-	SetToolTip( CreateToolTipWidget() );
 }
 
 FString SAssetColumnItem::GetAssetNameToolTipText() const

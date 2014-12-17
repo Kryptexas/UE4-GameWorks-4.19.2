@@ -280,7 +280,7 @@ public:
 protected:
 	/** The event to execute when the selected frames have been changed, for index based view mode. */
 	FSelectionChangedForIndexEvent SelectionChangedForIndexEvent;
-	
+
 public:
 	void AddInnerGraph
 	( 
@@ -349,7 +349,7 @@ protected:
 
 	void UpdateState();
 
-	const FEventGraphDataHandlerRef PrepareEventGraphDataHandler( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition );
+	const FEventGraphDataHandlerRef PrepareEventGraphDataHandler( const FVector2D& ScreenSpacePosition );
 
 	/** Handles FExecuteAction for ViewMode_SetIndexBased. */
 	void ViewMode_SetIndexBased_Execute();

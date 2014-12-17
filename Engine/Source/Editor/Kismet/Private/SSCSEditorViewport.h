@@ -47,19 +47,6 @@ public:
 	 */
 	void RequestRefresh(bool bResetCamera = false, bool bRefreshNow = false);
 
-	// SWidget interface
-
-	/**
-	 * Ticks this widget.
-	 *
-	 * @param  AllottedGeometry The space allotted for this widget
-	 * @param  InCurrentTime  Current absolute real time
-	 * @param  InDeltaTime  Real time passed since last tick
-	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	
-	// End of SWidget interface
-
 	/**
 	 * Called when the selected component changes in the SCS editor.
 	 */
@@ -101,6 +88,11 @@ protected:
 	virtual TSharedRef<class FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<class SWidget> MakeViewportToolbar() override;
 	virtual void BindCommands();
+
+private:
+	/** One-off active tick to update the preview */
+	EActiveTickReturnType DeferredUpdatePreview(double InCurrentTime, float InDeltaTime, bool bResetCamera);
+
 private:
 	/** Pointer back to editor tool (owner) */
 	TWeakPtr<class FBlueprintEditor> BlueprintEditorPtr;
@@ -111,10 +103,6 @@ private:
 	/** Viewport client */
 	TSharedPtr<class FSCSEditorViewportClient> ViewportClient;
 
-	/** If true, update the preview scene */
-	bool bPreviewNeedsUpdating;
-
-	/** If true, reset the camera on the next preview scene update */
-	bool bResetCameraOnNextPreviewUpdate;
-
+	/** Whether the active tick (for updating the preview) is registered */
+	bool bIsActiveTickRegistered;
 };

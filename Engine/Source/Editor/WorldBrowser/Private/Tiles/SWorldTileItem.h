@@ -52,6 +52,7 @@ public:
 	~SWorldTileItem();
 
 	void Construct(const FArguments& InArgs);
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	
 	// SNodePanel::SNode interface start
 	virtual FVector2D GetDesiredSizeForMarquee() const override;

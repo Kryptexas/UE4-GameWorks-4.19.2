@@ -413,8 +413,6 @@ void SRealtimeProfilerLineGraph::Tick( const FGeometry& AllottedGeometry, const 
 			LastGeometry = AllottedGeometry;
 		}
 	}
-
-	SWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 FReply SRealtimeProfilerLineGraph::OnStartButtonDown()

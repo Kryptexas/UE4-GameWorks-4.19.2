@@ -61,6 +61,11 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
 	Client = ViewportClient;
 
+	if ( Client->IsRealtime() )
+	{
+		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+	}
+
 	CommandList = MakeShareable( new FUICommandList );
 	// Ensure the commands are registered
 	FEditorViewportCommands::Register();
@@ -323,7 +328,20 @@ EVisibility SEditorViewport::OnGetViewportContentVisibility() const
 
 void SEditorViewport::OnToggleRealtime()
 {
-	 Client->SetRealtime( ! Client->IsRealtime() );
+	if (Client->IsRealtime())
+	{
+		Client->SetRealtime( false );
+		if ( ActiveTickHandle.IsValid() )
+		{
+			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		}
+		
+	}
+	else
+	{
+		Client->SetRealtime( true );
+		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+	}
 }
 
 void SEditorViewport::OnToggleStats()
@@ -334,7 +352,11 @@ void SEditorViewport::OnToggleStats()
 	if( !bIsEnabled )
 	{
 		// We cannot show stats unless realtime rendering is enabled
-		 Client->SetRealtime( true );
+		if ( !Client->IsRealtime() )
+		{
+			Client->SetRealtime( true );
+			ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+		}
 
 		 // let the user know how they can enable stats via the console
 		 FNotificationInfo Info(LOCTEXT("StatsEnableHint", "Stats display can be toggled via the STAT [type] console command"));
@@ -494,6 +516,11 @@ void SEditorViewport::OnToggleSurfaceSnap()
 bool SEditorViewport::OnIsSurfaceSnapEnabled()
 {
 	return GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled;
+}
+
+EActiveTickReturnType SEditorViewport::EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime )
+{
+	return EActiveTickReturnType::KeepTicking;
 }
 
 #undef LOCTEXT_NAMESPACE

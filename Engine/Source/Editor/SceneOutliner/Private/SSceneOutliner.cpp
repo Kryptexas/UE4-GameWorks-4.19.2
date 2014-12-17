@@ -2242,10 +2242,7 @@ namespace SceneOutliner
 	}
 
 	void SSceneOutliner::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-	{
-		// Call parent implementation
-		SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
+	{	
 		for (auto& Pair : Columns)
 		{
 			Pair.Value->Tick(InCurrentTime, InDeltaTime);

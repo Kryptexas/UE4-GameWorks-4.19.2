@@ -59,7 +59,7 @@ public:
 		// Animate ourselves in if we're running at the target frame rate
 		if (FSlateApplication::Get().IsRunningAtTargetFrameRate())
 		{
-			Sequence.Play();
+			Sequence.Play( this->AsShared() );
 		}
 		else
 		{

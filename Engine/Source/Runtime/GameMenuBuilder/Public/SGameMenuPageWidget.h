@@ -31,10 +31,10 @@ public:
 	void Tick(float Delta);
 
 	/* Close the panel */
-	void ClosePanel();
+	void ClosePanel(TSharedRef<SWidget> OwnerWidget);
 	
 	/* Open the panel */
-	void OpenPanel();
+	void OpenPanel(TSharedRef<SWidget> OwnerWidget);
 
 	/* Force the panel to be fully open. */
 	void ForcePanelOpen();
@@ -90,7 +90,7 @@ public:
 
 	// Begin SWidget interface
 	/** Update function. */
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** Mouse button down handler. */
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;

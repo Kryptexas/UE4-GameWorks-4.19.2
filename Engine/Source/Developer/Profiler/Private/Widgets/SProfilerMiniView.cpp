@@ -8,6 +8,7 @@
 #undef LOCTEXT_NAMESPACE
 
 SProfilerMiniView::SProfilerMiniView()
+	: bIsActiveTickRegistered( false )
 {
 	Reset();
 }
@@ -51,11 +52,20 @@ void SProfilerMiniView::Reset()
 	CursorType = EMiniviewCursor::Default;
 }
 
+EActiveTickReturnType SProfilerMiniView::EnsureDataUpdateDuringPreview(double InCurrentTime, float InDeltaTime)
+{
+	if (RecentlyAddedFrames.Num() > 0)
+	{
+		bUpdateData = true;
+		return EActiveTickReturnType::KeepTicking;
+	}
+	
+	bIsActiveTickRegistered = false;
+	return EActiveTickReturnType::StopTicking;
+}
 
 void SProfilerMiniView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
-
 	if( ThisGeometry != AllottedGeometry )
 	{
 		// Refresh.
@@ -64,11 +74,6 @@ void SProfilerMiniView::Tick( const FGeometry& AllottedGeometry, const double In
 	}
 
 	ThisGeometry = AllottedGeometry;
-
-	if( RecentlyAddedFrames.Num() > 0 )
-	{
-		bUpdateData = true;
-	}
 
 	if( IsReady() )
 	{
@@ -580,6 +585,12 @@ void SProfilerMiniView::AddThreadTime( int32 InFrameIndex, const TMap<uint32, fl
 	FrameThreadTimes.FrameNumber = InFrameIndex;
 	FrameThreadTimes.ThreadTimes = InThreadMS;
 	RecentlyAddedFrames.Add( FrameThreadTimes );
+
+	if (!bIsActiveTickRegistered)
+	{
+		bIsActiveTickRegistered = true;
+		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SProfilerMiniView::EnsureDataUpdateDuringPreview));
+	}
 
 	StatMetadata = InStatMetaData;
 }

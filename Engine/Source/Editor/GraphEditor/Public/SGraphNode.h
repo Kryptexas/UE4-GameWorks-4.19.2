@@ -33,7 +33,7 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphNode* InNode);
 
 	// SWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
 	/** Returns the main title for the node */

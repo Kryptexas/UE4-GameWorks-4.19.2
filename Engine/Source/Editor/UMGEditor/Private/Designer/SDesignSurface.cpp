@@ -119,12 +119,11 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	ViewOffset = FVector2D::ZeroVector;
 
 	ZoomLevelFade = FCurveSequence(0.0f, 1.0f);
-	ZoomLevelFade.Play();
+	ZoomLevelFade.Play( this->AsShared() );
 
 	ZoomLevelGraphFade = FCurveSequence(0.0f, 0.5f);
-	ZoomLevelGraphFade.Play();
+	ZoomLevelGraphFade.Play( this->AsShared() );
 
-	bDeferredZoomingToFit = false;
 	bDeferredZoomToExtents = false;
 
 	bAllowContinousZoomInterpolation = false;
@@ -143,41 +142,43 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	];
 }
 
-void SDesignSurface::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SDesignSurface::HandleZoomToFit( double InCurrentTime, float InDeltaTime )
 {
-	FSlateRect Bounds = ComputeAreaBounds();
+	const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
+	const bool bDoneScrolling = ScrollToLocation(CachedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
+	const bool bDoneZooming = ZoomToLocation(CachedGeometry.Size, ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
 
+	if (bDoneZooming && bDoneScrolling)
+	{
+		// One final push to make sure we're centered in the end
+		ViewOffset = DesiredViewCenter - ( 0.5f * CachedGeometry.Scale * CachedGeometry.Size / GetZoomAmount() );
+
+		ZoomTargetTopLeft = FVector2D::ZeroVector;
+		ZoomTargetBottomRight = FVector2D::ZeroVector;
+
+		return EActiveTickReturnType::StopTicking;
+	}
+	
+	return EActiveTickReturnType::KeepTicking;
+}
+
+void SDesignSurface::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	CachedGeometry = AllottedGeometry;
+	
 	// Zoom to extents
+	FSlateRect Bounds = ComputeAreaBounds();
 	if ( bDeferredZoomToExtents )
 	{
 		bDeferredZoomToExtents = false;
-		//ZoomPadding = NodePanelDefs::DefaultZoomPadding;
 		ZoomTargetTopLeft = FVector2D(Bounds.Left, Bounds.Top);
 		ZoomTargetBottomRight = FVector2D(Bounds.Right, Bounds.Bottom);
-		//bDeferredZoomToSelection = false;
-		bDeferredZoomingToFit = true;
-	}
 
-	if ( bDeferredZoomingToFit )
-	{
-		const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
-		const bool bDoneScrolling = ScrollToLocation(AllottedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
-		bool bDoneZooming = ZoomToLocation(AllottedGeometry.Size, ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
-
-		if ( bDoneZooming && bDoneScrolling )
+		if (!ActiveTickHandle.IsValid())
 		{
-			// One final push to make sure we centered in the end
-			ViewOffset = DesiredViewCenter - ( 0.5f * AllottedGeometry.Scale * AllottedGeometry.Size / GetZoomAmount() );
-			// Reset ZoomPadding
-			//ZoomPadding = NodePanelDefs::DefaultZoomPadding;
-			ZoomTargetTopLeft = FVector2D::ZeroVector;
-			ZoomTargetBottomRight = FVector2D::ZeroVector;
-
-			bDeferredZoomingToFit = false;
+			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SDesignSurface::HandleZoomToFit));
 		}
 	}
-	
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 int32 SDesignSurface::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
@@ -297,7 +298,7 @@ void SDesignSurface::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& Widg
 		PostChangedZoom();
 
 		// Note: This happens even when maxed out at a stop; so the user sees the animation and knows that they're at max zoom in/out
-		ZoomLevelFade.Play();
+		ZoomLevelFade.Play( this->AsShared() );
 
 		// Re-center the screen so that it feels like zooming around the cursor.
 		{
@@ -376,7 +377,7 @@ bool SDesignSurface::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, con
 			// Animate to it
 			PreviousZoomLevel = ZoomLevel;
 			ZoomLevel = FMath::Clamp(DesiredZoom, 0, NumZoomLevels - 1);
-			ZoomLevelGraphFade.Play();
+			ZoomLevelGraphFade.Play(this->AsShared());
 			return false;
 		}
 		else
@@ -386,7 +387,7 @@ bool SDesignSurface::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, con
 			{
 				// Zooming out; do it instantly
 				ZoomLevel = PreviousZoomLevel = DesiredZoom;
-				ZoomLevelFade.Play();
+				ZoomLevelFade.Play(this->AsShared());
 			}
 			else
 			{
@@ -394,7 +395,7 @@ bool SDesignSurface::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, con
 				if ( bDoneScrolling )
 				{
 					ZoomLevel = PreviousZoomLevel = DesiredZoom;
-					ZoomLevelFade.Play();
+					ZoomLevelFade.Play(this->AsShared());
 				}
 			}
 		}
@@ -407,9 +408,8 @@ bool SDesignSurface::ZoomToLocation(const FVector2D& CurrentSizeWithoutZoom, con
 
 void SDesignSurface::ZoomToFit(bool bInstantZoom)
 {
-	bDeferredZoomingToFit = true;
-	bDeferredZoomToExtents = true;
 	bTeleportInsteadOfScrollingWhenZoomingToFit = bInstantZoom;
+	bDeferredZoomToExtents = true;
 }
 
 FText SDesignSurface::GetZoomText() const

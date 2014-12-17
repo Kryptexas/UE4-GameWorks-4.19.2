@@ -23,6 +23,11 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	SaveSettingsName = InArgs._AssetPickerConfig.SaveSettingsName;
 	OnFolderEnteredDelegate = InArgs._AssetPickerConfig.OnFolderEntered;
 
+	if ( InArgs._AssetPickerConfig.bFocusSearchBoxWhenOpened )
+	{
+		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SAssetPicker::SetFocusPostConstruct ) );
+	}
+
 	for (auto DelegateIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
 	{
 		if ((*DelegateIt) != NULL)
@@ -202,6 +207,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.OnGetAssetContextMenu(InArgs._AssetPickerConfig.OnGetAssetContextMenu)
 		.OnGetCustomAssetToolTip(InArgs._AssetPickerConfig.OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._AssetPickerConfig.OnVisualizeAssetToolTip)
+		.OnAssetToolTipClosing(InArgs._AssetPickerConfig.OnAssetToolTipClosing)
 		.AreRealTimeThumbnailsAllowed(this, &SAssetPicker::IsHovered)
 		.FrontendFilters(FrontendFilters)
 		.InitialSourcesData(CurrentSourcesData)
@@ -230,17 +236,18 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	AssetViewPtr->RequestSlowFullListRefresh();
 }
 
-void SAssetPicker::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+EActiveTickReturnType SAssetPicker::SetFocusPostConstruct( double InCurrentTime, float InDeltaTime )
 {
-	if ( bPendingFocusNextFrame && SearchBoxPtr.IsValid() )
+	if ( SearchBoxPtr.IsValid() )
 	{
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
 		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
-		bPendingFocusNextFrame = false;
+
+		return EActiveTickReturnType::StopTicking;
 	}
 
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	return EActiveTickReturnType::KeepTicking;
 }
 
 FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)

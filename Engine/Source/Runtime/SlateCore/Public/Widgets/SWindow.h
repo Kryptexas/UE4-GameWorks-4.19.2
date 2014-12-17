@@ -811,7 +811,6 @@ protected:
 			: StartingMorphShape( FSlateRect(0,0,100,100) )
 			, TargetMorphShape( FSlateRect(0,0,100,100) )
 			, bIsActive(false)
-			, bIsPendingPlay(false)
 			, bIsAnimatingWindowSize(false)
 		{ }
 
@@ -830,9 +829,6 @@ protected:
 
 		/** True if this morph is currently active */
 		bool bIsActive : 1;
-
-		/** True if this morph sequence is pending play (i.e. will start on next Tick) */
-		bool bIsPendingPlay : 1;
 
 		/** True if we're morphing size as well as position.  False if we're just morphing position */
 		bool bIsAnimatingWindowSize : 1;
@@ -935,6 +931,12 @@ private:
 	 * @return EVisibility::Visible if the window is flashing. Used to show/hide the white flash in the title area
 	 */
 	EVisibility GetWindowFlashVisibility() const;
+
+	/** One-off active tick to trigger a the morph sequence to play */
+	EActiveTickReturnType TriggerPlayMorphSequence( double InCurrentTime, float InDeltaTime );
+
+	/** The handle to the active tick */
+	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
 };
 
 
