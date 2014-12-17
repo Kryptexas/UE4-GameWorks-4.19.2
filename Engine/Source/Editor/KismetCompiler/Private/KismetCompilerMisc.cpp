@@ -601,6 +601,39 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 	return LastThen;
 }
 
+void FKismetCompilerUtilities::CreateObjectAssignmentStatement(FKismetFunctionContext& Context, UEdGraphNode* Node, FBPTerminal* SrcTerm, FBPTerminal* DstTerm)
+{
+	UClass* InputObjClass = Cast<UClass>(SrcTerm->Type.PinSubCategoryObject.Get());
+	UClass* OutputObjClass = Cast<UClass>(DstTerm->Type.PinSubCategoryObject.Get());
+
+	const bool bIsOutputInterface = ((OutputObjClass != NULL) && OutputObjClass->HasAnyClassFlags(CLASS_Interface));
+	const bool bIsInputInterface = ((InputObjClass != NULL) && InputObjClass->HasAnyClassFlags(CLASS_Interface));
+
+	if (bIsOutputInterface != bIsInputInterface)
+	{
+		// Create a literal term from the class specified in the node
+		FBPTerminal* ClassTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
+		ClassTerm->Name = OutputObjClass->GetName();
+		ClassTerm->bIsLiteral = true;
+		ClassTerm->Source = DstTerm->Source;
+		ClassTerm->ObjectLiteral = OutputObjClass;
+
+		EKismetCompiledStatementType CastOpType = bIsOutputInterface ? KCST_CastObjToInterface : KCST_CastInterfaceToObj;
+		FBlueprintCompiledStatement& CastStatement = Context.AppendStatementForNode(Node);
+		CastStatement.Type = CastOpType;
+		CastStatement.LHS = DstTerm;
+		CastStatement.RHS.Add(ClassTerm);
+		CastStatement.RHS.Add(SrcTerm);
+	}
+	else
+	{
+		FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
+		Statement.Type = KCST_Assignment;
+		Statement.LHS = DstTerm;
+		Statement.RHS.Add(SrcTerm);
+	}
+}
+
 /** Creates a property named PropertyName of type PropertyType in the Scope or returns NULL if the type is unknown, but does *not* link that property in */
 UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const FName& PropertyName, const FEdGraphPinType& Type, UClass* SelfClass, uint64 PropertyFlags, const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
 {

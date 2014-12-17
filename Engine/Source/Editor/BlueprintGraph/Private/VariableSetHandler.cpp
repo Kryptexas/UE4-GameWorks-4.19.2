@@ -74,11 +74,7 @@ void FKCHandler_VariableSet::InnerAssignment(FKismetFunctionContext& Context, UE
 
 	if ((VariableTerm != NULL) && (ValueTerm != NULL))
 	{
-		FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
-
-		Statement.Type = KCST_Assignment;
-		Statement.LHS = *VariableTerm;
-		Statement.RHS.Add(*ValueTerm);
+		FKismetCompilerUtilities::CreateObjectAssignmentStatement(Context, Node, *ValueTerm, *VariableTerm);
 
 		if (!(*VariableTerm)->IsTermWritable())
 		{

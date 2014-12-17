@@ -2026,7 +2026,7 @@ void UObject::execInterfaceToObject(FFrame& Stack, RESULT_DECL)
 	Stack.Step(Stack.Object, &InterfaceInput);
 
 	UObject* InputObjWithInterface = InterfaceInput.GetObjectRef();
-	if (InputObjWithInterface->IsA(ObjClassToCastTo))
+	if (InputObjWithInterface && InputObjWithInterface->IsA(ObjClassToCastTo))
 	{
 		*(UObject**)Result = InputObjWithInterface;
 	}

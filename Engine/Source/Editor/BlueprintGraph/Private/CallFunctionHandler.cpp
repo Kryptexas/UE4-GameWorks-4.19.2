@@ -234,7 +234,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 									// insert a cast op before a call to the function (and replace
 									// the param with the result from the cast)
 									FBlueprintCompiledStatement& CastStatement = Context.AppendStatementForNode(Node);
-									CastStatement.Type = KCST_CastObjToInterface;
+									CastStatement.Type = InterfaceClass->HasAnyClassFlags(CLASS_Interface) ? KCST_CastObjToInterface : KCST_CastInterfaceToObj;
 									CastStatement.LHS = *InterfaceTerm;
 									CastStatement.RHS.Add(ClassTerm);
 									CastStatement.RHS.Add(*Term);
@@ -604,7 +604,8 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		// if we have an object plugged into an interface pin, let's create a 
 		// term that'll be used as an intermediate, holding the result of a cast 
 		// from object to interface
-		if ((Pin->PinType.PinCategory == K2Schema->PC_Interface) && (Pin->LinkedTo[0]->PinType.PinCategory == K2Schema->PC_Object))
+		if (((Pin->PinType.PinCategory == K2Schema->PC_Interface) && (Pin->LinkedTo[0]->PinType.PinCategory == K2Schema->PC_Object)) ||
+			((Pin->PinType.PinCategory == K2Schema->PC_Object) && (Pin->LinkedTo[0]->PinType.PinCategory == K2Schema->PC_Interface)))
 		{
 			FBPTerminal* InterfaceTerm = Context.CreateLocalTerminal();
 			InterfaceTerm->CopyFromPin(Pin, Context.NetNameMap->MakeValidName(Pin) + TEXT("_CastInput"));
