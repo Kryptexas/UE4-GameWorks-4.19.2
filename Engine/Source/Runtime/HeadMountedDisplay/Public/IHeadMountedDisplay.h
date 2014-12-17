@@ -273,10 +273,16 @@ public:
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) {}
 
 	/**
-	 * This method is able to change screen settings (such as rendering scale) right before
-	 * any drawing occurs. It is called at the beginning of UGameViewportClient::Draw() method.
+	 * This method is able to change screen settings right before any drawing occurs. 
+	 * It is called at the beginning of UGameViewportClient::Draw() method.
+	 * We might remove this one as UpdatePostProcessSettings should be able to capture all needed cases
 	 */
-	virtual void UpdateScreenSettings(const FViewport* InViewport) = 0;
+	virtual void UpdateScreenSettings(const FViewport* InViewport) {}
+
+	/**
+	 * Allows to override the PostProcessSettings in the last moment e.g. allows up sampled 3D rendering
+	 */
+	virtual void UpdatePostProcessSettings(FPostProcessSettings*) {}
 
 	/**
 	 * Draw desired debug information related to the HMD system.

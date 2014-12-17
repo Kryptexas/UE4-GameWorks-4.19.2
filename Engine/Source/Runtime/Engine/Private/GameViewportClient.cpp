@@ -718,19 +718,17 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	DebugCanvasObject->Canvas = DebugCanvas;	
 	DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
 
-	const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport);
-	if (bScaledToRenderTarget)
 	{
-		// Allow HMD to modify screen settings
-		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
-	}
-	if (DebugCanvas)
-	{
-		DebugCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
-	}
-	if (SceneCanvas)
-	{
-		SceneCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
+		const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport);
+
+		if (DebugCanvas)
+		{
+			DebugCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
+		}
+		if (SceneCanvas)
+		{
+			SceneCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
+		}
 	}
 
 	bool bUIDisableWorldRendering = false;

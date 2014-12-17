@@ -361,10 +361,6 @@ FVector FSteamVRHMD::GetPositionOffset() const
 	return FVector::ZeroVector;
 }
 
-void FSteamVRHMD::UpdateScreenSettings(const FViewport*)
-{
-}
-
 bool FSteamVRHMD::IsStereoEnabled() const
 {
 	return bStereoEnabled && bHmdEnabled;

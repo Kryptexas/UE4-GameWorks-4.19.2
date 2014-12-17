@@ -160,7 +160,7 @@ public:
 	virtual FVector GetPositionOffset() const override;
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) override;
-	virtual void UpdateScreenSettings(const FViewport*) override;
+	virtual void UpdatePostProcessSettings(FPostProcessSettings*) override;
 
 	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 

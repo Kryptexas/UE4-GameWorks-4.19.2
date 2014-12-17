@@ -271,10 +271,6 @@ void FSimpleHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassC
 	DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, NumVerts, NumTris, &Indices,
 		sizeof(Indices[0]), &Verts, sizeof(Verts[0]));
 }
-	
-void FSimpleHMD::UpdateScreenSettings(const FViewport*)
-{
-}
 
 bool FSimpleHMD::IsStereoEnabled() const
 {

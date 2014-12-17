@@ -1388,42 +1388,24 @@ void FOculusRiftHMD::SaveSystemValues()
 {
 	static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
 	Flags.bSavedVSync = CVSyncVar->GetInt() != 0;
-
-	static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	SavedScrPerc = CScrPercVar->GetFloat();
 }
 
 void FOculusRiftHMD::RestoreSystemValues()
 {
 	static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
+	// todo: bad - cvars are a user wish, this should be changed
 	CVSyncVar->Set(Flags.bSavedVSync != 0);
 
-	static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	CScrPercVar->Set(SavedScrPerc);
-
 	static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
+	// todo: bad - cvars are a user wish, this should be changed
 	CFinishFrameVar->Set(false);
 }
 
-void FOculusRiftHMD::UpdateScreenSettings(const FViewport*)
+void FOculusRiftHMD::UpdatePostProcessSettings(FPostProcessSettings* Settings)
 {
 	if (Flags.bScreenPercentageEnabled)
 	{
-		// Set the current ScreenPercentage state
-		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-		float DesiredSceeenPercentage;
-		if (Flags.bOverrideScreenPercentage)
-		{
-			DesiredSceeenPercentage = ScreenPercentage;
-		}
-		else
-		{
-			DesiredSceeenPercentage = IdealScreenPercentage;
-		}
-		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(DesiredSceeenPercentage))
-		{
-			CScrPercVar->Set(DesiredSceeenPercentage);
-		}
+		Settings->ScreenPercentage = Flags.bOverrideScreenPercentage ? ScreenPercentage : IdealScreenPercentage;
 	}
 }
 
