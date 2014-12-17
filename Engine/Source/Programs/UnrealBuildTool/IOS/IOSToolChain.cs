@@ -1097,7 +1097,7 @@ namespace UnrealBuildTool
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				string RemoteShadowDirectoryMac = Path.GetDirectoryName(Target.OutputPath);
-				string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.GameName);
+				string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, AppName);
 
 				// strip the debug info from the executable if needed
 				if (BuildConfiguration.bStripSymbolsOnIOS || (Target.Configuration == UnrealTargetConfiguration.Shipping) || UnrealBuildTool.BuildingRocket())
@@ -1121,23 +1121,23 @@ namespace UnrealBuildTool
 				// copy the executable
 				if (!File.Exists(FinalRemoteExecutablePath))
 				{
-					Directory.CreateDirectory(String.Format("{0}/Payload/{1}.app", RemoteShadowDirectoryMac, Target.GameName));
+					Directory.CreateDirectory(String.Format("{0}/Payload/{1}.app", RemoteShadowDirectoryMac, AppName));
 				}
 				File.Copy(Target.OutputPath, FinalRemoteExecutablePath, true);
 
 				if (BuildConfiguration.bCreateStubIPA)
 				{
-					string Project = Target.ProjectDirectory + "/" + Target.GameName + ".uproject";
+					string Project = Target.ProjectDirectory + "/" + AppName + ".uproject";
 
 					// generate the dummy project so signing works
-					if (Target.GameName == "UE4Game" || Target.GameName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + Target.GameName + ".uproject", Path.GetFullPath("../..")))
+					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
 						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk"});
 						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcodeproj";
 					}
 					else
 					{
-						Project = Target.ProjectDirectory + "/" + Target.GameName + ".xcodeproj";
+						Project = Target.ProjectDirectory + "/" + AppName + ".xcodeproj";
 					}
 
 					if (Directory.Exists (Project))
@@ -1153,7 +1153,7 @@ namespace UnrealBuildTool
 						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
 						                " -project \"" + Project + "\"" +
 						                " -configuration " + Target.Configuration +
-						                " -scheme '" + Target.GameName + " - iOS'" +
+						                " -scheme '" + AppName + " - iOS'" +
 						                " -sdk iphoneos" +
 						                " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 
@@ -1182,7 +1182,7 @@ namespace UnrealBuildTool
 						}
 
 						// Package the stub
-						PackageStub (RemoteShadowDirectoryMac, Target.GameName, Path.GetFileNameWithoutExtension (Target.OutputPath));
+						PackageStub (RemoteShadowDirectoryMac, AppName, Path.GetFileNameWithoutExtension (Target.OutputPath));
 					}
 				}
 

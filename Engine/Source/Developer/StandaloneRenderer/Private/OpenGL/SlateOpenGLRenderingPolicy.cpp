@@ -7,6 +7,10 @@
 #include "OpenGL/SlateOpenGLTextures.h"
 #include "OpenGL/SlateOpenGLRenderer.h"
 
+/** Official OpenGL definitions */
+#ifndef GL_HALF_FLOAT
+#define GL_HALF_FLOAT 0x140B
+#endif
 
 #define BUFFER_OFFSET(i) ((uint8 *)NULL + (i))
 

@@ -22,23 +22,6 @@ public class ICU : ModuleRules
 
 		string PlatformFolderName = Target.Platform.ToString();
 
-        EICULinkType ICULinkType;
-        switch (Target.Type)
-        {
-            case TargetRules.TargetType.Game:
-            case TargetRules.TargetType.Client:
-            case TargetRules.TargetType.Server:
-                ICULinkType = EICULinkType.Static;
-                break;
-            case TargetRules.TargetType.Editor:
-            case TargetRules.TargetType.Program:
-                ICULinkType = EICULinkType.Dynamic;
-                break;
-            default:
-                ICULinkType = EICULinkType.None;
-                break;
-        }
-
         string TargetSpecificPath = ICURootPath + PlatformFolderName + "/";
         if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
         {
@@ -67,6 +50,7 @@ public class ICU : ModuleRules
             // Library Paths
             PublicLibraryPaths.Add(TargetSpecificPath + "lib" + "/");
 
+			EICULinkType ICULinkType = Target.IsMonolithic ? EICULinkType.Static : EICULinkType.Dynamic;
             switch(ICULinkType)
             {
             case EICULinkType.Static:
@@ -77,11 +61,11 @@ public class ICU : ModuleRules
 			    }
                 break;
             case EICULinkType.Dynamic:
-			foreach (string Stem in LibraryNameStems)
-			{
-                        string LibraryName = "icu" + Stem + LibraryNamePostfix + "." + "lib";
-				PublicAdditionalLibraries.Add(LibraryName);
-			}
+				foreach (string Stem in LibraryNameStems)
+				{
+					string LibraryName = "icu" + Stem + LibraryNamePostfix + "." + "lib";
+					PublicAdditionalLibraries.Add(LibraryName);
+				}
 
                 foreach (string Stem in LibraryNameStems)
                 {
@@ -121,6 +105,7 @@ public class ICU : ModuleRules
                 "d" : string.Empty;
 
             // Library Paths
+			EICULinkType ICULinkType = (Target.Platform == UnrealTargetPlatform.Android || Target.IsMonolithic) ? EICULinkType.Static : EICULinkType.Dynamic;
             switch (ICULinkType)
             {
                 case EICULinkType.Static:
@@ -170,6 +155,7 @@ public class ICU : ModuleRules
             string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
                 "d" : string.Empty;
 
+			EICULinkType ICULinkType = (Target.Platform == UnrealTargetPlatform.IOS || Target.IsMonolithic) ? EICULinkType.Static : EICULinkType.Dynamic;
             // Library Paths
             switch (ICULinkType)
             {
