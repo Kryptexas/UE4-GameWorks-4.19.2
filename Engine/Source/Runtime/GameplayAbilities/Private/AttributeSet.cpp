@@ -27,13 +27,7 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 	AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
 	if (OwnerActor)
 	{
-		static const FName GraphName("Attribute Graph");
-		const FName LineName(*GetName());
-		float CurrentTime = OwnerActor->GetWorld()->GetTimeSeconds();
-		FVector2D OldPt(CurrentTime, OldValue);
-		FVector2D NewPt(CurrentTime, NewValue);
-		UE_VLOG_HISTOGRAM(OwnerActor, LogAbilitySystem, Log, GraphName, LineName, OldPt);
-		UE_VLOG_HISTOGRAM(OwnerActor, LogAbilitySystem, Log, GraphName, LineName, NewPt);
+		ABILITY_VLOG_ATTRIBUTE_GRAPH(OwnerActor, Log, GetName(), OldValue, NewValue);
 	}
 }
 

@@ -522,13 +522,13 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 
-			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Applied %s"), *OurCopyOfSpec->Def->GetFName().ToString());
+			ABILITY_VLOG(OwnerActor, Log, TEXT("Applied %s"), *OurCopyOfSpec->Def->GetFName().ToString());
 
 			for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
 			{
 				float Magnitude = 0.f;
 				Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
-				UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+				ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 			}
 		}
 
@@ -619,13 +619,13 @@ void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	
 	FActiveGameplayEffect* GameplayEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
 	if (GameplayEffect)
 	{
-		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Executed Periodic Effect %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
+		ABILITY_VLOG(OwnerActor, Log, TEXT("Executed Periodic Effect %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
 
 		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
 		{
 			float Magnitude = 0.f;
 			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
-			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+			ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 		}
 
 		ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
@@ -638,13 +638,13 @@ void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, F
 	// Effects with no period and that aren't instant application should never be executed
 	check( (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD) );
 
-	UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Executed %s"), *Spec.Def->GetFName().ToString());
+	ABILITY_VLOG(OwnerActor, Log, TEXT("Executed %s"), *Spec.Def->GetFName().ToString());
 	
 	for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
 	{
 		float Magnitude = 0.f;
 		Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
-		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+		ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 	}
 
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, PredictionKey);
@@ -660,13 +660,13 @@ bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHa
 	FActiveGameplayEffect* GameplayEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
 	if (GameplayEffect)
 	{
-		UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("Removed %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
+		ABILITY_VLOG(OwnerActor, Log, TEXT("Removed %s"), *GameplayEffect->Spec.Def->GetFName().ToString());
 
 		for (FGameplayModifierInfo Modifier : GameplayEffect->Spec.Def->Modifiers)
 		{
 			float Magnitude = 0.f;
 			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(GameplayEffect->Spec, Magnitude);
-			UE_VLOG(OwnerActor, LogAbilitySystem, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+			ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
 		}
 	}
 
