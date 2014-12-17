@@ -115,12 +115,14 @@ struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()
 
-
 	/** 
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
 	 *	Is INDEX_NONE if a single body component
 	 */
 	int32 InstanceBodyIndex;
+
+	/** When we are a body within a SkeletalMeshComponent, we cache the index of the bone we represent, to speed up sync'ing physics to anim. */
+	int32 InstanceBoneIndex;
 
 	/** Current scale of physics - used to know when and how physics must be rescaled to match current transform of OwnerComponent. */
 	UPROPERTY()

@@ -328,13 +328,12 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 
 				if (bForceUpdate || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics()))
 				{
-					// Find the graphics bone index that corresponds to this physics body.
-					FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;
-					int32 const BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BodyName);
+					const int32 BoneIndex = BodyInst->InstanceBoneIndex;
 
 					// If we could not find it - warn.
 					if (BoneIndex == INDEX_NONE || BoneIndex >= GetNumSpaceBases())
 					{
+						const FName BodyName = PhysicsAsset->BodySetup[i]->BoneName;
 						UE_LOG(LogPhysics, Log, TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName());
 					}
 					else

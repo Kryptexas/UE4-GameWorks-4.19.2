@@ -199,6 +199,7 @@ void FCollisionResponse::UpdateResponseContainerFromArray()
 
 FBodyInstance::FBodyInstance()
 : InstanceBodyIndex(INDEX_NONE)
+, InstanceBoneIndex(INDEX_NONE)
 , Scale3D(1.0f)
 , SceneIndexSync(0)
 , SceneIndexAsync(0)

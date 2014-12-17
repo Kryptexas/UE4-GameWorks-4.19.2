@@ -775,6 +775,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			// this is not true for all other BodyInstance, but for physics assets it is true. 
 			BodyInst->bSimulatePhysics = false;
 			BodyInst->InstanceBodyIndex = i; // Set body index 
+			BodyInst->InstanceBoneIndex = BoneIndex; // Set bone index
 
 			if (i == RootBodyIndex)
 			{
