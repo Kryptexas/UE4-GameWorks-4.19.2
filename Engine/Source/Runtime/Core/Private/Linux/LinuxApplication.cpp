@@ -70,6 +70,7 @@ FLinuxApplication::FLinuxApplication() : GenericApplication( MakeShareable( new 
 	, bIsMouseCursorLocked(false)
 	, bIsMouseCaptureEnabled(false)
 	, bHasLoadedInputPlugins(false)
+	, bInsideOwnWindow(false)
 {
 	bUsingHighPrecisionMouseInput = false;
 	bAllowedToDeferMessageProcessing = true;
@@ -156,6 +157,10 @@ void FLinuxApplication::PumpMessages( const float TimeDelta )
 	FPlatformMisc::PumpMessages( true );
 }
 
+bool FLinuxApplication::IsCursorDirectlyOverSlateWindow() const
+{
+	return bInsideOwnWindow;
+}
 
 void FLinuxApplication::AddPendingEvent( SDL_Event SDLEvent )
 {
@@ -708,15 +713,24 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						if (CurrentEventWindow.IsValid())
 						{
 							MessageHandler->OnCursorSet();
+
+							bInsideOwnWindow = true;
+							UE_LOG(LogLinuxWindow, Verbose, TEXT("Entered one of application windows"));
 						}
 					}
 					break;
 
 				case SDL_WINDOWEVENT_LEAVE:
 					{
-						if (CurrentEventWindow.IsValid() && GetCapture() != NULL)
+						if (CurrentEventWindow.IsValid())
 						{
-							UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
+							if (GetCapture() != nullptr)
+							{
+								UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
+							}
+
+							bInsideOwnWindow = false;
+							UE_LOG(LogLinuxWindow, Verbose, TEXT("Left an application window we were hovering above."));
 						}
 					}
 					break;

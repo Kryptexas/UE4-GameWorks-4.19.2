@@ -54,13 +54,17 @@ public:
 	void AddPendingEvent( SDL_Event event );
 
 	void OnMouseCursorLock( bool bLockEnabled );
-	
+
 	void RemoveEventWindow(SDL_HWindow Window);
 
 	EWindowZone::Type WindowHitTest( const TSharedPtr< FLinuxWindow > &window, int x, int y );
+
 	TSharedPtr< FLinuxWindow > FindWindowBySDLWindow( SDL_Window *win );
 
+	virtual bool IsCursorDirectlyOverSlateWindow() const override;
+
 private:
+
 	FLinuxApplication();
 
 	TCHAR ConvertChar( SDL_Keysym Keysym );
@@ -132,6 +136,8 @@ private:
 	/** Whether input plugins have been loaded */
 	bool bHasLoadedInputPlugins;
 
+	/** Whether we entered one of our own windows */
+	bool bInsideOwnWindow;
 };
 
 
