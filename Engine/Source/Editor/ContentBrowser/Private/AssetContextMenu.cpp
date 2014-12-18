@@ -1649,29 +1649,26 @@ bool FAssetContextMenu::CanExecuteSCCMerge() const
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
-	bool bCanExecuteMerge = GetDefault<UEditorExperimentalSettings>()->bEnableBlueprintMergeTool;
-	if( bCanExecuteMerge )
+	bool bCanExecuteMerge = bCanExecuteSCCMerge;
+	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num() && bCanExecuteMerge; AssetIdx++)
 	{
-		bCanExecuteMerge = bCanExecuteSCCMerge;
-		for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num() && bCanExecuteMerge; AssetIdx++)
+		// Get the actual asset (will load it)
+		const FAssetData& AssetData = SelectedAssets[AssetIdx];
+		UObject* CurrentObject = AssetData.GetAsset();
+		if (CurrentObject)
 		{
-			// Get the actual asset (will load it)
-			const FAssetData& AssetData = SelectedAssets[AssetIdx];
-			UObject* CurrentObject = AssetData.GetAsset();
-			if (CurrentObject)
+			auto AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(CurrentObject->GetClass()).Pin();
+			if (AssetTypeActions.IsValid())
 			{
-				auto AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(CurrentObject->GetClass()).Pin();
-				if (AssetTypeActions.IsValid())
-				{
-					bCanExecuteMerge = AssetTypeActions->CanMerge();
-				}
-			}
-			else
-			{
-				bCanExecuteMerge = false;
+				bCanExecuteMerge = AssetTypeActions->CanMerge();
 			}
 		}
+		else
+		{
+			bCanExecuteMerge = false;
+		}
 	}
+
 	return bCanExecuteMerge;
 }
 
