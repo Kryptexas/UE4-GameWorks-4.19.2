@@ -101,6 +101,9 @@ private:
 	bool bIsPickingAssets;
 	FOnMergeResolved OnMergeResolved;
 
+	/** Container widget for the treeview of differences: */
+	TSharedPtr<SBorder> TreeViewContainer;
+
 	/** Treeview to display all differences collected across all panels: */
 	TSharedPtr< STreeView< TSharedPtr< class FBlueprintDifferenceTreeEntry > > > DifferencesTreeView;
 
