@@ -312,8 +312,8 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 						}
 						else
 						{
-							// No viewer for this connection(?), just let it go through.
-							UE_LOG(LogNet, Log, TEXT("Multicast function %s called on actor %s when a connection has no Viewer"), *Function->GetName(), *Actor->GetName() );
+							// No viewer for this connection, we're too early so don't send it
+							IsRelevant = false;
 						}
 					}
 					
