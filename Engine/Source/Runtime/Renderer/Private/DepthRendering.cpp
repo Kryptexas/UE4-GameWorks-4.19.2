@@ -388,7 +388,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 	//Do a per-FMeshBatch check on top of the proxy check in RenderPrePass to handle the case where a proxy that is relevant 
 	//to the depth only pass has to submit multiple FMeshElements but only some of them should be used as occluders.
-	if (Mesh.bUseAsOccluder)
+	if (Mesh.bUseAsOccluder || DrawingContext.DepthDrawingMode == DDM_AllOpaque)
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
 		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
@@ -431,6 +431,8 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			switch(DrawingContext.DepthDrawingMode)
 			{
+			case DDM_AllOpaque:
+				break;
 			case DDM_AllOccluders: 
 				break;
 			case DDM_NonMaskedOnly: 

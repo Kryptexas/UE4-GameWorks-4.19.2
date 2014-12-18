@@ -14,6 +14,8 @@ enum EDepthDrawingMode
 	DDM_NonMaskedOnly,
 	//
 	DDM_AllOccluders,
+	//
+	DDM_AllOpaque,
 };
 
 template<bool>
