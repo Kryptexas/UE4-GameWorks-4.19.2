@@ -571,7 +571,11 @@ namespace FbxMeshUtils
 
 		FString ExtensionStr;
 
+		ExtensionStr += TEXT("All model files|*.fbx;*.obj|");
+
 		ExtensionStr += TEXT("FBX files|*.fbx|");
+
+		ExtensionStr += TEXT("Object files|*.obj|");
 
 		ExtensionStr += TEXT("All files|*.*");
 
