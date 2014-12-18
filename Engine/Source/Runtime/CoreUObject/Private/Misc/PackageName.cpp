@@ -399,7 +399,7 @@ bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLong
 	for (const TCHAR* InvalidCharacters = INVALID_LONGPACKAGE_CHARACTERS; *InvalidCharacters; ++InvalidCharacters)
 	{
 		CharString[0] = *InvalidCharacters;
-		if (InLongPackageName.Contains(CharString))
+		if (InLongPackageName.Contains(CharString, ESearchCase::CaseSensitive))
 		{
 			MatchedInvalidChars += *InvalidCharacters;
 		}
