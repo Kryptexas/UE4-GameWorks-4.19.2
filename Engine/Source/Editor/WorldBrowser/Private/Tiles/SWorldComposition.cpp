@@ -375,6 +375,33 @@ public:
 					FSlateDrawElement::RelativeToElement
 					);
 			}
+
+			FVector PlayerPosition;
+			FRotator PlayerRotation;
+			if (WorldModel->GetPlayerView(PlayerPosition, PlayerRotation))
+			{
+				FVector2D PlayerPositionScreen = GraphCoordToPanelCoord(FVector2D(PlayerPosition.X, PlayerPosition.Y));
+				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
+	
+				FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry(
+					PlayerPositionScreen - CameraImage->ImageSize*0.5f, 
+					CameraImage->ImageSize
+					);
+
+				FSlateDrawElement::MakeRotatedBox(
+					OutDrawElements,
+					++LayerId,
+					PaintGeometry,
+					CameraImage,
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					FMath::DegreesToRadians(PlayerRotation.Yaw),
+					CameraImage->ImageSize*0.5f,
+					FSlateDrawElement::RelativeToElement,
+					FLinearColor(FColorList::Orange)
+					);
+			}
+
 		}
 
 		LayerId = PaintScaleRuler(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);

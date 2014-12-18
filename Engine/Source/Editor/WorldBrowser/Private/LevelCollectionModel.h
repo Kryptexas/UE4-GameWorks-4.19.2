@@ -129,8 +129,11 @@ public:
 	
 	/**	Customize 'File' section in main menu  */
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const;
+		
+	/**	@return	Player view in the PIE/Simulation world */
+	virtual bool GetPlayerView(FVector& Location, FRotator& Rotation) const;
 
-	/**	@return	Observer view in the world, usually camera view */
+	/**	@return	Observer view in the Editor/Similuation world */
 	virtual bool GetObserverView(FVector& Location, FRotator& Rotation) const;
 
 	/**	Compares 2 levels by Z order */

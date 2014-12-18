@@ -686,6 +686,11 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 	}
 }
 
+bool FLevelCollectionModel::GetPlayerView(FVector& Location, FRotator& Rotation) const
+{
+	return false;
+}
+
 bool FLevelCollectionModel::GetObserverView(FVector& Location, FRotator& Rotation) const
 {
 	return false;

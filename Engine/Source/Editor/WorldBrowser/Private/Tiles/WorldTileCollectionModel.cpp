@@ -571,30 +571,36 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 	InMenuBuilder.EndSection();
 }
 
+bool FWorldTileCollectionModel::GetPlayerView(FVector& Location, FRotator& Rotation) const
+{
+	if (IsSimulating())
+	{
+		UWorld* SimulationWorld = GetSimulationWorld();
+		for (FConstPlayerControllerIterator Iterator = SimulationWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController* PlayerActor = *Iterator;
+			PlayerActor->GetPlayerViewPoint(Location, Rotation);
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 bool FWorldTileCollectionModel::GetObserverView(FVector& Location, FRotator& Rotation) const
 {
 	const UEditorEngine* EditorEngine = Editor.Get();
 
-	if (IsSimulating())
+	// We are in the SIE
+	if (EditorEngine->bIsSimulatingInEditor && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
 	{
-		if (EditorEngine->bIsSimulatingInEditor && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
-		{
-			Rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
-			Location = GCurrentLevelEditingViewportClient->GetViewLocation();
-			return true;
-		}
-		else
-		{
-			UWorld* SimulationWorld = GetSimulationWorld();
-			for (FConstPlayerControllerIterator Iterator = SimulationWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
-			{
-				APlayerController* PlayerActor = *Iterator;
-				PlayerActor->GetPlayerViewPoint(Location, Rotation);
-				return true;
-			}
-		}
+		Rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
+		Location = GCurrentLevelEditingViewportClient->GetViewLocation();
+		return true;
 	}
-	else
+
+	// We are in the editor world
+	if (EditorEngine->PlayWorld == nullptr)
 	{
 		for (const FLevelEditorViewportClient* ViewportClient : EditorEngine->LevelViewportClients)
 		{
@@ -606,7 +612,7 @@ bool FWorldTileCollectionModel::GetObserverView(FVector& Location, FRotator& Rot
 			}
 		}
 	}
-	
+
 	return false;
 }
 

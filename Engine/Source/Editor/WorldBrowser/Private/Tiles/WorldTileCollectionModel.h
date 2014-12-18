@@ -34,6 +34,7 @@ public:
 	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
+	virtual bool GetPlayerView(FVector& Location, FRotator& Rotation) const override;
 	virtual bool GetObserverView(FVector& Location, FRotator& Rotation) const override;
 	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const override;
 	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  override;
