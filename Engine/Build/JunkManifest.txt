@@ -27,10 +27,17 @@ Engine\Binaries\Win64\*-CoreSlateStyle*.*
 Engine\Binaries\Win64\*-SlateStyle*.*
 Engine\Binaries\Win64\*-CameraEditor*.*
 Engine\Binaries\Win64\*-CameraDebugger*.*
+Engine\Binaries\Win64\*-SessionLauncher*.*
+Engine\Binaries\Win64\Android\*-Android_ES31TargetPlatform.*
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\Frameworks\*-CoreSlateStyle.*
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\Frameworks\*-SlateStyle.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\Frameworks\*-CoreSlateStyle.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\Frameworks\*-SlateStyle.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-AndroidPlatformEditor.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-AndroidRuntimeSettings.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-CameraDebugger.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-CameraEditor.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-SessionLauncher.*
 Engine\Binaries\Mac\*-MessagingDebugger.*
 Engine\Binaries\Win64\*-MessagingDebugger.*
 Engine\Binaries\Win64\*-TextureXboxOneFormat.*
