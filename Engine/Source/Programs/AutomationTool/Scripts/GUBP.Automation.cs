@@ -5901,7 +5901,10 @@ public class GUBP : BuildCommand
 				{
 					NodeSpec = "Rocket_Aggregate+";
 				}
-				NodeSpec = NodeSpec + "Sample_Aggregate";
+				if (!ParseParam("nosamples"))
+				{
+					NodeSpec = NodeSpec + "Sample_Aggregate";
+				}
                 if (!ParseParam("RocketValidate"))
                 {
                     //build a full promotable NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + NodeSpec;
