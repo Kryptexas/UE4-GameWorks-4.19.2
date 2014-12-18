@@ -312,6 +312,28 @@ FArchive& operator<<(FArchive& Ar, FVisualLogStatusCategory& Status)
 	Ar << Status.Category;
 	Ar << Status.Data;
 
+	const int32 VLogsVer = Ar.CustomVer(EVisualLoggerVersion::GUID);
+	if (VLogsVer >= EVisualLoggerVersion::StatusCategoryWithChildren)
+	{
+		int32 NumChildren = Status.Children.Num();
+		Ar << NumChildren;
+		if (Ar.IsLoading())
+		{
+			for (int32 Index = 0; Index < NumChildren; ++Index)
+			{
+				FVisualLogStatusCategory CurrentChild;
+				Ar << CurrentChild;
+				Status.Children.Add(CurrentChild);
+			}
+		}
+		else
+		{
+			for (auto& CurrentChild : Status.Children)
+			{
+				Ar << CurrentChild;
+			}
+		}
+	}
 	return Ar;
 }
 

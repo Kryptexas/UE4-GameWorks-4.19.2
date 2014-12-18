@@ -28,6 +28,7 @@ namespace EVisualLoggerVersion
 		Initial = 0,
 		HistogramGraphsSerialization = 1,
 		AddedOwnerClassName = 2,
+		StatusCategoryWithChildren = 3,
 		// -----<new versions can be added before this line>-------------------------------------------------
 		// - this needs to be the last line (see note below)
 		VersionPlusOne,
@@ -101,9 +102,11 @@ struct ENGINE_API FVisualLogStatusCategory
 	TArray<FString> Data;
 	FString Category;
 	int32 UniqueId;
+	TArray<FVisualLogStatusCategory> Children;
 
 	void Add(const FString& Key, const FString& Value);
 	bool GetDesc(int32 Index, FString& Key, FString& Value) const;
+	void AddChild(const FVisualLogStatusCategory& Child);
 };
 
 struct ENGINE_API FVisualLogShapeElement
@@ -309,6 +312,12 @@ FORCEINLINE
 void FVisualLogStatusCategory::Add(const FString& Key, const FString& Value)
 {
 	Data.Add(FString(Key).AppendChar(TEXT('|')) + Value);
+}
+
+FORCEINLINE
+void FVisualLogStatusCategory::AddChild(const FVisualLogStatusCategory& Child)
+{
+	Children.Add(Child);
 }
 
 FORCEINLINE
