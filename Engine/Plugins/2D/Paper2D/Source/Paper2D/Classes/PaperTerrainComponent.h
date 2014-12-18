@@ -53,7 +53,7 @@ public:
 	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly)
 	bool bClosedSpline;
 
-	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly, meta = (EditCondition = "bClosedSpline"))
 	bool bFilledSpline;
 
 	UPROPERTY()
