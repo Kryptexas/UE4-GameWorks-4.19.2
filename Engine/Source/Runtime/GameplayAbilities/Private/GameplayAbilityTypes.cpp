@@ -132,3 +132,24 @@ UGameplayAbility* FGameplayAbilitySpec::GetPrimaryInstance() const
 	}
 	return nullptr;
 }
+
+void FGameplayAbilitySpec::PreReplicatedRemove(const struct FGameplayAbilitySpecContainer& InArraySerializer)
+{
+	if (InArraySerializer.Owner)
+	{
+		InArraySerializer.Owner->OnRemoveAbility(*this);
+	}
+}
+
+void FGameplayAbilitySpec::PostReplicatedAdd(const struct FGameplayAbilitySpecContainer& InArraySerializer)
+{
+	if (InArraySerializer.Owner)
+	{
+		InArraySerializer.Owner->OnGiveAbility(*this);
+	}
+}
+
+void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* Owner)
+{
+	this->Owner = Owner;
+}

@@ -131,6 +131,7 @@ void UAbilitySystemComponent::OnRegister()
 	}
 
 	ActiveGameplayEffects.RegisterWithOwner(this);
+	ActivatableAbilities.RegisterWithOwner(this);
 }
 
 // ---------------------------------------------------------
@@ -1228,7 +1229,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 
 	if (bShowAbilities)
 	{
-		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities)
+		for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 		{
 			if (AbilitySpec.Ability == nullptr)
 				continue;

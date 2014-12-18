@@ -478,10 +478,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void ClearAbility(const FGameplayAbilitySpecHandle& Handle);
 
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
-	virtual void OnGiveAbility(const FGameplayAbilitySpec AbilitySpec);
+	virtual void OnGiveAbility(FGameplayAbilitySpec& AbilitySpec);
 
 	/** Will be called from RemoveAbility or from OnRep. Unbinds inputs with the given ability */
-	virtual void OnRemoveAbility(const FGameplayAbilitySpec AbilitySpec);
+	virtual void OnRemoveAbility(FGameplayAbilitySpec& AbilitySpec);
 
 	/** Called from ClearAbility, ClearAllAbilities or OnRep. Clears any triggers that should no longer exist. */
 	void CheckForClearedAbilities();
@@ -528,17 +528,23 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *	without an AbilitySystemComponent. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */
-
+protected:
 	UPROPERTY(ReplicatedUsing=OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
-	TArray<FGameplayAbilitySpec>	ActivatableAbilities;
+	FGameplayAbilitySpecContainer	ActivatableAbilities;
 
-	/** Copy of the last time abilities were replicated. If any are missing at replication call the remove callback. This may be better with fast array replication */
-	UPROPERTY()
-	TArray<FGameplayAbilitySpec>	ClientLastActivatableAbilities;
+public:
 
+	/** Returns the list of all activatable abilities */
+	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities();
+
+	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
 
+	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromInputID(int32 InputID);
+
+	/** Call to mark that an ability spec has been modified */
+	void MarkAbilitySpecDirty(FGameplayAbilitySpec& Spec);
 	
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();

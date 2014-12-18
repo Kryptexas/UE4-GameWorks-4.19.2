@@ -260,8 +260,9 @@ private:
 
 // ----------------------------------------------------
 
+/** An activatable ability spec, hosted on the ability system component */
 USTRUCT()
-struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
+struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerItem
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -331,6 +332,39 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 
 	/** Returns true if this ability is active in any way */
 	bool IsActive() const;
+
+	void PreReplicatedRemove(const struct FGameplayAbilitySpecContainer& InArraySerializer);
+	void PostReplicatedAdd(const struct FGameplayAbilitySpecContainer& InArraySerializer);
+};
+
+/** Fast serializer wrapper for above struct */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilitySpecContainer : public FFastArraySerializer
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** List of activatable abilities */
+	UPROPERTY()
+	TArray<FGameplayAbilitySpec> Items;
+
+	/** Component that owns this list */
+	UAbilitySystemComponent* Owner;
+
+	void RegisterWithOwner(UAbilitySystemComponent* Owner);
+
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FGameplayAbilitySpec, FGameplayAbilitySpecContainer>(Items, DeltaParms, *this);
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits< FGameplayAbilitySpecContainer > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetDeltaSerializer = true,
+	};
 };
 
 // ----------------------------------------------------
