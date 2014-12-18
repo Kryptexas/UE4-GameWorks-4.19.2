@@ -100,7 +100,8 @@ public:
 		const FBox& MeshBox,
 		TArray<FClusterNode>& OutClusterTree,
 		TArray<int32>& OutSortedInstances,
-		TArray<int32>& OutInstanceReorderTable
+		TArray<int32>& OutInstanceReorderTable,
+		int32 MaxInstancesPerLeaf
 		);
 	void AcceptPrebuiltTree(
 		TArray<FClusterNode>& InClusterTree,

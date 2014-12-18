@@ -5222,6 +5222,80 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 	PlatformData.InitializeFromUncompressedData(NewPlatformData);
 }
 
+void ULandscapeComponent::GenerateGrassMap()
+{
+	RemoveGrassMap();
+	int32 Stride = (SubsectionSizeQuads + 1) * NumSubsections;
+	if (Stride)
+	{
+		int32 NumChannels = 2; // these are for the height
+		for (FWeightmapLayerAllocationInfo& Layer : WeightmapLayerAllocations)
+		{
+			ULandscapeLayerInfoObject* LayerInfo = Layer.LayerInfo;
+
+			if (LayerInfo && LayerInfo->GrassMesh && LayerInfo->GrassDensity > 0.0f && LayerInfo->EndCullDistance > 0)
+			{
+				Layer.GrassMapChannelIndex = (uint8)NumChannels++;
+			}
+			else
+			{
+				check(!Layer.GrassMapChannelIndex);
+			}
+		}
+		if (NumChannels > 2)
+		{
+			GrassMap = MakeShareable(new FGrassMap(NumChannels));
+			TArray<FColor> LocalHeightCache;
+			FLandscapeComponentDataInterface CDI(this);
+			CDI.GetHeightmapTextureData(LocalHeightCache);
+			if (LocalHeightCache.Num())
+			{
+				check(LocalHeightCache.Num() == Stride * Stride);
+				TArray<uint8>& Data = GrassMap->Data;
+				Data.AddZeroed(Stride * Stride * NumChannels);
+				for (int32 Index = 0; Index < LocalHeightCache.Num(); Index++)
+				{
+					const FColor& SampleVal = LocalHeightCache[Index];
+					uint8* Dest = &Data[Index * NumChannels];
+					*Dest++ = SampleVal.R;
+					*Dest = SampleVal.G;
+				}
+				TArray<uint8> LocalCache;
+				for (FWeightmapLayerAllocationInfo& Layer : WeightmapLayerAllocations)
+				{
+					if (Layer.GrassMapChannelIndex)
+					{
+						ULandscapeLayerInfoObject* LayerInfo = Layer.LayerInfo;
+						check(LayerInfo && LayerInfo->GrassMesh && LayerInfo->GrassDensity > 0.0f && LayerInfo->EndCullDistance > 0);
+						LocalCache.Reset();
+						if (CDI.GetWeightmapTextureData(LayerInfo, LocalCache) && LocalCache.Num() && LocalCache.Num() == LocalHeightCache.Num())
+						{
+							for (int32 Index = 0; Index < LocalCache.Num(); Index++)
+							{
+								Data[Index * NumChannels + Layer.GrassMapChannelIndex] = LocalCache[Index];
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				RemoveGrassMap();
+			}
+		}
+	}
+}
+
+void ULandscapeComponent::RemoveGrassMap()
+{
+	GrassMap.Reset();
+	for (FWeightmapLayerAllocationInfo& Layer : WeightmapLayerAllocations)
+	{
+		Layer.GrassMapChannelIndex = 0;
+	}
+}
+
+
 UTexture2D* ALandscapeProxy::CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter) const
 {
 	UObject* TexOuter = OptionalOverrideOuter ? OptionalOverrideOuter : GetOutermost();

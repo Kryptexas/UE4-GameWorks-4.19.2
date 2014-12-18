@@ -81,10 +81,14 @@ struct FWeightmapLayerAllocationInfo
 	UPROPERTY()
 	uint8 WeightmapTextureChannel;
 
+	/** Only relevant in non-editor builds, this indicates which channel in the data array is this layer...must be > 1 to be valid, the first two are height **/
+	UPROPERTY()
+	uint8 GrassMapChannelIndex;
 
 	FWeightmapLayerAllocationInfo()
 		: WeightmapTextureIndex(0)
 		, WeightmapTextureChannel(0)
+		, GrassMapChannelIndex(0)
 	{
 	}
 
@@ -93,11 +97,24 @@ struct FWeightmapLayerAllocationInfo
 		:	LayerInfo(InLayerInfo)
 		,	WeightmapTextureIndex(255)	// Indicates an invalid allocation
 		,	WeightmapTextureChannel(255)
+		,	GrassMapChannelIndex(0) // Indicates an invalid allocation
 	{
 	}
 	
 	FName GetLayerName() const;
 };
+
+struct FGrassMap
+{
+	/** Total number of channels; at least 3 since we have at least the height (two bytes) and at least one layer channel **/
+	int32 ElementStride;
+	TArray<uint8> Data;
+	FGrassMap(int32 InElementStride)
+		: ElementStride(InElementStride)
+	{
+	}
+};
+
 
 UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), showcategories=("Rendering|Material"), MinimalAPI)
 class ULandscapeComponent : public UPrimitiveComponent
@@ -239,6 +256,9 @@ public:
 	/** Platform Data where don't support texture sampling in vertex buffer */
 	FLandscapeComponentDerivedData PlatformData;
 
+	/** Grass data for cooked platforms, also used temporarily when cooking */
+	TSharedPtr<FGrassMap, ESPMode::ThreadSafe> GrassMap;
+
 	virtual ~ULandscapeComponent();
 
 	// Begin UObject interface.	
@@ -299,6 +319,11 @@ public:
 	
 	void GeneratePlatformVertexData();
 	UMaterialInstance* GeneratePlatformPixelData(TArray<class UTexture2D*>& WeightmapTextures, bool bIsCooking);
+
+	/** Creates and destroys grass data for cooked platforms, used temporarily when cooking */
+	void GenerateGrassMap();
+	void RemoveGrassMap();
+
 #endif
 
 	/** @todo document */

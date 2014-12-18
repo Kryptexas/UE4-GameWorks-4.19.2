@@ -84,6 +84,8 @@ class FClusterBuilder
 	int32 Num;
 	FBox InstBox;
 	int32 BranchingFactor;
+	int32 InternalNodeBranchingFactor;
+	int32 MaxInstancesPerLeaf;
 	int32 NumRoots;
 	TArray<int32> SortIndex;
 	TArray<FVector> SortPoints;
@@ -201,12 +203,20 @@ class FClusterBuilder
 public:
 	FClusterTree* Result;
 
-	FClusterBuilder(TArray<FMatrix>& InTransforms, const FBox& InInstBox)
+	FClusterBuilder(TArray<FMatrix>& InTransforms, const FBox& InInstBox, int32 InMaxInstancesPerLeaf = 0)
 		: Num(InTransforms.Num())
 		, InstBox(InInstBox)
 		, Result(nullptr)
 	{
-		BranchingFactor = CVarFoliageSplitFactor.GetValueOnAnyThread();
+		InternalNodeBranchingFactor = CVarFoliageSplitFactor.GetValueOnAnyThread();
+		if (InMaxInstancesPerLeaf <= 0)
+		{
+			MaxInstancesPerLeaf = InternalNodeBranchingFactor;
+		}
+		else
+		{
+			MaxInstancesPerLeaf = InMaxInstancesPerLeaf;
+		}
 
 		Exchange(Transforms, InTransforms);
 		SortIndex.AddUninitialized(Num);
@@ -226,7 +236,9 @@ public:
 
 	void Build()
 	{
+		BranchingFactor = MaxInstancesPerLeaf;
 		Split(Num);
+		BranchingFactor = InternalNodeBranchingFactor;
 
 		Result = new FClusterTree;
 		TArray<int32>& SortedInstances = Result->SortedInstances;
@@ -1508,7 +1520,8 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
 	const FBox& MeshBox,
 	TArray<FClusterNode>& OutClusterTree,
 	TArray<int32>& OutSortedInstances,
-	TArray<int32>& OutInstanceReorderTable
+	TArray<int32>& OutInstanceReorderTable,
+	int32 MaxInstancesPerLeaf
 	)
 {
 	TArray<FMatrix> InstanceTransforms;
@@ -1518,7 +1531,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
 		InstanceTransforms[Index] = PerInstanceSMData[Index].Transform;
 	}
 
-	TUniquePtr<FClusterBuilder> Builder(new FClusterBuilder(InstanceTransforms, MeshBox));
+	TUniquePtr<FClusterBuilder> Builder(new FClusterBuilder(InstanceTransforms, MeshBox, MaxInstancesPerLeaf));
 	Builder->Build();
 
 	Exchange(OutClusterTree, Builder->Result->Nodes);

@@ -156,6 +156,10 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 				HeightmapTexture = NULL;
 			}
 		}
+		if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_GRASS_COOKING)
+		{
+			GenerateGrassMap();
+		}
 	}
 #endif
 
@@ -216,6 +220,34 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 			if (bValid)
 			{
 				Ar << PlatformData;
+			}
+		}
+		if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_GRASS_COOKING)
+		{
+			// GrassMap
+			if (Ar.IsCooking() && Ar.IsSaving())
+			{
+				int32 NumChannels = GrassMap.IsValid() ? GrassMap->ElementStride : 0;
+				Ar << NumChannels;
+				if (NumChannels)
+				{
+					GrassMap->Data.BulkSerialize(Ar);
+				}
+#if WITH_EDITOR
+				RemoveGrassMap();
+#else
+				check(0); // why are we cooking without an editor
+#endif
+			}
+			else
+			{
+				int32 NumChannels = 0;
+				Ar << NumChannels;
+				if (NumChannels)
+				{
+					GrassMap = MakeShareable(new FGrassMap(NumChannels));
+					GrassMap->Data.BulkSerialize(Ar);
+				}
 			}
 		}
 	}
@@ -2070,8 +2102,116 @@ static TAutoConsoleVariable<float> CVarGuardBandMultiplier(
 	1.5f,
 	TEXT("Used to control discarding in the grass system. Approximate range, 1-2. Multiplied by the cull distance to control when we discard grass components."));
 
+static TAutoConsoleVariable<float> CVarMinInstancesPerLeaf(
+	TEXT("grass.MinInstancesPerLeaf"),
+	256,
+	TEXT("Used to control the depth of hierarchical culling tree for grass. Clamped to 16-32000; a reasonable range."));
+
+#if WITH_EDITOR
+class FEditorGrassLayerData
+{
+	int32 Stride;
+	TArray<FColor> LocalHeightCache;
+	TArray<uint8> LocalCache;
+public:
+	FEditorGrassLayerData(ALandscapeProxy* Landscape, ULandscapeComponent* Component, ULandscapeLayerInfoObject* LayerInfo, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent)
+	{
+		int32 SubsectionSizeQuads = Component->SubsectionSizeQuads;
+		int32 NumSubsections = Component->NumSubsections;
+		Stride = (SubsectionSizeQuads + 1) * NumSubsections;
+		if (Stride)
+		{
+			FLandscapeComponentDataInterface CDI(Component);
+			CDI.GetHeightmapTextureData(LocalHeightCache);
+			if (!CDI.GetWeightmapTextureData(LayerInfo, LocalCache) || !LocalCache.Num() || LocalCache.Num() != LocalHeightCache.Num())
+			{
+				// no data for this layer for this component.
+				LocalHeightCache.Empty();
+				LocalCache.Empty();
+			}
+		}
+	}
+	bool HasData() const
+	{
+		return Stride && LocalCache.Num() && LocalHeightCache.Num() && LocalCache.Num() == LocalHeightCache.Num();
+	}
+	FORCEINLINE float GetHeight(int32 IdxX, int32 IdxY)
+	{
+		const FColor& SampleVal = LocalHeightCache[IdxX + Stride*IdxY];
+		return LandscapeDataAccess::GetLocalHeight((uint16(SampleVal.R) << 8) + uint16(SampleVal.G));
+	}
+	FORCEINLINE float GetLayer(int32 IdxX, int32 IdxY)
+	{
+		return (float)(LocalCache[IdxX + Stride*IdxY]) / 255.f;
+	}
+};
+
+typedef FEditorGrassLayerData FGrassLayerData;
+#else
+class FGameGrassLayerData
+{
+	int32 Stride;
+	int32 LayerOffset;
+	int32 ElementStride;
+	TSharedPtr<FGrassMap, ESPMode::ThreadSafe> GrassMap;
+	const uint8* GrassMapPtr;
+public:
+	FGameGrassLayerData(ALandscapeProxy* Landscape, ULandscapeComponent* Component, ULandscapeLayerInfoObject* LayerInfo, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent)
+	{
+		int32 SubsectionSizeQuads = Component->SubsectionSizeQuads;
+		int32 NumSubsections = Component->NumSubsections;
+		Stride = (SubsectionSizeQuads + 1) * NumSubsections;
+		GrassMapPtr = nullptr;
+		LayerOffset = 0;
+		ElementStride = 0;
+		if (Stride)
+		{
+			GrassMap = Component->GrassMap;
+			if (GrassMap.IsValid())
+			{
+				check(GrassMap->Data.Num() == GrassMap->ElementStride * Stride * Stride);
+				int32 LayerIdx = INDEX_NONE;
+				for (int32 Idx = 0; Idx < Component->WeightmapLayerAllocations.Num(); Idx++)
+				{
+					if (Component->WeightmapLayerAllocations[Idx].LayerInfo == LayerInfo)
+					{
+						LayerIdx = Idx;
+						LayerOffset = int32(Component->WeightmapLayerAllocations[Idx].GrassMapChannelIndex);
+						check(LayerOffset > 1);
+						break;
+					}
+				}
+				if (LayerIdx >= 0 && LayerOffset > 1)
+				{
+					GrassMapPtr = &GrassMap->Data[0];
+					ElementStride = GrassMap->ElementStride;
+				}
+			}
+		}
+	}
+	bool HasData() const
+	{
+		return !!GrassMapPtr;
+	}
+	FORCEINLINE float GetHeight(int32 IdxX, int32 IdxY)
+	{
+		const uint8* Sample = &GrassMapPtr[(IdxX + Stride*IdxY) * ElementStride];
+		return LandscapeDataAccess::GetLocalHeight((uint16(Sample[0]) << 8) + uint16(Sample[1]));
+	}
+	FORCEINLINE float GetLayer(int32 IdxX, int32 IdxY)
+	{
+		return (float)(GrassMapPtr[(IdxX + Stride*IdxY) * ElementStride + LayerOffset]) / 255.f;
+	}
+};
+
+typedef FGameGrassLayerData FGrassLayerData;
+
+#endif
+
 struct FAsyncGrassBuilder
 {
+	FGrassLayerData LayerData;
+
 	bool bHaveValidData;
 	bool RandomRotation;
 	bool AlignToSurface;
@@ -2095,10 +2235,6 @@ struct FAsyncGrassBuilder
 	int32 NumSubsections;
 	int32 Stride;
 
-
-	TArray<FColor> LocalHeightCache;
-	TArray<uint8> LocalCache;
-
 	FRandomStream RandomStream;
 
 	FBox MeshBox;
@@ -2115,8 +2251,9 @@ struct FAsyncGrassBuilder
 	TArray<int32> InstanceReorderTable;
 
 	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, ULandscapeLayerInfoObject* LayerInfo, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent)
+		: LayerData(Landscape, Component, LayerInfo, HierarchicalInstancedStaticMeshComponent)
 	{
-		bHaveValidData = true;
+		bHaveValidData = LayerData.HasData();
 		GrassDensity = LayerInfo->GrassDensity;
 		PlacementJitter = LayerInfo->PlacementJitter;
 		EndCullDistance = LayerInfo->EndCullDistance;
@@ -2129,19 +2266,6 @@ struct FAsyncGrassBuilder
 		const FRotator DrawRot = Landscape->GetActorRotation();
 		LandscapeToWorld = Landscape->GetRootComponent()->ComponentToWorld.ToMatrixNoScale();
 
-#if WITH_EDITOR
-		{
-			FLandscapeComponentDataInterface CDI(Component);
-			CDI.GetHeightmapTextureData(LocalHeightCache);
-			if (!CDI.GetWeightmapTextureData(LayerInfo, LocalCache) || !LocalCache.Num() || LocalCache.Num() != LocalHeightCache.Num())
-			{
-				// no data for this layer for this component.
-				bHaveValidData = false;
-			}
-		}
-#else
-		bHaveValidData = false;
-#endif
 		SectionBase = Component->GetSectionBase();
 		ComponentSizeQuads = Component->ComponentSizeQuads;
 		SubsectionSizeQuads = Component->SubsectionSizeQuads;
@@ -2266,12 +2390,12 @@ struct FAsyncGrassBuilder
 			}
 			{
 				BuildTime -= FPlatformTime::Seconds();
-				UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(PerInstanceSMData, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable);
+				UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(PerInstanceSMData, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, FMath::Clamp<int32>(CVarMinInstancesPerLeaf.GetValueOnAnyThread(), 16, 256 * 128));
 				BuildTime += FPlatformTime::Seconds();
 			}
 		}
 	}
-	float GetLayerWeightAtLocationLocal(const FVector& InLocation, FVector* OutLocation)
+	FORCEINLINE_DEBUGGABLE float GetLayerWeightAtLocationLocal(const FVector& InLocation, FVector* OutLocation)
 	{
 		// Find location
 		float TestX = InLocation.X / DrawScale.X - (float)SectionBase.X;
@@ -2295,10 +2419,10 @@ struct FAsyncGrassBuilder
 		float Result;
 		{
 			// sample
-			float Sample11 = (float)((LocalCache)[IdxX1 + Stride*IdxY1]) / 255.f;
-			float Sample21 = (float)((LocalCache)[IdxX2 + Stride*IdxY1]) / 255.f;
-			float Sample12 = (float)((LocalCache)[IdxX1 + Stride*IdxY2]) / 255.f;
-			float Sample22 = (float)((LocalCache)[IdxX2 + Stride*IdxY2]) / 255.f;
+			float Sample11 = LayerData.GetLayer(IdxX1, IdxY1);
+			float Sample21 = LayerData.GetLayer(IdxX2, IdxY1);
+			float Sample12 = LayerData.GetLayer(IdxX1, IdxY2);
+			float Sample22 = LayerData.GetLayer(IdxX2, IdxY2);
 
 			// Bilinear interpolate
 			Result = FMath::Lerp(
@@ -2308,19 +2432,11 @@ struct FAsyncGrassBuilder
 		}
 
 		{
-			struct FLocal
-			{
-				static float Sample(TArray<FColor>* HeightCache, int32 IdxX, int32 IdxY, int32 Stride)
-				{
-					const FColor& SampleVal = (*HeightCache)[IdxX + Stride*IdxY];
-					return LandscapeDataAccess::GetLocalHeight((uint16(SampleVal.R) << 8) + uint16(SampleVal.G));
-				}
-			};
 			// sample
-			float Sample11 = FLocal::Sample(&LocalHeightCache, IdxX1, IdxY1, Stride);
-			float Sample21 = FLocal::Sample(&LocalHeightCache, IdxX2, IdxY1, Stride);
-			float Sample12 = FLocal::Sample(&LocalHeightCache, IdxX1, IdxY2, Stride);
-			float Sample22 = FLocal::Sample(&LocalHeightCache, IdxX2, IdxY2, Stride);
+			float Sample11 = LayerData.GetHeight(IdxX1, IdxY1);
+			float Sample21 = LayerData.GetHeight(IdxX2, IdxY1);
+			float Sample12 = LayerData.GetHeight(IdxX1, IdxY2);
+			float Sample22 = LayerData.GetHeight(IdxX2, IdxY2);
 
 			OutLocation->X = InLocation.X - DrawScale.X * float(LandscapeSectionOffset.X);
 			OutLocation->Y = InLocation.Y - DrawScale.Y * float(LandscapeSectionOffset.Y);
@@ -2338,10 +2454,6 @@ struct FAsyncGrassBuilder
 
 void ALandscapeProxy::Tick(float DeltaSeconds)
 {
-#if !WITH_EDITOR
-	return;
-#endif
-
 	Super::Tick(DeltaSeconds);
 
 	UWorld* World = GetWorld();
@@ -2557,6 +2669,9 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 	StartTime = FPlatformTime::Seconds();
 	int32 TotalInstances = 0;
 	TotalComponents = 0;
+	int64 TreeSize = 0;
+	int64 InstSize = 0;
+	int64 InstBufSize = 0;
 	for (int32 Index = 0; Index < AsyncFoliageTasks.Num(); Index++)
 	{
 		FAsyncTask<FAsyncGrassTask>* Task = AsyncFoliageTasks[Index];
@@ -2574,15 +2689,19 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 
 				FBoxSphereBounds WorldBounds = HierarchicalInstancedStaticMeshComponent->CalcBounds(HierarchicalInstancedStaticMeshComponent->ComponentToWorld);
 				UE_LOG(LogTemp, Display, TEXT("Comp %d instances at %.0f %.0f %.0f"), HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.Num(), WorldBounds.Origin.X, WorldBounds.Origin.Y, WorldBounds.Origin.Z);
+				TreeSize += HierarchicalInstancedStaticMeshComponent->ClusterTree.GetAllocatedSize();
+				InstSize += HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.GetAllocatedSize();
+				InstBufSize += HierarchicalInstancedStaticMeshComponent->PerInstanceSMData.Num() * 7 * 16; // there is no place where this constant exists.
 			}
 			delete Inner.Builder;
 			delete Task;
+			break; // one per frame is fine
 		}
 	}
 	if (TotalComponents)
 	{
 		double TotalTime = FPlatformTime::Seconds() - StartTime;
-		UE_LOG(LogTemp, Display, TEXT("Finished grass with  %d components and %d instances in %.1fms"), TotalComponents, TotalInstances, float(TotalTime) * 1000.0f);
+		UE_LOG(LogTemp, Display, TEXT("Finished grass with  %d components and %d instances in %.1fms      InstMem = %lldMB   TreeMem = %lldMB   InstBufMem = %lldMB"), TotalComponents, TotalInstances, float(TotalTime) * 1000.0f, 1 + InstSize / 1024 / 1024, 1 + TreeSize / 1024 / 1024, 1 + InstBufSize / 1024 / 1024);
 	}
 }
 
