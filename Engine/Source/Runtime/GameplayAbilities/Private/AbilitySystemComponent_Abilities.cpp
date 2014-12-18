@@ -711,7 +711,6 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
 			InstancedAbility = CreateNewInstanceOfAbility(*Spec, Ability);
-			ActivationInfo.bCanBeEndedByOtherInstance = Ability->bServerRespectsRemoteAbilityCancelation;
 			InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
 		}
 		else if (InstancedAbility)
@@ -892,7 +891,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 		if (InstancedAbility)
 		{
 			//Only applies to instanced abilities
-			InstancedAbility->CurrentActivationInfo.bCanBeEndedByOtherInstance = true;
+			InstancedAbility->CurrentActivationInfo.bCanBeEndedByOtherInstance = InstancedAbility->bServerRespectsRemoteAbilityCancellation;
 		}
 	}
 	else

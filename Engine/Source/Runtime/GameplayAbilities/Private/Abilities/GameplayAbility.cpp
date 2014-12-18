@@ -51,7 +51,7 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	}
 #endif
 
-	bServerRespectsRemoteAbilityCancelation = false;
+	bServerRespectsRemoteAbilityCancellation = true;
 }
 
 int32 UGameplayAbility::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)

@@ -542,7 +542,7 @@ protected:
 
 	/** If this is set, the server-side version of the ability can be canceled by the client-side version. The client-side version can always be canceled by the server. */
 	UPROPERTY(EditDefaultsOnly, Category = Advanced)
-	bool bServerRespectsRemoteAbilityCancelation;
+	bool bServerRespectsRemoteAbilityCancellation;
 
 	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authoring, confirmed, etc. */
 	UPROPERTY(BlueprintReadOnly, Category = Ability)
