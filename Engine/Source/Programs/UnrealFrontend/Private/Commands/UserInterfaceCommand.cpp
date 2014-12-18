@@ -8,6 +8,7 @@
 #include "StandaloneRenderer.h"
 #include "TaskGraphInterfaces.h"
 #include "UserInterfaceCommand.h"
+#include "ISourceCodeAccessModule.h"
 
 
 #define IDEAL_FRAMERATE 60;
@@ -46,6 +47,19 @@ void FUserInterfaceCommand::Run(  )
 	FModuleManager::Get().LoadModule("SettingsEditor");
 
 	InitializeSlateApplication(UnrealFrontendLayoutIni);
+
+	// initialize source code access
+	// Load the source code access module
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>( FName( "SourceCodeAccess" ) );
+
+	// Manually load in the source code access plugins, as standalone programs don't currently support plugins.
+#if PLATFORM_MAC
+	IModuleInterface& XCodeSourceCodeAccessModule = FModuleManager::LoadModuleChecked<IModuleInterface>( FName( "XCodeSourceCodeAccess" ) );
+	SourceCodeAccessModule.SetAccessor(FName("XCodeSourceCodeAccess"));
+#elif PLATFORM_WINDOWS
+	IModuleInterface& VisualStudioSourceCodeAccessModule = FModuleManager::LoadModuleChecked<IModuleInterface>( FName( "VisualStudioSourceCodeAccess" ) );
+	SourceCodeAccessModule.SetAccessor(FName("VisualStudioSourceCodeAccess"));
+#endif
 
 	// enter main loop
 	double DeltaTime = 0.0;
