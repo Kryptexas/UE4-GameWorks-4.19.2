@@ -2531,6 +2531,8 @@ bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 		return true;
 	}
 
+	DemoName.ReplaceInline( TEXT( "%m" ), *GetMapName() );
+
 	int32 Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec;
 	FPlatformTime::SystemTime( Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec );
 
