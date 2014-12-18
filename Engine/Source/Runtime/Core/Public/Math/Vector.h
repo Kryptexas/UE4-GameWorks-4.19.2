@@ -1279,7 +1279,7 @@ FORCEINLINE bool FVector::operator!=( const FVector& V ) const
 
 FORCEINLINE bool FVector::Equals(const FVector& V, float Tolerance) const
 {
-	return FMath::Abs(X-V.X) < Tolerance && FMath::Abs(Y-V.Y) < Tolerance && FMath::Abs(Z-V.Z) < Tolerance;
+	return FMath::Abs(X-V.X) <= Tolerance && FMath::Abs(Y-V.Y) <= Tolerance && FMath::Abs(Z-V.Z) <= Tolerance;
 }
 
 FORCEINLINE bool FVector::AllComponentsEqual(float Tolerance) const

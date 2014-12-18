@@ -499,9 +499,9 @@ FORCEINLINE bool FRotator::IsZero() const
 
 FORCEINLINE bool FRotator::Equals(const FRotator &R, float Tolerance) const
 {
-	return (FMath::Abs(NormalizeAxis(Pitch - R.Pitch)) < Tolerance) 
-		&& (FMath::Abs(NormalizeAxis(Yaw - R.Yaw)) < Tolerance) 
-		&& (FMath::Abs(NormalizeAxis(Roll - R.Roll)) < Tolerance);
+	return (FMath::Abs(NormalizeAxis(Pitch - R.Pitch)) <= Tolerance) 
+		&& (FMath::Abs(NormalizeAxis(Yaw - R.Yaw)) <= Tolerance) 
+		&& (FMath::Abs(NormalizeAxis(Roll - R.Roll)) <= Tolerance);
 }
 
 
