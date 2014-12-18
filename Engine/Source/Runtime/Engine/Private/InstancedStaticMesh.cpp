@@ -1247,6 +1247,7 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 #if WITH_PHYSX
 		// Update transform.
 		InstanceBodyInstance->SetBodyTransform(WorldTransform, false);
+		InstanceBodyInstance->UpdateBodyScale(WorldTransform.GetScale3D());
 #endif //WITH_PHYSX
 	}
 
