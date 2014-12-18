@@ -721,6 +721,8 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 
 	if ( GetPawn() == NULL )
 	{
+		// We failed to possess, ask server to verify and potentially resend the pawn
+		ServerCheckClientPossession();
 		return;
 	}
 
