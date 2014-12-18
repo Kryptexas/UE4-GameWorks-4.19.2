@@ -1747,13 +1747,20 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	// ----------------------------------------------
 	while ( !Bunch.AtEnd() && Connection != NULL && Connection->State != USOCK_Closed )
 	{
-		UObject* RepObj = ReadContentBlockHeader( Bunch );
+		bool bObjectDeleted = false;
+		UObject* RepObj = ReadContentBlockHeader( Bunch, bObjectDeleted );
 
 		if ( Bunch.IsError() )
 		{
 			UE_LOG( LogNet, Error, TEXT( "UActorChannel::ReceivedBunch: ReadContentBlockHeader FAILED. Bunch.IsError() == TRUE. Closing connection. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
 			Connection->Close();
 			return;
+		}
+
+		if (bObjectDeleted)
+		{
+			// Nothing else in this block, continue on
+			continue;
 		}
 
 		if ( !RepObj || RepObj->IsPendingKill() )
@@ -2188,9 +2195,10 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCa
 	Bunch.WriteIntWrapped(ClassCache->GetMaxIndex(), ClassCache->GetMaxIndex()+1);
 }
 
-UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
+UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDeleted)
 {
 	const bool IsServer = Connection->Driver->IsServer();
+	bObjectDeleted = false;
 
 	if ( Bunch.ReadBit() )
 	{
@@ -2293,6 +2301,7 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 
 			SubObj->MarkPendingKill();
 		}
+		bObjectDeleted = true;
 		return NULL;
 	}
 

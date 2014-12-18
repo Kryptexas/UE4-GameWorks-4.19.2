@@ -146,7 +146,7 @@ class ENGINE_API UActorChannel : public UChannel
 	void EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCache* ClassCache = NULL );
 
 	/** Reads the header of the content block and instantiates the subobject if necessary */
-	UObject* ReadContentBlockHeader(FInBunch& Bunch);
+	UObject* ReadContentBlockHeader(FInBunch& Bunch, bool& bObjectDeleted);
 
 	/** Returns the replicator for the actor associated with this channel. Guaranteed to exist. */
 	FObjectReplicator & GetActorReplicationData();
