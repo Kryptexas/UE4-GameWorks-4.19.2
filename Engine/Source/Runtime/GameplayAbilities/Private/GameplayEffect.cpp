@@ -457,7 +457,7 @@ void FGameplayEffectSpec::CaptureDataFromSource()
 {
 	// Capture source actor tags
 	CapturedSourceTags.GetActorTags().RemoveAllTags();
-	EffectContext.GetOwnedGameplayTags(CapturedSourceTags.GetActorTags());
+	EffectContext.GetOwnedGameplayTags(CapturedSourceTags.GetActorTags(), CapturedSourceTags.GetSpecTags());
 
 	// Capture source Attributes
 	// Is this the right place to do it? Do we ever need to create spec and capture attributes at a later time? If so, this will need to move.

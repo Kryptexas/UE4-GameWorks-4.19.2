@@ -119,16 +119,16 @@ void FGameplayEffectContext::AddOrigin(FVector InOrigin)
 	WorldOrigin = InOrigin;
 }
 
-void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
+void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer& ActorTagContainer, OUT FGameplayTagContainer& SpecTagContainer) const
 {
 	IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator.Get());
 	if (TagInterface)
 	{
-		TagInterface->GetOwnedGameplayTags(TagContainer);
+		TagInterface->GetOwnedGameplayTags(ActorTagContainer);
 	}
 	else if (InstigatorAbilitySystemComponent)
 	{
-		InstigatorAbilitySystemComponent->GetOwnedGameplayTags(TagContainer);
+		InstigatorAbilitySystemComponent->GetOwnedGameplayTags(ActorTagContainer);
 	}
 }
 
