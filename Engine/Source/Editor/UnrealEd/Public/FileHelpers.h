@@ -8,6 +8,7 @@
 class FFileName;
 class FString;
 class FAssetData;
+class ULevel;
 
 enum EFileInteraction
 {
