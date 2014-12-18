@@ -1238,7 +1238,7 @@ void UWorld::UpdateCullDistanceVolumes()
 		// Establish base line of LD specified cull distances.
 		for( FActorIterator It(this); It; ++It )
 		{
-			TArray<UPrimitiveComponent*> PrimitiveComponents;
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 			It->GetComponents(PrimitiveComponents);
 			for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 			{

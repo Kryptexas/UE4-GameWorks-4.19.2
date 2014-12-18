@@ -71,7 +71,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 {
 	if(Actor != NULL)
 	{
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		// Grab per-instance data we want to persist
@@ -102,7 +102,7 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 {
 	if(Actor != NULL)
 	{
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		// Apply per-instance data.

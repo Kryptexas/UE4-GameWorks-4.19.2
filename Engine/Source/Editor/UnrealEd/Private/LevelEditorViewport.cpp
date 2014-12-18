@@ -1284,7 +1284,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 					}
 
 					// Prevent future selection. This also prevents the hit proxy from interfering with placement logic.
-					TArray<UPrimitiveComponent*> PrimitiveComponents;
+					TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 					NewActor->GetComponents(PrimitiveComponents);
 
 					for ( auto CompIt = PrimitiveComponents.CreateConstIterator(); CompIt; ++CompIt )
@@ -3485,7 +3485,7 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 				continue;
 			}
 
-			TArray<USceneComponent*> Components;
+			TInlineComponentArray<USceneComponent*> Components;
 			Actor->GetComponents(Components);
 
 			for (int32 ComponentIndex = 0 ; ComponentIndex < Components.Num(); ++ComponentIndex)
@@ -3832,7 +3832,7 @@ void FLevelEditorViewportClient::AddHoverEffect( FViewportHoverTarget& InHoverTa
 
 	if( ActorUnderCursor != NULL )
 	{
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		ActorUnderCursor->GetComponents(Components);
 
 		for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
@@ -3864,7 +3864,7 @@ void FLevelEditorViewportClient::RemoveHoverEffect( FViewportHoverTarget& InHove
 	AActor* CurHoveredActor = InHoverTarget.HoveredActor;
 	if( CurHoveredActor != NULL )
 	{
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		CurHoveredActor->GetComponents(Components);
 
 		for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)

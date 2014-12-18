@@ -2313,7 +2313,7 @@ void UParticleModuleLocationSkelVertSurface::UpdateBoneIndicesList(FParticleEmit
 		{
 			if(ActorInst != NULL)
 			{
-				TArray<USkeletalMeshComponent*> Components;
+				TInlineComponentArray<USkeletalMeshComponent*> Components;
 				ActorInst->GetComponents(Components);
 
 				int32 InsertionIndex = 0;

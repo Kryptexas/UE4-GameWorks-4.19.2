@@ -219,7 +219,7 @@ namespace BlueprintNodeHelpers
 
 		if (OwningActor && !bFound)
 		{
-			TArray<UBehaviorTreeComponent*> Components;
+			TInlineComponentArray<UBehaviorTreeComponent*> Components;
 			OwningActor->GetComponents(Components);
 			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 			{

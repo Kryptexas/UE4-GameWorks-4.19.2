@@ -1106,7 +1106,7 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 			// Instance native components based on the CDO template
 			AActor* CDO = Blueprint->GeneratedClass->GetDefaultObject<AActor>();
 
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			CDO->GetComponents(Components);
 
 			for ( auto CompIt = Components.CreateConstIterator(); CompIt; ++CompIt )

@@ -1287,7 +1287,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 		// Remove all instances of the selected meshes
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
 
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 ComponentIdx = 0; ComponentIdx < Components.Num(); ComponentIdx++)
@@ -1314,7 +1314,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 		TMap<UPrimitiveComponent*, TArray<FFoliagePaintBucketTriangle> > ComponentPotentialTriangles;
 
 		// Check all the components of the hit actor
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		TInlineComponentArray<UStaticMeshComponent*> StaticMeshComponents;
 		Actor->GetComponents(StaticMeshComponents);
 
 		for (int32 ComponentIdx = 0; ComponentIdx < StaticMeshComponents.Num(); ComponentIdx++)

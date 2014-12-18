@@ -317,7 +317,7 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 			if(CDO != NULL)
 			{
 				// Find the component template in the CDO that matches the specified name
-				TArray<USceneComponent*> Components;
+				TInlineComponentArray<USceneComponent*> Components;
 				CDO->GetComponents(Components);
 
 				for(auto CompIt = Components.CreateIterator(); CompIt; ++CompIt)

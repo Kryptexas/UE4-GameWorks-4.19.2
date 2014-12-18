@@ -8146,7 +8146,7 @@ static void AddMaterialRefsForActor(
 {
 	if (Actor && !Actor->IsRootComponentStatic())
 	{
-		TArray<USceneComponent*> Components;
+		TInlineComponentArray<USceneComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++)

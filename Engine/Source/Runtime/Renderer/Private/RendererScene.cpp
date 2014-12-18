@@ -530,7 +530,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 	// If the root component of an actor is being moved, update all the actor position of the other components sharing that actor
 	if (Owner && Owner->GetRootComponent() == Primitive)
 	{
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		Owner->GetComponents(Components);
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{

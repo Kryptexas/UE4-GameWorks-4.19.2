@@ -976,7 +976,7 @@ public:
 			USceneComponent* SingleSceneComp = NULL;
 			if(SelectedActors.Num() == 1)
 			{
-				TArray<UActorComponent*> Components;
+				TInlineComponentArray<UActorComponent*> Components;
 				SelectedActors[0]->GetComponents(Components);
 				for(UActorComponent* Component : Components)
 				{

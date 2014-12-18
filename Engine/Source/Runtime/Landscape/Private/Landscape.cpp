@@ -2076,7 +2076,7 @@ void ALandscapeProxy::FlushFoliageComponents()
 	FoliageCache.ClearCache();
 
 	// Destroy any owned foliage components
-	TArray<UHierarchicalInstancedStaticMeshComponent*> FoliageComps;
+	TInlineComponentArray<UHierarchicalInstancedStaticMeshComponent*> FoliageComps;
 	GetComponents(FoliageComps);
 	for (UHierarchicalInstancedStaticMeshComponent* Component : FoliageComps)
 	{
@@ -2692,7 +2692,7 @@ void ALandscapeProxy::Tick(float DeltaSeconds)
 
 	TSet<UHierarchicalInstancedStaticMeshComponent *> ToDestroy;
 
-	TArray<UHierarchicalInstancedStaticMeshComponent*> FoliageComps;
+	TInlineComponentArray<UHierarchicalInstancedStaticMeshComponent*> FoliageComps;
 	GetComponents(FoliageComps);
 	for (UHierarchicalInstancedStaticMeshComponent* Component : FoliageComps)
 	{

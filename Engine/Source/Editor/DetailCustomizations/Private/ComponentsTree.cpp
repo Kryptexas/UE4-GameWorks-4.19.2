@@ -211,7 +211,7 @@ void SComponentsTree::UpdateTree()
 		}
 
 		// Add non-scene components in Components array
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for(int32 CompIdx=0; CompIdx<Components.Num(); CompIdx++)

@@ -1415,7 +1415,7 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 	// Clean up any old cluster components and convert to hierarchical instanced foliage.
 	if (Ar.CustomVer(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageUsingHierarchicalISMC)
 	{
-		TArray<UInstancedStaticMeshComponent*> ClusterComponents;
+		TInlineComponentArray<UInstancedStaticMeshComponent*> ClusterComponents;
 		GetComponents(ClusterComponents);
 		for (UInstancedStaticMeshComponent* Component : ClusterComponents)
 		{

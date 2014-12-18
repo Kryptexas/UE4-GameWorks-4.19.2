@@ -1504,7 +1504,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 	UStaticMeshComponent* StaticMeshComponent = NULL;
 	UStaticMesh* StaticMesh = NULL;
 
-	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	TInlineComponentArray<UStaticMeshComponent*> StaticMeshComponents;
 	Actor->GetComponents(StaticMeshComponents);
 
 	for( int32 j=0; j<StaticMeshComponents.Num(); j++ )

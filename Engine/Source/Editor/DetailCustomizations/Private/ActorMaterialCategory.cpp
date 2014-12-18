@@ -184,7 +184,7 @@ private:
 	/** Reference to the selected actors */
 	TArray< TWeakObjectPtr<AActor> >& SelectedActors;
 	/** Reference to the current actor's components */
-	TArray<USceneComponent*> CurActorComponents;
+	TInlineComponentArray<USceneComponent*> CurActorComponents;
 	/** The current material the iterator is stopped on */
 	UMaterialInterface* CurMaterial;
 	/** The current component using the current material */

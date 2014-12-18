@@ -4198,7 +4198,7 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 			}
 			else
 			{
-				TArray<UPrimitiveComponent*> Components;
+				TInlineComponentArray<UPrimitiveComponent*> Components;
 				Actor->GetComponents(Components);
 
 				for(int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex)
@@ -4739,7 +4739,7 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 		// if we are clearing the replacement, then we don't need to find a component
 		if (Replacement)
 		{
-			TArray<UPrimitiveComponent*> Components;
+			TInlineComponentArray<UPrimitiveComponent*> Components;
 			Replacement->GetComponents(Components);
 
 			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -4759,7 +4759,7 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 	{
 		AActor* Actor = ActorsToReplace[ActorIndex];
 
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -5667,7 +5667,7 @@ bool UEditorEngine::HandleSetReplacementCommand( const TCHAR* Str, FOutputDevice
 	// attempt to set replacement component for all selected actors
 	for( FSelectedActorIterator It(InWorld); It; ++It )
 	{
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		It->GetComponents(Components);
 
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -5907,7 +5907,7 @@ bool UEditorEngine::HandleSetDetailModeCommand( const TCHAR* Str, FOutputDevice&
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-			TArray<UPrimitiveComponent*> Components;
+			TInlineComponentArray<UPrimitiveComponent*> Components;
 			Actor->GetComponents(Components);
 
 			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
@@ -5962,7 +5962,7 @@ bool UEditorEngine::HandleSetDetailModeViewCommand( const TCHAR* Str, FOutputDev
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-			TArray<UPrimitiveComponent*> Components;
+			TInlineComponentArray<UPrimitiveComponent*> Components;
 			Actor->GetComponents(Components);
 
 			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)

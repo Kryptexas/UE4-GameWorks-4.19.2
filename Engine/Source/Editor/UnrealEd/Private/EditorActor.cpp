@@ -684,7 +684,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
 		if( IFA )
 		{
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			Actor->GetComponents(Components);
 
 			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
@@ -1881,7 +1881,7 @@ void UUnrealEdEngine::edactSelectMatchingMaterial()
 		if( CurrentActor )
 		{
 			// Find the materials by iterating over every primitive component.
-			TArray<UPrimitiveComponent*> PrimitiveComponents;
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 			CurrentActor->GetComponents(PrimitiveComponents);
 
 			for (int32 ComponentIdx = 0; ComponentIdx < PrimitiveComponents.Num(); ComponentIdx++)
@@ -1916,7 +1916,7 @@ void UUnrealEdEngine::edactSelectMatchingMaterial()
 		// Do not bother checking hidden actors
 		if( !Actor->IsHiddenEd() )
 		{
-			TArray<UPrimitiveComponent*> PrimitiveComponents;
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 			Actor->GetComponents(PrimitiveComponents);
 
 			const int32 NumComponents = PrimitiveComponents.Num();
@@ -2010,7 +2010,7 @@ void UUnrealEdEngine::edactSelectRelevantLights( UWorld* InWorld )
 
 		if (Actor->GetLevel()->IsCurrentLevel() )
 		{
-			TArray<UPrimitiveComponent*> PrimitiveComponents;
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 			Actor->GetComponents(PrimitiveComponents);
 
 			// Gather static lighting info from each of the actor's components.

@@ -2272,7 +2272,7 @@ void UGameViewportClient::ShowCollisionOnSpawnedActors(AActor* Actor)
 {
 	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
 
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	check(Actor != nullptr);
 	Actor->GetComponents(Components);
 

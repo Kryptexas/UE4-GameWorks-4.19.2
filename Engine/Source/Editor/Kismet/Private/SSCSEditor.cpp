@@ -328,7 +328,7 @@ UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* 
 		else if(ComponentTemplate != NULL)
 		{
 			// Look for a native component instance with a name that matches the template name
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			InActor->GetComponents(Components);
 
 			for(auto It = Components.CreateConstIterator(); It; ++It)
@@ -2429,7 +2429,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 				if(CDO)
 				{
 					// Iterate over the Components array and attempt to find a component with a matching name
-					TArray<UActorComponent*> Components;
+					TInlineComponentArray<UActorComponent*> Components;
 					CDO->GetComponents(Components);
 
 					for(auto It = Components.CreateConstIterator(); It; ++It)
@@ -2579,7 +2579,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 		if(CDO != NULL)
 		{
 			// Add native ActorComponent nodes to the root set first
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			CDO->GetComponents(Components);
 
 			for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
@@ -3115,7 +3115,7 @@ void SSCSEditor::OnTreeSelectionChanged(FSCSEditorTreeNodePtrType, ESelectInfo::
 	AActor* EditorActorInstance = SCS->GetComponentEditorActorInstance();
 	if (EditorActorInstance != NULL)
 	{
-		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 		EditorActorInstance->GetComponents(PrimitiveComponents);
 
 		for (int32 Idx = 0; Idx < PrimitiveComponents.Num(); ++Idx)
