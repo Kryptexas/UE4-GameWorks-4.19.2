@@ -194,13 +194,17 @@ struct FCachedLandscapeFoliage
 {
 	struct FPerLayer
 	{
-		TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
+		int32 SqrtSubsections;
+		int32 CachedMaxInstancesPerComponent;
+		TArray<TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> > Foliage;
 		TWeakObjectPtr<ULandscapeLayerInfoObject> Layer;
 
-		FPerLayer(UHierarchicalInstancedStaticMeshComponent* InFoliage, ULandscapeLayerInfoObject* InLayer)
-			: Foliage(InFoliage)
+		FPerLayer(int32 InSqrtSubsections, int32 InCachedMaxInstancesPerComponent, ULandscapeLayerInfoObject* InLayer)
+			: SqrtSubsections(InSqrtSubsections)
+			, CachedMaxInstancesPerComponent(InCachedMaxInstancesPerComponent)
 			, Layer(InLayer)
 		{
+			Foliage.Reserve(SqrtSubsections * SqrtSubsections);
 		}
 	};
 	struct FPerComponent
