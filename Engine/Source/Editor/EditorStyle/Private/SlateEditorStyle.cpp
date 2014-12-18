@@ -4639,12 +4639,18 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 
 	}
 
-	//Blueprint dif
+	//Blueprint Diff
 	{
 		Set( "BlueprintDif.HasGraph", new IMAGE_BRUSH( "/Icons/blueprint_Dif_has_graph_8x", Icon8x8 )  );
 		Set( "BlueprintDif.MissingGraph", new IMAGE_BRUSH( "/Icons/blueprint_Dif_missing_graph_8x", Icon8x8 )  );
 		Set( "BlueprintDif.NextDiff", new IMAGE_BRUSH( "/Icons/diff_next_40x", Icon16x16 )  );
 		Set( "BlueprintDif.PrevDiff", new IMAGE_BRUSH( "/Icons/diff_prev_40x", Icon16x16 )  );
+
+		Set( "BlueprintDif.ItalicText", 
+			FTextBlockStyle(NormalText)
+			.SetFont(TTF_FONT("Fonts/Roboto-Italic", 10))
+			.SetColorAndOpacity(FLinearColor(.7f, .7f, .7f))
+		);
 	}
 
 	//Blueprint Merge

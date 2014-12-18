@@ -69,9 +69,9 @@ static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor>
 	FBlueprintMergeData Data(Editor
 		, LocalBlueprint
 		, BaseBlueprint
-		, RemoteRevInfo
+		, BaseRevInfo
 		, RemoteBlueprint
-		, BaseRevInfo);
+		, RemoteRevInfo);
 
 	return SNew(SBlueprintMerge, Data)
 		.bForcePickAssets(bForceAssetPicker)

@@ -4,7 +4,6 @@
 
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
-#include "IDiffControl.h"
 #include "ISourceControlModule.h"
 #include "SBlueprintEditorToolbar.h"
 #include "SBlueprintMerge.h"
@@ -20,8 +19,6 @@
 
 SBlueprintMerge::SBlueprintMerge()
 	: Data()
-	, CurrentDiffControl( nullptr )
-	, CurrentMergeControl( nullptr )
 {
 }
 
@@ -169,7 +166,36 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.Cancel")
 	);
 
-	ChildSlot [
+	DifferencesTreeView = DiffTreeView::CreateTreeView(&MasterDifferencesList);
+
+	TSharedRef<SWidget> Overlay = SNew(SHorizontalBox);
+	if( IsActivelyMerging() )
+	{
+		const auto TextBlock = []( FText Text ) -> TSharedRef<SWidget>
+		{
+			return SNew(STextBlock)
+				.Visibility(EVisibility::HitTestInvisible)
+				.TextStyle(FEditorStyle::Get(), "GraphPreview.CornerText")
+				.Text(Text);
+		};
+
+		Overlay = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			TextBlock(DiffViewUtils::GetPanelLabel(InData.BlueprintRemote, InData.RevisionRemote, LOCTEXT("RemoteLabel", "SOURCE (REMOTE)")))
+		]
+		+ SHorizontalBox::Slot()
+		[
+			TextBlock(DiffViewUtils::GetPanelLabel(InData.BlueprintBase, InData.RevisionBase, LOCTEXT("BaseLabel", "BASE")))
+		]
+		+ SHorizontalBox::Slot()
+		[
+			TextBlock(DiffViewUtils::GetPanelLabel(InData.BlueprintLocal, InData.RevisionLocal, LOCTEXT("LocalLabel", "TARGET (LOCAL)")))
+		];
+	}
+
+	ChildSlot 
+	[
 		SNew( SVerticalBox )
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -177,14 +203,37 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 			SNew( SHorizontalBox )
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.Padding(2.f)
 			[
 				ToolbarBuilder.MakeWidget()
 			]
 		]
 		+ SVerticalBox::Slot()
 		[
-			SAssignNew(MainView, SBorder)
-				.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+			SNew(SSplitter)
+			+ SSplitter::Slot()
+			.Value(.2f)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					DifferencesTreeView.ToSharedRef()
+				]
+			]
+			+ SSplitter::Slot()
+			.Value(.8f)
+			[
+				SNew(SOverlay)
+				+SOverlay::Slot()
+				[
+					SAssignNew(MainView, SBox)
+				]
+				+ SOverlay::Slot()
+				.VAlign(VAlign_Bottom)
+				[
+					Overlay
+				]
+			]
 		]
 	];
 
@@ -197,9 +246,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		bIsPickingAssets = true;
 
 		auto AssetPickerView = SNew(SMergeAssetPickerView, InData).OnAssetChanged(this, &SBlueprintMerge::OnMergeAssetSelected);
-		AssetPickerControl.Widget = AssetPickerView;
-		AssetPickerControl.DiffControl  = &AssetPickerView.Get();
-		AssetPickerControl.MergeControl = &AssetPickerView.Get();
+		AssetPickerControl = AssetPickerView;
 	}
 
 	Data.OwningEditor.Pin()->OnModeSet().AddSP( this, &SBlueprintMerge::OnModeChanged );
@@ -213,42 +260,42 @@ UBlueprint* SBlueprintMerge::GetTargetBlueprint()
 
 void SBlueprintMerge::NextDiff()
 {
-	CurrentDiffControl->NextDiff();
+	DiffTreeView::HighlightNextDifference(DifferencesTreeView.ToSharedRef(), RealDifferences, MasterDifferencesList);
 }
 
 void SBlueprintMerge::PrevDiff()
 {
-	CurrentDiffControl->PrevDiff();
+	 DiffTreeView::HighlightPrevDifference( DifferencesTreeView.ToSharedRef(), RealDifferences, MasterDifferencesList );
 }
 
 bool SBlueprintMerge::HasNextDiff() const
 {
-	return CurrentDiffControl && CurrentDiffControl->HasNextDifference();
+	return DiffTreeView::HasNextDifference( DifferencesTreeView.ToSharedRef(), RealDifferences );
 }
 
 bool SBlueprintMerge::HasPrevDiff() const
 {
-	return CurrentDiffControl && CurrentDiffControl->HasPrevDifference();
+	return DiffTreeView::HasPrevDifference(DifferencesTreeView.ToSharedRef(), RealDifferences );
 }
 
 void SBlueprintMerge::NextConflict()
 {
-	CurrentMergeControl->HighlightNextConflict();
+	DiffTreeView::HighlightNextDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts, MasterDifferencesList);
 }
 
 void SBlueprintMerge::PrevConflict()
 {
-	CurrentMergeControl->HighlightPrevConflict();
+	DiffTreeView::HighlightPrevDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts, MasterDifferencesList);
 }
 
 bool SBlueprintMerge::HasNextConflict() const
 {
-	return CurrentMergeControl && CurrentMergeControl->HasNextConflict();
+	return DiffTreeView::HasNextDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts);
 }
 
 bool SBlueprintMerge::HasPrevConflict() const
 {
-	return CurrentMergeControl && CurrentMergeControl->HasPrevConflict();
+	return DiffTreeView::HasPrevDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts);
 }
 
 void SBlueprintMerge::OnStartMerge()
@@ -280,9 +327,6 @@ void SBlueprintMerge::OnStartMerge()
 		{
 			UBlueprint* LocalBlueprint = GetTargetBlueprint();
 			// we use this to suppress blueprint compilation during StaticDuplicateObject()
-			// @TODO: we don't remember exactly why this was needed, but I saw the 
-			//        the blueprint become unplacable and the file become unloadable
-			//        without this, but don't know exactly why
 			TGuardValue<bool> GuardDuplicatingReadOnly(LocalBlueprint->bDuplicatingReadOnly, true);
 
 			UPackage* TransientPackage = GetTransientPackage();
@@ -301,21 +345,42 @@ void SBlueprintMerge::OnStartMerge()
 			LocalBackupPath.Empty();
 		}
 
-		auto GraphView = SNew(SMergeGraphView, Data);
-		GraphControl.Widget = GraphView;
-		GraphControl.DiffControl = &GraphView.Get();
-		GraphControl.MergeControl = &GraphView.Get();
+		const auto DetailsSelected = [](TWeakPtr<FBlueprintEditor> Editor)
+		{
+			Editor.Pin()->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+		};
+		auto DetailsView = SNew(SMergeDetailsView
+			, Data
+			, FOnMergeNodeSelected::CreateStatic(DetailsSelected, Data.OwningEditor)
+			, MasterDifferencesList
+			, RealDifferences
+			, MergeConflicts);
+		DetailsControl = DetailsView;
 
-		auto TreeView = SNew(SMergeTreeView, Data);
-		TreeControl.Widget = TreeView;
-		TreeControl.DiffControl = &TreeView.Get();
-		TreeControl.MergeControl = &TreeView.Get();
+		const auto ComponentSelected = [](TWeakPtr<FBlueprintEditor> Editor)
+		{
+			Editor.Pin()->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
+		};
+		auto TreeView = SNew(SMergeTreeView
+			, Data
+			, FOnMergeNodeSelected::CreateStatic(ComponentSelected, Data.OwningEditor)
+			, MasterDifferencesList
+			, RealDifferences
+			, MergeConflicts);
+		TreeControl = TreeView;
 
-		auto DetailsView = SNew(SMergeDetailsView, Data);
-		DetailsControl.Widget = DetailsView;
-		DetailsControl.DiffControl = &DetailsView.Get();
-		DetailsControl.MergeControl = &DetailsView.Get();
-	
+		const auto GraphSelected = [](TWeakPtr<FBlueprintEditor> Editor)
+		{
+			Editor.Pin()->SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+		};
+		auto GraphView = SNew(SMergeGraphView
+							, Data
+							, FOnMergeNodeSelected::CreateStatic(GraphSelected, Data.OwningEditor)
+							, MasterDifferencesList
+							, RealDifferences
+							, MergeConflicts);
+		GraphControl = GraphView;
+
 		bIsPickingAssets = false;
 		OnModeChanged(Data.OwningEditor.Pin()->GetCurrentMode());
 	}
@@ -350,29 +415,21 @@ void SBlueprintMerge::OnModeChanged(FName NewMode)
 {
 	if (!IsActivelyMerging())
 	{
-		MainView->SetContent(AssetPickerControl.Widget.ToSharedRef());
-		CurrentDiffControl = AssetPickerControl.DiffControl;
-		CurrentMergeControl = AssetPickerControl.MergeControl;
+		MainView->SetContent(AssetPickerControl.ToSharedRef());
 	}
 	else if (NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ||
 		NewMode == FBlueprintEditorApplicationModes::BlueprintMacroMode)
 	{
-		MainView->SetContent( GraphControl.Widget.ToSharedRef() );
-		CurrentDiffControl = GraphControl.DiffControl;
-		CurrentMergeControl = GraphControl.MergeControl;
+		MainView->SetContent( GraphControl.ToSharedRef() );
 	}
 	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
 	{
-		MainView->SetContent(TreeControl.Widget.ToSharedRef());
-		CurrentDiffControl = TreeControl.DiffControl;
-		CurrentMergeControl = TreeControl.MergeControl;
+		MainView->SetContent(TreeControl.ToSharedRef());
 	}
 	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode ||
 			NewMode == FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
 	{
-		MainView->SetContent(DetailsControl.Widget.ToSharedRef());
-		CurrentDiffControl = DetailsControl.DiffControl;
-		CurrentMergeControl = DetailsControl.MergeControl;
+		MainView->SetContent(DetailsControl.ToSharedRef());
 	}
 	else
 	{

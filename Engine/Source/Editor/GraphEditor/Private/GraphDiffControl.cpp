@@ -586,6 +586,13 @@ bool FGraphDiffControl::DiffGraphs(UEdGraph* const LhsGraph, UEdGraph* const Rhs
 		}
 	}
 
+	// storing the graph name for all diff entries:
+	FName GraphName = LhsGraph ? LhsGraph->GetFName() : LhsGraph->GetFName();
+	for( auto& Entry : DiffsOut )
+	{
+		Entry.OwningGraph = GraphName;
+	}
+
 	return bFoundDifferences;
 }
 

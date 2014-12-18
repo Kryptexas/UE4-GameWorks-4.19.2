@@ -2,6 +2,7 @@
 #pragma once
 
 #include "PropertyPath.h"
+#include "IAssetTypeActions.h"
 
 struct FResolvedProperty
 {
@@ -114,11 +115,40 @@ FORCEINLINE uint32 GetTypeHash( FPropertySoftPath const& Path )
 // Trying to restrict us to this typedef because I'm a little skeptical about hashing FPropertySoftPath safely
 typedef TSet< FPropertySoftPath > FPropertySoftPathSet;
 
+namespace EPropertyDiffType
+{
+	enum Type
+	{
+		Invalid,
+
+		PropertyAddedToA,
+		PropertyAddedToB,
+		PropertyValueChanged,
+	};
+}
+
+struct FSingleObjectDiffEntry
+{
+	FSingleObjectDiffEntry()
+		: Identifier()
+		, DiffType(EPropertyDiffType::Invalid)
+	{
+	}
+
+	FSingleObjectDiffEntry(const FPropertySoftPath& InIdentifier, EPropertyDiffType::Type InDiffType )
+		: Identifier(InIdentifier)
+		, DiffType(InDiffType)
+	{
+	}
+
+	FPropertySoftPath Identifier;
+	EPropertyDiffType::Type DiffType;
+};
+
 namespace ETreeDiffType
 {
 	enum Type
 	{
-		UNKNOWN,
 		NODE_ADDED,
 		NODE_REMOVED,
 		NODE_PROPERTY_CHANGED,
@@ -129,9 +159,16 @@ namespace ETreeDiffType
 
 struct FSCSDiffEntry
 {
+	FSCSDiffEntry( const FSCSIdentifier& InIdentifier, ETreeDiffType::Type InDiffType, const FSingleObjectDiffEntry& InPropertyDiff )
+		: TreeIdentifier(InIdentifier)
+		, DiffType(InDiffType)
+		, PropertyDiff(InPropertyDiff)
+	{
+	}
+
 	FSCSIdentifier TreeIdentifier;
 	ETreeDiffType::Type DiffType;
-	FPropertySoftPath PropertyIdentifier;
+	FSingleObjectDiffEntry PropertyDiff;
 };
 
 struct FSCSDiffRoot
@@ -143,13 +180,13 @@ struct FSCSDiffRoot
 namespace DiffUtils
 {
 	KISMET_API const UObject* GetCDO(const UBlueprint* ForBlueprint);
-	KISMET_API void CompareUnrelatedObjects(const UObject* A, const UObject* B, TArray<FPropertySoftPath>& OutDifferingProperties);
+	KISMET_API void CompareUnrelatedObjects(const UObject* A, const UObject* B, TArray<FSingleObjectDiffEntry>& OutDifferingProperties);
 	KISMET_API void CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSResolvedIdentifier >& OldHierarchy, const UBlueprint* New, const TArray< FSCSResolvedIdentifier >& NewHierarchy, FSCSDiffRoot& OutDifferingEntries );
 	KISMET_API bool Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp);
 	TArray<FPropertySoftPath> GetVisiblePropertiesInOrderDeclared(const UObject* ForObj, const TArray<FName>& Scope = TArray<FName>());
 
 	KISMET_API TArray<FPropertyPath> ResolveAll(const UObject* Object, const TArray<FPropertySoftPath>& InSoftProperties);
-
+	KISMET_API TArray<FPropertyPath> ResolveAll(const UObject* Object, const TArray<FSingleObjectDiffEntry>& InDifferences);
 }
 
 DECLARE_DELEGATE(FOnDiffEntryFocused);
@@ -166,7 +203,40 @@ public:
 		check( InGenerateWidget.IsBound() );
 	}
 
+	/** The FBlueprintDifferenceTreeEntry used to display a message to the user explaining that there are no differences: */
+	KISMET_API static TSharedPtr<FBlueprintDifferenceTreeEntry> NoDifferencesEntry();
+	/** The FBlueprintDifferenceTreeEntry used to label the defaults category: */
+	KISMET_API static TSharedPtr<FBlueprintDifferenceTreeEntry> CreateDefaultsCategoryEntry(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasDifferences );
+	KISMET_API static TSharedPtr<FBlueprintDifferenceTreeEntry> CreateDefaultsCategoryEntryForMerge(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts );
+	KISMET_API static TSharedPtr<FBlueprintDifferenceTreeEntry> CreateComponentsCategoryEntry(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasDifferences);
+	KISMET_API static TSharedPtr<FBlueprintDifferenceTreeEntry> CreateComponentsCategoryEntryForMerge(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts);
+	
 	FOnDiffEntryFocused OnFocus;
 	FGenerateDiffEntryWidget GenerateWidget;
 	TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> > Children;
 };
+
+namespace DiffTreeView
+{
+	KISMET_API TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > CreateTreeView(TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >* DifferencesList);
+	KISMET_API int32 CurrentDifference( TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences );
+	KISMET_API void HighlightNextDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& RootDifferences);
+	KISMET_API void HighlightPrevDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& RootDifferences);
+	KISMET_API bool HasNextDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences);
+	KISMET_API bool HasPrevDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences);
+}
+
+namespace DiffViewUtils
+{
+	KISMET_API FLinearColor LookupColor( bool bDiffers, bool bConflicts = false );
+	KISMET_API FLinearColor Differs();
+	KISMET_API FLinearColor Identical();
+	KISMET_API FLinearColor Missing();
+	KISMET_API FLinearColor Conflicting();
+
+	KISMET_API FText PropertyDiffMessage(FSingleObjectDiffEntry Difference, FText ObjectName);
+	KISMET_API FText SCSDiffMessage(const FSCSDiffEntry& Difference, FText ObjectName);
+	KISMET_API FText GetPanelLabel( const UBlueprint* Blueprint, const FRevisionInfo& Revision, FText Label );
+
+	KISMET_API SHorizontalBox::FSlot& Box(bool bIsPresent, FLinearColor Color);
+}
