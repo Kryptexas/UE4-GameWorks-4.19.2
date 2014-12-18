@@ -514,6 +514,13 @@ bool FOnlineSessionNull::FindSessions(const FUniqueNetId& SearchingPlayerId, con
 	return FindSessions(0, SearchSettings);
 }
 
+bool FOnlineSessionNull::FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegates)
+{
+	FOnlineSessionSearchResult EmptyResult;
+	CompletionDelegates.ExecuteIfBound(0, false, EmptyResult);
+	return true;
+}
+
 uint32 FOnlineSessionNull::FindLANSession()
 {
 	uint32 Return = ERROR_IO_PENDING;

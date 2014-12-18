@@ -711,6 +711,13 @@ bool FOnlineSessionSteam::FindSessions(const FUniqueNetId& SearchingPlayerId, co
 	return FindSessions(0, SearchSettings);
 }
 
+bool FOnlineSessionSteam::FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegates)
+{
+	FOnlineSessionSearchResult EmptyResult;
+	CompletionDelegates.ExecuteIfBound(0, false, EmptyResult);
+	return true;
+}
+
 uint32 FOnlineSessionSteam::FindInternetSession(const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	bool PresenceSearch = false;

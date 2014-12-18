@@ -104,6 +104,8 @@ public:
 
 	virtual bool FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings) override;
 
+	virtual bool FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate) override;
+
 	virtual bool CancelFindSessions() override;
 
 	virtual bool PingSearchResults(const FOnlineSessionSearchResult& SearchResult) override;

@@ -377,6 +377,12 @@ bool FOnlineSessionIOS::FindSessions(const FUniqueNetId& SearchingPlayerId, cons
 	return FindSessions(0, SearchSettings);
 }
 
+bool FOnlineSessionIOS::FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegates)
+{
+	FOnlineSessionSearchResult EmptyResult;
+	CompletionDelegates.ExecuteIfBound(0, false, EmptyResult);
+	return true;
+}
 
 bool FOnlineSessionIOS::CancelFindSessions()
 {

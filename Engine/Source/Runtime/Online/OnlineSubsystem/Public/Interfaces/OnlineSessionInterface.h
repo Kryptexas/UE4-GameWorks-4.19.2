@@ -478,6 +478,18 @@ public:
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnFindSessionsComplete, bool);
 
 	/**
+	 * Find a single advertised session by session id
+	 *
+	 * @param SearchingUserId user initiating the request
+	 * @param SessionId session id to search for
+	 * @param FriendId optional id of user to verify in session
+	 * @param CompletionDelegate delegate to call on completion
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate) = 0;
+
+	/**
 	 * Cancels the current search in progress if possible for that search type
 	 *
 	 * @return true if successful searching for sessions, false otherwise
