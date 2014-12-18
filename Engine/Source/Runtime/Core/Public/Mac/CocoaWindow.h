@@ -2,8 +2,6 @@
 
 #pragma once
 
-#ifdef __OBJC__
-
 /**
  * Custom window class used for input handling
  */
@@ -71,32 +69,8 @@
 
 @end
 
-/**
- * Custom window class used for mouse capture
- */
-@interface FMouseCaptureWindow : NSWindow <NSWindowDelegate>
-{
-	FCocoaWindow*	TargetWindow;
-}
-
-- (id)initWithTargetWindow: (FCocoaWindow*)Window;
-- (FCocoaWindow*)targetWindow;
-- (void)setTargetWindow: (FCocoaWindow*)Window;
-
-@end
-
 extern NSString* NSWindowRedrawContents;
 extern NSString* NSDraggingExited;
 extern NSString* NSDraggingUpdated;
 extern NSString* NSPrepareForDragOperation;
 extern NSString* NSPerformDragOperation;
-
-#else // __OBJC__
-
-class FCocoaWindow;
-class FMouseCaptureWindow;
-class NSWindow;
-class NSEvent;
-class NSScreen;
-
-#endif // __OBJC__

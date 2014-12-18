@@ -102,8 +102,6 @@ FMacApplication::FMacApplication()
 	, bUsingTrackpad( false )
 	, HIDInput( HIDInputInterface::Create( MessageHandler ) )
 	, DraggedWindow( NULL )
-	, MouseCaptureWindow( NULL )
-	, bIsMouseCaptureEnabled( false )
 	, bIsMouseCursorLocked( false )
 	, bSystemModalMode( false )
 	, bIsProcessingNSEvent( false )
@@ -270,12 +268,7 @@ FMacApplication::~FMacApplication()
 	}
 
 	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
-	if (MouseCaptureWindow)
-	{
-		[MouseCaptureWindow close];
-		MouseCaptureWindow = NULL;
-	}
-	
+
 	TextInputMethodSystem->Terminate();
 
 	MacApplication = NULL;
@@ -321,7 +314,7 @@ bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
 	SCOPED_AUTORELEASE_POOL;
 	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
 	NSWindow* const Window = [NSApp windowWithWindowNumber:WindowNumber];
-	return Window && ([Window isKindOfClass:[FCocoaWindow class]] || [Window isKindOfClass:[FMouseCaptureWindow class]]);
+	return Window && [Window isKindOfClass:[FCocoaWindow class]];
 }
 
 void FMacApplication::ProcessEvent(FMacEvent const* const Event)
@@ -902,10 +895,6 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		{
 			EventWindow = DraggedWindow;
 		}
-		else if( MouseCaptureWindow && MouseCaptureWindow == [Event GetWindow] && [MouseCaptureWindow targetWindow] )
-		{
-			EventWindow = [MouseCaptureWindow targetWindow];
-		}
 		else
 		{
 			NSPoint CursorPos = [Event locationInWindow];
@@ -969,84 +958,6 @@ void FMacApplication::PollGameDeviceState( const float TimeDelta )
 {
 	// Poll game device state and send new events
 	HIDInput->SendControllerEvents();
-}
-
-void FMacApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWindow )
-{
-	bIsMouseCaptureEnabled = InWindow.IsValid();
-	UpdateMouseCaptureWindow( bIsMouseCaptureEnabled ? ((FMacWindow*)InWindow.Get())->GetWindowHandle() : NULL );
-}
-
-void* FMacApplication::GetCapture( void ) const
-{
-	return ( bIsMouseCaptureEnabled && MouseCaptureWindow ) ? [MouseCaptureWindow targetWindow] : NULL;
-}
-
-void FMacApplication::UseMouseCaptureWindow( bool bUseMouseCaptureWindow )
-{
-	bIsMouseCaptureEnabled = bUseMouseCaptureWindow;
-	if(bUseMouseCaptureWindow)
-	{
-		// Bring the mouse capture window to front
-		if(MouseCaptureWindow)
-		{
-			[MouseCaptureWindow orderFront: nil];
-		}
-	}
-	else
-	{
-		if(MouseCaptureWindow)
-		{
-			[MouseCaptureWindow orderOut: nil];
-		}
-	}
-}
-
-void FMacApplication::UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	// To prevent mouse events to get passed to the Dock or top menu bar, we create a transparent, full screen window above everything.
-	// This assures that only the editor (and with that, its active window) gets the mouse events while mouse capture is active.
-
-	const bool bEnable = bIsMouseCaptureEnabled || bIsMouseCursorLocked;
-
-	if( bEnable )
-	{
-		if( !TargetWindow )
-		{
-			if( [MouseCaptureWindow targetWindow] )
-			{
-				TargetWindow = [MouseCaptureWindow targetWindow];
-			}
-			else if( [[NSApp keyWindow] isKindOfClass: [FCocoaWindow class]] )
-			{
-				TargetWindow = (FCocoaWindow*)[NSApp keyWindow];
-			}
-		}
-
-		if( !MouseCaptureWindow )
-		{
-			MouseCaptureWindow = [[FMouseCaptureWindow alloc] initWithTargetWindow: TargetWindow];
-			check(MouseCaptureWindow);
-		}
-		else
-		{
-			[MouseCaptureWindow setTargetWindow: TargetWindow];
-		}
-
-		// Bring the mouse capture window to front
-		[MouseCaptureWindow orderFront: nil];
-	}
-	else
-	{
-		// Hide the mouse capture window
-		if( MouseCaptureWindow )
-		{
-			[MouseCaptureWindow orderOut: nil];
-			[MouseCaptureWindow setTargetWindow: NULL];
-		}
-	}
 }
 
 void FMacApplication::SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow )
@@ -1335,7 +1246,6 @@ void FMacApplication::OnWindowClose( FCocoaWindow* Window )
 void FMacApplication::OnMouseCursorLock( bool bLockEnabled )
 {
 	bIsMouseCursorLocked = bLockEnabled;
-	UpdateMouseCaptureWindow( NULL );
 }
 
 bool FMacApplication::IsPrintableKey(uint32 Character)

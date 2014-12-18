@@ -36,10 +36,6 @@ public:
 
 	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
 
-	virtual void SetCapture( const TSharedPtr< FGenericWindow >& InWindow ) override;
-
-	virtual void* GetCapture( void ) const override;
-
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) override;
 
 	virtual bool IsUsingHighPrecisionMouseMode() const override { return bUsingHighPrecisionMouseInput; }
@@ -73,8 +69,6 @@ public:
 	TSharedPtr<FMacWindow> GetKeyWindow();
 
 	uint32 GetModifierKeysFlags() { return ModifierKeysFlags; }
-
-	void UseMouseCaptureWindow(bool bUseMouseCaptureWindow);
 
 	bool IsProcessingNSEvent() const { return bIsProcessingNSEvent; }
 
@@ -135,8 +129,6 @@ private:
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 
-	void UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow );
-
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 #if WITH_EDITOR
@@ -170,8 +162,6 @@ private:
 
 	FCocoaWindow* DraggedWindow;
 
-	FMouseCaptureWindow* MouseCaptureWindow;
-	bool bIsMouseCaptureEnabled;
 	bool bIsMouseCursorLocked;
 
 	bool bSystemModalMode;

@@ -635,11 +635,6 @@ EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, 
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	if (MacApplication)
-	{
-		MacApplication->UseMouseCaptureWindow(false);
-	}
-
 	EAppReturnType::Type RetValue = MainThreadReturn(^{
 		EAppReturnType::Type RetValue = EAppReturnType::Cancel;
 		NSInteger Result;
@@ -802,11 +797,6 @@ EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, 
 
 		return RetValue;
 	});
-
-	if (MacApplication)
-	{
-		MacApplication->UseMouseCaptureWindow(true);
-	}
 
 	return RetValue;
 }
