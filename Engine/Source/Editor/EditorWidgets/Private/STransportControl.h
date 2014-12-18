@@ -21,6 +21,8 @@ public:
 
 	virtual ~STransportControl() {}
 
+	using SWidget::Tick;
+
 	// Begin FTickableObjectBase implementation
 	virtual bool IsTickable() const override;
 	virtual void Tick( float DeltaTime ) override;
