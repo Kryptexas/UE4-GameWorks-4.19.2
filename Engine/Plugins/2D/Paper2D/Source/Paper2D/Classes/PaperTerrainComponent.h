@@ -5,10 +5,34 @@
 #include "SpriteDrawCall.h"
 #include "PaperTerrainComponent.generated.h"
 
+struct FPaperTerrainMaterialRule;
+
 struct FPaperTerrainMaterialPair
 {
 	TArray<FSpriteDrawCallRecord> Records;
 	UMaterialInterface* Material;
+};
+
+struct FTerrainSpriteStamp
+{
+	const UPaperSprite* Sprite;
+	float NominalWidth;
+	float Time;
+	float Scale;
+	bool bCanStretch;
+
+	FTerrainSpriteStamp(const UPaperSprite* InSprite, float InTime, bool bIsEndCap);
+};
+
+struct FTerrainSegment
+{
+	float StartTime;
+	float EndTime;
+	const FPaperTerrainMaterialRule* Rule;
+	TArray<FTerrainSpriteStamp> Stamps;
+
+	FTerrainSegment();
+	void RepositionStampsToFillSpace();
 };
 
 /**
@@ -28,6 +52,9 @@ public:
 
 	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly)
 	bool bClosedSpline;
+
+	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly)
+	bool bFilledSpline;
 
 	UPROPERTY()
 	class UPaperTerrainSplineComponent* AssociatedSpline;
@@ -77,8 +104,11 @@ public:
 	void SetTerrainColor(FLinearColor NewColor);
 
 protected:
-	void SpawnSegment(const class UPaperSprite* NewSprite, float Position, float HorizontalScale, float NominalWidth, const struct FPaperTerrainMaterialRule* Rule);
-	void SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& FillDrawCall, const FVector2D& TextureSize, const TArray<FVector2D>& SplinePolyVertices2D);
+	void SpawnSegments(const TArray<FTerrainSegment>& TerrainSegments, bool bGenerateSegmentColliders);
+	
+	void GenerateFillRenderDataFromPolygon(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& FillDrawCall, const FVector2D& TextureSize, const TArray<FVector2D>& TriangulatedPolygonVertices);
+	void GenerateCollisionDataFromPolygon(const TArray<FVector2D>& SplinePolyVertices2D, const TArray<float>& TerrainOffsets, const TArray<FVector2D>& TriangulatedPolygonVertices);
+	void InsertConvexCollisionDataFromPolygon(const TArray<FVector2D>& ClosedPolyVertices2D);
 
 	void OnSplineEdited();
 
