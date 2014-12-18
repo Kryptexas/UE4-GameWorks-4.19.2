@@ -24,7 +24,8 @@ public class AddContentDialog : ModuleRules
 				"DesktopPlatform",
 				"PakFile",
 				"ImageWrapper",
-				"UnrealEd"
+				"UnrealEd",
+				"CoreUObject"
 			}
 		);
 
