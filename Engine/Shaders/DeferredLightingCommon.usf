@@ -245,7 +245,7 @@ float3 SubsurfaceShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, ha
 	return SubsurfaceColor * lerp(BackScatter, 1, InScatter);
 }
 
-float3 TwoSidedFoliageShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, half3 N )
+float3 TwoSidedFoliageShadingSubsurface( float3 SubsurfaceColor, float3 L, float3 V, half3 N )
 {
 	float VoL = saturate(dot(V, -L));
 	float VoLLobe = VoL * VoL;
@@ -260,7 +260,6 @@ float3 TwoSidedFoliageShadingSubsurface( FGBufferData GBuffer, float3 L, float3 
 	float ViewDependenceAmount = .5f;
 	float BackShading = lerp(BackDiffuse, VoLLobe, ViewDependenceAmount);
 
-	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 	return BackShading * SubsurfaceColor;
 }
 
@@ -298,6 +297,8 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 
 float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
+	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
+
 	switch( GBuffer.ShadingModelID )
 	{
 		case SHADINGMODELID_SUBSURFACE:
@@ -305,7 +306,7 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
 			return SubsurfaceShadingPreintegratedSkin( GBuffer, L, V, N );
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
-			return TwoSidedFoliageShadingSubsurface( GBuffer, L, V, N );
+			return TwoSidedFoliageShadingSubsurface( SubsurfaceColor, L, V, N );
 		default:
 			return 0;
 	}
