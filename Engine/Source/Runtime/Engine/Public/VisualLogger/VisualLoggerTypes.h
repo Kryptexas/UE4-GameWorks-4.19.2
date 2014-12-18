@@ -27,6 +27,7 @@ namespace EVisualLoggerVersion
 	{
 		Initial = 0,
 		HistogramGraphsSerialization = 1,
+		AddedOwnerClassName = 2,
 		// -----<new versions can be added before this line>-------------------------------------------------
 		// - this needs to be the last line (see note below)
 		VersionPlusOne,
@@ -216,14 +217,15 @@ public:
 	struct FVisualLogEntryItem
 	{
 		FVisualLogEntryItem() {}
-		FVisualLogEntryItem(FName InOwnerName, const FVisualLogEntry& LogEntry) : OwnerName(InOwnerName), Entry(LogEntry) { }
+		FVisualLogEntryItem(FName InOwnerName, FName InOwnerClassName, const FVisualLogEntry& LogEntry) : OwnerName(InOwnerName), OwnerClassName(InOwnerClassName), Entry(LogEntry) { }
 
 		FName OwnerName;
+		FName OwnerClassName;
 		FVisualLogEntry Entry;
 	};
 
 
-	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) = 0;
+	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, FName InOwnerClassName, const FVisualLogEntry& LogEntry) = 0;
 	virtual void Cleanup(bool bReleaseMemory = false) { /* Empty */ }
 	virtual void StartRecordingToFile(float TImeStamp) { /* Empty */ }
 	virtual void StopRecordingToFile(float TImeStamp) { /* Empty */ }

@@ -77,7 +77,7 @@ void FVisualLoggerBinaryFileDevice::SetFileName(const FString& InFileName)
 	FileName = InFileName;
 }
 
-void FVisualLoggerBinaryFileDevice::Serialize(const UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
+void FVisualLoggerBinaryFileDevice::Serialize(const UObject* LogOwner, FName OwnerName, FName OwnerClassName, const FVisualLogEntry& LogEntry)
 {
 	const int32 NumEntries = FrameCache.Num();
 	if (NumEntries> 0 && LastLogTimeStamp + FrameCacheLenght <= LogEntry.TimeStamp && FileArchive)
@@ -87,6 +87,6 @@ void FVisualLoggerBinaryFileDevice::Serialize(const UObject* LogOwner, FName Own
 	}
 
 	LastLogTimeStamp = LogEntry.TimeStamp;
-	FrameCache.Add(FVisualLogEntryItem(OwnerName, LogEntry));
+	FrameCache.Add(FVisualLogEntryItem(OwnerName, OwnerClassName, LogEntry));
 }
 #endif

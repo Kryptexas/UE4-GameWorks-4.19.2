@@ -232,6 +232,8 @@ protected:
 	TMap<const class UObject*, FVisualLogEntry>	CurrentEntryPerObject;
 	// Map to contain names for Objects (they can be destroyed after while)
 	TMap<const class UObject*, FName> ObjectToNameMap;
+	// Map to contain class names for Objects (they can be destroyed after while)
+	TMap<const class UObject*, FName> ObjectToClassNameMap;
 	// Map to contain information about pointers in game
 	TMap<const class UObject*, TWeakObjectPtr<const class UObject> > ObjectToPointerMap;
 	// if set all categories are blocked from logging

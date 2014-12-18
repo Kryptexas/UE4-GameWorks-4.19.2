@@ -82,6 +82,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 	{
 		CurrentEntry = &CurrentEntryPerObject.Add(LogOwner);
 		ObjectToNameMap.Add(LogOwner, LogOwner->GetFName());
+		ObjectToClassNameMap.Add(LogOwner, *(LogOwner->GetClass()->GetName()));
 		ObjectToPointerMap.Add(LogOwner, LogOwner);
 		InitializeNewEntry = true;
 	}
@@ -135,7 +136,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 					{
 						for (auto* Device : OutputDevices)
 						{
-							Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], *Entry);
+							Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
 						}
 						Entry->Reset();
 					}
@@ -157,7 +158,7 @@ void FVisualLogger::Flush()
 		{
 			for (auto* Device : OutputDevices)
 			{
-				Device->Serialize(CurrentEntry.Key, ObjectToNameMap[CurrentEntry.Key], CurrentEntry.Value);
+				Device->Serialize(CurrentEntry.Key, ObjectToNameMap[CurrentEntry.Key], ObjectToClassNameMap[CurrentEntry.Key], CurrentEntry.Value);
 			}
 			CurrentEntry.Value.Reset();
 		}

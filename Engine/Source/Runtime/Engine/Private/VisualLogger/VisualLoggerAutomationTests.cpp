@@ -19,7 +19,7 @@ class FVisualLoggerTestDevice : public FVisualLogDevice
 public:
 	FVisualLoggerTestDevice();
 	virtual void Cleanup(bool bReleaseMemory = false) override;
-	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
+	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, FName InOwnerClassName, const FVisualLogEntry& LogEntry) override;
 
 	class UObject* LastObject;
 	FVisualLogEntry LastEntry;
@@ -36,7 +36,7 @@ void FVisualLoggerTestDevice::Cleanup(bool bReleaseMemory)
 	LastEntry.Reset();
 }
 
-void FVisualLoggerTestDevice::Serialize(const UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
+void FVisualLoggerTestDevice::Serialize(const UObject* LogOwner, FName OwnerName, FName InOwnerClassName, const FVisualLogEntry& LogEntry)
 {
 	LastObject = const_cast<class UObject*>(LogOwner);
 	LastEntry = LogEntry;

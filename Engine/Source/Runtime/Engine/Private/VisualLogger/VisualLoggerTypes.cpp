@@ -337,6 +337,11 @@ FArchive& operator<<(FArchive& Ar, FVisualLogEntry& LogEntry)
 FArchive& operator<<(FArchive& Ar, FVisualLogDevice::FVisualLogEntryItem& FrameCacheItem)
 {
 	FVisualLoggerHelpers::Serialize(Ar, FrameCacheItem.OwnerName);
+	const int32 VLogsVer = Ar.CustomVer(EVisualLoggerVersion::GUID);
+	if (VLogsVer >= EVisualLoggerVersion::AddedOwnerClassName)
+	{
+		FVisualLoggerHelpers::Serialize(Ar, FrameCacheItem.OwnerClassName);
+	}
 	Ar << FrameCacheItem.Entry;
 	return Ar;
 }
