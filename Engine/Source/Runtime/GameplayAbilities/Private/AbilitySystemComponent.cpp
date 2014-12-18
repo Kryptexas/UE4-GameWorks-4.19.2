@@ -435,6 +435,12 @@ void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Containe
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FPredictionKey PredictionKey)
 {
+	if (!UAbilitySystemGlobals::Get().PredictTargetGameplayEffects)
+	{
+		// If we don't want to predict target effects, clear prediction key
+		PredictionKey = FPredictionKey();
+	}
+
 	return Target->ApplyGameplayEffectSpecToSelf(Spec, PredictionKey);
 }
 

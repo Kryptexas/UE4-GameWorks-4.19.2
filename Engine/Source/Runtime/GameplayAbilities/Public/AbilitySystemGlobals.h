@@ -48,6 +48,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	UPROPERTY(config)
 	bool	GameplayCueNotifyFullyLoad;
 
+	/** Set to true if you want clients to try to predict gameply effects done to targets. If false it will only predict self effects */
+	UPROPERTY(config)
+	bool	PredictTargetGameplayEffects;
+
 	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
 	UPROPERTY(config)
 	FStringClassReference AbilitySystemGlobalsClassName;

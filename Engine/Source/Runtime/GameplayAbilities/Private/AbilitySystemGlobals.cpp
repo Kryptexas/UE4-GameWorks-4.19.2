@@ -18,6 +18,7 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 
 	// Temp: once system for loading only necessary GameplaycueNotifies, this can go away.
 	GameplayCueNotifyFullyLoad = true;
+	PredictTargetGameplayEffects = true;
 
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
