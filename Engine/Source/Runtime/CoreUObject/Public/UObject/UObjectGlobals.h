@@ -248,12 +248,27 @@ COREUOBJECT_API void StaticTick( float DeltaTime, bool bUseFullTimeLimit = true,
  */
 COREUOBJECT_API UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags );
 
+/* Async package loading result */
+namespace EAsyncLoadingResult
+{
+	enum Type
+	{
+		/** Package failed to load */
+		Failed,
+		/** Package loaded successfully */
+		Succeeded,
+		/** Async loading was canceled */
+		Canceled
+	};
+}
+
 /**
  * Delegate called on completion of async package loading
  * @param	PackageName			Package name we were trying to load
  * @param	LoadedPackage		Loaded package if successful, NULL otherwise	
+ * @param	Result		Result of async loading.
  */
-DECLARE_DELEGATE_TwoParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/)
+DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/, EAsyncLoadingResult::Type /*Result*/)
 struct FAsyncPackage;
 /**
  * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -277,6 +292,11 @@ COREUOBJECT_API FAsyncPackage& LoadPackageAsync( const FString& PackageName, FLo
  * @return	Handle for this async loading request
  */
 COREUOBJECT_API FAsyncPackage& LoadPackageAsync( const FString& PackageName, const FGuid* RequiredGuid = NULL, FName PackageType = NAME_None, const TCHAR* PackageToLoadFrom = NULL );
+
+/**
+* Cancels all async package loading requests.
+*/
+COREUOBJECT_API void CancelAsyncLoading();
 
 /**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.
@@ -386,7 +406,7 @@ namespace EAsyncPackageState
 		/** Package has pending import packages that need to be streamed in. */
 		PendingImports,
 		/** Package has finished loading. */
-		Complete
+		Complete,
 	};
 }
 /**

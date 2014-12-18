@@ -100,6 +100,11 @@ struct FAsyncPackage : public FGCObject
 		return bLoadHasFinished;
 	}
 
+	/**
+	* Cancel loading this package.
+	*/
+	void Cancel();
+
 private:
 	/** Name of the UPackage to create.																	*/
 	FName						PackageName;
@@ -286,7 +291,7 @@ private:
 	/**
 	 * Function called when pending import package has been loaded.
 	 */
-	void ImportFullyLoadedCallback(const FName& PackageName, UPackage* LoadedPackage);
+	void ImportFullyLoadedCallback(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result);
 	/**
 	 * Adds dependency tree to the list if packages to wait for until their linkers have been created.
 	 *

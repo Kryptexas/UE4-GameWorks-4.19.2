@@ -115,6 +115,11 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(WorldContext="WorldContextObject"), Category="Game")
 	static class ULevelStreaming* GetStreamingLevel(UObject* WorldContextObject, FName PackageName);
 	
+	/** Cancels all currently queued streaming packages */
+	UFUNCTION(BlueprintCallable, Category = "Game")
+	static void CancelAsyncLoading();
+
+
 	/**
 	 * Travel to another level
 	 *

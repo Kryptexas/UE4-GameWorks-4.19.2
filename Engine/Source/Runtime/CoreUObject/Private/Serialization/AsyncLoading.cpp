@@ -64,6 +64,17 @@ public:
 	{
 		ReferencedObjects.Empty(ReferencedObjects.Num());
 	}
+	/** Removes all referenced objects and markes them for GC */
+	void EmptyReferencedObjectsAndCancelLoading()
+	{
+		// All of the referenced objects have been created by async loading code and may be in an invalid state so mark them for GC
+		for (auto Object : ReferencedObjects)
+		{
+			Object->ClearFlags(RF_AsyncLoading | RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
+			Object->SetFlags(RF_PendingKill);
+		}
+		ReferencedObjects.Empty(ReferencedObjects.Num());
+	}
 };
 FAsyncObjectsReferencer& FAsyncObjectsReferencer::Get()
 {
@@ -443,8 +454,9 @@ EAsyncPackageState::Type FAsyncPackage::FinishLinker()
 		LastObjectWorkWasPerformedOn	= Linker->LinkerRoot;
 		LastTypeOfWorkPerformed			= TEXT("ticking linker");
 	
+		const float RemainingTimeLimit = (float)(FPlatformTime::Seconds() - TickStartTime);
 		// Operation still pending if Tick returns false
-		if( Linker->Tick( TimeLimit, bUseTimeLimit, bUseFullTimeLimit ) != ULinkerLoad::LINKER_Loaded)
+		if (Linker->Tick(RemainingTimeLimit, bUseTimeLimit, bUseFullTimeLimit) != ULinkerLoad::LINKER_Loaded)
 		{
 			// Give up remainder of timeslice if there is one to give up.
 			GiveUpTimeSlice();
@@ -664,14 +676,17 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 /**
  * Function called when pending import package has been fully loaded.
  */
-void FAsyncPackage::ImportFullyLoadedCallback(const FName& InPackageName, UPackage* LoadedPackage)
+void FAsyncPackage::ImportFullyLoadedCallback(const FName& InPackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result)
 {
-	UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Loaded %s"), *PackageNameToLoad.ToString(), *InPackageName.ToString());
-	int32 Index = ContainsDependencyPackage(PendingImportedPackages, InPackageName);
-	check(Index != INDEX_NONE);
-	// Keep a reference to this package so that its linker doesn't go away too soon
-	ReferencedImports.Add(PendingImportedPackages[Index]);
-	PendingImportedPackages.RemoveAt(Index);
+	if (Result != EAsyncLoadingResult::Canceled)
+	{
+		UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Loaded %s"), *PackageNameToLoad.ToString(), *InPackageName.ToString());
+		int32 Index = ContainsDependencyPackage(PendingImportedPackages, InPackageName);
+		check(Index != INDEX_NONE);
+		// Keep a reference to this package so that its linker doesn't go away too soon
+		ReferencedImports.Add(PendingImportedPackages[Index]);
+		PendingImportedPackages.RemoveAt(Index);
+	}
 }
 
 /** 
@@ -879,6 +894,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	PreLoadIndex = 0;
 	PostLoadIndex = 0;
 
+	EAsyncLoadingResult::Type LoadingResult = bLoadHasFailed ? EAsyncLoadingResult::Failed : EAsyncLoadingResult::Succeeded;
 
 	// If we successfully loaded
 	if (!bLoadHasFailed)
@@ -893,7 +909,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 		// Call any completion callbacks specified.
 		for (int32 i = 0; i < CompletionCallbacks.Num(); i++)
 		{
-			CompletionCallbacks[i].ExecuteIfBound(PackageName, Linker->LinkerRoot);
+			CompletionCallbacks[i].ExecuteIfBound(PackageName, Linker->LinkerRoot, LoadingResult);
 		}
 
 		// give a hint to the IO system that we are done with this file for now
@@ -917,7 +933,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 		// Call any completion callbacks specified.
 		for (int32 i = 0; i < CompletionCallbacks.Num(); i++)
 		{
-			CompletionCallbacks[i].ExecuteIfBound(PackageName, nullptr);
+			CompletionCallbacks[i].ExecuteIfBound(PackageName, nullptr, LoadingResult);
 		}
 	}
 
@@ -935,6 +951,26 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	return EAsyncPackageState::Complete;
 }
 
+void FAsyncPackage::Cancel()
+{
+	// Call any completion callbacks specified.
+	const EAsyncLoadingResult::Type Result = EAsyncLoadingResult::Canceled;
+	for (int32 CallbackIndex = 0; CallbackIndex < CompletionCallbacks.Num(); CallbackIndex++)
+	{
+		CompletionCallbacks[CallbackIndex].ExecuteIfBound(PackageName, nullptr, Result);
+	}
+	if (Linker)
+	{
+		// give a hint to the IO system that we are done with this file for now
+		FIOSystem::Get().HintDoneWithFile(Linker->Filename);
+		Linker->FlushCache();
+		if (Linker->LinkerRoot)
+		{
+			Linker->LinkerRoot->ClearFlags(RF_WasLoaded);
+			Linker->LinkerRoot->bHasBeenFullyLoaded = false;
+		}
+	}
+}
 
 /*-----------------------------------------------------------------------------
 	UObject async (pre)loading.
@@ -997,6 +1033,30 @@ FAsyncPackage& LoadPackageAsync( const FString& InPackageName, FLoadPackageAsync
 	FAsyncPackage& AsyncPackage = LoadPackageAsync(InPackageName, PackageGuid, PackageType, InPackageToLoadFrom);
 	AsyncPackage.AddCompletionCallback(CompletionDelegate);
 	return AsyncPackage;
+}
+
+void CancelAsyncLoading()
+{
+	// Can't cancel from within async loading code
+	check(!GIsAsyncLoading);
+
+	GObjLoaded.Empty();
+
+	for (int32 PackageIndex = 0; PackageIndex < GObjAsyncPackages.Num(); PackageIndex++)
+	{
+		FAsyncPackage& PendingPackage = GObjAsyncPackages[PackageIndex];
+		PendingPackage.Cancel();
+	}
+	GObjAsyncPackages.Empty();
+	for (int32 ObjectIndex = 0; ObjectIndex < GObjConstructedDuringAsyncLoading.Num(); ObjectIndex++)
+	{
+		UObject* Object = GObjConstructedDuringAsyncLoading[ObjectIndex];
+		Object->ClearFlags(RF_AsyncLoading | RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
+	}
+	GObjConstructedDuringAsyncLoading.Empty();
+
+	// Not that streaming has finished, we can stop force-referencing all objects that were created during async load.
+	FAsyncObjectsReferencer::Get().EmptyReferencedObjectsAndCancelLoading();
 }
 
 /**

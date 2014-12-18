@@ -122,7 +122,7 @@ class ULevelStreaming : public UObject
 
 	/** Whether this level streaming object's level should be unloaded and the object be removed from the level list.			*/
 	uint32 bIsRequestingUnloadAndRemoval:1;
-
+	
 	/** If true, will be drawn on the 'level streaming status' map (STAT LEVELMAP console command) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=LevelStreaming)
 	uint32 bDrawOnLevelStatusMap:1;
@@ -312,7 +312,7 @@ private:
 	 *
 	 * @param LevelPackage	Loaded level package
 	 */
-	void AsyncLevelLoadComplete( const FName& PackageName, UPackage* LevelPackage );
+	void AsyncLevelLoadComplete(const FName& PackageName, UPackage* LevelPackage, EAsyncLoadingResult::Type Result);
 
 	/** Pointer to Level object if currently loaded/ streamed in.																*/
 	UPROPERTY(transient)

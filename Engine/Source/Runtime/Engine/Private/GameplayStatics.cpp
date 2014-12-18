@@ -376,6 +376,11 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 	return NULL;
 }
 
+void UGameplayStatics::CancelAsyncLoading()
+{
+	::CancelAsyncLoading();
+}
+
 void UGameplayStatics::OpenLevel(UObject* WorldContextObject, FName LevelName, bool bAbsolute, FString Options)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);

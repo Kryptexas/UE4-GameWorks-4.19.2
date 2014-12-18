@@ -1883,7 +1883,7 @@ namespace StaticMeshUVTest
 		/** 
 		 * Callback when a package has finished loading
 		 */
-		void PackageLoadCallback(const FName& PackageName, UPackage* LoadedPackage)
+		void PackageLoadCallback(const FName& PackageName, UPackage* LoadedPackage, EAsyncLoadingResult::Type Result)
 		{
 			CurrentPackage = LoadedPackage;
 			CurrentState = EStaticMeshUVTestState::PackageLoaded;

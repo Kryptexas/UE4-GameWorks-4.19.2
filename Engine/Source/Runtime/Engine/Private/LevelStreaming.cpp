@@ -495,7 +495,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	return true;
 }
 
-void ULevelStreaming::AsyncLevelLoadComplete( const FName& InPackageName, UPackage* InLoadedPackage ) 
+void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackage* InLoadedPackage, EAsyncLoadingResult::Type Result)
 {
 	bHasLoadRequestPending = false;
 
@@ -619,6 +619,12 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FName& InPackageName, UPacka
 				}
 			}
 		}
+	}
+	else if (Result == EAsyncLoadingResult::Canceled)
+	{
+		// Cancel level streaming
+		bHasLoadRequestPending = false;
+		bShouldBeLoaded = false;
 	}
 	else
 	{

@@ -68,7 +68,7 @@ private:
 		}
 	};
 
-	static void AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* LevelPackage, FCallback* Handler)
+	static void AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* LevelPackage, EAsyncLoadingResult::Type Result, FCallback* Handler)
 	{
 		FCallback* Callback = Handler;
 		Callback->Manager->AsyncLoadCallback(Callback->Request);
