@@ -15,7 +15,15 @@ UGameplayCueNotify_Static::UGameplayCueNotify_Static(const FObjectInitializer& P
 #if WITH_EDITOR
 void UGameplayCueNotify_Static::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	UAbilitySystemGlobals::Get().GetGameplayCueManager()->bAccelerationMapOutdated = true;
+	const UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(GetClass());
+
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("GameplayCueTag")))
+	{
+		DeriveGameplayCueTagFromAssetName();
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleAssetDeleted(Blueprint);
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleAssetAdded(Blueprint);
+	}
 }
 #endif
 

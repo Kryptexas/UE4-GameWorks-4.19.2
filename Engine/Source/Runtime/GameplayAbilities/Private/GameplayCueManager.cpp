@@ -399,29 +399,25 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 /** Handles cleaning up an object library if it matches the passed in object */
 void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 {
-	FGameplayTag TagtoRemove;
+	FStringAssetReference StringRefToRemove;
 
 	UBlueprint* Blueprint = Cast<UBlueprint>(Object);
 	if (Blueprint && Blueprint->GeneratedClass)
 	{
-		AGameplayCueNotify_Actor* CDO = Cast<AGameplayCueNotify_Actor>(Blueprint->GeneratedClass->ClassDefaultObject);
-		if (CDO && CDO->GameplayCueTag.IsValid())
+		UGameplayCueNotify_Static* StaticCDO = Cast<UGameplayCueNotify_Static>(Blueprint->GeneratedClass->ClassDefaultObject);
+		AGameplayCueNotify_Actor* ActorCDO = Cast<AGameplayCueNotify_Actor>(Blueprint->GeneratedClass->ClassDefaultObject);
+		
+		if (StaticCDO || ActorCDO)
 		{
-			TagtoRemove = CDO->GameplayCueTag;
+			StringRefToRemove.AssetLongPathname = Blueprint->GetPathName();
 		}
 	}
 
-	AGameplayCueNotify_Actor* Notify = Cast<AGameplayCueNotify_Actor>(Object);
-	if (Notify && Notify->GameplayCueTag.IsValid())
-	{
-		TagtoRemove = Notify->GameplayCueTag;
-	}
-
-	if (TagtoRemove.IsValid())
+	if (StringRefToRemove.IsValid())
 	{
 		for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
 		{
-			if (GameplayCueData[idx].GameplayCueTag == TagtoRemove)
+			if (GameplayCueData[idx].GameplayCueNotifyObj == StringRefToRemove)
 			{
 				GameplayCueData.RemoveAt(idx);
 				BuildAccelerationMap_Internal();
