@@ -182,18 +182,20 @@ FCurlHttpManager::FCurlHttpManager()
 }
 
 // note that we cannot call parent implementation because lock might be possible non-multiple
-void FCurlHttpManager::AddRequest(TSharedRef<class IHttpRequest> Request)
+void FCurlHttpManager::AddRequest(const TSharedRef<class IHttpRequest>& Request)
 {
 	FScopeLock ScopeLock(&RequestLock);
 
-	Requests.AddUnique(Request);
+	Requests.Add(&Request.Get(), FActiveHttpRequest(FPlatformTime::Seconds(), Request));
 
 	FCurlHttpRequest* CurlRequest = static_cast< FCurlHttpRequest* >( &Request.Get() );
 	HandlesToRequests.Add(CurlRequest->GetEasyHandle(), Request);
+
+	
 }
 
 // note that we cannot call parent implementation because lock might be possible non-multiple
-void FCurlHttpManager::RemoveRequest(TSharedRef<class IHttpRequest> Request)
+void FCurlHttpManager::RemoveRequest(const TSharedRef<class IHttpRequest>& Request)
 {
 	FScopeLock ScopeLock(&RequestLock);
 
@@ -203,7 +205,13 @@ void FCurlHttpManager::RemoveRequest(TSharedRef<class IHttpRequest> Request)
 	FCurlHttpRequest* CurlRequest = static_cast< FCurlHttpRequest* >( &Request.Get() );
 	HandlesToRequests.Remove(CurlRequest->GetEasyHandle());
 
-	Requests.RemoveSingle(Request);
+	// add analytics info before removing the event
+	const FActiveHttpRequest* Found = Requests.Find(&Request.Get());
+	if (Found != NULL)
+	{
+		AddAnalytics(FPlatformTime::Seconds() - Found->StartTime, Request);
+	}
+	Requests.Remove(&Request.Get());
 }
 
 bool FCurlHttpManager::Tick(float DeltaSeconds)

@@ -14,7 +14,12 @@ public class HTTP : ModuleRules
 			}
             );
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "Core" });
+        PrivateDependencyModuleNames.AddRange(
+			new string[] { 
+				"Core",
+				"Analytics"
+			}
+			);
 
         if (Target.Platform == UnrealTargetPlatform.Win32 ||
             Target.Platform == UnrealTargetPlatform.Win64)
