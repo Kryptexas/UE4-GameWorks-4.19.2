@@ -90,11 +90,11 @@ void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* Vi
 
 UPaperTerrainComponent::UPaperTerrainComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bFilledSpline(true)
 	, TerrainColor(FLinearColor::White)
 	, ReparamStepsPerSegment(8)
 	, SpriteCollisionDomain(ESpriteCollisionMode::Use3DPhysics)
 	, CollisionThickness(200.0f)
-	, bFilledSpline(true)
 {
 	bCanEverAffectNavigation = true;
 
