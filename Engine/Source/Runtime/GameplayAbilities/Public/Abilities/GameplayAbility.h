@@ -73,8 +73,17 @@ struct FAbilityTriggerData
 {
 	GENERATED_USTRUCT_BODY()
 
+	FAbilityTriggerData() 
+	: TriggerSource(EGameplayAbilityTriggerSource::GameplayEvent)
+	{}
+
+	/** The tag to respond to */
 	UPROPERTY(EditAnywhere, Category=TriggerData)
 	FGameplayTag TriggerTag;
+
+	/** The type of trigger to respond to */
+	UPROPERTY(EditAnywhere, Category=TriggerData)
+	TEnumAsByte<EGameplayAbilityTriggerSource::Type> TriggerSource;
 };
 
 /**

@@ -298,15 +298,28 @@ void UAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& Spec)
 	{
 		FGameplayTag EventTag = TriggerData.TriggerTag;
 
-		if (GameplayEventTriggeredAbilities.Contains(EventTag))
+		auto& TriggeredAbilityMap = (TriggerData.TriggerSource == EGameplayAbilityTriggerSource::GameplayEvent) ? GameplayEventTriggeredAbilities : OwnedTagTriggeredAbilities;
+
+		if (TriggeredAbilityMap.Contains(EventTag))
 		{
-			GameplayEventTriggeredAbilities[EventTag].AddUnique(Spec.Handle);	// Fixme: is this right? Do we want to trigger the ability directly of the spec?
+			TriggeredAbilityMap[EventTag].AddUnique(Spec.Handle);	// Fixme: is this right? Do we want to trigger the ability directly of the spec?
 		}
 		else
 		{
 			TArray<FGameplayAbilitySpecHandle> Triggers;
 			Triggers.Add(Spec.Handle);
-			GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
+			TriggeredAbilityMap.Add(EventTag, Triggers);
+		}
+
+		if (TriggerData.TriggerSource != EGameplayAbilityTriggerSource::GameplayEvent)
+		{
+			FOnGameplayEffectTagCountChanged& CountChangedEvent = RegisterGameplayTagEvent(EventTag);
+			// Add a change callback if it isn't on it already
+
+			if (!CountChangedEvent.IsBoundToObject(this))
+			{
+				CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
+			}
 		}
 	}
 
@@ -355,6 +368,36 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 			}
 		}
 		
+		// We leave around the empty trigger stub, it's likely to be added again
+	}
+
+	for (auto& Triggered : OwnedTagTriggeredAbilities)
+	{
+		bool bRemovedTrigger = false;
+		// Make sure all triggered abilities still exist, if not remove
+		for (int32 i = 0; i < Triggered.Value.Num(); i++)
+		{
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Triggered.Value[i]);
+
+			if (!Spec)
+			{
+				Triggered.Value.RemoveAt(i);
+				i--;
+				bRemovedTrigger = true;
+			}
+		}
+		
+		if (bRemovedTrigger && Triggered.Value.Num() == 0)
+		{
+			// If we removed all triggers, remove the callback
+			FOnGameplayEffectTagCountChanged& CountChangedEvent = RegisterGameplayTagEvent(Triggered.Key);
+		
+			if (CountChangedEvent.IsBoundToObject(this))
+			{
+				CountChangedEvent.RemoveUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
+			}
+		}
+
 		// We leave around the empty trigger stub, it's likely to be added again
 	}
 }
@@ -463,8 +506,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 
 void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithTags, const FGameplayTagContainer* WithoutTags, UGameplayAbility* Ignore)
 {
-	FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
-	FGameplayAbilityActivationInfo ActivationInfo;
+	
 
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
@@ -478,26 +520,34 @@ void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithT
 
 		if (Spec.IsActive() && Spec.Ability && WithTagPass && WithoutTagPass)
 		{
-			if (Spec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
-			{
-				// We need to cancel spawned instance, not the CDO
-				TArray<UGameplayAbility*> AbilitiesToCancel = Spec.GetAbilityInstances();
-				for (UGameplayAbility* InstanceAbility : AbilitiesToCancel)
-				{
-					if (InstanceAbility && Ignore != InstanceAbility)
-					{
-						InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
-					}
-				}
-			}
-			else
-			{
-				// Try to cancel the non instanced, this may not necessarily work
-				Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
-			}
-			MarkAbilitySpecDirty(Spec);
+			CancelAbilitySpec(Spec, Ignore);
 		}
 	}
+}
+
+void UAbilitySystemComponent::CancelAbilitySpec(FGameplayAbilitySpec& Spec, UGameplayAbility* Ignore)
+{
+	FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
+	FGameplayAbilityActivationInfo ActivationInfo;
+
+	if (Spec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+	{
+		// We need to cancel spawned instance, not the CDO
+		TArray<UGameplayAbility*> AbilitiesToCancel = Spec.GetAbilityInstances();
+		for (UGameplayAbility* InstanceAbility : AbilitiesToCancel)
+		{
+			if (InstanceAbility && Ignore != InstanceAbility)
+			{
+				InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
+			}
+		}
+	}
+	else
+	{
+		// Try to cancel the non instanced, this may not necessarily work
+		Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
+	}
+	MarkAbilitySpecDirty(Spec);
 }
 
 void UAbilitySystemComponent::ApplyAbilityBlockAndCancelTags(const FGameplayTagContainer& AbilityTags, UGameplayAbility* RequestingAbility, bool bEnableBlockTags, const FGameplayTagContainer& BlockTags, bool bExecuteCancelTags, const FGameplayTagContainer& CancelTags)
@@ -1213,6 +1263,46 @@ int32 UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, const 
 	}
 
 	return TriggeredCount;
+}
+
+void UAbilitySystemComponent::MonitoredTagChanged(const FGameplayTag Tag, int32 NewCount)
+{
+	int32 TriggeredCount = 0;
+	if (OwnedTagTriggeredAbilities.Contains(Tag))
+	{
+		TArray<FGameplayAbilitySpecHandle> TriggeredAbilityHandles = OwnedTagTriggeredAbilities[Tag];
+
+		for (auto AbilityHandle : TriggeredAbilityHandles)
+		{
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
+
+			if (!Spec)
+			{
+				return;
+			}
+
+			for (const FAbilityTriggerData& TriggerData : Spec->Ability->AbilityTriggers)
+			{
+				FGameplayTag EventTag = TriggerData.TriggerTag;
+
+				if (EventTag == Tag)
+				{
+					if (NewCount > 0)
+					{
+						// Try to activate it
+						TryActivateAbility(Spec->Handle, FPredictionKey());
+
+						// TODO: Check client/server type
+					}
+					else if (NewCount == 0 && TriggerData.TriggerSource == EGameplayAbilityTriggerSource::OwnedTagPresent)
+					{
+						// Try to cancel, but only if the type is right
+						CancelAbilitySpec(*Spec, nullptr);
+					}
+				}
+			}
+		}
+	}
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------

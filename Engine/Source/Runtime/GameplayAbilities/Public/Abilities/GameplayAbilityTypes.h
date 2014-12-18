@@ -95,6 +95,25 @@ namespace EGameplayAbilityActivationMode
 	};
 }
 
+UENUM(BlueprintType)
+namespace EGameplayAbilityTriggerSource
+{
+	/**	Defines what type of trigger will activate the ability, paired to a tag */
+
+	enum Type
+	{
+		// Triggered from a gameplay event, will come with payload
+		GameplayEvent,
+
+		// Triggered if the ability's owner gets a tag added, triggered once whenever it's added
+		OwnedTagAdded,
+
+		// Triggered if the ability's owner gets tag added, removed when the tag is removed
+		OwnedTagPresent,
+	};
+}
+
+
 // ----------------------------------------------------
 
 USTRUCT(BlueprintType)
