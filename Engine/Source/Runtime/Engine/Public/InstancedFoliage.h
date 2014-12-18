@@ -165,9 +165,6 @@ struct FFoliageMeshInfo
 	// Transient, editor-only set of instances per component
 	TMap<UActorComponent*, FFoliageComponentHashInfo> ComponentHash;
 
-	// Transient, editor-only set of instances per spawner
-	TMap<UActorComponent*, FFoliageComponentHashInfo> SpawnerHash;
-
 	// Transient, editor-only list of selected instances.
 	TSet<int32> SelectedIndices;
 #endif
