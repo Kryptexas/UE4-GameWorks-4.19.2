@@ -483,6 +483,9 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// Setup "allow keyframe text selection" preference
 	GConfig->GetBool( TEXT("Matinee"), TEXT("AllowKeyframeTextSelection"), bAllowKeyframeTextSelection, GEditorUserSettingsIni );
 
+	bInvertPan = true;
+	GConfig->GetBool( TEXT("Matinee"), TEXT("InterpEdPanInvert"), bInvertPan, GEditorUserSettingsIni );
+
 	// Setup "lock camera pitch" preference
 	GetLockCameraPitchFromConfig();
 

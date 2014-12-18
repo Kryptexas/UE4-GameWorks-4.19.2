@@ -1119,6 +1119,7 @@ public:
 	/** If true, the editor is modifying a CameraAnim, and functionality is tweaked appropriately */
 	bool	bEditingCameraAnim;
 
+	bool bInvertPan;
 	// Static list of all InterpTrack subclasses.
 	static TArray<UClass*>	InterpTrackClasses;
 	static bool			bInterpTrackClassesInitialized;

@@ -76,8 +76,7 @@ void FEditorModeTools::LoadConfig(void)
 		GEditorUserSettingsIni);
 	SetCoordSystem((ECoordSystem)Bogus);
 
-	
-	GConfig->GetBool( TEXT("UnEdViewport"), TEXT("InterpEdPanInvert"), bInterpPanInverted, GEditorUserSettingsIni );
+
 	LoadWidgetSettings();
 }
 
@@ -92,8 +91,6 @@ void FEditorModeTools::SaveConfig(void)
 	const bool bGetRawValue = true;
 	GConfig->SetInt(TEXT("FEditorModeTools"),TEXT("CoordSystem"),(int32)GetCoordSystem(bGetRawValue),
 		GEditorUserSettingsIni);
-
-	GConfig->SetBool( TEXT("UnEdViewport"), TEXT("InterpEdPanInvert"), bInterpPanInverted, GEditorUserSettingsIni );
 
 	SaveWidgetSettings();
 }

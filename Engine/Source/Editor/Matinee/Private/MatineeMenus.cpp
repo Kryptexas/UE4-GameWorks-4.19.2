@@ -4225,16 +4225,14 @@ void FMatinee::OnMenuReduceKeys()
 /** Toggles interting of the panning the interp editor left and right */
 void FMatinee::OnToggleInvertPan()
 {
-	bool bInvertPan = GLevelEditorModeTools().GetInterpPanInvert();
-
 	bInvertPan = !bInvertPan;
 
-	GLevelEditorModeTools().SetInterpPanInvert(bInvertPan);
+	GConfig->SetBool(TEXT("Matinee"), TEXT("InterpEdPanInvert"), bInvertPan, GEditorUserSettingsIni);
 }
 
 bool FMatinee::IsInvertPanToggled()
 {
-	return GLevelEditorModeTools().GetInterpPanInvert();	
+	return bInvertPan;
 }
 
 /** Called when split translation and rotation is selected from a movement track context menu */
