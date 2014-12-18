@@ -385,8 +385,8 @@ public:
 	/** Saves out cached mesh settings for the given actor */
 	void SaveSettingsForActor( AActor* InActor );
 
-	/** Updates static Mesh with settings for updated textures*/
-	void UpdateSettingsForStaticMeshComponent( UStaticMeshComponent* InStaticMeshComponent, UTexture2D* InOldTexture, UTexture2D* InNewTexture );
+	/** Updates settings for the specified component with updated textures */
+	void UpdateSettingsForMeshComponent( UMeshComponent* InMeshComponent, UTexture2D* InOldTexture, UTexture2D* InNewTexture );
 
 	/** Helper function to get the current paint action for use in DoPaint */
 	EMeshPaintAction::Type GetPaintAction(FViewport* InViewport);
@@ -486,7 +486,7 @@ public:
 	void CommitAllPaintedTextures();
 
 	/** Clears all texture overrides for this component. */
-	void ClearStaticMeshTextureOverrides(UMeshComponent* InMeshComponent);
+	void ClearMeshTextureOverrides(UMeshComponent* InMeshComponent);
 
 	/** Clears all texture overrides, removing any pending texture paint changes */
 	void ClearAllTextureOverrides();
@@ -726,8 +726,8 @@ private:
 	/** Caches the currently selected actors info into CurrentlySelectedActorsMaterialInfo */
 	void CacheActorInfo();
 
-	/** Returns valid StaticMesheComponents in the current selection */
-	TArray<UStaticMeshComponent*> GetValidStaticMeshComponents() const;
+	/** Returns valid MeshComponents in the current selection */
+	TArray<UMeshComponent*> GetSelectedMeshComponents() const;
 private:
 
 	/** Whether we're currently painting */
@@ -785,13 +785,13 @@ private:
 	 * @param	StaticMeshComponent		The SMC to remove vertex colors from.
 	 * @param	InstanceMeshLODInfo		The instance's LODInfo which stores the painted information to be cleared.
 	 */
-	void RemoveInstanceVertexColorsWorker(UStaticMeshComponent *StaticMeshComponent, FStaticMeshComponentLODInfo *InstanceMeshLODInfo) const;
+	void RemoveInstanceVertexColorsWorker(UStaticMeshComponent* StaticMeshComponent, FStaticMeshComponentLODInfo *InstanceMeshLODInfo) const;
 
 	/** Texture paint: Will hold a list of texture items that we can paint on */
 	TArray<FTextureTargetListInfo> TexturePaintTargetList;
 
 	/** Map of settings for each StaticMeshComponent */
-	TMap< UStaticMeshComponent*, StaticMeshSettings > StaticMeshSettingsMap;
+	TMap< UMeshComponent*, StaticMeshSettings > StaticMeshSettingsMap;
 
 	/** Used to store a flag that will tell the tick function to restore data to our rendertargets after they have been invalidated by a viewport resize. */
 	bool bDoRestoreRenTargets;
