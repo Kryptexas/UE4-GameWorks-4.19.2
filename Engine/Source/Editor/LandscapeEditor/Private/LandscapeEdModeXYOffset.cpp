@@ -17,7 +17,7 @@ namespace
 {
 	FORCEINLINE FVector4 GetWorldPos(const FMatrix& LocalToWorld, FVector2D LocalXY, uint16 Height, FVector2D XYOffset)
 	{
-		return LocalToWorld.TransformPosition(FVector(LocalXY.X + XYOffset.X, LocalXY.Y + XYOffset.Y, ((float)Height - 32768.f) * LANDSCAPE_ZSCALE));
+		return LocalToWorld.TransformPosition(FVector(LocalXY.X + XYOffset.X, LocalXY.Y + XYOffset.Y, ((float)Height - 32768.0f) * LANDSCAPE_ZSCALE));
 	}
 
 	FORCEINLINE FVector4 GetWorldPos(const FMatrix& LocalToWorld, FVector2D LocalXY, FVector XYOffsetVector)
@@ -67,27 +67,31 @@ public:
 		}
 
 		// Get list of verts to update
-		TMap<FIntPoint, float> BrushInfo;
-		int32 X1, Y1, X2, Y2;
-		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+		// TODO - only retrieve bounds as we don't need the data
+		// or use the brush data?
+		FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+		if (!BrushInfo)
 		{
 			return;
 		}
+
+		int32 X1, Y1, X2, Y2;
+		BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
 
 		//LandscapeInfo->Modify();
 		//LandscapeInfo->LandscapeProxy->Modify();
 
 		FVector DrawScale3D = LandscapeInfo->DrawScale;
 		// Tablet pressure
-		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
 		/*
-				X1 -= 1;
-				Y1 -= 1;
-				X2 += 1;
-				Y2 += 1;
-				*/
+			X1 -= 1;
+			Y1 -= 1;
+			X2 += 1;
+			Y2 += 1;
+		*/
 		{
 			int32 ValidX1, ValidX2, ValidY1, ValidY2;
 			ValidX1 = ValidY1 = INT_MAX;
@@ -124,7 +128,7 @@ public:
 			return;
 		}
 
-		const float AreaResolution = LANDSCAPE_XYOFFSET_SCALE; //1.f/256.f;
+		const float AreaResolution = LANDSCAPE_XYOFFSET_SCALE; //1.0f/256.0f;
 
 		Cache.CacheData(X1, Y1, X2, Y2);
 
@@ -136,7 +140,7 @@ public:
 		// Retopologize algorithm...
 		{
 			// Calculate surface world space area without missing area...
-			float TotalArea = 0.f;
+			float TotalArea = 0.0f;
 			int32 QuadNum = 0;
 			const int32 MaxIterNum = 300;
 
@@ -236,17 +240,17 @@ public:
 
 				float AverageArea = RemainArea / RemainQuads;
 				float AreaBaseError = AverageArea * 0.5f;
-				float TotalLineArea = 0.f;
+				float TotalLineArea = 0.0f;
 				float TargetLineArea = AverageArea * QuadY[Y - Y1];
 				float YOffset = Y + 1, PreYOffset = Y + 1; // Need to be bigger than previous Y
 				float StepSize = FPlatformMath::Sqrt(2) * 0.25f;
 				float LineAreaDiff = FLT_MAX; //Abs(TotalLineArea - TargetLineArea);
 				int32 IterNum = 0;
-				float TotalHeightError = 0.f;
+				float TotalHeightError = 0.0f;
 
 				while (NewXYOffset[(Y - Y1) * (X2 - X1 + 1)].Y + Y > XYOffsetVectorData[(FPlatformMath::FloorToInt(YOffset) - Y1) * (X2 - X1 + 1)].Y + FPlatformMath::FloorToInt(YOffset))
 				{
-					YOffset = YOffset + 1.f;
+					YOffset = YOffset + 1.0f;
 					if (YOffset >= Y2)
 					{
 						YOffset = Y2;
@@ -258,8 +262,8 @@ public:
 				while (FMath::Abs(TotalLineArea - TargetLineArea) > AreaErrorThreshold)
 				{
 					IterNum++;
-					TotalLineArea = 0.f;
-					TotalHeightError = 0.f;
+					TotalLineArea = 0.0f;
+					TotalHeightError = 0.0f;
 					//for (int32 X = X1; X < X2; ++X)
 					for (int32 X = MinX[Y - Y1]; X < MaxX[Y - Y1]; ++X)
 					{
@@ -383,17 +387,17 @@ public:
 
 				float AverageArea = RemainArea / RemainQuads;
 				float AreaBaseError = AverageArea * 0.5f;
-				float TotalLineArea = 0.f;
+				float TotalLineArea = 0.0f;
 				float TargetLineArea = AverageArea * QuadX[X - X1];
 				float XOffset = X + 1, PreXOffset = X + 1; // Need to be bigger than previous Y
 				float StepSize = FMath::Sqrt(2) * 0.25f;
 				float LineAreaDiff = FLT_MAX; // Abs(TotalLineArea - TargetLineArea);
 				int32 IterNum = 0;
-				float TotalHeightError = 0.f;
+				float TotalHeightError = 0.0f;
 
 				while (NewXYOffset[X - X1].X + X > NewYOffsets[FMath::FloorToInt(XOffset) - X1].X + FMath::FloorToFloat(XOffset))
 				{
-					XOffset = XOffset + 1.f;
+					XOffset = XOffset + 1.0f;
 					if (XOffset >= X2)
 					{
 						XOffset = X2;
@@ -404,7 +408,7 @@ public:
 
 				while (FMath::Abs(TotalLineArea - TargetLineArea) > AreaErrorThreshold)
 				{
-					TotalLineArea = 0.f;
+					TotalLineArea = 0.0f;
 					IterNum++;
 					for (int32 Y = MinY[X - X1]; Y < MaxY[X - X1]; ++Y)
 					{
@@ -527,9 +531,9 @@ public:
 				FVector2D TransformedLocal(FMath::Abs(X - W * 0.5f), FMath::Abs(Y - H * 0.5f) * (W / H));
 				float Cos = FMath::Abs(TransformedLocal.X) / TransformedLocal.Size();
 				float Sin = FMath::Abs(TransformedLocal.Y) / TransformedLocal.Size();
-				float RatioX = FalloffRadius > 0.f ? 1.f - FMath::Clamp((FMath::Abs(TransformedLocal.X) - Cos*SquareRadius) / FalloffRadius, 0.f, 1.f) : 1.f;
-				float RatioY = FalloffRadius > 0.f ? 1.f - FMath::Clamp((FMath::Abs(TransformedLocal.Y) - Sin*SquareRadius) / FalloffRadius, 0.f, 1.f) : 1.f;
-				float Ratio = TransformedLocal.Size() > SquareRadius ? RatioX * RatioY : 1.f; //TransformedLocal.X / LW * TransformedLocal.Y / LW;
+				float RatioX = FalloffRadius > 0.0f ? 1.0f - FMath::Clamp((FMath::Abs(TransformedLocal.X) - Cos*SquareRadius) / FalloffRadius, 0.0f, 1.0f) : 1.0f;
+				float RatioY = FalloffRadius > 0.0f ? 1.0f - FMath::Clamp((FMath::Abs(TransformedLocal.Y) - Sin*SquareRadius) / FalloffRadius, 0.0f, 1.0f) : 1.0f;
+				float Ratio = TransformedLocal.Size() > SquareRadius ? RatioX * RatioY : 1.0f; //TransformedLocal.X / LW * TransformedLocal.Y / LW;
 				float PaintAmount = Ratio*Ratio*(3 - 2 * Ratio);
 
 				XYOffsetVectorData[Index] = FMath::Lerp(XYOffsetVectorData[Index], NewXYOffset[Index], PaintAmount);

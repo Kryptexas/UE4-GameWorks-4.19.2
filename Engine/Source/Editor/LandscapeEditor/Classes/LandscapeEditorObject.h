@@ -251,9 +251,10 @@ class ULandscapeEditorObject : public UObject
 
 	// Smooth Tool:
 
-	// Scale multiplier for the smoothing filter kernel
-	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Filter Kernel Scale", ShowForTools="Smooth", ClampMin="0", ClampMax="1", UIMin="0", UIMax="1"))
-	float SmoothFilterKernelScale;
+	// The radius smoothing is performed over
+	// Higher values smooth out bigger details, lower values only smooth out smaller details
+	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Filter Kernel Radius", ShowForTools="Smooth", ClampMin="1", ClampMax="31", UIMin="0", UIMax="7"))
+	int32 SmoothFilterKernelSize;
 
 	// If checked, performs a detail preserving smooth using the specified detail smoothing value
 	UPROPERTY(NonTransactional)
