@@ -747,6 +747,9 @@ protected:
 	/** Callback that is called when an owned tag bound to an ability changes */
 	virtual void MonitoredTagChanged(const FGameplayTag Tag, int32 NewCount);
 
+	/** Returns true if the specified ability should be activated from an event in this network mode */
+	bool HasNetworkAuthorityToActivateTriggeredAbility(const FGameplayAbilitySpec &Spec) const;
+
 	// -----------------------------------------------------------------------------
 public:
 

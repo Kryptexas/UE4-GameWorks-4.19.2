@@ -75,6 +75,11 @@ bool FGameplayAbilityActorInfo::IsLocallyControlled() const
 	{
 		return PlayerController->IsLocalController();
 	}
+	else if (IsNetAuthority())
+	{
+		// Non-players are always locally controlled on the server
+		return true;
+	}
 
 	return false;
 }

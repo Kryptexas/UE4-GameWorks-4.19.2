@@ -345,7 +345,12 @@ void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
 		else
 		{
 			// Ability isn't active, but still needs to be destroyed
-			Instance->MarkPendingKill();
+			if (GetOwnerRole() == ROLE_Authority || Instance->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNo)
+			{
+				// Only destroy if we're the server or this isn't replicated. Can't destroy on the client or replication will fail when it replicates the end state
+				AllReplicatedInstancedAbilities.Remove(Instance);
+				Instance->MarkPendingKill();
+			}
 		}
 	}
 	Spec.ReplicatedInstances.Empty();
@@ -399,6 +404,17 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 		}
 
 		// We leave around the empty trigger stub, it's likely to be added again
+	}
+
+	for (int32 i = 0; i < AllReplicatedInstancedAbilities.Num(); i++)
+	{
+		UGameplayAbility* Ability = AllReplicatedInstancedAbilities[i];
+
+		if (!Ability || Ability->IsPendingKill())
+		{
+			AllReplicatedInstancedAbilities.RemoveAt(i);
+			i--;
+		}
 	}
 }
 
@@ -506,8 +522,6 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 
 void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithTags, const FGameplayTagContainer* WithoutTags, UGameplayAbility* Ignore)
 {
-	
-
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
 		if (!Spec.Ability)
@@ -680,11 +694,26 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	ENetRole NetMode = ActorInfo->AvatarActor->Role;
 	ensure(NetMode != ROLE_SimulatedProxy);
 
+	bool bIsLocal = AbilityActorInfo->IsLocallyControlled();
+
 	UGameplayAbility* Ability = Spec->Ability;
 
 	if (!Ability)
 	{
 		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Ability"));
+		return false;
+	}
+
+	// Check to see if this a local only or server only ability, if so don't execute
+	if (!bIsLocal && Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalOnly)
+	{
+		ABILITY_LOG(Warning, TEXT("Can't activate LocalOnly ability %s when not local!"), *Ability->GetName());
+		return false;
+	}
+
+	if (NetMode != ROLE_Authority && Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly)
+	{
+		ABILITY_LOG(Warning, TEXT("Can't activate ServerOnly ability %s when not the server!"), *Ability->GetName());
 		return false;
 	}
 
@@ -758,8 +787,8 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->OwnerActor.Get());
 	FGameplayAbilityActivationInfo &ActivationInfo = Spec->ActivationInfo;
 
-	// If we are the server or this is a client authoritative 
-	if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Client || (NetMode == ROLE_Authority))
+	// If we are the server or this is local only
+	if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalOnly || (NetMode == ROLE_Authority))
 	{
 		if (InPredictionKey.IsValidKey())
 		{
@@ -781,9 +810,20 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		{
 			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
 		}
+
+		// Tell the client that you activated it if we're not local and not server only
+		if (!bIsLocal && Ability->GetNetExecutionPolicy() != EGameplayAbilityNetExecutionPolicy::ServerOnly)
+		{
+			// TODO: Add support for "Server prediction keys"
+			ClientActivateAbilitySucceed(Handle, InPredictionKey.Current);
+
+			// This will get copied into the instanced abilities
+			ActivationInfo.bCanBeEndedByOtherInstance = Ability->bServerRespectsRemoteAbilityCancellation;;
+		}
 	}
-	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Server)
+	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
 	{
+		// Tell the server to start the ability, this will return to the client 
 		if (TriggerEventData)
 		{
 			ServerTryActivateAbilityWithEventData(Handle, Spec->InputPressed, FPredictionKey(), *TriggerEventData);
@@ -793,7 +833,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			ServerTryActivateAbility(Handle, Spec->InputPressed, FPredictionKey());
 		}
 	}
-	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive)
+	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)
 	{
 		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
 		FScopedPredictionWindow ScopedPredictionWindow(this, true);
@@ -950,13 +990,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	// Attempt to activate the ability (server side) and tell the client if it succeeded or failed.
 	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility, nullptr, TriggerEventData))
 	{
-		ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
-		//Client commands to end the ability that come in after this point are considered for this instance
-		if (InstancedAbility)
-		{
-			//Only applies to instanced abilities
-			InstancedAbility->CurrentActivationInfo.bCanBeEndedByOtherInstance = InstancedAbility->bServerRespectsRemoteAbilityCancellation;
-		}
+		// TryActivateAbility handles notifying the client of success
 	}
 	else
 	{
@@ -967,7 +1001,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 
 void UAbilitySystemComponent::ReplicateEndAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability)
 {
-	if (Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive || Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Server)
+	if (Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::LocalPredicted || Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
 	{
 		// Only replicate ending if policy is predictive
 		if (GetOwnerRole() == ROLE_Authority)
@@ -1073,7 +1107,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGamep
 	// Fixme: We need a better way to link up/reconcile predictive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.
 
-	if (AbilityToActivate->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
+	if (AbilityToActivate->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::LocalPredicted)
 	{
 		if (AbilityToActivate->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
 		{
@@ -1152,6 +1186,12 @@ bool UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 		return false;
 	}
 
+	if (!HasNetworkAuthorityToActivateTriggeredAbility(*Spec))
+	{
+		// The server or client will handle activating the trigger
+		return false;
+	}
+
 	// Make a temp copy of the payload, and copy the event tag into it
 	FGameplayEventData TempEventData = *Payload;
 	TempEventData.EventTag = EventTag;
@@ -1171,7 +1211,7 @@ bool UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 
 		// if we're the server and this is coming from a predicted event we should check if the client has already predicted it
 		if (ScopedPredictionKey.IsValidKey()
-			&& Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive
+			&& Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted
 			&& ActorInfo->OwnerActor->Role == ROLE_Authority)
 		{
 			bool bPendingClientAbilityFound = false;
@@ -1276,7 +1316,7 @@ void UAbilitySystemComponent::MonitoredTagChanged(const FGameplayTag Tag, int32 
 		{
 			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
 
-			if (!Spec)
+			if (!Spec || !HasNetworkAuthorityToActivateTriggeredAbility(*Spec))
 			{
 				return;
 			}
@@ -1303,6 +1343,24 @@ void UAbilitySystemComponent::MonitoredTagChanged(const FGameplayTag Tag, int32 
 			}
 		}
 	}
+}
+
+bool UAbilitySystemComponent::HasNetworkAuthorityToActivateTriggeredAbility(const FGameplayAbilitySpec &Spec) const
+{
+	bool bIsAuthority = IsOwnerActorAuthoritative();
+	bool bIsLocal = AbilityActorInfo->IsLocallyControlled();
+
+	switch (Spec.Ability->GetNetExecutionPolicy())
+	{
+	case EGameplayAbilityNetExecutionPolicy::LocalOnly:
+	case EGameplayAbilityNetExecutionPolicy::LocalPredicted:
+		return bIsLocal;
+	case EGameplayAbilityNetExecutionPolicy::ServerOnly:
+	case EGameplayAbilityNetExecutionPolicy::ServerInitiated:
+		return bIsAuthority;
+	}
+
+	return false;
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------

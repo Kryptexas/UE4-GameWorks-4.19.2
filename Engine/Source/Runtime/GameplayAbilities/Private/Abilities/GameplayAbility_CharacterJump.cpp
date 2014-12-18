@@ -12,7 +12,7 @@
 UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Predictive;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
 }
 

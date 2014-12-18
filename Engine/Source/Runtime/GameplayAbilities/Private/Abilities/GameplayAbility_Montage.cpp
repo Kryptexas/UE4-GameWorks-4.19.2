@@ -15,7 +15,7 @@ UGameplayAbility_Montage::UGameplayAbility_Montage(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 	PlayRate = 1.f;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Server;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 }
 
 void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

@@ -47,14 +47,17 @@ namespace EGameplayAbilityNetExecutionPolicy
 
 	enum Type
 	{
-		// Part of this ability runs predictively on the client.
-		Predictive		UMETA(DisplayName = "Predictive"),
+		// Part of this ability runs predictively on the local client if there is one
+		LocalPredicted		UMETA(DisplayName = "Local Predicted"),
 
-		// This ability must be OK'd by the server before doing anything on a client.
-		Server			UMETA(DisplayName = "Server"),
+		// This ability will only run on the client or server that has local control
+		LocalOnly			UMETA(DisplayName = "Local Only"),
 
-		// This ability runs as long the client says it does.
-		Client			UMETA(DisplayName = "Client"),
+		// This ability is initiated by the server, but will also run on the local client if one exists
+		ServerInitiated		UMETA(DisplayName = "Server Initiated"),
+
+		// This ability will only run on the server
+		ServerOnly			UMETA(DisplayName = "Server Only"),
 	};
 }
 
