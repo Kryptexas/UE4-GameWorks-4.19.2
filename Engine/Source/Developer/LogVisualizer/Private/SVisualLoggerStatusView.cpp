@@ -107,7 +107,7 @@ TSharedRef<ITableRow> SVisualLoggerStatusView::HandleGenerateLogStatus(TSharedPt
 		return SNew(STableRow<TSharedPtr<FLogStatusItem> >, OwnerTable)
 			[
 				SNew(STextBlock)
-				.Text(InItem->ItemText)
+				.Text(FText::FromString(InItem->ItemText))
 			];
 	}
 
@@ -116,21 +116,21 @@ TSharedRef<ITableRow> SVisualLoggerStatusView::HandleGenerateLogStatus(TSharedPt
 		[
 			SNew(SBorder)
 			.BorderImage(FLogVisualizerStyle::Get().GetBrush("NoBorder"))
-			.ToolTipText(TooltipText)
+			.ToolTipText(FText::FromString(TooltipText))
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(InItem->ItemText)
+					.Text(FText::FromString(InItem->ItemText))
 					.ColorAndOpacity(FColorList::Aquamarine)
 				]
 				+ SHorizontalBox::Slot()
 				.Padding(4.0f, 0, 0, 0)
 				[
 					SNew(STextBlock)
-					.Text(InItem->ValueText)
+					.Text(FText::FromString(InItem->ValueText))
 				]
 			]
 		];

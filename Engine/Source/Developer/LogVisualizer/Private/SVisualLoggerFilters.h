@@ -43,6 +43,7 @@ public:
 	void InvalidateCanvas();
 	void GraphFilterCategoryClicked(FName MenuCategory);
 	bool IsGraphFilterCategoryInUse(FName MenuCategory) const;
+	void OnFiltersChanged();
 
 	TSharedRef<SWidget> MakeGraphsFilterMenu();
 	void CreateFiltersMenuCategoryForGraph(FMenuBuilder& MenuBuilder, FName MenuCategory) const;
@@ -50,10 +51,9 @@ public:
 protected:
 	/** The horizontal box which contains all the filters */
 	TSharedPtr<SWrapBox> FilterBox;
-	TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface;
+	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	TArray<TSharedRef<SFilterWidget> > Filters;
 	TMap<FName, TArray<FSimpleGraphFilter> > GraphFilters;
-	FString FiltersSearchString;
 	TSharedPtr<SComboButton> GraphsFilterCombo;
 	FString GraphsFilter;
 	static FColor ColorPalette[];

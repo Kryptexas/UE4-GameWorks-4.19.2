@@ -34,16 +34,19 @@ public:
 	void OnFiltersSearchChanged(const FText& Filter);
 	void OnSearchSplitterResized();
 	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);
+	void OnChangedClassesFilter();
 
 	void GetTimelines(TArray<TSharedPtr<class STimeline> >&, bool bOnlySelectedOnes = false);
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
+	TSharedRef<SWidget> MakeClassesFilterMenu();
 
 protected:
-	TSharedPtr<struct IVisualLoggerInterface> VisualLoggerInterface;
+	TWeakPtr<struct IVisualLoggerInterface> VisualLoggerInterface;
 	TSharedPtr<class STimelinesContainer> TimelinesContainer;
 	TSharedPtr<class SSplitter> SearchSplitter;
 	TSharedPtr<class SScrollBox> ScrollBox;
 	TSharedPtr<class SSearchBox> SearchBox;
+	TSharedPtr<class SComboButton> ClassesComboButton;
 
 	FVisualLoggerEvents	VisualLoggerEvents;
 	float AnimationOutlinerFillPercentage;

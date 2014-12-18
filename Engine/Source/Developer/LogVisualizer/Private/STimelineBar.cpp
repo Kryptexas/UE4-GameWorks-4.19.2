@@ -43,7 +43,7 @@ FReply STimelineBar::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const
 {
 	auto &Entries = TimelineOwner.Pin()->GetEntries();
 	SnapScrubPosition(TimeSliderController->GetTimeSliderArgs().ScrubPosition.Get());
-	UWorld* World = VisualLoggerInterface->GetWorld();
+	UWorld* World = VisualLoggerInterface.Pin()->GetWorld();
 	if (World && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && Entries.IsValidIndex(CurrentItemIndex))
 	{
 		FVector CurrentLocation = Entries[CurrentItemIndex].Entry.Location;
@@ -233,7 +233,7 @@ void STimelineBar::SnapScrubPosition(float ScrubPosition)
 		if (CurrentItemIndex != BestItemIndex)
 		{
 			CurrentItemIndex = BestItemIndex;
-			VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[BestItemIndex]);
+			VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[BestItemIndex]);
 		}
 		TimeSliderController->CommitScrubPosition(CurrentTime, false);
 	}
@@ -248,7 +248,7 @@ void STimelineBar::SnapScrubPosition(int32 NewItemIndex)
 		if (CurrentItemIndex != NewItemIndex)
 		{
 			CurrentItemIndex = NewItemIndex;
-			VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[NewItemIndex]);
+			VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[NewItemIndex]);
 		}
 		TimeSliderController->CommitScrubPosition(CurrentTime, false);
 	}
@@ -440,7 +440,7 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		auto &Entries = TimelineOwner.Pin()->GetEntries();
 		if (BestItemIndex != CurrentItemIndex)
 		{
-			VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[BestItemIndex]);
+			VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[BestItemIndex]);
 		}
 
 		float CurrentTime = Entries[BestItemIndex].Entry.TimeStamp;

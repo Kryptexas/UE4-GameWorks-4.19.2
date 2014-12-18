@@ -23,7 +23,6 @@ public:
 protected:
 	TSharedPtr<SListView<TSharedPtr<struct FLogEntryItem> > > LogsLinesWidget;
 	TArray<TSharedPtr<struct FLogEntryItem> > LogEntryLines;
-	TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface;
+	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	FVisualLogDevice::FVisualLogEntryItem CurrentLogEntry;
-	FText FilterText;
 };

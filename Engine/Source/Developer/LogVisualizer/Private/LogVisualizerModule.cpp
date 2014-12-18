@@ -19,7 +19,7 @@ static const FName VisualLoggerTabName("VisualLogger");
 
 //DEFINE_LOG_CATEGORY(LogLogVisualizer);
 
-void FNewLogVisualizerModule::StartupModule()
+void FLogVisualizerModule::StartupModule()
 {
 	FLogVisualizerStyle::Initialize();
 
@@ -28,7 +28,7 @@ void FNewLogVisualizerModule::StartupModule()
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
 		VisualLoggerTabName, 
-		FOnSpawnTab::CreateRaw(this, &FNewLogVisualizerModule::SpawnLogVisualizerTab))
+		FOnSpawnTab::CreateRaw(this, &FLogVisualizerModule::SpawnLogVisualizerTab))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory())
 		.SetDisplayName(NSLOCTEXT("LogVisualizerApp", "TabTitle", "Visual Logger"))
 		.SetTooltipText(NSLOCTEXT("LogVisualizerApp", "TooltipText", "Opens Visual Logger tool."))
@@ -45,7 +45,7 @@ void FNewLogVisualizerModule::StartupModule()
 	}
 }
 
-void FNewLogVisualizerModule::ShutdownModule()
+void FLogVisualizerModule::ShutdownModule()
 {
 	FGlobalTabmanager::Get()->UnregisterTabSpawner(VisualLoggerTabName);
 	FVisualLoggerCommands::Unregister();
@@ -60,10 +60,10 @@ void FNewLogVisualizerModule::ShutdownModule()
 	FLogVisualizerStyle::Shutdown();
 }
 
-TSharedRef<SDockTab> FNewLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs)
+TSharedRef<SDockTab> FLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
-		.TabRole(ETabRole::MajorTab).OnTabClosed(SDockTab::FOnTabClosedCallback::CreateRaw(this, &FNewLogVisualizerModule::OnTabClosed));
+		.TabRole(ETabRole::MajorTab);
 
 	TSharedPtr<SWidget> TabContent;
 
@@ -74,41 +74,5 @@ TSharedRef<SDockTab> FNewLogVisualizerModule::SpawnLogVisualizerTab(const FSpawn
 	return MajorTab;
 }
 
-void FNewLogVisualizerModule::OnTabClosed(TSharedRef<SDockTab> DockTab)
-{
-	UWorld* World = NULL;
-#if WITH_EDITOR
-	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
-	if (GIsEditor && EEngine != NULL)
-	{
-		// lets use PlayWorld during PIE/Simulate and regular world from editor otherwise, to draw debug information
-		World = EEngine->PlayWorld != NULL ? EEngine->PlayWorld : EEngine->GetEditorWorldContext().World();
-
-	}
-	else 
-#endif
-	if (!GIsEditor)
-	{
-
-		World = GEngine->GetWorld();
-	}
-
-	TSharedRef<SVisualLogger> VisualLoggerTab = StaticCastSharedRef<SVisualLogger>(DockTab->GetContent());
-	VisualLoggerTab->OnTabLosed();
-
-	if (World == NULL)
-	{
-		World = GWorld;
-	}
-
-	if (World)
-	{
-		for (TActorIterator<AVisualLoggerRenderingActor> It(World); It; ++It)
-		{
-			World->DestroyActor(*It);
-		}
-	}
-}
-
-IMPLEMENT_MODULE(FNewLogVisualizerModule, LogVisualizer);
+IMPLEMENT_MODULE(FLogVisualizerModule, LogVisualizer);
 #undef LOCTEXT_NAMESPACE

@@ -367,13 +367,17 @@ void SVisualLoggerFilters::AddFilter(const FString& InFilterName)
 		SNew(SFilterWidget)
 		.FilterName(*InFilterName)
 		.ColorCategory(Color)
-		.OnFilterChanged(VisualLoggerInterface->GetVisualLoggerEvents().OnFiltersChanged)
+		.OnFilterChanged(SFilterWidget::FOnSimpleRequest::CreateRaw(this, &SVisualLoggerFilters::OnFiltersChanged))
 		//.OnRequestRemove(this, &SLogFilterList::RemoveFilter)
 		//.OnRequestDisableAll(this, &SLogFilterList::DisableAllFilters)
 		//.OnRequestRemoveAll(this, &SLogFilterList::RemoveAllFilters);
 		;
-	NewFilter->SetEnabled(true);
+
+	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+	TArray<FString> CurrentFilters = Settings->CurrentPresets.CategoryFilters;
+	NewFilter->SetEnabled(CurrentFilters.Num() == 0 || CurrentFilters.Find(InFilterName) != INDEX_NONE);
 	Filters.Add(NewFilter);
+	Settings->CurrentPresets.CategoryFilters = CurrentFilters;
 
 	FilterBox->AddSlot()
 		.Padding(2, 2)
@@ -382,6 +386,23 @@ void SVisualLoggerFilters::AddFilter(const FString& InFilterName)
 		];
 
 	GraphsFilterCombo->SetVisibility(GraphFilters.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
+}
+
+void SVisualLoggerFilters::OnFiltersChanged()
+{
+	TArray<FString> EnabledFilters;
+	for (TSharedRef<SFilterWidget> CurrentFilter : Filters)
+	{
+		if (CurrentFilter->IsEnabled())
+		{
+			EnabledFilters.AddUnique(CurrentFilter->GetFilterName().ToString());
+		}
+	}
+	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+	Settings->CurrentPresets.CategoryFilters = EnabledFilters;
+	Settings->SaveConfig();
+
+	VisualLoggerInterface.Pin()->GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
 }
 
 void SVisualLoggerFilters::AddFilter(const FString& GraphName, const FString& DataName)
@@ -396,6 +417,7 @@ void SVisualLoggerFilters::AddFilter(const FString& GraphName, const FString& Da
 bool SVisualLoggerFilters::IsFilterEnabled(const FString& InFilterName, TEnumAsByte<ELogVerbosity::Type> Verbosity)
 {
 	const ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+	FString FiltersSearchString = Settings->CurrentPresets.DataFilter;
 	const FName FilterName(*InFilterName);
 	for (int32 Index = 0; Index < Filters.Num(); ++Index)
 	{
@@ -427,7 +449,7 @@ bool SVisualLoggerFilters::IsFilterEnabled(const FString& InGraphName, const FSt
 
 void SVisualLoggerFilters::OnFiltersSearchChanged(const FText& Filter)
 {
-	FiltersSearchString = Filter.ToString();
+
 }
 
 #undef LOCTEXT_NAMESPACE

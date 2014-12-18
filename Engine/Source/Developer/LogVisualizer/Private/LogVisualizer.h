@@ -13,6 +13,8 @@
 /* Private includes
 *****************************************************************************/
 #include "VisualLogger/VisualLogger.h"
+#include "LogVisualizerSettings.h"
+#include "LogVisualizerSessionSettings.h"
 
 DECLARE_DELEGATE_OneParam(FOnItemSelectionChanged, const FVisualLogDevice::FVisualLogEntryItem&);
 DECLARE_DELEGATE_OneParam(FOnObjectSelectionChanged, TSharedPtr<class STimeline>);
@@ -44,8 +46,10 @@ struct IVisualLoggerInterface
 	const FVisualLoggerEvents& GetVisualLoggerEvents() { return VisualLoggerEvents; }
 	class FSequencerTimeSliderController* GetTimeSliderController() { return TimeSliderController.Get(); }
 	void SetTimeSliderController(TSharedPtr<class FSequencerTimeSliderController> InTimeSliderController) { TimeSliderController = InTimeSliderController; }
+	FFiltersPreset& GetFiltersPreset() { return FiltersPreset; }
 
 protected:
+	FFiltersPreset	FiltersPreset;
 	FVisualLoggerEvents VisualLoggerEvents;
 	TSharedPtr<class FSequencerTimeSliderController> TimeSliderController;
 };
@@ -60,5 +64,3 @@ protected:
 #include "SVisualLoggerLogsList.h"
 #include "SVisualLoggerStatusView.h"
 #include "STimeline.h"
-#include "LogVisualizerSettings.h"
-#include "LogVisualizerSessionSettings.h"

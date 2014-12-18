@@ -40,7 +40,7 @@ public:
 	public:
 		FVisualLoggerDevice(SVisualLogger* Owner);
 		virtual ~FVisualLoggerDevice();
-		virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
+		virtual void Serialize(const class UObject* LogOwner, FName OwnerName, FName OwnerClassName, const FVisualLogEntry& LogEntry) override;
 
 	protected:
 		SVisualLogger* Owner;
@@ -48,7 +48,9 @@ public:
 	friend class FVisualLogDevice;
 
 	TSharedRef<SDockTab> HandleTabManagerSpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier) const;
+	void FillFileMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager);
 	static void FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager);
+	void FillLoadPresetMenu(FMenuBuilder& Builder);
 
 	/** Callback for for when the owner tab's visual state is being persisted. */
 	void HandleMajorTabPersistVisualState();
@@ -89,6 +91,9 @@ public:
 
 	TSharedPtr<SVisualLoggerFilters> GetVisualLoggerFilters() { return VisualLoggerFilters; }
 	void HandleTabManagerPersistLayout(const TSharedRef<FTabManager::FLayout>& LayoutToSave);
+
+	void SetFiltersPreset(const struct FFiltersPreset& Preset);
+
 protected:
 	// Holds the list of UI commands.
 	TSharedRef<FUICommandList> CommandList;
@@ -102,6 +107,7 @@ protected:
 	TWeakObjectPtr<class AVisualLoggerCameraController> CameraController;
 	TSharedPtr<struct FVisualLoggerCanvasRenderer> VisualLoggerCanvasRenderer;
 	TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface;
+
 	mutable TSharedPtr<SVisualLoggerFilters> VisualLoggerFilters;
 	mutable TSharedPtr<SVisualLoggerView> MainView;
 	mutable TSharedPtr<SVisualLoggerLogsList> LogsList;

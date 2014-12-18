@@ -8,6 +8,27 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 
 #include "LogVisualizerSettings.generated.h"
 
+USTRUCT()
+struct FFiltersPreset
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config)
+	FString FilterName;
+
+	UPROPERTY(config)
+	FString ObjectNameFilter;
+
+	UPROPERTY(config)
+	FString DataFilter;
+
+	UPROPERTY(config)
+	TArray<FString> CategoryFilters;
+
+	UPROPERTY(config)
+	TArray<FString> SelectedClasses;
+};
+
 UCLASS(config = EditorUserSettings)
 class LOGVISUALIZER_API ULogVisualizerSettings : public UObject
 {
@@ -43,6 +64,19 @@ public:
 	/** Background color for 2d graphs visualization */
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	FColor GraphsBackgroundColor;
+
+	UPROPERTY(config)
+	TArray<FFiltersPreset> FilterPresets;
+
+
+	/**Whether to store all filter settings on exit*/
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bPresistentFilters;
+
+	UPROPERTY(config)
+	FFiltersPreset PresistentPresets;
+
+	FFiltersPreset CurrentPresets;
 
 	// UObject overrides
 #if WITH_EDITOR
