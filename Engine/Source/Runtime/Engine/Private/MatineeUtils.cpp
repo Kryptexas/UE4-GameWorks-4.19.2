@@ -44,7 +44,8 @@ protected:
 				// Is this property the desired type?
 				if (IsDesiredProperty(ClassMemberProperty))
 				{
-					const FString QualifiedFullPath = FString::Printf(TEXT("%s%s"), *Prefix, *ClassMemberProperty->GetName());
+					const FText DisplayName = ClassMemberProperty->GetDisplayNameText();
+					const FString QualifiedFullPath = FString::Printf(TEXT("%s (%s%s)"), *DisplayName.ToString(), *Prefix, *ClassMemberProperty->GetName());
 					GatheredPropertyPaths.Add(*QualifiedFullPath);
 				}
 
@@ -56,7 +57,8 @@ protected:
 						UProperty* StructMemberProperty = *StructFieldIt;
 						if (StructMemberProperty->HasAnyPropertyFlags(CPF_Interp) && IsDesiredProperty(StructMemberProperty))
 						{
-							const FString QualifiedFullPath = FString::Printf(TEXT("%s%s.%s"), *Prefix, *OuterStructProperty->GetName(), *StructMemberProperty->GetName());
+							const FText DisplayName = StructMemberProperty->GetDisplayNameText();
+							const FString QualifiedFullPath = FString::Printf(TEXT("%s (%s%s.%s)"), *DisplayName.ToString(), *Prefix, *OuterStructProperty->GetName(), *StructMemberProperty->GetName());
 							GatheredPropertyPaths.Add(*QualifiedFullPath);
 						}
 					}
