@@ -1830,7 +1830,9 @@ namespace UnrealBuildTool
             double BuildDuration = (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds;
             if (ExecutorName == "Local" || ExecutorName == "Distcc" || ExecutorName == "SNDBS")
             {
-                Log.TraceInformation("Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
+                Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+					TraceEventType.Information, 
+					"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
                     System.Environment.ProcessorCount,
                     TotalBuildProjectTime,
                     TotalCompileTime,
@@ -1850,7 +1852,7 @@ namespace UnrealBuildTool
                     "TotalOtherActionsThreadTimeSec", TotalOtherActionsTime.ToString("0.00")
                     );
 
-                Log.TraceInformation("UBT execution time: {0:0.00} seconds", BuildDuration);
+                Log.TraceInformation("Total build time: {0:0.00} seconds", BuildDuration);
 
                 // reset statistics
                 TotalBuildProjectTime = 0;

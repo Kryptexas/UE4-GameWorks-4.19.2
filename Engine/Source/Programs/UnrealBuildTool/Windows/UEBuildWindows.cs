@@ -59,11 +59,14 @@ namespace UnrealBuildTool
             }
         }
 
-        /// True if we are using "clang-cl" to compile instead of MSVC on Windows platform
+        /// True if we should use Clang/LLVM instead of MSVC to compile code on Windows platform
         public static readonly bool bCompileWithClang = false;
 
+        /// When using Clang, enabling enables the MSVC-like "clang-cl" wrapper, otherwise we pass arguments to Clang directly
+		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || true;
+
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
-		public static readonly bool bAllowClangLinker = false;
+		public static readonly bool bAllowClangLinker = bCompileWithClang && true;
 
         /// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
         /// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -324,7 +327,8 @@ namespace UnrealBuildTool
 
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
         {
-            // @todo clang: PCH files aren't quite working yet with "clang-cl" (no /Yc support, and "-x c++-header" cannot be specified)
+            // @todo clang: PCH files aren't supported by "clang-cl" yet (no /Yc support, and "-x c++-header" cannot be specified)
+			// @todo clang: PCH files with regular Clang on Windows have bugs with pack alignment and segfaults occasionally
             if( WindowsPlatform.bCompileWithClang )
             {
                 BuildConfiguration.bUsePCHFiles = false;
