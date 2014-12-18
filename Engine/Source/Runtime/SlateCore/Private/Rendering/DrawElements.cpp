@@ -11,7 +11,7 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	Layer = InLayer;
 	Scale = PaintGeometry.DrawScale;
 	DrawEffects = InDrawEffects;
-	extern TOptional<FShortRect> GSlateScissorRect;
+	extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 	ScissorRect = GSlateScissorRect;
 }
 

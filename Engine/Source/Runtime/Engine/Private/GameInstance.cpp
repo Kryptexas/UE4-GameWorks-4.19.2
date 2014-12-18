@@ -198,7 +198,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 			if (!LocalPlayer->SpawnPlayActor(URL.ToString(1), Error, PlayWorld))
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(NSLOCTEXT("UnrealEd", "Error_CouldntSpawnPlayer", "Couldn't spawn player: {0}"), FText::FromString(Error)));
-				return nullptr;
+				return false;
 			}
 		}
 

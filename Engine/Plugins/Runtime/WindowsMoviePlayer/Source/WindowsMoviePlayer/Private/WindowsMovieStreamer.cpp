@@ -25,9 +25,9 @@
 DEFINE_LOG_CATEGORY(LogWindowsMoviePlayer);
 
 FMediaFoundationMovieStreamer::FMediaFoundationMovieStreamer()
-	: VideoPlayer(NULL)
+	: TextureData()
+	, VideoPlayer(NULL)
 	, SampleGrabberCallback(NULL)
-	, TextureData()
 {
 	MovieViewport = MakeShareable(new FMovieViewport());
 }
