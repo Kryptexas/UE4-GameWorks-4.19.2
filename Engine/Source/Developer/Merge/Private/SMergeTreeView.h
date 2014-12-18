@@ -2,12 +2,9 @@
 #pragma once
 
 #include "BlueprintMergeData.h"
-#include "IDiffControl.h"
 #include "SCSDiff.h"
 
 class SMergeTreeView	: public SCompoundWidget
-						, public IDiffControl
-						, public IMergeControl
 {
 public:
 	virtual ~SMergeTreeView() {}
@@ -16,22 +13,15 @@ public:
 	{}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
+	void Construct(	const FArguments InArgs
+					, const FBlueprintMergeData& InData
+					, FOnMergeNodeSelected SelectionCallback
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutConflicts);
 private:
-	/** Implementation of IDiffControl: */
-	void NextDiff() override;
-	void PrevDiff() override;
-	bool HasNextDifference() const override;
-	bool HasPrevDifference() const override;
+	void HighlightDifference( FSCSIdentifier VarName, FPropertySoftPath Property );
 
-	/** Implementation of IMergeControl: */
-	void HighlightNextConflict() override;
-	void HighlightPrevConflict() override;
-	bool HasNextConflict() const override;
-	bool HasPrevConflict() const override;
-
-	void HighlightCurrentConflict();
-	void HighlightCurrentDifference();
 	FSCSDiff& GetRemoteView();
 	FSCSDiff& GetBaseView();
 	FSCSDiff& GetLocalView();

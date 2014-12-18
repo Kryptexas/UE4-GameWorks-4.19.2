@@ -54,9 +54,6 @@ struct KISMET_API FDiffPanel
 	/* Generate the 'MyBlueprint' widget, which is private to this module */
 	TSharedRef<SWidget> GenerateMyBlueprintPanel();
 
-	/*Get the title to show at the top of the panel*/
-	FString GetTitle() const;
-
 	/* Called when user hits keyboard shortcut to copy nodes*/
 	void CopySelectedNodes();
 
@@ -167,8 +164,7 @@ protected:
 	void ResetGraphEditors();
 
 	/*Get the image to show for the toggle lock option*/
-	FSlateIcon GetLockViewImage2() const;
-	const FSlateBrush* GetLockViewImage() const;
+	FSlateIcon GetLockViewImage() const;
 
 	/* This buffer stores the currently displayed results */
 	TArray< FGraphToDiff> Graphs;
@@ -220,6 +216,12 @@ protected:
 
 	/** Tree of differences collected across all panels: */
 	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > MasterDifferencesList;
+
+	/** List of all differences, cached so that we can iterate only the differences and not labels, etc: */
+	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > RealDifferences;
+
+	/** Tree view that displays the differences, cached for the buttons that iterate the differences: */
+	TSharedPtr< STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > > > DifferencesTreeView;
 
 	/** Stored references to widgets used to display various parts of a blueprint: */
 	FDiffControl GraphPanel;

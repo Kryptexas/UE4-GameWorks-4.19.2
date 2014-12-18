@@ -28,10 +28,11 @@ struct FBlueprintMergeData
 	)
 		: OwningEditor(		InOwningEditor		)
 		, BlueprintLocal(	InBlueprintLocal	)
+		, RevisionLocal(	FRevisionInfo::InvalidRevision())
 		, BlueprintBase(	InBlueprintBase		)
 		, RevisionBase(		InRevisionBase		)
 		, BlueprintRemote(	InBlueprintRemote	)
-		, RevisionRemote(		InRevisionRemote)
+		, RevisionRemote(	InRevisionRemote	)
 	{
 	}
 
@@ -59,11 +60,5 @@ namespace EMergeParticipant
 	};
 }
 
-class IMergeControl
-{
-public:
-	virtual void HighlightNextConflict() = 0;
-	virtual void HighlightPrevConflict() = 0;
-	virtual bool HasNextConflict() const = 0;
-	virtual bool HasPrevConflict() const = 0;
-};
+DECLARE_DELEGATE(FOnMergeNodeSelected);
+

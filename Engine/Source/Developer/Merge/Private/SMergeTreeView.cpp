@@ -4,7 +4,12 @@
 
 #include "SMergeTreeView.h"
 
-void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
+void SMergeTreeView::Construct(const FArguments InArgs
+	, const FBlueprintMergeData& InData
+	, FOnMergeNodeSelected SelectionCallback
+	, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
+	, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
+	, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutConflicts)
 {
 	Data = InData;
 	CurrentDifference = -1;
@@ -42,33 +47,13 @@ void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeDat
 	DifferingProperties = RemoteDifferingProperties;
 	DifferingProperties.Entries.Append( LocalDifferingProperties.Entries );
 
-	// Remove duplicates and detect conflicts, there is opportunity for performance improvement here, but I doubt this represents a 
-	// significant cost:
-	for( int32 Iter = 0; Iter != DifferingProperties.Entries.Num(); ++Iter )
+	struct FSCSDiffPair
 	{
-		const FSCSDiffEntry& IterEntry = DifferingProperties.Entries[Iter];
-		for( int32 Jter = Iter + 1; Jter < DifferingProperties.Entries.Num(); ++Jter )
-		{
-			const FSCSDiffEntry& JterEntry = DifferingProperties.Entries[Jter];
-			// If the change is to a specific property, then it's only a conflict if the other change
-			// is also to that same specific property. All 'whole object' (non property specific changes)
-			// are conflicting:
-			if( IterEntry.TreeIdentifier == JterEntry.TreeIdentifier &&
-				( ( IterEntry.PropertyIdentifier == JterEntry.PropertyIdentifier &&
-				  IterEntry.PropertyIdentifier != FPropertySoftPath() ) 
-				||
-				( ( IterEntry.PropertyIdentifier == FPropertySoftPath() ||
-					JterEntry.PropertyIdentifier == FPropertySoftPath() ) ) ))
-			{
-				// for now just flag it as a conflict:
-				MergeConflicts.Entries.Push( IterEntry );
-
-				// and remove the redundant difference:
-				DifferingProperties.Entries.RemoveAtSwap(Jter--);
-			}
-		}
-	}
-
+		const FSCSDiffEntry* Local;
+		const FSCSDiffEntry* Remote;
+	};
+	TArray < FSCSDiffPair > ConflictingDifferences;
+	
 	/* This predicate sorts the list of differing properties so that those that are 'earlier' in the tree appear first.
 		For example, if we get the following two trees back:
 			
@@ -80,7 +65,7 @@ void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeDat
 			D added at position (4, 2, 1)
 
 			the resulting list will be
-			C, B, aand D last: */
+			[C, B, D]: */
 	const auto SortTreePredicate = []( const FSCSDiffEntry& A, const FSCSDiffEntry& B )
 	{
 		int32 Idx = 0;
@@ -119,8 +104,138 @@ void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeDat
 		return A.DiffType < B.DiffType;
 	};
 
+	RemoteDifferingProperties.Entries.Sort(SortTreePredicate);
+	LocalDifferingProperties.Entries.Sort(SortTreePredicate);
+
+	const FText RemoteLabel = NSLOCTEXT("SMergeTreeView", "RemoteLabel", "Remote");
+	const FText LocalLabel = NSLOCTEXT("SMergeTreeView", "LocalLabel", "Local");
+
+	struct FSCSMergeEntry
+	{
+		FText Label;
+		FSCSIdentifier Identifier;
+		FPropertySoftPath PropertyIdentifier;
+		bool bConflicted;
+	};
+
+	TArray<FSCSMergeEntry> Entries;
+	bool bAnyConflict = false;
+	int RemoteIter = 0;
+	int LocalIter = 0;
+	while(	RemoteIter != RemoteDifferingProperties.Entries.Num() ||
+			LocalIter != LocalDifferingProperties.Entries.Num() )
+	{
+		if (RemoteIter != RemoteDifferingProperties.Entries.Num() &&
+			LocalIter != LocalDifferingProperties.Entries.Num())
+		{
+			// check for conflicts:
+			const FSCSDiffEntry& Remote = RemoteDifferingProperties.Entries[RemoteIter];
+			const FSCSDiffEntry& Local = LocalDifferingProperties.Entries[LocalIter];
+			if( Remote.TreeIdentifier == Local.TreeIdentifier)
+			{
+				bool bConflicting = true;
+
+				if( Remote.DiffType == ETreeDiffType::NODE_PROPERTY_CHANGED &&
+					Local.DiffType == ETreeDiffType::NODE_PROPERTY_CHANGED )
+				{
+					// conflict only if property changed is the same:
+					bConflicting = Remote.PropertyDiff.Identifier == Local.PropertyDiff.Identifier;
+				}
+
+				if( bConflicting )
+				{
+					bAnyConflict = true;
+
+					// create a tree entry that describes both the local and remote change..
+					Entries.Push( {FText::Format( NSLOCTEXT("SMergeTreeView", "ConflictIdentifier", "CONFLICT: {0} conflicts with {1}"), DiffViewUtils::SCSDiffMessage( Remote, RemoteLabel ), DiffViewUtils::SCSDiffMessage( Local, LocalLabel ) ),
+									Remote.TreeIdentifier,
+									Remote.DiffType == ETreeDiffType::NODE_PROPERTY_CHANGED ? Remote.PropertyDiff.Identifier : Local.PropertyDiff.Identifier,
+									true });
+
+					++RemoteIter;
+					++LocalIter;
+					continue;
+				}
+			}
+		}
+
+		// no possibility of conflict, advance the entry that has a 'lower' tree identifier, keeping in mind that tree identifier
+		// may be equal, and that in that case we need to use the property identifier as a tiebreaker:
+		const FSCSDiffEntry* Remote = RemoteIter != RemoteDifferingProperties.Entries.Num() ? &RemoteDifferingProperties.Entries[RemoteIter] : nullptr;
+		const FSCSDiffEntry* Local = LocalIter != LocalDifferingProperties.Entries.Num() ? &LocalDifferingProperties.Entries[LocalIter] : nullptr;
+
+		if( Local && ( !Remote || SortTreePredicate( *Local, *Remote ) ) )
+		{
+			Entries.Push( {	DiffViewUtils::SCSDiffMessage(*Local, LocalLabel),
+							Local->TreeIdentifier,
+							Local->PropertyDiff.Identifier,
+							false } );
+
+			++LocalIter;
+		}
+		else
+		{
+			Entries.Push( { DiffViewUtils::SCSDiffMessage(*Remote, RemoteLabel),
+							Remote->TreeIdentifier,
+							Remote->PropertyDiff.Identifier,
+							false });
+
+			++RemoteIter;
+		}
+	}
+
+	const auto CreateSCSMergeWidget = [](FSCSMergeEntry Entry) -> TSharedRef<SWidget>
+	{
+		return SNew(STextBlock)
+			.Text(Entry.Label)
+			.ColorAndOpacity(Entry.bConflicted ? DiffViewUtils::Conflicting() : DiffViewUtils::Differs());
+	};
+
+	const auto FocusSCSDifferenceEntry = [](FSCSMergeEntry Entry, SMergeTreeView* Parent, FOnMergeNodeSelected SelectionCallback)
+	{
+		SelectionCallback.ExecuteIfBound();
+		Parent->HighlightDifference(Entry.Identifier, Entry.PropertyIdentifier);
+	};
+	
+	TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> > Children;
+	for ( const auto& Difference : Entries )
+	{
+		auto Entry = TSharedPtr<FBlueprintDifferenceTreeEntry>(
+			new FBlueprintDifferenceTreeEntry(
+				FOnDiffEntryFocused::CreateStatic(FocusSCSDifferenceEntry, Difference, this, SelectionCallback)
+				, FGenerateDiffEntryWidget::CreateStatic(CreateSCSMergeWidget, Difference)
+				, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >()
+			)
+		);
+		Children.Push(Entry);
+		OutRealDifferences.Push(Entry);
+		if( Difference.bConflicted )
+		{
+			OutConflicts.Push(Entry);
+		}
+	}
 
 	DifferingProperties.Entries.Sort(SortTreePredicate);
+
+	const auto ForwardSelection = [](FOnMergeNodeSelected SelectionCallback)
+	{
+		// This allows the owning control to focus the correct tab (or do whatever else it likes):
+		SelectionCallback.ExecuteIfBound();
+	};
+
+	const bool bHasDiffferences = Children.Num() != 0;
+	if( !bHasDiffferences )
+	{
+		Children.Push( FBlueprintDifferenceTreeEntry::NoDifferencesEntry() );
+	}
+
+	TSharedPtr<FBlueprintDifferenceTreeEntry> Category = FBlueprintDifferenceTreeEntry::CreateComponentsCategoryEntryForMerge(
+		FOnDiffEntryFocused::CreateStatic(ForwardSelection, SelectionCallback)
+		, Children
+		, RemoteDifferingProperties.Entries.Num() != 0
+		, LocalDifferingProperties.Entries.Num() != 0
+		, bAnyConflict);
+	OutTreeEntries.Push(Category);
 
 	ChildSlot[
 		SNew(SSplitter)
@@ -139,75 +254,11 @@ void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeDat
 	];
 }
 
-void SMergeTreeView::NextDiff()
+void SMergeTreeView::HighlightDifference(FSCSIdentifier TreeIdentifier, FPropertySoftPath Property)
 {
-	++CurrentDifference;
-	HighlightCurrentDifference();
-}
-
-void SMergeTreeView::PrevDiff()
-{
-	--CurrentDifference;
-	HighlightCurrentDifference();
-}
-
-bool SMergeTreeView::HasNextDifference() const
-{
-	return DifferingProperties.Entries.IsValidIndex(CurrentDifference + 1);
-}
-
-bool SMergeTreeView::HasPrevDifference() const
-{
-	return DifferingProperties.Entries.IsValidIndex(CurrentDifference - 1);
-}
-
-void SMergeTreeView::HighlightNextConflict()
-{
-	if (CurrentMergeConflict + 1 < MergeConflicts.Entries.Num())
-	{
-		++CurrentMergeConflict;
-	}
-	HighlightCurrentConflict();
-}
-
-void SMergeTreeView::HighlightPrevConflict()
-{
-	if (CurrentMergeConflict - 1 >= 0)
-	{
-		--CurrentMergeConflict;
-	}
-	HighlightCurrentConflict();
-}
-
-bool SMergeTreeView::HasNextConflict() const
-{
-	// return true if we have one conflict so that users can reselect the conflict if they desire. If we 
-	// return false when we already have selected this one and only conflict then there will be no way
-	// to reselect it if the user wants to.
-	return MergeConflicts.Entries.Num() != 0 && (MergeConflicts.Entries.Num() == 1 || CurrentMergeConflict + 1 < MergeConflicts.Entries.Num());
-}
-
-bool SMergeTreeView::HasPrevConflict() const
-{
-	// note in HasNextConflict applies here as well.
-	return MergeConflicts.Entries.Num() == 1 || CurrentMergeConflict > 0;
-}
-
-void SMergeTreeView::HighlightCurrentConflict()
-{
-	const FSCSDiffEntry& Conflict = MergeConflicts.Entries[CurrentMergeConflict];
 	for (auto& View : SCSViews)
 	{
-		View.HighlightProperty(Conflict.TreeIdentifier.Name, Conflict.PropertyIdentifier);
-	}
-}
-
-void SMergeTreeView::HighlightCurrentDifference()
-{
-	const FSCSDiffEntry& Difference = DifferingProperties.Entries[CurrentDifference];
-	for (auto& View : SCSViews)
-	{
-		View.HighlightProperty(Difference.TreeIdentifier.Name, Difference.PropertyIdentifier);
+		View.HighlightProperty(TreeIdentifier.Name, Property);
 	}
 }
 

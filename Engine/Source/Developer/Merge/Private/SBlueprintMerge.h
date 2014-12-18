@@ -75,7 +75,7 @@ private:
 	FBlueprintMergeData		Data; 
 	FString					BackupSubDir;
 
-	TSharedPtr<SBorder>		MainView;
+	TSharedPtr<SBox>		MainView;
 
 	/** 
 	 * We track the package name-paths for the remote, base, & local assets (so
@@ -93,31 +93,25 @@ private:
 	 */
 	FString	LocalBackupPath;
 
-
-	struct FMergeControl
-	{
-		FMergeControl()
-			: Widget()
-			, DiffControl(NULL)
-			, MergeControl(NULL)
-		{
-		}
-
-		TSharedPtr<SWidget> Widget;
-		class IDiffControl* DiffControl;
-		class IMergeControl* MergeControl;
-	};
-
-	FMergeControl GraphControl;
-	FMergeControl TreeControl;
-	FMergeControl DetailsControl;
-	FMergeControl AssetPickerControl;
+	TSharedPtr<SWidget> GraphControl;
+	TSharedPtr<SWidget> TreeControl;
+	TSharedPtr<SWidget> DetailsControl;
+	TSharedPtr<SWidget> AssetPickerControl;
 	
 	bool bIsPickingAssets;
 	FOnMergeResolved OnMergeResolved;
 
-	class IDiffControl* CurrentDiffControl;
-	class IMergeControl* CurrentMergeControl;
+	/** Treeview to display all differences collected across all panels: */
+	TSharedPtr< STreeView< TSharedPtr< class FBlueprintDifferenceTreeEntry > > > DifferencesTreeView;
+
+	/** List of differences collected across all panels: */
+	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > MasterDifferencesList;
+
+	/** List of all differences, cached so that we can iterate only the differences and not labels, etc: */
+	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > RealDifferences;
+
+	/** List of all merge conflicts: */
+	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > MergeConflicts;
 
 	// This has to be allocated here because SListView cannot own the list
 	// that it is displaying. It also seems like the display list *has*
