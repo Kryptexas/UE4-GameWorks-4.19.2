@@ -136,7 +136,8 @@ public:
 	 * 
 	 * @param ExecutionParams			Parameters for the custom execution calculation
 	 * @param OutAdditionalModifiers	[OUT] Additional modifiers the custom execution has generated and would like executed upon the target
+	 * @return							True if this was successful and it should apply conditional effects
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Calculation")
-	void Execute(FGameplayEffectCustomExecutionParameters& ExecutionParams, TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const;
+	bool Execute(FGameplayEffectCustomExecutionParameters& ExecutionParams, TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const;
 };

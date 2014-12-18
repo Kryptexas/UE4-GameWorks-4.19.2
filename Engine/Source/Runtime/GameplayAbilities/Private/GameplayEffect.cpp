@@ -1034,6 +1034,8 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	//		This will run custom code to 'do stuff'
 	// ------------------------------------------------------
 	
+	TArray< FGameplayEffectSpecHandle > ConditionalEffectSpecs;
+
 	for (const FGameplayEffectExecutionDefinition& CurExecDef : SpecToUse.Def->Executions)
 	{
 		if (CurExecDef.CalculationClass)
@@ -1045,7 +1047,18 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 			// Run the custom execution
 			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner);
-			ExecCDO->Execute(ExecutionParams, OutModifiers);
+			bool bRunConditionalEffects = ExecCDO->Execute(ExecutionParams, OutModifiers);
+
+			if (bRunConditionalEffects)
+			{
+				// If successful, apply conditional specs
+				for (const TSubclassOf<UGameplayEffect>& TargetDefClass : CurExecDef.ConditionalGameplayEffectClasses)
+				{
+					const UGameplayEffect* TargetDef = TargetDefClass->GetDefaultObject<UGameplayEffect>();
+
+					ConditionalEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, Spec.GetEffectContext(), Spec.GetLevel())));
+				}
+			}
 
 			// Execute any mods the custom execution yielded
 			for (FGameplayModifierEvaluatedData& CurExecMod : OutModifiers)
@@ -1069,6 +1082,16 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *SpecToUse.ToSimpleString());
 		Owner->ForceReplication();
 		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(SpecToUse, PredictionKey);
+	}
+
+	// Apply any conditional linked effects
+
+	for (const FGameplayEffectSpecHandle TargetSpec : ConditionalEffectSpecs)
+	{
+		if (TargetSpec.IsValid())
+		{
+			Owner->ApplyGameplayEffectSpecToSelf(*TargetSpec.Data.Get(), PredictionKey);
+		}
 	}
 }
 

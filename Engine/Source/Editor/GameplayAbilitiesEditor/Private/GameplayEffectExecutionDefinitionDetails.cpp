@@ -35,7 +35,7 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 	if (StructPropertyHandle->GetNumOuterObjects() == 1)
 	{
 		CalculationClassPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, CalculationClass));
-
+		TSharedPtr<IPropertyHandle> LinkedEffectsPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, ConditionalGameplayEffectClasses));
 		TSharedPtr<IPropertyHandle> CalcModPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, CalculationModifiers));
 		CalculationModifiersArrayPropHandle = CalcModPropHandle.IsValid() ? CalcModPropHandle->AsArray() : nullptr;
 
@@ -50,6 +50,11 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 		{
 			IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(CalcModPropHandle.ToSharedRef());
 			PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::GetCalculationModifierVisibility)));
+		}
+
+		if (LinkedEffectsPropHandle.IsValid())
+		{
+			StructBuilder.AddChildProperty(LinkedEffectsPropHandle.ToSharedRef());
 		}
 	}
 }

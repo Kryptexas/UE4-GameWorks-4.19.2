@@ -327,6 +327,10 @@ struct FGameplayEffectExecutionDefinition
 	/** Modifiers that are applied "in place" during the execution calculation */
 	UPROPERTY(EditDefaultsOnly, Category = Execution)
 	TArray<FGameplayEffectExecutionScopedModifierInfo> CalculationModifiers;
+
+	/** Other Gameplay Effects that will be applied to the target of this execution if the execution is successful */
+	UPROPERTY(EditDefaultsOnly, Category = Execution, meta = (DisplayName = "Conditional Gameplay Effects"))
+	TArray<TSubclassOf<UGameplayEffect>> ConditionalGameplayEffectClasses;
 };
 
 /**

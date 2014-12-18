@@ -199,6 +199,7 @@ void UGameplayEffectExecutionCalculation::GetValidScopedModifierAttributeCapture
 }
 #endif // #if WITH_EDITORONLY_DATA
 
-void UGameplayEffectExecutionCalculation::Execute_Implementation(FGameplayEffectCustomExecutionParameters& ExecutionParams, OUT TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const
+bool UGameplayEffectExecutionCalculation::Execute_Implementation(FGameplayEffectCustomExecutionParameters& ExecutionParams, OUT TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const
 {
+	return true;
 }
