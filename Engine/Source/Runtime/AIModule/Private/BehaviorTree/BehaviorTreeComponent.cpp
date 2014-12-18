@@ -687,6 +687,14 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority;
 	ExecutionRequest.bIsRestart = (RequestedBy != GetActiveNode());
 	PendingExecution = FBTPendingExecutionInfo();
+	
+	// break out of current search if new request is more important than currently processed one
+	// no point in starting new task just to abandon it in next tick
+	if (SearchData.bSearchInProgress)
+	{
+		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> aborting current task search!"));
+		SearchData.bPostponeSearch = true;
+	}
 
 	ScheduleExecutionUpdate();
 }
@@ -812,7 +820,11 @@ void UBehaviorTreeComponent::ApplyDiscardedSearch()
 		}
 	}
 
+	// apply new observing decorators
 	ApplySearchUpdates(UpdateList, 0);
+
+	// remove everything else
+	SearchData.PendingUpdates.Reset();
 }
 
 void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
@@ -885,7 +897,6 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 
 	const uint16 PrevActiveInstanceIdx = ActiveInstanceIdx;
 	bool bIsSearchValid = true;
-	bool bResetRequest = true;
 
 	EBTNodeResult::Type NodeResult = ExecutionRequest.ContinueWithResult;
 	UBTTaskNode* NextTask = NULL;
@@ -909,6 +920,8 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		FBehaviorTreeInstance& ActiveInstance = InstanceStack[ActiveInstanceIdx];
 		UBTCompositeNode* TestNode = ExecutionRequest.ExecuteNode;
 		SearchData.AssignSearchId();
+		SearchData.bPostponeSearch = false;
+		SearchData.bSearchInProgress = true;
 
 		// activate root node if needed (can't be handled by parent composite...)
 		if (ActiveInstance.ActiveNode == NULL)
@@ -955,7 +968,13 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 			const int32 ChildBranchIdx = TestNode->FindChildToExecute(SearchData, NodeResult);
 			UBTNode* StoreNode = TestNode;
 
-			if (ChildBranchIdx == BTSpecialChild::ReturnToParent)
+			if (SearchData.bPostponeSearch)
+			{
+				// break out of current search loop
+				TestNode = NULL;
+				bIsSearchValid = false;
+			}
+			else if (ChildBranchIdx == BTSpecialChild::ReturnToParent)
 			{
 				UBTCompositeNode* ChildNode = TestNode;
 				TestNode = TestNode->GetParentNode();
@@ -984,15 +1003,6 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 				{
 					TestNode->OnChildDeactivation(SearchData, *ChildNode, NodeResult);
 				}
-			}
-			else if (ChildBranchIdx == BTSpecialChild::PostponeSearch)
-			{
-				// break out of current search loop
-				TestNode = NULL;
-				bIsSearchValid = false;
-
-				// keep current request for next tick
-				bResetRequest = false;
 			}
 			else if (TestNode->Children.IsValidIndex(ChildBranchIdx))
 			{
@@ -1029,16 +1039,17 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 			CopyInstanceMemoryFromPersistent();
 		}
 
+		SearchData.bSearchInProgress = false;
 		// finish timer scope
 	}
 
-	if (bResetRequest)
+	if (SearchData.bPostponeSearch)
 	{
-		ExecutionRequest = FBTNodeExecutionInfo();
+		ScheduleExecutionUpdate();
 	}
 	else
 	{
-		ScheduleExecutionUpdate();
+		ExecutionRequest = FBTNodeExecutionInfo();
 	}
 
 	if (bIsSearchValid)

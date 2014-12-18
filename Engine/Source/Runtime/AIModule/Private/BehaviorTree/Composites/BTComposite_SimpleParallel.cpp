@@ -39,7 +39,7 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 	if ((PrevChild == NextChildIdx) && (MyMemory->LastSearchId == SearchData.SearchId))
 	{
 		// retrying the same branch again within the same search - possible infinite loop
-		NextChildIdx = BTSpecialChild::PostponeSearch;
+		SearchData.bPostponeSearch = true;
 	}
 
 	MyMemory->LastSearchId = SearchData.SearchId;

@@ -51,7 +51,6 @@ namespace BTSpecialChild
 {
 	const int32 NotInitialized = -1;	// special value for child indices: needs to be initialized
 	const int32 ReturnToParent = -2;	// special value for child indices: return to parent node
-	const int32 PostponeSearch = -3;	// special value for child indices: search again in next tick
 }
 
 UENUM(BlueprintType)
@@ -380,13 +379,20 @@ struct FBehaviorTreeSearchData
 	/** search unique number */
 	int32 SearchId;
 
+	/** if set, current search will be restarted in next tick */
+	uint32 bPostponeSearch : 1;
+
+	/** set when task search is in progress */
+	uint32 bSearchInProgress : 1;
+
 	/** adds update info to PendingUpdates array, removing all previous updates for this node */
 	void AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo);
 
 	/** assign unique Id number */
 	void AssignSearchId();
 
-	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) : OwnerComp(InOwnerComp)
+	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) 
+		: OwnerComp(InOwnerComp), bPostponeSearch(false), bSearchInProgress(false)
 	{}
 
 private:

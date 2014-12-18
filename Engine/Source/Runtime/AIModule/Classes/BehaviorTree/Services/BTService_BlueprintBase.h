@@ -49,6 +49,10 @@ protected:
 	UPROPERTY(EditInstanceOnly, Category=Description)
 	uint32 bShowPropertyDetails : 1;
 
+	/** show detailed information about implemented events */
+	UPROPERTY(EditInstanceOnly, Category = Description)
+	uint32 bShowEventDetails : 1;
+
 	/** set if ReceiveTick is implemented by blueprint */
 	uint32 ReceiveTickImplementations : 2;
 	
@@ -72,7 +76,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
 
-	/** task search enters branch of tree, initial ReceiveTick won't be called if you implement this event!
+	/** task search enters branch of tree
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)

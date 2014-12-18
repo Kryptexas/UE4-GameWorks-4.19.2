@@ -24,7 +24,7 @@ int32 UBTCompositeNode::FindChildToExecute(FBehaviorTreeSearchData& SearchData, 
 	if (Children.Num())
 	{
 		int32 ChildIdx = GetNextChild(SearchData, NodeMemory->CurrentChild, LastResult);
-		while (Children.IsValidIndex(ChildIdx))
+		while (Children.IsValidIndex(ChildIdx) && !SearchData.bPostponeSearch)
 		{
 			// check decorators
 			if (DoDecoratorsAllowExecution(SearchData.OwnerComp, SearchData.OwnerComp.ActiveInstanceIdx, ChildIdx))
@@ -40,10 +40,6 @@ int32 UBTCompositeNode::FindChildToExecute(FBehaviorTreeSearchData& SearchData, 
 			}
 
 			ChildIdx = GetNextChild(SearchData, ChildIdx, LastResult);
-			if (ChildIdx == BTSpecialChild::PostponeSearch)
-			{
-				RetIdx = ChildIdx;
-			}
 		}
 	}
 
