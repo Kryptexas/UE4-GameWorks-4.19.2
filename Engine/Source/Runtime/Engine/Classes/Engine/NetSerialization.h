@@ -484,13 +484,21 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// Write it out.
 		//----------------------
 
-		uint32 ElemNum = ChangedElements.Num();
+		uint32 ElemNum = DeletedElements.Num();
 		OutBunch << ElemNum;
 
-		ElemNum = DeletedElements.Num();
+		ElemNum = ChangedElements.Num();
 		OutBunch << ElemNum;
 
 		UE_LOG(LogNetSerialization, Log, TEXT("   Writing Bunch. NumChange: %d. NumDel: %d"), ChangedElements.Num(), DeletedElements.Num() );
+
+		// Serialize deleted items, just by their ID
+		for (auto It = DeletedElements.CreateIterator(); It; ++It)
+		{
+			int32 ID = *It;
+			OutBunch << ID;
+			UE_LOG(LogNetSerialization, Log, TEXT("   Deleted ElementID: %d"), ID);
+		}
 
 		// Serialized new elements with their payload
 		for (auto It = ChangedElements.CreateIterator(); It; ++It)
@@ -505,9 +513,9 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 
 			bool bHasUnmapped = false;
 
-			Parms.NetSerializeCB->NetSerializeStruct( InnerStruct, OutBunch, Parms.Map, ThisElement, bHasUnmapped );
+			Parms.NetSerializeCB->NetSerializeStruct(InnerStruct, OutBunch, Parms.Map, ThisElement, bHasUnmapped);
 
-			if ( bHasUnmapped )
+			if (bHasUnmapped)
 			{
 				// Set to 0 to mean 'unmapped'. This will force reserialization on next update.
 				*NewMap.Find(ID) = 0;
@@ -515,14 +523,6 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				UStruct* StructPtr = InnerStruct;
 				UE_LOG(LogNetSerialization, Log, TEXT("   Property: %s is unmapped. Will reserialize."), *StructPtr->GetName());
 			}
-		}
-
-		// Serialize deleted items, just by their ID
-		for (auto It = DeletedElements.CreateIterator(); It; ++It)
-		{
-			int32 ID = *It;
-			OutBunch << ID;
-			UE_LOG(LogNetSerialization, Log, TEXT("   Deleted ElementID: %d"), ID);
 		}
 	}
 	else
@@ -554,16 +554,6 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		//---------------
 		// Read header
 		//---------------
-		uint32 NumChanged;
-		Ar << NumChanged;
-
-		if ( NumChanged > MAX_NUM_CHANGED )
-		{
-			UE_LOG( LogNetSerialization, Warning, TEXT( "NumChanged > MAX_NUM_CHANGED: %d." ), NumChanged );
-			Ar.SetError();
-			return false;;
-		}
-
 		uint32 NumDeletes;
 		Ar << NumDeletes;
 	
@@ -574,7 +564,48 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			return false;;
 		}
 
+		uint32 NumChanged;
+		Ar << NumChanged;
+
+		if (NumChanged > MAX_NUM_CHANGED)
+		{
+			UE_LOG(LogNetSerialization, Warning, TEXT("NumChanged > MAX_NUM_CHANGED: %d."), NumChanged);
+			Ar.SetError();
+			return false;;
+		}
+
 		UE_LOG( LogNetSerialization, Verbose, TEXT( "Read NumChanged: %d NumDeletes: %d." ), NumChanged, NumDeletes );
+
+		TArray<int32> DeleteIndices;
+
+		//---------------
+		// Read deleted elements
+		//---------------
+		if (NumDeletes > 0)
+		{
+			for (uint32 i = 0; i < NumDeletes; ++i)
+			{
+				int32 ElementID;
+				Ar << ElementID;
+
+				int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
+				if (ElementIndexPtr)
+				{
+					int32 DeleteIndex = *ElementIndexPtr;
+					DeleteIndices.Add(DeleteIndex);
+
+					if (Items.IsValidIndex(DeleteIndex))
+					{
+						// Call the delete callbacks now, actually remove them at the end
+						Items[DeleteIndex].PreReplicatedRemove(ArraySerializer);
+					}
+				}
+				else
+				{
+					UE_LOG(LogNetSerialization, Warning, TEXT("   Couldn't find ElementID: %d for deletion!"), ElementID);
+				}
+			}
+		}
 
 		//---------------
 		// Read Changed/New elements
@@ -626,44 +657,22 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			{
 				ThisElement->PostReplicatedChange(ArraySerializer);
 			}
-
 		}
 
-		//---------------
-		// Read Changed/New elements
-		//---------------
-		if (NumDeletes > 0)
+		if (DeleteIndices.Num() > 0)
 		{
-			TArray<int32> DeleteIndices;
-			for (uint32 i=0; i < NumDeletes; ++i)
-			{
-				int32 ElementID;
-				Ar << ElementID;
-
-				int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
-				if (ElementIndexPtr)
-				{
-					DeleteIndices.Add(*ElementIndexPtr);
-				}
-				else
-				{
-					UE_LOG(LogNetSerialization, Warning, TEXT("   Couldn't find ElementID: %d for deletion!"), ElementID);
-				}
-			}
-
 			DeleteIndices.Sort();
-			for (int32 i = DeleteIndices.Num()-1; i >=0 ; --i)
+			for (int32 i = DeleteIndices.Num() - 1; i >= 0; --i)
 			{
 				int32 DeleteIndex = DeleteIndices[i];
 				if (Items.IsValidIndex(DeleteIndex))
 				{
-					Items[DeleteIndex].PreReplicatedRemove(ArraySerializer);
 					Items.RemoveAt(DeleteIndex);
 
 					UE_LOG(LogNetSerialization, Log, TEXT("   Deleting: %d"), DeleteIndex);
 				}
 			}
-			
+
 			// Clear the map now that the indices are all shifted around. This kind of sucks, we could use slightly better data structures here I think.
 			ArraySerializer.ItemMap.Empty();
 		}
