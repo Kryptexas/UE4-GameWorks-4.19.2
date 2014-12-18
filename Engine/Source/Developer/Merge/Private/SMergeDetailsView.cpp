@@ -159,7 +159,7 @@ void SMergeDetailsView::Construct(const FArguments InArgs
 		bool bLocalMatchesBase = !bDoneLocal && !bDoneBase && BaseVisibleProperties[IterBase] == LocalVisibleProperties[IterLocal];
 		bool bRemoteMatchesBase = !bDoneRemote && !bDoneBase && BaseVisibleProperties[IterBase] == RemoteVisibleProperties[IterRemote];
 
-		if( bRemoteMatchesBase && bLocalMatchesBase ||
+		if( (bRemoteMatchesBase && bLocalMatchesBase) ||
 			(bDoneLocal && bRemoteMatchesBase ) ||
 			(bDoneRemote && bLocalMatchesBase ) )
 		{
