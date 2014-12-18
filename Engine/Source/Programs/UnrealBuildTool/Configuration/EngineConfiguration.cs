@@ -309,64 +309,75 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void ParseIniFile(string Filename)
 		{
-			var IniLines = File.ReadAllLines(Filename);
-			IniSection CurrentSection = null;
-
-			// Line Index for exceptions
-			var LineIndex = 1;
-			var bMultiLine = false;
-			var SingleValue = "";
-			var Key = "";
-			var LastAction = ParseAction.None;
-
-			// Parse each line
-			foreach (var Line in IniLines)
+			String[] IniLines = null;
+			try
 			{
-				var TrimmedLine = Line.Trim();
-				// Multiline value support
-				bool bWasMultiLine = bMultiLine;
-				bMultiLine = TrimmedLine.EndsWith("\\");
-				if (bMultiLine)
+				IniLines = File.ReadAllLines(Filename);
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error reading ini file: " + Filename + " Exception: " + ex.Message);
+			}
+			if (IniLines != null)
+			{
+				IniSection CurrentSection = null;
+
+				// Line Index for exceptions
+				var LineIndex = 1;
+				var bMultiLine = false;
+				var SingleValue = "";
+				var Key = "";
+				var LastAction = ParseAction.None;
+
+				// Parse each line
+				foreach (var Line in IniLines)
 				{
-					TrimmedLine = TrimmedLine.Substring(0, TrimmedLine.Length - 1).TrimEnd();
-				}
-				if (!bWasMultiLine)
-				{
-					if (TrimmedLine.StartsWith("["))
+					var TrimmedLine = Line.Trim();
+					// Multiline value support
+					bool bWasMultiLine = bMultiLine;
+					bMultiLine = TrimmedLine.EndsWith("\\");
+					if (bMultiLine)
 					{
-						CurrentSection = FindOrAddSection(TrimmedLine, Filename, LineIndex);
-						LastAction = ParseAction.None;
+						TrimmedLine = TrimmedLine.Substring(0, TrimmedLine.Length - 1).TrimEnd();
 					}
-					else
+					if (!bWasMultiLine)
 					{
-						if (LastAction != ParseAction.None)
+						if (TrimmedLine.StartsWith("["))
 						{
-							throw new IniParsingException("Parsing new key/value pair when the previous one has not yet been processed ({0}, {1}) in {2}, line {3}: {4}", Key, SingleValue, Filename, LineIndex, TrimmedLine);
+							CurrentSection = FindOrAddSection(TrimmedLine, Filename, LineIndex);
+							LastAction = ParseAction.None;
 						}
-						// Check if the line is empty or a comment, also remove any +/- markers
-						LastAction = GetActionForLine(ref TrimmedLine);
-						if (LastAction != ParseAction.None)
+						else
 						{
-							if (CurrentSection == null)
+							if (LastAction != ParseAction.None)
 							{
-								throw new IniParsingException("Trying to parse key/value pair that doesn't belong to any section in {0}, line {1}: {2}", Filename, LineIndex, TrimmedLine);
+								throw new IniParsingException("Parsing new key/value pair when the previous one has not yet been processed ({0}, {1}) in {2}, line {3}: {4}", Key, SingleValue, Filename, LineIndex, TrimmedLine);
 							}
-							ParseKeyValuePair(TrimmedLine, Filename, LineIndex, out Key, out SingleValue);
+							// Check if the line is empty or a comment, also remove any +/- markers
+							LastAction = GetActionForLine(ref TrimmedLine);
+							if (LastAction != ParseAction.None)
+							{
+								if (CurrentSection == null)
+								{
+									throw new IniParsingException("Trying to parse key/value pair that doesn't belong to any section in {0}, line {1}: {2}", Filename, LineIndex, TrimmedLine);
+								}
+								ParseKeyValuePair(TrimmedLine, Filename, LineIndex, out Key, out SingleValue);
+							}
 						}
 					}
+					if (bWasMultiLine)
+					{
+						SingleValue += TrimmedLine;
+					}
+					if (!bMultiLine && LastAction != ParseAction.None)
+					{
+						ProcessKeyValuePair(CurrentSection, Key, SingleValue, LastAction);
+						LastAction = ParseAction.None;
+						SingleValue = "";
+						Key = "";
+					}
+					LineIndex++;
 				}
-				if (bWasMultiLine)
-				{
-					SingleValue += TrimmedLine;
-				}
-				if (!bMultiLine && LastAction != ParseAction.None)
-				{
-					ProcessKeyValuePair(CurrentSection, Key, SingleValue, LastAction);
-					LastAction = ParseAction.None;
-					SingleValue = "";
-					Key = "";
-				}
-				LineIndex++;
 			}
 		}
 

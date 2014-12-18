@@ -100,12 +100,13 @@ namespace AutomationTool
 			}
 		}
 
-
+		public static string BaseUBTDirectory = "";
+		
 		/// True if UBT is compiled and ready to build!
 		private bool bIsUBTReady = false;
-
+		
 		private void PrepareUBT()
-		{
+		{			
 			// Don't build UBT if we're running with pre-compiled binaries and if there's a debugger attached to this process.
 			// With the debugger attached, even though deleting the exe will work, the pdb files are still locked and the build will fail.
 			// Also, if we're running from VS then since UAT references UBT, we already have the most up-to-date version of UBT.exe
@@ -162,6 +163,17 @@ namespace AutomationTool
 			if (ForceDebugInfo)
 			{
 				AddArgs += " -forcedebuginfo";
+			}
+			if(AddArgs.Contains("PostedRocket"))
+			{
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Windows";
+				}
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Mac";
+				}
 			}
 			PrepareUBT();
 
@@ -300,6 +312,17 @@ namespace AutomationTool
 			if (DisableXGE)
 			{
 				AddArgs += " -noxge";
+			}
+			if(AddArgs.Contains("PostedRocket"))
+			{
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Windows";
+				}
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Mac";
+				}
 			}
 
 			PrepareUBT();
@@ -702,7 +725,8 @@ namespace AutomationTool
 		public List<string> FindXGEFiles()
 		{
 			var Result = new List<string>();
-			Result.AddRange(FindFiles_NoExceptions("*.xge.xml", false, CombinePaths(CmdEnv.LocalRoot, @"\Engine\Intermediate\Build")));
+			var Root = CombinePaths(CmdEnv.LocalRoot, BaseUBTDirectory, @"\Engine\Intermediate\Build");			
+			Result.AddRange(FindFiles_NoExceptions("*.xge.xml", false, Root));
 			Result.Sort();
 			return Result;
 		}
@@ -1461,7 +1485,7 @@ namespace AutomationTool
 
             if ((GlobalCommandLine.Rocket || bForceRocket) && !String.IsNullOrEmpty(UProjectPath))
 			{
-				return Path.Combine(Path.GetDirectoryName(UProjectPath), "Intermediate/Build/Manifest.xml");
+				return Path.Combine(Path.GetDirectoryName(UProjectPath), "Intermediate/Build/Manifest.xml");				
 			}
 			else
 			{
@@ -1471,14 +1495,14 @@ namespace AutomationTool
 
 		public static string GetUBTExecutable()
 		{
-			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/UnrealBuildTool.exe");
+			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, BaseUBTDirectory, @"Engine/Binaries/DotNET/UnrealBuildTool.exe");
 		}
 
 		public string UBTExecutable
 		{
 			get
 			{
-				return GetUBTExecutable();
+				return GetUBTExecutable();							
 			}
 		}
 
