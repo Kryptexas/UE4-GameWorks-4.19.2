@@ -128,27 +128,27 @@ void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, 
 		}
 		else if (AGameplayCueNotify_Actor* InstancedCue = Cast<AGameplayCueNotify_Actor>(CueData.LoadedGameplayCueClass->ClassDefaultObject))
 		{
-			AGameplayCueNotify_Actor* SpawnedInstancedCue = nullptr;
-			if (auto InnerMap = NotifyMapActor.Find(TargetActor))
+			if (InstancedCue->HandlesEvent(EventType))
 			{
-				if (auto WeakPtrPtr = InnerMap->Find(DataIdx))
+				AGameplayCueNotify_Actor* SpawnedInstancedCue = nullptr;
+				if (auto InnerMap = NotifyMapActor.Find(TargetActor))
 				{
-					SpawnedInstancedCue = WeakPtrPtr->Get();
+					if (auto WeakPtrPtr = InnerMap->Find(DataIdx))
+					{
+						SpawnedInstancedCue = WeakPtrPtr->Get();
+					}
 				}
-			}
 
-			//Get our instance. We should probably have a flag or something to determine if we want to reuse or stack instances. That would mean changing our map to have a list of active instances.
-			if (SpawnedInstancedCue == nullptr)
-			{
-				// We don't have an instance for this, and we need one, so make one
-				//SpawnedInstancedCue = static_cast<AGameplayCueNotify_Actor*>(StaticDuplicateObject(InstancedCue, this, TEXT("None"), ~RF_RootSet));
-				SpawnedInstancedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(InstancedCue->GetActorClass(), TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
-				auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
-				InnerMap.Add(DataIdx) = SpawnedInstancedCue;
-			}
-			check(SpawnedInstancedCue);
-			if (SpawnedInstancedCue->HandlesEvent(EventType))
-			{
+				//Get our instance. We should probably have a flag or something to determine if we want to reuse or stack instances. That would mean changing our map to have a list of active instances.
+				if (SpawnedInstancedCue == nullptr)
+				{
+					// We don't have an instance for this, and we need one, so make one
+					//SpawnedInstancedCue = static_cast<AGameplayCueNotify_Actor*>(StaticDuplicateObject(InstancedCue, this, TEXT("None"), ~RF_RootSet));
+					SpawnedInstancedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(InstancedCue->GetActorClass(), TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+					auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
+					InnerMap.Add(DataIdx) = SpawnedInstancedCue;
+				}
+				check(SpawnedInstancedCue);
 				SpawnedInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
 				if (!SpawnedInstancedCue->IsOverride)
 				{
