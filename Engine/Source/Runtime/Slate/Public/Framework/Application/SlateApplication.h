@@ -886,12 +886,6 @@ public:
 	 */
 	void UpdateToolTip( bool AllowSpawningOfNewToolTips );
 
-	/**
-	 * Creates a mouse move event for the last known cursor position.  This should be called every tick to make
-	 * sure that widgets that appear (or vanish from) underneath the cursor have hover state set appropriately.
-	 */
-	virtual void SynthesizeMouseMove();
-
 	/** @return an array of top-level windows that can be interacted with. e.g. when a modal window is up, only return the modal window */
 	TArray< TSharedRef<SWindow> > GetInteractiveTopLevelWindows();
 
@@ -1106,6 +1100,15 @@ private:
 private:
 
 	/**
+	 * Creates a mouse move event for the last known cursor position.  This should be called every tick to make
+	 * sure that widgets that appear (or vanish from) underneath the cursor have hover state set appropriately.
+	 */
+	void SynthesizeMouseMove();
+
+	/** Signal that a synthesized mouse move will be required after this operation. */
+	void QueueSynthesizedMouseMove();
+
+	/**
 	 * Will be invoked when the size of the geometry of the virtual
 	 * desktop changes (e.g. resolution change or monitors re-arranged)
 	 */
@@ -1115,6 +1118,9 @@ private:
 	static TSharedPtr< FSlateApplication > CurrentApplication;
 
 	TSet<FKey> PressedMouseButtons;
+
+	/** After processing an event or performing an active tick, we need to synthesize a mouse move. @see SynthesizeMouseMove */
+	int32 SynthesizeMouseMovePending;
 
 	/** true when the slate app is active; i.e. the current foreground window is from our Slate app*/
 	bool bAppIsActive;
