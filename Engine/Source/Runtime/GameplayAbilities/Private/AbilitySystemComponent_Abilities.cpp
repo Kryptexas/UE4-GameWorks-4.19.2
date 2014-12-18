@@ -300,6 +300,25 @@ void UAbilitySystemComponent::OnGiveAbility(const FGameplayAbilitySpec Spec)
 	Spec.Ability->OnGiveAbility(AbilityActorInfo.Get(), Spec);
 }
 
+void UAbilitySystemComponent::OnRemoveAbility(const FGameplayAbilitySpec Spec)
+{
+	if (!Spec.Ability)
+	{
+		return;
+	}
+
+	TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
+
+	for (auto Instance : Instances)
+	{
+		if (Instance->IsActive())
+		{
+			// End the ability but don't replicate it, OnRemoveAbility gets replicated
+			Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+		}
+	}
+}
+
 void UAbilitySystemComponent::CheckForClearedAbilities()
 {
 	for (auto& Triggered : GameplayEventTriggeredAbilities)
@@ -330,6 +349,18 @@ FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGamepl
 		if (Spec.Handle == Handle)
 		{
 			return &Spec;
+		}
+	}
+
+	if (GetOwnerRole() == ROLE_Authority)
+	{
+		// Look through the client's old abilities as well, in case it just got deleted
+		for (FGameplayAbilitySpec& Spec : ClientLastActivatableAbilities)
+		{
+			if (Spec.Handle == Handle)
+			{
+				return &Spec;
+			}
 		}
 	}
 

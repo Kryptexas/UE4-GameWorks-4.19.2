@@ -480,8 +480,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
 	virtual void OnGiveAbility(const FGameplayAbilitySpec AbilitySpec);
 
-	/** Will be called from GiveAbility or from OnRep. Unbinds inputs with the given ability */
-	virtual void OnRemoveAbility(const FGameplayAbilitySpec AbilitySpec) {};
+	/** Will be called from RemoveAbility or from OnRep. Unbinds inputs with the given ability */
+	virtual void OnRemoveAbility(const FGameplayAbilitySpec AbilitySpec);
 
 	/** Called from ClearAbility, ClearAllAbilities or OnRep. Clears any triggers that should no longer exist. */
 	void CheckForClearedAbilities();
