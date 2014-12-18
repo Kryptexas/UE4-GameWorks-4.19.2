@@ -5,6 +5,7 @@
 
 #include "AssetToolsModule.h"
 #include "IPlatformFilePak.h"
+#include "FileHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFeaturePack, Log, All);
 
