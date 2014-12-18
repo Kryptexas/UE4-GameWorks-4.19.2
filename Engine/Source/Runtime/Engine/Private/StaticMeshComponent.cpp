@@ -732,8 +732,7 @@ bool UStaticMeshComponent::RequiresOverrideVertexColorsFixup( TArray<int32>& Out
 void UStaticMeshComponent::RemoveInstanceVertexColorsFromLOD( int32 LODToRemoveColorsFrom )
 {
 #if WITH_EDITORONLY_DATA
-	if (( LODToRemoveColorsFrom < StaticMesh->GetNumLODs() ) &&
-		( LODToRemoveColorsFrom < LODData.Num() ))
+	if (StaticMesh && LODToRemoveColorsFrom < StaticMesh->GetNumLODs() && LODToRemoveColorsFrom < LODData.Num())
 	{
 		FStaticMeshComponentLODInfo& CurrentLODInfo = LODData[LODToRemoveColorsFrom];
 
