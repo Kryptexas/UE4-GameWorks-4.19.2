@@ -154,7 +154,7 @@ public:
 	bool CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere);
 
 	/**  */
-	ALandscapeProxy* ImportLandscape(const FLandscapeImportSettings& Settings);
+	ALandscapeProxy* ImportLandscapeTile(const FLandscapeImportSettings& Settings);
 
 private:
 	/** Flush world info to package and level objects */

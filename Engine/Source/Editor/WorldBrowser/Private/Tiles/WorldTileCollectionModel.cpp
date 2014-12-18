@@ -20,6 +20,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/LevelStreaming.h"
+#include "Landscape.h"
 #include "GameFramework/WorldSettings.h"
 #include "Engine/Light.h"
 #include "Foliage/InstancedFoliageActor.h"
@@ -1460,7 +1461,7 @@ static bool ReadWeightmapFile(TArray<uint8>& Result, const FString& Filename, ui
 	return bResult;
 }
 
-static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FString ContentPath)
+static ULandscapeLayerInfoObject* GetLandscapeLayerInfoObject(FName LayerName, const FString& ContentPath)
 {
 	// Build default layer object name and package name
 	FString LayerObjectName = FString::Printf(TEXT("%s_LayerInfo"), *LayerName.ToString());
@@ -1495,6 +1496,33 @@ static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FS
 	return LayerInfo;
 }
 
+static void SetupLandscapeImportLayers(const FTiledLandscapeImportSettings& InImportSettings, const FString& ContentPath, int32 TileIndex, TArray<FLandscapeImportLayerInfo>& OutLayerInfo)
+{
+	for (const auto& LayerSettings : InImportSettings.LandscapeLayerSettingsList)
+	{
+		FLandscapeImportLayerInfo LayerImportInfo(LayerSettings.Name);
+		
+		// Do we have a weightmap data for this tile?
+		const FString* WeightmapFile = nullptr;
+		if (InImportSettings.TileCoordinates.IsValidIndex(TileIndex))
+		{
+			FIntPoint TileCoordinates = InImportSettings.TileCoordinates[TileIndex];
+			WeightmapFile = LayerSettings.WeightmapFiles.Find(TileCoordinates);
+			if (WeightmapFile)
+			{
+				LayerImportInfo.SourceFilePath = *WeightmapFile;
+				ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, FILEREAD_Silent);
+			}
+		}
+		
+		LayerImportInfo.LayerInfo = GetLandscapeLayerInfoObject(LayerImportInfo.LayerName, ContentPath);
+		LayerImportInfo.LayerInfo->bNoWeightBlend = LayerSettings.bNoBlendWeight;
+						
+		OutLayerInfo.Add(LayerImportInfo);
+	}
+}
+
+
 void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 {
 	/** Create the window to host widget */
@@ -1527,13 +1555,36 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 		GWarn->BeginSlowTask(LOCTEXT("ImportingLandscapeTilesBegin", "Importing landscape tiles"), true);
 		
-		// Shared GUID used between landscape proxies
-		FGuid LandscapeGuid;
+		// Create main landscape actor in persistent level, it will be empty (no components in it)
+		// All landscape tiles will go into it's own sub-levels
+		FGuid LandscapeGuid = FGuid::NewGuid();
+		{
+			ALandscape* Landscape = Cast<UWorld>(GetWorld())->SpawnActor<ALandscape>();
+			Landscape->SetActorTransform(FTransform(FQuat::Identity, FVector::ZeroVector, ImportSettings.Scale3D));
+
+			// Setup layers list for importing
+			TArray<FLandscapeImportLayerInfo> ImportLayers;
+			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), INDEX_NONE, ImportLayers);
+			
+			// Set landscape configuration
+			Landscape->LandscapeMaterial	= ImportSettings.LandscapeMaterial.Get();
+			Landscape->ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;
+			Landscape->NumSubsections		= ImportSettings.SectionsPerComponent;
+			Landscape->SubsectionSizeQuads	= ImportSettings.QuadsPerSection;
+			Landscape->SetLandscapeGuid(LandscapeGuid);
+			for (const auto& ImportLayerInfo : ImportLayers)
+			{
+				Landscape->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(ImportLayerInfo.LayerInfo));
+			}
+			ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), false);
+		}
 
 		// Import tiles
 		int32 TileIndex = 0;
 		for (const FString& Filename : ImportSettings.HeightmapFileList)
 		{
+			check(LandscapeGuid.IsValid());
+									
 			FString TileName = FPaths::GetBaseFilename(Filename);
 			FVector TileScale = ImportSettings.Scale3D;
 
@@ -1550,25 +1601,8 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			TileImportSettings.HeightmapFilename	= Filename;
 			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
 
-			// Setup weightmaps for each layer
-			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerSettingsList.Num(); ++LayerIdx)
-			{
-				FName LayerName = ImportSettings.LandscapeLayerSettingsList[LayerIdx].Name;
-				
-				TileImportSettings.ImportLayers.Add(FLandscapeImportLayerInfo(LayerName));
-				FLandscapeImportLayerInfo& LayerImportInfo = TileImportSettings.ImportLayers.Last();
-				
-				// Do we have a weightmap for this tile?
-				FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex];
-				const FString* WeightmapFile = ImportSettings.LandscapeLayerSettingsList[LayerIdx].WeightmapFiles.Find(TileCoordinates);
-				if (WeightmapFile)
-				{
-					LayerImportInfo.SourceFilePath = *WeightmapFile;
-					ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, FILEREAD_Silent);
-					LayerImportInfo.LayerInfo = GetandscapeLayerInfoObject(LayerImportInfo.LayerName, GetWorld()->GetOutermost()->GetName());
-					LayerImportInfo.LayerInfo->bNoWeightBlend = ImportSettings.LandscapeLayerSettingsList[LayerIdx].bNoBlendWeight;
-				}
-			}
+			// Setup layers list for importing
+			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), TileIndex, TileImportSettings.ImportLayers);
 						
 			if (ReadRawFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
 			{
@@ -1586,34 +1620,11 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 					// Hide level, so we do not depend on a current world origin
 					NewTileModel->SetVisible(false);
 					
-					// Create landscape (actor/proxy) in a new level
-					ALandscapeProxy* NewLandscape = NewTileModel->ImportLandscape(TileImportSettings);
-
-					// Use first created landscape as a landscape actor and all next tiles as landscape proxies 
-					if (!LandscapeGuid.IsValid())
-					{
-						LandscapeGuid = NewLandscape->GetLandscapeGuid();
-					}
+					// Create landscape proxy in a new level
+					ALandscapeProxy* NewLandscape = NewTileModel->ImportLandscapeTile(TileImportSettings);
 
 					if (NewLandscape)
 					{
-						// update shared LandscapeInfo objects with new layers
-						ULandscapeInfo* LandscapeInfo = NewLandscape->GetLandscapeInfo(true);
-						LandscapeInfo->UpdateLayerInfoMap(NewLandscape);
-						for (const FLandscapeImportLayerInfo& LayerImportInfo : TileImportSettings.ImportLayers)
-						{
-							if (LayerImportInfo.LayerInfo)
-							{
-								NewLandscape->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(LayerImportInfo.LayerInfo, LayerImportInfo.SourceFilePath));
-								int32 LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerImportInfo.LayerInfo->LayerName);
-								if (ensure(LayerInfoIndex != INDEX_NONE))
-								{
-									FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[LayerInfoIndex];
-									LayerSettings.LayerInfoObj = LayerImportInfo.LayerInfo;
-								}
-							}
-						}
-						
 						// Set landscape actor location at min corner of bounding rect, so it will be centered around origin
 						FIntRect NewLandscapeRect = NewLandscape->GetBoundingRect();
 						float WidthX = NewLandscapeRect.Width()*TileScale.X;
