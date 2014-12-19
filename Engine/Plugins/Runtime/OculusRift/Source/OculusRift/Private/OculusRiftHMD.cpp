@@ -1707,7 +1707,7 @@ bool FOculusRiftHMD::IsHeadTrackingAllowed() const
 #endif//WITH_EDITOR
 	return Hmd && 
 #if WITH_EDITOR
-		(!EdEngine || EdEngine->bUseVRPreviewForPlayWorld) &&
+		(!EdEngine || EdEngine->bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) &&
 #endif//WITH_EDITOR
 		(Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
 }
