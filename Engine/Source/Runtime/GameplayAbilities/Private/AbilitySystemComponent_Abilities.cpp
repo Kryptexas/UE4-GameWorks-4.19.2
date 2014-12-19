@@ -542,7 +542,6 @@ void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithT
 void UAbilitySystemComponent::CancelAbilitySpec(FGameplayAbilitySpec& Spec, UGameplayAbility* Ignore)
 {
 	FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
-	FGameplayAbilityActivationInfo ActivationInfo;
 
 	if (Spec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
 	{
@@ -552,14 +551,14 @@ void UAbilitySystemComponent::CancelAbilitySpec(FGameplayAbilitySpec& Spec, UGam
 		{
 			if (InstanceAbility && Ignore != InstanceAbility)
 			{
-				InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
+				InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, InstanceAbility->GetCurrentActivationInfo());
 			}
 		}
 	}
 	else
 	{
 		// Try to cancel the non instanced, this may not necessarily work
-		Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
+		Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, FGameplayAbilityActivationInfo());
 	}
 	MarkAbilitySpecDirty(Spec);
 }

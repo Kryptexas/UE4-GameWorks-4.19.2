@@ -86,9 +86,10 @@ bool FGameplayAbilityActorInfo::IsLocallyControlled() const
 
 bool FGameplayAbilityActorInfo::IsNetAuthority() const
 {
-	if (OwnerActor.IsValid())
+	// Make sure this works on pending kill actors
+	if (OwnerActor.IsValid(true))
 	{
-		return (OwnerActor->Role == ROLE_Authority);
+		return (OwnerActor.Get(true)->Role == ROLE_Authority);
 	}
 
 	// If we encounter issues with this being called before or after the owning actor is destroyed,
