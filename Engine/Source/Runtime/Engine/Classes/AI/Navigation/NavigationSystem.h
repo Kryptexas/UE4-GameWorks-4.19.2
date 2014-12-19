@@ -138,15 +138,18 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	UPROPERTY()
 	ANavigationData* AbstractNavData;
 
+protected:
 	/** Should navigation system spawn default Navigation Data when there's none and there are navigation bounds present? */
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bAutoCreateNavigationData:1;
 
-	/** Should navigation system rebuild navigation data at game/pie runtime? 
-	 *	It also includes spawning navigation data instances if there are none present. */
-	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
-	uint32 bBuildNavigationAtRuntime:1;
+	/** gets set to true if gathering navigation data (like in navoctree) is required due to the need of navigation generation 
+	 *	Is always true in Editor Mode. In other modes it depends on bRebuildAtRuntime of every required NavigationData class' CDO
+	 */
+	UPROPERTY()
+	uint32 bSupportRebuilding : 1; 
 
+public:
 	/** if set to true will result navigation system not rebuild navigation until 
 	 *	a call to ReleaseInitialBuildingLock() is called. Does not influence 
 	 *	editor-time generation (i.e. does influence PIE and Game).
@@ -437,6 +440,8 @@ public:
 	/** checks if dirty navigation data can rebuild itself */
 	bool CanRebuildDirtyNavigation() const;
 
+	FORCEINLINE bool SupportsNavigationGeneration() const { return bSupportRebuilding; }
+
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0);
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0);
 
@@ -452,6 +457,16 @@ public:
 	void RequestRegistration(ANavigationData* NavData, bool bTriggerRegistrationProcessing = true);
 
 protected:
+
+	/** Processes all NavigationData instances in UWorld owning navigation system instance, and registers
+	 *	all previously unregistered */
+	void RegisterNavigationDataInstances();
+
+	/** called in places where we need to spawn the NavOctree, but is checking additional conditions if we really want to do that
+	 *	depending on project setup among others 
+	 *	@return true if NavOctree instance has been created, or if one is already present */
+	virtual bool ConditionallyCreateNavOctree();
+
 	/** Processes registration of candidates queues via RequestRegistration and stored in NavDataRegistrationQueue */
 	void ProcessRegistrationCandidates();
 

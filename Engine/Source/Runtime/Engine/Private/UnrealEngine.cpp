@@ -6789,7 +6789,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #endif
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 			if (NavSys && NavSys->IsNavigationDirty() &&
-				(!bIsNavigationAutoUpdateEnabled || !NavSys->bBuildNavigationAtRuntime || !NavSys->CanRebuildDirtyNavigation()))
+				(!bIsNavigationAutoUpdateEnabled || !NavSys->SupportsNavigationGeneration() || !NavSys->CanRebuildDirtyNavigation()))
 			{
 				SmallTextItem.SetColor( FLinearColor::White );
 				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				
