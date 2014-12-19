@@ -147,6 +147,7 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 				int Index = 0;
 				if(!ArgumentParams.Find(CheckPin->PinName, Index))
 				{
+					CheckPin->BreakAllPinLinks();
 					Pins.Remove(CheckPin);
 					--It;
 				}
