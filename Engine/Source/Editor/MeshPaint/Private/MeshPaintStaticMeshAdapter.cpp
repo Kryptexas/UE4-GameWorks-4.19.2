@@ -154,6 +154,11 @@ bool FMeshPaintGeometryAdapterForStaticMeshes::LineTraceComponent(struct FHitRes
 	return bHitSomething;
 }
 
+void FMeshPaintGeometryAdapterForStaticMeshes::SphereIntersectTriangles(TArray<int32>& OutTriangles, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition) const
+{
+	//@TODO: The code for static mesh components is still inside of the mesh painting mode due to the octree
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForStaticMeshesFactory
 

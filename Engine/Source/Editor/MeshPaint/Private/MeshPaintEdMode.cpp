@@ -1633,23 +1633,48 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 {
 	UTexture2D* TargetTexture2D = GetSelectedTexture();
 	
-	// No reason to continue if we dont have a target texture;
-	if( TargetTexture2D == NULL )
+	// No reason to continue if we dont have a target texture or we are not painting
+	if ((TargetTexture2D == NULL) || !bShouldApplyPaint)
 	{
 		return;
 	}
 
 	const bool bOnlyFrontFacing = FMeshPaintSettings::Get().bOnlyFrontFacingTriangles;
-	if( bShouldApplyPaint )
+
+	PaintTexture2DData* TextureData = GetPaintTargetData(TargetTexture2D);
+
+	// Store info that tells us if the element material uses our target texture so we don't have to do a usestexture() call for each tri
+	TArray<bool> SectionUsesTargetTexture;
+	SectionUsesTargetTexture.AddZeroed(MeshComponent->GetNumMaterials());
+	for (int32 SectionIndex = 0; SectionIndex < SectionUsesTargetTexture.Num(); SectionIndex++)
 	{
-		// @todo MeshPaint: Use a spatial database to reduce the triangle set here (kdop)
-		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent);
+		SectionUsesTargetTexture[SectionIndex] = false;
 
-		if ((StaticMeshComponent == nullptr) || (StaticMeshComponent->StaticMesh == nullptr))
+		// @todo MeshPaint: if LODs can use different materials/textures then this will cause us problems
+		if (UMaterialInterface* SectionMat = MeshComponent->GetMaterial(SectionIndex))
 		{
-			return;
-		}
+			SectionUsesTargetTexture[SectionIndex] |= DoesMaterialUseTexture(SectionMat, TargetTexture2D);
 
+			if ((SectionUsesTargetTexture[SectionIndex] == false) && (TextureData != NULL) && (TextureData->PaintRenderTargetTexture != NULL))
+			{
+				// If we didn't get a match on our selected texture, we'll check to see if the the material uses a
+				//  render target texture override that we put on during painting.
+				SectionUsesTargetTexture[SectionIndex] |= DoesMaterialUseTexture(SectionMat, TextureData->PaintRenderTargetTexture);
+			}
+		}
+	}
+
+	// Keep a list of front-facing triangles that are within a reasonable distance to the brush
+	static TArray< int32 > InfluencedTriangles;
+
+
+
+	// @todo MeshPaint: Use a spatial database to reduce the triangle set here (kdop)
+	UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent);
+
+	if ((StaticMeshComponent != nullptr) && (StaticMeshComponent->StaticMesh == nullptr))
+	{
+		//@TODO: MESHPAINT: Move this code to the adapter (need to determine if flushing the octree every frame is disastrous and if so how to add multi-frame state to the adapters)
 		check(StaticMeshComponent->StaticMesh->GetNumLODs() > PaintingMeshLODIndex);
 		FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
 		const int32 NumSections = LODModel.Sections.Num();
@@ -1660,40 +1685,11 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 		const uint32 NumIndexBufferIndices = Indices.Num();
 		check( NumIndexBufferIndices % 3 == 0 );
 		const uint32 NumTriangles = NumIndexBufferIndices / 3;
-
-		// Keep a list of front-facing triangles that are within a reasonable distance to the brush
-		static TArray< int32 > InfluencedTriangles;
-		InfluencedTriangles.Empty( NumTriangles );
+		InfluencedTriangles.Empty(NumTriangles);
 
 		// Use a bit of distance bias to make sure that we get all of the overlapping triangles.  We
 		// definitely don't want our brush to be cut off by a hard triangle edge
 		const float SquaredRadiusBias = ComponentSpaceSquaredBrushRadius * 0.025f;
-
-		
-		PaintTexture2DData* TextureData = GetPaintTargetData( TargetTexture2D );
-
-		// Store info that tells us if the element material uses our target texture so we don't have to do a usestexture() call for each tri
-		TArray< bool > SectionUsesTargetTexture;
-		SectionUsesTargetTexture.AddZeroed( NumSections );
-		for ( int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++ )
-		{
-			SectionUsesTargetTexture[ SectionIndex ] = false;
-
-			// @todo MeshPaint: if LODs can use different materials/textures then this will cause us problems
-			UMaterialInterface* SectionMat = StaticMeshComponent->GetMaterial( SectionIndex );
-			if( SectionMat != NULL )
-			{
-				
-				SectionUsesTargetTexture[ SectionIndex ] |=  DoesMaterialUseTexture(SectionMat,TargetTexture2D);
-				
-				if( SectionUsesTargetTexture[ SectionIndex ] == false && TextureData != NULL && TextureData->PaintRenderTargetTexture != NULL)
-				{
-					// If we didn't get a match on our selected texture, we'll check to see if the the material uses a
-					//  render target texture override that we put on during painting.
-					SectionUsesTargetTexture[ SectionIndex ] |=  DoesMaterialUseTexture(SectionMat,TextureData->PaintRenderTargetTexture);
-				}
-			}
-		}
 
 		if( (TexturePaintingStaticMeshOctree != NULL) && ((TexturePaintingCurrentMeshComponent != MeshComponent) || (TexturePaintingStaticMeshLOD != PaintingMeshLODIndex)) )
 		{
@@ -1765,13 +1761,11 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 				{
 					FStaticMeshSection& Section = LODModel.Sections[ SectionIndex ];
 
-
 					if( ( CurrentTri.Index >= Section.FirstIndex / 3 ) && 
 						( CurrentTri.Index < Section.FirstIndex / 3 + Section.NumTriangles ) )
 					{
-
 						// The triangle belongs to this element, now we need to check to see if the element material uses our target texture.
-						if( TargetTexture2D != NULL && SectionUsesTargetTexture[ SectionIndex ] == true)
+						if ((TargetTexture2D != NULL) && SectionUsesTargetTexture.IsValidIndex(Section.MaterialIndex) && (SectionUsesTargetTexture[Section.MaterialIndex] == true))
 						{
 							bAddTri = true;
 						}
@@ -1788,27 +1782,29 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 				}
 			}
 		}
+	}
+	else
+	{
+		// Try the adapter
+		GeometryInfo.SphereIntersectTriangles(InfluencedTriangles, ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition);
+	}
 
 
-		{
+	if ((TexturePaintingCurrentMeshComponent != NULL) && (TexturePaintingCurrentMeshComponent != MeshComponent))
+	{
+		// Mesh has changed, so finish up with our previous texture
+		FinishPaintingTexture();
+		bIsPainting = false;
+	}
 
-			if( (TexturePaintingCurrentMeshComponent != NULL) && (TexturePaintingCurrentMeshComponent != MeshComponent) )
-			{
-				// Mesh has changed, so finish up with our previous texture
-				FinishPaintingTexture();
-				bIsPainting = false;
-			}
+	if (TexturePaintingCurrentMeshComponent == NULL)
+	{
+		StartPaintingTexture( MeshComponent );
+	}
 
-			if( TexturePaintingCurrentMeshComponent == NULL )
-			{
-				StartPaintingTexture( MeshComponent );
-			}
-
-			if( TexturePaintingCurrentMeshComponent != NULL )
-			{
-				PaintTexture( Params, InfluencedTriangles, ComponentToWorldMatrix, GeometryInfo );
-			}
-		}
+	if (TexturePaintingCurrentMeshComponent != NULL)
+	{
+		PaintTexture( Params, InfluencedTriangles, ComponentToWorldMatrix, GeometryInfo );
 	}
 }
 

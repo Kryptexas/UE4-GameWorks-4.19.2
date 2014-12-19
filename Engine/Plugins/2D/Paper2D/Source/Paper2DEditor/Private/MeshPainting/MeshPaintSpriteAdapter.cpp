@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "MeshPaintSpriteAdapter.h"
+#include "MeshPaintEdMode.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintSpriteAdapter
@@ -19,13 +20,27 @@ int32 FMeshPaintSpriteAdapter::GetNumTexCoords() const
 
 void FMeshPaintSpriteAdapter::GetTriangleInfo(int32 TriIndex, struct FTexturePaintTriangleInfo& OutTriInfo) const
 {
-	//@TODO: MESHPAINT: Write this
+	UPaperSprite* Sprite = SpriteComponent->GetSprite();
+	checkSlow(Sprite != nullptr);
+
+	// Grab the vertex indices and points for this triangle
+	const TArray<FVector4>& BakedPoints = Sprite->BakedRenderData;
+
+	for (int32 TriVertexNum = 0; TriVertexNum < 3; ++TriVertexNum)
+	{
+		const int32 VertexIndex = (TriIndex * 3) + TriVertexNum;
+		const FVector4& XYUV = BakedPoints[VertexIndex];
+
+		OutTriInfo.TriVertices[TriVertexNum] = (PaperAxisX * XYUV.X) + (PaperAxisY * XYUV.Y);
+		OutTriInfo.TriUVs[TriVertexNum] = FVector2D(XYUV.Z, XYUV.W);
+	}
 }
 
 
 bool FMeshPaintSpriteAdapter::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
 {
 	UPaperSprite* Sprite = SpriteComponent->GetSprite();
+	checkSlow(Sprite != nullptr);
 
 	const FTransform& ComponentToWorld = SpriteComponent->ComponentToWorld;
 
@@ -81,6 +96,20 @@ bool FMeshPaintSpriteAdapter::LineTraceComponent(struct FHitResult& OutHit, cons
 	}
 
 	return false;
+}
+
+void FMeshPaintSpriteAdapter::SphereIntersectTriangles(TArray<int32>& OutTriangles, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition) const
+{
+	UPaperSprite* Sprite = SpriteComponent->GetSprite();
+	checkSlow(Sprite != nullptr);
+
+	//@TODO: MESHPAINT: This isn't very precise..., but since the sprite is planar it shouldn't cause any actual issues with paint UX other than being suboptimal
+	const int32 NumTriangles = Sprite->BakedRenderData.Num() / 3;
+	OutTriangles.Reserve(OutTriangles.Num() + NumTriangles);
+	for (int32 TriIndex = 0; TriIndex < NumTriangles; ++TriIndex)
+	{
+		OutTriangles.Add(TriIndex);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

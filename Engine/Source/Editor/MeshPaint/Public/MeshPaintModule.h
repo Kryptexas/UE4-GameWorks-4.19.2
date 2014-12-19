@@ -15,6 +15,7 @@ public:
 	virtual bool SupportsTexturePaint() const = 0;
 	virtual bool SupportsVertexPaint() const = 0;
 	virtual bool LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const = 0;
+	virtual void SphereIntersectTriangles(TArray<int32>& OutTriangles, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition) const = 0;
 	virtual ~IMeshPaintGeometryAdapter() {}
 };
 
@@ -25,6 +26,7 @@ class IMeshPaintGeometryAdapterFactory
 {
 public:
 	virtual TSharedPtr<IMeshPaintGeometryAdapter> Construct(class UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) const = 0;
+	virtual ~IMeshPaintGeometryAdapterFactory() {}
 };
 
 
