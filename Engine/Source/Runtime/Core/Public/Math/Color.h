@@ -1,17 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Color.h: Unreal color definitions.
-=============================================================================*/
-
 #pragma once
+
 #include "Math/UnrealMathUtility.h"
 #include "Misc/Parse.h"
 #include "Serialization/ArchiveBase.h"
 
+
 class FColor;
 class FVector;
 class FFloat16Color;
+
 
 /**
  * A linear, 32-bit/component floating point RGBA color.

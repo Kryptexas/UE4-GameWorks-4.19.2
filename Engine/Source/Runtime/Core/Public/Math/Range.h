@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Range.h: Declares the TRange class template.
-=============================================================================*/
-
 #pragma once
 
 
@@ -50,10 +46,8 @@ public:
 
 	typedef TRangeBound<ElementType> BoundsType;
 
-	/**
-	 * Default constructor (no initialization).
-	 */
-	TRange( ) { }
+	/** Default constructor (no initialization). */
+	TRange() { }
 
 	/**
 	 * Creates a range with a single element.
@@ -149,7 +143,8 @@ public:
 			return ((UpperBound.IsInclusive() && Other.LowerBound.IsExclusive()) ||
 					(UpperBound.IsExclusive() && Other.LowerBound.IsInclusive()));
 		}
-		else if (Other.UpperBound.GetValue() == LowerBound.GetValue())
+		
+		if (Other.UpperBound.GetValue() == LowerBound.GetValue())
 		{
 			return ((Other.UpperBound.IsInclusive() && LowerBound.IsExclusive()) ||
 					(Other.UpperBound.IsExclusive() && LowerBound.IsInclusive()));
@@ -220,7 +215,7 @@ public:
 	 *
 	 * @return Lower bound.
 	 */
-	BoundsType GetLowerBound( ) const
+	BoundsType GetLowerBound() const
 	{
 		return LowerBound;
 	}
@@ -233,7 +228,7 @@ public:
 	 * @return Bound value.
 	 * @see GetUpperBoundValue, HasLowerBound
 	 */
-	const ElementType& GetLowerBoundValue( ) const
+	const ElementType& GetLowerBoundValue() const
 	{
 		return LowerBound.GetValue();
 	}
@@ -243,7 +238,7 @@ public:
 	 *
 	 * @return Upper bound.
 	 */
-	BoundsType GetUpperBound( ) const
+	BoundsType GetUpperBound() const
 	{
 		return UpperBound;
 	}
@@ -256,7 +251,7 @@ public:
 	 * @return Bound value.
 	 * @see GetLowerBoundValue, HasUpperBound
 	 */
-	const ElementType& GetUpperBoundValue( ) const
+	const ElementType& GetUpperBoundValue() const
 	{
 		return UpperBound.GetValue();
 	}
@@ -266,7 +261,7 @@ public:
 	 *
 	 * @return true if the range has a lower bound, false otherwise.
 	 */
-	bool HasLowerBound( ) const
+	bool HasLowerBound() const
 	{
 		return LowerBound.IsClosed();
 	}
@@ -276,7 +271,7 @@ public:
 	 *
 	 * @return true if the range has an upper bound, false otherwise.
 	 */
-	bool HasUpperBound( ) const
+	bool HasUpperBound() const
 	{
 		return UpperBound.IsClosed();
 	}
@@ -289,7 +284,7 @@ public:
 	 *
 	 * @return true if the range is degenerate, false otherwise.
 	 */
-	bool IsDegenerate( ) const
+	bool IsDegenerate() const
 	{
 		return (LowerBound.IsInclusive() && (LowerBound == UpperBound));
 	}
@@ -304,7 +299,7 @@ public:
 	 *
 	 * @return true if the range is empty, false otherwise.
 	 */
-	bool IsEmpty( ) const
+	bool IsEmpty() const
 	{
 		if (LowerBound.IsClosed() && UpperBound.IsClosed())
 		{
@@ -369,7 +364,7 @@ public:
 	 *
 	 * @return Range size.
 	 */
-	template<typename DifferenceType> DifferenceType Size( ) const
+	template<typename DifferenceType> DifferenceType Size() const
 	{
 		check(LowerBound.IsClosed() && UpperBound.IsClosed());
 
@@ -443,7 +438,7 @@ public:
 	 *
 	 * @return Empty range.
 	 */
-	static FORCEINLINE TRange Empty( )
+	static FORCEINLINE TRange Empty()
 	{
 		return TRange(BoundsType::Exclusive(ElementType()), BoundsType::Exclusive(ElementType()));
 	}
@@ -587,7 +582,7 @@ public:
 	 *
 	 * @return A new range.
 	 */
-	static FORCEINLINE TRange All( )
+	static FORCEINLINE TRange All()
 	{
 		return TRange(BoundsType::Open(), BoundsType::Open());
 	}
@@ -674,37 +669,23 @@ private:
 /* Default ranges for built-in types
  *****************************************************************************/
 
-/**
- * Defines a discrete range of dates.
- */
+/** Defines a discrete range of dates. */
 typedef TRange<FDateTime> FDateRange;
 
-/**
- * Defines a discrete range of dates.
- */
+/** Defines a discrete range of dates. */
 typedef TRange<double> FDoubleRange;
 
-/**
- * Defines a discrete range of dates.
- */
+/** Defines a discrete range of dates. */
 typedef TRange<float> FFloatRange;
 
-/**
- * Defines a discrete range of 8-bit signed integers.
- */
+/** Defines a discrete range of 8-bit signed integers. */
 typedef TRange<int8> FInt8Range;
 
-/**
- * Defines a discrete range of 16-bit signed integers.
- */
+/** Defines a discrete range of 16-bit signed integers. */
 typedef TRange<int16> FInt16Range;
 
-/**
- * Defines a discrete range of 32-bit signed integers.
- */
+/** Defines a discrete range of 32-bit signed integers. */
 typedef TRange<int32> FInt32Range;
 
-/**
- * Defines a discrete range of 64-bit signed integers.
- */
+/** Defines a discrete range of 64-bit signed integers. */
 typedef TRange<int64> FInt64Range;

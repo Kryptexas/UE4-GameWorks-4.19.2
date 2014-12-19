@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Plane.h: Declares the FPlane class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -22,10 +18,8 @@ public:
 
 public:
 
-	/**
-	 * Default constructor (no initialization).
-	 */
-	FORCEINLINE FPlane( );
+	/** Default constructor (no initialization). */
+	FORCEINLINE FPlane();
 
 	/**
 	 * Copy Constructor.

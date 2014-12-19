@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OrientedBox.h: Declares the FOrientedBox structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -40,7 +36,7 @@ public:
 	 *
 	 * Constructs a unit-sized, origin-centered box with axes aligned to the coordinate system.
 	 */
-	FOrientedBox ()
+	FOrientedBox()
 		: Center(0.0f)
 		, AxisX(1.0f, 0.0f, 0.0f)
 		, AxisY(0.0f, 1.0f, 0.0f)
@@ -57,14 +53,14 @@ public:
 	 *
 	 * @param Verts The array to fill in with the vertices.
 	 */
-	FORCEINLINE void CalcVertices (FVector* Verts) const;
+	FORCEINLINE void CalcVertices(FVector* Verts) const;
 
 	/**
 	 * Finds the projection interval of the box when projected onto Axis.
 	 *
 	 * @param Axis The unit vector defining the axis to project the box onto.
 	 */
-	FORCEINLINE FInterval Project (const FVector& Axis) const;
+	FORCEINLINE FInterval Project(const FVector& Axis) const;
 };
 
 
