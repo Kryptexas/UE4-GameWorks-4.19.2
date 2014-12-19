@@ -1651,7 +1651,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 		for (auto It = GetLandscapeInfoMap(GetWorld()).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
-			if (LandscapeInfo && LandscapeInfo->bIsValid)
+			if (LandscapeInfo)
 			{
 				if (CurrentToolTarget.LandscapeInfo == LandscapeInfo)
 				{
