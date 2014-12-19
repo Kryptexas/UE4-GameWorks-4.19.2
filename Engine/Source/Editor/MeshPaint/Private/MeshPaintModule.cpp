@@ -22,8 +22,7 @@ public:
 			);
 
 
-		TSharedRef<FMeshPaintGeometryAdapterForStaticMeshesFactory> StaticMeshAdapter(new FMeshPaintGeometryAdapterForStaticMeshesFactory);
-		RegisterGeometryAdapterFactory(StaticMeshAdapter);
+		RegisterGeometryAdapterFactory(MakeShareable(new FMeshPaintGeometryAdapterForStaticMeshesFactory));
 	}
 
 	/**

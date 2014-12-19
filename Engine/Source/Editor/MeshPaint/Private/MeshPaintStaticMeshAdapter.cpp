@@ -76,7 +76,7 @@ void FMeshPaintGeometryAdapterForStaticMeshes::GetTriangleInfo(int32 TriIndex, F
 	}
 }
 
-bool FMeshPaintGeometryAdapterForStaticMeshes::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
+bool FMeshPaintGeometryAdapterForStaticMeshes::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
 {
 	check(StaticMeshComponent);
 	check(StaticMeshComponent->StaticMesh);
@@ -159,14 +159,15 @@ bool FMeshPaintGeometryAdapterForStaticMeshes::LineTraceComponent(struct FHitRes
 
 TSharedPtr<IMeshPaintGeometryAdapter> FMeshPaintGeometryAdapterForStaticMeshesFactory::Construct(class UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) const
 {
-	UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InComponent);
-	if (StaticMeshComponent != nullptr)
+	if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InComponent))
 	{
 		if (StaticMeshComponent->StaticMesh != nullptr)
 		{
 			TSharedRef<FMeshPaintGeometryAdapterForStaticMeshes> Result = MakeShareable(new FMeshPaintGeometryAdapterForStaticMeshes());
-			Result->Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex);
-			return Result;
+			if (Result->Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex))
+			{
+				return Result;
+			}
 		}
 	}
 
