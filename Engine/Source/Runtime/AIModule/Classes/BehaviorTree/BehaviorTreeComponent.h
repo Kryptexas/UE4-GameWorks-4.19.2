@@ -77,11 +77,12 @@ protected:
 public:
 	virtual bool IsRunning() const override;
 	virtual bool IsPaused() const override;
+	virtual void Cleanup() override;
 	// End UBrainComponent overrides
 
-	// Begin UObject overrides
-	virtual void BeginDestroy() override;
-	// End UObject overrides
+	// Begin UActorComponent overrides
+	virtual void UninitializeComponent() override;
+	// End UActorComponent overrides
 
 	/** starts execution from root */
 	bool StartTree(UBehaviorTree& Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
@@ -135,9 +136,6 @@ public:
 
 	/** schedule execution flow update in next tick */
 	void ScheduleExecutionUpdate();
-
-	/** remove all runtime data, used on map change */
-	void Cleanup();
 
 	/** tries to find behavior tree instance in context */
 	int32 FindInstanceContainingNode(const UBTNode* Node) const;

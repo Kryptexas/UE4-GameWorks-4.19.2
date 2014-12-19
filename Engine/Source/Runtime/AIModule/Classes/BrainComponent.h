@@ -133,6 +133,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Logic")
 	virtual void StopLogic(const FString& Reason);
 
+	/** AI logic won't be needed anymore, stop all activity and run cleanup */
+	virtual void Cleanup() {}
+
 protected:
 	virtual void PauseLogic(const FString& Reason) {}
 	/** MUST be called by child implementations!

@@ -27,7 +27,7 @@ UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectI
 	bIsPaused = false;
 }
 
-void UBehaviorTreeComponent::BeginDestroy()
+void UBehaviorTreeComponent::UninitializeComponent()
 {
 	UBehaviorTreeManager* BTManager = UBehaviorTreeManager::GetCurrent(GetWorld());
 	if (BTManager)
@@ -36,7 +36,7 @@ void UBehaviorTreeComponent::BeginDestroy()
 	}
 
 	RemoveAllInstances();
-	Super::BeginDestroy();
+	Super::UninitializeComponent();
 }
 
 void UBehaviorTreeComponent::RestartLogic()
@@ -149,7 +149,7 @@ void UBehaviorTreeComponent::StopTree()
 	{
 		FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
 
-		// notify active nodes
+		// notify active aux nodes
 		for (int32 AuxIndex = 0; AuxIndex < InstanceInfo.ActiveAuxNodes.Num(); AuxIndex++)
 		{
 			const UBTAuxiliaryNode* AuxNode = InstanceInfo.ActiveAuxNodes[AuxIndex];
@@ -158,6 +158,26 @@ void UBehaviorTreeComponent::StopTree()
 			AuxNode->WrappedOnCeaseRelevant(*this, NodeMemory);
 		}
 
+		// notify active parallel tasks
+		for (int32 ParallelIndex = 0; ParallelIndex < InstanceInfo.ParallelTasks.Num(); ParallelIndex++)
+		{
+			const FBehaviorTreeParallelTask& ParalleInfo = InstanceInfo.ParallelTasks[ParallelIndex];
+			if (ParalleInfo.TaskNode && (ParalleInfo.Status != EBTTaskStatus::Inactive))
+			{
+				uint8* NodeMemory = ParalleInfo.TaskNode->GetNodeMemory<uint8>(InstanceInfo);
+				ParalleInfo.TaskNode->WrappedOnTaskFinished(*this, NodeMemory, EBTNodeResult::InProgress);
+			}
+		}
+
+		// notify active task
+		if (InstanceInfo.ActiveNodeType == EBTActiveNode::ActiveTask || InstanceInfo.ActiveNodeType == EBTActiveNode::AbortingTask)
+		{
+			const UBTTaskNode* TaskNode = Cast<const UBTTaskNode>(InstanceInfo.ActiveNode);
+			check(TaskNode != NULL);
+			uint8* NodeMemory = TaskNode->GetNodeMemory<uint8>(InstanceInfo);
+			TaskNode->WrappedOnTaskFinished(*this, NodeMemory, EBTNodeResult::InProgress);
+		}
+		
 		// clear instance
 		InstanceStack[InstanceIndex].Cleanup(*this, EBTMemoryClear::StoreSubtree);
 	}
@@ -222,6 +242,10 @@ void UBehaviorTreeComponent::OnTaskFinished(const UBTTaskNode* TaskNode, EBTNode
 
 		// cleanup task observers
 		UnregisterMessageObserversFrom(TaskNode);
+
+		// notify task about it
+		uint8* TaskMemory = TaskNode->GetNodeMemory<uint8>(InstanceStack[TaskInstanceIdx]);
+		TaskNode->WrappedOnTaskFinished(*this, TaskMemory, TaskResult);
 
 		// update execution when active task is finished
 		FBehaviorTreeInstance& ActiveInstance = InstanceStack[ActiveInstanceIdx];

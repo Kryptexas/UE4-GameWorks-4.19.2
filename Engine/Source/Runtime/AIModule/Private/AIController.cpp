@@ -465,6 +465,11 @@ void AAIController::UnPossess()
 	{
 		PathFollowingComponent->Cleanup();
 	}
+
+	if (BrainComponent)
+	{
+		BrainComponent->Cleanup();
+	}
 }
 
 void AAIController::InitNavigationControl(UPathFollowingComponent*& PathFollowingComp)
