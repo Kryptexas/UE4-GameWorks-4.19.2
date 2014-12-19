@@ -30,6 +30,8 @@ bool UWidgetBinding::IsSupportedSource(UProperty* Property) const
 
 UWidget* UWidgetBinding::GetValue() const
 {
+	//SCOPE_CYCLE_COUNTER(STAT_UMGBinding);
+
 	if ( UObject* Source = SourceObject.Get() )
 	{
 		UObject* Value;

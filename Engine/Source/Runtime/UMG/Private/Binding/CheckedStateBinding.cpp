@@ -31,6 +31,8 @@ bool UCheckedStateBinding::IsSupportedDestination(UProperty* Property) const
 
 ECheckBoxState UCheckedStateBinding::GetValue() const
 {
+	//SCOPE_CYCLE_COUNTER(STAT_UMGBinding);
+
 	if ( UObject* Source = SourceObject.Get() )
 	{
 		if ( bConversion.Get(EConversion::None) == EConversion::None )

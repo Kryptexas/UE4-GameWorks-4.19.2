@@ -31,6 +31,8 @@ bool UMouseCursorBinding::IsSupportedDestination(UProperty* Property) const
 
 EMouseCursor::Type UMouseCursorBinding::GetValue() const
 {
+	//SCOPE_CYCLE_COUNTER(STAT_UMGBinding);
+
 	if ( UObject* Source = SourceObject.Get() )
 	{
 		uint8 Value;

@@ -31,6 +31,8 @@ bool UVisibilityBinding::IsSupportedDestination(UProperty* Property) const
 
 ESlateVisibility UVisibilityBinding::GetValue() const
 {
+	//SCOPE_CYCLE_COUNTER(STAT_UMGBinding);
+
 	if ( UObject* Source = SourceObject.Get() )
 	{
 		uint8 Value;
