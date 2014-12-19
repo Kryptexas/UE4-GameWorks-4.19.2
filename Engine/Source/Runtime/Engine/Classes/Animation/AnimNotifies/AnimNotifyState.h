@@ -56,14 +56,6 @@ class ENGINE_API UAnimNotifyState : public UObject
 #endif // WITH_EDITORONLY_DATA
 	}
 
-	/**
-	 *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
-	 *
-	 *	@param	AnimSeq			The animation sequence this notify is associated with.
-	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
-	 */
-	virtual void AnimNotifyEventChanged(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, FAnimNotifyEvent * OwnerEvent) {}
-
 	/** UObject Interface */
 	virtual void PostLoad();
 	/** End UObject Interface */

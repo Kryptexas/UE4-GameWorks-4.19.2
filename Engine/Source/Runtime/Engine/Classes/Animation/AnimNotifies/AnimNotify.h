@@ -49,14 +49,6 @@ class ENGINE_API UAnimNotify : public UObject
 	}
 
 	/**
-	 *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
-	 *
-	 *	@param	AnimSeq			The animation sequence this notify is associated with.
-	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
-	 */
-	virtual void AnimNotifyEventChanged(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, FAnimNotifyEvent* OwnerEvent) {}
-
-	/**
 	 * We don't instance UAnimNotify objects along with the animations they belong to, but
 	 * we still need a way to see which world this UAnimNotify is currently operating on.
 	 * So this retrieves a contextual world pointer, from the triggering animation/mesh.  
