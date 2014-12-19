@@ -398,8 +398,8 @@ protected:
 
 private:
 	/** Actively ticks the widget to update to process new frame data as long as any frames have been added recently */
-	EActiveTickReturnType EnsureDataUpdateDuringPreview( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType EnsureDataUpdateDuringPreview( double InCurrentTime, float InDeltaTime );
 
-	/** True if the active tick is currently registered */
-	bool bIsActiveTickRegistered;
+	/** True if the active timer is currently registered */
+	bool bIsActiveTimerRegistered;
 };

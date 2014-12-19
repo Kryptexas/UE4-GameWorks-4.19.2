@@ -361,7 +361,7 @@ public:
 
 protected:
 	/** Updates the preview */
-	EActiveTickReturnType UpdatePreview( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType UpdatePreview( double InCurrentTime, float InDeltaTime );
 
 	/** Creates the editor heading UI */
 	TSharedRef<SWidget> MakeEditorHeader() const;
@@ -412,7 +412,7 @@ protected:
 	/** This is used to tell the user when they do something wrong */
 	TSharedPtr<SNotificationList> NotificationListPtr;
 
-	/** Whether the active tick to update the preview is registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer to update the preview is registered */
+	bool bIsActiveTimerRegistered;
 };
 

@@ -116,10 +116,10 @@ private:
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )  override;
 
 	/** Updates the amount of time the profiler has been active */
-	EActiveTickReturnType UpdateActiveDuration( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType UpdateActiveDuration( double InCurrentTime, float InDeltaTime );
 
 	/** The handle to the active update duration tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 	/** Holds all widgets for the profiler window like menu bar, toolbar and tabs. */
 	TSharedPtr<SVerticalBox> MainContentPanel;

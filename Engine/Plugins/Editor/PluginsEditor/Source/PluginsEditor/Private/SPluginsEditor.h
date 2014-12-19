@@ -82,8 +82,8 @@ private:
 	/** Called to refresh the breadcrumb trail immediately */
 	void RefreshBreadcrumbTrail();
 
-	/** One-off active tick to trigger a refresh of the breadcrumb trail as needed */
-	EActiveTickReturnType TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to trigger a refresh of the breadcrumb trail as needed */
+	EActiveTimerReturnType TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime);
 
 private:
 

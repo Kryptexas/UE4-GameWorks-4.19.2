@@ -1119,7 +1119,7 @@ private:
 
 	TSet<FKey> PressedMouseButtons;
 
-	/** After processing an event or performing an active tick, we need to synthesize a mouse move. @see SynthesizeMouseMove */
+	/** After processing an event or performing an active timer, we need to synthesize a mouse move. @see SynthesizeMouseMove */
 	int32 SynthesizeMouseMovePending;
 
 	/** true when the slate app is active; i.e. the current foreground window is from our Slate app*/

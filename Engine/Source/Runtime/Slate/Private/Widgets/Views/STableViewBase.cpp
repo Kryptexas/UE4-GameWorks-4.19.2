@@ -12,7 +12,7 @@ namespace ListConstants
 void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
 {
 	bItemsNeedRefresh = true;
-	//RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
+	//RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
 
 	HeaderRow = InHeaderRow;
 
@@ -151,7 +151,7 @@ static FEndOfListResult ComputeOffsetForEndOfList( const FGeometry& ListPanelGeo
 	return FEndOfListResult( OffsetFromEndOfList, ItemsAboveView );
 }
 
-EActiveTickReturnType STableViewBase::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType STableViewBase::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
 	bool bKeepTicking = false;
 	if (ItemsPanel.IsValid())
@@ -202,16 +202,16 @@ EActiveTickReturnType STableViewBase::UpdateInertialScroll(double InCurrentTime,
 		TickScrollDelta = 0.f;
 	}
 
-	bIsScrollingActiveTickRegistered = bKeepTicking;
-	return bKeepTicking ? EActiveTickReturnType::KeepTicking : EActiveTickReturnType::StopTicking;
+	bIsScrollingActiveTimerRegistered = bKeepTicking;
+	return bKeepTicking ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
 }
 
-EActiveTickReturnType STableViewBase::EnsureTickToRefresh(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType STableViewBase::EnsureTickToRefresh(double InCurrentTime, float InDeltaTime)
 {
 	// Actual refresh isn't implemented here as it can be needed in response to changes in the panel geometry.
 	// Since that isn't known until Tick (called after this when registered), refreshing here could result in two refreshes in one frame.
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -382,11 +382,11 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		// the mouse and dragging the view?
 		if( IsRightClickScrolling() )
 		{
-			// Make sure the active tick is registered to update the inertial scroll
-			if (!bIsScrollingActiveTickRegistered)
+			// Make sure the active timer is registered to update the inertial scroll
+			if (!bIsScrollingActiveTimerRegistered)
 			{
-				bIsScrollingActiveTickRegistered = true;
-				RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &STableViewBase::UpdateInertialScroll));
+				bIsScrollingActiveTimerRegistered = true;
+				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STableViewBase::UpdateInertialScroll));
 			}
 
 			TickScrollDelta -= ScrollByAmount;
@@ -552,7 +552,7 @@ void STableViewBase::RequestListRefresh()
 	if (!bItemsNeedRefresh)
 	{
 		bItemsNeedRefresh = true;
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
 	}
 	ItemsPanel->SetRefreshPending(true);
 }
@@ -595,7 +595,7 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, SelectionMode( ESelectionMode::Multi )
 	, SoftwareCursorPosition( ForceInitToZero )
 	, bShowSoftwareCursor( false )
-	, bIsScrollingActiveTickRegistered( false )
+	, bIsScrollingActiveTimerRegistered( false )
 	, Overscroll()
 	, AllowOverscroll(EAllowOverscroll::Yes)
 	, bItemsNeedRefresh( false )

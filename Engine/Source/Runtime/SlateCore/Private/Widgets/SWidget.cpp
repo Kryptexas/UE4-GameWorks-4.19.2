@@ -3,7 +3,7 @@
 #include "SlateCorePrivatePCH.h"
 #include "Widgets/SWidget.h"
 #include "Input/Events.h"
-#include "ActiveTickHandle.h"
+#include "ActiveTimerHandle.h"
 
 DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
@@ -348,8 +348,8 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 {
 	INC_DWORD_STAT(STAT_SlateNumTickedWidgets);
 
-	// Execute any pending active ticks for this widget, followed by the passive tick
-	ExecuteActiveTicks( InCurrentTime, InDeltaTime );
+	// Execute any pending active timers for this widget, followed by the passive tick
+	ExecuteActiveTimers( InCurrentTime, InDeltaTime );
 	Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
@@ -634,7 +634,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 		TickGeometry.AppendTransform( FSlateLayoutTransform(Args.GetWindowToDesktopTransform()) );
 
 		SWidget* MutableThis = const_cast<SWidget*>(this);
-		MutableThis->ExecuteActiveTicks( Args.GetCurrentTime(), Args.GetDeltaTime() );
+		MutableThis->ExecuteActiveTimers( Args.GetCurrentTime(), Args.GetDeltaTime() );
 		MutableThis->Tick( TickGeometry, Args.GetCurrentTime(), Args.GetDeltaTime() );
 	}
 
@@ -672,46 +672,46 @@ void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildr
 	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 }
 
-TSharedRef<FActiveTickHandle> SWidget::RegisterActiveTick(float TickPeriod, FWidgetActiveTickDelegate TickFunction)
+TSharedRef<FActiveTimerHandle> SWidget::RegisterActiveTimer(float TickPeriod, FWidgetActiveTimerDelegate TickFunction)
 {
-	TSharedRef<FActiveTickHandle> ActiveTickHandle = MakeShareable(new FActiveTickHandle(TickPeriod, TickFunction, FSlateApplicationBase::Get().GetCurrentTime() + TickPeriod));
-	FSlateApplicationBase::Get().RegisterActiveTick(ActiveTickHandle);
-	ActiveTicks.Add(ActiveTickHandle);
-	return ActiveTickHandle;
+	TSharedRef<FActiveTimerHandle> ActiveTimerHandle = MakeShareable(new FActiveTimerHandle(TickPeriod, TickFunction, FSlateApplicationBase::Get().GetCurrentTime() + TickPeriod));
+	FSlateApplicationBase::Get().RegisterActiveTimer(ActiveTimerHandle);
+	ActiveTimers.Add(ActiveTimerHandle);
+	return ActiveTimerHandle;
 }
 
-void SWidget::UnRegisterActiveTick(const TSharedRef<FActiveTickHandle>& ActiveTickHandle)
+void SWidget::UnRegisterActiveTimer(const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle)
 {
-	FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTickHandle);
-	ActiveTicks.Remove(ActiveTickHandle);
+	FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
+	ActiveTimers.Remove(ActiveTimerHandle);
 }
 
-void SWidget::ExecuteActiveTicks(double CurrentTime, float DeltaTime)
+void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 {
 	// loop over the registered tick handles and execute them, removing them if necessary.
-	for (int32 i = 0; i < ActiveTicks.Num();)
+	for (int32 i = 0; i < ActiveTimers.Num();)
 	{
-		EActiveTickReturnType Result = ActiveTicks[i]->ExecuteIfPending( CurrentTime, DeltaTime );
-		if (Result == EActiveTickReturnType::KeepTicking)
+		EActiveTimerReturnType Result = ActiveTimers[i]->ExecuteIfPending( CurrentTime, DeltaTime );
+		if (Result == EActiveTimerReturnType::Continue)
 		{
 			++i;
 		}
 		else
 		{
-			FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTicks[i]);
-			ActiveTicks.RemoveAt(i);
+			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+			ActiveTimers.RemoveAt(i);
 		}
 	}
 }
 
 SWidget::~SWidget()
 {
-	// Unregister all ActiveTicks so they aren't left stranded in the Application's list.
+	// Unregister all ActiveTimers so they aren't left stranded in the Application's list.
 	if (FSlateApplicationBase::IsInitialized())
 	{
-		for (const auto& ActiveTickHandle : ActiveTicks)
+		for (const auto& ActiveTimerHandle : ActiveTimers)
 		{
-			FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTickHandle);
+			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
 		}
 	}
 }

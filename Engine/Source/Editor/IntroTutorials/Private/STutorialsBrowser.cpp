@@ -497,7 +497,7 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().OnAssetAdded().AddSP(this, &STutorialsBrowser::HandleAssetAdded);
 
-	RegisterActiveTick( TutorialBrowserConstants::RefreshTimerInterval, FWidgetActiveTickDelegate::CreateSP( this, &STutorialsBrowser::TriggerReloadTutorials ) );
+	RegisterActiveTimer( TutorialBrowserConstants::RefreshTimerInterval, FWidgetActiveTimerDelegate::CreateSP( this, &STutorialsBrowser::TriggerReloadTutorials ) );
 
 	ChildSlot
 	[
@@ -579,7 +579,7 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 	RebuildCrumbs();
 }
 
-EActiveTickReturnType STutorialsBrowser::TriggerReloadTutorials( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType STutorialsBrowser::TriggerReloadTutorials( double InCurrentTime, float InDeltaTime )
 {
 	if (bNeedsRefresh)
 	{
@@ -587,7 +587,7 @@ EActiveTickReturnType STutorialsBrowser::TriggerReloadTutorials( double InCurren
 		ReloadTutorials();
 	}
 	
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 void STutorialsBrowser::SetFilter(const FString& InFilter)

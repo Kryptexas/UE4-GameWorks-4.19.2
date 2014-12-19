@@ -721,7 +721,7 @@ FReply FSequencer::OnPlay()
 			PlaybackState = EMovieScenePlayerStatus::Playing;
 			
 			// Make sure Slate ticks during playback
-			SequencerWidget->RegisterActiveTickForPlayback();
+			SequencerWidget->RegisterActiveTimerForPlayback();
 		}
 	}
 
@@ -735,7 +735,7 @@ FReply FSequencer::OnRecord()
 		PlaybackState = EMovieScenePlayerStatus::Recording;
 		
 		// Make sure Slate ticks during playback
-		SequencerWidget->RegisterActiveTickForPlayback();
+		SequencerWidget->RegisterActiveTimerForPlayback();
 
 		// @todo sequencer livecapture: Ideally we would support fixed timestep capture from simulation
 		//			Basically we need to run the PIE world at a fixed time step, capturing key frames every frame. 

@@ -63,7 +63,7 @@ void SColorPicker::Construct( const FArguments& InArgs )
 	DisplayGamma = InArgs._DisplayGamma;
 	bClosedViaOkOrCancel = false;
 
-	RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SColorPicker::AnimatePostConstruct ) );
+	RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SColorPicker::AnimatePostConstruct ) );
 
 	// We need a parent window to set the close callback
 	if (ParentWindowPtr.IsValid())
@@ -573,11 +573,11 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 	HideSmallTrash();
 }
 
-EActiveTickReturnType SColorPicker::AnimatePostConstruct( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SColorPicker::AnimatePostConstruct( double InCurrentTime, float InDeltaTime )
 {
 	static const float AnimationTime = 0.25f;
 
-	EActiveTickReturnType TickReturnVal = EActiveTickReturnType::KeepTicking;
+	EActiveTimerReturnType TickReturnVal = EActiveTimerReturnType::Continue;
 	if ( CurrentTime < AnimationTime )
 	{
 		CurrentColorHSV = FMath::Lerp( ColorBegin, ColorEnd, CurrentTime / AnimationTime );
@@ -594,7 +594,7 @@ EActiveTickReturnType SColorPicker::AnimatePostConstruct( double InCurrentTime, 
 		if ( CurrentTime >= AnimationTime )
 		{
 			CurrentColorHSV = ColorEnd;
-			TickReturnVal = EActiveTickReturnType::StopTicking;
+			TickReturnVal = EActiveTimerReturnType::Stop;
 		}
 
 		CurrentColorRGB = CurrentColorHSV.HSVToLinearRGB();

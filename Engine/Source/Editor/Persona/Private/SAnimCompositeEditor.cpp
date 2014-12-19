@@ -22,7 +22,7 @@ TSharedRef<SWidget> SAnimCompositeEditor::CreateDocumentAnchor()
 
 void SAnimCompositeEditor::Construct(const FArguments& InArgs)
 {
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 	PersonaPtr = InArgs._Persona;
 	CompositeObj = InArgs._Composite;
 	check(CompositeObj);
@@ -112,10 +112,10 @@ void SAnimCompositeEditor::OnCompositeChange(class UObject *EditorAnimBaseObj, b
 {
 	if ( CompositeObj != nullptr )
 	{
-		if(bRebuild && !bIsActiveTickRegistered)
+		if(bRebuild && !bIsActiveTimerRegistered)
 		{
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SAnimCompositeEditor::TriggerRebuildPanel));
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SAnimCompositeEditor::TriggerRebuildPanel));
 		} 
 		else
 		{
@@ -140,10 +140,10 @@ void SAnimCompositeEditor::CollapseComposite()
 
 void SAnimCompositeEditor::PostUndo()
 {
-	if (!bIsActiveTickRegistered)
+	if (!bIsActiveTimerRegistered)
 	{
-		bIsActiveTickRegistered = true;
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SAnimCompositeEditor::TriggerRebuildPanel));
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SAnimCompositeEditor::TriggerRebuildPanel));
 	}
 
 	// when undo or redo happens, we still have to recalculate length, so we can't rely on sequence length changes or not
@@ -158,14 +158,14 @@ void SAnimCompositeEditor::InitDetailsViewEditorObject(UEditorAnimBaseObj* EdObj
 	EdObj->InitFromAnim(CompositeObj, FOnAnimObjectChange::CreateSP( SharedThis(this), &SAnimCompositeEditor::OnCompositeChange ));
 }
 
-EActiveTickReturnType SAnimCompositeEditor::TriggerRebuildPanel(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SAnimCompositeEditor::TriggerRebuildPanel(double InCurrentTime, float InDeltaTime)
 {
 	// we should not update any property related within PostEditChange, 
 	// so this is deferred to Tick, when it needs to rebuild, just mark it and this will update in the next tick
 	RebuildPanel();
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 float SAnimCompositeEditor::CalculateSequenceLengthOfEditorObject() const

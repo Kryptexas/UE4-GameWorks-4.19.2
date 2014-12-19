@@ -1129,7 +1129,7 @@ public:
 // SBasePoseViewport
 void SBasePoseViewport::Construct(const FArguments& InArgs)
 {
-	//RegisterActiveTick( 0.f, FTickWidgetDelegate::CreateSP( this, &SBasePoseViewport::TickViewport ) );
+	//RegisterActiveTimer( 0.f, FTickWidgetDelegate::CreateSP( this, &SBasePoseViewport::TickViewport ) );
 
 	this->ChildSlot
 	[

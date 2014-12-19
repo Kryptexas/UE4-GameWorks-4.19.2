@@ -187,7 +187,7 @@ private:
 
 void SSCSEditorViewport::Construct(const FArguments& InArgs)
 {
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 
 	// Save off the Blueprint editor reference, we'll need this later
 	BlueprintEditorPtr = InArgs._BlueprintEditor;
@@ -304,10 +304,10 @@ void SSCSEditorViewport::RequestRefresh(bool bResetCamera, bool bRefreshNow)
 	else
 	{
 		// Defer the update until the next tick. This way we don't accidentally spawn the preview actor in the middle of a transaction, for example.
-		if (!bIsActiveTickRegistered)
+		if (!bIsActiveTimerRegistered)
 		{
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SSCSEditorViewport::DeferredUpdatePreview, bResetCamera));
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SSCSEditorViewport::DeferredUpdatePreview, bResetCamera));
 		}
 	}
 }
@@ -328,15 +328,15 @@ bool SSCSEditorViewport::GetIsSimulateEnabled()
 	return ViewportClient->GetIsSimulateEnabled();
 }
 
-EActiveTickReturnType SSCSEditorViewport::DeferredUpdatePreview(double InCurrentTime, float InDeltaTime, bool bResetCamera)
+EActiveTimerReturnType SSCSEditorViewport::DeferredUpdatePreview(double InCurrentTime, float InDeltaTime, bool bResetCamera)
 {
 	if (ViewportClient.IsValid())
 	{
 		ViewportClient->InvalidatePreview(bResetCamera);
 	}
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 AActor* SSCSEditorViewport::GetPreviewActor() const

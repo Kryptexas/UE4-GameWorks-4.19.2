@@ -408,7 +408,7 @@ void SNodePanel::OnEndNodeInteraction(const TSharedRef<SNode>& InNodeToDrag)
 {
 }
 
-EActiveTickReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float InDeltaTime)
 {
 	const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
 	const bool bDoneScrolling = ScrollToLocation(CachedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
@@ -426,16 +426,16 @@ EActiveTickReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float In
 
 		DeferredMovementTargetObject = nullptr;
 
-		return EActiveTickReturnType::StopTicking;
+		return EActiveTimerReturnType::Stop;
 	}
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 void SNodePanel::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	CachedGeometry = AllottedGeometry;
-	bool bWasActiveTickRegisteredThisFrame = false;
+	bool bWasActiveTimerRegisteredThisFrame = false;
 
 	if(DeferredSelectionTargetObjects.Num() > 0)
 	{
@@ -464,10 +464,10 @@ void SNodePanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	else if(DeferredMovementTargetObject != nullptr && GetBoundsForNodes(true, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
 	{
 		DeferredMovementTargetObject = nullptr;
-		if (!ActiveTickHandle.IsValid())
+		if (!ActiveTimerHandle.IsValid())
 		{
-			ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
-			bWasActiveTickRegisteredThisFrame = true;
+			ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+			bWasActiveTimerRegisteredThisFrame = true;
 		}
 	}
 	
@@ -479,10 +479,10 @@ void SNodePanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		if( GetBoundsForNodes(bDeferredZoomToSelection, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
 		{
 			bDeferredZoomToSelection = false;
-			if (!ActiveTickHandle.IsValid())
+			if (!ActiveTimerHandle.IsValid())
 			{
-				ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
-				bWasActiveTickRegisteredThisFrame = true;
+				ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+				bWasActiveTimerRegisteredThisFrame = true;
 			}
 		}
 	}
@@ -1070,11 +1070,11 @@ void SNodePanel::SelectAndCenterObject(const UObject* ObjectToSelect, bool bCent
 		DeferredMovementTargetObject = ObjectToSelect;
 	}
 
-	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
-	if (PinnedActiveTickHandle.IsValid())
+	auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+	if (PinnedActiveTimerHandle.IsValid())
 	{
 		// Stop zooming for now and let the a new zoom target be established
-		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 	}
 }
 
@@ -1136,10 +1136,10 @@ void SNodePanel::RestoreViewSettings(const FVector2D& InViewOffset, float InZoom
 		ZoomLevel = ZoomLevels->GetNearestZoomLevel(InZoomAmount);
 		bDeferredZoomToNodeExtents = false;
 
-		auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
-		if (PinnedActiveTickHandle.IsValid())
+		auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+		if (PinnedActiveTimerHandle.IsValid())
 		{
-			UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+			UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 		}
 	}
 
@@ -1522,9 +1522,9 @@ void SNodePanel::ZoomToTarget(const FVector2D& TopLeft, const FVector2D& BottomR
 	ZoomTargetTopLeft = TopLeft;
 	ZoomTargetBottomRight = BottomRight;
 
-	if (!ActiveTickHandle.IsValid())
+	if (!ActiveTimerHandle.IsValid())
 	{
-		ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+		ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
 	}
 }
 

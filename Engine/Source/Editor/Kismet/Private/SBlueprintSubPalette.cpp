@@ -256,10 +256,10 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 }
 
 //------------------------------------------------------------------------------
-EActiveTickReturnType SBlueprintSubPalette::TriggerRefreshActionsList(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SBlueprintSubPalette::TriggerRefreshActionsList(double InCurrentTime, float InDeltaTime)
 {
 	RefreshActionsList(true);
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 //------------------------------------------------------------------------------
@@ -390,7 +390,7 @@ void SBlueprintSubPalette::GenerateContextMenuEntries(FMenuBuilder& MenuBuilder)
 //------------------------------------------------------------------------------
 void SBlueprintSubPalette::RequestRefreshActionsList()
 {
-	RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SBlueprintSubPalette::TriggerRefreshActionsList));
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SBlueprintSubPalette::TriggerRefreshActionsList));
 }
 
 //------------------------------------------------------------------------------

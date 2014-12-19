@@ -401,7 +401,7 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	CurrentAssetHistoryIndex = INDEX_NONE;
 	bTriedToCacheOrginalAsset = false;
 
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 	bToolTipVisualizedThisFrame = false;
 	bToolTipClosedThisFrame = false;
 
@@ -920,10 +920,10 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 			ViewportWidget->SetVisibility(EVisibility::Visible);
 			
 			// Update the preview as long as the tooltip is visible
-			if ( !bIsActiveTickRegistered )
+			if ( !bIsActiveTimerRegistered )
 			{
-				bIsActiveTickRegistered = true;
-				RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SAnimationSequenceBrowser::UpdateTootipPreview));
+				bIsActiveTimerRegistered = true;
+				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SAnimationSequenceBrowser::UpdateTootipPreview));
 			}
 			bToolTipVisualizedThisFrame = true;
 		}
@@ -961,7 +961,7 @@ void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Co
 	}
 }
 
-EActiveTickReturnType SAnimationSequenceBrowser::UpdateTootipPreview( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SAnimationSequenceBrowser::UpdateTootipPreview( double InCurrentTime, float InDeltaTime )
 {
 	bToolTipVisualizedThisFrame = false;
 	if ( PreviewComponent && IsToolTipPreviewVisible() )
@@ -971,11 +971,11 @@ EActiveTickReturnType SAnimationSequenceBrowser::UpdateTootipPreview( double InC
 	}
 	else
 	{
-		bIsActiveTickRegistered = false;
-		return EActiveTickReturnType::StopTicking;
+		bIsActiveTimerRegistered = false;
+		return EActiveTimerReturnType::Stop;
 	}
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()

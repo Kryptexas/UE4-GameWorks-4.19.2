@@ -490,21 +490,21 @@ void SProfilerWindow::SendingServiceSideCapture_Load( const FString Filename )
 	}
 }
 
-EActiveTickReturnType SProfilerWindow::UpdateActiveDuration( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SProfilerWindow::UpdateActiveDuration( double InCurrentTime, float InDeltaTime )
 {
 	DurationActive += InDeltaTime;
 
-	// The profiler window will explicitly unregister this active tick when the mouse leaves
-	return EActiveTickReturnType::KeepTicking;
+	// The profiler window will explicitly unregister this active timer when the mouse leaves
+	return EActiveTimerReturnType::Continue;
 }
 
 void SProfilerWindow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
 
-	if (!ActiveTickHandle.IsValid())
+	if (!ActiveTimerHandle.IsValid())
 	{
-		ActiveTickHandle = RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SProfilerWindow::UpdateActiveDuration));
+		ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SProfilerWindow::UpdateActiveDuration));
 	}
 }
 
@@ -512,10 +512,10 @@ void SProfilerWindow::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseLeave(MouseEvent);
 
-	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
-	if (PinnedActiveTickHandle.IsValid())
+	auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+	if (PinnedActiveTimerHandle.IsValid())
 	{
-		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 	}
 	
 }

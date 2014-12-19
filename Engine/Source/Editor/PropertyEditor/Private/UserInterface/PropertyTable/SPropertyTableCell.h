@@ -61,8 +61,8 @@ private:
 
 	void OnCellValueChanged( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent );
 
-	/** One-off active tick to trigger entering the editing mode */
-	EActiveTickReturnType TriggerEnterEditingMode(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to trigger entering the editing mode */
+	EActiveTimerReturnType TriggerEnterEditingMode(double InCurrentTime, float InDeltaTime);
 
 private:
 

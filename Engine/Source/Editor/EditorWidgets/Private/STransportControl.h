@@ -36,16 +36,16 @@ private:
 	FSlateColor GetLoopStatusColor() const;
 
 	/** Executes the OnTickPlayback delegate */
-	EActiveTickReturnType TickPlayback( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType TickPlayback( double InCurrentTime, float InDeltaTime );
 
 	FReply OnToggleLooping();
 
 private:
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
-	/** Whether the active tick is currently registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer is currently registered */
+	bool bIsActiveTimerRegistered;
 
 	FTransportControlArgs TransportControlArgs;
 };

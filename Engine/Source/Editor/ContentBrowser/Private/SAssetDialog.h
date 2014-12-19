@@ -28,7 +28,7 @@ public:
 private:
 
 	/** Used to focus the name box immediately following construction */
-	EActiveTickReturnType SetFocusPostConstruct( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType SetFocusPostConstruct( double InCurrentTime, float InDeltaTime );
 
 	/** Moves keyboard focus to the name box if this is a save dialog */
 	void FocusNameBox();

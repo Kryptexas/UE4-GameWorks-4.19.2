@@ -87,14 +87,14 @@ void SGraphEditorImpl::NotifyGraphChanged()
 
 void SGraphEditorImpl::OnGraphChanged(const FEdGraphEditAction& InAction)
 {
-	if ( !bIsActiveTickRegistered )
+	if ( !bIsActiveTimerRegistered )
 	{
 		// Remove the old user interface nodes
 		GraphPanel->PurgeVisualRepresentation();
 
 		// Trigger the refresh
-		bIsActiveTickRegistered = true;
-		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SGraphEditorImpl::TriggerRefresh ) );
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SGraphEditorImpl::TriggerRefresh ) );
 	}
 }
 
@@ -158,7 +158,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 	OnNavigateHistoryForward = InArgs._OnNavigateHistoryForward;
 	OnNodeSpawnedByKeymap = InArgs._GraphEvents.OnNodeSpawnedByKeymap;
 
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 
 	// Make sure that the editor knows about what kinds
 	// of commands GraphEditor can do.
@@ -385,12 +385,12 @@ void SGraphEditorImpl::Tick( const FGeometry& AllottedGeometry, const double InC
 	}
 }
 
-EActiveTickReturnType SGraphEditorImpl::TriggerRefresh( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SGraphEditorImpl::TriggerRefresh( double InCurrentTime, float InDeltaTime )
 {
 	GraphPanel->Update();
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SGraphEditorImpl::OnClosedActionMenu()

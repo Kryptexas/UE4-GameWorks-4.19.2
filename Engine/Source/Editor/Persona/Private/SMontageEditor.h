@@ -71,8 +71,8 @@ private:
 	/** If user is currently dragging an item */
 	bool bDragging : 1;
 
-	/** If the active tick to trigger a montage panel rebuild is currently registered */
-	bool bIsActiveTickRegistered : 1;
+	/** If the active timer to trigger a montage panel rebuild is currently registered */
+	bool bIsActiveTimerRegistered : 1;
 
 	virtual float CalculateSequenceLengthOfEditorObject() const override;
 	void SortAndUpdateMontage();
@@ -92,8 +92,8 @@ private:
 	/** Updates Notify trigger offsets to take into account current montage state */
 	void RefreshNotifyTriggerOffsets();
 
-	/** One-off active tick to trigger a montage panel rebuild */
-	EActiveTickReturnType TriggerRebuildMontagePanel(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to trigger a montage panel rebuild */
+	EActiveTimerReturnType TriggerRebuildMontagePanel(double InCurrentTime, float InDeltaTime);
 
 	/** Rebuilds the montage panel */
 	void RebuildMontagePanel();

@@ -28,7 +28,7 @@ SPathView::~SPathView()
 
 void SPathView::Construct( const FArguments& InArgs )
 {
-	RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
 
 	OnPathSelected = InArgs._OnPathSelected;
 	bAllowContextMenu = InArgs._AllowContextMenu;
@@ -39,7 +39,7 @@ void SPathView::Construct( const FArguments& InArgs )
 
 	if ( InArgs._FocusSearchBoxWhenOpened )
 	{
-		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SPathView::SetFocusPostConstruct ) );
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SPathView::SetFocusPostConstruct ) );
 	}
 
 	// Listen for when view settings are changed
@@ -620,19 +620,19 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 	}
 }
 
-EActiveTickReturnType SPathView::SetFocusPostConstruct( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SPathView::SetFocusPostConstruct( double InCurrentTime, float InDeltaTime )
 {
 	FWidgetPath WidgetToFocusPath;
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
 	FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
-EActiveTickReturnType SPathView::TriggerRepopulate(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPathView::TriggerRepopulate(double InCurrentTime, float InDeltaTime)
 {
 	Populate();
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 TSharedPtr<SWidget> SPathView::MakePathViewContextMenu()
@@ -1336,7 +1336,7 @@ void SPathView::OnAssetRegistrySearchCompleted()
 void SPathView::OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FilesystemPath )
 {
 	// A new content path has appeared, so we should refresh out root set of paths
-	RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPathView::TriggerRepopulate));
 }
 
 void SPathView::HandleSettingChanged(FName PropertyName)

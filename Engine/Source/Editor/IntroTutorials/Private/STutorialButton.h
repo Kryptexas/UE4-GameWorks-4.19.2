@@ -20,7 +20,7 @@ class STutorialButton : public SCompoundWidget
 	
 private:
 	/** Opens the tutorial post-construct */
-	EActiveTickReturnType OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime );
 
 	/** Handle clicking the tutorial button */
 	FReply HandleButtonClicked();

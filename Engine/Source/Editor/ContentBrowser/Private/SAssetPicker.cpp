@@ -25,7 +25,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 
 	if ( InArgs._AssetPickerConfig.bFocusSearchBoxWhenOpened )
 	{
-		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SAssetPicker::SetFocusPostConstruct ) );
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SAssetPicker::SetFocusPostConstruct ) );
 	}
 
 	for (auto DelegateIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
@@ -236,7 +236,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	AssetViewPtr->RequestSlowFullListRefresh();
 }
 
-EActiveTickReturnType SAssetPicker::SetFocusPostConstruct( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SAssetPicker::SetFocusPostConstruct( double InCurrentTime, float InDeltaTime )
 {
 	if ( SearchBoxPtr.IsValid() )
 	{
@@ -244,10 +244,10 @@ EActiveTickReturnType SAssetPicker::SetFocusPostConstruct( double InCurrentTime,
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
 		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 
-		return EActiveTickReturnType::StopTicking;
+		return EActiveTimerReturnType::Stop;
 	}
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)

@@ -464,7 +464,7 @@ protected:
 
 private:
 	/** Animates the caret and highlight selection springs */
-	EActiveTickReturnType AnimateSpringsWhileFocused(double InCurrentTime, float InDeltaTime);
+	EActiveTimerReturnType AnimateSpringsWhileFocused(double InCurrentTime, float InDeltaTime);
 	
 	/** @return Whether the editable text should appear focused */
 	bool ShouldAppearFocused() const;

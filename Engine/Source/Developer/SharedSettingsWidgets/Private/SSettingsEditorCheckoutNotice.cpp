@@ -228,7 +228,7 @@ FSlateColor SSettingsEditorCheckoutNotice::HandleBorderBackgroundColor() const
 
 void SSettingsEditorCheckoutNotice::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	// cache selected settings object's configuration file state (purposely not in an active tick to make sure it appears while the user is active)
+	// cache selected settings object's configuration file state (purposely not in an active timer to make sure it appears while the user is active)
 	if (InCurrentTime - LastDefaultConfigCheckOutTime >= 1.0f)
 	{
 		bool NewCheckOutNeeded = false;

@@ -241,15 +241,15 @@ namespace ESelectInfo
 	};
 }
 
-/** 
- * Return type for FWidgetActiveTickDelegate.
- * Don't expose to blueprints.
- */
-enum EActiveTickReturnType : uint8
-{
-	/** If this value is returned, the widget will be unregistered for tick automatically. No need to call UnRegisterActiveTick. */
-	StopTicking,
-	/** If this value is returns, the widget will continue to have it's tick delegate called on it. */
-	KeepTicking,
-};
 
+/**
+* Return type for FWidgetActiveTimerDelegate.
+* Don't expose to blueprints.
+*/
+enum class EActiveTimerReturnType : uint8
+{
+	/** If this value is returned, the widget's active timer will be unregistered automatically. No need to call UnRegisterActiveTimer. */
+	Stop,
+	/** If this value is returned, the widget will continue to have its timer delegate called on it. */
+	Continue,
+};

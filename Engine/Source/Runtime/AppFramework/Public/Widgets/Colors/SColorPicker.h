@@ -222,8 +222,8 @@ protected:
 
 private:
 
-	// Callback for the active tick to animate the color post-construct
-	EActiveTickReturnType AnimatePostConstruct( double InCurrentTime, float InDeltaTime );
+	// Callback for the active timer to animate the color post-construct
+	EActiveTimerReturnType AnimatePostConstruct( double InCurrentTime, float InDeltaTime );
 
 	// Callback for getting the end color of a color spin box gradient.
 	FLinearColor GetGradientEndColor( EColorPickerChannels Channel ) const;

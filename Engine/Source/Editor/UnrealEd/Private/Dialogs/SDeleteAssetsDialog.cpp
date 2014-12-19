@@ -101,9 +101,9 @@ SDeleteAssetsDialog::~SDeleteAssetsDialog()
 
 void SDeleteAssetsDialog::Construct( const FArguments& InArgs, TSharedRef<FAssetDeleteModel> InDeleteModel )
 {
-	//bIsActiveTickRegistered = false;
-	bIsActiveTickRegistered = true;
-	RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SDeleteAssetsDialog::TickDeleteModel ) );
+	//bIsActiveTimerRegistered = false;
+	bIsActiveTimerRegistered = true;
+	RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SDeleteAssetsDialog::TickDeleteModel ) );
 
 	DeleteModel = InDeleteModel;
 
@@ -511,17 +511,17 @@ FReply SDeleteAssetsDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEv
 	return FReply::Unhandled();
 }
 
-EActiveTickReturnType SDeleteAssetsDialog::TickDeleteModel( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SDeleteAssetsDialog::TickDeleteModel( double InCurrentTime, float InDeltaTime )
 {
 	DeleteModel->Tick( InDeltaTime );
 
 	if ( DeleteModel->GetState() == FAssetDeleteModel::EState::Finished )
 	{
-		bIsActiveTickRegistered = false;
-		return EActiveTickReturnType::StopTicking;
+		bIsActiveTimerRegistered = false;
+		return EActiveTimerReturnType::Stop;
 	}
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 void SDeleteAssetsDialog::HandleDeleteModelStateChanged(FAssetDeleteModel::EState NewState)
@@ -838,10 +838,10 @@ void SDeleteAssetsDialog::ExecuteDeleteReferencers()
 		UObject* ObjectToDelete = SelectedAsset.GetAsset();
 		
 		DeleteModel->AddObjectToDelete( ObjectToDelete );
-		if ( !bIsActiveTickRegistered )
+		if ( !bIsActiveTimerRegistered )
 		{
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SDeleteAssetsDialog::TickDeleteModel ) );
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SDeleteAssetsDialog::TickDeleteModel ) );
 		}
 	}
 }

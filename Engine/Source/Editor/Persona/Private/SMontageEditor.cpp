@@ -31,7 +31,7 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	check(MontageObj);
 
 	bDragging = false;
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 
 	SAnimEditorBase::Construct( SAnimEditorBase::FArguments()
 		.Persona(InArgs._Persona)
@@ -299,12 +299,12 @@ void SMontageEditor::RebuildMontagePanel()
 	AnimMontageSectionsPanel->Update();
 }
 
-EActiveTickReturnType SMontageEditor::TriggerRebuildMontagePanel(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SMontageEditor::TriggerRebuildMontagePanel(double InCurrentTime, float InDeltaTime)
 {
 	RebuildMontagePanel();
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SMontageEditor::OnMontageChange(class UObject *EditorAnimBaseObj, bool Rebuild)
@@ -313,10 +313,10 @@ void SMontageEditor::OnMontageChange(class UObject *EditorAnimBaseObj, bool Rebu
 
 	if ( MontageObj != nullptr )
 	{
-		if(Rebuild && !bIsActiveTickRegistered)
+		if(Rebuild && !bIsActiveTimerRegistered)
 		{
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SMontageEditor::TriggerRebuildMontagePanel));
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SMontageEditor::TriggerRebuildMontagePanel));
 		} 
 		else
 		{

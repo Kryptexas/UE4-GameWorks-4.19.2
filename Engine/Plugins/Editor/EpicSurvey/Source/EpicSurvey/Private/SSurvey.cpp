@@ -70,11 +70,11 @@ void SSurvey::Construct( const FArguments& Args, const TSharedRef< FEpicSurvey >
 	if (!bIsLoaded)
 	{
 		//Construct the proper layout when finished loading
-		RegisterActiveTick( 0.1f, FWidgetActiveTickDelegate::CreateSP( this, &SSurvey::MonitorLoadStatePostConstruct ) );
+		RegisterActiveTimer( 0.1f, FWidgetActiveTimerDelegate::CreateSP( this, &SSurvey::MonitorLoadStatePostConstruct ) );
 	}
 }
 
-EActiveTickReturnType SSurvey::MonitorLoadStatePostConstruct( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SSurvey::MonitorLoadStatePostConstruct( double InCurrentTime, float InDeltaTime )
 {
 	EContentInitializationState::Type State = Survey->GetInitializationState();
 
@@ -91,7 +91,7 @@ EActiveTickReturnType SSurvey::MonitorLoadStatePostConstruct( double InCurrentTi
 		ConstructFailureLayout();
 	}
 
-	return bIsLoaded ? EActiveTickReturnType::StopTicking : EActiveTickReturnType::KeepTicking;
+	return bIsLoaded ? EActiveTimerReturnType::Stop : EActiveTimerReturnType::Continue;
 }
 
 void SSurvey::ConstructLoadingLayout()

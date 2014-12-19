@@ -45,8 +45,8 @@ private:
 	/** Rebuilds the list of plugins from scratch and applies filtering. */
 	void RebuildAndFilterPluginList();
 
-	/** One-off active tick to trigger a full refresh when something has changed with either our filtering or the loaded plugin set */
-	EActiveTickReturnType TriggerListRebuild(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to trigger a full refresh when something has changed with either our filtering or the loaded plugin set */
+	EActiveTimerReturnType TriggerListRebuild(double InCurrentTime, float InDeltaTime);
 
 private:
 
@@ -59,7 +59,7 @@ private:
 	/** List of everything that we want to display in the plugin list */
 	TArray< FPluginListItemPtr > PluginListItems;
 
-	/** Whether the active tick to refresh the list is registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer to refresh the list is registered */
+	bool bIsActiveTimerRegistered;
 };
 

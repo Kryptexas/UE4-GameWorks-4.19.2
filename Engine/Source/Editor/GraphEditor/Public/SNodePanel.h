@@ -848,14 +848,14 @@ protected:
 	TSharedPtr<FScopedTransaction> ScopedTransactionPtr;
 
 private:
-	/** Active tick that handles deferred zooming until the target zoom is reached */
-	EActiveTickReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
+	/** Active timer that handles deferred zooming until the target zoom is reached */
+	EActiveTimerReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
 
 private:
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
-	/** Cached geometry for use within the active tick */
+	/** Cached geometry for use within the active timer */
 	FGeometry CachedGeometry;
 
 	/** Zoom target rectangle */

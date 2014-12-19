@@ -308,7 +308,7 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	}
 }
 
-EActiveTickReturnType SEditableText::AnimateSpringsWhileFocused(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SEditableText::AnimateSpringsWhileFocused(double InCurrentTime, float InDeltaTime)
 {
 	// Keep ticking as long as we should appear focused or the caret is in transit
 	const bool bShouldAppearFocused = ShouldAppearFocused();
@@ -324,10 +324,10 @@ EActiveTickReturnType SEditableText::AnimateSpringsWhileFocused(double InCurrent
 			SelectionTargetRightSpring.Tick(InDeltaTime);
 		}
 
-		return EActiveTickReturnType::KeepTicking;
+		return EActiveTimerReturnType::Continue;
 	}
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 bool SEditableText::FTextInputMethodContext::IsReadOnly()
@@ -1501,7 +1501,7 @@ FReply SEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocus
 	// Skip the rest of the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
 	{
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SEditableText::AnimateSpringsWhileFocused));
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SEditableText::AnimateSpringsWhileFocused));
 
 		// Don't unselect text when focus is set because another widget lost focus, as that may be in response to a
 		// dismissed context menu where the user clicked an option to select text.

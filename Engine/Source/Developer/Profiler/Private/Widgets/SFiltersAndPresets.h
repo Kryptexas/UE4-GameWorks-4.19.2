@@ -413,12 +413,12 @@ protected:
 	bool bStatTypeIsVisible[EProfilerSampleTypes::InvalidOrMax];
 
 private:
-	/** Registers the active tick to trigger an update if not done already */
+	/** Registers the active timer to trigger an update if not done already */
 	void RegisterForUpdate();
 
-	/** Simple one-off active tick to update the group and stat trees */
-	EActiveTickReturnType UpdateData(double InCurrentTime, float InDeltaTime);
+	/** Simple one-off active timer to update the group and stat trees */
+	EActiveTimerReturnType UpdateData(double InCurrentTime, float InDeltaTime);
 
-	/** Whether the active tick has already been registered this frame */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer has already been registered this frame */
+	bool bIsActiveTimerRegistered;
 };

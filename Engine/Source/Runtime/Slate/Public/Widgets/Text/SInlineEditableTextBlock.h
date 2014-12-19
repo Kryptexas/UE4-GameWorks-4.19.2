@@ -158,9 +158,9 @@ protected:
 	TAttribute< bool > bIsReadOnly;
 
 private:
-	/** Active tick to trigger entry into edit mode after a delay */
-	EActiveTickReturnType TriggerEditMode(double InCurrentTime, float InDeltaTime);
+	/** Active timer to trigger entry into edit mode after a delay */
+	EActiveTimerReturnType TriggerEditMode(double InCurrentTime, float InDeltaTime);
 
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 };

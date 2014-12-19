@@ -232,7 +232,7 @@ public:
 
 private:
 	/** Processes results of the ongoing async stream search */
-	EActiveTickReturnType UpdateSearchResults( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType UpdateSearchResults( double InCurrentTime, float InDeltaTime );
 
 	/** Register any Find-in-Blueprint commands */
 	void RegisterCommands();

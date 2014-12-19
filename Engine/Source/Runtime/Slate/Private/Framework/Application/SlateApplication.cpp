@@ -339,17 +339,17 @@ TAutoConsoleVariable<int32> SkipSecondPrepass(
 	0,
 	TEXT("Whether to skip the second Slate PrePass call (the one right before rendering)."));
 
-/** Whether Slate should go to sleep when there are no active ticks and the user is idle */
+/** Whether Slate should go to sleep when there are no active timers and the user is idle */
 TAutoConsoleVariable<int32> AllowSlateToSleep(
 	TEXT("Slate.AllowSlateToSleep"),
 	false,
-	TEXT("Whether Slate should go to sleep when there are no active ticks and the user is idle"));
+	TEXT("Whether Slate should go to sleep when there are no active timers and the user is idle"));
 
-/** The amount of time that must pass without any user action before Slate is put to sleep (provided that there are no active ticks). */
+/** The amount of time that must pass without any user action before Slate is put to sleep (provided that there are no active timers). */
 TAutoConsoleVariable<float> SleepBufferPostInput(
 	TEXT("Slate.SleepBufferPostInput"),
 	0.0f,
-	TEXT("The amount of time that must pass without any user action before Slate is put to sleep (provided that there are no active ticks)."));
+	TEXT("The amount of time that must pass without any user action before Slate is put to sleep (provided that there are no active timers)."));
 
 //////////////////////////////////////////////////////////////////////////
 bool FSlateApplication::MouseCaptorHelper::HasCapture() const
@@ -1296,19 +1296,19 @@ void FSlateApplication::Tick()
 	const double TimeSinceMouseMove = LastTickTime - LastMouseMoveTime;
 	
 	const bool bIsUserIdle = (TimeSinceInput > SleepThreshold) && (TimeSinceMouseMove > SleepThreshold);
-	const bool bAnyActiveTicksPending = AnyActiveTicksArePending();
-	if (bAnyActiveTicksPending)
+	const bool bAnyActiveTimersPending = AnyActiveTimersArePending();
+	if (bAnyActiveTimersPending)
 	{
 		// Some UI might slide under the cursor. To a widget, this is
 		// as if the cursor moved over it.
 		QueueSynthesizedMouseMove();
 	}
 
-	// skip tick/draw if we are idle and there are no active ticks registered that we need to drive slate for.
+	// skip tick/draw if we are idle and there are no active timers registered that we need to drive slate for.
 	// This effectively means the slate application is totally idle and we don't need to update the UI.
-	// This relies on Widgets properly registering for Active tick when they need something to happen even
+	// This relies on Widgets properly registering for Active timer when they need something to happen even
 	// when the user is not providing any input (ie, animations, viewport rendering, async polling, etc).
-	if (!AllowSlateToSleep.GetValueOnGameThread() || bAnyActiveTicksPending || !bIsUserIdle || bNeedsSyntheticMouseMouse)
+	if (!AllowSlateToSleep.GetValueOnGameThread() || bAnyActiveTimersPending || !bIsUserIdle || bNeedsSyntheticMouseMouse)
 	{
 		if (!bFoldTick)
 		{

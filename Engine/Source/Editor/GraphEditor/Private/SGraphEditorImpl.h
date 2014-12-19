@@ -156,8 +156,8 @@ protected:
 	// End of SGraphEditorInterface
 
 private:
-	/** One-off active tick to ensure the graph is refreshes as needed */
-	EActiveTickReturnType TriggerRefresh( double InCurrentTime, float InDeltaTime );
+	/** One-off active timer to ensure the graph is refreshes as needed */
+	EActiveTimerReturnType TriggerRefresh( double InCurrentTime, float InDeltaTime );
 
 	FText GetZoomText() const;
 
@@ -168,6 +168,6 @@ private:
 	bool IsLocked() const;
 
 private:
-	bool bIsActiveTickRegistered;
+	bool bIsActiveTimerRegistered;
 };
 

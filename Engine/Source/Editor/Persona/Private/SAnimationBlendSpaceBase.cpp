@@ -1180,23 +1180,23 @@ SBlendSpaceEditorBase::~SBlendSpaceEditorBase()
 
 void SBlendSpaceEditorBase::Construct(const FArguments& InArgs)
 {
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 	BlendSpace = InArgs._BlendSpace;
 	PersonaPtr = InArgs._Persona;
 	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
 }
 
-EActiveTickReturnType SBlendSpaceEditorBase::UpdatePreview( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SBlendSpaceEditorBase::UpdatePreview( double InCurrentTime, float InDeltaTime )
 {
 	// Update the preview as long as its enabled
 	if (BlendSpaceWidget->bPreviewOn)
 	{
 		UpdatePreviewParameter();
-		return EActiveTickReturnType::KeepTicking;
+		return EActiveTimerReturnType::Continue;
 	}
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SBlendSpaceEditorBase::PostUndo()
@@ -1294,10 +1294,10 @@ void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ECheckBoxState NewVa
 
 		BlendSpaceWidget->bPreviewOn = bPreviewEnabled;
 
-		if ( bPreviewEnabled && !bIsActiveTickRegistered )
+		if ( bPreviewEnabled && !bIsActiveTimerRegistered )
 		{
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SBlendSpaceEditorBase::UpdatePreview ) );
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SBlendSpaceEditorBase::UpdatePreview ) );
 		}
 	}
 }

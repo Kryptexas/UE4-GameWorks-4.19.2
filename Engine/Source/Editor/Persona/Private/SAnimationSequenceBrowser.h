@@ -201,14 +201,14 @@ protected:
 
 private:
 	/** Updates the animation preview in the tooltip */
-	EActiveTickReturnType UpdateTootipPreview( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType UpdateTootipPreview( double InCurrentTime, float InDeltaTime );
 
 	/** Whether the tooltip was visualized this frame */
 	uint8 bToolTipClosedThisFrame : 1;
 
-	/** Whether the active tick is currently registered */
-	uint8 bIsActiveTickRegistered : 1;
+	/** Whether the active timer is currently registered */
+	uint8 bIsActiveTimerRegistered : 1;
 
-	/** Whether the active tick should stop */
+	/** Whether the active timer should stop */
 	uint8 bToolTipVisualizedThisFrame : 1;
 };

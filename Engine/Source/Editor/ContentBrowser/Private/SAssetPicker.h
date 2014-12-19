@@ -26,7 +26,7 @@ public:
 
 private:
 	/** Focuses the search box post-construct */
-	EActiveTickReturnType SetFocusPostConstruct( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType SetFocusPostConstruct( double InCurrentTime, float InDeltaTime );
 
 	void FolderEntered(const FString& FolderPath);
 

@@ -14,7 +14,7 @@ void SCreditsScreen::Construct(const FArguments& InArgs)
 	ScrollPixelsPerSecond = 50.0f;
 	bIsPlaying = true;
 
-	ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SCreditsScreen::RollCredits ) );
+	ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SCreditsScreen::RollCredits ) );
 
 	const FString Version = GEngineVersion.ToString(FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch);
 
@@ -69,13 +69,13 @@ void SCreditsScreen::Construct(const FArguments& InArgs)
 	];
 }
 
-EActiveTickReturnType SCreditsScreen::RollCredits( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SCreditsScreen::RollCredits( double InCurrentTime, float InDeltaTime )
 {
 	float NewPixelOffset = ( ScrollPixelsPerSecond * InDeltaTime );
 	ScrollBox->SetScrollOffset( ScrollBox->GetScrollOffset() + NewPixelOffset );
 	PreviousScrollPosition = ScrollBox->GetScrollOffset();
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 FReply SCreditsScreen::HandleTogglePlayPause()
@@ -83,17 +83,17 @@ FReply SCreditsScreen::HandleTogglePlayPause()
 	if ( bIsPlaying )
 	{
 		bIsPlaying = false;
-		if ( ActiveTickHandle.IsValid() )
+		if ( ActiveTimerHandle.IsValid() )
 		{
-			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+			UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 		}
 	}
 	else
 	{
 		bIsPlaying = true;
-		if ( !ActiveTickHandle.IsValid() )
+		if ( !ActiveTimerHandle.IsValid() )
 		{
-			ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SCreditsScreen::RollCredits ) );
+			ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SCreditsScreen::RollCredits ) );
 		}
 	}
 
@@ -106,9 +106,9 @@ void SCreditsScreen::HandleUserScrolled(float ScrollOffset)
 	if ( bIsPlaying && ScrollOffset < PreviousScrollPosition )
 	{
 		bIsPlaying = false;
-		if ( ActiveTickHandle.IsValid() )
+		if ( ActiveTimerHandle.IsValid() )
 		{
-			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+			UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 		}
 	}
 

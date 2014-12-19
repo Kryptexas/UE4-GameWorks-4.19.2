@@ -277,16 +277,16 @@ private:
 	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
 	bool CanUseInertialScroll( float ScrollAmount ) const;
 
-	/** Active tick to update the inertial scroll */
-	EActiveTickReturnType UpdateInertialScroll(double InCurrentTime, float InDeltaTime);
+	/** Active timer to update the inertial scroll */
+	EActiveTimerReturnType UpdateInertialScroll(double InCurrentTime, float InDeltaTime);
 
-	/** One-off active tick to refresh the contents of the table as needed */
-	EActiveTickReturnType EnsureTickToRefresh(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to refresh the contents of the table as needed */
+	EActiveTimerReturnType EnsureTickToRefresh(double InCurrentTime, float InDeltaTime);
 
-	/** Whether the active tick to update the inertial scrolling is currently registered */
-	bool bIsScrollingActiveTickRegistered;
+	/** Whether the active timer to update the inertial scrolling is currently registered */
+	bool bIsScrollingActiveTimerRegistered;
 
-	/** Cached geometry for use by the active tick */
+	/** Cached geometry for use by the active timer */
 	FGeometry CachedGeometry;
 
 protected:

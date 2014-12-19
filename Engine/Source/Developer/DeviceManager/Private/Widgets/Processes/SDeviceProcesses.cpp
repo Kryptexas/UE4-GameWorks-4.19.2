@@ -133,14 +133,14 @@ void SDeviceProcesses::Construct( const FArguments& InArgs, const FDeviceManager
 	ReloadProcessList(true);
 
 	// Register for an active update every 2.5 seconds
-	RegisterActiveTick( 2.5f, FWidgetActiveTickDelegate::CreateSP( this, &SDeviceProcesses::UpdateProcessList ) );
+	RegisterActiveTimer( 2.5f, FWidgetActiveTimerDelegate::CreateSP( this, &SDeviceProcesses::UpdateProcessList ) );
 }
 
-EActiveTickReturnType SDeviceProcesses::UpdateProcessList( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SDeviceProcesses::UpdateProcessList( double InCurrentTime, float InDeltaTime )
 {
 	ReloadProcessList( true );
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 /* SDeviceDetails implementation

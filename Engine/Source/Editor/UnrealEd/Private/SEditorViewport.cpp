@@ -63,7 +63,7 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 
 	if ( Client->IsRealtime() )
 	{
-		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
 	}
 
 	CommandList = MakeShareable( new FUICommandList );
@@ -331,16 +331,16 @@ void SEditorViewport::OnToggleRealtime()
 	if (Client->IsRealtime())
 	{
 		Client->SetRealtime( false );
-		if ( ActiveTickHandle.IsValid() )
+		if ( ActiveTimerHandle.IsValid() )
 		{
-			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+			UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 		}
 		
 	}
 	else
 	{
 		Client->SetRealtime( true );
-		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
 	}
 }
 
@@ -355,7 +355,7 @@ void SEditorViewport::OnToggleStats()
 		if ( !Client->IsRealtime() )
 		{
 			Client->SetRealtime( true );
-			ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
+			ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SEditorViewport::EnsureTickWhileRealtime ) );
 		}
 
 		 // let the user know how they can enable stats via the console
@@ -518,9 +518,9 @@ bool SEditorViewport::OnIsSurfaceSnapEnabled()
 	return GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bEnabled;
 }
 
-EActiveTickReturnType SEditorViewport::EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SEditorViewport::EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime )
 {
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 #undef LOCTEXT_NAMESPACE

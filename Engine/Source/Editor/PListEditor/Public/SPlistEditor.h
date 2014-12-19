@@ -233,7 +233,7 @@ public:
 
 private:
 	/** Displays queued notifications */
-	EActiveTickReturnType DisplayDeferredNotifications( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType DisplayDeferredNotifications( double InCurrentTime, float InDeltaTime );
 	/** Helper method to display queued notifications */
 	void PerformDisplayNotifications();
 

@@ -72,7 +72,7 @@ public:
 private:
 	
 	/** Ticks the level viewport tab */
-	EActiveTickReturnType ActiveTick( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType ActiveTimer( double InCurrentTime, float InDeltaTime );
 
 	/** Reference to the owning level viewport tab */
 	TSharedPtr<FLevelViewportTabContent> LevelViewportTab;
@@ -90,7 +90,7 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 	const TSharedRef<SWidget>& ContentWidget = InArgs._Content.Widget;
 	LevelViewportTab = InArgs._LevelViewportTab;
 
-	//RegisterActiveTick( 0.f, FTickWidgetDelegate::CreateSP( this, &SViewportsOverlay::ActiveTick ) );
+	//RegisterActiveTimer( 0.f, FTickWidgetDelegate::CreateSP( this, &SViewportsOverlay::ActiveTimer ) );
 
 	ChildSlot
 		[
@@ -102,10 +102,10 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 		];
 }
 
-EActiveTickReturnType SViewportsOverlay::ActiveTick( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SViewportsOverlay::ActiveTimer( double InCurrentTime, float InDeltaTime )
 {
 	// Exists to ensure slate is ticked
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 void SViewportsOverlay::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

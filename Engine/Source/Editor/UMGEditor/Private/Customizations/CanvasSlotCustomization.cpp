@@ -164,7 +164,7 @@ private:
 
 private:
 	FCurveSequence ResizeCurve;
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 	bool bIsHovered;
 };
 

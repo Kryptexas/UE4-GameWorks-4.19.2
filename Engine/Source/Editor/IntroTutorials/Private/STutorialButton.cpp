@@ -28,7 +28,7 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	AlertStartTime = 0.0f;
 
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
-	RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &STutorialButton::OpenTutorialPostConstruct ) );
+	RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &STutorialButton::OpenTutorialPostConstruct ) );
 
 	ChildSlot
 	[
@@ -46,7 +46,7 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	];
 }
 
-EActiveTickReturnType STutorialButton::OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType STutorialButton::OpenTutorialPostConstruct( double InCurrentTime, float InDeltaTime )
 {
 	// Begin playing the pulse animation on a loop
 	PulseAnimation.Play(this->AsShared(), true);
@@ -71,7 +71,7 @@ EActiveTickReturnType STutorialButton::OpenTutorialPostConstruct( double InCurre
 		TutorialTitle = CachedLaunchTutorial->Title;
 	}
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 static void GetAnimationValues(float InAnimationProgress, float& OutAlphaFactor0, float& OutPulseFactor0, float& OutAlphaFactor1, float& OutPulseFactor1)

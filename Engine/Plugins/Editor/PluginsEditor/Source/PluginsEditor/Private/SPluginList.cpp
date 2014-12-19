@@ -19,7 +19,7 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginsE
 	// Find out when the plugin text filter changes
 	Owner->GetPluginTextFilter().OnChanged().AddSP( this, &SPluginList::OnPluginTextFilterChanged );
 
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 	RebuildAndFilterPluginList();
 
 	// @todo plugedit: Have optional compact version with only plugin icon + name + version?  Only expand selected?
@@ -131,12 +131,12 @@ void SPluginList::RebuildAndFilterPluginList()
 	}
 }
 
-EActiveTickReturnType SPluginList::TriggerListRebuild(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPluginList::TriggerListRebuild(double InCurrentTime, float InDeltaTime)
 {
 	RebuildAndFilterPluginList();
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SPluginList::OnPluginTextFilterChanged()
@@ -147,10 +147,10 @@ void SPluginList::OnPluginTextFilterChanged()
 
 void SPluginList::SetNeedsRefresh()
 {
-	if (!bIsActiveTickRegistered)
+	if (!bIsActiveTimerRegistered)
 	{
-		bIsActiveTickRegistered = true;
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPluginList::TriggerListRebuild));
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPluginList::TriggerListRebuild));
 	}
 }
 

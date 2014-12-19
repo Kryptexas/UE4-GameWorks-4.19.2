@@ -29,10 +29,10 @@ FCurveSequence::FCurveSequence( const float InStartTimeSeconds, const float InDu
 
 FCurveSequence::~FCurveSequence()
 {
-	// If the curve sequence is destroyed before the owning widget, unregister the active tick
-	if ( OwnerWidget.IsValid() && ActiveTickHandle.IsValid() )
+	// If the curve sequence is destroyed before the owning widget, unregister the active timer
+	if ( OwnerWidget.IsValid() && ActiveTimerHandle.IsValid() )
 	{
-		OwnerWidget.Pin()->UnRegisterActiveTick(ActiveTickHandle.Pin().ToSharedRef());
+		OwnerWidget.Pin()->UnRegisterActiveTimer(ActiveTimerHandle.Pin().ToSharedRef());
 	}
 }
 
@@ -67,7 +67,7 @@ void FCurveSequence::Play( const float StartAtTime )
 
 void FCurveSequence::Play( const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped, const float StartAtTime )
 {
-	RegisterActiveTickIfNeeded(InOwnerWidget);
+	RegisterActiveTimerIfNeeded(InOwnerWidget);
 	bIsLooping = bPlayLooped;
 	bIsPaused = false;
 	
@@ -107,7 +107,7 @@ void FCurveSequence::PlayReverse( const float StartAtTime )
 
 void FCurveSequence::PlayReverse( const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped, const float StartAtTime )
 {
-	RegisterActiveTickIfNeeded(InOwnerWidget);
+	RegisterActiveTimerIfNeeded(InOwnerWidget);
 	bIsLooping = bPlayLooped;
 	bIsPaused = false;
 
@@ -135,7 +135,7 @@ void FCurveSequence::Resume()
 		if ( PinnedOwner.IsValid() )
 		{
 			bIsPaused = false;
-			RegisterActiveTickIfNeeded( PinnedOwner.ToSharedRef() );
+			RegisterActiveTimerIfNeeded( PinnedOwner.ToSharedRef() );
 
 			// Update the start time to be the same relative to the current time as it was when paused
 			const double NewStartTime = FSlateApplicationBase::Get().GetCurrentTime() - ( PauseTime - StartTime );
@@ -257,20 +257,20 @@ const FCurveSequence::FSlateCurve& FCurveSequence::GetCurve( int32 CurveIndex ) 
 	return Curves[CurveIndex];
 }
 
-void FCurveSequence::RegisterActiveTickIfNeeded(TSharedRef<SWidget> InOwnerWidget)
+void FCurveSequence::RegisterActiveTimerIfNeeded(TSharedRef<SWidget> InOwnerWidget)
 {
-	// Register the active tick
-	if ( !ActiveTickHandle.IsValid() )
+	// Register the active timer
+	if ( !ActiveTimerHandle.IsValid() )
 	{
-		ActiveTickHandle = InOwnerWidget->RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateRaw(this, &FCurveSequence::EnsureSlateTickDuringAnimation));
+		ActiveTimerHandle = InOwnerWidget->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateRaw(this, &FCurveSequence::EnsureSlateTickDuringAnimation));
 
 		// Save the reference in case we need to take care of unregistering the tick
 		OwnerWidget = InOwnerWidget;
 	}
 }
 
-EActiveTickReturnType FCurveSequence::EnsureSlateTickDuringAnimation( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType FCurveSequence::EnsureSlateTickDuringAnimation( double InCurrentTime, float InDeltaTime )
 {
-	// Keep ticking until play stops
-	return IsPlaying() ? EActiveTickReturnType::KeepTicking : EActiveTickReturnType::StopTicking;
+	// Keep Slate ticking until play stops
+	return IsPlaying() ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
 }

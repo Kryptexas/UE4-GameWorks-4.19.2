@@ -42,8 +42,8 @@ public:
 		OnCancelClickedDelegate = InArgs._OnCancelClickedDelegate;
 		ScopeStack = InArgs._ScopeStack;
 
-		// This is a temporary widget that needs to be updated over its entire lifespan => has an active tick registered for its entire lifespan
-		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SSlowTaskWidget::UpdateProgress ) );
+		// This is a temporary widget that needs to be updated over its entire lifespan => has an active timer registered for its entire lifespan
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SSlowTaskWidget::UpdateProgress ) );
 
 		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox)
 
@@ -136,12 +136,12 @@ public:
 
 private:
 
-	/** Active tick to update the progress bars */
-	EActiveTickReturnType UpdateProgress(double InCurrentTime, float InDeltaTime)
+	/** Active timer to update the progress bars */
+	EActiveTimerReturnType UpdateProgress(double InCurrentTime, float InDeltaTime)
 	{
 		UpdateDynamicProgressBars();
 
-		return EActiveTickReturnType::KeepTicking;
+		return EActiveTimerReturnType::Continue;
 	}
 
 	/** Updates the dynamic progress bars for this widget */

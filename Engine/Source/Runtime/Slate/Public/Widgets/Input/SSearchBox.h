@@ -73,7 +73,7 @@ private:
 private:
 
 	/** Fires the text changed delegate on a delay */
-	EActiveTickReturnType TriggerOnTextChanged( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType TriggerOnTextChanged( double InCurrentTime, float InDeltaTime );
 
 	/** @return should we show the X to clear search? */
 	EVisibility GetXVisibility() const;
@@ -94,7 +94,7 @@ private:
 	static const double FilterDelayAfterTyping;
 
 	/** Handle to the active trigger text changed timer */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 	/** Delegate that is invoked when the user does next or previous */
 	FOnSearch OnSearchDelegate;
@@ -113,7 +113,7 @@ private:
 
 	FText LastPendingTextChangedValue;
 
-	bool bIsActiveTickRegistered : 1;
+	bool bIsActiveTimerRegistered : 1;
 };
 
 

@@ -148,7 +148,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 bool STransportControl::IsTickable() const
 {
-	// Only bother if an active tick delegate was provided
+	// Only bother if an active timer delegate was provided
 	return TransportControlArgs.OnTickPlayback.IsBound() && TransportControlArgs.OnGetPlaybackMode.IsBound();
 }
 
@@ -157,13 +157,13 @@ void STransportControl::Tick( float DeltaTime )
 	const auto PlaybackMode = TransportControlArgs.OnGetPlaybackMode.Execute();
 	const bool bIsPlaying = PlaybackMode == EPlaybackMode::PlayingForward || PlaybackMode == EPlaybackMode::PlayingReverse || PlaybackMode == EPlaybackMode::Recording;
 
-	if ( bIsPlaying && !ActiveTickHandle.IsValid() )
+	if ( bIsPlaying && !ActiveTimerHandle.IsValid() )
 	{
-		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &STransportControl::TickPlayback ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &STransportControl::TickPlayback ) );
 	}
-	else if ( !bIsPlaying && ActiveTickHandle.IsValid() )
+	else if ( !bIsPlaying && ActiveTimerHandle.IsValid() )
 	{
-		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 	}
 }
 
@@ -223,10 +223,10 @@ FSlateColor STransportControl::GetLoopStatusColor() const
 	return FSlateColor(FLinearColor(1.f, 1.f, 1.f));
 }
 
-EActiveTickReturnType STransportControl::TickPlayback( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType STransportControl::TickPlayback( double InCurrentTime, float InDeltaTime )
 {
 	TransportControlArgs.OnTickPlayback.Execute( InCurrentTime, InDeltaTime );
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 #undef LOCTEXT_NAMESPACE

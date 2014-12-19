@@ -932,11 +932,11 @@ private:
 	 */
 	EVisibility GetWindowFlashVisibility() const;
 
-	/** One-off active tick to trigger a the morph sequence to play */
-	EActiveTickReturnType TriggerPlayMorphSequence( double InCurrentTime, float InDeltaTime );
+	/** One-off active timer to trigger a the morph sequence to play */
+	EActiveTimerReturnType TriggerPlayMorphSequence( double InCurrentTime, float InDeltaTime );
 
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 };
 
 

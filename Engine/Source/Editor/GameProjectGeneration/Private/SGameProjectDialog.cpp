@@ -32,7 +32,7 @@ void SGameProjectDialog::Construct( const FArguments& InArgs )
 	}
 
 	FadeAnimation.AddCurve( 0.f, 0.5f, ECurveEaseFunction::QuadOut );
-	RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SGameProjectDialog::TriggerFadeInPostConstruct ) );
+	RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SGameProjectDialog::TriggerFadeInPostConstruct ) );
 
 	TSharedPtr<SWidget> Content;
 
@@ -189,14 +189,14 @@ void SGameProjectDialog::Construct( const FArguments& InArgs )
 	}
 }
 
-EActiveTickReturnType SGameProjectDialog::TriggerFadeInPostConstruct(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SGameProjectDialog::TriggerFadeInPostConstruct(double InCurrentTime, float InDeltaTime)
 {
 	// Play the intro fade in the first frame after the widget is created.
 	// We start it now instead of Construct because there is a lot of elapsed time between Construct and when we
 	// see the dialog and the beginning of the animation is cut off.
 	FadeAnimation.Play(this->AsShared());
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 /* SGameProjectDialog implementation

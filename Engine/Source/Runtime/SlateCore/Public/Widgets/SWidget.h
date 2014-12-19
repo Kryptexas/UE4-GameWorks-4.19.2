@@ -860,45 +860,45 @@ private:
 
 protected:
 	/**
-	 * Registers a delegate for "active tick" at the specified frequency. Will not call TickFunction until the specified interval has elapsed once.
-	 * A widget can register as many delegates as it needs. Be careful when registering to avoid duplicate active ticks.
+	 * Registers an "active timer" delegate that will execute at some regular interval. TickFunction will not be called until the specified interval has elapsed once.
+	 * A widget can register as many delegates as it needs. Be careful when registering to avoid duplicate active timers.
 	 * 
-	 * An active tick can be UnRegistered in one of three ways:
-	 *   1. Call UnRegisterActiveTick using the active tick handle that is returned here.
+	 * An active timer can be UnRegistered in one of three ways:
+	 *   1. Call UnRegisterActiveTimer using the active timer handle that is returned here.
 	 *   2. Have your delegate return ETickWidgetReturnType::StopTicking.
 	 *   3. Destroying the widget
 	 * 
-	 * Active Ticking
+	 * Active Timers
 	 * --------------
 	 * Slate may go to sleep when there is no user interaction for some time to save power.
-	 * However, some UI elements may need to drive the UI even when the user is not providing any input
+	 * However, some UI elements may need to "drive" the UI even when the user is not providing any input
 	 * (ie, animations, viewport rendering, async polling, etc). A widget notifies Slate of this by
-	 * registering for "Active Tick", basically saying it needs to be ticked at some frequency to drive the UI.
-	 * In this way, slate can go to sleep, but still tick any widgets that are driving the UI at the interval they specify.
-	 * When any active tick needs to fire, all of Slate will do a Tick and Paint pass.
+	 * registering an "Active Timer" that is executed at a specified frequency to drive the UI.
+	 * In this way, slate can go to sleep when there is no input and no active timer needs to fire.
+	 * When any active timer needs to fire, all of Slate will do a Tick and Paint pass.
 	 * 
-	 * @param TickPeriod maximum frequency to tick the widget in seconds. Pass zero to tick once per frame. 
+	 * @param Period The time period to wait between each execution of the timer. Pass zero to fire the timer once per frame.
 	 *                      If an interval is missed, the delegate is NOT called more than once.
-	 * @param TickFunction delegate to call every TickFrequency seconds.
-	 * @return an active tick handle that can be used to UnRegister later.
+	 * @param TimerFunction The active timer delegate to call every Period seconds.
+	 * @return An active timer handle that can be used to UnRegister later.
 	 */
-	TSharedRef<FActiveTickHandle> RegisterActiveTick( float TickPeriod, FWidgetActiveTickDelegate TickFunction );
+	TSharedRef<FActiveTimerHandle> RegisterActiveTimer( float TickPeriod, FWidgetActiveTimerDelegate TickFunction );
 
 	/**
-	 * Unregisters an active tick handle. This is optional, as the delegate can UnRegister itself by returning ETickWidgetReturnType::StopTicking.
+	 * Unregisters an active timer handle. This is optional, as the delegate can UnRegister itself by returning EActiveTimerReturnType::Stop.
 	 */
-	void UnRegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle );
+	void UnRegisterActiveTimer( const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle );
 
 private:
 
-	/** Iterates over the active tick handles on the widget and executes them if their interval has elapsed. */
-	void ExecuteActiveTicks(double CurrentTime, float DeltaTime);
+	/** Iterates over the active timer handles on the widget and executes them if their interval has elapsed. */
+	void ExecuteActiveTimers(double CurrentTime, float DeltaTime);
 
-	/** The list of active tick handles for this widget. */
-	TArray<TSharedRef<FActiveTickHandle>> ActiveTicks;
+	/** The list of active timer handles for this widget. */
+	TArray<TSharedRef<FActiveTimerHandle>> ActiveTimers;
 
 protected:
-	/** Dtor ensures that active tick handles are UnRegistered with the SlateApplication. */
+	/** Dtor ensures that active timer handles are UnRegistered with the SlateApplication. */
 	~SWidget();
 
 	//	DEBUG INFORMATION

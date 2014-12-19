@@ -275,10 +275,10 @@ protected:
 
 private:
 	/** Activates the tab in its tab well */
-	EActiveTickReturnType TriggerActivateTab( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType TriggerActivateTab( double InCurrentTime, float InDeltaTime );
 
 	/** The handle to the active tab activation tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 protected:
 

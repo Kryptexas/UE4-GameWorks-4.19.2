@@ -40,7 +40,7 @@ protected:
 
 private:
 	// Periodically refreshes the process list
-	EActiveTickReturnType UpdateProcessList( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType UpdateProcessList( double InCurrentTime, float InDeltaTime );
 
 	// Callback for getting the text of the message overlay.
 	FText HandleMessageOverlayText( ) const;

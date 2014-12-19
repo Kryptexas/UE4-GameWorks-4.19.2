@@ -27,7 +27,7 @@ protected:
 
 private:
 	/** Updates whether the highlight spring effect is happening */
-	EActiveTickReturnType UpdateHighlightSpringState( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType UpdateHighlightSpringState( double InCurrentTime, float InDeltaTime );
 
 	/** Getter for the Text attribute of the editable text inside this widget */
 	FText GetNameText() const;

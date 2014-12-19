@@ -322,24 +322,24 @@ public:
 
 private:
 	/**
-	 * Implementation for active tick registration. See SWidget::RegisterActiveTick.
+	 * Implementation for active timer registration. See SWidget::RegisterActiveTimer.
 	 */
-	void RegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle );
+	void RegisterActiveTimer( const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle );
 
 	/**
-	 * Implementation for active tick registration. See SWidget::UnRegisterActiveTick.
+	 * Implementation for active timer registration. See SWidget::UnRegisterActiveTimer.
 	 */
-	void UnRegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle );
+	void UnRegisterActiveTimer( const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle );
 
-	/** The list of active tick handles. */
-	TArray<TWeakPtr<FActiveTickHandle>> ActiveTickHandles;
+	/** The list of active timer handles. */
+	TArray<TWeakPtr<FActiveTimerHandle>> ActiveTimerHandles;
 
 protected:
 	/**
-	 * Used to determine if any active tick handles are ready to fire.
+	 * Used to determine if any active timer handles are ready to fire.
 	 * Means we need to tick slate even if no user interaction.
 	 */
-	bool AnyActiveTicksArePending();
+	bool AnyActiveTimersArePending();
 
 public:
 	const static uint32 CursorPointerIndex;

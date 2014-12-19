@@ -99,15 +99,15 @@ protected:
 	/** Does the user need to press Control in order to over-zoom. */
 	bool bRequireControlToOverZoom;
 
-	/** Cached geometry for use within the active tick */
+	/** Cached geometry for use within the active timer */
 	FGeometry CachedGeometry;
 
 private:
-	/** Active tick that handles deferred zooming until the target zoom is reached */
-	EActiveTickReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
+	/** Active timer that handles deferred zooming until the target zoom is reached */
+	EActiveTimerReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
 
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 	// A flag noting if we have a pending zoom to extents operation to perform next tick.
 	bool bDeferredZoomToExtents;

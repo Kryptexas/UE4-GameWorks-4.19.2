@@ -221,11 +221,11 @@ private:
 	/** Delegate called when an editor setting is changed */
 	void HandleSettingChanged(FName PropertyName);
 
-	/** One-off active tick to focus the widget post-construct */
-	EActiveTickReturnType SetFocusPostConstruct(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to focus the widget post-construct */
+	EActiveTimerReturnType SetFocusPostConstruct(double InCurrentTime, float InDeltaTime);
 
-	/** One-off active tick to repopulate the path view */
-	EActiveTickReturnType TriggerRepopulate(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to repopulate the path view */
+	EActiveTimerReturnType TriggerRepopulate(double InCurrentTime, float InDeltaTime);
 
 private:
 	/** A helper class to manage PreventTreeItemChangedDelegateCount by incrementing it when constructed (on the stack) and decrementing when destroyed */

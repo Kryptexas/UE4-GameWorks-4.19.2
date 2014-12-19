@@ -813,9 +813,9 @@ void SMenuEntryBlock::RequestSubMenuToggle( bool bOpenMenu, const bool bClobber 
 	// Reset the time before the menu opens
 	float TimeToSubMenuOpen = bClobber ? MultiBoxConstants::SubMenuClobberTime : MultiBoxConstants::SubMenuOpenTime;
 	//SubMenuRequestState = bOpenMenu ? WantOpen : WantClose;
-	if (!ActiveTickHandle.IsValid())
+	if (!ActiveTimerHandle.IsValid())
 	{
-		ActiveTickHandle = RegisterActiveTick(TimeToSubMenuOpen, FWidgetActiveTickDelegate::CreateSP(this, &SMenuEntryBlock::UpdateSubMenuState, bOpenMenu));
+		ActiveTimerHandle = RegisterActiveTimer(TimeToSubMenuOpen, FWidgetActiveTimerDelegate::CreateSP(this, &SMenuEntryBlock::UpdateSubMenuState, bOpenMenu));
 	}
 	//UpdateSubMenuState();
 }
@@ -825,10 +825,10 @@ void SMenuEntryBlock::CancelPendingSubMenu()
 	// Reset any pending sub-menu openings
 	//SubMenuRequestState = Idle;
 	
-	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
-	if (PinnedActiveTickHandle.IsValid())
+	auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+	if (PinnedActiveTimerHandle.IsValid())
 	{
-		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 	}
 }
 
@@ -1140,7 +1140,7 @@ FReply SMenuEntryBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent&
 //	}
 //}
 
-EActiveTickReturnType SMenuEntryBlock::UpdateSubMenuState(double InCurrentTime, float InDeltaTime, bool bWantsOpen)
+EActiveTimerReturnType SMenuEntryBlock::UpdateSubMenuState(double InCurrentTime, float InDeltaTime, bool bWantsOpen)
 {
 	//const bool bSubMenuNeedsToOpen = ( SubMenuRequestState == WantOpen );
 	//SubMenuRequestState = Idle;
@@ -1179,7 +1179,7 @@ EActiveTickReturnType SMenuEntryBlock::UpdateSubMenuState(double InCurrentTime, 
 		PinnedOwnerMultiBoxWidget->CloseSummonedMenus();
 	}
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 //void SMenuEntryBlock::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

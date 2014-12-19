@@ -2070,7 +2070,7 @@ void SPListEditorPanel::OnPopupTextChosen(const FString& ChosenText)
 	FSlateApplication::Get().DismissAllMenus();
 }
 
-EActiveTickReturnType SPListEditorPanel::DisplayDeferredNotifications( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SPListEditorPanel::DisplayDeferredNotifications( double InCurrentTime, float InDeltaTime )
 {
 	if ( --FramesToSkip == 0 )
 	{
@@ -2096,19 +2096,19 @@ EActiveTickReturnType SPListEditorPanel::DisplayDeferredNotifications( double In
 
 		QueuedNotifications.Empty();
 
-		return EActiveTickReturnType::StopTicking;
+		return EActiveTimerReturnType::Stop;
 	}
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 /** Helper function to display notifications in the current tab */
 void SPListEditorPanel::DisplayNotification(const FText& ToDisplay, const ENTF_Types NotificationType)
 {
-	// Register the active tick if it isn't already
+	// Register the active timer if it isn't already
 	if ( FramesToSkip == 0 )
 	{
-		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SPListEditorPanel::DisplayDeferredNotifications ) );
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SPListEditorPanel::DisplayDeferredNotifications ) );
 	}
 
 	QueuedNotifications.Add( FQueuedNotification( ToDisplay, NotificationType ) );

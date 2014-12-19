@@ -42,7 +42,7 @@ public:
 private:
 
 	/** Ticks the source control module (only necessary if the login window is modal) */
-	EActiveTickReturnType TickSourceControlModule( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType TickSourceControlModule( double InCurrentTime, float InDeltaTime );
 
 	/** Delegate called when the user clicks the 'Accept Settings' button */
 	FReply OnAcceptSettings();
@@ -94,7 +94,7 @@ private:
 	TSharedPtr<class SBorder> SettingsBorder;
 
 	/** The handle to the active scc module tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 };
 
 #endif // SOURCE_CONTROL_WITH_SLATE

@@ -60,14 +60,14 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 
 /* Forward declarations
  *****************************************************************************/
-class FActiveTickHandle;
-enum EActiveTickReturnType : uint8;
+class FActiveTimerHandle;
+enum class EActiveTimerReturnType : uint8;
 
 /* Delegates
  *****************************************************************************/
 
 /** Delegate used for registering a widget for tick services. */
-DECLARE_DELEGATE_RetVal_TwoParams(EActiveTickReturnType, FWidgetActiveTickDelegate, double /*InCurrentTime*/, float /*InDeltaTime*/);
+DECLARE_DELEGATE_RetVal_TwoParams(EActiveTimerReturnType, FWidgetActiveTimerDelegate, double /*InCurrentTime*/, float /*InDeltaTime*/);
 
 /* Includes
  *****************************************************************************/

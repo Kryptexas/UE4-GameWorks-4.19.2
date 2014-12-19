@@ -41,7 +41,7 @@ private:
 
 private:
 	/** Initializes the survey once its done loading */
-	EActiveTickReturnType MonitorLoadStatePostConstruct( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType MonitorLoadStatePostConstruct( double InCurrentTime, float InDeltaTime );
 
 	TSharedPtr< FEpicSurvey > EpicSurvey;
 	TSharedPtr< FSurvey > Survey;

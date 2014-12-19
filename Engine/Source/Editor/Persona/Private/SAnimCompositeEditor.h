@@ -69,11 +69,11 @@ private:
 	/** This will sort all components of the montage and update (recreate) the UI */
 	void SortAndUpdateComposite();
 
-	/** One-off active tick to trigger a panel rebuild */
-	EActiveTickReturnType TriggerRebuildPanel(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to trigger a panel rebuild */
+	EActiveTimerReturnType TriggerRebuildPanel(double InCurrentTime, float InDeltaTime);
 
-	/** Whether the active tick to trigger a panel rebuild is currently registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer to trigger a panel rebuild is currently registered */
+	bool bIsActiveTimerRegistered;
 
 public:
 

@@ -143,7 +143,7 @@ private:
 void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
@@ -374,28 +374,28 @@ SSequencer::~SSequencer()
 {
 }
 
-void SSequencer::RegisterActiveTickForPlayback()
+void SSequencer::RegisterActiveTimerForPlayback()
 {
-	if (!bIsActiveTickRegistered)
+	if (!bIsActiveTimerRegistered)
 	{
-		bIsActiveTickRegistered = true;
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SSequencer::EnsureSlateTickDuringPlayback));
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SSequencer::EnsureSlateTickDuringPlayback));
 	}
 }
 
-EActiveTickReturnType SSequencer::EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SSequencer::EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime)
 {
 	if (Sequencer.IsValid())
 	{
 		auto PlaybackStatus = Sequencer.Pin()->GetPlaybackStatus();
 		if (PlaybackStatus == EMovieScenePlayerStatus::Playing || PlaybackStatus == EMovieScenePlayerStatus::Recording)
 		{
-			return EActiveTickReturnType::KeepTicking;
+			return EActiveTimerReturnType::Continue;
 		}
 	}
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SSequencer::UpdateLayoutTree()

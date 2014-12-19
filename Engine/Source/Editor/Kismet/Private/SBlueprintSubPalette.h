@@ -97,8 +97,8 @@ private:
 	/** Immediately calls RefreshActionsList(), doesn't not defer until Tick() like RequestRefreshActionsList() does. */
 	void ForceRefreshActionList();
 
-	/** One-off active tick to trigger a refresh of the action list */
-	EActiveTickReturnType TriggerRefreshActionsList(double InCurrentTime, float InDeltaTime);
+	/** One-off active timer to trigger a refresh of the action list */
+	EActiveTimerReturnType TriggerRefreshActionsList(double InCurrentTime, float InDeltaTime);
 
 	/**
 	 * Constructs a slate widget for the right-click context menu in this 

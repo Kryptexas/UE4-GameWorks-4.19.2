@@ -1092,7 +1092,7 @@ SFindInBlueprints::~SFindInBlueprints()
 	}
 }
 
-EActiveTickReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentTime, float InDeltaTime )
 {
 	if ( StreamSearch.IsValid() )
 	{
@@ -1127,7 +1127,7 @@ EActiveTickReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentTi
 		}
 	}
 
-	return StreamSearch.IsValid() ? EActiveTickReturnType::KeepTicking : EActiveTickReturnType::StopTicking;
+	return StreamSearch.IsValid() ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
 }
 
 void SFindInBlueprints::RegisterCommands()
@@ -1302,8 +1302,8 @@ void SFindInBlueprints::LaunchStreamThread(const TArray<FString>& InTokens)
 	}
 	else
 	{
-		// If the stream search wasn't already running, register the active tick
-		RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SFindInBlueprints::UpdateSearchResults ) );
+		// If the stream search wasn't already running, register the active timer
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SFindInBlueprints::UpdateSearchResults ) );
 	}
 
 	StreamSearch = MakeShareable(new FStreamSearch(InTokens));

@@ -142,7 +142,7 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	];
 }
 
-EActiveTickReturnType SDesignSurface::HandleZoomToFit( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SDesignSurface::HandleZoomToFit( double InCurrentTime, float InDeltaTime )
 {
 	const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
 	const bool bDoneScrolling = ScrollToLocation(CachedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
@@ -156,10 +156,10 @@ EActiveTickReturnType SDesignSurface::HandleZoomToFit( double InCurrentTime, flo
 		ZoomTargetTopLeft = FVector2D::ZeroVector;
 		ZoomTargetBottomRight = FVector2D::ZeroVector;
 
-		return EActiveTickReturnType::StopTicking;
+		return EActiveTimerReturnType::Stop;
 	}
 	
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 void SDesignSurface::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -174,9 +174,9 @@ void SDesignSurface::Tick( const FGeometry& AllottedGeometry, const double InCur
 		ZoomTargetTopLeft = FVector2D(Bounds.Left, Bounds.Top);
 		ZoomTargetBottomRight = FVector2D(Bounds.Right, Bounds.Bottom);
 
-		if (!ActiveTickHandle.IsValid())
+		if (!ActiveTimerHandle.IsValid())
 		{
-			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SDesignSurface::HandleZoomToFit));
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SDesignSurface::HandleZoomToFit));
 		}
 	}
 }

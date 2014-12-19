@@ -34,7 +34,7 @@ void SObjectNameEditableTextBox::Construct( const FArguments& InArgs )
 		];
 }
 
-EActiveTickReturnType SObjectNameEditableTextBox::UpdateHighlightSpringState( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SObjectNameEditableTextBox::UpdateHighlightSpringState( double InCurrentTime, float InDeltaTime )
 {
 	if ( (float)(InCurrentTime - LastCommittedTime) <= HighlightTargetEffectDuration )
 	{
@@ -45,7 +45,7 @@ EActiveTickReturnType SObjectNameEditableTextBox::UpdateHighlightSpringState( do
 		bUpdateHighlightSpring = false;
 	}
 
-	return bUpdateHighlightSpring ? EActiveTickReturnType::KeepTicking : EActiveTickReturnType::StopTicking;
+	return bUpdateHighlightSpring ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
 }
 
 void SObjectNameEditableTextBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -256,7 +256,7 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 					{
 						Actor->SetActorLabel(TrimmedText.ToString());
 						LastCommittedTime = FSlateApplication::Get().GetCurrentTime();
-						RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SObjectNameEditableTextBox::UpdateHighlightSpringState ) );
+						RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SObjectNameEditableTextBox::UpdateHighlightSpringState ) );
 					}
 				}
 			}
@@ -276,7 +276,7 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 						{
 							Actor->SetActorLabel(TrimmedText.ToString());
 							LastCommittedTime = FSlateApplication::Get().GetCurrentTime();
-							RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SObjectNameEditableTextBox::UpdateHighlightSpringState ) );
+							RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SObjectNameEditableTextBox::UpdateHighlightSpringState ) );
 						}
 					}
 				}

@@ -100,7 +100,7 @@ protected:
 private:
 
 	/** Triggers a reload of the tutorials */
-	EActiveTickReturnType TriggerReloadTutorials( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType TriggerReloadTutorials( double InCurrentTime, float InDeltaTime );
 
 	/** Root entry of the tutorials tree */
 	TSharedPtr<FTutorialListEntry_Category> RootEntry;

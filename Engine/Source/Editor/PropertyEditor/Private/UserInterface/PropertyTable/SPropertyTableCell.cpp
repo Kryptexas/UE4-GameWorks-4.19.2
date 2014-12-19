@@ -92,7 +92,7 @@ void SPropertyTableCell::EnteredEditMode()
 	if (Cell->IsValid())
 	{
 		// We delay the activation of editing mode till Tick due to mouse related input replies stomping on the focus
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SPropertyTableCell::TriggerEnterEditingMode));
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPropertyTableCell::TriggerEnterEditingMode));
 	}
 }
 
@@ -110,7 +110,7 @@ void SPropertyTableCell::ExitedEditMode()
 	}
 }
 
-EActiveTickReturnType SPropertyTableCell::TriggerEnterEditingMode(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPropertyTableCell::TriggerEnterEditingMode(double InCurrentTime, float InDeltaTime)
 {
 	if (Cell->GetTable()->GetCurrentCell() == Cell)
 	{
@@ -131,7 +131,7 @@ EActiveTickReturnType SPropertyTableCell::TriggerEnterEditingMode(double InCurre
 		}
 	}
 
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 int32 SPropertyTableCell::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const

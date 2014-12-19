@@ -5,7 +5,7 @@
 
 /**
  * A sequence of curves that can be used to drive animations for slate widgets.
- * Active tick registration is handled for the widget being animated when calling play.
+ * Active timer registration is handled for the widget being animated when calling play.
  *
  * Each curve within the sequence has a time offset and a duration.
  * This makes FCurveSequence convenient for crating staggered animations.
@@ -46,7 +46,7 @@ public:
 	/** Default constructor */
 	FCurveSequence( );
 
-	/** Makes sure the active tick is unregistered */
+	/** Makes sure the active timer is unregistered */
 	~FCurveSequence();
 
 	/**
@@ -101,19 +101,19 @@ public:
 	void PlayReverse( const float StartAtTime = 0.0f );
 
 	/**
-	 * Start playing this curve sequence. Registers an active tick with the widget being animated.
+	 * Start playing this curve sequence. Registers an active timer with the widget being animated.
 	 *
 	 * @param InOwnerWidget The widget that is being animated by this sequence.
-	 * @param bPlayLooped True if the curve sequence should play continually on a loop. Note that the active tick will persist until this sequence is paused or jumped to the start/end.
+	 * @param bPlayLooped True if the curve sequence should play continually on a loop. Note that the active timer will persist until this sequence is paused or jumped to the start/end.
 	 * @param StartAtTime The relative time within the animation at which to begin playing (i.e. 0.0f is the beginning).
 	 */
 	void Play( const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped = false, const float StartAtTime = 0.0f );
 
 	/**
-	 * Start playing this curve sequence in reverse. Registers an active tick for the widget using the sequence.
+	 * Start playing this curve sequence in reverse. Registers an active timer for the widget using the sequence.
 	 *
 	 * @param InOwnerWidget The widget that is being animated by this sequence.
-	 * @param bPlayLooped True if the curve sequence should play continually on a loop. Note that the active tick will persist until this sequence is paused or jumped to the start/end.
+	 * @param bPlayLooped True if the curve sequence should play continually on a loop. Note that the active timer will persist until this sequence is paused or jumped to the start/end.
 	 * @param StartAtTime The relative time within the animation at which to begin playing (i.e. 0.0f is the beginning).
 	 */
 	void PlayReverse( const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped = false, const float StartAtTime = 0.0f );
@@ -196,22 +196,22 @@ protected:
 	void SetStartTime( double InStartTime );
 
 private:
-	/** Helper to take care of registering the active tick */
-	void RegisterActiveTickIfNeeded(TSharedRef<SWidget> InOwnerWidget);
+	/** Helper to take care of registering the active timer */
+	void RegisterActiveTimerIfNeeded(TSharedRef<SWidget> InOwnerWidget);
 
-	/** Hollow active tick to ensure a Slate Tick/Paint pass while the sequence is playing */
-	EActiveTickReturnType EnsureSlateTickDuringAnimation( double InCurrentTime, float InDeltaTime );
+	/** Hollow active timer to ensure a Slate Tick/Paint pass while the sequence is playing */
+	EActiveTimerReturnType EnsureSlateTickDuringAnimation( double InCurrentTime, float InDeltaTime );
 
 private:
 
 	/** 
 	 * Weak reference to the owner widget that is being animated by this curve sequence.
-	 * Necessary to ensure the active tick is unregistered if the sequence is destroyed before/by the owner.
+	 * Necessary to ensure the active timer is unregistered if the sequence is destroyed before/by the owner.
 	 */
 	TWeakPtr<SWidget> OwnerWidget;
 
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 	/** All the curves in this sequence. */
 	TArray<FSlateCurve> Curves;

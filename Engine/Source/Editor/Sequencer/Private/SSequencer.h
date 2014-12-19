@@ -77,8 +77,8 @@ public:
 	/** Updates the layout node tree from movie scene data */
 	void UpdateLayoutTree();
 
-	/** Causes the widget to register an empty active tick that persists until Sequencer playback stops */
-	void RegisterActiveTickForPlayback();
+	/** Causes the widget to register an empty active timer that persists until Sequencer playback stops */
+	void RegisterActiveTimerForPlayback();
 
 	/**
 	 * Updates the breadcrumbs from a change in the shot filter state
@@ -92,8 +92,8 @@ public:
 	void DeleteSelectedNodes();
 
 private:
-	/** Empty active tick to ensure Slate ticks during Sequencer playback */
-	EActiveTickReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
+	/** Empty active timer to ensure Slate ticks during Sequencer playback */
+	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
 
 	/** Makes the toolbar for the outline section. */
 	TSharedRef<SWidget> MakeToolBar();
@@ -208,6 +208,6 @@ private:
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
 
-	/** Whether the active tick is currently registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer is currently registered */
+	bool bIsActiveTimerRegistered;
 };

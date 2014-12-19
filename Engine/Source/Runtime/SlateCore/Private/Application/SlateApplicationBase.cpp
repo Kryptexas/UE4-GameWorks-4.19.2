@@ -2,7 +2,7 @@
 
 #include "SlateCorePrivatePCH.h"
 #include "HittestGrid.h"
-#include "ActiveTickHandle.h"
+#include "ActiveTimerHandle.h"
 
 
 /* Static initialization
@@ -31,43 +31,43 @@ const FHitTesting& FSlateApplicationBase::GetHitTesting() const
 	return HitTesting;
 }
 
-void FSlateApplicationBase::RegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle )
+void FSlateApplicationBase::RegisterActiveTimer( const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle )
 {
-	ActiveTickHandles.Add(ActiveTickHandle);
+	ActiveTimerHandles.Add(ActiveTimerHandle);
 }
 
-void FSlateApplicationBase::UnRegisterActiveTick( const TSharedRef<FActiveTickHandle>& ActiveTickHandle )
+void FSlateApplicationBase::UnRegisterActiveTimer( const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle )
 {
-	ActiveTickHandles.Remove(ActiveTickHandle);
+	ActiveTimerHandles.Remove(ActiveTimerHandle);
 }
 
-bool FSlateApplicationBase::AnyActiveTicksArePending()
+bool FSlateApplicationBase::AnyActiveTimersArePending()
 {
 	// first remove any tick handles that may have become invalid.
 	// If we didn't remove invalid handles here, they would never get removed because
 	// we don't force widgets to UnRegister before they are destroyed.
-	ActiveTickHandles.RemoveAll([](const TWeakPtr<FActiveTickHandle>& ActiveTickHandle)
+	ActiveTimerHandles.RemoveAll([](const TWeakPtr<FActiveTimerHandle>& ActiveTimerHandle)
 	{
 		// only check the weak pointer to the handle. Just want to make sure to clear out any widgets that have since been deleted.
-		return !ActiveTickHandle.IsValid();
+		return !ActiveTimerHandle.IsValid();
 	});
 
 	// The rest are valid. Update their pending status and see if any are ready.
 	const double CurrentTime = GetCurrentTime();
 	bool bAnyTickReady = false;
-	for ( auto& ActiveTickInfo : ActiveTickHandles )
+	for ( auto& ActiveTimerInfo : ActiveTimerHandles )
 	{
-		auto ActiveTickInfoPinned = ActiveTickInfo.Pin();
-		check( ActiveTickInfoPinned.IsValid() );
+		auto ActiveTimerInfoPinned = ActiveTimerInfo.Pin();
+		check( ActiveTimerInfoPinned.IsValid() );
 
-		// If an active tick is still pending execution from last frame, it is collapsed 
+		// If an active timer is still pending execution from last frame, it is collapsed 
 		// or otherwise blocked from ticking. Disregard until it executes.
-		if ( ActiveTickInfoPinned->IsPendingExecution() )
+		if ( ActiveTimerInfoPinned->IsPendingExecution() )
 		{
 			continue;
 		}
 
-		if ( ActiveTickInfoPinned->UpdateExecutionPendingState( CurrentTime ) )
+		if ( ActiveTimerInfoPinned->UpdateExecutionPendingState( CurrentTime ) )
 		{
 			bAnyTickReady = true;
 		}

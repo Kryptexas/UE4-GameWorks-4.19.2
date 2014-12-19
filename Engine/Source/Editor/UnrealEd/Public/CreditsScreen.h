@@ -19,7 +19,7 @@ public:
 
 private:
 	/** Animates the credits during play */
-	EActiveTickReturnType RollCredits( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType RollCredits( double InCurrentTime, float InDeltaTime );
 
 	/** Handles the user clicking the play/pause toggle button. */
 	FReply HandleTogglePlayPause();
@@ -37,7 +37,7 @@ private:
 	TSharedPtr<SScrollBox> ScrollBox;
 
 	/** The handle to the active roll credits tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 	/** The auto scroll rate in pixels per second */
 	float ScrollPixelsPerSecond;

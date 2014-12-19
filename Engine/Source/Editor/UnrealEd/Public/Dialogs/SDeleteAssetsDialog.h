@@ -51,8 +51,8 @@ private:
 	TSharedRef<SWidget> BuildDeleteDialog();
 
 private:
-	/** Active tick to tick the delete model until it reaches a "Finished" state */
-	EActiveTickReturnType TickDeleteModel( double InCurrentTime, float InDeltaTime );
+	/** Active timer to tick the delete model until it reaches a "Finished" state */
+	EActiveTimerReturnType TickDeleteModel( double InCurrentTime, float InDeltaTime );
 
 	void HandleDeleteModelStateChanged( FAssetDeleteModel::EState NewState );
 
@@ -120,8 +120,8 @@ private:
 
 private:
 
-	/** Whether the active tick is currently registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer is currently registered */
+	bool bIsActiveTimerRegistered;
 
 	/** The model used for deleting assets */
 	TSharedPtr<FAssetDeleteModel> DeleteModel;

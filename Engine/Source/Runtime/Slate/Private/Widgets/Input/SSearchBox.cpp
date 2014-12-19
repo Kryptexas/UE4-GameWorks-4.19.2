@@ -9,7 +9,7 @@ void SSearchBox::Construct( const FArguments& InArgs )
 {
 	check(InArgs._Style);
 
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 	OnSearchDelegate = InArgs._OnSearch;
 	OnTextChangedDelegate = InArgs._OnTextChanged;
 	OnTextCommittedDelegate = InArgs._OnTextCommitted;
@@ -109,13 +109,13 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	];
 }
 
-EActiveTickReturnType SSearchBox::TriggerOnTextChanged( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SSearchBox::TriggerOnTextChanged( double InCurrentTime, float InDeltaTime )
 {
 	// Reset the flag first in case the delegate winds up triggering HandleTextChanged
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 
 	OnTextChangedDelegate.ExecuteIfBound( LastPendingTextChangedValue );
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SSearchBox::HandleTextChanged(const FText& NewText)
@@ -125,12 +125,12 @@ void SSearchBox::HandleTextChanged(const FText& NewText)
 		LastPendingTextChangedValue = NewText;
 
 		// Remove the existing registered tick if necessary
-		if ( ActiveTickHandle.IsValid() )
+		if ( ActiveTimerHandle.IsValid() )
 		{
-			UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+			UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 		}
-		bIsActiveTickRegistered = true;
-		ActiveTickHandle = RegisterActiveTick( FilterDelayAfterTyping, FWidgetActiveTickDelegate::CreateSP( this, &SSearchBox::TriggerOnTextChanged ) );
+		bIsActiveTimerRegistered = true;
+		ActiveTimerHandle = RegisterActiveTimer( FilterDelayAfterTyping, FWidgetActiveTimerDelegate::CreateSP( this, &SSearchBox::TriggerOnTextChanged ) );
 	}
 	else
 	{
@@ -140,10 +140,10 @@ void SSearchBox::HandleTextChanged(const FText& NewText)
 
 void SSearchBox::HandleTextCommitted(const FText& NewText, ETextCommit::Type CommitType)
 {
-	if ( bIsActiveTickRegistered && ActiveTickHandle.IsValid() )
+	if ( bIsActiveTimerRegistered && ActiveTimerHandle.IsValid() )
 	{
-		bIsActiveTickRegistered = false;
-		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		bIsActiveTimerRegistered = false;
+		UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 	}
 
 	OnTextCommittedDelegate.ExecuteIfBound( NewText, CommitType );

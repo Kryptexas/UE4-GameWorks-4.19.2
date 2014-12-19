@@ -90,8 +90,8 @@ protected:
 	virtual void BindCommands();
 
 private:
-	/** One-off active tick to update the preview */
-	EActiveTickReturnType DeferredUpdatePreview(double InCurrentTime, float InDeltaTime, bool bResetCamera);
+	/** One-off active timer to update the preview */
+	EActiveTimerReturnType DeferredUpdatePreview(double InCurrentTime, float InDeltaTime, bool bResetCamera);
 
 private:
 	/** Pointer back to editor tool (owner) */
@@ -103,6 +103,6 @@ private:
 	/** Viewport client */
 	TSharedPtr<class FSCSEditorViewportClient> ViewportClient;
 
-	/** Whether the active tick (for updating the preview) is registered */
-	bool bIsActiveTickRegistered;
+	/** Whether the active timer (for updating the preview) is registered */
+	bool bIsActiveTimerRegistered;
 };

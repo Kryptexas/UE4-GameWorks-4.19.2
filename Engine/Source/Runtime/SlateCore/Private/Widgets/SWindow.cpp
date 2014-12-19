@@ -842,9 +842,9 @@ void SWindow::StartMorph()
 	Morpher.bIsActive = true;
 	Morpher.Sequence.JumpToStart();
 
-	if ( !ActiveTickHandle.IsValid() )
+	if ( !ActiveTimerHandle.IsValid() )
 	{
-		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SWindow::TriggerPlayMorphSequence ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SWindow::TriggerPlayMorphSequence ) );
 	}
 }
 
@@ -1743,8 +1743,8 @@ EVisibility SWindow::GetWindowContentVisibility() const
 	return (bShouldShowWindowContentDuringOverlay == true || !FullWindowOverlayWidget.IsValid()) ? EVisibility::SelfHitTestInvisible : EVisibility::Hidden;
 };
 
-EActiveTickReturnType SWindow::TriggerPlayMorphSequence( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SWindow::TriggerPlayMorphSequence( double InCurrentTime, float InDeltaTime )
 {
 	Morpher.Sequence.Play( this->AsShared() );
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }

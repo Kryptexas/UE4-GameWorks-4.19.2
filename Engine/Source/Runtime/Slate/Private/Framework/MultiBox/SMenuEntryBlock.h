@@ -316,11 +316,11 @@ protected:
 private:
 	const FSlateBrush* GetCheckBoxImageBrushFromStyle(const FCheckBoxStyle* Style) const;
 
-	/** One-off delayed active tick to update the open/closed state of the sub menu. */
-	EActiveTickReturnType UpdateSubMenuState(double InCurrentTime, float InDeltaTime, bool bWantsOpen);
+	/** One-off delayed active timer to update the open/closed state of the sub menu. */
+	EActiveTimerReturnType UpdateSubMenuState(double InCurrentTime, float InDeltaTime, bool bWantsOpen);
 
-	/** The handle to the active tick to update the sub-menu state */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer to update the sub-menu state */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 
 	/** The brush to use when an item should appear checked */
 	const FSlateBrush* CheckedImage;

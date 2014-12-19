@@ -96,9 +96,9 @@ FReply SDockTab::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 void SDockTab::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Register to activate the tab after a delay
-	if ( !ActiveTickHandle.IsValid() )
+	if ( !ActiveTimerHandle.IsValid() )
 	{
-		ActiveTickHandle = RegisterActiveTick( SDockTabDefs::DragTimerActivate, FWidgetActiveTickDelegate::CreateSP( this, &SDockTab::TriggerActivateTab ) );
+		ActiveTimerHandle = RegisterActiveTimer( SDockTabDefs::DragTimerActivate, FWidgetActiveTimerDelegate::CreateSP( this, &SDockTab::TriggerActivateTab ) );
 	}
 
 	SBorder::OnDragEnter( MyGeometry, DragDropEvent );
@@ -107,9 +107,9 @@ void SDockTab::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& D
 void SDockTab::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
 	// Unregister the activation timer if it hasn't fired yet
-	if ( ActiveTickHandle.IsValid() )
+	if ( ActiveTimerHandle.IsValid() )
 	{
-		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 	}
 
 	SBorder::OnDragLeave( DragDropEvent );
@@ -118,9 +118,9 @@ void SDockTab::OnDragLeave( const FDragDropEvent& DragDropEvent )
 FReply SDockTab::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Unregister the activation timer if it hasn't fired yet
-	if ( ActiveTickHandle.IsValid() )
+	if ( ActiveTimerHandle.IsValid() )
 	{
-		UnRegisterActiveTick( ActiveTickHandle.Pin().ToSharedRef() );
+		UnRegisterActiveTimer( ActiveTimerHandle.Pin().ToSharedRef() );
 	}
 
 	return SBorder::OnDrop( MyGeometry, DragDropEvent );
@@ -537,10 +537,10 @@ void SDockTab::Construct( const FArguments& InArgs )
 	);
 }
 
-EActiveTickReturnType SDockTab::TriggerActivateTab( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SDockTab::TriggerActivateTab( double InCurrentTime, float InDeltaTime )
 {
 	ActivateInParent( ETabActivationCause::UserClickedOnTab );
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 const FDockTabStyle& SDockTab::GetCurrentStyle() const

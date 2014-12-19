@@ -26,7 +26,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 
 	// @todo plugedit: Should we save/restore category selection and other view settings?  Splitter position, etc.
 
-	RegisterActiveTick (0.f, FWidgetActiveTickDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
 
 	// Setup text filtering
 	PluginTextFilter = MakeShareable( new FPluginTextFilter( FPluginTextFilter::FItemToStringArray::CreateStatic( &Local::PluginStatusToStringArray ) ) );
@@ -159,13 +159,13 @@ void SPluginsEditor::OnCategorySelectionChanged()
 	}
 
 	// Breadcrumbs will need to be refreshed
-	RegisterActiveTick (0.f, FWidgetActiveTickDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
 }
 
-EActiveTickReturnType SPluginsEditor::TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPluginsEditor::TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime)
 {
 	RefreshBreadcrumbTrail();
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SPluginsEditor::RefreshBreadcrumbTrail()

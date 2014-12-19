@@ -134,9 +134,9 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 
 	if(IsSelected.IsBound())
 	{
-		if(IsSelected.Execute() && !bIsReadOnly.Get() && !ActiveTickHandle.IsValid())
+		if(IsSelected.Execute() && !bIsReadOnly.Get() && !ActiveTimerHandle.IsValid())
 		{
-			RegisterActiveTick(0.5f, FWidgetActiveTickDelegate::CreateSP(this, &SInlineEditableTextBlock::TriggerEditMode));
+			RegisterActiveTimer(0.5f, FWidgetActiveTimerDelegate::CreateSP(this, &SInlineEditableTextBlock::TriggerEditMode));
 		}
 	}
 	else
@@ -156,28 +156,28 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 FReply SInlineEditableTextBlock::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Cancel during a drag over event, otherwise the widget may enter edit mode.
-	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
-	if (PinnedActiveTickHandle.IsValid())
+	auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+	if (PinnedActiveTimerHandle.IsValid())
 	{
-		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 	}
 	return FReply::Unhandled();
 }
 
 FReply SInlineEditableTextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	auto PinnedActiveTickHandle = ActiveTickHandle.Pin();
-	if (PinnedActiveTickHandle.IsValid())
+	auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+	if (PinnedActiveTimerHandle.IsValid())
 	{
-		UnRegisterActiveTick(PinnedActiveTickHandle.ToSharedRef());
+		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
 	}
 	return FReply::Unhandled();
 }
 
-EActiveTickReturnType SInlineEditableTextBlock::TriggerEditMode(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SInlineEditableTextBlock::TriggerEditMode(double InCurrentTime, float InDeltaTime)
 {
 	EnterEditingMode();
-	return EActiveTickReturnType::StopTicking;
+	return EActiveTimerReturnType::Stop;
 }
 
 FReply SInlineEditableTextBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )

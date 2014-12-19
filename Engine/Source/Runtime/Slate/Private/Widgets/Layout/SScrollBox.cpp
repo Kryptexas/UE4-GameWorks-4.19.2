@@ -160,7 +160,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
 	bScrollToEnd = false;
-	bIsActiveTickRegistered = false;
+	bIsActiveTimerRegistered = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -433,7 +433,7 @@ void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
 	ScrollBar->SetThickness(InThickness);
 }
 
-EActiveTickReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
 	InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
 
@@ -445,14 +445,14 @@ EActiveTickReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, flo
 			ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, true);
 		}
 
-		return EActiveTickReturnType::KeepTicking;
+		return EActiveTimerReturnType::Continue;
 	}
 
 	// Clear the scroll velocity so there isn't any delayed minuscule movement
 	InertialScrollManager.ClearScrollVelocity();
 
-	bIsActiveTickRegistered = false;
-	return EActiveTickReturnType::StopTicking;
+	bIsActiveTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
 }
 
 void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -485,11 +485,11 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		// We cannot scroll, so ensure that there is no offset.
 		ScrollPanel->PhysicalOffset = 0.0f;
 	}
-	else if (bIsScrolling && !bIsActiveTickRegistered)
+	else if (bIsScrolling && !bIsActiveTimerRegistered)
 	{
-		// If scrolling and the scrollbar is needed, make sure the active tick is registered (possible b/c we may need to scroll when our geometry changes)
-		bIsActiveTickRegistered = true;
-		RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+		// If scrolling and the scrollbar is needed, make sure the active timer is registered (possible b/c we may need to scroll when our geometry changes)
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 	}
 }
 
@@ -517,13 +517,13 @@ FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
-		if (!bIsActiveTickRegistered && IsRightClickScrolling())
+		if (!bIsActiveTimerRegistered && IsRightClickScrolling())
 		{
-			// Register the active tick to handle the inertial scrolling
+			// Register the active timer to handle the inertial scrolling
 			CachedGeometry = MyGeometry;
 			bIsScrolling = true;
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 		}
 
 		AmountScrolledWhileRightMouseDown = 0;
@@ -607,13 +607,13 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 
 		const bool bScrollWasHandled = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount );
 
-		if (bScrollWasHandled && !bIsActiveTickRegistered)
+		if (bScrollWasHandled && !bIsActiveTimerRegistered)
 		{
-			// Register the active tick to handle the inertial scrolling
+			// Register the active timer to handle the inertial scrolling
 			CachedGeometry = MyGeometry;
 			bIsScrolling = true;
-			bIsActiveTickRegistered = true;
-			RegisterActiveTick(0.f, FWidgetActiveTickDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+			bIsActiveTimerRegistered = true;
+			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 		}
 
 		return bScrollWasHandled ? FReply::Handled() : FReply::Unhandled();

@@ -216,7 +216,7 @@ FReply SSourceControlLogin::OnAcceptSettings()
 	//Increase the tick frequency during login if needed
 	if ( ParentWindowPtr.IsValid() && ( FSlateApplication::Get().GetActiveModalWindow() == ParentWindowPtr.Pin() ) )
 	{
-		ActiveTickHandle = RegisterActiveTick( 0.f, FWidgetActiveTickDelegate::CreateSP( this, &SSourceControlLogin::TickSourceControlModule ) );
+		ActiveTimerHandle = RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SSourceControlLogin::TickSourceControlModule ) );
 	}
 
 	FSourceControlModule& SourceControlModule = FSourceControlModule::Get();
@@ -277,11 +277,11 @@ void SSourceControlLogin::DisplayConnectionError(const FText& InErrorText)
 	
 	SourceControlLog.Notify();
 
-	// Suspend the active tick until there's another login attempt
-	auto PinnedActiveTick = ActiveTickHandle.Pin();
-	if ( PinnedActiveTick.IsValid() )
+	// Suspend the active timer until there's another login attempt
+	auto PinnedActiveTimer = ActiveTimerHandle.Pin();
+	if ( PinnedActiveTimer.IsValid() )
 	{
-		UnRegisterActiveTick( PinnedActiveTick.ToSharedRef() );
+		UnRegisterActiveTimer( PinnedActiveTimer.ToSharedRef() );
 	}
 }
 
@@ -322,10 +322,10 @@ EVisibility SSourceControlLogin::GetDisabledTextVisibility() const
 	return SourceControlModule.GetProvider().GetName() == "None" ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-EActiveTickReturnType SSourceControlLogin::TickSourceControlModule( double InCurrentTime, float InDeltaTime )
+EActiveTimerReturnType SSourceControlLogin::TickSourceControlModule( double InCurrentTime, float InDeltaTime )
 {
 	FSourceControlModule::Get().Tick();
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTimerReturnType::Continue;
 }
 
 #undef LOCTEXT_NAMESPACE

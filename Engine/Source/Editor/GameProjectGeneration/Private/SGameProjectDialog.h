@@ -49,7 +49,7 @@ protected:
 
 private:
 	/** Ensures the fade-in animation is played post-construct */
-	EActiveTickReturnType TriggerFadeInPostConstruct( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType TriggerFadeInPostConstruct( double InCurrentTime, float InDeltaTime );
 
 	// Callback for getting the color of the custom content area.
 	FLinearColor HandleCustomContentColorAndOpacity() const;

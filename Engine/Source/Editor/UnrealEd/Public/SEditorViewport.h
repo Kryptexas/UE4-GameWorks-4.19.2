@@ -173,8 +173,8 @@ protected:
 
 private:
 	/** Ensures the viewport is ticked actively when realtime is enabled */
-	EActiveTickReturnType EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime );
+	EActiveTimerReturnType EnsureTickWhileRealtime( double InCurrentTime, float InDeltaTime );
 
-	/** The handle to the active tick */
-	TWeakPtr<FActiveTickHandle> ActiveTickHandle;
+	/** The handle to the active timer */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
 };

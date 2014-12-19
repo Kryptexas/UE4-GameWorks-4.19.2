@@ -189,8 +189,8 @@ private:
 	/** Does the user need a hint that they can scroll to the end of the list? */
 	FSlateColor GetEndShadowOpacity() const;
 
-	/** Active tick to update inertial scrolling as needed */
-	EActiveTickReturnType UpdateInertialScroll(double InCurrentTime, float InDeltaTime);
+	/** Active timer to update inertial scrolling as needed */
+	EActiveTimerReturnType UpdateInertialScroll(double InCurrentTime, float InDeltaTime);
 
 private:
 
@@ -221,7 +221,7 @@ private:
 	/** Style resource for the scrollbar */
 	const FScrollBarStyle* ScrollBarStyle;
 
-	/** Cached geometry for use with the active tick */
+	/** Cached geometry for use with the active timer */
 	FGeometry CachedGeometry;
 
 	/**	Whether the software cursor should be drawn in the viewport */
@@ -239,8 +239,8 @@ private:
 	/** If true, will scroll to the end next Tick */
 	bool bScrollToEnd : 1;
 
-	/** Whether the active tick to update the inertial scroll is registered */
-	bool bIsActiveTickRegistered : 1;
+	/** Whether the active timer to update the inertial scroll is registered */
+	bool bIsActiveTimerRegistered : 1;
 };
 
 
