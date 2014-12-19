@@ -196,7 +196,7 @@ EActiveTickReturnType SGameProjectDialog::TriggerFadeInPostConstruct(double InCu
 	// see the dialog and the beginning of the animation is cut off.
 	FadeAnimation.Play(this->AsShared());
 
-	return EActiveTickReturnType::KeepTicking;
+	return EActiveTickReturnType::StopTicking;
 }
 
 /* SGameProjectDialog implementation
