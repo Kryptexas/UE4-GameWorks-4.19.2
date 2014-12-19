@@ -176,6 +176,11 @@ void STimeline::AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
 	UpdateVisibilityForEntry(Entries[Entries.Num() - 1], Settings->CurrentPresets.DataFilter, Settings->bSearchInsideLogs);
 	UpdateVisibility();
+
+	if (Settings->bStickToRecentData && IsSelected())
+	{
+		TimelineBar->SnapScrubPosition(Entry.Entry.TimeStamp);
+	}
 }
 
 void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView> VisualLoggerView, TSharedPtr<FSequencerTimeSliderController> TimeSliderController, TSharedPtr<STimelinesContainer> InContainer, const FVisualLogDevice::FVisualLogEntryItem& Entry)

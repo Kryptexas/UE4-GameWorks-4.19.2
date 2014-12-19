@@ -46,7 +46,7 @@ public:
 	int32 TrivialLogsThreshold;
 
 	/**Whether to show the recent data or not. Property disabled for now.*/
-	UPROPERTY(VisibleAnywhere, config, Category = "VisualLogger")
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bStickToRecentData;
 
 	/**Whether to show histogram labels inside graph or outside. Property disabled for now.*/
