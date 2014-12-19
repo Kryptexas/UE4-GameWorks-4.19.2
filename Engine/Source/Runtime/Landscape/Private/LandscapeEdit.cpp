@@ -4008,16 +4008,6 @@ void ULandscapeComponent::SetLOD(bool bForcedLODChanged, int32 InLODValue)
 			if (Comp)
 			{
 				Comp->Modify();
-				if (bForcedLODChanged)
-				{
-					Comp->NeighborLOD[7 - Idx] = ForcedLOD >= 0 ? ForcedLOD : 255; // Use 255 as unspecified value
-				}
-				else
-				{
-					// Neighbor LODBias are saved in BYTE, so need to convert to range [-128:127]
-					Comp->NeighborLODBias[7 - Idx] = LODBias + 128;
-				}
-
 				Comp->InvalidateLightingCache();
 				FComponentReregisterContext ReregisterContext(Comp);
 			}

@@ -213,17 +213,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 ForcedLOD;
 
-	/** Neighbor LOD data to use when rendering, 255 is unspecified */
-	UPROPERTY()
-	uint8 NeighborLOD[8];
-
 	/** LOD level Bias to use when rendering */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 LODBias;
-
-	/** Neighbor LOD bias to use when rendering, 128 is 0 bias, 0 is -128 bias, 255 is 127 bias */
-	UPROPERTY()
-	uint8 NeighborLODBias[8];
 
 	UPROPERTY()
 	FGuid StateId;

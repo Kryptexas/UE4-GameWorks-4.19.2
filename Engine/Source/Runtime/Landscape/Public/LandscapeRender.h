@@ -354,6 +354,28 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 {
 	friend class FLandscapeSharedBuffers;
 
+	// Key to uniquely identify the landscape to find the correct render proxy map
+	class FLandscapeKey
+	{
+		const UWorld* World;
+		const FGuid Guid;
+	public:
+		FLandscapeKey(const UWorld* InWorld, const FGuid& InGuid)
+		: World(InWorld)
+		, Guid(InGuid)
+		{}
+
+		friend inline uint32 GetTypeHash(const FLandscapeKey& LandscapeKey)
+		{
+			return HashCombine(GetTypeHash(LandscapeKey.World), GetTypeHash(LandscapeKey.Guid));
+		}
+
+		friend bool operator==(const FLandscapeKey& A, const FLandscapeKey& B)
+		{
+			return A.World == B.World && A.Guid == B.Guid;
+		}
+	};
+
 	class FLandscapeLCI final : public FLightCacheInterface
 	{
 	public:
@@ -389,6 +411,7 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 	};
 
 protected:
+	FLandscapeKey				LandscapeKey;
 	int8						MaxLOD;
 	int8						NumSubsections;
 	int16						SubsectionSizeQuads;
@@ -398,6 +421,7 @@ protected:
 	uint8						StaticLightingLOD;
 	float						StaticLightingResolution;
 	FIntPoint					SectionBase;
+	FIntPoint					ComponentBase;
 	FMatrix						LocalToWorldNoScaling;
 
 	// Storage for static draw list batch params
@@ -434,6 +458,9 @@ protected:
 	static TMap<uint32, FLandscapeSharedBuffers*> SharedBuffersMap;
 	static TMap<uint32, FLandscapeSharedAdjacencyIndexBuffer*> SharedAdjacencyIndexBufferMap;
 
+	// Map of currently registered landscape proxies, used to register with our neighbors
+	static TMap<FLandscapeKey, TMap<FIntPoint, const FLandscapeComponentSceneProxy*> > SharedSceneProxyMap;
+
 	FLandscapeEditToolRenderData* EditToolRenderData;
 
 	// FLightCacheInterface
@@ -443,8 +470,9 @@ protected:
 
 	int8					ForcedLOD;
 	int8					LODBias;
-	int8					ForcedNeighborLOD[LANDSCAPE_NEIGHBOR_NUM];
-	int8					NeighborLODBias[LANDSCAPE_NEIGHBOR_NUM];
+
+	// Pointer to our neighbor's scene proxies in NWES order (nullptr if there is currently no neighbor)
+	mutable const FLandscapeComponentSceneProxy* Neighbors[4];
 
 	ELandscapeLODFalloff::Type LODFalloff;
 

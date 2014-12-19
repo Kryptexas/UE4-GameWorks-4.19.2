@@ -865,30 +865,6 @@ public:
 
 			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
 			{
-				// Update LODBias from neighbors
-				FIntPoint ComponentBase = NewComponents[Idx]->GetSectionBase() / NewComponents[Idx]->ComponentSizeQuads;
-				FIntPoint LandscapeKey[8] =
-				{
-					ComponentBase + FIntPoint(-1, -1),
-					ComponentBase + FIntPoint(+0, -1),
-					ComponentBase + FIntPoint(+1, -1),
-					ComponentBase + FIntPoint(-1, +0),
-					ComponentBase + FIntPoint(+1, +0),
-					ComponentBase + FIntPoint(-1, +1),
-					ComponentBase + FIntPoint(+0, +1),
-					ComponentBase + FIntPoint(+1, +1)
-				};
-
-				for (int32 NeighborIdx = 0; NeighborIdx < 8; ++NeighborIdx)
-				{
-					ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(LandscapeKey[NeighborIdx]);
-					if (Component)
-					{
-						NewComponents[Idx]->NeighborLOD[NeighborIdx] = Component->ForcedLOD >= 0 ? Component->ForcedLOD : 255;
-						NewComponents[Idx]->NeighborLODBias[NeighborIdx] = Component->LODBias + 128;
-					}
-				}
-
 				// Update Collision
 				NewComponents[Idx]->UpdateCachedBounds();
 				NewComponents[Idx]->UpdateBounds();
@@ -1039,9 +1015,6 @@ public:
 					if (NeighborComp)
 					{
 						NeighborComp->Modify();
-						NeighborComp->NeighborLOD[7 - Idx] = 255; // Use 255 as unspecified value
-						NeighborComp->NeighborLODBias[7 - Idx] = 128;
-
 						NeighborComp->InvalidateLightingCache();
 						FComponentReregisterContext ReregisterContext(NeighborComp);
 					}
