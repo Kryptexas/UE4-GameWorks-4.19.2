@@ -707,8 +707,11 @@ void SWidget::ExecuteActiveTicks(double CurrentTime, float DeltaTime)
 SWidget::~SWidget()
 {
 	// Unregister all ActiveTicks so they aren't left stranded in the Application's list.
-	for (const auto& ActiveTickHandle : ActiveTicks)
+	if (FSlateApplicationBase::IsInitialized())
 	{
-		FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTickHandle);
+		for (const auto& ActiveTickHandle : ActiveTicks)
+		{
+			FSlateApplicationBase::Get().UnRegisterActiveTick(ActiveTickHandle);
+		}
 	}
 }
