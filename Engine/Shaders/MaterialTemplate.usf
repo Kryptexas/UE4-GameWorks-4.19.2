@@ -1370,16 +1370,12 @@ void CalcMaterialParameters(
 
 	Parameters.SVPosition = SvPosition;
 
-#if INTERPOLATER_DERIVED_SCREENPOSITION
-	Parameters.ScreenPosition = mul(PixelPosition, View.TranslatedWorldToClip);
-#else		
 	{
 		float2 PixelPos = SvPosition - View.ViewRectMin.xy;	
 		Parameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
 		Parameters.ScreenPosition.zw = SvPosition.zw;
 		Parameters.ScreenPosition.xyz *= Parameters.ScreenPosition.w;
 	}
-#endif
 
 	// PixelPosition is the world position translated to the camera position, which is just -CameraVector
 	Parameters.CameraVector = normalize(-PixelPosition.xyz);
