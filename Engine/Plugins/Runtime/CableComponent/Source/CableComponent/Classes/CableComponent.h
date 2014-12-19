@@ -53,8 +53,20 @@ public:
 	FComponentReference AttachEndTo;
 
 	/** End location of cable, relative to AttachEndTo if specified, otherwise relative to cable component. */
-	UPROPERTY(EditAnywhere, Category="Cable")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cable")
 	FVector EndLocation;
+
+	/** Attaches the end of the cable to a specific Component within an Actor **/
+	UFUNCTION(BlueprintCallable, Category = "Cable")
+	void SetAttachEndTo(AActor* Actor, FName ComponentProperty);
+	
+	/** Gets the Actor that the cable is attached to **/
+	UFUNCTION(BlueprintCallable, Category = "Cable")
+	AActor* GetAttachedActor() const;
+
+	/** Gets the specific USceneComponent that the cable is attached to **/
+	UFUNCTION(BlueprintCallable, Category = "Cable")
+	USceneComponent* GetAttachedComponent() const;
 
 	/** Rest length of the cable */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cable", meta=(ClampMin = "0.0", UIMin = "0.0", UIMax = "1000.0"))

@@ -467,6 +467,22 @@ void UCableComponent::PerformSubstep(float InSubstepTime, const FVector& Gravity
 	SolveConstraints();
 }
 
+void UCableComponent::SetAttachEndTo(AActor* Actor, FName ComponentProperty)
+{
+	AttachEndTo.OtherActor = Actor;
+	AttachEndTo.ComponentProperty = ComponentProperty;
+}
+
+AActor* UCableComponent::GetAttachedActor() const
+{
+	return AttachEndTo.OtherActor;
+}
+
+USceneComponent* UCableComponent::GetAttachedComponent() const
+{
+	return AttachEndTo.GetComponent(GetOwner());
+}
+
 void UCableComponent::GetEndPositions(FVector& OutStartPosition, FVector& OutEndPosition)
 {
 	// Start position is just component position
