@@ -29,7 +29,6 @@ void UNativeWidgetHost::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
-	MyWidget.Reset();
 	NativeWidget.Reset();
 }
 
