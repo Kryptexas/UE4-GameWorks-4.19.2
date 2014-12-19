@@ -874,8 +874,14 @@ public:
 		RenderAttributesTextureSampler.Bind(Initializer.ParameterMap, TEXT("RenderAttributesTextureSampler"));
 		CurveTexture.Bind(Initializer.ParameterMap, TEXT("CurveTexture"));
 		CurveTextureSampler.Bind(Initializer.ParameterMap, TEXT("CurveTextureSampler"));
-		VectorFieldTextures.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures"));
-		VectorFieldTexturesSampler.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler"));
+		VectorFieldTextures0.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures0"));
+		VectorFieldTextures1.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures1"));
+		VectorFieldTextures2.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures2"));
+		VectorFieldTextures3.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures3"));
+		VectorFieldTexturesSampler0.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler0"));
+		VectorFieldTexturesSampler1.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler1"));
+		VectorFieldTexturesSampler2.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler2"));
+		VectorFieldTexturesSampler3.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler3"));
 		SceneDepthTextureParameter.Bind(Initializer.ParameterMap,TEXT("SceneDepthTexture"));
 		SceneDepthTextureParameterSampler.Bind(Initializer.ParameterMap,TEXT("SceneDepthTextureSampler"));
 		GBufferATextureParameter.Bind(Initializer.ParameterMap,TEXT("GBufferATexture"));
@@ -898,8 +904,14 @@ public:
 		Ar << RenderAttributesTextureSampler;
 		Ar << CurveTexture;
 		Ar << CurveTextureSampler;
-		Ar << VectorFieldTextures;
-		Ar << VectorFieldTexturesSampler;
+		Ar << VectorFieldTextures0;
+		Ar << VectorFieldTextures1;
+		Ar << VectorFieldTextures2;
+		Ar << VectorFieldTextures3;
+		Ar << VectorFieldTexturesSampler0;
+		Ar << VectorFieldTexturesSampler1;
+		Ar << VectorFieldTexturesSampler2;
+		Ar << VectorFieldTexturesSampler3;
 		Ar << SceneDepthTextureParameter;
 		Ar << SceneDepthTextureParameterSampler;
 		Ar << GBufferATextureParameter;
@@ -970,10 +982,10 @@ public:
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
 		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FVectorFieldUniformParameters>(), UniformBuffer);
-		for (int32 TextureIndex = 0; TextureIndex < MAX_VECTOR_FIELDS; ++TextureIndex)
-		{
-			SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures, VectorFieldTexturesSampler, SamplerStateLinear, VolumeTexturesRHI[TextureIndex], TextureIndex);
-		}
+		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures0, VectorFieldTexturesSampler0, SamplerStateLinear, VolumeTexturesRHI[0], 0);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures1, VectorFieldTexturesSampler1, SamplerStateLinear, VolumeTexturesRHI[1], 0);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures2, VectorFieldTexturesSampler2, SamplerStateLinear, VolumeTexturesRHI[2], 0);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures3, VectorFieldTexturesSampler3, SamplerStateLinear, VolumeTexturesRHI[3], 0);
 	}
 
 	/**
@@ -993,13 +1005,21 @@ public:
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
 		FShaderResourceViewRHIParamRef NullSRV = FShaderResourceViewRHIParamRef();
-		if (VectorFieldTextures.IsBound())
+		if (VectorFieldTextures0.IsBound())
 		{
-			const uint32 ResourceCount = VectorFieldTextures.GetNumResources();
-			for (uint32 ResourceIndex = 0; ResourceIndex < ResourceCount; ++ResourceIndex)
-			{
-				RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures.GetBaseIndex() + ResourceIndex, NullSRV);
-			}
+			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures0.GetBaseIndex(), NullSRV);
+		}
+		if (VectorFieldTextures1.IsBound())
+		{
+			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures1.GetBaseIndex(), NullSRV);
+		}
+		if (VectorFieldTextures2.IsBound())
+		{
+			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures2.GetBaseIndex(), NullSRV);
+		}
+		if (VectorFieldTextures3.IsBound())
+		{
+			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures3.GetBaseIndex(), NullSRV);
 		}
 	}
 
@@ -1021,8 +1041,14 @@ private:
 	FShaderResourceParameter CurveTexture;
 	FShaderResourceParameter CurveTextureSampler;
 	/** Vector fields. */
-	FShaderResourceParameter VectorFieldTextures;
-	FShaderResourceParameter VectorFieldTexturesSampler;
+	FShaderResourceParameter VectorFieldTextures0;
+	FShaderResourceParameter VectorFieldTextures1;
+	FShaderResourceParameter VectorFieldTextures2;
+	FShaderResourceParameter VectorFieldTextures3;
+	FShaderResourceParameter VectorFieldTexturesSampler0;
+	FShaderResourceParameter VectorFieldTexturesSampler1;
+	FShaderResourceParameter VectorFieldTexturesSampler2;
+	FShaderResourceParameter VectorFieldTexturesSampler3;
 	/** The SceneDepthTexture parameter for depth buffer collision. */
 	FShaderResourceParameter SceneDepthTextureParameter;
 	FShaderResourceParameter SceneDepthTextureParameterSampler;
@@ -3248,7 +3274,7 @@ public:
 			
 			EmitterInstance->ParticleBoundingBox = ComputeParticleBounds(
 				RHICmdList,
-				EmitterInstance->Simulation->VertexBuffer.VertexBufferSRV, 
+				EmitterInstance->Simulation->VertexBuffer.VertexBufferSRV,
 				EmitterInstance->FXSystem->GetParticleSimulationResources()->GetCurrentStateTextures().PositionTextureRHI,
 				EmitterInstance->Simulation->VertexBuffer.ParticleCount
 				);
@@ -4013,20 +4039,16 @@ void FFXSystem::SimulateGPUParticles(
 	// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
 	if ( !CurrentStateTextures.bTexturesCleared )
 	{
-		SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef());
-		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
-		SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef());
-		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
+		SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
 
 		CurrentStateTextures.bTexturesCleared = true;
 	}
 
 	if ( !PrevStateTextures.bTexturesCleared )
 	{
-		SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef());
-		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
-		SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef());
-		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
+		SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
 
 		PrevStateTextures.bTexturesCleared = true;
 	}
