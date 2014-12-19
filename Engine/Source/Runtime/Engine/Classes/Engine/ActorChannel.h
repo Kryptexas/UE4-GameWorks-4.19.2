@@ -106,9 +106,6 @@ class ENGINE_API UActorChannel : public UChannel
 
 	// End UChannel interface.
 
-	/** Sets an override GUID for this actor channel */
-	void SetActorNetGUIDOverride(const FNetworkGUID &NetGUID);
-
 	/** UActorChannel interface and accessors. */
 	AActor* GetActor() {return Actor;}
 
