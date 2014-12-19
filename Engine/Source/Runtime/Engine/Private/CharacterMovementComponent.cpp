@@ -422,12 +422,6 @@ bool UCharacterMovementComponent::HasValidData() const
 	return UpdatedComponent && IsValid(CharacterOwner);
 }
 
-ACharacter* UCharacterMovementComponent::GetCharacterOwner() const
-{
-	return CharacterOwner;
-}
-
-
 FCollisionShape UCharacterMovementComponent::GetPawnCapsuleCollisionShape(const EShrinkCapsuleExtent ShrinkMode, const float CustomShrinkAmount) const
 {
 	FVector Extent = GetPawnCapsuleExtent(ShrinkMode, CustomShrinkAmount);
@@ -6497,10 +6491,16 @@ void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)
 	{
 		bUseRVOAvoidance = bEnable;
 
-		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
-		if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+		// this is a safety check - it's possible to not have CharacterOwner at this point if this function gets
+		// called too early
+		ensure(GetCharacterOwner());
+		if (GetCharacterOwner() != nullptr)
 		{
-			AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
+			UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+			if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+			{
+				AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
+			}
 		}
 	}
 }
