@@ -1451,7 +1451,6 @@ void UHierarchicalInstancedStaticMeshComponent::ClearInstances()
 		bConcurrentRemoval = true;
 	}
 
-	ClusterTree.Empty();
 	NumBuiltInstances = 0;
 	UnbuiltInstanceBounds.Init();
 
