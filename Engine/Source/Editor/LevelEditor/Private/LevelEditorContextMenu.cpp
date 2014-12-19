@@ -487,7 +487,7 @@ void FLevelEditorContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder
 	}
 
 	// Add brush commands when we have a brush or any surfaces selected
-	MenuBuilder.BeginSection("SelectBrush", LOCTEXT("SelectBrushHeading", "Brushes") );
+	MenuBuilder.BeginSection("SelectBSP", LOCTEXT("SelectBSPHeading", "BSP") );
 	{
 		if( SelectionInfo.bHaveBrush || NumSelectedSurfaces > 0 )
 		{
@@ -499,8 +499,7 @@ void FLevelEditorContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder
 
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectAllAddditiveBrushes );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectAllSubtractiveBrushes );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectAllSemiSolidBrushes );
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectAllNonSolidBrushes );
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectAllSurfaces );
 	}
 	MenuBuilder.EndSection();
 
@@ -559,13 +558,6 @@ void FLevelEditorContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder
 		}
 		MenuBuilder.EndSection();
 	}
-
-	// Allow users to select all surfaces in the level in a single click
-	MenuBuilder.BeginSection("SelectSurfaces", LOCTEXT("SelectAllSurfaces", "Surfaces") );
-	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SelectAllSurfaces );
-	}
-	MenuBuilder.EndSection();
 
 	// build matinee related selection menu
 	FillMatineeSelectActorMenu( MenuBuilder );

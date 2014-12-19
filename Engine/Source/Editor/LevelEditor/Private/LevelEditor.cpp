@@ -1003,16 +1003,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
-		Commands.SelectAllSemiSolidBrushes,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("MAP SELECT SEMISOLIDS") ) )
-		);
-
-	ActionList.MapAction(
-		Commands.SelectAllNonSolidBrushes,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("MAP SELECT NONSOLIDS") ) )
-		);
-
-	ActionList.MapAction(
 		Commands.SelectAllSurfaces,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("POLY SELECT ALL") ) )
 		);

@@ -2734,8 +2734,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SelectStationaryLightsExceedingOverlap, "Select Stationary Lights exceeding overlap", "Selects all stationary lights exceeding the overlap limit", EUserInterfaceActionType::Button, FInputGesture() ); 
 	UI_COMMAND( SelectAllAddditiveBrushes, "Select All Additive Brushes", "Selects all additive brushes", EUserInterfaceActionType::Button, FInputGesture() ); 
 	UI_COMMAND( SelectAllSubtractiveBrushes, "Select All Subtractive Brushes", "Selects all subtractive brushes", EUserInterfaceActionType::Button, FInputGesture() ); 
-	UI_COMMAND( SelectAllSemiSolidBrushes, "Select All Semi-Solid Brushes", "Selects all semi-solid brushes", EUserInterfaceActionType::Button, FInputGesture() ); 
-	UI_COMMAND( SelectAllNonSolidBrushes, "Select All Non-Solid Brushes", "Selects all non-solid brushes", EUserInterfaceActionType::Button, FInputGesture() ); 
 	UI_COMMAND( SelectAllActorsControlledByMatinee, "Select Actors Used by This Matinee", "Selects all actors controlled by this Matinee", EUserInterfaceActionType::Button, FInputGesture() ); 
 
 	UI_COMMAND( SelectAllSurfaces, "Select All Surfaces", "Selects all bsp surfaces", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift, EKeys::S) ); 
