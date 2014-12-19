@@ -6,10 +6,6 @@ public class Paper2DEditor : ModuleRules
 {
 	public Paper2DEditor(TargetInfo Target)
 	{
-		//Example path:
-		//D:\BaseUE4\Engine\Source\Editor\Persona\Private\Persona.cpp
-		//PrivateIncludePaths.Add("Editor/Persona/Private");	// For PCH includes (because they don't work with relative paths, yet)
-
 		PrivateIncludePaths.Add("Paper2DEditor/Private");
 
 		PrivateDependencyModuleNames.AddRange(
@@ -39,7 +35,8 @@ public class Paper2DEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
-				"IntroTutorials"
+				"IntroTutorials",
+				"MeshPaint"
 			}
 		);
 	}

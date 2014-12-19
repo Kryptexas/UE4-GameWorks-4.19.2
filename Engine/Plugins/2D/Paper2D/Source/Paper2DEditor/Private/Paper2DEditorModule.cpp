@@ -42,6 +42,9 @@
 // Intro tutorials
 #include "Editor/IntroTutorials/Public/IIntroTutorials.h"
 
+// Mesh paint adapters
+#include "MeshPainting/MeshPaintSpriteAdapter.h"
+
 DEFINE_LOG_CATEGORY(LogPaper2DEditor);
 
 #define LOCTEXT_NAMESPACE "Paper2DEditor"
@@ -74,6 +77,7 @@ private:
 	TSharedPtr<IComponentAssetBroker> PaperFlipbookBroker;
 	TSharedPtr<IComponentAssetBroker> PaperTileMapBroker;
 
+	TSharedPtr<IMeshPaintGeometryAdapterFactory> SpriteMeshPaintAdapterFactory;
 	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 
 public:
@@ -137,6 +141,14 @@ public:
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
 
+		// Register with the mesh paint module
+		if (IMeshPaintModule* MeshPaintModule = FModuleManager::LoadModulePtr<IMeshPaintModule>("MeshPaint"))
+		{
+			SpriteMeshPaintAdapterFactory = MakeShareable(new FMeshPaintSpriteAdapterFactory());
+			MeshPaintModule->RegisterGeometryAdapterFactory(SpriteMeshPaintAdapterFactory.ToSharedRef());
+		}
+
+		//
 		RegisterSettings();
 	}
 
@@ -151,6 +163,13 @@ public:
 		if (UObjectInitialized())
 		{
 			UnregisterSettings();
+
+			// Unregister from the mesh paint module
+			if (IMeshPaintModule* MeshPaintModule = FModuleManager::GetModulePtr<IMeshPaintModule>("MeshPaint"))
+			{
+				MeshPaintModule->UnregisterGeometryAdapterFactory(SpriteMeshPaintAdapterFactory.ToSharedRef());
+				SpriteMeshPaintAdapterFactory.Reset();
+			}
 
 			FPaperContentBrowserExtensions::RemoveHooks();
 
