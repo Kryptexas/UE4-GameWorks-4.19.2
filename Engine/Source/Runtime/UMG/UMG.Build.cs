@@ -26,6 +26,18 @@ public class UMG : ModuleRules
 			}
 		);
 
+        PublicDependencyModuleNames.AddRange(
+            new string[] {
+				"HTTP",
+			}
+        );
+
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+				"ImageWrapper",
+			}
+        );
+
 		if (Target.Type != TargetRules.TargetType.Server)
 		{
 			PrivateDependencyModuleNames.AddRange(
@@ -33,6 +45,12 @@ public class UMG : ModuleRules
 					"SlateRHIRenderer",
 				}
 			);
+
+            DynamicallyLoadedModuleNames.AddRange(
+                new string[] {
+				    "ImageWrapper",
+			    }
+            );
 		};
 	}
 }
