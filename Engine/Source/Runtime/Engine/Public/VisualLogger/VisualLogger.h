@@ -215,7 +215,7 @@ public:
 private:
 	FVisualLogger();
 	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override { ensureMsgf(0, TEXT("Regular serialize is forbiden for visual logs")); }
-	class UWorld* GetWorld();
+	class UWorld* GetWorld(const class UObject* Object);
 
 protected:
 	/** Array of output devices to redirect to */

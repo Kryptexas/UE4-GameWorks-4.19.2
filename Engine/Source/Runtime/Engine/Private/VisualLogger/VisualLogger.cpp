@@ -36,25 +36,24 @@ FVisualLogger::FVisualLogger()
 	}
 }
 
-UWorld* FVisualLogger::GetWorld()
+UWorld* FVisualLogger::GetWorld(const class UObject* Object)
 {
-	UWorld* World = GWorld;
+	UWorld* World = Object ? GEngine->GetWorldFromContextObject(Object, false) : NULL;
 #if WITH_EDITOR
 	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
-	if (GIsEditor && EEngine != NULL)
+	if (GIsEditor && EEngine != NULL && World == NULL)
 	{
 		// lets use PlayWorld during PIE/Simulate and regular world from editor otherwise, to draw debug information
 		World = EEngine->PlayWorld != NULL ? EEngine->PlayWorld : EEngine->GetEditorWorldContext().World();
 	}
-	else 
-#endif
-	if (!GIsEditor)
-	{
 
+#endif
+	if (!GIsEditor && World == NULL)
+	{
 		World = GEngine->GetWorld();
 	}
 
-	return World;
+	return World != NULL ? World : GWorld;
 }
 
 void FVisualLogger::Shutdown()
