@@ -408,7 +408,8 @@ void FStaticMeshEditor::BindCommands()
 
 	UICommandList->MapAction(
 		Commands.CopyCollisionFromSelectedMesh,
-		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh));
+		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh),
+		FCanExecuteAction::CreateSP(this, &FStaticMeshEditor::CanCopyCollisionFromSelectedStaticMesh));
 
 	// Mesh menu
 	UICommandList->MapAction(
@@ -418,7 +419,8 @@ void FStaticMeshEditor::BindCommands()
 
 	UICommandList->MapAction(
 		Commands.ChangeMesh,
-		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnChangeMesh));
+		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnChangeMesh),
+		FCanExecuteAction::CreateSP(this, &FStaticMeshEditor::CanChangeMesh));
 
 	// Collision Menu
 	UICommandList->MapAction(
@@ -1407,71 +1409,84 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 
 void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 {
-	// Find currently selected mesh from content browser
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	TArray<FAssetData> SelectedAssetData;
-	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
-	UStaticMesh * SelectedMesh = NULL;
-	if ( SelectedAssetData.Num() > 0 )
+	UStaticMesh* SelectedMesh = GetFirstSelectedStaticMeshInContentBrowser();
+	check(SelectedMesh && SelectedMesh != StaticMesh && SelectedMesh->BodySetup != NULL);
+
+	UBodySetup* BodySetup = StaticMesh->BodySetup;
+
+	ClearSelectedPrims();
+
+	// Make sure rendering is done - so we are not changing data being used by collision drawing.
+	FlushRenderingCommands();
+
+	GEditor->BeginTransaction(LOCTEXT("FStaticMeshEditor_CopyCollisionFromSelectedStaticMesh", "Copy Collision from Selected Static Mesh"));
+	BodySetup->Modify();
+
+	// Copy body properties from
+	BodySetup->CopyBodyPropertiesFrom(SelectedMesh->BodySetup);
+
+	// Enable collision, if not already
+	if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
 	{
-		// find the first staticmesh we can find
-		for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
+		Viewport->GetViewportClient().SetShowWireframeCollision();
+	}
+
+	// Invalidate physics data and create new meshes
+	BodySetup->InvalidatePhysicsData();
+	BodySetup->CreatePhysicsMeshes(); 
+
+	GEditor->EndTransaction();
+
+	// Mark static mesh as dirty, to help make sure it gets saved.
+	StaticMesh->MarkPackageDirty();
+
+	// Redraw level editor viewports, in case the asset's collision is visible in a viewport and the viewport isn't set to realtime.
+	// Note: This could be more intelligent and only trigger a redraw if the asset is referenced in the world.
+	GUnrealEd->RedrawLevelEditingViewports();
+
+	// Update views/property windows
+	Viewport->RefreshViewport();
+
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
+}
+
+bool FStaticMeshEditor::CanCopyCollisionFromSelectedStaticMesh() const
+{
+	bool CanCopy = false;
+
+	TArray<FAssetData> SelectedAssets;
+	GEditor->GetContentBrowserSelections(SelectedAssets);
+	if(SelectedAssets.Num() == 1)
+	{
+		FAssetData& Asset = SelectedAssets[0];
+		if(Asset.GetClass() == UStaticMesh::StaticClass())
 		{
-			const FAssetData& Asset = (*AssetIt);
-			// if staticmesh
-			if ( Asset.GetClass() == UStaticMesh::StaticClass() )
+			UStaticMesh* SelectedMesh = Cast<UStaticMesh>(Asset.GetAsset());
+			if(SelectedMesh && SelectedMesh != StaticMesh && SelectedMesh->BodySetup != NULL)
 			{
-				SelectedMesh = Cast<UStaticMesh>(Asset.GetAsset());
+				CanCopy = true;
 			}
 		}
 	}
 
-	// If we have a collision model for this staticmesh, ask if we want to replace it.
-	if (SelectedMesh && SelectedMesh != StaticMesh && 
-		SelectedMesh->BodySetup != NULL)
+	return CanCopy;
+}
+
+UStaticMesh* FStaticMeshEditor::GetFirstSelectedStaticMeshInContentBrowser() const
+{
+	TArray<FAssetData> SelectedAssets;
+	GEditor->GetContentBrowserSelections(SelectedAssets);
+
+	for(auto& Asset : SelectedAssets)
 	{
-		int32 ShouldReplace = FMessageDialog::Open( EAppMsgType::YesNo, FText::Format( LOCTEXT("CopyCollisionFromMeshPrompt", "Are you sure you want to copy collision from {0}?"), FText::FromString( SelectedMesh->GetName() ) ) );
-		if (ShouldReplace == EAppReturnType::Yes)
+		UStaticMesh* SelectedMesh = Cast<UStaticMesh>(Asset.GetAsset());
+		if(SelectedMesh)
 		{
-			UBodySetup* BodySetup = StaticMesh->BodySetup;
-
-			ClearSelectedPrims();
-
-			// Make sure rendering is done - so we are not changing data being used by collision drawing.
-			FlushRenderingCommands();
-
-			// Copy body properties from
-			BodySetup->CopyBodyPropertiesFrom(SelectedMesh->BodySetup);
-
-			// Enable collision, if not already
-			if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
-			{
-				Viewport->GetViewportClient().SetShowWireframeCollision();
-			}
-
-			// Invalidate physics data and create new meshes
-			BodySetup->InvalidatePhysicsData();
-			BodySetup->CreatePhysicsMeshes(); 
-
-			// Mark static mesh as dirty, to help make sure it gets saved.
-			StaticMesh->MarkPackageDirty();
-
-			// Redraw level editor viewports, in case the asset's collision is visible in a viewport and the viewport isn't set to realtime.
-			// Note: This could be more intelligent and only trigger a redraw if the asset is referenced in the world.
-			GUnrealEd->RedrawLevelEditingViewports();
-
-			// Update views/property windows
-			Viewport->RefreshViewport();
-
-			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
+			return SelectedMesh;
 		}
 	}
-	else
-	{
-		FNotificationInfo Info( LOCTEXT("InvalidMeshSelectionCollisionCopyFromPrompt", "Invalid asset to copy collision from. Select valid StaticMesh in Content Browser.") );
-		Info.ExpireDuration = 2.0f;
-		FSlateNotificationManager::Get().AddNotification( Info );
-	}
+
+	return NULL;
 }
 
 void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
@@ -1538,24 +1553,44 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
 
 void FStaticMeshEditor::OnChangeMesh()
 {
-	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	UStaticMesh* SelectedMesh = GEditor->GetSelectedObjects()->GetTop<UStaticMesh>();
-	if(SelectedMesh && SelectedMesh != StaticMesh)
+	UStaticMesh* SelectedMesh = GetFirstSelectedStaticMeshInContentBrowser();
+	check(SelectedMesh != NULL && SelectedMesh != StaticMesh);
+
+	RemoveEditingObject(StaticMesh);
+	AddEditingObject(SelectedMesh);
+
+	SetEditorMesh(SelectedMesh);
+
+	// Clear selections made on previous mesh
+	ClearSelectedPrims();
+	GetSelectedEdges().Empty();
+
+	if(SocketManager.IsValid())
 	{
-		RemoveEditingObject(StaticMesh);
-		AddEditingObject(SelectedMesh);
+		SocketManager->UpdateStaticMesh();
+	}
+}
 
-		SetEditorMesh(SelectedMesh);
+bool FStaticMeshEditor::CanChangeMesh() const
+{
+	bool CanChange = false;
 
-		// Clear selections made on previous mesh
-		ClearSelectedPrims();
-		GetSelectedEdges().Empty();
-
-		if(SocketManager.IsValid())
+	TArray<FAssetData> SelectedAssets;
+	GEditor->GetContentBrowserSelections(SelectedAssets);
+	if(SelectedAssets.Num() == 1)
+	{
+		FAssetData& Asset = SelectedAssets[0];
+		if(Asset.GetClass() == UStaticMesh::StaticClass())
 		{
-			SocketManager->UpdateStaticMesh();
+			UStaticMesh* SelectedMesh = Cast<UStaticMesh>(Asset.GetAsset());
+			if(SelectedMesh && SelectedMesh != StaticMesh)
+			{
+				CanChange = true;
+			}
 		}
 	}
+
+	return CanChange;
 }
 
 void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)

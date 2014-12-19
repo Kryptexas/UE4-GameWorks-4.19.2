@@ -179,11 +179,20 @@ private:
 	/** Copy the collision data from the selected static mesh in Content Browser*/
 	void OnCopyCollisionFromSelectedStaticMesh(void);
 
+	/** Whether there is a valid static mesh to copy collision from selected in the content browser */
+	bool CanCopyCollisionFromSelectedStaticMesh() const;
+
+	/** Get the first static mesh selected in the content browser */
+	UStaticMesh* GetFirstSelectedStaticMeshInContentBrowser() const;
+
 	/** Clears the collision data for the static mesh */
 	void OnRemoveCollision(void);
 
 	/** Change the mesh the editor is viewing. */
 	void OnChangeMesh();
+
+	/** Whether there is a static mesh selected in the content browser to change to*/
+	bool CanChangeMesh() const;
 
 	/** Rebuilds the LOD combo list and sets it to "auto", a safe LOD level. */
 	void RegenerateLODComboList();

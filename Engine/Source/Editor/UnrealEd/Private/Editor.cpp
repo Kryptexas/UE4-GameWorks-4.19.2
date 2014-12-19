@@ -283,7 +283,7 @@ USelection* UEditorEngine::GetSelectedObjects() const
 	return PrivateGetSelectedObjects();
 }
 
-void UEditorEngine::GetContentBrowserSelections( TArray<UClass*>& Selection ) const
+void UEditorEngine::GetContentBrowserSelectionClasses(TArray<UClass*>& Selection) const
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	TArray<FAssetData> SelectedAssets;
@@ -298,6 +298,12 @@ void UEditorEngine::GetContentBrowserSelections( TArray<UClass*>& Selection ) co
 			Selection.AddUnique(AssetClass);
 		}
 	}
+}
+
+void UEditorEngine::GetContentBrowserSelections(TArray<FAssetData>& Selection) const
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().GetSelectedAssets(Selection);
 }
 
 USelection* UEditorEngine::GetSelectedSet( const UClass* Class ) const

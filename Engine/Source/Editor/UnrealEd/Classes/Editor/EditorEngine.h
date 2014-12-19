@@ -1652,8 +1652,11 @@ public:
 	/** Returns True is a world info Actor is selected */
 	bool IsWorldSettingsSelected();
 
-	/** Function to return list of assets currently selected in content browser (loaded/not loaded) */
-	void GetContentBrowserSelections( TArray<UClass*>& Selection ) const;
+	/** Function to return unique list of the classes of the assets currently selected in content browser (loaded/not loaded) */
+	void GetContentBrowserSelectionClasses( TArray<UClass*>& Selection ) const;
+
+	/** Function to return list of assets currently selected in the content browser */
+	void GetContentBrowserSelections(TArray<FAssetData>& Selections) const;
 
 	/**
 	 * Returns an FSelectionIterator that iterates over the set of selected actors.
