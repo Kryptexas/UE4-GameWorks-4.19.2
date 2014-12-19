@@ -557,7 +557,7 @@ private:
 		}
 	};
 
-	/** Triangle for use in Octree for mesh paint optimisation */
+	/** Triangle for use in Octree for mesh paint optimization */
 	struct FMeshTriangle
 	{
 		uint32 Index;
@@ -633,7 +633,7 @@ private:
 	void PaintMeshVertices( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, FPrimitiveDrawInterface* PDI, const float VisualBiasDistance );
 
 	/** Paints mesh texture */
-	void PaintMeshTexture( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition );
+	void PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition );
 	
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState );
@@ -642,12 +642,13 @@ private:
 	void SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport );
 
 	/** Starts painting a texture */
-	void StartPaintingTexture( UStaticMeshComponent* InStaticMeshComponent );
+	void StartPaintingTexture( UMeshComponent* InMeshComponent );
 
 	/** Paints on a texture */
 	void PaintTexture( const FMeshPaintParameters& InParams,
 					   const TArray< int32 >& InInfluencedTriangles,
-					   const FMatrix& InActorToWorldMatrix );
+					   const FMatrix& InActorToWorldMatrix,
+					   const class IMeshPaintGeometryAdaptor& GeometryInfo);
 
 	/** Finishes painting a texture */
 	void FinishPaintingTexture();
@@ -659,7 +660,7 @@ private:
 	static void CopyTextureToRenderTargetTexture(UTexture* SourceTexture, UTextureRenderTarget2D* RenderTargetTexture, ERHIFeatureLevel::Type FeatureLevel);
 
 	/** Will generate a mask texture, used for texture dilation, and store it in the passed in rendertarget */
-	bool GenerateSeamMask(UStaticMeshComponent* StaticMeshComponent, int32 UVSet, UTextureRenderTarget2D* RenderTargetTexture);
+	bool GenerateSeamMask(UMeshComponent* MeshComponent, int32 UVSet, UTextureRenderTarget2D* RenderTargetTexture);
 
 	/** Static: Creates a temporary texture used to transfer data to a render target in memory */
 	UTexture2D* CreateTempUncompressedTexture( UTexture2D* SourceTexture );
@@ -761,8 +762,8 @@ private:
 	// @todo MeshPaint: Allow painting on other LODs?
 	static const uint32 PaintingMeshLODIndex = 0;
 
-	/** Texture paint: The static mesh components that we're currently painting */
-	UStaticMeshComponent* TexturePaintingStaticMeshComponent;
+	/** Texture paint: The mesh components that we're currently painting */
+	UMeshComponent* TexturePaintingCurrentMeshComponent;
 
 	/** Texture paint: An octree for the current static mesh & LOD to speed up triangle selection */
 	FMeshTriOctree* TexturePaintingStaticMeshOctree;
@@ -863,4 +864,13 @@ public:
 	 * @param ColorMask Mask for filtering which colors to use.
 	 */
 	void ImportVertexColors(FEditorModeTools* ModeTools, const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
+};
+
+
+class IMeshPaintGeometryAdaptor
+{
+public:
+	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) = 0;
+	virtual int32 GetNumTexCoords() const = 0;
+	virtual void GetTriangleInfo(int32 TriIndex, FEdModeMeshPaint::FTexturePaintTriangleInfo& OutTriInfo) const = 0;
 };
