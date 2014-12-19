@@ -356,15 +356,15 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 	// Render CPU thread and GPU frame times.
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
-	const int32 SafeZone = FPlatformProperties::SupportsWindowedMode() ? 0 : FMath::TruncToInt(InViewport->GetSizeXY().X * 0.05f);
 
 	FColor Color;
-	int32 X3 = InViewport->GetSizeXY().X - SafeZone;
+	// Note InX should already be within the safe zone
+	int32 X3 = InX;
 	if (bShowUnitMaxTimes)
 	{
 		X3 -= Font->GetStringSize(TEXT(" 0000.00 ms "));
 	}
-	const int32 X2 = X3 - Font->GetStringSize(TEXT(" 000.00 ms "));
+	const int32 X2 = bShowUnitMaxTimes ? X3 - Font->GetStringSize(TEXT(" 000.00 ms ")) : X3;
 	const int32 X1 = X2 - Font->GetStringSize(TEXT("Frame: "));
 	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;

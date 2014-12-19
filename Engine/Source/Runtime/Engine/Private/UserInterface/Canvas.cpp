@@ -1379,17 +1379,29 @@ void UCanvas::PopSafeZoneTransform()
 
 void UCanvas::UpdateSafeZoneData()
 {
-	if (FSlateApplication::IsInitialized())
+	if(GEngine && GEngine->IsStereoscopic3D())
+	{
+		FVector2D SafeRegionPercentage = GEngine->StereoRenderingDevice->GetTextSafeRegionBounds();
+
+		CachedDisplayWidth = UnsafeSizeX;
+		CachedDisplayHeight = UnsafeSizeY;
+
+		SafeZonePadX = (CachedDisplayWidth - (CachedDisplayWidth * SafeRegionPercentage.X))/2.f;
+		SafeZonePadY = CachedDisplayHeight - (CachedDisplayHeight * SafeRegionPercentage.Y)/2.f;
+	}
+	else if(FSlateApplication::IsInitialized())
 	{
 		FDisplayMetrics DisplayMetrics;
+
 		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-	
+
 		SafeZonePadX = FMath::CeilToInt(DisplayMetrics.TitleSafePaddingSize.X);
 		SafeZonePadY = FMath::CeilToInt(DisplayMetrics.TitleSafePaddingSize.Y);
 
 		CachedDisplayWidth = DisplayMetrics.PrimaryDisplayWidth;
 		CachedDisplayHeight = DisplayMetrics.PrimaryDisplayHeight;
 	}
+
 }
 
 void UCanvas::UpdateAllCanvasSafeZoneData()
