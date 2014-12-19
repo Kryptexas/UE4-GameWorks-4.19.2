@@ -295,7 +295,9 @@ void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, f
 	}
 	else
 	{
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("SetTimer passed a bad function (%s) or object (%s)"), *Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("SetTimer passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
 }
 
@@ -304,9 +306,14 @@ void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	K2_ClearTimerDelegate(Delegate);
+}
+
+void UKismetSystemLibrary::K2_ClearTimerDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		if (World)
 		{
 			World->GetTimerManager().ClearTimer(Delegate);
@@ -314,8 +321,9 @@ void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("ClearTimer passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("ClearTimer passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
 }
 
@@ -324,15 +332,21 @@ void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	K2_PauseTimerDelegate(Delegate);
+}
+
+void UKismetSystemLibrary::K2_PauseTimerDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		World->GetTimerManager().PauseTimer(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("PauseTimer passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("PauseTimer passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
 }
 
@@ -341,15 +355,21 @@ void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	K2_UnPauseTimerDelegate(Delegate);
+}
+
+void UKismetSystemLibrary::K2_UnPauseTimerDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		World->GetTimerManager().UnPauseTimer(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("UnPauseTimer passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning,
+			TEXT("UnPauseTimer passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
 }
 
@@ -358,15 +378,21 @@ bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionNam
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	return K2_IsTimerActiveDelegate(Delegate);
+}
+
+bool UKismetSystemLibrary::K2_IsTimerActiveDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		return World->GetTimerManager().IsTimerActive(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("IsTimerActive passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("IsTimerActive passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 		return false;
 	}
 }
@@ -376,15 +402,21 @@ bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionNam
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	return K2_IsTimerPausedDelegate(Delegate);
+}
+
+bool UKismetSystemLibrary::K2_IsTimerPausedDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		return World->GetTimerManager().IsTimerPaused(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("IsTimerPaused passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("IsTimerPaused passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 		return false;
 	}
 }
@@ -394,15 +426,21 @@ bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	return K2_TimerExistsDelegate(Delegate);
+}
+
+bool UKismetSystemLibrary::K2_TimerExistsDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		return World->GetTimerManager().TimerExists(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("TimerExists passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning,
+			TEXT("TimerExists passed a bad function (%s) or object (%s)"),
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 		return false;
 	}
 }
@@ -412,15 +450,21 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString Func
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	return K2_GetTimerElapsedTimeDelegate(Delegate);
+}
+
+float UKismetSystemLibrary::K2_GetTimerElapsedTimeDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);		
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		return World->GetTimerManager().GetTimerElapsed(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("GetTimerElapsedTime passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("GetTimerElapsedTime passed a bad function (%s) or object (%s)"), 
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 		return 0.0f;
 	}
 }
@@ -430,15 +474,21 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString Fu
 	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, *FunctionName);
 
+	return K2_GetTimerRemainingTimeDelegate(Delegate);
+}
+
+float UKismetSystemLibrary::K2_GetTimerRemainingTimeDelegate(FTimerDynamicDelegate Delegate)
+{
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
 		return World->GetTimerManager().GetTimerRemaining(Delegate);
 	}
 	else
 	{
-		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("GetTimerRemainingTime passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		UE_LOG(LogBlueprintUserMessages, Warning, 
+			TEXT("GetTimerRemainingTime passed a bad function (%s) or object (%s)"), 
+			*Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 		return 0.0f;
 	}
 }

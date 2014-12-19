@@ -249,6 +249,73 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(Latent, LatentInfo="LatentInfo", WorldContext="WorldContextObject", ExpandEnumAsExecs="MoveAction", OverTime="0.2"), Category="Components")
 	static void MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo);
 
+	// --- Timer functions with delegate input ----------
+
+	/**
+	 * Set a timer to execute delegate. Setting an existing timer will reset that timer with updated parameters.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 * @param Time			How long to wait before executing the delegate, in seconds. Setting a timer to <= 0 seconds will clear it if it is set.
+	 * @param bLooping		true to keep executing the delegate every Time seconds, false to execute delegate only once.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetTimer_Delegate"), Category="Utilities|Time")
+	static void K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping);
+
+	/**
+	 * Clears a set timer.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "ClearTimer_Delegate", DefaultToSelf = "Object"), Category="Utilities|Time")
+	static void K2_ClearTimerDelegate(FTimerDynamicDelegate Delegate);
+
+	/**
+	 * Pauses a set timer at its current elapsed time.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "PauseTimer_Delegate", DefaultToSelf = "Object"), Category="Utilities|Time")
+	static void K2_PauseTimerDelegate(FTimerDynamicDelegate Delegate);
+
+	/**
+	 * Resumes a paused timer from its current elapsed time.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "UnPauseTimer_Delegate", DefaultToSelf = "Object"), Category="Utilities|Time")
+	static void K2_UnPauseTimerDelegate(FTimerDynamicDelegate Delegate);
+
+	/**
+	 * Returns true is a timer exists and is active for the given delegate, false otherwise.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "IsTimerActive_Delegate", DefaultToSelf = "Object"), Category="Utilities|Time")
+	static bool K2_IsTimerActiveDelegate(FTimerDynamicDelegate Delegate);
+
+	/**
+	 * Returns true is a timer exists and is paused for the given delegate, false otherwise.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "IsTimerPaused_Delegate", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	static bool K2_IsTimerPausedDelegate(FTimerDynamicDelegate Delegate);
+
+	/**
+	 * Returns true is a timer for the given delegate exists, false otherwise.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "TimerExists_Delegate", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	static bool K2_TimerExistsDelegate(FTimerDynamicDelegate Delegate);
+	
+	/**
+	 * Returns elapsed time for the given delegate (time since current countdown iteration began).
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "GetTimerElapsedTime_Delegate", DefaultToSelf = "Object"), Category="Utilities|Time")
+	static float K2_GetTimerElapsedTimeDelegate(FTimerDynamicDelegate Delegate);
+
+	/**
+	 * Returns time until the timer will next execute its delegate.
+	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
+	 */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "GetTimerRemainingTime_Delegate", DefaultToSelf = "Object"), Category="Utilities|Time")
+	static float K2_GetTimerRemainingTimeDelegate(FTimerDynamicDelegate Delegate);
+
 	// --- Timer functions ------------------------------
 
 	/**
@@ -260,15 +327,6 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetTimer", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static void K2_SetTimer(UObject* Object, FString FunctionName, float Time, bool bLooping);
-
-	/**
-	 * Set a timer to execute delegate. Setting an existing timer will reset that timer with updated parameters.
-	 * @param Delegate		Delegate. Can be a K2 function or a Custom Event.
-	 * @param Time			How long to wait before executing the delegate, in seconds. Setting a timer to <= 0 seconds will clear it if it is set.
-	 * @param bLooping		true to keep executing the delegate every Time seconds, false to execute delegate only once.
-	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetTimerDelegate"), Category="Utilities|Time")
-	static void K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping);
 
 	/**
 	 * Clears a set timer.
