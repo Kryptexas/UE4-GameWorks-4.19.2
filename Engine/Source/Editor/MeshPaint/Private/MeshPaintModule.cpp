@@ -2,6 +2,8 @@
 
 #include "MeshPaintPrivatePCH.h"
 #include "MeshPaintEdMode.h"
+#include "MeshPaintAdapterFactory.h"
+#include "MeshPaintStaticMeshAdapter.h"
 
 class FMeshPaintModule : public IMeshPaintModule
 {
@@ -18,6 +20,10 @@ public:
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode", "LevelEditor.MeshPaintMode.Small"),
 			true, 200
 			);
+
+
+		TSharedRef<FMeshPaintGeometryAdapterForStaticMeshesFactory> StaticMeshAdapter(new FMeshPaintGeometryAdapterForStaticMeshesFactory);
+		RegisterGeometryAdapterFactory(StaticMeshAdapter);
 	}
 
 	/**
@@ -26,6 +32,16 @@ public:
 	virtual void ShutdownModule() override
 	{
 		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_MeshPaint);
+	}
+
+	virtual void RegisterGeometryAdapterFactory(TSharedRef<IMeshPaintGeometryAdapterFactory> Factory) override
+	{
+		FMeshPaintAdapterFactory::FactoryList.Add(Factory);
+	}
+
+	virtual void UnregisterGeometryAdapterFactory(TSharedRef<IMeshPaintGeometryAdapterFactory> Factory) override
+	{
+		FMeshPaintAdapterFactory::FactoryList.Remove(Factory);
 	}
 };
 

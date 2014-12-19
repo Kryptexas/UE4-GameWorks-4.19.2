@@ -21,6 +21,13 @@ namespace EMeshPaintResource
 }
 
 
+struct FTexturePaintTriangleInfo
+{
+	FVector TriVertices[3];
+	FVector2D TrianglePoints[3];
+	FVector2D TriUVs[3];
+};
+
 /** Mesh paint mode */
 namespace EMeshPaintMode
 {
@@ -341,13 +348,6 @@ public:
 		}
 	};
 
-	struct FTexturePaintTriangleInfo
-	{
-		FVector TriVertices[ 3 ];
-		FVector2D TrianglePoints[ 3 ];
-		FVector2D TriUVs[ 3 ];
-	};
-
 	/** Constructor */
 	FEdModeMeshPaint();
 
@@ -633,8 +633,8 @@ private:
 	void PaintMeshVertices( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, FPrimitiveDrawInterface* PDI, const float VisualBiasDistance );
 
 	/** Paints mesh texture */
-	void PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition );
-	
+	void PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition, const class IMeshPaintGeometryAdapter& GeometryInfo );
+
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState );
 
@@ -648,7 +648,7 @@ private:
 	void PaintTexture( const FMeshPaintParameters& InParams,
 					   const TArray< int32 >& InInfluencedTriangles,
 					   const FMatrix& InActorToWorldMatrix,
-					   const class IMeshPaintGeometryAdaptor& GeometryInfo);
+					   const class IMeshPaintGeometryAdapter& GeometryInfo);
 
 	/** Finishes painting a texture */
 	void FinishPaintingTexture();
@@ -754,9 +754,6 @@ private:
 
 	/** Array of static meshes that we've modified */
 	TArray< UStaticMesh* > ModifiedStaticMeshes;
-
-	/** A mapping of static meshes to body setups that were built for static meshes */
-	TMap<TWeakObjectPtr<UStaticMesh>, TWeakObjectPtr<UBodySetup>> StaticMeshToTempBodySetup;
 
 	/** Which mesh LOD index we're painting */
 	// @todo MeshPaint: Allow painting on other LODs?
@@ -864,13 +861,4 @@ public:
 	 * @param ColorMask Mask for filtering which colors to use.
 	 */
 	void ImportVertexColors(FEditorModeTools* ModeTools, const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
-};
-
-
-class IMeshPaintGeometryAdaptor
-{
-public:
-	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) = 0;
-	virtual int32 GetNumTexCoords() const = 0;
-	virtual void GetTriangleInfo(int32 TriIndex, FEdModeMeshPaint::FTexturePaintTriangleInfo& OutTriInfo) const = 0;
 };

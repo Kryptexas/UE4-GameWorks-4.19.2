@@ -34,6 +34,7 @@
 #include "EngineUtils.h"
 #include "Engine/StaticMeshActor.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "MeshPaintAdapterFactory.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -41,75 +42,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogMeshPaintEdMode, Log, All);
 
 /** Static: Global mesh paint settings */
 FMeshPaintSettings FMeshPaintSettings::StaticMeshPaintSettings;
-
-
-
-class FMeshPaintGeometryAdaptorForStaticMeshes : public IMeshPaintGeometryAdaptor
-{
-public:
-	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) override;
-	virtual int32 GetNumTexCoords() const override;
-	virtual void GetTriangleInfo(int32 TriIndex, FEdModeMeshPaint::FTexturePaintTriangleInfo& OutTriInfo) const override;
-
-protected:
-	UStaticMeshComponent* StaticMeshComponent;
-	FStaticMeshLODResources* LODModel;
-	int32 UVChannelIndex;
-	FIndexArrayView Indices;
-};
-
-
-
-bool FMeshPaintGeometryAdaptorForStaticMeshes::Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex)
-{
-	StaticMeshComponent = Cast<UStaticMeshComponent>(InComponent);
-	if (StaticMeshComponent != nullptr)
-	{
-		if (StaticMeshComponent->StaticMesh != nullptr)
-		{
-			if (InPaintingMeshLODIndex < StaticMeshComponent->StaticMesh->GetNumLODs())
-			{
-				LODModel = &(StaticMeshComponent->StaticMesh->RenderData->LODResources[InPaintingMeshLODIndex]);
-				UVChannelIndex = InUVChannelIndex;
-				Indices = LODModel->IndexBuffer.GetArrayView();
-
-				return (UVChannelIndex >= 0) && (UVChannelIndex < (int32)LODModel->VertexBuffer.GetNumTexCoords());
-			}
-		}
-	}
-
-	return false;
-}
-
-int32 FMeshPaintGeometryAdaptorForStaticMeshes::GetNumTexCoords() const
-{
-	return LODModel->VertexBuffer.GetNumTexCoords();
-}
-
-void FMeshPaintGeometryAdaptorForStaticMeshes::GetTriangleInfo(int32 TriIndex, FEdModeMeshPaint::FTexturePaintTriangleInfo& OutTriInfo) const
-{
-	// Grab the vertex indices and points for this triangle
-	for (int32 TriVertexNum = 0; TriVertexNum < 3; ++TriVertexNum)
-	{
-		const int32 VertexIndex = Indices[TriIndex * 3 + TriVertexNum];
-		OutTriInfo.TriVertices[TriVertexNum] = LODModel->PositionVertexBuffer.VertexPosition(VertexIndex);
-		OutTriInfo.TriUVs[TriVertexNum] = LODModel->VertexBuffer.GetVertexUV(VertexIndex, UVChannelIndex);
-	}
-}
-
-TSharedPtr<IMeshPaintGeometryAdaptor> PRIVATE_ConstructMeshPaintGeometryAdaptor(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex)
-{
-	// Create the geometry adapter
-	TSharedPtr<FMeshPaintGeometryAdaptorForStaticMeshes> Adaptor = MakeShareable(new FMeshPaintGeometryAdaptorForStaticMeshes());
-
-	if (!Adaptor->Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex))
-	{
-		Adaptor.Reset();
-	}
-
-	return Adaptor;
-}
-
 
 /** Batched element parameters for texture paint shaders used for paint blending and paint mask generation */
 class FMeshPaintBatchedElementParameters : public FBatchedElementParameters
@@ -994,9 +926,12 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 {
 	const float BrushRadius = GetBrushRadiiDefault();
 
-	// Fire out a ray to see if there is a *selected* static mesh under the mouse cursor.
-	// NOTE: We can't use a GWorld line check for this as that would ignore actors that have collision disabled
-	TArray< AActor* > PaintableActors;
+	// Map of components that we could potentially interact with
+	TMap<UMeshComponent*, TSharedPtr<IMeshPaintGeometryAdapter>> PotentialComponentMap;
+	TArray<UMeshComponent*> PaintableComponents;
+
+	// Fire out a ray to see if there is a *selected* component under the mouse cursor that can be painted.
+	// NOTE: We can't use a GWorld line check for this as that would ignore components that have collision disabled
 	FHitResult BestTraceResult;
 	{
 		const FVector TraceStart( InRayOrigin );
@@ -1004,7 +939,6 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 
 		// Iterate over selected actors looking for static meshes
 		USelection& SelectedActors = *Owner->GetSelectedActors();
-		TArray< AActor* > ValidSelectedActors;
 		for( int32 CurSelectedActorIndex = 0; CurSelectedActorIndex < SelectedActors.Num(); ++CurSelectedActorIndex )
 		{
 			bool bHasKDOPTree = true;
@@ -1020,149 +954,71 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 			bool bHasStaticMesh = false;
 			TArray<UMeshComponent*> MeshComponents;
 			CurActor->GetComponents<UMeshComponent>(MeshComponents);
-			for(const auto& CurMeshComponent : MeshComponents)
+			for (const auto& CurMeshComponent : MeshComponents)
 			{
-				if(UStaticMeshComponent* CurStaticMeshComponent = Cast<UStaticMeshComponent>(CurMeshComponent))
+				// Create the geometry adapter
+				TSharedPtr<IMeshPaintGeometryAdapter> MeshAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(CurMeshComponent, PaintingMeshLODIndex, FMeshPaintSettings::Get().UVChannel);
+				if (MeshAdapter.IsValid())
 				{
-					//@TODO: MESHPAINT: Still requires a static mesh for a lot of stuff
-					UStaticMesh* CurStaticMesh = CurStaticMeshComponent->StaticMesh;
-					if(CurStaticMesh != NULL)
+					PotentialComponentMap.Add(CurMeshComponent, MeshAdapter);
+
+					//@TODO: MESHPAINT: This is copied from the original logic, but the split between this loop and the next still feels a bit off
+					if (InPaintAction == EMeshPaintAction::Fill)
 					{
-						bHasStaticMesh = true;
-						break;
+						PaintableComponents.AddUnique(CurMeshComponent);
 					}
-				}				
-			}
-
-			if(bHasStaticMesh)
-			{
-				if (InPaintAction == EMeshPaintAction::Fill)
-				{
-					PaintableActors.Add( CurActor );
-					continue;
-				}
-				else if (InPaintAction == EMeshPaintAction::PushInstanceColorsToMesh)
-				{
-					PaintableActors.Add( CurActor );
-					continue;
-				}
-
-				ValidSelectedActors.Add( CurActor );
-			}
-
-			for(const auto& CurMeshComponent : MeshComponents)
-			{
-				UStaticMeshComponent* CurStaticMeshComponent = Cast<UStaticMeshComponent>(CurMeshComponent);
-
-				UStaticMesh* CurStaticMesh = (CurStaticMeshComponent != nullptr) ? CurStaticMeshComponent->StaticMesh : nullptr;
-
-				ECollisionEnabled::Type CachedCollisionType = ECollisionEnabled::NoCollision;
-				UBodySetup* RestoreBodySetup = nullptr;
-
-				if (CurStaticMesh != nullptr)
-				{
-					// Get a temporary body setup the has fully detailed collision for the line traces below.
-					TWeakObjectPtr<UBodySetup>* FindBodySetupPtr = StaticMeshToTempBodySetup.Find(CurStaticMesh);
-					TWeakObjectPtr<UBodySetup> CollideAllBodySetup;
-					if (FindBodySetupPtr && FindBodySetupPtr->IsValid())
+					else if (InPaintAction == EMeshPaintAction::PushInstanceColorsToMesh)
 					{
-						// Existing temporary body setup for this mesh.
-						CollideAllBodySetup = *FindBodySetupPtr;
-					}
-					else
-					{
-						// No existing body setup in the cache map - create one from the mesh's main body setup.
-						UBodySetup* TempBodySetupRaw = DuplicateObject<UBodySetup>(CurStaticMesh->BodySetup, CurStaticMesh);
-
-						// Set collide all flag so that the body creates physics meshes using ALL elements from the mesh not just the collision mesh.
-						TempBodySetupRaw->bMeshCollideAll = true;
-
-						// This forces it to recreate the physics mesh.
-						TempBodySetupRaw->InvalidatePhysicsData();
-
-						// Force it to use high detail tri-mesh for collisions.
-						TempBodySetupRaw->CollisionTraceFlag = CTF_UseComplexAsSimple;
-						TempBodySetupRaw->AggGeom.ConvexElems.Empty();
-
-						CollideAllBodySetup = TempBodySetupRaw;
-
-						// cache the body setup (remove existing entry for this mesh if is one - it must be an invalid weak ptr).
-						StaticMeshToTempBodySetup.Remove(CurStaticMesh);
-						StaticMeshToTempBodySetup.Add(CurStaticMesh, CollideAllBodySetup);
+						PaintableComponents.AddUnique(CurMeshComponent);
 					}
 
-					// Force the collision type to not be 'NoCollision' without it the line trace will always fail. 
-					CachedCollisionType = CurStaticMeshComponent->BodyInstance.GetCollisionEnabled();
-					if (CachedCollisionType == ECollisionEnabled::NoCollision)
+					// Ray trace
+					FHitResult TraceHitResult(1.0f);
+
+					static FName DoPaintName(TEXT("DoPaint"));
+					if (MeshAdapter->LineTraceComponent(TraceHitResult, TraceStart, TraceEnd, FCollisionQueryParams(DoPaintName, true)))
 					{
-						CurStaticMeshComponent->BodyInstance.SetCollisionEnabled(ECollisionEnabled::QueryOnly, false);
+						// Find the closest impact
+						if ((BestTraceResult.GetComponent() == nullptr) || (TraceHitResult.Time < BestTraceResult.Time))
+						{
+							BestTraceResult = TraceHitResult;
+						}
 					}
-
-					// Swap the main and temp body setup on the mesh and recreate the physics state to update the body instance on the component.
-					RestoreBodySetup = CurStaticMesh->BodySetup;
-					CurStaticMesh->BodySetup = CollideAllBodySetup.Get();
-					CurStaticMeshComponent->RecreatePhysicsState();
-				}
-
-				// Ray trace
-				FHitResult TraceHitResult( 1.0f );
-				const FVector TraceExtent( 0.0f, 0.0f, 0.0f );
-
-				static FName DoPaintName(TEXT("DoPaint"));
-				if( CurMeshComponent->LineTraceComponent(TraceHitResult, TraceStart, TraceEnd, FCollisionQueryParams(DoPaintName, true)) )
-				{
-					// Find the closest impact
-					if( (BestTraceResult.GetActor() == nullptr) || (TraceHitResult.Time < BestTraceResult.Time) )
-					{
-						BestTraceResult = TraceHitResult;
-					}
-				}	
-				
-				if (CurStaticMesh != nullptr)
-				{
-					// Reset the original collision type if we reset it. 
-					if (CachedCollisionType == ECollisionEnabled::NoCollision)
-					{
-						CurStaticMeshComponent->BodyInstance.SetCollisionEnabled(CachedCollisionType, false);
-					}
-
-					// Restore the main body setup on the mesh and recreate the physics state to update the body instance on the component.
-					CurStaticMesh->BodySetup = RestoreBodySetup;
-					CurStaticMeshComponent->RecreatePhysicsState();
 				}
 			}
 		}
 
-		if( BestTraceResult.GetActor() != NULL )
+		if (BestTraceResult.GetComponent() != NULL)
 		{
 			// If we're using texture paint, just use the best trace result we found as we currently only
 			// support painting a single mesh at a time in that mode.
-			if( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture )
+			if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
 			{
-				PaintableActors.Add( BestTraceResult.GetActor() );
+				UMeshComponent* ComponentToPaint = CastChecked<UMeshComponent>(BestTraceResult.GetComponent());
+
+				PaintableComponents.AddUnique(ComponentToPaint);
 			}
 			else
 			{
 				FBox BrushBounds = FBox::BuildAABB( BestTraceResult.Location, FVector( BrushRadius * 1.25f, BrushRadius * 1.25f, BrushRadius * 1.25f ) );
 
-				// Vertex paint mode, so we want all valid actors overlapping the brush
-				for( int32 CurActorIndex = 0; CurActorIndex < ValidSelectedActors.Num(); ++CurActorIndex )
+				// Vertex paint mode, so we want all valid components overlapping the brush hit location
+				for (auto PotentialComponentPair : PotentialComponentMap)
 				{
-					AActor* CurValidActor = ValidSelectedActors[ CurActorIndex ];
-
-					const FBox ActorBounds = CurValidActor->GetComponentsBoundingBox( true );
+					UMeshComponent* TestComponent = PotentialComponentPair.Key;
+					const FBox ComponentBounds = TestComponent->Bounds.GetBox();
 					
-					if( ActorBounds.Intersect( BrushBounds ) )
+					if (ComponentBounds.Intersect(BrushBounds))
 					{
 						// OK, this mesh potentially overlaps the brush!
-						PaintableActors.Add( CurValidActor );
+						PaintableComponents.AddUnique(TestComponent);
 					}
 				}
 			}
 		}
 	}
 
-	bAnyPaintAbleActorsUnderCursor = (PaintableActors.Num() > 0);
+	bAnyPaintAbleActorsUnderCursor = (PaintableComponents.Num() > 0);
 
 	// Are we actually applying paint here?
 	const bool bShouldApplyPaint = bAnyPaintAbleActorsUnderCursor && ( (bIsPainting && !bVisualCueOnly) || 
@@ -1171,11 +1027,11 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 
 	// See if a Fill or PushInstanceColorsToMesh operation is requested, if so we will start an Undo/Redo transaction here
 	const bool bDoSingleFrameTransaction = ( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors ) &&
-		PaintableActors.Num() > 0 &&
+		PaintableComponents.Num() > 0 &&
 		( ( InPaintAction == EMeshPaintAction::Fill ) || ( InPaintAction == EMeshPaintAction::PushInstanceColorsToMesh ) );
 
 	const bool bDoMultiFrameTransaction = ( FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors ) &&
-		PaintableActors.Num() > 0 &&
+		PaintableComponents.Num() > 0 &&
 		( ( InPaintAction == EMeshPaintAction::Erase ) || ( InPaintAction == EMeshPaintAction::Paint ) );
 
 	// Starts an Undo/Redo transaction with the appropriate label if we don't have any transactions in progress.
@@ -1198,134 +1054,131 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 	}
 
 	// Iterate over the selected meshes under the cursor and paint them!
-	for( int32 CurActorIndex = 0; CurActorIndex < PaintableActors.Num(); ++CurActorIndex )
+	for (UMeshComponent* MeshComponent : PaintableComponents)
 	{
-		AActor* HitActor = Cast<AActor>( PaintableActors[ CurActorIndex ] );
-		check( HitActor );
+		TSharedPtr<IMeshPaintGeometryAdapter> MeshAdapter = PotentialComponentMap.FindChecked(MeshComponent);
 
-		TArray<UMeshComponent*> MeshComponents;
-		HitActor->GetComponents<UMeshComponent>(MeshComponents);
-		check(MeshComponents.Num() > 0);
-		for(const auto& MeshComponent : MeshComponents)
-		{
-			// Brush properties
-			const float BrushDepth = BrushRadius;	// NOTE: Actually half of the total depth (like a radius)
-			const float BrushFalloffAmount = FMeshPaintSettings::Get().BrushFalloffAmount;
-			const FLinearColor BrushColor = ((InPaintAction == EMeshPaintAction::Paint) || (InPaintAction == EMeshPaintAction::Fill))? FMeshPaintSettings::Get().PaintColor : FMeshPaintSettings::Get().EraseColor;
+		// Brush properties
+		const float BrushDepth = BrushRadius;	// NOTE: Actually half of the total depth (like a radius)
+		const float BrushFalloffAmount = FMeshPaintSettings::Get().BrushFalloffAmount;
+		const FLinearColor BrushColor = ((InPaintAction == EMeshPaintAction::Paint) || (InPaintAction == EMeshPaintAction::Fill))? FMeshPaintSettings::Get().PaintColor : FMeshPaintSettings::Get().EraseColor;
 
-			// NOTE: We square the brush strength to maximize slider precision in the low range
-			const float BrushStrength =
-				FMeshPaintSettings::Get().BrushStrength * FMeshPaintSettings::Get().BrushStrength *
-				InStrengthScale;
+		// NOTE: We square the brush strength to maximize slider precision in the low range
+		const float BrushStrength =
+			FMeshPaintSettings::Get().BrushStrength * FMeshPaintSettings::Get().BrushStrength *
+			InStrengthScale;
 
-			// Display settings
-			const float VisualBiasDistance = 0.15f;
-			const float NormalLineSize( BrushRadius * 0.35f );	// Make the normal line length a function of brush size
-			const FLinearColor NormalLineColor( 0.3f, 1.0f, 0.3f );
-			const FLinearColor BrushCueColor = bIsPainting ? FLinearColor( 1.0f, 1.0f, 0.3f ) : FLinearColor( 0.3f, 1.0f, 0.3f );
-			const FLinearColor InnerBrushCueColor = bIsPainting ? FLinearColor( 0.5f, 0.5f, 0.1f ) : FLinearColor( 0.1f, 0.5f, 0.1f );
+		// Display settings
+		const float VisualBiasDistance = 0.15f;
+		const float NormalLineSize( BrushRadius * 0.35f );	// Make the normal line length a function of brush size
+		const FLinearColor NormalLineColor( 0.3f, 1.0f, 0.3f );
+		const FLinearColor BrushCueColor = bIsPainting ? FLinearColor( 1.0f, 1.0f, 0.3f ) : FLinearColor( 0.3f, 1.0f, 0.3f );
+		const FLinearColor InnerBrushCueColor = bIsPainting ? FLinearColor( 0.5f, 0.5f, 0.1f ) : FLinearColor( 0.1f, 0.5f, 0.1f );
 
-			FVector BrushXAxis, BrushYAxis;
-			BestTraceResult.Normal.FindBestAxisVectors( BrushXAxis, BrushYAxis );
-			const FVector BrushVisualPosition = BestTraceResult.Location + BestTraceResult.Normal * VisualBiasDistance;
+		FVector BrushXAxis, BrushYAxis;
+		BestTraceResult.Normal.FindBestAxisVectors( BrushXAxis, BrushYAxis );
+		const FVector BrushVisualPosition = BestTraceResult.Location + BestTraceResult.Normal * VisualBiasDistance;
 
 
-			// Precache model -> world transform
-			const FMatrix ComponentToWorldMatrix = MeshComponent->ComponentToWorld.ToMatrixWithScale();
+		// Precache model -> world transform
+		const FMatrix ComponentToWorldMatrix = MeshComponent->ComponentToWorld.ToMatrixWithScale();
 
 
-			// Compute the camera position in actor space.  We need this later to check for
-			// backfacing triangles.
-			const FVector ComponentSpaceCameraPosition( ComponentToWorldMatrix.InverseTransformPosition( InCameraOrigin ) );
-			const FVector ComponentSpaceBrushPosition( ComponentToWorldMatrix.InverseTransformPosition( BestTraceResult.Location ) );
+		// Compute the camera position in actor space.  We need this later to check for
+		// backfacing triangles.
+		const FVector ComponentSpaceCameraPosition( ComponentToWorldMatrix.InverseTransformPosition( InCameraOrigin ) );
+		const FVector ComponentSpaceBrushPosition( ComponentToWorldMatrix.InverseTransformPosition( BestTraceResult.Location ) );
 		
-			// @todo MeshPaint: Input vector doesn't work well with non-uniform scale
-			const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector( FVector( BrushRadius, 0.0f, 0.0f ) ).Size();
-			const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
+		// @todo MeshPaint: Input vector doesn't work well with non-uniform scale
+		const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector( FVector( BrushRadius, 0.0f, 0.0f ) ).Size();
+		const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
 
 
-			if( PDI != NULL )
+		if( PDI != NULL )
+		{
+			// Draw brush circle
+			const int32 NumCircleSides = 64;
+			DrawCircle( PDI, BrushVisualPosition, BrushXAxis, BrushYAxis, BrushCueColor, BrushRadius, NumCircleSides, SDPG_World );
+
+			// Also draw the inner brush radius
+			const float InnerBrushRadius = BrushRadius - BrushFalloffAmount * BrushRadius;
+			DrawCircle( PDI, BrushVisualPosition, BrushXAxis, BrushYAxis, InnerBrushCueColor, InnerBrushRadius, NumCircleSides, SDPG_World );
+
+			// If we just started painting then also draw a little brush effect
+			if( bIsPainting )
 			{
-				// Draw brush circle
-				const int32 NumCircleSides = 64;
-				DrawCircle( PDI, BrushVisualPosition, BrushXAxis, BrushYAxis, BrushCueColor, BrushRadius, NumCircleSides, SDPG_World );
+				const float EffectDuration = 0.2f;
 
-				// Also draw the inner brush radius
-				const float InnerBrushRadius = BrushRadius - BrushFalloffAmount * BrushRadius;
-				DrawCircle( PDI, BrushVisualPosition, BrushXAxis, BrushYAxis, InnerBrushCueColor, InnerBrushRadius, NumCircleSides, SDPG_World );
-
-				// If we just started painting then also draw a little brush effect
-				if( bIsPainting )
+				const double CurTime = FPlatformTime::Seconds();
+				const float TimeSinceStartedPainting = (float)( CurTime - PaintingStartTime );
+				if( TimeSinceStartedPainting <= EffectDuration )
 				{
-					const float EffectDuration = 0.2f;
-
-					const double CurTime = FPlatformTime::Seconds();
-					const float TimeSinceStartedPainting = (float)( CurTime - PaintingStartTime );
-					if( TimeSinceStartedPainting <= EffectDuration )
+					// Invert the effect if we're currently erasing
+					float EffectAlpha = TimeSinceStartedPainting / EffectDuration;
+					if( InPaintAction == EMeshPaintAction::Erase )
 					{
-						// Invert the effect if we're currently erasing
-						float EffectAlpha = TimeSinceStartedPainting / EffectDuration;
-						if( InPaintAction == EMeshPaintAction::Erase )
-						{
-							EffectAlpha = 1.0f - EffectAlpha;
-						}
-
-						const FLinearColor EffectColor( 0.1f + EffectAlpha * 0.4f, 0.1f + EffectAlpha * 0.4f, 0.1f + EffectAlpha * 0.4f );
-						const float EffectRadius = BrushRadius * EffectAlpha * EffectAlpha;	// Squared curve here (looks more interesting)
-						DrawCircle( PDI, BrushVisualPosition, BrushXAxis, BrushYAxis, EffectColor, EffectRadius, NumCircleSides, SDPG_World );
+						EffectAlpha = 1.0f - EffectAlpha;
 					}
-				}
 
-				// Draw trace surface normal
-				const FVector NormalLineEnd( BrushVisualPosition + BestTraceResult.Normal * NormalLineSize );
-				PDI->DrawLine( BrushVisualPosition, NormalLineEnd, NormalLineColor, SDPG_World );
+					const FLinearColor EffectColor( 0.1f + EffectAlpha * 0.4f, 0.1f + EffectAlpha * 0.4f, 0.1f + EffectAlpha * 0.4f );
+					const float EffectRadius = BrushRadius * EffectAlpha * EffectAlpha;	// Squared curve here (looks more interesting)
+					DrawCircle( PDI, BrushVisualPosition, BrushXAxis, BrushYAxis, EffectColor, EffectRadius, NumCircleSides, SDPG_World );
+				}
 			}
 
+			// Draw trace surface normal
+			const FVector NormalLineEnd( BrushVisualPosition + BestTraceResult.Normal * NormalLineSize );
+			PDI->DrawLine( BrushVisualPosition, NormalLineEnd, NormalLineColor, SDPG_World );
+		}
 
 
-			// Mesh paint settings
-			FMeshPaintParameters Params;
+
+		// Mesh paint settings
+		FMeshPaintParameters Params;
+		{
+			Params.PaintMode = FMeshPaintSettings::Get().PaintMode;
+			Params.PaintAction = InPaintAction;
+			Params.BrushPosition = BestTraceResult.Location;
+			Params.BrushNormal = BestTraceResult.Normal;
+			Params.BrushColor = BrushColor;
+			Params.SquaredBrushRadius = BrushRadius * BrushRadius;
+			Params.BrushRadialFalloffRange = BrushFalloffAmount * BrushRadius;
+			Params.InnerBrushRadius = BrushRadius - Params.BrushRadialFalloffRange;
+			Params.BrushDepth = BrushDepth;
+			Params.BrushDepthFalloffRange = BrushFalloffAmount * BrushDepth;
+			Params.InnerBrushDepth = BrushDepth - Params.BrushDepthFalloffRange;
+			Params.BrushStrength = BrushStrength;
+			Params.BrushToWorldMatrix = FMatrix( BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition );
+			Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();
+			Params.bWriteRed = FMeshPaintSettings::Get().bWriteRed;
+			Params.bWriteGreen = FMeshPaintSettings::Get().bWriteGreen;
+			Params.bWriteBlue = FMeshPaintSettings::Get().bWriteBlue;
+			Params.bWriteAlpha = FMeshPaintSettings::Get().bWriteAlpha;
+			Params.TotalWeightCount = FMeshPaintSettings::Get().TotalWeightCount;
+
+			// Select texture weight index based on whether or not we're painting or erasing
 			{
-				Params.PaintMode = FMeshPaintSettings::Get().PaintMode;
-				Params.PaintAction = InPaintAction;
-				Params.BrushPosition = BestTraceResult.Location;
-				Params.BrushNormal = BestTraceResult.Normal;
-				Params.BrushColor = BrushColor;
-				Params.SquaredBrushRadius = BrushRadius * BrushRadius;
-				Params.BrushRadialFalloffRange = BrushFalloffAmount * BrushRadius;
-				Params.InnerBrushRadius = BrushRadius - Params.BrushRadialFalloffRange;
-				Params.BrushDepth = BrushDepth;
-				Params.BrushDepthFalloffRange = BrushFalloffAmount * BrushDepth;
-				Params.InnerBrushDepth = BrushDepth - Params.BrushDepthFalloffRange;
-				Params.BrushStrength = BrushStrength;
-				Params.BrushToWorldMatrix = FMatrix( BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition );
-				Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();
-				Params.bWriteRed = FMeshPaintSettings::Get().bWriteRed;
-				Params.bWriteGreen = FMeshPaintSettings::Get().bWriteGreen;
-				Params.bWriteBlue = FMeshPaintSettings::Get().bWriteBlue;
-				Params.bWriteAlpha = FMeshPaintSettings::Get().bWriteAlpha;
-				Params.TotalWeightCount = FMeshPaintSettings::Get().TotalWeightCount;
+				const int32 PaintWeightIndex = 
+					( InPaintAction == EMeshPaintAction::Paint ) ? FMeshPaintSettings::Get().PaintWeightIndex : FMeshPaintSettings::Get().EraseWeightIndex;
 
-				// Select texture weight index based on whether or not we're painting or erasing
-				{
-					const int32 PaintWeightIndex = 
-						( InPaintAction == EMeshPaintAction::Paint ) ? FMeshPaintSettings::Get().PaintWeightIndex : FMeshPaintSettings::Get().EraseWeightIndex;
-
-					// Clamp the weight index to fall within the total weight count
-					Params.PaintWeightIndex = FMath::Clamp( PaintWeightIndex, 0, Params.TotalWeightCount - 1 );
-				}
-
-				// @todo MeshPaint: Ideally we would default to: TexturePaintingCurrentMeshComponent->StaticMesh->LightMapCoordinateIndex
-				//		Or we could indicate in the GUI which channel is the light map set (button to set it?)
-				Params.UVChannel = FMeshPaintSettings::Get().UVChannel;
+				// Clamp the weight index to fall within the total weight count
+				Params.PaintWeightIndex = FMath::Clamp( PaintWeightIndex, 0, Params.TotalWeightCount - 1 );
 			}
 
-			if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+			// @todo MeshPaint: Ideally we would default to: TexturePaintingCurrentMeshComponent->StaticMesh->LightMapCoordinateIndex
+			//		Or we could indicate in the GUI which channel is the light map set (button to set it?)
+			Params.UVChannel = FMeshPaintSettings::Get().UVChannel;
+		}
+
+		if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+		{
+			if (MeshAdapter->SupportsVertexPaint())
 			{
 				if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent))
 				{
 					if (UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh)
 					{
+						//@TODO: MESHPAINT: Direct assumptions about StaticMeshComponent
 						check(StaticMesh->GetNumLODs() > PaintingMeshLODIndex);
 						FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
 
@@ -1334,14 +1187,12 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 					}
 				}
 			}
-			else
-			{
-				// Painting textures
-				PaintMeshTexture(MeshComponent, Params, bShouldApplyPaint, ComponentSpaceCameraPosition, ComponentToWorldMatrix, ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition);
-			}
 		}
-		
-
+		else
+		{
+			// Painting textures
+			PaintMeshTexture(MeshComponent, Params, bShouldApplyPaint, ComponentSpaceCameraPosition, ComponentToWorldMatrix, ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, *MeshAdapter);
+		}
 	}
 
 	// Ends an Undo/Redo transaction, but only for Fill or PushInstanceColorsToMesh operations. Multi frame transactions will end when the user stops painting.
@@ -1778,7 +1629,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 
 
 /** Paints mesh texture */
-void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ComponentSpaceCameraPosition, const FMatrix& ComponentToWorldMatrix, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition )
+void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ComponentSpaceCameraPosition, const FMatrix& ComponentToWorldMatrix, const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const class IMeshPaintGeometryAdapter& GeometryInfo )
 {
 	UTexture2D* TargetTexture2D = GetSelectedTexture();
 	
@@ -1791,13 +1642,6 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 	const bool bOnlyFrontFacing = FMeshPaintSettings::Get().bOnlyFrontFacingTriangles;
 	if( bShouldApplyPaint )
 	{
-		// Create the geometry adaptor
-		TSharedPtr<IMeshPaintGeometryAdaptor> GeometryInfo = PRIVATE_ConstructMeshPaintGeometryAdaptor(MeshComponent, PaintingMeshLODIndex, Params.UVChannel);
-		if (!GeometryInfo.IsValid())
-		{
-			return;
-		}
-
 		// @todo MeshPaint: Use a spatial database to reduce the triangle set here (kdop)
 		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent);
 
@@ -1962,7 +1806,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 
 			if( TexturePaintingCurrentMeshComponent != NULL )
 			{
-				PaintTexture( Params, InfluencedTriangles, ComponentToWorldMatrix, *GeometryInfo );
+				PaintTexture( Params, InfluencedTriangles, ComponentToWorldMatrix, GeometryInfo );
 			}
 		}
 	}
@@ -2136,7 +1980,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UMeshComponent* InMeshComponent )
 void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 									 const TArray< int32 >& InInfluencedTriangles,
 									 const FMatrix& InComponentToWorldMatrix,
-									 const IMeshPaintGeometryAdaptor& GeometryInfo)
+									 const IMeshPaintGeometryAdapter& GeometryInfo)
 {
 	// We bail early if there are no influenced triangles
 	if( InInfluencedTriangles.Num() <= 0 )
