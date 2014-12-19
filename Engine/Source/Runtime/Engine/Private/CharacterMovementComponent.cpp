@@ -4623,9 +4623,7 @@ void UCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, FFin
 			{
 				MutableThis->bForceNextFloorCheck = !MovementBase->IsCollisionEnabled()
 				|| MovementBase->GetCollisionResponseToChannel(CollisionChannel) != ECR_Block
-				|| (MovementBase->Mobility == EComponentMobility::Movable)
-				|| MovementBaseUtility::IsDynamicBase(MovementBase)
-				|| (Cast<const ADestructibleActor>(BaseActor) != NULL);
+				|| MovementBaseUtility::IsDynamicBase(MovementBase);
 			}
 
 			const bool IsActorBasePendingKill = BaseActor && BaseActor->IsPendingKill();
