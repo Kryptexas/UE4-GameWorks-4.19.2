@@ -72,6 +72,9 @@ void FMetalDynamicRHI::RHISetComputeShader(FComputeShaderRHIParamRef ComputeShad
 {
 	DYNAMIC_CAST_METALRESOURCE(ComputeShader, ComputeShader);
 	FMetalManager::Get()->SetComputeShader(ComputeShader);
+	
+	// set this compute shader pipeline as the current (this resets all state, so we need to set all resources after calling this)
+	[FMetalManager::GetComputeContext() setComputePipelineState:ComputeShader->Kernel];
 }
 
 void FMetalDynamicRHI::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
@@ -129,7 +132,12 @@ void FMetalDynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 
 void FMetalDynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAVRHI)
 {
-	NOT_SUPPORTED("RHISetUAVParameter");
+	DYNAMIC_CAST_METALRESOURCE(UnorderedAccessView, UAV);
+
+	if (UAV)
+	{
+		UAV->Set(UAVIndex);
+	}
 }
 
 void FMetalDynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI, uint32 InitialCount)
@@ -279,25 +287,28 @@ void FMetalDynamicRHI::RHISetShaderResourceViewParameter(FComputeShaderRHIParamR
 {
 	DYNAMIC_CAST_METALRESOURCE(ShaderResourceView, SRV);
 
-	FRHITexture* Texture = SRV->SourceTexture.GetReference();
-	if (Texture)
+	if (SRV != NULL)
 	{
-		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
-		if (Surface != nullptr)
+		FRHITexture* Texture = SRV->SourceTexture.GetReference();
+		if (Texture)
 		{
-			[FMetalManager::GetComputeContext() setTexture:Surface->Texture atIndex : TextureIndex];
+			FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+			if (Surface != nullptr)
+			{
+				[FMetalManager::GetComputeContext() setTexture:Surface->Texture atIndex : TextureIndex];
+			}
+			else
+			{
+				[FMetalManager::GetComputeContext() setTexture:nil atIndex : TextureIndex];
+			}
 		}
 		else
 		{
-			[FMetalManager::GetComputeContext() setTexture:nil atIndex : TextureIndex];
-		}
-	}
-	else
-	{
-		FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
-		if (VB)
-		{
-			[FMetalManager::GetComputeContext() setBuffer:VB->Buffer offset : VB->Offset atIndex : TextureIndex];
+			FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
+			if (VB)
+			{
+				[FMetalManager::GetComputeContext() setBuffer:VB->Buffer offset : VB->Offset atIndex : TextureIndex];
+			}
 		}
 	}
 }
@@ -459,6 +470,8 @@ void FMetalDynamicRHI::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, 
 	FRHIDepthRenderTargetView DepthView(NewDepthStencilTargetRHI, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::ENoAction);
 	FRHISetRenderTargetsInfo Info(NumSimultaneousRenderTargets, NewRenderTargets, DepthView);
 	RHISetRenderTargetsAndClear(Info);
+	
+	checkf(NumUAVs == 0, TEXT("Calling SetRenderTargets with UAVs is not supported in Metal yet"));
 }
 
 void FMetalDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)

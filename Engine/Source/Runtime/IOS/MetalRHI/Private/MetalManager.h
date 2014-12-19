@@ -160,7 +160,7 @@ public:
 	void CreateAutoreleasePool();
 	void DrainAutoreleasePool();
 
-	void SetComputeShader(FComputeShaderRHIParamRef InComputeShader) { CurrentComputeShader = InComputeShader; }
+	void SetComputeShader(FMetalComputeShader* InComputeShader);
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 
 protected:
@@ -180,6 +180,16 @@ protected:
 	 */
 	bool NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& RenderTargetsInfo);
 
+	/**
+	 * Possibly switch from compute to graphics
+	 */
+	void ConditionalSwitchToGraphics();
+	
+	/**
+	 * Possibly switch from graphics to compute
+	 */
+	void ConditionalSwitchToCompute();
+	
 
 	id<MTLDevice> Device;
 
@@ -232,7 +242,7 @@ protected:
 	
 	class FMetalShaderParameterCache*	ShaderParameters;
 
-	FComputeShaderRHIParamRef CurrentComputeShader;
+	TRefCountPtr<FMetalComputeShader> CurrentComputeShader;
 
 	// the running pipeline state descriptor object
 	FPipelineShadow Pipeline;

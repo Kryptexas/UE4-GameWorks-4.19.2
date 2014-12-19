@@ -9,6 +9,34 @@ FMetalShaderResourceView::~FMetalShaderResourceView()
 	SourceTexture = NULL;
 }
 
+void FMetalUnorderedAccessView::Set(uint32 ResourceIndex)
+{
+	// figure out which one of the resources we need to set
+	FMetalStructuredBuffer* StructuredBuffer = SourceStructuredBuffer.GetReference();
+	FMetalVertexBuffer* VertexBuffer = SourceVertexBuffer.GetReference();
+	FRHITexture* Texture = SourceTexture.GetReference();
+	if (StructuredBuffer)
+	{
+		[FMetalManager::GetComputeContext() setBuffer:StructuredBuffer->Buffer offset:0 atIndex:ResourceIndex];
+	}
+	else if (VertexBuffer)
+	{
+		[FMetalManager::GetComputeContext() setBuffer:VertexBuffer->Buffer offset:VertexBuffer->Offset atIndex:ResourceIndex];
+	}
+	else if (Texture)
+	{
+		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+		if (Surface != nullptr)
+		{
+			[FMetalManager::GetComputeContext() setTexture:Surface->Texture atIndex:ResourceIndex];
+		}
+		else
+		{
+			[FMetalManager::GetComputeContext() setTexture:nil atIndex:ResourceIndex];
+		}
+	}
+
+}
 
 
 FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBufferRHI, bool bUseUAVCounter, bool bAppendBuffer)

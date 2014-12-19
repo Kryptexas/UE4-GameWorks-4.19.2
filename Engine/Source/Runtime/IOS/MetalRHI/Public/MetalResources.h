@@ -89,14 +89,12 @@ typedef TMetalBaseShader<FRHIGeometryShader, SF_Geometry> FMetalGeometryShader;
 class FMetalComputeShader : public TMetalBaseShader<FRHIComputeShader, SF_Compute>
 {
 public:
-	FMetalComputeShader(const TArray<uint8>& InCode) :
-		TMetalBaseShader<FRHIComputeShader, SF_Compute>(InCode),
-		NumThreadsX(0),
-		NumThreadsY(0),
-		NumThreadsZ(0)
-	{
-	}
-
+	FMetalComputeShader(const TArray<uint8>& InCode);
+	
+	// the state object for a compute shader
+	id <MTLComputePipelineState> Kernel;
+	
+	// thread group counts
 	int32 NumThreadsX;
 	int32 NumThreadsY;
 	int32 NumThreadsZ;
@@ -415,6 +413,8 @@ public:
 	// Destructor
 	~FMetalStructuredBuffer();
 
+	// the actual buffer
+	id<MTLBuffer> Buffer;
 };
 
 
@@ -423,6 +423,9 @@ class FMetalUnorderedAccessView : public FRHIUnorderedAccessView
 {
 public:
 
+	/** Set it into the compute context */
+	void Set(uint32 ResourceIndex);
+	
 	// the potential resources to refer to with the UAV object
 	TRefCountPtr<FMetalStructuredBuffer> SourceStructuredBuffer;
 	TRefCountPtr<FMetalVertexBuffer> SourceVertexBuffer;

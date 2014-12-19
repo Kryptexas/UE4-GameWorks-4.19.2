@@ -181,6 +181,21 @@ TMetalBaseShader<BaseResourceType, ShaderType>::~TMetalBaseShader()
 	[GlslCodeNSString release];
 }
 
+FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode)
+	: TMetalBaseShader<FRHIComputeShader, SF_Compute>(InCode)
+//	, NumThreadsX(0)
+//	, NumThreadsY(0)
+//	, NumThreadsZ(0)
+{
+	NSError* Error;
+	Kernel = [FMetalManager::GetDevice() newComputePipelineStateWithFunction:Function error:&Error];
+	
+	if (Kernel == nil)
+	{
+		NSLog(@"Failed to create compute kernel: %@", Error);
+	}
+}
+
 
 FVertexShaderRHIRef FMetalDynamicRHI::RHICreateVertexShader(const TArray<uint8>& Code)
 {

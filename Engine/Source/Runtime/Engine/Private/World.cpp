@@ -5313,7 +5313,7 @@ void UWorld::CreateFXSystem()
 {
 	if ( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
 	{
-		FXSystem = FFXSystemInterface::Create(FeatureLevel);
+		FXSystem = FFXSystemInterface::Create(FeatureLevel, Scene->GetShaderPlatform());
 		Scene->SetFXSystem(FXSystem);
 	}
 	else

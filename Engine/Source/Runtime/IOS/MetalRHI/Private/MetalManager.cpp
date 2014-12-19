@@ -152,7 +152,9 @@ id<MTLRenderCommandEncoder> FMetalManager::GetContext()
 
 id<MTLComputeCommandEncoder> FMetalManager::GetComputeContext()
 {
-	return FMetalManager::Get()->CurrentComputeContext;
+	id<MTLComputeCommandEncoder> Encoder = FMetalManager::Get()->CurrentComputeContext;
+	checkf(Encoder != nil, TEXT("Attempted to use GetComputeContext before calling FMetalManager::ConditionalSwitchToCompute() to create the encoder"));
+	return Encoder;
 }
 
 void FMetalManager::ReleaseObject(id Object)
@@ -358,38 +360,24 @@ void FMetalManager::SubmitCommandBufferAndWait()
 
 void FMetalManager::SubmitComputeCommandBufferAndWait()
 {
-	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
-	{
-		dispatch_semaphore_signal(CommandBufferSemaphore);
-	}];
-
-	// commit the compute context to the commandBuffer
-	[CurrentComputeContext endEncoding];
-	[CurrentComputeContext release];
-	CurrentComputeContext = nil;
-
-	// kick the whole buffer
-	// Commit to hand the commandbuffer off to the gpu
-	[CurrentCommandBuffer commit];
-
-	// wait for the gpu to finish executing our commands.
-	[CurrentCommandBuffer waitUntilCompleted];
-
-	//once a commandbuffer is commited it can't be added to again.
-	UNTRACK_OBJECT(CurrentCommandBuffer);
-	[CurrentCommandBuffer release];
-
-	// create a new command buffer.
-	CreateCurrentCommandBuffer(true);
 }
 
 void FMetalManager::EndFrame(bool bPresent)
 {
 //	NSLog(@"There were %d draw calls for final RT in frame %lld", NumDrawCalls, GFrameCounter);
 	// commit the render context to the commandBuffer
-	[CurrentContext endEncoding];
-	[CurrentContext release];
-	CurrentContext = nil;
+	if (CurrentContext)
+	{
+		[CurrentContext endEncoding];
+		[CurrentContext release];
+		CurrentContext = nil;
+	}
+	if (CurrentComputeContext)
+	{
+		[CurrentComputeContext endEncoding];
+		[CurrentComputeContext release];
+		CurrentComputeContext = nil;
+	}
 
 	// kick the whole buffer
 	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
@@ -521,6 +509,8 @@ void FMetalManager::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// make a drawable object for this frame
 			CurrentDrawable = [[IOSAppDelegate GetDelegate].IOSView MakeDrawable];
 
+			checkf(CurrentDrawable != nil, TEXT("Failed to return the next drawable"));
+			
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 
@@ -592,6 +582,8 @@ bool FMetalManager::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& Rende
 
 void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
+	ConditionalSwitchToGraphics();
+	
 	// see if our new Info matches our previous Info
 	if (NeedsToSetRenderTarget(RenderTargetsInfo) == false)
 	{
@@ -950,6 +942,56 @@ void FMetalManager::SetRasterizerState(const FRasterizerStateInitializerRHI& Sta
 	bFirstRasterizerState = false;
 }
 
+
+void FMetalManager::ConditionalSwitchToGraphics()
+{
+	// were we in compute mode?
+	if (CurrentComputeContext != nil)
+	{
+		// stop the compute encoding and cleanup up
+		[CurrentComputeContext endEncoding];
+		[CurrentComputeContext release];
+		CurrentComputeContext = nil;
+	
+		// we can't start graphics encoding until a new SetRenderTargetsInfo is called because it needs the whole render pass
+		// we could cache the render pass if we want to support going back to previous render targets
+		// we will catch it by the fact that CurrentContext will be nil until we call SetRenderTargetsInfo
+	}
+}
+
+void FMetalManager::ConditionalSwitchToCompute()
+{
+	// if we were in graphics mode, stop the encoding and start compute
+	if (CurrentContext != nil)
+	{
+		// stop encoding graphics and clean up
+		[CurrentContext endEncoding];
+		[CurrentContext release];
+		CurrentContext = nil;
+		
+		// make sure that the next SetRenderTargetInfos will definitely set a new RT (if we SetRT to X, switched to compute, then back to X,
+		// the code would think it was already set and skip it, so this will make it so the next SetRT is 'different')
+		PreviousRenderTargetsInfo.NumColorRenderTargets = 0;
+
+		// start encoding for compute
+		CurrentComputeContext = [CurrentCommandBuffer computeCommandEncoder];
+		[CurrentComputeContext retain];
+	}
+	
+}
+
+void FMetalManager::SetComputeShader(FMetalComputeShader* InComputeShader)
+{
+	// active compute mode
+	ConditionalSwitchToCompute();
+	
+	// cache this for Dispatch
+	CurrentComputeShader = InComputeShader;
+	
+	// set this compute shader pipeline as the current (this resets all state, so we need to set all resources after calling this)
+	[CurrentComputeContext setComputePipelineState:CurrentComputeShader->Kernel];
+}
+
 void FMetalManager::Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 {
 	check(CurrentComputeShader);
@@ -958,6 +1000,4 @@ void FMetalManager::Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY,
 	MTLSize Threadgroups = MTLSizeMake(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	//@todo-rco: setThreadgroupMemoryLength?
 	[CurrentComputeContext dispatchThreadgroups:Threadgroups threadsPerThreadgroup:ThreadgroupCounts];
-	//@todo: Here?
-	SubmitComputeCommandBufferAndWait();
 }
