@@ -114,7 +114,8 @@ public:
 
 	void ClearHoveredWidget();
 
-	//FWidgetReference GetHoveredWidget() const;
+	/** @return The widget that is currently being hovered over (either in the designer or hierarchy) */
+	const FWidgetReference& GetHoveredWidget() const;
 
 	void AddPostDesignerLayoutAction(TFunction<void()> Action);
 
@@ -207,6 +208,9 @@ private:
 
 	/** The widget references out in the ether that may need to be updated after being issued. */
 	TArray< TWeakPtr<FWidgetHandle> > WidgetHandlePool;
+
+	/** The widget currently being hovered over */
+	FWidgetReference HoveredWidget;
 
 	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
 	bool bPreviewInvalidated;

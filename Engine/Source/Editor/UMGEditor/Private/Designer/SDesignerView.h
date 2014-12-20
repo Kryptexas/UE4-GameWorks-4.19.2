@@ -108,11 +108,11 @@ private:
 
 	void OnEditorSelectionChanged();
 
-	/** Establishes the new hovered widget and restarts the outline fade */
-	void SetHoveredWidget(const FWidgetReference& InHoveredWidget);
+	/** Called when a new widget is being hovered */
+	void OnHoveredWidgetSet(const FWidgetReference& InHoveredWidget);
 
-	/** Clears the hovered widget reference */
-	void ClearHoveredWidget();
+	/** Called when a widget is no longer being hovered */
+	void OnHoveredWidgetCleared();
 
 	/** Gets the blueprint being edited by the designer */
 	UWidgetBlueprint* GetBlueprint() const;
@@ -254,9 +254,6 @@ private:
 
 	/** Curve to handle the fade-in of the border around the hovered widget */
 	FCurveSequence HoveredWidgetOutlineFade;
-
-	/** The widget currently being hovered over */
-	FWidgetReference HoveredWidget;
 
 	/**  */
 	FWeakWidgetPath SelectedWidgetPath;

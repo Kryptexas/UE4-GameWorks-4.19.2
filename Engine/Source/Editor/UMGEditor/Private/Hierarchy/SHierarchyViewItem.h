@@ -53,7 +53,8 @@ public:
 	void RefreshSelection();
 	bool ContainsSelection();
 	bool IsSelected() const;
-
+	
+	virtual bool IsHovered() const { return false; }
 	virtual bool IsVisible() const { return true; }
 	virtual bool CanControlVisibility() const { return false; }
 	virtual void SetIsVisible(bool IsVisible) { }
@@ -173,6 +174,8 @@ public:
 	virtual void OnMouseEnter() override;
 	virtual void OnMouseLeave() override;
 
+	virtual bool IsHovered() const override;
+
 	virtual bool IsVisible() const override
 	{
 		if ( UWidget* TemplateWidget = Item.GetTemplate() )
@@ -234,6 +237,7 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel);
 
 	// Begin SWidget
+	virtual bool IsHovered() const;
 	void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;

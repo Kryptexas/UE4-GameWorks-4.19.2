@@ -782,6 +782,11 @@ void FHierarchyWidget::OnMouseLeave()
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
+bool FHierarchyWidget::IsHovered() const
+{
+	return BlueprintEditor.Pin()->GetHoveredWidget() == Item;
+}
+
 void FHierarchyWidget::UpdateSelection()
 {
 	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
@@ -893,6 +898,11 @@ FSlateFontInfo SHierarchyViewItem::GetItemFont() const
 FText SHierarchyViewItem::GetItemText() const
 {
 	return Model->GetText();
+}
+
+bool SHierarchyViewItem::IsHovered() const
+{
+	return bIsHovered || Model->IsHovered();
 }
 
 FReply SHierarchyViewItem::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)

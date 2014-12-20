@@ -683,13 +683,24 @@ FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 
 void FWidgetBlueprintEditor::ClearHoveredWidget()
 {
+	HoveredWidget = FWidgetReference();
 	OnHoveredWidgetCleared.Broadcast();
 }
 
 void FWidgetBlueprintEditor::SetHoveredWidget(FWidgetReference& InHoveredWidget)
 {
-	OnHoveredWidgetSet.Broadcast(InHoveredWidget);
+	if (InHoveredWidget != HoveredWidget)
+	{
+		HoveredWidget = InHoveredWidget;
+		OnHoveredWidgetSet.Broadcast(InHoveredWidget);
+	}
 }
+
+const FWidgetReference& FWidgetBlueprintEditor::GetHoveredWidget() const
+{
+	return HoveredWidget;
+}
+
 void FWidgetBlueprintEditor::AddPostDesignerLayoutAction(TFunction<void()> Action)
 {
 	QueuedDesignerActions.Add(Action);
