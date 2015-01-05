@@ -142,8 +142,6 @@ public:
 
 		// only change on main thread
 
-		Flags = (EConsoleVariableFlags)((uint32)Flags | ECVF_Changed);
-
 		Flags = (EConsoleVariableFlags)(((uint32)Flags & ~ECVF_SetByMask) | SetBy);
 
 		OnChangedCallback.ExecuteIfBound(this);
@@ -1362,13 +1360,6 @@ void FConsoleManager::Test()
 		check(VarE->GetFloat() == RefE);
 		check(VarE->GetString() == FString(TEXT("2.1")));
 
-		// test changed
-
-		check(!VarA->TestFlags(ECVF_Changed));
-		check(!VarB->TestFlags(ECVF_Changed));
-		check(!VarD->TestFlags(ECVF_Changed));
-		check(!VarE->TestFlags(ECVF_Changed));
-
 		// call Set(string)
 
 		VarA->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
@@ -1377,13 +1368,6 @@ void FConsoleManager::Test()
 		VarE->Set(TEXT("3.1"), ECVF_SetByConsoleVariablesIni);
 
 		check(GConsoleVariableCallbackTestCounter == 1);
-
-		// test changed
-
-		check(VarA->TestFlags(ECVF_Changed));
-		check(VarB->TestFlags(ECVF_Changed));
-		check(VarD->TestFlags(ECVF_Changed));
-		check(VarE->TestFlags(ECVF_Changed));
 
 		// verify Set()
 
@@ -1427,9 +1411,7 @@ void FConsoleManager::Test()
 			// note: exact comparison fails in Win32 release
 			check(FMath::IsNearlyEqual(VarC->GetFloat(), 1.23f, KINDA_SMALL_NUMBER));
 			check(VarC->GetString() == FString(TEXT("1.23")));
-			check(!VarC->TestFlags(ECVF_Changed));
 			VarC->Set(TEXT("3.1"), ECVF_SetByConsole);
-			check(VarC->TestFlags(ECVF_Changed));
 			check(VarC->GetString() == FString(TEXT("3.1")));
 			UnregisterConsoleObject(TEXT("TestNameC"), false);
 			check(!IConsoleManager::Get().FindConsoleVariable(TEXT("TestNameC")));
