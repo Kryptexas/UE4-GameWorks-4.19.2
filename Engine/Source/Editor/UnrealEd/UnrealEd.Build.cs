@@ -117,6 +117,7 @@ public class UnrealEd : ModuleRules
                 "JsonUtilities",
 				"Landscape",
 				"HeadMountedDisplay",
+				"MeshPaint",
 			}
 		);
 
@@ -168,7 +169,6 @@ public class UnrealEd : ModuleRules
 				"DesktopPlatform",
 				"WorkspaceMenuStructure",
 				"BspMode",
-				"MeshPaint",
 				"PlacementMode",
 				"NiagaraEditor",
 				"MeshUtilities",

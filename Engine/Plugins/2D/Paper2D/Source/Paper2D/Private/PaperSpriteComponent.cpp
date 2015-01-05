@@ -212,9 +212,6 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 
 void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel)
 {
-	// Get any textures referenced by our materials
-	Super::GetUsedTextures(OutTextures, QualityLevel);
-
 	// Get the texture referenced by the sprite
 	if (SourceSprite != nullptr)
 	{
@@ -223,6 +220,9 @@ void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMat
 			OutTextures.AddUnique(BakedTexture);
 		}
 	}
+
+	// Get any textures referenced by our materials
+	Super::GetUsedTextures(OutTextures, QualityLevel);
 }
 
 UMaterialInterface* UPaperSpriteComponent::GetMaterial(int32 MaterialIndex) const

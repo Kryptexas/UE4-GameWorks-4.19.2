@@ -28,6 +28,25 @@ struct FTexturePaintTriangleInfo
 	FVector2D TriUVs[3];
 };
 
+/** Structure used to house and compare Texture and UV channel pairs */
+struct FPaintableTexture
+{	
+	UTexture*	Texture;
+	int32		UVChannelIndex;
+
+	FPaintableTexture(UTexture* InTexture = NULL, uint32 InUVChannelIndex = 0)
+		: Texture(InTexture)
+		, UVChannelIndex(InUVChannelIndex)
+	{}
+	
+	/** Overloaded equality operator for use with TArrays Contains method. */
+	bool operator==(const FPaintableTexture& rhs) const
+	{
+		return (Texture == rhs.Texture);
+		/* && (UVChannelIndex == rhs.UVChannelIndex);*/// if we compare UVChannel we would have to duplicate the texture
+	}
+};
+
 /** Mesh paint mode */
 namespace EMeshPaintMode
 {

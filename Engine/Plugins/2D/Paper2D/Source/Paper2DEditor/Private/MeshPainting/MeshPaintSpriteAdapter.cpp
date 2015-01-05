@@ -112,6 +112,28 @@ void FMeshPaintSpriteAdapter::SphereIntersectTriangles(TArray<int32>& OutTriangl
 	}
 }
 
+void FMeshPaintSpriteAdapter::QueryPaintableTextures(int32 MaterialIndex, int32& OutDefaultIndex, TArray<struct FPaintableTexture>& InOutTextureList)
+{
+	UPaperSprite* Sprite = SpriteComponent->GetSprite();
+	checkSlow(Sprite != nullptr);
+
+	// Grab the sprite texture first
+	int32 ForceIndex = INDEX_NONE;
+	if (UTexture2D* SourceTexture = Sprite->GetBakedTexture())
+	{
+		new (InOutTextureList) FPaintableTexture(SourceTexture, 0);
+		ForceIndex = InOutTextureList.Num() - 1;
+	}
+	
+	// Now ask the material
+	DefaultQueryPaintableTextures(MaterialIndex, SpriteComponent, OutDefaultIndex, InOutTextureList);
+
+	if (ForceIndex != INDEX_NONE)
+	{
+		OutDefaultIndex = ForceIndex;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintSpriteAdapterFactory
 

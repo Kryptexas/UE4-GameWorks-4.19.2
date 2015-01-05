@@ -121,9 +121,6 @@ FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform& LocalToWo
 
 void UPaperFlipbookComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel)
 {
-	// Get any textures referenced by our materials
-	Super::GetUsedTextures(OutTextures, QualityLevel);
-
 	// Get the texture referenced by each keyframe
 	if (SourceFlipbook != nullptr)
 	{
@@ -139,6 +136,9 @@ void UPaperFlipbookComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EM
 			}
 		}
 	}
+
+	// Get any textures referenced by our materials
+	Super::GetUsedTextures(OutTextures, QualityLevel);
 }
 
 UMaterialInterface* UPaperFlipbookComponent::GetMaterial(int32 MaterialIndex) const

@@ -159,6 +159,11 @@ void FMeshPaintGeometryAdapterForStaticMeshes::SphereIntersectTriangles(TArray<i
 	//@TODO: The code for static mesh components is still inside of the mesh painting mode due to the octree
 }
 
+void FMeshPaintGeometryAdapterForStaticMeshes::QueryPaintableTextures(int32 MaterialIndex, int32& OutDefaultIndex, TArray<struct FPaintableTexture>& InOutTextureList)
+{
+	DefaultQueryPaintableTextures(MaterialIndex, StaticMeshComponent, OutDefaultIndex, InOutTextureList);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForStaticMeshesFactory
 

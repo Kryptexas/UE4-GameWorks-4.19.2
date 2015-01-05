@@ -2,11 +2,6 @@
 
 #include "MeshPaintPrivatePCH.h"
 
-#include "Materials/MaterialExpressionTextureBase.h"
-#include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionTextureCoordinate.h"
-#include "Materials/MaterialExpressionTextureSampleParameter.h"
-
 #include "StaticMeshResources.h"
 #include "MeshPaintEdMode.h"
 #include "Factories.h"
@@ -61,6 +56,13 @@ public:
 	MeshPaintRendering::FMeshPaintShaderParameters ShaderParams;
 };
 
+bool DoesMeshComponentUseTexture(UMeshComponent* MeshComponent, UTexture* Texture)
+{
+	TArray<UTexture*> UsedTextures;
+	MeshComponent->GetUsedTextures(UsedTextures, EMaterialQualityLevel::High);
+
+	return UsedTextures.Contains(Texture);
+}
 
 /** Batched element parameters for texture paint shaders used for texture dilation */
 class FMeshPaintDilateBatchedElementParameters : public FBatchedElementParameters
@@ -1665,7 +1667,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 	}
 
 	// Keep a list of front-facing triangles that are within a reasonable distance to the brush
-	static TArray< int32 > InfluencedTriangles;
+	TArray< int32 > InfluencedTriangles;
 
 
 
@@ -1834,11 +1836,11 @@ void FEdModeMeshPaint::StartPaintingTexture( UMeshComponent* InMeshComponent )
 	UMaterialInterface* MaterialToCheck = InMeshComponent->GetMaterial(MaterialIndex);
 	while( MaterialToCheck != NULL )
 	{
-		bool bIsTextureUsed = DoesMaterialUseTexture(MaterialToCheck,Texture2D);
+		bool bIsTextureUsed = DoesMeshComponentUseTexture(InMeshComponent, Texture2D);
 
 		if( !bIsTextureUsed && TextureData != NULL && TextureData->PaintRenderTargetTexture != NULL )
 		{
-			bIsTextureUsed = DoesMaterialUseTexture(MaterialToCheck,TextureData->PaintRenderTargetTexture);
+			bIsTextureUsed = DoesMeshComponentUseTexture(InMeshComponent, TextureData->PaintRenderTargetTexture);
 		}
 
 		if( bIsTextureUsed == true && bStartedPainting == false )
@@ -4371,25 +4373,6 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 	}
 }
 
-/** Structure used to house and compare Texture and UV channel pairs */
-struct FPaintableTexture
-{	
-	UTexture*	Texture;
-	int32		UVChannelIndex;
-
-	FPaintableTexture(UTexture* InTexture = NULL, uint32 InUVChannelIndex = 0)
-		: Texture(InTexture)
-		, UVChannelIndex(InUVChannelIndex)
-	{}
-	
-	/** Overloaded equality operator for use with TArrays Contains method. */
-	bool operator==(const FPaintableTexture& rhs) const
-	{
-		return (Texture == rhs.Texture);
-		/* && (UVChannelIndex == rhs.UVChannelIndex);*/// if we compare UVChannel we would have to duplicate the texture
-	}
-};
-
 /** 
  * Will update the list of available texture paint targets based on selection 
  */
@@ -4420,144 +4403,106 @@ void FEdModeMeshPaint::UpdateTexturePaintTargetList()
 				TArray<UMeshComponent*> MeshComponents;
 				Actor->GetComponents<UMeshComponent>(MeshComponents);
 
-				for(const auto& MeshComponent : MeshComponents)
+				int32 DefaultIndex = INDEX_NONE;
+				for (const auto& MeshComponent : MeshComponents)
 				{
-					if ( MeshComponent != NULL )
+					// Create the geometry adapter
+					TSharedPtr<IMeshPaintGeometryAdapter> MeshAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
+					if (MeshAdapter.IsValid())
 					{
 						// We already know the material we are painting on, take it off the static mesh component
 						UMaterialInterface* Material = MeshComponent->GetMaterial(MaterialIndex);
-				
-						if ( Material != NULL )
+
+						if (Material != NULL)
 						{
-							int32 DefaultIndex = INDEX_NONE;
-							FPaintableTexture PaintableTexture;
 							// Find all the unique textures used in the top material level of the selected actor materials
-		
-							const TArray<UMaterialExpression*>& Expressions = Material->GetMaterial()->Expressions;
-
-							// Only grab the textures from the top level of samples
-							for (auto ItExpressions = Expressions.CreateConstIterator(); ItExpressions; ItExpressions++)
-							{
-								UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(*ItExpressions);
-								if (TextureBase != NULL && 
-									TextureBase->Texture != NULL && 
-									!TextureBase->Texture->IsNormalMap())
-								{
-									// Default UV channel to index 0. 
-									PaintableTexture = FPaintableTexture(TextureBase->Texture, 0);
-										
-									// Texture Samples can have UV's specified, check the first node for whether it has a custom UV channel set. 
-									// We only check the first as the Mesh paint mode does not support painting with UV's modified in the shader.
-									UMaterialExpressionTextureSample* TextureSample = Cast<UMaterialExpressionTextureSample>(*ItExpressions);
-									if (TextureSample != NULL)
-									{
-										UMaterialExpressionTextureCoordinate* TextureCoords = Cast<UMaterialExpressionTextureCoordinate>(TextureSample->Coordinates.Expression);
-										if (TextureCoords != NULL)
-										{
-											// Store the uv channel, this is set when the texture is selected. 
-											PaintableTexture.UVChannelIndex = TextureCoords->CoordinateIndex;
-										}
-
-										// Handle texture parameter expressions
-										UMaterialExpressionTextureSampleParameter* TextureSampleParameter = Cast<UMaterialExpressionTextureSampleParameter>(TextureSample);
-										if (TextureSampleParameter != NULL)
-										{
-											// Grab the overridden texture if it exists.  
-											Material->GetTextureParameterValue(TextureSampleParameter->ParameterName, PaintableTexture.Texture);
-										}
-									}
-
-									// note that the same texture will be added again if its UV channel differs. 
-									int32 TextureIndex = TexturesInSelection.AddUnique(PaintableTexture);
-
-									// cache the first default index, if there is no previous info this will be used as the selected texture
-									if (DefaultIndex == INDEX_NONE && TextureBase->IsDefaultMeshpaintTexture)
-									{
-										DefaultIndex = TextureIndex;
-									}
-								}
-							}
-
-							// Generate the list of target paint textures that will be displaying in the UI
-							for( int32 TexIndex = 0; TexIndex < TexturesInSelection.Num(); TexIndex++ )
-							{
-								UTexture2D* Texture2D = Cast<UTexture2D>( TexturesInSelection[ TexIndex ].Texture );
-								int32 UVChannelIndex = TexturesInSelection[ TexIndex ].UVChannelIndex;
-								// If this is not a UTexture2D we check to see if it is a rendertarget texture
-								if( Texture2D == NULL )
-								{
-									UTextureRenderTarget2D* TextureRenderTarget2D = Cast<UTextureRenderTarget2D>( TexturesInSelection[ TexIndex ].Texture );
-									if( TextureRenderTarget2D )
-									{
-										// Since this is a rendertarget, we lookup the original texture that we overrode during the paint operation
-										Texture2D = GetOriginalTextureFromRenderTarget( TextureRenderTarget2D );
-
-										// Since we looked up a texture via a rendertarget, it is possible that this texture already exists in our list.  If so 
-										//  we will not add it and continue processing other elements.
-										if( Texture2D != NULL && TexturesInSelection.Contains( FPaintableTexture(Texture2D, UVChannelIndex) ) )
-										{
-											continue;
-										}
-									}
-								}
-
-								if( Texture2D != NULL )
-								{
-									// @todo MeshPaint: We rely on filtering out normal maps by name here.  Obviously a user can name a diffuse with _N_ in the name so
-									//   this is not a good option.  We attempted to find all the normal maps from the material above with GetAllNormalParameterNames(),
-									//   but that always seems to return an empty list.  This needs to be revisited.
-	
-									// Some normalmaps in the content will fail checks we do in the if statement below.  So we also check to make sure 
-									//   the name does not end with "_N", and that the following substrings do not appear in the name "_N_" "_N0".
-									FString Texture2DName;
-									Texture2D->GetName(Texture2DName);
-									Texture2DName = Texture2DName.ToUpper();
-
-									// Make sure the texture is not a normalmap, we don't support painting on those at the moment.
-									if( Texture2D->IsNormalMap() == true 
-										|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
-										|| Texture2D->LODGroup == TEXTUREGROUP_CharacterNormalMap
-										|| Texture2D->LODGroup == TEXTUREGROUP_WeaponNormalMap
-										|| Texture2D->LODGroup == TEXTUREGROUP_VehicleNormalMap
-										|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
-										|| Texture2DName.Contains( TEXT("_N0" ))
-										|| Texture2DName.Contains( TEXT("_N_" ))
-										|| Texture2DName.Contains( TEXT("_NORMAL" ))
-										|| (Texture2DName.Right(2)).Contains( TEXT("_N" )) )
-									{
-										continue;
-									}
-			
-									// Add the texture to our list
-									new(TexturePaintTargetList) FTextureTargetListInfo(Texture2D, UVChannelIndex);
-
-									// We stored off the user's selection before we began the update.  Since we cleared the list we lost
-									//  that selection info. If the same texture appears in our list after update, we will select it again.
-									if( PreviouslySelectedTexture != NULL && Texture2D == PreviouslySelectedTexture )
-									{
-										TexturePaintTargetList[ TexturePaintTargetList.Num() - 1 ].bIsSelected = true;
-									}
-								}
-							}
-
-							//if there are no default textures, revert to the old method of just selecting the first texture.
+							int32 DefaultIndexHere = INDEX_NONE;
+							MeshAdapter->QueryPaintableTextures(MaterialIndex, /*out*/ DefaultIndexHere, /*inout*/ TexturesInSelection);
 							if (DefaultIndex == INDEX_NONE)
 							{
-								DefaultIndex = 0;
-							}
-
-							//We refreshed the list, if nothing else is set we default to the first texture that has IsDefaultMeshPaintTexture set.
-							if(TexturePaintTargetList.Num() > 0 && GetSelectedTexture() == NULL)
-							{
-								if (ensure(TexturePaintTargetList.IsValidIndex(DefaultIndex)))
-								{
-									TexturePaintTargetList[DefaultIndex].bIsSelected = true;
-								}
+								DefaultIndex = DefaultIndexHere;
 							}
 						}
 					}
 				}
-		
+
+				// Generate the list of target paint textures that will be displaying in the UI
+				for( int32 TexIndex = 0; TexIndex < TexturesInSelection.Num(); TexIndex++ )
+				{
+					UTexture2D* Texture2D = Cast<UTexture2D>( TexturesInSelection[ TexIndex ].Texture );
+					int32 UVChannelIndex = TexturesInSelection[ TexIndex ].UVChannelIndex;
+					// If this is not a UTexture2D we check to see if it is a rendertarget texture
+					if( Texture2D == NULL )
+					{
+						UTextureRenderTarget2D* TextureRenderTarget2D = Cast<UTextureRenderTarget2D>( TexturesInSelection[ TexIndex ].Texture );
+						if( TextureRenderTarget2D )
+						{
+							// Since this is a rendertarget, we lookup the original texture that we overrode during the paint operation
+							Texture2D = GetOriginalTextureFromRenderTarget( TextureRenderTarget2D );
+
+							// Since we looked up a texture via a rendertarget, it is possible that this texture already exists in our list.  If so 
+							//  we will not add it and continue processing other elements.
+							if( Texture2D != NULL && TexturesInSelection.Contains( FPaintableTexture(Texture2D, UVChannelIndex) ) )
+							{
+								continue;
+							}
+						}
+					}
+
+					if( Texture2D != NULL )
+					{
+						// @todo MeshPaint: We rely on filtering out normal maps by name here.  Obviously a user can name a diffuse with _N_ in the name so
+						//   this is not a good option.  We attempted to find all the normal maps from the material above with GetAllNormalParameterNames(),
+						//   but that always seems to return an empty list.  This needs to be revisited.
+	
+						// Some normalmaps in the content will fail checks we do in the if statement below.  So we also check to make sure 
+						//   the name does not end with "_N", and that the following substrings do not appear in the name "_N_" "_N0".
+						FString Texture2DName;
+						Texture2D->GetName(Texture2DName);
+						Texture2DName = Texture2DName.ToUpper();
+
+						// Make sure the texture is not a normalmap, we don't support painting on those at the moment.
+						if( Texture2D->IsNormalMap() == true 
+							|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
+							|| Texture2D->LODGroup == TEXTUREGROUP_CharacterNormalMap
+							|| Texture2D->LODGroup == TEXTUREGROUP_WeaponNormalMap
+							|| Texture2D->LODGroup == TEXTUREGROUP_VehicleNormalMap
+							|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
+							|| Texture2DName.Contains( TEXT("_N0" ))
+							|| Texture2DName.Contains( TEXT("_N_" ))
+							|| Texture2DName.Contains( TEXT("_NORMAL" ))
+							|| (Texture2DName.Right(2)).Contains( TEXT("_N" )) )
+						{
+							continue;
+						}
+			
+						// Add the texture to our list
+						new(TexturePaintTargetList) FTextureTargetListInfo(Texture2D, UVChannelIndex);
+
+						// We stored off the user's selection before we began the update.  Since we cleared the list we lost
+						//  that selection info. If the same texture appears in our list after update, we will select it again.
+						if( PreviouslySelectedTexture != NULL && Texture2D == PreviouslySelectedTexture )
+						{
+							TexturePaintTargetList[ TexturePaintTargetList.Num() - 1 ].bIsSelected = true;
+						}
+					}
+				}
+
+				//if there are no default textures, revert to the old method of just selecting the first texture.
+				if (DefaultIndex == INDEX_NONE)
+				{
+					DefaultIndex = 0;
+				}
+
+				//We refreshed the list, if nothing else is set we default to the first texture that has IsDefaultMeshPaintTexture set.
+				if ((TexturePaintTargetList.Num() > 0) && (GetSelectedTexture() == NULL))
+				{
+					if (ensure(TexturePaintTargetList.IsValidIndex(DefaultIndex)))
+					{
+						TexturePaintTargetList[DefaultIndex].bIsSelected = true;
+					}
+				}
+
 			}
 		}
 		

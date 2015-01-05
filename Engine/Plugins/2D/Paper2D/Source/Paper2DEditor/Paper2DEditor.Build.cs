@@ -28,15 +28,15 @@ public class Paper2DEditor : ModuleRules
 				"Paper2D",
 				"ContentBrowser",
 				"WorkspaceMenuStructure",
-				"EditorStyle"
+				"EditorStyle",
+				"MeshPaint"
 			}
 			);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
-				"IntroTutorials",
-				"MeshPaint"
+				"IntroTutorials"
 			}
 		);
 	}
