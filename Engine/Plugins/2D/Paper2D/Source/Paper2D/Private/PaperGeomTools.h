@@ -13,6 +13,7 @@ public:
 	// Returns true if the points forming a polygon have CCW winding
 	// Returns true if the polygon isn't valid
 	static bool IsPolygonWindingCCW(const TArray<FVector2D>& Points);
+	static bool IsPolygonWindingCCW(const TArray<FIntPoint>& Points);
 
 	// Checks that these polygons can be successfully triangulated	
 	static bool ArePolygonsValid(const TArray<TArray<FVector2D>>& Polygons);
