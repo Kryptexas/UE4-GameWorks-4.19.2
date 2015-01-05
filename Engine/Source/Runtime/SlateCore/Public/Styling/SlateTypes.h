@@ -800,6 +800,11 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FMargin ImagePadding;
 	FSearchBoxStyle& SetImagePadding(const FMargin& InImagePadding){ ImagePadding = InImagePadding; return *this; }
+
+	/** If true, buttons appear to the left of the search text */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	bool bLeftAlignButtons;
+	FSearchBoxStyle& SetLeftAlignButtons(bool bInLeftAlignButtons){ bLeftAlignButtons = bInLeftAlignButtons; return *this; }
 };
 
 

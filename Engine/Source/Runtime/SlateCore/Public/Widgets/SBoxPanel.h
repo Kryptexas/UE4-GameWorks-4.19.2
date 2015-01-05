@@ -200,6 +200,18 @@ public:
 		return NewSlot;
 	}
 
+	FSlot& InsertSlot( int32 Index )
+	{
+		SHorizontalBox::FSlot& NewSlot = *new SHorizontalBox::FSlot();
+		this->Children.Insert(&NewSlot, Index);
+		return NewSlot;
+	}
+
+	int32 NumSlots() const
+	{
+		return this->Children.Num();
+	}
+
 	FORCENOINLINE SHorizontalBox()
 	: SBoxPanel( Orient_Horizontal )
 	{
@@ -325,6 +337,18 @@ public:
 		SVerticalBox::FSlot& NewSlot = *new SVerticalBox::FSlot();
 		this->Children.Add( &NewSlot );
 		return NewSlot;
+	}
+
+	FSlot& InsertSlot(int32 Index)
+	{
+		SVerticalBox::FSlot& NewSlot = *new SVerticalBox::FSlot();
+		this->Children.Insert(&NewSlot, Index);
+		return NewSlot;
+	}
+
+	int32 NumSlots() const
+	{
+		return this->Children.Num();
 	}
 
 	FORCENOINLINE SVerticalBox()
