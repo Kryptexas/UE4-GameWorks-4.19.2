@@ -723,17 +723,11 @@ FGatherTextSCC::~FGatherTextSCC()
 {
 	if( CheckedOutFiles.Num() > 0 )
 	{
-		UE_LOG(LogGatherTextCommandletBase, Log, TEXT("Source Control wrapper shutting down with checked out files, cleaning up."));
-		FText SCCErrorStr;
-		if (!CleanUp(SCCErrorStr))
-		{
-			UE_LOG(LogGatherTextCommandletBase, Error, TEXT("%s"), *SCCErrorStr.ToString());
-		}
+		UE_LOG(LogGatherTextCommandletBase, Log, TEXT("Source Control wrapper shutting down with checked out files."));
 	}
 
 	ISourceControlModule::Get().GetProvider().Close();
 }
-
 
 bool FGatherTextSCC::CheckOutFile(const FString& InFile, FText& OutError)
 {
