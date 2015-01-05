@@ -82,11 +82,6 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	{
 		WindowStyle |= SDL_WINDOW_BORDERLESS;
 
-		if (Definition->AcceptsInput)
-		{
-			WindowStyle |= SDL_WINDOW_ACCEPTS_INPUT;
-		} 
-
 		if (Definition->IsTopmostWindow)
 		{
 			WindowStyle |= SDL_WINDOW_ALWAYS_ON_TOP;
@@ -97,6 +92,11 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 			WindowStyle |= SDL_WINDOW_SKIP_TASKBAR;
 		}
 	}
+
+	if (Definition->AcceptsInput)
+	{
+		WindowStyle |= SDL_WINDOW_ACCEPTS_INPUT;
+	} 
 
 	if ( Definition->HasSizingFrame )
 	{
