@@ -121,8 +121,8 @@ struct FSpritePolygonCollection
 		, PixelsPerSubdivisionY(32)
 		, bAvoidVertexMerging(false)
 		, AlphaThreshold(0.0f)
-		, SimplifyEpsilon(2.0f)
 		, DetailAmount(0.5f)
+		, SimplifyEpsilon(2.0f)
 	{
 	}
 
