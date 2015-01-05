@@ -21,7 +21,7 @@ public:
 	DECLARE_DELEGATE_OneParam(FOnSearch, SSearchBox::SearchDirection);
 
 	SLATE_BEGIN_ARGS(SSearchBox)
-		: _Style()
+		: _Style( &FCoreStyle::Get().GetWidgetStyle<FSearchBoxStyle>("SearchBox") )
 		, _HintText( LOCTEXT("SearchHint", "Search") )
 		, _InitialText()
 		, _OnTextChanged()
@@ -32,7 +32,7 @@ public:
 	{ }
 
 		/** Style used to draw this search box */
-		SLATE_ARGUMENT( TOptional<const FSearchBoxStyle*>, Style )
+		SLATE_STYLE_ARGUMENT( FSearchBoxStyle, Style )
 
 		/** The text displayed in the SearchBox when no text has been entered */
 		SLATE_ATTRIBUTE( FText, HintText )

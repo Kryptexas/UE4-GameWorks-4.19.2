@@ -43,6 +43,9 @@ SSuperSearchBox::SSuperSearchBox()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSuperSearchBox::Construct( const FArguments& InArgs )
 {
+	// Allow style to be optionally overridden, but fallback to SSearchBox default if not specified
+	const FSearchBoxStyle* InStyle = InArgs._Style.IsSet() ? InArgs._Style.GetValue() : &FCoreStyle::Get().GetWidgetStyle<FSearchBoxStyle>("SearchBox");
+
 	ChildSlot
 	[
 		SAssignNew( SuggestionBox, SMenuAnchor )
@@ -50,7 +53,7 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 		.Method( EPopupMethod::UseCurrentWindow )
 			[
 				SAssignNew(InputText, SSearchBox)
-					.Style(InArgs._Style)
+					.Style(InStyle)
 					.OnTextCommitted(this, &SSuperSearchBox::OnTextCommitted)
 					.HintText( NSLOCTEXT( "SuperSearchBox", "HelpHint", "Search For Help" ) )
 					.OnTextChanged(this, &SSuperSearchBox::OnTextChanged)
