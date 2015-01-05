@@ -634,10 +634,13 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 		bNeedsVelocity |= bMotionBlur || bTemporalAA;
 	}
-	if( !bNeedsVelocity || GPixelFormats[PF_G16R16].Supported == false )
+	if( !bNeedsVelocity || !GPixelFormats[PF_G16R16].Supported )
 	{
 		return;
 	}
+
+	// this is not supported
+	check(!Views[0].bIsSceneCapture);
 
 	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities);
 

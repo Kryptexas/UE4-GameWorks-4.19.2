@@ -2463,8 +2463,7 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalL
 -----------------------------------------------------------------------------*/
 
 FMotionBlurInfoData::FMotionBlurInfoData()
-	: CacheUpdateCount(0)
-	, bShouldClearMotionBlurInfo(false)
+	: bShouldClearMotionBlurInfo(false)
 {
 
 }
@@ -2551,7 +2550,7 @@ void FMotionBlurInfoData::RestoreForPausedMotionBlur()
 
 void FMotionBlurInfoData::UpdateMotionBlurCache(FScene* InScene)
 {
-	check(IsInRenderingThread());
+	check(InScene && IsInRenderingThread());
 
 	if (InScene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{

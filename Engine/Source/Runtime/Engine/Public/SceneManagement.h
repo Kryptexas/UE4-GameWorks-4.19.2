@@ -1447,6 +1447,7 @@ private:
 	bool bKeepAndUpdateThisFrame;
 };
 
+// stored in the scene, can be shared for multiple views
 class FMotionBlurInfoData
 {
 public:
@@ -1456,19 +1457,21 @@ public:
 	/** 
 	 *	Set the primitives motion blur info
 	 * 
-	 *	@param PrimitiveSceneInfo	The primitive to add
+	 *	@param PrimitiveSceneInfo The primitive to add, must not be 0
 	 */
 	void UpdatePrimitiveMotionBlur(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/** 
-	 *	Set the primitives motion blur info
+	 *	Unsets the primitives motion blur info
 	 * 
-	 *	@param PrimitiveSceneInfo	The primitive to add
+	 *	@param PrimitiveSceneInfo The primitive to remove, must not be 0
 	 */
 	void RemovePrimitiveMotionBlur(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/**
 	 * Creates any needed motion blur infos if needed and saves the transforms of the frame we just completed
+	 * called in RenderFinish()
+	 * @param InScene must not be 0
 	 */
 	void UpdateMotionBlurCache(class FScene* InScene);
 
@@ -1486,7 +1489,7 @@ public:
 	 */
 	bool GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMatrix& OutPreviousLocalToWorld);
 
-	/** */
+	/** Request to clear all stored motion blur data for this scene. */
 	void SetClearMotionBlurInfo();
 
 	/**
@@ -1497,8 +1500,6 @@ public:
 private:
 	/** The motion blur info entries for the frame. Accessed on Renderthread only! */
 	TMap<FPrimitiveComponentId, FMotionBlurInfo> MotionBlurInfos;
-	/** Unique "frame number" counter to make sure we don't double update */
-	uint32 CacheUpdateCount;	
 	/** */
 	bool bShouldClearMotionBlurInfo;
 
