@@ -795,6 +795,11 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ClearImage;
 	FSearchBoxStyle& SetClearImage( const FSlateBrush& InClearImage ){ ClearImage = InClearImage; return *this; }
+
+	/** Padding to use around the images */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ImagePadding;
+	FSearchBoxStyle& SetImagePadding(const FMargin& InImagePadding){ ImagePadding = InImagePadding; return *this; }
 };
 
 

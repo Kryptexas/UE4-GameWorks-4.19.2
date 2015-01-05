@@ -29,8 +29,12 @@ class SSuperSearchBox
 public:
 
 	SLATE_BEGIN_ARGS( SSuperSearchBox )
-		: _SuggestionListPlacement( MenuPlacement_ComboBoxRight )
+		: _Style()
+		, _SuggestionListPlacement( MenuPlacement_ComboBoxRight )
 		{}
+
+		/** Style used to draw this search box */
+		SLATE_ARGUMENT( TOptional<const FSearchBoxStyle*>, Style )
 
 		/** Where to place the suggestion list */
 		SLATE_ARGUMENT( EMenuPlacement, SuggestionListPlacement )

@@ -50,12 +50,13 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 		.Method( EPopupMethod::UseCurrentWindow )
 			[
 				SAssignNew(InputText, SSearchBox)
+					.Style(InArgs._Style)
 					.OnTextCommitted(this, &SSuperSearchBox::OnTextCommitted)
 					.HintText( NSLOCTEXT( "SuperSearchBox", "HelpHint", "Search For Help" ) )
 					.OnTextChanged(this, &SSuperSearchBox::OnTextChanged)
 					.SelectAllTextWhenFocused(false)
 					.DelayChangeNotificationsWhileTyping(true)
-			.MinDesiredWidth(200)
+					.MinDesiredWidth(200)
 			]
 			.MenuContent
 			(
