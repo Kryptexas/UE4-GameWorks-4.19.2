@@ -13,6 +13,7 @@ public class WebBrowser : ModuleRules
 			new string[]
 			{
 				"Core",
+				"RHI",
 				"InputCore",
 				"SlateCore",
 				"Slate",

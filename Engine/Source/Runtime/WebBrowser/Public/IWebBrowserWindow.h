@@ -29,7 +29,7 @@ public:
 	 * 
 	 * @param WindowSize Desired viewport size
 	 */
-	virtual void SetViewportSize(FVector2D WindowSize) = 0;
+	virtual void SetViewportSize(FIntPoint WindowSize) = 0;
 
 	/**
 	 * Gets interface to the texture representation of the browser

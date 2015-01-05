@@ -4,6 +4,7 @@
 #include "WebBrowserWindow.h"
 #include "SlateCore.h"
 #include "SlateBasics.h"
+#include "RHI.h"
 
 #if WITH_CEF3
 FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize)
@@ -45,17 +46,18 @@ void FWebBrowserWindow::LoadURL(FString NewURL)
 	}
 }
 
-void FWebBrowserWindow::SetViewportSize(FVector2D WindowSize)
+void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 {
-	// Magic number for texture size, can't access GetMax2DTextureDimension easily
-	FIntPoint ClampedWindowSize = WindowSize.ClampAxes(1, 2048).IntPoint();
+	const int32 MaxSize = GetMax2DTextureDimension();
+	WindowSize.X = FMath::Min(WindowSize.X, MaxSize);
+	WindowSize.Y = FMath::Min(WindowSize.Y, MaxSize);
 
 	// Ignore sizes that can't be seen as it forces CEF to re-render whole image
-	if (WindowSize >= FVector2D::UnitVector && ViewportSize != ClampedWindowSize)
+	if (WindowSize.X > 0 && WindowSize.Y > 0 && ViewportSize != WindowSize)
 	{
 		FIntPoint OldViewportSize = MoveTemp(ViewportSize);
 		TArray<uint8> OldTextureData = MoveTemp(TextureData);
-		ViewportSize = ClampedWindowSize;
+		ViewportSize = MoveTemp(WindowSize);
 		TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
 
 		// copy row by row to avoid texture distortion

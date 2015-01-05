@@ -18,7 +18,10 @@ FSlateShaderResource* FWebBrowserViewport::GetViewportRenderTargetTexture() cons
 
 void FWebBrowserViewport::Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
 {
-	WebBrowserWindow->SetViewportSize(AllottedGeometry.GetLocalSize());
+	// Calculate max corner of the viewport using same method as Slate
+	FVector2D MaxPos = AllottedGeometry.AbsolutePosition + TransformVector(AllottedGeometry.GetAccumulatedRenderTransform(), AllottedGeometry.GetLocalSize());
+	// Get size by subtracting as int to avoid incorrect rounding when size and position are .5
+	WebBrowserWindow->SetViewportSize(MaxPos.IntPoint() - AllottedGeometry.AbsolutePosition.IntPoint());
 }
 
 bool FWebBrowserViewport::RequiresVsync() const
