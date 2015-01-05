@@ -211,6 +211,11 @@ template< class T, class U > FORCEINLINE const T* CastChecked( const U      * Sr
 	struct TCastFlags<ClassName> \
 	{ \
 		static const uint64 Value = CASTCLASS_##ClassName; \
+	}; \
+	template <> \
+	struct TCastFlags<const ClassName> \
+	{ \
+		static const uint64 Value = CASTCLASS_##ClassName; \
 	};
 
 #define DECLARE_CAST_BY_FLAG(ClassName) \
