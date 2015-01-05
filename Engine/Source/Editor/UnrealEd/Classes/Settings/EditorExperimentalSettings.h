@@ -77,10 +77,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
 
-	/** Enables the Blueprint merge tool */
-	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Enable Blueprint Merge Tool"))
-	bool bEnableBlueprintMergeTool;
-
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
