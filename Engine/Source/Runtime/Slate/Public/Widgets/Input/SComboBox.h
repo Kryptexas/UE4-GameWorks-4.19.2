@@ -152,11 +152,8 @@ public:
 		OptionsSource = InArgs._OptionsSource;
 
 		TSharedRef<SWidget> MenuContent = 
-			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.MaxHeight(InArgs._MaxListHeight)
+			SNew(SBox)
+			.MaxDesiredHeight(InArgs._MaxListHeight)
 			[
 				SAssignNew( this->ComboListView, SComboListType )
 				.ListItemsSource( InArgs._OptionsSource )
