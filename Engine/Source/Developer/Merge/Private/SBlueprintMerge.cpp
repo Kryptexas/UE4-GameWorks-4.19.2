@@ -166,8 +166,6 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 		, FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintMerge.Cancel")
 	);
 
-	DifferencesTreeView = DiffTreeView::CreateTreeView(&MasterDifferencesList);
-
 	TSharedRef<SWidget> Overlay = SNew(SHorizontalBox);
 	if( IsActivelyMerging() )
 	{
@@ -214,11 +212,8 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 			+ SSplitter::Slot()
 			.Value(.2f)
 			[
-				SNew(SBorder)
+				SAssignNew(TreeViewContainer, SBorder)
 				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				[
-					DifferencesTreeView.ToSharedRef()
-				]
 			]
 			+ SSplitter::Slot()
 			.Value(.8f)
@@ -270,12 +265,12 @@ void SBlueprintMerge::PrevDiff()
 
 bool SBlueprintMerge::HasNextDiff() const
 {
-	return DiffTreeView::HasNextDifference( DifferencesTreeView.ToSharedRef(), RealDifferences );
+	return DifferencesTreeView.IsValid() && DiffTreeView::HasNextDifference( DifferencesTreeView.ToSharedRef(), RealDifferences );
 }
 
 bool SBlueprintMerge::HasPrevDiff() const
 {
-	return DiffTreeView::HasPrevDifference(DifferencesTreeView.ToSharedRef(), RealDifferences );
+	return DifferencesTreeView.IsValid() && DiffTreeView::HasPrevDifference(DifferencesTreeView.ToSharedRef(), RealDifferences );
 }
 
 void SBlueprintMerge::NextConflict()
@@ -290,16 +285,19 @@ void SBlueprintMerge::PrevConflict()
 
 bool SBlueprintMerge::HasNextConflict() const
 {
-	return DiffTreeView::HasNextDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts);
+	return DifferencesTreeView.IsValid() && DiffTreeView::HasNextDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts);
 }
 
 bool SBlueprintMerge::HasPrevConflict() const
 {
-	return DiffTreeView::HasPrevDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts);
+	return DifferencesTreeView.IsValid() && DiffTreeView::HasPrevDifference(DifferencesTreeView.ToSharedRef(), MergeConflicts);
 }
 
 void SBlueprintMerge::OnStartMerge()
 {
+	DifferencesTreeView = DiffTreeView::CreateTreeView(&MasterDifferencesList);
+	TreeViewContainer->SetContent(DifferencesTreeView.ToSharedRef());
+
 	if (Data.BlueprintRemote == nullptr)
 	{
 		Data.BlueprintRemote = Cast<UBlueprint>(FMergeToolUtils::LoadRevision(RemotePath, Data.RevisionRemote));
