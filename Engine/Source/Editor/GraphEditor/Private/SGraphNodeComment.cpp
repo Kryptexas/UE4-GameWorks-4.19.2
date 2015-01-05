@@ -280,7 +280,6 @@ void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderCo
 				FChildren* PanelChildren = Panel->GetAllChildren();
 				int32 NumChildren = PanelChildren->Num();
 				CommentNode->ClearNodesUnderComment();
-				int32 MinDepth = 0;
 
 				for ( int32 NodeIndex=0; NodeIndex < NumChildren; ++NodeIndex )
 				{
@@ -294,19 +293,12 @@ void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderCo
 						const FVector2D SomeNodeSize = SomeNodeWidget->GetDesiredSize();
 
 						const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
-						if( FSlateRect::DoRectanglesIntersect( CommentRect, NodeGeometryGraphSpace ) )
+						if( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
 						{
-							MinDepth = FMath::Min( MinDepth, SomeNodeWidget->GetSortDepth() - 1 );
-
-							if ( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
-							{
-								CommentNode->AddNodeUnderComment(GraphObject);
-							}
+							CommentNode->AddNodeUnderComment(GraphObject);
 						}
 					}
 				}
-				// Fix Depth to include any overlapped comments
-				CommentNode->CommentDepth = FMath::Min( CommentNode->CommentDepth, MinDepth );
 			}
 		}
 		bIsSelected = bSelected;
@@ -360,6 +352,38 @@ void SGraphNodeComment::MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilt
 						Node->NodePosX += PositionDelta.X;
 						Node->NodePosY += PositionDelta.Y;
 					}
+				}
+			}
+		}
+	}
+}
+
+void SGraphNodeComment::EndUserInteraction() const
+{
+	// Find any parent comments and their list of child nodes
+	const FVector2D NodeSize = GetDesiredSize();
+	if( !NodeSize.IsZero() )
+	{
+		const FVector2D NodePosition = GetPosition();
+		const FSlateRect CommentRect( NodePosition.X, NodePosition.Y, NodePosition.X + NodeSize.X, NodePosition.Y + NodeSize.Y );
+
+		TSharedPtr<SGraphPanel> Panel = GetOwnerPanel();
+		FChildren* PanelChildren = Panel->GetAllChildren();
+		int32 NumChildren = PanelChildren->Num();
+
+		for ( int32 NodeIndex=0; NodeIndex < NumChildren; ++NodeIndex )
+		{
+			TSharedPtr<SGraphNodeComment> CommentWidget = StaticCastSharedRef<SGraphNodeComment>(PanelChildren->GetChildAt(NodeIndex));
+
+			if( CommentWidget.IsValid() )
+			{
+				const FVector2D SomeNodePosition = CommentWidget->GetPosition();
+				const FVector2D SomeNodeSize = CommentWidget->GetDesiredSize();
+
+				const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
+				if( FSlateRect::DoRectanglesIntersect( CommentRect, NodeGeometryGraphSpace ) )
+				{
+					CommentWidget->HandleSelection( CommentWidget->bIsSelected, true );
 				}
 			}
 		}

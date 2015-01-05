@@ -406,6 +406,7 @@ void SNodePanel::OnBeginNodeInteraction(const TSharedRef<SNode>& InNodeToDrag, c
 
 void SNodePanel::OnEndNodeInteraction(const TSharedRef<SNode>& InNodeToDrag)
 {
+	InNodeToDrag->EndUserInteraction();
 }
 
 EActiveTimerReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float InDeltaTime)

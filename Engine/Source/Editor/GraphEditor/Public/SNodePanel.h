@@ -472,6 +472,9 @@ public:
 			return true;
 		}
 
+		/** Called when user interaction has completed */
+		virtual void EndUserInteraction() const {}
+
 		/** 
 		 *	override, when area used to select node, should be different, than it's size
 		 *	e.g. comment node - only title bar is selectable
