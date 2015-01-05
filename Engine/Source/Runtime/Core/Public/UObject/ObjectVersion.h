@@ -448,6 +448,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MIKKTSPACE_IS_DEFAULT,
 	// Only applies to cooked files, grass cooking support.
 	VER_UE4_LANDSCAPE_GRASS_COOKING,
+	// Fixed code for using the bOrientMeshEmitters property.
+	VER_UE4_FIX_SKEL_VERT_ORIENT_MESH_PARTICLES,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
