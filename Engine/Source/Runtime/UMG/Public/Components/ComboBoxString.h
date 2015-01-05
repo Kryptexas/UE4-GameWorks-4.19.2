@@ -17,9 +17,9 @@ class UMG_API UComboBoxString : public UWidget
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSelectionChangedEvent, FString, SelectedItem, ESelectInfo::Type, SelectionType);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOpeningEvent);
 
-public:
+private:
 
-	/** The list of items to be displayed on the combobox. */
+	/** The default list of items to be displayed on the combobox. */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	TArray<FString> DefaultOptions;
 
@@ -99,6 +99,10 @@ public:
 	int32 GetOptionCount() const;
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
