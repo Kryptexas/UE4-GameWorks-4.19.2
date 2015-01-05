@@ -225,7 +225,7 @@ bool FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 		else
 		{
 			// Check to see if the scene node name matches a Matinee group name
-			InMatineeActor->FindFirstGroupInstByName( FString( Node->GetName() ) );
+			FoundGroupInst = InMatineeActor->FindFirstGroupInstByName( FString( Node->GetName() ) );
 		}
 
 		if( FoundGroupInst != NULL )
