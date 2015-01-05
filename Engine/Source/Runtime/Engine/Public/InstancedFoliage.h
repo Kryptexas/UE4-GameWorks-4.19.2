@@ -20,9 +20,10 @@ struct FFoliageInstanceHash;
  */
 enum EFoliageInstanceFlags
 {
-	FOLIAGE_AlignToNormal = 0x00000001,
-	FOLIAGE_NoRandomYaw   = 0x00000002,
-	FOLIAGE_Readjusted    = 0x00000004,
+	FOLIAGE_AlignToNormal	= 0x00000001,
+	FOLIAGE_NoRandomYaw		= 0x00000002,
+	FOLIAGE_Readjusted		= 0x00000004,
+	FOLIAGE_InstanceDeleted	= 0x00000008,	// Used only for migration from pre-HierarchicalISM foliage.
 };
 
 /**
