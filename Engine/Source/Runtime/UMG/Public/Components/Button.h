@@ -7,6 +7,8 @@
 #include "Button.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonPressedEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonReleasedEvent);
 
 /**
  * The button is a click-able primitive widget to enable basic interaction, you
@@ -56,6 +58,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Button|Event")
 	FOnButtonClickedEvent OnClicked;
 
+	/** Called when the button is pressed */
+	UPROPERTY(BlueprintAssignable, Category="Button|Event")
+	FOnButtonPressedEvent OnPressed;
+
+	/** Called when the button is released */
+	UPROPERTY(BlueprintAssignable, Category="Button|Event")
+	FOnButtonReleasedEvent OnReleased;
+
 public:
 	
 	/** Sets the color multiplier for the button content */
@@ -104,6 +114,8 @@ protected:
 protected:
 	/** Handle the actual click event from slate and forward it on */
 	FReply SlateHandleClicked();
+	void SlateHandlePressed();
+	void SlateHandleReleased();
 
 protected:
 	// UWidget interface

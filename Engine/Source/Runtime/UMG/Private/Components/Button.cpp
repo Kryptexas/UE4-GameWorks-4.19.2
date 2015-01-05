@@ -32,10 +32,14 @@ void UButton::ReleaseSlateResources(bool bReleaseChildren)
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	MyButton = SNew(SButton)
+		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked))
+		.OnPressed(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandlePressed))
+		.OnReleased(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandleReleased))
 		.ButtonStyle(&WidgetStyle)
 		.ClickMethod(ClickMethod)
 		.TouchMethod(TouchMethod)
-		.IsFocusable(IsFocusable);
+		.IsFocusable(IsFocusable)
+		;
 
 	if ( GetChildrenCount() > 0 )
 	{
@@ -51,8 +55,6 @@ void UButton::SynchronizeProperties()
 
 	MyButton->SetColorAndOpacity( ColorAndOpacity );
 	MyButton->SetBorderBackgroundColor( BackgroundColor );
-	
-	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked));
 }
 
 UClass* UButton::GetSlotClass() const
@@ -143,6 +145,16 @@ FReply UButton::SlateHandleClicked()
 	OnClicked.Broadcast();
 
 	return FReply::Handled();
+}
+
+void UButton::SlateHandlePressed()
+{
+	OnPressed.Broadcast();
+}
+
+void UButton::SlateHandleReleased()
+{
+	OnReleased.Broadcast();
 }
 
 #if WITH_EDITOR
