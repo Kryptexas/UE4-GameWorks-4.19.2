@@ -239,6 +239,9 @@ protected:
 	/** Controls our internal layout */
 	TSharedPtr<FTabManager> TabManager;
 
+	/** Whether only dirty assets should be prompted about on save - otherwise all edited assets will be prompted to the user for save/check-out */
+	bool bCheckDirtyOnAssetSave;
+
 private:
 	/** The toolkit standalone host; may be NULL */
 	TWeakPtr< class SStandaloneAssetEditorToolkitHost > StandaloneHost;
