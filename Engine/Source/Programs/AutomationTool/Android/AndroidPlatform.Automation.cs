@@ -807,19 +807,14 @@ public class AndroidPlatform : Platform
             throw new AutomationException("Failed to get package name from " + ClientApp);
 		}
 
-		string CommandLine = "shell am start -n " + PackageName + "/com.epicgames.ue4.GameActivity";
-
 		if (Params.Prebuilt)
 		{
 			// clear the log
 			RunAdbCommand(Params, "logcat -c");
 		}
 
-		// Send a command to unlock the device before we try to run it
-		string UnlockCommandLine = "shell input keyevent 82";
-		RunAdbCommand(Params, UnlockCommandLine, null);
-
 		// start the app on device!
+		string CommandLine = "shell am start -n " + PackageName + "/com.epicgames.ue4.GameActivity";
 		ProcessResult ClientProcess = RunAdbCommand(Params, CommandLine, null, ClientRunFlags);
 
 
