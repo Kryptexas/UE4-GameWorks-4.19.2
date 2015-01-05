@@ -672,6 +672,17 @@ void FActorDetails::AddBlutilityCategory( IDetailLayoutBuilder& DetailBuilder, c
 				]
 			]
 		];
+		// Iterate over actor properties, adding property rows that are editable and may feed into the blutility function.
+		TArray<UObject*> ActorArray;
+		ActorArray.Add( ActorPtr.Get() );
+		for( TFieldIterator<UProperty> PropertyIt(ActorPtr->GetClass()); PropertyIt; ++PropertyIt )
+		{
+			const bool bBlueprintProperty = PropertyIt->GetOuter()->GetClass() == UBlueprintGeneratedClass::StaticClass();
+			if( bBlueprintProperty && !PropertyIt->HasAllPropertyFlags( CPF_DisableEditOnInstance ))
+			{
+				BlutilitiesCategory.AddExternalProperty( ActorArray, PropertyIt->GetFName(), EPropertyLocation::Advanced );
+			}
+		}
 	}
 }
 
@@ -1493,7 +1504,7 @@ bool FActorDetails::DoesActorHaveBlutiltyFunctions() const
 
 		if( ActorClass )
 		{
-			for (TFieldIterator<UFunction> FunctionIter(ActorClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
+			for( TFieldIterator<UFunction> FunctionIter(ActorClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter )
 			{
 				if( FunctionIter->GetBoolMetaData( FBlueprintMetadata::MD_CallInEditor ))
 				{
@@ -1552,12 +1563,7 @@ FReply FActorDetails::CallBlutilityFunction()
 	if( ActorWeakPtr.IsValid() && ActiveBlutilityFunction.IsValid() )
 	{
 		AActor* Actor = ActorWeakPtr.Get();
-		UFunction* Function = ActiveBlutilityFunction.Get();
-
-		if( Function->GetOuter() == Actor->GetClass() )
-		{
-			Actor->ProcessEvent( Function, NULL );
-		}
+		Actor->ProcessEvent( ActiveBlutilityFunction.Get(), NULL );
 	}
 
 	return FReply::Handled();

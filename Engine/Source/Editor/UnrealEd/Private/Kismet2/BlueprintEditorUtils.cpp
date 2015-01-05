@@ -44,6 +44,7 @@
 
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Editor/Blutility/Public/IBlutilityModule.h"
 
 #define LOCTEXT_NAMESPACE "Blueprint"
 
@@ -2390,6 +2391,12 @@ bool FBlueprintEditorUtils::IsBlueprintConst(const UBlueprint* Blueprint)
 	// Macros aren't marked as const because they can modify variables when instanced into a non const class
 	// and will be caught at compile time if they're modifying variables on a const class.
 	return Blueprint->BlueprintType == BPTYPE_Const;
+}
+
+bool FBlueprintEditorUtils::IsBlutility(const UBlueprint* Blueprint)
+{
+	IBlutilityModule& BlutilityModule = FModuleManager::GetModuleChecked<IBlutilityModule>("Blutility");
+	return BlutilityModule.IsBlutility( Blueprint );
 }
 
 bool FBlueprintEditorUtils::IsActorBased(const UBlueprint* Blueprint)
@@ -6886,6 +6893,23 @@ void FBlueprintEditorUtils::GetEntryAndResultNodes(const UEdGraph* InGraph, TWea
 			}
 		}
 	}
+}
+
+FKismetUserDeclaredFunctionMetadata* FBlueprintEditorUtils::GetGraphFunctionMetaData( UEdGraph* InGraph )
+{
+	FKismetUserDeclaredFunctionMetadata* FunctionMetaData = nullptr;
+
+	if( InGraph )
+	{
+		TArray<UK2Node_FunctionEntry*> EntryNodes;
+		InGraph->GetNodesOfClass( EntryNodes );
+
+		if( EntryNodes.Num() )
+		{
+			FunctionMetaData = &EntryNodes[ 0 ]->MetaData;
+		}
+	}
+	return FunctionMetaData;
 }
 
 FText FBlueprintEditorUtils::GetGraphDescription(const UEdGraph* InGraph)

@@ -7,6 +7,7 @@
 #include "EdGraphSchema_K2.h"
 
 class USCS_Node;
+struct FKismetUserDeclaredFunctionMetadata;
 
 /** 
   * Flags describing how to handle graph removal
@@ -193,6 +194,13 @@ public:
 				{
 					ExtraFunctionFlags |= FUNC_Static;
 				}
+				if( IsBlutility( Blueprint ))
+				{
+					if( FKismetUserDeclaredFunctionMetadata* MetaData = GetGraphFunctionMetaData( Graph ))
+					{
+						MetaData->bCallInEditor = true;
+					}
+				}
 				K2Schema->AddExtraFunctionFlags(Graph, ExtraFunctionFlags);
 				K2Schema->MarkFunctionEntryAsEditable(Graph, true);
 			}
@@ -338,6 +346,9 @@ public:
 
 	/** Returns whether or not the blueprint is const during execution */
 	static bool IsBlueprintConst(const UBlueprint* Blueprint);
+
+	/** Returns whether or not the blueprint is a blutility */
+	static bool IsBlutility(const UBlueprint* Blueprint);
 
 	/**
 	 * Whether or not this is an actor-based blueprint, and supports features like the uber-graph, components, etc
@@ -1033,6 +1044,14 @@ public:
 	 * @param OutResultNode		The found result node for the graph
 	 */
 	static void GetEntryAndResultNodes(const UEdGraph* InGraph, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutEntryNode, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutResultNode);
+
+	/**
+	 * Returns the function meta data block for the graph entry node.
+	 *
+	 * @param InGraph			The graph to search through
+	 * @return					If valid a pointer to the user declared function meta data structure otherwise nullptr.
+	 */
+	static FKismetUserDeclaredFunctionMetadata* GetGraphFunctionMetaData( UEdGraph* InGraph );
 
 	/**
 	 * Returns the description of the graph from the metadata

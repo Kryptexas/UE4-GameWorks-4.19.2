@@ -2372,6 +2372,10 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					]
 				]
 			];
+		}
+		const bool bShowCallInEditor = IsCustomEvent() || FBlueprintEditorUtils::IsBlutility( GetBlueprintObj() );
+		if( bShowCallInEditor )
+		{
 			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ) )
 			.NameContent()
 			[
@@ -2582,11 +2586,19 @@ ECheckBoxState FBlueprintGraphActionDetails::GetIsEditorCallableEvent() const
 
 	if( FunctionEntryNodePtr.IsValid() )
 	{
-		UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNodePtr.Get());
-
-		if( CustomEventNode && CustomEventNode->bCallInEditor )
+		if( UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNodePtr.Get()))
 		{
-			Result = ECheckBoxState::Checked;
+			if( CustomEventNode->bCallInEditor  )
+			{
+				Result = ECheckBoxState::Checked;
+			}
+		}
+		else if( UK2Node_FunctionEntry* EntryPoint = Cast<UK2Node_FunctionEntry>(FunctionEntryNodePtr.Get()) )
+		{
+			if( EntryPoint->MetaData.bCallInEditor )
+			{
+				Result = ECheckBoxState::Checked;
+			}
 		}
 	}
 	return Result;
@@ -2596,17 +2608,24 @@ void FBlueprintGraphActionDetails::OnEditorCallableEventModified( const ECheckBo
 {
 	if( FunctionEntryNodePtr.IsValid() )
 	{
+		const bool bCallInEditor = NewCheckedState == ECheckBoxState::Checked;
+		const FText TransactionType = bCallInEditor ?	LOCTEXT( "DisableCallInEditor", "Disable Call In Editor " ) : 
+														LOCTEXT( "EnableCallInEditor", "Enable Call In Editor" );
+
 		if( UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(FunctionEntryNodePtr.Get()) )
 		{
 			if( UBlueprint* Blueprint = FunctionEntryNodePtr->GetBlueprint() )
 			{
-				const bool bCallInEditor = NewCheckedState == ECheckBoxState::Checked;
-				const FText TransactionType = bCallInEditor ?	LOCTEXT( "DisableCallInEditor", "Disable Call In Editor " ) : 
-																LOCTEXT( "EnableCallInEditor", "Enable Call In Editor" );
 				const FScopedTransaction Transaction( TransactionType );
 				CustomEventNode->bCallInEditor = bCallInEditor;
 				FBlueprintEditorUtils::MarkBlueprintAsModified( CustomEventNode->GetBlueprint() );
 			}
+		}
+		else if( UK2Node_FunctionEntry* EntryPoint = Cast<UK2Node_FunctionEntry>(FunctionEntryNodePtr.Get()) )
+		{
+			const FScopedTransaction Transaction( TransactionType );
+			EntryPoint->MetaData.bCallInEditor = bCallInEditor;
+			FBlueprintEditorUtils::MarkBlueprintAsModified( EntryPoint->GetBlueprint() );
 		}
 	}
 }
