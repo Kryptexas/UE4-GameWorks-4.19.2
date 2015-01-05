@@ -2,12 +2,13 @@
 
 
 #include "UnrealEd.h"
-
 #include "FoliageEditModule.h"
 
 const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
 
 #include "FoliageEdMode.h"
+#include "PropertyEditing.h"
+#include "FoliageTypeDetails.h"
 
 /**
  * Foliage Edit Mode module
@@ -27,6 +28,10 @@ public:
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.FoliageMode", "LevelEditor.FoliageMode.Small"),
 			true, 400
 			);
+
+		// Register the details customizer
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomClassLayout("FoliageType", FOnGetDetailCustomizationInstance::CreateStatic(&FFoliageTypeDetails::MakeInstance));
 	}
 
 	/**
@@ -35,6 +40,19 @@ public:
 	virtual void ShutdownModule() override
 	{
 		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Foliage);
+
+		if (!UObjectInitialized())
+		{
+			return;
+		}
+
+		// Unregister the details customization
+		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+		{
+			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+			PropertyModule.UnregisterCustomClassLayout("FoliageType");
+			PropertyModule.NotifyCustomizationModuleChanged();
+		}
 	}
 };
 

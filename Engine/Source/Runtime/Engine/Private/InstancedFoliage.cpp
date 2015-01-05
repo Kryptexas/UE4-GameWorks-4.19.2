@@ -205,12 +205,71 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	OverriddenLightMapRes = 32;
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+
+	/** Ecosystem settings*/
+	AverageSpreadDistance = 50;
+	SpreadVariance = 150;
+	bGrowsInShade = false;
+	SeedsPerStep = 3;
+	OverlapPriority = 0.f;
+	NumSteps = 3;
+	MinScale = 1.f;
+	MaxScale = 3.f;
+	ChangeCount = 0;
+	InitialSeedDensity = 1.f;
+	CollisionRadius = 100.f;
+	ShadeRadius = 100.f;
+	InitialMaxAge = 0.f;
+	MaxAge = 10.f;
+
+	FRichCurve* Curve = ScaleCurve.GetRichCurve();
+	Curve->AddKey(0.f, 0.f);
+	Curve->AddKey(1.f, 1.f);
 }
+
 
 UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	Mesh = nullptr;
+}
+
+
+float UFoliageType::GetMaxRadius() const
+{
+	return FMath::Max(CollisionRadius, ShadeRadius);
+}
+
+float UFoliageType::GetScaleForAge(const float Age) const
+{
+	const FRichCurve* Curve = ScaleCurve.GetRichCurveConst();
+	const float Time = FMath::Clamp(MaxAge == 0 ? 1.f : Age / MaxAge, 0.f, 1.f);
+	const float Scale = Curve->Eval(Time);
+	return MinScale + (MaxScale - MinScale) * Scale;
+}
+
+float UFoliageType::GetInitAge(FRandomStream& RandomStream) const
+{
+	return RandomStream.FRandRange(0, InitialMaxAge);
+}
+
+float UFoliageType::GetNextAge(const float CurrentAge, const int32 NumSteps) const
+{
+	float NewAge = CurrentAge;
+	for (int32 Count = 0; Count < NumSteps; ++Count)
+	{
+		const float GrowAge = NewAge + 1;
+		if (GrowAge <= MaxAge)
+		{
+			NewAge = GrowAge;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return NewAge;
 }
 
 #if WITH_EDITOR
@@ -220,6 +279,7 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 
 	// Ensure that OverriddenLightMapRes is a factor of 4
 	OverriddenLightMapRes = FMath::Max(OverriddenLightMapRes + 3 & ~3, 4);
+	++ChangeCount;
 }
 #endif
 

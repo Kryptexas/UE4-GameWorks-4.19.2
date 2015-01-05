@@ -19,6 +19,7 @@ public class FoliageEdit : ModuleRules
 				"RenderCore",
 				"LevelEditor",
 				"Landscape",
+                "PropertyEditor",
 			}
 		);
 	}
