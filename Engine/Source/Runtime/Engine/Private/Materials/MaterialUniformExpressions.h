@@ -962,6 +962,15 @@ public:
 		// At least one proper index
 		check(InR >= 0 && InR <= 3);
 		++NumElements;
+
+		if (NumElements == 1)
+		{
+			// Replicate scalar
+			IndexG = IndexR;
+			IndexB = IndexR;
+			IndexA = IndexR;
+			NumElements = 4;
+		}
 	}
 
 	// FMaterialUniformExpression interface.
@@ -978,7 +987,8 @@ public:
 	{
 		FLinearColor Temp = OutValue;
 		X->GetNumberValue(Context, Temp);
-		OutValue = Temp;
+		// Clear
+		OutValue *= 0;
 		switch (NumElements)
 		{
 		case 4:
