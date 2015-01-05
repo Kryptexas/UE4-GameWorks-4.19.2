@@ -219,7 +219,6 @@ void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrid
 	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewFullscreenMode, bCheckForCommandLineOverrides);
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	SaveSettings();
 }
 
 void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
@@ -227,6 +226,7 @@ void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 	ApplyResolutionSettings(bCheckForCommandLineOverrides);
 	ApplyNonResolutionSettings();
 
+	SaveSettings();
 	UE_LOG(LogConsoleResponse, Display, TEXT(""));
 }
 
@@ -268,8 +268,8 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 
 void UGameUserSettings::SaveSettings()
 {
-	SaveConfig(CPF_Config, *GGameUserSettingsIni);
 	Scalability::SaveState(GGameUserSettingsIni);
+	SaveConfig(CPF_Config, *GGameUserSettingsIni);
 }
 
 void UGameUserSettings::LoadConfigIni( bool bForceReload/*=false*/ )
