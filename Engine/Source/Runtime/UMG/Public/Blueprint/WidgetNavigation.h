@@ -17,7 +17,7 @@ struct UMG_API FWidgetNavigationData
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Navigation")
-	TEnumAsByte<EUINavigationRule> Rule;
+	EUINavigationRule Rule;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Navigation")
 	FName WidgetToFocus;
@@ -48,53 +48,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Navigation")
 	FWidgetNavigationData Right;
 
-	EUINavigationRule GetNavigationRule(EUINavigation Nav)
-	{
-		switch (Nav)
-		{
-		case EUINavigation::Up:
-			return Up.Rule;
-		case EUINavigation::Down:
-			return Down.Rule;
-		case EUINavigation::Left:
-			return Left.Rule;
-		case EUINavigation::Right:
-			return Right.Rule;
-		}
-		return EUINavigationRule::Escape;
-	}
+public:
 
-	void UpdateMetaData(TSharedRef<FNavigationMetaData> MetaData)
-	{
-		UpdateMetaDataEntry(MetaData, Up, EUINavigation::Up);
-		UpdateMetaDataEntry(MetaData, Down, EUINavigation::Down);
-		UpdateMetaDataEntry(MetaData, Left, EUINavigation::Left);
-		UpdateMetaDataEntry(MetaData, Right, EUINavigation::Right);
-	}
+#if WITH_EDITOR
 
-	bool IsDefault() const
-	{
-		return Up.Rule == EUINavigationRule::Escape &&
-			Down.Rule == EUINavigationRule::Escape &&
-			Left.Rule == EUINavigationRule::Escape &&
-			Right.Rule == EUINavigationRule::Escape;
-	}
+	/**  */
+	EUINavigationRule GetNavigationRule(EUINavigation Nav);
+
+#endif
+
+	/** Updates a slate metadata object to match this configured navigation ruleset. */
+	void UpdateMetaData(TSharedRef<FNavigationMetaData> MetaData);
+
+	/** @return true if the configured navigation object is the same as an un-customized navigation rule set. */
+	bool IsDefault() const;
 
 private:
 
-	void UpdateMetaDataEntry(TSharedRef<FNavigationMetaData> MetaData, const FWidgetNavigationData & NavData, EUINavigation Nav)
-	{
-		switch (NavData.Rule)
-		{
-			case EUINavigationRule::Escape:
-				MetaData->SetNavigationEscape(Nav);
-				break;
-			case EUINavigationRule::Stop:
-				MetaData->SetNavigationStop(Nav);
-				break;
-			case EUINavigationRule::Wrap:
-				MetaData->SetNavigationWrap(Nav);
-				break;
-		}
-	}
+	void UpdateMetaDataEntry(TSharedRef<FNavigationMetaData> MetaData, const FWidgetNavigationData & NavData, EUINavigation Nav);
 };

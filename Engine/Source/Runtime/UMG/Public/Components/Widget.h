@@ -126,8 +126,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Pivot" ))
 	FVector2D RenderTransformPivot;
 
-	/**  */
-	UPROPERTY(Instanced, EditAnywhere, BlueprintReadOnly, Category="Navigation")
+	/**
+	 * The navigation object for this widget is optionally created if the user has configured custom
+	 * navigation rules for this widget in the widget designer.  Those rules determine how navigation transitions
+	 * can occur between widgets.
+	 */
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category="Navigation")
 	class UWidgetNavigation* Navigation;
 
 #if WITH_EDITORONLY_DATA
