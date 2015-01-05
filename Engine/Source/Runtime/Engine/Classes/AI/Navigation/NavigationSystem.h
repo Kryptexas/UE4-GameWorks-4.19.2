@@ -308,9 +308,11 @@ public:
 
 	UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
 
+protected:
 	/** spawn new crowd manager */
 	virtual void CreateCrowdManager();
 
+public:
 	//----------------------------------------------------------------------//
 	// Public querying interface                                                                
 	//----------------------------------------------------------------------//
@@ -600,9 +602,14 @@ public:
 	/** Number of currently running tasks */
 	int32 GetNumRunningBuildTasks() const;
 
+protected:
 	/** Sets up SuportedAgents and NavigationDataCreators. Override it to add additional setup, but make sure to call Super implementation */
 	virtual void DoInitialSetup();
 
+	/** spawn new crowd manager */
+	virtual void UpdateAbstractNavData();
+	
+public:
 	/** Called upon UWorld destruction to release what needs to be released */
 	void CleanUp(ECleanupMode Mode = ECleanupMode::CleanupUnsafe);
 

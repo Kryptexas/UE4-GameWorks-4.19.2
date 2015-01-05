@@ -12,7 +12,7 @@
  * FloatingPawnMovement is a movement component that provides simple movement for any Pawn class.
  * Limits on speed and acceleration are provided, while gravity is not implemented.
  */
-UCLASS()
+UCLASS(meta = (BlueprintSpawnableComponent))
 class ENGINE_API UFloatingPawnMovement : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()

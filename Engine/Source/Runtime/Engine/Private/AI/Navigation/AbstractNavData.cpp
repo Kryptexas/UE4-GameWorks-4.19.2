@@ -37,6 +37,7 @@ FPathFindingResult AAbstractNavData::FindPathAbstract(const FNavAgentProperties&
 
 	Result.Path->GetPathPoints().Add(FNavPathPoint(Query.StartLocation));
 	Result.Path->GetPathPoints().Add(FNavPathPoint(Query.EndLocation));
+	Result.Path->MarkReady();
 	Result.Result = ENavigationQueryResult::Success;
 
 	return Result;

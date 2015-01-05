@@ -4,6 +4,8 @@
 
 #include "AITypes.generated.h"
 
+#define TEXT_AI_LOCATION(v) (FAISystem::IsValidLocation(v) ? *(v).ToString() : TEXT("Invalid"))
+
 namespace FAISystem
 {
 	static const FRotator InvalidRotation = FRotator(FLT_MAX);
