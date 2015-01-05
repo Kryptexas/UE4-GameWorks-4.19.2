@@ -430,7 +430,7 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 		*OutModifiers = 0;
 		if (Gesture->NeedsControl())
 		{
-			*OutModifiers |= NSCommandKeyMask;
+			*OutModifiers |= NSControlKeyMask;
 		}
 		if (Gesture->NeedsShift())
 		{
@@ -442,7 +442,7 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 		}
 		if (Gesture->NeedsCommand())
 		{
-			*OutModifiers |= NSControlKeyMask;
+			*OutModifiers |= NSCommandKeyMask;
 		}
 
 		FString KeyString = Gesture->GetKeyText().ToString().ToLower();
