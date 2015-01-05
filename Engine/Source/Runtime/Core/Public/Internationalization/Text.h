@@ -376,7 +376,6 @@ public:
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
-	friend class FScopedTextIdentityPreserver;
 
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
@@ -557,18 +556,6 @@ public:
 private:
 	FString Report;
 	int32 IndentCount;
-};
-
-class CORE_API FScopedTextIdentityPreserver
-{
-public:
-	FScopedTextIdentityPreserver(FText& InTextToPersist);
-	~FScopedTextIdentityPreserver();
-
-private:
-	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
-	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
-	FText& TextToPersist;
 };
 
 Expose_TNameOf(FText)
