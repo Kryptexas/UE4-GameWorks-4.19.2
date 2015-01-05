@@ -156,6 +156,10 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void DestroyAll(TSubclassOf<class AActor>  aClass);
 
+	/** Destroy all pawns except for the (pawn) target.  If no (pawn) target is found we don't destroy anything. */
+	UFUNCTION(exec)
+	void DestroyAllPawnsExceptTarget();
+
 	/** Destroys (by calling destroy directly) all non-player pawns of class aClass in the level */
 	UFUNCTION(exec)
 	virtual void DestroyPawns(TSubclassOf<class APawn> aClass);

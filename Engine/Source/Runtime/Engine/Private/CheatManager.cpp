@@ -270,16 +270,60 @@ void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
 	}
 }
 
+void UCheatManager::DestroyAllPawnsExceptTarget()
+{
+	// First do the trace to find the target
+	APlayerController* const MyPC = GetOuterAPlayerController();
+	if ((MyPC == NULL) || (MyPC->PlayerCameraManager == NULL))
+	{
+		return;
+	}
+
+	check(GetWorld() != NULL);
+	FVector const CamLoc = MyPC->PlayerCameraManager->GetCameraLocation();
+	FRotator const CamRot = MyPC->PlayerCameraManager->GetCameraRotation();
+
+	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
+	FHitResult Hit;
+	APawn* HitPawnTarget = NULL;
+	bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
+	if (bHit)
+	{
+		check(Hit.GetActor() != NULL);
+		HitPawnTarget = Cast<APawn>(Hit.GetActor());
+	}
+
+	// if we have a pawn target, destroy all other non-players
+	if (HitPawnTarget)
+	{
+		for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
+		{
+			APawn* Pawn = *It;
+			if (!Pawn->IsPendingKill())
+			{
+				if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)
+				{
+					if (Pawn->Controller != NULL)
+					{
+						Pawn->Controller->Destroy();
+					}
+					Pawn->Destroy();
+				}
+			}
+		}
+	}
+}
+
 void UCheatManager::DestroyPawns(TSubclassOf<APawn> aClass)
 {
 	if ( aClass == NULL )
 	{
 		 aClass = APawn::StaticClass();
 	}
-	for( FConstPawnIterator Iterator = GetWorld()->GetPawnIterator(); Iterator; ++Iterator )
+	for (TActorIterator<APawn> It(GetWorld(), aClass); It; ++It)
 	{
-		APawn* Pawn = *Iterator;
-		if ( Pawn->IsA(aClass) && Cast<APlayerController>(Pawn->Controller) == NULL )
+		APawn* Pawn = *It;
+		if ( Cast<APlayerController>(Pawn->Controller) == NULL )
 		{
 			if ( Pawn->Controller != NULL )
 			{
