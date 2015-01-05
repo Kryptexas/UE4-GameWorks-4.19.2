@@ -3300,7 +3300,8 @@ void UParticleModuleLifetime::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 			// First module to modify lifetime.
 			Particle.OneOverMaxLifetime = MaxLifetime > 0.f ? 1.f / MaxLifetime : 0.f;
 		}
-		Particle.RelativeTime = SpawnTime * Particle.OneOverMaxLifetime;
+		//If the relative time is already > 1.0f then we don't want to be setting it. Some modules use this to mark a particle as dead during spawn.
+		Particle.RelativeTime = Particle.RelativeTime > 1.0f ? Particle.RelativeTime : SpawnTime * Particle.OneOverMaxLifetime;
 	}
 }
 
