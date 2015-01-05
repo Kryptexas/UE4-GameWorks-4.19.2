@@ -296,7 +296,7 @@ bool UWidget::HasMouseCapture() const
 	return false;
 }
 
-void UWidget::SetKeyboardFocus() const
+void UWidget::SetKeyboardFocus()
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
