@@ -1386,8 +1386,8 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 	bool bDoExport = false;
 	bool bDoImport = false;
 
-	GetBoolFromConfig( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
 	GetBoolFromConfig( *SectionName, TEXT("bImportLoc"), bDoImport, ConfigPath );
+	GetBoolFromConfig( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
 	
 	if( !bDoImport && !bDoExport )
 	{
@@ -1395,20 +1395,20 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
-	if( bDoExport )
-	{
-		if (!DoExport(SourcePath, DestinationPath, Filename))
-		{
-			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to export localization files."));
-			return -1;
-		}
-	}
-
 	if( bDoImport )
 	{
 		if (!DoImport(SourcePath, DestinationPath, Filename))
 		{
 			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to import localization files."));
+			return -1;
+		}
+	}
+
+	if( bDoExport )
+	{
+		if (!DoExport(SourcePath, DestinationPath, Filename))
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to export localization files."));
 			return -1;
 		}
 	}
