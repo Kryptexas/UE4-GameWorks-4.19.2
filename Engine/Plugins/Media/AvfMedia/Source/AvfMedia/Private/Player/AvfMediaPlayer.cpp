@@ -59,6 +59,7 @@ FAvfMediaPlayer::FAvfMediaPlayer()
     
     PlayerItem = nil;
     MediaPlayer = nil;
+	MediaHelper = nil;
 }
 
 
