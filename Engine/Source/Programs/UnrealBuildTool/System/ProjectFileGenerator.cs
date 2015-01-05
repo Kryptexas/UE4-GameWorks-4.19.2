@@ -528,7 +528,12 @@ namespace UnrealBuildTool
 							{
 								if( !String.IsNullOrEmpty( ProjectTarget.TargetFilePath ) )
 								{
-									IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+									// Only bother with the editor target.  We want to make sure that definitions are setup to be as inclusive as possible
+									// for good quality IntelliSense.  For example, we want WITH_EDITORONLY_DATA=1, so using the editor targets works well.
+									if( ProjectTarget.TargetRules.Type == TargetRules.TargetType.Editor )
+									{ 
+										IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+									}
 								}
 							}
 						}
@@ -552,7 +557,12 @@ namespace UnrealBuildTool
 							{
 								if( !String.IsNullOrEmpty( ProjectTarget.TargetFilePath ) )
 								{
-									IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+									// Only bother with the editor target.  We want to make sure that definitions are setup to be as inclusive as possible
+									// for good quality IntelliSense.  For example, we want WITH_EDITORONLY_DATA=1, so using the editor targets works well.
+									if( ProjectTarget.TargetRules.Type == TargetRules.TargetType.Editor )
+									{ 
+										IntelliSenseTargetFiles.Add( ProjectTarget.TargetFilePath );
+									}
 								}
 							}
 						}
