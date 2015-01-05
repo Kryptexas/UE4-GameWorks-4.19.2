@@ -23,6 +23,7 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",
 					"DesktopPlatform",
 					"SessionMessages",
+					"SourceCodeAccess",
 					"TargetPlatform",
 					"UnrealEdMessages",
 				}

@@ -2,6 +2,7 @@
 
 #include "LauncherServicesPrivatePCH.h"
 #include "PlatformInfo.h"
+#include "ISourceCodeAccessModule.h"
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"
 
@@ -529,6 +530,20 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfile )
 {
+	// check to see if we need to build by default
+	if (!InProfile->HasProjectSpecified())
+	{
+		// TODO: make SouceCodeNavigation and GameProjectGeneration modules available to UFE
+		FString ProjectPath = FPaths::GetPath(InProfile->GetProjectPath());
+		TArray<FString> OutProjectCodeFilenames;
+		IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *(ProjectPath / TEXT("Source")), TEXT("*.h"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *(ProjectPath / TEXT("Source")), TEXT("*.cpp"), true, false, false);
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		if (OutProjectCodeFilenames.Num() > 0 && SourceCodeAccessModule.GetAccessor().CanAccessSourceCode())
+		{
+			InProfile->SetBuildGame(true);
+		}
+	}
 	FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
 
 	// create task chains
