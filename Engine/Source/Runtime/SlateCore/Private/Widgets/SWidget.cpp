@@ -682,8 +682,11 @@ TSharedRef<FActiveTimerHandle> SWidget::RegisterActiveTimer(float TickPeriod, FW
 
 void SWidget::UnRegisterActiveTimer(const TSharedRef<FActiveTimerHandle>& ActiveTimerHandle)
 {
-	FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
-	ActiveTimers.Remove(ActiveTimerHandle);
+	if (FSlateApplicationBase::IsInitialized())
+	{
+		FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
+		ActiveTimers.Remove(ActiveTimerHandle);
+	}
 }
 
 void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
@@ -698,7 +701,11 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 		}
 		else
 		{
-			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+			if (FSlateApplicationBase::IsInitialized())
+			{
+				FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+			}
+			
 			ActiveTimers.RemoveAt(i);
 		}
 	}

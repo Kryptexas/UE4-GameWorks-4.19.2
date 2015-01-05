@@ -240,7 +240,12 @@ void SInputBindingEditorPanel::OnCommandsChanged()
 {
 	UpdateContextMasterList();
 
-	FilterVisibleContextList();
+	// Make sure we aren't restarting after importing/resetting to default
+	if (FSlateApplication::IsInitialized())
+	{
+		FilterVisibleContextList();
+	}
+	
 }
 
 
